@@ -1,14 +1,25 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { pumpApi } from '../../api/pumpApi'
 import { usePumpStore } from '../../store/usePumpStore'
 import { calibrationApi } from '../../api/calibrationApi'
-import type { LogCalibrationRequest } from '../../api/calibrationApi'
+import type { LogCalibrationRequest, NozzleCalibrationLog } from '../../api/calibrationApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
+import { localDateInputValue } from '../../utils/date'
 
 function fmtDate(d: string) {
   return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function fmtDateTime(d: string) {
+  return new Date(d).toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
 }
 
 export default function CalibrationPage() {
@@ -28,15 +39,18 @@ export default function CalibrationPage() {
   const [historyNozzleId, setHistoryNozzleId] = useState<number>(0)
   const [historyPage, setHistoryPage] = useState(0)
   const [historyPageSize, setHistoryPageSize] = useState(10)
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   const { data: calibrationsPage, isLoading } = useQuery({
     queryKey:  ['calibrations', pumpId, historyNozzleId, historyPage, historyPageSize],
-    queryFn:   () => calibrationApi.getCalibrations(pumpId!, historyNozzleId, historyPage, historyPageSize),
-    enabled:   !!pumpId && !!historyNozzleId,
+    queryFn:   () => historyNozzleId
+      ? calibrationApi.getCalibrations(pumpId!, historyNozzleId, historyPage, historyPageSize)
+      : calibrationApi.getPumpCalibrations(pumpId!, historyPage, historyPageSize),
+    enabled:   !!pumpId,
   })
 
   const [form, setForm] = useState<LogCalibrationRequest>({
-    calibrationDate: new Date().toISOString().slice(0, 10),
+    calibrationDate: localDateInputValue(),
     nextCalibrationDue: null,
     calibratedBy: null,
     certificateReference: null,
@@ -48,9 +62,12 @@ export default function CalibrationPage() {
     mutationFn: (data: LogCalibrationRequest) =>
       calibrationApi.recordCalibration(pumpId!, selectedNozzleId, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['calibrations', pumpId, selectedNozzleId] })
-      setForm({ calibrationDate: new Date().toISOString().slice(0, 10), nextCalibrationDue: null, calibratedBy: null, certificateReference: null, notes: null })
+      qc.invalidateQueries({ queryKey: ['calibrations', pumpId] })
+      setHistoryNozzleId(selectedNozzleId)
+      setHistoryPage(0)
+      setForm({ calibrationDate: localDateInputValue(), nextCalibrationDue: null, calibratedBy: null, certificateReference: null, notes: null })
       setFormError(null)
+      setReviewOpen(false)
     },
     onError: (err: any) => setFormError(err?.response?.data?.message ?? 'Failed to record calibration'),
   })
@@ -58,29 +75,66 @@ export default function CalibrationPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedNozzleId) { setFormError('Please select a nozzle'); return }
-    createMutation.mutate(form)
+    if (!form.calibratedBy?.trim()) { setFormError('Calibrated By is required'); return }
+    if (!form.calibrationDate) { setFormError('Calibration date is required'); return }
+    setFormError(null)
+    setReviewOpen(true)
   }
 
   const selectedNozzle = nozzles.find((n: any) => n.id === selectedNozzleId)
   const historyNozzle  = nozzles.find((n: any) => n.id === historyNozzleId)
   const calibrations   = calibrationsPage?.content ?? []
+  const nozzleMap = useMemo(
+    () => new Map(nozzles.map((n: any) => [n.id, n])),
+    [nozzles],
+  )
+
+  const submitCalibration = () => {
+    if (!selectedNozzleId) {
+      setFormError('Please select a nozzle')
+      return
+    }
+    if (!form.calibratedBy?.trim()) {
+      setFormError('Calibrated By is required')
+      return
+    }
+    createMutation.mutate({
+      ...form,
+      calibratedBy: form.calibratedBy.trim(),
+      certificateReference: form.certificateReference?.trim() || null,
+      notes: form.notes?.trim() || null,
+    })
+  }
 
   return (
-    <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
+    <div className="ui-page ui-page--narrow space-y-5">
 
       {/* ── Header ── */}
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Nozzle Calibration</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Record periodic calibration checks for regulatory compliance</p>
+      <div className="ui-section-hero">
+        <div>
+          <p className="ui-section-kicker">Compliance</p>
+          <h1 className="ui-title-sm">Nozzle Calibration</h1>
+          <p className="ui-subtitle">Record periodic calibration checks for regulatory compliance</p>
+        </div>
+        <div className="ui-section-meta">
+          <div className="ui-section-meta-pill">
+            <span className="ui-section-meta-label">Nozzles</span>
+            <span className="ui-section-meta-value">{nozzles.length}</span>
+          </div>
+          <div className="ui-section-meta-pill">
+            <span className="ui-section-meta-label">History</span>
+            <span className="ui-section-meta-value">{calibrationsPage?.totalElements ?? calibrations.length}</span>
+          </div>
+        </div>
       </div>
 
       {/* ── Record form ── */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 px-5 py-4 space-y-3">
+      <form onSubmit={handleSubmit} className="ui-card space-y-3">
         <p className="text-sm font-semibold text-slate-700">Record Calibration</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Nozzle</label>
+            <label className="ui-label">Nozzle</label>
             <SearchableSelect
               value={selectedNozzleId ? selectedNozzleId.toString() : ''}
               onChange={v => { setSelectedNozzleId(parseInt(v) || 0); setFormError(null) }}
@@ -93,110 +147,167 @@ export default function CalibrationPage() {
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Calibration Date</label>
+            <label className="ui-label">Calibration Date</label>
             <input
               type="date"
               value={form.calibrationDate}
               onChange={e => setForm(f => ({ ...f, calibrationDate: e.target.value }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
               required
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Next Calibration Due (optional)</label>
+            <label className="ui-label">Next Calibration Due (optional)</label>
             <input
               type="date"
               value={form.nextCalibrationDue ?? ''}
               onChange={e => setForm(f => ({ ...f, nextCalibrationDue: e.target.value || null }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Calibrated By</label>
+            <label className="ui-label">Calibrated By *</label>
             <input
               type="text"
               value={form.calibratedBy ?? ''}
               onChange={e => setForm(f => ({ ...f, calibratedBy: e.target.value || null }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
               placeholder="Technician or agency name"
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Certificate Reference (optional)</label>
+            <label className="ui-label">Certificate Reference (optional)</label>
             <input
               type="text"
               value={form.certificateReference ?? ''}
               onChange={e => setForm(f => ({ ...f, certificateReference: e.target.value || null }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
               placeholder="Inspection certificate number"
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Notes (optional)</label>
+            <label className="ui-label">Notes (optional)</label>
             <input
               type="text"
               value={form.notes ?? ''}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
               placeholder="Additional observations"
             />
           </div>
         </div>
 
-        {formError && <p className="text-xs text-red-600">{formError}</p>}
+        {formError && <p className="ui-error-text">{formError}</p>}
 
         <button
           type="submit"
           disabled={createMutation.isPending}
-          className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="ui-btn ui-btn-primary"
         >
-          {createMutation.isPending ? 'Saving…' : 'Record Calibration'}
+          {createMutation.isPending ? 'Saving…' : 'Review Calibration'}
         </button>
       </form>
 
+      {reviewOpen && (
+        <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
+          <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
+              <div className="ui-modal-heading">
+                <h2 className="ui-modal-title">Review Calibration</h2>
+                <p className="ui-modal-subtitle">Verify the nozzle and calibration details before saving.</p>
+              </div>
+              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+            </div>
+            <div className="ui-modal-body space-y-4">
+              {formError && <div className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
+              <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
+                <CalibrationReviewRow
+                  label="Nozzle"
+                  value={selectedNozzle
+                    ? `Nozzle #${selectedNozzle.nozzleNumber} — ${selectedNozzle.outlets?.map((o: any) => o.fuelType).join(' / ')}`
+                    : '—'}
+                />
+                <CalibrationReviewRow label="Calibration Date" value={fmtDate(form.calibrationDate)} />
+                <CalibrationReviewRow label="Next Calibration Due" value={form.nextCalibrationDue ? fmtDate(form.nextCalibrationDue) : '—'} />
+                <CalibrationReviewRow label="Calibrated By" value={form.calibratedBy?.trim() || '—'} />
+                <CalibrationReviewRow label="Certificate Reference" value={form.certificateReference?.trim() || '—'} />
+                <CalibrationReviewRow label="Notes" value={form.notes?.trim() || '—'} />
+              </div>
+            </div>
+            <div className="ui-modal-footer">
+              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
+                Back
+              </button>
+              <button
+                onClick={submitCalibration}
+                disabled={createMutation.isPending}
+                className="ui-btn ui-btn-primary"
+              >
+                {createMutation.isPending ? 'Saving…' : 'Confirm Calibration'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Calibration history ── */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center gap-3">
-          <p className="text-sm font-semibold text-slate-700 mr-auto">
+      <div className="ui-card p-0 overflow-hidden">
+        <div className="ui-toolbar">
+          <p className="ui-toolbar-title">
             Calibration History
-            {historyNozzle && (
+            {historyNozzleId === 0 ? (
+              <span className="text-slate-400 font-normal ml-1">— All nozzles</span>
+            ) : historyNozzle ? (
               <span className="text-slate-400 font-normal ml-1">
                 — Nozzle #{historyNozzle.nozzleNumber} ({historyNozzle.outlets?.map((o: any) => o.fuelType).join(' / ')})
               </span>
-            )}
+            ) : null}
           </p>
 
-          <div className="w-56">
+          <div className="ui-toolbar-actions">
+            <div className="w-56">
             <SearchableSelect
               value={historyNozzleId ? historyNozzleId.toString() : ''}
               onChange={v => { setHistoryNozzleId(parseInt(v) || 0); setHistoryPage(0) }}
               placeholder="Filter by nozzle…"
-              options={nozzles.map((n: any) => ({
-                value: n.id.toString(),
-                label: `Nozzle #${n.nozzleNumber} — ${n.outlets?.map((o: any) => o.fuelType).join(' / ') ?? ''}`,
-              }))}
+              options={[
+                { value: '', label: 'All nozzles' },
+                ...nozzles.map((n: any) => ({
+                  value: n.id.toString(),
+                  label: `Nozzle #${n.nozzleNumber} — ${n.outlets?.map((o: any) => o.fuelType).join(' / ') ?? ''}`,
+                })),
+              ]}
               size="sm"
             />
           </div>
+          </div>
         </div>
 
-        {!historyNozzleId ? (
-          <p className="text-sm text-slate-400 px-5 py-6">Select a nozzle to view its calibration history.</p>
-        ) : isLoading ? (
-          <p className="text-sm text-slate-400 px-5 py-6">Loading…</p>
+        {isLoading ? (
+          <p className="ui-empty px-5 py-6">Loading…</p>
         ) : calibrations.length === 0 ? (
-          <p className="text-sm text-slate-400 px-5 py-6">No calibration records for this nozzle yet.</p>
+          <p className="ui-empty px-5 py-6">
+            {historyNozzleId ? 'No calibration records for this nozzle yet.' : 'No calibration records found yet.'}
+          </p>
         ) : (
           <>
             <div className="divide-y divide-slate-100">
-              {calibrations.map(c => (
+              {calibrations.map((c: NozzleCalibrationLog) => {
+                const nozzle = nozzleMap.get(c.nozzleId)
+                return (
                 <div key={c.id} className="px-5 py-3 space-y-1">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-slate-800">{fmtDate(c.calibrationDate)}</p>
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">{fmtDate(c.calibrationDate)}</p>
+                      <p className="text-xs text-slate-400">
+                        Nozzle #{nozzle?.nozzleNumber ?? c.nozzleId}
+                        {nozzle?.outlets?.length ? ` · ${nozzle.outlets.map((o: any) => o.fuelType).join(' / ')}` : ''}
+                      </p>
+                    </div>
                     {c.nextCalibrationDue && (
                       <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
                         Next due: {fmtDate(c.nextCalibrationDue)}
@@ -207,10 +318,11 @@ export default function CalibrationPage() {
                     {c.calibratedBy && <span>By: {c.calibratedBy}</span>}
                     {c.certificateReference && <span>Cert: {c.certificateReference}</span>}
                     <span className="text-slate-400">Logged by: {c.loggedByName}</span>
+                    <span className="text-slate-400">Logged at: {fmtDateTime(c.createdAt)}</span>
                   </div>
                   {c.notes && <p className="text-xs text-slate-400">{c.notes}</p>}
                 </div>
-              ))}
+              )})}
             </div>
             {calibrationsPage && (
               <div className="px-5">
@@ -225,6 +337,15 @@ export default function CalibrationPage() {
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+function CalibrationReviewRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-2.5">
+      <span className="text-slate-500 text-xs">{label}</span>
+      <span className="font-medium text-sm text-slate-800 text-right">{value}</span>
     </div>
   )
 }

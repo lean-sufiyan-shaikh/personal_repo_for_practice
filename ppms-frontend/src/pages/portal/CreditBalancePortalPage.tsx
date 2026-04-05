@@ -45,8 +45,7 @@ export default function CreditBalancePortalPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4">
 
-      {/* ── Card ── */}
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+      <div className="ui-card w-full max-w-sm p-0 overflow-hidden shadow-lg">
 
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-700 to-blue-800 px-6 py-5 text-white text-center">
@@ -59,13 +58,13 @@ export default function CreditBalancePortalPage() {
         <div className="px-6 py-5">
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className="text-xs text-slate-500 block mb-1">Pump ID</label>
+              <label className="ui-label">Pump ID</label>
               <input
                 type="number"
                 min="1"
                 value={pumpId}
                 onChange={e => setPumpId(e.target.value)}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="text-sm"
                 placeholder="e.g. 1"
                 required
               />
@@ -73,27 +72,25 @@ export default function CreditBalancePortalPage() {
             </div>
 
             <div>
-              <label className="text-xs text-slate-500 block mb-1">Registered Phone Number</label>
+              <label className="ui-label">Registered Phone Number</label>
               <input
                 type="tel"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="text-sm"
                 placeholder="10-digit mobile number"
                 required
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                <p className="text-xs text-red-600">{error}</p>
-              </div>
+              <div className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white text-sm font-semibold py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="ui-btn ui-btn-primary w-full disabled:opacity-50"
             >
               {loading ? 'Checking…' : 'Check Balance'}
             </button>
@@ -101,7 +98,7 @@ export default function CreditBalancePortalPage() {
 
           {/* Result card */}
           {result && (
-            <div className="mt-4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-4">
+            <div className="mt-4 ui-card-plain ui-card-muted px-4 py-4">
               <p className="text-xs text-slate-500 mb-2">Account found for</p>
               <p className="text-base font-bold text-slate-800 mb-3">{result.clientName}</p>
 

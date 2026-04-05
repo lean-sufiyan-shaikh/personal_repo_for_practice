@@ -107,12 +107,12 @@ export function SearchableSelect({
         disabled={disabled}
         onClick={() => open ? (setOpen(false), setSearch('')) : openDropdown()}
         className={[
-          'w-full flex items-center justify-between gap-2 border rounded-lg text-left transition-all',
-          isCompact ? 'px-2 py-1.5 text-xs rounded-md' : 'px-3 py-2 text-sm',
+          'w-full flex items-center justify-between gap-2 border text-left transition-all bg-white shadow-sm',
+          isCompact ? 'min-h-9 px-2.5 py-2 text-xs rounded-[10px]' : 'min-h-11 px-3.5 py-2.5 text-sm rounded-xl',
           open
-            ? `ring-2 ${ringClass}`
-            : 'border-slate-300 hover:border-slate-400',
-          disabled ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'bg-white',
+            ? `ring-4 ring-offset-0 ${ringClass}`
+            : 'border-slate-300 hover:border-slate-400 hover:bg-slate-50/60',
+          disabled ? 'bg-slate-50 text-slate-400 cursor-not-allowed shadow-none' : '',
         ].join(' ')}
       >
         <span className={selected ? 'text-slate-800 truncate' : 'text-slate-400 truncate'}>
@@ -131,11 +131,11 @@ export function SearchableSelect({
         <div
           ref={dropRef}
           style={dropStyle}
-          className="bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden animate-in"
+          className="ui-card p-0 overflow-hidden border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.18)]"
         >
           {/* Search box — only shown when options exceed threshold */}
           {showSearch && (
-            <div className="p-2 border-b border-slate-100">
+            <div className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 p-2 backdrop-blur">
               <div className="relative">
                 <svg
                   className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none"
@@ -149,7 +149,7 @@ export function SearchableSelect({
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Type to search…"
-                  className="w-full pl-7 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50"
+                  className="w-full min-h-10 pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50"
                 />
               </div>
             </div>
@@ -158,7 +158,7 @@ export function SearchableSelect({
           {/* Options list */}
           <div className="max-h-56 overflow-y-auto">
             {filtered.length === 0 ? (
-              <div className="px-4 py-5 text-xs text-slate-400 text-center">No results found</div>
+              <div className="ui-empty px-4 py-5">No results found</div>
             ) : (
               filtered.map(opt => {
                 const isSelected = opt.value === value
@@ -173,10 +173,10 @@ export function SearchableSelect({
                       setSearch('')
                     }}
                     className={[
-                      'w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left transition-colors',
+                      'w-full flex items-center gap-2.5 px-3.5 py-3 text-sm text-left transition-colors',
                       isSelected
                         ? `${accentBg} ${accentText}`
-                        : 'text-slate-700 hover:bg-slate-50',
+                        : 'text-slate-700 hover:bg-slate-50/90',
                     ].join(' ')}
                   >
                     {/* Checkmark — occupies space even when not selected to keep alignment */}

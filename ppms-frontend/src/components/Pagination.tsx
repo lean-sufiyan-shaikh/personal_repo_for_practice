@@ -31,18 +31,18 @@ export function Pagination<T>({
   const endItem = Math.min((page + 1) * pageSize, totalElements)
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-1 py-3 border-t border-gray-200 text-sm text-gray-600">
+    <div className="flex flex-col gap-3 border-t border-slate-200 px-1 py-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
       {/* Left: showing X–Y of Z */}
-      <span className="text-gray-500">
+      <span className="text-center text-slate-500 sm:text-left">
         Showing {startItem}–{endItem} of {totalElements.toLocaleString()}
       </span>
 
       {/* Center: prev / page buttons / next */}
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center justify-center gap-1">
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={!data.hasPrevious}
-          className="px-2 py-1 rounded border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100"
+          className="ui-btn ui-btn-secondary min-h-9 px-3 py-2 disabled:opacity-40"
           aria-label="Previous page"
         >
           ‹
@@ -50,17 +50,18 @@ export function Pagination<T>({
 
         {buildPageNumbers(page, totalPages).map((p, i) =>
           p === '…' ? (
-            <span key={`ellipsis-${i}`} className="px-2 py-1 text-gray-400">
+            <span key={`ellipsis-${i}`} className="px-2 py-1 text-slate-400">
               …
             </span>
           ) : (
             <button
               key={p}
               onClick={() => onPageChange(p as number)}
-              className={`px-2.5 py-1 rounded border text-sm ${
+              aria-current={p === page ? 'page' : undefined}
+              className={`ui-btn min-h-9 px-3 py-2 text-sm ${
                 p === page
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'border-gray-300 hover:bg-gray-100'
+                  ? 'ui-btn-primary'
+                  : 'ui-btn-secondary'
               }`}
             >
               {(p as number) + 1}
@@ -71,7 +72,7 @@ export function Pagination<T>({
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={!data.hasNext}
-          className="px-2 py-1 rounded border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100"
+          className="ui-btn ui-btn-secondary min-h-9 px-3 py-2 disabled:opacity-40"
           aria-label="Next page"
         >
           ›
@@ -79,8 +80,8 @@ export function Pagination<T>({
       </div>
 
       {/* Right: page size selector */}
-      <div className="flex items-center gap-2">
-        <label htmlFor="page-size-select" className="text-gray-500">
+      <div className="flex items-center justify-center gap-2 sm:justify-end">
+        <label htmlFor="page-size-select" className="text-slate-500">
           Rows:
         </label>
         <select
@@ -90,7 +91,7 @@ export function Pagination<T>({
             onPageSizeChange(Number(e.target.value))
             onPageChange(0) // reset to first page on size change
           }}
-          className="border border-gray-300 rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="min-h-10 w-auto rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           {pageSizeOptions.map(opt => (
             <option key={opt} value={opt}>

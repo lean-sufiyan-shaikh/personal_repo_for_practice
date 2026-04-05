@@ -45,7 +45,7 @@ public class NozzleCalibrationController {
 
     /**
      * GET /api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations?page=0&size=10
-     * Returns paginated calibration records for a nozzle, newest first.
+     * Returns paginated calibration records for a nozzle, newest logged first.
      * Manager can view history but cannot add records.
      */
     @GetMapping
@@ -58,7 +58,7 @@ public class NozzleCalibrationController {
 
         Nozzle nozzle = findNozzleForPump(nozzleId, pumpId);
 
-        var logsPage = calibrationRepository.findByNozzleIdOrderByCalibrationDateDesc(
+        var logsPage = calibrationRepository.findByNozzleIdOrderByCreatedAtDescCalibrationDateDesc(
                 nozzle.getId(), PageRequest.of(page, size));
 
         // Batch-load user names for this page only — avoids N+1

@@ -97,6 +97,9 @@ public class CreditLedgerController {
                             .isParent(isParent)
                             .build();
                 })
+                .sorted(Comparator
+                        .comparing(CreditClientResponse::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(CreditClientResponse::getName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
 
         return ResponseEntity.ok(response);
@@ -419,6 +422,27 @@ public class CreditLedgerController {
             @AuthenticationPrincipal User currentUser) {
 
         ledgerService.reassignCreditEntry(pumpId, entryId, request, currentUser);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * POST /api/pumps/{pumpId}/credit-ledger/payments/{paymentId}/reassign
+     * Moves a recorded payment to another account within the same parent/sub-account group.
+     * Owner/Admin only.
+     */
+    @PostMapping("/payments/{paymentId}/reassign")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
+    public ResponseEntity<Void> reassignCreditPayment(
+            @PathVariable Long pumpId,
+            @PathVariable Long paymentId,
+            @Valid @RequestBody ReassignCreditEntryRequest request,
+            @AuthenticationPrincipal User currentUser) {
+
+        ledgerService.reassignCreditPayment(pumpId, paymentId, request, currentUser);
+        auditService.log(pumpId, AuditAction.CREDIT_ENTRY_REASSIGNED,
+                "CreditPayment", paymentId.toString(),
+                "Payment moved to clientId=" + request.getToClientId() + " reason=" + request.getReason().trim(),
+                currentUser);
         return ResponseEntity.noContent().build();
     }
 

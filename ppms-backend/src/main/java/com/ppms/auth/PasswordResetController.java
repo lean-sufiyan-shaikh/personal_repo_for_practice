@@ -5,7 +5,7 @@ import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +39,10 @@ import java.util.UUID;
 public class PasswordResetController {
 
     private static final int TOKEN_EXPIRY_HOURS = 1;
+    private static final String PASSWORD_POLICY_REGEX =
+            "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,}$";
+    private static final String PASSWORD_POLICY_MESSAGE =
+            "Password must be at least 8 characters and include 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 symbol.";
 
     private final UserRepository             userRepository;
     private final PasswordResetTokenRepository tokenRepository;
@@ -173,7 +177,7 @@ public class PasswordResetController {
         private String token;
 
         @NotBlank(message = "New password is required")
-        @Size(min = 6, message = "Password must be at least 6 characters")
+        @Pattern(regexp = PASSWORD_POLICY_REGEX, message = PASSWORD_POLICY_MESSAGE)
         private String newPassword;
     }
 }

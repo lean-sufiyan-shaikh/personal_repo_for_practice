@@ -40,6 +40,7 @@ public class CacheConfig {
     public CacheManager cacheManager() {
         CaffeineCacheManager manager = new CaffeineCacheManager(TOKEN_BLACKLIST_CACHE);
         manager.setCaffeine(Caffeine.newBuilder()
+                .recordStats()
                 .expireAfterWrite(jwtExpirationMs, TimeUnit.MILLISECONDS)
                 .maximumSize(10_000));
         return manager;

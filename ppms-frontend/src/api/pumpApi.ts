@@ -198,4 +198,7 @@ export const pumpApi = {
 
   reassignCreditEntry: (pumpId: number, entryId: number, toClientId: number, reason: string) =>
     client.post(`/pumps/${pumpId}/credit-ledger/entries/${entryId}/reassign`, { toClientId, reason }).then((r) => r.data),
+
+  reassignCreditPayment: (pumpId: number, paymentId: number, toClientId: number, reason: string) =>
+    client.post(`/pumps/${pumpId}/credit-ledger/payments/${paymentId}/reassign`, { toClientId, reason }).then((r) => r.data),
 }

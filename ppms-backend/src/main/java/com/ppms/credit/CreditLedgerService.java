@@ -166,6 +166,7 @@ public class CreditLedgerService {
         }
 
         Long fromClientId = entry.getClientId(); // null when entry was never linked to a client
+        validateGroupMove(pumpId, fromClientId, request.getToClientId());
 
         // Bug 6 fix: only save an audit record when the entry had a previous client.
         // When fromClientId is null the entry was never assigned — this is an initial assignment,
@@ -193,5 +194,52 @@ public class CreditLedgerService {
         log.info("Credit entry {} moved: pump={}, fromClient={}, toClient={}, by={}",
                 entryId, pumpId, fromClientId != null ? fromClientId : "unlinked",
                 request.getToClientId(), currentUser.getId());
+    }
+
+    @Transactional
+    public void reassignCreditPayment(Long pumpId, Long paymentId,
+                                      ReassignCreditEntryRequest request, User currentUser) {
+
+        CreditPayment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Credit payment not found"));
+
+        if (!payment.getPumpId().equals(pumpId)) {
+            throw new BusinessException("Credit payment does not belong to this pump");
+        }
+
+        if (payment.getClientId().equals(request.getToClientId())) {
+            throw new BusinessException("Payment is already assigned to this account");
+        }
+
+        validateGroupMove(pumpId, payment.getClientId(), request.getToClientId());
+
+        Long fromClientId = payment.getClientId();
+        payment.setClientId(request.getToClientId());
+        paymentRepository.save(payment);
+
+        log.info("Credit payment {} moved: pump={}, fromClient={}, toClient={}, by={}",
+                paymentId, pumpId, fromClientId, request.getToClientId(), currentUser.getId());
+    }
+
+    private void validateGroupMove(Long pumpId, Long fromClientId, Long toClientId) {
+        if (fromClientId == null) {
+            return;
+        }
+
+        CreditClient fromClient = clientRepository.findById(fromClientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Source credit client not found"));
+        CreditClient toClient = clientRepository.findById(toClientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Target credit client not found"));
+
+        if (!fromClient.getPumpId().equals(pumpId) || !toClient.getPumpId().equals(pumpId)) {
+            throw new BusinessException("Credit accounts do not belong to this pump");
+        }
+
+        Long fromGroupRoot = fromClient.getParentClientId() != null ? fromClient.getParentClientId() : fromClient.getId();
+        Long toGroupRoot = toClient.getParentClientId() != null ? toClient.getParentClientId() : toClient.getId();
+
+        if (!fromGroupRoot.equals(toGroupRoot)) {
+            throw new BusinessException("Transactions can only be moved within the same parent / sub-account group");
+        }
     }
 }

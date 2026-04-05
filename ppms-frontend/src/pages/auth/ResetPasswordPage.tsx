@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { authApi } from '../../api/authApi'
 
+const PASSWORD_POLICY_MESSAGE = 'Password must be at least 8 characters and include 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 symbol.'
+const PASSWORD_POLICY_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/
+
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -14,15 +17,15 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 w-full max-w-sm text-center space-y-4">
+      <div className="ui-auth-shell">
+        <div className="ui-auth-card text-center space-y-4">
           <span className="text-4xl">⚠️</span>
-          <h1 className="text-lg font-bold text-slate-800">Invalid Reset Link</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="ui-title-sm">Invalid Reset Link</h1>
+          <p className="ui-subtitle">
             This password reset link is invalid or missing a token.
             Please request a new one from the forgot password page.
           </p>
-          <Link to="/forgot-password" className="block text-sm text-blue-600 hover:underline">
+          <Link to="/forgot-password" className="ui-link inline-flex justify-center">
             Request new link
           </Link>
         </div>
@@ -32,7 +35,7 @@ export default function ResetPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (newPassword.length < 6) { setError('Password must be at least 6 characters'); return }
+    if (!PASSWORD_POLICY_REGEX.test(newPassword)) { setError(PASSWORD_POLICY_MESSAGE); return }
     if (newPassword !== confirmPassword) { setError('Passwords do not match'); return }
     setLoading(true); setError(null)
     try {
@@ -46,53 +49,54 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 w-full max-w-sm space-y-6">
+    <div className="ui-auth-shell">
+      <div className="ui-auth-card space-y-6">
 
         <div>
-          <h1 className="text-xl font-bold text-slate-800">Set New Password</h1>
-          <p className="text-sm text-slate-500 mt-1">Enter and confirm your new password below.</p>
+          <h1 className="ui-title-sm">Set New Password</h1>
+          <p className="ui-subtitle">Enter and confirm your new password below.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs text-slate-500 mb-1">New Password</label>
+            <label className="ui-label">New Password</label>
             <input
               type="password"
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
-              placeholder="At least 6 characters"
-              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="Use a strong password"
+              className="shadow-sm"
               autoFocus
-              minLength={6}
+              minLength={8}
               required
             />
+            <p className="ui-help">{PASSWORD_POLICY_MESSAGE}</p>
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1">Confirm Password</label>
+            <label className="ui-label">Confirm Password</label>
             <input
               type="password"
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
               placeholder="Repeat the password"
-              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="shadow-sm"
               required
             />
           </div>
 
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="ui-error-text">{error}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="ui-btn ui-btn-primary w-full"
           >
             {loading ? 'Resetting…' : 'Reset Password'}
           </button>
         </form>
 
-        <Link to="/login" className="block text-center text-sm text-slate-400 hover:text-slate-600">
+        <Link to="/login" className="ui-link block text-center">
           Back to login
         </Link>
       </div>

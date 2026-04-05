@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { auditApi } from '../../api/auditApi'
 import { usePumpStore } from '../../store/usePumpStore'
 import type { AuditAction } from '../../api/auditApi'
+import { localDateInputValue } from '../../utils/date'
 
 const ACTION_STYLES: Partial<Record<AuditAction, string>> = {
   // User management
@@ -53,10 +54,6 @@ const ACTION_STYLES: Partial<Record<AuditAction, string>> = {
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50]
 
-function toIsoDate(d: Date): string {
-  return d.toISOString().slice(0, 10)
-}
-
 function fmtDateTime(d: string) {
   return new Date(d).toLocaleString('en-IN', {
     day: 'numeric', month: 'short', year: 'numeric',
@@ -64,8 +61,8 @@ function fmtDateTime(d: string) {
   })
 }
 
-const today     = toIsoDate(new Date())
-const yesterday = toIsoDate(new Date(Date.now() - 86_400_000))
+const today = localDateInputValue()
+const yesterday = localDateInputValue(-1)
 
 export default function AuditLogPage() {
   const [from, setFrom]       = useState(yesterday)
@@ -117,44 +114,44 @@ export default function AuditLogPage() {
   const rangeEnd   = Math.min((currentPage + 1) * pageSize, totalEvents)
 
   return (
-    <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
+    <div className="ui-page ui-page--narrow space-y-5">
 
       {/* ── Header ── */}
       <div>
-        <h1 className="text-xl font-bold text-slate-800">Audit Log</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
+        <h1 className="ui-title-sm">Audit Log</h1>
+        <p className="ui-subtitle">
           Full history of all sensitive operations — who did what and when
         </p>
       </div>
 
       {/* ── Filters row ── */}
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="ui-card flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-slate-600">From</label>
+          <label className="ui-label mb-0">From</label>
           <input
             type="date"
             value={from}
             onChange={e => handleFromChange(e.target.value)}
             max={to || undefined}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+            className="text-sm"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-slate-600">To</label>
+          <label className="ui-label mb-0">To</label>
           <input
             type="date"
             value={to}
             onChange={e => handleToChange(e.target.value)}
             min={from || undefined}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+            className="text-sm"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-slate-600">Per page</label>
+          <label className="ui-label mb-0">Per page</label>
           <select
             value={pageSize}
             onChange={e => handlePageSizeChange(Number(e.target.value))}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"
+            className="text-sm bg-white"
           >
             {PAGE_SIZE_OPTIONS.map(n => (
               <option key={n} value={n}>{n} / page</option>
@@ -164,7 +161,7 @@ export default function AuditLogPage() {
         {(from || to) && (
           <button
             onClick={clearFilters}
-            className="text-xs text-slate-500 hover:text-slate-700 underline pb-1.5"
+            className="ui-btn ui-btn-ghost text-xs"
           >
             Clear filter
           </button>
@@ -172,22 +169,22 @@ export default function AuditLogPage() {
       </div>
 
       {/* ── Log list ── */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-          <p className="text-sm font-semibold text-slate-700">
+      <div className="ui-card p-0 overflow-hidden">
+        <div className="ui-toolbar">
+          <p className="ui-toolbar-title">
             {from || to ? 'Filtered Events' : 'All Events'} ({isLoading ? '…' : totalEvents})
           </p>
           {!isLoading && totalPages > 0 && (
-            <p className="text-xs text-slate-400">
+            <p className="ui-toolbar-note">
               Page {currentPage + 1} of {totalPages}
             </p>
           )}
         </div>
 
         {isLoading ? (
-          <p className="text-sm text-slate-400 px-5 py-6">Loading…</p>
+          <p className="ui-empty px-5 py-6">Loading…</p>
         ) : logs.length === 0 ? (
-          <p className="text-sm text-slate-400 px-5 py-6">
+          <p className="ui-empty px-5 py-6">
             No audit events found{from || to ? ' for the selected date range' : ''}.
           </p>
         ) : (
@@ -218,7 +215,7 @@ export default function AuditLogPage() {
             <button
               onClick={() => setPage(p => p - 1)}
               disabled={currentPage === 0}
-              className="text-sm px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="ui-btn ui-btn-secondary text-sm"
             >
               ← Previous
             </button>
@@ -229,7 +226,7 @@ export default function AuditLogPage() {
                 <button
                   key={i}
                   onClick={() => setPage(i)}
-                  className={`w-7 h-7 text-xs rounded-md border ${
+                  className={`w-8 h-8 text-xs rounded-md border transition-colors ${
                     i === currentPage
                       ? 'bg-slate-700 text-white border-slate-700'
                       : 'border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -243,7 +240,7 @@ export default function AuditLogPage() {
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={currentPage >= totalPages - 1}
-              className="text-sm px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="ui-btn ui-btn-secondary text-sm"
             >
               Next →
             </button>

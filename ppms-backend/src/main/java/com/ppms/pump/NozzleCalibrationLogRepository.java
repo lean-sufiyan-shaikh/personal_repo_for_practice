@@ -12,14 +12,17 @@ import java.util.Optional;
 
 public interface NozzleCalibrationLogRepository extends JpaRepository<NozzleCalibrationLog, Long> {
 
-    /** Returns all calibration records for a nozzle, newest first. */
-    List<NozzleCalibrationLog> findByNozzleIdOrderByCalibrationDateDesc(Long nozzleId);
+    /** Returns all calibration records for a nozzle, newest logged first. */
+    List<NozzleCalibrationLog> findByNozzleIdOrderByCreatedAtDescCalibrationDateDesc(Long nozzleId);
 
     /** Paginated version — used by the calibration history API. */
-    Page<NozzleCalibrationLog> findByNozzleIdOrderByCalibrationDateDesc(Long nozzleId, Pageable pageable);
+    Page<NozzleCalibrationLog> findByNozzleIdOrderByCreatedAtDescCalibrationDateDesc(Long nozzleId, Pageable pageable);
 
-    /** Returns all calibration records for a pump, newest first. */
-    List<NozzleCalibrationLog> findByPumpIdOrderByCalibrationDateDesc(Long pumpId);
+    /** Returns all calibration records for a pump, newest logged first. */
+    List<NozzleCalibrationLog> findByPumpIdOrderByCreatedAtDescCalibrationDateDesc(Long pumpId);
+
+    /** Paginated version for the pump-wide calibration history view. */
+    Page<NozzleCalibrationLog> findByPumpIdOrderByCreatedAtDescCalibrationDateDesc(Long pumpId, Pageable pageable);
 
     /**
      * Returns the most recent calibration log for a nozzle.

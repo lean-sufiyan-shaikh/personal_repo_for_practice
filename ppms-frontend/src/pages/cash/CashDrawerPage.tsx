@@ -5,6 +5,7 @@ import { cashApi } from '../../api/cashApi'
 import type { CashEventType, RecordCashEventRequest } from '../../api/cashApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
+import { localDateInputValue } from '../../utils/date'
 
 const EVENT_TYPES: { value: CashEventType; label: string }[] = [
   { value: 'OPENING_BALANCE', label: 'Opening Balance' },
@@ -47,36 +48,70 @@ export default function CashDrawerPage() {
     eventType: 'CASH_IN',
     amount: 0,
     description: '',
-    eventDate: new Date().toISOString().slice(0, 10),
+    eventDate: localDateInputValue(),
   })
   const [formError, setFormError] = useState<string | null>(null)
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   const createMutation = useMutation({
     mutationFn: (data: RecordCashEventRequest) => cashApi.recordCashEvent(pumpId!, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['cashEvents', pumpId] })
-      setForm({ eventType: 'CASH_IN', amount: 0, description: '', eventDate: new Date().toISOString().slice(0, 10) })
+      setForm({ eventType: 'CASH_IN', amount: 0, description: '', eventDate: localDateInputValue() })
       setFormError(null)
     },
     onError: (err: any) => setFormError(err?.response?.data?.message ?? 'Failed to record event'),
   })
 
+  const validateForm = () => {
+    if (!form.description.trim()) {
+      setFormError('Description is required')
+      return false
+    }
+    if (form.amount < 0) {
+      setFormError('Amount cannot be negative')
+      return false
+    }
+    setFormError(null)
+    return true
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.description.trim()) { setFormError('Description is required'); return }
-    if (form.amount < 0) { setFormError('Amount cannot be negative'); return }
-    createMutation.mutate(form)
+    if (!validateForm()) return
+    setReviewOpen(true)
   }
 
   const balance = cashData?.currentBalance ?? 0
+  const reviewHeaderTone =
+    form.eventType === 'CASH_OUT'
+      ? 'ui-modal-header--danger'
+      : form.eventType === 'CASH_IN'
+        ? 'ui-modal-header--success'
+        : form.eventType === 'OPENING_BALANCE'
+          ? 'ui-modal-header--info'
+          : 'ui-modal-header--neutral'
 
   return (
-    <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
+    <div className="ui-page ui-page--narrow space-y-5">
 
       {/* ── Header ── */}
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Cash Drawer</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Track cash movements in and out of the pump safe</p>
+      <div className="ui-section-hero">
+        <div>
+          <p className="ui-section-kicker">Cash flow</p>
+          <h1 className="ui-title-sm">Cash Drawer</h1>
+          <p className="ui-subtitle">Track cash movements in and out of the pump safe</p>
+        </div>
+        <div className="ui-section-meta">
+          <div className="ui-section-meta-pill">
+            <span className="ui-section-meta-label">Balance</span>
+            <span className="ui-section-meta-value">{fmtAmt(balance)}</span>
+          </div>
+          <div className="ui-section-meta-pill">
+            <span className="ui-section-meta-label">Events</span>
+            <span className="ui-section-meta-value">{cashData?.events?.totalElements ?? 0}</span>
+          </div>
+        </div>
       </div>
 
       {/* ── Balance card ── */}
@@ -87,12 +122,12 @@ export default function CashDrawerPage() {
       </div>
 
       {/* ── Add event form ── */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 px-5 py-4 space-y-3">
+      <form onSubmit={handleSubmit} className="ui-card space-y-3">
         <p className="text-sm font-semibold text-slate-700">Record Cash Movement</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Event Type</label>
+            <label className="ui-label">Event Type</label>
             <SearchableSelect
               value={form.eventType}
               onChange={v => setForm(f => ({ ...f, eventType: v as CashEventType }))}
@@ -101,60 +136,114 @@ export default function CashDrawerPage() {
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Amount (₹)</label>
+            <label className="ui-label">Amount (₹)</label>
             <input
               type="number"
               min="0"
               step="0.01"
               value={form.amount || ''}
               onChange={e => setForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
               placeholder="0.00"
               required
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Description</label>
+            <label className="ui-label">Description</label>
             <input
               type="text"
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
               placeholder="e.g. Shift 1 cash deposited"
               required
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Date</label>
+            <label className="ui-label">Date</label>
             <input
               type="date"
               value={form.eventDate}
               onChange={e => setForm(f => ({ ...f, eventDate: e.target.value }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
               required
             />
           </div>
         </div>
 
-        {formError && <p className="text-xs text-red-600">{formError}</p>}
+        {formError && <p className="ui-error-text">{formError}</p>}
 
         <button
           type="submit"
           disabled={createMutation.isPending}
-          className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="ui-btn ui-btn-primary"
         >
-          {createMutation.isPending ? 'Saving…' : 'Record Event'}
+          {createMutation.isPending ? 'Saving…' : 'Review Event'}
         </button>
       </form>
 
-      {/* ── Event list ── */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center gap-3">
-          <p className="text-sm font-semibold text-slate-700 mr-auto">Cash Events</p>
+      {reviewOpen && (
+        <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
+          <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className={`ui-modal-header ui-modal-header--themed ${reviewHeaderTone}`}>
+              <div className="ui-modal-heading">
+                <h2 className="ui-modal-title">Review Cash Event</h2>
+                <p className="ui-modal-subtitle">Check the event details before recording it.</p>
+              </div>
+              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+            </div>
+            <div className="ui-modal-body space-y-4">
+              {formError && <div className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
+              <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-slate-500 text-xs">Event Type</span>
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${EVENT_STYLES[form.eventType]}`}>
+                    {EVENT_TYPES.find((eventType) => eventType.value === form.eventType)?.label ?? form.eventType}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-slate-500 text-xs">Amount</span>
+                  <span className="font-medium text-sm text-slate-800">{fmtAmt(form.amount)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+                  <span className="text-slate-500 text-xs">Description</span>
+                  <span className="font-medium text-right text-sm text-slate-800">{form.description.trim()}</span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-slate-500 text-xs">Date</span>
+                  <span className="font-medium text-sm text-slate-800">{fmtDate(form.eventDate)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="ui-modal-footer">
+              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
+                Back
+              </button>
+              <button
+                onClick={() => {
+                  if (!validateForm()) {
+                    return
+                  }
+                  createMutation.mutate(form)
+                }}
+                disabled={createMutation.isPending}
+                className="ui-btn ui-btn-primary"
+              >
+                {createMutation.isPending ? 'Saving…' : 'Record Event'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-          <div className="w-44">
+      {/* ── Event list ── */}
+      <div className="ui-card p-0 overflow-hidden">
+        <div className="ui-toolbar">
+          <p className="ui-toolbar-title">Cash Events</p>
+          <div className="ui-toolbar-actions">
+            <div className="w-44">
             <SearchableSelect
               value={eventTypeFilter}
               onChange={v => { setEventTypeFilter(v as any); setPage(0) }}
@@ -165,12 +254,13 @@ export default function CashDrawerPage() {
               size="sm"
             />
           </div>
+          </div>
         </div>
 
         {isLoading ? (
-          <p className="text-sm text-slate-400 px-5 py-6">Loading…</p>
+          <p className="ui-empty px-5 py-6">Loading…</p>
         ) : (cashData?.events?.content ?? []).length === 0 ? (
-          <p className="text-sm text-slate-400 px-5 py-6">No cash events recorded yet.</p>
+          <p className="ui-empty px-5 py-6">No cash events recorded yet.</p>
         ) : (
           <>
             <div className="divide-y divide-slate-100">

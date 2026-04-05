@@ -73,17 +73,17 @@ export default function DocumentsPage() {
   const isOwner = user?.role === 'OWNER'
 
   return (
-    <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
+    <div className="ui-page ui-page--narrow space-y-5">
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">Compliance Documents</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Track licences, permits, and certificates</p>
+          <h1 className="ui-title-sm">Compliance Documents</h1>
+          <p className="ui-subtitle">Track licences, permits, and certificates</p>
         </div>
         <button
           onClick={() => { setForm(EMPTY_FORM); setEditId(null); setShowForm(s => !s); setFormError(null) }}
-          className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          className="ui-btn ui-btn-primary"
         >
           {showForm ? 'Cancel' : '+ Add Document'}
         </button>
@@ -91,7 +91,7 @@ export default function DocumentsPage() {
 
       {/* ── Alert strip ── */}
       {(expiredCount > 0 || expiringSoonCount > 0) && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3">
+        <div className="ui-alert ui-alert-danger">
           <p className="text-sm font-semibold text-red-700">Compliance attention needed</p>
           <p className="text-xs text-red-500 mt-0.5">
             {expiredCount > 0 && `${expiredCount} document${expiredCount !== 1 ? 's' : ''} expired. `}
@@ -102,62 +102,62 @@ export default function DocumentsPage() {
 
       {/* ── Add/edit form ── */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 px-5 py-4 space-y-3">
+        <form onSubmit={handleSubmit} className="ui-card space-y-3">
           <p className="text-sm font-semibold text-slate-700">{editId ? 'Edit Document' : 'Add Document'}</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-slate-500 block mb-1">Document Name</label>
+              <label className="ui-label">Document Name</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="text-sm"
                 placeholder="e.g. Petrol Pump Licence"
                 required
               />
             </div>
 
             <div>
-              <label className="text-xs text-slate-500 block mb-1">Document Type</label>
+              <label className="ui-label">Document Type</label>
               <input
                 type="text"
                 value={form.docType}
                 onChange={e => setForm(f => ({ ...f, docType: e.target.value }))}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="text-sm"
                 placeholder="e.g. Licence, Certificate, Permit"
                 required
               />
             </div>
 
             <div>
-              <label className="text-xs text-slate-500 block mb-1">Expiry Date (optional)</label>
+              <label className="ui-label">Expiry Date (optional)</label>
               <input
                 type="date"
                 value={form.expiryDate ?? ''}
                 onChange={e => setForm(f => ({ ...f, expiryDate: e.target.value || null }))}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="text-sm"
               />
             </div>
 
             <div>
-              <label className="text-xs text-slate-500 block mb-1">Notes (optional)</label>
+              <label className="ui-label">Notes (optional)</label>
               <input
                 type="text"
                 value={form.notes ?? ''}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="text-sm"
                 placeholder="Any additional notes"
               />
             </div>
           </div>
 
-          {formError && <p className="text-xs text-red-600">{formError}</p>}
+          {formError && <p className="ui-error-text">{formError}</p>}
 
           <button
             type="submit"
             disabled={saveMutation.isPending}
-            className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="ui-btn ui-btn-primary"
           >
             {saveMutation.isPending ? 'Saving…' : editId ? 'Update' : 'Add Document'}
           </button>
@@ -165,15 +165,15 @@ export default function DocumentsPage() {
       )}
 
       {/* ── Document list ── */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100">
-          <p className="text-sm font-semibold text-slate-700">All Documents ({docs.length})</p>
+      <div className="ui-card p-0 overflow-hidden">
+        <div className="ui-toolbar">
+          <p className="ui-toolbar-title">All Documents ({docs.length})</p>
         </div>
 
         {isLoading ? (
-          <p className="text-sm text-slate-400 px-5 py-6">Loading…</p>
+          <p className="ui-empty px-5 py-6">Loading…</p>
         ) : docs.length === 0 ? (
-          <p className="text-sm text-slate-400 px-5 py-6">No documents added yet. Add your licences and permits to track their expiry.</p>
+          <p className="ui-empty px-5 py-6">No documents added yet. Add your licences and permits to track their expiry.</p>
         ) : (
           <div className="divide-y divide-slate-100">
             {docs.map(doc => (
@@ -195,7 +195,7 @@ export default function DocumentsPage() {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={() => startEdit(doc)}
-                    className="text-xs text-blue-500 hover:text-blue-700 font-medium"
+                    className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-500 hover:text-blue-700"
                   >
                     Edit
                   </button>
@@ -203,7 +203,7 @@ export default function DocumentsPage() {
                     <button
                       onClick={() => deleteMutation.mutate(doc.id)}
                       disabled={deleteMutation.isPending}
-                      className="text-red-400 hover:text-red-600 text-xs disabled:opacity-50"
+                      className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-red-400 hover:text-red-600 disabled:opacity-50"
                     >
                       ✕
                     </button>

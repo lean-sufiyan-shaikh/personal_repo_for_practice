@@ -17,6 +17,7 @@ import { useAuthStore } from '../../store/authStore'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import type { PagedResponse } from '../../types/paged'
+import { localDateInputValue } from '../../utils/date'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -56,8 +57,8 @@ export default function AncillaryProductsPage() {
 
   if (!pumpId && !isOwnerOrAdmin) {
     return (
-      <div className="p-6">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700 text-sm">
+      <div className="ui-page ui-page--narrow">
+        <div className="ui-alert ui-alert-warning text-sm">
           You are not assigned to any pump. Ask the Owner or Admin to assign you.
         </div>
       </div>
@@ -65,24 +66,24 @@ export default function AncillaryProductsPage() {
   }
 
   return (
-    <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
+    <div className="ui-page ui-page--narrow space-y-5">
 
       {/* ── Page heading ── */}
       <div>
-        <h2 className="text-xl font-bold text-slate-800">Products</h2>
-        <p className="text-slate-500 text-sm mt-1">
+        <h2 className="ui-title-sm">Products</h2>
+        <p className="ui-subtitle">
           Manage lubricants, accessories, and other counter products. Track stock and sales.
         </p>
       </div>
 
       {!pumpId ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-8 text-sm text-slate-400 text-center">
+        <div className="ui-empty">
           No pump selected. Use the pump selector in the top navigation bar.
         </div>
       ) : (
         <>
           {/* ── Tab bar ── */}
-          <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit">
+          <div className="ui-card-plain ui-card-muted flex gap-1 p-1 w-fit">
             {(['products', 'stockin', 'sales'] as Tab[]).map(tab => (
               <button
                 key={tab}
@@ -151,39 +152,11 @@ function ProductsTab({
   // Reset to page 0 whenever the search query changes
   useEffect(() => { setProductsPage(0) }, [searchQuery])
 
-  // Add product form state
-  const [form, setForm] = useState<CreateProductRequest>({
-    name: '', brand: '', variant: '',
-    packageSize: 1, unitOfMeasure: 'PIECE',
-  })
-  const [formError, setFormError] = useState<string | null>(null)
-
-  const createMutation = useMutation({
-    mutationFn: (data: CreateProductRequest) => ancillaryApi.createProduct(pumpId, data),
-    onSuccess: () => {
-      setShowAddForm(false)
-      setFormError(null)
-      setForm({ name: '', brand: '', variant: '', packageSize: 1, unitOfMeasure: 'PIECE' })
-      onRefresh()
-    },
-    onError: (err: any) => setFormError(err?.response?.data?.message ?? 'Failed to create product'),
-  })
-
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: 'ACTIVE' | 'INACTIVE' }) =>
       ancillaryApi.setProductStatus(pumpId, id, status),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['ancillaryProducts', pumpId] }),
   })
-
-  const handleCreate = () => {
-    if (!form.name.trim()) { setFormError('Product name is required'); return }
-    if (!form.packageSize || form.packageSize <= 0) { setFormError('Package size must be greater than 0'); return }
-    createMutation.mutate({
-      ...form,
-      brand:   form.brand?.trim()   || undefined,
-      variant: form.variant?.trim() || undefined,
-    })
-  }
 
   const stockBadge = (p: AncillaryProduct) => {
     if (p.lowStockThreshold == null) {
@@ -203,12 +176,18 @@ function ProductsTab({
         (p.name ?? '').toLowerCase().includes(q)
       )
     : products
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (b.currentStockUnits !== a.currentStockUnits) {
+      return b.currentStockUnits - a.currentStockUnits
+    }
+    return a.displayName.localeCompare(b.displayName)
+  })
 
   // Build a client-side PagedResponse from the filtered list
-  const totalElements = filteredProducts.length
+  const totalElements = sortedProducts.length
   const totalPages = Math.max(1, Math.ceil(totalElements / productsPageSize))
   const safePage = Math.min(productsPage, totalPages - 1)
-  const pagedProducts = filteredProducts.slice(safePage * productsPageSize, (safePage + 1) * productsPageSize)
+  const pagedProducts = sortedProducts.slice(safePage * productsPageSize, (safePage + 1) * productsPageSize)
   const productsPaged: PagedResponse<AncillaryProduct> = {
     content: pagedProducts,
     page: safePage,
@@ -232,7 +211,7 @@ function ProductsTab({
             placeholder="Search products…"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+            className="w-full pl-9 pr-9 text-sm bg-white"
           />
           {searchQuery && (
             <button
@@ -245,105 +224,19 @@ function ProductsTab({
         </div>
         {isOwnerOrAdmin && (
           <button
-            onClick={() => setShowAddForm(v => !v)}
-            className="ml-auto bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            onClick={() => setShowAddForm(true)}
+            className="ui-btn ui-btn-primary ml-auto"
           >
-            {showAddForm ? 'Cancel' : '+ Add Product'}
+            + Add Product
           </button>
         )}
       </div>
 
-      {/* Add Product form */}
-      {showAddForm && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-slate-700">New Product</h3>
-          {formError && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{formError}</div>
-          )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Product Name *</label>
-              <input
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="e.g. Engine Oil"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Brand</label>
-              <input
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={form.brand ?? ''}
-                onChange={e => setForm(f => ({ ...f, brand: e.target.value }))}
-                placeholder="e.g. Castrol"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Variant</label>
-              <input
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={form.variant ?? ''}
-                onChange={e => setForm(f => ({ ...f, variant: e.target.value }))}
-                placeholder="e.g. GTX 10W-40"
-              />
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-slate-600 mb-1">Package Size *</label>
-                <input
-                  type="number"
-                  min="0.001"
-                  step="0.001"
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  value={form.packageSize}
-                  onChange={e => setForm(f => ({ ...f, packageSize: parseFloat(e.target.value) || 0 }))}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Unit *</label>
-                <SearchableSelect
-                  value={form.unitOfMeasure}
-                  onChange={v => setForm(f => ({ ...f, unitOfMeasure: v as UnitOfMeasure }))}
-                  options={UNITS.map(u => ({ value: u, label: u }))}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Low Stock Alert (units)</label>
-              <input
-                type="number"
-                min="0"
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={form.lowStockThreshold ?? ''}
-                onChange={e => setForm(f => ({ ...f, lowStockThreshold: e.target.value ? parseInt(e.target.value) : undefined }))}
-                placeholder="Leave blank to disable"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={() => setShowAddForm(false)}
-              className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCreate}
-              disabled={createMutation.isPending}
-              className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
-            >
-              {createMutation.isPending ? 'Saving…' : 'Create Product'}
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Product grid */}
       {loading ? (
-        <div className="text-sm text-slate-400 text-center py-8">Loading products…</div>
-      ) : filteredProducts.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-8 text-sm text-slate-400 text-center">
+        <div className="ui-empty py-8">Loading products…</div>
+      ) : sortedProducts.length === 0 ? (
+        <div className="ui-empty">
           {searchQuery ? `No products match "${searchQuery}".` : 'No products configured yet. Add your first product above.'}
         </div>
       ) : (
@@ -351,7 +244,7 @@ function ProductsTab({
           {pagedProducts.map(product => (
             <div
               key={product.id}
-              className={`bg-white rounded-xl border p-4 space-y-3 ${
+              className={`ui-card space-y-3 ${
                 product.status === 'INACTIVE' ? 'border-slate-200 opacity-60' : 'border-slate-200'
               }`}
             >
@@ -387,7 +280,7 @@ function ProductsTab({
                 {isManagerOrAbove && product.status === 'ACTIVE' && (
                   <button
                     onClick={() => setSellProduct(product)}
-                    className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-3 py-1 rounded-md transition-colors"
+                    className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
                   >
                     Sell
                   </button>
@@ -395,7 +288,7 @@ function ProductsTab({
                 {/* Stock Lots button — visible to everyone, shows ACTIVE FIFO lots */}
                 <button
                   onClick={() => setStockLotsProduct(product)}
-                  className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium px-3 py-1 rounded-md transition-colors"
+                  className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs"
                 >
                   Stock Lots
                 </button>
@@ -425,7 +318,7 @@ function ProductsTab({
       )}
 
       {/* Products pagination */}
-      {!loading && filteredProducts.length > 0 && (
+      {!loading && sortedProducts.length > 0 && (
         <Pagination
           data={productsPaged}
           onPageChange={p => setProductsPage(p)}
@@ -435,6 +328,17 @@ function ProductsTab({
       )}
 
       {/* Sell dialog */}
+      {showAddForm && (
+        <AddProductDialog
+          pumpId={pumpId}
+          onClose={() => setShowAddForm(false)}
+          onSuccess={() => {
+            setShowAddForm(false)
+            onRefresh()
+          }}
+        />
+      )}
+
       {sellProduct && (
         <SellDialog
           pumpId={pumpId}
@@ -461,6 +365,199 @@ function ProductsTab({
           }}
         />
       )}
+    </div>
+  )
+}
+
+function AddProductDialog({
+  pumpId, onClose, onSuccess,
+}: {
+  pumpId: number
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [step, setStep] = useState<'form' | 'review'>('form')
+  const [form, setForm] = useState<CreateProductRequest>({
+    name: '', brand: '', variant: '',
+    packageSize: 1, unitOfMeasure: 'PIECE',
+  })
+  const [error, setError] = useState<string | null>(null)
+
+  const createMutation = useMutation({
+    mutationFn: (data: CreateProductRequest) => ancillaryApi.createProduct(pumpId, data),
+    onSuccess,
+    onError: (err: any) => {
+      setError(err?.response?.data?.message ?? 'Failed to create product')
+    },
+  })
+
+  const normalizedName = form.name.trim()
+  const normalizedBrand = form.brand?.trim() || undefined
+  const normalizedVariant = form.variant?.trim() || undefined
+  const normalizedThreshold = form.lowStockThreshold && form.lowStockThreshold > 0 ? form.lowStockThreshold : undefined
+
+  const validate = () => {
+    if (!normalizedName) return 'Product name is required'
+    if (!form.packageSize || form.packageSize <= 0) return 'Package size must be greater than 0'
+    return null
+  }
+
+  const handleReview = () => {
+    const validationError = validate()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+    setError(null)
+    setStep('review')
+  }
+
+  const handleCreate = () => {
+    const validationError = validate()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+    createMutation.mutate({
+      name: normalizedName,
+      brand: normalizedBrand,
+      variant: normalizedVariant,
+      packageSize: form.packageSize,
+      unitOfMeasure: form.unitOfMeasure,
+      lowStockThreshold: normalizedThreshold,
+    })
+  }
+
+  return (
+    <div className="ui-modal-backdrop px-4" onClick={onClose}>
+      <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
+          <div className="ui-modal-heading">
+            <h3 className="ui-modal-title">{step === 'form' ? 'Add Product' : 'Review Product'}</h3>
+            <p className="ui-modal-subtitle">
+              {step === 'form'
+                ? 'Create a new counter product with stock alert settings.'
+                : 'Review the product details before creating it.'}
+            </p>
+          </div>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">✕</button>
+        </div>
+
+        {step === 'form' && (
+          <div className="ui-modal-body space-y-4">
+            {error && (
+              <div className="ui-alert ui-alert-danger text-sm">{error} Go back to modify the data and try again.</div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="ui-label">Product Name *</label>
+                <input
+                  className="text-sm"
+                  value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="e.g. Engine Oil"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="ui-label">Brand</label>
+                <input
+                  className="text-sm"
+                  value={form.brand ?? ''}
+                  onChange={e => setForm(f => ({ ...f, brand: e.target.value }))}
+                  placeholder="e.g. Castrol"
+                />
+              </div>
+              <div>
+                <label className="ui-label">Variant</label>
+                <input
+                  className="text-sm"
+                  value={form.variant ?? ''}
+                  onChange={e => setForm(f => ({ ...f, variant: e.target.value }))}
+                  placeholder="e.g. GTX 10W-40"
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="ui-label">Package Size *</label>
+                  <input
+                    type="number"
+                    min="0.001"
+                    step="0.001"
+                    className="text-sm"
+                    value={form.packageSize}
+                    onChange={e => setForm(f => ({ ...f, packageSize: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className="w-[132px]">
+                  <label className="ui-label">Unit *</label>
+                  <SearchableSelect
+                    value={form.unitOfMeasure}
+                    onChange={v => setForm(f => ({ ...f, unitOfMeasure: v as UnitOfMeasure }))}
+                    options={UNITS.map(u => ({ value: u, label: u }))}
+                  />
+                </div>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="ui-label">Low Stock Alert (units)</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="text-sm"
+                  value={form.lowStockThreshold ?? ''}
+                  onChange={e => setForm(f => ({ ...f, lowStockThreshold: e.target.value ? parseInt(e.target.value) : undefined }))}
+                  placeholder="Leave blank to disable"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 'review' && (
+          <div className="ui-modal-body space-y-4">
+            {error && (
+              <div className="ui-alert ui-alert-danger text-sm">{error}</div>
+            )}
+            <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
+              <ReviewRow label="Product Name" value={normalizedName} />
+              <ReviewRow label="Brand" value={normalizedBrand ?? '—'} />
+              <ReviewRow label="Variant" value={normalizedVariant ?? '—'} />
+              <ReviewRow label="Package Size" value={String(form.packageSize)} />
+              <ReviewRow label="Unit" value={form.unitOfMeasure} />
+              <ReviewRow label="Low Stock Alert" value={normalizedThreshold != null ? `${normalizedThreshold} units` : 'Disabled'} />
+            </div>
+          </div>
+        )}
+
+        <div className="ui-modal-footer">
+          {step === 'form' ? (
+            <>
+              <button onClick={onClose} className="ui-btn ui-btn-secondary">
+                Cancel
+              </button>
+              <button onClick={handleReview} className="ui-btn ui-btn-primary">
+                Review
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => { setStep('form'); setError(null) }}
+                className="ui-btn ui-btn-secondary"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={createMutation.isPending}
+                className="ui-btn ui-btn-primary"
+              >
+                {createMutation.isPending ? 'Creating…' : 'Create Product'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -525,7 +622,6 @@ function SellDialog({
     mutationFn: (data: RecordAncillarySaleRequest) => ancillaryApi.recordSale(pumpId, data),
     onSuccess: () => onSuccess(),
     onError: (err: any) => {
-      setStep('form')
       setError(err?.response?.data?.message ?? 'Failed to record sale')
     },
   })
@@ -553,29 +649,39 @@ function SellDialog({
     : projectedProfit > 0 ? { label: `Projected profit: +${fmtCurrency(projectedProfit)}`, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
     : projectedProfit < 0 ? { label: `Projected loss: ${fmtCurrency(projectedProfit)}`,    cls: 'bg-red-50 text-red-700 border-red-200' }
     :                        { label: 'Break-even',                                          cls: 'bg-slate-50 text-slate-600 border-slate-200' }
+  const headerToneClass = projectedProfit == null
+    ? 'ui-modal-header--neutral'
+    : projectedProfit > 0
+      ? 'ui-modal-header--success'
+      : projectedProfit < 0
+        ? 'ui-modal-header--danger'
+        : 'ui-modal-header--neutral'
 
   const selectedClient = creditClients.find(c => c.id === form.clientId)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+    <div className="ui-modal-backdrop px-4">
+      <div className="ui-modal-panel w-full max-w-md">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-800">
+        <div className={`ui-modal-header ui-modal-header--themed ${headerToneClass}`}>
+          <div className="ui-modal-heading">
+            <h3 className="ui-modal-title">
               {step === 'form' ? 'Record Sale' : 'Review & Confirm'}
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[280px]">{product.displayName}</p>
+            <p className="ui-modal-subtitle truncate max-w-[280px]">
+              {product.displayName}
+              {marginBadge ? ` · ${marginBadge.label}` : ''}
+            </p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg leading-none">✕</button>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">✕</button>
         </div>
 
         {/* Step 1 — Form */}
         {step === 'form' && (
-          <div className="p-5 space-y-4">
+          <div className="ui-modal-body space-y-4">
             {error && (
-              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
+              <div className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
 
             {/* Stock + buy price info row */}
@@ -597,19 +703,19 @@ function SellDialog({
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Quantity (units) *</label>
+                  <label className="ui-label">Quantity (units) *</label>
                   <input
                     type="number" min="1" step="1" autoFocus
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    className="text-sm"
                     value={form.quantityUnits}
                     onChange={e => setForm(f => ({ ...f, quantityUnits: parseInt(e.target.value) || 0 }))}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Selling Price (₹/unit) *</label>
+                  <label className="ui-label">Selling Price (₹/unit) *</label>
                   <input
                     type="number" min="0.01" step="0.01"
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    className="text-sm"
                     value={form.sellingPricePerUnit || ''}
                     onChange={e => setForm(f => ({ ...f, sellingPricePerUnit: parseFloat(e.target.value) || 0 }))}
                     placeholder="MRP"
@@ -625,7 +731,7 @@ function SellDialog({
               )}
 
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Payment Mode *</label>
+                <label className="ui-label">Payment Mode *</label>
                 <SearchableSelect
                   value={form.paymentMode}
                   onChange={v => setForm(f => ({
@@ -640,7 +746,7 @@ function SellDialog({
 
               {form.paymentMode === 'CREDIT' && (
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Client * (required for credit)</label>
+                  <label className="ui-label">Client * (required for credit)</label>
                   <SearchableSelect
                     value={form.clientId ? form.clientId.toString() : ''}
                     onChange={v => {
@@ -657,9 +763,9 @@ function SellDialog({
               )}
 
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Bill No</label>
+                <label className="ui-label">Bill No</label>
                 <input
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="text-sm"
                   value={form.billNo ?? ''}
                   onChange={e => setForm(f => ({ ...f, billNo: e.target.value || undefined }))}
                   placeholder="Optional"
@@ -676,12 +782,12 @@ function SellDialog({
             )}
 
             <div className="flex justify-end gap-2 pt-1">
-              <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg">
+              <button onClick={onClose} className="ui-btn ui-btn-secondary">
                 Cancel
               </button>
               <button
                 onClick={handleProceedToReview}
-                className="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                className="ui-btn ui-btn-primary"
               >
                 Review →
               </button>
@@ -691,7 +797,7 @@ function SellDialog({
 
         {/* Step 2 — Review */}
         {step === 'review' && (
-          <div className="p-5 space-y-4">
+          <div className="ui-modal-body space-y-4">
             <p className="text-sm text-slate-500">Please review the details before confirming.</p>
 
             <div className="bg-slate-50 rounded-xl border border-slate-200 divide-y divide-slate-100 text-sm">
@@ -717,20 +823,20 @@ function SellDialog({
             </div>
 
             {error && (
-              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
+              <div className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
 
             <div className="flex justify-between gap-2 pt-1">
               <button
                 onClick={() => { setStep('form'); setError(null) }}
-                className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg"
+                className="ui-btn ui-btn-secondary"
               >
                 ← Back
               </button>
               <button
                 onClick={() => saleMutation.mutate(form)}
                 disabled={saleMutation.isPending}
-                className="px-5 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg disabled:opacity-50 transition-colors"
+                className="ui-btn ui-btn-primary disabled:opacity-50"
               >
                 {saleMutation.isPending ? 'Recording…' : 'Confirm Sale'}
               </button>
@@ -817,28 +923,28 @@ function StockLotsDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+    <div className="ui-modal-backdrop">
+      <div className="ui-modal-panel ui-modal-panel--lg w-full max-w-2xl max-h-[85vh] flex flex-col">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-800">Stock Lots</h3>
-            <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[380px]">{product.displayName}</p>
+        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info shrink-0">
+          <div className="ui-modal-heading">
+            <h3 className="ui-modal-title">Stock Lots</h3>
+            <p className="ui-modal-subtitle truncate max-w-[380px]">{product.displayName}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg leading-none">✕</button>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">✕</button>
         </div>
 
         {/* Body */}
-        <div className="overflow-auto flex-1 p-5">
+        <div className="ui-modal-body overflow-auto flex-1">
           {isLoading ? (
-            <p className="text-sm text-slate-400 text-center py-8">Loading lots…</p>
+            <p className="ui-empty py-8">Loading lots…</p>
           ) : lots.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-8">No active stock lots. Record a stock delivery first.</p>
+            <p className="ui-empty py-8">No active stock lots. Record a stock delivery first.</p>
           ) : (
             <>
               {editError && (
-                <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{editError}</div>
+                <div className="ui-alert ui-alert-danger mb-3 text-sm">{editError}</div>
               )}
               <table className="w-full text-sm border-collapse">
                 <thead>
@@ -865,7 +971,7 @@ function StockLotsDialog({
                               step="0.01"
                               value={editForm.costPricePerUnit}
                               onChange={e => setEditForm(f => ({ ...f, costPricePerUnit: e.target.value }))}
-                              className="w-24 border border-blue-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              className="w-24 text-right text-sm"
                             />
                           </td>
                           <td className="py-2.5 pr-4 text-right">
@@ -876,7 +982,7 @@ function StockLotsDialog({
                               step="1"
                               value={editForm.remainingQuantity}
                               onChange={e => setEditForm(f => ({ ...f, remainingQuantity: e.target.value }))}
-                              className="w-20 border border-blue-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              className="w-20 text-right text-sm"
                             />
                           </td>
                           <td className="py-2.5 pr-4 text-right text-slate-500">{lot.originalQuantity}</td>
@@ -885,13 +991,13 @@ function StockLotsDialog({
                               <button
                                 onClick={() => handleSave(lot)}
                                 disabled={updateMutation.isPending}
-                                className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1 rounded-md disabled:opacity-50 transition-colors"
+                              className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs disabled:opacity-50"
                               >
                                 {updateMutation.isPending ? 'Saving…' : 'Save'}
                               </button>
                               <button
                                 onClick={() => { setEditingLotId(null); setEditError(null) }}
-                                className="text-xs text-slate-500 hover:text-slate-700"
+                                className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs"
                               >
                                 Cancel
                               </button>
@@ -911,7 +1017,7 @@ function StockLotsDialog({
                             <td className="py-2.5 text-right">
                               <button
                                 onClick={() => startEdit(lot)}
-                                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                              className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800"
                               >
                                 Edit
                               </button>
@@ -928,13 +1034,13 @@ function StockLotsDialog({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-slate-100 shrink-0 flex justify-between items-center">
+        <div className="ui-modal-footer shrink-0 justify-between items-center">
           <p className="text-xs text-slate-400">
             Lots shown in FIFO order — oldest consumed first
           </p>
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg transition-colors"
+            className="ui-btn ui-btn-secondary"
           >
             Close
           </button>
@@ -957,135 +1063,54 @@ function StockInTab({
   const qc = useQueryClient()
   const [deliveryPage, setDeliveryPage] = useState(0)
   const [deliveryPageSize, setDeliveryPageSize] = useState(10)
+  const [stockInOpen, setStockInOpen] = useState(false)
+  const productMap = new Map(products.map((product) => [product.id, product]))
 
   const { data: deliveriesPage } = useQuery({
     queryKey: ['ancillaryDeliveries', pumpId, deliveryPage, deliveryPageSize],
     queryFn:  () => ancillaryApi.getDeliveries(pumpId, deliveryPage, deliveryPageSize),
   })
   const deliveries = deliveriesPage?.content ?? []
-  const today = new Date().toISOString().split('T')[0]
-  const [form, setForm] = useState<RecordStockDeliveryRequest & { productId: number | '' }>({
-    productId: products[0]?.id ?? '',
-    quantityUnits: 1,
-    costPricePerUnit: 0,
-    deliveryDate: today,
-    invoiceReference: '',
-  })
-  const [error, setError] = useState<string | null>(null)
-
-  const deliveryMutation = useMutation({
-    mutationFn: (data: { productId: number; req: RecordStockDeliveryRequest }) =>
-      ancillaryApi.recordDelivery(pumpId, data.productId, data.req),
-    onSuccess: () => {
-      setError(null)
-      setForm(f => ({ ...f, quantityUnits: 1, costPricePerUnit: 0, invoiceReference: '' }))
-      setDeliveryPage(0)
-      qc.invalidateQueries({ queryKey: ['ancillaryDeliveries', pumpId] })
-      onRefresh()
-    },
-    onError: (err: any) => setError(err?.response?.data?.message ?? 'Failed to record delivery'),
-  })
-
-  const handleSubmit = () => {
-    if (!form.productId) { setError('Select a product'); return }
-    if (!form.quantityUnits || form.quantityUnits < 1) { setError('Quantity must be at least 1'); return }
-    if (!form.costPricePerUnit || form.costPricePerUnit <= 0) { setError('Enter a valid cost price'); return }
-    if (!form.deliveryDate) { setError('Delivery date is required'); return }
-    deliveryMutation.mutate({
-      productId: form.productId as number,
-      req: {
-        quantityUnits: form.quantityUnits,
-        costPricePerUnit: form.costPricePerUnit,
-        deliveryDate: form.deliveryDate,
-        invoiceReference: form.invoiceReference || undefined,
-      },
-    })
-  }
 
   return (
     <div className="space-y-5">
       {/* Stock-in form */}
       {isManagerOrAbove ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-slate-700">Record Stock Delivery</h3>
-          {error && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
-          )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-600 mb-1">Product *</label>
-              <SearchableSelect
-                value={form.productId ? form.productId.toString() : ''}
-                onChange={v => setForm(f => ({ ...f, productId: v ? parseInt(v) : '' }))}
-                placeholder="Select product…"
-                options={products.map(p => ({ value: p.id.toString(), label: `${p.displayName} (stock: ${p.currentStockUnits})` }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Quantity (units) *</label>
-              <input
-                type="number"
-                min="1"
-                step="1"
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={form.quantityUnits}
-                onChange={e => setForm(f => ({ ...f, quantityUnits: parseInt(e.target.value) || 0 }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Cost Price per Unit (₹) *</label>
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={form.costPricePerUnit || ''}
-                onChange={e => setForm(f => ({ ...f, costPricePerUnit: parseFloat(e.target.value) || 0 }))}
-                placeholder="₹"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Delivery Date *</label>
-              <input
-                type="date"
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={form.deliveryDate}
-                onChange={e => setForm(f => ({ ...f, deliveryDate: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Invoice Reference</label>
-              <input
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={form.invoiceReference ?? ''}
-                onChange={e => setForm(f => ({ ...f, invoiceReference: e.target.value }))}
-                placeholder="Optional"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <button
-              onClick={handleSubmit}
-              disabled={deliveryMutation.isPending}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
-            >
-              {deliveryMutation.isPending ? 'Recording…' : 'Record Delivery'}
-            </button>
-          </div>
+        <div className="flex justify-end">
+          <button
+            onClick={() => setStockInOpen(true)}
+            className="ui-btn ui-btn-primary"
+          >
+            Record Stock Delivery
+          </button>
         </div>
       ) : (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700 text-sm">
+        <div className="ui-alert ui-alert-warning text-sm">
           Only Managers, Admins, and Owners can record deliveries.
         </div>
       )}
 
+      {stockInOpen && (
+        <StockInDialog
+          pumpId={pumpId}
+          products={products}
+          onClose={() => setStockInOpen(false)}
+          onSuccess={() => {
+            setStockInOpen(false)
+            setDeliveryPage(0)
+            qc.invalidateQueries({ queryKey: ['ancillaryDeliveries', pumpId] })
+            onRefresh()
+          }}
+        />
+      )}
+
       {/* Delivery history */}
-      <div className="bg-white rounded-xl border border-slate-200">
+      <div className="ui-card p-0">
         <div className="px-5 py-4 border-b border-slate-100">
           <h3 className="text-sm font-semibold text-slate-700">Recent Deliveries</h3>
         </div>
         {deliveries.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-6">No deliveries recorded yet.</p>
+          <p className="ui-empty py-6">No deliveries recorded yet.</p>
         ) : (
           <>
           <div className="overflow-x-auto">
@@ -1093,7 +1118,7 @@ function StockInTab({
               <thead>
                 <tr className="text-xs text-slate-400 uppercase border-b border-slate-100">
                   <th className="px-5 py-3 text-left">Date</th>
-                  <th className="px-5 py-3 text-left">Product ID</th>
+                  <th className="px-5 py-3 text-left">Product</th>
                   <th className="px-5 py-3 text-right">Qty</th>
                   <th className="px-5 py-3 text-right">Cost/Unit</th>
                   <th className="px-5 py-3 text-right">Total Cost</th>
@@ -1101,10 +1126,17 @@ function StockInTab({
                 </tr>
               </thead>
               <tbody>
-                {deliveries.map(d => (
+                {deliveries.map(d => {
+                  const product = productMap.get(d.productId)
+                  return (
                   <tr key={d.id} className="border-b border-slate-50 hover:bg-slate-50">
                     <td className="px-5 py-3 text-slate-600">{fmtDate(d.deliveryDate)}</td>
-                    <td className="px-5 py-3 text-slate-600">#{d.productId}</td>
+                    <td className="px-5 py-3 text-slate-600">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-slate-700">{product?.displayName ?? `Product #${d.productId}`}</span>
+                        <span className="text-xs text-slate-400">#{d.productId}</span>
+                      </div>
+                    </td>
                     <td className="px-5 py-3 text-right font-medium">{d.quantityUnits}</td>
                     <td className="px-5 py-3 text-right">{fmtCurrency(d.costPricePerUnit)}</td>
                     <td className="px-5 py-3 text-right font-medium">
@@ -1112,7 +1144,7 @@ function StockInTab({
                     </td>
                     <td className="px-5 py-3 text-slate-400">{d.invoiceReference ?? '—'}</td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
@@ -1128,6 +1160,205 @@ function StockInTab({
           )}
           </>
         )}
+      </div>
+    </div>
+  )
+}
+
+function StockInDialog({
+  pumpId, products, onClose, onSuccess,
+}: {
+  pumpId: number
+  products: AncillaryProduct[]
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const today = localDateInputValue()
+  const [step, setStep] = useState<'form' | 'review'>('form')
+  const [form, setForm] = useState<RecordStockDeliveryRequest & { productId: number | '' }>({
+    productId: products[0]?.id ?? '',
+    quantityUnits: 1,
+    costPricePerUnit: 0,
+    deliveryDate: today,
+    invoiceReference: '',
+  })
+  const [error, setError] = useState<string | null>(null)
+
+  const deliveryMutation = useMutation({
+    mutationFn: (data: { productId: number; req: RecordStockDeliveryRequest }) =>
+      ancillaryApi.recordDelivery(pumpId, data.productId, data.req),
+    onSuccess,
+    onError: (err: any) => {
+      setError(err?.response?.data?.message ?? 'Failed to record delivery')
+    },
+  })
+
+  const selectedProduct = products.find(p => p.id === form.productId) ?? null
+  const totalCost = form.quantityUnits > 0 && form.costPricePerUnit > 0
+    ? form.quantityUnits * form.costPricePerUnit
+    : null
+
+  const validate = () => {
+    if (!form.productId) return 'Select a product'
+    if (!form.quantityUnits || form.quantityUnits < 1) return 'Quantity must be at least 1'
+    if (!form.costPricePerUnit || form.costPricePerUnit <= 0) return 'Enter a valid cost price'
+    if (!form.deliveryDate) return 'Delivery date is required'
+    return null
+  }
+
+  const handleReview = () => {
+    const validationError = validate()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+    setError(null)
+    setStep('review')
+  }
+
+  const handleSubmit = () => {
+    const validationError = validate()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+    deliveryMutation.mutate({
+      productId: form.productId as number,
+      req: {
+        quantityUnits: form.quantityUnits,
+        costPricePerUnit: form.costPricePerUnit,
+        deliveryDate: form.deliveryDate,
+        invoiceReference: form.invoiceReference?.trim() || undefined,
+      },
+    })
+  }
+
+  return (
+    <div className="ui-modal-backdrop px-4" onClick={onClose}>
+      <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
+          <div className="ui-modal-heading">
+            <h3 className="ui-modal-title">{step === 'form' ? 'Record Stock Delivery' : 'Review Stock Delivery'}</h3>
+            <p className="ui-modal-subtitle">
+              {step === 'form'
+                ? 'Capture incoming stock with cost and bill details.'
+                : 'Review the stock delivery before submitting it.'}
+            </p>
+          </div>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">✕</button>
+        </div>
+
+        {step === 'form' && (
+          <div className="ui-modal-body space-y-4">
+            {error && (
+              <div className="ui-alert ui-alert-danger text-sm">{error} Go back to modify the data and try again.</div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <label className="ui-label">Product *</label>
+                <SearchableSelect
+                  value={form.productId ? form.productId.toString() : ''}
+                  onChange={v => setForm(f => ({ ...f, productId: v ? parseInt(v) : '' }))}
+                  placeholder="Select product…"
+                  options={products.map(p => ({ value: p.id.toString(), label: `${p.displayName} (stock: ${p.currentStockUnits})` }))}
+                />
+              </div>
+              <div>
+                <label className="ui-label">Quantity (units) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  className="text-sm"
+                  value={form.quantityUnits}
+                  onChange={e => setForm(f => ({ ...f, quantityUnits: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+              <div>
+                <label className="ui-label">Cost Price per Unit (₹) *</label>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  className="text-sm"
+                  value={form.costPricePerUnit || ''}
+                  onChange={e => setForm(f => ({ ...f, costPricePerUnit: parseFloat(e.target.value) || 0 }))}
+                  placeholder="₹"
+                />
+              </div>
+              <div>
+                <label className="ui-label">Delivery Date *</label>
+                <input
+                  type="date"
+                  className="text-sm"
+                  value={form.deliveryDate}
+                  onChange={e => setForm(f => ({ ...f, deliveryDate: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="ui-label">Invoice Reference</label>
+                <input
+                  className="text-sm"
+                  value={form.invoiceReference ?? ''}
+                  onChange={e => setForm(f => ({ ...f, invoiceReference: e.target.value }))}
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+
+            {totalCost != null && (
+              <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 flex items-center justify-between">
+                <span className="text-sm text-blue-600">Estimated Total</span>
+                <span className="text-sm font-semibold text-blue-700">{fmtCurrency(totalCost)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === 'review' && (
+          <div className="ui-modal-body space-y-4">
+            {error && (
+              <div className="ui-alert ui-alert-danger text-sm">{error} Go back to modify the data and try again.</div>
+            )}
+            <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
+              <ReviewRow label="Product" value={selectedProduct?.displayName ?? '—'} />
+              <ReviewRow label="Quantity" value={`${form.quantityUnits} unit${form.quantityUnits !== 1 ? 's' : ''}`} />
+              <ReviewRow label="Cost Price / Unit" value={fmtCurrency(form.costPricePerUnit)} />
+              <ReviewRow label="Delivery Date" value={fmtDate(form.deliveryDate)} />
+              <ReviewRow label="Invoice Reference" value={form.invoiceReference?.trim() || '—'} />
+              <ReviewRow label="Total Cost" value={fmtCurrency(totalCost)} highlight />
+            </div>
+          </div>
+        )}
+
+        <div className="ui-modal-footer">
+          {step === 'form' ? (
+            <>
+              <button onClick={onClose} className="ui-btn ui-btn-secondary">
+                Cancel
+              </button>
+              <button onClick={handleReview} className="ui-btn ui-btn-primary">
+                Review
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => { setStep('form'); setError(null) }}
+                className="ui-btn ui-btn-secondary"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={deliveryMutation.isPending}
+                className="ui-btn ui-btn-primary"
+              >
+                {deliveryMutation.isPending ? 'Recording…' : 'Confirm Delivery'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -1159,12 +1390,12 @@ function SalesTab({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200">
+    <div className="ui-card p-0">
       <div className="px-5 py-4 border-b border-slate-100">
         <h3 className="text-sm font-semibold text-slate-700">Sales History</h3>
       </div>
       {sales.length === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-6">No sales recorded yet.</p>
+        <p className="ui-empty py-6">No sales recorded yet.</p>
       ) : (
         <>
           <div className="overflow-x-auto">

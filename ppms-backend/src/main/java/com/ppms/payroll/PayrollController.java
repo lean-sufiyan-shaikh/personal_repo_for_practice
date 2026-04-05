@@ -152,6 +152,36 @@ public class PayrollController {
     }
 
     /**
+     * DELETE /api/pumps/{pumpId}/payroll/{recordId}
+     * Permanently removes a payroll record while it is still in DRAFT.
+     * Once approved or paid, the record becomes part of the accounting trail and cannot be deleted.
+     */
+    @DeleteMapping("/{pumpId}/payroll/{recordId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePayroll(
+            @PathVariable Long pumpId,
+            @PathVariable Long recordId,
+            @AuthenticationPrincipal User currentUser) {
+        requireOwner(currentUser);
+
+        PayrollRecord record = payrollRepository.findById(recordId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payroll record not found"));
+
+        if (!record.getPumpId().equals(pumpId)) {
+            throw new ResourceNotFoundException("Payroll record not found");
+        }
+        if (record.getStatus() != PayrollStatus.DRAFT) {
+            throw new BusinessException("Only draft payroll records can be deleted.");
+        }
+
+        payrollRepository.delete(record);
+        auditService.log(pumpId, AuditAction.PAYROLL_DELETED,
+                "PayrollRecord", recordId.toString(),
+                "Payroll draft deleted: recordId=" + recordId + " grossAmount=₹" + record.getGrossAmount(),
+                currentUser);
+    }
+
+    /**
      * Hourly-shift calculation for OPERATOR role.
      * Actual hours worked per closed shift × shift-window hourly rate.
      */

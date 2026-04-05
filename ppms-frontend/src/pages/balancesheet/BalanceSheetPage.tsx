@@ -135,25 +135,28 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+    <div className="ui-modal-backdrop">
+      <div className="ui-modal-panel">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-800">Generate Balance Sheet</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
+          <div className="ui-modal-heading">
+            <h2 className="ui-modal-title">Generate Balance Sheet</h2>
+            <p className="ui-modal-subtitle">Create a shift or day-end financial snapshot for this pump.</p>
+          </div>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 space-y-4">
+        <div className="ui-modal-body space-y-4">
           {/* Report type toggle */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Report Type</label>
-            <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+            <label className="ui-label">Report Type</label>
+            <div className="ui-card-plain flex gap-1 p-1">
               {(['SHIFT', 'DAY'] as const).map(t => (
                 <button
                   key={t}
                   onClick={() => setReportType(t)}
-                  className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                  className={`ui-btn min-h-0 flex-1 px-3 py-2 text-sm font-medium ${
                     reportType === t
                       ? 'bg-blue-600 text-white'
                       : 'bg-white text-slate-600 hover:bg-slate-50'
@@ -172,21 +175,21 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
 
           {/* Date */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Business Date</label>
+            <label className="ui-label">Business Date</label>
             <input
               type="date"
               value={reportDate}
               onChange={e => setReportDate(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="shadow-sm"
             />
           </div>
 
           {/* Shift (only for SHIFT reports) */}
           {reportType === 'SHIFT' && (
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">Shift</label>
+              <label className="ui-label">Shift</label>
               {defsLoading ? (
-                <p className="text-xs text-slate-400">Loading shifts…</p>
+                <p className="ui-help">Loading shifts…</p>
               ) : shiftDefinitions.length === 0 ? (
                 <p className="text-xs text-red-500">No shift definitions configured for this pump. Please set them up in pump settings first.</p>
               ) : (
@@ -201,18 +204,18 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Notes <span className="text-slate-400">(optional)</span></label>
+            <label className="ui-label">Notes <span className="text-slate-400">(optional)</span></label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={2}
               placeholder="Any remarks for this report…"
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="resize-none shadow-sm"
             />
           </div>
 
           {confirmRegenerate && (
-            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 space-y-3">
+            <div className="ui-alert ui-alert-warning px-4 py-3 space-y-3">
               <p className="text-sm text-amber-800 font-medium">
                 A balance sheet already exists for this period.
               </p>
@@ -223,13 +226,13 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
                 <button
                   onClick={handleForceRegenerate}
                   disabled={mutation.isPending}
-                  className="px-3 py-1.5 text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg disabled:opacity-50 transition-colors"
+                  className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
                 >
                   {mutation.isPending ? 'Generating…' : 'Yes, generate revision'}
                 </button>
                 <button
                   onClick={() => setConfirmRegenerate(false)}
-                  className="px-3 py-1.5 text-xs font-medium text-amber-700 border border-amber-300 rounded-lg hover:bg-amber-100 transition-colors"
+                  className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs text-amber-700 border-amber-300 hover:bg-amber-100"
                 >
                   Cancel
                 </button>
@@ -237,24 +240,24 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
             </div>
           )}
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            <div className="ui-alert ui-alert-danger text-sm">
               {error}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+        <div className="ui-modal-footer">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg hover:border-slate-300 transition-colors"
+            className="ui-btn ui-btn-secondary"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={mutation.isPending}
-            className="px-5 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="ui-btn ui-btn-primary"
           >
             {mutation.isPending ? 'Generating…' : 'Generate Report'}
           </button>
@@ -284,27 +287,33 @@ function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmProps) {
   })
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
-        <div className="px-6 py-5">
-          <h3 className="text-base font-semibold text-slate-800 mb-2">Delete Balance Sheet?</h3>
+    <div className="ui-modal-backdrop">
+      <div className="ui-modal-panel w-full max-w-sm">
+        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--danger">
+          <div className="ui-modal-heading">
+            <h3 className="ui-modal-title">Delete Balance Sheet?</h3>
+            <p className="ui-modal-subtitle">This action removes the saved report entry.</p>
+          </div>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+        </div>
+        <div className="ui-modal-body">
           <p className="text-sm text-slate-600">
             This will permanently delete the <span className="font-medium">{report.periodLabel}</span> report
             for <span className="font-medium">{fmtDate(report.reportDate)}</span>.
             You can regenerate it afterwards.
           </p>
         </div>
-        <div className="px-6 pb-5 flex justify-end gap-3">
+        <div className="ui-modal-footer">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:border-slate-300 transition-colors"
+            className="ui-btn ui-btn-secondary"
           >
             Cancel
           </button>
           <button
             onClick={() => mutation.mutate()}
             disabled={mutation.isPending}
-            className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+            className="ui-btn ui-btn-danger"
           >
             {mutation.isPending ? 'Deleting…' : 'Delete Report'}
           </button>
@@ -387,7 +396,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
       <div className="px-6 py-5 space-y-6">
         {/* Notes */}
         {detail.notes && (
-          <div className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 text-sm text-slate-600">
+          <div className="ui-card-plain ui-card-muted px-4 py-3 text-sm text-slate-600">
             {detail.notes}
           </div>
         )}
@@ -440,7 +449,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
         {/* Fuel lines */}
         <section>
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Fuel Breakdown</h3>
-          <div className="rounded-xl border border-slate-200 overflow-x-auto print:overflow-visible">
+          <div className="ui-table-wrap overflow-x-auto print:overflow-visible">
             <table className="w-full min-w-[900px] text-sm print:min-w-0 print:text-[8pt]">
               <thead>
                 <tr className="bg-slate-50 text-left">
@@ -472,7 +481,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
             Shift Breakdown <span className="text-slate-400 normal-case font-normal">({detail.shiftLines.length} shift{detail.shiftLines.length !== 1 ? 's' : ''})</span>
           </h3>
-          <div className="rounded-xl border border-slate-200 overflow-x-auto print:overflow-visible">
+          <div className="ui-table-wrap overflow-x-auto print:overflow-visible">
             <table className="w-full min-w-[960px] text-sm print:min-w-0 print:text-[8pt]">
               <thead>
                 <tr className="bg-slate-50 text-left">
@@ -524,7 +533,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
                 ({detail.meterAmendments.length} amendment{detail.meterAmendments.length !== 1 ? 's' : ''} during this period)
               </span>
             </h3>
-            <div className="rounded-xl border border-amber-200 overflow-x-auto">
+            <div className="ui-table-wrap overflow-x-auto border-amber-200">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-amber-50 text-left">
@@ -586,7 +595,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
                 ({detail.dipPlEntries.length} entr{detail.dipPlEntries.length !== 1 ? 'ies' : 'y'})
               </span>
             </h3>
-            <div className="rounded-xl border border-slate-200 overflow-x-auto">
+            <div className="ui-table-wrap overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-left">
@@ -790,7 +799,7 @@ function SummaryTile({ label, value, sublabel, accent }: SummaryTileProps) {
   const valueColor = accent ? accentMap[accent] : 'text-slate-800'
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+    <div className="ui-card-plain bg-white px-4 py-3">
       <p className="text-xs text-slate-500 mb-1">{label}</p>
       <p className={`text-base font-semibold ${valueColor}`}>{value}</p>
       {sublabel && <p className={`text-xs mt-0.5 ${valueColor}`}>{sublabel}</p>}
@@ -809,7 +818,7 @@ function ProductSalesSection({ productSales }: { productSales: ProductSalesSumma
           ({productSales.productLines.length} product{productSales.productLines.length !== 1 ? 's' : ''})
         </span>
       </h3>
-      <div className="rounded-xl border border-emerald-200 overflow-x-auto">
+      <div className="ui-card p-0 overflow-x-auto border-emerald-200">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-emerald-50 text-left">
@@ -958,8 +967,8 @@ export default function BalanceSheetPage() {
 
   if (!canView) {
     return (
-      <div className="p-6 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700 text-sm">
+      <div className="ui-page ui-page--narrow">
+        <div className="ui-alert ui-alert-warning text-sm">
           You do not have permission to view balance sheets.
         </div>
       </div>
@@ -977,7 +986,7 @@ export default function BalanceSheetPage() {
             <button
               onClick={() => setShowGenerateModal(true)}
               disabled={!pumpId}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 transition-colors"
+              className="ui-btn ui-btn-primary gap-1.5 px-3 py-1.5 text-sm disabled:opacity-40"
             >
               <span className="text-base leading-none">+</span>
               Generate
@@ -990,7 +999,7 @@ export default function BalanceSheetPage() {
               type="date"
               value={filterFrom}
               onChange={e => setFilterFrom(e.target.value)}
-              className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 text-xs text-slate-700"
               placeholder="From"
             />
             <span className="text-slate-300 text-xs">to</span>
@@ -998,13 +1007,13 @@ export default function BalanceSheetPage() {
               type="date"
               value={filterTo}
               onChange={e => setFilterTo(e.target.value)}
-              className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 text-xs text-slate-700"
               placeholder="To"
             />
             {(filterFrom || filterTo) && (
               <button
                 onClick={() => { setFilterFrom(''); setFilterTo(''); setBsPage(0) }}
-                className="text-slate-400 hover:text-slate-600 text-sm"
+                className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-sm text-slate-400 hover:text-slate-600"
                 title="Clear filter"
               >
                 ✕
@@ -1016,11 +1025,11 @@ export default function BalanceSheetPage() {
         {/* Report list */}
         <div className="flex-1 overflow-y-auto">
           {(!pumpId || isLoading) && (
-            <div className="p-6 text-center text-sm text-slate-400">Loading reports…</div>
+            <div className="ui-empty p-6">Loading reports…</div>
           )}
 
           {!isLoading && pumpId && reports.length === 0 && (
-            <div className="p-6 text-center">
+            <div className="ui-empty p-6">
               <p className="text-sm text-slate-500">No balance sheets found.</p>
               <p className="text-xs text-slate-400 mt-1">Generate a report after closing all shifts for a period.</p>
             </div>
@@ -1064,9 +1073,9 @@ export default function BalanceSheetPage() {
       {/* Empty detail state */}
       {!selectedReportId && (
         <div className="flex-1 hidden sm:flex items-center justify-center bg-slate-50">
-          <div className="text-center">
+          <div className="ui-empty">
             <div className="text-4xl mb-3">📊</div>
-            <p className="text-sm text-slate-500">Select a report to view details</p>
+            <p className="ui-subtitle">Select a report to view details</p>
           </div>
         </div>
       )}

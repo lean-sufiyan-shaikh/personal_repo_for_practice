@@ -45,6 +45,7 @@ public enum AuditAction {
 
     // ── Payroll ───────────────────────────────────────────────────────────────
     PAYROLL_APPROVED,
+    PAYROLL_DELETED,
 
     // ── Pump management ───────────────────────────────────────────────────────
     PUMP_CREATED,

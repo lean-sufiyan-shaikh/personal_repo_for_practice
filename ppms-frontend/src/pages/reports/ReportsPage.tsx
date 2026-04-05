@@ -5,10 +5,11 @@ import { usePumpStore } from '../../store/usePumpStore'
 import { userApi } from '../../api/userApi'
 import { reportApi } from '../../api/reportApi'
 import { pumpApi } from '../../api/pumpApi'
-import type { ProfitLossReport, OperatorDutyReport, OperatorDiscrepancyReport, InventoryLotsReport, DipPlEntry, ShiftReportLine, ExpenseReportLine } from '../../api/reportApi'
+import type { ProfitLossReport, OperatorDutyReport, OperatorDutyShiftLine, OperatorDiscrepancyReport, InventoryLotsReport, DipPlEntry, ShiftReportLine, ExpenseReportLine } from '../../api/reportApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import type { PagedResponse } from '../../types/paged'
+import { localDateInputValue } from '../../utils/date'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -20,8 +21,8 @@ function fmtQty(n: number) {
   return n.toLocaleString('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' L'
 }
 
-function todayIso()     { return new Date().toISOString().slice(0, 10) }
-function yesterdayIso() { return new Date(Date.now() - 86_400_000).toISOString().slice(0, 10) }
+function todayIso()     { return localDateInputValue() }
+function yesterdayIso() { return localDateInputValue(-1) }
 
 /** Builds a PagedResponse shape from a client-side array slice — used for client-side pagination of report data. */
 function pageSlice<T>(all: T[], page: number, pageSize: number): PagedResponse<T> {
@@ -73,8 +74,8 @@ export default function ReportsPage() {
 
   if (!pumpId && !isOwnerOrAdmin) {
     return (
-      <div className="p-6 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700 text-sm">
+      <div className="ui-page ui-page--narrow">
+        <div className="ui-alert ui-alert-warning text-sm">
           You are not assigned to any pump. Ask the Owner or Admin to assign you.
         </div>
       </div>
@@ -82,25 +83,38 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
-      <div>
-        <h2 className="text-xl font-bold text-slate-800">Reports</h2>
-        <p className="text-slate-500 text-sm mt-1 print:hidden">Operational and financial reports for your pump.</p>
-        <p className="hidden print:block text-xs text-slate-500 mt-0.5">
-          {pumpName && <><span className="font-medium">{pumpName}</span> · </>}
-          {userName && <>Printed by: <span className="font-medium">{userName}</span> · </>}
-          <span className="text-slate-400">{new Date().toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-        </p>
+    <div className="ui-page ui-page--narrow space-y-5">
+      <div className="ui-section-hero">
+        <div>
+          <p className="ui-section-kicker">Analysis</p>
+          <h2 className="ui-title-sm">Reports</h2>
+          <p className="ui-subtitle print:hidden">Operational and financial reports for your pump.</p>
+          <p className="hidden print:block text-xs text-slate-500 mt-0.5">
+            {pumpName && <><span className="font-medium">{pumpName}</span> · </>}
+            {userName && <>Printed by: <span className="font-medium">{userName}</span> · </>}
+            <span className="text-slate-400">{new Date().toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+          </p>
+        </div>
+        <div className="ui-section-meta print:hidden">
+          <div className="ui-section-meta-pill">
+            <span className="ui-section-meta-label">Pump</span>
+            <span className="ui-section-meta-value">{pumpName || 'Not selected'}</span>
+          </div>
+          <div className="ui-section-meta-pill">
+            <span className="ui-section-meta-label">Active tab</span>
+            <span className="ui-section-meta-value">{TABS.find((reportTab) => reportTab.id === tab)?.label ?? 'Reports'}</span>
+          </div>
+        </div>
       </div>
 
       {!pumpId ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-6 text-sm text-slate-400 text-center">
+        <div className="ui-empty">
           No pump selected. Use the pump selector in the top navigation bar.
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="ui-card p-0 overflow-hidden">
           {/* Tabs — hidden when printing */}
-          <div className="flex border-b border-slate-200 bg-slate-50/60 print:hidden">
+      <div className="flex flex-wrap border-b border-slate-200 bg-slate-50/60 print:hidden">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -153,22 +167,24 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
   return (
     <div className="space-y-4">
       {/* Screen: controls */}
-      <div className="flex flex-wrap items-end gap-3 print:hidden">
+      <div className="ui-card ui-card-muted p-4 print:hidden">
+        <div className="ui-filter-group">
         <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />
         <button
           onClick={() => { setQuery({ from, to }); setPage(0) }}
           disabled={isFetching}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg"
+          className="ui-btn ui-btn-primary"
         >
           {isFetching ? 'Loading…' : 'Generate'}
         </button>
         <button
           onClick={() => window.print()}
           disabled={!data || data.byFuelType.length === 0}
-          className="bg-slate-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-800 disabled:opacity-40 transition-colors"
+          className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
         >
           Print PDF
         </button>
+        </div>
       </div>
 
       {error && <ErrorBox message={(error as any)?.response?.data?.message ?? 'Failed to load report'} />}
@@ -181,26 +197,28 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
             <SummaryCard label="Cost of Goods"   value={fmtAmt(data.totalCogs)}    color="text-red-600" />
             <SummaryCard label="Gross Profit"    value={fmtAmt(data.grossProfit)}  color={data.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'} />
           </div>
-          <table className="w-full text-sm border border-slate-100 rounded-lg overflow-hidden">
-            <thead>
-              <tr className="bg-slate-50 text-xs text-slate-500">
-                <th className="text-left px-4 py-2.5 font-medium">Fuel Type</th>
-                <th className="text-right px-4 py-2.5 font-medium">Revenue</th>
-                <th className="text-right px-4 py-2.5 font-medium">COGS</th>
-                <th className="text-right px-4 py-2.5 font-medium">Gross Profit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paged.content.map((row) => (
-                <tr key={row.fuelType} className="border-t border-slate-100">
-                  <td className="px-4 py-2.5 font-medium text-slate-700">{row.fuelType.replace(/_/g, ' ')}</td>
-                  <td className="px-4 py-2.5 text-right text-slate-700">{fmtAmt(row.revenue)}</td>
-                  <td className="px-4 py-2.5 text-right text-red-600">{fmtAmt(row.cogs)}</td>
-                  <td className={`px-4 py-2.5 text-right font-semibold ${row.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{fmtAmt(row.grossProfit)}</td>
+          <div className="ui-table-wrap">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 text-xs text-slate-500">
+                  <th className="text-left px-4 py-2.5 font-medium">Fuel Type</th>
+                  <th className="text-right px-4 py-2.5 font-medium">Revenue</th>
+                  <th className="text-right px-4 py-2.5 font-medium">COGS</th>
+                  <th className="text-right px-4 py-2.5 font-medium">Gross Profit</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paged.content.map((row) => (
+                  <tr key={row.fuelType} className="border-t border-slate-100">
+                    <td className="px-4 py-2.5 font-medium text-slate-700">{row.fuelType.replace(/_/g, ' ')}</td>
+                    <td className="px-4 py-2.5 text-right text-slate-700">{fmtAmt(row.revenue)}</td>
+                    <td className="px-4 py-2.5 text-right text-red-600">{fmtAmt(row.cogs)}</td>
+                    <td className={`px-4 py-2.5 text-right font-semibold ${row.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{fmtAmt(row.grossProfit)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
           <p className="text-xs text-slate-400">{data.totalShifts} closed shift{data.totalShifts !== 1 ? 's' : ''} in range.</p>
         </div>
@@ -215,26 +233,28 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
             <SummaryCard label="Cost of Goods"   value={fmtAmt(data.totalCogs)}    color="text-red-600" />
             <SummaryCard label="Gross Profit"    value={fmtAmt(data.grossProfit)}  color={data.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'} />
           </div>
-          <table className="w-full text-sm border border-slate-100 rounded-lg overflow-hidden">
-            <thead>
-              <tr className="bg-slate-50 text-xs text-slate-500">
-                <th className="text-left px-4 py-2.5 font-medium">Fuel Type</th>
-                <th className="text-right px-4 py-2.5 font-medium">Revenue</th>
-                <th className="text-right px-4 py-2.5 font-medium">COGS</th>
-                <th className="text-right px-4 py-2.5 font-medium">Gross Profit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.byFuelType.map((row) => (
-                <tr key={row.fuelType} className="border-t border-slate-100">
-                  <td className="px-4 py-2.5 font-medium text-slate-700">{row.fuelType.replace(/_/g, ' ')}</td>
-                  <td className="px-4 py-2.5 text-right text-slate-700">{fmtAmt(row.revenue)}</td>
-                  <td className="px-4 py-2.5 text-right text-red-600">{fmtAmt(row.cogs)}</td>
-                  <td className={`px-4 py-2.5 text-right font-semibold ${row.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{fmtAmt(row.grossProfit)}</td>
+          <div className="ui-card p-0 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 text-xs text-slate-500">
+                  <th className="text-left px-4 py-2.5 font-medium">Fuel Type</th>
+                  <th className="text-right px-4 py-2.5 font-medium">Revenue</th>
+                  <th className="text-right px-4 py-2.5 font-medium">COGS</th>
+                  <th className="text-right px-4 py-2.5 font-medium">Gross Profit</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.byFuelType.map((row) => (
+                  <tr key={row.fuelType} className="border-t border-slate-100">
+                    <td className="px-4 py-2.5 font-medium text-slate-700">{row.fuelType.replace(/_/g, ' ')}</td>
+                    <td className="px-4 py-2.5 text-right text-slate-700">{fmtAmt(row.revenue)}</td>
+                    <td className="px-4 py-2.5 text-right text-red-600">{fmtAmt(row.cogs)}</td>
+                    <td className={`px-4 py-2.5 text-right font-semibold ${row.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{fmtAmt(row.grossProfit)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p className="text-xs text-slate-400">{data.totalShifts} closed shift{data.totalShifts !== 1 ? 's' : ''} in range.</p>
         </div>
       )}
@@ -276,7 +296,7 @@ function OperatorDutyTab({ pumpId }: { pumpId: number }) {
       <th className="text-left px-4 py-2.5 font-medium">Status</th>
     </tr>
   )
-  const dutyRow = (s: typeof data extends { shifts: (infer R)[] } ? R : never) => (
+  const dutyRow = (s: OperatorDutyShiftLine) => (
     <tr key={s.shiftId} className="border-t border-slate-100">
       <td className="px-4 py-2.5 text-slate-600">{s.shiftDate}</td>
       <td className="px-4 py-2.5 text-slate-500">{s.shiftWindow}</td>
@@ -293,9 +313,10 @@ function OperatorDutyTab({ pumpId }: { pumpId: number }) {
   return (
     <div className="space-y-4">
       {/* Screen: controls */}
-      <div className="flex flex-wrap items-end gap-3 print:hidden">
+      <div className="ui-card ui-card-muted p-4 print:hidden">
+        <div className="ui-filter-group">
         <div className="w-56">
-          <label className="block text-xs text-slate-500 mb-1">Operator</label>
+          <label className="ui-label">Operator</label>
           <SearchableSelect
             value={operatorId ? String(operatorId) : ''}
             onChange={(v) => setOperatorId(v ? Number(v) : null)}
@@ -307,17 +328,18 @@ function OperatorDutyTab({ pumpId }: { pumpId: number }) {
         <button
           onClick={() => { operatorId && setQuery({ from, to, operatorId }); setPage(0) }}
           disabled={!operatorId || isFetching}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg"
+          className="ui-btn ui-btn-primary"
         >
           {isFetching ? 'Loading…' : 'Generate'}
         </button>
         <button
           onClick={() => window.print()}
           disabled={!data || data.shifts.length === 0}
-          className="bg-slate-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-800 disabled:opacity-40 transition-colors"
+          className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
         >
           Print PDF
         </button>
+        </div>
       </div>
 
       {error && <ErrorBox message={(error as any)?.response?.data?.message ?? 'Failed to load report'} />}
@@ -330,10 +352,12 @@ function OperatorDutyTab({ pumpId }: { pumpId: number }) {
             <SummaryCard label="Total Amount Due"  value={fmtAmt(data.totalAmountDue)}   color="text-slate-800" />
             <SummaryCard label="Total Discrepancy" value={fmtAmt(data.totalDiscrepancy)} color={data.totalDiscrepancy > 0 ? 'text-red-700' : 'text-green-700'} />
           </div>
-          <table className="w-full text-sm border border-slate-100 rounded-lg overflow-hidden">
-            <thead>{dutyTableHead}</thead>
-            <tbody>{paged.content.map(dutyRow)}</tbody>
-          </table>
+          <div className="ui-table-wrap">
+            <table className="w-full text-sm">
+              <thead>{dutyTableHead}</thead>
+              <tbody>{paged.content.map(dutyRow)}</tbody>
+            </table>
+          </div>
           <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
         </div>
       )}
@@ -347,10 +371,12 @@ function OperatorDutyTab({ pumpId }: { pumpId: number }) {
             <SummaryCard label="Total Amount Due"  value={fmtAmt(data.totalAmountDue)}   color="text-slate-800" />
             <SummaryCard label="Total Discrepancy" value={fmtAmt(data.totalDiscrepancy)} color={data.totalDiscrepancy > 0 ? 'text-red-700' : 'text-green-700'} />
           </div>
-          <table className="w-full text-sm border border-slate-100 rounded-lg overflow-hidden">
-            <thead>{dutyTableHead}</thead>
-            <tbody>{data.shifts.map(dutyRow)}</tbody>
-          </table>
+          <div className="ui-card p-0 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>{dutyTableHead}</thead>
+              <tbody>{data.shifts.map(dutyRow)}</tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -378,22 +404,24 @@ function DiscrepancyTab({ pumpId }: { pumpId: number }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3 print:hidden">
+      <div className="ui-card ui-card-muted p-4 print:hidden">
+        <div className="ui-filter-group">
         <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />
         <button
           onClick={() => { setQuery({ from, to }); setPage(0) }}
           disabled={isFetching}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg"
+          className="ui-btn ui-btn-primary"
         >
           {isFetching ? 'Loading…' : 'Generate'}
         </button>
         <button
           onClick={() => window.print()}
           disabled={!data || data.operators.length === 0}
-          className="bg-slate-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-800 disabled:opacity-40 transition-colors"
+          className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
         >
           Print PDF
         </button>
+        </div>
       </div>
 
       {error && <ErrorBox message={(error as any)?.response?.data?.message ?? 'Failed to load report'} />}
@@ -404,10 +432,10 @@ function DiscrepancyTab({ pumpId }: { pumpId: number }) {
             {data.totalDiscrepancyShifts} discrepancy shift{data.totalDiscrepancyShifts !== 1 ? 's' : ''} in range.
           </p>
           {paged.content.length === 0 ? (
-            <div className="text-sm text-slate-400 py-6 text-center">No discrepancies in this date range.</div>
+            <div className="ui-empty py-6">No discrepancies in this date range.</div>
           ) : (
             paged.content.map((op) => (
-              <div key={op.operatorId} className="border border-slate-200 rounded-lg overflow-hidden">
+              <div key={op.operatorId} className="ui-card p-0 overflow-hidden">
                 <button
                   className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 text-left"
                   onClick={() => setExpandedOp(expandedOp === op.operatorId ? null : op.operatorId)}
@@ -534,9 +562,10 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3 print:hidden">
+      <div className="ui-card ui-card-muted p-4 print:hidden">
+        <div className="ui-filter-group">
         <div className="w-56">
-          <label className="block text-xs text-slate-500 mb-1">Tank</label>
+          <label className="ui-label">Tank</label>
           <SearchableSelect
             value={tankId ? String(tankId) : ''}
             onChange={(v) => setTankId(v ? Number(v) : null)}
@@ -547,17 +576,18 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
         <button
           onClick={() => { tankId && setQuery(tankId); setPage(0) }}
           disabled={!tankId || isFetching}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg"
+          className="ui-btn ui-btn-primary"
         >
           {isFetching ? 'Loading…' : 'Load Lots'}
         </button>
         <button
           onClick={() => window.print()}
           disabled={!data || data.lots.length === 0}
-          className="bg-slate-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-800 disabled:opacity-40 transition-colors"
+          className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
         >
           Print PDF
         </button>
+        </div>
       </div>
 
       {error && <ErrorBox message={(error as any)?.response?.data?.message ?? 'Failed to load report'} />}
@@ -566,7 +596,7 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
         <div className="space-y-3 print:hidden">
           <p className="text-xs text-slate-400">{data.totalLots} lot{data.totalLots !== 1 ? 's' : ''} in this tank.</p>
           {paged.content.map((lot) => (
-            <div key={lot.lotId} className="border border-slate-200 rounded-lg overflow-hidden">
+            <div key={lot.lotId} className="ui-card p-0 overflow-hidden">
               <button
                 className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 text-left"
                 onClick={() => setExpandedLot(expandedLot === lot.lotId ? null : lot.lotId)}
@@ -619,12 +649,12 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                 </table>
               )}
               {expandedLot === lot.lotId && lot.consumptions.length === 0 && (
-                <p className="text-xs text-slate-400 px-4 py-3 border-t border-slate-100">No consumptions yet.</p>
+                <p className="ui-empty border-t border-slate-100 px-4 py-3">No consumptions yet.</p>
               )}
             </div>
           ))}
           {paged.content.length === 0 && (
-            <div className="text-sm text-slate-400 py-6 text-center">No inventory lots found for this tank.</div>
+            <div className="ui-empty py-6">No inventory lots found for this tank.</div>
           )}
           <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
         </div>
@@ -674,7 +704,7 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                   </tbody>
                 </table>
               ) : (
-                <p className="text-xs text-slate-400 px-3 py-2">No consumptions yet.</p>
+                <p className="ui-empty px-3 py-2">No consumptions yet.</p>
               )}
             </div>
           ))}
@@ -717,23 +747,25 @@ function DipPlTab({ pumpId }: { pumpId: number }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3 print:hidden">
+      <div className="ui-card ui-card-muted p-4 print:hidden">
+        <div className="ui-filter-group">
         <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />
         <button
           onClick={() => { setQuery({ from, to }); setPage(0) }}
           disabled={isFetching}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="ui-btn ui-btn-primary disabled:bg-blue-300"
         >
-          {isFetching ? 'Loading...' : 'Run'}
+          {isFetching ? 'Loading...' : 'Generate'}
         </button>
 
         <button
           onClick={() => window.print()}
           disabled={!data || entries.length === 0}
-          className="bg-slate-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-800 disabled:opacity-40 transition-colors"
+          className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
         >
           Print PDF
         </button>
+        </div>
       </div>
 
       {error && <ErrorBox message={(error as any)?.message ?? 'Failed to load dip P/L entries'} />}
@@ -755,10 +787,10 @@ function DipPlTab({ pumpId }: { pumpId: number }) {
           </div>
 
           {entries.length === 0 ? (
-            <div className="text-sm text-slate-400 py-6 text-center">No dip P/L entries found for this date range.</div>
+            <div className="ui-empty py-6">No dip P/L entries found for this date range.</div>
           ) : (
             <>
-              <div className="rounded-xl border border-slate-200 overflow-x-auto">
+              <div className="ui-table-wrap overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50 text-left">
@@ -933,22 +965,24 @@ function ShiftsTab({ pumpId }: { pumpId: number }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3 print:hidden">
+      <div className="ui-card ui-card-muted p-4 print:hidden">
+        <div className="ui-filter-group">
         <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />
         <button
           onClick={() => { setQuery({ from, to }); setPage(0) }}
           disabled={isFetching}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg"
+          className="ui-btn ui-btn-primary"
         >
           {isFetching ? 'Loading…' : 'Generate'}
         </button>
         <button
           onClick={() => window.print()}
           disabled={rows.length === 0}
-          className="bg-slate-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-800 disabled:opacity-40 transition-colors"
+          className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
         >
           Print PDF
         </button>
+        </div>
       </div>
 
       {error && <ErrorBox message={(error as any)?.response?.data?.message ?? 'Failed to load report'} />}
@@ -956,11 +990,11 @@ function ShiftsTab({ pumpId }: { pumpId: number }) {
       {/* Screen: paginated data */}
       {data && paged && (
         rows.length === 0 ? (
-          <p className="text-sm text-slate-400 py-4 text-center print:hidden">No closed shifts in this date range.</p>
+          <p className="ui-empty py-4 print:hidden">No closed shifts in this date range.</p>
         ) : (
           <div className="space-y-2 print:hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border border-slate-100 rounded-lg overflow-hidden">
+            <div className="ui-table-wrap overflow-x-auto">
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-xs text-slate-500">
                     <th className="text-left px-4 py-2.5 font-medium">Date</th>
@@ -1075,22 +1109,24 @@ function ExpensesTab({ pumpId }: { pumpId: number }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3 print:hidden">
+      <div className="ui-card ui-card-muted p-4 print:hidden">
+        <div className="ui-filter-group">
         <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />
         <button
           onClick={() => { setQuery({ from, to }); setPage(0) }}
           disabled={isFetching}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg"
+          className="ui-btn ui-btn-primary"
         >
           {isFetching ? 'Loading…' : 'Generate'}
         </button>
         <button
           onClick={() => window.print()}
           disabled={rows.length === 0}
-          className="bg-slate-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-800 disabled:opacity-40 transition-colors"
+          className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
         >
           Print PDF
         </button>
+        </div>
       </div>
 
       {error && <ErrorBox message={(error as any)?.response?.data?.message ?? 'Failed to load report'} />}
@@ -1098,11 +1134,12 @@ function ExpensesTab({ pumpId }: { pumpId: number }) {
       {/* Screen: paginated data */}
       {data && paged && (
         rows.length === 0 ? (
-          <p className="text-sm text-slate-400 py-4 text-center print:hidden">No expenses in this date range.</p>
+          <p className="ui-empty py-4 print:hidden">No expenses in this date range.</p>
         ) : (
           <div className="space-y-3 print:hidden">
             <SummaryCard label="Total Expenses" value={fmtAmt(total)} color="text-red-600" />
-            <table className="w-full text-sm border border-slate-100 rounded-lg overflow-hidden">
+            <div className="ui-table-wrap">
+              <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-xs text-slate-500">
                   <th className="text-left px-4 py-2.5 font-medium">Date</th>
@@ -1124,6 +1161,7 @@ function ExpensesTab({ pumpId }: { pumpId: number }) {
                 ))}
               </tbody>
             </table>
+            </div>
             <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
             <p className="text-xs text-slate-400">{rows.length} expense{rows.length !== 1 ? 's' : ''} in range.</p>
           </div>
@@ -1168,11 +1206,9 @@ function ExpensesTab({ pumpId }: { pumpId: number }) {
 
 function PrintHeader({ title, from, to }: { title: string; from?: string; to?: string }) {
   return (
-    <div className="mb-3 pb-2 border-b border-slate-200">
-      <h2 className="text-base font-semibold text-slate-800">{title}</h2>
-      {(from || to) && (
-        <p className="text-xs text-slate-500 mt-0.5">Period: {from ?? '—'} to {to ?? '—'}</p>
-      )}
+    <div className="mb-4 border-b border-slate-200 pb-3">
+      <h2 className="ui-title-sm">{title}</h2>
+      {(from || to) && <p className="ui-help">Period: {from ?? '—'} to {to ?? '—'}</p>}
     </div>
   )
 }
@@ -1181,16 +1217,16 @@ function DateRangeInputs({
   from, to, onFromChange, onToChange,
 }: { from: string; to: string; onFromChange: (v: string) => void; onToChange: (v: string) => void }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="ui-filter-group">
       <div>
-        <label className="block text-xs text-slate-500 mb-1">From</label>
+        <label className="ui-label">From</label>
         <input type="date" value={from} onChange={(e) => onFromChange(e.target.value)}
-          className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          className="min-w-40 shadow-sm" />
       </div>
       <div>
-        <label className="block text-xs text-slate-500 mb-1">To</label>
+        <label className="ui-label">To</label>
         <input type="date" value={to} onChange={(e) => onToChange(e.target.value)}
-          className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          className="min-w-40 shadow-sm" />
       </div>
     </div>
   )
@@ -1198,8 +1234,8 @@ function DateRangeInputs({
 
 function SummaryCard({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="bg-slate-50 rounded-xl border border-slate-100 p-4">
-      <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{label}</p>
+    <div className="ui-card ui-card-muted p-4">
+      <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">{label}</p>
       <p className={`text-lg font-bold ${color}`}>{value}</p>
     </div>
   )
@@ -1207,7 +1243,6 @@ function SummaryCard({ label, value, color }: { label: string; value: string; co
 
 function ErrorBox({ message }: { message: string }) {
   return (
-    <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">{message}</div>
+    <div className="ui-alert ui-alert-danger text-sm">{message}</div>
   )
 }
-

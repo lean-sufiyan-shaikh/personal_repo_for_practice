@@ -84,32 +84,32 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+    <div className="ui-modal-backdrop">
+      <div className="ui-modal-panel w-full max-w-lg overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700">
-          <div>
-            <h2 className="text-lg font-bold text-white">Open New Shift</h2>
-            <p className="text-blue-200 text-xs mt-0.5">Select a nozzle and assign an operator</p>
+        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
+          <div className="ui-modal-heading">
+            <h2 className="ui-modal-title">Open New Shift</h2>
+            <p className="ui-modal-subtitle">Select a nozzle and assign an operator</p>
           </div>
           <button type="button" onClick={onClose}
-            className="text-blue-200 hover:text-white text-2xl font-light leading-none transition-colors">
+            className="ui-btn ui-btn-ghost ui-modal-close">
             ×
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="ui-modal-body space-y-5 max-h-[80vh] overflow-y-auto">
 
           {/* ── Nozzle cards ── */}
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+            <label className="ui-label uppercase tracking-wide mb-2">
               Select Nozzle
             </label>
             {nozzlesLoading ? (
-              <p className="text-sm text-slate-400">Loading nozzles...</p>
+              <p className="ui-empty">Loading nozzles...</p>
             ) : availableNozzles.length === 0 ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
+              <div className="ui-alert ui-alert-warning text-xs">
                 All nozzles are currently on active shifts.
               </div>
             ) : (
@@ -147,17 +147,17 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
 
           {/* ── Operator searchable list ── */}
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+            <label className="ui-label uppercase tracking-wide mb-2">
               Assign Operator
             </label>
             {operatorsLoading ? (
-              <p className="text-sm text-slate-400">Loading operators...</p>
+              <p className="ui-empty">Loading operators...</p>
             ) : availableOperators.length === 0 ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
+              <div className="ui-alert ui-alert-warning text-xs">
                 No operators available — all are on active shifts or none are assigned to this pump.
               </div>
             ) : (
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="ui-card p-0 overflow-hidden">
                 <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-slate-200">
                   <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" strokeWidth={2}>
@@ -167,7 +167,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
                   <input type="text" value={operatorSearch}
                     onChange={(e) => setOperatorSearch(e.target.value)}
                     placeholder="Search by name..."
-                    className="flex-1 bg-transparent text-sm text-slate-700 focus:outline-none placeholder-slate-400" />
+                    className="flex-1 min-h-0 border-0 bg-transparent p-0 text-sm text-slate-700 shadow-none focus:outline-none focus:ring-0 placeholder-slate-400" />
                   {operatorSearch && (
                     <button type="button" onClick={() => setOperatorSearch('')}
                       className="text-slate-400 hover:text-slate-600 text-lg leading-none">×</button>
@@ -175,7 +175,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
                 </div>
                 <div className="max-h-44 overflow-y-auto divide-y divide-slate-50">
                   {filteredOperators.length === 0 ? (
-                    <p className="text-sm text-slate-400 p-3 text-center">No operators match "{operatorSearch}"</p>
+                    <p className="ui-empty p-3">No operators match "{operatorSearch}"</p>
                   ) : (
                     filteredOperators.map((o) => {
                       const isSelected = selectedOperatorId === o.id
@@ -210,7 +210,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
 
           {/* ── Current meter readings (read-only acknowledgment) ── */}
           {selectedNozzle && selectedNozzle.outlets.length > 0 && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+            <div className="ui-card-plain ui-card-muted p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   Current Meter Readings
@@ -221,7 +221,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
               </div>
               <div className={`grid gap-2 ${selectedNozzle.outlets.length > 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 {selectedNozzle.outlets.map((outlet) => (
-                  <div key={outlet.outletId} className="bg-white rounded-lg border border-slate-200 px-3 py-2.5">
+                  <div key={outlet.outletId} className="ui-card-plain bg-white border-slate-200 px-3 py-2.5">
                     <p className="text-xs text-slate-500 mb-0.5">
                       {FUEL_ABBR[outlet.fuelType] ?? outlet.fuelType} ({FUEL_UNIT[outlet.fuelType] ?? 'L'})
                     </p>
@@ -254,21 +254,21 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
 
           {/* ── Errors ── */}
           {(validationError || serverError) && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+            <div className="ui-alert ui-alert-danger">
               <p className="text-red-600 text-sm">{validationError ?? serverError}</p>
             </div>
           )}
 
           {/* ── Actions ── */}
-          <div className="flex gap-3 pt-1">
+          <div className="ui-modal-footer -mx-6 -mb-6">
             <button type="button" onClick={onClose}
-              className="flex-1 border border-slate-300 text-slate-700 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors">
+              className="ui-btn ui-btn-secondary flex-1">
               Cancel
             </button>
             <button
               type="submit"
               disabled={!selectedNozzle || !selectedOperatorId || !readingConfirmed || openMutation.isPending}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-sm font-semibold transition-colors">
+              className="ui-btn ui-btn-primary flex-1 disabled:bg-blue-300 disabled:cursor-not-allowed">
               {openMutation.isPending ? 'Opening...' : 'Open Shift'}
             </button>
           </div>

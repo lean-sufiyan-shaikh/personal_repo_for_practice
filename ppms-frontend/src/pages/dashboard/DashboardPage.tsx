@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { authApi } from '../../api/authApi'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { userApi } from '../../api/userApi'
 import { pumpApi } from '../../api/pumpApi'
 import NotificationBell from '../../components/NotificationBell'
 import { canAccessPage } from '../../permissions/permissions'
+
+const PASSWORD_POLICY_MESSAGE = 'Password must be at least 8 characters and include 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 symbol.'
+const PASSWORD_POLICY_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/
 
 // Each nav item declares which PAGE_PERMISSIONS key it maps to.
 // The sidebar filters this list based on the logged-in user's role at render time.
@@ -58,11 +62,29 @@ export default function DashboardPage() {
     return () => clearInterval(timer)
   }, [])
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   // Inline name edit
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
   const [nameError, setNameError] = useState<string | null>(null)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
+  const profileMenuRef = useRef<HTMLDivElement>(null)
 
   const renameMutation = useMutation({
     mutationFn: (fullName: string) => userApi.updateMyProfile(fullName),
@@ -73,6 +95,29 @@ export default function DashboardPage() {
     },
     onError: (err: any) => {
       setNameError(err?.response?.data?.message ?? 'Failed to save name')
+    },
+  })
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await authApi.logout()
+    },
+    onSettled: () => {
+      clearAuth()
+      navigate('/login')
+    },
+  })
+
+  const changePasswordMutation = useMutation({
+    mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
+      authApi.changePassword(currentPassword, newPassword),
+    onSuccess: (data) => {
+      clearPasswordForm()
+      clearAuth()
+      navigate('/login', { state: { message: data.message } })
+    },
+    onError: (err: any) => {
+      setPasswordError(err?.response?.data?.message ?? 'Failed to update password.')
     },
   })
 
@@ -94,9 +139,44 @@ export default function DashboardPage() {
     setNameError(null)
   }
 
+  const clearPasswordForm = () => {
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setPasswordError(null)
+    setPasswordModalOpen(false)
+  }
+
+  const openPasswordModal = () => {
+    setProfileMenuOpen(false)
+    setPasswordError(null)
+    setPasswordModalOpen(true)
+  }
+
   const handleLogout = () => {
-    clearAuth()
-    navigate('/login')
+    setProfileMenuOpen(false)
+    logoutMutation.mutate()
+  }
+
+  const handleChangePassword = () => {
+    setPasswordError(null)
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All password fields are required.')
+      return
+    }
+
+    if (!PASSWORD_POLICY_REGEX.test(newPassword)) {
+      setPasswordError(PASSWORD_POLICY_MESSAGE)
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New password and confirm password must match.')
+      return
+    }
+
+    changePasswordMutation.mutate({ currentPassword, newPassword })
   }
 
   const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
@@ -106,11 +186,11 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
 
       {/* ── Top header ─────────────────────────────────────────────────────────── */}
-      <header className="bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 px-6 py-3 flex items-center justify-between flex-shrink-0 z-10 shadow-md print:hidden">
+      <header className="ui-dashboard-topbar print:hidden">
 
         {/* ── Left: Logo + tagline ── */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-500/20 border border-blue-400/30 rounded-xl flex items-center justify-center text-2xl select-none">
+        <div className="ui-dashboard-topbar-left">
+          <div className="ui-dashboard-brandmark">
             ⛽
           </div>
           <div>
@@ -127,19 +207,19 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Center: Live date/time + pump selector ── */}
-        <div className="hidden md:flex flex-col items-center gap-1.5">
+        <div className="ui-dashboard-topbar-center">
           <span className="text-sm font-semibold text-white tabular-nums tracking-wide">{timeStr}</span>
           <span className="text-xs text-slate-400">{dateStr}</span>
           {isOwnerOrAdmin && sortedPumps.length > 0 && (
-            <div className="flex gap-1.5">
+            <div className="ui-dashboard-pump-switcher">
               {sortedPumps.map(p => (
                 <button
                   key={p.id}
                   onClick={() => setSelectedPumpId(p.id)}
-                  className={`text-xs px-2.5 py-0.5 rounded-full border font-medium transition-all ${
+                  className={`ui-dashboard-pump-chip ${
                     selectedPumpId === p.id
-                      ? 'bg-blue-500 border-blue-400 text-white shadow-sm'
-                      : 'border-white/20 text-slate-300 hover:border-white/40 hover:text-white'
+                      ? 'ui-dashboard-pump-chip--active'
+                      : ''
                   }`}
                 >
                   ⛽ {p.name}
@@ -149,8 +229,8 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* ── Right: Notification bell + User info + logout ── */}
-        <div className="flex items-center gap-3">
+        {/* ── Right: Notification bell + User info + profile menu ── */}
+        <div className="ui-dashboard-topbar-right">
           {selectedPumpId && <NotificationBell pumpId={selectedPumpId} />}
           <div className="text-right hidden sm:block">
             {editingName ? (
@@ -194,17 +274,35 @@ export default function DashboardPage() {
             )}
             <p className="text-xs text-blue-300 leading-tight capitalize">{user?.role?.toLowerCase()}</p>
           </div>
-          <div className="w-8 h-8 bg-blue-500/20 border border-blue-400/40 rounded-full flex items-center justify-center">
-            <span className="text-sm font-bold text-blue-200">
-              {user?.fullName?.charAt(0).toUpperCase()}
-            </span>
+          <div className="relative" ref={profileMenuRef}>
+            <button
+              onClick={() => setProfileMenuOpen((open) => !open)}
+              className="w-9 h-9 bg-blue-500/20 border border-blue-400/40 rounded-full flex items-center justify-center hover:bg-blue-500/30 transition-colors"
+              title="Open profile menu"
+            >
+              <span className="text-sm font-bold text-blue-200">
+                {user?.fullName?.charAt(0).toUpperCase()}
+              </span>
+            </button>
+
+            {profileMenuOpen && (
+              <div className="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                <button
+                  onClick={openPasswordModal}
+                  className="ui-btn ui-btn-ghost w-full justify-start rounded-none border-0 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Reset Password
+                </button>
+                <button
+                  onClick={handleLogout}
+                  disabled={logoutMutation.isPending}
+                  className="ui-btn ui-btn-ghost w-full justify-start rounded-none border-0 px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {logoutMutation.isPending ? 'Logging out...' : 'Logout'}
+                </button>
+              </div>
+            )}
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-xs text-red-300 hover:text-white border border-red-500/40 hover:border-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transition-all font-medium"
-          >
-            Logout
-          </button>
         </div>
       </header>
 
@@ -212,8 +310,14 @@ export default function DashboardPage() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Sidebar ── */}
-        <nav className="w-52 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-y-auto print:hidden">
-          <div className="py-2 px-2 flex-1">
+        <nav className="ui-dashboard-sidebar print:hidden">
+          <div className="ui-dashboard-sidebar-head">
+            <p className="ui-dashboard-sidebar-title">Navigation</p>
+            <p className="ui-dashboard-sidebar-subtitle">
+              {user?.role?.replace('_', ' ')} workspace
+            </p>
+          </div>
+          <div className="px-3 py-3 flex-1">
             {NAV_ITEMS.map((item) => {
               const isActive =
                 location.pathname === item.path ||
@@ -222,10 +326,10 @@ export default function DashboardPage() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg mb-0.5 transition-all ${
+                  className={`ui-dashboard-navlink ${
                     isActive
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                      ? 'ui-dashboard-navlink--active'
+                      : ''
                   }`}
                 >
                   {/* Active indicator bar */}
@@ -236,6 +340,12 @@ export default function DashboardPage() {
               )
             })}
           </div>
+          <div className="ui-dashboard-sidebar-foot">
+            <p className="ui-dashboard-sidebar-foot-label">Current pump</p>
+            <p className="ui-dashboard-sidebar-foot-value">
+              {sortedPumps.find((pump) => pump.id === selectedPumpId)?.name ?? 'No pump selected'}
+            </p>
+          </div>
         </nav>
 
         {/* ── Main content ── */}
@@ -243,6 +353,80 @@ export default function DashboardPage() {
           <Outlet />
         </main>
       </div>
+
+      {passwordModalOpen && (
+        <div className="ui-modal-backdrop" onClick={clearPasswordForm}>
+          <div
+            className="ui-modal-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
+              <div className="ui-modal-heading">
+                <h2 className="ui-modal-title">Reset Password</h2>
+                <p className="ui-modal-subtitle">Update your password, then sign in again.</p>
+              </div>
+              <button onClick={clearPasswordForm} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+            </div>
+
+            <div className="ui-modal-body space-y-4">
+              <div>
+                <label className="ui-label">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="ui-label">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="shadow-sm"
+                />
+                <p className="ui-help">{PASSWORD_POLICY_MESSAGE}</p>
+              </div>
+
+              <div>
+                <label className="ui-label">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleChangePassword() }}
+                  className="shadow-sm"
+                />
+              </div>
+
+              {passwordError && (
+                <div className="ui-alert ui-alert-danger">
+                  <p className="text-sm text-red-600">{passwordError}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="ui-modal-footer">
+              <button
+                onClick={clearPasswordForm}
+                disabled={changePasswordMutation.isPending}
+                className="ui-btn ui-btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleChangePassword}
+                disabled={changePasswordMutation.isPending}
+                className="ui-btn ui-btn-primary"
+              >
+                {changePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

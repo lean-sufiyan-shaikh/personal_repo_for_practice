@@ -186,8 +186,8 @@ export default function ShiftPlanningPage() {
 
   if (!isOwnerOrAdmin && !pumpId) {
     return (
-      <div className="p-6 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700 text-sm">
+      <div className="ui-page ui-page--narrow">
+        <div className="ui-alert ui-alert-warning text-sm">
           You are not assigned to any pump. Ask the Owner or Admin to assign you.
         </div>
       </div>
@@ -195,12 +195,12 @@ export default function ShiftPlanningPage() {
   }
 
   return (
-    <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
+    <div className="ui-page ui-page--narrow space-y-5">
 
       {/* Page title */}
       <div>
-        <h2 className="text-xl font-bold text-slate-800">Shift Planning</h2>
-        <p className="text-slate-500 text-sm mt-1">
+        <h2 className="ui-title-sm">Shift Planning</h2>
+        <p className="ui-subtitle">
           Plan weekly operator schedules. Published plans pre-fill shift opening.
         </p>
       </div>
@@ -208,17 +208,17 @@ export default function ShiftPlanningPage() {
       {pumpId && (
         <>
           {/* Week navigator + actions */}
-          <div className="bg-white rounded-xl border border-slate-200 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="ui-card flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button onClick={prevWeek}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-500 transition-colors">
+                className="ui-btn ui-btn-secondary min-h-0 px-3 py-2 text-slate-500">
                 ←
               </button>
               <span className="text-sm font-semibold text-slate-700">
                 Week of {new Date(weekStart + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
               </span>
               <button onClick={nextWeek}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-500 transition-colors">
+                className="ui-btn ui-btn-secondary min-h-0 px-3 py-2 text-slate-500">
                 →
               </button>
             </div>
@@ -239,7 +239,7 @@ export default function ShiftPlanningPage() {
                     onClick={() => { setShowGenerate(true); setGenError(null) }}
                     disabled={isWeekEntirelyPast}
                     title={isWeekEntirelyPast ? 'Cannot generate a plan for a past week' : undefined}
-                    className="text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg transition-colors"
+                    className="ui-btn ui-btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {plan ? 'Regenerate' : '✦ Auto-generate'}
                   </button>
@@ -247,7 +247,7 @@ export default function ShiftPlanningPage() {
                     <button
                       onClick={() => publishMutation.mutate()}
                       disabled={publishMutation.isPending}
-                      className="text-sm font-medium bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white px-3 py-1.5 rounded-lg transition-colors"
+                      className="ui-btn ui-btn-primary bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300"
                     >
                       {publishMutation.isPending ? 'Publishing…' : 'Publish Week'}
                     </button>
@@ -259,44 +259,50 @@ export default function ShiftPlanningPage() {
 
           {/* Auto-generate modal */}
           {showGenerate && (
-            <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
-                <h3 className="text-base font-bold text-slate-800">Auto-generate schedule</h3>
-                <p className="text-xs text-slate-500">
-                  The system will assign operators based on their preferences, leave dates, and fairness.
-                  You can tweak the schedule afterwards.
-                </p>
-                <div className="space-y-3">
+            <div className="ui-modal-backdrop">
+              <div className="ui-modal-panel w-full max-w-sm">
+                <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
+                  <div className="ui-modal-heading">
+                    <h3 className="ui-modal-title">Auto-generate Schedule</h3>
+                    <p className="ui-modal-subtitle">
+                      The system will assign operators based on preferences, leave dates, and fairness.
+                    </p>
+                  </div>
+                  <button onClick={() => setShowGenerate(false)} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+                </div>
+                <div className="ui-modal-body space-y-3">
                   <div>
-                    <label className="block text-xs text-slate-500 mb-1">
+                    <label className="ui-label">
                       Operators per Morning / Evening shift
                     </label>
                     <input type="number" min="1" max="20" value={genDayOps}
                       onChange={e => setGenDayOps(e.target.value)}
-                      className="w-24 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-24 text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-500 mb-1">
+                    <label className="ui-label">
                       Operators per Night shift (12 AM – 8 AM)
                     </label>
                     <input type="number" min="1" max="20" value={genNightOps}
                       onChange={e => setGenNightOps(e.target.value)}
-                      className="w-24 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-24 text-sm"
                     />
                   </div>
                 </div>
-                {genError && <p className="text-red-500 text-xs">{genError}</p>}
-                <div className="flex gap-2">
+                <div className="ui-modal-body pt-0">
+                  {genError && <p className="ui-error-text">{genError}</p>}
+                </div>
+                <div className="ui-modal-footer">
                   <button
                     onClick={() => generateMutation.mutate()}
                     disabled={generateMutation.isPending}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                    className="ui-btn ui-btn-primary"
                   >
                     {generateMutation.isPending ? 'Generating…' : 'Generate'}
                   </button>
                   <button onClick={() => setShowGenerate(false)}
-                    className="text-sm text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg border border-slate-200 transition-colors">
+                    className="ui-btn ui-btn-secondary">
                     Cancel
                   </button>
                 </div>
@@ -306,20 +312,20 @@ export default function ShiftPlanningPage() {
 
           {/* Planning grid */}
           {planLoading ? (
-            <div className="bg-white rounded-xl border border-slate-200 p-8 text-sm text-slate-400 text-center">
+            <div className="ui-empty">
               Loading plan…
             </div>
           ) : (
             <>
               {/* No-plan notice for future weeks */}
               {!plan && isOwnerOrAdmin && days.some(d => d >= today) && (
-                <div className="bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-sm text-slate-500 text-center">
+                <div className="ui-card-plain ui-card-muted px-5 py-3 text-sm text-slate-500 text-center">
                   No plan generated for this week yet.{' '}
                   <span className="text-blue-600 font-medium">Click "Auto-generate" to create a schedule.</span>
                 </div>
               )}
 
-              <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+              <div className="ui-card p-0 overflow-x-auto">
                 <table className="w-full text-xs border-collapse min-w-[640px]">
                   <thead>
                     <tr className="border-b border-slate-100">
@@ -435,19 +441,19 @@ export default function ShiftPlanningPage() {
                                               type="button"
                                               onClick={() => addOpId && addEntryMutation.mutate({ opId: Number(addOpId) })}
                                               disabled={!addOpId || addEntryMutation.isPending}
-                                              className="bg-blue-600 disabled:bg-blue-300 text-white px-2 py-0.5 rounded text-xs transition-colors"
+                                              className="ui-btn ui-btn-primary min-h-0 px-2 py-1 text-xs disabled:bg-blue-300"
                                             >
                                               Add
                                             </button>
                                             <button
                                               type="button"
                                               onClick={() => { setEditSlot(null); setSlotError(null) }}
-                                              className="text-slate-500 px-2 py-0.5 rounded text-xs border border-slate-200 transition-colors"
+                                              className="ui-btn ui-btn-secondary min-h-0 px-2 py-1 text-xs"
                                             >
                                               ✕
                                             </button>
                                           </div>
-                                          {slotError && <p className="text-red-500 text-xs">{slotError}</p>}
+                                          {slotError && <p className="ui-error-text">{slotError}</p>}
                                         </div>
                                       )}
                                     </>

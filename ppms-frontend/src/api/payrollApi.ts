@@ -44,6 +44,9 @@ export const payrollApi = {
   generatePayroll: (pumpId: number, data: GeneratePayrollRequest): Promise<PayrollRecord> =>
     client.post(`/pumps/${pumpId}/payroll/generate`, data).then(r => r.data),
 
+  deletePayroll: (pumpId: number, recordId: number): Promise<void> =>
+    client.delete(`/pumps/${pumpId}/payroll/${recordId}`).then(() => undefined),
+
   updateStatus: (pumpId: number, recordId: number, status: PayrollStatus): Promise<PayrollRecord> =>
     client.patch(`/pumps/${pumpId}/payroll/${recordId}/status`, { status }).then(r => r.data),
 }

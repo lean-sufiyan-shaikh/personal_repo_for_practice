@@ -95,14 +95,14 @@ export default function ShiftsPage() {
 
   if (isOwnerOrAdmin && sortedPumps.length === 0 && rawPumps.length === 0) {
     return (
-      <div className="p-6 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
+      <div className="ui-page ui-page--narrow">
+        <div className="ui-alert ui-alert-warning p-6 text-center">
           <p className="text-amber-800 font-medium mb-2">No pumps set up yet</p>
           <p className="text-amber-700 text-sm mb-4">
             Create a pump location first, then add nozzles and set fuel prices.
           </p>
           <Link to="/dashboard/setup"
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            className="ui-btn ui-btn-primary inline-flex">
             Go to Setup
           </Link>
         </div>
@@ -112,8 +112,8 @@ export default function ShiftsPage() {
 
   if (!isOwnerOrAdmin && !pumpId) {
     return (
-      <div className="p-6 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700 text-sm">
+      <div className="ui-page ui-page--narrow">
+        <div className="ui-alert ui-alert-warning text-sm">
           You are not assigned to any pump. Ask the Owner or Admin to assign you.
         </div>
       </div>
@@ -123,22 +123,31 @@ export default function ShiftsPage() {
   const selectedPump = sortedPumps.find((p) => p.id === pumpId)
 
   return (
-    <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
+    <div className="ui-page ui-page--narrow space-y-6">
 
       {/* Page title */}
-      <div>
-        <h2 className="text-xl font-bold text-slate-800">Shifts</h2>
-        <p className="text-slate-500 text-sm mt-1">Open and close operator shifts, record meter readings and payment collection.</p>
+      <div className="ui-section-hero">
+        <div>
+          <p className="ui-section-kicker">Shift control</p>
+          <h2 className="ui-title-sm">Shifts</h2>
+          <p className="ui-subtitle">Open and close operator shifts, record meter readings and payment collection.</p>
+        </div>
+        <div className="ui-section-meta">
+          <div className="ui-section-meta-pill">
+            <span className="ui-section-meta-label">Open now</span>
+            <span className="ui-section-meta-value">{activeLoading ? '…' : activeShifts.length}</span>
+          </div>
+        </div>
       </div>
 
       {!pumpId ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-6 text-sm text-slate-400 text-center">
+        <div className="ui-card text-center text-sm text-slate-400">
           No pump selected. Use the pump selector in the top navigation bar.
         </div>
       ) : (
         <>
           {/* ── Active Shifts ──────────────────────────────────────────────── */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+          <div className="ui-card overflow-hidden p-0">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <div>
                 <h2 className="text-base font-semibold text-slate-800">Active Shifts</h2>
@@ -148,16 +157,16 @@ export default function ShiftsPage() {
               </div>
               <button
                 onClick={() => setShowOpenModal(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                className="ui-btn ui-btn-primary"
               >
                 + Open Shift
               </button>
             </div>
 
             {activeLoading ? (
-              <div className="p-6 text-sm text-slate-500">Loading...</div>
+              <div className="ui-empty p-6">Loading...</div>
             ) : activeShifts.length === 0 ? (
-              <div className="p-6 text-sm text-slate-400">
+              <div className="ui-empty p-6">
                 No active shifts. Click "+ Open Shift" to start one.
               </div>
             ) : (
@@ -190,7 +199,7 @@ export default function ShiftsPage() {
           </div>
 
           {/* ── Shift History ──────────────────────────────────────────────── */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="ui-card overflow-hidden p-0">
             {/* Header / toggle */}
             <button
               onClick={() => setHistoryOpen((v) => !v)}
@@ -220,9 +229,9 @@ export default function ShiftsPage() {
                 </div>
 
                 {historyLoading ? (
-                  <div className="p-6 text-sm text-slate-500">Loading history...</div>
+                  <div className="ui-empty p-6">Loading history...</div>
                 ) : historyShifts.length === 0 ? (
-                  <div className="p-6 text-sm text-slate-400">No shift history yet.</div>
+                  <div className="ui-empty p-6">No shift history yet.</div>
                 ) : historyTab === 'day' ? (
                   <DayViewHistory shifts={historyShifts} />
                 ) : (
@@ -280,7 +289,7 @@ function DayViewHistory({ shifts }: { shifts: Shift[] }) {
     new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
   if (visibleDates.length === 0) {
-    return <p className="px-6 py-6 text-sm text-slate-400">No shift history for the last 3 days.</p>
+    return <p className="ui-empty px-6 py-6">No shift history for the last 3 days.</p>
   }
 
   return (
@@ -396,7 +405,7 @@ function AllShiftsHistory({ shifts }: { shifts: Shift[] }) {
         {(fromDate || toDate) && (
           <button
             onClick={clearFilter}
-            className="text-xs text-slate-500 hover:text-slate-700 underline"
+            className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-slate-500 hover:text-slate-700 underline"
           >
             Clear
           </button>
@@ -426,7 +435,7 @@ function AllShiftsHistory({ shifts }: { shifts: Shift[] }) {
           <tbody>
             {paged.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-6 py-6 text-center text-sm text-slate-400">
+                <td colSpan={9} className="ui-empty px-6 py-6">
                   No shifts match the selected date range.
                 </td>
               </tr>
@@ -450,14 +459,14 @@ function AllShiftsHistory({ shifts }: { shifts: Shift[] }) {
             <button
               onClick={() => setPage(0)}
               disabled={safePage === 0}
-              className="px-2.5 py-1 text-xs border border-slate-200 rounded-md disabled:opacity-30 hover:bg-slate-100 transition-colors"
+              className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30"
             >
               «
             </button>
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={safePage === 0}
-              className="px-3 py-1 text-xs border border-slate-200 rounded-md disabled:opacity-30 hover:bg-slate-100 transition-colors"
+              className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30"
             >
               Prev
             </button>
@@ -468,7 +477,7 @@ function AllShiftsHistory({ shifts }: { shifts: Shift[] }) {
                 <button
                   key={i}
                   onClick={() => setPage(i)}
-                  className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+                  className={`ui-btn min-h-0 px-3 py-1 text-xs rounded-md border transition-colors ${
                     i === safePage
                       ? 'bg-blue-600 border-blue-600 text-white'
                       : 'border-slate-200 hover:bg-slate-100 text-slate-600'
@@ -480,14 +489,14 @@ function AllShiftsHistory({ shifts }: { shifts: Shift[] }) {
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={safePage === totalPages - 1}
-              className="px-3 py-1 text-xs border border-slate-200 rounded-md disabled:opacity-30 hover:bg-slate-100 transition-colors"
+              className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30"
             >
               Next
             </button>
             <button
               onClick={() => setPage(totalPages - 1)}
               disabled={safePage === totalPages - 1}
-              className="px-2.5 py-1 text-xs border border-slate-200 rounded-md disabled:opacity-30 hover:bg-slate-100 transition-colors"
+              className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30"
             >
               »
             </button>
@@ -530,7 +539,7 @@ function ShiftRow({ shift, onClose, onAddCredit }: { shift: Shift; onClose: () =
           </button>
           <button
             onClick={onClose}
-            className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+            className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs"
           >
             Close
           </button>
@@ -602,7 +611,7 @@ function HistoryRow({ shift }: { shift: Shift }) {
           {isPendingResolution && canResolve && (
             <button
               onClick={() => setResolveModalOpen(true)}
-              className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg transition-colors font-medium"
+              className="ui-btn ui-btn-danger min-h-0 px-3 py-1.5 text-xs"
             >
               Resolve
             </button>
@@ -711,32 +720,28 @@ function CreditEntriesModal({
   return (
     <tr>
       <td colSpan={8} className="p-0">
-        {/* Full-screen backdrop */}
         <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          className="ui-modal-backdrop"
           onClick={onClose}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            className="ui-modal-panel w-full max-w-md overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="text-base font-bold text-white">Credit Sales</h2>
-                  <p className="text-orange-100 text-xs mt-0.5">
-                    Shift #{shift.id} · Nozzle #{shift.nozzleNumber} · {shift.operatorName} · {shift.shiftDate}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="text-orange-200 hover:text-white text-2xl leading-none ml-4 transition-colors"
-                >
-                  ×
-                </button>
+            <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
+              <div className="ui-modal-heading">
+                <h2 className="ui-modal-title">Credit Sales</h2>
+                <p className="ui-modal-subtitle">
+                  Shift #{shift.id} · Nozzle #{shift.nozzleNumber} · {shift.operatorName} · {shift.shiftDate}
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="ui-btn ui-btn-ghost ui-modal-close"
+              >
+                ×
+              </button>
               <div className="mt-3 flex items-center justify-between">
                 <span className="text-orange-100 text-xs">
                   {entries.length} {entries.length === 1 ? 'client' : 'clients'} with outstanding credit
@@ -845,23 +850,23 @@ function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onClose: ()
   return (
     <tr>
       <td colSpan={8} className="p-0">
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="ui-modal-backdrop" onClick={onClose}>
+          <div className="ui-modal-panel w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
 
             {/* Header */}
-            <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-start justify-between">
-              <div>
-                <h2 className="text-base font-bold text-white">Resolve Discrepancy</h2>
-                <p className="text-red-100 text-xs mt-0.5">
+            <div className="ui-modal-header ui-modal-header--themed ui-modal-header--danger">
+              <div className="ui-modal-heading">
+                <h2 className="ui-modal-title">Resolve Discrepancy</h2>
+                <p className="ui-modal-subtitle">
                   Shift #{shift.id} · {discType} ₹{discAmt?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </p>
               </div>
-              <button onClick={onClose} className="text-red-200 hover:text-white text-2xl leading-none ml-4">×</button>
+              <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="ui-modal-body space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Resolution Action</label>
+                <label className="ui-label">Resolution Action</label>
                 <SearchableSelect
                   value={action}
                   onChange={(v) => setAction(v as ResolveDiscrepancyRequest['resolutionAction'])}
@@ -869,7 +874,7 @@ function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onClose: ()
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                <label className="ui-label">
                   Note {action === 'WAIVED' && <span className="text-red-500">* required</span>}
                 </label>
                 <textarea
@@ -877,18 +882,18 @@ function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onClose: ()
                   onChange={(e) => setNote(e.target.value)}
                   rows={3}
                   placeholder="Enter justification or notes…"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+                  className="resize-none text-sm"
                 />
               </div>
-              {error && <p className="text-red-500 text-xs">{error}</p>}
-              <div className="flex gap-2">
-                <button onClick={onClose} className="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium py-2 rounded-lg transition-colors">
+              {error && <p className="ui-error-text">{error}</p>}
+              <div className="ui-modal-footer -mx-6 -mb-6">
+                <button onClick={onClose} className="ui-btn ui-btn-secondary flex-1">
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={mutation.isPending}
-                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+                  className="ui-btn ui-btn-danger flex-1 disabled:bg-red-300"
                 >
                   {mutation.isPending ? 'Saving…' : 'Confirm Resolution'}
                 </button>
@@ -986,24 +991,24 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 flex items-start justify-between">
-          <div>
-            <h2 className="text-base font-bold text-white">Add Credit Entry</h2>
-            <p className="text-white/70 text-xs mt-0.5">
+    <div className="ui-modal-backdrop">
+      <div className="ui-modal-panel w-full max-w-md overflow-hidden">
+        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
+          <div className="ui-modal-heading">
+            <h2 className="ui-modal-title">Add Credit Entry</h2>
+            <p className="ui-modal-subtitle">
               Nozzle #{shift.nozzleNumber} · {shift.operatorName}
             </p>
           </div>
-          <button onClick={onClose} className="text-white/60 hover:text-white text-2xl leading-none ml-4">×</button>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
         </div>
 
-        <div className="p-5 space-y-3">
+        <div className="ui-modal-body space-y-3">
 
           {/* Existing credit entries with void option */}
           {shift.creditEntries.length > 0 && (
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
-              <p className="text-xs font-medium text-slate-600 px-3 py-2 bg-slate-50 border-b border-slate-200">
+            <div className="ui-card p-0 overflow-hidden">
+              <p className="ui-toolbar-title px-3 py-2 bg-slate-50 border-b border-slate-200 text-xs">
                 Recorded entries — click Void to cancel one
               </p>
               <div className="divide-y divide-slate-100 max-h-40 overflow-y-auto">
@@ -1020,7 +1025,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
                     {entry.voidStatus !== 'VOIDED' && voidTargetId !== entry.id && (
                       <button
                         onClick={() => { setVoidTargetId(entry.id); setVoidReason(''); setVoidError(null) }}
-                        className="text-xs text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 px-2 py-0.5 rounded transition-colors shrink-0"
+                        className="ui-btn ui-btn-ghost min-h-0 shrink-0 border border-red-200 px-2 py-0.5 text-xs text-red-600 hover:border-red-300 hover:text-red-700"
                       >
                         Void
                       </button>
@@ -1037,12 +1042,12 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
                     value={voidReason}
                     onChange={(e) => setVoidReason(e.target.value)}
                     placeholder="Reason for voiding (required)"
-                    className="w-full border border-orange-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-orange-400"
+                    className="w-full rounded-md border border-orange-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-orange-400"
                   />
-                  {voidError && <p className="text-red-500 text-xs">{voidError}</p>}
+                  {voidError && <p className="ui-error-text">{voidError}</p>}
                   <div className="flex gap-2">
                     <button onClick={() => { setVoidTargetId(null); setVoidReason('') }}
-                      className="flex-1 text-xs border border-slate-300 text-slate-600 py-1 rounded hover:bg-slate-100">
+                      className="ui-btn ui-btn-secondary min-h-0 flex-1 px-3 py-1 text-xs">
                       Cancel
                     </button>
                     <button
@@ -1051,7 +1056,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
                         voidMutation.mutate({ entryId: voidTargetId!, reason: voidReason.trim() })
                       }}
                       disabled={voidMutation.isPending}
-                      className="flex-1 text-xs bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white py-1 rounded">
+                      className="ui-btn ui-btn-danger min-h-0 flex-1 px-3 py-1 text-xs disabled:opacity-50">
                       {voidMutation.isPending ? '…' : 'Confirm Void'}
                     </button>
                   </div>
@@ -1062,7 +1067,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
 
           {/* Client — root/parent accounts only */}
           <div className="relative">
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="ui-label">
               Client <span className="text-red-500">*</span>
             </label>
             <input
@@ -1078,12 +1083,12 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
               onFocus={() => setShowDropdown(true)}
               onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
               placeholder="Search client name…"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              className="text-sm"
             />
             {showDropdown && rootClients.length > 0 && (
-              <div className="absolute top-full left-0 right-0 z-50 mt-0.5 bg-white border border-slate-200 rounded-lg shadow-lg max-h-36 overflow-y-auto">
+              <div className="ui-card absolute top-full left-0 right-0 z-50 mt-0.5 max-h-36 overflow-y-auto p-1">
                 {filtered.length === 0 ? (
-                  <p className="text-xs text-slate-400 px-3 py-2">No match — add client in Setup.</p>
+                  <p className="ui-empty px-3 py-2">No match — add client in Setup.</p>
                 ) : (
                   filtered.map((c) => (
                     <button key={c.id} type="button"
@@ -1094,7 +1099,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
                         setSubAccountId(null)
                         setShowDropdown(false)
                       }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-orange-50 flex items-center justify-between">
+                      className="w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-orange-50 flex items-center justify-between">
                       <span className="font-medium text-slate-700">{c.name}</span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {c.isParent && (
@@ -1114,7 +1119,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
           {/* Sub-account picker — shown when selected parent has children */}
           {subAccounts.length > 0 && (
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
+              <label className="ui-label">
                 Sub-account <span className="text-slate-400 font-normal">(optional)</span>
               </label>
               <SearchableSelect
@@ -1130,7 +1135,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
           {/* Fuel + Amount/Liters */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
+              <label className="ui-label">
                 Fuel <span className="text-red-500">*</span>
               </label>
               <SearchableSelect
@@ -1148,7 +1153,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-medium text-slate-600">
+                <label className="ui-label mb-0">
                   {inputMode === 'amount' ? 'Amount (₹)' : 'Liters'}{' '}
                   <span className="text-red-500">*</span>
                 </label>
@@ -1176,7 +1181,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
                   <input type="number" step="0.01" min="0.01" value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                    className="text-sm" />
                   {(() => {
                     const price = priceForFuelType(fuelType)
                     const unit = fuelType === 'CNG' ? 'kg' : 'L'
@@ -1198,7 +1203,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
                       setAmount(amt)
                     }}
                     placeholder="0.000"
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                    className="text-sm" />
                   {liters && amount && (() => {
                     const price = priceForFuelType(fuelType)
                     const unit = fuelType === 'CNG' ? 'kg' : 'L'
@@ -1216,31 +1221,31 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
           {/* Bill No + Description */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Bill No</label>
+              <label className="ui-label">Bill No</label>
               <input type="text" value={billNo} onChange={(e) => setBillNo(e.target.value)}
                 placeholder="e.g. B-101"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                className="text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Description</label>
+              <label className="ui-label">Description</label>
               <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}
                 placeholder="e.g. given to driver"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                className="text-sm" />
             </div>
           </div>
 
           {error && (
-            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
+            <div className="ui-alert ui-alert-danger text-sm">{error}</div>
           )}
         </div>
 
-        <div className="px-5 pb-5 flex gap-3">
+        <div className="ui-modal-footer">
           <button onClick={onClose}
-            className="flex-1 border border-slate-300 text-slate-600 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-50">
+            className="ui-btn ui-btn-secondary flex-1">
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={!canSave || mutation.isPending}
-            className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:bg-slate-300 disabled:text-slate-400 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-sm font-semibold transition-colors">
+            className="ui-btn ui-btn-primary flex-1 disabled:bg-slate-300 disabled:text-slate-400 disabled:cursor-not-allowed">
             {mutation.isPending ? 'Saving…' : 'Save Entry'}
           </button>
         </div>

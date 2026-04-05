@@ -51,85 +51,127 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-md p-8">
-
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-slate-800">PPMS</h1>
-          <p className="text-slate-500 text-sm mt-1">Petrol Pump Management System</p>
-        </div>
-
-        {sessionExpired && (
-          <div className="mb-5 bg-amber-50 border border-amber-300 rounded-lg px-4 py-3 flex items-start gap-2.5">
-            <span className="text-amber-500 text-base mt-0.5">⚠</span>
-            <div>
-              <p className="text-sm font-medium text-amber-800">Session expired</p>
-              <p className="text-xs text-amber-600 mt-0.5">You were signed out because your session timed out. Please sign in again.</p>
+    <div className="ui-auth-shell ui-auth-shell--split">
+      <div className="ui-auth-orb ui-auth-orb--blue" />
+      <div className="ui-auth-orb ui-auth-orb--amber" />
+      <div className="ui-auth-frame">
+        <section className="ui-auth-hero">
+          <div className="ui-auth-badge">
+            <span>⛽</span>
+            <span>Operations Console</span>
+          </div>
+          <div className="space-y-4">
+            <h1 className="ui-auth-display">Run every pump shift with clarity.</h1>
+            <p className="ui-auth-copy">
+              Track fuel, credit, cash, inventory, payroll, and compliance from one focused workspace built for petrol pump teams.
+            </p>
+          </div>
+          <div className="ui-auth-metrics">
+            <div className="ui-auth-metric">
+              <span className="ui-auth-metric-value">Live</span>
+              <span className="ui-auth-metric-label">shift and stock visibility</span>
+            </div>
+            <div className="ui-auth-metric">
+              <span className="ui-auth-metric-value">Fast</span>
+              <span className="ui-auth-metric-label">daily close and reconciliations</span>
             </div>
           </div>
-        )}
-
-        {successMessage && (
-          <div className="mb-5 bg-emerald-50 border border-emerald-300 rounded-lg px-4 py-3">
-            <p className="text-sm text-emerald-700">{successMessage}</p>
+          <div className="ui-auth-points">
+            <div className="ui-auth-point">
+              <span className="ui-auth-point-icon">📊</span>
+              <div>
+                <p className="ui-auth-point-title">Daily control</p>
+                <p className="ui-auth-point-copy">Keep dips, deliveries, and sales aligned across the site.</p>
+              </div>
+            </div>
+            <div className="ui-auth-point">
+              <span className="ui-auth-point-icon">🛡️</span>
+              <div>
+                <p className="ui-auth-point-title">Secure access</p>
+                <p className="ui-auth-point-copy">Role-based workflows for operators, managers, owners, and admins.</p>
+              </div>
+            </div>
           </div>
-        )}
+        </section>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Phone Number
-            </label>
-            <input
-              {...register('phoneNumber')}
-              type="tel"
-              inputMode="numeric"
-              maxLength={10}
-              placeholder="e.g. 9999999999"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.phoneNumber && (
-              <p className="text-red-500 text-xs mt-1">{errors.phoneNumber.message}</p>
-            )}
+        <section className="ui-auth-card ui-auth-form-panel">
+          <div className="space-y-2">
+            <p className="ui-auth-kicker">Welcome back</p>
+            <h2 className="ui-title">Sign in to PPMS</h2>
+            <p className="ui-subtitle">Use your registered phone number and password to continue.</p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Password
-            </label>
-            <input
-              {...register('password')}
-              type="password"
-              placeholder="Enter your password"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.password && (
-              <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
-            )}
-          </div>
-
-          {serverError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-red-600 text-sm">{serverError}</p>
+          {sessionExpired && (
+            <div className="ui-alert ui-alert-warning flex items-start gap-2.5">
+              <span className="text-amber-500 text-base mt-0.5">⚠</span>
+              <div>
+                <p className="text-sm font-medium text-amber-800">Session expired</p>
+                <p className="text-xs text-amber-600 mt-0.5">You were signed out because your session timed out. Please sign in again.</p>
+              </div>
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium py-2 rounded-lg text-sm transition-colors"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
+          {successMessage && (
+            <div className="ui-alert ui-alert-success">
+              <p className="text-sm text-emerald-700">{successMessage}</p>
+            </div>
+          )}
 
-          <div className="text-center">
-            <Link to="/forgot-password" className="text-xs text-slate-400 hover:text-blue-600 hover:underline">
-              Forgot password?
-            </Link>
-          </div>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <div>
+              <label className="ui-label">
+                Phone Number
+              </label>
+              <input
+                {...register('phoneNumber')}
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="e.g. 9999999999"
+                className="shadow-sm"
+              />
+              {errors.phoneNumber && (
+                <p className="ui-error-text">{errors.phoneNumber.message}</p>
+              )}
+            </div>
 
-        </form>
+            <div>
+              <label className="ui-label">
+                Password
+              </label>
+              <input
+                {...register('password')}
+                type="password"
+                placeholder="Enter your password"
+                className="shadow-sm"
+              />
+              {errors.password && (
+                <p className="ui-error-text">{errors.password.message}</p>
+              )}
+            </div>
+
+            {serverError && (
+              <div className="ui-alert ui-alert-danger">
+                <p className="text-red-600 text-sm">{serverError}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="ui-btn ui-btn-primary w-full"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-slate-400">Need help accessing your account?</span>
+              <Link to="/forgot-password" className="ui-link text-sm">
+                Forgot password?
+              </Link>
+            </div>
+          </form>
+        </section>
       </div>
     </div>
   )

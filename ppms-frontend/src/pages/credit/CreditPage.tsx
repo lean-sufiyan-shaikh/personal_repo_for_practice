@@ -8,25 +8,28 @@ import { pumpApi } from '../../api/pumpApi'
 import type { PagedResponse } from '../../types/paged'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
+import { localDateInputValue } from '../../utils/date'
 
-const today     = new Date().toISOString().slice(0, 10)
-const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+const today     = localDateInputValue()
+const yesterday = localDateInputValue(-1)
 
 // ─── Record Payment Modal ────────────────────────────────────────────────────
 
 interface RecordPaymentModalProps {
   client: CreditClient
   pumpId: number
+  outstandingBalanceOverride?: number
   onClose: () => void
 }
 
-function RecordPaymentModal({ client, pumpId, onClose }: RecordPaymentModalProps) {
+function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, onClose }: RecordPaymentModalProps) {
   const qc = useQueryClient()
   const [amount, setAmount] = useState('')
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI' | 'BANK_TRANSFER' | 'OTHER'>('CASH')
-  const [paidAt, setPaidAt] = useState(() => new Date().toISOString().slice(0, 10))
+  const [paidAt, setPaidAt] = useState(() => localDateInputValue())
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const outstandingBalance = outstandingBalanceOverride ?? client.outstandingBalance
 
   const mutation = useMutation({
     mutationFn: (req: RecordPaymentRequest) =>
@@ -47,8 +50,8 @@ function RecordPaymentModal({ client, pumpId, onClose }: RecordPaymentModalProps
       setError('Please enter a valid amount')
       return
     }
-    if (amt > client.outstandingBalance) {
-      setError(`Amount cannot exceed outstanding balance (₹${client.outstandingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })})`)
+    if (amt > outstandingBalance) {
+      setError(`Amount cannot exceed outstanding balance (₹${outstandingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })})`)
       return
     }
     setError(null)
@@ -56,28 +59,28 @@ function RecordPaymentModal({ client, pumpId, onClose }: RecordPaymentModalProps
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-slate-800">Record Payment</h2>
-            <p className="text-sm text-slate-500 mt-0.5">{client.name}</p>
+    <div className="ui-modal-backdrop">
+      <div className="ui-modal-panel">
+        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--success">
+          <div className="ui-modal-heading">
+            <h2 className="ui-modal-title">Record Payment</h2>
+            <p className="ui-modal-subtitle">{client.name}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
 
-        <div className="px-6 py-4 space-y-4">
+        <div className="ui-modal-body space-y-4">
           {/* Outstanding + Remaining live feedback */}
-          <div className="rounded-lg border border-amber-200 overflow-hidden">
+          <div className="ui-card p-0 overflow-hidden border-amber-200">
             <div className="bg-amber-50 px-4 py-3 flex items-center justify-between">
               <span className="text-sm text-amber-700">Outstanding Balance</span>
-              <span className="text-base font-bold text-amber-800">
-                ₹{client.outstandingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                <span className="text-base font-bold text-amber-800">
+                ₹{outstandingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
             </div>
             {amount !== '' && (() => {
               const amt = parseFloat(amount) || 0
-              const remaining = client.outstandingBalance - amt
+              const remaining = outstandingBalance - amt
               return (
                 <div className={`px-4 py-2.5 flex items-center justify-between border-t ${
                   remaining >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-100'
@@ -95,7 +98,7 @@ function RecordPaymentModal({ client, pumpId, onClose }: RecordPaymentModalProps
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="ui-label">
               Amount <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -108,13 +111,13 @@ function RecordPaymentModal({ client, pumpId, onClose }: RecordPaymentModalProps
                 onChange={e => setAmount(e.target.value)}
                 placeholder="0.00"
                 autoFocus
-                className="w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="pl-7 pr-3 shadow-sm"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="ui-label">
               Payment Mode <span className="text-red-500">*</span>
             </label>
             <SearchableSelect
@@ -130,46 +133,46 @@ function RecordPaymentModal({ client, pumpId, onClose }: RecordPaymentModalProps
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="ui-label">
               Payment Date <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
               value={paidAt}
               onChange={e => setPaidAt(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="shadow-sm"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+            <label className="ui-label">Notes</label>
             <input
               type="text"
               value={notes}
               onChange={e => setNotes(e.target.value)}
               placeholder="e.g. Paid via NEFT ref TXN12345"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="shadow-sm"
             />
           </div>
 
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <div className="ui-alert ui-alert-danger text-sm">
               {error}
             </div>
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
+        <div className="ui-modal-footer">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50"
+            className="ui-btn ui-btn-secondary"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={mutation.isPending}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50"
+            className="ui-btn ui-btn-primary"
           >
             {mutation.isPending ? 'Saving…' : 'Record Payment'}
           </button>
@@ -215,22 +218,22 @@ function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitModalPro
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-slate-800">Set Credit Limit</h2>
-            <p className="text-sm text-slate-500 mt-0.5">{client.name}</p>
+    <div className="ui-modal-backdrop">
+      <div className="ui-modal-panel">
+        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
+          <div className="ui-modal-heading">
+            <h2 className="ui-modal-title">Set Credit Limit</h2>
+            <p className="ui-modal-subtitle">{client.name}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
 
-        <div className="px-6 py-4 space-y-4">
+        <div className="ui-modal-body space-y-4">
           <p className="text-sm text-slate-500">
             Enter the maximum credit balance allowed. Set to <strong>0</strong> to allow unlimited credit.
           </p>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Credit Limit (₹)</label>
+            <label className="ui-label">Credit Limit (₹)</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
               <input
@@ -240,26 +243,26 @@ function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitModalPro
                 value={limit}
                 onChange={e => setLimit(e.target.value)}
                 placeholder="0 = unlimited"
-                className="w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-7 pr-3 text-sm"
               />
             </div>
           </div>
 
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <div className="ui-alert ui-alert-danger text-sm">
               {error}
             </div>
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50">
+        <div className="ui-modal-footer">
+          <button onClick={onClose} className="ui-btn ui-btn-secondary">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={mutation.isPending}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="ui-btn ui-btn-primary"
           >
             {mutation.isPending ? 'Saving…' : 'Save Limit'}
           </button>
@@ -303,31 +306,31 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-slate-800">Interest Settings</h2>
-            <p className="text-sm text-slate-500 mt-0.5">{client.name}</p>
+    <div className="ui-modal-backdrop">
+      <div className="ui-modal-panel w-full max-w-sm">
+        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
+          <div className="ui-modal-heading">
+            <h2 className="ui-modal-title">Interest Settings</h2>
+            <p className="ui-modal-subtitle">{client.name}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
 
-        <div className="px-6 py-4 space-y-4">
+        <div className="ui-modal-body space-y-4">
           <p className="text-sm text-slate-500">
             Simple interest is calculated as: <strong>outstanding × rate × (days / 30)</strong>.
             Set rate to <strong>0</strong> to disable interest for this client.
           </p>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Monthly Interest Rate (%)</label>
+            <label className="ui-label">Monthly Interest Rate (%)</label>
             <div className="relative">
               <input
                 type="number" min="0" max="100" step="0.01"
                 value={rate}
                 onChange={e => setRate(e.target.value)}
                 placeholder="0 = no interest"
-                className="w-full pr-8 pl-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pr-8 pl-3 text-sm"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
             </div>
@@ -337,12 +340,12 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Grace Period (days)</label>
+            <label className="ui-label">Grace Period (days)</label>
             <input
               type="number" min="0" step="1"
               value={graceDays}
               onChange={e => setGraceDays(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="text-sm"
             />
             <p className="text-xs text-slate-400 mt-1">
               Interest starts this many days after the first credit sale. Default is 1.
@@ -350,18 +353,18 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
           </div>
 
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
+            <div className="ui-alert ui-alert-danger text-sm">{error}</div>
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50">
+        <div className="ui-modal-footer">
+          <button onClick={onClose} className="ui-btn ui-btn-secondary">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={mutation.isPending}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="ui-btn ui-btn-primary"
           >
             {mutation.isPending ? 'Saving…' : 'Save Settings'}
           </button>
@@ -411,8 +414,7 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
   const [error, setError] = useState<string | null>(null)
 
   // Minimum expiry = tomorrow
-  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
-  const minDate = tomorrow.toISOString().slice(0, 10)
+  const minDate = localDateInputValue(1)
 
   const mutation = useMutation({
     mutationFn: (req: CreateExtensionRequest) =>
@@ -442,19 +444,19 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-slate-800">Grant Credit Extension</h2>
-            <p className="text-sm text-slate-500 mt-0.5">{client.name}</p>
+    <div className="ui-modal-backdrop">
+      <div className="ui-modal-panel ui-modal-panel--lg w-full max-w-md">
+        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
+          <div className="ui-modal-heading">
+            <h2 className="ui-modal-title">Grant Credit Extension</h2>
+            <p className="ui-modal-subtitle">{client.name}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
 
-        <div className="px-6 py-4 space-y-4">
+        <div className="ui-modal-body space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Extension Type</label>
+            <label className="ui-label">Extension Type</label>
             <SearchableSelect
               value={extensionType}
               onChange={(v) => setExtensionType(v as CreditExtensionType)}
@@ -464,7 +466,7 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
 
           {extensionType === 'AMOUNT_EXTENSION' && (
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
+              <label className="ui-label">
                 Additional Credit Amount (₹) <span className="text-red-500">*</span>
               </label>
               <input
@@ -472,7 +474,7 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
                 value={extensionAmount}
                 onChange={(e) => setExtensionAmount(e.target.value)}
                 placeholder="e.g. 5000"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-sm"
               />
               <p className="text-xs text-slate-400 mt-1">
                 Current limit: {client.creditLimit > 0 ? `₹${client.creditLimit.toLocaleString('en-IN')}` : 'Unlimited'}
@@ -481,19 +483,19 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
           )}
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="ui-label">
               Expires On <span className="text-red-500">*</span>
             </label>
             <input
               type="date" min={minDate}
               value={expiryDate}
               onChange={(e) => setExpiryDate(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="ui-label">
               Reason / Justification <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -501,23 +503,23 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
               onChange={(e) => setReason(e.target.value)}
               rows={3}
               placeholder="Why is this extension being granted?"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="resize-none text-sm"
             />
           </div>
 
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
+            <div className="ui-alert ui-alert-danger text-sm">{error}</div>
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50">
+        <div className="ui-modal-footer">
+          <button onClick={onClose} className="ui-btn ui-btn-secondary">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={mutation.isPending}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="ui-btn ui-btn-primary"
           >
             {mutation.isPending ? 'Granting…' : 'Grant Extension'}
           </button>
@@ -533,10 +535,11 @@ interface ReassignModalProps {
   entryId: number
   currentClientId: number
   pumpId: number
+  transactionType: 'SALE' | 'PAYMENT'
   onClose: () => void
 }
 
-function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, onClose }: ReassignModalProps) {
+function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, transactionType, onClose }: ReassignModalProps) {
   const qc = useQueryClient()
   const [toClientId, setToClientId] = useState<string>('')
   const [reason, setReason]         = useState('')
@@ -572,13 +575,15 @@ function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, onClose }:
 
   const mutation = useMutation({
     mutationFn: ({ toId, rsn }: { toId: number; rsn: string }) =>
-      pumpApi.reassignCreditEntry(pumpId, entryId, toId, rsn),
+      transactionType === 'PAYMENT'
+        ? pumpApi.reassignCreditPayment(pumpId, entryId, toId, rsn)
+        : pumpApi.reassignCreditEntry(pumpId, entryId, toId, rsn),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
       qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId] })
       onClose()
     },
-    onError: (err: any) => setError(err?.response?.data?.message ?? 'Failed to reassign entry'),
+    onError: (err: any) => setError(err?.response?.data?.message ?? `Failed to move ${transactionType === 'PAYMENT' ? 'payment' : 'entry'}`),
   })
 
   const handleSubmit = () => {
@@ -589,21 +594,28 @@ function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, onClose }:
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-800">Move Credit Entry</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+    <div className="ui-modal-backdrop">
+      <div className="ui-modal-panel w-full max-w-sm">
+        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
+          <div className="ui-modal-heading">
+            <h2 className="ui-modal-title">Move Credit Entry</h2>
+            <p className="ui-modal-subtitle">
+              {transactionType === 'PAYMENT'
+                ? 'Reassign this payment within the same account group.'
+                : 'Reassign this sale entry within the same account group.'}
+            </p>
+          </div>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
-        <div className="px-6 py-4 space-y-4">
+        <div className="ui-modal-body space-y-4">
           {noTargetsReason ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+            <div className="ui-alert ui-alert-warning">
               <p className="text-sm text-amber-800">{noTargetsReason}</p>
             </div>
           ) : (
             <>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                <label className="ui-label">
                   Move to <span className="text-red-500">*</span>
                 </label>
                 <SearchableSelect
@@ -618,29 +630,31 @@ function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, onClose }:
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
+                <label className="ui-label">
                   Reason <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={reason}
                   onChange={e => setReason(e.target.value)}
                   rows={2}
-                  placeholder="e.g. Entry was logged under parent but belongs to sub-account"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  placeholder={transactionType === 'PAYMENT'
+                    ? 'e.g. Payment was recorded under parent but belongs to sub-account'
+                    : 'e.g. Entry was logged under parent but belongs to sub-account'}
+                  className="resize-none text-sm"
                 />
               </div>
-              {error && <p className="text-red-500 text-sm">{error}</p>}
+              {error && <p className="ui-error-text text-sm">{error}</p>}
             </>
           )}
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
+        <div className="ui-modal-footer">
           <button onClick={onClose}
-            className="flex-1 border border-slate-300 text-slate-700 py-2 rounded-lg text-sm font-medium hover:bg-slate-50">
+            className="ui-btn ui-btn-secondary flex-1">
             {noTargetsReason ? 'Close' : 'Cancel'}
           </button>
           {!noTargetsReason && (
             <button onClick={handleSubmit} disabled={mutation.isPending}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white py-2 rounded-lg text-sm font-medium">
+              className="ui-btn ui-btn-primary flex-1">
               {mutation.isPending ? 'Moving…' : 'Move Entry'}
             </button>
           )}
@@ -668,6 +682,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
   const [reassignEntryId,         setReassignEntryId]         = useState<number | null>(null)
   // Track which client the entry being reassigned belongs to (may be a child in parent view)
   const [reassignSourceClientId,  setReassignSourceClientId]  = useState<number>(clientId)
+  const [reassignType,            setReassignType]            = useState<'SALE' | 'PAYMENT'>('SALE')
   // Tracks which sections are expanded in the parent ledger view.
   // 'own' (parent's own transactions) starts expanded; sub-account sections start collapsed.
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['own']))
@@ -726,17 +741,18 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
 
   // Extended transaction type that carries sub-account metadata for the merged parent view
   type MergedTx = CreditTransaction & { subAccountName?: string; sourceClientId: number }
+  const childTransactionsByIndex: MergedTx[][] = childClients.map((child, i) =>
+    ((childTxQueries[i]?.data?.content) ?? []).map(tx => ({
+      ...tx,
+      subAccountName: child.name,
+      sourceClientId: child.id,
+    }))
+  )
 
   const transactions: MergedTx[] = isParent
     ? [
         ...ownTransactions.map(tx => ({ ...tx, sourceClientId: clientId })),
-        ...childTxQueries.flatMap((q, i) =>
-          ((q.data?.content) ?? []).map(tx => ({
-            ...tx,
-            subAccountName: childClients[i]?.name,
-            sourceClientId: childClients[i]?.id ?? clientId,
-          }))
-        ),
+        ...childTransactionsByIndex.flat(),
       ].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
     : ownTransactions.map(tx => ({ ...tx, sourceClientId: clientId }))
 
@@ -806,7 +822,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
 
   // For parent view: apply the same filter to each child's transactions and to parent's own
   const childFilteredTxs = childClients.map((_, i) => {
-    const childTxs = (childTxQueries[i]?.data ?? []) as MergedTx[]
+    const childTxs = childTransactionsByIndex[i] ?? []
     return childTxs.filter(tx => {
       if (filterMode === 'month' && selectedMonth) return getMonthKey(tx.occurredAt) === selectedMonth
       if (filterMode === 'range') {
@@ -832,6 +848,31 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
 
   const formatAmount = (n: number) =>
     n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const ownOutstandingFromTransactions = ownTransactions.length > 0
+    ? Math.max(0, ownTransactions[0].runningBalance)
+    : 0
+  const childOutstandingTotal = childClients.reduce((sum, child) => {
+    const childLedger = allClients.find(c => c.id === child.id)
+    return sum + (childLedger?.outstandingBalance ?? 0)
+  }, 0)
+  const childOutstandingFromTransactions = childTransactionsByIndex.reduce((sum, txs) => {
+    return sum + (txs.length > 0 ? Math.max(0, txs[0].runningBalance) : 0)
+  }, 0)
+  const effectiveOutstandingBalance = !client
+    ? 0
+    : client.isParent
+      ? Math.max(
+          client.outstandingBalance,
+          ownOutstandingFromTransactions,
+          childOutstandingTotal,
+          childOutstandingFromTransactions,
+          ownOutstandingFromTransactions + childOutstandingFromTransactions,
+        )
+      : Math.max(client.outstandingBalance, ownOutstandingFromTransactions)
+  const canRecordPayment = !!client && (
+    effectiveOutstandingBalance > 0 ||
+    (client.isParent && childClients.length > 0)
+  )
 
   // Inner rendering helper — renders week group cards for a set of transactions.
   // srcClientId is passed explicitly so the Move action knows which client owns the entry.
@@ -843,10 +884,10 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
     const weekPayments = items.filter(t => t.type === 'PAYMENT').reduce((s, t) => s + t.amount, 0)
     const weekInterest = items.filter(t => t.type === 'INTEREST').reduce((s, t) => s + t.amount, 0)
     return (
-      <div key={label} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-          <span className="text-xs font-semibold text-slate-600">{label}</span>
-          <div className="flex items-center gap-4 text-xs">
+      <div key={label} className="ui-card p-0 overflow-hidden">
+        <div className="ui-toolbar">
+          <span className="ui-toolbar-title">{label}</span>
+          <div className="ui-toolbar-actions text-xs">
             {weekSales    > 0 && <span className="text-orange-600">+₹{formatAmount(weekSales)} sales</span>}
             {weekInterest > 0 && <span className="text-purple-600">+₹{formatAmount(weekInterest)} interest</span>}
             {weekPayments > 0 && <span className="text-green-600">−₹{formatAmount(weekPayments)} paid</span>}
@@ -882,11 +923,15 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
                   ₹{formatAmount(tx.runningBalance)}
                 </td>
                 <td className="px-3 py-2.5 w-28 text-right">
-                  {isOwnerOrAdmin && tx.type === 'SALE' && (
+                  {isOwnerOrAdmin && (tx.type === 'SALE' || tx.type === 'PAYMENT') && (
                     <button
-                      onClick={() => { setReassignEntryId(tx.referenceId); setReassignSourceClientId(srcClientId) }}
-                      className="text-xs text-blue-400 hover:text-blue-600 transition-colors font-medium"
-                      title="Move this entry within the account group"
+                      onClick={() => {
+                        setReassignEntryId(tx.referenceId)
+                        setReassignSourceClientId(srcClientId)
+                        setReassignType(tx.type === 'PAYMENT' ? 'PAYMENT' : 'SALE')
+                      }}
+                      className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-400 hover:text-blue-600"
+                      title={`Move this ${tx.type === 'PAYMENT' ? 'payment' : 'entry'} within the account group`}
                     >
                       Move
                     </button>
@@ -895,17 +940,17 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
                     confirmDeleteInterestId === tx.referenceId ? (
                       <span className="inline-flex items-center gap-1">
                         <button onClick={() => deleteInterestMutation.mutate(tx.referenceId)} disabled={deleteInterestMutation.isPending}
-                          className="text-xs text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 px-2 py-0.5 rounded font-medium">
+                          className="ui-btn ui-btn-danger min-h-0 px-2 py-0.5 text-xs disabled:opacity-50">
                           {deleteInterestMutation.isPending ? '…' : 'Yes'}
                         </button>
                         <button onClick={() => setConfirmDeleteInterestId(null)}
-                          className="text-xs text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded border border-slate-200 hover:bg-slate-100">
+                          className="ui-btn ui-btn-secondary min-h-0 px-2 py-0.5 text-xs">
                           No
                         </button>
                       </span>
                     ) : (
                       <button onClick={() => setConfirmDeleteInterestId(tx.referenceId)}
-                        className="text-xs text-red-400 hover:text-red-600 transition-colors font-medium"
+                        className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-red-400 hover:text-red-600"
                         title="Remove this interest charge">
                         Remove
                       </button>
@@ -930,6 +975,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
         <RecordPaymentModal
           client={client}
           pumpId={pumpId}
+          outstandingBalanceOverride={effectiveOutstandingBalance}
           onClose={() => setShowPaymentModal(false)}
         />
       )}
@@ -938,6 +984,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
           entryId={reassignEntryId}
           currentClientId={reassignSourceClientId}
           pumpId={pumpId}
+          transactionType={reassignType}
           onClose={() => { setReassignEntryId(null) }}
         />
       )}
@@ -977,7 +1024,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
             {isOwnerOrAdmin && (
               <button
                 onClick={() => setShowInterestSettingsModal(true)}
-                className="px-3 py-2 text-sm font-medium text-purple-700 border border-purple-200 bg-white rounded-lg hover:bg-purple-50"
+                className="ui-btn ui-btn-secondary text-purple-700 border-purple-200 hover:bg-purple-50"
               >
                 Interest Settings
               </button>
@@ -986,7 +1033,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
               <button
                 onClick={() => { setApplyInterestFeedback(null); applyInterestMutation.mutate() }}
                 disabled={applyInterestMutation.isPending}
-                className="px-3 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                className="ui-btn text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
               >
                 {applyInterestMutation.isPending ? 'Applying…' : 'Apply Interest'}
               </button>
@@ -994,15 +1041,15 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
             {isOwnerOrAdmin && (
               <button
                 onClick={() => setShowExtensionModal(true)}
-                className="px-3 py-2 text-sm font-medium text-blue-700 border border-blue-200 bg-white rounded-lg hover:bg-blue-50"
+                className="ui-btn ui-btn-secondary text-blue-700 border-blue-200 hover:bg-blue-50"
               >
                 Grant Extension
               </button>
             )}
-            {client.outstandingBalance > 0 && (
+            {canRecordPayment && (
               <button
                 onClick={() => setShowPaymentModal(true)}
-                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+                className="ui-btn text-white bg-green-600 hover:bg-green-700"
               >
                 Record Payment
               </button>
@@ -1011,13 +1058,13 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
         </div>
 
         {applyInterestFeedback && (
-          <div className="mt-3 text-sm bg-purple-50 border border-purple-200 rounded-lg px-4 py-2.5 text-purple-800 flex items-center justify-between">
+          <div className="mt-3 ui-alert text-sm bg-purple-50 border-purple-200 text-purple-800 flex items-center justify-between">
             <span>{applyInterestFeedback}</span>
             <button onClick={() => setApplyInterestFeedback(null)} className="ml-2 text-purple-400 hover:text-purple-600">×</button>
           </div>
         )}
         {isOwnerOrAdmin && client.monthlyInterestRate === 0 && client.outstandingBalance > 0 && (
-          <div className="mt-3 text-sm bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-slate-500 flex items-center gap-2">
+          <div className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-slate-500 flex items-center gap-2">
             <span>No interest rate configured.</span>
             <button
               onClick={() => setShowInterestSettingsModal(true)}
@@ -1030,7 +1077,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
 
         {/* Active extension banners */}
         {activeExtensions.map((ext: CreditExtension) => (
-          <div key={ext.id} className="mt-3 text-sm bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 flex items-center justify-between">
+          <div key={ext.id} className="mt-3 ui-alert text-sm bg-blue-50 border-blue-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="font-medium text-blue-800">
                 {ext.extensionType === 'AMOUNT_EXTENSION' && `+₹${ext.extensionAmount?.toLocaleString('en-IN')} credit headroom`}
@@ -1046,18 +1093,18 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
 
       {/* Summary cards */}
       <div className="px-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <div className="ui-card">
           <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">
             Outstanding{client.isParent && childClients.length > 0 ? ' (combined)' : ''}
           </p>
-          <p className={`text-lg font-bold ${client.outstandingBalance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-            ₹{formatAmount(client.outstandingBalance)}
+          <p className={`text-lg font-bold ${effectiveOutstandingBalance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+            ₹{formatAmount(effectiveOutstandingBalance)}
           </p>
           {client.isParent && childClients.length > 0 && (
             <p className="text-xs text-slate-400 mt-0.5">parent + all sub-accounts</p>
           )}
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <div className="ui-card">
           <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Credit Limit</p>
           {client.parentClientId ? (() => {
             // Child account — limit is governed by the parent, not by the child itself
@@ -1079,7 +1126,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
           )}
         </div>
         <div
-          className={`bg-white rounded-xl border p-4 ${isOwnerOrAdmin ? 'cursor-pointer hover:border-purple-300 hover:bg-purple-50/40 transition-colors' : 'border-slate-200'}`}
+          className={`ui-card ${isOwnerOrAdmin ? 'cursor-pointer hover:border-purple-300 hover:bg-purple-50/40 transition-colors' : 'border-slate-200'}`}
           onClick={isOwnerOrAdmin ? () => setShowInterestSettingsModal(true) : undefined}
           title={isOwnerOrAdmin ? 'Click to configure interest rate' : undefined}
         >
@@ -1091,13 +1138,13 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
             <p className="text-xs text-purple-400 mt-0.5">{client.monthlyInterestRate > 0 ? `${client.interestGraceDays}d grace` : 'Click to set'}</p>
           )}
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <div className="ui-card">
           <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Transactions</p>
           <p className="text-lg font-bold text-slate-700">
             {isParent ? transactions.length : (ownTxPage?.totalElements ?? transactions.length)}
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <div className="ui-card">
           <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Interest Recovered</p>
           <p className={`text-lg font-bold ${totalInterestRecovered > 0 ? 'text-purple-700' : 'text-slate-400'}`}>
             ₹{formatAmount(totalInterestRecovered)}
@@ -1205,7 +1252,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
               </button>
               {expandedSections.has('own') && (
                 filteredOwn.length === 0 ? (
-                  <div className="text-sm text-slate-400 py-4 text-center bg-white rounded-xl border border-slate-200">
+                  <div className="ui-empty py-4">
                     {ownTransactions.length === 0 ? 'No own transactions yet.' : 'No transactions match this filter.'}
                   </div>
                 ) : (
@@ -1260,9 +1307,9 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
                   </button>
                   {isExpanded && (
                     childTxQueries[i]?.isLoading ? (
-                      <div className="text-sm text-slate-400 py-4 text-center">Loading…</div>
+                      <div className="ui-empty py-4">Loading…</div>
                     ) : childFiltered.length === 0 ? (
-                      <div className="text-sm text-slate-400 py-4 text-center bg-white rounded-xl border border-slate-200">
+                      <div className="ui-empty py-4">
                         {(childTxQueries[i]?.data?.content ?? []).length === 0 ? 'No transactions yet.' : 'No transactions match this filter.'}
                       </div>
                     ) : (
@@ -1274,7 +1321,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
             })}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-sm text-slate-400 py-8 text-center bg-white rounded-xl border border-slate-200">
+          <div className="ui-empty py-8">
             {transactions.length === 0 ? 'No transactions yet.' : 'No transactions match this filter.'}
           </div>
         ) : (
@@ -1337,8 +1384,8 @@ export default function CreditPage() {
 
   if (!isOwnerOrAdmin && !pumpId) {
     return (
-      <div className="p-6 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700 text-sm">
+      <div className="ui-page ui-page--narrow">
+        <div className="ui-alert ui-alert-warning text-sm">
           You are not assigned to any pump. Ask the Owner or Admin to assign you.
         </div>
       </div>
@@ -1347,7 +1394,7 @@ export default function CreditPage() {
 
   if (selectedClient && pumpId) {
     return (
-      <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
+      <div className="ui-page ui-page--narrow space-y-5">
         <ClientDetail
           clientId={selectedClient.id}
           pumpId={pumpId}
@@ -1361,7 +1408,7 @@ export default function CreditPage() {
   const totalOutstanding = clients.reduce((sum, c) => sum + c.outstandingBalance, 0)
 
   return (
-    <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
+    <div className="ui-page ui-page--narrow space-y-5">
       {showLimitModal && pumpId && (
         <SetCreditLimitModal
           client={showLimitModal}
@@ -1378,24 +1425,21 @@ export default function CreditPage() {
       )}
 
       {/* Page title */}
-      <div>
-        <h2 className="text-xl font-bold text-slate-800">Credit</h2>
-        <p className="text-slate-500 text-sm mt-1">Manage credit clients, outstanding balances, payments, and interest.</p>
-      </div>
-
-      {/* Page header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
+      <div className="ui-section-hero">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">Credit Ledger</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Track outstanding balances and record payments</p>
+          <p className="ui-section-kicker">Client balances</p>
+          <h1 className="ui-title-sm">Credit Ledger</h1>
+          <p className="ui-subtitle">Track outstanding balances and record payments</p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {totalOutstanding > 0 && (
-            <div className="text-right">
-              <p className="text-xs text-slate-500">Total Outstanding</p>
-              <p className="text-xl font-bold text-amber-600">₹{formatAmount(totalOutstanding)}</p>
-            </div>
-          )}
+        <div className="ui-section-meta">
+          <div className="ui-section-meta-pill">
+            <span className="ui-section-meta-label">Accounts</span>
+            <span className="ui-section-meta-value">{clients.length}</span>
+          </div>
+          <div className="ui-section-meta-pill">
+            <span className="ui-section-meta-label">Outstanding</span>
+            <span className="ui-section-meta-value">₹{formatAmount(totalOutstanding)}</span>
+          </div>
         </div>
       </div>
 
@@ -1409,7 +1453,7 @@ export default function CreditPage() {
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           placeholder="Search by client name or phone…"
-          className="w-full pl-9 pr-9 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+          className="pl-9 pr-9 text-sm"
         />
         {searchQuery && (
           <button
@@ -1424,17 +1468,17 @@ export default function CreditPage() {
       </div>
 
       {isLoading && (
-        <div className="text-sm text-slate-400 py-12 text-center">Loading clients…</div>
+        <div className="ui-empty py-12">Loading clients…</div>
       )}
 
       {error && (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+        <div className="ui-alert ui-alert-danger text-sm">
           Failed to load credit data. Please try again.
         </div>
       )}
 
       {!isLoading && clients.length === 0 && (
-        <div className="text-sm text-slate-400 bg-white rounded-xl border border-slate-200 py-12 text-center">
+        <div className="ui-empty py-12">
           No credit clients registered yet. Add clients in the Setup page.
         </div>
       )}
@@ -1462,14 +1506,15 @@ export default function CreditPage() {
         // Root clients = those that are NOT children in the full structure, filtered by search.
         // A parent matches if its own name/phone matches OR any of its sub-accounts match.
         const q = searchQuery.trim().toLowerCase()
-        const rootClients = clients.filter(c => {
-          if (isChildId(c.id)) return false
-          if (!q) return true
-          const matchesSelf = c.name.toLowerCase().includes(q) || (c.phone ?? '').includes(q)
-          const children = childMap.get(c.id) ?? []
-          const matchesChild = children.some(ch => ch.name.toLowerCase().includes(q) || (ch.phone ?? '').includes(q))
-          return matchesSelf || matchesChild
-        })
+        const rootClients = clients
+          .filter(c => {
+            if (isChildId(c.id)) return false
+            if (!q) return true
+            const matchesSelf = c.name.toLowerCase().includes(q) || (c.phone ?? '').includes(q)
+            const children = childMap.get(c.id) ?? []
+            const matchesChild = children.some(ch => ch.name.toLowerCase().includes(q) || (ch.phone ?? '').includes(q))
+            return matchesSelf || matchesChild
+          })
 
         const renderClientCard = (client: typeof clients[0], isChild = false) => {
           // Use the reliable structure map to determine child status — not the isChild param alone
@@ -1486,7 +1531,7 @@ export default function CreditPage() {
             <div
               key={client.id}
               onClick={hasChildren ? () => toggleParent(client.id) : undefined}
-              className={`bg-white rounded-xl border border-slate-200 px-5 py-4 flex items-center gap-4 transition-all ${
+              className={`ui-card px-5 py-4 flex items-center gap-4 transition-all ${
                 isActualChild ? 'ml-8 border-l-4 border-l-blue-200 hover:border-blue-300 hover:shadow-sm' :
                 hasChildren   ? 'cursor-pointer hover:border-blue-400 hover:shadow-sm select-none' :
                                 'hover:border-blue-300 hover:shadow-sm'
@@ -1574,7 +1619,7 @@ export default function CreditPage() {
                 )}
                 <button
                   onClick={() => setSelectedClient(client)}
-                  className="px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+                  className="ui-btn ui-btn-ghost min-h-0 px-3 py-1.5 text-xs text-blue-600 border border-blue-200 hover:bg-blue-50"
                 >
                   View Ledger
                 </button>
@@ -1595,7 +1640,7 @@ export default function CreditPage() {
 
         if (rootClients.length === 0 && q) {
           return (
-            <div className="text-sm text-slate-400 bg-white rounded-xl border border-slate-200 py-10 text-center">
+            <div className="ui-empty py-10">
               No clients match "<span className="font-medium text-slate-600">{searchQuery.trim()}</span>"
             </div>
           )

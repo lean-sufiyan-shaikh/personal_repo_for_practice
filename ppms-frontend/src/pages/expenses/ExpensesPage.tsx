@@ -6,6 +6,7 @@ import { expenseApi } from '../../api/expenseApi'
 import type { ExpenseCategory, CreateExpenseRequest, ApproveExpenseRequest } from '../../api/expenseApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
+import { localDateInputValue } from '../../utils/date'
 
 const CATEGORIES: ExpenseCategory[] = ['FUEL', 'MAINTENANCE', 'SALARY', 'UTILITIES', 'EQUIPMENT', 'OTHER']
 
@@ -55,15 +56,16 @@ export default function ExpensesPage() {
     category: 'MAINTENANCE',
     amount: 0,
     description: '',
-    expenseDate: new Date().toISOString().slice(0, 10),
+    expenseDate: localDateInputValue(),
   })
   const [formError, setFormError] = useState<string | null>(null)
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   const createMutation = useMutation({
     mutationFn: (data: CreateExpenseRequest) => expenseApi.createExpense(pumpId!, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['expenses', pumpId] })
-      setForm({ category: 'MAINTENANCE', amount: 0, description: '', expenseDate: new Date().toISOString().slice(0, 10) })
+      setForm({ category: 'MAINTENANCE', amount: 0, description: '', expenseDate: localDateInputValue() })
       setFormError(null)
     },
     onError: (err: any) => setFormError(err?.response?.data?.message ?? 'Failed to record expense'),
@@ -74,11 +76,23 @@ export default function ExpensesPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses', pumpId] }),
   })
 
+  const validateForm = () => {
+    if (!form.description.trim()) {
+      setFormError('Description is required')
+      return false
+    }
+    if (form.amount <= 0) {
+      setFormError('Amount must be greater than zero')
+      return false
+    }
+    setFormError(null)
+    return true
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.description.trim()) { setFormError('Description is required'); return }
-    if (form.amount <= 0) { setFormError('Amount must be greater than zero'); return }
-    createMutation.mutate(form)
+    if (!validateForm()) return
+    setReviewOpen(true)
   }
 
   const approveMutation = useMutation({
@@ -98,17 +112,30 @@ export default function ExpensesPage() {
   const isAccountant = user?.role === 'ACCOUNTANT'
 
   return (
-    <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
+    <div className="ui-page ui-page--narrow space-y-5">
 
       {/* ── Header ── */}
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Expense Tracker</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Record and review operational expenses at the pump</p>
+      <div className="ui-section-hero">
+        <div>
+          <p className="ui-section-kicker">Cost tracking</p>
+          <h1 className="ui-title-sm">Expense Tracker</h1>
+          <p className="ui-subtitle">Record and review operational expenses at the pump</p>
+        </div>
+        <div className="ui-section-meta">
+          <div className="ui-section-meta-pill">
+            <span className="ui-section-meta-label">Records</span>
+            <span className="ui-section-meta-value">{expensesPage?.totalElements ?? 0}</span>
+          </div>
+          <div className="ui-section-meta-pill">
+            <span className="ui-section-meta-label">Pending</span>
+            <span className="ui-section-meta-value">{pendingCount}</span>
+          </div>
+        </div>
       </div>
 
       {/* ── Summary strip ── */}
       {!isLoading && (
-        <div className="bg-white rounded-xl border border-slate-200 px-5 py-4 flex flex-wrap gap-4">
+        <div className="ui-card flex flex-wrap gap-4">
           <div>
             <p className="text-xs text-slate-500 uppercase tracking-wide">Approved Total</p>
             <p className="text-xl font-bold text-slate-800">{fmtAmt(totalExpenses)}</p>
@@ -127,12 +154,12 @@ export default function ExpensesPage() {
       )}
 
       {/* ── Add expense form — hidden for ACCOUNTANT (read-only role) ── */}
-      {!isAccountant && <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 px-5 py-4 space-y-3">
+      {!isAccountant && <form onSubmit={handleSubmit} className="ui-card space-y-3">
         <p className="text-sm font-semibold text-slate-700">Record Expense</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Category</label>
+            <label className="ui-label">Category</label>
             <SearchableSelect
               value={form.category}
               onChange={v => setForm(f => ({ ...f, category: v as ExpenseCategory }))}
@@ -141,61 +168,114 @@ export default function ExpensesPage() {
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Amount (₹)</label>
+            <label className="ui-label">Amount (₹)</label>
             <input
               type="number"
               min="0"
               step="0.01"
               value={form.amount || ''}
               onChange={e => setForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
               placeholder="0.00"
               required
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Description</label>
+            <label className="ui-label">Description</label>
             <input
               type="text"
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
               placeholder="e.g. Pump servicing by XYZ"
               required
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Expense Date</label>
+            <label className="ui-label">Expense Date</label>
             <input
               type="date"
               value={form.expenseDate}
               onChange={e => setForm(f => ({ ...f, expenseDate: e.target.value }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
               required
             />
           </div>
         </div>
 
-        {formError && <p className="text-xs text-red-600">{formError}</p>}
+        {formError && <p className="ui-error-text">{formError}</p>}
 
         <button
           type="submit"
           disabled={createMutation.isPending}
-          className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="ui-btn ui-btn-primary"
         >
-          {createMutation.isPending ? 'Saving…' : 'Add Expense'}
+          {createMutation.isPending ? 'Saving…' : 'Review Expense'}
         </button>
       </form>}
 
-      {/* ── Expense list ── */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center gap-3">
-          <p className="text-sm font-semibold text-slate-700 mr-auto">All Expenses</p>
+      {reviewOpen && (
+        <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
+          <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
+              <div className="ui-modal-heading">
+                <h2 className="ui-modal-title">Review Expense</h2>
+                <p className="ui-modal-subtitle">Verify the expense details before saving the record.</p>
+              </div>
+              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+            </div>
+            <div className="ui-modal-body space-y-4">
+              {formError && <div className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
+              <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-slate-500 text-xs">Category</span>
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${CATEGORY_COLORS[form.category]}`}>
+                    {form.category.replace('_', ' ')}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-slate-500 text-xs">Amount</span>
+                  <span className="font-medium text-sm text-slate-800">{fmtAmt(form.amount)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+                  <span className="text-slate-500 text-xs">Description</span>
+                  <span className="font-medium text-right text-sm text-slate-800">{form.description.trim()}</span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-slate-500 text-xs">Expense Date</span>
+                  <span className="font-medium text-sm text-slate-800">{fmtDate(form.expenseDate)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="ui-modal-footer">
+              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
+                Back
+              </button>
+              <button
+                onClick={() => {
+                  if (!validateForm()) {
+                    return
+                  }
+                  createMutation.mutate(form)
+                }}
+                disabled={createMutation.isPending}
+                className="ui-btn ui-btn-primary"
+              >
+                {createMutation.isPending ? 'Saving…' : 'Add Expense'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-          {/* Category filter */}
-          <div className="w-40">
+      {/* ── Expense list ── */}
+      <div className="ui-card p-0 overflow-hidden">
+        <div className="ui-toolbar">
+          <p className="ui-toolbar-title">All Expenses</p>
+          <div className="ui-toolbar-actions">
+            <div className="w-40">
             <SearchableSelect
               value={categoryFilter}
               onChange={v => { setCategoryFilter(v as any); setPage(0) }}
@@ -207,8 +287,7 @@ export default function ExpensesPage() {
             />
           </div>
 
-          {/* Status filter */}
-          <div className="w-44">
+            <div className="w-44">
             <SearchableSelect
               value={statusFilter}
               onChange={v => { setStatusFilter(v as any); setPage(0) }}
@@ -222,21 +301,21 @@ export default function ExpensesPage() {
             />
           </div>
 
-          {/* Clear both filters */}
-          {(categoryFilter || statusFilter) && (
-            <button
-              onClick={() => { setCategoryFilter(''); setStatusFilter(''); setPage(0) }}
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Clear filters
-            </button>
-          )}
+            {(categoryFilter || statusFilter) && (
+              <button
+                onClick={() => { setCategoryFilter(''); setStatusFilter(''); setPage(0) }}
+                className="ui-btn ui-btn-ghost text-xs"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
 
         {isLoading ? (
-          <p className="text-sm text-slate-400 px-5 py-6">Loading…</p>
+          <p className="ui-empty px-5 py-6">Loading…</p>
         ) : expenses.length === 0 ? (
-          <p className="text-sm text-slate-400 px-5 py-6">No expenses recorded yet.</p>
+          <p className="ui-empty px-5 py-6">No expenses recorded yet.</p>
         ) : (
           <>
           <div className="divide-y divide-slate-100">
@@ -272,14 +351,14 @@ export default function ExpensesPage() {
                       <button
                         onClick={() => approveMutation.mutate({ expenseId: e.id, data: { action: 'APPROVED' } })}
                         disabled={approveMutation.isPending}
-                        className="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded hover:bg-emerald-700 disabled:opacity-50"
+                        className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
                       >
                         Approve
                       </button>
                       <button
                         onClick={() => approveMutation.mutate({ expenseId: e.id, data: { action: 'REJECTED' } })}
                         disabled={approveMutation.isPending}
-                        className="text-xs bg-red-500 text-white px-2 py-0.5 rounded hover:bg-red-600 disabled:opacity-50"
+                        className="ui-btn ui-btn-danger min-h-0 px-3 py-1 text-xs"
                       >
                         Reject
                       </button>
@@ -289,7 +368,7 @@ export default function ExpensesPage() {
                     <button
                       onClick={() => deleteMutation.mutate(e.id)}
                       disabled={deleteMutation.isPending}
-                      className="text-red-400 hover:text-red-600 text-xs disabled:opacity-50"
+                      className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-red-400 hover:text-red-600 disabled:opacity-50"
                       title="Delete"
                     >
                       ✕

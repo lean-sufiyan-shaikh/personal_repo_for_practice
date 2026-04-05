@@ -252,16 +252,16 @@ export default function SuperAdminPage() {
 
           {/* ── Platform analytics strip ───────────────────────────────────── */}
           {analytics && (
-            <div className="mb-6 grid grid-cols-3 gap-4">
-              <div className="bg-white rounded-xl border border-slate-200 px-5 py-4 text-center">
+            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="ui-card text-center">
                 <p className="text-2xl font-bold text-slate-800">{analytics.totalOwners}</p>
                 <p className="text-xs text-slate-500 mt-0.5 uppercase tracking-wide">Pump Owners</p>
               </div>
-              <div className="bg-white rounded-xl border border-slate-200 px-5 py-4 text-center">
+              <div className="ui-card text-center">
                 <p className="text-2xl font-bold text-slate-800">{analytics.totalPumps}</p>
                 <p className="text-xs text-slate-500 mt-0.5 uppercase tracking-wide">Pumps</p>
               </div>
-              <div className="bg-white rounded-xl border border-slate-200 px-5 py-4 text-center">
+              <div className="ui-card text-center">
                 <p className="text-2xl font-bold text-slate-800">{analytics.totalStaff}</p>
                 <p className="text-xs text-slate-500 mt-0.5 uppercase tracking-wide">Staff Members</p>
               </div>
@@ -270,7 +270,7 @@ export default function SuperAdminPage() {
 
           {/* ── Credentials card (shown after successful onboarding) ───────── */}
           {createdOwner && (
-            <div className="mb-6 bg-green-50 border border-green-300 rounded-xl p-5">
+            <div className="mb-6 ui-alert ui-alert-success p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <span className="text-green-600 text-xl mt-0.5">✓</span>
@@ -283,12 +283,12 @@ export default function SuperAdminPage() {
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <CredentialField label="Phone" value={createdOwner.phoneNumber} />
-                      <div className="bg-white border border-green-200 rounded-lg px-3 py-2">
+                      <div className="ui-card-plain bg-white border-green-200 px-3 py-2">
                         <div className="flex items-center justify-between mb-0.5">
                           <p className="text-xs text-green-600">Password</p>
                           <button
                             onClick={() => setShowPassword(v => !v)}
-                            className="text-xs text-green-600 hover:text-green-800 transition-colors"
+                            className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-green-600 hover:text-green-800"
                             title={showPassword ? 'Hide password' : 'Reveal password'}
                           >
                             {showPassword ? '🙈 Hide' : '👁 Show'}
@@ -306,13 +306,13 @@ export default function SuperAdminPage() {
                 <div className="flex gap-2 flex-shrink-0">
                   <button
                     onClick={handleCopyCredentials}
-                    className="text-xs text-green-700 border border-green-400 bg-white hover:bg-green-100 px-3 py-1.5 rounded-lg transition-all font-medium"
+                    className="ui-btn ui-btn-secondary text-xs border-green-300 text-green-700 hover:bg-green-100"
                   >
                     Copy
                   </button>
                   <button
                     onClick={() => setCreatedOwner(null)}
-                    className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1.5 rounded-lg transition-all"
+                    className="ui-btn ui-btn-ghost text-xs"
                   >
                     ✕
                   </button>
@@ -326,7 +326,7 @@ export default function SuperAdminPage() {
 
             {/* ── Left: Onboard form ──────────────────────────────────────── */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+              <div className="ui-card p-0">
                 <div className="px-5 py-4 border-b border-slate-100">
                   <h2 className="text-sm font-semibold text-slate-800">Onboard New Owner</h2>
                   <p className="text-xs text-slate-500 mt-0.5">Creates the owner account and their first pump.</p>
@@ -344,7 +344,7 @@ export default function SuperAdminPage() {
                           {...register('fullName')}
                           type="text"
                           placeholder="e.g. Ramesh Sharma"
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="text-sm"
                         />
                       </FormField>
 
@@ -355,7 +355,7 @@ export default function SuperAdminPage() {
                           inputMode="numeric"
                           maxLength={10}
                           placeholder="10-digit mobile number"
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="text-sm"
                         />
                       </FormField>
 
@@ -364,7 +364,7 @@ export default function SuperAdminPage() {
                           {...register('password')}
                           type="password"
                           placeholder="Min. 6 characters"
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="text-sm"
                         />
                       </FormField>
                     </div>
@@ -380,7 +380,7 @@ export default function SuperAdminPage() {
                           {...register('pumpName')}
                           type="text"
                           placeholder="e.g. Sharma Petrol Station"
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="text-sm"
                         />
                       </FormField>
 
@@ -389,7 +389,7 @@ export default function SuperAdminPage() {
                           {...register('pumpAddress')}
                           type="text"
                           placeholder="Full address"
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="text-sm"
                         />
                       </FormField>
 
@@ -400,14 +400,14 @@ export default function SuperAdminPage() {
                           min={1}
                           max={20}
                           placeholder="e.g. 4"
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="text-sm"
                         />
                       </FormField>
                     </div>
                   </fieldset>
 
                   {serverError && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div className="ui-alert ui-alert-danger">
                       <p className="text-red-600 text-sm">{serverError}</p>
                     </div>
                   )}
@@ -415,7 +415,7 @@ export default function SuperAdminPage() {
                   <button
                     type="submit"
                     disabled={onboardMutation.isPending}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-medium py-2 rounded-lg text-sm transition-colors"
+                    className="ui-btn ui-btn-primary w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300"
                   >
                     {onboardMutation.isPending ? 'Creating...' : 'Create Owner & Pump'}
                   </button>
@@ -425,7 +425,7 @@ export default function SuperAdminPage() {
 
             {/* ── Right: Owners list ──────────────────────────────────────── */}
             <div className="lg:col-span-3">
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+              <div className="ui-card p-0">
                 <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-800">Onboarded Owners</h2>
@@ -437,10 +437,10 @@ export default function SuperAdminPage() {
                 </div>
 
                 {ownersLoading ? (
-                  <div className="px-5 py-8 text-center text-sm text-slate-400">Loading owners...</div>
+                  <div className="ui-empty px-5 py-8">Loading owners...</div>
                 ) : owners.length === 0 ? (
-                  <div className="px-5 py-8 text-center">
-                    <p className="text-sm text-slate-400">No owners yet.</p>
+                  <div className="ui-empty px-5 py-8">
+                    <p className="ui-subtitle">No owners yet.</p>
                     <p className="text-xs text-slate-400 mt-1">Use the form to onboard your first pump owner.</p>
                   </div>
                 ) : (() => {
@@ -493,14 +493,14 @@ export default function SuperAdminPage() {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2 flex-shrink-0">
-                                    <button
-                                      onClick={() => toggleAddPump(owner.ownerId)}
-                                      className={`text-xs font-medium px-2.5 py-1 rounded-lg border transition-colors ${
-                                        isPumpFormOpen
-                                          ? 'border-indigo-400 text-indigo-700 bg-indigo-50'
-                                          : 'border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-700 hover:bg-indigo-50'
-                                      }`}
-                                    >
+                    <button
+                      onClick={() => toggleAddPump(owner.ownerId)}
+                      className={`ui-btn min-h-0 px-3 py-1 text-xs border transition-colors ${
+                        isPumpFormOpen
+                          ? 'border-indigo-400 text-indigo-700 bg-indigo-50'
+                          : 'border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-700 hover:bg-indigo-50'
+                      }`}
+                    >
                                       {isPumpFormOpen ? '✕ Cancel' : '+ Add Pump'}
                                     </button>
                                   </div>
@@ -539,7 +539,7 @@ export default function SuperAdminPage() {
                                             <div className="flex items-center gap-1 flex-shrink-0">
                                               <button
                                                 onClick={() => toggleEditPump(pump)}
-                                                className={`text-xs px-2 py-1 rounded-lg border transition-colors ${
+                                                className={`ui-btn min-h-0 px-3 py-1 text-xs border transition-colors ${
                                                   isEditOpen
                                                     ? 'border-indigo-400 text-indigo-700 bg-indigo-50'
                                                     : 'border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50'
@@ -550,7 +550,7 @@ export default function SuperAdminPage() {
                                               <button
                                                 onClick={() => togglePumpEnabled(pump)}
                                                 disabled={editPumpMutation.isPending}
-                                                className={`text-xs px-2 py-1 rounded-lg border transition-colors disabled:opacity-40 ${
+                                                className={`ui-btn min-h-0 px-3 py-1 text-xs border transition-colors disabled:opacity-40 ${
                                                   pump.enabled
                                                     ? 'border-red-200 text-red-600 hover:bg-red-50'
                                                     : 'border-green-200 text-green-600 hover:bg-green-50'
@@ -565,29 +565,29 @@ export default function SuperAdminPage() {
                                           {isEditOpen && (
                                             <form
                                               onSubmit={handleSubmitEdit(onEditPumpSubmit)}
-                                              className="mt-2 p-3 bg-white border border-indigo-100 rounded-lg space-y-2"
+                                              className="mt-2 ui-card-plain bg-white border-indigo-100 p-3 space-y-2"
                                             >
                                               <FormField label="Pump Name" error={editErrors.pumpName?.message}>
                                                 <input
                                                   {...registerEdit('pumpName')}
                                                   type="text"
-                                                  className="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                  className="text-xs min-h-10"
                                                 />
                                               </FormField>
                                               <FormField label="Pump Address" error={editErrors.pumpAddress?.message}>
                                                 <input
                                                   {...registerEdit('pumpAddress')}
                                                   type="text"
-                                                  className="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                  className="text-xs min-h-10"
                                                 />
                                               </FormField>
                                               {editPumpError && (
-                                                <p className="text-xs text-red-600">{editPumpError}</p>
+                                                <p className="ui-error-text">{editPumpError}</p>
                                               )}
                                               <button
                                                 type="submit"
                                                 disabled={editPumpMutation.isPending}
-                                                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                                                className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300"
                                               >
                                                 {editPumpMutation.isPending ? 'Saving…' : 'Save Changes'}
                                               </button>
@@ -600,10 +600,10 @@ export default function SuperAdminPage() {
                                 )}
 
                                 {owner.pumps.length === 0 && (
-                                  <p className="ml-12 mt-2 text-xs text-slate-400 italic">No pumps added yet.</p>
+                                  <p className="ml-12 mt-2 ui-help italic">No pumps added yet.</p>
                                 )}
 
-                                <div className="mt-2 ml-12 flex items-center gap-3 text-xs text-slate-400">
+                                <div className="mt-2 ml-12 flex items-center gap-3 ui-help">
                                   <span>ID: <span className="font-mono text-slate-500">{owner.employeeId}</span></span>
                                   <span>·</span>
                                   <span>Joined {new Date(owner.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
@@ -622,7 +622,7 @@ export default function SuperAdminPage() {
                                         {...registerPump('pumpName')}
                                         type="text"
                                         placeholder="e.g. Jatin Petrol Station 2"
-                                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        className="text-sm"
                                       />
                                     </FormField>
                                     <FormField label="Pump Address" error={pumpErrors.pumpAddress?.message}>
@@ -630,7 +630,7 @@ export default function SuperAdminPage() {
                                         {...registerPump('pumpAddress')}
                                         type="text"
                                         placeholder="Full address"
-                                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        className="text-sm"
                                       />
                                     </FormField>
                                     <FormField label="Max Nozzle Count" error={pumpErrors.maxNozzleCount?.message}>
@@ -640,16 +640,16 @@ export default function SuperAdminPage() {
                                         min={1}
                                         max={20}
                                         placeholder="e.g. 4"
-                                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        className="text-sm"
                                       />
                                     </FormField>
                                     {addPumpError && (
-                                      <p className="text-xs text-red-600">{addPumpError}</p>
+                                      <p className="ui-error-text">{addPumpError}</p>
                                     )}
                                     <button
                                       type="submit"
                                       disabled={addPumpMutation.isPending}
-                                      className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                                      className="ui-btn ui-btn-primary bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300"
                                     >
                                       {addPumpMutation.isPending ? 'Adding…' : 'Add Pump'}
                                     </button>
@@ -687,16 +687,16 @@ export default function SuperAdminPage() {
 function FormField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-slate-700 mb-1">{label}</label>
+      <label className="ui-label">{label}</label>
       {children}
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {error && <p className="ui-error-text">{error}</p>}
     </div>
   )
 }
 
 function CredentialField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white border border-green-200 rounded-lg px-3 py-2">
+    <div className="ui-card-plain bg-white border-green-200 px-3 py-2">
       <p className="text-xs text-green-600 mb-0.5">{label}</p>
       <p className="text-sm font-semibold text-slate-800 font-mono break-all">{value}</p>
     </div>

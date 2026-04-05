@@ -13,6 +13,7 @@ import { dipApi } from '../../api/dipApi'
 import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import type { CreateShiftDefinitionRequest } from '../../api/shiftDefinitionApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
+import { localDateInputValue } from '../../utils/date'
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -38,19 +39,19 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
+    <div className="ui-page ui-page--narrow space-y-6">
 
       {/* Page title */}
       <div>
-        <h2 className="text-xl font-bold text-slate-800">Pump Setup</h2>
-        <p className="text-slate-500 text-sm mt-1">
+        <h2 className="ui-title-sm">Pump Setup</h2>
+        <p className="ui-subtitle">
           Create pump locations, configure nozzles, set prices, manage staff and credit clients.
         </p>
       </div>
 
       {/* ── Create Pump card — Super Admin only (SaaS: adding a pump requires subscription change) ── */}
       {isSuperAdmin && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="ui-card overflow-hidden p-0">
           <button
             onClick={() => setCreateOpen((v) => !v)}
             className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors"
@@ -65,10 +66,10 @@ export default function SetupPage() {
           </button>
 
           {createOpen && (
-            <div className="px-5 pb-5 pt-1 border-t border-slate-100">
-              <CreatePumpForm onCreated={handlePumpCreated} />
-            </div>
-          )}
+              <div className="border-t border-slate-100 px-5 pb-5 pt-2">
+                <CreatePumpForm onCreated={handlePumpCreated} />
+              </div>
+            )}
         </div>
       )}
 
@@ -94,7 +95,7 @@ export default function SetupPage() {
       )}
 
       {!isLoading && pumps.length === 0 && !createOpen && (
-        <div className="text-center text-sm text-slate-400 py-6">
+        <div className="ui-card text-center text-sm text-slate-400 py-6">
           No pumps yet. Create one above to get started.
         </div>
       )}
@@ -125,9 +126,9 @@ function PumpSelectorCard({
   })
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5">
+    <div className="ui-card p-5">
       <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Your Pumps</p>
-      {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
+      {error && <p className="ui-error-text mb-2">{error}</p>}
       <div className="flex flex-wrap gap-2">
         {pumps.map((p) => {
           const isSelected = selectedPumpId === p.id
@@ -157,13 +158,13 @@ function PumpSelectorCard({
                     <button
                       onClick={() => deleteMutation.mutate(p.id)}
                       disabled={deleteMutation.isPending}
-                      className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-0.5 rounded transition-colors"
+                      className="ui-btn ui-btn-danger min-h-0 px-3 py-1 text-xs"
                     >
                       Delete
                     </button>
                     <button
                       onClick={() => setConfirmId(null)}
-                      className="text-xs text-slate-500 hover:text-slate-700 px-1"
+                      className="ui-btn ui-btn-ghost min-h-0 px-1 py-0 text-xs text-slate-500 hover:text-slate-700"
                     >
                       ✕
                     </button>
@@ -171,7 +172,7 @@ function PumpSelectorCard({
                 ) : (
                   <button
                     onClick={() => setConfirmId(p.id)}
-                    className="text-slate-300 hover:text-red-400 transition-colors text-xs px-1"
+                    className="ui-btn ui-btn-ghost min-h-0 px-1 py-0 text-xs text-slate-300 hover:text-red-400 transition-colors"
                     title="Delete pump"
                   >
                     🗑
@@ -225,7 +226,7 @@ function PumpManagementPanel({
     : 'Not set'
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200">
+    <div className="ui-card p-0">
 
       {/* Pump identity header */}
       <div className="px-5 py-4 bg-gradient-to-r from-slate-700 to-slate-800">
@@ -409,17 +410,17 @@ function CreatePumpForm({ onCreated }: { onCreated: (p: PumpSummary) => void }) 
     <form onSubmit={submit} className="space-y-3 pt-2">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Pump Name</label>
+          <label className="ui-label">Pump Name</label>
           <input
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Main Road Pump"
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="text-sm"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Max Nozzles</label>
+          <label className="ui-label">Max Nozzles</label>
           <input
             required
             type="number"
@@ -427,25 +428,25 @@ function CreatePumpForm({ onCreated }: { onCreated: (p: PumpSummary) => void }) 
             max="9"
             value={maxNozzles}
             onChange={(e) => setMaxNozzles(e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="text-sm"
           />
         </div>
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Address</label>
+        <label className="ui-label">Address</label>
         <input
           required
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="e.g. 123, MG Road, Bangalore"
-          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="text-sm"
         />
       </div>
-      {error && <p className="text-red-500 text-xs">{error}</p>}
+      {error && <p className="ui-error-text">{error}</p>}
       <button
         type="submit"
         disabled={mutation.isPending}
-        className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+        className="ui-btn ui-btn-primary"
       >
         {mutation.isPending ? 'Creating...' : 'Create Pump'}
       </button>
@@ -758,7 +759,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                         <button
                           type="button"
                           onClick={() => setOpenMenu(openMenu === n.id ? null : n.id)}
-                          className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors text-base leading-none"
+                          className="ui-btn ui-btn-ghost min-h-0 p-1.5 text-base leading-none text-slate-400 hover:text-slate-600"
                           title="Nozzle actions"
                         >
                           ⋮
@@ -770,7 +771,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                               className="fixed inset-0 z-[5]"
                               onClick={() => setOpenMenu(null)}
                             />
-                            <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-[6] py-1">
+                            <div className="ui-card absolute right-0 top-full z-[6] mt-1 w-48 p-1">
                               {(
                                 [
                                   { label: 'Map Tanks',             panel: 'mapTanks'  as NozzlePanel, color: 'text-emerald-700 hover:bg-emerald-50' },
@@ -787,7 +788,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                                     openPanelFor(n.id, panel, n)
                                     setOpenMenu(null)
                                   }}
-                                  className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${color}`}
+                                  className={`w-full rounded-md px-3 py-2 text-left text-xs font-medium transition-colors ${color}`}
                                 >
                                   {label}
                                 </button>
@@ -814,12 +815,12 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                           type="button"
                           onClick={() => statusMutation.mutate({ nozzleId: n.id, status: 'INACTIVE' })}
                           disabled={statusMutation.isPending}
-                          className="text-xs bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-medium px-3 py-1.5 rounded-md transition-colors"
+                          className="ui-btn ui-btn-danger min-h-0 px-3 py-1.5 text-xs disabled:bg-red-300"
                         >
                           {statusMutation.isPending ? 'Disabling…' : 'Yes, Disable'}
                         </button>
                         <button type="button" onClick={() => setOpenPanel(null)}
-                          className="text-xs text-slate-600 hover:text-slate-800 px-3 py-1.5 rounded-md border border-slate-200 transition-colors">
+                          className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
                           Cancel
                         </button>
                       </div>
@@ -844,7 +845,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                           )
                           return (
                             <div key={outlet.outletId}>
-                              <label className="block text-xs text-slate-500 mb-1">
+                              <label className="ui-label">
                                 {FUEL_LABEL[outlet.fuelType]} tank
                               </label>
                               <SearchableSelect
@@ -864,14 +865,14 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                           )
                         })}
                       </div>
-                      {mapError && <p className="text-red-500 text-xs">{mapError}</p>}
+                      {mapError && <p className="ui-error-text">{mapError}</p>}
                       <div className="flex gap-2">
                         <button type="submit" disabled={mapTankMutation.isPending}
-                          className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                          className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs disabled:bg-emerald-300">
                           {mapTankMutation.isPending ? 'Saving...' : 'Save'}
                         </button>
                         <button type="button" onClick={() => setOpenPanel(null)}
-                          className="text-xs text-slate-600 hover:text-slate-800 px-3 py-1.5 rounded-md border border-slate-200 transition-colors">
+                          className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
                           Cancel
                         </button>
                       </div>
@@ -930,9 +931,9 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                           </div>
                         )
                       })()}
-                      {fuelEditError && <p className="text-red-500 text-xs">{fuelEditError}</p>}
+                      {fuelEditError && <p className="ui-error-text">{fuelEditError}</p>}
                       <button type="button" onClick={() => setOpenPanel(null)}
-                        className="text-xs text-slate-500 hover:text-slate-700 transition-colors">
+                        className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs">
                         Done
                       </button>
                     </div>
@@ -952,19 +953,19 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
 
                       {/* Adjustment type toggle */}
                       <div>
-                        <p className="text-xs text-slate-500 mb-1.5">Adjustment Type</p>
+                        <p className="ui-label mb-1.5">Adjustment Type</p>
                         <div className="flex gap-2">
                           <button
                             type="button"
                             onClick={() => setAdjustType('CUSTOM_READING')}
-                            className={`text-xs px-3 py-1.5 rounded-md font-medium border transition-colors ${adjustType === 'CUSTOM_READING' ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-300 text-slate-600 hover:border-slate-400'}`}
+                            className={`ui-btn min-h-0 px-3 py-1.5 text-xs border ${adjustType === 'CUSTOM_READING' ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-300 text-slate-600 hover:border-slate-400'}`}
                           >
                             Set Custom Reading
                           </button>
                           <button
                             type="button"
                             onClick={() => setAdjustType('RESET')}
-                            className={`text-xs px-3 py-1.5 rounded-md font-medium border transition-colors ${adjustType === 'RESET' ? 'bg-red-600 text-white border-red-600' : 'border-slate-300 text-slate-600 hover:border-slate-400'}`}
+                            className={`ui-btn min-h-0 px-3 py-1.5 text-xs border ${adjustType === 'RESET' ? 'bg-red-600 text-white border-red-600' : 'border-slate-300 text-slate-600 hover:border-slate-400'}`}
                           >
                             Reset to Zero
                           </button>
@@ -976,7 +977,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                         <div className="space-y-2">
                           {n.outlets.map((outlet) => (
                             <div key={outlet.outletId}>
-                              <label className="block text-xs text-slate-500 mb-1">
+                              <label className="ui-label">
                                 {FUEL_LABEL[outlet.fuelType]} ({FUEL_UNIT[outlet.fuelType]}) — current: {outlet.lastReading}
                               </label>
                               <input
@@ -984,7 +985,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                                 value={adjustReadings[outlet.outletId] ?? ''}
                                 onChange={(e) => setAdjustReadings((prev) => ({ ...prev, [outlet.outletId]: e.target.value }))}
                                 placeholder="New reading"
-                                className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                className="text-xs min-h-10"
                               />
                             </div>
                           ))}
@@ -993,7 +994,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
 
                       {/* RESET confirmation message */}
                       {adjustType === 'RESET' && (
-                        <div className="bg-red-50 border border-red-200 rounded-md p-2">
+                        <div className="ui-alert ui-alert-danger p-2">
                           <p className="text-xs text-red-700">
                             This will reset all meter readings on nozzle #{n.nozzleNumber} to <strong>0.000</strong>. This action is logged and cannot be undone.
                           </p>
@@ -1002,24 +1003,24 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
 
                       {/* Reason */}
                       <div>
-                        <label className="block text-xs text-slate-500 mb-1">Reason <span className="text-red-500">*</span></label>
+                        <label className="ui-label">Reason <span className="text-red-500">*</span></label>
                         <input
                           type="text"
                           value={adjustReason}
                           onChange={(e) => setAdjustReason(e.target.value)}
                           placeholder="e.g. Meter replaced after malfunction"
-                          className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="text-xs min-h-10"
                         />
                       </div>
 
-                      {adjustError && <p className="text-red-500 text-xs">{adjustError}</p>}
+                      {adjustError && <p className="ui-error-text">{adjustError}</p>}
                       <div className="flex gap-2">
                         <button type="submit" disabled={recordAdjustmentMutation.isPending}
-                          className={`text-xs font-medium px-3 py-1.5 rounded-md transition-colors text-white disabled:opacity-50 ${adjustType === 'RESET' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                          className={`ui-btn min-h-0 px-3 py-1.5 text-xs text-white disabled:opacity-50 ${adjustType === 'RESET' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
                           {recordAdjustmentMutation.isPending ? 'Saving...' : adjustType === 'RESET' ? 'Reset to Zero' : 'Save Reading'}
                         </button>
                         <button type="button" onClick={() => setOpenPanel(null)}
-                          className="text-xs text-slate-600 hover:text-slate-800 px-3 py-1.5 rounded-md border border-slate-200 transition-colors">
+                          className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
                           Cancel
                         </button>
                       </div>
@@ -1046,7 +1047,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
 
                         {/* Fuel type */}
                         <div>
-                          <label className="block text-xs text-slate-500 mb-1">Fuel Type</label>
+                          <label className="ui-label">Fuel Type</label>
                           <SearchableSelect
                             value={dipFuelType}
                             onChange={v => setDipFuelType(v)}
@@ -1058,13 +1059,13 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
 
                         {/* Litres removed */}
                         <div>
-                          <label className="block text-xs text-slate-500 mb-1">Litres Removed</label>
+                          <label className="ui-label">Litres Removed</label>
                           <input
                             type="number" step="0.001" min="0.001"
                             value={dipLitres}
                             onChange={(e) => setDipLitres(e.target.value)}
                             placeholder="e.g. 12.500"
-                            className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                            className="text-xs min-h-10"
                           />
                           {estimatedLoss !== null && (
                             <p className="text-xs text-orange-700 mt-0.5 font-medium">
@@ -1076,37 +1077,37 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
 
                         {/* Date (optional) */}
                         <div>
-                          <label className="block text-xs text-slate-500 mb-1">
+                          <label className="ui-label">
                             Date <span className="text-slate-400">(leave blank for today)</span>
                           </label>
                           <input
                             type="date"
                             value={dipDate}
                             onChange={(e) => setDipDate(e.target.value)}
-                            className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                            className="text-xs min-h-10"
                           />
                         </div>
 
                         {/* Reason */}
                         <div>
-                          <label className="block text-xs text-slate-500 mb-1">Reason <span className="text-red-500">*</span></label>
+                          <label className="ui-label">Reason <span className="text-red-500">*</span></label>
                           <input
                             type="text"
                             value={dipReason}
                             onChange={(e) => setDipReason(e.target.value)}
                             placeholder="e.g. Water contamination draining"
-                            className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                            className="text-xs min-h-10"
                           />
                         </div>
 
-                        {dipError && <p className="text-red-500 text-xs">{dipError}</p>}
+                        {dipError && <p className="ui-error-text">{dipError}</p>}
                         <div className="flex gap-2">
                           <button type="submit" disabled={recordDipMutation.isPending}
-                            className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                            className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white">
                             {recordDipMutation.isPending ? 'Recording...' : 'Record Dip'}
                           </button>
                           <button type="button" onClick={() => setOpenPanel(null)}
-                            className="text-xs text-slate-600 hover:text-slate-800 px-3 py-1.5 rounded-md border border-slate-200 transition-colors">
+                            className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
                             Cancel
                           </button>
                         </div>
@@ -1123,7 +1124,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
       {/* Add nozzle form or max-reached notice */}
       {activeNozzleCount >= pump.maxNozzleCount ? (
         <div className="space-y-2">
-          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <p className="ui-alert ui-alert-warning text-xs">
             Maximum nozzle count ({pump.maxNozzleCount}) reached.
             {' '}If you have added a new machine with more fuel types, you can increase the limit below.
           </p>
@@ -1131,51 +1132,51 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
             <button
               type="button"
               onClick={() => { setShowIncreaseMax(true); setNewMaxCount(String(pump.maxNozzleCount + 1)) }}
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800"
             >
               + Increase nozzle limit
             </button>
           ) : (
             <div className="flex items-end gap-3 flex-wrap">
               <div>
-                <label className="block text-xs text-slate-500 mb-1">New maximum nozzle count</label>
+                <label className="ui-label">New maximum nozzle count</label>
                 <input
                   type="number" min={pump.maxNozzleCount + 1} max="20"
                   value={newMaxCount}
                   onChange={(e) => setNewMaxCount(e.target.value)}
-                  className="w-24 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-24 text-sm"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => increaseMaxMutation.mutate(Number(newMaxCount))}
                 disabled={increaseMaxMutation.isPending || !newMaxCount}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                className="ui-btn ui-btn-primary"
               >
                 {increaseMaxMutation.isPending ? 'Saving…' : 'Increase Limit'}
               </button>
               <button type="button" onClick={() => { setShowIncreaseMax(false); setIncreaseError(null) }}
-                className="text-xs text-slate-500 hover:text-slate-700 transition-colors">
+                className="ui-btn ui-btn-ghost text-xs">
                 Cancel
               </button>
-              {increaseError && <p className="text-red-500 text-xs w-full">{increaseError}</p>}
+              {increaseError && <p className="ui-error-text w-full">{increaseError}</p>}
             </div>
           )}
         </div>
       ) : (
         <form onSubmit={submitAdd} className="space-y-3 pt-1">
-          <p className="text-xs font-medium text-slate-600">Add a new nozzle</p>
+          <p className="ui-label mb-0">Add a new nozzle</p>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1">Nozzle #</label>
+            <label className="ui-label">Nozzle #</label>
             <input required type="number" min="1" max="20" value={nozzleNumber}
               onChange={(e) => setNozzleNumber(e.target.value)}
-              className="w-20 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-20 text-sm"
               placeholder="1" />
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-2">Fuel Types</label>
+            <label className="ui-label mb-2">Fuel Types</label>
             <div className="flex flex-wrap gap-2">
               {ALL_FUEL_TYPES.map((ft) => {
                 const checked  = selectedFuelTypes.includes(ft)
@@ -1202,13 +1203,13 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
 
           {selectedFuelTypes.length > 0 && (
             <div>
-              <label className="block text-xs text-slate-500 mb-2">
+              <label className="ui-label mb-2">
                 Start Reading <span className="text-slate-400">(optional — enter if meter already shows a value)</span>
               </label>
               <div className="flex flex-wrap gap-3">
                 {selectedFuelTypes.map((ft) => (
                   <div key={ft}>
-                    <label className="block text-xs text-slate-400 mb-1">
+                    <label className="ui-help mb-1 block">
                       {FUEL_LABEL[ft]} ({FUEL_UNIT[ft]})
                     </label>
                     <input
@@ -1216,7 +1217,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                       value={startReadings[ft] ?? ''}
                       onChange={(e) => setStartReadings((prev) => ({ ...prev, [ft]: e.target.value }))}
                       placeholder="0"
-                      className="w-32 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-32 text-sm"
                     />
                   </div>
                 ))}
@@ -1224,9 +1225,9 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
             </div>
           )}
 
-          {addError && <p className="text-red-500 text-xs">{addError}</p>}
+          {addError && <p className="ui-error-text">{addError}</p>}
           <button type="submit" disabled={addMutation.isPending}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            className="ui-btn ui-btn-primary">
             {addMutation.isPending ? 'Adding...' : 'Add Nozzle'}
           </button>
         </form>
@@ -1307,7 +1308,7 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
     }
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = localDateInputValue()
   const pricesStale = currentPrices.length > 0 && currentPrices.some((p) => p.effectiveFrom < todayStr)
 
   if (pump.nozzles.length === 0) {
@@ -1355,7 +1356,7 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
         <div className="flex flex-wrap gap-3 items-end">
           {availableFuelTypes.map((ft) => (
             <div key={ft}>
-              <label className="block text-xs text-slate-500 mb-1">
+              <label className="ui-label">
                 {FUEL_LABEL[ft]} (₹/{FUEL_UNIT[ft]})
                 {getCurrentPrice(ft) != null && (
                   <span className="text-slate-400 ml-1">current: ₹{getCurrentPrice(ft)}</span>
@@ -1364,16 +1365,16 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
               <input type="number" step="0.01" min="0.01"
                 value={prices[ft] ?? ''}
                 onChange={(e) => setPrices((prev) => ({ ...prev, [ft]: e.target.value }))}
-                className="w-32 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-32 text-sm"
                 placeholder="e.g. 96.72" />
             </div>
           ))}
           <button type="submit" disabled={mutation.isPending}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            className="ui-btn ui-btn-primary disabled:bg-emerald-300">
             {mutation.isPending ? 'Saving...' : 'Save Prices'}
           </button>
         </div>
-        {error   && <p className="text-red-500 text-xs">{error}</p>}
+        {error   && <p className="ui-error-text">{error}</p>}
         {success && <p className="text-emerald-600 text-xs">Prices saved successfully.</p>}
       </form>
 
@@ -1391,17 +1392,21 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
 
       {/* 15% deviation confirmation dialog */}
       {deviationWarning && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                <span className="text-amber-600 text-base">⚠</span>
+        <div className="ui-modal-backdrop">
+          <div className="ui-modal-panel w-full max-w-sm">
+            <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
+              <div className="ui-modal-heading flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                  <span className="text-amber-600 text-base">⚠</span>
+                </div>
+                <div>
+                  <p className="ui-modal-title">Large Price Change Detected</p>
+                  <p className="ui-modal-subtitle">{deviationWarning.message}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-800">Large Price Change Detected</p>
-                <p className="text-xs text-slate-500 mt-0.5">{deviationWarning.message}</p>
-              </div>
+              <button onClick={() => setDeviationWarning(null)} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
             </div>
+            <div className="ui-modal-body space-y-4">
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-slate-500">Last price</span>
@@ -1419,16 +1424,17 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
             <p className="text-xs text-slate-500">
               Are you sure you want to set this price? This is a significant deviation from the last recorded price.
             </p>
-            <div className="flex gap-2">
+            </div>
+            <div className="ui-modal-footer -mx-6 -mb-6">
               <button
                 onClick={() => setDeviationWarning(null)}
-                className="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium py-2 rounded-lg transition-colors"
+                className="ui-btn ui-btn-secondary flex-1"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDeviation}
-                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+                className="ui-btn flex-1 bg-amber-600 hover:bg-amber-700 text-white"
               >
                 Yes, Set Price
               </button>
@@ -1591,7 +1597,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
       {/* Staff list */}
       {!isLoading && staff.length > 0 && (
         <div className="space-y-2">
-          {statusError && <p className="text-red-500 text-xs">{statusError}</p>}
+          {statusError && <p className="ui-error-text">{statusError}</p>}
           {staff.map((member: StaffMember) => {
             const isInactive = member.status === 'INACTIVE'
             const isPrefOpen  = openStaffPanel?.userId === member.id && openStaffPanel?.panel === 'preferences'
@@ -1674,7 +1680,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                     <div className="max-w-sm space-y-3">
                       <p className="text-xs font-semibold text-slate-700">Shift preferences for {member.fullName}</p>
                       <div>
-                        <label className="block text-xs text-slate-500 mb-1">Preferred shift</label>
+                        <label className="ui-label">Preferred shift</label>
                         <SearchableSelect
                           value={isPrefOpen
                             ? (prefShiftDefId !== null ? String(prefShiftDefId) : '')
@@ -1686,7 +1692,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-500 mb-1">Preferred day off</label>
+                        <label className="ui-label">Preferred day off</label>
                         <SearchableSelect
                           value={isPrefOpen ? prefDayOff : (openPref?.preferredDayOff ?? '')}
                           onChange={v => setPrefDayOff(v as PreferredDayOff | '')}
@@ -1695,18 +1701,18 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                           options={Object.entries(DAY_LABELS).map(([val, label]) => ({ value: val, label }))}
                         />
                       </div>
-                      {prefError && <p className="text-red-500 text-xs">{prefError}</p>}
+                      {prefError && <p className="ui-error-text">{prefError}</p>}
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => prefMutation.mutate({ userId: member.id })}
                           disabled={prefMutation.isPending}
-                          className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors"
+                          className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs"
                         >
                           {prefMutation.isPending ? 'Saving…' : 'Save'}
                         </button>
                         <button type="button" onClick={() => setOpenStaffPanel(null)}
-                          className="text-xs text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-md border border-slate-200 transition-colors">
+                          className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
                           Done
                         </button>
                       </div>
@@ -1728,38 +1734,38 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="block text-xs text-slate-500 mb-1">
+                              <label className="ui-label">
                                 Night rate (₹/hr) <span className="text-red-500">*</span>
                               </label>
                               <div className="relative">
                                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">₹</span>
                                 <input type="number" min="1" step="0.01" value={rateShift1}
                                   onChange={e => setRateShift1(e.target.value)} placeholder="e.g. 60"
-                                  className="w-full border border-slate-300 rounded-md pl-5 pr-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                                  className="w-full pl-5 pr-2 text-xs min-h-10" />
                               </div>
                             </div>
                             <div>
-                              <label className="block text-xs text-slate-500 mb-1">
+                              <label className="ui-label">
                                 Day rate (₹/hr) <span className="text-red-500">*</span>
                               </label>
                               <div className="relative">
                                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">₹</span>
                                 <input type="number" min="1" step="0.01" value={rateStandard}
                                   onChange={e => setRateStandard(e.target.value)} placeholder="e.g. 45"
-                                  className="w-full border border-slate-300 rounded-md pl-5 pr-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                                  className="w-full pl-5 pr-2 text-xs min-h-10" />
                               </div>
                             </div>
                           </div>
-                          {rateError && <p className="text-red-500 text-xs">{rateError}</p>}
+                          {rateError && <p className="ui-error-text">{rateError}</p>}
                           <div className="flex gap-2">
                             <button type="button"
                               disabled={!rateShift1 || !rateStandard || rateMutation.isPending}
                               onClick={() => rateMutation.mutate({ userId: member.id, shift1HourlyRate: parseFloat(rateShift1), standardHourlyRate: parseFloat(rateStandard) })}
-                              className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                              className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white">
                               {rateMutation.isPending ? 'Saving…' : 'Save Rates'}
                             </button>
                             <button type="button" onClick={() => setOpenStaffPanel(null)}
-                              className="text-xs text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-md border border-slate-200 transition-colors">Cancel</button>
+                              className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">Cancel</button>
                           </div>
                         </>
                       ) : (
@@ -1771,26 +1777,26 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                             </p>
                           </div>
                           <div>
-                            <label className="block text-xs text-slate-500 mb-1">
+                            <label className="ui-label">
                               Daily rate (₹/day) <span className="text-red-500">*</span>
                             </label>
                             <div className="relative max-w-[160px]">
                               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">₹</span>
                               <input type="number" min="1" step="0.01" value={rateDaily}
                                 onChange={e => setRateDaily(e.target.value)} placeholder="e.g. 800"
-                                className="w-full border border-slate-300 rounded-md pl-5 pr-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                                className="w-full pl-5 pr-2 text-xs min-h-10" />
                             </div>
                           </div>
-                          {rateError && <p className="text-red-500 text-xs">{rateError}</p>}
+                          {rateError && <p className="ui-error-text">{rateError}</p>}
                           <div className="flex gap-2">
                             <button type="button"
                               disabled={!rateDaily || rateMutation.isPending}
                               onClick={() => rateMutation.mutate({ userId: member.id, dailyRate: parseFloat(rateDaily) })}
-                              className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                              className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white">
                               {rateMutation.isPending ? 'Saving…' : 'Save Rate'}
                             </button>
                             <button type="button" onClick={() => setOpenStaffPanel(null)}
-                              className="text-xs text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-md border border-slate-200 transition-colors">Cancel</button>
+                              className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">Cancel</button>
                           </div>
                         </>
                       )}
@@ -1817,7 +1823,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                                 type="button"
                                 onClick={() => removeLeaveMutation.mutate({ leaveId: lv.id })}
                                 disabled={removeLeaveMutation.isPending}
-                                className="ml-auto text-slate-300 hover:text-red-500 text-xs font-bold disabled:opacity-40 transition-colors"
+                                className="ui-btn ui-btn-ghost min-h-0 ml-auto px-0 py-0 text-xs font-bold text-slate-300 hover:text-red-500 disabled:opacity-40"
                                 title="Remove leave"
                               >
                                 ✕
@@ -1828,32 +1834,32 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                       )}
                       {/* Add new leave */}
                       <div className="space-y-2 pt-1 border-t border-slate-100">
-                        <p className="text-xs text-slate-500">Add leave date</p>
+                        <p className="ui-label mb-0">Add leave date</p>
                         <input
                           type="date"
                           value={newLeaveDate}
                           onChange={e => setNewLeaveDate(e.target.value)}
-                          className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                          className="text-xs min-h-10"
                         />
                         <input
                           type="text"
                           placeholder="Reason (optional)"
                           value={newLeaveReason}
                           onChange={e => setNewLeaveReason(e.target.value)}
-                          className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                          className="text-xs min-h-10"
                         />
-                        {leaveError && <p className="text-red-500 text-xs">{leaveError}</p>}
+                        {leaveError && <p className="ui-error-text">{leaveError}</p>}
                         <div className="flex gap-2">
                           <button
                             type="button"
                             disabled={!newLeaveDate || addLeaveMutation.isPending}
                             onClick={() => addLeaveMutation.mutate({ userId: member.id })}
-                            className="bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors"
+                            className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300 text-white"
                           >
                             {addLeaveMutation.isPending ? 'Adding…' : 'Add Leave'}
                           </button>
                           <button type="button" onClick={() => setOpenStaffPanel(null)}
-                            className="text-xs text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-md border border-slate-200 transition-colors">
+                            className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
                             Done
                           </button>
                         </div>
@@ -1869,29 +1875,29 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
 
       {/* Add staff form */}
       <div className="border-t border-slate-200 pt-4">
-        <p className="text-xs font-medium text-slate-600 mb-3">Add a new staff member</p>
+        <p className="ui-label mb-3">Add a new staff member</p>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Full Name</label>
+              <label className="ui-label">Full Name</label>
               <input required value={form.fullName} onChange={(e) => set('fullName', e.target.value)}
                 placeholder="e.g. Raju Kumar"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="text-sm" />
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Phone Number</label>
+              <label className="ui-label">Phone Number</label>
               <input required value={form.phoneNumber} onChange={(e) => set('phoneNumber', e.target.value)}
                 placeholder="10-digit number" maxLength={10}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="text-sm" />
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Password</label>
+              <label className="ui-label">Password</label>
               <input required type="password" value={form.password} onChange={(e) => set('password', e.target.value)}
                 placeholder="Min 6 characters"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="text-sm" />
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Role</label>
+              <label className="ui-label">Role</label>
               <SearchableSelect
                 value={form.role}
                 onChange={v => set('role', v as 'OPERATOR' | 'MANAGER' | 'ADMIN' | 'ACCOUNTANT')}
@@ -1905,11 +1911,11 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
             </div>
           </div>
 
-          {error   && <p className="text-red-500 text-xs">{error}</p>}
+          {error   && <p className="ui-error-text">{error}</p>}
           {success && <p className="text-emerald-600 text-xs">Staff member added successfully.</p>}
 
           <button type="submit" disabled={mutation.isPending}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            className="ui-btn ui-btn-primary">
             {mutation.isPending ? 'Adding...' : 'Add Staff Member'}
           </button>
         </form>
@@ -2032,7 +2038,7 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
       ) : (
         <div className="space-y-2">
           {statusError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <div className="ui-alert ui-alert-danger text-sm">
               <p className="text-red-600 text-xs">{statusError}</p>
             </div>
           )}
@@ -2070,16 +2076,16 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
                   <div className="flex items-center gap-2 ml-2 shrink-0">
                     {/* Edit is only available for active tanks */}
                     {!isInactive && (
-                      <button type="button"
-                        onClick={() => {
-                          if (editingId === tank.id) { setEditingId(null) } else {
-                            setEditingId(tank.id); setEditCapacity(String(tank.capacity))
-                            setEditIdentifier(tank.tankIdentifier); setEditError(null)
-                          }
-                        }}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors">
-                        {editingId === tank.id ? 'Cancel' : 'Edit'}
-                      </button>
+                        <button type="button"
+                          onClick={() => {
+                            if (editingId === tank.id) { setEditingId(null) } else {
+                              setEditingId(tank.id); setEditCapacity(String(tank.capacity))
+                              setEditIdentifier(tank.tankIdentifier); setEditError(null)
+                            }
+                          }}
+                          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800">
+                          {editingId === tank.id ? 'Cancel' : 'Edit'}
+                        </button>
                     )}
 
                     {/* Disable / Enable toggle */}
@@ -2094,11 +2100,11 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
                           type="button"
                           onClick={() => statusMutation.mutate({ tankId: tank.id, status: 'INACTIVE' })}
                           disabled={statusMutation.isPending}
-                          className="text-xs bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-2 py-1 rounded transition-colors">
+                          className="ui-btn min-h-0 px-2 py-1 text-xs bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white">
                           Yes
                         </button>
                         <button type="button" onClick={() => setConfirmDisableId(null)}
-                          className="text-xs border border-slate-300 text-slate-600 px-2 py-1 rounded hover:bg-slate-100 transition-colors">
+                          className="ui-btn ui-btn-secondary min-h-0 px-2 py-1 text-xs">
                           No
                         </button>
                       </div>
@@ -2130,27 +2136,27 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
                     className="px-3 py-3 border-t border-slate-100 bg-slate-50 space-y-2">
                     <div className="flex gap-3 items-end flex-wrap">
                       <div>
-                        <label className="block text-xs text-slate-500 mb-1">
+                        <label className="ui-label">
                           Capacity ({FUEL_UNIT[tank.fuelType] ?? 'L'})
                         </label>
                         <input type="number" step="0.001" min="1" value={editCapacity}
                           onChange={(e) => setEditCapacity(e.target.value)}
-                          className="w-36 border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-36 text-xs min-h-10"
                           placeholder="e.g. 25000" />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-500 mb-1">Tank Name/ID</label>
+                        <label className="ui-label">Tank Name/ID</label>
                         <input type="text" value={editIdentifier}
                           onChange={(e) => setEditIdentifier(e.target.value)}
-                          className="w-36 border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-36 text-xs min-h-10"
                           placeholder="e.g. Petrol Tank 1" />
                       </div>
                       <button type="submit" disabled={updateMutation.isPending}
-                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                        className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs">
                         {updateMutation.isPending ? 'Saving...' : 'Save'}
                       </button>
                     </div>
-                    {editError && <p className="text-red-500 text-xs">{editError}</p>}
+                    {editError && <p className="ui-error-text">{editError}</p>}
                   </form>
                 )}
               </div>
@@ -2161,24 +2167,24 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
 
       {/* Add tank form */}
       <div className={tanks.length > 0 ? 'border-t border-slate-200 pt-4' : ''}>
-        <p className="text-xs font-medium text-slate-600 mb-3">
+        <p className="ui-label mb-3">
           {tanks.length === 0 ? 'Add the first tank' : 'Add another tank'}
         </p>
         <form onSubmit={submitCreate} className="space-y-3">
           <div className="flex gap-3 items-end flex-wrap">
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Tank Name/ID <span className="text-red-500">*</span></label>
+              <label className="ui-label">Tank Name/ID <span className="text-red-500">*</span></label>
               <input required type="text" value={createIdentifier}
                 onChange={(e) => setCreateIdentifier(e.target.value)}
                 placeholder="e.g. Petrol Tank 1"
-                className="w-36 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-36 text-sm" />
             </div>
             <div className="relative" ref={fuelDropdownRef}>
-              <label className="block text-xs text-slate-500 mb-1">Fuel Type <span className="text-red-500">*</span></label>
+              <label className="ui-label">Fuel Type <span className="text-red-500">*</span></label>
               <button
                 type="button"
                 onClick={() => setFuelDropdownOpen(o => !o)}
-                className="flex items-center gap-2 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[148px] justify-between"
+                className="ui-btn ui-btn-secondary min-w-[148px] justify-between bg-white text-sm"
               >
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${FUEL_COLOR[createFuelType]}`}>
                   {FUEL_LABEL[createFuelType]}
@@ -2188,7 +2194,7 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
                 </svg>
               </button>
               {fuelDropdownOpen && (
-                <div className="absolute z-20 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg py-1 min-w-[160px]">
+                <div className="absolute z-20 mt-1 ui-card p-1 min-w-[160px]">
                   {ALL_FUEL_TYPES.map((ft) => (
                     <button
                       key={ft}
@@ -2210,29 +2216,29 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
               )}
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">
+              <label className="ui-label">
                 Capacity ({FUEL_UNIT[createFuelType]}) <span className="text-red-500">*</span>
               </label>
               <input required type="number" step="0.001" min="1" value={createCapacity}
                 onChange={(e) => setCreateCapacity(e.target.value)}
                 placeholder="e.g. 25000"
-                className="w-32 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-32 text-sm" />
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">
+              <label className="ui-label">
                 DIP Tolerance ({FUEL_UNIT[createFuelType]}) <span className="text-slate-400">(optional)</span>
               </label>
               <input type="number" step="0.001" min="0" value={createDipTol}
                 onChange={(e) => setCreateDipTol(e.target.value)}
                 placeholder="e.g. 50"
-                className="w-28 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-28 text-sm" />
             </div>
             <button type="submit" disabled={createMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+              className="ui-btn ui-btn-primary">
               {createMutation.isPending ? 'Adding...' : 'Add Tank'}
             </button>
           </div>
-          {createError && <p className="text-red-500 text-xs">{createError}</p>}
+          {createError && <p className="ui-error-text">{createError}</p>}
         </form>
       </div>
     </div>
@@ -2395,11 +2401,11 @@ function CreditClientsContent({ pump }: { pump: PumpSummary }) {
             const hasChildren = children.length > 0
             const isExpanded = expandedParentId === parent.id
             return (
-              <div key={parent.id} className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+              <div key={parent.id} className="ui-card p-0 overflow-hidden">
 
                 {/* ── Parent account row ── */}
                 <div
-                  className={`flex items-center justify-between px-3 py-2.5 bg-slate-50 ${hasChildren ? 'cursor-pointer select-none' : ''}`}
+                  className={`ui-accordion-trigger ${hasChildren ? 'cursor-pointer select-none' : ''}`}
                   onClick={hasChildren ? () => toggleCollapse(parent.id) : undefined}
                 >
                   <div className="min-w-0 flex items-center gap-2">
@@ -2431,9 +2437,9 @@ function CreditClientsContent({ pump }: { pump: PumpSummary }) {
                       <>
                         <span className="text-xs text-red-600">Remove?</span>
                         <button onClick={() => deleteMutation.mutate(parent.id)} disabled={deleteMutation.isPending}
-                          className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded transition-colors">Yes</button>
+                          className="ui-btn ui-btn-danger min-h-0 px-2 py-1 text-xs">Yes</button>
                         <button onClick={() => setConfirmDeleteId(null)}
-                          className="text-xs border border-slate-300 text-slate-600 px-2 py-1 rounded hover:bg-slate-100 transition-colors">No</button>
+                          className="ui-btn ui-btn-secondary min-h-0 px-2 py-1 text-xs">No</button>
                       </>
                     ) : (
                       <>
@@ -2442,19 +2448,19 @@ function CreditClientsContent({ pump }: { pump: PumpSummary }) {
                             setAddSubParentId(addSubParentId === parent.id ? null : parent.id)
                             setAddSubName(''); setAddSubPhone(''); setAddSubNotes(''); setAddSubError(null)
                           }}
-                          className="text-xs text-blue-500 hover:text-blue-700 border border-blue-200 hover:border-blue-400 px-2 py-1 rounded transition-colors"
+                          className="ui-btn ui-btn-ghost min-h-0 px-2 py-1 text-xs text-blue-500 hover:text-blue-700 border border-blue-200 hover:border-blue-400"
                         >
                           + Sub-account
                         </button>
                         <button
                           onClick={() => editingId === parent.id ? setEditingId(null) : startEdit(parent)}
-                          className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800"
                         >
                           {editingId === parent.id ? 'Cancel' : 'Edit'}
                         </button>
                         <button
                           onClick={() => setConfirmDeleteId(parent.id)}
-                          className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-red-400 hover:text-red-600"
                         >
                           Remove
                         </button>
@@ -2469,27 +2475,27 @@ function CreditClientsContent({ pump }: { pump: PumpSummary }) {
                     className="px-3 py-3 border-t border-slate-100 bg-white space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs text-slate-500 mb-1">Name <span className="text-red-500">*</span></label>
+                        <label className="ui-label">Name <span className="text-red-500">*</span></label>
                         <input required value={editName} onChange={(e) => setEditName(e.target.value)}
-                          className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                          className="text-xs min-h-10" />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-500 mb-1">Phone <span className="text-red-500">*</span></label>
+                        <label className="ui-label">Phone <span className="text-red-500">*</span></label>
                         <input required value={editPhone}
                           onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                           inputMode="numeric" maxLength={10}
-                          className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                          className="text-xs min-h-10" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-500 mb-1">Notes <span className="text-slate-400">(optional)</span></label>
+                      <label className="ui-label">Notes <span className="text-slate-400">(optional)</span></label>
                       <input value={editNotes} onChange={(e) => setEditNotes(e.target.value)}
                         placeholder="e.g. Fleet manager, lorry owner"
-                        className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        className="text-xs min-h-10" />
                     </div>
-                    {editError && <p className="text-red-500 text-xs">{editError}</p>}
+                    {editError && <p className="ui-error-text">{editError}</p>}
                     <button type="submit" disabled={updateMutation.isPending}
-                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                      className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs">
                       {updateMutation.isPending ? 'Saving...' : 'Save'}
                     </button>
                   </form>
@@ -2514,19 +2520,19 @@ function CreditClientsContent({ pump }: { pump: PumpSummary }) {
                           <>
                             <span className="text-xs text-red-600">Remove?</span>
                             <button onClick={() => deleteMutation.mutate(child.id)} disabled={deleteMutation.isPending}
-                              className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded transition-colors">Yes</button>
+                              className="ui-btn ui-btn-danger min-h-0 px-2 py-1 text-xs">Yes</button>
                             <button onClick={() => setConfirmDeleteId(null)}
-                              className="text-xs border border-slate-300 text-slate-600 px-2 py-1 rounded hover:bg-slate-100 transition-colors">No</button>
+                              className="ui-btn ui-btn-secondary min-h-0 px-2 py-1 text-xs">No</button>
                           </>
                         ) : (
                           <>
                             <button
                               onClick={() => editingId === child.id ? setEditingId(null) : startEdit(child)}
-                              className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                              className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800">
                               {editingId === child.id ? 'Cancel' : 'Edit'}
                             </button>
                             <button onClick={() => setConfirmDeleteId(child.id)}
-                              className="text-xs text-red-400 hover:text-red-600 transition-colors">
+                              className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-red-400 hover:text-red-600">
                               Remove
                             </button>
                           </>
@@ -2539,27 +2545,27 @@ function CreditClientsContent({ pump }: { pump: PumpSummary }) {
                         className="pl-7 pr-3 py-3 border-t border-slate-100 bg-white space-y-2">
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-xs text-slate-500 mb-1">Name <span className="text-red-500">*</span></label>
+                            <label className="ui-label">Name <span className="text-red-500">*</span></label>
                             <input required value={editName} onChange={(e) => setEditName(e.target.value)}
-                              className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              className="text-xs min-h-10" />
                           </div>
                           <div>
-                            <label className="block text-xs text-slate-500 mb-1">Phone <span className="text-red-500">*</span></label>
+                            <label className="ui-label">Phone <span className="text-red-500">*</span></label>
                             <input required value={editPhone}
                               onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                               inputMode="numeric" maxLength={10}
-                              className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              className="text-xs min-h-10" />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs text-slate-500 mb-1">Notes <span className="text-slate-400">(optional)</span></label>
+                          <label className="ui-label">Notes <span className="text-slate-400">(optional)</span></label>
                           <input value={editNotes} onChange={(e) => setEditNotes(e.target.value)}
                             placeholder="e.g. Fleet manager, lorry owner"
-                            className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                            className="text-xs min-h-10" />
                         </div>
-                        {editError && <p className="text-red-500 text-xs">{editError}</p>}
+                        {editError && <p className="ui-error-text">{editError}</p>}
                         <button type="submit" disabled={updateMutation.isPending}
-                          className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                          className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs">
                           {updateMutation.isPending ? 'Saving...' : 'Save'}
                         </button>
                       </form>
@@ -2576,34 +2582,34 @@ function CreditClientsContent({ pump }: { pump: PumpSummary }) {
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs text-slate-500 mb-1">Name <span className="text-red-500">*</span></label>
+                        <label className="ui-label">Name <span className="text-red-500">*</span></label>
                         <input required value={addSubName} onChange={(e) => setAddSubName(e.target.value)}
                           placeholder="e.g. Driver 1"
-                          className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                          className="text-xs min-h-10" />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-500 mb-1">Phone <span className="text-red-500">*</span></label>
+                        <label className="ui-label">Phone <span className="text-red-500">*</span></label>
                         <input required value={addSubPhone}
                           onChange={(e) => setAddSubPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                           inputMode="numeric" maxLength={10}
                           placeholder="e.g. 9876543210"
-                          className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                          className="text-xs min-h-10" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-500 mb-1">Notes <span className="text-slate-400">(optional)</span></label>
+                      <label className="ui-label">Notes <span className="text-slate-400">(optional)</span></label>
                       <input value={addSubNotes} onChange={(e) => setAddSubNotes(e.target.value)}
                         placeholder="e.g. truck number, driver name"
-                        className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        className="text-xs min-h-10" />
                     </div>
-                    {addSubError && <p className="text-red-500 text-xs">{addSubError}</p>}
+                    {addSubError && <p className="ui-error-text">{addSubError}</p>}
                     <div className="flex gap-2">
                       <button type="submit" disabled={addMutation.isPending}
-                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">
+                        className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs">
                         {addMutation.isPending ? 'Adding...' : 'Add Sub-account'}
                       </button>
                       <button type="button" onClick={() => setAddSubParentId(null)}
-                        className="text-xs border border-slate-300 text-slate-600 px-3 py-1.5 rounded-md hover:bg-slate-100 transition-colors">
+                        className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
                         Cancel
                       </button>
                     </div>
@@ -2617,35 +2623,35 @@ function CreditClientsContent({ pump }: { pump: PumpSummary }) {
 
       {/* Add form */}
       <div className={clients.length > 0 ? 'border-t border-slate-200 pt-4' : ''}>
-        <p className="text-xs font-medium text-slate-600 mb-3">
+        <p className="ui-label mb-3">
           {clients.length === 0 ? 'Add the first credit client' : 'Add another client'}
         </p>
         <form onSubmit={submitAdd} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Client Name <span className="text-red-500">*</span></label>
+              <label className="ui-label">Client Name <span className="text-red-500">*</span></label>
               <input required value={name} onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. ABC Transports"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="text-sm" />
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Phone <span className="text-red-500">*</span></label>
+              <label className="ui-label">Phone <span className="text-red-500">*</span></label>
               <input required value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 placeholder="e.g. 9876543210"
                 inputMode="numeric"
                 maxLength={10}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="text-sm" />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-slate-500 mb-1">Notes <span className="text-slate-400">(optional)</span></label>
+            <label className="ui-label">Notes <span className="text-slate-400">(optional)</span></label>
             <input value={notes} onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Fleet manager, lorry owner"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="text-sm" />
           </div>
-          {addError && <p className="text-red-500 text-xs">{addError}</p>}
+          {addError && <p className="ui-error-text">{addError}</p>}
           <button type="submit" disabled={addMutation.isPending}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            className="ui-btn ui-btn-primary">
             {addMutation.isPending ? 'Adding...' : 'Add Client'}
           </button>
         </form>
@@ -2802,7 +2808,7 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
   const [disableFromToday, setDisableFromToday] = useState(true)
   const [disablePickedDate, setDisablePickedDate] = useState('')
 
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = localDateInputValue()
 
   const disableMutation = useMutation({
     mutationFn: ({ effectiveFrom, disableDate }: { effectiveFrom: string; disableDate: string }) =>
@@ -2895,9 +2901,9 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
         const isActive = defs.some(d => d.effectiveTo === null)
         const isCollapsed = collapsedDates.has(groupKey)
         return (
-          <div key={groupKey} className="border border-slate-200 rounded-lg overflow-hidden">
+          <div key={groupKey} className="ui-card p-0 overflow-hidden">
             <div
-              className="flex items-center justify-between px-4 py-2.5 bg-slate-50 cursor-pointer select-none"
+              className="ui-accordion-trigger cursor-pointer select-none"
               onClick={() => toggleCollapsed(groupKey)}
             >
               <div className="flex items-center gap-2">
@@ -2930,13 +2936,13 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                     <button
                       onClick={() => deleteMutation.mutate(groupKey)}
                       disabled={deleteMutation.isPending}
-                      className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-0.5 rounded disabled:opacity-40"
+                      className="ui-btn ui-btn-danger min-h-0 px-2 py-0.5 text-xs disabled:opacity-40"
                     >
                       {deleteMutation.isPending ? 'Deleting…' : 'Yes, delete'}
                     </button>
                     <button
                       onClick={() => setConfirmDeleteKey(null)}
-                      className="text-xs text-slate-500 hover:text-slate-700 px-2 py.0.5 rounded border border-slate-200"
+                      className="ui-btn ui-btn-secondary min-h-0 px-2 py-0.5 text-xs"
                     >
                       Cancel
                     </button>
@@ -2970,13 +2976,13 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                 </label>
                 {!disableFromToday && (
                   <div>
-                    <label className="block text-xs text-slate-500 mb-1">Last active date</label>
+                    <label className="ui-label">Last active date</label>
                     <input
                       type="date"
                       value={disablePickedDate}
                       min={todayStr}
                       onChange={e => setDisablePickedDate(e.target.value)}
-                      className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="text-sm"
                     />
                     <p className="text-xs text-slate-400 mt-1">The schedule will remain active until this date.</p>
                   </div>
@@ -2985,13 +2991,13 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                   <button
                     onClick={confirmDisable}
                     disabled={disableMutation.isPending}
-                    className="text-xs bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-40 font-medium transition-colors"
+                    className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-40"
                   >
                     {disableMutation.isPending ? 'Disabling…' : 'Confirm Disable'}
                   </button>
                   <button
                     onClick={() => setDisablingDate(null)}
-                    className="text-xs text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+                    className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs"
                   >
                     Cancel
                   </button>
@@ -3017,31 +3023,31 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
       })}
 
       {actionError && (
-        <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
+        <div className="ui-alert ui-alert-danger flex items-start gap-2">
           <span className="text-red-600 text-xs flex-1">{actionError}</span>
-          <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-600 text-sm leading-none">&times;</button>
+          <button onClick={() => setActionError(null)} className="ui-btn ui-btn-ghost min-h-0 p-0 text-sm leading-none text-red-400 hover:text-red-600">&times;</button>
         </div>
       )}
 
       {/* New batch form */}
       {showForm ? (
-        <div className="border border-slate-200 rounded-lg p-4 space-y-4">
+        <div className="ui-card-plain p-4 space-y-4">
           <h4 className="text-sm font-semibold text-slate-700">New Shift Schedule</h4>
 
           {/* Date range */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Start Date <span className="text-red-400">*</span></label>
+              <label className="ui-label">Start Date <span className="text-red-400">*</span></label>
               <input
                 type="date"
                 value={effectiveFrom}
                 onChange={e => setEffectiveFrom(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-sm"
               />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <label className="text-xs text-slate-500">End Date</label>
+                <label className="ui-label mb-0">End Date</label>
                 <label className="flex items-center gap-1 text-xs text-slate-500 cursor-pointer">
                   <input
                     type="checkbox"
@@ -3058,7 +3064,7 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                 onChange={e => setEffectiveTo(e.target.value)}
                 disabled={!hasEndDate}
                 min={effectiveFrom || undefined}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+                className="text-sm disabled:bg-slate-50 disabled:text-slate-400"
               />
               {!hasEndDate && (
                 <p className="text-xs text-slate-400 mt-1">Open-ended — no expiry date</p>
@@ -3084,7 +3090,7 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                   placeholder="Name (e.g. Morning)"
                   value={row.name}
                   onChange={e => updateRow(idx, { name: e.target.value })}
-                  className="min-w-0 border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="min-w-0 text-sm"
                 />
                 <SearchableSelect
                   value={row.startTime}
@@ -3112,7 +3118,7 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                   />
                   <label htmlFor={`night-${idx}`} className="text-xs text-slate-600 select-none">Night</label>
                   {rows.length > 1 && (
-                    <button onClick={() => removeRow(idx)} className="ml-1 text-red-400 hover:text-red-600 text-base leading-none">&times;</button>
+                    <button onClick={() => removeRow(idx)} className="ui-btn ui-btn-ghost min-h-0 ml-1 p-0 text-base leading-none text-red-400 hover:text-red-600">&times;</button>
                   )}
                 </div>
               </div>
@@ -3124,27 +3130,27 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
             <button
               type="button"
               onClick={addRow}
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+              className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800"
             >
               + Add another shift
             </button>
           )}
 
-          {formError && <p className="text-xs text-red-500">{formError}</p>}
+          {formError && <p className="ui-error-text">{formError}</p>}
 
           <div className="flex gap-2 pt-1">
             <button
               type="button"
               onClick={handleSubmit}
               disabled={createMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="ui-btn ui-btn-primary"
             >
               {createMutation.isPending ? 'Saving…' : 'Save Schedule'}
             </button>
             <button
               type="button"
               onClick={resetForm}
-              className="text-sm text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+              className="ui-btn ui-btn-secondary"
             >
               Cancel
             </button>
@@ -3154,7 +3160,7 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800"
         >
           + Add new shift schedule
         </button>

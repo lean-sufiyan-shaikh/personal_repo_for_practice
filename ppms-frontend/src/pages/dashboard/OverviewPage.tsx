@@ -5,8 +5,9 @@ import { pumpApi } from '../../api/pumpApi'
 import { shiftApi } from '../../api/shiftApi'
 import { inventoryApi } from '../../api/inventoryApi'
 import { usePumpStore } from '../../store/usePumpStore'
+import { localDateInputValue } from '../../utils/date'
 
-const todayStr = new Date().toISOString().slice(0, 10)
+const todayStr = localDateInputValue()
 
 function isPriceStale(prices: { effectiveFrom: string }[]) {
   return prices.length === 0 || prices.some((p) => p.effectiveFrom < todayStr)
@@ -86,23 +87,43 @@ export default function OverviewPage() {
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const closedShiftCountToday = historyShifts.filter(s => s.shiftDate === todayStr).length
 
   return (
-    <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
+    <div className="ui-page ui-page--narrow space-y-5">
 
       {/* ── Welcome header ── */}
-      <div className="bg-gradient-to-r from-blue-700 to-blue-800 rounded-2xl px-6 py-5 text-white">
-        <p className="text-blue-200 text-sm">{greeting},</p>
-        <h2 className="text-2xl font-bold mt-0.5">{user?.fullName}</h2>
-        <p className="text-blue-200 text-sm mt-1">
-          {user?.role} · {selectedPump?.name ?? 'No pump selected'}
-        </p>
+      <div className="ui-dashboard-hero">
+        <div className="ui-dashboard-hero-copy">
+          <div className="ui-dashboard-chip">
+            <span>⛽</span>
+            <span>Live operations snapshot</span>
+          </div>
+          <div>
+            <p className="ui-dashboard-hero-kicker">{greeting}</p>
+            <h2 className="ui-dashboard-hero-title">{user?.fullName}</h2>
+            <p className="ui-dashboard-hero-subtitle">
+              {user?.role} · {selectedPump?.name ?? 'No pump selected'}
+            </p>
+          </div>
+        </div>
+        <div className="ui-dashboard-hero-meta">
+          <div className="ui-dashboard-meta-card">
+            <span className="ui-dashboard-meta-label">Pump Focus</span>
+            <span className="ui-dashboard-meta-value">{selectedPump?.name ?? 'Select a pump'}</span>
+            <span className="ui-dashboard-meta-help">
+              {activeCount > 0
+                ? `${activeCount} active shift${activeCount !== 1 ? 's' : ''} in progress`
+                : 'No active shift at the moment'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* ── Stale fuel price alert ── */}
       {priceIsStale && selectedPump && (
         <Link to="/dashboard/setup" className="block">
-          <div className="flex items-center gap-3 bg-red-50 border border-red-300 rounded-xl px-5 py-3.5 hover:bg-red-100 transition-colors">
+        <div className="ui-alert ui-alert-danger flex items-center gap-3 hover:bg-red-100 transition-colors">
             <span className="text-red-500 text-xl leading-none flex-shrink-0">⚠️</span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-red-700">Fuel prices not updated today</p>
@@ -127,7 +148,7 @@ export default function OverviewPage() {
         <StatCard
           label="Today's Revenue"
           value={statsLoading ? '…' : fmtAmt(todayRevenue)}
-          sub={`${historyShifts.filter(s => s.shiftDate === todayStr).length} closed shift${historyShifts.filter(s => s.shiftDate === todayStr).length !== 1 ? 's' : ''} today`}
+          sub={`${closedShiftCountToday} closed shift${closedShiftCountToday !== 1 ? 's' : ''} today`}
           color="bg-blue-500"
           icon="₹"
         />
@@ -143,7 +164,7 @@ export default function OverviewPage() {
 
       {/* ── Low stock details (shown only when alert) ── */}
       {lowStockTanks.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3">
+        <div className="ui-alert ui-alert-danger">
           <p className="text-xs font-semibold text-red-700 mb-2">Tanks needing a delivery:</p>
           <div className="flex flex-wrap gap-2">
             {lowStockTanks.map(t => (
@@ -158,11 +179,11 @@ export default function OverviewPage() {
 
       {/* ── Tank stock summary ── */}
       {allTanks.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-            <p className="text-sm font-semibold text-slate-700">Tank Stock Overview</p>
+        <div className="ui-card p-0 overflow-hidden">
+          <div className="ui-toolbar">
+            <p className="ui-toolbar-title">Tank Stock Overview</p>
             <Link to="/dashboard/inventory"
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+              className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800">
               Full inventory →
             </Link>
           </div>
@@ -178,7 +199,7 @@ export default function OverviewPage() {
                     : 'bg-amber-500'
 
               return (
-                <div key={tank.tankId} className="bg-slate-50 rounded-lg px-3 py-2.5">
+              <div key={tank.tankId} className="ui-card-plain ui-card-muted px-3 py-2.5">
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-semibold text-slate-700">{tank.tankIdentifier}</span>
@@ -248,15 +269,15 @@ function StatCard({
   alert?: boolean
 }) {
   return (
-    <div className={`bg-white rounded-xl border ${alert ? 'border-red-200' : 'border-slate-200'} p-5`}>
-      <div className="flex items-center justify-between mb-3">
+    <div className={`ui-dashboard-stat ${alert ? 'ui-dashboard-stat--alert' : ''}`}>
+      <div className="flex items-center justify-between mb-4">
         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</span>
-        <div className={`w-8 h-8 ${color} rounded-lg flex items-center justify-center text-white text-sm`}>
+        <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center text-white text-sm shadow-sm`}>
           {icon}
         </div>
       </div>
-      <p className={`text-2xl font-bold ${alert ? 'text-red-600' : 'text-slate-800'}`}>{value}</p>
-      <p className="text-xs text-slate-400 mt-0.5">{sub}</p>
+      <p className={`text-3xl font-bold tracking-tight ${alert ? 'text-red-600' : 'text-slate-900'}`}>{value}</p>
+      <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">{sub}</p>
     </div>
   )
 }
@@ -274,22 +295,31 @@ function ModuleCard({
   active?: boolean
 }) {
   const inner = (
-    <div className={`rounded-xl overflow-hidden border transition-all duration-200 ${
+    <div className={`ui-dashboard-module overflow-hidden transition-all duration-200 ${
       active
         ? 'border-slate-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer'
         : 'border-slate-100 opacity-50 cursor-not-allowed'
     }`}>
-      <div className={`bg-gradient-to-r ${color} px-4 py-3 flex items-center gap-3`}>
+      <div className={`bg-gradient-to-r ${color} px-4 py-3.5 flex items-center gap-3`}>
         <span className="text-xl text-white">{icon}</span>
-        <span className="text-sm font-bold text-white">{title}</span>
+        <div className="flex flex-col">
+          <span className="text-sm font-bold text-white">{title}</span>
+          <span className="text-[11px] uppercase tracking-[0.14em] text-white/70">Module</span>
+        </div>
         {!active && (
           <span className="ml-auto text-xs text-white/70 bg-white/20 px-2 py-0.5 rounded-full">
             Coming soon
           </span>
         )}
       </div>
-      <div className="bg-white px-4 py-3">
+      <div className="bg-white px-4 py-3.5">
         <p className="text-xs text-slate-500 leading-relaxed">{description}</p>
+        {active && (
+          <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-blue-600">
+            <span>Open module</span>
+            <span>→</span>
+          </div>
+        )}
       </div>
     </div>
   )

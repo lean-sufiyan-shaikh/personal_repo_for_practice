@@ -24,18 +24,18 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 w-full max-w-sm text-center space-y-4">
+      <div className="ui-auth-shell">
+        <div className="ui-auth-card text-center space-y-4">
           <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
             <span className="text-emerald-600 text-2xl">✓</span>
           </div>
-          <h1 className="text-lg font-bold text-slate-800">Check your email</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="ui-title-sm">Check your email</h1>
+          <p className="ui-subtitle">
             If this phone number is registered and has an email address on file,
             we have sent a password reset link. Check your inbox.
           </p>
           <p className="text-xs text-slate-400">The link expires in 1 hour.</p>
-          <Link to="/login" className="block text-sm text-blue-600 hover:underline">
+          <Link to="/login" className="ui-link inline-flex justify-center">
             Back to login
           </Link>
         </div>
@@ -44,41 +44,41 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 w-full max-w-sm space-y-6">
+    <div className="ui-auth-shell">
+      <div className="ui-auth-card space-y-6">
 
         <div>
-          <h1 className="text-xl font-bold text-slate-800">Forgot Password</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="ui-title-sm">Forgot Password</h1>
+          <p className="ui-subtitle">
             Enter your registered phone number and we'll send a reset link to your email.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs text-slate-500 mb-1">Phone Number</label>
+            <label className="ui-label">Phone Number</label>
             <input
               type="tel"
               value={phoneNumber}
               onChange={e => setPhoneNumber(e.target.value)}
               placeholder="e.g. 9876543210"
-              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="shadow-sm"
               autoFocus
             />
           </div>
 
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="ui-error-text">{error}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="ui-btn ui-btn-primary w-full"
           >
             {loading ? 'Sending…' : 'Send Reset Link'}
           </button>
         </form>
 
-        <Link to="/login" className="block text-center text-sm text-slate-400 hover:text-slate-600">
+        <Link to="/login" className="ui-link block text-center">
           Back to login
         </Link>
       </div>

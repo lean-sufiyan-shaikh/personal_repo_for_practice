@@ -6,6 +6,7 @@ import { payrollApi } from '../../api/payrollApi'
 import type { GeneratePayrollRequest, PayrollRecord, PayrollStatus } from '../../api/payrollApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
+import { localDateInputValue } from '../../utils/date'
 
 const STATUS_STYLES: Record<PayrollStatus, string> = {
   DRAFT:    'bg-amber-100 text-amber-700',
@@ -41,8 +42,8 @@ function fmtMonthKey(key: string): string {
     .toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
 }
 
-function todayIso()     { return new Date().toISOString().slice(0, 10) }
-function yesterdayIso() { return new Date(Date.now() - 86_400_000).toISOString().slice(0, 10) }
+function todayIso()     { return localDateInputValue() }
+function yesterdayIso() { return localDateInputValue(-1) }
 
 // ── Collapsible group header ──────────────────────────────────────────────────
 interface GroupProps {
@@ -61,15 +62,18 @@ interface GroupProps {
   onToggle: () => void
   staff: any[]
   onStatusChange: (recordId: number, status: PayrollStatus) => void
+  onDelete: (recordId: number) => void
   isPending: boolean
+  isDeletePending: boolean
 }
 
 function PayrollGroup({
   status, records, totalRecords, totalAmount,
   page, pageSize, onPageChange, onPageSizeChange,
-  isOpen, onToggle, staff, onStatusChange, isPending,
+  isOpen, onToggle, staff, onStatusChange, onDelete, isPending, isDeletePending,
 }: GroupProps) {
   const next = NEXT_STATUS[status]
+  const [rejectRecordId, setRejectRecordId] = useState<number | null>(null)
 
   const totalPages   = Math.max(1, Math.ceil(totalRecords / pageSize))
   const pagedData = {
@@ -83,12 +87,12 @@ function PayrollGroup({
   }
 
   return (
-    <div className="border border-slate-200 rounded-xl overflow-hidden">
+    <div className="ui-card p-0 overflow-hidden">
       {/* Group header — click to toggle */}
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-5 py-3 bg-white hover:bg-slate-50 transition-colors"
+        className="ui-accordion-trigger"
       >
         <div className="flex items-center gap-3">
           <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${STATUS_STYLES[status]}`}>
@@ -199,15 +203,45 @@ function PayrollGroup({
                       : `${r.totalShifts} shift${r.totalShifts !== 1 ? 's' : ''} total`}
                     {r.notes && ` · ${r.notes}`}
                   </p>
-                  {next && (
-                    <button
-                      onClick={() => onStatusChange(r.id, next)}
-                      disabled={isPending}
-                      className="text-xs bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                    >
-                      Mark {next}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {status === 'DRAFT' && rejectRecordId === r.id ? (
+                      <>
+                        <button
+                          onClick={() => setRejectRecordId(null)}
+                          className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => onDelete(r.id)}
+                          disabled={isDeletePending}
+                          className="ui-btn ui-btn-danger min-h-0 px-3 py-1 text-xs"
+                        >
+                          {isDeletePending ? 'Deleting…' : 'Delete'}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {next && (
+                          <button
+                            onClick={() => onStatusChange(r.id, next)}
+                            disabled={isPending}
+                            className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
+                          >
+                            Mark {next}
+                          </button>
+                        )}
+                        {status === 'DRAFT' && (
+                          <button
+                            onClick={() => setRejectRecordId(r.id)}
+                            className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs"
+                          >
+                            Reject
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             )
@@ -250,6 +284,7 @@ export default function PayrollPage() {
     notes: null,
   }))
   const [formError, setFormError] = useState<string | null>(null)
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   // ── Filters ────────────────────────────────────────────────────────────────
   // Derive sorted list of unique month keys ("2026-04") from all records
@@ -294,9 +329,16 @@ export default function PayrollPage() {
       qc.invalidateQueries({ queryKey: ['payroll', pumpId] })
       setForm({ userId: 0, periodFrom: yesterdayIso(), periodTo: todayIso(), notes: null })
       setFormError(null)
+      setReviewOpen(false)
       setOpenGroup('DRAFT')
     },
     onError: (err: any) => setFormError(err?.response?.data?.message ?? 'Failed to generate payroll'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (recordId: number) => payrollApi.deletePayroll(pumpId!, recordId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['payroll', pumpId] }),
+    onError: (err: any) => alert(err?.response?.data?.message ?? 'Failed to delete payroll'),
   })
 
   const statusMutation = useMutation({
@@ -310,25 +352,28 @@ export default function PayrollPage() {
     e.preventDefault()
     if (!form.userId) { setFormError('Please select a staff member'); return }
     if (!form.periodFrom || !form.periodTo) { setFormError('Period dates are required'); return }
-    generateMutation.mutate(form)
+    setFormError(null)
+    setReviewOpen(true)
   }
 
+  const selectedStaff = staff.find((s: any) => s.id === form.userId)
+
   return (
-    <div className="p-6 space-y-5 w-full lg:max-w-[85%] 2xl:max-w-[60%]">
+    <div className="ui-page ui-page--narrow space-y-5">
 
       {/* ── Header ── */}
       <div>
-        <h1 className="text-xl font-bold text-slate-800">Payroll</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Calculate and track staff salary payments based on shift history</p>
+        <h1 className="ui-title-sm">Payroll</h1>
+        <p className="ui-subtitle">Calculate and track staff salary payments based on shift history</p>
       </div>
 
       {/* ── Generate form ── */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 px-5 py-4 space-y-3">
+      <form onSubmit={handleSubmit} className="ui-card space-y-3">
         <p className="text-sm font-semibold text-slate-700">Generate Payroll</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Staff Member</label>
+            <label className="ui-label">Staff Member</label>
             <SearchableSelect
               value={form.userId ? form.userId.toString() : ''}
               onChange={v => setForm(f => ({ ...f, userId: parseInt(v) || 0 }))}
@@ -338,34 +383,34 @@ export default function PayrollPage() {
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Period From</label>
+            <label className="ui-label">Period From</label>
             <input
               type="date"
               value={form.periodFrom}
               onChange={e => setForm(f => ({ ...f, periodFrom: e.target.value }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
               required
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Period To</label>
+            <label className="ui-label">Period To</label>
             <input
               type="date"
               value={form.periodTo}
               onChange={e => setForm(f => ({ ...f, periodTo: e.target.value }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
               required
             />
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Notes (optional)</label>
+            <label className="ui-label">Notes (optional)</label>
             <input
               type="text"
               value={form.notes ?? ''}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="text-sm"
               placeholder="Any notes about this pay period"
             />
           </div>
@@ -377,16 +422,63 @@ export default function PayrollPage() {
           Configure rates in Setup → Staff → ₹ Rates.
         </p>
 
-        {formError && <p className="text-xs text-red-600">{formError}</p>}
+        {formError && <p className="ui-error-text">{formError}</p>}
 
         <button
           type="submit"
           disabled={generateMutation.isPending}
-          className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="ui-btn ui-btn-primary"
         >
-          {generateMutation.isPending ? 'Calculating…' : 'Generate Payroll'}
+          {generateMutation.isPending ? 'Calculating…' : 'Review Payroll'}
         </button>
       </form>
+
+      {reviewOpen && (
+        <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
+          <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
+              <div className="ui-modal-heading">
+                <h2 className="ui-modal-title">Review Payroll</h2>
+                <p className="ui-modal-subtitle">Verify the staff member and period before generating the draft.</p>
+              </div>
+              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+            </div>
+            <div className="ui-modal-body space-y-4">
+              {formError && <div className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
+              <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-slate-500 text-xs">Staff Member</span>
+                  <span className="font-medium text-sm text-slate-800">{selectedStaff ? `${selectedStaff.fullName} — ${selectedStaff.role}` : '—'}</span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-slate-500 text-xs">Period From</span>
+                  <span className="font-medium text-sm text-slate-800">{fmtDate(form.periodFrom)}</span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-slate-500 text-xs">Period To</span>
+                  <span className="font-medium text-sm text-slate-800">{fmtDate(form.periodTo)}</span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-slate-500 text-xs">Notes</span>
+                  <span className="font-medium text-sm text-slate-800">{form.notes?.trim() || '—'}</span>
+                </div>
+              </div>
+            </div>
+            <div className="ui-modal-footer">
+              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
+                Back
+              </button>
+              <button
+                onClick={() => generateMutation.mutate(form)}
+                disabled={generateMutation.isPending}
+                className="ui-btn ui-btn-primary"
+              >
+                {generateMutation.isPending ? 'Generating…' : 'Generate Payroll'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Payroll records ── */}
       <div className="space-y-3">
@@ -408,7 +500,7 @@ export default function PayrollPage() {
                   setSelectedMonth(e.target.value)
                   setDraftPage(0); setApprovedPage(0); setPaidPage(0)
                 }}
-                className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"
+                className="text-sm bg-white"
               >
                 <option value="">All months</option>
                 {monthOptions.map(key => (
@@ -420,12 +512,12 @@ export default function PayrollPage() {
         </div>
 
         {isLoading ? (
-          <div className="bg-white rounded-xl border border-slate-200 px-5 py-6">
-            <p className="text-sm text-slate-400">Loading…</p>
+          <div className="ui-card">
+            <p className="ui-empty">Loading…</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 px-5 py-6">
-            <p className="text-sm text-slate-400">
+          <div className="ui-card">
+            <p className="ui-empty">
               {records.length === 0
                 ? 'No payroll records yet.'
                 : 'No records for the selected month.'}
@@ -470,7 +562,9 @@ export default function PayrollPage() {
                   onToggle={() => toggleGroup(status)}
                   staff={staff}
                   onStatusChange={(recordId, next) => statusMutation.mutate({ recordId, status: next })}
+                  onDelete={(recordId) => deleteMutation.mutate(recordId)}
                   isPending={statusMutation.isPending}
+                  isDeletePending={deleteMutation.isPending}
                 />
               )
             })}

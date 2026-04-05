@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +48,9 @@ public class CreditClientController {
 
         List<CreditClientResponse> clients = allClients.stream()
                 .map(c -> toResponse(c, nameById, idsWithChildren))
+                .sorted(Comparator
+                        .comparing(CreditClientResponse::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(CreditClientResponse::getName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
 
         return ResponseEntity.ok(clients);

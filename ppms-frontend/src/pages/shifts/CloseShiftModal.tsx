@@ -247,30 +247,28 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
   const fmt = (n: number) =>
     n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-  const headerGradient = isBalanced
-    ? 'from-emerald-600 to-emerald-700'
+  const headerToneClass = isBalanced
+    ? 'ui-modal-header--success'
     : hasDiscrepancy
-    ? diff < 0 ? 'from-red-500 to-red-600' : 'from-amber-500 to-amber-600'
-    : 'from-slate-700 to-slate-800'
+    ? diff < 0 ? 'ui-modal-header--danger' : 'ui-modal-header--warning'
+    : 'ui-modal-header--neutral'
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden my-auto">
+    <div className="ui-modal-backdrop overflow-y-auto p-4">
+      <div className="ui-modal-panel ui-modal-panel--lg w-full max-w-lg overflow-hidden my-auto">
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
-        <div className={`bg-gradient-to-r ${headerGradient} px-6 py-4`}>
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-white">Close Shift</h2>
-              <p className="text-white/70 text-xs mt-0.5">
-                Nozzle #{shift.nozzleNumber} · {shift.operatorName} · {shift.shiftWindow}
-              </p>
-            </div>
-            <button type="button" onClick={onClose}
-              className="text-white/60 hover:text-white text-2xl leading-none ml-4">
-              ×
-            </button>
+        <div className={`ui-modal-header ui-modal-header--themed ${headerToneClass}`}>
+          <div className="ui-modal-heading">
+            <h2 className="ui-modal-title">Close Shift</h2>
+            <p className="ui-modal-subtitle">
+              Nozzle #{shift.nozzleNumber} · {shift.operatorName} · {shift.shiftWindow}
+            </p>
           </div>
+          <button type="button" onClick={onClose}
+            className="ui-btn ui-btn-ghost ui-modal-close">
+            ×
+          </button>
 
           {/* Locked price pills */}
           <div className="flex flex-wrap gap-2 mt-3">
@@ -352,7 +350,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                         const isVoiding = voidingEntryId === e.id
 
                         return (
-                          <div key={e.id} className="bg-white border border-orange-100 rounded-lg overflow-hidden">
+                          <div key={e.id} className="ui-card-plain bg-white border-orange-100 p-0 overflow-hidden">
                             {/* Entry summary row */}
                             <div className="flex items-start justify-between px-3 py-2">
                               <div className="min-w-0">
@@ -390,7 +388,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                                   <button
                                     type="button"
                                     onClick={() => startVoid(e.id)}
-                                    className="text-xs text-red-400 hover:text-red-600 font-medium transition-colors"
+                                    className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-red-400 hover:text-red-600"
                                   >
                                     Delete
                                   </button>
@@ -409,12 +407,12 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                                   placeholder="Reason for deleting (required)"
                                   className="w-full border border-red-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-red-400"
                                 />
-                                {voidError && <p className="text-red-500 text-xs">{voidError}</p>}
+                                {voidError && <p className="ui-error-text">{voidError}</p>}
                                 <div className="flex gap-2">
                                   <button
                                     type="button"
                                     onClick={() => { setVoidingEntryId(null); setVoidReasonInput(''); setVoidError(null) }}
-                                    className="flex-1 text-xs border border-slate-300 text-slate-600 py-1 rounded hover:bg-slate-100"
+                                    className="ui-btn ui-btn-secondary min-h-0 flex-1 px-3 py-1 text-xs"
                                   >
                                     Cancel
                                   </button>
@@ -425,7 +423,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                                       if (!voidReasonInput.trim()) { setVoidError('Reason is required'); return }
                                       voidMutation.mutate({ entryId: e.id, reason: voidReasonInput.trim() })
                                     }}
-                                    className="flex-1 text-xs bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white py-1 rounded"
+                                    className="ui-btn ui-btn-danger min-h-0 flex-1 px-3 py-1 text-xs disabled:opacity-50"
                                   >
                                     {voidMutation.isPending ? '…' : 'Confirm Delete'}
                                   </button>
@@ -456,7 +454,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                     )}
                   </div>
                   <button type="button" onClick={addCreditRow}
-                    className="text-xs bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors">
+                    className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-orange-600 hover:bg-orange-700 text-white">
                     + Add Entry
                   </button>
                 </div>
@@ -532,7 +530,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
 
                               {/* Client search — root/parent accounts only */}
                               <div className="relative">
-                                <label className="block text-xs text-slate-500 mb-1">
+                                <label className="ui-label">
                                   Client <span className="text-red-500">*</span>
                                 </label>
                                 <input type="text" value={row.clientSearch}
@@ -545,19 +543,19 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                                   onFocus={() => updateRow(row.id, 'showDropdown', true)}
                                   onBlur={() => setTimeout(() => updateRow(row.id, 'showDropdown', false), 150)}
                                   placeholder="Search client name..."
-                                  className="w-full border border-slate-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400"
+                                  className="text-sm"
                                 />
                                 {row.showDropdown && rootClients.length > 0 && (
-                                  <div className="absolute top-full left-0 right-0 z-50 mt-0.5 bg-white border border-slate-200 rounded-lg shadow-lg max-h-36 overflow-y-auto">
+                                  <div className="ui-card absolute top-full left-0 right-0 z-50 mt-0.5 max-h-36 overflow-y-auto p-1">
                                     {filtered.length === 0 ? (
-                                      <p className="text-xs text-slate-400 px-3 py-2">
+                                      <p className="ui-empty px-3 py-2">
                                         No match — ask Owner to add this client in Setup.
                                       </p>
                                     ) : (
                                       filtered.map((c) => (
                                         <button key={c.id} type="button"
                                           onMouseDown={() => selectClient(row.id, c.id, c.name)}
-                                          className="w-full text-left px-3 py-2 text-sm hover:bg-orange-50 transition-colors flex items-center justify-between">
+                                          className="w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-orange-50 flex items-center justify-between">
                                           <span className="font-medium text-slate-700">{c.name}</span>
                                           <div className="flex items-center gap-1.5 shrink-0">
                                             {c.isParent && (
@@ -582,10 +580,10 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                               {/* Sub-account picker — only shown when the selected parent has children */}
                               {subAccounts.length > 0 && (
                                 <div>
-                                  <label className="block text-xs text-slate-500 mb-1.5">
+                                  <label className="ui-label">
                                     Sub-account <span className="text-slate-400">(optional)</span>
                                   </label>
-                                  <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-50">
+                                  <div className="ui-card p-0 overflow-hidden divide-y divide-slate-50">
                                     {/* "Bill to parent" option */}
                                     <button
                                       type="button"
@@ -646,7 +644,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                               {/* Fuel type + Amount/Liters */}
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-xs text-slate-500 mb-1">
+                                  <label className="ui-label">
                                     Fuel Type <span className="text-red-500">*</span>
                                   </label>
                                   <SearchableSelect
@@ -667,7 +665,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                                 </div>
                                 <div>
                                   <div className="flex items-center justify-between mb-1">
-                                    <label className="block text-xs text-slate-500">
+                                    <label className="ui-label mb-0">
                                       {row.inputMode === 'amount' ? 'Amount (₹)' : 'Liters'}{' '}
                                       <span className="text-red-500">*</span>
                                     </label>
@@ -735,14 +733,14 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                               {/* Bill No + Description */}
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-xs text-slate-500 mb-1">Bill No</label>
+                                  <label className="ui-label">Bill No</label>
                                   <input type="text" value={row.billNo}
                                     onChange={(e) => updateRow(row.id, 'billNo', e.target.value)}
                                     placeholder="e.g. B-101"
                                     className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400" />
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-slate-500 mb-1">Description</label>
+                                  <label className="ui-label">Description</label>
                                   <input type="text" value={row.description}
                                     onChange={(e) => updateRow(row.id, 'description', e.target.value)}
                                     placeholder="e.g. given to driver"
@@ -810,28 +808,28 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
           {/* ── Footer ──────────────────────────────────────────────────── */}
           <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/80 flex gap-3 items-center">
             <button type="button" onClick={onClose}
-              className="flex-none border border-slate-300 text-slate-700 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-100 transition-colors">
+              className="ui-btn ui-btn-secondary flex-none">
               Cancel
             </button>
             <div className="flex-1">
               {!readingsComplete || !paymentTouched ? (
                 <button type="submit" disabled
-                  className="w-full bg-slate-200 text-slate-400 py-2.5 rounded-xl text-sm font-semibold cursor-not-allowed">
+                  className="ui-btn w-full bg-slate-200 text-slate-400 cursor-not-allowed">
                   Fill in readings &amp; payment to continue
                 </button>
               ) : isBalanced ? (
                 <button type="submit" disabled={closeMutation.isPending}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                  className="ui-btn w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white">
                   {closeMutation.isPending ? 'Closing...' : '✓ Close Shift — Balanced'}
                 </button>
               ) : reasonFilled ? (
                 <button type="submit" disabled={closeMutation.isPending}
-                  className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                  className="ui-btn w-full bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white">
                   {closeMutation.isPending ? 'Closing...' : '⚠ Close with Discrepancy'}
                 </button>
               ) : (
                 <button type="submit" disabled
-                  className="w-full bg-amber-100 text-amber-400 py-2.5 rounded-xl text-sm font-semibold cursor-not-allowed border-2 border-amber-200 border-dashed">
+                  className="ui-btn w-full bg-amber-100 text-amber-400 cursor-not-allowed border-2 border-amber-200 border-dashed">
                   Add a reason above to close
                 </button>
               )}
@@ -870,7 +868,7 @@ function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onCha
 
   return (
     <div>
-      <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+      <label className="ui-label">{label}</label>
       <div className="flex flex-col gap-0.5 text-xs text-slate-400 mb-1">
         <span>Start: <span className="font-medium text-slate-500">{startValue}</span></span>
         {value !== '' && !isInvalid && soldUnits > 0 && (
@@ -893,7 +891,7 @@ function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onCha
       </div>
       <input type="number" step="0.001" min="0" required value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+        className={`text-sm ${
           isInvalid
             ? 'border-red-400 bg-red-50 focus:ring-red-400'
             : 'border-slate-300 focus:ring-blue-500'
@@ -901,7 +899,7 @@ function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onCha
         placeholder="Enter end reading"
       />
       {isInvalid && (
-        <p className="text-xs text-red-500 mt-1">
+        <p className="ui-error-text mt-1">
           End reading cannot be less than start ({startValue})
         </p>
       )}
@@ -912,11 +910,11 @@ function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onCha
 function PaymentField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+      <label className="ui-label">{label}</label>
       <input type="number" step="0.01" min="0" value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="0"
-        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="text-sm"
       />
     </div>
   )
