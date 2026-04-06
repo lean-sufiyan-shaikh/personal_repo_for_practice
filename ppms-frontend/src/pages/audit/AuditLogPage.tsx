@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { auditApi } from '../../api/auditApi'
 import { usePumpStore } from '../../store/usePumpStore'
 import type { AuditAction } from '../../api/auditApi'
-import { localDateInputValue } from '../../utils/date'
+import { Pagination } from '../../components/Pagination'
+import { formatIstDateTime, localDateInputValue } from '../../utils/date'
 
 const ACTION_STYLES: Partial<Record<AuditAction, string>> = {
   // User management
@@ -55,7 +56,7 @@ const ACTION_STYLES: Partial<Record<AuditAction, string>> = {
 const PAGE_SIZE_OPTIONS = [10, 25, 50]
 
 function fmtDateTime(d: string) {
-  return new Date(d).toLocaleString('en-IN', {
+  return formatIstDateTime(d, {
     day: 'numeric', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit', hour12: true,
   })
@@ -117,15 +118,17 @@ export default function AuditLogPage() {
     <div className="ui-page ui-page--narrow space-y-5">
 
       {/* ── Header ── */}
-      <div>
+      <div className="ui-page-header">
+        <div>
         <h1 className="ui-title-sm">Audit Log</h1>
         <p className="ui-subtitle">
           Full history of all sensitive operations — who did what and when
         </p>
+        </div>
       </div>
 
       {/* ── Filters row ── */}
-      <div className="ui-card flex flex-wrap items-end gap-3">
+      <div className="ui-card ui-form-shell [grid-template-columns:repeat(3,minmax(0,1fr))_auto] items-end">
         <div className="flex flex-col gap-1">
           <label className="ui-label mb-0">From</label>
           <input
@@ -158,14 +161,12 @@ export default function AuditLogPage() {
             ))}
           </select>
         </div>
-        {(from || to) && (
-          <button
-            onClick={clearFilters}
-            className="ui-btn ui-btn-ghost text-xs"
-          >
-            Clear filter
-          </button>
-        )}
+        <button
+          onClick={clearFilters}
+          className={`ui-btn ui-btn-ghost text-xs ${(from || to) ? '' : 'invisible'}`}
+        >
+          Clear filter
+        </button>
       </div>
 
       {/* ── Log list ── */}
@@ -211,48 +212,26 @@ export default function AuditLogPage() {
 
         {/* ── Pagination controls — always shown when there's data ── */}
         {!isLoading && totalEvents > 0 && (
-          <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-4">
-            <button
-              onClick={() => setPage(p => p - 1)}
-              disabled={currentPage === 0}
-              className="ui-btn ui-btn-secondary text-sm"
-            >
-              ← Previous
-            </button>
-
-            {/* Page number pills */}
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i).map(i => (
-                <button
-                  key={i}
-                  onClick={() => setPage(i)}
-                  className={`w-8 h-8 text-xs rounded-md border transition-colors ${
-                    i === currentPage
-                      ? 'bg-slate-700 text-white border-slate-700'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+          <div className="px-5 pb-4">
+            <Pagination
+              data={{
+                content: logs,
+                page: currentPage,
+                pageSize,
+                totalElements: totalEvents,
+                totalPages,
+                hasNext: currentPage < totalPages - 1,
+                hasPrevious: currentPage > 0,
+              }}
+              onPageChange={setPage}
+              onPageSizeChange={handlePageSizeChange}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+            />
+            <div className="pt-2 text-center">
+              <span className="text-xs text-slate-400">
+                Showing {rangeStart}–{rangeEnd} of {totalEvents} events
+              </span>
             </div>
-
-            <button
-              onClick={() => setPage(p => p + 1)}
-              disabled={currentPage >= totalPages - 1}
-              className="ui-btn ui-btn-secondary text-sm"
-            >
-              Next →
-            </button>
-          </div>
-        )}
-
-        {/* ── Record count footer ── */}
-        {!isLoading && totalEvents > 0 && (
-          <div className="px-5 pb-3 text-center">
-            <span className="text-xs text-slate-400">
-              Showing {rangeStart}–{rangeEnd} of {totalEvents} events
-            </span>
           </div>
         )}
       </div>

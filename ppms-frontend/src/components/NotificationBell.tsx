@@ -54,7 +54,7 @@ export default function NotificationBell({ pumpId }: Props) {
       {/* Bell button */}
       <button
         onClick={handleOpen}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 shadow-sm hover:border-white/20 hover:bg-white/10 hover:text-white"
+        className="ui-notification-bell relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 shadow-sm hover:border-white/20 hover:bg-white/10 hover:text-white"
         title="Notifications"
       >
         <span className="text-lg">🔔</span>
@@ -67,9 +67,12 @@ export default function NotificationBell({ pumpId }: Props) {
 
       {/* Dropdown panel */}
       {open && (
-        <div className="absolute right-0 top-12 z-50 w-88 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
-            <p className="text-sm font-semibold text-slate-800">Notifications</p>
+        <div className="ui-notification-panel absolute right-0 top-12 z-50 w-88 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+          <div className="ui-notification-panel__head flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Notifications</p>
+              <p className="mt-0.5 text-xs text-slate-400">{unread.length} unread</p>
+            </div>
             {unread.length > 0 && (
               <button
                 onClick={handleMarkAllRead}
@@ -91,7 +94,7 @@ export default function NotificationBell({ pumpId }: Props) {
               {notifications.map(n => (
                 <div
                   key={n.id}
-                  className={`px-4 py-3.5 ${n.readAt ? 'opacity-70' : 'bg-blue-50/50'}`}
+                  className={`ui-notification-panel__item px-4 py-3.5 ${n.readAt ? 'opacity-70' : 'bg-blue-50/50'}`}
                 >
                   <div className="flex items-start gap-2">
                     <span className="text-base flex-shrink-0 mt-0.5">{TYPE_ICONS[n.type] ?? '📌'}</span>

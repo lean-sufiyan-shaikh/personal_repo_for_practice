@@ -1,9 +1,5 @@
 package com.ppms.report;
 
-import com.ppms.expense.PumpExpense;
-import com.ppms.expense.PumpExpenseRepository;
-import com.ppms.shift.Shift;
-import com.ppms.shift.ShiftRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -28,8 +24,6 @@ public class ReportController {
 
     private final ReportService         reportService;
     private final BalanceSheetService   balanceSheetService;
-    private final ShiftRepository       shiftRepository;
-    private final PumpExpenseRepository expenseRepository;
 
     /**
      * GET /api/pumps/{pumpId}/reports/profit-loss?from=&to=
@@ -113,25 +107,7 @@ public class ReportController {
             @PathVariable Long pumpId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-
-        List<ShiftReportLine> lines = shiftRepository.findClosedShiftsByDateRange(pumpId, from, to)
-                .stream()
-                .map(s -> new ShiftReportLine(
-                        s.getId(),
-                        s.getShiftDate(),
-                        s.getShiftName(),
-                        s.getStatus() != null ? s.getStatus().name() : null,
-                        s.getTotalAmountDue(),
-                        s.getCashCollected(),
-                        s.getUpiCollected(),
-                        s.getCardCollected(),
-                        s.getCreditTotal(),
-                        s.getDiscrepancyAmount(),
-                        s.getDiscrepancyType() != null ? s.getDiscrepancyType().name() : null
-                ))
-                .toList();
-
-        return ResponseEntity.ok(lines);
+        return ResponseEntity.ok(reportService.buildShiftReportLines(pumpId, from, to));
     }
 
     /**
@@ -145,21 +121,7 @@ public class ReportController {
             @PathVariable Long pumpId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-
-        List<ExpenseReportLine> lines = expenseRepository.findByPumpIdOrderByExpenseDateDescCreatedAtDesc(pumpId)
-                .stream()
-                .filter(e -> !e.getExpenseDate().isBefore(from) && !e.getExpenseDate().isAfter(to))
-                .map(e -> new ExpenseReportLine(
-                        e.getId(),
-                        e.getExpenseDate(),
-                        e.getCategory() != null ? e.getCategory().name() : null,
-                        e.getAmount(),
-                        e.getDescription(),
-                        e.getApprovalStatus() != null ? e.getApprovalStatus().name() : null
-                ))
-                .toList();
-
-        return ResponseEntity.ok(lines);
+        return ResponseEntity.ok(reportService.buildExpenseReportLines(pumpId, from, to));
     }
 
     // ── Report line records ───────────────────────────────────────────────────

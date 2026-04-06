@@ -398,14 +398,15 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
 
                             {/* Inline void reason form */}
                             {isVoiding && (
-                              <div className="border-t border-orange-100 bg-red-50/60 px-3 py-2 space-y-2">
+                              <div className="border-t border-orange-100 bg-red-50/60 px-3 py-2">
+                                <div className="ui-inline-form space-y-2 border-red-200 bg-white/70">
                                 <input
                                   autoFocus
                                   type="text"
                                   value={voidReasonInput}
                                   onChange={e => setVoidReasonInput(e.target.value)}
                                   placeholder="Reason for deleting (required)"
-                                  className="w-full border border-red-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-red-400"
+                                  className="ui-input-compact text-xs focus:outline-none focus:ring-1 focus:ring-red-400"
                                 />
                                 {voidError && <p className="ui-error-text">{voidError}</p>}
                                 <div className="flex gap-2">
@@ -427,6 +428,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                                   >
                                     {voidMutation.isPending ? '…' : 'Confirm Delete'}
                                   </button>
+                                </div>
                                 </div>
                               </div>
                             )}
@@ -454,7 +456,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                     )}
                   </div>
                   <button type="button" onClick={addCreditRow}
-                    className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-orange-600 hover:bg-orange-700 text-white">
+                    className="ui-btn ui-btn-warning min-h-0 px-3 py-1.5 text-xs">
                     + Add Entry
                   </button>
                 </div>
@@ -529,7 +531,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                               </div>
 
                               {/* Client search — root/parent accounts only */}
-                              <div className="relative">
+                              <div className="ui-search-shell">
                                 <label className="ui-label">
                                   Client <span className="text-red-500">*</span>
                                 </label>
@@ -543,7 +545,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                                   onFocus={() => updateRow(row.id, 'showDropdown', true)}
                                   onBlur={() => setTimeout(() => updateRow(row.id, 'showDropdown', false), 150)}
                                   placeholder="Search client name..."
-                                  className="text-sm"
+                                  className="ui-search-shell__input text-sm"
                                 />
                                 {row.showDropdown && rootClients.length > 0 && (
                                   <div className="ui-card absolute top-full left-0 right-0 z-50 mt-0.5 max-h-36 overflow-y-auto p-1">
@@ -583,7 +585,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                                   <label className="ui-label">
                                     Sub-account <span className="text-slate-400">(optional)</span>
                                   </label>
-                                  <div className="ui-card p-0 overflow-hidden divide-y divide-slate-50">
+                                  <div className="ui-card p-0 overflow-hidden divide-y divide-slate-50 shadow-none border-slate-200">
                                     {/* "Bill to parent" option */}
                                     <button
                                       type="button"
@@ -694,7 +696,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                                       <input type="number" step="0.01" min="0.01" value={row.amount}
                                         onChange={(e) => updateRow(row.id, 'amount', e.target.value)}
                                         placeholder="0.00"
-                                        className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                                        className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
                                       {(() => {
                                         const price = priceForFuelType(row.fuelType)
                                         const unit = FUEL_UNIT[row.fuelType] ?? 'L'
@@ -715,7 +717,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                                           updateRowMulti(row.id, { liters: e.target.value, amount: amt })
                                         }}
                                         placeholder="0.000"
-                                        className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                                        className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
                                       {row.liters && row.amount && (() => {
                                         const price = priceForFuelType(row.fuelType)
                                         const unit = FUEL_UNIT[row.fuelType] ?? 'L'
@@ -737,14 +739,14 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                                   <input type="text" value={row.billNo}
                                     onChange={(e) => updateRow(row.id, 'billNo', e.target.value)}
                                     placeholder="e.g. B-101"
-                                    className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                                    className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
                                 </div>
                                 <div>
                                   <label className="ui-label">Description</label>
                                   <input type="text" value={row.description}
                                     onChange={(e) => updateRow(row.id, 'description', e.target.value)}
                                     placeholder="e.g. given to driver"
-                                    className="w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                                    className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
                                 </div>
                               </div>
                             </div>

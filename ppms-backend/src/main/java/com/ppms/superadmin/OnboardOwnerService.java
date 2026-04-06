@@ -16,8 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Handles onboarding of a new pump owner.
@@ -34,6 +32,7 @@ public class OnboardOwnerService {
     private final UserRepository userRepository;
     private final PumpLocationRepository pumpLocationRepository;
     private final PasswordEncoder passwordEncoder;
+    private final OwnerSummaryAssembler ownerSummaryAssembler;
 
     @Transactional
     public OnboardOwnerResponse onboard(OnboardOwnerRequest request) {
@@ -104,28 +103,7 @@ public class OnboardOwnerService {
 
         pump = pumpLocationRepository.save(pump);
         log.info("Added pump: pumpId={}, name={}, ownerId={}", pump.getId(), pump.getName(), owner.getId());
-
-        List<com.ppms.pump.PumpLocation> pumpList = pumpLocationRepository.findByOwnerId(owner.getId());
-        Map<Long, Long> staffCounts = buildStaffCountMap(pumpList.stream().map(com.ppms.pump.PumpLocation::getId).toList());
-        List<OwnerSummaryResponse.PumpSummary> pumps = pumpList.stream()
-                .map(p -> OwnerSummaryResponse.PumpSummary.builder()
-                        .pumpId(p.getId())
-                        .pumpName(p.getName())
-                        .pumpAddress(p.getAddress())
-                        .enabled(p.isEnabled())
-                        .staffCount(staffCounts.getOrDefault(p.getId(), 0L))
-                        .build())
-                .toList();
-
-        return OwnerSummaryResponse.builder()
-                .ownerId(owner.getId())
-                .employeeId(owner.getEmployeeId())
-                .fullName(owner.getFullName())
-                .phoneNumber(owner.getPhoneNumber())
-                .status(owner.getStatus().name())
-                .createdAt(owner.getCreatedAt())
-                .pumps(pumps)
-                .build();
+        return ownerSummaryAssembler.buildOwnerSummary(owner);
     }
 
     /**
@@ -147,28 +125,7 @@ public class OnboardOwnerService {
 
         User owner = userRepository.findById(pump.getOwnerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Owner not found for pump: " + pumpId));
-
-        List<com.ppms.pump.PumpLocation> pumpList = pumpLocationRepository.findByOwnerId(owner.getId());
-        Map<Long, Long> staffCounts = buildStaffCountMap(pumpList.stream().map(com.ppms.pump.PumpLocation::getId).toList());
-        List<OwnerSummaryResponse.PumpSummary> pumps = pumpList.stream()
-                .map(p -> OwnerSummaryResponse.PumpSummary.builder()
-                        .pumpId(p.getId())
-                        .pumpName(p.getName())
-                        .pumpAddress(p.getAddress())
-                        .enabled(p.isEnabled())
-                        .staffCount(staffCounts.getOrDefault(p.getId(), 0L))
-                        .build())
-                .toList();
-
-        return OwnerSummaryResponse.builder()
-                .ownerId(owner.getId())
-                .employeeId(owner.getEmployeeId())
-                .fullName(owner.getFullName())
-                .phoneNumber(owner.getPhoneNumber())
-                .status(owner.getStatus().name())
-                .createdAt(owner.getCreatedAt())
-                .pumps(pumps)
-                .build();
+        return ownerSummaryAssembler.buildOwnerSummary(owner);
     }
 
     /**
@@ -177,54 +134,6 @@ public class OnboardOwnerService {
      */
     public List<OwnerSummaryResponse> listOwners() {
         List<User> owners = userRepository.findByRole(UserRole.OWNER);
-
-        // Batch-load all pumps for all owners in one query, then group by ownerId
-        List<Long> ownerIds = owners.stream().map(User::getId).toList();
-        Map<Long, List<com.ppms.pump.PumpLocation>> pumpsByOwner = pumpLocationRepository
-                .findByOwnerIdIn(ownerIds)
-                .stream()
-                .collect(Collectors.groupingBy(com.ppms.pump.PumpLocation::getOwnerId));
-
-        // Batch-load staff counts for all pumps across all owners
-        List<Long> allPumpIds = pumpsByOwner.values().stream()
-                .flatMap(List::stream)
-                .map(com.ppms.pump.PumpLocation::getId)
-                .toList();
-        Map<Long, Long> staffCounts = allPumpIds.isEmpty() ? Map.of() : buildStaffCountMap(allPumpIds);
-
-        return owners.stream()
-                .map(owner -> {
-                    List<com.ppms.pump.PumpLocation> pumpList = pumpsByOwner.getOrDefault(owner.getId(), List.of());
-                    List<OwnerSummaryResponse.PumpSummary> pumps = pumpList.stream()
-                            .map(p -> OwnerSummaryResponse.PumpSummary.builder()
-                                    .pumpId(p.getId())
-                                    .pumpName(p.getName())
-                                    .pumpAddress(p.getAddress())
-                                    .enabled(p.isEnabled())
-                                    .staffCount(staffCounts.getOrDefault(p.getId(), 0L))
-                                    .build())
-                            .toList();
-
-                    return OwnerSummaryResponse.builder()
-                            .ownerId(owner.getId())
-                            .employeeId(owner.getEmployeeId())
-                            .fullName(owner.getFullName())
-                            .phoneNumber(owner.getPhoneNumber())
-                            .status(owner.getStatus().name())
-                            .createdAt(owner.getCreatedAt())
-                            .pumps(pumps)
-                            .build();
-                })
-                .toList();
-    }
-
-    /** Builds a pumpId → staffCount map from a batch query — avoids N+1 per pump. */
-    private Map<Long, Long> buildStaffCountMap(List<Long> pumpIds) {
-        return userRepository.countStaffByPumpIds(pumpIds)
-                .stream()
-                .collect(Collectors.toMap(
-                        row -> (Long) row[0],
-                        row -> (Long) row[1]
-                ));
+        return ownerSummaryAssembler.buildOwnerSummaries(owners);
     }
 }

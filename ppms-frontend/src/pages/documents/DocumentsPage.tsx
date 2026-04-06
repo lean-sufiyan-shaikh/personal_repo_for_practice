@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { documentApi } from '../../api/documentApi'
 import type { PumpDocument, UpsertDocumentRequest, DocumentStatus } from '../../api/documentApi'
+import { formatIstDate } from '../../utils/date'
 
 const STATUS_STYLES: Record<DocumentStatus, string> = {
   VALID:          'bg-emerald-100 text-emerald-700',
@@ -13,7 +14,7 @@ const STATUS_STYLES: Record<DocumentStatus, string> = {
 
 function fmtDate(d: string | null) {
   if (!d) return 'No expiry'
-  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatIstDate(d)
 }
 
 const EMPTY_FORM: UpsertDocumentRequest = { name: '', docType: '', expiryDate: null, notes: null }
@@ -76,7 +77,7 @@ export default function DocumentsPage() {
     <div className="ui-page ui-page--narrow space-y-5">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
+      <div className="ui-page-header">
         <div>
           <h1 className="ui-title-sm">Compliance Documents</h1>
           <p className="ui-subtitle">Track licences, permits, and certificates</p>
@@ -102,10 +103,16 @@ export default function DocumentsPage() {
 
       {/* ── Add/edit form ── */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="ui-card space-y-3">
-          <p className="text-sm font-semibold text-slate-700">{editId ? 'Edit Document' : 'Add Document'}</p>
+        <form onSubmit={handleSubmit} className="ui-card ui-form-shell">
+          <div className="ui-form-shell__head">
+            <div>
+              <p className="ui-section-kicker mb-2">Document Intake</p>
+              <h2 className="ui-title-sm">{editId ? 'Edit document' : 'Add document'}</h2>
+              <p className="ui-subtitle mt-1">Store expiry dates, document types, and notes in one place.</p>
+            </div>
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="ui-form-shell__grid">
             <div>
               <label className="ui-label">Document Name</label>
               <input
@@ -175,24 +182,24 @@ export default function DocumentsPage() {
         ) : docs.length === 0 ? (
           <p className="ui-empty px-5 py-6">No documents added yet. Add your licences and permits to track their expiry.</p>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="ui-record-list">
             {docs.map(doc => (
-              <div key={doc.id} className="px-5 py-3 flex items-center justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+              <div key={doc.id} className="ui-record-row">
+                <div className="ui-record-row__main">
+                  <div className="ui-record-row__title">
                     <p className="text-sm font-medium text-slate-800">{doc.name}</p>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[doc.status]}`}>
                       {doc.status.replace('_', ' ')}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 mt-0.5">
+                  <div className="ui-record-row__meta">
                     <p className="text-xs text-slate-400">{doc.docType}</p>
                     <span className="text-xs text-slate-300">·</span>
                     <p className="text-xs text-slate-400">Expires: {fmtDate(doc.expiryDate)}</p>
                     {doc.notes && <><span className="text-xs text-slate-300">·</span><p className="text-xs text-slate-400 truncate">{doc.notes}</p></>}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="ui-record-row__actions">
                   <button
                     onClick={() => startEdit(doc)}
                     className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-500 hover:text-blue-700"

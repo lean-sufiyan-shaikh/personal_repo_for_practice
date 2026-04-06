@@ -10,6 +10,7 @@ import type { Shift, CreditEntry, CreditEntryInput } from '../../types/shift'
 import OpenShiftModal from './OpenShiftModal'
 import CloseShiftModal from './CloseShiftModal'
 import { SearchableSelect } from '../../components/SearchableSelect'
+import { formatIstDate, formatIstDateTime } from '../../utils/date'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -43,9 +44,7 @@ function labelForDate(d: string): string {
   if (d === todayStr)     return 'Today'
   if (d === yesterdayStr) return 'Yesterday'
   if (d === dayBeforeStr) return 'Day Before Yesterday'
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  })
+  return formatIstDate(d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 function fmtAmt(n: number | null | undefined) {
@@ -148,9 +147,9 @@ export default function ShiftsPage() {
         <>
           {/* ── Active Shifts ──────────────────────────────────────────────── */}
           <div className="ui-card overflow-hidden p-0">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <div className="ui-toolbar">
               <div>
-                <h2 className="text-base font-semibold text-slate-800">Active Shifts</h2>
+                <h2 className="ui-toolbar-title">Active Shifts</h2>
                 {selectedPump && (
                   <p className="text-xs text-slate-400 mt-0.5">{selectedPump.name}</p>
                 )}
@@ -212,16 +211,12 @@ export default function ShiftsPage() {
             {historyOpen && (
               <>
                 {/* Tab row */}
-                <div className="flex border-t border-b border-slate-100 bg-slate-50 px-6">
+                <div className="ui-tabbar">
                   {(['day', 'all'] as const).map((tab) => (
                     <button
                       key={tab}
                       onClick={() => setHistoryTab(tab)}
-                      className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                        historyTab === tab
-                          ? 'border-blue-600 text-blue-700'
-                          : 'border-transparent text-slate-500 hover:text-slate-700'
-                      }`}
+                      className={`ui-tabbar__button ${historyTab === tab ? 'ui-tabbar__button--active' : ''}`}
                     >
                       {tab === 'day' ? 'By Day' : 'All Shifts'}
                     </button>
@@ -286,7 +281,7 @@ function DayViewHistory({ shifts }: { shifts: Shift[] }) {
     })
 
   const fmtShortDate = (d: string) =>
-    new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    formatIstDate(d, { day: 'numeric', month: 'short', year: 'numeric' })
 
   if (visibleDates.length === 0) {
     return <p className="ui-empty px-6 py-6">No shift history for the last 3 days.</p>
@@ -511,7 +506,7 @@ function AllShiftsHistory({ shifts }: { shifts: Shift[] }) {
 
 function ShiftRow({ shift, onClose, onAddCredit }: { shift: Shift; onClose: () => void; onAddCredit: () => void }) {
   const badge     = STATUS_LABELS[shift.status] ?? { label: shift.status, color: 'bg-slate-100 text-slate-600' }
-  const startTime = new Date(shift.actualStartTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  const startTime = formatIstDateTime(shift.actualStartTime, { hour: '2-digit', minute: '2-digit' })
   const fuelAbbr: Record<string, string> = {
     PETROL: 'P', SPEED_PETROL: 'SP', DIESEL: 'D', SPEED_DIESEL: 'SD', CNG: 'CNG',
   }
@@ -533,13 +528,14 @@ function ShiftRow({ shift, onClose, onAddCredit }: { shift: Shift; onClose: () =
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onAddCredit}
-            className="text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-200 px-3 py-1.5 rounded-lg transition-colors font-medium"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100"
           >
-            + Credit
+            <span className="text-sm leading-none">+</span>
+            <span>Credit</span>
           </button>
           <button
             onClick={onClose}
-            className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs"
+            className="ui-btn ui-btn-primary min-h-0 rounded-xl px-3 py-1.5 text-xs"
           >
             Close
           </button>
@@ -1008,9 +1004,10 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
           {/* Existing credit entries with void option */}
           {shift.creditEntries.length > 0 && (
             <div className="ui-card p-0 overflow-hidden">
-              <p className="ui-toolbar-title px-3 py-2 bg-slate-50 border-b border-slate-200 text-xs">
-                Recorded entries — click Void to cancel one
-              </p>
+              <div className="ui-toolbar px-3 py-2">
+                <p className="ui-toolbar-title text-xs">Recorded entries</p>
+                <span className="ui-toolbar-note">Click Void to cancel one</span>
+              </div>
               <div className="divide-y divide-slate-100 max-h-40 overflow-y-auto">
                 {shift.creditEntries.map((entry) => (
                   <div key={entry.id} className={`flex items-center gap-2 px-3 py-2 ${entry.voidStatus === 'VOIDED' ? 'opacity-40' : ''}`}>
@@ -1035,14 +1032,15 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
               </div>
               {/* Void reason input */}
               {voidTargetId !== null && (
-                <div className="border-t border-orange-200 bg-orange-50 px-3 py-2 space-y-2">
+                <div className="border-t border-orange-200 bg-orange-50 px-3 py-2">
+                  <div className="ui-inline-form space-y-2 border-orange-200 bg-white/70">
                   <input
                     autoFocus
                     type="text"
                     value={voidReason}
                     onChange={(e) => setVoidReason(e.target.value)}
                     placeholder="Reason for voiding (required)"
-                    className="w-full rounded-md border border-orange-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-orange-400"
+                    className="ui-input-compact text-xs focus:outline-none focus:ring-1 focus:ring-orange-400"
                   />
                   {voidError && <p className="ui-error-text">{voidError}</p>}
                   <div className="flex gap-2">
@@ -1060,13 +1058,14 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
                       {voidMutation.isPending ? '…' : 'Confirm Void'}
                     </button>
                   </div>
+                  </div>
                 </div>
               )}
             </div>
           )}
 
           {/* Client — root/parent accounts only */}
-          <div className="relative">
+          <div className="ui-search-shell">
             <label className="ui-label">
               Client <span className="text-red-500">*</span>
             </label>

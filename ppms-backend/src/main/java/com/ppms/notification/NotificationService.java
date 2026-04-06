@@ -36,12 +36,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NotificationService {
 
-    private final NotificationRepository     notificationRepository;
-    private final PumpDocumentRepository     documentRepository;
-    private final GlobalFuelPriceRepository  fuelPriceRepository;
-    private final ShiftRepository            shiftRepository;
+    private final NotificationRepository notificationRepository;
+    private final PumpDocumentRepository documentRepository;
+    private final GlobalFuelPriceRepository fuelPriceRepository;
+    private final ShiftRepository shiftRepository;
     private final AncillaryProductRepository ancillaryProductRepository;
-    private final UndergroundTankRepository  tankRepository;
+    private final UndergroundTankRepository tankRepository;
+    private final NotificationDedupService dedupService;
 
     // No class-level TODAY constant — LocalDate.now() is always called inline so it reflects
     // the actual current date when the method runs, not the date the class was loaded.
@@ -114,7 +115,7 @@ public class NotificationService {
                 .filter(TankStockResponse::isLowStock)
                 .forEach(tank -> {
                     String dedupKey = "LOW_STOCK:tank:" + tank.getTankId();
-                    maybeInsert(pumpId, NotificationType.LOW_STOCK, dedupKey,
+                    dedupService.maybeInsert(pumpId, NotificationType.LOW_STOCK, dedupKey,
                             "Low Tank Stock",
                             tank.getTankIdentifier() + " (" + tank.getFuelType() + ") is at "
                                     + String.format("%.1f", tank.getStockPercentage().doubleValue()) + "% — delivery needed.");
@@ -132,7 +133,7 @@ public class NotificationService {
             LocalDate today = LocalDate.now();
             // Daily dedup key — re-alerts each day until at least one price is configured.
             String dedupKey = "PRICE_STALE:" + today;
-            maybeInsert(pumpId, NotificationType.PRICE_STALE, dedupKey,
+            dedupService.maybeInsert(pumpId, NotificationType.PRICE_STALE, dedupKey,
                     "Fuel Prices Not Configured",
                     "No fuel prices have been set for this pump yet. Go to Setup → Fuel Prices to configure them.");
         }
@@ -151,7 +152,7 @@ public class NotificationService {
                     String title   = expired ? "Document Expired" : "Document Expiring Soon";
                     String message = doc.getName() + " (" + doc.getDocType() + ") "
                             + (expired ? "expired on " : "expires on ") + doc.getExpiryDate();
-                    maybeInsert(pumpId, NotificationType.DOCUMENT_EXPIRING, dedupKey, title, message);
+                    dedupService.maybeInsert(pumpId, NotificationType.DOCUMENT_EXPIRING, dedupKey, title, message);
                 });
     }
 
@@ -176,7 +177,7 @@ public class NotificationService {
                         && Duration.between(shift.getActualStartTime(), shift.getActualEndTime()).toMinutes() > 30)
                 .forEach(shift -> {
                     String dedupKey = "ZERO_SALE_SHIFT:shift:" + shift.getId();
-                    maybeInsert(pumpId, NotificationType.ZERO_SALE_SHIFT, dedupKey,
+                    dedupService.maybeInsert(pumpId, NotificationType.ZERO_SALE_SHIFT, dedupKey,
                             "Zero-Sale Shift Detected",
                             "Shift #" + shift.getId() + " on Nozzle was open for over 30 minutes but recorded ₹0 in sales. " +
                             "This may indicate a data entry error or missing readings. Please review.");
@@ -195,7 +196,7 @@ public class NotificationService {
                 .filter(shift -> shift.getStatus() == ShiftStatus.AUTO_CLOSED_OVERDUE)
                 .forEach(shift -> {
                     String dedupKey = "AUTO_CLOSED_SHIFT:shift:" + shift.getId();
-                    maybeInsert(pumpId, NotificationType.AUTO_CLOSED_SHIFT, dedupKey,
+                    dedupService.maybeInsert(pumpId, NotificationType.AUTO_CLOSED_SHIFT, dedupKey,
                             "Shift Force-Closed Without Readings",
                             "Shift #" + shift.getId() + " was automatically closed because the operator never submitted " +
                             "closing meter readings. End-meter data is missing — a manual reconciliation is required.");
@@ -216,30 +217,10 @@ public class NotificationService {
                 .forEach(p -> {
                     String dedupKey = "ANCILLARY_LOW_STOCK:product:" + p.getId();
                     String displayName = (p.getBrand() != null ? p.getBrand() + " " : "") + p.getName();
-                    maybeInsert(pumpId, NotificationType.ANCILLARY_LOW_STOCK, dedupKey,
+                    dedupService.maybeInsert(pumpId, NotificationType.ANCILLARY_LOW_STOCK, dedupKey,
                             "Low Product Stock",
                             displayName + " has only " + p.getCurrentStockUnits()
                             + " unit(s) remaining (threshold: " + p.getLowStockThreshold() + "). Restock soon.");
                 });
-    }
-
-    /**
-     * Inserts a notification only if the dedup_key does not already exist for this pump.
-     * Uses an existence check rather than relying on the DB unique constraint exception
-     * to keep the code clean (no exception swallowing needed).
-     */
-    private void maybeInsert(Long pumpId, NotificationType type, String dedupKey,
-                              String title, String message) {
-        if (!notificationRepository.existsByPumpIdAndDedupKey(pumpId, dedupKey)) {
-            Notification n = Notification.builder()
-                    .pumpId(pumpId)
-                    .type(type)
-                    .title(title)
-                    .message(message)
-                    .dedupKey(dedupKey)
-                    .build();
-            notificationRepository.save(n);
-            log.debug("Notification created: pump={} type={} key={}", pumpId, type, dedupKey);
-        }
     }
 }

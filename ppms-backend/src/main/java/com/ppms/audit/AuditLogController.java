@@ -1,5 +1,6 @@
 package com.ppms.audit;
 
+import com.ppms.common.time.BusinessClock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,15 +10,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 
 @RestController
 @RequestMapping("/api/pumps")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
 public class AuditLogController {
-
     private final AuditLogRepository auditLogRepository;
+    private final BusinessClock businessClock;
 
     /**
      * GET /api/pumps/{pumpId}/audit-logs?page=0&size=10&sort=createdAt,desc&from=2026-04-01&to=2026-04-04
@@ -33,13 +33,17 @@ public class AuditLogController {
             @RequestParam(required = false) LocalDate to) {
 
         if (from != null && to != null) {
-            OffsetDateTime fromDt = from.atStartOfDay().atOffset(ZoneOffset.UTC);
-            OffsetDateTime toDt   = to.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC);
+            OffsetDateTime fromDt = startOfBusinessDay(from);
+            OffsetDateTime toDt   = startOfBusinessDay(to.plusDays(1));
             return auditLogRepository
                     .findByPumpIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtDesc(
                             pumpId, fromDt, toDt, pageable);
         }
 
         return auditLogRepository.findByPumpIdOrderByCreatedAtDesc(pumpId, pageable);
+    }
+
+    private OffsetDateTime startOfBusinessDay(LocalDate date) {
+        return businessClock.startOfDay(date);
     }
 }

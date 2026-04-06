@@ -1,12 +1,8 @@
 package com.ppms.adjustment;
 
 import com.ppms.common.exception.BusinessException;
-import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.fuel.FuelType;
-import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.pump.NozzleOutlet;
-import com.ppms.pump.NozzleOutletRepository;
-import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,9 +21,7 @@ public class NozzleAdjustmentService {
 
     private final NozzleReadingAdjustmentRepository adjustmentRepository;
     private final FuelDipEntryRepository            dipEntryRepository;
-    private final NozzleOutletRepository            outletRepository;
-    private final ShiftRepository                   shiftRepository;
-    private final GlobalFuelPriceRepository         fuelPriceRepository;
+    private final NozzleAdjustmentSupportService    supportService;
 
     // ── Meter reading adjustment ──────────────────────────────────────────────
 
@@ -47,39 +41,15 @@ public class NozzleAdjustmentService {
     public NozzleReadingAdjustment recordReadingAdjustment(
             Long pumpId, Long outletId, RecordAdjustmentRequest req, User currentUser) {
 
-        NozzleOutlet outlet = outletRepository.findById(outletId)
-                .orElseThrow(() -> new ResourceNotFoundException("Outlet not found"));
-
-        // Guard: cannot adjust while an active shift is running on this nozzle
-        if (shiftRepository.hasOpenShift(outlet.getNozzleId())) {
-            throw new BusinessException(
-                    "Cannot adjust the meter reading — an active shift is running on this nozzle. " +
-                    "Close the shift first.");
-        }
-
-        String type = req.getAdjustmentType().toUpperCase();
-        if (!type.equals("RESET") && !type.equals("CUSTOM_READING")) {
-            throw new BusinessException("adjustmentType must be RESET or CUSTOM_READING");
-        }
+        NozzleOutlet outlet = supportService.requireAdjustableOutlet(outletId);
+        String type = supportService.validateAdjustmentType(req.getAdjustmentType());
 
         BigDecimal previousReading = outlet.getLastReading();
-        BigDecimal newReading;
-
-        if (type.equals("RESET")) {
-            newReading = BigDecimal.ZERO;
-        } else {
-            if (req.getNewReading() == null) {
-                throw new BusinessException("newReading is required for CUSTOM_READING adjustment");
-            }
-            if (req.getNewReading().compareTo(BigDecimal.ZERO) < 0) {
-                throw new BusinessException("newReading cannot be negative");
-            }
-            newReading = req.getNewReading().setScale(3, RoundingMode.HALF_UP);
-        }
+        BigDecimal newReading = supportService.resolveNewReading(type, req.getNewReading());
 
         // Update the outlet's lastReading — this becomes the start reading for the next shift
         outlet.setLastReading(newReading);
-        outletRepository.save(outlet);
+        supportService.saveOutlet(outlet);
 
         NozzleReadingAdjustment adjustment = NozzleReadingAdjustment.builder()
                 .pumpId(pumpId)
@@ -117,19 +87,10 @@ public class NozzleAdjustmentService {
      */
     @Transactional
     public FuelDipEntry recordDip(Long pumpId, RecordDipRequest req, User currentUser) {
-        FuelType fuelType;
-        try {
-            fuelType = FuelType.valueOf(req.getFuelType().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException("Unknown fuel type: " + req.getFuelType());
-        }
+        FuelType fuelType = supportService.parseFuelType(req.getFuelType());
 
         // Snapshot current price at the time of recording for historical accuracy
-        BigDecimal pricePerUnit = fuelPriceRepository
-                .findFirstByPumpIdAndFuelTypeOrderByEffectiveFromDesc(pumpId, fuelType)
-                .map(p -> p.getPricePerUnit())
-                .orElseThrow(() -> new BusinessException(
-                        "No price configured for " + fuelType + " on this pump. Set a price first."));
+        BigDecimal pricePerUnit = supportService.requireCurrentPrice(pumpId, fuelType);
 
         BigDecimal litresRemoved = req.getLitresRemoved().setScale(3, RoundingMode.HALF_UP);
         BigDecimal monetaryLoss  = litresRemoved.multiply(pricePerUnit).setScale(2, RoundingMode.HALF_UP);

@@ -25,6 +25,12 @@ public class CreateUserRequest {
     @NotNull(message = "Role is required")
     private UserRole role;
 
+    @NotNull(message = "Gender is required")
+    private UserGender gender;
+
+    // Relevant for women operators during shift planning. False means do not assign night shifts.
+    private Boolean nightShiftConsent;
+
     // Required for OPERATOR and MANAGER; null for ADMIN/OWNER
     private Long assignedPumpId;
 

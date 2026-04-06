@@ -5,7 +5,6 @@ import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
-import io.micrometer.core.instrument.Counter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,9 +24,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final LoginRateLimiterService rateLimiterService;
-    private final AuditService auditService;
-    private final Counter loginSuccessCounter;
-    private final Counter loginFailureCounter;
+    private final AuthLoginEventService authLoginEventService;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
 
@@ -56,9 +53,6 @@ public class AuthService {
 
             User user = (User) auth.getPrincipal();
 
-            // Record successful attempt
-            rateLimiterService.recordAttempt(request.getPhoneNumber(), ipAddress, true);
-
             // Embed role and pump into the JWT so the frontend can read them without an extra API call
             String token = jwtService.generateToken(user, Map.of(
                     "role", user.getRole().name(),
@@ -66,13 +60,7 @@ public class AuthService {
                     "pumpId", user.getAssignedPumpId() != null ? user.getAssignedPumpId() : ""
             ));
 
-            log.info("Login successful: userId={} phone={} ip={}", user.getId(), user.getPhoneNumber(), ipAddress);
-            loginSuccessCounter.increment();
-
-            auditService.log(user.getAssignedPumpId(), AuditAction.LOGIN,
-                    "User", user.getId().toString(),
-                    "Successful login from ip=" + ipAddress,
-                    user.getId(), user.getFullName());
+            authLoginEventService.onLoginSuccess(user, ipAddress);
 
             return LoginResponse.builder()
                     .token(token)
@@ -84,17 +72,7 @@ public class AuthService {
                     .build();
 
         } catch (AuthenticationException ex) {
-            // Record failed attempt — this increments the rate-limit counter
-            rateLimiterService.recordAttempt(request.getPhoneNumber(), ipAddress, false);
-            log.warn("Login failed: phone={} ip={}", request.getPhoneNumber(), ipAddress);
-            loginFailureCounter.increment();
-
-            // pumpId and actorId are null — no authenticated User available at this point
-            auditService.log(null, AuditAction.LOGIN_FAILED,
-                    "User", null,
-                    "Failed login attempt for phone=" + request.getPhoneNumber() + " from ip=" + ipAddress,
-                    null, request.getPhoneNumber());
-
+            authLoginEventService.onLoginFailure(request.getPhoneNumber(), ipAddress);
             throw new InvalidCredentialsException("Invalid phone number or password");
         }
     }

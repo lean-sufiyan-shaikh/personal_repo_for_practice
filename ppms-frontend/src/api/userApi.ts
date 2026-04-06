@@ -1,10 +1,14 @@
 import client from './client'
 
+export type UserGender = 'MALE' | 'FEMALE' | 'OTHER'
+
 export interface StaffMember {
   id: number
   employeeId: string
   fullName: string
   phoneNumber: string
+  gender: UserGender | null
+  nightShiftConsent: boolean
   role: string
   assignedPumpId: number | null
   status: string
@@ -17,6 +21,8 @@ export interface CreateUserRequest {
   fullName: string
   phoneNumber: string
   password: string
+  gender: UserGender
+  nightShiftConsent?: boolean
   role: 'OPERATOR' | 'MANAGER' | 'ADMIN' | 'ACCOUNTANT'
   assignedPumpId: number
   address?: string

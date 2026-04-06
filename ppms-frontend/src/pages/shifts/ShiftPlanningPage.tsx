@@ -7,6 +7,7 @@ import type { ShiftPlanEntry } from '../../api/shiftPlanApi'
 import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import { useAuthStore } from '../../store/authStore'
 import { SearchableSelect } from '../../components/SearchableSelect'
+import { formatIstDate } from '../../utils/date'
 
 // Cyclic color palette for shift rows — index into this by (sortOrder - 1)
 const SHIFT_ROW_COLORS = [
@@ -41,8 +42,7 @@ function toISODate(d: Date): string {
 }
 
 function formatDay(iso: string): string {
-  const d = new Date(iso + 'T00:00:00')
-  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
+  return formatIstDate(iso, { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────────
@@ -215,7 +215,7 @@ export default function ShiftPlanningPage() {
                 ←
               </button>
               <span className="text-sm font-semibold text-slate-700">
-                Week of {new Date(weekStart + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                Week of {formatIstDate(weekStart, { day: 'numeric', month: 'long', year: 'numeric' })}
               </span>
               <button onClick={nextWeek}
                 className="ui-btn ui-btn-secondary min-h-0 px-3 py-2 text-slate-500">

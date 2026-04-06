@@ -5,21 +5,23 @@ import { userApi } from '../../api/userApi'
 import { shiftPlanApi } from '../../api/shiftPlanApi'
 import type { PreferredDayOff } from '../../api/shiftPlanApi'
 import { DAY_LABELS } from '../../api/shiftPlanApi'
-import type { CreateUserRequest, StaffMember } from '../../api/userApi'
+import type { CreateUserRequest, StaffMember, UserGender } from '../../api/userApi'
 import { useAuthStore } from '../../store/authStore'
+import { usePumpStore } from '../../store/usePumpStore'
 import type { PumpSummary, CreditClient, TankInfo, CreateNozzleRequest, UpdateCreditClientRequest, PriceDeviationWarning } from '../../api/pumpApi'
 import type { FuelType, NozzleOption } from '../../types/shift'
 import { dipApi } from '../../api/dipApi'
 import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import type { CreateShiftDefinitionRequest } from '../../api/shiftDefinitionApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
-import { localDateInputValue } from '../../utils/date'
+import { formatIstDate, localDateInputValue } from '../../utils/date'
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function SetupPage() {
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
+  const { selectedPumpId, setSelectedPumpId } = usePumpStore()
 
   const { data: pumps = [], isLoading } = useQuery({
     queryKey: ['myPumps'],
@@ -28,7 +30,6 @@ export default function SetupPage() {
 
   const isSuperAdmin = user?.role === 'SUPER_ADMIN'
 
-  const [selectedPumpId, setSelectedPumpId] = useState<number | null>(null)
   const [createOpen, setCreateOpen] = useState(true)
   const selectedPump = pumps.find((p) => p.id === selectedPumpId) ?? null
 
@@ -73,19 +74,6 @@ export default function SetupPage() {
         </div>
       )}
 
-      {/* ── Pump selector ── */}
-      {!isLoading && pumps.length > 0 && (
-        <PumpSelectorCard
-          pumps={pumps}
-          selectedPumpId={selectedPumpId}
-          onSelect={(id) => setSelectedPumpId(id)}
-          onDeleted={() => {
-            queryClient.invalidateQueries({ queryKey: ['myPumps'] })
-            setSelectedPumpId(null)
-          }}
-        />
-      )}
-
       {/* ── Pump management accordion ── */}
       {selectedPump && (
         <PumpManagementPanel
@@ -99,90 +87,6 @@ export default function SetupPage() {
           No pumps yet. Create one above to get started.
         </div>
       )}
-    </div>
-  )
-}
-
-// ── Pump selector card ────────────────────────────────────────────────────────
-
-function PumpSelectorCard({
-  pumps,
-  selectedPumpId,
-  onSelect,
-  onDeleted,
-}: {
-  pumps: PumpSummary[]
-  selectedPumpId: number | null
-  onSelect: (id: number) => void
-  onDeleted: () => void
-}) {
-  const [confirmId, setConfirmId] = useState<number | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const deleteMutation = useMutation({
-    mutationFn: pumpApi.deletePump,
-    onSuccess: () => { setConfirmId(null); onDeleted() },
-    onError: (err: any) => setError(err?.response?.data?.message ?? 'Failed to delete pump'),
-  })
-
-  return (
-    <div className="ui-card p-5">
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Your Pumps</p>
-      {error && <p className="ui-error-text mb-2">{error}</p>}
-      <div className="flex flex-wrap gap-2">
-        {pumps.map((p) => {
-          const isSelected = selectedPumpId === p.id
-          return (
-            <div
-              key={p.id}
-              className={`flex items-center gap-2 pl-3 pr-2 py-2 rounded-xl border-2 transition-all cursor-pointer ${
-                isSelected
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-slate-200 hover:border-blue-200 bg-white hover:bg-slate-50'
-              }`}
-              onClick={() => onSelect(p.id)}
-            >
-              <div>
-                <p className={`text-sm font-semibold leading-tight ${isSelected ? 'text-blue-800' : 'text-slate-700'}`}>
-                  {p.name}
-                </p>
-                <p className="text-xs text-slate-400 leading-tight mt-0.5">
-                  {p.nozzles.length} nozzle{p.nozzles.length !== 1 ? 's' : ''} · {p.address}
-                </p>
-              </div>
-
-              {/* Delete controls — stop propagation so click doesn't select */}
-              <div className="ml-1" onClick={(e) => e.stopPropagation()}>
-                {confirmId === p.id ? (
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => deleteMutation.mutate(p.id)}
-                      disabled={deleteMutation.isPending}
-                      className="ui-btn ui-btn-danger min-h-0 px-3 py-1 text-xs"
-                    >
-                      Delete
-                    </button>
-                    <button
-                      onClick={() => setConfirmId(null)}
-                      className="ui-btn ui-btn-ghost min-h-0 px-1 py-0 text-xs text-slate-500 hover:text-slate-700"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setConfirmId(p.id)}
-                    className="ui-btn ui-btn-ghost min-h-0 px-1 py-0 text-xs text-slate-300 hover:text-red-400 transition-colors"
-                    title="Delete pump"
-                  >
-                    🗑
-                  </button>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
     </div>
   )
 }
@@ -213,6 +117,7 @@ function PumpManagementPanel({
     queryKey: ['creditClients', pump.id],
     queryFn:  () => pumpApi.getCreditClients(pump.id),
   })
+  const rootClientCount = clients.filter((client) => client.parentClientId === null).length
   const { data: shiftDefs = [] } = useQuery({
     queryKey: ['shift-definitions', pump.id],
     queryFn:  () => shiftDefinitionApi.getAll(pump.id),
@@ -305,7 +210,7 @@ function PumpManagementPanel({
           onToggle={() => toggle('clients')}
           icon="🤝"
           title="Credit Clients"
-          summary={clients.length > 0 ? `${clients.length} client${clients.length !== 1 ? 's' : ''}` : 'None added'}
+          summary={rootClientCount > 0 ? `${rootClientCount} client${rootClientCount !== 1 ? 's' : ''}` : 'None added'}
           badgeColor="bg-orange-50 text-orange-700"
         >
           <CreditClientsContent pump={pump} />
@@ -472,6 +377,14 @@ const FUEL_COLOR: Record<string, string> = {
   CNG:          'bg-amber-100 text-amber-700 border-amber-300',
 }
 
+const FUEL_PICKER_THEME: Record<string, string> = {
+  PETROL: 'ui-fuel-pill--petrol',
+  SPEED_PETROL: 'ui-fuel-pill--speed-petrol',
+  DIESEL: 'ui-fuel-pill--diesel',
+  SPEED_DIESEL: 'ui-fuel-pill--speed-diesel',
+  CNG: 'ui-fuel-pill--cng',
+}
+
 // ── Nozzle content ────────────────────────────────────────────────────────────
 
 function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => void }) {
@@ -573,6 +486,13 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
       pumpApi.addOutlet(nozzleId, { fuelType }),
     onSuccess: () => { setFuelEditError(null); invalidate() },
     onError: (err: any) => setFuelEditError(err?.response?.data?.message ?? 'Failed to add fuel type'),
+  })
+
+  const removeOutletMutation = useMutation({
+    mutationFn: ({ nozzleId, outletId }: { nozzleId: number; outletId: number }) =>
+      pumpApi.removeOutlet(nozzleId, outletId),
+    onSuccess: () => { setFuelEditError(null); invalidate() },
+    onError: (err: any) => setFuelEditError(err?.response?.data?.message ?? 'Failed to remove fuel type'),
   })
 
   const statusMutation = useMutation({
@@ -771,16 +691,16 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                               className="fixed inset-0 z-[5]"
                               onClick={() => setOpenMenu(null)}
                             />
-                            <div className="ui-card absolute right-0 top-full z-[6] mt-1 w-48 p-1">
+                            <div className="absolute right-0 top-full z-[6] mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.14)] backdrop-blur">
                               {(
                                 [
-                                  { label: 'Map Tanks',             panel: 'mapTanks'  as NozzlePanel, color: 'text-emerald-700 hover:bg-emerald-50' },
-                                  { label: 'Edit Fuel Types',       panel: 'fuelTypes' as NozzlePanel, color: 'text-violet-700 hover:bg-violet-50' },
-                                  { label: 'Adjust Reading',        panel: 'reading'   as NozzlePanel, color: 'text-blue-600 hover:bg-blue-50' },
-                                  { label: 'Record Dip',            panel: 'dip'       as NozzlePanel, color: 'text-orange-600 hover:bg-orange-50' },
-                                  { label: 'Disable for Maintenance', panel: 'disable' as NozzlePanel, color: 'text-red-600 hover:bg-red-50' },
+                                  { label: 'Map Tanks', description: 'Assign outlet tanks', icon: '🛢', panel: 'mapTanks'  as NozzlePanel, color: 'text-emerald-700 hover:bg-emerald-50' },
+                                  { label: 'Edit Fuel Types', description: 'Add or update fuel mix', icon: '⛽', panel: 'fuelTypes' as NozzlePanel, color: 'text-violet-700 hover:bg-violet-50' },
+                                  { label: 'Adjust Reading', description: 'Correct stored meter value', icon: '🔧', panel: 'reading'   as NozzlePanel, color: 'text-blue-600 hover:bg-blue-50' },
+                                  { label: 'Record Dip', description: 'Log a manual dip check', icon: '📏', panel: 'dip'       as NozzlePanel, color: 'text-orange-600 hover:bg-orange-50' },
+                                  { label: 'Disable for Maintenance', description: 'Temporarily take nozzle offline', icon: '⛔', panel: 'disable' as NozzlePanel, color: 'text-red-600 hover:bg-red-50' },
                                 ] as const
-                              ).map(({ label, panel, color }) => (
+                              ).map(({ label, description, icon, panel, color }) => (
                                 <button
                                   key={panel}
                                   type="button"
@@ -788,9 +708,13 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                                     openPanelFor(n.id, panel, n)
                                     setOpenMenu(null)
                                   }}
-                                  className={`w-full rounded-md px-3 py-2 text-left text-xs font-medium transition-colors ${color}`}
+                                  className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${color}`}
                                 >
-                                  {label}
+                                  <span className="mt-0.5 shrink-0 text-sm leading-none">{icon}</span>
+                                  <span className="min-w-0">
+                                    <span className="block text-xs font-semibold leading-5">{label}</span>
+                                    <span className="block text-[11px] leading-4 text-slate-400">{description}</span>
+                                  </span>
                                 </button>
                               ))}
                             </div>
@@ -804,23 +728,33 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                 {/* Disable confirmation panel */}
                 {isOpen(n.id, 'disable') && (
                   <div className="px-3 py-3 border-t border-slate-100">
-                    <div className="max-w-sm space-y-2">
-                      <p className="text-xs font-semibold text-red-700">Disable nozzle #{n.nozzleNumber} for maintenance?</p>
-                      <p className="text-xs text-slate-500">
+                    <div className="ui-disable-editor">
+                      <div className="ui-disable-editor__hero">
+                        <div>
+                          <p className="ui-section-kicker mb-2">Maintenance Lock</p>
+                          <h5 className="ui-title-sm">Disable nozzle #{n.nozzleNumber}</h5>
+                          <p className="ui-subtitle mt-1">
+                            Take this nozzle offline for maintenance or operational issues.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="ui-alert ui-alert-danger text-xs">
                         No new shifts can be opened on this nozzle until it is re-enabled. If an active shift is running, close it first.
-                      </p>
-                      {statusError && <p className="text-red-600 text-xs font-medium">{statusError}</p>}
-                      <div className="flex gap-2 pt-1">
+                      </div>
+
+                      {statusError && <p className="ui-error-text">{statusError}</p>}
+                      <div className="ui-disable-editor__actions">
                         <button
                           type="button"
                           onClick={() => statusMutation.mutate({ nozzleId: n.id, status: 'INACTIVE' })}
                           disabled={statusMutation.isPending}
-                          className="ui-btn ui-btn-danger min-h-0 px-3 py-1.5 text-xs disabled:bg-red-300"
+                          className="ui-btn ui-btn-danger"
                         >
                           {statusMutation.isPending ? 'Disabling…' : 'Yes, Disable'}
                         </button>
                         <button type="button" onClick={() => setOpenPanel(null)}
-                          className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
+                          className="ui-btn ui-btn-secondary">
                           Cancel
                         </button>
                       </div>
@@ -831,25 +765,45 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                 {/* Map Tanks panel */}
                 {isOpen(n.id, 'mapTanks') && (
                   <div className="px-3 py-3 border-t border-slate-100">
-                    <form onSubmit={(e) => submitTankMappings(e, n)} className="max-w-sm space-y-3">
-                      <div>
-                        <p className="text-xs font-semibold text-slate-700 mb-0.5">Map outlets to tanks</p>
-                        <p className="text-xs text-slate-400">
-                          Assign each outlet to the tank it draws from. Remapping takes effect on the next shift.
-                        </p>
+                    <form onSubmit={(e) => submitTankMappings(e, n)} className="ui-tank-map-form">
+                      <div className="ui-tank-map-form__hero">
+                        <div>
+                          <p className="ui-section-kicker mb-2">Tank Mapping</p>
+                          <h5 className="ui-title-sm">Map outlets to tanks</h5>
+                          <p className="ui-subtitle mt-1">
+                            Assign each outlet on nozzle #{n.nozzleNumber} to the tank it draws from. Remapping takes effect on the next shift.
+                          </p>
+                        </div>
+                        <div className="ui-tank-map-form__meta">
+                          <span className="ui-tank-map-form__meta-value">{n.outlets.length}</span>
+                          <span className="ui-tank-map-form__meta-label">outlets</span>
+                        </div>
                       </div>
-                      <div className="space-y-2">
+
+                      <div className="ui-tank-map-form__grid">
                         {n.outlets.map((outlet) => {
                           const compatibleTanks = tanks.filter(
                             (t) => t.fuelType === outlet.fuelType && t.status === 'ACTIVE'
                           )
+                          const selectedTankId = tankSelections[outlet.outletId]
+                          const currentTank = compatibleTanks.find((t) => t.id === selectedTankId) ?? null
+
                           return (
-                            <div key={outlet.outletId}>
-                              <label className="ui-label">
-                                {FUEL_LABEL[outlet.fuelType]} tank
-                              </label>
+                            <div key={outlet.outletId} className="ui-tank-map-form__card">
+                              <div className="ui-tank-map-form__card-head">
+                                <span className={`ui-tank-map-form__fuel-dot ${FUEL_PICKER_THEME[outlet.fuelType] ?? ''}`} />
+                                <div>
+                                  <label className="ui-label mb-0">{FUEL_LABEL[outlet.fuelType]}</label>
+                                  <p className="ui-help mt-0">
+                                    {compatibleTanks.length > 0
+                                      ? `${compatibleTanks.length} active compatible tank${compatibleTanks.length !== 1 ? 's' : ''}`
+                                      : `No active ${FUEL_LABEL[outlet.fuelType]} tanks available`}
+                                  </p>
+                                </div>
+                              </div>
+
                               <SearchableSelect
-                                value={tankSelections[outlet.outletId] != null ? tankSelections[outlet.outletId]!.toString() : ''}
+                                value={selectedTankId != null ? selectedTankId.toString() : ''}
                                 onChange={v => setTankSelections(prev => ({
                                   ...prev,
                                   [outlet.outletId]: v === '' ? null : Number(v),
@@ -858,21 +812,29 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                                 size="sm"
                                 options={compatibleTanks.map(t => ({ value: t.id.toString(), label: t.tankIdentifier }))}
                               />
+
+                              <div className="ui-tank-map-form__status">
+                                <span className="ui-tank-map-form__status-label">Selected tank</span>
+                                <span className={`ui-tank-map-form__status-value ${currentTank ? '' : 'ui-tank-map-form__status-value--muted'}`}>
+                                  {currentTank ? currentTank.tankIdentifier : 'Unmapped'}
+                                </span>
+                              </div>
+
                               {compatibleTanks.length === 0 && (
-                                <p className="text-xs text-amber-600 mt-0.5">No active {FUEL_LABEL[outlet.fuelType]} tanks</p>
+                                <p className="text-xs text-amber-600 mt-2">No active {FUEL_LABEL[outlet.fuelType]} tanks</p>
                               )}
                             </div>
                           )
                         })}
                       </div>
                       {mapError && <p className="ui-error-text">{mapError}</p>}
-                      <div className="flex gap-2">
+                      <div className="ui-tank-map-form__actions">
                         <button type="submit" disabled={mapTankMutation.isPending}
-                          className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs disabled:bg-emerald-300">
+                          className="ui-btn ui-btn-primary">
                           {mapTankMutation.isPending ? 'Saving...' : 'Save'}
                         </button>
                         <button type="button" onClick={() => setOpenPanel(null)}
-                          className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
+                          className="ui-btn ui-btn-secondary">
                           Cancel
                         </button>
                       </div>
@@ -883,25 +845,53 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                 {/* Edit Fuel Types panel */}
                 {isOpen(n.id, 'fuelTypes') && (
                   <div className="px-3 py-3 border-t border-slate-100">
-                    <div className="max-w-sm space-y-3">
-                      <div>
-                        <p className="text-xs font-semibold text-slate-700 mb-0.5">Edit fuel types</p>
-                        <p className="text-xs text-slate-400">
-                          Close any active shift on this nozzle before making changes.
-                        </p>
+                    <div className="ui-fuel-editor">
+                      <div className="ui-fuel-editor__hero">
+                        <div>
+                          <p className="ui-section-kicker mb-2">Fuel Mix Editor</p>
+                          <h5 className="ui-title-sm">Edit fuel types</h5>
+                          <p className="ui-subtitle mt-1">
+                            Add supported products or remove unused ones for nozzle #{n.nozzleNumber}.
+                          </p>
+                        </div>
+                        <div className="ui-fuel-editor__meta">
+                          <span className="ui-fuel-editor__meta-value">{n.outlets.length}</span>
+                          <span className="ui-fuel-editor__meta-label">active outlets</span>
+                        </div>
                       </div>
-                      {/* Current outlets — read-only display */}
-                      <div>
-                        <p className="text-xs text-slate-500 mb-1.5">Current</p>
-                        <div className="flex flex-wrap gap-2">
+
+                      <div className="ui-alert ui-alert-warning text-xs">
+                        Close any active shift on this nozzle before making changes.
+                      </div>
+
+                      <div className="ui-fuel-editor__section">
+                        <div className="ui-fuel-editor__section-head">
+                          <div>
+                            <p className="ui-label mb-1">Current fuel types</p>
+                            <p className="ui-help mt-0">Click any current chip to remove it. The last outlet must remain.</p>
+                          </div>
+                        </div>
+
+                        <div className="ui-fuel-editor__grid">
                           {n.outlets.map((o) => (
-                            <span key={o.outletId} className={`text-xs px-2 py-0.5 rounded-full font-medium border ${FUEL_COLOR[o.fuelType] ?? 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                              {FUEL_LABEL[o.fuelType]}
-                            </span>
+                            <button
+                              key={o.outletId}
+                              type="button"
+                              onClick={() => removeOutletMutation.mutate({ nozzleId: n.id, outletId: o.outletId })}
+                              disabled={removeOutletMutation.isPending || addOutletMutation.isPending}
+                              className={`ui-fuel-editor__chip ui-fuel-editor__chip--remove ${FUEL_PICKER_THEME[o.fuelType] ?? ''}`}
+                              title={`Remove ${FUEL_LABEL[o.fuelType]}`}
+                            >
+                              <span className="ui-fuel-editor__chip-copy">
+                                <span className="ui-fuel-editor__chip-label">{FUEL_LABEL[o.fuelType]}</span>
+                                <span className="ui-fuel-editor__chip-help">Remove fuel type</span>
+                              </span>
+                              <span className="ui-fuel-editor__chip-action" aria-hidden="true">✕</span>
+                            </button>
                           ))}
                         </div>
                       </div>
-                      {/* Add a new fuel type */}
+
                       {(() => {
                         const currentTypes = n.outlets.map((o) => o.fuelType)
                         const hasCng = currentTypes.includes('CNG' as FuelType)
@@ -913,18 +903,28 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                         })
                         if (addable.length === 0) return null
                         return (
-                          <div>
-                            <p className="text-xs text-slate-500 mb-1.5">Add</p>
-                            <div className="flex flex-wrap gap-2">
+                          <div className="ui-fuel-editor__section">
+                            <div className="ui-fuel-editor__section-head">
+                              <div>
+                                <p className="ui-label mb-1">Add fuel types</p>
+                                <p className="ui-help mt-0">Only compatible options are shown for this nozzle.</p>
+                              </div>
+                            </div>
+
+                            <div className="ui-fuel-editor__grid">
                               {addable.map((ft) => (
                                 <button
                                   key={ft}
                                   type="button"
                                   onClick={() => addOutletMutation.mutate({ nozzleId: n.id, fuelType: ft })}
-                                  disabled={addOutletMutation.isPending}
-                                  className={`text-xs px-2.5 py-1 rounded-full font-medium border-2 border-dashed transition-colors disabled:opacity-40 ${FUEL_COLOR[ft] ?? 'border-slate-300 text-slate-600'} hover:opacity-80`}
+                                  disabled={addOutletMutation.isPending || removeOutletMutation.isPending}
+                                  className={`ui-fuel-editor__chip ui-fuel-editor__chip--add ${FUEL_PICKER_THEME[ft] ?? ''}`}
                                 >
-                                  + {FUEL_LABEL[ft]}
+                                  <span className="ui-fuel-editor__chip-copy">
+                                    <span className="ui-fuel-editor__chip-label">{FUEL_LABEL[ft]}</span>
+                                    <span className="ui-fuel-editor__chip-help">Add fuel type</span>
+                                  </span>
+                                  <span className="ui-fuel-editor__chip-action" aria-hidden="true">+</span>
                                 </button>
                               ))}
                             </div>
@@ -932,10 +932,12 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                         )
                       })()}
                       {fuelEditError && <p className="ui-error-text">{fuelEditError}</p>}
-                      <button type="button" onClick={() => setOpenPanel(null)}
-                        className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs">
-                        Done
-                      </button>
+                      <div className="ui-fuel-editor__actions">
+                        <button type="button" onClick={() => setOpenPanel(null)}
+                          className="ui-btn ui-btn-secondary">
+                          Done
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -943,84 +945,115 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                 {/* Adjust Reading panel */}
                 {isOpen(n.id, 'reading') && (
                   <div className="px-3 py-3 border-t border-slate-100">
-                    <form onSubmit={(e) => submitAdjustment(e, n)} className="max-w-sm space-y-3">
-                      <div>
-                        <p className="text-xs font-semibold text-slate-700 mb-0.5">Adjust Meter Reading</p>
-                        <p className="text-xs text-amber-600">
-                          Only use when a meter was replaced, reset, or the stored value is incorrect. Cannot be done while an active shift is running on this nozzle.
-                        </p>
+                    <form onSubmit={(e) => submitAdjustment(e, n)} className="ui-reading-editor">
+                      <div className="ui-reading-editor__hero">
+                        <div>
+                          <p className="ui-section-kicker mb-2">Meter Adjustment</p>
+                          <h5 className="ui-title-sm">Adjust meter reading</h5>
+                          <p className="ui-subtitle mt-1">
+                            Use this only when a meter was replaced, reset, or the stored reading is incorrect for nozzle #{n.nozzleNumber}.
+                          </p>
+                        </div>
+                        <div className="ui-reading-editor__meta">
+                          <span className="ui-reading-editor__meta-value">{n.outlets.length}</span>
+                          <span className="ui-reading-editor__meta-label">outlets</span>
+                        </div>
                       </div>
 
-                      {/* Adjustment type toggle */}
-                      <div>
-                        <p className="ui-label mb-1.5">Adjustment Type</p>
-                        <div className="flex gap-2">
+                      <div className="ui-alert ui-alert-warning text-xs">
+                        Cannot be done while an active shift is running on this nozzle.
+                      </div>
+
+                      <div className="ui-reading-editor__section">
+                        <div className="ui-reading-editor__section-head">
+                          <div>
+                            <p className="ui-label mb-1">Adjustment type</p>
+                            <p className="ui-help mt-0">Choose whether to set exact readings or reset every outlet on this nozzle to zero.</p>
+                          </div>
+                        </div>
+
+                        <div className="ui-reading-editor__mode-grid">
                           <button
                             type="button"
                             onClick={() => setAdjustType('CUSTOM_READING')}
-                            className={`ui-btn min-h-0 px-3 py-1.5 text-xs border ${adjustType === 'CUSTOM_READING' ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-300 text-slate-600 hover:border-slate-400'}`}
+                            className={`ui-reading-editor__mode-card ${adjustType === 'CUSTOM_READING' ? 'ui-reading-editor__mode-card--active ui-reading-editor__mode-card--custom' : ''}`}
                           >
-                            Set Custom Reading
+                            <span className="ui-reading-editor__mode-title">Set custom reading</span>
+                            <span className="ui-reading-editor__mode-copy">Enter a replacement reading for one or more outlets.</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => setAdjustType('RESET')}
-                            className={`ui-btn min-h-0 px-3 py-1.5 text-xs border ${adjustType === 'RESET' ? 'bg-red-600 text-white border-red-600' : 'border-slate-300 text-slate-600 hover:border-slate-400'}`}
+                            className={`ui-reading-editor__mode-card ${adjustType === 'RESET' ? 'ui-reading-editor__mode-card--active ui-reading-editor__mode-card--danger' : ''}`}
                           >
-                            Reset to Zero
+                            <span className="ui-reading-editor__mode-title">Reset to zero</span>
+                            <span className="ui-reading-editor__mode-copy">Apply a full zero reset to every outlet on this nozzle.</span>
                           </button>
                         </div>
                       </div>
 
-                      {/* Custom reading inputs — only for CUSTOM_READING */}
                       {adjustType === 'CUSTOM_READING' && (
-                        <div className="space-y-2">
+                        <div className="ui-reading-editor__section">
+                          <div className="ui-reading-editor__section-head">
+                            <div>
+                              <p className="ui-label mb-1">Outlet readings</p>
+                              <p className="ui-help mt-0">Only filled values will be updated when you save.</p>
+                            </div>
+                          </div>
+
+                          <div className="ui-reading-editor__grid">
                           {n.outlets.map((outlet) => (
-                            <div key={outlet.outletId}>
-                              <label className="ui-label">
-                                {FUEL_LABEL[outlet.fuelType]} ({FUEL_UNIT[outlet.fuelType]}) — current: {outlet.lastReading}
-                              </label>
+                            <div key={outlet.outletId} className="ui-reading-editor__card">
+                              <div className="ui-reading-editor__card-head">
+                                <span className={`ui-reading-editor__fuel-dot ${FUEL_PICKER_THEME[outlet.fuelType] ?? ''}`} />
+                                <div>
+                                  <label className="ui-label mb-0">{FUEL_LABEL[outlet.fuelType]}</label>
+                                  <p className="ui-help mt-0">Current: {outlet.lastReading} {FUEL_UNIT[outlet.fuelType]}</p>
+                                </div>
+                              </div>
                               <input
                                 type="number" step="0.001" min="0"
                                 value={adjustReadings[outlet.outletId] ?? ''}
                                 onChange={(e) => setAdjustReadings((prev) => ({ ...prev, [outlet.outletId]: e.target.value }))}
                                 placeholder="New reading"
-                                className="text-xs min-h-10"
+                                className="text-sm"
                               />
                             </div>
                           ))}
+                          </div>
                         </div>
                       )}
 
-                      {/* RESET confirmation message */}
                       {adjustType === 'RESET' && (
-                        <div className="ui-alert ui-alert-danger p-2">
-                          <p className="text-xs text-red-700">
+                        <div className="ui-reading-editor__section">
+                          <div className="ui-alert ui-alert-danger">
+                            <p className="text-xs text-red-700">
                             This will reset all meter readings on nozzle #{n.nozzleNumber} to <strong>0.000</strong>. This action is logged and cannot be undone.
-                          </p>
+                            </p>
+                          </div>
                         </div>
                       )}
 
-                      {/* Reason */}
-                      <div>
+                      <div className="ui-reading-editor__section">
                         <label className="ui-label">Reason <span className="text-red-500">*</span></label>
                         <input
                           type="text"
                           value={adjustReason}
                           onChange={(e) => setAdjustReason(e.target.value)}
                           placeholder="e.g. Meter replaced after malfunction"
-                          className="text-xs min-h-10"
+                          className="text-sm"
                         />
+                        <p className="ui-help">This note is stored with the adjustment log for audit history.</p>
                       </div>
 
                       {adjustError && <p className="ui-error-text">{adjustError}</p>}
-                      <div className="flex gap-2">
+                      <div className="ui-reading-editor__actions">
                         <button type="submit" disabled={recordAdjustmentMutation.isPending}
-                          className={`ui-btn min-h-0 px-3 py-1.5 text-xs text-white disabled:opacity-50 ${adjustType === 'RESET' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                          className={`ui-btn ${adjustType === 'RESET' ? 'ui-btn-danger' : 'ui-btn-primary'}`}>
                           {recordAdjustmentMutation.isPending ? 'Saving...' : adjustType === 'RESET' ? 'Reset to Zero' : 'Save Reading'}
                         </button>
                         <button type="button" onClick={() => setOpenPanel(null)}
-                          className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
+                          className="ui-btn ui-btn-secondary">
                           Cancel
                         </button>
                       </div>
@@ -1037,16 +1070,22 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                     : null
                   return (
                     <div className="px-3 py-3 border-t border-slate-100">
-                      <form onSubmit={submitDip} className="max-w-sm space-y-3">
-                        <div>
-                          <p className="text-xs font-semibold text-slate-700 mb-0.5">Record Fuel Dip</p>
-                          <p className="text-xs text-slate-400">
-                            Record fuel physically removed from the tank (e.g. maintenance draining). This loss will appear in the balance sheet.
-                          </p>
+                      <form onSubmit={submitDip} className="ui-dip-editor">
+                        <div className="ui-dip-editor__hero">
+                          <div>
+                            <p className="ui-section-kicker mb-2">Dip Record</p>
+                            <h5 className="ui-title-sm">Record fuel dip</h5>
+                            <p className="ui-subtitle mt-1">
+                              Record fuel physically removed from the tank, such as maintenance draining or contamination removal.
+                            </p>
+                          </div>
+                          <div className="ui-dip-editor__meta">
+                            <span className="ui-dip-editor__meta-value">{n.outlets.length}</span>
+                            <span className="ui-dip-editor__meta-label">fuel options</span>
+                          </div>
                         </div>
 
-                        {/* Fuel type */}
-                        <div>
+                        <div className="ui-dip-editor__section">
                           <label className="ui-label">Fuel Type</label>
                           <SearchableSelect
                             value={dipFuelType}
@@ -1057,8 +1096,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                           />
                         </div>
 
-                        {/* Litres removed */}
-                        <div>
+                        <div className="ui-dip-editor__section">
                           <label className="ui-label">Litres Removed</label>
                           <input
                             type="number" step="0.001" min="0.001"
@@ -1068,15 +1106,15 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                             className="text-xs min-h-10"
                           />
                           {estimatedLoss !== null && (
-                            <p className="text-xs text-orange-700 mt-0.5 font-medium">
+                            <p className="ui-dip-editor__loss">
                               Estimated loss: ₹{estimatedLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               {` @ ₹${pricePerUnit}/unit`}
                             </p>
                           )}
                         </div>
 
-                        {/* Date (optional) */}
-                        <div>
+                        <div className="ui-dip-editor__grid">
+                          <div className="ui-dip-editor__section">
                           <label className="ui-label">
                             Date <span className="text-slate-400">(leave blank for today)</span>
                           </label>
@@ -1086,10 +1124,9 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                             onChange={(e) => setDipDate(e.target.value)}
                             className="text-xs min-h-10"
                           />
-                        </div>
+                          </div>
 
-                        {/* Reason */}
-                        <div>
+                          <div className="ui-dip-editor__section">
                           <label className="ui-label">Reason <span className="text-red-500">*</span></label>
                           <input
                             type="text"
@@ -1098,16 +1135,17 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                             placeholder="e.g. Water contamination draining"
                             className="text-xs min-h-10"
                           />
+                          </div>
                         </div>
 
                         {dipError && <p className="ui-error-text">{dipError}</p>}
-                        <div className="flex gap-2">
+                        <div className="ui-dip-editor__actions">
                           <button type="submit" disabled={recordDipMutation.isPending}
-                            className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white">
+                            className="ui-btn ui-btn-warning">
                             {recordDipMutation.isPending ? 'Recording...' : 'Record Dip'}
                           </button>
                           <button type="button" onClick={() => setOpenPanel(null)}
-                            className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
+                            className="ui-btn ui-btn-secondary">
                             Cancel
                           </button>
                         </div>
@@ -1164,60 +1202,97 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
           )}
         </div>
       ) : (
-        <form onSubmit={submitAdd} className="space-y-3 pt-1">
-          <p className="ui-label mb-0">Add a new nozzle</p>
+        <form onSubmit={submitAdd} className="ui-nozzle-form">
+          <div className="ui-nozzle-form__hero">
+            <div>
+              <p className="ui-section-kicker mb-2">Nozzle Setup</p>
+              <h4 className="ui-title-sm">Add a new nozzle</h4>
+              <p className="ui-subtitle mt-1">
+                Pick the nozzle number, assign its fuel mix, and seed opening meter values if the machine is already in service.
+              </p>
+            </div>
 
-          <div>
-            <label className="ui-label">Nozzle #</label>
-            <input required type="number" min="1" max="20" value={nozzleNumber}
-              onChange={(e) => setNozzleNumber(e.target.value)}
-              className="w-20 text-sm"
-              placeholder="1" />
+            <div className="ui-nozzle-form__number-card">
+              <label className="ui-label mb-2">Nozzle #</label>
+              <input
+                required
+                type="number"
+                min="1"
+                max="20"
+                value={nozzleNumber}
+                onChange={(e) => setNozzleNumber(e.target.value)}
+                className="ui-nozzle-form__number-input"
+                placeholder="1"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="ui-label mb-2">Fuel Types</label>
-            <div className="flex flex-wrap gap-2">
+          <div className="ui-nozzle-form__section">
+            <div className="ui-nozzle-form__section-head">
+              <div>
+                <label className="ui-label mb-1">Fuel Types</label>
+                <p className="ui-help mt-0">Choose one or more products for this nozzle. CNG remains exclusive.</p>
+              </div>
+              <span className="ui-nozzle-form__selection-count">
+                {selectedFuelTypes.length} selected
+              </span>
+            </div>
+
+            <div className="ui-nozzle-form__fuel-grid">
               {ALL_FUEL_TYPES.map((ft) => {
-                const checked  = selectedFuelTypes.includes(ft)
+                const checked = selectedFuelTypes.includes(ft)
                 const disabled = ft === 'CNG'
                   ? selectedFuelTypes.some((t) => t !== 'CNG')
                   : selectedFuelTypes.includes('CNG')
+
                 return (
-                  <label key={ft} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 text-xs font-medium select-none transition-all ${
-                    checked
-                      ? FUEL_COLOR[ft]
-                      : disabled
-                        ? 'border-slate-100 text-slate-300 cursor-not-allowed'
-                        : 'border-slate-200 text-slate-600 cursor-pointer hover:border-slate-300'
-                  }`}>
-                    <input type="checkbox" className="hidden" checked={checked} disabled={disabled}
-                      onChange={() => !disabled && toggleFuelType(ft)} />
-                    {FUEL_LABEL[ft]}
+                  <label
+                    key={ft}
+                    className={`ui-fuel-pill ${FUEL_PICKER_THEME[ft] ?? ''} ${checked ? 'ui-fuel-pill--selected' : ''} ${disabled ? 'ui-fuel-pill--disabled' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={checked}
+                      disabled={disabled}
+                      onChange={() => !disabled && toggleFuelType(ft)}
+                    />
+                    <span className="ui-fuel-pill__label">{FUEL_LABEL[ft]}</span>
+                    <span className="ui-fuel-pill__meta">{FUEL_UNIT[ft]}</span>
                   </label>
                 )
               })}
             </div>
-            <p className="text-xs text-slate-400 mt-1">CNG cannot be combined with other fuel types.</p>
+            <p className="ui-help">CNG cannot be combined with other fuel types.</p>
           </div>
 
           {selectedFuelTypes.length > 0 && (
-            <div>
-              <label className="ui-label mb-2">
-                Start Reading <span className="text-slate-400">(optional — enter if meter already shows a value)</span>
-              </label>
-              <div className="flex flex-wrap gap-3">
+            <div className="ui-nozzle-form__readings">
+              <div className="ui-nozzle-form__section-head">
+                <div>
+                  <label className="ui-label mb-1">Start Reading</label>
+                  <p className="ui-help mt-0">Optional. Enter a value only when the meter already has an opening reading.</p>
+                </div>
+              </div>
+
+              <div className="ui-nozzle-form__reading-grid">
                 {selectedFuelTypes.map((ft) => (
-                  <div key={ft}>
-                    <label className="ui-help mb-1 block">
-                      {FUEL_LABEL[ft]} ({FUEL_UNIT[ft]})
-                    </label>
+                  <div key={ft} className="ui-nozzle-form__reading-card">
+                    <div className="ui-nozzle-form__reading-head">
+                      <span className={`ui-nozzle-form__reading-dot ${FUEL_PICKER_THEME[ft] ?? ''}`} />
+                      <div>
+                        <label className="ui-label mb-0">{FUEL_LABEL[ft]}</label>
+                        <p className="ui-help mt-0">{FUEL_UNIT[ft]} meter value</p>
+                      </div>
+                    </div>
                     <input
-                      type="number" step="0.001" min="0"
+                      type="number"
+                      step="0.001"
+                      min="0"
                       value={startReadings[ft] ?? ''}
                       onChange={(e) => setStartReadings((prev) => ({ ...prev, [ft]: e.target.value }))}
                       placeholder="0"
-                      className="w-32 text-sm"
+                      className="text-sm"
                     />
                   </div>
                 ))}
@@ -1226,10 +1301,12 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
           )}
 
           {addError && <p className="ui-error-text">{addError}</p>}
-          <button type="submit" disabled={addMutation.isPending}
-            className="ui-btn ui-btn-primary">
-            {addMutation.isPending ? 'Adding...' : 'Add Nozzle'}
-          </button>
+
+          <div className="ui-nozzle-form__actions">
+            <button type="submit" disabled={addMutation.isPending} className="ui-btn ui-btn-primary">
+              {addMutation.isPending ? 'Adding...' : 'Add Nozzle'}
+            </button>
+          </div>
         </form>
       )}
     </div>
@@ -1329,7 +1406,7 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
               <p className="text-xs text-red-500 mt-0.5">
                 Last updated on{' '}
                 <span className="font-medium">
-                  {new Date(lastUpdatedOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {formatIstDate(lastUpdatedOn)}
                 </span>
                 . Please enter today's prices below.
               </p>
@@ -1455,8 +1532,17 @@ const ROLE_BADGE: Record<string, string> = {
   ACCOUNTANT: 'bg-orange-100 text-orange-700',
 }
 
-const EMPTY_FORM: Omit<CreateUserRequest, 'assignedPumpId'> = {
-  fullName: '', phoneNumber: '', password: '', role: 'OPERATOR' as const,
+type StaffCreateForm = Omit<CreateUserRequest, 'assignedPumpId' | 'gender'> & {
+  gender: UserGender | ''
+}
+
+const EMPTY_FORM: StaffCreateForm = {
+  fullName: '',
+  phoneNumber: '',
+  password: '',
+  gender: '',
+  nightShiftConsent: false,
+  role: 'OPERATOR' as const,
 }
 
 function StaffContent({ pump }: { pump: PumpSummary }) {
@@ -1472,6 +1558,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
   // Preferences / leave / pay-rates panel — only one staff member open at a time
   type StaffPanel = 'preferences' | 'leave' | 'rates'
   const [openStaffPanel, setOpenStaffPanel] = useState<{ userId: number; panel: StaffPanel } | null>(null)
+  const [openStaffMenu, setOpenStaffMenu] = useState<number | null>(null)
   const [prefShiftDefId, setPrefShiftDefId] = useState<number | null>(null)
   const [prefDayOff, setPrefDayOff] = useState<PreferredDayOff | ''>('')
   const [prefError, setPrefError] = useState<string | null>(null)
@@ -1570,6 +1657,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
   })
 
   const openPanel = (userId: number, panel: StaffPanel, pref?: typeof openPref, member?: StaffMember) => {
+    setOpenStaffMenu(null)
     setOpenStaffPanel(prev => prev?.userId === userId && prev?.panel === panel ? null : { userId, panel })
     setPrefError(null); setLeaveError(null); setRateError(null)
     if (panel === 'preferences' && pref) {
@@ -1583,12 +1671,21 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
     }
   }
 
-  const set = (field: keyof typeof EMPTY_FORM, value: string) =>
+  const set = <K extends keyof StaffCreateForm>(field: K, value: StaffCreateForm[K]) =>
     setForm((prev) => ({ ...prev, [field]: value }))
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault(); setError(null)
-    mutation.mutate({ ...form, assignedPumpId: pump.id })
+    if (!form.gender) {
+      setError('Gender is required')
+      return
+    }
+    mutation.mutate({
+      ...form,
+      gender: form.gender,
+      nightShiftConsent: form.role === 'OPERATOR' && form.gender === 'FEMALE' ? form.nightShiftConsent : false,
+      assignedPumpId: pump.id,
+    })
   }
 
   return (
@@ -1604,73 +1701,134 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
             const isLeaveOpen = openStaffPanel?.userId === member.id && openStaffPanel?.panel === 'leave'
             const isOperator  = member.role === 'OPERATOR'
             return (
-              <div key={member.id} className={`bg-white border rounded-lg ${isInactive ? 'border-slate-100 opacity-60' : 'border-slate-200'}`}>
+              <div
+                key={member.id}
+                className={`ui-card-plain relative ${openStaffMenu === member.id ? 'z-20' : 'z-0'} ${isInactive ? 'border-slate-100 opacity-70' : 'border-slate-200'}`}
+              >
                 {/* Staff row */}
-                <div className="flex items-center gap-3 px-3 py-2.5">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                <div className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center">
+                  <div className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-sm font-bold shadow-sm ${
                     ROLE_BADGE[member.role]?.replace('text-', 'bg-').replace('-700', '-200') ?? 'bg-slate-100'
                   }`}>
                     {member.fullName.charAt(0).toUpperCase()}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-700">{member.fullName}</p>
-                    <p className="text-xs text-slate-400">{member.phoneNumber}{member.employeeId ? ` · ${member.employeeId}` : ''}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0">
+                        <p className="truncate text-[15px] font-semibold text-slate-800">{member.fullName}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400">
+                          <span>{member.phoneNumber}</span>
+                          {member.employeeId ? <span>{member.employeeId}</span> : null}
+                          {member.gender ? (
+                            <span>{member.gender.charAt(0) + member.gender.slice(1).toLowerCase()}</span>
+                          ) : null}
+                          {member.role === 'OPERATOR' && member.gender === 'FEMALE' ? (
+                            <span className={member.nightShiftConsent ? 'text-emerald-600' : 'text-amber-700'}>
+                              {member.nightShiftConsent ? 'Night shift okay' : 'No night shift'}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`text-[11px] px-2.5 py-1 rounded-full font-semibold tracking-[0.08em] ${ROLE_BADGE[member.role] ?? 'bg-slate-100 text-slate-600'}`}>
+                          {member.role}
+                        </span>
+                        {isInactive && (
+                          <span className="text-[11px] px-2.5 py-1 rounded-full font-semibold tracking-[0.08em] bg-red-100 text-red-600">Inactive</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_BADGE[member.role] ?? 'bg-slate-100 text-slate-600'}`}>
-                    {member.role}
-                  </span>
-                  {isInactive && (
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-600">Inactive</span>
-                  )}
-                  {isOwner && isOperator && (
-                    <button
-                      onClick={() => openPanel(member.id, 'preferences')}
-                      className={`text-xs px-2 py-1 rounded border font-medium transition-colors shrink-0 ${
-                        isPrefOpen ? 'border-blue-400 text-blue-600 bg-blue-50' : 'border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600'
-                      }`}
-                      title="Shift preferences"
-                    >
-                      ⚙ Prefs
-                    </button>
-                  )}
-                  {isOwner && (isOperator || member.role === 'MANAGER' || member.role === 'ADMIN' || member.role === 'ACCOUNTANT') && (
-                    <button
-                      onClick={() => openPanel(member.id, 'leave')}
-                      className={`text-xs px-2 py-1 rounded border font-medium transition-colors shrink-0 ${
-                        isLeaveOpen ? 'border-amber-400 text-amber-600 bg-amber-50' : 'border-slate-200 text-slate-500 hover:border-amber-300 hover:text-amber-600'
-                      }`}
-                      title="Manage leave dates"
-                    >
-                      📅 Leave
-                    </button>
-                  )}
                   {isOwner && (
-                    <button
-                      onClick={() => openPanel(member.id, 'rates', undefined, member)}
-                      className={`text-xs px-2 py-1 rounded border font-medium transition-colors shrink-0 ${
-                        openStaffPanel?.userId === member.id && openStaffPanel?.panel === 'rates'
-                          ? 'border-emerald-400 text-emerald-700 bg-emerald-50'
-                          : 'border-slate-200 text-slate-500 hover:border-emerald-300 hover:text-emerald-700'
-                      }`}
-                      title="Set hourly pay rates"
-                    >
-                      ₹ Rates{(member.role === 'OPERATOR' ? member.shift1HourlyRate == null : member.dailyRate == null) ? (
-                        <span className="ml-1 text-red-400">!</span>
-                      ) : null}
-                    </button>
-                  )}
-                  {isOwner && (
-                    <button
-                      onClick={() => statusMutation.mutate({ userId: member.id, status: isInactive ? 'ACTIVE' : 'INACTIVE' })}
-                      disabled={statusMutation.isPending}
-                      className={`text-xs px-2.5 py-1 rounded border font-medium transition-colors disabled:opacity-50 shrink-0 ${
-                        isInactive
-                          ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
-                          : 'border-red-200 text-red-600 hover:bg-red-50'
-                      }`}
-                    >
-                      {isInactive ? 'Activate' : 'Deactivate'}
-                    </button>
+                    <div className="md:ml-auto">
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setOpenStaffMenu(openStaffMenu === member.id ? null : member.id)}
+                          className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-lg leading-none text-slate-400 transition-colors hover:border-slate-300 hover:bg-white hover:text-slate-600"
+                          title="Staff actions"
+                        >
+                          ⋮
+                        </button>
+                        {openStaffMenu === member.id && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-[5]"
+                              onClick={() => setOpenStaffMenu(null)}
+                            />
+                            <div className="absolute right-0 top-full z-[6] mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.14)] backdrop-blur">
+                              {isOperator && (
+                                <button
+                                  type="button"
+                                  onClick={() => openPanel(member.id, 'preferences')}
+                                  className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                                    isPrefOpen ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-blue-50 hover:text-blue-700'
+                                  }`}
+                                >
+                                  <span className="mt-0.5 shrink-0 text-sm leading-none">⚙</span>
+                                  <span className="min-w-0">
+                                    <span className="block text-xs font-semibold leading-5">Shift Preferences</span>
+                                    <span className="block text-[11px] leading-4 text-slate-400">Set preferred shift and weekly day off</span>
+                                  </span>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => openPanel(member.id, 'leave')}
+                                className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                                  isLeaveOpen ? 'bg-amber-50 text-amber-700' : 'text-slate-700 hover:bg-amber-50 hover:text-amber-700'
+                                }`}
+                              >
+                                <span className="mt-0.5 shrink-0 text-sm leading-none">📅</span>
+                                <span className="min-w-0">
+                                  <span className="block text-xs font-semibold leading-5">Manage Leave</span>
+                                  <span className="block text-[11px] leading-4 text-slate-400">Add or remove leave dates for this staff member</span>
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openPanel(member.id, 'rates', undefined, member)}
+                                className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                                  openStaffPanel?.userId === member.id && openStaffPanel?.panel === 'rates'
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700'
+                                }`}
+                              >
+                                <span className="mt-0.5 shrink-0 text-sm leading-none">₹</span>
+                                <span className="min-w-0">
+                                  <span className="block text-xs font-semibold leading-5">
+                                    Pay Rates{(member.role === 'OPERATOR' ? member.shift1HourlyRate == null : member.dailyRate == null) ? (
+                                      <span className="ml-1 text-red-400">!</span>
+                                    ) : null}
+                                  </span>
+                                  <span className="block text-[11px] leading-4 text-slate-400">Configure hourly or daily pay rates</span>
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenStaffMenu(null)
+                                  statusMutation.mutate({ userId: member.id, status: isInactive ? 'ACTIVE' : 'INACTIVE' })
+                                }}
+                                disabled={statusMutation.isPending}
+                                className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors disabled:opacity-50 ${
+                                  isInactive ? 'text-emerald-700 hover:bg-emerald-50' : 'text-red-600 hover:bg-red-50'
+                                }`}
+                              >
+                                <span className="mt-0.5 shrink-0 text-sm leading-none">{isInactive ? '↺' : '⛔'}</span>
+                                <span className="min-w-0">
+                                  <span className="block text-xs font-semibold leading-5">{isInactive ? 'Activate Staff' : 'Deactivate Staff'}</span>
+                                  <span className="block text-[11px] leading-4 text-slate-400">
+                                    {isInactive ? 'Allow this staff member to work again' : 'Temporarily remove this staff member from active use'}
+                                  </span>
+                                </span>
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
 
@@ -1816,7 +1974,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                           {openLeaves.map(lv => (
                             <div key={lv.id} className="flex items-center gap-2">
                               <span className="text-xs font-medium text-slate-700">
-                                {new Date(lv.leaveDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                {formatIstDate(lv.leaveDate)}
                               </span>
                               {lv.reason && <span className="text-xs text-slate-400">— {lv.reason}</span>}
                               <button
@@ -1874,51 +2032,124 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
       )}
 
       {/* Add staff form */}
-      <div className="border-t border-slate-200 pt-4">
-        <p className="ui-label mb-3">Add a new staff member</p>
-        <form onSubmit={submit} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="ui-label">Full Name</label>
-              <input required value={form.fullName} onChange={(e) => set('fullName', e.target.value)}
-                placeholder="e.g. Raju Kumar"
-                className="text-sm" />
-            </div>
-            <div>
-              <label className="ui-label">Phone Number</label>
-              <input required value={form.phoneNumber} onChange={(e) => set('phoneNumber', e.target.value)}
-                placeholder="10-digit number" maxLength={10}
-                className="text-sm" />
-            </div>
-            <div>
-              <label className="ui-label">Password</label>
-              <input required type="password" value={form.password} onChange={(e) => set('password', e.target.value)}
-                placeholder="Min 6 characters"
-                className="text-sm" />
-            </div>
-            <div>
-              <label className="ui-label">Role</label>
-              <SearchableSelect
-                value={form.role}
-                onChange={v => set('role', v as 'OPERATOR' | 'MANAGER' | 'ADMIN' | 'ACCOUNTANT')}
-                options={[
-                  { value: 'OPERATOR',   label: 'Operator' },
-                  { value: 'MANAGER',    label: 'Manager' },
-                  { value: 'ADMIN',      label: 'Admin' },
-                  { value: 'ACCOUNTANT', label: 'Accountant' },
-                ]}
-              />
-            </div>
+      <div className="border-t border-slate-200 pt-5">
+        <div className="ui-card-plain ui-card-muted p-4 md:p-5">
+          <div className="flex flex-col gap-1 border-b border-slate-200/80 pb-3">
+            <p className="ui-label mb-0 tracking-[0.14em] uppercase text-slate-500">Add a new staff member</p>
+            <p className="text-sm text-slate-500">
+              Capture staff details once here so planning and permissions can use the correct profile.
+            </p>
           </div>
 
-          {error   && <p className="ui-error-text">{error}</p>}
-          {success && <p className="text-emerald-600 text-xs">Staff member added successfully.</p>}
+          <form onSubmit={submit} className="space-y-4 pt-4">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.85fr)]">
+              <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="ui-label">Full Name</label>
+                    <input required value={form.fullName} onChange={(e) => set('fullName', e.target.value)}
+                      placeholder="e.g. Raju Kumar"
+                      className="text-sm" />
+                  </div>
+                  <div>
+                    <label className="ui-label">Phone Number</label>
+                    <input required value={form.phoneNumber} onChange={(e) => set('phoneNumber', e.target.value)}
+                      placeholder="10-digit number" maxLength={10}
+                      className="text-sm" />
+                  </div>
+                </div>
 
-          <button type="submit" disabled={mutation.isPending}
-            className="ui-btn ui-btn-primary">
-            {mutation.isPending ? 'Adding...' : 'Add Staff Member'}
-          </button>
-        </form>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="ui-label">Password</label>
+                    <input required type="password" value={form.password} onChange={(e) => set('password', e.target.value)}
+                      placeholder="Min 6 characters"
+                      className="text-sm" />
+                    <p className="ui-help">Use a temporary password the staff member can reset later.</p>
+                  </div>
+                  <div>
+                    <label className="ui-label">Gender</label>
+                    <SearchableSelect
+                      value={form.gender}
+                      onChange={v => setForm(prev => ({
+                        ...prev,
+                        gender: v as UserGender,
+                        nightShiftConsent: prev.role === 'OPERATOR' && v === 'FEMALE' ? prev.nightShiftConsent : false,
+                      }))}
+                      placeholder="Select gender"
+                      options={[
+                        { value: 'MALE', label: 'Male' },
+                        { value: 'FEMALE', label: 'Female' },
+                        { value: 'OTHER', label: 'Other' },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="ui-card-plain bg-white border-slate-200 p-4 space-y-3">
+                <div>
+                  <p className="ui-label mb-0">Role & shift rules</p>
+                  <p className="ui-help">Choose the staff role first. Extra planning rules appear only when needed.</p>
+                </div>
+
+                <div>
+                  <label className="ui-label">Role</label>
+                  <SearchableSelect
+                    value={form.role}
+                    onChange={v => setForm(prev => ({
+                      ...prev,
+                      role: v as 'OPERATOR' | 'MANAGER' | 'ADMIN' | 'ACCOUNTANT',
+                      nightShiftConsent: v === 'OPERATOR' && prev.gender === 'FEMALE' ? prev.nightShiftConsent : false,
+                    }))}
+                    options={[
+                      { value: 'OPERATOR',   label: 'Operator' },
+                      { value: 'MANAGER',    label: 'Manager' },
+                      { value: 'ADMIN',      label: 'Admin' },
+                      { value: 'ACCOUNTANT', label: 'Accountant' },
+                    ]}
+                  />
+                </div>
+
+                {form.role === 'OPERATOR' && form.gender === 'FEMALE' ? (
+                  <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 px-3.5 py-3">
+                    <input
+                      type="checkbox"
+                      checked={!!form.nightShiftConsent}
+                      onChange={(e) => set('nightShiftConsent', e.target.checked)}
+                      className="mt-0.5 h-4 w-4 accent-amber-600"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-amber-900">Okay for night shift</span>
+                      <span className="mt-1 block text-xs leading-5 text-amber-800">
+                        If left unchecked, shift planning will skip night-shift assignment for this operator.
+                      </span>
+                    </span>
+                  </label>
+                ) : (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-3.5 py-3">
+                    <p className="text-sm font-medium text-slate-700">Night-shift consent</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      This appears only for female operators because it affects night-shift assignment in planning.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-h-[20px]">
+                {error && <p className="ui-error-text mt-0">{error}</p>}
+                {success && <p className="text-xs text-emerald-600">Staff member added successfully.</p>}
+              </div>
+
+              <button type="submit" disabled={mutation.isPending}
+                className="ui-btn ui-btn-primary self-start sm:self-auto">
+                {mutation.isPending ? 'Adding...' : 'Add Staff Member'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )
@@ -2445,7 +2676,11 @@ function CreditClientsContent({ pump }: { pump: PumpSummary }) {
                       <>
                         <button
                           onClick={() => {
-                            setAddSubParentId(addSubParentId === parent.id ? null : parent.id)
+                            const nextParentId = addSubParentId === parent.id ? null : parent.id
+                            setAddSubParentId(nextParentId)
+                            if (nextParentId === parent.id) {
+                              setExpandedParentId(parent.id)
+                            }
                             setAddSubName(''); setAddSubPhone(''); setAddSubNotes(''); setAddSubError(null)
                           }}
                           className="ui-btn ui-btn-ghost min-h-0 px-2 py-1 text-xs text-blue-500 hover:text-blue-700 border border-blue-200 hover:border-blue-400"
@@ -2574,7 +2809,7 @@ function CreditClientsContent({ pump }: { pump: PumpSummary }) {
                 ))}
 
                 {/* ── Inline add sub-account form ── */}
-                {isExpanded && addSubParentId === parent.id && (
+                {addSubParentId === parent.id && (
                   <form onSubmit={(e) => submitAddSub(e, parent.id)}
                     className="border-t border-blue-100 bg-blue-50/40 px-3 py-3 space-y-2">
                     <p className="text-xs font-semibold text-blue-700">
@@ -3080,33 +3315,42 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
           <div className="space-y-3">
             {rows.map((row, idx) => {
               const otherRows = rows.filter((_, i) => i !== idx)
-              const usedStarts = new Set(otherRows.map(r => r.startTime))
-              const usedEnds   = new Set(otherRows.map(r => r.endTime))
+              // Only block times used by rows that have been named — unnamed rows have default
+              // placeholder times that should not restrict other rows' options.
+              const configuredOtherRows = otherRows.filter(r => r.name.trim() !== '')
+              const usedStarts = new Set(configuredOtherRows.map(r => r.startTime))
+              const usedEnds   = new Set(configuredOtherRows.map(r => r.endTime))
               const startOpts  = TIME_OPTS.filter(o => !usedStarts.has(o.value))
               const endOpts    = TIME_OPTS.filter(o => !usedEnds.has(o.value))
               return (
-              <div key={idx} className="grid grid-cols-[minmax(0,1fr)_7rem_auto_7rem_5rem_auto] gap-2 items-center">
+              <div key={idx} className="grid gap-2 items-center md:grid-cols-[minmax(0,12rem)_minmax(8.5rem,1fr)_auto_minmax(8.5rem,1fr)_minmax(6.5rem,7.5rem)_auto]">
                 <input
                   placeholder="Name (e.g. Morning)"
                   value={row.name}
                   onChange={e => updateRow(idx, { name: e.target.value })}
-                  className="min-w-0 text-sm"
+                  className="min-w-0 text-sm md:max-w-[12rem]"
                 />
                 <SearchableSelect
                   value={row.startTime}
                   onChange={v => updateRow(idx, { startTime: v })}
                   options={startOpts}
+                  size="sm"
+                  className="min-w-0"
                 />
                 <span className="text-xs text-slate-400">→</span>
                 <SearchableSelect
                   value={row.endTime}
                   onChange={v => updateRow(idx, { endTime: v })}
                   options={endOpts}
+                  size="sm"
+                  className="min-w-0"
                 />
                 <SearchableSelect
                   value={String(row.sortOrder)}
                   onChange={v => updateRow(idx, { sortOrder: Number(v) })}
                   options={SORT_ORDER_OPTS}
+                  size="sm"
+                  className="min-w-0"
                 />
                 <div className="flex items-center gap-1.5">
                   <input

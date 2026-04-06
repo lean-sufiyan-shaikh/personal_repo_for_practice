@@ -1,5 +1,7 @@
 package com.ppms.report;
 
+import com.ppms.expense.PumpExpense;
+import com.ppms.expense.PumpExpenseRepository;
 import com.ppms.fuel.FuelType;
 import com.ppms.inventory.InventoryLot;
 import com.ppms.inventory.InventoryLotRepository;
@@ -37,6 +39,7 @@ public class ReportService {
     private final LotConsumptionRepository lotConsumptionRepository;
     private final InventoryLotRepository inventoryLotRepository;
     private final UserRepository userRepository;
+    private final PumpExpenseRepository expenseRepository;
 
     // ── P&L Report ────────────────────────────────────────────────────────────
 
@@ -208,10 +211,22 @@ public class ReportService {
 
         // Batch-fetch all consumptions for all lots in one query, then group by lotId
         List<Long> lotIds = lots.stream().map(InventoryLot::getId).toList();
-        Map<Long, List<LotConsumption>> consumptionsByLot = lotIds.isEmpty()
+        List<LotConsumption> allConsumptions = lotIds.isEmpty()
+                ? List.of()
+                : lotConsumptionRepository.findByLotIdIn(lotIds);
+        Map<Long, List<LotConsumption>> consumptionsByLot = allConsumptions.stream()
+                .collect(Collectors.groupingBy(LotConsumption::getLotId));
+
+        // Batch-fetch shift names for all consumptions that reference a shift
+        List<Long> shiftIds = allConsumptions.stream()
+                .map(LotConsumption::getShiftId)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
+        Map<Long, String> shiftNameById = shiftIds.isEmpty()
                 ? Map.of()
-                : lotConsumptionRepository.findByLotIdIn(lotIds).stream()
-                        .collect(Collectors.groupingBy(LotConsumption::getLotId));
+                : shiftRepository.findAllById(shiftIds).stream()
+                        .collect(Collectors.toMap(Shift::getId, s -> s.getShiftName() != null ? s.getShiftName() : ""));
 
         List<InventoryLotsReport.LotLine> lines = lots.stream().map(lot -> {
             List<LotConsumption> consumptions = consumptionsByLot.getOrDefault(lot.getId(), List.of());
@@ -226,6 +241,7 @@ public class ReportService {
             List<InventoryLotsReport.ConsumptionLine> consumptionLines = consumptions.stream()
                     .map(c -> new InventoryLotsReport.ConsumptionLine(
                             c.getId(), c.getSourceType().name(), c.getShiftId(),
+                            c.getShiftId() != null ? shiftNameById.getOrDefault(c.getShiftId(), null) : null,
                             c.getQuantityConsumed(), c.getCostPricePerUnit(),
                             c.getQuantityConsumed().multiply(c.getCostPricePerUnit()).setScale(2, RoundingMode.HALF_UP),
                             c.getConsumedAt()))
@@ -240,6 +256,38 @@ public class ReportService {
         }).toList();
 
         return new InventoryLotsReport(tankId, lots.size(), lines);
+    }
+
+    public List<ReportController.ShiftReportLine> buildShiftReportLines(Long pumpId, LocalDate from, LocalDate to) {
+        return shiftRepository.findClosedShiftsByDateRange(pumpId, from, to).stream()
+                .map(shift -> new ReportController.ShiftReportLine(
+                        shift.getId(),
+                        shift.getShiftDate(),
+                        shift.getShiftName(),
+                        shift.getStatus() != null ? shift.getStatus().name() : null,
+                        shift.getTotalAmountDue(),
+                        shift.getCashCollected(),
+                        shift.getUpiCollected(),
+                        shift.getCardCollected(),
+                        shift.getCreditTotal(),
+                        shift.getDiscrepancyAmount(),
+                        shift.getDiscrepancyType() != null ? shift.getDiscrepancyType().name() : null
+                ))
+                .toList();
+    }
+
+    public List<ReportController.ExpenseReportLine> buildExpenseReportLines(Long pumpId, LocalDate from, LocalDate to) {
+        return expenseRepository.findByPumpIdOrderByExpenseDateDescCreatedAtDesc(pumpId).stream()
+                .filter(expense -> !expense.getExpenseDate().isBefore(from) && !expense.getExpenseDate().isAfter(to))
+                .map(expense -> new ReportController.ExpenseReportLine(
+                        expense.getId(),
+                        expense.getExpenseDate(),
+                        expense.getCategory() != null ? expense.getCategory().name() : null,
+                        expense.getAmount(),
+                        expense.getDescription(),
+                        expense.getApprovalStatus() != null ? expense.getApprovalStatus().name() : null
+                ))
+                .toList();
     }
 
     // ── Response types ────────────────────────────────────────────────────────
@@ -333,6 +381,7 @@ public class ReportService {
                 Long id,
                 String sourceType,
                 Long shiftId,
+                String shiftName,
                 BigDecimal quantityConsumed,
                 BigDecimal costPricePerUnit,
                 BigDecimal totalCost,

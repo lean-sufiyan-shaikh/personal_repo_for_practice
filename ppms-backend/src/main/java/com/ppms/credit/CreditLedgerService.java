@@ -9,6 +9,7 @@ import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftCreditEntry;
 import com.ppms.shift.ShiftCreditEntryRepository;
 import com.ppms.shift.ShiftRepository;
+import com.ppms.user.UserRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class CreditLedgerService {
     private final CreditEntryReassignmentRepository reassignmentRepository;
     private final CreditInterestService interestService;
     private final PumpLocationRepository pumpLocationRepository;
+    private final UserRepository userRepository;
 
     /**
      * Records a payment settlement against a client's outstanding balance.
@@ -107,6 +109,10 @@ public class CreditLedgerService {
                 payment.getPaymentApprovalStatus(), currentUser.getId());
 
         return payment;
+    }
+
+    public CreditClient saveClient(CreditClient client) {
+        return clientRepository.save(client);
     }
 
     /**
@@ -219,6 +225,33 @@ public class CreditLedgerService {
 
         log.info("Credit payment {} moved: pump={}, fromClient={}, toClient={}, by={}",
                 paymentId, pumpId, fromClientId, request.getToClientId(), currentUser.getId());
+    }
+
+    @Transactional
+    public CreditPayment approvePayment(Long pumpId, Long paymentId,
+                                        ExpenseApprovalStatus newStatus, User currentUser) {
+        CreditPayment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+
+        if (!payment.getPumpId().equals(pumpId)) {
+            throw new BusinessException("Payment does not belong to this pump");
+        }
+
+        if (payment.getPaymentApprovalStatus() != ExpenseApprovalStatus.PENDING_APPROVAL) {
+            throw new BusinessException(
+                    "Payment is already " + payment.getPaymentApprovalStatus() + " — only PENDING_APPROVAL payments can be acted on");
+        }
+
+        payment.setPaymentApprovalStatus(newStatus);
+        payment.setApprovedByUserId(currentUser.getId());
+        payment.setApprovedAt(java.time.OffsetDateTime.now());
+        return paymentRepository.save(payment);
+    }
+
+    public String resolveRecordedByName(Long userId) {
+        return userRepository.findById(userId)
+                .map(User::getFullName)
+                .orElse("Unknown");
     }
 
     private void validateGroupMove(Long pumpId, Long fromClientId, Long toClientId) {

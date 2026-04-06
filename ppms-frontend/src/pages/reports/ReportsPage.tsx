@@ -9,7 +9,7 @@ import type { ProfitLossReport, OperatorDutyReport, OperatorDutyShiftLine, Opera
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import type { PagedResponse } from '../../types/paged'
-import { localDateInputValue } from '../../utils/date'
+import { formatIstDate, formatIstDateTime, localDateInputValue } from '../../utils/date'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -23,6 +23,18 @@ function fmtQty(n: number) {
 
 function todayIso()     { return localDateInputValue() }
 function yesterdayIso() { return localDateInputValue(-1) }
+
+function fmtDateTime(iso: string) {
+  return formatIstDateTime(iso)
+}
+
+function fmtShortDate(iso: string) {
+  return formatIstDate(iso, { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function fmtShortDayMonth(iso: string) {
+  return formatIstDate(iso, { day: '2-digit', month: 'short' })
+}
 
 /** Builds a PagedResponse shape from a client-side array slice — used for client-side pagination of report data. */
 function pageSlice<T>(all: T[], page: number, pageSize: number): PagedResponse<T> {
@@ -92,7 +104,7 @@ export default function ReportsPage() {
           <p className="hidden print:block text-xs text-slate-500 mt-0.5">
             {pumpName && <><span className="font-medium">{pumpName}</span> · </>}
             {userName && <>Printed by: <span className="font-medium">{userName}</span> · </>}
-            <span className="text-slate-400">{new Date().toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+            <span className="text-slate-400">{fmtDateTime(new Date().toISOString())}</span>
           </p>
         </div>
         <div className="ui-section-meta print:hidden">
@@ -114,15 +126,15 @@ export default function ReportsPage() {
       ) : (
         <div className="ui-card p-0 overflow-hidden">
           {/* Tabs — hidden when printing */}
-      <div className="flex flex-wrap border-b border-slate-200 bg-slate-50/60 print:hidden">
+      <div className="ui-tabbar print:hidden">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`ui-tabbar__button ${
                   tab === t.id
-                    ? 'border-blue-600 text-blue-700 bg-white'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                    ? 'ui-tabbar__button--active'
+                    : ''
                 }`}
               >
                 {t.label}
@@ -437,7 +449,7 @@ function DiscrepancyTab({ pumpId }: { pumpId: number }) {
             paged.content.map((op) => (
               <div key={op.operatorId} className="ui-card p-0 overflow-hidden">
                 <button
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 text-left"
+                  className="ui-accordion-trigger"
                   onClick={() => setExpandedOp(expandedOp === op.operatorId ? null : op.operatorId)}
                 >
                   <div className="flex items-center gap-3">
@@ -598,7 +610,7 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
           {paged.content.map((lot) => (
             <div key={lot.lotId} className="ui-card p-0 overflow-hidden">
               <button
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 text-left"
+                className="ui-accordion-trigger"
                 onClick={() => setExpandedLot(expandedLot === lot.lotId ? null : lot.lotId)}
               >
                 <div className="flex items-center gap-3">
@@ -609,7 +621,7 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                     <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">DIP Adj.</span>
                   )}
                   <span className="text-sm font-medium text-slate-700">
-                    {new Date(lot.deliveryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    {fmtShortDate(lot.deliveryDate)}
                   </span>
                   <span className="text-xs text-slate-400">{lot.fuelType.replace(/_/g, ' ')}</span>
                 </div>
@@ -626,6 +638,7 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                     <tr className="bg-slate-50 text-slate-500">
                       <th className="text-left px-4 py-2 font-medium">Date</th>
                       <th className="text-left px-4 py-2 font-medium">Source</th>
+                      <th className="text-left px-4 py-2 font-medium">Shift</th>
                       <th className="text-right px-4 py-2 font-medium">Qty (L)</th>
                       <th className="text-right px-4 py-2 font-medium">Cost/L</th>
                       <th className="text-right px-4 py-2 font-medium">Total</th>
@@ -635,9 +648,10 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                     {lot.consumptions.map((c) => (
                       <tr key={c.id} className="border-t border-slate-100">
                         <td className="px-4 py-2 text-slate-500">
-                          {new Date(c.consumedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                          {fmtShortDayMonth(c.consumedAt)}
                         </td>
                         <td className="px-4 py-2 text-slate-500">{c.sourceType.replace(/_/g, ' ')}</td>
+                        <td className="px-4 py-2 text-slate-500">{c.shiftName ?? '—'}</td>
                         <td className="px-4 py-2 text-right text-slate-700">
                           {c.quantityConsumed.toLocaleString('en-IN', { minimumFractionDigits: 3 })}
                         </td>
@@ -671,7 +685,7 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${lot.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{lot.status}</span>
                 {lot.isDipAdjustment && <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">DIP Adj.</span>}
                 <span className="text-sm font-medium text-slate-700">
-                  {new Date(lot.deliveryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  {fmtShortDate(lot.deliveryDate)}
                 </span>
                 <span className="text-xs text-slate-500">{lot.fuelType.replace(/_/g, ' ')}</span>
                 <span className="text-xs text-slate-500">₹{lot.costPricePerUnit}/L</span>
@@ -684,6 +698,7 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                     <tr className="bg-slate-50 text-slate-500">
                       <th className="text-left px-3 py-2 font-medium">Date</th>
                       <th className="text-left px-3 py-2 font-medium">Source</th>
+                      <th className="text-left px-3 py-2 font-medium">Shift</th>
                       <th className="text-right px-3 py-2 font-medium">Qty (L)</th>
                       <th className="text-right px-3 py-2 font-medium">Cost/L</th>
                       <th className="text-right px-3 py-2 font-medium">Total</th>
@@ -693,9 +708,10 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                     {lot.consumptions.map((c) => (
                       <tr key={c.id} className="border-t border-slate-100">
                         <td className="px-3 py-1.5 text-slate-500">
-                          {new Date(c.consumedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                          {fmtShortDayMonth(c.consumedAt)}
                         </td>
                         <td className="px-3 py-1.5 text-slate-500">{c.sourceType.replace(/_/g, ' ')}</td>
+                        <td className="px-3 py-1.5 text-slate-500">{c.shiftName ?? '—'}</td>
                         <td className="px-3 py-1.5 text-right text-slate-700">{c.quantityConsumed.toLocaleString('en-IN', { minimumFractionDigits: 3 })}</td>
                         <td className="px-3 py-1.5 text-right text-slate-600">₹{c.costPricePerUnit}</td>
                         <td className="px-3 py-1.5 text-right font-medium text-slate-700">{fmtAmt(c.totalCost)}</td>
@@ -813,10 +829,7 @@ function DipPlTab({ pumpId }: { pumpId: number }) {
                       return (
                         <tr key={idx} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
                           <td className="px-3 py-2.5 text-slate-600 text-xs">
-                            {new Date(e.recordedAt).toLocaleString('en-IN', {
-                              day: 'numeric', month: 'short', year: 'numeric',
-                              hour: '2-digit', minute: '2-digit',
-                            })}
+                            {fmtDateTime(e.recordedAt)}
                           </td>
                           <td className="px-3 py-2.5">
                             {e.type === 'DIP_CHECK' ? (
@@ -901,10 +914,7 @@ function DipPlTab({ pumpId }: { pumpId: number }) {
                 return (
                   <tr key={idx} className="border-t border-slate-100">
                     <td className="px-3 py-2 text-slate-600 text-xs">
-                      {new Date(e.recordedAt).toLocaleString('en-IN', {
-                        day: 'numeric', month: 'short', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit',
-                      })}
+                      {fmtDateTime(e.recordedAt)}
                     </td>
                     <td className="px-3 py-2">
                       {e.type === 'DIP_CHECK'

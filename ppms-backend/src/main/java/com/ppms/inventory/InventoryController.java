@@ -4,6 +4,7 @@ import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.common.time.BusinessClock;
 import com.ppms.fuel.GlobalFuelPrice;
 import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.pump.TankStatus;
@@ -27,7 +28,6 @@ import org.springframework.data.domain.PageRequest;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/inventory")
 @RequiredArgsConstructor
 public class InventoryController {
-
     private final UndergroundTankRepository tankRepository;
     private final TankerDeliveryRepository tankerDeliveryRepository;
     private final InventoryLotRepository inventoryLotRepository;
@@ -46,6 +45,7 @@ public class InventoryController {
     private final UserRepository userRepository;
     private final GlobalFuelPriceRepository globalFuelPriceRepository;
     private final AuditService auditService;
+    private final BusinessClock businessClock;
 
     /**
      * GET /api/inventory/{pumpId}/tanks
@@ -108,8 +108,8 @@ public class InventoryController {
         validateCostPriceAgainstSellingPrice(pumpId, tank, request.getCostPricePerUnit());
 
         var deliveryDateTime = request.getDeliveryDate()
-                .atStartOfDay()
-                .atOffset(ZoneOffset.UTC);
+                .atStartOfDay(businessClock.zone())
+                .toOffsetDateTime();
 
         TankerDelivery delivery = TankerDelivery.builder()
                 .pumpId(pumpId)
@@ -185,8 +185,8 @@ public class InventoryController {
             @AuthenticationPrincipal User currentUser) {
 
         var deliveryDateTime = request.getDeliveryDate()
-                .atStartOfDay()
-                .atOffset(ZoneOffset.UTC);
+                .atStartOfDay(businessClock.zone())
+                .toOffsetDateTime();
 
         String invoiceRef = request.getInvoiceReference().trim();
         String loggedByName = currentUser.getFullName();
@@ -328,8 +328,8 @@ public class InventoryController {
         BigDecimal variance = measured.subtract(systemStockNow);
 
         var checkedAt = request.getCheckedAt()
-                .atStartOfDay()
-                .atOffset(ZoneOffset.UTC);
+                .atStartOfDay(businessClock.zone())
+                .toOffsetDateTime();
 
         String checkedByName = null;
         if (request.getCheckedByUserId() != null) {
@@ -395,7 +395,7 @@ public class InventoryController {
 
         check.setStatus(DipCheckStatus.REVIEWED);
         check.setReviewedByUserId(currentUser.getId());
-        check.setReviewedAt(OffsetDateTime.now());
+        check.setReviewedAt(businessClock.now());
         check = dipCheckRepository.save(check);
 
         UndergroundTank tank = tankRepository.findById(check.getTankId()).orElse(null);

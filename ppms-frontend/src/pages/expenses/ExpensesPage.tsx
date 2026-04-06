@@ -6,7 +6,7 @@ import { expenseApi } from '../../api/expenseApi'
 import type { ExpenseCategory, CreateExpenseRequest, ApproveExpenseRequest } from '../../api/expenseApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
-import { localDateInputValue } from '../../utils/date'
+import { formatIstDate, localDateInputValue } from '../../utils/date'
 
 const CATEGORIES: ExpenseCategory[] = ['FUEL', 'MAINTENANCE', 'SALARY', 'UTILITIES', 'EQUIPMENT', 'OTHER']
 
@@ -24,7 +24,7 @@ function fmtAmt(n: number) {
 }
 
 function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatIstDate(d)
 }
 
 export default function ExpensesPage() {
@@ -67,6 +67,7 @@ export default function ExpensesPage() {
       qc.invalidateQueries({ queryKey: ['expenses', pumpId] })
       setForm({ category: 'MAINTENANCE', amount: 0, description: '', expenseDate: localDateInputValue() })
       setFormError(null)
+      setReviewOpen(false)
     },
     onError: (err: any) => setFormError(err?.response?.data?.message ?? 'Failed to record expense'),
   })
@@ -135,29 +136,35 @@ export default function ExpensesPage() {
 
       {/* ── Summary strip ── */}
       {!isLoading && (
-        <div className="ui-card flex flex-wrap gap-4">
-          <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wide">Approved Total</p>
-            <p className="text-xl font-bold text-slate-800">{fmtAmt(totalExpenses)}</p>
+        <div className="ui-summary-strip">
+          <div className="ui-summary-strip__item">
+            <span className="ui-summary-strip__label">Approved Total</span>
+            <span className="ui-summary-strip__value">{fmtAmt(totalExpenses)}</span>
           </div>
-          <div className="border-l border-slate-100 pl-4">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">Total Records</p>
-            <p className="text-xl font-bold text-slate-800">{expensesPage?.totalElements ?? 0}</p>
+          <div className="ui-summary-strip__item">
+            <span className="ui-summary-strip__label">Total Records</span>
+            <span className="ui-summary-strip__value">{expensesPage?.totalElements ?? 0}</span>
           </div>
           {pendingCount > 0 && (
-            <div className="border-l border-slate-100 pl-4">
-              <p className="text-xs text-amber-500 uppercase tracking-wide">Pending Approval</p>
-              <p className="text-xl font-bold text-amber-600">{pendingCount}</p>
+            <div className="ui-summary-strip__item">
+              <span className="ui-summary-strip__label text-amber-500">Pending Approval</span>
+              <span className="ui-summary-strip__value text-amber-600">{pendingCount}</span>
             </div>
           )}
         </div>
       )}
 
       {/* ── Add expense form — hidden for ACCOUNTANT (read-only role) ── */}
-      {!isAccountant && <form onSubmit={handleSubmit} className="ui-card space-y-3">
-        <p className="text-sm font-semibold text-slate-700">Record Expense</p>
+      {!isAccountant && <form onSubmit={handleSubmit} className="ui-card ui-form-shell">
+        <div className="ui-form-shell__head">
+          <div>
+            <p className="ui-section-kicker mb-2">Expense Intake</p>
+            <h2 className="ui-title-sm">Record expense</h2>
+            <p className="ui-subtitle mt-1">Capture the category, amount, date, and description before review.</p>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="ui-form-shell__grid">
           <div>
             <label className="ui-label">Category</label>
             <SearchableSelect
@@ -275,7 +282,7 @@ export default function ExpensesPage() {
         <div className="ui-toolbar">
           <p className="ui-toolbar-title">All Expenses</p>
           <div className="ui-toolbar-actions">
-            <div className="w-40">
+            <div className="w-52 max-w-full">
             <SearchableSelect
               value={categoryFilter}
               onChange={v => { setCategoryFilter(v as any); setPage(0) }}
@@ -287,7 +294,7 @@ export default function ExpensesPage() {
             />
           </div>
 
-            <div className="w-44">
+            <div className="w-52 max-w-full">
             <SearchableSelect
               value={statusFilter}
               onChange={v => { setStatusFilter(v as any); setPage(0) }}
@@ -311,6 +318,11 @@ export default function ExpensesPage() {
             )}
           </div>
         </div>
+        {isOwnerOrAdmin && (
+          <div className="px-5 py-2 text-xs text-slate-500 border-b border-slate-100 bg-slate-50/80">
+            Approve and reject actions appear only for expenses in <span className="font-semibold text-amber-700">Pending Approval</span>.
+          </div>
+        )}
 
         {isLoading ? (
           <p className="ui-empty px-5 py-6">Loading…</p>
@@ -326,19 +338,25 @@ export default function ExpensesPage() {
                     {e.category}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm text-slate-700 truncate">{e.description}</p>
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                      <p className="text-sm text-slate-700 truncate">{e.description}</p>
+                      {e.approvalStatus === 'PENDING_APPROVAL' && (
+                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                          Pending Approval
+                        </span>
+                      )}
+                      {e.approvalStatus === 'APPROVED' && (
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                          Approved
+                        </span>
+                      )}
+                      {e.approvalStatus === 'REJECTED' && (
+                        <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                          Rejected{e.approvalNotes ? `: ${e.approvalNotes}` : ''}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-400">{fmtDate(e.expenseDate)}</p>
-                    {/* Approval status badge */}
-                    {e.approvalStatus === 'PENDING_APPROVAL' && (
-                      <span className="inline-block mt-0.5 text-xs font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                        Pending Approval
-                      </span>
-                    )}
-                    {e.approvalStatus === 'REJECTED' && (
-                      <span className="inline-block mt-0.5 text-xs font-medium bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
-                        Rejected{e.approvalNotes ? `: ${e.approvalNotes}` : ''}
-                      </span>
-                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">

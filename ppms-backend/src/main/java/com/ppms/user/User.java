@@ -48,6 +48,13 @@ public class User implements UserDetails {
     private String address;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "gender")
+    private UserGender gender;
+
+    @Column(name = "night_shift_consent", nullable = false)
+    private boolean nightShiftConsent;
+
+    @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "role", nullable = false)
     private UserRole role;

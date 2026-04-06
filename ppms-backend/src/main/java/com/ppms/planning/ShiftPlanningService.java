@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -22,16 +21,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ShiftPlanningService {
 
-    // Max shifts per pump — used to compute stable slot indices for consecutive-shift detection
-    // Slot index = dayOffset * MAX_SHIFTS + (sortOrder - 1)
-    private static final int MAX_SHIFTS_PER_PUMP = 4;
-
     private final ShiftPlanRepository planRepository;
     private final ShiftPlanEntryRepository entryRepository;
     private final StaffPreferenceRepository preferenceRepository;
     private final StaffLeaveRepository leaveRepository;
     private final UserRepository userRepository;
     private final PumpShiftDefinitionRepository shiftDefinitionRepository;
+    private final ShiftPlanningRuleService ruleService;
+    private final ShiftPlanningSlotService slotService;
+    private final ShiftPlanningAllocationService allocationService;
 
     // ── Preferences ────────────────────────────────────────────────────────────
 
@@ -96,7 +94,7 @@ public class ShiftPlanningService {
      */
     @Transactional
     public ShiftPlan generatePlan(Long pumpId, GeneratePlanRequest req, Long createdByUserId) {
-        LocalDate weekStart = normaliseToMonday(req.weekStart());
+        LocalDate weekStart = slotService.normaliseToMonday(req.weekStart());
         LocalDate today     = LocalDate.now();
         LocalDate weekEnd   = weekStart.plusDays(6);
 
@@ -159,81 +157,8 @@ public class ShiftPlanningService {
                     ". Ask an admin to set up shift definitions first.");
         }
 
-        // Track assigned slot indices per user for consecutive-shift and fairness checks.
-        // Slot index = dayOffset * MAX_SHIFTS_PER_PUMP + (sortOrder - 1)
-        // Using MAX_SHIFTS_PER_PUMP (4) as the multiplier keeps indices stable regardless of
-        // how many definitions are active, ensuring the consecutive-shift check is correct.
-        Map<Long, Set<Integer>> assignedSlots = new HashMap<>();
-        for (User u : staff) assignedSlots.put(u.getId(), new HashSet<>());
-
-        List<ShiftPlanEntry> entries = new ArrayList<>();
-
-        for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
-            LocalDate date = weekStart.plusDays(dayOffset);
-
-            // Never generate entries for days already in the past
-            if (date.isBefore(today)) continue;
-
-            DayOfWeek dow = date.getDayOfWeek();
-
-            for (PumpShiftDefinition def : definitions) {
-                int slotIndex = dayOffset * MAX_SHIFTS_PER_PUMP + (def.getSortOrder() - 1);
-                int target = def.isNightShift()
-                        ? req.operatorsPerNightShift()
-                        : req.operatorsPerDayShift();
-
-                // Score each staff member for this slot
-                List<long[]> scored = new ArrayList<>(); // [userId, score]
-                for (User u : staff) {
-                    long uid = u.getId();
-                    Set<LocalDate> leaves = leavesByUser.getOrDefault(uid, Set.of());
-
-                    // Hard exclusion: on leave
-                    if (leaves.contains(date)) continue;
-
-                    // Hard exclusion: would create 3 consecutive shifts
-                    if (wouldCreateThreeConsecutive(assignedSlots.get(uid), slotIndex)) continue;
-
-                    long score = 0;
-                    StaffPreference pref = prefByUser.get(uid);
-                    if (pref != null) {
-                        // +2 if preferred shift matches this definition
-                        if (def.getId().equals(pref.getPreferredShiftDefinitionId())) score += 2;
-                        // +1 if today is NOT their preferred day off
-                        if (pref.getPreferredDayOff() == null
-                                || !pref.getPreferredDayOff().name().equals(dow.name())) score += 1;
-                    }
-                    // Fairness: subtract number of shifts already assigned this week
-                    score -= assignedSlots.get(uid).size();
-
-                    scored.add(new long[]{uid, score});
-                }
-
-                // Sort descending by score (stable — preserves insertion order for ties)
-                scored.sort((a, b) -> Long.compare(b[1], a[1]));
-
-                // Assign top `target` operators
-                int assigned = 0;
-                for (long[] candidate : scored) {
-                    if (assigned >= target) break;
-                    long uid = candidate[0];
-                    assignedSlots.get(uid).add(slotIndex);
-                    entries.add(ShiftPlanEntry.builder()
-                            .shiftPlanId(plan.getId())
-                            .shiftDate(date)
-                            .shiftDefinitionId(def.getId())
-                            .operatorUserId(uid)
-                            .status(ShiftPlanEntryStatus.PLANNED)
-                            .build());
-                    assigned++;
-                }
-
-                if (assigned < target) {
-                    log.warn("Plan {}: only {}/{} operators available for {} {}",
-                            plan.getId(), assigned, target, date, def.getName());
-                }
-            }
-        }
+        List<ShiftPlanEntry> entries = allocationService.generateEntries(
+                plan, req, today, staff, prefByUser, leavesByUser, definitions);
 
         entryRepository.saveAll(entries);
         log.info("Generated shift plan {} for pump {} week {}: {} entries",
@@ -244,7 +169,7 @@ public class ShiftPlanningService {
     // ── Plan retrieval ─────────────────────────────────────────────────────────
 
     public Optional<ShiftPlan> getPlan(Long pumpId, LocalDate weekStart) {
-        return planRepository.findByPumpIdAndWeekStart(pumpId, normaliseToMonday(weekStart));
+        return planRepository.findByPumpIdAndWeekStart(pumpId, slotService.normaliseToMonday(weekStart));
     }
 
     public List<ShiftPlanEntry> getEntries(Long planId) {
@@ -267,7 +192,8 @@ public class ShiftPlanningService {
     public ShiftPlanEntry addEntry(Long planId, AddEntryRequest req) {
         ShiftPlan plan = loadPlan(planId);
         validateNotPublishedLocked(plan);
-        validateOperatorForPump(req.operatorUserId(), plan.getPumpId());
+        ruleService.validateOperatorForPump(req.operatorUserId(), plan.getPumpId());
+        ruleService.validateNightShiftEligibility(req.operatorUserId(), req.shiftDefinitionId());
 
         // Duplicate check
         entryRepository.findByShiftPlanIdAndShiftDateAndShiftDefinitionIdAndOperatorUserId(
@@ -275,9 +201,9 @@ public class ShiftPlanningService {
                 .ifPresent(e -> { throw new BusinessException("Operator is already assigned to this slot."); });
 
         // Consecutive shift check
-        Set<Integer> existing = buildSlotSet(planId, req.operatorUserId(), plan.getWeekStart());
-        int slotIndex = slotIndex(plan.getWeekStart(), req.shiftDate(), req.shiftDefinitionId());
-        if (wouldCreateThreeConsecutive(existing, slotIndex)) {
+        Set<Integer> existing = slotService.buildSlotSet(planId, req.operatorUserId(), plan.getWeekStart());
+        int slotIndex = slotService.slotIndex(plan.getWeekStart(), req.shiftDate(), req.shiftDefinitionId());
+        if (slotService.wouldCreateThreeConsecutive(existing, slotIndex)) {
             throw new BusinessException(
                     "Cannot assign: this would give the operator 3 consecutive shifts. " +
                     "A minimum rest period is required between every 2 shifts.");
@@ -299,14 +225,15 @@ public class ShiftPlanningService {
         ShiftPlan plan = loadPlan(planId);
         validateNotPublishedLocked(plan);
         ShiftPlanEntry entry = loadEntry(entryId, planId);
-        validateOperatorForPump(req.operatorUserId(), plan.getPumpId());
+        ruleService.validateOperatorForPump(req.operatorUserId(), plan.getPumpId());
+        ruleService.validateNightShiftEligibility(req.operatorUserId(), entry.getShiftDefinitionId());
 
         if (!req.operatorUserId().equals(entry.getOperatorUserId())) {
             // Changing operator — re-validate consecutive constraint for new operator
-            Set<Integer> slots = buildSlotSet(planId, req.operatorUserId(), plan.getWeekStart());
-            int si = slotIndex(plan.getWeekStart(), entry.getShiftDate(), entry.getShiftDefinitionId());
+            Set<Integer> slots = slotService.buildSlotSet(planId, req.operatorUserId(), plan.getWeekStart());
+            int si = slotService.slotIndex(plan.getWeekStart(), entry.getShiftDate(), entry.getShiftDefinitionId());
             slots.remove(si);
-            if (wouldCreateThreeConsecutive(slots, si)) {
+            if (slotService.wouldCreateThreeConsecutive(slots, si)) {
                 throw new BusinessException("Swapping to this operator would create 3 consecutive shifts.");
             }
         }
@@ -361,51 +288,6 @@ public class ShiftPlanningService {
 
     // ── Private helpers ────────────────────────────────────────────────────────
 
-    private LocalDate normaliseToMonday(LocalDate date) {
-        return date.with(DayOfWeek.MONDAY);
-    }
-
-    /**
-     * Checks if adding slotIndex to the existing set of assigned slots would
-     * create 3 consecutive shifts.
-     * Consecutive = slot indices n, n+1, n+2 all assigned.
-     */
-    private boolean wouldCreateThreeConsecutive(Set<Integer> existing, int newSlot) {
-        Set<Integer> test = new HashSet<>(existing);
-        test.add(newSlot);
-        // Check any window of 3 that includes newSlot
-        for (int start = newSlot - 2; start <= newSlot; start++) {
-            if (start >= 0 && test.contains(start) && test.contains(start + 1) && test.contains(start + 2)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Computes the slot index for a given date and shift definition within a week.
-     * Formula: dayOffset * MAX_SHIFTS_PER_PUMP + (sortOrder - 1).
-     * sortOrder is loaded from the definition; if the definition no longer exists, defaults to 0.
-     */
-    private int slotIndex(LocalDate weekStart, LocalDate date, Long shiftDefinitionId) {
-        int dayOffset = (int) weekStart.until(date, java.time.temporal.ChronoUnit.DAYS);
-        if (dayOffset < 0 || dayOffset > 6) {
-            throw new BusinessException("Date " + date + " is outside the plan's week.");
-        }
-        int sortOrder = shiftDefinitionRepository.findById(shiftDefinitionId)
-                .map(PumpShiftDefinition::getSortOrder)
-                .orElse(1);
-        return dayOffset * MAX_SHIFTS_PER_PUMP + (sortOrder - 1);
-    }
-
-    /** Builds the set of slot indices already assigned to an operator in a plan. */
-    private Set<Integer> buildSlotSet(Long planId, Long operatorUserId, LocalDate weekStart) {
-        return entryRepository.findByShiftPlanIdAndOperatorUserId(planId, operatorUserId)
-                .stream()
-                .map(e -> slotIndex(weekStart, e.getShiftDate(), e.getShiftDefinitionId()))
-                .collect(Collectors.toSet());
-    }
-
     private ShiftPlan loadPlan(Long planId) {
         return planRepository.findById(planId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift plan not found"));
@@ -425,11 +307,4 @@ public class ShiftPlanningService {
         // No restriction here — the UI can show a warning instead
     }
 
-    private void validateOperatorForPump(Long operatorUserId, Long pumpId) {
-        User op = userRepository.findById(operatorUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("Operator not found"));
-        if (!pumpId.equals(op.getAssignedPumpId())) {
-            throw new BusinessException("Operator " + op.getFullName() + " is not assigned to this pump.");
-        }
-    }
 }

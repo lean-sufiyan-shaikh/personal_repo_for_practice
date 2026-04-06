@@ -9,3 +9,32 @@ export function localDateInputValue(offsetDays = 0): string {
 
   return `${year}-${month}-${day}`
 }
+
+const IST_TIME_ZONE = 'Asia/Kolkata'
+
+export function formatIstDate(
+  value: string | Date,
+  options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' },
+): string {
+  const date = value instanceof Date
+    ? value
+    : /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? new Date(`${value}T00:00:00+05:30`)
+      : new Date(value)
+
+  return new Intl.DateTimeFormat('en-IN', { timeZone: IST_TIME_ZONE, ...options }).format(date)
+}
+
+export function formatIstDateTime(
+  value: string | Date,
+  options: Intl.DateTimeFormatOptions = {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  },
+): string {
+  const date = value instanceof Date ? value : new Date(value)
+  return new Intl.DateTimeFormat('en-IN', { timeZone: IST_TIME_ZONE, ...options }).format(date)
+}

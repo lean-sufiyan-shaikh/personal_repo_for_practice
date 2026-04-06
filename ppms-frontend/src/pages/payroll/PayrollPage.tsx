@@ -6,7 +6,7 @@ import { payrollApi } from '../../api/payrollApi'
 import type { GeneratePayrollRequest, PayrollRecord, PayrollStatus } from '../../api/payrollApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
-import { localDateInputValue } from '../../utils/date'
+import { formatIstDate, localDateInputValue } from '../../utils/date'
 
 const STATUS_STYLES: Record<PayrollStatus, string> = {
   DRAFT:    'bg-amber-100 text-amber-700',
@@ -27,7 +27,7 @@ function fmtAmt(n: number) {
 }
 
 function fmtDate(d: string) {
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatIstDate(d)
 }
 
 /** Returns "2026-04" from a date string */
@@ -39,7 +39,7 @@ function toMonthKey(dateStr: string): string {
 function fmtMonthKey(key: string): string {
   const [year, month] = key.split('-')
   return new Date(Number(year), Number(month) - 1, 1)
-    .toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+    .toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', year: 'numeric' })
 }
 
 function todayIso()     { return localDateInputValue() }
@@ -362,16 +362,24 @@ export default function PayrollPage() {
     <div className="ui-page ui-page--narrow space-y-5">
 
       {/* ── Header ── */}
-      <div>
+      <div className="ui-page-header">
+        <div>
         <h1 className="ui-title-sm">Payroll</h1>
         <p className="ui-subtitle">Calculate and track staff salary payments based on shift history</p>
+        </div>
       </div>
 
       {/* ── Generate form ── */}
-      <form onSubmit={handleSubmit} className="ui-card space-y-3">
-        <p className="text-sm font-semibold text-slate-700">Generate Payroll</p>
+      <form onSubmit={handleSubmit} className="ui-card ui-form-shell">
+        <div className="ui-form-shell__head">
+          <div>
+            <p className="ui-section-kicker mb-2">Payroll Draft</p>
+            <h2 className="ui-title-sm">Generate payroll</h2>
+            <p className="ui-subtitle mt-1">Select a staff member and pay period to calculate a draft salary record.</p>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="ui-form-shell__grid">
           <div>
             <label className="ui-label">Staff Member</label>
             <SearchableSelect

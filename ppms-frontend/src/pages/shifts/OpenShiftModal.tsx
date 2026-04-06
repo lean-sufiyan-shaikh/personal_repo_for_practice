@@ -2,7 +2,18 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { shiftApi } from '../../api/shiftApi'
 import { userApi } from '../../api/userApi'
+import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import type { NozzleOption, OpenShiftRequest, Shift } from '../../types/shift'
+
+/** Returns true if the given "HH:MM:SS" time window (possibly crossing midnight) contains `nowHHMM`. */
+function isTimeInWindow(startTime: string, endTime: string, crossesMidnight: boolean, nowHHMM: string): boolean {
+  const start = startTime.substring(0, 5)
+  const end   = endTime.substring(0, 5)
+  if (crossesMidnight) {
+    return nowHHMM >= start || nowHHMM < end
+  }
+  return nowHHMM >= start && nowHHMM < end
+}
 
 // Human-readable abbreviations for fuel types
 const FUEL_ABBR: Record<string, string> = {
@@ -44,6 +55,18 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
     queryFn:  () => userApi.getOperators(pumpId),
   })
 
+  const { data: activeDefinitions = [] } = useQuery({
+    queryKey: ['shift-definitions-active', pumpId],
+    queryFn:  () => shiftDefinitionApi.getActive(pumpId),
+  })
+
+  // Determine if the current shift window is a night shift
+  const nowHHMM = new Date().toTimeString().substring(0, 5)
+  const currentDefinition = activeDefinitions.find(d =>
+    isTimeInWindow(d.startTime, d.endTime, d.crossesMidnight, nowHHMM)
+  )
+  const isNightShift = currentDefinition?.isNightShift ?? false
+
   const openMutation = useMutation({
     mutationFn: (req: OpenShiftRequest) => shiftApi.openShift(pumpId, req),
     onSuccess: () => {
@@ -55,7 +78,12 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
   })
 
   const availableNozzles   = nozzles.filter((n) => !busyNozzleIds.has(n.id))
-  const availableOperators = operators.filter((o) => !busyOperatorIds.has(o.id))
+  const availableOperators = operators.filter((o) => {
+    if (busyOperatorIds.has(o.id)) return false
+    // Female operators without night-shift consent cannot be assigned to night shifts
+    if (isNightShift && o.gender === 'FEMALE' && !o.nightShiftConsent) return false
+    return true
+  })
   const filteredOperators  = availableOperators.filter((o) =>
     o.fullName.toLowerCase().includes(operatorSearch.toLowerCase())
   )
@@ -158,8 +186,8 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
               </div>
             ) : (
               <div className="ui-card p-0 overflow-hidden">
-                <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-slate-200">
-                  <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                <div className="ui-search-shell border-b border-slate-200 bg-slate-50 px-3 py-2">
+                  <svg className="ui-search-shell__icon" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round"
                       d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
@@ -167,10 +195,10 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
                   <input type="text" value={operatorSearch}
                     onChange={(e) => setOperatorSearch(e.target.value)}
                     placeholder="Search by name..."
-                    className="flex-1 min-h-0 border-0 bg-transparent p-0 text-sm text-slate-700 shadow-none focus:outline-none focus:ring-0 placeholder-slate-400" />
+                    className="ui-search-shell__input flex-1 min-h-0 border-0 bg-transparent p-0 text-sm text-slate-700 shadow-none focus:outline-none focus:ring-0 placeholder-slate-400" />
                   {operatorSearch && (
                     <button type="button" onClick={() => setOperatorSearch('')}
-                      className="text-slate-400 hover:text-slate-600 text-lg leading-none">×</button>
+                      className="ui-search-shell__clear text-lg leading-none">×</button>
                   )}
                 </div>
                 <div className="max-h-44 overflow-y-auto divide-y divide-slate-50">

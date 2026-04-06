@@ -8,6 +8,7 @@ import { userApi } from '../../api/userApi'
 import { pumpApi } from '../../api/pumpApi'
 import NotificationBell from '../../components/NotificationBell'
 import { canAccessPage } from '../../permissions/permissions'
+import { formatIstDateTime } from '../../utils/date'
 
 const PASSWORD_POLICY_MESSAGE = 'Password must be at least 8 characters and include 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 symbol.'
 const PASSWORD_POLICY_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/
@@ -38,7 +39,9 @@ export default function DashboardPage() {
   const { user, clearAuth, updateUser } = useAuthStore()
 
   const { data: pumps = [] } = useQuery({ queryKey: ['myPumps'], queryFn: pumpApi.getMyPumps })
-  const sortedPumps = [...pumps].sort((a, b) => a.name.localeCompare(b.name))
+  const sortedPumps = [...pumps].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  )
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
 
   const { selectedPumpId, setSelectedPumpId } = usePumpStore()
@@ -179,11 +182,11 @@ export default function DashboardPage() {
     changePasswordMutation.mutate({ currentPassword, newPassword })
   }
 
-  const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
-  const dateStr = now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+  const timeStr = formatIstDateTime(now, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+  const dateStr = formatIstDateTime(now, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="ui-dashboard-shell min-h-screen bg-slate-50 flex flex-col">
 
       {/* ── Top header ─────────────────────────────────────────────────────────── */}
       <header className="ui-dashboard-topbar print:hidden">

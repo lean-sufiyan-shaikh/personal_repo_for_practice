@@ -136,6 +136,10 @@ public class UserController {
                 .fullName(request.getFullName())
                 .phoneNumber(request.getPhoneNumber())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .gender(request.getGender())
+                .nightShiftConsent(request.getRole() == UserRole.OPERATOR
+                        && request.getGender() == UserGender.FEMALE
+                        && Boolean.TRUE.equals(request.getNightShiftConsent()))
                 .role(request.getRole())
                 .status(UserStatus.ACTIVE)
                 .assignedPumpId(request.getAssignedPumpId())
@@ -338,6 +342,8 @@ public class UserController {
             String employeeId,
             String fullName,
             String phoneNumber,
+            String gender,
+            Boolean nightShiftConsent,
             String role,
             Long assignedPumpId,
             String status,
@@ -351,6 +357,8 @@ public class UserController {
                     u.getEmployeeId(),
                     u.getFullName(),
                     u.getPhoneNumber(),
+                    u.getGender() != null ? u.getGender().name() : null,
+                    u.isNightShiftConsent(),
                     u.getRole().name(),
                     u.getAssignedPumpId(),
                     u.getStatus().name(),

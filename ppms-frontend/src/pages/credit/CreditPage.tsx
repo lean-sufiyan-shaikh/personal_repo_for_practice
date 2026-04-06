@@ -8,7 +8,7 @@ import { pumpApi } from '../../api/pumpApi'
 import type { PagedResponse } from '../../types/paged'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
-import { localDateInputValue } from '../../utils/date'
+import { formatIstDate, localDateInputValue } from '../../utils/date'
 
 const today     = localDateInputValue()
 const yesterday = localDateInputValue(-1)
@@ -97,7 +97,7 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, onClos
             })()}
           </div>
 
-          <div>
+          <div className="ui-inline-form">
             <label className="ui-label">
               Amount <span className="text-red-500">*</span>
             </label>
@@ -116,7 +116,7 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, onClos
             </div>
           </div>
 
-          <div>
+          <div className="ui-inline-form">
             <label className="ui-label">
               Payment Mode <span className="text-red-500">*</span>
             </label>
@@ -132,7 +132,7 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, onClos
             />
           </div>
 
-          <div>
+          <div className="ui-inline-form">
             <label className="ui-label">
               Payment Date <span className="text-red-500">*</span>
             </label>
@@ -144,7 +144,7 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, onClos
             />
           </div>
 
-          <div>
+          <div className="ui-inline-form">
             <label className="ui-label">Notes</label>
             <input
               type="text"
@@ -229,10 +229,10 @@ function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitModalPro
         </div>
 
         <div className="ui-modal-body space-y-4">
-          <p className="text-sm text-slate-500">
-            Enter the maximum credit balance allowed. Set to <strong>0</strong> to allow unlimited credit.
-          </p>
-          <div>
+          <div className="ui-inline-form">
+            <p className="ui-inline-form__copy">
+              Enter the maximum credit balance allowed. Set to <strong>0</strong> to allow unlimited credit.
+            </p>
             <label className="ui-label">Credit Limit (₹)</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
@@ -317,12 +317,12 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
         </div>
 
         <div className="ui-modal-body space-y-4">
-          <p className="text-sm text-slate-500">
-            Simple interest is calculated as: <strong>outstanding × rate × (days / 30)</strong>.
-            Set rate to <strong>0</strong> to disable interest for this client.
-          </p>
+          <div className="ui-inline-form">
+            <p className="ui-inline-form__copy">
+              Simple interest is calculated as: <strong>outstanding × rate × (days / 30)</strong>.
+              Set rate to <strong>0</strong> to disable interest for this client.
+            </p>
 
-          <div>
             <label className="ui-label">Monthly Interest Rate (%)</label>
             <div className="relative">
               <input
@@ -339,7 +339,7 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
             </p>
           </div>
 
-          <div>
+          <div className="ui-inline-form">
             <label className="ui-label">Grace Period (days)</label>
             <input
               type="number" min="0" step="1"
@@ -383,12 +383,12 @@ function getWeekKey(iso: string): string {
   const mon = new Date(d); mon.setDate(diff)
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6)
   const fmt = (dt: Date) =>
-    dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    formatIstDate(dt, { day: '2-digit', month: 'short', year: 'numeric' })
   return `${fmt(mon)} – ${fmt(sun)}`
 }
 
 function getMonthKey(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+  return formatIstDate(iso, { month: 'long', year: 'numeric' })
 }
 
 // ─── Grant Extension Modal ───────────────────────────────────────────────────
@@ -455,7 +455,7 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
         </div>
 
         <div className="ui-modal-body space-y-4">
-          <div>
+          <div className="ui-inline-form">
             <label className="ui-label">Extension Type</label>
             <SearchableSelect
               value={extensionType}
@@ -465,7 +465,7 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
           </div>
 
           {extensionType === 'AMOUNT_EXTENSION' && (
-            <div>
+            <div className="ui-inline-form">
               <label className="ui-label">
                 Additional Credit Amount (₹) <span className="text-red-500">*</span>
               </label>
@@ -482,7 +482,7 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
             </div>
           )}
 
-          <div>
+          <div className="ui-inline-form">
             <label className="ui-label">
               Expires On <span className="text-red-500">*</span>
             </label>
@@ -494,7 +494,7 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
             />
           </div>
 
-          <div>
+          <div className="ui-inline-form">
             <label className="ui-label">
               Reason / Justification <span className="text-red-500">*</span>
             </label>
@@ -614,7 +614,7 @@ function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, transactio
             </div>
           ) : (
             <>
-              <div>
+              <div className="ui-inline-form">
                 <label className="ui-label">
                   Move to <span className="text-red-500">*</span>
                 </label>
@@ -629,7 +629,7 @@ function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, transactio
                   }))}
                 />
               </div>
-              <div>
+              <div className="ui-inline-form">
                 <label className="ui-label">
                   Reason <span className="text-red-500">*</span>
                 </label>
@@ -678,7 +678,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
   const [showInterestSettingsModal, setShowInterestSettingsModal] = useState(false)
   const [showExtensionModal, setShowExtensionModal] = useState(false)
   const [applyInterestFeedback, setApplyInterestFeedback] = useState<string | null>(null)
-  const [confirmDeleteInterestId, setConfirmDeleteInterestId] = useState<number | null>(null)
+  const [confirmDeleteInterest, setConfirmDeleteInterest] = useState<{ chargeId: number; sourceClientId: number } | null>(null)
   const [reassignEntryId,         setReassignEntryId]         = useState<number | null>(null)
   // Track which client the entry being reassigned belongs to (may be a child in parent view)
   const [reassignSourceClientId,  setReassignSourceClientId]  = useState<number>(clientId)
@@ -771,13 +771,14 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
   })
 
   const deleteInterestMutation = useMutation({
-    mutationFn: (chargeId: number) => creditApi.deleteInterestCharge(pumpId, clientId, chargeId),
+    mutationFn: ({ chargeId, sourceClientId }: { chargeId: number; sourceClientId: number }) =>
+      creditApi.deleteInterestCharge(pumpId, sourceClientId, chargeId),
     onSuccess: () => {
-      setConfirmDeleteInterestId(null)
+      setConfirmDeleteInterest(null)
       qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId, clientId] })
       qc.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
     },
-    onError: () => setConfirmDeleteInterestId(null),
+    onError: () => setConfirmDeleteInterest(null),
   })
 
   // ── Filter state ──────────────────────────────────────────────────────────
@@ -844,7 +845,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
   })
 
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+    formatIstDate(iso, { day: '2-digit', month: 'short' })
 
   const formatAmount = (n: number) =>
     n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -937,19 +938,19 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
                     </button>
                   )}
                   {isOwnerOrAdmin && tx.type === 'INTEREST' && (
-                    confirmDeleteInterestId === tx.referenceId ? (
+                    confirmDeleteInterest?.chargeId === tx.referenceId ? (
                       <span className="inline-flex items-center gap-1">
-                        <button onClick={() => deleteInterestMutation.mutate(tx.referenceId)} disabled={deleteInterestMutation.isPending}
+                        <button onClick={() => deleteInterestMutation.mutate({ chargeId: tx.referenceId, sourceClientId: tx.sourceClientId })} disabled={deleteInterestMutation.isPending}
                           className="ui-btn ui-btn-danger min-h-0 px-2 py-0.5 text-xs disabled:opacity-50">
                           {deleteInterestMutation.isPending ? '…' : 'Yes'}
                         </button>
-                        <button onClick={() => setConfirmDeleteInterestId(null)}
+                        <button onClick={() => setConfirmDeleteInterest(null)}
                           className="ui-btn ui-btn-secondary min-h-0 px-2 py-0.5 text-xs">
                           No
                         </button>
                       </span>
                     ) : (
-                      <button onClick={() => setConfirmDeleteInterestId(tx.referenceId)}
+                      <button onClick={() => setConfirmDeleteInterest({ chargeId: tx.referenceId, sourceClientId: tx.sourceClientId })}
                         className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-red-400 hover:text-red-600"
                         title="Remove this interest charge">
                         Remove
@@ -1406,6 +1407,11 @@ export default function CreditPage() {
   }
 
   const totalOutstanding = clients.reduce((sum, c) => sum + c.outstandingBalance, 0)
+  const rootClientCount = (() => {
+    if (allCreditClients.length === 0) return clients.length
+    const structureMap = new Map(allCreditClients.map(c => [c.id, c]))
+    return clients.filter(c => !structureMap.get(c.id)?.parentClientId).length
+  })()
 
   return (
     <div className="ui-page ui-page--narrow space-y-5">
@@ -1434,7 +1440,7 @@ export default function CreditPage() {
         <div className="ui-section-meta">
           <div className="ui-section-meta-pill">
             <span className="ui-section-meta-label">Accounts</span>
-            <span className="ui-section-meta-value">{clients.length}</span>
+            <span className="ui-section-meta-value">{rootClientCount}</span>
           </div>
           <div className="ui-section-meta-pill">
             <span className="ui-section-meta-label">Outstanding</span>
@@ -1444,8 +1450,8 @@ export default function CreditPage() {
       </div>
 
       {/* Search bar */}
-      <div className="relative">
-        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <div className="ui-search-shell">
+        <svg className="ui-search-shell__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
         </svg>
         <input
@@ -1453,12 +1459,12 @@ export default function CreditPage() {
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           placeholder="Search by client name or phone…"
-          className="pl-9 pr-9 text-sm"
+          className="ui-search-shell__input text-sm leading-5"
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            className="ui-search-shell__clear"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

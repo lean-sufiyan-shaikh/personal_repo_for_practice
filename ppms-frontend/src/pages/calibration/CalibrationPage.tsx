@@ -6,14 +6,14 @@ import { calibrationApi } from '../../api/calibrationApi'
 import type { LogCalibrationRequest, NozzleCalibrationLog } from '../../api/calibrationApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
-import { localDateInputValue } from '../../utils/date'
+import { formatIstDate, formatIstDateTime, localDateInputValue } from '../../utils/date'
 
 function fmtDate(d: string) {
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatIstDate(d)
 }
 
 function fmtDateTime(d: string) {
-  return new Date(d).toLocaleString('en-IN', {
+  return formatIstDateTime(d, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -129,10 +129,16 @@ export default function CalibrationPage() {
       </div>
 
       {/* ── Record form ── */}
-      <form onSubmit={handleSubmit} className="ui-card space-y-3">
-        <p className="text-sm font-semibold text-slate-700">Record Calibration</p>
+      <form onSubmit={handleSubmit} className="ui-card ui-form-shell">
+        <div className="ui-form-shell__head">
+          <div>
+            <p className="ui-section-kicker mb-2">Calibration Entry</p>
+            <h2 className="ui-title-sm">Record calibration</h2>
+            <p className="ui-subtitle mt-1">Attach the calibration date, technician, and next due date for compliance history.</p>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="ui-form-shell__grid">
           <div>
             <label className="ui-label">Nozzle</label>
             <SearchableSelect
@@ -295,18 +301,19 @@ export default function CalibrationPage() {
           </p>
         ) : (
           <>
-            <div className="divide-y divide-slate-100">
+            <div className="ui-record-list">
               {calibrations.map((c: NozzleCalibrationLog) => {
                 const nozzle = nozzleMap.get(c.nozzleId)
                 return (
-                <div key={c.id} className="px-5 py-3 space-y-1">
-                  <div className="flex items-center justify-between">
+                <div key={c.id} className="ui-record-row">
+                  <div className="ui-record-row__main">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-slate-800">{fmtDate(c.calibrationDate)}</p>
-                      <p className="text-xs text-slate-400">
+                      <div className="ui-record-row__meta mt-0">
                         Nozzle #{nozzle?.nozzleNumber ?? c.nozzleId}
                         {nozzle?.outlets?.length ? ` · ${nozzle.outlets.map((o: any) => o.fuelType).join(' / ')}` : ''}
-                      </p>
+                      </div>
                     </div>
                     {c.nextCalibrationDue && (
                       <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
@@ -314,13 +321,14 @@ export default function CalibrationPage() {
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+                  <div className="ui-record-row__meta">
                     {c.calibratedBy && <span>By: {c.calibratedBy}</span>}
                     {c.certificateReference && <span>Cert: {c.certificateReference}</span>}
                     <span className="text-slate-400">Logged by: {c.loggedByName}</span>
                     <span className="text-slate-400">Logged at: {fmtDateTime(c.createdAt)}</span>
                   </div>
                   {c.notes && <p className="text-xs text-slate-400">{c.notes}</p>}
+                  </div>
                 </div>
               )})}
             </div>

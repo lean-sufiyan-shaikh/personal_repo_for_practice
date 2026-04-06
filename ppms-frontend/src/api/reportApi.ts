@@ -87,6 +87,7 @@ export interface ConsumptionLine {
   id: number
   sourceType: string
   shiftId: number | null
+  shiftName: string | null
   quantityConsumed: number
   costPricePerUnit: number
   totalCost: number

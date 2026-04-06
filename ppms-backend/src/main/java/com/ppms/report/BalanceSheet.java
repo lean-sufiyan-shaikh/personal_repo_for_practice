@@ -8,6 +8,7 @@ import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "balance_sheets")
@@ -17,6 +18,7 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 @Builder
 public class BalanceSheet {
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Kolkata");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -120,7 +122,7 @@ public class BalanceSheet {
     @PrePersist
     protected void onCreate() {
         if (generatedAt == null) {
-            generatedAt = OffsetDateTime.now();
+            generatedAt = OffsetDateTime.now(BUSINESS_ZONE);
         }
     }
 }

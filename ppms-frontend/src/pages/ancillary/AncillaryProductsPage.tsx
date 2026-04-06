@@ -17,7 +17,7 @@ import { useAuthStore } from '../../store/authStore'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import type { PagedResponse } from '../../types/paged'
-import { localDateInputValue } from '../../utils/date'
+import { formatIstDate, localDateInputValue } from '../../utils/date'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ function fmtCurrency(n: number | null | undefined) {
 }
 
 function fmtDate(s: string) {
-  return new Date(s).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatIstDate(s)
 }
 
 const PAYMENT_MODES: AncillaryPaymentMode[] = ['CASH', 'UPI', 'CARD', 'FLEET_CARD', 'CREDIT']
@@ -69,11 +69,24 @@ export default function AncillaryProductsPage() {
     <div className="ui-page ui-page--narrow space-y-5">
 
       {/* ── Page heading ── */}
-      <div>
+      <div className="ui-section-hero">
+        <div>
+        <p className="ui-section-kicker">Counter inventory</p>
         <h2 className="ui-title-sm">Products</h2>
         <p className="ui-subtitle">
           Manage lubricants, accessories, and other counter products. Track stock and sales.
         </p>
+        </div>
+        <div className="ui-section-meta">
+          <div className="ui-section-meta-pill">
+            <span className="ui-section-meta-label">Products</span>
+            <span className="ui-section-meta-value">{products.length}</span>
+          </div>
+          <div className="ui-section-meta-pill">
+            <span className="ui-section-meta-label">View</span>
+            <span className="ui-section-meta-value">{activeTab === 'products' ? 'Catalog' : activeTab === 'stockin' ? 'Stock In' : 'Sales'}</span>
+          </div>
+        </div>
       </div>
 
       {!pumpId ? (
@@ -83,16 +96,12 @@ export default function AncillaryProductsPage() {
       ) : (
         <>
           {/* ── Tab bar ── */}
-          <div className="ui-card-plain ui-card-muted flex gap-1 p-1 w-fit">
+          <div className="ui-tabbar w-fit">
             {(['products', 'stockin', 'sales'] as Tab[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === tab
-                    ? 'bg-white text-slate-800 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
+                className={`ui-tabbar__button ${activeTab === tab ? 'ui-tabbar__button--active' : ''}`}
               >
                 {tab === 'products' ? 'Products' : tab === 'stockin' ? 'Stock In' : 'Sales History'}
               </button>
@@ -202,8 +211,8 @@ function ProductsTab({
     <div className="space-y-4">
       {/* Top bar: search + add button */}
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+        <div className="ui-search-shell flex-1 max-w-xs">
+          <svg className="ui-search-shell__icon" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
           <input
@@ -211,12 +220,12 @@ function ProductsTab({
             placeholder="Search products…"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-9 text-sm bg-white"
+            className="ui-search-shell__input w-full text-sm leading-5"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="ui-search-shell__clear"
             >
               ✕
             </button>
@@ -240,11 +249,11 @@ function ProductsTab({
           {searchQuery ? `No products match "${searchQuery}".` : 'No products configured yet. Add your first product above.'}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
           {pagedProducts.map(product => (
             <div
               key={product.id}
-              className={`ui-card space-y-3 ${
+              className={`ui-card flex h-full flex-col space-y-3 ${
                 product.status === 'INACTIVE' ? 'border-slate-200 opacity-60' : 'border-slate-200'
               }`}
             >
@@ -275,12 +284,12 @@ function ProductsTab({
               </div>
 
               {/* Action buttons */}
-              <div className="flex items-center gap-2 pt-1 border-t border-slate-100 flex-wrap">
+              <div className="mt-auto flex items-center gap-2 pt-3 border-t border-slate-100">
                 {/* Sell button — visible to managers and above for active products */}
                 {isManagerOrAbove && product.status === 'ACTIVE' && (
                   <button
                     onClick={() => setSellProduct(product)}
-                    className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
+                    className="ui-btn ui-btn-primary min-h-0 px-2.5 py-1 text-xs"
                   >
                     Sell
                   </button>
@@ -288,28 +297,25 @@ function ProductsTab({
                 {/* Stock Lots button — visible to everyone, shows ACTIVE FIFO lots */}
                 <button
                   onClick={() => setStockLotsProduct(product)}
-                  className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs"
+                  className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs"
                 >
-                  Stock Lots
+                  Inventory
                 </button>
                 {isOwnerOrAdmin && (
-                  <>
-                    <span className="text-slate-200">|</span>
-                    <button
-                      onClick={() => statusMutation.mutate({
-                        id: product.id,
-                        status: product.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE',
-                      })}
-                      disabled={statusMutation.isPending}
-                      className={`text-xs font-medium ${
-                        product.status === 'ACTIVE'
-                          ? 'text-slate-500 hover:text-red-600'
-                          : 'text-emerald-600 hover:text-emerald-800'
-                      }`}
-                    >
-                      {product.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                    </button>
-                  </>
+                  <button
+                    onClick={() => statusMutation.mutate({
+                      id: product.id,
+                      status: product.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE',
+                    })}
+                    disabled={statusMutation.isPending}
+                    className={`ui-btn min-h-0 px-2.5 py-1 text-xs ${
+                      product.status === 'ACTIVE'
+                        ? 'ui-btn-danger'
+                        : 'ui-btn-secondary'
+                    }`}
+                  >
+                    {product.status === 'ACTIVE' ? 'Disable' : 'Enable'}
+                  </button>
                 )}
               </div>
             </div>

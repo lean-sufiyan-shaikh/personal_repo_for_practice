@@ -18,6 +18,7 @@ import type {
 import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
+import { formatIstDate, formatIstDateTime } from '../../utils/date'
 
 // ── Date helpers ───────────────────────────────────────────────────────────────
 // Use local calendar date (not UTC) so the value matches the user's timezone.
@@ -33,6 +34,12 @@ function localDateStr(offsetDays = 0): string {
 
 // ── Formatting helpers ──────────────────────────────────────────────────────────
 
+const IST_TIME_FORMATTER = new Intl.DateTimeFormat('en-IN', {
+  timeZone: 'Asia/Kolkata',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
 function fmtMoney(n: number) {
   return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
@@ -42,14 +49,11 @@ function fmtLitres(n: number) {
 }
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatIstDate(iso)
 }
 
 function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString('en-IN', {
-    day: 'numeric', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
+  return formatIstDateTime(iso)
 }
 
 const FUEL_BADGE: Record<string, string> = {
@@ -425,10 +429,24 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
             )}
             <SummaryTile label="Cost of Goods" value={fmtMoney(detail.totalCostOfGoods)} />
             <SummaryTile
-              label="Gross Profit"
+              label={detail.reportType === 'DAY' ? 'Fuel Gross Profit' : 'Gross Profit'}
               value={fmtMoney(detail.totalGrossProfit)}
               accent={detail.totalGrossProfit >= 0 ? 'green' : 'red'}
             />
+            {detail.reportType === 'DAY' && detail.productSales && (
+              <SummaryTile
+                label="Product Sales Profit"
+                value={fmtMoney(detail.productSales.grossProfit)}
+                accent={detail.productSales.grossProfit >= 0 ? 'green' : 'red'}
+              />
+            )}
+            {detail.reportType === 'DAY' && detail.expenses && (
+              <SummaryTile
+                label="Expenses"
+                value={'−' + fmtMoney(detail.expenses.totalAmount)}
+                accent="red"
+              />
+            )}
             {detail.dipPlEntries?.length > 0 && (
               <SummaryTile
                 label="Dip P/L"
@@ -436,7 +454,13 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
                 accent={detail.totalDipNetAmount > 0 ? 'green' : 'red'}
               />
             )}
-            {detail.dipPlEntries?.length > 0 && (
+            {detail.reportType === 'DAY' ? (
+              <SummaryTile
+                label="Net Profit"
+                value={fmtMoney(detail.totalNetProfit)}
+                accent={detail.totalNetProfit >= 0 ? 'green' : 'red'}
+              />
+            ) : detail.dipPlEntries?.length > 0 && (
               <SummaryTile
                 label="Net Profit"
                 value={fmtMoney(detail.totalNetProfit)}
@@ -482,19 +506,19 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
             Shift Breakdown <span className="text-slate-400 normal-case font-normal">({detail.shiftLines.length} shift{detail.shiftLines.length !== 1 ? 's' : ''})</span>
           </h3>
           <div className="ui-table-wrap overflow-x-auto print:overflow-visible">
-            <table className="w-full min-w-[960px] text-sm print:min-w-0 print:text-[8pt]">
+            <table className="w-full min-w-[960px] text-xs print:min-w-0 print:text-[7pt]">
               <thead>
                 <tr className="bg-slate-50 text-left">
                   <Th>Operator</Th>
                   <Th>Nozzle</Th>
                   <Th>Fuels</Th>
-                  <Th right>Litres Sold</Th>
+                  <Th right>Litres</Th>
                   <Th right>Expected</Th>
                   <Th right>Received</Th>
                   <Th right>Cash</Th>
                   <Th right>UPI</Th>
                   <Th right>Card</Th>
-                  <Th right>Fleet Card</Th>
+                  <Th right>Fleet</Th>
                   <Th right>Credit</Th>
                   <Th right>Discrepancy</Th>
                 </tr>
@@ -574,7 +598,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
                         <Td><span className="text-xs text-slate-500">{a.recordedByUserName}</span></Td>
                         <Td>
                           <span className="text-xs text-slate-400">
-                            {new Date(a.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                            {IST_TIME_FORMATTER.format(new Date(a.createdAt))}
                           </span>
                         </Td>
                       </tr>
@@ -646,7 +670,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
                         </Td>
                         <Td>
                           <span className="text-xs text-slate-400">
-                            {new Date(entry.recordedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                            {IST_TIME_FORMATTER.format(new Date(entry.recordedAt))}
                           </span>
                         </Td>
                         <Td>
@@ -698,7 +722,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
 
 function Th({ children, right, colSpan }: { children?: ReactNode; right?: boolean; colSpan?: number }) {
   return (
-    <th colSpan={colSpan} className={`px-3 py-2.5 print:px-1.5 print:py-1 text-xs font-semibold text-slate-500 ${right ? 'text-right' : ''}`}>
+    <th colSpan={colSpan} className={`px-2 py-2 print:px-1 print:py-1 text-[11px] font-semibold text-slate-500 whitespace-nowrap ${right ? 'text-right' : ''}`}>
       {children}
     </th>
   )
@@ -706,7 +730,7 @@ function Th({ children, right, colSpan }: { children?: ReactNode; right?: boolea
 
 function Td({ children, right, colSpan }: { children?: ReactNode; right?: boolean; colSpan?: number }) {
   return (
-    <td colSpan={colSpan} className={`px-3 py-2.5 print:px-1.5 print:py-1 text-slate-700 ${right ? 'text-right' : ''}`}>
+    <td colSpan={colSpan} className={`px-2 py-2 print:px-1 print:py-1 text-slate-700 ${right ? 'text-right whitespace-nowrap' : ''}`}>
       {children}
     </td>
   )
@@ -715,7 +739,7 @@ function Td({ children, right, colSpan }: { children?: ReactNode; right?: boolea
 function DiscrepancyTd({ value }: { value: number }) {
   const color = value === 0 ? 'text-emerald-600' : value < 0 ? 'text-red-600' : 'text-amber-600'
   return (
-    <td className={`px-3 py-2.5 print:px-1.5 print:py-1 text-right font-medium ${color}`}>
+    <td className={`px-2 py-2 print:px-1 print:py-1 text-right font-medium whitespace-nowrap ${color}`}>
       {value === 0 ? '—' : fmtMoney(Math.abs(value))}
       {value !== 0 && <span className="text-xs ml-1">{value < 0 ? 'Short' : 'Over'}</span>}
     </td>
@@ -766,7 +790,7 @@ function ShiftLineRow({ line }: { line: BsShiftLine }) {
     <tr className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
       <Td>{line.operatorName}</Td>
       <Td><span className="font-medium">#{line.nozzleNumber}</span></Td>
-      <Td><span className="text-xs text-slate-500">{line.fuelTypesSummary}</span></Td>
+      <Td><span className="text-xs text-slate-500 block max-w-[100px]">{line.fuelTypesSummary}</span></Td>
       <Td right>{fmtLitres(line.litresSold)}</Td>
       <Td right>{fmtMoney(line.expectedRevenue)}</Td>
       <Td right><span className="font-medium text-slate-800">{fmtMoney(line.cashCollected + line.upiCollected + line.cardCollected + fleetCard)}</span></Td>
@@ -976,7 +1000,7 @@ export default function BalanceSheetPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-56px)] overflow-hidden">
+    <div className="flex h-[calc(100vh-56px)] overflow-hidden print:h-auto print:overflow-visible">
       {/* ── Left panel: list ────────────────────────────────────────────────── */}
       <div className={`flex flex-col ${selectedReportId ? 'w-80 flex-shrink-0' : 'flex-1'} border-r border-slate-200 bg-white overflow-hidden print:hidden`}>
         {/* Page header */}
@@ -1072,7 +1096,7 @@ export default function BalanceSheetPage() {
 
       {/* Empty detail state */}
       {!selectedReportId && (
-        <div className="flex-1 hidden sm:flex items-center justify-center bg-slate-50">
+        <div className="flex-1 hidden sm:flex items-center justify-center bg-slate-50/70">
           <div className="ui-empty">
             <div className="text-4xl mb-3">📊</div>
             <p className="ui-subtitle">Select a report to view details</p>
@@ -1115,8 +1139,8 @@ function ReportListItem({ report, isSelected, onClick }: ReportListItemProps) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50 transition-colors ${
-        isSelected ? 'bg-blue-50 border-l-2 border-l-blue-500' : ''
+      className={`w-full text-left px-4 py-3.5 border-b border-slate-100 transition-colors ${
+        isSelected ? 'bg-blue-50/80 border-l-2 border-l-blue-500 shadow-[inset_0_0_0_1px_rgba(191,219,254,0.7)]' : 'hover:bg-slate-50'
       }`}
     >
       <div className="flex items-start justify-between gap-2">

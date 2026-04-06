@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -6,9 +6,11 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '../../store/authStore'
 import { superAdminApi } from '../../api/superAdminApi'
+import { authApi } from '../../api/authApi'
 import type { OnboardOwnerResponse, AddPumpRequest, UpdatePumpRequest, PumpSummary } from '../../api/superAdminApi'
 import { Pagination } from '../../components/Pagination'
 import client from '../../api/client'
+import { formatIstDate } from '../../utils/date'
 
 // ── Validation schemas ────────────────────────────────────────────────────────
 
@@ -24,6 +26,9 @@ const editPumpSchema = z.object({
   pumpAddress: z.string().min(1, 'Pump address is required'),
 })
 type EditPumpFormData = z.infer<typeof editPumpSchema>
+
+const PASSWORD_POLICY_MESSAGE = 'Password must be at least 8 characters and include 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 symbol.'
+const PASSWORD_POLICY_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/
 
 const onboardSchema = z.object({
   fullName: z.string().min(1, 'Full name is required'),
@@ -46,6 +51,13 @@ export default function SuperAdminPage() {
   const [createdOwner, setCreatedOwner] = useState<(OnboardOwnerResponse & { password: string }) | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const profileMenuRef = useRef<HTMLDivElement>(null)
 
   // Which owner's "Add Pump" form is currently open (null = none)
   const [addPumpOwnerId, setAddPumpOwnerId] = useState<number | null>(null)
@@ -144,6 +156,40 @@ export default function SuperAdminPage() {
       setEditPumpError(err?.response?.data?.message ?? 'Failed to update pump. Please try again.'),
   })
 
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await authApi.logout()
+    },
+    onSettled: () => {
+      clearAuth()
+      navigate('/login')
+    },
+  })
+
+  const changePasswordMutation = useMutation({
+    mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
+      authApi.changePassword(currentPassword, newPassword),
+    onSuccess: (data) => {
+      clearPasswordForm()
+      clearAuth()
+      navigate('/login', { state: { message: data.message } })
+    },
+    onError: (err: any) => {
+      setPasswordError(err?.response?.data?.message ?? 'Failed to update password.')
+    },
+  })
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const onAddPumpSubmit = (data: AddPumpFormData) => {
     if (!addPumpOwnerId) return
     setAddPumpError(null)
@@ -194,9 +240,44 @@ export default function SuperAdminPage() {
     })
   }
 
+  const clearPasswordForm = () => {
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setPasswordError(null)
+    setPasswordModalOpen(false)
+  }
+
+  const openPasswordModal = () => {
+    setProfileMenuOpen(false)
+    setPasswordError(null)
+    setPasswordModalOpen(true)
+  }
+
   const handleLogout = () => {
-    clearAuth()
-    navigate('/login')
+    setProfileMenuOpen(false)
+    logoutMutation.mutate()
+  }
+
+  const handleChangePassword = () => {
+    setPasswordError(null)
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All password fields are required.')
+      return
+    }
+
+    if (!PASSWORD_POLICY_REGEX.test(newPassword)) {
+      setPasswordError(PASSWORD_POLICY_MESSAGE)
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New password and confirm password must match.')
+      return
+    }
+
+    changePasswordMutation.mutate({ currentPassword, newPassword })
   }
 
   const handleCopyCredentials = () => {
@@ -232,17 +313,35 @@ export default function SuperAdminPage() {
             <p className="text-xs font-semibold text-white leading-tight">{user?.fullName}</p>
             <p className="text-xs text-indigo-300 leading-tight">Super Admin</p>
           </div>
-          <div className="w-8 h-8 bg-indigo-500/20 border border-indigo-400/40 rounded-full flex items-center justify-center">
-            <span className="text-sm font-bold text-indigo-200">
-              {user?.fullName?.charAt(0).toUpperCase()}
-            </span>
+          <div className="relative" ref={profileMenuRef}>
+            <button
+              onClick={() => setProfileMenuOpen((open) => !open)}
+              className="w-9 h-9 bg-indigo-500/20 border border-indigo-400/40 rounded-full flex items-center justify-center hover:bg-indigo-500/30 transition-colors"
+              title="Open profile menu"
+            >
+              <span className="text-sm font-bold text-indigo-200">
+                {user?.fullName?.charAt(0).toUpperCase()}
+              </span>
+            </button>
+
+            {profileMenuOpen && (
+              <div className="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                <button
+                  onClick={openPasswordModal}
+                  className="ui-btn ui-btn-ghost w-full justify-start rounded-none border-0 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Reset Password
+                </button>
+                <button
+                  onClick={handleLogout}
+                  disabled={logoutMutation.isPending}
+                  className="ui-btn ui-btn-ghost w-full justify-start rounded-none border-0 px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {logoutMutation.isPending ? 'Logging out...' : 'Logout'}
+                </button>
+              </div>
+            )}
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-xs text-red-300 hover:text-white border border-red-500/40 hover:border-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transition-all font-medium"
-          >
-            Logout
-          </button>
         </div>
       </header>
 
@@ -252,18 +351,18 @@ export default function SuperAdminPage() {
 
           {/* ── Platform analytics strip ───────────────────────────────────── */}
           {analytics && (
-            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="ui-card text-center">
-                <p className="text-2xl font-bold text-slate-800">{analytics.totalOwners}</p>
-                <p className="text-xs text-slate-500 mt-0.5 uppercase tracking-wide">Pump Owners</p>
+            <div className="mb-6 ui-summary-strip">
+              <div className="ui-summary-strip__item">
+                <span className="ui-summary-strip__label">Pump Owners</span>
+                <span className="ui-summary-strip__value">{analytics.totalOwners}</span>
               </div>
-              <div className="ui-card text-center">
-                <p className="text-2xl font-bold text-slate-800">{analytics.totalPumps}</p>
-                <p className="text-xs text-slate-500 mt-0.5 uppercase tracking-wide">Pumps</p>
+              <div className="ui-summary-strip__item">
+                <span className="ui-summary-strip__label">Pumps</span>
+                <span className="ui-summary-strip__value">{analytics.totalPumps}</span>
               </div>
-              <div className="ui-card text-center">
-                <p className="text-2xl font-bold text-slate-800">{analytics.totalStaff}</p>
-                <p className="text-xs text-slate-500 mt-0.5 uppercase tracking-wide">Staff Members</p>
+              <div className="ui-summary-strip__item">
+                <span className="ui-summary-strip__label">Staff Members</span>
+                <span className="ui-summary-strip__value">{analytics.totalStaff}</span>
               </div>
             </div>
           )}
@@ -606,17 +705,19 @@ export default function SuperAdminPage() {
                                 <div className="mt-2 ml-12 flex items-center gap-3 ui-help">
                                   <span>ID: <span className="font-mono text-slate-500">{owner.employeeId}</span></span>
                                   <span>·</span>
-                                  <span>Joined {new Date(owner.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                  <span>Joined {formatIstDate(owner.createdAt)}</span>
                                 </div>
                               </div>
 
                               {/* Inline Add Pump form */}
                               {isPumpFormOpen && (
                                 <div className="px-5 pb-4 bg-indigo-50/50 border-t border-indigo-100">
-                                  <p className="text-xs font-semibold text-indigo-700 pt-3 mb-3">
-                                    Add a new pump for {owner.fullName}
-                                  </p>
-                                  <form onSubmit={handleSubmitPump(onAddPumpSubmit)} className="space-y-3 max-w-sm">
+                                  <div className="pt-3">
+                                  <form onSubmit={handleSubmitPump(onAddPumpSubmit)} className="ui-inline-form space-y-3 max-w-md">
+                                    <div>
+                                      <p className="ui-inline-form__title">Add a new pump for {owner.fullName}</p>
+                                      <p className="ui-inline-form__copy">Create another managed location under this owner without leaving the owner list.</p>
+                                    </div>
                                     <FormField label="Pump Name" error={pumpErrors.pumpName?.message}>
                                       <input
                                         {...registerPump('pumpName')}
@@ -654,6 +755,7 @@ export default function SuperAdminPage() {
                                       {addPumpMutation.isPending ? 'Adding…' : 'Add Pump'}
                                     </button>
                                   </form>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -678,6 +780,80 @@ export default function SuperAdminPage() {
           </div>
         </div>
       </div>
+
+      {passwordModalOpen && (
+        <div className="ui-modal-backdrop" onClick={clearPasswordForm}>
+          <div
+            className="ui-modal-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
+              <div className="ui-modal-heading">
+                <h2 className="ui-modal-title">Reset Password</h2>
+                <p className="ui-modal-subtitle">Update your password, then sign in again.</p>
+              </div>
+              <button onClick={clearPasswordForm} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+            </div>
+
+            <div className="ui-modal-body space-y-4">
+              <div>
+                <label className="ui-label">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="ui-label">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="shadow-sm"
+                />
+                <p className="ui-help">{PASSWORD_POLICY_MESSAGE}</p>
+              </div>
+
+              <div>
+                <label className="ui-label">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleChangePassword() }}
+                  className="shadow-sm"
+                />
+              </div>
+
+              {passwordError && (
+                <div className="ui-alert ui-alert-danger">
+                  <p className="text-sm text-red-600">{passwordError}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="ui-modal-footer">
+              <button
+                onClick={clearPasswordForm}
+                disabled={changePasswordMutation.isPending}
+                className="ui-btn ui-btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleChangePassword}
+                disabled={changePasswordMutation.isPending}
+                className="ui-btn ui-btn-primary"
+              >
+                {changePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

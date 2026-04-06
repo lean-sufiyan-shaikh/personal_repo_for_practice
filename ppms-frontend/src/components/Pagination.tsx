@@ -31,14 +31,14 @@ export function Pagination<T>({
   const endItem = Math.min((page + 1) * pageSize, totalElements)
 
   return (
-    <div className="flex flex-col gap-3 border-t border-slate-200 px-1 py-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-      {/* Left: showing X–Y of Z */}
-      <span className="text-center text-slate-500 sm:text-left">
-        Showing {startItem}–{endItem} of {totalElements.toLocaleString()}
-      </span>
+    <div className="ui-pagination">
+      <div className="ui-pagination__summary">
+        <span className="ui-pagination__summary-label">Showing</span>
+        <span className="ui-pagination__summary-value">{startItem}–{endItem}</span>
+        <span className="ui-pagination__summary-label">of {totalElements.toLocaleString()}</span>
+      </div>
 
-      {/* Center: prev / page buttons / next */}
-      <div className="flex flex-wrap items-center justify-center gap-1">
+      <div className="ui-pagination__controls">
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={!data.hasPrevious}
@@ -79,10 +79,9 @@ export function Pagination<T>({
         </button>
       </div>
 
-      {/* Right: page size selector */}
-      <div className="flex items-center justify-center gap-2 sm:justify-end">
-        <label htmlFor="page-size-select" className="text-slate-500">
-          Rows:
+      <div className="ui-pagination__size">
+        <label htmlFor="page-size-select" className="ui-pagination__size-label">
+          Rows per page
         </label>
         <select
           id="page-size-select"
@@ -91,7 +90,7 @@ export function Pagination<T>({
             onPageSizeChange(Number(e.target.value))
             onPageChange(0) // reset to first page on size change
           }}
-          className="min-h-10 w-auto rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="ui-pagination__size-select"
         >
           {pageSizeOptions.map(opt => (
             <option key={opt} value={opt}>

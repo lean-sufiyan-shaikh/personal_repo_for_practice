@@ -8,7 +8,7 @@ import type { TankStock, TankerDelivery, DipCheck, RecordBatchDeliveryRequest, I
 import { useAuthStore } from '../../store/authStore'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
-import { localDateInputValue } from '../../utils/date'
+import { formatIstDate, localDateInputValue } from '../../utils/date'
 
 // ── Colour helpers ─────────────────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ function fmtQty(n: number | null | undefined) {
 }
 
 function fmtDate(s: string) {
-  return new Date(s).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatIstDate(s)
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────────
@@ -180,13 +180,13 @@ export default function InventoryPage() {
           {/* ── Tank stock levels ── */}
           <div className="ui-card p-0">
             {/* Header row — always visible, clickable to toggle */}
-            <div className="flex items-center justify-between px-5 py-4">
+            <div className="ui-toolbar border-b-0">
               <button
                 type="button"
                 onClick={() => setStockOpen(v => !v)}
                 className="flex items-center gap-2 text-left hover:opacity-70 transition-opacity"
               >
-                <span className="text-sm font-semibold text-slate-800">Current Stock Levels</span>
+                <span className="ui-toolbar-title mr-0">Current Stock Levels</span>
                 {selectedPump && (
                   <span className="text-xs text-slate-400">{selectedPump.name}</span>
                 )}
@@ -996,6 +996,7 @@ function RecordDeliveryModal({
         <form onSubmit={handleReview} className="flex flex-col flex-1 overflow-hidden">
           {/* Shared fields — delivery date + invoice */}
           <div className="ui-modal-body border-b border-slate-100 flex-shrink-0">
+            <div className="ui-inline-form">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="ui-label">
@@ -1021,6 +1022,7 @@ function RecordDeliveryModal({
                 />
               </div>
             </div>
+            </div>
           </div>
 
           {/* Scrollable tank rows */}
@@ -1041,7 +1043,7 @@ function RecordDeliveryModal({
                       <button
                         type="button"
                         onClick={() => removeRow(row.id)}
-                        className="ui-btn ui-btn-ghost min-h-8 px-0 py-0 text-xs text-red-500 hover:text-red-600 flex items-center gap-1"
+                      className="ui-btn ui-btn-ghost min-h-8 px-0 py-0 text-xs text-red-500 hover:text-red-600 flex items-center gap-1"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -1197,15 +1199,15 @@ function RecordDeliveryModal({
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-xs font-medium text-slate-500">Delivery Date</p>
                   <p className="mt-1 text-sm font-semibold text-slate-800">{fmtDate(date)}</p>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-xs font-medium text-slate-500">Invoice / Bill No.</p>
                   <p className="mt-1 text-sm font-semibold text-slate-800">{invoice.trim()}</p>
                 </div>
-                <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 shadow-[0_10px_20px_rgba(37,99,235,0.08)]">
                   <p className="text-xs font-medium text-blue-600">Grand Total</p>
                   <p className="mt-1 text-base font-bold text-blue-800">
                     ₹{items.reduce((sum, item) => sum + item.totalCost, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}

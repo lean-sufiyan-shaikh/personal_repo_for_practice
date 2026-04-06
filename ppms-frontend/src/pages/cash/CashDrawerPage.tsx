@@ -5,7 +5,7 @@ import { cashApi } from '../../api/cashApi'
 import type { CashEventType, RecordCashEventRequest } from '../../api/cashApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
-import { localDateInputValue } from '../../utils/date'
+import { formatIstDate, localDateInputValue } from '../../utils/date'
 
 const EVENT_TYPES: { value: CashEventType; label: string }[] = [
   { value: 'OPENING_BALANCE', label: 'Opening Balance' },
@@ -26,7 +26,7 @@ function fmtAmt(n: number) {
 }
 
 function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatIstDate(d)
 }
 
 export default function CashDrawerPage() {
@@ -59,6 +59,7 @@ export default function CashDrawerPage() {
       qc.invalidateQueries({ queryKey: ['cashEvents', pumpId] })
       setForm({ eventType: 'CASH_IN', amount: 0, description: '', eventDate: localDateInputValue() })
       setFormError(null)
+      setReviewOpen(false)
     },
     onError: (err: any) => setFormError(err?.response?.data?.message ?? 'Failed to record event'),
   })
@@ -115,17 +116,23 @@ export default function CashDrawerPage() {
       </div>
 
       {/* ── Balance card ── */}
-      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-2xl px-6 py-5 text-white">
+      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-3xl px-6 py-5 text-white shadow-[0_22px_42px_rgba(5,150,105,0.22)]">
         <p className="text-emerald-200 text-sm">Current Balance</p>
         <p className="text-3xl font-bold mt-1">{fmtAmt(balance)}</p>
         <p className="text-emerald-200 text-xs mt-1">Calculated from all cash-in minus cash-out events</p>
       </div>
 
       {/* ── Add event form ── */}
-      <form onSubmit={handleSubmit} className="ui-card space-y-3">
-        <p className="text-sm font-semibold text-slate-700">Record Cash Movement</p>
+      <form onSubmit={handleSubmit} className="ui-card ui-form-shell">
+        <div className="ui-form-shell__head">
+          <div>
+            <p className="ui-section-kicker mb-2">Cash Entry</p>
+            <h2 className="ui-title-sm">Record cash movement</h2>
+            <p className="ui-subtitle mt-1">Log money entering or leaving the safe with the right event type and date.</p>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="ui-form-shell__grid">
           <div>
             <label className="ui-label">Event Type</label>
             <SearchableSelect
@@ -263,16 +270,18 @@ export default function CashDrawerPage() {
           <p className="ui-empty px-5 py-6">No cash events recorded yet.</p>
         ) : (
           <>
-            <div className="divide-y divide-slate-100">
+            <div className="ui-record-list">
               {(cashData?.events?.content ?? []).map(ev => (
-                <div key={ev.id} className="px-5 py-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
+                <div key={ev.id} className="ui-record-row">
+                  <div className="flex items-center gap-3 min-w-0 ui-record-row__main">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${EVENT_STYLES[ev.eventType]}`}>
                       {ev.eventType.replace('_', ' ')}
                     </span>
                     <div className="min-w-0">
                       <p className="text-sm text-slate-700 truncate">{ev.description}</p>
-                      <p className="text-xs text-slate-400">{fmtDate(ev.eventDate)}</p>
+                      <div className="ui-record-row__meta mt-0">
+                        <span>{fmtDate(ev.eventDate)}</span>
+                      </div>
                     </div>
                   </div>
                   <span className={`text-sm font-semibold flex-shrink-0 ${
