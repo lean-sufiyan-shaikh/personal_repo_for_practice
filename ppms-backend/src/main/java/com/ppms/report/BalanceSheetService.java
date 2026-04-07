@@ -176,11 +176,15 @@ public class BalanceSheetService {
         }
 
         // ── 6. Credit sold per fuel type ──────────────────────────────────────
-        // Batch-fetch all credit entries for all shifts in one query
+        // Batch-fetch all credit entries for all shifts in one query.
+        // Voided entries are excluded — they represent cancelled transactions and must
+        // not inflate the credit-sold figures on the balance sheet.
         Map<FuelType, BigDecimal> creditByFuel = new EnumMap<>(FuelType.class);
         List<ShiftCreditEntry> allCreditEntries = shiftIds.isEmpty()
                 ? List.of()
-                : shiftCreditEntryRepository.findByShiftIdIn(shiftIds);
+                : shiftCreditEntryRepository.findByShiftIdIn(shiftIds).stream()
+                        .filter(e -> !"VOIDED".equals(e.getVoidStatus()))
+                        .toList();
         for (ShiftCreditEntry entry : allCreditEntries) {
             try {
                 FuelType ft = FuelType.valueOf(entry.getFuelType());
@@ -380,16 +384,14 @@ public class BalanceSheetService {
         // ── 13. Persist shift lines ───────────────────────────────────────────
         List<BsShiftLine> shiftLines = new ArrayList<>();
 
-        // Pre-load operator names and nozzle numbers
-        Map<Long, String> operatorNames = new HashMap<>();
-        Map<Long, Integer> nozzleNumbers = new HashMap<>();
+        // Batch-fetch operator names and nozzle numbers in two queries to avoid N+1.
+        Set<Long> operatorIds = shifts.stream().map(Shift::getOperatorId).collect(Collectors.toSet());
+        Map<Long, String> operatorNames = userRepository.findAllById(operatorIds).stream()
+                .collect(Collectors.toMap(User::getId, User::getFullName));
 
-        for (Shift s : shifts) {
-            operatorNames.computeIfAbsent(s.getOperatorId(), id ->
-                    userRepository.findById(id).map(User::getFullName).orElse("Unknown"));
-            nozzleNumbers.computeIfAbsent(s.getNozzleId(), id ->
-                    nozzleRepository.findById(id).map(com.ppms.pump.Nozzle::getNozzleNumber).orElse(0));
-        }
+        Set<Long> nozzleIds = shifts.stream().map(Shift::getNozzleId).collect(Collectors.toSet());
+        Map<Long, Integer> nozzleNumbers = nozzleRepository.findAllById(nozzleIds).stream()
+                .collect(Collectors.toMap(com.ppms.pump.Nozzle::getId, com.ppms.pump.Nozzle::getNozzleNumber));
 
         for (Shift s : shifts) {
             List<ShiftFuelReading> readings = readingsByShift.getOrDefault(s.getId(), List.of());

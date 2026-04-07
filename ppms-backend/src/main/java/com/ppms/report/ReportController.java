@@ -124,6 +124,23 @@ public class ReportController {
         return ResponseEntity.ok(reportService.buildExpenseReportLines(pumpId, from, to));
     }
 
+    /**
+     * GET /api/pumps/{pumpId}/reports/interest-accrual?from=&to=
+     *
+     * Returns all interest charges applied to credit clients within the date range,
+     * grouped by client with per-charge detail and totals.
+     * from/to filter on period_from of each charge.
+     * ACCOUNTANT is granted explicit access here since this is a financial read report.
+     */
+    @GetMapping("/interest-accrual")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")
+    public ResponseEntity<ReportService.InterestAccrualReport> getInterestAccrual(
+            @PathVariable Long pumpId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(reportService.buildInterestAccrualReport(pumpId, from, to));
+    }
+
     // ── Report line records ───────────────────────────────────────────────────
 
     public record ShiftReportLine(

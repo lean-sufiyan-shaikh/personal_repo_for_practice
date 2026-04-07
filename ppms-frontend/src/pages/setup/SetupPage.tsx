@@ -1334,13 +1334,14 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
   const mutation = useMutation({
     mutationFn: pumpApi.setFuelPrice,
     onError: (err: any) => {
-      if (err?.response?.status === 409) {
-        // Backend returned a PriceDeviationWarning — show confirmation dialog
+      if (err?.response?.status === 409 && err?.response?.data?.deviationPercent != null) {
+        // Backend returned a PriceDeviationWarning (has deviationPercent) — show confirmation dialog
         const warning = err.response.data as PriceDeviationWarning
         // Determine which fuel type triggered the warning
         const ft = availableFuelTypes.find((f) => prices[f] && Number(prices[f]) > 0) ?? ''
         setDeviationWarning({ ...warning, fuelType: ft })
       } else {
+        // 409 from a DB constraint violation, or any other error — show the message directly
         setError(err?.response?.data?.message ?? 'Failed to set price')
       }
     },

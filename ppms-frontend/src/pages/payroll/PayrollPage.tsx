@@ -124,7 +124,12 @@ function PayrollGroup({
                       {fmtDate(r.periodFrom)} – {fmtDate(r.periodTo)}
                     </span>
                   </div>
-                  <span className="text-base font-bold text-slate-800 flex-shrink-0">{fmtAmt(r.grossAmount)}</span>
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-base font-bold text-slate-800">{fmtAmt(r.netPay)}</div>
+                    {r.deductions > 0 && (
+                      <div className="text-xs text-slate-400 line-through">{fmtAmt(r.grossAmount)}</div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Breakdown */}
@@ -192,6 +197,16 @@ function PayrollGroup({
                         <p className="px-3 py-2 text-slate-400">No closed shifts in this period.</p>
                       )}
                     </>
+                  )}
+                  {r.deductions > 0 && (
+                    <div className="flex items-center justify-between px-3 py-2 bg-red-50/60">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
+                        <span className="text-slate-500">Salary deductions</span>
+                        <span className="text-xs text-slate-400">(discrepancy shortfall)</span>
+                      </div>
+                      <span className="font-medium text-red-600">− {fmtAmt(r.deductions)}</span>
+                    </div>
                   )}
                 </div>
 

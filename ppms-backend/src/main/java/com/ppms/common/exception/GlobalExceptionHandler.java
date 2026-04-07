@@ -4,6 +4,7 @@ import com.ppms.auth.InvalidCredentialsException;
 import com.ppms.fuel.PriceDeviationException;
 import com.ppms.fuel.PriceDeviationWarning;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -37,6 +38,22 @@ public class GlobalExceptionHandler {
                 ex.getDeviationPercent(), ex.getLastPrice(), ex.getNewPrice());
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new PriceDeviationWarning(msg, ex.getLastPrice(), ex.getNewPrice(), ex.getDeviationPercent()));
+    }
+
+    /**
+     * HTTP 409 Conflict — a unique DB constraint was violated.
+     * This surfaces when the application-level duplicate checks are bypassed
+     * (e.g. duplicate tanker delivery invoice, double interest charge for the same period).
+     * Returns a clean 409 so the frontend can show a user-friendly message rather than a
+     * generic 500 that exposes nothing actionable to the user.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(HttpStatus.CONFLICT,
+                        "This record already exists or conflicts with existing data. " +
+                        "Please check for duplicate entries (e.g. same invoice reference or interest period)."));
     }
 
     @ExceptionHandler(BusinessException.class)

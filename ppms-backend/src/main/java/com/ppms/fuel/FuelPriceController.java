@@ -2,18 +2,21 @@ package com.ppms.fuel;
 
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
+import com.ppms.notification.NotificationDedupService;
+import com.ppms.notification.NotificationType;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -24,12 +27,15 @@ public class FuelPriceController {
     private final GlobalFuelPriceRepository fuelPriceRepository;
     private final ShiftRepository shiftRepository;
     private final AuditService auditService;
+    private final NotificationDedupService notificationDedupService;
 
     /**
      * GET /api/fuel-prices/current?pumpId={id}
      * Returns the most recently set price for each fuel type at a pump.
+     * Accessible by all operational roles — operators need the current price to open a shift.
      */
     @GetMapping("/current")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'OPERATOR', 'ACCOUNTANT')")
     public ResponseEntity<List<GlobalFuelPrice>> getCurrentPrices(@RequestParam Long pumpId) {
         return ResponseEntity.ok(fuelPriceRepository.findCurrentPricesForPump(pumpId));
     }
@@ -45,6 +51,7 @@ public class FuelPriceController {
      * dialog and re-submit with confirmed=true to bypass the guard.
      */
     @PostMapping
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     public ResponseEntity<?> setPrice(
             @Valid @RequestBody SetFuelPriceRequest request,
             @AuthenticationPrincipal User currentUser) {
@@ -93,6 +100,19 @@ public class FuelPriceController {
                 ? openShiftsCount + " shift(s) are currently open at this pump. They will settle at the OLD price. " +
                   "Close all open shifts before the new price takes effect to avoid balance discrepancies."
                 : null;
+
+        if (openShiftsCount > 0) {
+            // Fire a PRICE_CHANGE_OPEN_SHIFT notification deduped per pump per day.
+            // One notification per day is enough — if the admin changes price multiple times
+            // on the same day while shifts remain open, we avoid spamming.
+            String dedupKey = "PRICE_CHANGE_OPEN_SHIFT:" + LocalDate.now() + ":" + request.getPumpId();
+            notificationDedupService.maybeInsert(request.getPumpId(),
+                    NotificationType.PRICE_CHANGE_OPEN_SHIFT, dedupKey,
+                    "Fuel Price Changed With Open Shifts",
+                    saved.getFuelType() + " price updated to ₹" + saved.getPricePerUnit() +
+                    " but " + openShiftsCount + " shift(s) are still open. They will settle at the old price. " +
+                    "Close all open shifts to avoid balance discrepancies.");
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(SetFuelPriceResponse.builder()

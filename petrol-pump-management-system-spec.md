@@ -1,8 +1,8 @@
 # Petrol Pump Management System — Product Specification Document
 
-**Version:** 3.0
-**Date:** 31 March 2026
-**Status:** Updated to reflect redesigned nozzle outlet model, 5 fuel types, explicit tank creation, per-pump FIFO, and tank disable/enable feature
+**Version:** 4.0
+**Date:** 7 April 2026
+**Status:** Updated to reflect dynamic shift definitions (PumpShiftDefinition replacing fixed ShiftWindow enum), Accountant role, expense tracking module, payroll module, ancillary products module, nozzle calibration logging, shift planning system, in-app notification system, and credit customer self-service portal
 
 ---
 
@@ -56,7 +56,9 @@ PPMS solves this by:
 
 ### What It Is Not (v1 Scope)
 
-Version 1 is a backend operations and reporting system. It does not include operator self-login with liveness checks, POS terminal integrations, automated SMS billing, or expense tracking. These are planned for future phases and are documented in the Future Enhancements section.
+The core system is a backend operations and reporting platform. As of Version 4.0, it now also includes: expense tracking and approval, shift-based payroll generation, ancillary (counter) product inventory and sales, nozzle calibration compliance logging, weekly shift planning with staff preferences and leave management, an in-app notification system, and a public credit balance portal for customers.
+
+It does not include operator self-login with liveness checks, POS terminal integrations, automated SMS/WhatsApp billing, or full P&L with operating expenses. These remain planned for future phases and are documented in the Future Enhancements section.
 
 ---
 
@@ -64,47 +66,59 @@ Version 1 is a backend operations and reporting system. It does not include oper
 
 ### Role Overview
 
-The system has **four roles**. Every person in the system — regardless of role — has a unified employee profile (Section 3.0): Employee ID, Name, Phone Number, Address.
+The system has **five roles**. Every person in the system — regardless of role — has a unified employee profile (Section 3.0): Employee ID, Name, Phone Number, Address.
 
-| Capability | Owner | Admin | Manager | Nozzle Operator |
-|---|---|---|---|---|
-| Access all pump locations | Yes | No — assigned pump only | No — assigned pump only | No — active shift only |
-| View all reports (all pumps) | Yes | No — own pump only | No — own pump only | No |
-| Manage pump & nozzle configuration (incl. max nozzle count, fuel outlets) | Yes | No | No | No |
-| Create/manage user accounts | Yes | No | No | No |
-| Set credit customer interest rate | Yes (owner only) | No | No | No |
-| Set credit customer credit limit (permanent) | Yes (owner only) | No | No | No |
-| Grant temporary credit limit extension or billing cycle extension | Yes | Yes (own pump only) | No | No |
-| Open a shift (assign operator to nozzle) | No | Yes | Yes | No |
-| Close a shift / record end readings | No | Yes | Yes | No |
-| Submit payment breakdown at handover | No | Yes (on behalf) | Yes (on behalf) | Yes (self-service) |
-| Log credit sales during a shift | No | Yes | Yes | Yes (own active shift only) |
-| Create/manage credit customer profiles | Yes | Yes | Yes | No |
-| Link a credit customer to a pump | Yes | Yes (own pump only) | No | No |
-| Log credit customer payments | No | Yes | Yes | No |
-| Generate credit statements | No | Yes | Yes | No |
-| Update Global Fuel Sell Price (per fuel type) | Yes | Yes | Yes | No |
-| Log tanker fuel deliveries | No | Yes | Yes | No |
-| View profit/loss reports | Yes | Yes — own pump | Yes — own pump | No |
-| View operator duty / short-sell reports | Yes | Yes — own pump | Yes — own pump | No |
-| Mark nozzle as inactive/offline | No | Yes | Yes | No |
-| Acknowledge shift discrepancies & set resolution action | No | Yes | Yes | No |
-| Approve credit limit override | No | Yes | Yes | No |
-| Log planned meter reset event | Yes (owner only) | No | No | No |
-| Deactivate/terminate an operator or manager | Yes (owner only) | No | No | No |
-| View inventory lot report | Yes | Yes | Yes | No |
-| Configure underground tanks (add/edit/decommission) | Yes (owner only) | No | No | No |
-| Disable / enable underground tank (maintenance) | Yes | Yes | No | No |
-| Record daily DIP measurement | Yes | Yes | Yes | No |
-| Confirm DIP variance above tolerance threshold | Yes | Yes | No | No |
-| Perform post-close meter reading correction | Yes (owner only) | No | No | No |
-| Override overdue billing cycle block for credit customer | Yes | Yes (own pump only) | No | No |
+| Capability | Owner | Admin | Manager | Nozzle Operator | Accountant |
+|---|---|---|---|---|---|
+| Access all pump locations | Yes | No — assigned pump only | No — assigned pump only | No — active shift only | No — assigned pump only |
+| View all reports (all pumps) | Yes | No — own pump only | No — own pump only | No | No — own pump only |
+| Manage pump & nozzle configuration (incl. max nozzle count, fuel outlets) | Yes | No | No | No | No |
+| Create/manage user accounts | Yes | No | No | No | No |
+| Set credit customer interest rate | Yes (owner only) | No | No | No | No |
+| Set credit customer credit limit (permanent) | Yes (owner only) | No | No | No | No |
+| Grant temporary credit limit extension or billing cycle extension | Yes | Yes (own pump only) | No | No | No |
+| Open a shift (assign operator to nozzle) | No | Yes | Yes | No | No |
+| Close a shift / record end readings | No | Yes | Yes | No | No |
+| Submit payment breakdown at handover | No | Yes (on behalf) | Yes (on behalf) | Yes (self-service) | No |
+| Log credit sales during a shift | No | Yes | Yes | Yes (own active shift only) | No |
+| Create/manage credit customer profiles | Yes | Yes | Yes | No | No |
+| Link a credit customer to a pump | Yes | Yes (own pump only) | No | No | No |
+| Log credit customer payments | No | Yes | Yes | No | No |
+| Generate credit statements | No | Yes | Yes | No | No |
+| Update Global Fuel Sell Price (per fuel type) | Yes | Yes | Yes | No | No |
+| Log tanker fuel deliveries | No | Yes | Yes | No | No |
+| View profit/loss reports | Yes | Yes — own pump | Yes — own pump | No | Yes — own pump (read-only) |
+| View operator duty / short-sell reports | Yes | Yes — own pump | Yes — own pump | No | Yes — own pump (read-only) |
+| View balance sheets and financial reports | Yes | Yes — own pump | Yes — own pump | No | Yes — own pump (read-only) |
+| View expenses | Yes | Yes | Yes | No | Yes — own pump (read-only) |
+| Create/submit expenses | No | Yes | Yes | No | No |
+| Approve/reject expenses | Yes | Yes (own pump only, above threshold) | No | No | No |
+| Generate/view payroll records | Yes | Yes | Yes | No | Yes — own pump (read-only) |
+| Approve payroll records | Yes | Yes | No | No | No |
+| Mark nozzle as inactive/offline | No | Yes | Yes | No | No |
+| Acknowledge shift discrepancies & set resolution action | No | Yes | Yes | No | No |
+| Approve credit limit override | No | Yes | Yes | No | No |
+| Log planned meter reset event | Yes (owner only) | No | No | No | No |
+| Deactivate/terminate an operator or manager | Yes (owner only) | No | No | No | No |
+| View inventory lot report | Yes | Yes | Yes | No | Yes — read-only |
+| Configure underground tanks (add/edit/decommission) | Yes (owner only) | No | No | No | No |
+| Disable / enable underground tank (maintenance) | Yes | Yes | No | No | No |
+| Record daily DIP measurement | Yes | Yes | Yes | No | No |
+| Confirm DIP variance above tolerance threshold | Yes | Yes | No | No | No |
+| Perform post-close meter reading correction | Yes (owner only) | No | No | No | No |
+| Override overdue billing cycle block for credit customer | Yes | Yes (own pump only) | No | No | No |
+| Log nozzle calibration events | Yes | Yes | Yes | No | No |
+| View nozzle calibration history | Yes | Yes | Yes | No | No |
+| Create/manage shift plans | No | Yes | Yes | No | No |
+| Manage ancillary products and stock | No | Yes | Yes | No | No |
+| Record ancillary sales | No | Yes | Yes | No | No |
 
 **Role definitions:**
 - **Owner** — the business owner. Full access to all pumps and all administrative functions. Cannot be assigned to a pump.
 - **Admin** — a senior staff member at a specific pump who has all operational capabilities of a Manager, **plus the additional ability to perform manual corrections** — specifically: physical stock adjustments (Section 4.12), meter reading amendments (after owner approval), and credit interest adjustments. Think of Admin as a "senior manager with correction authority." A Manager cannot perform these corrections; only Admin and Owner can. Scoped to one pump.
-- **Manager** — responsible for day-to-day shift operations at a pump. Opens and closes shifts, handles handovers, logs deliveries. Scoped to one pump.
+- **Manager** — responsible for day-to-day shift operations at a pump. Opens and closes shifts, handles handovers, logs deliveries, submits and manages expenses. Scoped to one pump.
 - **Nozzle Operator** — frontline fuel dispenser. Logs credit sales during their active shift and submits payment breakdown at handover. Minimal system access.
+- **Accountant** — read-only access to all financial data for their assigned pump. Can view balance sheets, P&L reports, credit ledgers, expenses, payroll records, and inventory reports, but cannot create or modify any records. This role exists to give finance staff visibility without granting operational permissions. Scoped to one pump.
 
 ### Notes on Scope
 
@@ -239,19 +253,23 @@ The price paid to the fuel supplier per litre (or per kg for CNG). This is recor
 
 ### 3.5 Shift
 
-The central operational record of the system. A shift represents one operator's assignment to one nozzle for one 8-hour block of time. It is the unit of accountability.
+The central operational record of the system. A shift represents one operator's assignment to one nozzle for one time-bounded block of work. It is the unit of accountability.
 
-There are exactly **3 fixed shifts per day** at every pump location:
+**Shift definitions are configurable per pump.** The Owner defines one or more **Pump Shift Definitions** (Section 3.16b) for each pump location, specifying the name, start time, end time, and whether the shift is a night shift. The default setup follows three 8-hour windows that together cover 24 hours without overlap:
 - **Shift 1 (Night):** 12:00 AM – 8:00 AM
 - **Shift 2 (Morning):** 8:00 AM – 4:00 PM
 - **Shift 3 (Evening):** 4:00 PM – 12:00 AM
 
-All shifts must be closed by their scheduled end time. There are no cross-midnight shifts. This ensures the daily balance sheet always covers exactly 3 complete shifts.
+However, owners may configure different window durations, names, or counts to match their operational reality. The system enforces that shift definition groups must not have overlapping windows, and that the end time of one definition cannot equal the start time of another within the same group. A shift definition marked as a **night shift** (`isNightShift = true`) affects payroll calculations — see Section 3.18.
+
+**End-time exclusivity:** The end time of a shift definition is exclusive — a shift defined as 8:00 AM – 4:00 PM covers the period up to but not including 4:00 PM. This prevents boundary ambiguity when one shift ends and the next begins at the same clock time.
+
+All open shifts must be closed by their scheduled shift definition end time. Unless a shift definition crosses midnight, there are no cross-midnight shifts.
 
 A shift record holds:
 - Which nozzle unit it is for
 - Which operator is assigned
-- **Shift window** — which of the 3 fixed windows this shift belongs to: Shift 1 (12AM–8AM), Shift 2 (8AM–4PM), or Shift 3 (4PM–12AM). Selected by the manager when opening the shift.
+- **Shift definition** — which configured shift definition this shift belongs to (e.g., "Night Shift" 12AM–8AM, "Morning Shift" 8AM–4PM). Selected by the manager when opening the shift. Stored as a reference to the `PumpShiftDefinition` record (see Section 3.16b).
 - The shift start date and actual start time (recorded clock time — may differ from the window's scheduled start)
 - The start meter reading(s) — one per fuel type on that nozzle
 - The fuel sell price(s) at the time the shift started — snapshotted and locked at the moment the shift is opened
@@ -452,7 +470,139 @@ DIP Correction records are immutable once confirmed. They appear in the Inventor
 
 ---
 
-### 3.7 Credit Sale
+### 3.16 Pump Expense
+
+A record of an operational expenditure at a pump location. Expenses are submitted by the Manager or Admin and follow an approval workflow before being included in financial reports.
+
+Each expense record holds:
+- **Pump reference** — which pump location this expense belongs to
+- **Category** — one of: `FUEL`, `MAINTENANCE`, `SALARY`, `UTILITIES`, `EQUIPMENT`, `OTHER`
+- **Amount** — monetary value of the expense (BigDecimal, never float)
+- **Description** — free-text description of what the expense was for (mandatory)
+- **Expense date** — the date the expense was incurred
+- **Approval status** — one of:
+  - `PENDING_APPROVAL` — submitted by Manager, awaiting review
+  - `APPROVED` — accepted by Admin or Owner
+  - `REJECTED` — declined, with a mandatory rejection reason
+  - `DRAFT` — saved but not yet submitted for approval (only DRAFT expenses can be deleted)
+- **Submitted by** — user ID, name, role, and UTC timestamp of the person who created the record
+- **Reviewed by** — user ID, name, role, and UTC timestamp of the Admin/Owner who approved or rejected it
+- **Rejection reason** — mandatory free-text field when status is REJECTED
+
+**Auto-approval rule:** Expenses submitted by the Owner or Admin are auto-approved immediately. Expenses submitted by a Manager require Admin or Owner approval if they exceed the pump's configured `ExpenseApprovalThreshold`. If the amount is at or below the threshold, they are also auto-approved.
+
+Approved expenses appear in the Daily Balance Sheet's expense section and feed into the Profit/Loss report for net profit calculation (see Section 7.4). Rejected and Draft expenses are excluded from financial reports.
+
+---
+
+### 3.16b Pump Shift Definition
+
+A configuration record owned by the pump that defines one named shift window. The system uses these records — not a hardcoded enum — to determine valid shift boundaries, auto-close timing, and payroll calculations.
+
+Each Pump Shift Definition holds:
+- **Pump reference** — which pump location this definition belongs to
+- **Name** — a human-readable label (e.g., "Night Shift", "Morning Shift", "Evening Shift")
+- **Start time** — wall clock time the shift window begins (e.g., 00:00)
+- **End time** — wall clock time the shift window ends (exclusive). A shift window ending at 08:00 covers the period up to, but not including, 08:00.
+- **Is night shift** — boolean flag used by payroll calculations to apply the correct hourly rate (see Section 3.18)
+- **Is active** — whether this definition is currently in use
+
+**Overlap rule:** No two shift definitions at the same pump may have overlapping time windows. The system enforces this at the time of creation or update. Group-level date range validation prevents scheduling conflicts across definition sets.
+
+---
+
+### 3.17 Ancillary Product
+
+An ancillary (counter) product is a non-fuel item sold at the pump — for example, engine oil, car wash supplies, air fresheners, or bottled water. The ancillary products system provides full inventory management with FIFO cost tracking, independent of the fuel inventory system.
+
+**Ancillary Product record holds:**
+- **Name** — product name (e.g., "Castrol GTX 10W-40")
+- **Brand** — manufacturer or supplier brand
+- **Variant** — variant or SKU description (e.g., "1L bottle")
+- **Package size** — numeric size of the package
+- **Unit of measure** — one of: `LITRE`, `KG`, `PIECE`
+- **Current stock units** — live count of units on hand (updated on every delivery and sale)
+- **Low stock threshold** — unit count below which a `ANCILLARY_LOW_STOCK` notification is triggered
+- **GST rate (%)** — the applicable GST rate for this specific product (per-product, not a global setting)
+- **Status** — `ACTIVE` or `INACTIVE`
+
+**Ancillary Stock Lot:** Each stock delivery creates an `AncillaryStockLot` — equivalent to an Inventory Lot for fuel — with delivery date, cost per unit, initial units, remaining units, and status (`ACTIVE` / `CONSUMED`). FIFO deduction applies: oldest lot consumed first.
+
+**Ancillary Sale record holds:**
+- Product reference and quantity sold
+- Revenue (quantity × current sell price)
+- GST amount charged
+- Payment mode — one of: `CASH`, `UPI`, `CARD`, `FLEET_CARD`, `CREDIT`
+- Shift reference (optional — links the sale to a shift if it occurred during an active shift)
+- Logged by and timestamp
+
+Ancillary sales and FIFO lot consumption are atomic — when a sale is recorded, the system deducts from the oldest active stock lot immediately. An `AncillaryLotConsumption` record is created for each lot touched (analogous to `LotConsumption` for fuel).
+
+**Relationship to balance sheet:** Ancillary product sales appear as a separate line item on the Daily Balance Sheet (Section 7.2b) under "Product Sales." They are not included in fuel revenue calculations.
+
+---
+
+### 3.18 Payroll Record
+
+A payroll record captures the salary calculation for one employee for a given pay period. It is generated by the Manager or Admin and follows a lifecycle of DRAFT → APPROVED → PAID.
+
+Each Payroll Record holds:
+- **Employee reference** — which staff member this payroll record is for
+- **Pay period** — start date and end date of the pay period
+- **Salary model** — determines how gross pay is calculated:
+  - **HOURLY_SHIFT** (used for Nozzle Operators): gross pay = (night shift hours × night shift rate) + (non-night shift hours × standard rate). The system queries all closed shifts for this operator in the pay period, partitions them by `isNightShift` flag on the shift's definition, and computes actual hours from shift start/end times.
+  - **DAILY** (used for Manager, Admin, Accountant): gross pay = (total calendar days in period − approved leave days) × daily rate. Leave days are sourced from the `StaffLeave` records for the employee.
+- **Snapshotted rates** — the hourly/daily rates at the time of generation are frozen into the record so it remains self-contained and auditable even if rates change later
+- **Gross pay** — calculated total before deductions
+- **Deductions** — salary deductions linked to resolved shift discrepancies (see Section 3.11)
+- **Net pay** — gross pay minus deductions
+- **Status** — `DRAFT`, `APPROVED`, or `PAID`. Only DRAFT records can be deleted.
+- **Generated by** and **Approved by** — user IDs, names, and UTC timestamps
+
+Payroll records integrate with the Short/Over Sell Ledger — when a discrepancy resolution action is "Salary Deduction," the deduction amount appears in the relevant payroll record's deductions field.
+
+---
+
+### 3.19 Nozzle Calibration Log
+
+A compliance record created each time a nozzle is calibrated by a certified agency. Required by fuel retail regulations; overdue calibration blocks new shifts on the nozzle.
+
+Each Nozzle Calibration Log holds:
+- **Nozzle reference** — which nozzle was calibrated
+- **Calibration date** — the date the calibration was performed
+- **Next calibration due** — the date by which recalibration is required (set at the time of logging)
+- **Calibrated by** — name of the certifying agency or engineer
+- **Certificate reference** — calibration certificate number (for compliance audit)
+- **Notes** — free-text field for any additional observations
+- **Logged by** — user ID, name, role, and UTC timestamp of the person who entered the record
+
+**Enforcement:** When a manager attempts to open a shift on a nozzle, the system checks whether the nozzle has a calibration log with a `next_calibration_due` date that has passed beyond a configured tolerance period. If calibration is overdue, the shift is blocked: "Nozzle [X] calibration is overdue since [date]. Please log a new calibration certificate before opening a shift." A `CALIBRATION_DUE` notification is also triggered (see Section 3.20).
+
+---
+
+### 3.20 Notification
+
+An in-app alert generated when a noteworthy event or condition is detected at a pump. Notifications are displayed to relevant users via a notification bell in the UI. They are generated lazily — at the time the user fetches the notification bell — rather than by a background job, to avoid unnecessary processing.
+
+**Deduplication:** Each notification has a `dedup_key` scoped to the pump. The system will not create a duplicate notification for the same event type and dedup key within a pump. This prevents alert flooding when the same condition persists across multiple page loads.
+
+**Supported notification types:**
+
+| Type | Trigger |
+|---|---|
+| `LOW_STOCK` | Fuel inventory for a tank drops below a configurable threshold |
+| `ANCILLARY_LOW_STOCK` | Ancillary product stock drops below its configured low stock threshold |
+| `PRICE_STALE` | Global Fuel Sell Price has not been updated within a configurable number of days |
+| `DOCUMENT_EXPIRING` | A compliance document is approaching its expiry date |
+| `CALIBRATION_DUE` | A nozzle's `next_calibration_due` date has passed |
+| `SHIFT_OVERDUE` | A shift has exceeded its scheduled end window and is in OPEN_OVERDUE status |
+| `AUTO_CLOSED_SHIFT` | A shift was auto-closed by the overdue job and is awaiting manager end readings |
+| `ZERO_SALE_SHIFT` | A shift closed with zero units sold — may indicate a staffing or operational issue |
+| `PRICE_CHANGE_OPEN_SHIFT` | The Global Fuel Sell Price was updated while one or more shifts are currently open |
+
+Each notification record holds: pump reference, notification type, title, message body, `dedup_key`, `created_at`, and `read_at` (null until the user views it).
+
+---
 
 A record of fuel dispensed to a credit customer during a specific shift. It is linked to both the shift it occurred in and the credit customer it was for. It holds:
 - **Shift reference** — the Shift ID this credit sale belongs to (mandatory foreign key). A credit sale record cannot exist without a parent shift. This is the primary link for attributing the sale to a specific nozzle, price snapshot, and time window.
@@ -967,6 +1117,136 @@ Each report type is specified in detail in Section 7.
 
 ---
 
+### 4.13 Expense Recording and Approval Flow
+
+**Who performs this:** Manager or Admin submits; Admin or Owner approves.
+
+**When it happens:** Any time an operational expense is incurred at the pump (maintenance work, utility bills, equipment purchases, etc.).
+
+**Step-by-step:**
+
+1. The Manager navigates to the Expenses section and selects "Record Expense."
+
+2. They enter: category, amount, description, and expense date.
+
+3. They submit the expense. The system applies the auto-approval rule:
+   - If submitted by Owner or Admin — automatically approved.
+   - If submitted by Manager and amount ≤ pump's configured `ExpenseApprovalThreshold` — automatically approved.
+   - If submitted by Manager and amount > threshold — status is set to `PENDING_APPROVAL` and the Admin/Owner is notified.
+
+4. The Admin or Owner reviews pending expenses and approves or rejects each one with a mandatory reason for rejections.
+
+5. Approved expenses are included in the Daily Balance Sheet and P&L for the expense date. Rejected and Draft expenses are excluded.
+
+Only DRAFT expenses can be deleted. Once submitted (PENDING_APPROVAL) or reviewed (APPROVED/REJECTED), the record is permanent in the audit trail.
+
+---
+
+### 4.14 Shift Planning Flow
+
+**Who performs this:** Manager or Admin
+
+**When it happens:** At the start of each week, to plan staff assignments for the upcoming week.
+
+**Why it matters:** Proactive shift planning ensures the right number of operators are scheduled per shift window, accounts for leave and preferences, and reduces last-minute scrambling.
+
+**Step-by-step:**
+
+1. The Manager navigates to the Shift Planning section and selects the target week (Monday–Sunday).
+
+2. They configure the plan parameters:
+   - **Operators per day shift** — how many operators are needed per non-night shift window per day
+   - **Operators per night shift** — how many operators are needed per night shift window per day
+
+3. The system generates a draft plan (`status = DRAFT`) by auto-allocating available operators to shift definitions, taking into account:
+   - **Staff preferences** — operators can have `PREFER_ON` or `PREFER_OFF` preferences per day of week
+   - **Leave records** — operators with a `StaffLeave` record for a given date are excluded from that date's allocation
+   - **Rotation rules** — the allocation service distributes shifts fairly across operators
+
+4. The Manager reviews the draft plan. Each entry shows: operator, shift definition, date, and status (`PLANNED`).
+
+5. The Manager can manually adjust assignments before publishing.
+
+6. Once satisfied, the Manager publishes the plan (`status = PUBLISHED`). Published plans are visible to operators and managers.
+
+7. As the week progresses, the Manager can mark individual entries as `CONFIRMED` (operator reported for duty) or `ABSENT` (operator did not show).
+
+**Note:** The shift plan is a scheduling aid — it does not automatically open shifts. The manager still manually opens each shift for the actual operator when the shift begins.
+
+---
+
+### 4.15 Ancillary Product Sale Flow
+
+**Who performs this:** Manager or Admin
+
+**When it happens:** When a customer purchases a non-fuel product from the pump counter.
+
+**Step-by-step:**
+
+1. The Manager navigates to Ancillary Products → Sales and selects "Record Sale."
+
+2. They select the product, enter the quantity sold, select the payment mode (Cash, UPI, Card, Fleet Card, or Credit), and optionally associate the sale with an active shift.
+
+3. The system calculates revenue (quantity × current sell price) and GST amount (using the product's configured GST rate).
+
+4. On save, the system:
+   - Deducts the quantity from the oldest active `AncillaryStockLot` (FIFO). If one lot does not cover the full quantity, the deduction spans multiple lots.
+   - Creates an `AncillaryLotConsumption` record for each lot touched.
+   - Updates the product's `current_stock_units`.
+   - Checks if stock has fallen below `low_stock_threshold` and triggers an `ANCILLARY_LOW_STOCK` notification if so.
+
+5. The sale appears in the Daily Balance Sheet under "Product Sales."
+
+---
+
+### 4.16 Payroll Generation Flow
+
+**Who performs this:** Manager or Admin generates; Admin or Owner approves.
+
+**When it happens:** At the end of each pay period (typically weekly or monthly depending on the employee's salary model).
+
+**Step-by-step:**
+
+1. The Manager navigates to Payroll and selects "Generate Payroll."
+
+2. They select the staff member and the pay period (start date and end date).
+
+3. The system calculates gross pay based on the employee's salary model:
+   - **HOURLY_SHIFT:** Queries all closed shifts for this operator in the date range. Partitions shifts by `isNightShift` flag. Multiplies night shift hours by `shift1HourlyRate` and non-night shift hours by `standardHourlyRate`. Sums to gross pay.
+   - **DAILY:** Counts total calendar days in the period. Subtracts approved leave days (from `StaffLeave` records). Multiplies by `dailyRate`.
+
+4. The system snapshots the rates into the record at generation time — the record is self-contained.
+
+5. The system also fetches any linked salary deduction amounts from the operator's Short/Over Sell Ledger (unresolved discrepancies marked as "Salary Deduction") and adds them to the deductions field.
+
+6. The payroll record is created in `DRAFT` status.
+
+7. The Admin or Owner reviews and approves the record (`APPROVED`). Once paid out, they mark it `PAID`.
+
+8. Only `DRAFT` records can be deleted. `APPROVED` records can be rolled back to `DRAFT` if a correction is needed before payment.
+
+---
+
+### 4.17 Nozzle Calibration Logging Flow
+
+**Who performs this:** Manager or Admin
+
+**When it happens:** After a nozzle is physically calibrated by a certified agency.
+
+**Step-by-step:**
+
+1. The Manager navigates to Calibration in the Setup section.
+
+2. They select the nozzle and enter: calibration date, next calibration due date, calibrating agency name, certificate reference number, and any notes.
+
+3. The system creates a `NozzleCalibrationLog` record.
+
+4. The `next_calibration_due` date is now active. The system will check this date when a shift open is attempted on that nozzle (see Section 3.19 enforcement rule).
+
+5. If a nozzle was previously blocked due to overdue calibration, the new log immediately clears the block — the next shift open attempt will succeed provided all other validations pass.
+
+---
+
 ## 5. Business Rules
 
 These are the hard rules the system must enforce without exception. They are not optional validations — they are system-enforced constraints.
@@ -1021,7 +1301,7 @@ These are the hard rules the system must enforce without exception. They are not
 
 25. **Interest charges that have been confirmed and posted to a customer's ledger are immutable.** If a manager made an error (wrong rate applied), a corrective credit entry must be created — the original interest record cannot be deleted or edited.
 
-26. **Shifts follow fixed 8-hour windows — there are exactly 3 shifts per day per pump.** Shift 1: 12:00 AM–8:00 AM, Shift 2: 8:00 AM–4:00 PM, Shift 3: 4:00 PM–12:00 AM. A shift must be closed within its window. There are no cross-midnight shifts and no custom-duration shifts.
+26. **Shifts follow the pump's configured shift definition windows.** By default there are three 8-hour windows covering 24 hours (12:00 AM–8:00 AM, 8:00 AM–4:00 PM, 4:00 PM–12:00 AM), but the owner may configure different windows via Pump Shift Definitions (Section 3.16b). A shift must be closed by its definition's scheduled end time. Shift definition groups must not have overlapping windows. End times are exclusive (a shift ending at 4:00 PM ends before 4:00 PM, not after).
 
 27. **An operator can only have one open shift at a time, across all nozzles.** If an operator already has an open shift on any nozzle, the system must block a new shift from being opened for them until the existing one is closed. **The system must enforce a database-level unique constraint on (operator_id + status=OPEN)** in addition to the application-level check. This is analogous to the nozzle-level constraint in Business Rule 33. Application-level checks alone are insufficient to prevent race conditions when two concurrent shift-open requests are processed simultaneously.
 
@@ -1527,21 +1807,35 @@ This dashboard does not replace the formal Daily Balance Sheet — it is a live 
 
 ## 8. Future Enhancements
 
-The following features are explicitly **out of scope for Version 1**. They are documented here so the development team can make architectural decisions that do not close the door on these enhancements in later phases.
+The following features are out of scope for the current version. They are documented here so the development team can make architectural decisions that do not close the door on these enhancements in later phases.
+
+> **Already Implemented (moved from this list):**
+> - Expense tracking and approval workflow — now in Section 3.16 and Section 4.13
+> - Shift planning and staff scheduling — now in Section 4.14
+> - Ancillary (counter) product sales and FIFO inventory — now in Section 3.17 and Section 4.15
+> - Payroll generation for operators and managers — now in Section 3.18 and Section 4.16
+> - Nozzle calibration compliance logging — now in Section 3.19 and Section 4.17
+> - In-app notification system — now in Section 3.20
+> - Credit customer self-service balance portal (public, unauthenticated — pump ID + phone number lookup)
+> - Low stock in-app alerts (fuel and ancillary) via notification system
 
 1. **Operator Self-Login with Liveness Check:** Currently, operators do not log into the system themselves — the manager acts on their behalf for shift opening and can close shifts, while the operator submits the payment breakdown. In a future version, operators will have their own mobile app login with a liveness check (real-time photo verification) to prove they are physically present at the pump at shift start. This improves accountability at high-volume pumps.
 
 2. **POS Terminal Integration for UPI/Card Payments:** Currently, digital payment amounts are entered manually by the operator. In a future version, the system will integrate with POS terminals (card machines / QR code payment devices) to automatically pull the total digital payments collected during a shift. This eliminates manual entry errors and reduces reconciliation discrepancies.
 
-3. **Fuel Company API Integration for Automated Price Updates:** Fuel prices in India are updated daily by oil marketing companies. Version 1 requires the Admin/Manager to manually update the Global Fuel Sell Price. In a future version, an integration with the relevant fuel company API will push price updates directly into the Global Fuel Sell Price record automatically. The system will still enforce the 15% deviation guard and require confirmation for any change. This eliminates the daily manual step entirely.
+3. **Fuel Company API Integration for Automated Price Updates:** Fuel prices in India are updated daily by oil marketing companies. The system currently requires the Admin/Manager to manually update the Global Fuel Sell Price. In a future version, an integration with the relevant fuel company API will push price updates directly into the Global Fuel Sell Price record automatically. The system will still enforce the 15% deviation guard and require confirmation for any change.
 
 4. **Automated SMS/WhatsApp Billing for Credit Customers:** At the end of each billing cycle, the system will automatically generate and send a billing statement to the credit customer via SMS or WhatsApp. This replaces the current manual generation and download process.
 
-5. **Expense Tracking for Full P&L:** The Version 1 P&L only covers gross profit from fuel sales. A future version will include operating expense tracking — salaries, electricity, maintenance costs, rent, etc. — to produce a true net profit/loss statement.
+5. **Full P&L with Expense-Based Net Profit:** The current P&L covers gross profit from fuel sales only. Approved pump expenses (Section 3.16) feed into the balance sheet, but a dedicated full net P&L statement — with expense category breakdowns and operating cost trends — is planned as a reporting enhancement.
 
-6. **Loyalty/Points System for Regular Customers:** A rewards programme where regular (non-credit) retail customers can accumulate points based on fuel purchased and redeem them for discounts. This is a customer retention feature and is entirely separate from the credit customer system.
+6. **Loyalty/Points System for Regular Customers:** A rewards programme where regular (non-credit) retail customers can accumulate points based on fuel purchased and redeem them for discounts. This is a customer retention feature entirely separate from the credit customer system.
 
-7. **Low Inventory Alerts and Auto Re-Order Suggestions:** When the fuel inventory for a given type drops below a configurable threshold (e.g., less than 5,000 litres remaining), the system will send an alert to the manager and owner. In a future phase, it could also generate a suggested re-order quantity based on average daily consumption rates.
+7. **OAuth / SSO Authentication:** Password-based login is used in the current version. A future version will support OAuth 2.0 / enterprise SSO (e.g., Google) for improved security and a passwordless experience. The migration must be non-breaking for existing password credentials.
+
+8. **PDF/Excel Report Export:** Report download as PDF or Excel is planned but not yet implemented. On-screen display is available. Export will be capped at 6 months per export (see Q18 resolution).
+
+9. **Mobile App for Nozzle Operators:** A dedicated mobile experience with a simplified shift handover interface and credit sale logging for nozzle operators. Currently the web app is the primary interface for all roles.
 
 ---
 
@@ -1710,3 +2004,4 @@ Three jobs implied by the spec are now formally defined:
 | 2.2 | 31 March 2026 | — | Engineering review pass 2: Section 3.0 password hash field added, Section 3.3 nozzle fields + maximum meter value formalised, Section 3.4 pump reference added to Global Fuel Sell Price fields, Section 3.6 Credit Customer–Pump Link sub-entity defined + pump-level suspension vs global deactivation clarified, Section 3.8 logged_by + pump reference + payment mode enum added, Section 3.9 logged_by + delivery date note added, Section 3.15 DIP Correction entity added, Section 4.1 shift window timing validation added, Section 7.2b opening stock fallback defined, Q23 (retroactive delivery date FIFO impact) and Q24 (Owner pump selector for price update) added |
 | 2.3 | 31 March 2026 | — | Q23 + Q24 resolved. Credit Extension model added: Admin or Owner can grant temporary credit limit extensions, billing cycle extensions, or overdue block waivers (pump-scoped, mandatory expiry, one active extension per type). Business Rules 58–60 added. Rule 51 updated (Admin + Owner can override overdue block). Rule 22 updated (Admin can grant extensions; Owner only for permanent limit). Section 2 capability table updated (split credit limit rows; overdue block override now Admin + Owner). Section 4.5 overdue block warning updated. |
 | 3.0 | 31 March 2026 | — | Major redesign: (1) Nozzle outlet model — replaced fixed DUAL/CNG type with flexible per-outlet model supporting all 5 fuel types (PETROL, SPEED_PETROL, DIESEL, SPEED_DIESEL, CNG); Section 3.3 fully rewritten with fuel type table, outlet record fields, CNG mixing rule, and tank assignment explanation. (2) FIFO scope change — FIFO is now per pump + fuel type (not per tank); Section 3.9a "Critical" paragraph, Section 3.10, and Rule 42 fully updated. (3) Explicit tank creation — tanks are now created manually by the owner (not auto-created with nozzles); Section 3.13 updated. (4) Tank INACTIVE status — new ACTIVE/INACTIVE/DECOMMISSIONED status model for underground tanks; Section 3.13 expanded with disable/enable rules, FIFO exclusion, delivery/DIP block; Business Rules 61–64 added; Section 6.3 (new edge case) added. (5) 5 fuel type rules — Business Rules 65–66 added for fuel type validation and CNG mixing enforcement. (6) Shift flows updated — Section 4.1 steps 5–6 and example, Section 4.2 steps 2–3, Section 4.5 step 4 all updated for outlet-based readings and multi-outlet nozzle terminology. (7) Section 3.4 fuel type field updated; Section 3.7 credit sale fuel type updated; Section 3.14 outlet/fuel type field updated; Section 6.8 updated for outlet model; Section 7.1 header updated. |
+| 4.0 | 7 April 2026 | — | Synced spec with implemented codebase. (1) Accountant role added — Section 2 capability table and role definitions updated. (2) Dynamic shift definitions — Section 3.5 Shift updated to reference PumpShiftDefinition (Section 3.16b) instead of hardcoded 3-window enum; Business Rule 26 updated; end-time exclusivity and isNightShift flag documented. (3) New entities added — Section 3.16 PumpExpense (categories, approval workflow, auto-approval threshold), Section 3.16b PumpShiftDefinition (configurable windows, overlap rule, end-time exclusivity), Section 3.17 AncillaryProduct (FIFO lot tracking, per-product GST, AncillarySale, AncillaryLotConsumption), Section 3.18 PayrollRecord (HOURLY_SHIFT and DAILY models, rate snapshots, leave integration, deduction linkage), Section 3.19 NozzleCalibrationLog (calibration enforcement on shift open, certificate tracking), Section 3.20 Notification (9 notification types, lazy generation, dedup_key). (4) New system flows added — Section 4.13 Expense Recording and Approval, Section 4.14 Shift Planning, Section 4.15 Ancillary Product Sale, Section 4.16 Payroll Generation, Section 4.17 Nozzle Calibration Logging. (5) Section 1 "What It Is Not" updated — removed expense tracking, payroll, ancillary products, shift planning, calibration, notifications from future list. (6) Section 8 Future Enhancements updated — implemented items moved to "Already Implemented" callout; remaining future items revised; new items added (OAuth/SSO, PDF/Excel export, mobile app). |

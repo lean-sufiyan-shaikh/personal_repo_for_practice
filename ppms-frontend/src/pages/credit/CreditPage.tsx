@@ -940,7 +940,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
                   {isOwnerOrAdmin && tx.type === 'INTEREST' && (
                     confirmDeleteInterest?.chargeId === tx.referenceId ? (
                       <span className="inline-flex items-center gap-1">
-                        <button onClick={() => deleteInterestMutation.mutate({ chargeId: tx.referenceId, sourceClientId: tx.sourceClientId })} disabled={deleteInterestMutation.isPending}
+                        <button onClick={() => deleteInterestMutation.mutate({ chargeId: tx.referenceId, sourceClientId: srcClientId })} disabled={deleteInterestMutation.isPending}
                           className="ui-btn ui-btn-danger min-h-0 px-2 py-0.5 text-xs disabled:opacity-50">
                           {deleteInterestMutation.isPending ? '…' : 'Yes'}
                         </button>
@@ -950,7 +950,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
                         </button>
                       </span>
                     ) : (
-                      <button onClick={() => setConfirmDeleteInterest({ chargeId: tx.referenceId, sourceClientId: tx.sourceClientId })}
+                      <button onClick={() => setConfirmDeleteInterest({ chargeId: tx.referenceId, sourceClientId: srcClientId })}
                         className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-red-400 hover:text-red-600"
                         title="Remove this interest charge">
                         Remove

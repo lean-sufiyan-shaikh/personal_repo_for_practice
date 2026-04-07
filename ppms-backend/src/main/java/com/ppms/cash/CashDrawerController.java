@@ -1,6 +1,7 @@
 package com.ppms.cash;
 
 import com.ppms.common.dto.PagedResponse;
+import com.ppms.common.exception.BusinessException;
 import com.ppms.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -69,10 +70,33 @@ public class CashDrawerController {
             @Valid @RequestBody RecordCashEventRequest req,
             @AuthenticationPrincipal User currentUser) {
 
+        BigDecimal amount = req.getAmount().setScale(2, RoundingMode.HALF_UP);
+
+        // Guard: cash-out cannot exceed the current drawer balance.
+        if (req.getEventType() == CashEventType.CASH_OUT) {
+            BigDecimal currentBalance = cashEventRepository
+                    .findByPumpIdOrderByEventDateDescCreatedAtDesc(pumpId)
+                    .stream()
+                    .filter(e -> e.getEventType() == CashEventType.OPENING_BALANCE
+                              || e.getEventType() == CashEventType.CASH_IN
+                              || e.getEventType() == CashEventType.CASH_OUT)
+                    .map(e -> e.getEventType() == CashEventType.CASH_OUT
+                            ? e.getAmount().negate()
+                            : e.getAmount())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            if (amount.compareTo(currentBalance) > 0) {
+                throw new BusinessException(
+                        "Cash-out amount ₹" + amount
+                        + " exceeds the current drawer balance of ₹" + currentBalance + ".");
+            }
+        }
+
         CashEvent event = CashEvent.builder()
                 .pumpId(pumpId)
                 .eventType(req.getEventType())
-                .amount(req.getAmount().setScale(2, RoundingMode.HALF_UP))
+                .amount(amount)
                 .description(req.getDescription().trim())
                 .eventDate(req.getEventDate())
                 .recordedByUserId(currentUser.getId())

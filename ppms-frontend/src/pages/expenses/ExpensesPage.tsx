@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { expenseApi } from '../../api/expenseApi'
-import type { ExpenseCategory, CreateExpenseRequest, ApproveExpenseRequest } from '../../api/expenseApi'
+import type { ExpenseCategory, CreateExpenseRequest, ApproveExpenseRequest, ExpenseApprovalStatus } from '../../api/expenseApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { formatIstDate, localDateInputValue } from '../../utils/date'
@@ -36,7 +36,7 @@ export default function ExpensesPage() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
   const [categoryFilter, setCategoryFilter] = useState<ExpenseCategory | ''>('')
-  const [statusFilter, setStatusFilter] = useState<'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | ''>('')
+  const [statusFilter, setStatusFilter] = useState<ExpenseApprovalStatus | ''>('')
 
   const { data: expensesPage, isLoading } = useQuery({
     queryKey:  ['expenses', pumpId, page, pageSize, categoryFilter, statusFilter],
@@ -57,6 +57,7 @@ export default function ExpensesPage() {
     amount: 0,
     description: '',
     expenseDate: localDateInputValue(),
+    saveDraft: false,
   })
   const [formError, setFormError] = useState<string | null>(null)
   const [reviewOpen, setReviewOpen] = useState(false)
@@ -65,11 +66,16 @@ export default function ExpensesPage() {
     mutationFn: (data: CreateExpenseRequest) => expenseApi.createExpense(pumpId!, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['expenses', pumpId] })
-      setForm({ category: 'MAINTENANCE', amount: 0, description: '', expenseDate: localDateInputValue() })
+      setForm({ category: 'MAINTENANCE', amount: 0, description: '', expenseDate: localDateInputValue(), saveDraft: false })
       setFormError(null)
       setReviewOpen(false)
     },
     onError: (err: any) => setFormError(err?.response?.data?.message ?? 'Failed to record expense'),
+  })
+
+  const submitMutation = useMutation({
+    mutationFn: (expenseId: number) => expenseApi.submitExpense(pumpId!, expenseId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses', pumpId] }),
   })
 
   const deleteMutation = useMutation({
@@ -212,6 +218,16 @@ export default function ExpensesPage() {
           </div>
         </div>
 
+        <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer w-fit">
+          <input
+            type="checkbox"
+            checked={!!form.saveDraft}
+            onChange={e => setForm(f => ({ ...f, saveDraft: e.target.checked }))}
+            className="rounded border-slate-300 text-blue-600"
+          />
+          Save as draft — submit for approval later
+        </label>
+
         {formError && <p className="ui-error-text">{formError}</p>}
 
         <button
@@ -300,8 +316,9 @@ export default function ExpensesPage() {
               onChange={v => { setStatusFilter(v as any); setPage(0) }}
               options={[
                 { value: '', label: 'All Statuses' },
-                { value: 'APPROVED',         label: 'Approved' },
+                { value: 'DRAFT',            label: 'Draft' },
                 { value: 'PENDING_APPROVAL', label: 'Pending Approval' },
+                { value: 'APPROVED',         label: 'Approved' },
                 { value: 'REJECTED',         label: 'Rejected' },
               ]}
               size="sm"
@@ -340,6 +357,11 @@ export default function ExpensesPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 min-w-0 flex-wrap">
                       <p className="text-sm text-slate-700 truncate">{e.description}</p>
+                      {e.approvalStatus === 'DRAFT' && (
+                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                          Draft
+                        </span>
+                      )}
                       {e.approvalStatus === 'PENDING_APPROVAL' && (
                         <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
                           Pending Approval
@@ -363,6 +385,16 @@ export default function ExpensesPage() {
                   <span className={`text-sm font-semibold ${e.approvalStatus === 'REJECTED' ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
                     {fmtAmt(e.amount)}
                   </span>
+                  {/* Submit — shown on DRAFT expenses to the creator or OWNER/ADMIN */}
+                  {e.approvalStatus === 'DRAFT' && (isOwnerOrAdmin || e.recordedByUserId === user?.userId) && (
+                    <button
+                      onClick={() => submitMutation.mutate(e.id)}
+                      disabled={submitMutation.isPending}
+                      className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
+                    >
+                      Submit
+                    </button>
+                  )}
                   {/* Approve/Reject — only for Owner/Admin on pending expenses */}
                   {isOwnerOrAdmin && e.approvalStatus === 'PENDING_APPROVAL' && (
                     <>
@@ -382,7 +414,8 @@ export default function ExpensesPage() {
                       </button>
                     </>
                   )}
-                  {isOwner && e.approvalStatus !== 'PENDING_APPROVAL' && (
+                  {/* Delete — DRAFT only, backend enforces this; OWNER only */}
+                  {isOwner && e.approvalStatus === 'DRAFT' && (
                     <button
                       onClick={() => deleteMutation.mutate(e.id)}
                       disabled={deleteMutation.isPending}

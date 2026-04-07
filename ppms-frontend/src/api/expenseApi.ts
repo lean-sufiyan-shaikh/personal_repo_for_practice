@@ -2,7 +2,7 @@ import client from './client'
 import type { PagedResponse } from '../types/paged'
 
 export type ExpenseCategory = 'FUEL' | 'MAINTENANCE' | 'SALARY' | 'UTILITIES' | 'EQUIPMENT' | 'OTHER'
-export type ExpenseApprovalStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED'
+export type ExpenseApprovalStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED'
 
 export interface PumpExpense {
   id: number
@@ -16,6 +16,8 @@ export interface PumpExpense {
   approvedByUserId: number | null
   approvedAt: string | null
   approvalNotes: string | null
+  submittedByUserId: number | null
+  submittedAt: string | null
   createdAt: string
 }
 
@@ -24,6 +26,7 @@ export interface CreateExpenseRequest {
   amount: number
   description: string
   expenseDate: string
+  saveDraft?: boolean
 }
 
 export interface ApproveExpenseRequest {
@@ -48,6 +51,9 @@ export const expenseApi = {
 
   approveExpense: (pumpId: number, expenseId: number, data: ApproveExpenseRequest): Promise<PumpExpense> =>
     client.patch(`/pumps/${pumpId}/expenses/${expenseId}/approve`, data).then(r => r.data),
+
+  submitExpense: (pumpId: number, expenseId: number): Promise<PumpExpense> =>
+    client.patch(`/pumps/${pumpId}/expenses/${expenseId}/submit`).then(r => r.data),
 
   deleteExpense: (pumpId: number, expenseId: number): Promise<void> =>
     client.delete(`/pumps/${pumpId}/expenses/${expenseId}`).then(r => r.data),

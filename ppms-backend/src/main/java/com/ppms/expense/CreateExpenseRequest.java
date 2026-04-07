@@ -23,4 +23,11 @@ public class CreateExpenseRequest {
 
     @NotNull(message = "expenseDate is required")
     private LocalDate expenseDate;
+
+    /**
+     * When true, saves the expense as DRAFT without triggering the approval workflow.
+     * Submit later via PATCH .../submit to start the approval flow.
+     * Defaults to false — omitting it behaves exactly as before (immediate submission).
+     */
+    private boolean saveDraft = false;
 }

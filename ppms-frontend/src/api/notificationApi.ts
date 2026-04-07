@@ -1,6 +1,15 @@
 import client from './client'
 
-export type NotificationType = 'LOW_STOCK' | 'PRICE_STALE' | 'DOCUMENT_EXPIRING' | 'CALIBRATION_DUE' | 'SHIFT_OVERDUE'
+export type NotificationType =
+  | 'LOW_STOCK'
+  | 'PRICE_STALE'
+  | 'DOCUMENT_EXPIRING'
+  | 'CALIBRATION_DUE'
+  | 'SHIFT_OVERDUE'
+  | 'ZERO_SALE_SHIFT'
+  | 'PRICE_CHANGE_OPEN_SHIFT'
+  | 'ANCILLARY_LOW_STOCK'
+  | 'AUTO_CLOSED_SHIFT'
 
 export interface Notification {
   id: number

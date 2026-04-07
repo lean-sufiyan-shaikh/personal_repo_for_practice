@@ -47,15 +47,17 @@ public class PumpExpense {
     private Long recordedByUserId;
 
     /**
-     * Approval lifecycle: PENDING_APPROVAL → APPROVED or REJECTED.
-     * Auto-set to APPROVED when submitted by OWNER/ADMIN or when amount is at/below the threshold.
-     * Set to PENDING_APPROVAL when submitted by OPERATOR/MANAGER and amount exceeds the threshold.
+     * Full lifecycle: DRAFT → PENDING_APPROVAL → APPROVED or REJECTED.
+     * DRAFT        — saved but not yet submitted; only DRAFT expenses can be deleted.
+     * PENDING_APPROVAL — submitted by MANAGER/OPERATOR, waiting for Owner/Admin review.
+     * APPROVED     — auto-approved (OWNER/ADMIN submission or amount ≤ threshold) or manually approved.
+     * REJECTED     — declined by reviewer; excluded from all financial calculations.
      */
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "approval_status", nullable = false)
     @Builder.Default
-    private ExpenseApprovalStatus approvalStatus = ExpenseApprovalStatus.APPROVED;
+    private ExpenseApprovalStatus approvalStatus = ExpenseApprovalStatus.DRAFT;
 
     @Column(name = "approved_by_user_id")
     private Long approvedByUserId;
@@ -65,6 +67,16 @@ public class PumpExpense {
 
     @Column(name = "approval_notes")
     private String approvalNotes;
+
+    /**
+     * Set when a DRAFT expense is explicitly submitted for approval.
+     * NULL for expenses that were auto-approved at creation (OWNER/ADMIN fast path).
+     */
+    @Column(name = "submitted_by_user_id")
+    private Long submittedByUserId;
+
+    @Column(name = "submitted_at")
+    private OffsetDateTime submittedAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

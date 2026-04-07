@@ -375,21 +375,39 @@ export default function ShiftPlanningPage() {
                               <td key={day} className={`px-2 py-2 align-top ${isPast ? 'opacity-80' : ''}`}>
                                 <div className="space-y-1">
                                   {isPast ? (
-                                    // Past date: show who actually worked (from real Shift records)
-                                    actualOpIds.length > 0 ? (
-                                      actualOpIds.map(opId => (
-                                        <div key={opId} className="flex items-center gap-1">
-                                          <span className="truncate text-slate-600 font-medium">
-                                            {staffById[opId]?.fullName ?? `#${opId}`}
-                                          </span>
-                                          <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full shrink-0 bg-emerald-100 text-emerald-700">
-                                            ✓
-                                          </span>
-                                        </div>
-                                      ))
-                                    ) : (
-                                      <span className="text-slate-300 text-xs italic">No shift</span>
-                                    )
+                                    // Past date: show confirmed (actually worked) + absent (planned but didn't show)
+                                    (() => {
+                                      const absentEntries = slotEntries.filter(
+                                        e => !actualOpIds.includes(e.operatorUserId)
+                                      )
+                                      if (actualOpIds.length === 0 && absentEntries.length === 0) {
+                                        return <span className="text-slate-300 text-xs italic">No shift</span>
+                                      }
+                                      return (
+                                        <>
+                                          {actualOpIds.map(opId => (
+                                            <div key={opId} className="flex items-center gap-1">
+                                              <span className="truncate text-slate-600 font-medium">
+                                                {staffById[opId]?.fullName ?? `#${opId}`}
+                                              </span>
+                                              <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full shrink-0 bg-emerald-100 text-emerald-700">
+                                                ✓
+                                              </span>
+                                            </div>
+                                          ))}
+                                          {absentEntries.map(entry => (
+                                            <div key={`absent-${entry.id}`} className="flex items-center gap-1">
+                                              <span className="truncate text-slate-400 font-medium">
+                                                {staffById[entry.operatorUserId]?.fullName ?? `#${entry.operatorUserId}`}
+                                              </span>
+                                              <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full shrink-0 bg-red-100 text-red-600">
+                                                ✗
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </>
+                                      )
+                                    })()
                                   ) : (
                                     // Future / today: show plan entries
                                     <>

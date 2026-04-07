@@ -95,6 +95,26 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
             """)
     List<Shift> findByPumpIdAndOperatorIdAndDateRange(Long pumpId, Long operatorId, LocalDate from, LocalDate to);
 
+    /**
+     * Returns closed shifts for an operator in a date range where the discrepancy was resolved
+     * via SALARY_DEDUCTION. Used by PayrollController to compute payroll deductions:
+     * deductions = SUM(discrepancy_amount) for these shifts.
+     */
+    @Query("""
+            SELECT s FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.operatorId = :operatorId
+              AND s.shiftDate BETWEEN :from AND :to
+              AND s.discrepancyResolution = com.ppms.shift.DiscrepancyResolution.SALARY_DEDUCTION
+              AND s.discrepancyAmount IS NOT NULL
+            ORDER BY s.shiftDate ASC
+            """)
+    List<Shift> findSalaryDeductionShifts(
+            @Param("pumpId") Long pumpId,
+            @Param("operatorId") Long operatorId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
+
     // ── Balance sheet queries ─────────────────────────────────────────────────
 
     /**

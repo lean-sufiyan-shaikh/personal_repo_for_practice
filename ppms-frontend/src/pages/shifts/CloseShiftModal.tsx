@@ -258,15 +258,15 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
       <div className="ui-modal-panel ui-modal-panel--lg w-full max-w-lg overflow-hidden my-auto">
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
-        <div className={`ui-modal-header ui-modal-header--themed ${headerToneClass}`}>
-          <div className="ui-modal-heading">
+        <div className={`ui-modal-header ui-modal-header--themed ${headerToneClass} relative`}>
+          <div className="ui-modal-heading pr-10">
             <h2 className="ui-modal-title">Close Shift</h2>
             <p className="ui-modal-subtitle">
               Nozzle #{shift.nozzleNumber} · {shift.operatorName} · {shift.shiftWindow}
             </p>
           </div>
           <button type="button" onClick={onClose}
-            className="ui-btn ui-btn-ghost ui-modal-close">
+            className="ui-btn ui-btn-ghost ui-modal-close absolute top-3 right-3">
             ×
           </button>
 

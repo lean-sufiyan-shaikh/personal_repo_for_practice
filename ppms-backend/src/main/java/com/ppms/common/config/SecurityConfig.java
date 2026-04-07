@@ -18,10 +18,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -32,6 +34,10 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
+
+    /** Comma-separated list of allowed CORS origins. Set CORS_ALLOWED_ORIGINS in the environment for production. */
+    @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://localhost:8080}")
+    private String corsAllowedOrigins;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -55,16 +61,12 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // CORS: allows React frontend (localhost:5173 in dev) to call the backend.
-    // In Phase 2, replace localhost:5173 with your deployed frontend URL via env variable.
+    // CORS: configure allowed origins via the CORS_ALLOWED_ORIGINS environment variable in production.
+    // Example: CORS_ALLOWED_ORIGINS=https://app.yourpump.com,https://admin.yourpump.com
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-            "http://localhost:5173",   // Vite dev server
-            "http://localhost:3000",   // alternative dev port
-            "http://localhost:8080"    // same-origin in production (backend serves frontend)
-        ));
+        config.setAllowedOrigins(Arrays.asList(corsAllowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

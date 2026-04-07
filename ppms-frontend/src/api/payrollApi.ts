@@ -23,6 +23,8 @@ export interface PayrollRecord {
   daysWorked: number | null
   dailyRateSnapshot: number | null
   grossAmount: number
+  deductions: number
+  netPay: number
   notes: string | null
   status: PayrollStatus
   approvedBy: number | null

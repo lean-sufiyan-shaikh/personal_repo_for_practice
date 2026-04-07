@@ -182,7 +182,12 @@ public class ShiftLifecycleSupportService {
     public List<CloseShiftRequest.CreditEntryRequest> validateCloseCreditEntries(Long shiftId, BigDecimal creditTotal,
                                                                                   List<CloseShiftRequest.CreditEntryRequest> creditEntries) {
         List<CloseShiftRequest.CreditEntryRequest> safeEntries = creditEntries == null ? Collections.emptyList() : creditEntries;
+        // Only count ACTIVE (non-voided) entries that were recorded mid-shift.
+        // Voided entries represent cancelled transactions and must not count toward the total —
+        // otherwise a voided ₹1,000 entry would cause the close-time validation to reject
+        // a perfectly valid creditTotal of ₹800 (remaining after the void).
         BigDecimal preExistingCreditSum = creditEntryRepository.findByShiftId(shiftId).stream()
+                .filter(e -> !"VOIDED".equals(e.getVoidStatus()))
                 .map(ShiftCreditEntry::getAmount)
                 .reduce(ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);

@@ -19,11 +19,11 @@ export const PAGE_PERMISSIONS: Record<string, UserRole[]> = {
   shiftPlanning:   ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
   inventory:       ['OWNER', 'ADMIN', 'MANAGER'],
   credit:          ['OWNER', 'ADMIN', 'MANAGER'],
-  expenses:        ['OWNER', 'ADMIN'],
+  expenses:        ['OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT'],
   documents:       ['OWNER', 'ADMIN'],
   cashDrawer:      ['OWNER', 'ADMIN', 'MANAGER'],
   calibration:     ['OWNER', 'ADMIN', 'MANAGER'],
-  payroll:         ['OWNER', 'ADMIN'],
+  payroll:         ['OWNER'],
   products:        ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
   auditLog:        ['OWNER', 'ADMIN'],
   balanceSheets:   ['OWNER', 'ADMIN', 'MANAGER'],
@@ -61,9 +61,11 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'credit:grant-extension':        ['OWNER', 'ADMIN'],
 
   // Expenses
-  'expense:create':                ['OWNER', 'ADMIN'],
+  // MANAGER and OPERATOR can create expenses (subject to approval threshold).
+  // Only OWNER can delete — ADMIN lost delete access when the backend was tightened.
+  'expense:create':                ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
   'expense:approve':               ['OWNER', 'ADMIN'],
-  'expense:delete':                ['OWNER', 'ADMIN'],
+  'expense:delete':                ['OWNER'],
 
   // Cash Drawer
   'cash:record-event':             ['OWNER', 'ADMIN', 'MANAGER'],
@@ -75,9 +77,9 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'product:manage':                ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
   'product:record-sale':           ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
 
-  // Payroll
-  'payroll:generate':              ['OWNER', 'ADMIN'],
-  'payroll:update-status':         ['OWNER', 'ADMIN'],
+  // Payroll — OWNER only (backend tightened from OWNER/ADMIN to OWNER only)
+  'payroll:generate':              ['OWNER'],
+  'payroll:update-status':         ['OWNER'],
 
   // Setup
   'setup:manage':                  ['OWNER', 'ADMIN'],

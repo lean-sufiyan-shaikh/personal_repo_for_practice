@@ -28,7 +28,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/pumps")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+@PreAuthorize("hasRole('OWNER')")
 public class PayrollController {
 
     private final PayrollRepository    payrollRepository;
@@ -45,7 +45,6 @@ public class PayrollController {
     public List<PayrollRecord> getPayroll(
             @PathVariable Long pumpId,
             @AuthenticationPrincipal User currentUser) {
-        requireOwner(currentUser);
         return payrollRepository.findByPumpIdOrderByPeriodFromDescCreatedAtDesc(pumpId);
     }
 
@@ -72,8 +71,6 @@ public class PayrollController {
             @PathVariable Long pumpId,
             @Valid @RequestBody GeneratePayrollRequest req,
             @AuthenticationPrincipal User currentUser) {
-        requireOwner(currentUser);
-
         if (req.getPeriodTo().isBefore(req.getPeriodFrom())) {
             throw new BusinessException("periodTo must be on or after periodFrom");
         }
@@ -109,8 +106,6 @@ public class PayrollController {
             @PathVariable Long recordId,
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal User currentUser) {
-        requireOwner(currentUser);
-
         String statusStr = body.get("status");
         if (statusStr == null) throw new BusinessException("status is required");
 
@@ -123,6 +118,10 @@ public class PayrollController {
 
         PayrollRecord record = payrollRepository.findById(recordId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payroll record not found"));
+
+        if (!record.getPumpId().equals(pumpId)) {
+            throw new ResourceNotFoundException("Payroll record not found");
+        }
 
         // Enforce the allowed lifecycle transitions
         boolean valid = (record.getStatus() == PayrollStatus.DRAFT && newStatus == PayrollStatus.APPROVED)
@@ -162,8 +161,6 @@ public class PayrollController {
             @PathVariable Long pumpId,
             @PathVariable Long recordId,
             @AuthenticationPrincipal User currentUser) {
-        requireOwner(currentUser);
-
         PayrollRecord record = payrollRepository.findById(recordId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payroll record not found"));
 
@@ -218,6 +215,17 @@ public class PayrollController {
                 .add(standardHours.multiply(standardRate))
                 .setScale(2, RoundingMode.HALF_UP);
 
+        // Sum discrepancy_amount for all SALARY_DEDUCTION shifts in this period.
+        // These are shortfall amounts the operator is responsible for, deducted from their pay.
+        BigDecimal deductions = shiftRepository.findSalaryDeductionShifts(
+                        pumpId, req.getUserId(), req.getPeriodFrom(), req.getPeriodTo())
+                .stream()
+                .map(s -> s.getDiscrepancyAmount() != null ? s.getDiscrepancyAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal netPay = gross.subtract(deductions).max(BigDecimal.ZERO);
+
         return PayrollRecord.builder()
                 .salaryType("HOURLY_SHIFT")
                 .pumpId(pumpId)
@@ -228,6 +236,8 @@ public class PayrollController {
                 .shift1Shifts(shift1Count).shift1Hours(shift1Hours).shift1RateSnapshot(shift1Rate)
                 .standardShifts(standardCount).standardHours(standardHours).standardRateSnapshot(standardRate)
                 .grossAmount(gross)
+                .deductions(deductions)
+                .netPay(netPay)
                 .notes(req.getNotes())
                 .status(PayrollStatus.DRAFT)
                 .build();
@@ -253,6 +263,15 @@ public class PayrollController {
         BigDecimal gross     = dailyRate.multiply(BigDecimal.valueOf(daysWorked))
                 .setScale(2, RoundingMode.HALF_UP);
 
+        BigDecimal deductions = shiftRepository.findSalaryDeductionShifts(
+                        pumpId, req.getUserId(), req.getPeriodFrom(), req.getPeriodTo())
+                .stream()
+                .map(s -> s.getDiscrepancyAmount() != null ? s.getDiscrepancyAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal netPay = gross.subtract(deductions).max(BigDecimal.ZERO);
+
         return PayrollRecord.builder()
                 .salaryType("DAILY")
                 .pumpId(pumpId)
@@ -267,14 +286,11 @@ public class PayrollController {
                 .daysWorked(daysWorked)
                 .dailyRateSnapshot(dailyRate)
                 .grossAmount(gross)
+                .deductions(deductions)
+                .netPay(netPay)
                 .notes(req.getNotes())
                 .status(PayrollStatus.DRAFT)
                 .build();
     }
 
-    private void requireOwner(User user) {
-        if (user.getRole() != UserRole.OWNER) {
-            throw new BusinessException("Only Owner can manage payroll.");
-        }
-    }
 }

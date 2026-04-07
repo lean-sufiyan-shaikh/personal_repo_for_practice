@@ -42,11 +42,15 @@ export default function NotificationBell({ pumpId }: Props) {
   }
 
   const TYPE_ICONS: Record<string, string> = {
-    LOW_STOCK:          '🛢',
-    PRICE_STALE:        '⚠️',
-    DOCUMENT_EXPIRING:  '📄',
-    CALIBRATION_DUE:    '🔧',
-    SHIFT_OVERDUE:      '⏰',
+    LOW_STOCK:               '🛢',
+    PRICE_STALE:             '⚠️',
+    DOCUMENT_EXPIRING:       '📄',
+    CALIBRATION_DUE:         '🔧',
+    SHIFT_OVERDUE:           '⏰',
+    ZERO_SALE_SHIFT:         '🔍',
+    PRICE_CHANGE_OPEN_SHIFT: '💰',
+    ANCILLARY_LOW_STOCK:     '📦',
+    AUTO_CLOSED_SHIFT:       '🔒',
   }
 
   return (

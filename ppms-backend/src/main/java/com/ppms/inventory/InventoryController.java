@@ -105,6 +105,19 @@ public class InventoryController {
                     "Delivery of " + request.getQuantityDelivered().setScale(3, RoundingMode.HALF_UP) + "L would overflow the tank.");
         }
 
+        // Duplicate guard: same invoice + same fuel type + same pump = double-entry error.
+        // The DB unique index (uq_delivery_pump_invoice_fuel) is the final safety net,
+        // but we throw a descriptive BusinessException here so the user gets a clear message.
+        String invoiceRefTrimmed = request.getInvoiceReference() != null ? request.getInvoiceReference().trim() : null;
+        if (invoiceRefTrimmed != null && !invoiceRefTrimmed.isBlank()) {
+            if (tankerDeliveryRepository.existsByPumpIdAndInvoiceReferenceAndFuelType(
+                    pumpId, invoiceRefTrimmed, tank.getFuelType())) {
+                throw new BusinessException(
+                        "Invoice '" + invoiceRefTrimmed + "' already has a " + tank.getFuelType().name() +
+                        " delivery recorded for this pump. Check the invoice number or use a different reference.");
+            }
+        }
+
         validateCostPriceAgainstSellingPrice(pumpId, tank, request.getCostPricePerUnit());
 
         var deliveryDateTime = request.getDeliveryDate()
@@ -191,6 +204,16 @@ public class InventoryController {
         String invoiceRef = request.getInvoiceReference().trim();
         String loggedByName = currentUser.getFullName();
 
+        // Guard 1: reject batches that list the same tank more than once — that is always a data-entry mistake.
+        java.util.Set<Long> seenTankIds = new java.util.HashSet<>();
+        for (var item : request.getItems()) {
+            if (!seenTankIds.add(item.getTankId())) {
+                throw new BusinessException(
+                        "Tank ID " + item.getTankId() + " appears more than once in this batch. " +
+                        "Each tank can only receive one delivery per batch.");
+            }
+        }
+
         List<TankerDeliveryResponse> responses = request.getItems().stream().map(item -> {
             UndergroundTank tank = tankRepository.findById(item.getTankId())
                     .orElseThrow(() -> new ResourceNotFoundException("Tank not found: " + item.getTankId()));
@@ -214,6 +237,14 @@ public class InventoryController {
                         "(capacity: " + tank.getCapacity().setScale(3, RoundingMode.HALF_UP) + "L, current stock: " +
                         currentStockItem.setScale(3, RoundingMode.HALF_UP) + "L). " +
                         "Delivery of " + item.getQuantityDelivered().setScale(3, RoundingMode.HALF_UP) + "L would overflow the tank.");
+            }
+
+            // Guard 2: duplicate check — same invoice + fuel type already on record for this pump.
+            if (tankerDeliveryRepository.existsByPumpIdAndInvoiceReferenceAndFuelType(
+                    pumpId, invoiceRef, tank.getFuelType())) {
+                throw new BusinessException(
+                        "Invoice '" + invoiceRef + "' already has a " + tank.getFuelType().name() +
+                        " delivery recorded for this pump. Check the invoice number or use a different reference.");
             }
 
             validateCostPriceAgainstSellingPrice(pumpId, tank, item.getCostPricePerUnit());

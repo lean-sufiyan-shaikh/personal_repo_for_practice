@@ -1,5 +1,9 @@
 package com.ppms.report;
 
+import com.ppms.credit.CreditClient;
+import com.ppms.credit.CreditClientRepository;
+import com.ppms.credit.CreditInterestCharge;
+import com.ppms.credit.CreditInterestChargeRepository;
 import com.ppms.expense.PumpExpense;
 import com.ppms.expense.PumpExpenseRepository;
 import com.ppms.fuel.FuelType;
@@ -40,6 +44,8 @@ public class ReportService {
     private final InventoryLotRepository inventoryLotRepository;
     private final UserRepository userRepository;
     private final PumpExpenseRepository expenseRepository;
+    private final CreditInterestChargeRepository interestChargeRepository;
+    private final CreditClientRepository creditClientRepository;
 
     // ── P&L Report ────────────────────────────────────────────────────────────
 
@@ -290,6 +296,57 @@ public class ReportService {
                 .toList();
     }
 
+    // ── Interest Accrual Report ───────────────────────────────────────────────
+
+    /**
+     * Builds the Interest Accrual Report for a pump over a date range.
+     *
+     * Lists all interest charges whose period_from falls within [from, to], grouped by client.
+     * Each client line shows: client name, number of charges, total interest accrued.
+     * The report total is the sum across all clients.
+     *
+     * Client names are batch-loaded to avoid N+1 queries.
+     */
+    public InterestAccrualReport buildInterestAccrualReport(Long pumpId, LocalDate from, LocalDate to) {
+        List<CreditInterestCharge> charges = interestChargeRepository.findByPumpIdAndPeriodFromBetween(pumpId, from, to);
+
+        // Batch-load client names — one query instead of one per charge
+        Set<Long> clientIds = charges.stream().map(CreditInterestCharge::getClientId).collect(Collectors.toSet());
+        Map<Long, String> clientNames = creditClientRepository.findAllById(clientIds).stream()
+                .collect(Collectors.toMap(CreditClient::getId, CreditClient::getName));
+
+        // Group by client and build per-client lines
+        Map<Long, List<CreditInterestCharge>> byClient = charges.stream()
+                .collect(Collectors.groupingBy(CreditInterestCharge::getClientId, LinkedHashMap::new, Collectors.toList()));
+
+        List<InterestAccrualReport.ClientLine> clientLines = byClient.entrySet().stream()
+                .map(entry -> {
+                    Long clientId = entry.getKey();
+                    List<CreditInterestCharge> clientCharges = entry.getValue();
+                    BigDecimal totalInterest = clientCharges.stream()
+                            .map(CreditInterestCharge::getAmount)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add)
+                            .setScale(2, RoundingMode.HALF_UP);
+                    List<InterestAccrualReport.ChargeLine> chargeLines = clientCharges.stream()
+                            .map(c -> new InterestAccrualReport.ChargeLine(
+                                    c.getId(), c.getPeriodFrom(), c.getPeriodTo(),
+                                    c.getOutstandingBalance(), c.getRateApplied(),
+                                    c.getDaysApplied(), c.getAmount(), c.getSource()))
+                            .toList();
+                    return new InterestAccrualReport.ClientLine(
+                            clientId, clientNames.getOrDefault(clientId, "Unknown"),
+                            clientCharges.size(), totalInterest, chargeLines);
+                })
+                .toList();
+
+        BigDecimal totalInterest = clientLines.stream()
+                .map(InterestAccrualReport.ClientLine::totalInterest)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        return new InterestAccrualReport(pumpId, from, to, charges.size(), totalInterest, clientLines);
+    }
+
     // ── Response types ────────────────────────────────────────────────────────
 
     public record ProfitLossReport(
@@ -386,5 +443,31 @@ public class ReportService {
                 BigDecimal costPricePerUnit,
                 BigDecimal totalCost,
                 java.time.OffsetDateTime consumedAt) {}
+    }
+
+    public record InterestAccrualReport(
+            Long pumpId,
+            LocalDate from,
+            LocalDate to,
+            int totalCharges,
+            BigDecimal totalInterest,
+            List<ClientLine> clients) {
+
+        public record ClientLine(
+                Long clientId,
+                String clientName,
+                int chargeCount,
+                BigDecimal totalInterest,
+                List<ChargeLine> charges) {}
+
+        public record ChargeLine(
+                Long id,
+                LocalDate periodFrom,
+                LocalDate periodTo,
+                BigDecimal outstandingBalance,
+                BigDecimal rateApplied,
+                Integer daysApplied,
+                BigDecimal amount,
+                String source) {}
     }
 }

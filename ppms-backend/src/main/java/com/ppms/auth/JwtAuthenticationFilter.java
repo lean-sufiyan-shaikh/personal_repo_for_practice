@@ -4,7 +4,9 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -49,7 +51,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         final String jwt = authHeader.substring(7);
-        final String phoneNumber = jwtService.extractUsername(jwt);
+        final String phoneNumber;
+        try {
+            phoneNumber = jwtService.extractUsername(jwt);
+        } catch (JwtException e) {
+            // Token is expired, malformed, or has an invalid signature.
+            // Return 401 immediately so the frontend can redirect to login.
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter().write("{\"message\":\"Token expired or invalid. Please log in again.\"}");
+            return;
+        }
 
         if (phoneNumber != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails;

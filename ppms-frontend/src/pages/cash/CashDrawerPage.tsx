@@ -73,6 +73,10 @@ export default function CashDrawerPage() {
       setFormError('Amount cannot be negative')
       return false
     }
+    if (form.eventType === 'CASH_OUT' && form.amount > balance) {
+      setFormError(`Cash-out amount ${fmtAmt(form.amount)} exceeds the current drawer balance of ${fmtAmt(balance)}.`)
+      return false
+    }
     setFormError(null)
     return true
   }
@@ -150,10 +154,15 @@ export default function CashDrawerPage() {
               step="0.01"
               value={form.amount || ''}
               onChange={e => setForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
-              className="text-sm"
+              className={`text-sm ${form.eventType === 'CASH_OUT' && form.amount > balance ? 'border-red-400 focus:ring-red-300' : ''}`}
               placeholder="0.00"
               required
             />
+            {form.eventType === 'CASH_OUT' && (
+              <p className={`mt-1 text-xs ${form.amount > balance ? 'text-red-500 font-medium' : 'text-slate-400'}`}>
+                Available balance: {fmtAmt(balance)}
+              </p>
+            )}
           </div>
 
           <div>

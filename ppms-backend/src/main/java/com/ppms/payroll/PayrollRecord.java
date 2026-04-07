@@ -88,6 +88,23 @@ public class PayrollRecord {
     @Column(name = "gross_amount", nullable = false)
     private BigDecimal grossAmount;
 
+    /**
+     * Total salary deductions for this pay period.
+     * Sum of discrepancy_amount for shifts where discrepancy_resolution = SALARY_DEDUCTION
+     * by this user in the period. Defaults to 0 (no deductions).
+     */
+    @Column(name = "deductions", nullable = false)
+    @Builder.Default
+    private BigDecimal deductions = BigDecimal.ZERO;
+
+    /**
+     * Net pay after deductions: gross_amount − deductions.
+     * This is the actual amount to be disbursed to the staff member.
+     */
+    @Column(name = "net_pay", nullable = false)
+    @Builder.Default
+    private BigDecimal netPay = BigDecimal.ZERO;
+
     // ── DAILY salary type fields (MANAGER / ADMIN / ACCOUNTANT) ──────────────
 
     /** Total calendar days in the pay period (period_to − period_from + 1). */

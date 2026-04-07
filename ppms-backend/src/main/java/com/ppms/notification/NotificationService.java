@@ -5,6 +5,7 @@ import com.ppms.ancillary.AncillaryProductStatus;
 import com.ppms.document.PumpDocumentRepository;
 import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.inventory.TankStockResponse;
+import com.ppms.pump.NozzleCalibrationLogRepository;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTankRepository;
 import com.ppms.shift.Shift;
@@ -42,6 +43,7 @@ public class NotificationService {
     private final ShiftRepository shiftRepository;
     private final AncillaryProductRepository ancillaryProductRepository;
     private final UndergroundTankRepository tankRepository;
+    private final NozzleCalibrationLogRepository calibrationLogRepository;
     private final NotificationDedupService dedupService;
 
     // No class-level TODAY constant — LocalDate.now() is always called inline so it reflects
@@ -60,6 +62,7 @@ public class NotificationService {
         generateZeroSaleAlerts(pumpId);
         generateAutoClosedShiftAlerts(pumpId);
         generateAncillaryLowStockAlerts(pumpId);
+        generateCalibrationDueAlerts(pumpId);
         log.debug("Notification generation complete for pump={}", pumpId);
     }
 
@@ -200,6 +203,24 @@ public class NotificationService {
                             "Shift Force-Closed Without Readings",
                             "Shift #" + shift.getId() + " was automatically closed because the operator never submitted " +
                             "closing meter readings. End-meter data is missing — a manual reconciliation is required.");
+                });
+    }
+
+    /**
+     * Generates CALIBRATION_DUE alerts for nozzles whose most-recent calibration record
+     * has a next_calibration_due date that is today or in the past.
+     * The query returns only the latest log per nozzle (not superseded records),
+     * so each nozzle fires at most one alert.
+     * Dedup key is per nozzle ID — the alert stays active until the nozzle is re-calibrated.
+     */
+    private void generateCalibrationDueAlerts(Long pumpId) {
+        calibrationLogRepository.findOverdueCalibrations(pumpId, LocalDate.now())
+                .forEach(log -> {
+                    String dedupKey = "CALIBRATION_DUE:nozzle:" + log.getNozzleId();
+                    String message = "Nozzle #" + log.getNozzleId() + " calibration was due on "
+                            + log.getNextCalibrationDue() + ". Please schedule a calibration to remain compliant.";
+                    dedupService.maybeInsert(pumpId, NotificationType.CALIBRATION_DUE, dedupKey,
+                            "Nozzle Calibration Overdue", message);
                 });
     }
 

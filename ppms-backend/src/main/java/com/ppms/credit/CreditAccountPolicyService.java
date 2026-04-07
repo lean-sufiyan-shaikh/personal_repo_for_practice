@@ -59,13 +59,18 @@ public class CreditAccountPolicyService {
     /**
      * Applies the stricter mid-shift sale rules. Close-shift entry capture only validates the limit,
      * while real-time credit sales must also respect approved extensions and overdue billing-cycle rules.
+     *
+     * Acquires a PESSIMISTIC WRITE lock on the limit-holder row before reading the outstanding
+     * balance. This serialises concurrent credit sales for the same client so two operators at
+     * the same pump cannot simultaneously bypass the limit check (race condition fix).
+     * The lock is held for the duration of the caller's @Transactional boundary (ShiftService.addCreditEntry).
      */
     public void validateCreditSaleAllowed(Long pumpId, CreditClient client, BigDecimal amount) {
         if (client == null) {
             return;
         }
 
-        CreditClient limitHolder = getLimitHolder(client);
+        CreditClient limitHolder = getLimitHolderWithLock(client);
         creditExtensionRepository.expireOverdueExtensions(LocalDate.now());
         List<CreditExtension> activeExtensions = creditExtensionRepository
                 .findByPumpIdAndClientIdAndStatus(pumpId, limitHolder.getId(), CreditExtensionStatus.ACTIVE);
@@ -105,6 +110,17 @@ public class CreditAccountPolicyService {
             return client;
         }
         return creditClientRepository.findById(client.getParentClientId()).orElse(client);
+    }
+
+    /**
+     * Like getLimitHolder but acquires a PESSIMISTIC WRITE (SELECT FOR UPDATE) lock on the
+     * limit-holder row. Used only in the real-time credit sale path to prevent concurrent
+     * operators from simultaneously passing the same credit limit check and together
+     * exceeding the limit.
+     */
+    private CreditClient getLimitHolderWithLock(CreditClient client) {
+        Long holderId = client.getParentClientId() != null ? client.getParentClientId() : client.getId();
+        return creditClientRepository.findByIdForUpdate(holderId).orElse(client);
     }
 
     private boolean isBillingCycleOverdue(CreditClient client) {

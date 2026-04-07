@@ -5,7 +5,6 @@ import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
-import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
@@ -24,7 +23,6 @@ import java.time.OffsetDateTime;
 @RestController
 @RequestMapping("/api/pumps")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
 public class ExpenseController {
 
     private final PumpExpenseRepository  expenseRepository;
@@ -41,6 +39,7 @@ public class ExpenseController {
      * so filter dispatch is done in Java rather than a single nullable-param query.
      */
     @GetMapping("/{pumpId}/expenses")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")
     public PagedResponse<PumpExpense> getExpenses(
             @PathVariable Long pumpId,
             @RequestParam(defaultValue = "0") int page,
@@ -48,7 +47,6 @@ public class ExpenseController {
             @RequestParam(required = false) ExpenseCategory category,
             @RequestParam(required = false) ExpenseApprovalStatus approvalStatus,
             @AuthenticationPrincipal User currentUser) {
-        requireFinancialReadAccess(currentUser);
         var pageReq = PageRequest.of(page, size);
         var result = (category != null && approvalStatus != null)
                 ? expenseRepository.findByPumpIdAndCategoryAndApprovalStatusOrderByExpenseDateDescCreatedAtDesc(pumpId, category, approvalStatus, pageReq)
@@ -64,21 +62,36 @@ public class ExpenseController {
      * POST /api/pumps/{pumpId}/expenses
      * Records a new expense entry.
      *
-     * P2.5 — Approval workflow:
+     * When saveDraft=true (request body flag): saves as DRAFT — approval workflow not triggered.
+     * The user must call PATCH .../submit later to submit it for approval.
+     *
+     * When saveDraft=false (default):
      * - OWNER/ADMIN: always auto-APPROVED regardless of amount
      * - MANAGER/OPERATOR: auto-APPROVED if amount <= pump's expense_approval_threshold
      * - MANAGER/OPERATOR: PENDING_APPROVAL if amount > threshold (or threshold is not set)
      */
     @PostMapping("/{pumpId}/expenses")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'OPERATOR')")
     @ResponseStatus(HttpStatus.CREATED)
     public PumpExpense createExpense(
             @PathVariable Long pumpId,
             @Valid @RequestBody CreateExpenseRequest req,
             @AuthenticationPrincipal User currentUser) {
-        requireExpenseCreateAccess(currentUser);
-
         BigDecimal amount = req.getAmount().setScale(2, RoundingMode.HALF_UP);
-        ExpenseApprovalStatus approvalStatus = resolveApprovalStatus(pumpId, currentUser, amount);
+
+        ExpenseApprovalStatus approvalStatus;
+        Long submittedByUserId = null;
+        OffsetDateTime submittedAt = null;
+
+        if (req.isSaveDraft()) {
+            // Explicit DRAFT save — skip approval flow until submitted
+            approvalStatus = ExpenseApprovalStatus.DRAFT;
+        } else {
+            // Immediate submission — auto-approve or queue for review
+            approvalStatus = resolveApprovalStatus(pumpId, currentUser, amount);
+            submittedByUserId = currentUser.getId();
+            submittedAt = OffsetDateTime.now();
+        }
 
         PumpExpense expense = PumpExpense.builder()
                 .pumpId(pumpId)
@@ -88,6 +101,8 @@ public class ExpenseController {
                 .expenseDate(req.getExpenseDate())
                 .recordedByUserId(currentUser.getId())
                 .approvalStatus(approvalStatus)
+                .submittedByUserId(submittedByUserId)
+                .submittedAt(submittedAt)
                 .build();
 
         PumpExpense saved = expenseRepository.save(expense);
@@ -102,18 +117,58 @@ public class ExpenseController {
     }
 
     /**
+     * PATCH /api/pumps/{pumpId}/expenses/{expenseId}/submit
+     * Submits a DRAFT expense for approval, transitioning it to PENDING_APPROVAL or APPROVED
+     * based on the same auto-approval rules applied at creation time.
+     * Only the person who created the expense or an OWNER/ADMIN can submit it.
+     */
+    @PatchMapping("/{pumpId}/expenses/{expenseId}/submit")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'OPERATOR')")
+    public PumpExpense submitExpense(
+            @PathVariable Long pumpId,
+            @PathVariable Long expenseId,
+            @AuthenticationPrincipal User currentUser) {
+
+        PumpExpense expense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+
+        if (!expense.getPumpId().equals(pumpId)) {
+            throw new BusinessException("Expense does not belong to this pump");
+        }
+
+        if (expense.getApprovalStatus() != ExpenseApprovalStatus.DRAFT) {
+            throw new BusinessException(
+                    "Only DRAFT expenses can be submitted (current status: " + expense.getApprovalStatus() + ")");
+        }
+
+        // Only the creator or OWNER/ADMIN may submit a draft
+        boolean isOwnerOrAdmin = currentUser.getRole() == UserRole.OWNER
+                || currentUser.getRole() == UserRole.ADMIN
+                || currentUser.getRole() == UserRole.SUPER_ADMIN;
+        if (!isOwnerOrAdmin && !expense.getRecordedByUserId().equals(currentUser.getId())) {
+            throw new BusinessException("Only the expense creator or an Owner/Admin can submit this draft.");
+        }
+
+        ExpenseApprovalStatus newStatus = resolveApprovalStatus(pumpId, currentUser, expense.getAmount());
+        expense.setApprovalStatus(newStatus);
+        expense.setSubmittedByUserId(currentUser.getId());
+        expense.setSubmittedAt(OffsetDateTime.now());
+
+        return expenseRepository.save(expense);
+    }
+
+    /**
      * PATCH /api/pumps/{pumpId}/expenses/{expenseId}/approve
      * Owner or Admin approves or rejects a PENDING_APPROVAL expense.
      * Body: { "action": "APPROVED" | "REJECTED", "notes": "optional reason" }
      */
     @PatchMapping("/{pumpId}/expenses/{expenseId}/approve")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     public PumpExpense reviewExpense(
             @PathVariable Long pumpId,
             @PathVariable Long expenseId,
             @RequestBody ApproveExpenseRequest req,
             @AuthenticationPrincipal User currentUser) {
-
-        requireOwnerOrAdmin(currentUser);
 
         PumpExpense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
@@ -144,18 +199,20 @@ public class ExpenseController {
      * Removes an expense entry. Only OWNER can delete.
      */
     @DeleteMapping("/{pumpId}/expenses/{expenseId}")
+    @PreAuthorize("hasRole('OWNER')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteExpense(
             @PathVariable Long pumpId,
             @PathVariable Long expenseId,
             @AuthenticationPrincipal User currentUser) {
-        if (currentUser.getRole() != UserRole.OWNER) {
-            throw new BusinessException("Only Owner can delete expenses.");
-        }
         PumpExpense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
         if (!expense.getPumpId().equals(pumpId)) {
             throw new BusinessException("Expense does not belong to this pump");
+        }
+        if (expense.getApprovalStatus() != ExpenseApprovalStatus.DRAFT) {
+            throw new BusinessException(
+                    "Only DRAFT expenses can be deleted. Submitted or reviewed expenses are permanent records.");
         }
         expenseRepository.delete(expense);
     }
@@ -189,24 +246,4 @@ public class ExpenseController {
                 .orElse(ExpenseApprovalStatus.APPROVED);
     }
 
-    /** OWNER, ADMIN, MANAGER, OPERATOR can create expenses. ACCOUNTANT is read-only. */
-    private void requireExpenseCreateAccess(User user) {
-        if (user.getRole() == UserRole.ACCOUNTANT) {
-            throw new BusinessException("Accountants have read-only access. Expenses must be created by operational staff.");
-        }
-    }
-
-    /** OWNER, ADMIN, and ACCOUNTANT can view expenses. */
-    private void requireFinancialReadAccess(User user) {
-        if (user.getRole() == UserRole.OPERATOR) {
-            throw new BusinessException("Operators cannot view expense records.");
-        }
-    }
-
-    private void requireOwnerOrAdmin(User user) {
-        if (user.getRole() != UserRole.OWNER && user.getRole() != UserRole.ADMIN
-                && user.getRole() != UserRole.SUPER_ADMIN) {
-            throw new BusinessException("Only Owner or Admin can approve/reject expenses.");
-        }
-    }
 }

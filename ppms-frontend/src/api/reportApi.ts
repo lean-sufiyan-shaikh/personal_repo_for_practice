@@ -155,6 +155,36 @@ export interface ExpenseReportLine {
   approvalStatus: string | null
 }
 
+// ── Interest Accrual Report ───────────────────────────────────────────────────
+
+export interface InterestChargeLine {
+  id: number
+  periodFrom: string
+  periodTo: string
+  outstandingBalance: number
+  rateApplied: number
+  daysApplied: number
+  amount: number
+  source: string
+}
+
+export interface InterestAccrualClientLine {
+  clientId: number
+  clientName: string
+  chargeCount: number
+  totalInterest: number
+  charges: InterestChargeLine[]
+}
+
+export interface InterestAccrualReport {
+  pumpId: number
+  from: string
+  to: string
+  totalCharges: number
+  totalInterest: number
+  clients: InterestAccrualClientLine[]
+}
+
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export const reportApi = {
@@ -178,4 +208,7 @@ export const reportApi = {
 
   getExpensesReport: (pumpId: number, from: string, to: string) =>
     client.get<ExpenseReportLine[]>(`/pumps/${pumpId}/reports/expenses`, { params: { from, to } }).then(r => r.data),
+
+  getInterestAccrual: (pumpId: number, from: string, to: string) =>
+    client.get<InterestAccrualReport>(`/pumps/${pumpId}/reports/interest-accrual`, { params: { from, to } }).then(r => r.data),
 }
