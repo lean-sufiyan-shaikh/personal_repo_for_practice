@@ -75,6 +75,11 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
   // Fuel types dispensed on this nozzle (for credit entry dropdown)
   const availableFuelTypes = shift.fuelReadings.map((r) => r.fuelType)
 
+  // nozzleId → nozzleNumber — used to label each meter reading field
+  const nozzleNumberById: Record<number, number> = Object.fromEntries(
+    shift.nozzles.map((n) => [n.id, n.nozzleNumber])
+  )
+
   // ── Live calculations ───────────────────────────────────────────────────────
 
   const perFuelSales: Array<{ reading: FuelReading; sold: number; value: number }> =
@@ -293,7 +298,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                   return (
                     <ReadingField
                       key={reading.nozzleId}
-                      label={`${FUEL_LABELS[reading.fuelType] ?? reading.fuelType} end (${FUEL_UNIT[reading.fuelType] ?? 'L'})`}
+                      label={`Nozzle #${nozzleNumberById[reading.nozzleId] ?? '?'} · ${FUEL_LABELS[reading.fuelType] ?? reading.fuelType} end (${FUEL_UNIT[reading.fuelType] ?? 'L'})`}
                       startValue={reading.startReading}
                       soldUnits={sold}
                       pricePerUnit={reading.priceSnapshot}
