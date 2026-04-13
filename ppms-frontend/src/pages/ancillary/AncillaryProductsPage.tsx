@@ -23,6 +23,7 @@ import { Reveal } from '../../components/Reveal'
 import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
+import { ModalPortal } from '../../components/ModalPortal'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -119,29 +120,31 @@ export default function AncillaryProductsPage() {
 
           {/* ── Tab content ── */}
           <Reveal delay={200}>
-          {activeTab === 'products' && (
-            <ProductsTab
-              pumpId={pumpId}
-              products={products}
-              loading={productsLoading}
-              isOwnerOrAdmin={isOwnerOrAdmin}
-              isManagerOrAbove={isManagerOrAbove}
-              onRefresh={() => qc.invalidateQueries({ queryKey: ['ancillaryProducts', pumpId] })}
-            />
-          )}
-          {activeTab === 'stockin' && (
-            <StockInTab
-              pumpId={pumpId}
-              products={products.filter(p => p.status === 'ACTIVE')}
-              isManagerOrAbove={isManagerOrAbove}
-              onRefresh={() => qc.invalidateQueries({ queryKey: ['ancillaryProducts', pumpId] })}
-            />
-          )}
-          {activeTab === 'sales' && (
-            <SalesTab
-              pumpId={pumpId}
-            />
-          )}
+          <div key={activeTab} className="ui-tab-content">
+            {activeTab === 'products' && (
+              <ProductsTab
+                pumpId={pumpId}
+                products={products}
+                loading={productsLoading}
+                isOwnerOrAdmin={isOwnerOrAdmin}
+                isManagerOrAbove={isManagerOrAbove}
+                onRefresh={() => qc.invalidateQueries({ queryKey: ['ancillaryProducts', pumpId] })}
+              />
+            )}
+            {activeTab === 'stockin' && (
+              <StockInTab
+                pumpId={pumpId}
+                products={products.filter(p => p.status === 'ACTIVE')}
+                isManagerOrAbove={isManagerOrAbove}
+                onRefresh={() => qc.invalidateQueries({ queryKey: ['ancillaryProducts', pumpId] })}
+              />
+            )}
+            {activeTab === 'sales' && (
+              <SalesTab
+                pumpId={pumpId}
+              />
+            )}
+          </div>
           </Reveal>
         </>
       )}
@@ -459,6 +462,7 @@ function AddProductDialog({
   }
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop px-4" onClick={onClose}>
       <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -591,6 +595,7 @@ function AddProductDialog({
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 
@@ -698,6 +703,7 @@ function SellDialog({
   const selectedClient = creditClients.find(c => c.id === form.clientId)
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop px-4">
       <div className="ui-modal-panel w-full max-w-md">
 
@@ -885,6 +891,7 @@ function SellDialog({
         )}
       </div>
     </div>
+    </ModalPortal>
   )
 }
 
@@ -969,6 +976,7 @@ function StockLotsDialog({
   }
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel ui-modal-panel--lg w-full max-w-2xl max-h-[85vh] flex flex-col">
 
@@ -1093,6 +1101,7 @@ function StockLotsDialog({
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 
@@ -1286,6 +1295,7 @@ function StockInDialog({
   }
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop px-4" onClick={onClose}>
       <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -1413,6 +1423,7 @@ function StockInDialog({
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 

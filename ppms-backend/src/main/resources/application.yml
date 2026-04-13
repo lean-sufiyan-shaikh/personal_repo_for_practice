@@ -58,6 +58,9 @@ ppms:
     secret: ${JWT_SECRET:ppms-local-dev-secret-key-change-in-production-must-be-at-least-256-bits}
     expiration-ms: ${JWT_EXPIRY_MS:86400000}   # 24 hours
 
+  cookie:
+    secure: ${COOKIE_SECURE:false}   # Set to true in production (HTTPS required)
+
   security:
     # IPs that are allowed to set X-Forwarded-For headers.
 

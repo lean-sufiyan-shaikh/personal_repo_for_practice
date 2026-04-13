@@ -12,6 +12,7 @@ import { Reveal } from '../../components/Reveal'
 import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
+import { ModalPortal } from '../../components/ModalPortal'
 
 function fmtDate(d: string) {
   return formatIstDate(d)
@@ -238,6 +239,7 @@ export default function CalibrationPage() {
       </Reveal>
 
       {reviewOpen && (
+        <ModalPortal>
         <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
           <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -277,6 +279,7 @@ export default function CalibrationPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* ── Calibration history ── */}

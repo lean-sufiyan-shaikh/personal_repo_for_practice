@@ -14,6 +14,7 @@ import { Reveal } from '../../components/Reveal'
 import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
+import { ModalPortal } from '../../components/ModalPortal'
 
 const today     = localDateInputValue()
 const yesterday = localDateInputValue(-1)
@@ -68,6 +69,7 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, onClos
   }
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--success">
@@ -190,6 +192,7 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, onClos
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 
@@ -229,6 +232,7 @@ function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitModalPro
   }
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -280,6 +284,7 @@ function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitModalPro
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 
@@ -317,6 +322,7 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
   }
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel w-full max-w-sm">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
@@ -382,6 +388,7 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 
@@ -455,6 +462,7 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
   }
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel ui-modal-panel--lg w-full max-w-md">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
@@ -537,6 +545,7 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 
@@ -605,6 +614,7 @@ function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, transactio
   }
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel w-full max-w-sm">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -672,6 +682,7 @@ function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, transactio
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 

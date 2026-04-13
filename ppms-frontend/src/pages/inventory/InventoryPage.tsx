@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/authStore'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { formatIstDate, localDateInputValue } from '../../utils/date'
+import { ModalPortal } from '../../components/ModalPortal'
 
 // ── Colour helpers ─────────────────────────────────────────────────────────────
 
@@ -689,6 +690,7 @@ function FuelLotsDialog({
   const cols = FUEL_COLORS[tank.fuelType] ?? FUEL_COLORS.PETROL
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop px-4">
       <div className="ui-modal-panel ui-modal-panel--lg w-full max-w-2xl max-h-[85vh] flex flex-col">
 
@@ -770,6 +772,7 @@ function FuelLotsDialog({
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 
@@ -1030,6 +1033,7 @@ function RecordDeliveryModal({
   }))
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop" onClick={onClose}>
       <div
         className="ui-modal-panel"
@@ -1292,6 +1296,7 @@ function RecordDeliveryModal({
           if (!items) return null
 
           return (
+        <ModalPortal>
         <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
           <div
             className="ui-modal-panel ui-modal-panel--lg"
@@ -1388,12 +1393,14 @@ function RecordDeliveryModal({
             </div>
           </div>
         </div>
+        </ModalPortal>
           )
         } catch {
           return null
         }
       })()}
     </div>
+    </ModalPortal>
   )
 }
 
@@ -1450,6 +1457,7 @@ function DipCheckModal({
   }
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop" onClick={onClose}>
       <div className="ui-modal-panel w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--neutral">
@@ -1574,5 +1582,6 @@ function DipCheckModal({
         </form>
       </div>
     </div>
+    </ModalPortal>
   )
 }

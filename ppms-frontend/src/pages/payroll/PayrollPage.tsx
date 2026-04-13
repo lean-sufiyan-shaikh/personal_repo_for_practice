@@ -12,6 +12,7 @@ import { Reveal } from '../../components/Reveal'
 import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
+import { ModalPortal } from '../../components/ModalPortal'
 
 const STATUS_STYLES: Record<PayrollStatus, string> = {
   DRAFT:    'bg-amber-100 text-amber-700',
@@ -480,6 +481,7 @@ export default function PayrollPage() {
       </Reveal>
 
       {reviewOpen && (
+        <ModalPortal>
         <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
           <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -526,6 +528,7 @@ export default function PayrollPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* ── Payroll records ── */}

@@ -12,6 +12,7 @@ import { Reveal } from '../../components/Reveal'
 import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
+import { ModalPortal } from '../../components/ModalPortal'
 
 const CATEGORIES: ExpenseCategory[] = ['FUEL', 'MAINTENANCE', 'SALARY', 'UTILITIES', 'EQUIPMENT', 'OTHER']
 
@@ -270,6 +271,7 @@ export default function ExpensesPage() {
       </form></Reveal>}
 
       {reviewOpen && (
+        <ModalPortal>
         <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
           <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
@@ -321,6 +323,7 @@ export default function ExpensesPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* ── Expense list ── */}

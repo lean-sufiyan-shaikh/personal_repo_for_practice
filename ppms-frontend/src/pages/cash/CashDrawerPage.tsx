@@ -11,6 +11,7 @@ import { Reveal } from '../../components/Reveal'
 import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
+import { ModalPortal } from '../../components/ModalPortal'
 
 const EVENT_TYPES: { value: CashEventType; label: string }[] = [
   { value: 'OPENING_BALANCE', label: 'Opening Balance' },
@@ -221,6 +222,7 @@ export default function CashDrawerPage() {
       </Reveal>
 
       {reviewOpen && (
+        <ModalPortal>
         <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
           <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className={`ui-modal-header ui-modal-header--themed ${reviewHeaderTone}`}>
@@ -272,6 +274,7 @@ export default function CashDrawerPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* ── Event list ── */}

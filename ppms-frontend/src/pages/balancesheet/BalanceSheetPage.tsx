@@ -24,6 +24,7 @@ import { SkeletonRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
+import { ModalPortal } from '../../components/ModalPortal'
 
 // ── Date helpers ───────────────────────────────────────────────────────────────
 // Use local calendar date (not UTC) so the value matches the user's timezone.
@@ -147,6 +148,7 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
   }
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel">
         {/* Header */}
@@ -280,6 +282,7 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 
@@ -306,6 +309,7 @@ function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmProps) {
   })
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel w-full max-w-sm">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--danger">
@@ -341,6 +345,7 @@ function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmProps) {
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 

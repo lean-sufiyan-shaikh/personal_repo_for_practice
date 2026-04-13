@@ -4,6 +4,9 @@ import { shiftApi } from '../../api/shiftApi'
 import { pumpApi } from '../../api/pumpApi'
 import type { CloseShiftRequest, CreditEntryInput, FuelReading, Shift } from '../../types/shift'
 import { SearchableSelect } from '../../components/SearchableSelect'
+import { ModalPortal } from '../../components/ModalPortal'
+import { maskPhone } from '../../utils/maskPhone'
+import { parseApiError } from '../../utils/apiError'
 
 interface Props {
   shift: Shift
@@ -157,7 +160,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
       setVoidError(null)
       queryClient.invalidateQueries({ queryKey: ['activeShifts', shift.pumpId] })
     },
-    onError: (err: any) => setVoidError(err?.response?.data?.message ?? 'Failed to void entry'),
+    onError: (err: unknown) => setVoidError(parseApiError(err, 'Failed to delete entry. Please try again.')),
   })
 
   const startVoid = (entryId: number) => {
@@ -204,9 +207,16 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ['shiftHistory', shift.pumpId] })
       onClose()
     },
-    onError: (err: any) =>
-      setServerError(err?.response?.data?.message ?? 'Failed to close shift. Please try again.'),
+    onError: (err: unknown) =>
+      setServerError(parseApiError(err, 'Failed to close shift. Please try again.')),
   })
+
+  /** Parses a numeric string, returns null if the result is NaN, Infinity, or negative. */
+  const safeParse = (v: string, max = 9_999_999): number | null => {
+    const n = Number(v)
+    if (!isFinite(n) || n < 0 || n > max) return null
+    return n
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -222,6 +232,27 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
       if (!row.clientName.trim()) { setServerError('Each credit entry must have a client.'); return }
       if (!row.fuelType)          { setServerError('Each credit entry must have a fuel type.'); return }
       if (emptyNum(row.amount) <= 0) { setServerError('Each credit entry amount must be > 0.'); return }
+    }
+
+    for (const r of shift.fuelReadings) {
+      const parsed = safeParse(endReadings[r.nozzleId] ?? '')
+      if (parsed === null) {
+        setServerError('End reading contains an invalid value. Please re-enter.')
+        return
+      }
+    }
+
+    const paymentFields = [
+      { label: 'Cash',       val: cash },
+      { label: 'UPI',        val: upi },
+      { label: 'Card',       val: card },
+      { label: 'Fleet Card', val: fleetCard },
+    ]
+    for (const f of paymentFields) {
+      if (f.val !== '' && safeParse(f.val) === null) {
+        setServerError(`${f.label} amount contains an invalid value.`)
+        return
+      }
     }
 
     const creditEntries: CreditEntryInput[] = creditRows.map((r) => ({
@@ -259,6 +290,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
     : 'ui-modal-header--neutral'
 
   return (
+    <ModalPortal>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel">
 
@@ -570,7 +602,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                                                 has sub-accounts
                                               </span>
                                             )}
-                                            {c.phone && <span className="text-xs text-slate-400">{c.phone}</span>}
+                                            {c.phone && <span className="text-xs text-slate-400">{maskPhone(c.phone)}</span>}
                                           </div>
                                         </button>
                                       ))
@@ -718,7 +750,10 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
                                       <input type="number" step="0.001" min="0.001" value={row.liters}
                                         onChange={(e) => {
                                           const price = priceForFuelType(row.fuelType)
-                                          const amt = price && e.target.value ? (parseFloat(e.target.value) * price).toFixed(2) : ''
+                                          const raw = parseFloat(e.target.value)
+                                          const amt = price && isFinite(raw) && raw >= 0 && raw <= 99_999
+                                            ? (raw * price).toFixed(2)
+                                            : ''
                                           updateRowMulti(row.id, { liters: e.target.value, amount: amt })
                                         }}
                                         placeholder="0.000"
@@ -867,6 +902,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
         </form>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 

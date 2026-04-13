@@ -16,11 +16,10 @@ import type { CreateShiftDefinitionRequest } from '../../api/shiftDefinitionApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { PasswordInput } from '../../components/PasswordInput'
 import { formatIstDate, localDateInputValue } from '../../utils/date'
-import { SkeletonRows } from '../../components/Skeleton'
 import { Reveal } from '../../components/Reveal'
-import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
+import { ModalPortal } from '../../components/ModalPortal'
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -1370,6 +1369,7 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
 
       {/* 15% deviation confirmation dialog */}
       {deviationWarning && (
+        <ModalPortal>
         <div className="ui-modal-backdrop">
           <div className="ui-modal-panel w-full max-w-sm">
             <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
@@ -1419,6 +1419,7 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   )
