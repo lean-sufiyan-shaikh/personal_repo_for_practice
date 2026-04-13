@@ -63,7 +63,7 @@ export default function ShiftsPage() {
   const [showOpenModal,  setShowOpenModal]  = useState(false)
   const [shiftToClose,   setShiftToClose]   = useState<Shift | null>(null)
   const [shiftForCredit, setShiftForCredit] = useState<Shift | null>(null)
-  const [historyOpen,    setHistoryOpen]    = useState(false)
+  const [historyOpen,    setHistoryOpen]    = useState(true)
   const [historyTab,     setHistoryTab]     = useState<'day' | 'all'>('day')
 
   const { data: rawPumps = [] } = useQuery({
@@ -205,11 +205,11 @@ export default function ShiftsPage() {
               className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors"
             >
               <span className="text-base font-semibold text-slate-800">Shift History</span>
-              <span className="text-slate-400 text-sm">{historyOpen ? '▲ Hide' : '▼ Show'}</span>
+              <span className={`ui-accordion-arrow ${historyOpen ? 'ui-accordion-arrow--open' : ''}`}>▼</span>
             </button>
 
             {historyOpen && (
-              <>
+              <div className="ui-accordion-content">
                 {/* Tab row */}
                 <div className="ui-tabbar">
                   {(['day', 'all'] as const).map((tab) => (
@@ -223,16 +223,18 @@ export default function ShiftsPage() {
                   ))}
                 </div>
 
-                {historyLoading ? (
-                  <div className="ui-empty p-6">Loading history...</div>
-                ) : historyShifts.length === 0 ? (
-                  <div className="ui-empty p-6">No shift history yet.</div>
-                ) : historyTab === 'day' ? (
-                  <DayViewHistory shifts={historyShifts} />
-                ) : (
-                  <AllShiftsHistory shifts={historyShifts} />
-                )}
-              </>
+                <div key={historyLoading ? 'loading' : historyTab} className="ui-tab-content">
+                  {historyLoading ? (
+                    <div className="ui-empty p-6">Loading history...</div>
+                  ) : historyShifts.length === 0 ? (
+                    <div className="ui-empty p-6">No shift history yet.</div>
+                  ) : historyTab === 'day' ? (
+                    <DayViewHistory shifts={historyShifts} />
+                  ) : (
+                    <AllShiftsHistory shifts={historyShifts} />
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </>
@@ -322,12 +324,12 @@ function DayViewHistory({ shifts }: { shifts: Shift[] }) {
                   </span>
                 )}
               </div>
-              <span className="text-xs text-slate-400">{isOpen ? '▲' : '▼'}</span>
+              <span className={`ui-accordion-arrow ${isOpen ? 'ui-accordion-arrow--open' : ''}`}>▼</span>
             </button>
 
             {/* Day shift table */}
             {isOpen && (
-              <div className="overflow-x-auto border-t border-slate-100 bg-slate-50/40">
+              <div className="ui-accordion-content overflow-x-auto border-t border-slate-100 bg-slate-50/40">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-xs text-slate-500">

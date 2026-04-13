@@ -9,6 +9,11 @@ import type { PagedResponse } from '../../types/paged'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { formatIstDate, localDateInputValue } from '../../utils/date'
+import { SkeletonRows } from '../../components/Skeleton'
+import { Reveal } from '../../components/Reveal'
+import { EmptyState } from '../../components/EmptyState'
+import { Spinner } from '../../components/Spinner'
+import { useToastStore } from '../../store/toastStore'
 
 const today     = localDateInputValue()
 const yesterday = localDateInputValue(-1)
@@ -24,6 +29,7 @@ interface RecordPaymentModalProps {
 
 function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, onClose }: RecordPaymentModalProps) {
   const qc = useQueryClient()
+  const { addToast } = useToastStore()
   const [amount, setAmount] = useState('')
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI' | 'BANK_TRANSFER' | 'OTHER'>('CASH')
   const [paidAt, setPaidAt] = useState(() => localDateInputValue())
@@ -37,10 +43,13 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, onClos
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
       qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId, client.id] })
+      addToast(`Payment recorded for ${client.name}`, 'success')
       onClose()
     },
     onError: (err: any) => {
-      setError(err?.response?.data?.message ?? 'Failed to record payment')
+      const msg = err?.response?.data?.message ?? 'Failed to record payment'
+      setError(msg)
+      addToast(msg, 'error')
     },
   })
 
@@ -174,7 +183,9 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, onClos
             disabled={mutation.isPending}
             className="ui-btn ui-btn-primary"
           >
-            {mutation.isPending ? 'Saving…' : 'Record Payment'}
+            {mutation.isPending
+              ? <span className="flex items-center gap-1.5"><Spinner />Saving…</span>
+              : 'Record Payment'}
           </button>
         </div>
       </div>
@@ -1221,7 +1232,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
         )}
 
         {isLoading ? (
-          <div className="text-sm text-slate-400 py-8 text-center">Loading transactions…</div>
+          <div className="px-5 py-4"><SkeletonRows count={5} /></div>
         ) : client.isParent ? (
           /* ── Parent view: parent's own transactions first, then sub-accounts ── */
           <div className="space-y-8">
@@ -1308,11 +1319,12 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
                   </button>
                   {isExpanded && (
                     childTxQueries[i]?.isLoading ? (
-                      <div className="ui-empty py-4">Loading…</div>
+                      <div className="px-4 py-3"><SkeletonRows count={3} /></div>
                     ) : childFiltered.length === 0 ? (
-                      <div className="ui-empty py-4">
-                        {(childTxQueries[i]?.data?.content ?? []).length === 0 ? 'No transactions yet.' : 'No transactions match this filter.'}
-                      </div>
+                      <EmptyState
+                        icon="transactions"
+                        title={(childTxQueries[i]?.data?.content ?? []).length === 0 ? 'No transactions yet' : 'No transactions match this filter'}
+                      />
                     ) : (
                       <div className="space-y-3">{renderWeekGroups(childGroups, child.id)}</div>
                     )
@@ -1431,6 +1443,7 @@ export default function CreditPage() {
       )}
 
       {/* Page title */}
+      <Reveal delay={60}>
       <div className="ui-section-hero">
         <div>
           <p className="ui-section-kicker">Client balances</p>
@@ -1448,8 +1461,10 @@ export default function CreditPage() {
           </div>
         </div>
       </div>
+      </Reveal>
 
       {/* Search bar */}
+      <Reveal delay={120}>
       <div className="ui-search-shell">
         <svg className="ui-search-shell__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
@@ -1472,9 +1487,14 @@ export default function CreditPage() {
           </button>
         )}
       </div>
+      </Reveal>
 
       {isLoading && (
-        <div className="ui-empty py-12">Loading clients…</div>
+        <Reveal delay={150}>
+        <div className="ui-card px-5 py-4">
+          <SkeletonRows count={5} />
+        </div>
+        </Reveal>
       )}
 
       {error && (
@@ -1484,9 +1504,15 @@ export default function CreditPage() {
       )}
 
       {!isLoading && clients.length === 0 && (
-        <div className="ui-empty py-12">
-          No credit clients registered yet. Add clients in the Setup page.
+        <Reveal delay={150}>
+        <div className="ui-card">
+          <EmptyState
+            icon="transactions"
+            title="No credit clients yet"
+            subtitle="Add clients in Setup → Credit Clients, then they'll appear here."
+          />
         </div>
+        </Reveal>
       )}
 
       {!isLoading && clients.length > 0 && (() => {
@@ -1646,8 +1672,12 @@ export default function CreditPage() {
 
         if (rootClients.length === 0 && q) {
           return (
-            <div className="ui-empty py-10">
-              No clients match "<span className="font-medium text-slate-600">{searchQuery.trim()}</span>"
+            <div className="ui-card">
+              <EmptyState
+                icon="generic"
+                title={`No clients match "${searchQuery.trim()}"`}
+                subtitle="Try a different name or phone number."
+              />
             </div>
           )
         }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useCountUp } from '../../hooks/useCountUp'
 import { PasswordInput } from '../../components/PasswordInput'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -362,15 +363,15 @@ export default function SuperAdminPage() {
             <div className="mb-6 ui-summary-strip">
               <div className="ui-summary-strip__item">
                 <span className="ui-summary-strip__label">Pump Owners</span>
-                <span className="ui-summary-strip__value">{analytics.totalOwners}</span>
+                <span className="ui-summary-strip__value"><AnimatedCount value={analytics.totalOwners} /></span>
               </div>
               <div className="ui-summary-strip__item">
                 <span className="ui-summary-strip__label">Pumps</span>
-                <span className="ui-summary-strip__value">{analytics.totalPumps}</span>
+                <span className="ui-summary-strip__value"><AnimatedCount value={analytics.totalPumps} /></span>
               </div>
               <div className="ui-summary-strip__item">
                 <span className="ui-summary-strip__label">Staff Members</span>
-                <span className="ui-summary-strip__value">{analytics.totalStaff}</span>
+                <span className="ui-summary-strip__value"><AnimatedCount value={analytics.totalStaff} /></span>
               </div>
             </div>
           )}
@@ -872,6 +873,13 @@ function FormField({ label, error, children }: { label: string; error?: string; 
       {error && <p className="ui-error-text">{error}</p>}
     </div>
   )
+}
+
+// ── Animated counter — wraps useCountUp so it can be called inside a component
+// boundary rather than directly inside a conditional render.
+function AnimatedCount({ value }: { value: number }) {
+  const animated = useCountUp(value)
+  return <>{animated}</>
 }
 
 function CredentialField({ label, value }: { label: string; value: string }) {

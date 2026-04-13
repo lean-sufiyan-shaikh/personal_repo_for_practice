@@ -259,8 +259,8 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
     : 'ui-modal-header--neutral'
 
   return (
-    <div className="ui-modal-backdrop overflow-y-auto p-4">
-      <div className="ui-modal-panel ui-modal-panel--lg w-full max-w-lg overflow-hidden my-auto">
+    <div className="ui-modal-backdrop">
+      <div className="ui-modal-panel">
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className={`ui-modal-header ui-modal-header--themed ${headerToneClass} relative`}>
@@ -286,8 +286,8 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[70vh]">
-          <div className="p-6 space-y-5">
+        <form onSubmit={handleSubmit}>
+          <div className="ui-modal-body space-y-5" style={{ maxHeight: 'calc(100vh - 15rem)' }}>
 
             {/* ── Step 1: End Readings ──────────────────────────────────── */}
             <Section label="1" title="End Meter Readings">
@@ -835,7 +835,7 @@ export default function CloseShiftModal({ shift, onClose }: Props) {
           </div>
 
           {/* ── Footer ──────────────────────────────────────────────────── */}
-          <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/80 flex gap-3 items-center">
+          <div className="ui-modal-footer bg-slate-50/80">
             <button type="button" onClick={onClose}
               className="ui-btn ui-btn-secondary flex-none">
               Cancel
