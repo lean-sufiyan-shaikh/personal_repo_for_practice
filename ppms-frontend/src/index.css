@@ -1060,7 +1060,7 @@ a:focus-visible {
 
 .ui-modal-panel {
   width: min(100%, 640px);
-  max-height: calc(100vh - 6rem);
+  max-height: 50vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2271,7 +2271,7 @@ a:focus-visible {
   .ui-modal-panel,
   .ui-modal-panel--lg {
     width: 100%;
-    max-height: calc(100vh - 6rem);
+    max-height: 50vh;
   }
 }
 

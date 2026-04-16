@@ -1161,7 +1161,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                       placeholder="1"
                     />
                   </div>
-                  <div className="flex-1 min-w-[160px]">
+                  <div className="flex-1">
                     <label className="ui-label mb-1 text-[10px]">Fuel Type</label>
                     <SearchableSelect
                       value={row.fuelType}
@@ -1171,7 +1171,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                       options={ALL_FUEL_TYPES.map((ft) => ({ value: ft, label: FUEL_LABEL[ft] }))}
                     />
                   </div>
-                  <div className="w-32">
+                  <div className="flex-1">
                     <label className="ui-label mb-1 text-[10px]">Start Reading</label>
                     <input
                       type="number"

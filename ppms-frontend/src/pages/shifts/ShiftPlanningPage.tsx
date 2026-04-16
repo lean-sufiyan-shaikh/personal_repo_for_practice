@@ -103,6 +103,7 @@ export default function ShiftPlanningPage() {
     queryKey: ['actualAttendance', pumpId, weekStart],
     queryFn: () => shiftPlanApi.getActualAttendance(pumpId!, weekStart, weekEnd),
     enabled: !!pumpId,
+    refetchInterval: 60_000, // refresh every 60s so today's shifts reflect live status
   })
 
   const { data: shiftDefinitions = [] } = useQuery({
@@ -371,9 +372,10 @@ export default function ShiftPlanningPage() {
                             </div>
                           </td>
                           {days.map(day => {
-                            const isPast = day < today
                             const slotEntries = entryMap[day]?.[def.id] ?? []
                             const actualOpIds = actualMap[day]?.[def.id] ?? []
+                            // Show actual attendance for past days, or for today's slots where a shift has already started
+                            const isPast = day < today || (day === today && actualOpIds.length > 0)
                             const isEditing = isEditingSlot(day, def.id)
                             const availableToAdd = operatorStaff.filter(
                               s => !slotEntries.some(e => e.operatorUserId === s.id)

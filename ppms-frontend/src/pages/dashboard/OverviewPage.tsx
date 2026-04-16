@@ -13,8 +13,8 @@ import { RefreshIndicator } from '../../components/RefreshIndicator'
 import { useCountUp } from '../../hooks/useCountUp'
 import type { Shift } from '../../types/shift'
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
+  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
 
 const todayStr = localDateInputValue()
@@ -106,10 +106,38 @@ export default function OverviewPage() {
 
   // ── Revenue chart ────────────────────────────────────────────────────────────
   const [chartDays, setChartDays] = useState<7 | 14 | 30>(7)
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set())
 
-  const revenueChartData = useMemo(() => {
+  const toggleSeries = (key: string) =>
+    setHiddenSeries(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+
+  const FUEL_CHART_COLORS: Record<string, string> = {
+    PETROL:       '#10b981',
+    SPEED_PETROL: '#0d9488',
+    DIESEL:       '#f59e0b',
+    SPEED_DIESEL: '#8b5cf6',
+    CNG:          '#ef4444',
+  }
+
+  const FUEL_CHART_LABELS: Record<string, string> = {
+    PETROL: 'Petrol', SPEED_PETROL: 'Speed Petrol',
+    DIESEL: 'Diesel', SPEED_DIESEL: 'Speed Diesel', CNG: 'CNG',
+  }
+
+  const { revenueChartData, chartFuelTypes } = useMemo(() => {
+    // Collect all fuel types present in the window
+    const fuelTypeSet = new Set<string>()
+    historyShifts.forEach(s =>
+      s.fuelReadings.forEach(fr => { if (fr.unitsSold != null) fuelTypeSet.add(fr.fuelType) })
+    )
+    const fuelTypes = Array.from(fuelTypeSet)
+
     const today = new Date()
-    const data: { label: string; date: string; revenue: number }[] = []
+    const data: Array<Record<string, number | string>> = []
     for (let i = chartDays - 1; i >= 0; i--) {
       const d = new Date(today)
       d.setDate(d.getDate() - i)
@@ -118,17 +146,24 @@ export default function OverviewPage() {
       const day = String(d.getDate()).padStart(2, '0')
       const dateStr = `${y}-${m}-${day}`
       const label = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-      data.push({ label, date: dateStr, revenue: 0 })
+      const entry: Record<string, number | string> = { label, date: dateStr, revenue: 0 }
+      fuelTypes.forEach(ft => { entry[ft] = 0 })
+      data.push(entry)
     }
     historyShifts.forEach(s => {
-      if (s.totalAmountDue == null) return
       const entry = data.find(r => r.date === s.shiftDate)
-      if (entry) entry.revenue += s.totalAmountDue
+      if (!entry) return
+      if (s.totalAmountDue != null) (entry.revenue as number) += s.totalAmountDue
+      s.fuelReadings.forEach(fr => {
+        if (fr.unitsSold != null && fr.fuelType in entry) {
+          (entry[fr.fuelType] as number) += fr.unitsSold
+        }
+      })
     })
-    return data
+    return { revenueChartData: data, chartFuelTypes: fuelTypes }
   }, [historyShifts, chartDays])
 
-  const hasChartData = revenueChartData.some(d => d.revenue > 0)
+  const hasChartData = revenueChartData.some(d => (d.revenue as number) > 0)
 
   return (
     <div className="ui-page ui-page--narrow space-y-5">
@@ -273,7 +308,7 @@ export default function OverviewPage() {
           {hasChartData ? (
             <div className="ui-chart-wrap">
               <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={revenueChartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                <ComposedChart data={revenueChartData} margin={{ top: 4, right: 52, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.18} />
@@ -288,6 +323,7 @@ export default function OverviewPage() {
                     interval={chartDays === 30 ? 4 : chartDays === 14 ? 1 : 0}
                   />
                   <YAxis
+                    yAxisId="left"
                     tick={{ fontSize: 10, fill: '#94a3b8' }}
                     axisLine={false} tickLine={false}
                     width={62}
@@ -297,19 +333,44 @@ export default function OverviewPage() {
                       : `₹${v}`
                     }
                   />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 10, fill: '#94a3b8' }}
+                    axisLine={false} tickLine={false}
+                    width={48}
+                    tickFormatter={v => `${v}L`}
+                  />
                   <Tooltip
                     contentStyle={{
                       fontSize: '0.75rem', borderRadius: '0.625rem',
                       border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
                       padding: '0.5rem 0.75rem',
                     }}
-                    formatter={(v) => {
+                    formatter={(v, name) => {
                       const n = typeof v === 'number' ? v : 0
-                      return [`₹${n.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, 'Revenue']
+                      if (name === 'revenue') return [`₹${n.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, 'Revenue']
+                      return [`${n.toFixed(2)} L`, FUEL_CHART_LABELS[name as string] ?? name]
                     }}
                     labelStyle={{ color: '#64748b', marginBottom: '0.25rem' }}
                   />
+                  <Legend
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={{ fontSize: '0.7rem', paddingTop: '4px', cursor: 'pointer' }}
+                    formatter={(v) => {
+                      const label = v === 'revenue' ? 'Revenue' : (FUEL_CHART_LABELS[v] ?? v)
+                      const hidden = hiddenSeries.has(v)
+                      return (
+                        <span style={{ color: hidden ? '#cbd5e1' : undefined, textDecoration: hidden ? 'line-through' : undefined }}>
+                          {label}
+                        </span>
+                      )
+                    }}
+                    onClick={(e) => toggleSeries(e.dataKey as string)}
+                  />
                   <Area
+                    yAxisId="left"
                     type="monotone"
                     dataKey="revenue"
                     stroke="#3b82f6"
@@ -317,8 +378,22 @@ export default function OverviewPage() {
                     fill="url(#revGrad)"
                     dot={false}
                     activeDot={{ r: 4, strokeWidth: 0, fill: '#3b82f6' }}
+                    hide={hiddenSeries.has('revenue')}
                   />
-                </AreaChart>
+                  {chartFuelTypes.map(ft => (
+                    <Line
+                      key={ft}
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey={ft}
+                      stroke={FUEL_CHART_COLORS[ft] ?? '#94a3b8'}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4, strokeWidth: 0, fill: FUEL_CHART_COLORS[ft] ?? '#94a3b8' }}
+                      hide={hiddenSeries.has(ft)}
+                    />
+                  ))}
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           ) : (
