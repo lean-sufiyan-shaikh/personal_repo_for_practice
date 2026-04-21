@@ -168,4 +168,24 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
             WHERE s.shiftDefinitionId IN :definitionIds
             """)
     boolean existsByShiftDefinitionIdIn(@Param("definitionIds") List<Long> definitionIds);
+
+    /**
+     * Counts shifts for the given nozzle, business date, and shift definition.
+     * Used during backfill to enforce the one-shift-per-nozzle-per-window-per-day constraint.
+     *
+     * Native SQL is used here because JPQL cannot combine an unrelated-entity JOIN (ShiftNozzle
+     * has no mapped association to Shift) with a COUNT aggregate in the SELECT clause — Hibernate
+     * fails to parse that combination at EntityManagerFactory initialisation time.
+     */
+    @Query(value = """
+            SELECT COUNT(*) FROM shifts s
+            JOIN shift_nozzles sn ON sn.shift_id = s.id
+            WHERE sn.nozzle_id = :nozzleId
+              AND s.shift_date = :shiftDate
+              AND s.shift_definition_id = :shiftDefinitionId
+            """, nativeQuery = true)
+    Long countForNozzleDateAndDefinition(
+            @Param("nozzleId") Long nozzleId,
+            @Param("shiftDate") LocalDate shiftDate,
+            @Param("shiftDefinitionId") Long shiftDefinitionId);
 }

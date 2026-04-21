@@ -43,6 +43,20 @@ public class PumpShiftDefinitionService {
                 .toList();
     }
 
+    /**
+     * Returns the shift definitions that were active for a pump on a specific historical date.
+     * Used by the backfill modal to populate the shift window selector for a chosen date.
+     *
+     * @param pumpId the pump
+     * @param date   the historical date to look up definitions for
+     */
+    public List<ShiftDefinitionResponse> getForPumpOnDate(Long pumpId, LocalDate date) {
+        return repository.findActiveForPumpOnDate(pumpId, date)
+                .stream()
+                .map(ShiftDefinitionResponse::from)
+                .toList();
+    }
+
     // ── Detect current shift at shift-open time ───────────────────────────────
 
     /**

@@ -94,6 +94,7 @@ public class ShiftReadModelService {
                 .discrepancyResolution(shift.getDiscrepancyResolution() != null ? shift.getDiscrepancyResolution().name() : null)
                 .discrepancyResolutionNote(shift.getDiscrepancyResolutionNote())
                 .status(shift.getStatus().name())
+                .isBackfilled(shift.isBackfilled())
                 .creditEntries(creditEntryResponses)
                 .build();
     }

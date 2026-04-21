@@ -5,6 +5,7 @@ import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
 import com.ppms.fuel.FuelType;
+import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.inventory.InventoryLot;
 import com.ppms.inventory.InventoryLotRepository;
 import com.ppms.inventory.LotConsumption;
@@ -16,6 +17,8 @@ import com.ppms.pump.DispensaryUnitRepository;
 import com.ppms.pump.Nozzle;
 import com.ppms.pump.NozzleRepository;
 import com.ppms.pump.PumpLocationRepository;
+import com.ppms.pump.PumpShiftDefinition;
+import com.ppms.pump.PumpShiftDefinitionRepository;
 import com.ppms.pump.UndergroundTankRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
@@ -31,7 +34,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -61,6 +67,8 @@ public class ShiftService {
     private final ShiftReadModelService shiftReadModelService;
     private final com.ppms.planning.ShiftPlanningService shiftPlanningService;
     private final PumpLocationRepository pumpLocationRepository;
+    private final GlobalFuelPriceRepository fuelPriceRepository;
+    private final PumpShiftDefinitionRepository shiftDefinitionRepository;
     private final Counter shiftOpenedCounter;
     private final Counter shiftClosedCounter;
 
@@ -364,6 +372,233 @@ public class ShiftService {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
         return shiftReadModelService.toResponseWithLookups(shift);
+    }
+
+    /**
+     * Backfills a historical closed shift for a pump.
+     *
+     * Intended for Admin/Owner use when a pump is onboarded and the owner wants to
+     * enter past shift data. The resulting shift is stored with status
+     * CLOSED_BALANCED or CLOSED_DISCREPANCY_PENDING and isBackfilled=true.
+     *
+     * Rules enforced:
+     * - shiftDate must be within the last 365 days and not today or future
+     * - shiftDefinitionId must have been effective on shiftDate for this pump
+     * - closingReading >= openingReading for every nozzle (rollover not supported for backfill)
+     * - No existing shift for the same nozzle + shiftDate + shiftDefinitionId (duplicate guard)
+     * - A historical fuel price must exist for each fuel type on shiftDate
+     * - Inventory lots must exist and have sufficient stock (user must record deliveries first)
+     * - nozzle.lastReading is NOT updated — historical data must not pollute current meter state
+     */
+    @Transactional
+    public ShiftResponse backfillShift(Long pumpId, BackfillShiftRequest request, User currentUser) {
+        // ── 1. Validate shiftDate ─────────────────────────────────────────────
+        LocalDate shiftDate = request.getShiftDate();
+        LocalDate today = LocalDate.now();
+        LocalDate oneYearAgo = today.minusDays(365);
+
+        if (!shiftDate.isBefore(today)) {
+            throw new BusinessException(
+                    "Backfill shift date must be before today. Use the normal shift flow for today's shifts.");
+        }
+        if (shiftDate.isBefore(oneYearAgo)) {
+            throw new BusinessException(
+                    "Backfill is only supported for shifts within the last 365 days. " +
+                    "The provided date " + shiftDate + " is too far in the past.");
+        }
+
+        // ── 2. Validate shift definition belongs to pump and was effective on shiftDate ──
+        PumpShiftDefinition shiftDef = shiftDefinitionRepository.findById(request.getShiftDefinitionId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Shift definition not found: " + request.getShiftDefinitionId()));
+
+        if (!shiftDef.getPumpId().equals(pumpId)) {
+            throw new BusinessException("Shift definition does not belong to this pump.");
+        }
+
+        boolean effectiveOnDate = !shiftDate.isBefore(shiftDef.getEffectiveFrom())
+                && (shiftDef.getEffectiveTo() == null || !shiftDate.isAfter(shiftDef.getEffectiveTo()));
+        if (!effectiveOnDate) {
+            throw new BusinessException(
+                    "The selected shift definition '" + shiftDef.getName() +
+                    "' was not active on " + shiftDate + ". " +
+                    "Please select a shift window that was in use on that date.");
+        }
+
+        // ── 3. Validate DU belongs to pump ───────────────────────────────────
+        DispensaryUnit du = duRepository.findById(request.getDuId())
+                .orElseThrow(() -> new ResourceNotFoundException("Dispensary Unit not found: " + request.getDuId()));
+        if (!du.getPumpId().equals(pumpId)) {
+            throw new BusinessException("Dispensary Unit does not belong to this pump.");
+        }
+
+        // ── 4. Validate operator exists ───────────────────────────────────────
+        User operator = userRepository.findById(request.getOperatorId())
+                .orElseThrow(() -> new ResourceNotFoundException("Operator not found: " + request.getOperatorId()));
+
+        // ── 5. Validate nozzles + readings, resolve price and tankId per nozzle ──
+        List<BackfillShiftRequest.NozzleReadingRequest> nozzleReadings = request.getNozzleReadings();
+        List<Nozzle> nozzles = new ArrayList<>();
+        ZoneId ist = ZoneId.of("Asia/Kolkata");
+        // Upper bound for historical price lookup: start of the day AFTER shiftDate in IST
+        OffsetDateTime priceAsOf = shiftDate.plusDays(1).atStartOfDay(ist).toOffsetDateTime();
+
+        for (BackfillShiftRequest.NozzleReadingRequest nr : nozzleReadings) {
+            Nozzle nozzle = nozzleRepository.findById(nr.nozzleId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Nozzle not found: " + nr.nozzleId()));
+
+            if (!nozzle.getDuId().equals(du.getId())) {
+                throw new BusinessException(
+                        "Nozzle #" + nozzle.getNozzleNumber() + " does not belong to DU '" + du.getName() + "'.");
+            }
+
+            if (nr.closingReading().compareTo(nr.openingReading()) < 0) {
+                throw new BusinessException(
+                        "Closing reading (" + nr.closingReading() + ") cannot be less than opening reading (" +
+                        nr.openingReading() + ") for nozzle #" + nozzle.getNozzleNumber() +
+                        ". Meter rollover is not supported for backfilled shifts.");
+            }
+
+            // Duplicate guard — one shift per nozzle per shift window per day
+            if (shiftRepository.countForNozzleDateAndDefinition(nozzle.getId(), shiftDate, shiftDef.getId()) > 0) {
+                throw new BusinessException(
+                        "A shift for nozzle #" + nozzle.getNozzleNumber() +
+                        " on " + shiftDate + " under '" + shiftDef.getName() + "' already exists.");
+            }
+
+            // Verify historical price exists for this fuel type on shiftDate
+            fuelPriceRepository.findFirstByPumpIdAndFuelTypeAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(pumpId, nozzle.getFuelType(), priceAsOf)
+                    .orElseThrow(() -> new BusinessException(
+                            "No fuel price found for " + nozzle.getFuelType() + " on or before " + shiftDate +
+                            ". Please set the historical price before backfilling this shift."));
+
+            nozzles.add(nozzle);
+        }
+
+        // ── 6. Derive actualStartTime and actualEndTime from the definition ───
+        // End time stored is exclusive (1 min less than displayed). Display end = endTime + 1 min.
+        LocalTime startTime = shiftDef.getStartTime();
+        LocalTime endTimeDisplay = shiftDef.getEndTime().plusMinutes(1);
+
+        OffsetDateTime actualStartTime = LocalDateTime.of(shiftDate, startTime).atZone(ist).toOffsetDateTime();
+        OffsetDateTime actualEndTime = shiftDef.isCrossesMidnight()
+                ? LocalDateTime.of(shiftDate.plusDays(1), endTimeDisplay).atZone(ist).toOffsetDateTime()
+                : LocalDateTime.of(shiftDate, endTimeDisplay).atZone(ist).toOffsetDateTime();
+
+        // ── 7. Persist the shift entity ───────────────────────────────────────
+        Shift shift = Shift.builder()
+                .pumpId(pumpId)
+                .duId(du.getId())
+                .operatorId(operator.getId())
+                .openedByUserId(currentUser.getId())
+                .closedByUserId(currentUser.getId())
+                .shiftDefinitionId(shiftDef.getId())
+                .shiftName(shiftDef.getName())
+                .isNightShift(shiftDef.isNightShift())
+                .shiftDate(shiftDate)
+                .actualStartTime(actualStartTime)
+                .actualEndTime(actualEndTime)
+                .cashCollected(request.getCashCollected())
+                .upiCollected(request.getUpiCollected())
+                .cardCollected(request.getCardCollected())
+                .fleetCardCollected(request.getFleetCardCollected())
+                .creditTotal(request.getCreditTotal())
+                .discrepancyReason(request.getDiscrepancyReason())
+                .isOverdueFlag(false)
+                .isBackfilled(true)
+                // Status and financials are set after inventory deduction below
+                .status(ShiftStatus.CLOSED_BALANCED)
+                .build();
+
+        shift = shiftRepository.save(shift);
+        final Long shiftId = shift.getId();
+
+        // ── 8. Persist ShiftNozzle join records ───────────────────────────────
+        for (Nozzle nozzle : nozzles) {
+            shiftNozzleRepository.save(ShiftNozzle.builder()
+                    .shiftId(shiftId)
+                    .nozzleId(nozzle.getId())
+                    .build());
+        }
+
+        // ── 9. Persist fuel readings + FIFO deduction per nozzle ─────────────
+        BigDecimal totalAmountDue = ZERO;
+
+        for (BackfillShiftRequest.NozzleReadingRequest nr : nozzleReadings) {
+            Nozzle nozzle = nozzles.stream()
+                    .filter(n -> n.getId().equals(nr.nozzleId()))
+                    .findFirst()
+                    .orElseThrow();
+
+            BigDecimal historicalPrice = fuelPriceRepository
+                    .findFirstByPumpIdAndFuelTypeAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(pumpId, nozzle.getFuelType(), priceAsOf)
+                    .map(p -> p.getPricePerUnit())
+                    .orElseThrow();
+
+            BigDecimal unitsSold = nr.closingReading().subtract(nr.openingReading())
+                    .setScale(3, RoundingMode.HALF_UP);
+
+            fuelReadingRepository.save(ShiftFuelReading.builder()
+                    .shiftId(shiftId)
+                    .nozzleId(nozzle.getId())
+                    .fuelType(nozzle.getFuelType())
+                    .tankId(nozzle.getTankId())
+                    .startReading(nr.openingReading())
+                    .endReading(nr.closingReading())
+                    .priceSnapshot(historicalPrice)
+                    .unitsSold(unitsSold)
+                    .build());
+
+            if (unitsSold.compareTo(ZERO) > 0) {
+                deductFromInventory(shiftId, pumpId, nozzle.getFuelType(), nozzle.getTankId(), unitsSold);
+                totalAmountDue = totalAmountDue.add(unitsSold.multiply(historicalPrice));
+            }
+        }
+
+        totalAmountDue = totalAmountDue.add(request.getCreditTotal()).setScale(2, RoundingMode.HALF_UP);
+
+        // ── 10. Compute discrepancy and determine final status ─────────────────
+        BigDecimal totalCollected = request.getCashCollected()
+                .add(request.getUpiCollected())
+                .add(request.getCardCollected())
+                .add(request.getFleetCardCollected())
+                .add(request.getCreditTotal())
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal discrepancyAmount = totalCollected.subtract(totalAmountDue).abs();
+        DiscrepancyType discrepancyType = null;
+        ShiftStatus finalStatus = ShiftStatus.CLOSED_BALANCED;
+
+        if (discrepancyAmount.compareTo(ZERO) > 0) {
+            discrepancyType = totalCollected.compareTo(totalAmountDue) < 0
+                    ? DiscrepancyType.SHORT : DiscrepancyType.OVER;
+            finalStatus = ShiftStatus.CLOSED_DISCREPANCY_PENDING;
+
+            if (request.getDiscrepancyReason() == null || request.getDiscrepancyReason().isBlank()) {
+                throw new BusinessException(
+                        "A discrepancy reason is required when the collected amount does not match the expected amount. " +
+                        "Expected: ₹" + totalAmountDue + ", Collected: ₹" + totalCollected + ".");
+            }
+        }
+
+        shift.setTotalAmountDue(totalAmountDue);
+        shift.setDiscrepancyAmount(discrepancyAmount.compareTo(ZERO) > 0 ? discrepancyAmount : null);
+        shift.setDiscrepancyType(discrepancyType);
+        shift.setStatus(finalStatus);
+        shift = shiftRepository.save(shift);
+
+        // ── 11. Persist credit entries ────────────────────────────────────────
+        if (request.getCreditEntries() != null && !request.getCreditEntries().isEmpty()) {
+            lifecycleSupportService.persistCloseCreditEntries(shiftId, pumpId, request.getCreditEntries());
+        }
+
+        log.info("Shift {} backfilled by {}: du={}, operator={}, date={}, definition='{}', totalDue={}, status={}",
+                shiftId, currentUser.getId(), du.getId(), operator.getId(),
+                shiftDate, shiftDef.getName(), totalAmountDue, finalStatus);
+
+        List<ShiftCreditEntry> savedEntries = creditEntryRepository.findByShiftId(shiftId);
+        List<ShiftFuelReading> finalReadings = fuelReadingRepository.findByShiftId(shiftId);
+        return shiftReadModelService.toResponse(shift, du, nozzles, operator, currentUser.getFullName(), finalReadings, savedEntries);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/authStore'
 import type { Shift, CreditEntry, CreditEntryInput } from '../../types/shift'
 import OpenShiftModal from './OpenShiftModal'
 import CloseShiftModal from './CloseShiftModal'
+import BackfillShiftModal from './BackfillShiftModal'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { SkeletonRows } from '../../components/Skeleton'
 import { Reveal } from '../../components/Reveal'
@@ -65,9 +66,10 @@ export default function ShiftsPage() {
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
 
   const { selectedPumpId } = usePumpStore()
-  const [showOpenModal,  setShowOpenModal]  = useState(false)
-  const [shiftToClose,   setShiftToClose]   = useState<Shift | null>(null)
-  const [shiftForCredit, setShiftForCredit] = useState<Shift | null>(null)
+  const [showOpenModal,     setShowOpenModal]     = useState(false)
+  const [showBackfillModal, setShowBackfillModal] = useState(false)
+  const [shiftToClose,      setShiftToClose]      = useState<Shift | null>(null)
+  const [shiftForCredit,    setShiftForCredit]    = useState<Shift | null>(null)
   const [historyOpen,    setHistoryOpen]    = useState(true)
   const [historyTab,     setHistoryTab]     = useState<'day' | 'all'>('day')
 
@@ -162,12 +164,23 @@ export default function ShiftsPage() {
               {selectedPump && (
                 <p className="text-xs text-slate-400">{selectedPump.name}</p>
               )}
-              <button
-                onClick={() => setShowOpenModal(true)}
-                className="ui-btn ui-btn-primary ml-auto"
-              >
-                + Open Shift
-              </button>
+              <div className="flex items-center gap-2 ml-auto">
+                {isOwnerOrAdmin && (
+                  <button
+                    onClick={() => setShowBackfillModal(true)}
+                    className="ui-btn ui-btn-secondary"
+                    title="Enter historical shift data for past dates"
+                  >
+                    Backfill Shift
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowOpenModal(true)}
+                  className="ui-btn ui-btn-primary"
+                >
+                  + Open Shift
+                </button>
+              </div>
             </div>
 
             {activeLoading ? (
@@ -253,6 +266,12 @@ export default function ShiftsPage() {
           pumpId={pumpId}
           activeShifts={activeShifts}
           onClose={() => setShowOpenModal(false)}
+        />
+      )}
+      {showBackfillModal && pumpId && (
+        <BackfillShiftModal
+          pumpId={pumpId}
+          onClose={() => setShowBackfillModal(false)}
         />
       )}
       {shiftToClose && (
@@ -610,9 +629,16 @@ function HistoryRow({ shift }: { shift: Shift }) {
           {fmtAmt(shift.totalAmountDue)}
         </td>
         <td className="px-5 py-3">
-          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${badge.color}`}>
-            {badge.label}
-          </span>
+          <div className="flex flex-wrap items-center gap-1">
+            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${badge.color}`}>
+              {badge.label}
+            </span>
+            {shift.isBackfilled && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                Backfilled
+              </span>
+            )}
+          </div>
         </td>
         <td className="px-5 py-3">
           {shift.discrepancyAmount != null ? (

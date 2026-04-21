@@ -22,6 +22,7 @@ public enum AuditAction {
     // ── Shift lifecycle ───────────────────────────────────────────────────────
     SHIFT_OPENED,
     SHIFT_CLOSED,
+    SHIFT_BACKFILLED,
     DISCREPANCY_RESOLVED,
 
     // ── Credit management ─────────────────────────────────────────────────────

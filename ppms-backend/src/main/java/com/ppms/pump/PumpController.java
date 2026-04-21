@@ -286,6 +286,18 @@ public class PumpController {
         return ResponseEntity.ok(shiftDefinitionService.getActiveForPump(pumpId));
     }
 
+    /**
+     * GET /api/pumps/{pumpId}/shift-definitions/for-date?date=YYYY-MM-DD
+     * Returns the shift definitions that were active for a pump on a given historical date.
+     * Used by the backfill modal to populate the shift window selector.
+     */
+    @GetMapping("/{pumpId}/shift-definitions/for-date")
+    public ResponseEntity<List<ShiftDefinitionResponse>> getShiftDefinitionsForDate(
+            @PathVariable Long pumpId,
+            @RequestParam LocalDate date) {
+        return ResponseEntity.ok(shiftDefinitionService.getForPumpOnDate(pumpId, date));
+    }
+
     @PostMapping("/{pumpId}/shift-definitions")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     public ResponseEntity<List<ShiftDefinitionResponse>> createShiftDefinitions(

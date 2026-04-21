@@ -100,6 +100,8 @@ export interface Shift {
   discrepancyResolution: string | null
   discrepancyResolutionNote: string | null
   status: ShiftStatus
+  /** True when this shift was entered retroactively by Admin/Owner via the backfill flow. */
+  isBackfilled: boolean
   creditEntries: CreditEntry[]
 }
 
@@ -116,6 +118,28 @@ export interface CloseShiftRequest {
     nozzleId: number
     endReading: number
   }>
+  cashCollected: number
+  upiCollected: number
+  cardCollected: number
+  fleetCardCollected: number
+  creditTotal: number
+  creditEntries: CreditEntryInput[]
+  discrepancyReason?: string
+}
+
+export interface BackfillNozzleReading {
+  nozzleId: number
+  openingReading: number
+  closingReading: number
+}
+
+export interface BackfillShiftRequest {
+  shiftDefinitionId: number
+  /** YYYY-MM-DD — must be within the last 365 days and before today */
+  shiftDate: string
+  duId: number
+  operatorId: number
+  nozzleReadings: BackfillNozzleReading[]
   cashCollected: number
   upiCollected: number
   cardCollected: number

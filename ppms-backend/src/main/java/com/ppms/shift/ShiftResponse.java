@@ -54,6 +54,9 @@ public class ShiftResponse {
 
     private String status;
 
+    /** True if this shift was entered retroactively via the Admin backfill flow. */
+    private boolean isBackfilled;
+
     private List<CreditEntryResponse> creditEntries;
 
     // ── Inner records ─────────────────────────────────────────────────────────
