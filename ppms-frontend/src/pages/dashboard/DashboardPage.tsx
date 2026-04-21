@@ -31,6 +31,7 @@ const ALL_NAV_ITEMS = [
   { label: 'Payroll',         path: '/dashboard/payroll',          icon: '👷', page: 'payroll' },
   { label: 'Products',        path: '/dashboard/ancillary',        icon: '📦', page: 'products' },
   { label: 'Audit Log',       path: '/dashboard/audit',            icon: '🔍', page: 'auditLog' },
+  { label: 'Settlements',     path: '/dashboard/settlements',      icon: '🏦', page: 'settlements' },
   { label: 'Balance Sheets',  path: '/dashboard/balance-sheets',   icon: '📊', page: 'balanceSheets' },
   { label: 'Reports',         path: '/dashboard/reports',          icon: '📈', page: 'reports' },
   { label: 'Setup',           path: '/dashboard/setup',            icon: '⚙️', page: 'setup' },

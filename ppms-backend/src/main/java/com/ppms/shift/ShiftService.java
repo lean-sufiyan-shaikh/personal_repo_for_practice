@@ -5,6 +5,7 @@ import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
 import com.ppms.fuel.FuelType;
+import com.ppms.fuel.GlobalFuelPrice;
 import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.inventory.InventoryLot;
 import com.ppms.inventory.InventoryLotRepository;
@@ -40,6 +41,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -415,14 +417,48 @@ public class ShiftService {
         if (!shiftDef.getPumpId().equals(pumpId)) {
             throw new BusinessException("Shift definition does not belong to this pump.");
         }
+        // Note: we intentionally do NOT enforce that shiftDef was active on shiftDate.
+        // For backfill, the admin may use the current (or nearest) definition as a proxy
+        // when the exact historical definition is no longer active. The definition is only
+        // used for the shift window label and time range — it does not affect price lookup
+        // or inventory deduction, both of which use shiftDate directly.
 
-        boolean effectiveOnDate = !shiftDate.isBefore(shiftDef.getEffectiveFrom())
-                && (shiftDef.getEffectiveTo() == null || !shiftDate.isAfter(shiftDef.getEffectiveTo()));
-        if (!effectiveOnDate) {
-            throw new BusinessException(
-                    "The selected shift definition '" + shiftDef.getName() +
-                    "' was not active on " + shiftDate + ". " +
-                    "Please select a shift window that was in use on that date.");
+        // ── 2b. Persist any fuelRateOverrides before the price lookup ─────────
+        ZoneId ist = ZoneId.of("Asia/Kolkata");
+        OffsetDateTime priceAsOf = shiftDate.plusDays(1).atStartOfDay(ist).toOffsetDateTime();
+
+        if (request.getFuelRateOverrides() != null && !request.getFuelRateOverrides().isEmpty()) {
+            OffsetDateTime rateEffectiveFrom = shiftDate.atStartOfDay(ist).toOffsetDateTime();
+            for (Map.Entry<String, BigDecimal> entry : request.getFuelRateOverrides().entrySet()) {
+                FuelType fuelType;
+                try {
+                    fuelType = FuelType.valueOf(entry.getKey());
+                } catch (IllegalArgumentException e) {
+                    throw new BusinessException("Invalid fuel type in fuelRateOverrides: " + entry.getKey());
+                }
+                BigDecimal rate = entry.getValue();
+                if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new BusinessException(
+                            "Fuel rate for " + fuelType + " must be greater than zero.");
+                }
+                // Only save if no price already exists on or before shiftDate to avoid polluting history.
+                boolean priceExists = fuelPriceRepository
+                        .findFirstByPumpIdAndFuelTypeAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(
+                                pumpId, fuelType, priceAsOf)
+                        .isPresent();
+                if (!priceExists) {
+                    GlobalFuelPrice historicalRate = GlobalFuelPrice.builder()
+                            .pumpId(pumpId)
+                            .fuelType(fuelType)
+                            .pricePerUnit(rate)
+                            .effectiveFrom(rateEffectiveFrom)
+                            .setByUserId(currentUser.getId())
+                            .build();
+                    fuelPriceRepository.save(historicalRate);
+                    log.info("Backfill: saved historical fuel rate pump={}, fuelType={}, rate={}, effectiveFrom={}",
+                            pumpId, fuelType, rate, rateEffectiveFrom);
+                }
+            }
         }
 
         // ── 3. Validate DU belongs to pump ───────────────────────────────────
@@ -437,11 +473,9 @@ public class ShiftService {
                 .orElseThrow(() -> new ResourceNotFoundException("Operator not found: " + request.getOperatorId()));
 
         // ── 5. Validate nozzles + readings, resolve price and tankId per nozzle ──
+        // (ist and priceAsOf are already defined above in step 2b)
         List<BackfillShiftRequest.NozzleReadingRequest> nozzleReadings = request.getNozzleReadings();
         List<Nozzle> nozzles = new ArrayList<>();
-        ZoneId ist = ZoneId.of("Asia/Kolkata");
-        // Upper bound for historical price lookup: start of the day AFTER shiftDate in IST
-        OffsetDateTime priceAsOf = shiftDate.plusDays(1).atStartOfDay(ist).toOffsetDateTime();
 
         for (BackfillShiftRequest.NozzleReadingRequest nr : nozzleReadings) {
             Nozzle nozzle = nozzleRepository.findById(nr.nozzleId())
@@ -473,6 +507,59 @@ public class ShiftService {
                             ". Please set the historical price before backfilling this shift."));
 
             nozzles.add(nozzle);
+        }
+
+        // ── 5c. Pre-validate fuel stock availability (historically accurate) ──
+        // Accumulate unitsSold per inventory scope, then check available stock
+        // filtered by deliveryDate ≤ shiftDate. This fails fast — before any shift
+        // entity is persisted — and prevents using stock that arrived AFTER shiftDate.
+        {
+            Map<String, BigDecimal> unitsSoldPerScope = new LinkedHashMap<>();
+            Map<String, String>     scopeLabel        = new LinkedHashMap<>();
+
+            for (BackfillShiftRequest.NozzleReadingRequest nr : nozzleReadings) {
+                BigDecimal unitsSold = nr.closingReading().subtract(nr.openingReading());
+                if (unitsSold.compareTo(ZERO) <= 0) continue;
+
+                Nozzle nozzle = nozzles.stream()
+                        .filter(n -> n.getId().equals(nr.nozzleId())).findFirst().orElseThrow();
+
+                String scopeKey;
+                if (nozzle.getTankId() != null) {
+                    scopeKey = "tank:" + nozzle.getTankId();
+                    scopeLabel.put(scopeKey, nozzle.getFuelType().name());
+                } else {
+                    scopeKey = "fuel:" + nozzle.getFuelType();
+                    scopeLabel.put(scopeKey, nozzle.getFuelType().name());
+                }
+                unitsSoldPerScope.merge(scopeKey, unitsSold, BigDecimal::add);
+            }
+
+            for (Map.Entry<String, BigDecimal> entry : unitsSoldPerScope.entrySet()) {
+                String     scopeKey = entry.getKey();
+                BigDecimal needed   = entry.getValue();
+
+                BigDecimal available;
+                if (scopeKey.startsWith("tank:")) {
+                    Long tankId = Long.parseLong(scopeKey.substring(5));
+                    available = inventoryLotRepository.findActiveLotsByTankAvailableAsOf(tankId, priceAsOf)
+                            .stream().map(InventoryLot::getRemainingQuantity).reduce(ZERO, BigDecimal::add);
+                } else {
+                    FuelType ft = FuelType.valueOf(scopeKey.substring(5));
+                    available = inventoryLotRepository.findActiveLotsByPumpAndFuelTypeAvailableAsOf(pumpId, ft, priceAsOf)
+                            .stream().map(InventoryLot::getRemainingQuantity).reduce(ZERO, BigDecimal::add);
+                }
+
+                if (needed.compareTo(available) > 0) {
+                    String label = scopeLabel.getOrDefault(scopeKey, scopeKey);
+                    throw new BusinessException(
+                            "Insufficient " + label + " stock for backfill on " + shiftDate +
+                            ": shift needs " + needed.setScale(2, RoundingMode.HALF_UP) +
+                            " L but only " + available.setScale(2, RoundingMode.HALF_UP) +
+                            " L was delivered on or before " + shiftDate +
+                            ". Record a tanker delivery for this date before backfilling this shift.");
+                }
+            }
         }
 
         // ── 6. Derive actualStartTime and actualEndTime from the definition ───
@@ -550,7 +637,8 @@ public class ShiftService {
                     .build());
 
             if (unitsSold.compareTo(ZERO) > 0) {
-                deductFromInventory(shiftId, pumpId, nozzle.getFuelType(), nozzle.getTankId(), unitsSold);
+                // Use backfill-specific deduction (date-filtered lots, stock already validated in 5c)
+                backfillDeductFromInventory(shiftId, pumpId, nozzle.getFuelType(), nozzle.getTankId(), unitsSold, priceAsOf);
                 totalAmountDue = totalAmountDue.add(unitsSold.multiply(historicalPrice));
             }
         }
@@ -628,6 +716,51 @@ public class ShiftService {
                     " L sold but only " + totalAvailable.setScale(2, RoundingMode.HALF_UP) +
                     " L is available in inventory. Please verify the meter readings or record a tanker delivery first.");
         }
+
+        BigDecimal remaining = unitsToDeduct;
+
+        for (InventoryLot lot : lots) {
+            if (remaining.compareTo(ZERO) <= 0) break;
+
+            BigDecimal consume = remaining.min(lot.getRemainingQuantity());
+            lot.setRemainingQuantity(lot.getRemainingQuantity().subtract(consume).setScale(3, RoundingMode.HALF_UP));
+
+            if (lot.getRemainingQuantity().compareTo(ZERO) == 0) {
+                lot.setStatus(LotStatus.EXHAUSTED);
+            }
+            inventoryLotRepository.save(lot);
+
+            lotConsumptionRepository.save(LotConsumption.builder()
+                    .lotId(lot.getId())
+                    .sourceType(LotConsumptionSource.SHIFT_CLOSE)
+                    .shiftId(shiftId)
+                    .quantityConsumed(consume)
+                    .costPricePerUnit(lot.getCostPricePerUnit())
+                    .build());
+
+            tankRepository.findById(lot.getTankId()).ifPresent(tank -> {
+                BigDecimal newStock = tank.getCurrentStock().subtract(consume).setScale(3, RoundingMode.HALF_UP);
+                tank.setCurrentStock(newStock);
+                tankRepository.save(tank);
+            });
+
+            remaining = remaining.subtract(consume);
+        }
+    }
+
+    /**
+     * FIFO deduction for backfilled shifts — historically accurate.
+     *
+     * Identical to deductFromInventory() but scoped to lots whose deliveryDate ≤ asOf,
+     * preventing the system from drawing down stock from tankers delivered AFTER the
+     * historical shift date. Stock availability is already pre-validated in step 5c,
+     * so no further BusinessException is thrown here.
+     */
+    private void backfillDeductFromInventory(Long shiftId, Long pumpId, FuelType fuelType,
+                                             Long tankId, BigDecimal unitsToDeduct, OffsetDateTime asOf) {
+        List<InventoryLot> lots = tankId != null
+                ? inventoryLotRepository.findActiveLotsByTankAvailableAsOf(tankId, asOf)
+                : inventoryLotRepository.findActiveLotsByPumpAndFuelTypeAvailableAsOf(pumpId, fuelType, asOf);
 
         BigDecimal remaining = unitsToDeduct;
 

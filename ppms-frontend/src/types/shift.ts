@@ -147,4 +147,9 @@ export interface BackfillShiftRequest {
   creditTotal: number
   creditEntries: CreditEntryInput[]
   discrepancyReason?: string
+  /**
+   * Historical fuel rates to save before processing when no price exists in DB for a fuel type
+   * on shiftDate. Keys are FuelType enum names (e.g. "PETROL", "DIESEL"), values are ₹/L.
+   */
+  fuelRateOverrides?: Record<string, number>
 }

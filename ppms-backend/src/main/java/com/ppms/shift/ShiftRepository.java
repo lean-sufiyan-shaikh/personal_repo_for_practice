@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -158,6 +159,68 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
             ORDER BY s.actualEndTime ASC
             """)
     List<Shift> findClosedShiftsByDate(Long pumpId, LocalDate shiftDate);
+
+    // ── Settlement wallet queries ─────────────────────────────────────────────
+
+    /**
+     * Total UPI collected across ALL closed shifts for a pump.
+     * Used by the settlement wallet to compute pending balance: collected − settled.
+     * COALESCE guarantees non-null even when no shifts exist yet.
+     */
+    @Query("""
+            SELECT COALESCE(SUM(s.upiCollected), 0)
+            FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.status NOT IN ('OPEN', 'OPEN_OVERDUE', 'AUTO_CLOSED_OVERDUE')
+            """)
+    BigDecimal sumUpiCollectedByPumpId(@Param("pumpId") Long pumpId);
+
+    @Query("""
+            SELECT COALESCE(SUM(s.cardCollected), 0)
+            FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.status NOT IN ('OPEN', 'OPEN_OVERDUE', 'AUTO_CLOSED_OVERDUE')
+            """)
+    BigDecimal sumCardCollectedByPumpId(@Param("pumpId") Long pumpId);
+
+    @Query("""
+            SELECT COALESCE(SUM(s.fleetCardCollected), 0)
+            FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.status NOT IN ('OPEN', 'OPEN_OVERDUE', 'AUTO_CLOSED_OVERDUE')
+            """)
+    BigDecimal sumFleetCardCollectedByPumpId(@Param("pumpId") Long pumpId);
+
+    /**
+     * Total UPI collected across ALL closed shifts for a pump on or before a given date.
+     * Used for the historical wallet snapshot on balance sheets.
+     */
+    @Query("""
+            SELECT COALESCE(SUM(s.upiCollected), 0)
+            FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.shiftDate <= :asOf
+              AND s.status NOT IN ('OPEN', 'OPEN_OVERDUE', 'AUTO_CLOSED_OVERDUE')
+            """)
+    BigDecimal sumUpiCollectedByPumpIdAsOf(@Param("pumpId") Long pumpId, @Param("asOf") LocalDate asOf);
+
+    @Query("""
+            SELECT COALESCE(SUM(s.cardCollected), 0)
+            FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.shiftDate <= :asOf
+              AND s.status NOT IN ('OPEN', 'OPEN_OVERDUE', 'AUTO_CLOSED_OVERDUE')
+            """)
+    BigDecimal sumCardCollectedByPumpIdAsOf(@Param("pumpId") Long pumpId, @Param("asOf") LocalDate asOf);
+
+    @Query("""
+            SELECT COALESCE(SUM(s.fleetCardCollected), 0)
+            FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.shiftDate <= :asOf
+              AND s.status NOT IN ('OPEN', 'OPEN_OVERDUE', 'AUTO_CLOSED_OVERDUE')
+            """)
+    BigDecimal sumFleetCardCollectedByPumpIdAsOf(@Param("pumpId") Long pumpId, @Param("asOf") LocalDate asOf);
 
     /**
      * Returns true if any shift (in any status) references one of the given shift definition IDs.

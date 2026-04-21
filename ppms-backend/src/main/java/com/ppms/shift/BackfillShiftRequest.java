@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Request body for the Admin/Owner backfill shift endpoint.
@@ -88,6 +89,16 @@ public class BackfillShiftRequest {
 
     /** Required when actual collected != amount due (i.e. when a discrepancy exists). */
     private String discrepancyReason;
+
+    /**
+     * Optional historical fuel rates to persist before processing this backfill.
+     * Required for any fuel type whose price is not recorded in the database on or before shiftDate.
+     * Keys are FuelType enum names (e.g. "PETROL", "DIESEL").
+     * Values are price per litre in ₹ — must be > 0.
+     * Rates are saved atomically within the backfill transaction with effectiveFrom = shiftDate 00:00 IST,
+     * and only when no price already exists for that fuel type on or before shiftDate.
+     */
+    private Map<String, BigDecimal> fuelRateOverrides;
 
     // ── Inner record ───────────────────────────────────────────────────────────
 

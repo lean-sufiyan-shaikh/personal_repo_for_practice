@@ -77,6 +77,14 @@ public class BalanceSheetDetailResponse {
      */
     private ExpenseSummary expenses;
 
+    /**
+     * Payment settlement status for UPI, Card, and Fleet Card on the report date.
+     * Shows what was collected in shifts vs what arrived in the bank (settled) on that date,
+     * plus the cumulative pending wallet balance as context.
+     * Only populated for DAY reports. Null for SHIFT reports.
+     */
+    private SettlementSummary settlementSummary;
+
     // ── Nested: ancillary product sales summary ────────────────────────────────
 
     @Data
@@ -115,5 +123,37 @@ public class BalanceSheetDetailResponse {
         private String description;
         private java.math.BigDecimal amount;
         private String recordedByName;
+    }
+
+    // ── Nested: settlement summary (DAY reports only) ──────────────────────────
+
+    @Data
+    @Builder
+    public static class SettlementSummary {
+        /** Amount settled (arrived in bank) on the report date, per payment type. */
+        private java.math.BigDecimal upiSettledOnDate;
+        private java.math.BigDecimal cardSettledOnDate;
+        private java.math.BigDecimal fleetCardSettledOnDate;
+        /**
+         * Cumulative wallet balance as of the report date:
+         * pending = SUM(collected in all shifts up to reportDate) − SUM(all settlements up to reportDate)
+         * A positive value means funds are still in transit and not yet credited to the bank account.
+         */
+        private java.math.BigDecimal walletUpiPending;
+        private java.math.BigDecimal walletCardPending;
+        private java.math.BigDecimal walletFleetCardPending;
+        /** Individual settlement entries recorded for the report date — for drill-down. */
+        private java.util.List<SettlementLine> settlementsOnDate;
+    }
+
+    @Data
+    @Builder
+    public static class SettlementLine {
+        private Long   id;
+        private String paymentType;
+        private java.math.BigDecimal amountReceived;
+        private String notes;
+        private String recordedByUserName;
+        private java.time.OffsetDateTime createdAt;
     }
 }

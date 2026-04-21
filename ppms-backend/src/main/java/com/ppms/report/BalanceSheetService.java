@@ -27,6 +27,9 @@ import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
 import com.ppms.pump.PumpShiftDefinition;
 import com.ppms.pump.PumpShiftDefinitionService;
+import com.ppms.settlement.PaymentSettlement;
+import com.ppms.settlement.PaymentSettlementRepository;
+import com.ppms.settlement.SettlementPaymentType;
 import com.ppms.shift.*;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
@@ -72,6 +75,7 @@ public class BalanceSheetService {
     private final BusinessClock             businessClock;
     private final BalanceSheetSupportService supportService;
     private final BalanceSheetDetailAssembler detailAssembler;
+    private final PaymentSettlementRepository settlementRepository;
 
     // ── Generate ──────────────────────────────────────────────────────────────
 
@@ -478,8 +482,13 @@ public class BalanceSheetService {
         BalanceSheetDetailResponse.ExpenseSummary expenseSummary =
                 isShift ? null : supportService.buildExpenseSummary(pumpId, reportDate);
 
-        return detailAssembler.toDetailResponse(bs, fuelLines, shiftLines, amendmentLines, dipPlEntries,
-                generatedBy.getFullName(), productSalesSummary, expenseSummary);
+        BalanceSheetDetailResponse response = detailAssembler.toDetailResponse(bs, fuelLines, shiftLines,
+                amendmentLines, dipPlEntries, generatedBy.getFullName(), productSalesSummary, expenseSummary);
+
+        if (!isShift) {
+            response.setSettlementSummary(buildSettlementSummary(pumpId, reportDate));
+        }
+        return response;
     }
 
     // ── Queries ───────────────────────────────────────────────────────────────
@@ -583,8 +592,13 @@ public class BalanceSheetService {
         BalanceSheetDetailResponse.ExpenseSummary expenseSummary =
                 isDayReport ? supportService.buildExpenseSummary(bs.getPumpId(), bs.getReportDate()) : null;
 
-        return detailAssembler.toDetailResponse(bs, fuelLines, shiftLines, amendmentLines, dipPlEntries,
-                userName, productSalesSummary, expenseSummary);
+        BalanceSheetDetailResponse response = detailAssembler.toDetailResponse(bs, fuelLines, shiftLines,
+                amendmentLines, dipPlEntries, userName, productSalesSummary, expenseSummary);
+
+        if (isDayReport) {
+            response.setSettlementSummary(buildSettlementSummary(bs.getPumpId(), bs.getReportDate()));
+        }
+        return response;
     }
 
     @Transactional
@@ -599,6 +613,76 @@ public class BalanceSheetService {
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Builds the settlement summary for a DAY balance sheet.
+     *
+     * settlementsOnDate — entries recorded on this date (the date money arrived in bank).
+     * settled amounts   — totals per type for this date.
+     * wallet pending    — cumulative (all collections up to reportDate) − (all settlements up to reportDate).
+     *
+     * The "as-of" wallet snapshot uses reportDate as the cut-off so the figure is historically
+     * accurate even when viewed months later.
+     */
+    private BalanceSheetDetailResponse.SettlementSummary buildSettlementSummary(Long pumpId, LocalDate reportDate) {
+        // Individual settlements recorded for this date (drill-down list)
+        List<PaymentSettlement> onDate = settlementRepository
+                .findByPumpIdAndSettlementDateOrderByCreatedAtDesc(pumpId, reportDate);
+
+        // Batch-load recorder names
+        Set<Long> recorderIds = onDate.stream()
+                .map(PaymentSettlement::getRecordedByUserId)
+                .collect(Collectors.toSet());
+        Map<Long, String> recorderNames = recorderIds.isEmpty()
+                ? Map.of()
+                : userRepository.findAllById(recorderIds).stream()
+                        .collect(Collectors.toMap(User::getId, User::getFullName));
+
+        // Per-type settled amounts on this date
+        BigDecimal upiOnDate   = onDate.stream()
+                .filter(s -> s.getPaymentType() == SettlementPaymentType.UPI)
+                .map(PaymentSettlement::getAmountReceived).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal cardOnDate  = onDate.stream()
+                .filter(s -> s.getPaymentType() == SettlementPaymentType.CARD)
+                .map(PaymentSettlement::getAmountReceived).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal fleetOnDate = onDate.stream()
+                .filter(s -> s.getPaymentType() == SettlementPaymentType.FLEET_CARD)
+                .map(PaymentSettlement::getAmountReceived).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Cumulative wallet as-of reportDate
+        BigDecimal upiCollected   = shiftRepository.sumUpiCollectedByPumpIdAsOf(pumpId, reportDate);
+        BigDecimal cardCollected  = shiftRepository.sumCardCollectedByPumpIdAsOf(pumpId, reportDate);
+        BigDecimal fleetCollected = shiftRepository.sumFleetCardCollectedByPumpIdAsOf(pumpId, reportDate);
+
+        BigDecimal upiSettledTotal   = settlementRepository.sumAmountByPumpIdAndPaymentTypeAsOf(pumpId, SettlementPaymentType.UPI, reportDate);
+        BigDecimal cardSettledTotal  = settlementRepository.sumAmountByPumpIdAndPaymentTypeAsOf(pumpId, SettlementPaymentType.CARD, reportDate);
+        BigDecimal fleetSettledTotal = settlementRepository.sumAmountByPumpIdAndPaymentTypeAsOf(pumpId, SettlementPaymentType.FLEET_CARD, reportDate);
+
+        BigDecimal upiPending   = supportService.orZero(upiCollected).subtract(supportService.orZero(upiSettledTotal)).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal cardPending  = supportService.orZero(cardCollected).subtract(supportService.orZero(cardSettledTotal)).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal fleetPending = supportService.orZero(fleetCollected).subtract(supportService.orZero(fleetSettledTotal)).setScale(2, RoundingMode.HALF_UP);
+
+        List<BalanceSheetDetailResponse.SettlementLine> lines = onDate.stream()
+                .map(s -> BalanceSheetDetailResponse.SettlementLine.builder()
+                        .id(s.getId())
+                        .paymentType(s.getPaymentType().name())
+                        .amountReceived(s.getAmountReceived())
+                        .notes(s.getNotes())
+                        .recordedByUserName(recorderNames.getOrDefault(s.getRecordedByUserId(), "Unknown"))
+                        .createdAt(s.getCreatedAt())
+                        .build())
+                .toList();
+
+        return BalanceSheetDetailResponse.SettlementSummary.builder()
+                .upiSettledOnDate(upiOnDate.setScale(2, RoundingMode.HALF_UP))
+                .cardSettledOnDate(cardOnDate.setScale(2, RoundingMode.HALF_UP))
+                .fleetCardSettledOnDate(fleetOnDate.setScale(2, RoundingMode.HALF_UP))
+                .walletUpiPending(upiPending)
+                .walletCardPending(cardPending)
+                .walletFleetCardPending(fleetPending)
+                .settlementsOnDate(lines)
+                .build();
+    }
 
     private void validateRequest(GenerateBalanceSheetRequest req) {
         if (req.getReportType() == BalanceSheetReportType.SHIFT) {
