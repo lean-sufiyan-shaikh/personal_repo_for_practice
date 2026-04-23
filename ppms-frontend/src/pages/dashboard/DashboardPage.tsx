@@ -196,7 +196,7 @@ export default function DashboardPage() {
   const dateStr = formatIstDateTime(now, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 
   return (
-    <div className="ui-dashboard-shell min-h-screen bg-slate-50 flex flex-col">
+    <div className="ui-dashboard-shell h-screen bg-slate-50 flex flex-col overflow-hidden">
 
       {/* ── Top header ─────────────────────────────────────────────────────────── */}
       <header className="ui-dashboard-topbar print:hidden">
