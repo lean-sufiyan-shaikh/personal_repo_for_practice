@@ -11,6 +11,8 @@ import com.ppms.inventory.InventoryLot;
 import com.ppms.inventory.InventoryLotRepository;
 import com.ppms.inventory.LotConsumption;
 import com.ppms.inventory.LotConsumptionRepository;
+import com.ppms.inventory.TankerDelivery;
+import com.ppms.inventory.TankerDeliveryRepository;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftFuelReading;
 import com.ppms.shift.ShiftFuelReadingRepository;
@@ -46,6 +48,7 @@ public class ReportService {
     private final PumpExpenseRepository expenseRepository;
     private final CreditInterestChargeRepository interestChargeRepository;
     private final CreditClientRepository creditClientRepository;
+    private final TankerDeliveryRepository tankerDeliveryRepository;
 
     // ── P&L Report ────────────────────────────────────────────────────────────
 
@@ -234,6 +237,18 @@ public class ReportService {
                 : shiftRepository.findAllById(shiftIds).stream()
                         .collect(Collectors.toMap(Shift::getId, s -> s.getShiftName() != null ? s.getShiftName() : ""));
 
+        // Batch-fetch tanker deliveries for invoice references
+        Set<Long> deliveryIds = lots.stream()
+                .map(InventoryLot::getTankerDeliveryId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        Map<Long, String> invoiceByDeliveryId = deliveryIds.isEmpty()
+                ? Map.of()
+                : tankerDeliveryRepository.findAllById(deliveryIds).stream()
+                        .collect(Collectors.toMap(
+                                TankerDelivery::getId,
+                                TankerDelivery::getInvoiceReference));
+
         List<InventoryLotsReport.LotLine> lines = lots.stream().map(lot -> {
             List<LotConsumption> consumptions = consumptionsByLot.getOrDefault(lot.getId(), List.of());
             BigDecimal totalConsumed = consumptions.stream()
@@ -253,8 +268,12 @@ public class ReportService {
                             c.getConsumedAt()))
                     .toList();
 
+            String tankerRef = lot.getIsDipAdjustment() || lot.getTankerDeliveryId() == null
+                    ? "DIP Adjustment"
+                    : invoiceByDeliveryId.getOrDefault(lot.getTankerDeliveryId(), "—");
+
             return new InventoryLotsReport.LotLine(
-                    lot.getId(), lot.getFuelType().name(), lot.getDeliveryDate(),
+                    lot.getId(), tankerRef, lot.getFuelType().name(), lot.getDeliveryDate(),
                     lot.getOriginalQuantity(), lot.getRemainingQuantity(),
                     totalConsumed.setScale(3, RoundingMode.HALF_UP),
                     lot.getCostPricePerUnit(), totalCogs, lot.getStatus().name(),
@@ -423,6 +442,7 @@ public class ReportService {
 
         public record LotLine(
                 Long lotId,
+                String tankerReference,
                 String fuelType,
                 java.time.OffsetDateTime deliveryDate,
                 BigDecimal originalQuantity,
