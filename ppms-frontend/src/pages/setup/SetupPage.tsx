@@ -1264,6 +1264,8 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
   const [prices, setPrices] = useState<Record<string, string>>({})
   const [error, setError]   = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  // Set to true immediately after a successful save so the alert disappears without waiting for query refetch
+  const [pricesConfirmedToday, setPricesConfirmedToday] = useState(false)
   // 15% deviation warning state — set when backend returns HTTP 409
   const [deviationWarning, setDeviationWarning] = useState<(PriceDeviationWarning & { fuelType: string }) | null>(null)
   // P2.3 — open shifts warning shown after a successful price update
@@ -1303,6 +1305,7 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
       const results = await Promise.all(tasks)
       queryClient.invalidateQueries({ queryKey: ['fuelPrices', pump.id] })
       setPrices({})
+      setPricesConfirmedToday(true)
       setSuccess(true); setTimeout(() => setSuccess(false), 3000)
       addToast('Fuel prices updated', 'success')
       // Show open-shifts warning if any price update detected open shifts
@@ -1322,6 +1325,7 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
     try {
       const results = await Promise.all(tasks)
       queryClient.invalidateQueries({ queryKey: ['fuelPrices', pump.id] })
+      setPricesConfirmedToday(true)
       setSuccess(true); setTimeout(() => setSuccess(false), 3000)
       addToast('Prices confirmed for today', 'success')
       const warning = results.find((r) => r.openShiftsWarning)?.openShiftsWarning ?? null
@@ -1342,6 +1346,7 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
       })
       queryClient.invalidateQueries({ queryKey: ['fuelPrices', pump.id] })
       setPrices({})
+      setPricesConfirmedToday(true)
       setSuccess(true); setTimeout(() => setSuccess(false), 3000)
       if (result.openShiftsWarning) setOpenShiftsWarning(result.openShiftsWarning)
     } catch (err: any) {
@@ -1350,7 +1355,10 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
   }
 
   const todayStr = localDateInputValue()
-  const pricesStale = currentPrices.length > 0 && currentPrices.some((p) => p.effectiveFrom < todayStr)
+  // Parse effectiveFrom as IST date to avoid UTC-vs-IST date boundary mismatch (e.g. midnight shifts)
+  const istDateOf = (effectiveFrom: string) =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(effectiveFrom))
+  const pricesStale = !pricesConfirmedToday && currentPrices.length > 0 && currentPrices.some((p) => istDateOf(p.effectiveFrom) < todayStr)
 
   if (pump.dus.length === 0) {
     return <p className="text-xs text-slate-400">Add at least one DU with a nozzle first (Nozzles section above).</p>

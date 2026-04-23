@@ -22,10 +22,16 @@ import {
   Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
 
-const todayStr = localDateInputValue()
+function todayIstStr() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+}
 
 function isPriceStale(prices: { effectiveFrom: string }[]) {
-  return prices.length === 0 || prices.some((p) => p.effectiveFrom < todayStr)
+  const today = todayIstStr()
+  return prices.length === 0 || prices.some((p) => {
+    const istDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(p.effectiveFrom))
+    return istDate < today
+  })
 }
 
 function fmtAmt(n: number) {
@@ -90,6 +96,7 @@ export default function OverviewPage() {
   const allTanks       = tankStockQueries.flatMap(q => q.data ?? [])
   const lowStockTanks  = allTanks.filter(t => t.lowStock)
 
+  const todayStr = localDateInputValue()
   const todayRevenue = historyShifts
     .filter(s => s.shiftDate === todayStr && s.totalAmountDue != null)
     .reduce((sum, s) => sum + (s.totalAmountDue ?? 0), 0)
