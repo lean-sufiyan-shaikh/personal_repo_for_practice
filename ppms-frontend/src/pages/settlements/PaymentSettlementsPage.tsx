@@ -3,9 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { paymentSettlementApi } from '../../api/paymentSettlementApi'
-import type { SettlementPaymentType, RecordSettlementRequest, UpdateConfigRequest } from '../../api/paymentSettlementApi'
-import { Pagination } from '../../components/Pagination'
+import type { SettlementPaymentType, RecordSettlementRequest, UpdateConfigRequest, DailySummaryEntry } from '../../api/paymentSettlementApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
+import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
 import { Reveal } from '../../components/Reveal'
 import { EmptyState } from '../../components/EmptyState'
@@ -64,16 +64,26 @@ export default function PaymentSettlementsPage() {
   const canConfigure = canPerformAction('settlement:configure', user?.role)
 
   const [activeTab, setActiveTab]   = useState<'records' | 'config'>('records')
-  const [page, setPage]             = useState(0)
-  const [pageSize, setPageSize]     = useState(10)
   const [typeFilter, setTypeFilter] = useState<SettlementPaymentType | ''>('')
 
+  // Date range filter for the history — defaults to last 7 days
+  function localDateStr(offsetDays = 0): string {
+    const d = new Date()
+    d.setDate(d.getDate() + offsetDays)
+    return d.toISOString().slice(0, 10)
+  }
+  const [filterFrom, setFilterFrom] = useState(() => localDateStr(-7))
+  const [filterTo, setFilterTo]     = useState(() => localDateStr(0))
+  const [summaryPage, setSummaryPage]         = useState(0)
+  const [summaryPageSize, setSummaryPageSize] = useState(10)
+
   // ── Queries ──────────────────────────────────────────────────────────────
-  const { data: settlementPage, isLoading: loadingList } = useQuery({
-    queryKey: ['settlements', pumpId, page, pageSize, typeFilter],
-    queryFn:  () => paymentSettlementApi.list(pumpId!, page, pageSize, typeFilter || undefined),
-    enabled:  !!pumpId,
+  const { data: dailySummaryPage, isLoading: loadingList } = useQuery({
+    queryKey: ['settlements-daily', pumpId, filterFrom, filterTo, summaryPage, summaryPageSize],
+    queryFn:  () => paymentSettlementApi.getDailySummary(pumpId!, filterFrom, filterTo, summaryPage, summaryPageSize),
+    enabled:  !!pumpId && !!filterFrom && !!filterTo,
   })
+  const dailySummary = dailySummaryPage?.content ?? []
   const { data: wallet, isLoading: loadingWallet } = useQuery({
     queryKey: ['settlements-wallet', pumpId],
     queryFn:  () => paymentSettlementApi.getWallet(pumpId!),
@@ -84,8 +94,6 @@ export default function PaymentSettlementsPage() {
     queryFn:  () => paymentSettlementApi.getConfigs(pumpId!),
     enabled:  !!pumpId,
   })
-
-  const settlements = settlementPage?.content ?? []
 
   // ── Record settlement dialog ──────────────────────────────────────────────
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -106,7 +114,7 @@ export default function PaymentSettlementsPage() {
   const recordMutation = useMutation({
     mutationFn: (data: RecordSettlementRequest) => paymentSettlementApi.record(pumpId!, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['settlements', pumpId] })
+      qc.invalidateQueries({ queryKey: ['settlements-daily', pumpId] })
       qc.invalidateQueries({ queryKey: ['settlements-wallet', pumpId] })
       setDialogOpen(false)
       addToast('Settlement recorded successfully', 'success')
@@ -273,20 +281,31 @@ export default function PaymentSettlementsPage() {
         {/* ── Records tab ── */}
         {activeTab === 'records' && (
           <div className="ui-card p-0 overflow-hidden">
+            {/* Toolbar: date range + type filter */}
             <div className="ui-toolbar">
-              <p className="ui-toolbar-title">
-                Settlement History
-                {settlementPage && settlementPage.totalElements > 0 && (
-                  <span className="ml-2 text-xs text-slate-400 font-medium tabular-nums">
-                    {settlementPage.totalElements} record{settlementPage.totalElements !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </p>
+              <p className="ui-toolbar-title">Settlement History</p>
               <div className="ui-toolbar-actions">
-                <div className="w-40">
+                <input
+                  type="date"
+                  value={filterFrom}
+                  max={filterTo}
+                  onChange={e => { setFilterFrom(e.target.value); setSummaryPage(0) }}
+                  style={{ width: '155px', minHeight: '36px' }}
+                  className="text-sm"
+                />
+                <span className="text-slate-400 text-sm">–</span>
+                <input
+                  type="date"
+                  value={filterTo}
+                  min={filterFrom}
+                  onChange={e => { setFilterTo(e.target.value); setSummaryPage(0) }}
+                  style={{ width: '155px', minHeight: '36px' }}
+                  className="text-sm"
+                />
+                <div style={{ width: '160px' }}>
                   <SearchableSelect
                     value={typeFilter}
-                    onChange={v => { setTypeFilter(v as SettlementPaymentType | ''); setPage(0) }}
+                    onChange={v => setTypeFilter(v as SettlementPaymentType | '')}
                     options={[
                       { value: '',           label: 'All Types'  },
                       { value: 'UPI',        label: '📲 UPI'     },
@@ -301,63 +320,122 @@ export default function PaymentSettlementsPage() {
 
             {loadingList ? (
               <div className="px-5 py-4"><SkeletonRows count={5} /></div>
-            ) : settlements.length === 0 ? (
+            ) : dailySummary.length === 0 ? (
               <div className="py-16 flex flex-col items-center gap-3 text-center px-6">
                 <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-2xl mb-1">🏦</div>
-                <p className="font-semibold text-slate-700">No settlements recorded yet</p>
+                <p className="font-semibold text-slate-700">No activity in this date range</p>
                 <p className="text-sm text-slate-400 max-w-sm">
-                  Record the first settlement when UPI, Card, or Fleet Card money arrives in your bank account.
+                  No shift collections or settlements were found between the selected dates.
                 </p>
-                {canWrite && (
-                  <button
-                    onClick={() => openDialog()}
-                    className="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white
-                               bg-gradient-to-b from-emerald-500 to-emerald-600
-                               shadow-[0_8px_16px_rgba(5,150,105,0.25)]
-                               hover:from-emerald-600 hover:to-emerald-700
-                               active:scale-[0.97] transition-all duration-150"
-                  >
-                    <span className="text-base leading-none">🏦</span>
-                    Record Settlement
-                  </button>
-                )}
               </div>
             ) : (
-              <>
-                <div className="ui-record-list">
-                  {settlements.map(s => {
-                    const accent = TYPE_ACCENT[s.paymentType]
-                    return (
-                      <div key={s.id} className="ui-record-row">
-                        <div className="flex items-center gap-3 min-w-0 ui-record-row__main">
-                          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${accent.badge}`}>
-                            <span>{TYPE_ICONS[s.paymentType]}</span>
-                            {TYPE_LABELS[s.paymentType]}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-700">{fmtDate(s.settlementDate)}</p>
-                            <div className="ui-record-row__meta mt-0">
-                              {s.notes && <span className="truncate">{s.notes}</span>}
-                              <span>by {s.recordedByUserName}</span>
-                            </div>
-                          </div>
+              <div className="divide-y divide-slate-100">
+                {dailySummary.map(entry => {
+                  const visibleSettlements = typeFilter
+                    ? entry.settlements.filter(s => s.paymentType === typeFilter)
+                    : entry.settlements
+
+                  const collectedByType: { type: SettlementPaymentType; collected: number; settled: number }[] = [
+                    { type: 'UPI',        collected: entry.upiCollected,        settled: entry.upiSettled        },
+                    { type: 'CARD',       collected: entry.cardCollected,       settled: entry.cardSettled       },
+                    { type: 'FLEET_CARD', collected: entry.fleetCardCollected,  settled: entry.fleetCardSettled  },
+                  ].filter(r => typeFilter ? r.type === typeFilter : r.collected > 0 || r.settled > 0)
+
+                  if (collectedByType.length === 0 && visibleSettlements.length === 0) return null
+
+                  return (
+                    <div key={entry.date} className="px-5 py-4 space-y-3">
+                      {/* Date header */}
+                      <p className="text-sm font-bold text-slate-700">{fmtDate(entry.date)}</p>
+
+                      {/* Collected vs Settled per type */}
+                      {collectedByType.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {collectedByType.map(({ type, collected, settled }) => {
+                            const accent   = TYPE_ACCENT[type]
+                            const balance  = collected - settled
+                            const balanced = balance <= 0
+                            return (
+                              <div key={type} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 flex flex-col gap-1">
+                                <div className="flex items-center justify-between">
+                                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${accent.badge}`}>
+                                    {TYPE_ICONS[type]} {TYPE_LABELS[type]}
+                                  </span>
+                                  {balanced
+                                    ? <span className="text-xs text-emerald-600 font-medium">✓ Settled</span>
+                                    : <span className="text-xs text-amber-600 font-medium">In transit</span>
+                                  }
+                                </div>
+                                <div className="flex justify-between text-xs text-slate-500 mt-0.5">
+                                  <span>Collected</span>
+                                  <span className="font-semibold text-slate-700 tabular-nums">{fmtAmt(collected)}</span>
+                                </div>
+                                <div className="flex justify-between text-xs text-slate-500">
+                                  <span>Settled</span>
+                                  <span className="font-semibold text-emerald-700 tabular-nums">{fmtAmt(settled)}</span>
+                                </div>
+                                {!balanced && (
+                                  <div className="flex justify-between text-xs border-t border-dashed border-slate-200 pt-1 mt-0.5">
+                                    <span className="text-amber-600">Pending</span>
+                                    <span className="font-bold text-amber-700 tabular-nums">{fmtAmt(balance)}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-bold text-emerald-700 tabular-nums">+{fmtAmt(s.amountReceived)}</p>
+                      )}
+
+                      {/* Individual settlement records */}
+                      {visibleSettlements.length > 0 && (
+                        <div className="space-y-1.5 pl-1">
+                          {visibleSettlements.map(s => {
+                            const accent    = TYPE_ACCENT[s.paymentType]
+                            const shortfall = s.isPartial && s.pendingAtRecordTime != null
+                              ? s.pendingAtRecordTime - s.amountReceived
+                              : 0
+                            return (
+                              <div key={s.id} className="flex items-start gap-3">
+                                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${accent.badge}`}>
+                                  {TYPE_ICONS[s.paymentType]} {TYPE_LABELS[s.paymentType]}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {s.isPartial && (
+                                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                                        ⚠ Partial · {fmtAmt(shortfall)} short
+                                      </span>
+                                    )}
+                                    <span className="text-xs text-slate-500 truncate">
+                                      {s.notes ? `${s.notes} · ` : ''}by {s.recordedByUserName}
+                                    </span>
+                                  </div>
+                                  {s.isPartial && s.pendingAtRecordTime != null && (
+                                    <p className="text-xs text-slate-400 mt-0.5">
+                                      Expected {fmtAmt(s.pendingAtRecordTime)} · received {fmtAmt(s.amountReceived)}
+                                    </p>
+                                  )}
+                                </div>
+                                <span className="text-sm font-bold text-emerald-700 tabular-nums flex-shrink-0">+{fmtAmt(s.amountReceived)}</span>
+                              </div>
+                            )
+                          })}
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="px-5">
-                  <Pagination
-                    data={settlementPage!}
-                    onPageChange={p => setPage(p)}
-                    onPageSizeChange={s => { setPageSize(s); setPage(0) }}
-                    pageSizeOptions={[10, 20, 50]}
-                  />
-                </div>
-              </>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {dailySummaryPage && dailySummaryPage.totalElements > 0 && (
+              <div className="px-5 border-t border-slate-100">
+                <Pagination
+                  data={dailySummaryPage}
+                  onPageChange={p => setSummaryPage(p)}
+                  onPageSizeChange={s => { setSummaryPageSize(s); setSummaryPage(0) }}
+                  pageSizeOptions={[10, 20, 50]}
+                />
+              </div>
             )}
           </div>
         )}

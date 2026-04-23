@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -148,8 +149,8 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
     List<Shift> findClosedShiftsByDefinition(Long pumpId, LocalDate shiftDate, Long shiftDefinitionId);
 
     /**
-     * All closed shifts for a full business date.
-     * Used when generating a DAY balance sheet.
+     * All closed shifts for a full calendar date.
+     * Used for historical DAY balance sheets where reportDate is in the past.
      */
     @Query("""
             SELECT s FROM Shift s
@@ -159,6 +160,26 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
             ORDER BY s.actualEndTime ASC
             """)
     List<Shift> findClosedShiftsByDate(Long pumpId, LocalDate shiftDate);
+
+    /**
+     * All closed shifts whose actualEndTime falls in (windowStart, windowEnd].
+     * Used for live DAY balance sheets — captures every shift that finished in
+     * the last 24 hours regardless of which calendar date they started on.
+     * Open/overdue shifts are excluded so a mid-day report never includes
+     * a shift that is still running.
+     */
+    @Query("""
+            SELECT s FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.actualEndTime > :windowStart
+              AND s.actualEndTime <= :windowEnd
+              AND s.status NOT IN ('OPEN', 'OPEN_OVERDUE', 'AUTO_CLOSED_OVERDUE')
+            ORDER BY s.actualEndTime ASC
+            """)
+    List<Shift> findClosedShiftsByEndTimeWindow(
+            @Param("pumpId") Long pumpId,
+            @Param("windowStart") OffsetDateTime windowStart,
+            @Param("windowEnd") OffsetDateTime windowEnd);
 
     // ── Settlement wallet queries ─────────────────────────────────────────────
 
@@ -221,6 +242,27 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
               AND s.status NOT IN ('OPEN', 'OPEN_OVERDUE', 'AUTO_CLOSED_OVERDUE')
             """)
     BigDecimal sumFleetCardCollectedByPumpIdAsOf(@Param("pumpId") Long pumpId, @Param("asOf") LocalDate asOf);
+
+    /**
+     * Per-date breakdown of closed-shift collections for the given pump and date range.
+     * Returns one row per shift date: [shiftDate, sumUpi, sumCard, sumFleetCard].
+     * Used by the payment settlement daily-summary endpoint.
+     */
+    @Query("""
+            SELECT s.shiftDate,
+                   COALESCE(SUM(s.upiCollected),        0),
+                   COALESCE(SUM(s.cardCollected),       0),
+                   COALESCE(SUM(s.fleetCardCollected),  0)
+            FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.shiftDate BETWEEN :from AND :to
+              AND s.status NOT IN ('OPEN', 'OPEN_OVERDUE', 'AUTO_CLOSED_OVERDUE')
+            GROUP BY s.shiftDate
+            ORDER BY s.shiftDate ASC
+            """)
+    List<Object[]> collectionsGroupedByDate(@Param("pumpId") Long pumpId,
+                                            @Param("from") LocalDate from,
+                                            @Param("to") LocalDate to);
 
     /**
      * Returns true if any shift (in any status) references one of the given shift definition IDs.

@@ -22,6 +22,13 @@ public class BalanceSheetDetailResponse {
     private OffsetDateTime generatedAt;
     private String   notes;
 
+    /**
+     * Distinct shift definition names included in this report (DAY reports only).
+     * Derived from the shiftName snapshot stored on each Shift at open time.
+     * Null for SHIFT reports.
+     */
+    private List<String> includedShiftNames;
+
     // ── Cash summary ──────────────────────────────────────────────────────────
     private BigDecimal totalExpectedRevenue;
     private BigDecimal totalCashCollected;

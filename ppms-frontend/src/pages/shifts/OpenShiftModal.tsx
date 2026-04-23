@@ -147,7 +147,8 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="ui-modal-body space-y-5 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="ui-modal-body space-y-5">
 
           {/* ── Step 1: Select DU ── */}
           <div>
@@ -365,8 +366,10 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
             </div>
           )}
 
+          </div>{/* end ui-modal-body */}
+
           {/* ── Actions ── */}
-          <div className="ui-modal-footer -mx-6 -mb-6">
+          <div className="ui-modal-footer">
             <button type="button" onClick={onClose}
               className="ui-btn ui-btn-secondary flex-1">
               Cancel

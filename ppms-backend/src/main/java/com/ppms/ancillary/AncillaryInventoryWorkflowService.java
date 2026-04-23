@@ -5,6 +5,9 @@ import com.ppms.cash.CashEventRepository;
 import com.ppms.cash.CashEventType;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.settlement.PaymentSettlement;
+import com.ppms.settlement.PaymentSettlementRepository;
+import com.ppms.settlement.SettlementPaymentType;
 import com.ppms.transaction.TransactionPaymentMode;
 import com.ppms.user.User;
 import lombok.Builder;
@@ -33,6 +36,7 @@ public class AncillaryInventoryWorkflowService {
     private final AncillaryLotConsumptionRepository consumptionRepository;
     private final AncillarySaleRepository saleRepository;
     private final CashEventRepository cashEventRepository;
+    private final PaymentSettlementRepository settlementRepository;
     private final AncillaryProductAccessService accessService;
 
     @Transactional
@@ -339,6 +343,23 @@ public class AncillaryInventoryWorkflowService {
                     .build());
         }
 
+        // 11. Auto-settle digital payments from this backfilled sale.
+        // Past-date sales are assumed to have already been received in the bank —
+        // auto-creating a settlement record keeps the wallet pending balance accurate.
+        SettlementPaymentType settlementType = toSettlementType(request.getPaymentMode());
+        if (settlementType != null) {
+            settlementRepository.save(PaymentSettlement.builder()
+                    .pumpId(pumpId)
+                    .paymentType(settlementType)
+                    .settlementDate(request.getSaleDate())
+                    .amountReceived(totalAmount)
+                    .notes("Auto-settled from backfilled product sale #" + sale.getId())
+                    .recordedByUserId(currentUser.getId())
+                    .build());
+            log.info("Auto-settled backfilled product {} payment: pump={}, saleId={}, amount={}, date={}",
+                    settlementType, pumpId, sale.getId(), totalAmount, request.getSaleDate());
+        }
+
         log.info("Ancillary sale backfilled: pump={}, productId={}, saleId={}, saleDate={}, units={}, price={}, by={}",
                 pumpId, product.getId(), sale.getId(), request.getSaleDate(),
                 request.getQuantityUnits(), sellingPrice, currentUser.getId());
@@ -414,6 +435,19 @@ public class AncillaryInventoryWorkflowService {
             log.warn("Backfill sale lot shortage: saleId={}, {} units not covered by historical lots. Investigate lot state.",
                     saleId, remaining);
         }
+    }
+
+    /**
+     * Maps a TransactionPaymentMode to its corresponding SettlementPaymentType.
+     * Returns null for CASH and CREDIT — those modes do not require settlement tracking.
+     */
+    private static SettlementPaymentType toSettlementType(TransactionPaymentMode mode) {
+        return switch (mode) {
+            case UPI        -> SettlementPaymentType.UPI;
+            case CARD       -> SettlementPaymentType.CARD;
+            case FLEET_CARD -> SettlementPaymentType.FLEET_CARD;
+            default         -> null;
+        };
     }
 
     @Getter

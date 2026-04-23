@@ -87,6 +87,12 @@ export interface Shift {
   shiftDate: string
   actualStartTime: string
   actualEndTime: string | null
+  /**
+   * Scheduled end time from the shift's definition (IST, ISO string).
+   * Null only for legacy shifts with no linked definition.
+   * Used to show a late-close warning in the Close Shift modal.
+   */
+  scheduledEndTime: string | null
   fuelReadings: FuelReading[]
   totalAmountDue: number | null
   cashCollected: number | null

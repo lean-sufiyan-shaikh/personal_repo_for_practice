@@ -87,6 +87,7 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [confirmRegenerate, setConfirmRegenerate] = useState(false)
+  const [existingBsMsg, setExistingBsMsg] = useState<string | null>(null)
 
   const { data: shiftDefinitions = [], isLoading: defsLoading } = useQuery({
     queryKey: ['shift-definitions-active', pumpId],
@@ -116,6 +117,7 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
       // Backend returns "already exists" — offer the user a re-generate option
       if (msg.includes('already exists')) {
         setConfirmRegenerate(true)
+        setExistingBsMsg(msg)
         setError(null)
       } else {
         setError(msg)
@@ -234,8 +236,11 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
               <p className="text-sm text-amber-800 font-medium">
                 A balance sheet already exists for this period.
               </p>
+              {existingBsMsg && (
+                <p className="text-xs text-amber-700">{existingBsMsg}</p>
+              )}
               <p className="text-xs text-amber-700">
-                Do you want to generate a new revision? It will be saved as a separate entry (e.g. Shift 1 · 12 AM – 8 AM #2).
+                If you can't see it in the list, widen the date filter. Do you want to generate a new revision instead? It will be saved as a separate entry (e.g. Shift 1 · 12 AM – 8 AM #2).
               </p>
               <div className="flex gap-2">
                 <button
@@ -395,6 +400,16 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
             {fmtDate(detail.reportDate)} · Generated {fmtDateTime(detail.generatedAt)} by {detail.generatedByUserName}
             {pumpName && <span className="hidden print:inline"> · Pump: <span className="font-medium">{pumpName}</span></span>}
           </p>
+          {detail.reportType === 'DAY' && detail.includedShiftNames && detail.includedShiftNames.length > 0 && (
+            <p className="text-xs text-slate-500 mt-1">
+              Shifts included:{' '}
+              {detail.includedShiftNames.map(name => (
+                <span key={name} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 mr-1">
+                  {name}
+                </span>
+              ))}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 print:hidden">
           {canDelete && (
@@ -1085,8 +1100,8 @@ export default function BalanceSheetPage() {
   const [selectedReportId, setSelectedReportId] = useState<number | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<BalanceSheetSummary | null>(null)
 
-  // Date range filter — defaults to yesterday → today (computed fresh on mount, not at module load)
-  const [filterFrom, setFilterFrom] = useState(() => localDateStr(-1))
+  // Date range filter — defaults to last 7 days → today (computed fresh on mount, not at module load)
+  const [filterFrom, setFilterFrom] = useState(() => localDateStr(-7))
   const [filterTo, setFilterTo]     = useState(() => localDateStr(0))
 
   const [bsPage, setBsPage]         = useState(0)

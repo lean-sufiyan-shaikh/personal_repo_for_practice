@@ -24,6 +24,10 @@ public interface PaymentSettlementRepository extends JpaRepository<PaymentSettle
     /** All settlements for a pump on a specific date — used for balance sheet drill-down. */
     List<PaymentSettlement> findByPumpIdAndSettlementDateOrderByCreatedAtDesc(Long pumpId, LocalDate settlementDate);
 
+    /** All settlements for a pump within a date range — used for the daily-summary endpoint. */
+    List<PaymentSettlement> findByPumpIdAndSettlementDateBetweenOrderBySettlementDateAscCreatedAtAsc(
+            Long pumpId, LocalDate from, LocalDate to);
+
     /**
      * Total amount settled for a pump + payment type across ALL time.
      * Used in wallet balance calculation: walletPending = totalCollected − totalSettled.

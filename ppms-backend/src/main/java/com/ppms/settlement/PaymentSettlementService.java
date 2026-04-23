@@ -47,6 +47,10 @@ public class PaymentSettlementService {
         private String notes;
         private String recordedByUserName;
         private String createdAt;
+        /** Wallet balance for this payment type at the time of recording. Null for legacy entries. */
+        private BigDecimal pendingAtRecordTime;
+        /** True when amountReceived was less than the pending balance at record time (partial settlement). */
+        private boolean isPartial;
     }
 
     @Data @Builder
@@ -78,6 +82,19 @@ public class PaymentSettlementService {
     public static class UpdateConfigRequest {
         private String  alertTime;  // HH:mm
         private boolean enabled;
+    }
+
+    /** One entry per date in the requested range. Combines shift collections and recorded settlements. */
+    @Data @Builder
+    public static class DailySummaryEntry {
+        private String     date;               // YYYY-MM-DD
+        private BigDecimal upiCollected;       // from closed shifts
+        private BigDecimal cardCollected;
+        private BigDecimal fleetCardCollected;
+        private BigDecimal upiSettled;         // from recorded settlements
+        private BigDecimal cardSettled;
+        private BigDecimal fleetCardSettled;
+        private List<SettlementResponse> settlements; // individual records for this date
     }
 
     // ── Config endpoints ──────────────────────────────────────────────────────
@@ -194,6 +211,13 @@ public class PaymentSettlementService {
 
         BigDecimal amount = req.getAmountReceived().setScale(2, RoundingMode.HALF_UP);
 
+        // Capture wallet balance BEFORE this settlement is saved — used to detect partial settlements.
+        BigDecimal collected = type == SettlementPaymentType.UPI   ? orZero(shiftRepository.sumUpiCollectedByPumpId(pumpId))
+                             : type == SettlementPaymentType.CARD  ? orZero(shiftRepository.sumCardCollectedByPumpId(pumpId))
+                             : orZero(shiftRepository.sumFleetCardCollectedByPumpId(pumpId));
+        BigDecimal alreadySettled = orZero(settlementRepository.sumAmountByPumpIdAndPaymentType(pumpId, type));
+        BigDecimal pendingAtRecordTime = collected.subtract(alreadySettled).setScale(2, RoundingMode.HALF_UP);
+
         PaymentSettlement settlement = PaymentSettlement.builder()
                 .pumpId(pumpId)
                 .paymentType(type)
@@ -201,6 +225,7 @@ public class PaymentSettlementService {
                 .amountReceived(amount)
                 .notes(req.getNotes())
                 .recordedByUserId(currentUser.getId())
+                .pendingAtRecordTime(pendingAtRecordTime)
                 .build();
 
         settlement = settlementRepository.save(settlement);
@@ -241,6 +266,75 @@ public class PaymentSettlementService {
                 .build();
     }
 
+    // ── Daily summary ─────────────────────────────────────────────────────────
+
+    /**
+     * Returns one DailySummaryEntry per date in [from, to], merging:
+     *  - Shift collections (UPI/Card/Fleet grouped by shiftDate)
+     *  - Recorded settlement entries (grouped by settlementDate)
+     * Dates with no activity on either side are omitted.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<DailySummaryEntry> getDailySummary(Long pumpId, LocalDate from, LocalDate to, Pageable pageable) {
+        // Per-date shift collections
+        List<Object[]> rows = shiftRepository.collectionsGroupedByDate(pumpId, from, to);
+        Map<LocalDate, BigDecimal[]> collections = new java.util.LinkedHashMap<>();
+        for (Object[] row : rows) {
+            LocalDate date = (LocalDate) row[0];
+            collections.put(date, new BigDecimal[]{
+                    orZero((BigDecimal) row[1]),
+                    orZero((BigDecimal) row[2]),
+                    orZero((BigDecimal) row[3])
+            });
+        }
+
+        // All settlement records in range
+        List<PaymentSettlement> allSettlements =
+                settlementRepository.findByPumpIdAndSettlementDateBetweenOrderBySettlementDateAscCreatedAtAsc(pumpId, from, to);
+
+        java.util.Set<Long> recorderIds = allSettlements.stream().map(PaymentSettlement::getRecordedByUserId).collect(Collectors.toSet());
+        Map<Long, String> names = recorderIds.isEmpty() ? Map.of()
+                : userRepository.findAllById(recorderIds).stream()
+                        .collect(Collectors.toMap(com.ppms.user.User::getId, com.ppms.user.User::getFullName));
+
+        Map<LocalDate, List<PaymentSettlement>> settlementsByDate = allSettlements.stream()
+                .collect(Collectors.groupingBy(PaymentSettlement::getSettlementDate));
+
+        // Union of dates from both sides, sorted ascending
+        java.util.TreeSet<LocalDate> allDates = new java.util.TreeSet<>();
+        allDates.addAll(collections.keySet());
+        allDates.addAll(settlementsByDate.keySet());
+
+        List<DailySummaryEntry> result = new java.util.ArrayList<>();
+        for (LocalDate date : allDates.descendingSet()) {
+            BigDecimal[] col = collections.getOrDefault(date, new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO});
+            List<PaymentSettlement> daySettlements = settlementsByDate.getOrDefault(date, List.of());
+
+            BigDecimal upiSettled   = daySettlements.stream().filter(s -> s.getPaymentType() == SettlementPaymentType.UPI)
+                    .map(PaymentSettlement::getAmountReceived).reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal cardSettled  = daySettlements.stream().filter(s -> s.getPaymentType() == SettlementPaymentType.CARD)
+                    .map(PaymentSettlement::getAmountReceived).reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal fleetSettled = daySettlements.stream().filter(s -> s.getPaymentType() == SettlementPaymentType.FLEET_CARD)
+                    .map(PaymentSettlement::getAmountReceived).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            result.add(DailySummaryEntry.builder()
+                    .date(date.toString())
+                    .upiCollected(col[0].setScale(2, RoundingMode.HALF_UP))
+                    .cardCollected(col[1].setScale(2, RoundingMode.HALF_UP))
+                    .fleetCardCollected(col[2].setScale(2, RoundingMode.HALF_UP))
+                    .upiSettled(upiSettled.setScale(2, RoundingMode.HALF_UP))
+                    .cardSettled(cardSettled.setScale(2, RoundingMode.HALF_UP))
+                    .fleetCardSettled(fleetSettled.setScale(2, RoundingMode.HALF_UP))
+                    .settlements(daySettlements.stream().map(s -> toResponse(s, names)).toList())
+                    .build());
+        }
+        int total = result.size();
+        int start = (int) pageable.getOffset();
+        int end   = Math.min(start + pageable.getPageSize(), total);
+        List<DailySummaryEntry> pageSlice = start >= total ? List.of() : result.subList(start, end);
+        return PagedResponse.of(new org.springframework.data.domain.PageImpl<>(pageSlice, pageable, total));
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private SettlementPaymentType parsePaymentType(String value) {
@@ -252,6 +346,8 @@ public class PaymentSettlementService {
     }
 
     private SettlementResponse toResponse(PaymentSettlement s, Map<Long, String> userNames) {
+        boolean partial = s.getPendingAtRecordTime() != null
+                && s.getAmountReceived().compareTo(s.getPendingAtRecordTime()) < 0;
         return SettlementResponse.builder()
                 .id(s.getId())
                 .pumpId(s.getPumpId())
@@ -261,6 +357,8 @@ public class PaymentSettlementService {
                 .notes(s.getNotes())
                 .recordedByUserName(userNames.getOrDefault(s.getRecordedByUserId(), "Unknown"))
                 .createdAt(s.getCreatedAt() != null ? s.getCreatedAt().toString() : null)
+                .pendingAtRecordTime(s.getPendingAtRecordTime())
+                .isPartial(partial)
                 .build();
     }
 

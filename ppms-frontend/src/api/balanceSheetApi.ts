@@ -182,6 +182,8 @@ export interface BalanceSheetDetail {
    * Only present for DAY reports.
    */
   settlementSummary: SettlementSummary | null
+  /** Distinct shift definition names included in this DAY report. Null for SHIFT reports. */
+  includedShiftNames: string[] | null
 }
 
 // ── API ────────────────────────────────────────────────────────────────────────

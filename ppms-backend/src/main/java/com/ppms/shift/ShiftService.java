@@ -21,6 +21,9 @@ import com.ppms.pump.PumpLocationRepository;
 import com.ppms.pump.PumpShiftDefinition;
 import com.ppms.pump.PumpShiftDefinitionRepository;
 import com.ppms.pump.UndergroundTankRepository;
+import com.ppms.settlement.PaymentSettlement;
+import com.ppms.settlement.PaymentSettlementRepository;
+import com.ppms.settlement.SettlementPaymentType;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
@@ -73,6 +76,7 @@ public class ShiftService {
     private final PumpShiftDefinitionRepository shiftDefinitionRepository;
     private final Counter shiftOpenedCounter;
     private final Counter shiftClosedCounter;
+    private final PaymentSettlementRepository settlementRepository;
 
     /**
      * Opens a new shift for selected nozzles on a Dispensary Unit.
@@ -189,8 +193,16 @@ public class ShiftService {
             }
         }
 
-        // Persist closed shift
-        shift.setActualEndTime(OffsetDateTime.now());
+        // Persist closed shift.
+        // If the operator closes after the shift's scheduled end time, record the
+        // scheduled end time as actualEndTime (not the real-world clock time).
+        // This keeps actualEndTime aligned with the definition boundary so that
+        // the DAY balance-sheet 24-hour window queries remain accurate.
+        // If closing early or on time, use the actual close time.
+        OffsetDateTime scheduledEnd = computeScheduledEndTime(shift);
+        OffsetDateTime closeTime    = OffsetDateTime.now();
+        shift.setActualEndTime(scheduledEnd != null && closeTime.isAfter(scheduledEnd)
+                ? scheduledEnd : closeTime);
         shift.setClosedByUserId(currentUser.getId());
         shift.setTotalAmountDue(closingSummary.getTotalDue());
         shift.setCashCollected(request.getCashCollected());
@@ -227,6 +239,24 @@ public class ShiftService {
         List<ShiftCreditEntry> savedEntries = creditEntryRepository.findByShiftId(shift.getId());
         List<ShiftFuelReading> finalReadings = fuelReadingRepository.findByShiftId(shift.getId());
         return shiftReadModelService.toResponse(shift, du, nozzles, operator, currentUser.getFullName(), finalReadings, savedEntries);
+    }
+
+    /**
+     * Derives the shift's scheduled end time from its linked definition.
+     * Cross-midnight shifts (e.g. 22:00–09:00) end on shiftDate + 1.
+     * Returns null if no definition is linked or if it no longer exists (legacy data).
+     */
+    private OffsetDateTime computeScheduledEndTime(Shift shift) {
+        if (shift.getShiftDefinitionId() == null) return null;
+        ZoneId ist = ZoneId.of("Asia/Kolkata");
+        return shiftDefinitionRepository.findById(shift.getShiftDefinitionId())
+                .map(def -> {
+                    LocalDate endDate = def.isCrossesMidnight()
+                            ? shift.getShiftDate().plusDays(1)
+                            : shift.getShiftDate();
+                    return LocalDateTime.of(endDate, def.getEndTime()).atZone(ist).toOffsetDateTime();
+                })
+                .orElse(null);
     }
 
     /**
@@ -680,6 +710,17 @@ public class ShiftService {
             lifecycleSupportService.persistCloseCreditEntries(shiftId, pumpId, request.getCreditEntries());
         }
 
+        // ── 12. Auto-settle digital payments from this backfilled shift ───────
+        // Backfilled shifts represent historical data — the money has already
+        // arrived in the bank. Auto-creating settlement records prevents these
+        // amounts from inflating the live wallet pending balance.
+        autoSettleBackfilledDigitalPayments(
+                pumpId, shiftId, shiftDate,
+                request.getUpiCollected(),
+                request.getCardCollected(),
+                request.getFleetCardCollected(),
+                currentUser);
+
         log.info("Shift {} backfilled by {}: du={}, operator={}, date={}, definition='{}', totalDue={}, status={}",
                 shiftId, currentUser.getId(), du.getId(), operator.getId(),
                 shiftDate, shiftDef.getName(), totalAmountDue, finalStatus);
@@ -756,6 +797,44 @@ public class ShiftService {
      * historical shift date. Stock availability is already pre-validated in step 5c,
      * so no further BusinessException is thrown here.
      */
+    /**
+     * Auto-creates PaymentSettlement records for UPI, Card, and Fleet Card amounts
+     * from a backfilled shift. Since backfilled shifts represent past data, these
+     * payments are assumed to have already been received in the bank on the shift date.
+     * This keeps the wallet pending balance accurate — only genuinely unsettled
+     * live-shift digital payments remain outstanding.
+     */
+    private void autoSettleBackfilledDigitalPayments(
+            Long pumpId, Long shiftId, LocalDate shiftDate,
+            BigDecimal upiCollected, BigDecimal cardCollected, BigDecimal fleetCardCollected,
+            User actor) {
+
+        record TypeAmount(SettlementPaymentType type, BigDecimal amount) {}
+        List<TypeAmount> entries = List.of(
+                new TypeAmount(SettlementPaymentType.UPI,        upiCollected),
+                new TypeAmount(SettlementPaymentType.CARD,       cardCollected),
+                new TypeAmount(SettlementPaymentType.FLEET_CARD, fleetCardCollected)
+        );
+
+        for (TypeAmount entry : entries) {
+            BigDecimal amt = entry.amount();
+            if (amt == null || amt.compareTo(ZERO) <= 0) continue;
+
+            PaymentSettlement settlement = PaymentSettlement.builder()
+                    .pumpId(pumpId)
+                    .paymentType(entry.type())
+                    .settlementDate(shiftDate)
+                    .amountReceived(amt.setScale(2, RoundingMode.HALF_UP))
+                    .notes("Auto-settled from backfilled shift #" + shiftId)
+                    .recordedByUserId(actor.getId())
+                    .build();
+            settlementRepository.save(settlement);
+
+            log.info("Auto-settled backfilled {} payment: pump={}, shiftId={}, amount={}, date={}",
+                    entry.type(), pumpId, shiftId, amt, shiftDate);
+        }
+    }
+
     private void backfillDeductFromInventory(Long shiftId, Long pumpId, FuelType fuelType,
                                              Long tankId, BigDecimal unitsToDeduct, OffsetDateTime asOf) {
         List<InventoryLot> lots = tankId != null

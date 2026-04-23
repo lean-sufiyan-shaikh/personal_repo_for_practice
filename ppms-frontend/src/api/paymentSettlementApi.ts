@@ -14,6 +14,10 @@ export interface Settlement {
   notes: string | null
   recordedByUserName: string
   createdAt: string
+  /** Wallet balance at the time of recording. Null for legacy entries. */
+  pendingAtRecordTime: number | null
+  /** True when amountReceived < pendingAtRecordTime (partial settlement). */
+  isPartial: boolean
 }
 
 export interface SettlementConfig {
@@ -42,6 +46,17 @@ export interface UpdateConfigRequest {
   enabled: boolean
 }
 
+export interface DailySummaryEntry {
+  date: string                  // YYYY-MM-DD
+  upiCollected: number          // from closed shifts
+  cardCollected: number
+  fleetCardCollected: number
+  upiSettled: number            // from recorded settlements
+  cardSettled: number
+  fleetCardSettled: number
+  settlements: Settlement[]     // individual records for this date
+}
+
 // ── API ──────────────────────────────────────────────────────────────────
 
 export const paymentSettlementApi = {
@@ -67,4 +82,8 @@ export const paymentSettlementApi = {
   /** Create or update alert config for one payment type. */
   upsertConfig: (pumpId: number, paymentType: SettlementPaymentType, data: UpdateConfigRequest): Promise<SettlementConfig> =>
     client.put(`/pumps/${pumpId}/settlement-configs/${paymentType}`, data).then(r => r.data),
+
+  /** Per-date summary combining shift collections and recorded settlements, newest first. */
+  getDailySummary: (pumpId: number, from: string, to: string, page = 0, size = 10): Promise<PagedResponse<DailySummaryEntry>> =>
+    client.get(`/pumps/${pumpId}/settlements/daily-summary`, { params: { from, to, page, size } }).then(r => r.data),
 }

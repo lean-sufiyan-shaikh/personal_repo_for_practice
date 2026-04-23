@@ -4,10 +4,13 @@ import com.ppms.common.dto.PagedResponse;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 import java.util.List;
 
@@ -92,5 +95,21 @@ public class PaymentSettlementController {
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
     public PaymentSettlementService.WalletSummary getWallet(@PathVariable Long pumpId) {
         return service.getWalletSummary(pumpId);
+    }
+
+    /**
+     * GET /api/pumps/{pumpId}/settlements/daily-summary?from=YYYY-MM-DD&to=YYYY-MM-DD
+     * Returns one entry per date (newest first) combining shift collections and recorded settlements.
+     * Dates with no activity on either side are omitted.
+     */
+    @GetMapping("/{pumpId}/settlements/daily-summary")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
+    public PagedResponse<PaymentSettlementService.DailySummaryEntry> getDailySummary(
+            @PathVariable Long pumpId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return service.getDailySummary(pumpId, from, to, PageRequest.of(page, size));
     }
 }

@@ -49,6 +49,14 @@ public class PaymentSettlement {
     @Column(name = "notes")
     private String notes;
 
+    /**
+     * Cumulative wallet balance for this payment type at the moment this record was saved.
+     * Null for settlements recorded before this field was introduced.
+     * isPartial = amountReceived < pendingAtRecordTime (i.e. not all pending funds were settled).
+     */
+    @Column(name = "pending_at_record_time")
+    private BigDecimal pendingAtRecordTime;
+
     @Column(name = "recorded_by_user_id", nullable = false)
     private Long recordedByUserId;
 
