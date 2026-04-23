@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Smartphone, CreditCard, Truck, Landmark, Clock, CheckCircle2, Check, ArrowRight, AlertTriangle } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { paymentSettlementApi } from '../../api/paymentSettlementApi'
-import type { SettlementPaymentType, RecordSettlementRequest, UpdateConfigRequest, DailySummaryEntry } from '../../api/paymentSettlementApi'
+import type { SettlementPaymentType, RecordSettlementRequest, UpdateConfigRequest } from '../../api/paymentSettlementApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
@@ -12,6 +14,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { ModalPortal } from '../../components/ModalPortal'
+import { RefreshIndicator } from '../../components/RefreshIndicator'
 import { canPerformAction } from '../../permissions/permissions'
 import { localDateInputValue } from '../../utils/date'
 
@@ -25,10 +28,10 @@ const TYPE_LABELS: Record<SettlementPaymentType, string> = {
   FLEET_CARD: 'Fleet Card',
 }
 
-const TYPE_ICONS: Record<SettlementPaymentType, string> = {
-  UPI:        '📲',
-  CARD:       '💳',
-  FLEET_CARD: '🚛',
+const TYPE_ICONS: Record<SettlementPaymentType, ReactNode> = {
+  UPI:        <Smartphone size={16} strokeWidth={2} />,
+  CARD:       <CreditCard size={16} strokeWidth={2} />,
+  FLEET_CARD: <Truck size={16} strokeWidth={2} />,
 }
 
 const TYPE_ACCENT: Record<SettlementPaymentType, { icon: string; badge: string; pill: string; pillActive: string }> = {
@@ -78,7 +81,7 @@ export default function PaymentSettlementsPage() {
   const [summaryPageSize, setSummaryPageSize] = useState(10)
 
   // ── Queries ──────────────────────────────────────────────────────────────
-  const { data: dailySummaryPage, isLoading: loadingList } = useQuery({
+  const { data: dailySummaryPage, isLoading: loadingList, isFetching: fetchingList, dataUpdatedAt: listUpdatedAt } = useQuery({
     queryKey: ['settlements-daily', pumpId, filterFrom, filterTo, summaryPage, summaryPageSize],
     queryFn:  () => paymentSettlementApi.getDailySummary(pumpId!, filterFrom, filterTo, summaryPage, summaryPageSize),
     enabled:  !!pumpId && !!filterFrom && !!filterTo,
@@ -169,7 +172,7 @@ export default function PaymentSettlementsPage() {
     ? Math.max(0, getPending(wallet, form.paymentType) - form.amountReceived)
     : null
 
-  if (!pumpId) return <EmptyState message="Select a pump to view settlement records." />
+  if (!pumpId) return <EmptyState icon="generic" title="Select a pump to view settlement records." />
 
   return (
     <Reveal>
@@ -178,7 +181,10 @@ export default function PaymentSettlementsPage() {
         {/* ── Header ── */}
         <div className="ui-page-header mb-6">
           <div>
-            <h1 className="ui-title">Payment Settlements</h1>
+            <div className="flex items-center gap-2.5">
+              <h1 className="ui-title">Payment Settlements</h1>
+              <RefreshIndicator isFetching={fetchingList} dataUpdatedAt={listUpdatedAt ?? 0} />
+            </div>
             <p className="ui-subtitle">
               Track when UPI, Card &amp; Fleet Card payments arrive in your bank account.
             </p>
@@ -192,7 +198,7 @@ export default function PaymentSettlementsPage() {
                          hover:from-emerald-600 hover:to-emerald-700 hover:shadow-[0_10px_20px_rgba(5,150,105,0.38)]
                          active:scale-[0.97] transition-all duration-150"
             >
-              <span className="text-base leading-none">🏦</span>
+              <Landmark size={16} strokeWidth={2} />
               Record Settlement
             </button>
           )}
@@ -212,7 +218,7 @@ export default function PaymentSettlementsPage() {
                       <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                         {TYPE_LABELS[type]}
                       </span>
-                      <div className={`w-9 h-9 ${accent.icon} rounded-xl flex items-center justify-center text-white text-base shadow-sm`}>
+                      <div className={`w-9 h-9 ${accent.icon} rounded-xl flex items-center justify-center text-white shadow-sm`}>
                         {TYPE_ICONS[type]}
                       </div>
                     </div>
@@ -221,14 +227,17 @@ export default function PaymentSettlementsPage() {
                     </p>
                     <div className="flex items-center justify-between mt-2">
                       <span className={`text-xs font-medium ${settled ? 'text-emerald-500' : 'text-amber-500'}`}>
-                        {settled ? '✓ Fully settled' : 'In transit'}
+                        {settled
+                          ? <span className="inline-flex items-center gap-1"><Check size={11} strokeWidth={2.5} />Fully settled</span>
+                          : 'In transit'
+                        }
                       </span>
                       {canWrite && !settled && (
                         <button
                           onClick={() => openDialog(type)}
-                          className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
                         >
-                          Record →
+                          Record<ArrowRight size={12} strokeWidth={2} />
                         </button>
                       )}
                     </div>
@@ -245,8 +254,11 @@ export default function PaymentSettlementsPage() {
               ? 'bg-amber-50 border-amber-200'
               : 'bg-emerald-50 border-emerald-200'
           }`}>
-            <span className="text-lg leading-none">
-              {wallet.totalPending > 0 ? '⏳' : '✅'}
+            <span className="leading-none">
+              {wallet.totalPending > 0
+                ? <Clock size={18} strokeWidth={2} className="text-amber-500" />
+                : <CheckCircle2 size={18} strokeWidth={2} className="text-emerald-500" />
+              }
             </span>
             <div className="flex-1">
               <span className={`text-sm font-medium ${wallet.totalPending > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
@@ -308,9 +320,9 @@ export default function PaymentSettlementsPage() {
                     onChange={v => setTypeFilter(v as SettlementPaymentType | '')}
                     options={[
                       { value: '',           label: 'All Types'  },
-                      { value: 'UPI',        label: '📲 UPI'     },
-                      { value: 'CARD',       label: '💳 Card'    },
-                      { value: 'FLEET_CARD', label: '🚛 Fleet Card' },
+                      { value: 'UPI',        label: 'UPI'        },
+                      { value: 'CARD',       label: 'Card'       },
+                      { value: 'FLEET_CARD', label: 'Fleet Card' },
                     ]}
                     size="sm"
                   />
@@ -322,7 +334,7 @@ export default function PaymentSettlementsPage() {
               <div className="px-5 py-4"><SkeletonRows count={5} /></div>
             ) : dailySummary.length === 0 ? (
               <div className="py-16 flex flex-col items-center gap-3 text-center px-6">
-                <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-2xl mb-1">🏦</div>
+                <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-1"><Landmark size={26} strokeWidth={1.5} className="text-slate-400" /></div>
                 <p className="font-semibold text-slate-700">No activity in this date range</p>
                 <p className="text-sm text-slate-400 max-w-sm">
                   No shift collections or settlements were found between the selected dates.
@@ -335,11 +347,11 @@ export default function PaymentSettlementsPage() {
                     ? entry.settlements.filter(s => s.paymentType === typeFilter)
                     : entry.settlements
 
-                  const collectedByType: { type: SettlementPaymentType; collected: number; settled: number }[] = [
+                  const collectedByType = ([
                     { type: 'UPI',        collected: entry.upiCollected,        settled: entry.upiSettled        },
                     { type: 'CARD',       collected: entry.cardCollected,       settled: entry.cardSettled       },
                     { type: 'FLEET_CARD', collected: entry.fleetCardCollected,  settled: entry.fleetCardSettled  },
-                  ].filter(r => typeFilter ? r.type === typeFilter : r.collected > 0 || r.settled > 0)
+                  ] as { type: SettlementPaymentType; collected: number; settled: number }[]).filter(r => typeFilter ? r.type === typeFilter : r.collected > 0 || r.settled > 0)
 
                   if (collectedByType.length === 0 && visibleSettlements.length === 0) return null
 
@@ -362,7 +374,7 @@ export default function PaymentSettlementsPage() {
                                     {TYPE_ICONS[type]} {TYPE_LABELS[type]}
                                   </span>
                                   {balanced
-                                    ? <span className="text-xs text-emerald-600 font-medium">✓ Settled</span>
+                                    ? <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium"><Check size={11} strokeWidth={2.5} />Settled</span>
                                     : <span className="text-xs text-amber-600 font-medium">In transit</span>
                                   }
                                 </div>
@@ -403,7 +415,7 @@ export default function PaymentSettlementsPage() {
                                   <div className="flex items-center gap-2 flex-wrap">
                                     {s.isPartial && (
                                       <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                                        ⚠ Partial · {fmtAmt(shortfall)} short
+                                        <AlertTriangle size={11} strokeWidth={2} />Partial · {fmtAmt(shortfall)} short
                                       </span>
                                     )}
                                     <span className="text-xs text-slate-500 truncate">
@@ -499,7 +511,7 @@ export default function PaymentSettlementsPage() {
                         >
                           {savingConfig === cfg.paymentType
                             ? <><Spinner /><span>Saving…</span></>
-                            : '✓ Save'}
+                            : <><Check size={14} strokeWidth={2.5} /><span>Save</span></>}
                         </button>
                       )}
                       {!isDirty && (
@@ -549,7 +561,7 @@ export default function PaymentSettlementsPage() {
                             active ? accent.pillActive : accent.pill + ' bg-white'
                           }`}
                         >
-                          <span className="text-xl leading-none">{TYPE_ICONS[t]}</span>
+                          <span className="leading-none">{TYPE_ICONS[t]}</span>
                           <span>{TYPE_LABELS[t]}</span>
                         </button>
                       )
@@ -579,7 +591,7 @@ export default function PaymentSettlementsPage() {
                         <span className="text-xs text-slate-500">After this settlement</span>
                         <span className={`text-sm font-bold tabular-nums ${pendingAfterRecord > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
                           {fmtAmt(pendingAfterRecord)}
-                          {pendingAfterRecord <= 0 && <span className="ml-1 text-xs">✓ Fully settled</span>}
+                          {pendingAfterRecord <= 0 && <span className="ml-1 inline-flex items-center gap-1 text-xs"><Check size={11} strokeWidth={2.5} />Fully settled</span>}
                         </span>
                       </div>
                     )}
@@ -662,7 +674,7 @@ export default function PaymentSettlementsPage() {
                   >
                     {recordMutation.isPending
                       ? <><Spinner /><span>Saving…</span></>
-                      : <><span className="text-base leading-none">🏦</span><span>Record Settlement</span></>
+                      : <><Landmark size={16} strokeWidth={2} /><span>Record Settlement</span></>
                     }
                   </button>
                 </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { X, AlertTriangle, ArrowRight, ChevronLeft } from 'lucide-react'
 import { usePumpStore } from '../../store/usePumpStore'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import { creditApi } from '../../api/creditApi'
@@ -136,7 +137,6 @@ export default function AncillaryProductsPage() {
               <StockInTab
                 pumpId={pumpId}
                 products={products.filter(p => p.status === 'ACTIVE')}
-                isOwnerOrAdmin={isOwnerOrAdmin}
                 isManagerOrAbove={isManagerOrAbove}
                 onRefresh={() => qc.invalidateQueries({ queryKey: ['ancillaryProducts', pumpId] })}
               />
@@ -196,7 +196,7 @@ function ProductsTab({
       return <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{p.currentStockUnits} units</span>
     }
     if (p.currentStockUnits <= p.lowStockThreshold) {
-      return <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">{p.currentStockUnits} units ⚠️ Low</span>
+      return <span className="inline-flex items-center gap-1 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium"><AlertTriangle size={11} strokeWidth={2} />{p.currentStockUnits} units Low</span>
     }
     return <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">{p.currentStockUnits} units</span>
   }
@@ -251,7 +251,7 @@ function ProductsTab({
               onClick={() => setSearchQuery('')}
               className="ui-search-shell__clear"
             >
-              ✕
+              <X size={13} strokeWidth={2} />
             </button>
           )}
         </div>
@@ -479,7 +479,7 @@ function AddProductDialog({
                 : 'Review the product details before creating it.'}
             </p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">✕</button>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
         </div>
 
         {step === 'form' && (
@@ -723,7 +723,7 @@ function SellDialog({
               {marginBadge ? ` · ${marginBadge.label}` : ''}
             </p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">✕</button>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
         </div>
 
         {/* Step 1 — Form */}
@@ -838,7 +838,7 @@ function SellDialog({
                 onClick={handleProceedToReview}
                 className="ui-btn ui-btn-primary"
               >
-                Review →
+                <span className="inline-flex items-center gap-1.5">Review<ArrowRight size={14} strokeWidth={2} /></span>
               </button>
             </div>
           </div>
@@ -880,7 +880,7 @@ function SellDialog({
                 onClick={() => { setStep('form'); setError(null) }}
                 className="ui-btn ui-btn-secondary"
               >
-                ← Back
+                <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} />Back</span>
               </button>
               <button
                 onClick={() => saleMutation.mutate(form)}
@@ -991,7 +991,7 @@ function StockLotsDialog({
             <h3 className="ui-modal-title">Stock Lots</h3>
             <p className="ui-modal-subtitle truncate max-w-[380px]">{product.displayName}</p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">✕</button>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
         </div>
 
         {/* Body */}
@@ -1113,11 +1113,10 @@ function StockLotsDialog({
 // ── Stock In Tab ─────────────────────────────────────────────────────────────
 
 function StockInTab({
-  pumpId, products, isOwnerOrAdmin, isManagerOrAbove, onRefresh,
+  pumpId, products, isManagerOrAbove, onRefresh,
 }: {
   pumpId: number
   products: AncillaryProduct[]
-  isOwnerOrAdmin: boolean
   isManagerOrAbove: boolean
   onRefresh: () => void
 }) {
@@ -1321,7 +1320,7 @@ function StockInDialog({
                 : 'Review the stock delivery before submitting it.'}
             </p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">✕</button>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
         </div>
 
         {step === 'form' && (
@@ -1654,7 +1653,7 @@ function BackfillSaleModal({
                 : 'Review the details before submitting.'}
             </p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">✕</button>
+          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
         </div>
 
         {/* Step 1 — Form */}
@@ -1791,7 +1790,7 @@ function BackfillSaleModal({
                 onClick={() => { setStep('form'); setError(null) }}
                 className="ui-btn ui-btn-secondary"
               >
-                ← Back
+                <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} />Back</span>
               </button>
               <button
                 onClick={() => backfillMutation.mutate(form)}

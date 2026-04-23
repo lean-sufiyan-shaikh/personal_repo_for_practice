@@ -1,6 +1,7 @@
 package com.ppms.shift;
 
 import com.ppms.common.exception.BusinessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
@@ -77,6 +78,7 @@ public class ShiftService {
     private final Counter shiftOpenedCounter;
     private final Counter shiftClosedCounter;
     private final PaymentSettlementRepository settlementRepository;
+    private final ActiveNozzleAssignmentRepository activeNozzleRepository;
 
     /**
      * Opens a new shift for selected nozzles on a Dispensary Unit.
@@ -130,6 +132,21 @@ public class ShiftService {
                     .shiftId(shiftId)
                     .nozzleId(nozzle.getId())
                     .build());
+        }
+
+        // DB-level nozzle exclusivity guard — PRIMARY KEY conflict here means two concurrent
+        // requests raced past the application-level check in validateShiftCanOpen.
+        try {
+            for (Nozzle nozzle : nozzles) {
+                activeNozzleRepository.save(ActiveNozzleAssignment.builder()
+                        .nozzleId(nozzle.getId())
+                        .shiftId(shiftId)
+                        .build());
+            }
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(
+                    "One or more selected nozzles are already in use on an active shift. " +
+                    "Please refresh the page and try again.");
         }
 
         // Create opening readings — one per nozzle (each nozzle = one fuel type)
@@ -214,8 +231,12 @@ public class ShiftService {
                 ? closingSummary.getDiscrepancyAmount() : null);
         shift.setDiscrepancyType(closingSummary.getDiscrepancyType());
         shift.setDiscrepancyReason(request.getDiscrepancyReason());
-        shift.setStatus(closingSummary.getStatus());
+        shift.setStatus(escalateStatusIfNeeded(closingSummary.getStatus(),
+                closingSummary.getDiscrepancyAmount(), shift.getPumpId()));
         shift = shiftRepository.save(shift);
+
+        // Release the nozzle exclusivity lock now that the shift is closed
+        activeNozzleRepository.deleteByShiftId(shiftId);
 
         log.info("Shift {} closed: totalDue={}, totalCollected={}, discrepancy={}, status={}",
                 shiftId, closingSummary.getTotalDue(), closingSummary.getTotalCollected(),
@@ -239,6 +260,26 @@ public class ShiftService {
         List<ShiftCreditEntry> savedEntries = creditEntryRepository.findByShiftId(shift.getId());
         List<ShiftFuelReading> finalReadings = fuelReadingRepository.findByShiftId(shift.getId());
         return shiftReadModelService.toResponse(shift, du, nozzles, operator, currentUser.getFullName(), finalReadings, savedEntries);
+    }
+
+    /**
+     * If the initial status is CLOSED_DISCREPANCY_PENDING and the pump has a configured
+     * escalation threshold that the discrepancy exceeds, upgrades the status to
+     * CLOSED_DISCREPANCY_PENDING_APPROVAL so only OWNER/ADMIN can resolve it.
+     */
+    private ShiftStatus escalateStatusIfNeeded(ShiftStatus base, BigDecimal discrepancyAmount, Long pumpId) {
+        if (base != ShiftStatus.CLOSED_DISCREPANCY_PENDING) return base;
+        if (discrepancyAmount == null || discrepancyAmount.compareTo(ZERO) <= 0) return base;
+        return pumpLocationRepository.findById(pumpId)
+                .map(pump -> {
+                    BigDecimal threshold = pump.getDiscrepancyEscalationThreshold();
+                    if (threshold != null && threshold.compareTo(ZERO) > 0
+                            && discrepancyAmount.compareTo(threshold) > 0) {
+                        return ShiftStatus.CLOSED_DISCREPANCY_PENDING_APPROVAL;
+                    }
+                    return base;
+                })
+                .orElse(base);
     }
 
     /**
@@ -308,31 +349,26 @@ public class ShiftService {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
 
-        if (shift.getStatus() != ShiftStatus.CLOSED_DISCREPANCY_PENDING) {
+        boolean isPending         = shift.getStatus() == ShiftStatus.CLOSED_DISCREPANCY_PENDING;
+        boolean isPendingApproval = shift.getStatus() == ShiftStatus.CLOSED_DISCREPANCY_PENDING_APPROVAL;
+        if (!isPending && !isPendingApproval) {
             throw new BusinessException(
-                    "Shift is not in CLOSED_DISCREPANCY_PENDING state. Current status: " + shift.getStatus());
+                    "Shift has no pending discrepancy to resolve. Current status: " + shift.getStatus());
+        }
+
+        if (isPendingApproval) {
+            UserRole role = currentUser.getRole();
+            if (role != UserRole.OWNER && role != UserRole.ADMIN && role != UserRole.SUPER_ADMIN) {
+                throw new BusinessException(
+                        "This discrepancy exceeds the escalation threshold and requires Owner or Admin approval. " +
+                        "Managers cannot resolve escalated discrepancies.");
+            }
         }
 
         if (request.resolutionAction() == DiscrepancyResolution.WAIVED
                 && (request.resolutionNote() == null || request.resolutionNote().isBlank())) {
             throw new BusinessException(
                     "A mandatory reason is required when waiving a discrepancy (Business Rule 19).");
-        }
-
-        final BigDecimal discrepancyAmountForCheck = shift.getDiscrepancyAmount();
-        final UserRole resolverRole = currentUser.getRole();
-        if (discrepancyAmountForCheck != null) {
-            pumpLocationRepository.findById(shift.getPumpId()).ifPresent(pump -> {
-                BigDecimal threshold = pump.getDiscrepancyEscalationThreshold();
-                if (threshold != null && threshold.compareTo(ZERO) > 0
-                        && discrepancyAmountForCheck.compareTo(threshold) > 0
-                        && resolverRole != UserRole.OWNER
-                        && resolverRole != UserRole.SUPER_ADMIN) {
-                    throw new BusinessException(
-                            "Discrepancy of ₹" + discrepancyAmountForCheck + " exceeds the escalation threshold of ₹" + threshold + ". " +
-                            "Only the Owner can resolve discrepancies above this amount. Please escalate to the pump Owner.");
-                }
-            });
         }
 
         shift.setDiscrepancyResolution(request.resolutionAction());

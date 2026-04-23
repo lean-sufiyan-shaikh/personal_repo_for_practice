@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { X, Check, Pencil, RotateCcw } from 'lucide-react'
 import { shiftApi } from '../../api/shiftApi'
 import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import { userApi } from '../../api/userApi'
@@ -82,8 +83,10 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
   const [openingReadings,   setOpeningReadings]   = useState<Record<number, string>>({})
   const [closingReadings,   setClosingReadings]   = useState<Record<number, string>>({})
 
-  // Manual fuel rate inputs — for fuel types with no DB price on shiftDate
-  const [fuelRateInputs, setFuelRateInputs] = useState<Record<string, string>>({})
+  // Manual fuel rate inputs — for fuel types with no DB price, or when overriding a DB price
+  const [fuelRateInputs,  setFuelRateInputs]  = useState<Record<string, string>>({})
+  // Tracks which fuel types the user is actively overriding (even when a DB price exists)
+  const [editingRates,    setEditingRates]    = useState<Set<string>>(new Set())
 
   const [cashCollected,      setCashCollected]      = useState('')
   const [upiCollected,       setUpiCollected]       = useState('')
@@ -150,9 +153,10 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
     setClosingReadings({})
   }, [selectedDU])
 
-  // Reset rate inputs when date changes (prices will be re-fetched)
+  // Reset rate inputs and overrides when date changes (prices will be re-fetched)
   useEffect(() => {
     setFuelRateInputs({})
+    setEditingRates(new Set())
   }, [shiftDate])
 
   const filteredOperators = operators.filter((op) =>
@@ -186,8 +190,12 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
     return diff >= 0 ? diff : null
   }
 
-  // Effective rate for a fuel type: DB price if available, else user input
+  // Effective rate: override input if user is editing, DB price if available, else manual input
   function getEffectiveRate(fuelType: string): number | null {
+    if (editingRates.has(fuelType)) {
+      const input = parseFloat(fuelRateInputs[fuelType] ?? '')
+      return isFinite(input) && input > 0 ? input : null
+    }
     const dbPrice = dbPriceMap[fuelType]
     if (typeof dbPrice === 'number') return dbPrice
     const input = parseFloat(fuelRateInputs[fuelType] ?? '')
@@ -217,8 +225,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
     }
 
     return { nozzleExpected, totalExpected: total, allRatesResolved: allResolved }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedNozzleIds, openingReadings, closingReadings, dbPriceMap, fuelRateInputs, availableNozzles])
+  }, [selectedNozzleIds, openingReadings, closingReadings, dbPriceMap, fuelRateInputs, editingRates, availableNozzles])
 
   // Credit total as number
   const creditNum = safeParse(creditTotal)
@@ -302,11 +309,12 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
       })
     }
 
-    // Build fuelRateOverrides: only for fuel types with no DB price
+    // Build fuelRateOverrides: for fuel types with no DB price, or when user overrode a DB price
     const fuelRateOverrides: Record<string, number> = {}
     for (const fuelType of selectedFuelTypes) {
-      const dbPrice = dbPriceMap[fuelType]
-      if (dbPrice === null || dbPrice === undefined) {
+      const dbPrice    = dbPriceMap[fuelType]
+      const isOverride = editingRates.has(fuelType)
+      if (dbPrice === null || dbPrice === undefined || isOverride) {
         const rate = parseFloat(fuelRateInputs[fuelType] ?? '')
         if (isFinite(rate) && rate > 0) {
           fuelRateOverrides[fuelType] = rate
@@ -507,25 +515,54 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
 
               {/* ── Fuel Rates ─────────────────────────────────────────── */}
               {selectedNozzleIds.size > 0 && (
-                <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 space-y-2">
-                  <SectionLabel>Fuel Rates on {shiftDate}</SectionLabel>
+                <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <SectionLabel>Fuel Rates on {shiftDate}</SectionLabel>
+                    {editingRates.size > 0 && (
+                      <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 -mt-3">
+                        {editingRates.size} override{editingRates.size > 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
 
                   {[...selectedFuelTypes].map((fuelType) => {
-                    const dbPrice = dbPriceMap[fuelType]
-                    const hasPrice = typeof dbPrice === 'number'
+                    const dbPrice    = dbPriceMap[fuelType]
+                    const hasPrice   = typeof dbPrice === 'number'
+                    const isEditing  = editingRates.has(fuelType)
+
+                    const startEditing = () => {
+                      setEditingRates(prev => new Set([...prev, fuelType]))
+                      setFuelRateInputs(r => ({ ...r, [fuelType]: dbPrice!.toFixed(2) }))
+                    }
+                    const cancelEditing = () => {
+                      setEditingRates(prev => { const s = new Set(prev); s.delete(fuelType); return s })
+                      setFuelRateInputs(r => { const n = { ...r }; delete n[fuelType]; return n })
+                    }
+
                     return (
-                      <div key={fuelType} className="flex items-center gap-3">
+                      <div key={fuelType} className={`flex items-center gap-3 rounded-lg px-2.5 py-1.5 transition-colors ${isEditing ? 'bg-amber-50/70 border border-amber-100' : ''}`}>
                         <span className="text-xs font-semibold text-slate-700 w-28 shrink-0">
                           {FUEL_LABELS[fuelType] ?? fuelType}
                         </span>
-                        {hasPrice ? (
+
+                        {hasPrice && !isEditing ? (
+                          /* ── DB price, read-only display ── */
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-2.5 py-1">
                               ₹{dbPrice!.toFixed(2)}/L
                             </span>
                             <span className="text-[11px] text-slate-400">from price history</span>
+                            <button
+                              type="button"
+                              title="Override price for this shift"
+                              onClick={startEditing}
+                              className="ml-1 p-1 rounded-md text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                            >
+                              <Pencil size={12} strokeWidth={2.5} />
+                            </button>
                           </div>
                         ) : (
+                          /* ── Manual input (no DB price, or user override) ── */
                           <div className="flex items-center gap-2 flex-1">
                             <div className="relative flex-1 max-w-[140px]">
                               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 pointer-events-none">₹</span>
@@ -537,12 +574,25 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                                 value={fuelRateInputs[fuelType] ?? ''}
                                 onChange={(e) => setFuelRateInputs(r => ({ ...r, [fuelType]: e.target.value }))}
                                 className="ui-input pl-6 text-sm"
+                                autoFocus={isEditing}
                               />
                             </div>
                             <span className="text-[11px] text-slate-400">/L</span>
-                            <span className="text-[11px] text-amber-600 font-medium">
-                              No price on record — enter manually
-                            </span>
+                            {hasPrice && isEditing ? (
+                              <button
+                                type="button"
+                                title="Reset to price history"
+                                onClick={cancelEditing}
+                                className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-700 transition-colors"
+                              >
+                                <RotateCcw size={11} strokeWidth={2} />
+                                Reset
+                              </button>
+                            ) : (
+                              <span className="text-[11px] text-amber-600 font-medium">
+                                No price on record — enter manually
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -658,7 +708,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                           : 'text-amber-700 bg-amber-50'
                       }`}>
                         <span>
-                          {Math.abs(discrepancyAmt) < 0.01 ? 'Balanced ✓' : discrepancyAmt < 0 ? 'Short (under-collected)' : 'Over (excess collected)'}
+                          {Math.abs(discrepancyAmt) < 0.01 ? <span className="inline-flex items-center gap-1">Balanced<Check size={12} strokeWidth={2.5} /></span> : discrepancyAmt < 0 ? 'Short (under-collected)' : 'Over (excess collected)'}
                         </span>
                         <span>
                           {Math.abs(discrepancyAmt) < 0.01 ? '₹0.00' : `₹${fmt(Math.abs(discrepancyAmt))}`}
@@ -696,7 +746,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                             <button type="button" onClick={() => setExpandedCreditId(row._key)}
                               className="text-blue-600 hover:underline">Edit</button>
                             <button type="button" onClick={() => removeCreditRow(row._key)}
-                              className="text-red-500 hover:text-red-700">✕</button>
+                              className="text-red-500 hover:text-red-700 p-0.5"><X size={13} strokeWidth={2} /></button>
                           </div>
                         </div>
                       ) : (

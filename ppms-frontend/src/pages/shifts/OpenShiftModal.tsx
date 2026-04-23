@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Check } from 'lucide-react'
 import { shiftApi } from '../../api/shiftApi'
 import { userApi } from '../../api/userApi'
 import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
@@ -198,7 +199,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
                         ))}
                       </div>
                       {isSelected && (
-                        <span className="text-xs text-blue-600 font-semibold">✓ Selected</span>
+                        <span className="inline-flex items-center gap-1 text-xs text-blue-600 font-semibold"><Check size={11} strokeWidth={2.5} />Selected</span>
                       )}
                     </button>
                   )
@@ -244,7 +245,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose }: Props)
                       </span>
                       {isBusy
                         ? <span className="text-xs text-slate-400">In use</span>
-                        : isSelected && <span className="text-xs text-blue-600 font-semibold">✓ Selected</span>
+                        : isSelected && <span className="inline-flex items-center gap-1 text-xs text-blue-600 font-semibold"><Check size={11} strokeWidth={2.5} />Selected</span>
                       }
                     </button>
                   )

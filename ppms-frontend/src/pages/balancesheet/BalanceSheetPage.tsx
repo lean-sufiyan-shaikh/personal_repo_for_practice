@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { X, Check, BarChart2, TrendingDown, TrendingUp } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { balanceSheetApi } from '../../api/balanceSheetApi'
@@ -26,6 +27,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { ModalPortal } from '../../components/ModalPortal'
+import { RefreshIndicator } from '../../components/RefreshIndicator'
 
 // ── Date helpers ───────────────────────────────────────────────────────────────
 // Use local calendar date (not UTC) so the value matches the user's timezone.
@@ -412,6 +414,12 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
           )}
         </div>
         <div className="flex items-center gap-2 print:hidden">
+          <button
+            onClick={onClose}
+            className="md:hidden text-xs text-blue-600 hover:text-blue-800 font-medium border border-blue-200 hover:border-blue-400 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            ← Back
+          </button>
           {canDelete && (
             <button
               onClick={() => onDelete(summary)}
@@ -428,7 +436,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
           </button>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 text-xl leading-none"
+            className="hidden md:block text-slate-400 hover:text-slate-600 text-xl leading-none"
           >
             &times;
           </button>
@@ -1050,7 +1058,7 @@ function SettlementSection({ summary }: { summary: SettlementSummary }) {
                 <Td right>
                   {r.pending !== 0
                     ? <span className={r.pending > 0 ? 'text-amber-600 font-medium' : 'text-emerald-600'}>{fmtMoney(r.pending)}</span>
-                    : <span className="text-slate-400">Settled ✓</span>
+                    : <span className="inline-flex items-center gap-1 text-slate-400">Settled<Check size={11} strokeWidth={2.5} /></span>
                   }
                 </Td>
               </tr>
@@ -1120,7 +1128,7 @@ export default function BalanceSheetPage() {
   useEffect(() => { setBsPage(0) }, [filterFrom, filterTo, pumpId])
 
   // Report list
-  const { data: reportsPage, isLoading } = useQuery({
+  const { data: reportsPage, isLoading, isFetching: fetchingReports, dataUpdatedAt: reportsUpdatedAt } = useQuery({
     queryKey: ['balance-sheets', pumpId, filterFrom, filterTo, bsPage, bsPageSize],
     queryFn:  () => balanceSheetApi.list(
       pumpId!,
@@ -1150,11 +1158,14 @@ export default function BalanceSheetPage() {
   return (
     <div className="flex h-[calc(100vh-56px)] overflow-hidden print:h-auto print:overflow-visible">
       {/* ── Left panel: list ────────────────────────────────────────────────── */}
-      <div className={`flex flex-col ${selectedReportId ? 'w-80 flex-shrink-0' : 'flex-1'} border-r border-slate-200 bg-white overflow-hidden print:hidden`}>
+      <div className={`flex flex-col ${selectedReportId ? 'hidden md:flex w-80 flex-shrink-0' : 'flex-1'} border-r border-slate-200 bg-white overflow-hidden print:hidden`}>
         {/* Page header */}
         <div className="px-5 py-4 border-b border-slate-200">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-base font-semibold text-slate-800">Balance Sheets</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-semibold text-slate-800">Balance Sheets</h1>
+              <RefreshIndicator isFetching={fetchingReports} dataUpdatedAt={reportsUpdatedAt ?? 0} />
+            </div>
             <button
               onClick={() => setShowGenerateModal(true)}
               disabled={!pumpId}
@@ -1185,10 +1196,10 @@ export default function BalanceSheetPage() {
             {(filterFrom || filterTo) && (
               <button
                 onClick={() => { setFilterFrom(''); setFilterTo(''); setBsPage(0) }}
-                className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-sm text-slate-400 hover:text-slate-600"
+                className="ui-btn ui-btn-ghost min-h-0 p-1 text-slate-400 hover:text-slate-600"
                 title="Clear filter"
               >
-                ✕
+                <X size={14} strokeWidth={2} />
               </button>
             )}
           </div>
@@ -1247,7 +1258,7 @@ export default function BalanceSheetPage() {
       {!selectedReportId && (
         <div className="flex-1 hidden sm:flex items-center justify-center bg-slate-50/70">
           <div className="ui-empty">
-            <div className="text-4xl mb-3">📊</div>
+            <div className="flex justify-center mb-3"><BarChart2 size={40} strokeWidth={1.5} className="text-slate-300" /></div>
             <p className="ui-subtitle">Select a report to view details</p>
           </div>
         </div>
@@ -1312,7 +1323,7 @@ function ReportListItem({ report, isSelected, onClick }: ReportListItemProps) {
           <p className={`text-xs font-medium ${discrepancyColor}`}>
             {report.cashDiscrepancy === 0
               ? 'Balanced'
-              : `${report.cashDiscrepancy < 0 ? '▼' : '▲'} ${fmtMoney(Math.abs(report.cashDiscrepancy))}`}
+              : <span className="inline-flex items-center gap-0.5">{report.cashDiscrepancy < 0 ? <TrendingDown size={12} strokeWidth={2} /> : <TrendingUp size={12} strokeWidth={2} />}{fmtMoney(Math.abs(report.cashDiscrepancy))}</span>}
           </p>
           <p className="text-xs text-emerald-600">{fmtMoney(report.totalGrossProfit)} profit</p>
         </div>
