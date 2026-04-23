@@ -280,7 +280,21 @@ public class ReportService {
                     lot.getIsDipAdjustment(), consumptionLines);
         }).toList();
 
-        return new InventoryLotsReport(tankId, lots.size(), lines);
+        BigDecimal totalRemaining = lines.stream()
+                .map(InventoryLotsReport.LotLine::remainingQuantity)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal numerator = lines.stream()
+                .map(l -> l.remainingQuantity().multiply(l.costPricePerUnit()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal weightedAvgCost = totalRemaining.compareTo(BigDecimal.ZERO) == 0
+                ? null
+                : numerator.divide(totalRemaining, 2, RoundingMode.HALF_UP);
+
+        BigDecimal totalStockValue = numerator.setScale(2, RoundingMode.HALF_UP);
+
+        return new InventoryLotsReport(tankId, lots.size(), totalRemaining, weightedAvgCost, totalStockValue, lines);
     }
 
     public List<ReportController.ShiftReportLine> buildShiftReportLines(Long pumpId, LocalDate from, LocalDate to) {
@@ -438,6 +452,9 @@ public class ReportService {
     public record InventoryLotsReport(
             Long tankId,
             int totalLots,
+            BigDecimal totalRemaining,
+            BigDecimal weightedAvgCostPerUnit,   // null when totalRemaining == 0
+            BigDecimal totalStockValue,
             List<LotLine> lots) {
 
         public record LotLine(

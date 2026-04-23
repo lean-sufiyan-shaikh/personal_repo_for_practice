@@ -71,6 +71,39 @@ class ReportServiceTest {
     }
 
     @Test
+    void buildInventoryLotsReport_computesSummaryFields() {
+        InventoryLot lot2 = new InventoryLot();
+        lot2.setId(2L);
+        lot2.setTankId(10L);
+        lot2.setPumpId(99L);
+        lot2.setFuelType(FuelType.PETROL);
+        lot2.setDeliveryDate(OffsetDateTime.now());
+        lot2.setOriginalQuantity(new BigDecimal("10000"));
+        lot2.setRemainingQuantity(new BigDecimal("5000"));
+        lot2.setCostPricePerUnit(new BigDecimal("85.00"));
+        lot2.setStatus(LotStatus.ACTIVE);
+        lot2.setIsDipAdjustment(false);
+        lot2.setTankerDeliveryId(56L);
+
+        TankerDelivery delivery2 = new TankerDelivery();
+        delivery2.setId(56L);
+        delivery2.setInvoiceReference("INV-2026-002");
+
+        when(inventoryLotRepository.findAllByTankIdOrdered(10L)).thenReturn(List.of(lot, lot2));
+        when(lotConsumptionRepository.findByLotIdIn(List.of(1L, 2L))).thenReturn(List.of());
+        when(tankerDeliveryRepository.findAllById(java.util.Set.of(55L, 56L))).thenReturn(List.of(delivery, delivery2));
+
+        ReportService.InventoryLotsReport report = reportService.buildInventoryLotsReport(10L);
+
+        // totalRemaining = 18000 + 5000 = 23000
+        assertThat(report.totalRemaining()).isEqualByComparingTo("23000.00");
+        // weightedAvgCost = (18000×80 + 5000×85) / 23000 = 1865000 / 23000 ≈ 81.09
+        assertThat(report.weightedAvgCostPerUnit()).isNotNull();
+        // totalStockValue = 18000×80 + 5000×85 = 1865000
+        assertThat(report.totalStockValue()).isEqualByComparingTo("1865000.00");
+    }
+
+    @Test
     void buildInventoryLotsReport_dipAdjustmentLot_usesDipAdjustmentLabel() {
         lot.setIsDipAdjustment(true);
         lot.setTankerDeliveryId(null);
