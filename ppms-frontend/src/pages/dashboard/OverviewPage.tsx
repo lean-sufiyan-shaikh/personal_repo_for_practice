@@ -318,7 +318,11 @@ export default function OverviewPage() {
             </div>
           </div>
           {hasChartData ? (
-            <div className="ui-chart-wrap">
+            <div
+              className="ui-chart-wrap"
+              role="img"
+              aria-label={`Revenue and fuel quantity trend for the last ${chartDays} days`}
+            >
               <ResponsiveContainer width="100%" height={200}>
                 <ComposedChart data={revenueChartData} margin={{ top: 4, right: 52, left: 0, bottom: 0 }}>
                   <defs>
@@ -443,12 +447,22 @@ export default function OverviewPage() {
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-semibold text-slate-700">{tank.tankIdentifier}</span>
                       <span className="text-xs text-slate-400">{tank.fuelType}</span>
+                      {tank.lowStock && (
+                        <span className="text-xs font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full leading-none">Low</span>
+                      )}
                     </div>
                     <span className={`text-xs font-medium ${tank.lowStock ? 'text-red-600' : 'text-slate-500'}`}>
                       {pct.toFixed(0)}%
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="w-full h-2 bg-slate-200 rounded-full overflow-hidden"
+                    role="progressbar"
+                    aria-valuenow={pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`${tank.tankIdentifier} stock: ${pct.toFixed(0)}%${tank.lowStock ? ' – low stock' : ''}`}
+                  >
                     <div
                       className={`h-full rounded-full transition-all duration-700 ${barColor} ${tank.lowStock ? 'animate-pulse' : ''}`}
                       style={{ width: `${pct}%` }}

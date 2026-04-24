@@ -286,12 +286,12 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
                           : <ChevronDown size={13} strokeWidth={2} />}
                       </td>
                       <td className="px-4 py-2.5 font-medium text-slate-700">{row.fuelType.replace(/_/g, ' ')}</td>
-                      <td className="px-4 py-2.5 text-right text-slate-700">{fmtAmt(row.revenue)}</td>
-                      <td className="px-4 py-2.5 text-right text-red-600">{fmtAmt(row.cogs)}</td>
-                      <td className={`px-4 py-2.5 text-right font-semibold ${row.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                      <td className="px-4 py-2.5 text-right text-slate-700 tabular-nums">{fmtAmt(row.revenue)}</td>
+                      <td className="px-4 py-2.5 text-right text-red-600 tabular-nums">{fmtAmt(row.cogs)}</td>
+                      <td className={`px-4 py-2.5 text-right font-semibold tabular-nums ${row.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                         {fmtAmt(row.grossProfit)}
                       </td>
-                      <td className="px-4 py-2.5 text-right text-slate-500 text-xs">
+                      <td className="px-4 py-2.5 text-right text-slate-500 text-xs tabular-nums">
                         {row.grossMarginPerLitre != null ? `₹${row.grossMarginPerLitre.toFixed(2)}/L` : '—'}
                       </td>
                     </tr>
@@ -365,7 +365,7 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
               <p className="text-sm font-semibold text-orange-600">{fmtAmt(data.totalCreditRevenue)}</p>
             </div>
           </div>
-          <div className="ui-card p-0 overflow-hidden">
+          <div className="ui-card p-0 overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-xs text-slate-500">
@@ -381,10 +381,10 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
                   <>
                     <tr key={row.fuelType} className="border-t border-slate-100">
                       <td className="px-4 py-2.5 font-medium text-slate-700">{row.fuelType.replace(/_/g, ' ')}</td>
-                      <td className="px-4 py-2.5 text-right text-slate-700">{fmtAmt(row.revenue)}</td>
-                      <td className="px-4 py-2.5 text-right text-red-600">{fmtAmt(row.cogs)}</td>
-                      <td className={`px-4 py-2.5 text-right font-semibold ${row.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{fmtAmt(row.grossProfit)}</td>
-                      <td className="px-4 py-2.5 text-right text-slate-500 text-xs">
+                      <td className="px-4 py-2.5 text-right text-slate-700 tabular-nums">{fmtAmt(row.revenue)}</td>
+                      <td className="px-4 py-2.5 text-right text-red-600 tabular-nums">{fmtAmt(row.cogs)}</td>
+                      <td className={`px-4 py-2.5 text-right font-semibold tabular-nums ${row.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{fmtAmt(row.grossProfit)}</td>
+                      <td className="px-4 py-2.5 text-right text-slate-500 text-xs tabular-nums">
                         {row.grossMarginPerLitre != null ? `₹${row.grossMarginPerLitre.toFixed(2)}/L` : '—'}
                       </td>
                     </tr>
@@ -469,10 +469,10 @@ function OperatorDutyTab({ pumpId }: { pumpId: number }) {
     <tr key={s.shiftId} className="border-t border-slate-100">
       <td className="px-4 py-2.5 text-slate-600">{s.shiftDate}</td>
       <td className="px-4 py-2.5 text-slate-500">{s.shiftWindow}</td>
-      <td className="px-4 py-2.5 text-right font-medium text-slate-700">{fmtAmt(s.totalAmountDue)}</td>
-      <td className="px-4 py-2.5 text-right text-slate-600">{fmtAmt(s.cashCollected)}</td>
-      <td className="px-4 py-2.5 text-right text-orange-600">{fmtAmt(s.creditTotal)}</td>
-      <td className={`px-4 py-2.5 text-right text-xs font-semibold ${s.discrepancyAmount > 0 ? (s.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600') : 'text-slate-300'}`}>
+      <td className="px-4 py-2.5 text-right font-medium text-slate-700 tabular-nums">{fmtAmt(s.totalAmountDue)}</td>
+      <td className="px-4 py-2.5 text-right text-slate-600 tabular-nums">{fmtAmt(s.cashCollected)}</td>
+      <td className="px-4 py-2.5 text-right text-orange-600 tabular-nums">{fmtAmt(s.creditTotal)}</td>
+      <td className={`px-4 py-2.5 text-right text-xs font-semibold tabular-nums ${s.discrepancyAmount > 0 ? (s.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600') : 'text-slate-300'}`}>
         {s.discrepancyAmount > 0 ? `${s.discrepancyType} ${fmtAmt(s.discrepancyAmount)}` : '—'}
       </td>
       <td className="px-4 py-2.5 text-xs text-slate-500">{s.status.replace(/_/g, ' ')}</td>
@@ -540,7 +540,7 @@ function OperatorDutyTab({ pumpId }: { pumpId: number }) {
             <SummaryCard label="Total Amount Due"  value={fmtAmt(data.totalAmountDue)}   color="text-slate-800" />
             <SummaryCard label="Total Discrepancy" value={fmtAmt(data.totalDiscrepancy)} color={data.totalDiscrepancy > 0 ? 'text-red-700' : 'text-green-700'} />
           </div>
-          <div className="ui-card p-0 overflow-hidden">
+          <div className="ui-card p-0 overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
               <thead>{dutyTableHead}</thead>
               <tbody>{data.shifts.map(dutyRow)}</tbody>
@@ -941,7 +941,7 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
               ))}
 
               {/* Cross-tank summary */}
-              <div className="ui-card p-4">
+              <div className="ui-card p-4 overflow-x-auto">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Cross-Tank Summary</p>
                 <table className="w-full text-sm">
                   <thead>
@@ -1188,7 +1188,8 @@ function DipPlTab({ pumpId }: { pumpId: number }) {
               color="text-blue-600"
             />
           </div>
-          <table className="w-full text-sm border border-slate-200">
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 text-left">
                 <th className="px-3 py-2.5 text-xs font-semibold text-slate-500">Date &amp; Time</th>
@@ -1245,6 +1246,7 @@ function DipPlTab({ pumpId }: { pumpId: number }) {
               </tfoot>
             )}
           </table>
+          </div>
         </div>
       )}
     </div>
