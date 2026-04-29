@@ -2607,6 +2607,29 @@ a:focus-visible {
     break-inside: avoid;
     page-break-inside: avoid;
   }
+
+  /* ── Handover report modal print isolation ───────────────────────────────
+     When HandoverModal is open it adds .handover-printing to <body>.
+     This hides the main app and unlocks the portal-rendered modal panel
+     so only the report content is printed. */
+  body.handover-printing #root {
+    display: none !important;
+  }
+
+  body.handover-printing .ui-modal-backdrop {
+    display: none !important;
+  }
+
+  body.handover-printing .ui-modal-panel {
+    position: static !important;
+    max-height: none !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
