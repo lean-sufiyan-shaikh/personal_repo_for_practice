@@ -1565,19 +1565,31 @@ function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () => void }
 
   return (
     <ModalPortal>
-      <div className="ui-modal-backdrop" onClick={onClose} />
-      <div className="ui-modal-panel max-w-xl w-full print:shadow-none print:max-w-full">
+      <div className="ui-modal-backdrop" onClick={onClose}>
+      <div className="ui-modal-panel max-w-xl w-full" onClick={(e) => e.stopPropagation()}>
 
         {/* Screen header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 print:hidden">
-          <h2 className="ui-modal-title">Shift Handover Report</h2>
-          <div className="flex items-center gap-2">
-            <button onClick={() => window.print()} className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs">
-              <Printer size={13} strokeWidth={2} className="mr-1" /> Print
+        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--primary print:hidden">
+          <div className="ui-modal-heading">
+            <h2 className="ui-modal-title">Shift Handover Report</h2>
+            <p className="ui-modal-subtitle">
+              Shift #{shift.id} · {shift.operatorName} · {shift.shiftDate}
+              {' · '}
+              {formatIstDateTime(shift.actualStartTime, { hour: '2-digit', minute: '2-digit' })}
+              {' → '}
+              {shift.actualEndTime
+                ? formatIstDateTime(shift.actualEndTime, { hour: '2-digit', minute: '2-digit' })
+                : 'Open'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white/20 hover:bg-white/30 border border-white/30 px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+            >
+              <Printer size={13} strokeWidth={2} /> Print
             </button>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1">
-              <span className="text-lg leading-none">×</span>
-            </button>
+            <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
           </div>
         </div>
 
@@ -1692,6 +1704,7 @@ function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () => void }
             </div>
           </div>
         </div>
+      </div>
       </div>
     </ModalPortal>
   )
