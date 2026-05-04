@@ -25,4 +25,7 @@ public interface TankerDeliveryRepository extends JpaRepository<TankerDelivery, 
 
     /** Duplicate guard for edits: same as above but excludes the delivery being edited */
     boolean existsByPumpIdAndInvoiceReferenceAndFuelTypeAndIdNot(Long pumpId, String invoiceReference, FuelType fuelType, Long id);
+
+    /** Most recent delivery for a tank — used to inherit cost price when none is provided */
+    java.util.Optional<TankerDelivery> findTopByTankIdOrderByDeliveryDateDescCreatedAtDesc(Long tankId);
 }

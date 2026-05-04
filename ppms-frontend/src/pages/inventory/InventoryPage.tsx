@@ -218,15 +218,13 @@ export default function InventoryPage() {
                 )}
                 <span className={`ui-accordion-arrow ml-1 ${stockOpen ? 'ui-accordion-arrow--open' : ''}`}><ChevronDown size={14} strokeWidth={2} /></span>
               </button>
-              {isOwnerOrAdmin && (
-                <button
-                  onClick={() => setShowDeliveryModal(true)}
-                  className="ui-btn ui-btn-primary shrink-0 ml-auto inline-flex items-center gap-1.5"
-                >
-                  <Plus size={14} strokeWidth={2.5} />
-                  Record Delivery
-                </button>
-              )}
+              <button
+                onClick={() => setShowDeliveryModal(true)}
+                className="ui-btn ui-btn-primary shrink-0 ml-auto inline-flex items-center gap-1.5"
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                Record Delivery
+              </button>
             </div>
 
             {stockOpen && (
@@ -374,16 +372,20 @@ export default function InventoryPage() {
                               {!isCollapsed && (
                                 <div className="ui-accordion-content ui-card p-0 overflow-hidden">
                                   <div className="px-4 py-3">
-                                    <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 border-b border-slate-100 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                    <div className={`grid gap-3 border-b border-slate-100 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400 ${
+                                      isOwnerOrAdmin
+                                        ? 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'
+                                        : 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'
+                                    }`}>
                                       <span>Tank</span>
                                       <span>Fuel</span>
                                       <span className="text-right">Quantity</span>
-                                      <span className="text-right">Rate</span>
-                                      <span className="text-right">Amount</span>
+                                      {isOwnerOrAdmin && <span className="text-right">Rate</span>}
+                                      {isOwnerOrAdmin && <span className="text-right">Amount</span>}
                                       <span />
                                     </div>
                                     <div className="space-y-2 pt-2">
-                                      {rows.map(d => <DeliveryItem key={d.id} delivery={d} pumpId={pumpId!} canEdit={isOwnerOrAdmin} />)}
+                                      {rows.map(d => <DeliveryItem key={d.id} delivery={d} pumpId={pumpId!} isOwnerOrAdmin={isOwnerOrAdmin} />)}
                                     </div>
                                   </div>
                                 </div>
@@ -560,6 +562,7 @@ export default function InventoryPage() {
         <RecordDeliveryModal
           pumpId={pumpId}
           tanks={tanks}
+          isOwnerOrAdmin={isOwnerOrAdmin}
           onClose={() => setShowDeliveryModal(false)}
         />
       )}
@@ -781,9 +784,10 @@ function FuelLotsDialog({
 
 // ── Edit Delivery Modal ────────────────────────────────────────────────────────
 
-function EditDeliveryModal({ delivery, pumpId, onClose }: {
+function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }: {
   delivery: TankerDelivery
   pumpId: number
+  isOwnerOrAdmin: boolean
   onClose: () => void
 }) {
   const qc = useQueryClient()
@@ -808,13 +812,20 @@ function EditDeliveryModal({ delivery, pumpId, onClose }: {
 
   function handleSave() {
     const q = parseFloat(qty)
-    const c = parseFloat(cost)
     if (!invoiceReference.trim()) { setError('Invoice reference is required.'); return }
     if (isNaN(q) || q <= 0) { setError('Quantity must be greater than 0.'); return }
-    if (isNaN(c) || c <= 0) { setError('Cost price must be greater than 0.'); return }
+    if (isOwnerOrAdmin) {
+      const c = parseFloat(cost)
+      if (isNaN(c) || c <= 0) { setError('Cost price must be greater than 0.'); return }
+    }
     if (!date) { setError('Delivery date is required.'); return }
     setError(null)
-    mutation.mutate({ invoiceReference: invoiceReference.trim(), quantityDelivered: q, costPricePerUnit: c, deliveryDate: date })
+    mutation.mutate({
+      invoiceReference: invoiceReference.trim(),
+      quantityDelivered: q,
+      costPricePerUnit: isOwnerOrAdmin ? parseFloat(cost) : null,
+      deliveryDate: date,
+    })
   }
 
   return (
@@ -843,7 +854,7 @@ function EditDeliveryModal({ delivery, pumpId, onClose }: {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${isOwnerOrAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <div className="space-y-1">
                 <label className="ui-label">Quantity (L)</label>
                 <input
@@ -855,18 +866,25 @@ function EditDeliveryModal({ delivery, pumpId, onClose }: {
                   onChange={e => setQty(e.target.value)}
                 />
               </div>
-              <div className="space-y-1">
-                <label className="ui-label">Cost (₹/L)</label>
-                <input
-                  className="ui-input"
-                  type="number"
-                  min="0.0001"
-                  step="0.0001"
-                  value={cost}
-                  onChange={e => setCost(e.target.value)}
-                />
-              </div>
+              {isOwnerOrAdmin && (
+                <div className="space-y-1">
+                  <label className="ui-label">Cost (₹/L)</label>
+                  <input
+                    className="ui-input"
+                    type="number"
+                    min="0.0001"
+                    step="0.0001"
+                    value={cost}
+                    onChange={e => setCost(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
+            {!isOwnerOrAdmin && (
+              <p className="text-xs text-slate-400">
+                Cost price is managed by Owner / Admin and will not be changed.
+              </p>
+            )}
 
             <div className="space-y-1">
               <label className="ui-label">Delivery Date</label>
@@ -899,16 +917,20 @@ function EditDeliveryModal({ delivery, pumpId, onClose }: {
 
 // ── Delivery item (compact card inside invoice group) ─────────────────────────
 
-function DeliveryItem({ delivery, pumpId, canEdit }: {
+function DeliveryItem({ delivery, pumpId, isOwnerOrAdmin }: {
   delivery: TankerDelivery
   pumpId: number
-  canEdit: boolean
+  isOwnerOrAdmin: boolean
 }) {
   const cols = FUEL_COLORS[delivery.fuelType] ?? FUEL_COLORS.PETROL
   const [editing, setEditing] = useState(false)
   return (
     <>
-      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 rounded-lg bg-slate-50 px-3 py-2.5 text-xs items-center">
+      <div className={`grid gap-3 rounded-lg bg-slate-50 px-3 py-2.5 text-xs items-center ${
+        isOwnerOrAdmin
+          ? 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'
+          : 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'
+      }`}>
         <span className="font-semibold text-slate-700">{delivery.tankIdentifier}</span>
         <span className={`font-medium px-2 py-0.5 rounded-full justify-self-start ${cols.badge}`}>
           {delivery.fuelType}
@@ -916,26 +938,27 @@ function DeliveryItem({ delivery, pumpId, canEdit }: {
         <span className="text-right text-slate-600">
           {delivery.quantityDelivered.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
         </span>
-        <span className="text-right text-slate-400">₹{delivery.costPricePerUnit.toFixed(4)}/L</span>
-        <span className="text-right font-semibold text-slate-800">
-          ₹{delivery.totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-        </span>
-        {canEdit ? (
-          <button
-            onClick={() => setEditing(true)}
-            className="text-slate-400 hover:text-blue-600 transition-colors p-0.5"
-            title="Edit delivery"
-          >
-            <Pencil size={13} />
-          </button>
-        ) : (
-          <span />
+        {isOwnerOrAdmin && (
+          <span className="text-right text-slate-400">₹{delivery.costPricePerUnit.toFixed(4)}/L</span>
         )}
+        {isOwnerOrAdmin && (
+          <span className="text-right font-semibold text-slate-800">
+            ₹{delivery.totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </span>
+        )}
+        <button
+          onClick={() => setEditing(true)}
+          className="text-slate-400 hover:text-blue-600 transition-colors p-0.5"
+          title="Edit delivery"
+        >
+          <Pencil size={13} />
+        </button>
       </div>
       {editing && (
         <EditDeliveryModal
           delivery={delivery}
           pumpId={pumpId}
+          isOwnerOrAdmin={isOwnerOrAdmin}
           onClose={() => setEditing(false)}
         />
       )}
@@ -1042,10 +1065,12 @@ function newRow(defaultTankId = ''): DeliveryRow {
 function RecordDeliveryModal({
   pumpId,
   tanks,
+  isOwnerOrAdmin,
   onClose,
 }: {
   pumpId: number
   tanks: TankStock[]
+  isOwnerOrAdmin: boolean
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
@@ -1084,11 +1109,13 @@ function RecordDeliveryModal({
     if (expandedRowId === id) setExpandedRowId(null)
   }
 
-  const grandTotal = rows.reduce((sum, r) => {
-    const q = parseFloat(r.qty) || 0
-    const c = parseFloat(r.costPrice) || 0
-    return sum + q * c
-  }, 0)
+  const grandTotal = isOwnerOrAdmin
+    ? rows.reduce((sum, r) => {
+        const q = parseFloat(r.qty) || 0
+        const c = parseFloat(r.costPrice) || 0
+        return sum + q * c
+      }, 0)
+    : 0
 
   const buildPreparedItems = (): { items: PreparedDeliveryItem[] | null; error: string | null } => {
     if (!date || !invoice.trim()) {
@@ -1098,9 +1125,11 @@ function RecordDeliveryModal({
     for (const r of rows) {
       if (!r.tankId) return { items: null, error: 'Please select a tank for every row.' }
       const q = parseFloat(r.qty)
-      const c = parseFloat(r.costPrice)
       if (!r.qty || isNaN(q) || q <= 0) return { items: null, error: 'Quantity must be greater than 0 for every row.' }
-      if (!r.costPrice || isNaN(c) || c <= 0) return { items: null, error: 'Cost per litre must be greater than 0 for every row.' }
+      if (isOwnerOrAdmin) {
+        const c = parseFloat(r.costPrice)
+        if (!r.costPrice || isNaN(c) || c <= 0) return { items: null, error: 'Cost per litre must be greater than 0 for every row.' }
+      }
     }
 
     const selectedTankIds = rows.map(r => r.tankId)
@@ -1116,7 +1145,7 @@ function RecordDeliveryModal({
       }
 
       const quantityDelivered = parseFloat(r.qty)
-      const costPricePerUnit = parseFloat(r.costPrice)
+      const costPricePerUnit = isOwnerOrAdmin ? parseFloat(r.costPrice) : 0
 
       return {
         tankId: tank.tankId,
@@ -1124,7 +1153,7 @@ function RecordDeliveryModal({
         fuelType: tank.fuelType,
         quantityDelivered,
         costPricePerUnit,
-        totalCost: quantityDelivered * costPricePerUnit,
+        totalCost: isOwnerOrAdmin ? quantityDelivered * costPricePerUnit : 0,
         stockAfter: tank.currentStock + quantityDelivered,
         capacity: tank.capacity,
       }
@@ -1165,7 +1194,7 @@ function RecordDeliveryModal({
         items: items.map(item => ({
           tankId: item.tankId,
           quantityDelivered: item.quantityDelivered,
-          costPricePerUnit: item.costPricePerUnit,
+          costPricePerUnit: isOwnerOrAdmin ? item.costPricePerUnit : null,
         })),
       })
     } catch {
@@ -1233,10 +1262,10 @@ function RecordDeliveryModal({
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
             {rows.map((row, idx) => {
               const tank       = tanks.find(t => t.tankId === Number(row.tankId))
-              const rowCost    = (parseFloat(row.qty) || 0) * (parseFloat(row.costPrice) || 0)
+              const rowCost    = isOwnerOrAdmin ? (parseFloat(row.qty) || 0) * (parseFloat(row.costPrice) || 0) : 0
               const afterStock = tank ? tank.currentStock + (parseFloat(row.qty) || 0) : null
               const isExpanded = expandedRowId === row.id
-              const isFilled   = !!row.tankId && parseFloat(row.qty) > 0 && parseFloat(row.costPrice) > 0
+              const isFilled   = !!row.tankId && parseFloat(row.qty) > 0 && (isOwnerOrAdmin ? parseFloat(row.costPrice) > 0 : true)
 
               return (
                 <div key={row.id} className="ui-card ui-card-muted overflow-hidden">
@@ -1251,9 +1280,11 @@ function RecordDeliveryModal({
                               {tank?.tankIdentifier ?? '—'} · {tank?.fuelType ?? '—'}
                             </span>
                             <span className="text-xs text-slate-400 shrink-0">{parseFloat(row.qty).toLocaleString('en-IN')} L</span>
-                            <span className="text-sm font-semibold text-blue-700 shrink-0">
-                              ₹{rowCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </span>
+                            {isOwnerOrAdmin && (
+                              <span className="text-sm font-semibold text-blue-700 shrink-0">
+                                ₹{rowCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                            )}
                           </>
                         ) : (
                           <span className="text-xs text-slate-400 italic">Incomplete — click Edit to fill</span>
@@ -1313,7 +1344,7 @@ function RecordDeliveryModal({
                       </div>
 
                       {/* Qty + Cost */}
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className={`grid gap-3 ${isOwnerOrAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
                         <div>
                           <label className="ui-label">
                             Quantity (Litres) <span className="text-red-500">*</span>
@@ -1328,26 +1359,33 @@ function RecordDeliveryModal({
                             className="shadow-sm"
                           />
                         </div>
-                        <div>
-                          <label className="ui-label">
-                            Cost per Litre (₹) <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            value={row.costPrice}
-                            onChange={e => updateRow(row.id, 'costPrice', e.target.value)}
-                            placeholder="e.g. 88.50"
-                            className="shadow-sm"
-                          />
-                        </div>
+                        {isOwnerOrAdmin && (
+                          <div>
+                            <label className="ui-label">
+                              Cost per Litre (₹) <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              value={row.costPrice}
+                              onChange={e => updateRow(row.id, 'costPrice', e.target.value)}
+                              placeholder="e.g. 88.50"
+                              className="shadow-sm"
+                            />
+                          </div>
+                        )}
                       </div>
+                      {!isOwnerOrAdmin && (
+                        <p className="text-xs text-slate-400">
+                          Cost price is managed by Owner / Admin. The last recorded price for this tank will be used.
+                        </p>
+                      )}
 
                       {/* Per-row live previews */}
-                      {(rowCost > 0 || afterStock !== null) && (
+                      {(afterStock !== null || (isOwnerOrAdmin && rowCost > 0)) && (
                         <div className="flex items-center gap-3 text-xs">
-                          {rowCost > 0 && (
+                          {isOwnerOrAdmin && rowCost > 0 && (
                             <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg font-medium">
                               ₹{rowCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })} delivery cost
                             </span>
@@ -1396,8 +1434,8 @@ function RecordDeliveryModal({
 
           {/* Footer — grand total + actions */}
           <div className="ui-modal-footer flex-shrink-0 space-y-0 block">
-            {/* Grand total */}
-            {grandTotal > 0 && (
+            {/* Grand total — only shown to admins/owners who enter cost prices */}
+            {isOwnerOrAdmin && grandTotal > 0 && (
               <div className="mb-3 flex items-center justify-between rounded-xl bg-blue-50 px-4 py-3">
                 <div>
                   <p className="text-xs text-blue-600 font-medium">Grand Total ({rows.length} tank{rows.length > 1 ? 's' : ''})</p>
@@ -1462,7 +1500,7 @@ function RecordDeliveryModal({
                   {error} Go back to modify the data and try again.
                 </div>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className={`grid gap-3 ${isOwnerOrAdmin ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-xs font-medium text-slate-500">Delivery Date</p>
                   <p className="mt-1 text-sm font-semibold text-slate-800">{fmtDate(date)}</p>
@@ -1471,26 +1509,36 @@ function RecordDeliveryModal({
                   <p className="text-xs font-medium text-slate-500">Invoice / Bill No.</p>
                   <p className="mt-1 text-sm font-semibold text-slate-800">{invoice.trim()}</p>
                 </div>
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 shadow-[0_10px_20px_rgba(37,99,235,0.08)]">
-                  <p className="text-xs font-medium text-blue-600">Grand Total</p>
-                  <p className="mt-1 text-base font-bold text-blue-800">
-                    ₹{items.reduce((sum, item) => sum + item.totalCost, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
+                {isOwnerOrAdmin && (
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 shadow-[0_10px_20px_rgba(37,99,235,0.08)]">
+                    <p className="text-xs font-medium text-blue-600">Grand Total</p>
+                    <p className="mt-1 text-base font-bold text-blue-800">
+                      ₹{items.reduce((sum, item) => sum + item.totalCost, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="ui-card p-0 overflow-hidden">
-                <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1fr)] gap-3 bg-slate-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                <div className={`grid gap-3 bg-slate-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 ${
+                  isOwnerOrAdmin
+                    ? 'grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1fr)]'
+                    : 'grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1fr)]'
+                }`}>
                   <span>Tank</span>
                   <span>Fuel</span>
                   <span className="text-right">Quantity</span>
-                  <span className="text-right">Rate</span>
-                  <span className="text-right">Amount</span>
+                  {isOwnerOrAdmin && <span className="text-right">Rate</span>}
+                  {isOwnerOrAdmin && <span className="text-right">Amount</span>}
                 </div>
                 <div className="divide-y divide-slate-100">
                   {items.map((item) => (
                     <div key={item.tankId} className="px-4 py-3">
-                      <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1fr)] gap-3 items-center text-sm">
+                      <div className={`grid gap-3 items-center text-sm ${
+                        isOwnerOrAdmin
+                          ? 'grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1fr)]'
+                          : 'grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1fr)]'
+                      }`}>
                         <span className="font-semibold text-slate-800">{item.tankIdentifier}</span>
                         <span className={`inline-flex w-fit rounded-full px-2 py-0.5 text-xs font-medium ${FUEL_COLORS[item.fuelType]?.badge ?? FUEL_COLORS.PETROL.badge}`}>
                           {item.fuelType}
@@ -1498,12 +1546,16 @@ function RecordDeliveryModal({
                         <span className="text-right text-slate-600">
                           {item.quantityDelivered.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
                         </span>
-                        <span className="text-right text-slate-500">
-                          ₹{item.costPricePerUnit.toFixed(4)}/L
-                        </span>
-                        <span className="text-right font-semibold text-slate-800">
-                          ₹{item.totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
+                        {isOwnerOrAdmin && (
+                          <span className="text-right text-slate-500">
+                            ₹{item.costPricePerUnit.toFixed(4)}/L
+                          </span>
+                        )}
+                        {isOwnerOrAdmin && (
+                          <span className="text-right font-semibold text-slate-800">
+                            ₹{item.totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        )}
                       </div>
                       {item.stockAfter !== null && (
                         <p className="mt-2 text-xs text-slate-500">

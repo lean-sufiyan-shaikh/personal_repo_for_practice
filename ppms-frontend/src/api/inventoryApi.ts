@@ -38,7 +38,8 @@ export interface RecordDeliveryRequest {
 
 export interface UpdateDeliveryRequest {
   quantityDelivered: number
-  costPricePerUnit: number
+  /** Omit to preserve the existing cost price (manager edits). */
+  costPricePerUnit?: number | null
   deliveryDate: string   // YYYY-MM-DD
   invoiceReference: string
 }
@@ -49,7 +50,8 @@ export interface RecordBatchDeliveryRequest {
   items: Array<{
     tankId: number
     quantityDelivered: number
-    costPricePerUnit: number
+    /** Omit to inherit the last recorded price for this tank (manager entries). */
+    costPricePerUnit?: number | null
   }>
 }
 

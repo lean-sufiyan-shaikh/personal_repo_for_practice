@@ -248,7 +248,20 @@ public class InventoryController {
                         " delivery recorded for this pump. Check the invoice number or use a different reference.");
             }
 
-            validateCostPriceAgainstSellingPrice(pumpId, tank, item.getCostPricePerUnit());
+            // Resolve cost price: use provided value, or fall back to the last delivery for this tank.
+            BigDecimal resolvedCost;
+            if (item.getCostPricePerUnit() != null) {
+                resolvedCost = item.getCostPricePerUnit();
+            } else {
+                resolvedCost = tankerDeliveryRepository
+                        .findTopByTankIdOrderByDeliveryDateDescCreatedAtDesc(tank.getId())
+                        .map(TankerDelivery::getCostPricePerUnit)
+                        .orElseThrow(() -> new BusinessException(
+                                "No previous delivery found for tank '" + tank.getTankIdentifier() +
+                                "' — cost price is required for the first entry. Please ask an Owner or Admin to record it."));
+            }
+
+            validateCostPriceAgainstSellingPrice(pumpId, tank, resolvedCost);
 
             BigDecimal qty = item.getQuantityDelivered().setScale(3, RoundingMode.HALF_UP);
 
@@ -257,7 +270,7 @@ public class InventoryController {
                     .tankId(tank.getId())
                     .fuelType(tank.getFuelType())
                     .quantityDelivered(qty)
-                    .costPricePerUnit(item.getCostPricePerUnit())
+                    .costPricePerUnit(resolvedCost)
                     .deliveryDate(deliveryDateTime)
                     .invoiceReference(invoiceRef)
                     .loggedByUserId(currentUser.getId())
@@ -272,7 +285,7 @@ public class InventoryController {
                     .pumpId(pumpId)
                     .originalQuantity(qty)
                     .remainingQuantity(qty)
-                    .costPricePerUnit(item.getCostPricePerUnit())
+                    .costPricePerUnit(resolvedCost)
                     .deliveryDate(deliveryDateTime)
                     .isDipAdjustment(false)
                     .status(LotStatus.ACTIVE)
@@ -306,7 +319,7 @@ public class InventoryController {
      * Reducing below what's been sold would make stock tracking inconsistent.
      */
     @PatchMapping("/{pumpId}/deliveries/{deliveryId}")
-    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
     @Transactional
     public ResponseEntity<TankerDeliveryResponse> updateDelivery(
             @PathVariable Long pumpId,
@@ -360,15 +373,20 @@ public class InventoryController {
         var newDeliveryDateTime = request.getDeliveryDate()
                 .atStartOfDay(businessClock.zone())
                 .toOffsetDateTime();
+        // When cost is null (manager edit), preserve the existing price
+        BigDecimal resolvedCost = request.getCostPricePerUnit() != null
+                ? request.getCostPricePerUnit()
+                : delivery.getCostPricePerUnit();
+
         lot.setOriginalQuantity(newQty);
         lot.setRemainingQuantity(lot.getRemainingQuantity().add(deltaQty).setScale(3, RoundingMode.HALF_UP));
-        lot.setCostPricePerUnit(request.getCostPricePerUnit());
+        lot.setCostPricePerUnit(resolvedCost);
         lot.setDeliveryDate(newDeliveryDateTime);
         inventoryLotRepository.save(lot);
 
         // Update the TankerDelivery record
         delivery.setQuantityDelivered(newQty);
-        delivery.setCostPricePerUnit(request.getCostPricePerUnit());
+        delivery.setCostPricePerUnit(resolvedCost);
         delivery.setDeliveryDate(newDeliveryDateTime);
         delivery.setInvoiceReference(invoiceRefTrimmed);
         delivery = tankerDeliveryRepository.save(delivery);
@@ -379,7 +397,7 @@ public class InventoryController {
         auditService.log(pumpId, AuditAction.DELIVERY_RECORDED,
                 "TankerDelivery", delivery.getId().toString(),
                 "Delivery updated: " + delivery.getFuelType() + " qty " + oldQty + "→" + newQty + "L, " +
-                "cost ₹" + request.getCostPricePerUnit() + "/L, invoice=" + invoiceRefTrimmed,
+                "cost ₹" + resolvedCost + "/L, invoice=" + invoiceRefTrimmed,
                 currentUser);
 
         String loggedByName = currentUser.getFullName();

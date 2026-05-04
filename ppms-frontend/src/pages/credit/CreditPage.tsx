@@ -1428,6 +1428,9 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
   const [editNotes, setEditNotes]     = useState('')
   const [editError, setEditError]     = useState<string | null>(null)
 
+  const [clientSearch,     setClientSearch]     = useState('')
+  const deferredSearch = useDeferredValue(clientSearch)
+
   const [expandedParentId, setExpandedParentId] = useState<number | null>(null)
   const toggleCollapse = (id: number) =>
     setExpandedParentId(prev => prev === id ? null : id)
@@ -1519,6 +1522,18 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
     return acc
   }, {})
 
+  const q = deferredSearch.toLowerCase().trim()
+  const matchesQuery = (c: PumpCreditClient) =>
+    c.name.toLowerCase().includes(q) ||
+    (c.phone ?? '').includes(q) ||
+    (c.notes ?? '').toLowerCase().includes(q)
+
+  const filteredRootClients = q
+    ? rootClients.filter(parent =>
+        matchesQuery(parent) || (childrenByParent[parent.id] ?? []).some(matchesQuery)
+      )
+    : rootClients
+
   const editForm = (clientId: number, indent = false) => (
     <form onSubmit={e => submitEdit(e, clientId)}
       className={`${indent ? 'pl-7 pr-3' : 'px-3'} py-3 border-t border-slate-100 bg-white space-y-2`}>
@@ -1557,11 +1572,37 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
       </p>
 
       {rootClients.length > 0 && (
+        <div className="ui-search-shell">
+          <svg className="ui-search-shell__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input
+            type="text"
+            className="ui-search-shell__input"
+            placeholder="Search client or sub-account…"
+            value={clientSearch}
+            onChange={e => setClientSearch(e.target.value)}
+          />
+          {clientSearch && (
+            <button
+              type="button"
+              onClick={() => setClientSearch('')}
+              className="ui-search-shell__clear"
+              aria-label="Clear search"
+            >
+              ×
+            </button>
+          )}
+        </div>
+      )}
+
+      {filteredRootClients.length > 0 ? (
         <div className="space-y-3">
-          {rootClients.map(parent => {
+          {filteredRootClients.map(parent => {
             const children    = childrenByParent[parent.id] ?? []
             const hasChildren = children.length > 0
-            const isExpanded  = expandedParentId === parent.id
+            const childHasMatch = q ? children.some(matchesQuery) : false
+            const isExpanded  = q ? childHasMatch : expandedParentId === parent.id
             return (
               <div key={parent.id} className="ui-card p-0 overflow-hidden">
                 <div
@@ -1711,7 +1752,9 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
             )
           })}
         </div>
-      )}
+      ) : q ? (
+        <p className="text-sm text-slate-400 py-2">No clients match "{deferredSearch}".</p>
+      ) : null}
 
       {isOwnerOrAdmin && (
         <div className={clients.length > 0 ? 'border-t border-slate-200 pt-4' : ''}>
