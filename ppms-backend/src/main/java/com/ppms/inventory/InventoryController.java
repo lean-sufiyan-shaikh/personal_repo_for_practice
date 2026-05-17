@@ -28,6 +28,7 @@ import org.springframework.data.domain.PageRequest;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -45,6 +46,7 @@ public class InventoryController {
     private final DipCheckRepository dipCheckRepository;
     private final UserRepository userRepository;
     private final GlobalFuelPriceRepository globalFuelPriceRepository;
+    private final TankerRepository tankerRepository;
     private final AuditService auditService;
     private final BusinessClock businessClock;
 
@@ -133,6 +135,7 @@ public class InventoryController {
                 .costPricePerUnit(request.getCostPricePerUnit())
                 .deliveryDate(deliveryDateTime)
                 .invoiceReference(request.getInvoiceReference().trim())
+                .billTotal(request.getBillTotal() != null ? request.getBillTotal().setScale(2, RoundingMode.HALF_UP) : null)
                 .loggedByUserId(currentUser.getId())
                 .build();
 
@@ -215,6 +218,28 @@ public class InventoryController {
             }
         }
 
+        // Guard 2: if a tanker is selected, total quantity must equal its capacity (±0.5 L tolerance).
+        Tanker selectedTanker = null;
+        if (request.getTankerId() != null) {
+            selectedTanker = tankerRepository.findById(request.getTankerId())
+                    .orElseThrow(() -> new BusinessException("Tanker not found: " + request.getTankerId()));
+            if (!selectedTanker.getPumpId().equals(pumpId)) {
+                throw new BusinessException("Tanker does not belong to this pump");
+            }
+            BigDecimal totalQty = request.getItems().stream()
+                    .map(RecordBatchDeliveryRequest.LineItem::getQuantityDelivered)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal diff = totalQty.subtract(selectedTanker.getCapacityLitres()).abs();
+            if (diff.compareTo(new BigDecimal("0.5")) > 0) {
+                throw new BusinessException(
+                        "Total quantity " + totalQty.setScale(2, RoundingMode.HALF_UP) + "L does not match tanker '" +
+                        selectedTanker.getName() + "' capacity of " +
+                        selectedTanker.getCapacityLitres().setScale(2, RoundingMode.HALF_UP) + "L. " +
+                        "Adjust the quantities so they add up to the tanker's capacity.");
+            }
+        }
+        final Tanker finalTanker = selectedTanker;
+
         List<TankerDeliveryResponse> responses = request.getItems().stream().map(item -> {
             UndergroundTank tank = tankRepository.findById(item.getTankId())
                     .orElseThrow(() -> new ResourceNotFoundException("Tank not found: " + item.getTankId()));
@@ -265,6 +290,10 @@ public class InventoryController {
 
             BigDecimal qty = item.getQuantityDelivered().setScale(3, RoundingMode.HALF_UP);
 
+            BigDecimal batchBillTotal = request.getBillTotal() != null
+                    ? request.getBillTotal().setScale(2, RoundingMode.HALF_UP)
+                    : null;
+
             TankerDelivery delivery = TankerDelivery.builder()
                     .pumpId(pumpId)
                     .tankId(tank.getId())
@@ -273,6 +302,9 @@ public class InventoryController {
                     .costPricePerUnit(resolvedCost)
                     .deliveryDate(deliveryDateTime)
                     .invoiceReference(invoiceRef)
+                    .billTotal(batchBillTotal)
+                    .tankerId(finalTanker != null ? finalTanker.getId() : null)
+                    .tankerName(finalTanker != null ? finalTanker.getName() : null)
                     .loggedByUserId(currentUser.getId())
                     .build();
 
@@ -540,6 +572,8 @@ public class InventoryController {
             // Physical stock is LOWER — FIFO-consume the negative delta from active lots
             BigDecimal toDeduct = variance.abs();
             List<InventoryLot> lots = inventoryLotRepository.findActiveLotsByTankFifo(tank.getId());
+            List<InventoryLot> touchedLots = new ArrayList<>();
+            List<LotConsumption> consumptions = new ArrayList<>();
             for (InventoryLot lot : lots) {
                 if (toDeduct.compareTo(BigDecimal.ZERO) <= 0) break;
                 BigDecimal consume = toDeduct.min(lot.getRemainingQuantity());
@@ -547,8 +581,8 @@ public class InventoryController {
                 if (lot.getRemainingQuantity().compareTo(BigDecimal.ZERO) == 0) {
                     lot.setStatus(LotStatus.EXHAUSTED);
                 }
-                inventoryLotRepository.save(lot);
-                lotConsumptionRepository.save(LotConsumption.builder()
+                touchedLots.add(lot);
+                consumptions.add(LotConsumption.builder()
                         .lotId(lot.getId())
                         .sourceType(LotConsumptionSource.DIP_CORRECTION)
                         .dipCorrectionId(check.getId())
@@ -557,6 +591,8 @@ public class InventoryController {
                         .build());
                 toDeduct = toDeduct.subtract(consume);
             }
+            inventoryLotRepository.saveAll(touchedLots);
+            lotConsumptionRepository.saveAll(consumptions);
             log.info("DIP adjustment: FIFO-consumed {}L from lots, tank={}, pump={}",
                     variance.abs().setScale(3, RoundingMode.HALF_UP), tank.getId(), pumpId);
         }
@@ -565,7 +601,7 @@ public class InventoryController {
                 pumpId, tank.getId(), measured, systemStockNow, variance, status, currentUser.getId(), request.getCheckedByUserId());
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(toDipCheckResponse(check, tank, currentUser.getFullName(), checkedByName, variance));
+                .body(toDipCheckResponse(check, tank, currentUser.getFullName(), checkedByName, variance, null));
     }
 
     /**
@@ -608,7 +644,7 @@ public class InventoryController {
         log.info("DIP check reviewed: pump={}, dipCheck={}, variance={}L, reviewedBy={}",
                 pumpId, dipCheckId, variance, currentUser.getId());
 
-        return ResponseEntity.ok(toDipCheckResponse(check, tank, loggedBy, checkedBy, variance));
+        return ResponseEntity.ok(toDipCheckResponse(check, tank, loggedBy, checkedBy, variance, currentUser.getFullName()));
     }
 
     /**
@@ -627,12 +663,12 @@ public class InventoryController {
 
         // Batch-load user names and tank info to avoid N+1 queries per row
         var tankIds = pageResult.getContent().stream().map(DipCheck::getTankId).distinct().toList();
-        var loggedUserIds = pageResult.getContent().stream().map(DipCheck::getLoggedByUserId).distinct().toList();
-        var allUserIds = new java.util.HashSet<>(loggedUserIds);
-        pageResult.getContent().stream()
-                .filter(d -> d.getCheckedByUserId() != null)
-                .map(DipCheck::getCheckedByUserId)
-                .forEach(allUserIds::add);
+        var allUserIds = new java.util.HashSet<Long>();
+        pageResult.getContent().forEach(d -> {
+            allUserIds.add(d.getLoggedByUserId());
+            if (d.getCheckedByUserId()  != null) allUserIds.add(d.getCheckedByUserId());
+            if (d.getReviewedByUserId() != null) allUserIds.add(d.getReviewedByUserId());
+        });
 
         var tankById = tankRepository.findAllById(tankIds).stream()
                 .collect(java.util.stream.Collectors.toMap(UndergroundTank::getId, t -> t));
@@ -641,12 +677,11 @@ public class InventoryController {
 
         var mapped = pageResult.map(d -> {
             UndergroundTank t = tankById.get(d.getTankId());
-            String loggedBy = userNameById.getOrDefault(d.getLoggedByUserId(), "Unknown");
-            String checkedBy = d.getCheckedByUserId() != null
-                    ? userNameById.getOrDefault(d.getCheckedByUserId(), "Unknown")
-                    : null;
+            String loggedBy    = userNameById.getOrDefault(d.getLoggedByUserId(), "Unknown");
+            String checkedBy   = d.getCheckedByUserId()  != null ? userNameById.getOrDefault(d.getCheckedByUserId(),  "Unknown") : null;
+            String reviewedBy  = d.getReviewedByUserId() != null ? userNameById.getOrDefault(d.getReviewedByUserId(), "Unknown") : null;
             BigDecimal variance = d.getMeasuredQuantity().subtract(d.getSystemStock());
-            return toDipCheckResponse(d, t, loggedBy, checkedBy, variance);
+            return toDipCheckResponse(d, t, loggedBy, checkedBy, variance, reviewedBy);
         });
 
         return ResponseEntity.ok(PagedResponse.of(mapped));
@@ -694,11 +729,87 @@ public class InventoryController {
                 .quantityDelivered(d.getQuantityDelivered())
                 .costPricePerUnit(d.getCostPricePerUnit())
                 .totalCost(totalCost)
+                .billTotal(d.getBillTotal())
+                .tankerName(d.getTankerName())
                 .deliveryDate(d.getDeliveryDate())
                 .invoiceReference(d.getInvoiceReference())
                 .loggedByUserName(loggedByName)
                 .createdAt(d.getCreatedAt())
                 .build();
+    }
+
+    /**
+     * DELETE /api/inventory/{pumpId}/deliveries/latest
+     * Deletes the most recently recorded invoice, covering all TankerDelivery rows
+     * that share its invoiceReference (handles batch deliveries across multiple tanks).
+     *
+     * Blocked if any fuel from the invoice has been consumed (remaining < original in any lot).
+     * On success: deletes each InventoryLot, reverses tank stock, deletes TankerDelivery rows.
+     *
+     * "Latest" is by createdAt DESC — the most recently entered record, not necessarily
+     * the most recent delivery date — so an old-dated correction entered today is still deletable.
+     */
+    @DeleteMapping("/{pumpId}/deliveries/latest")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
+    @Transactional
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteLatestDelivery(
+            @PathVariable Long pumpId,
+            @AuthenticationPrincipal User currentUser) {
+
+        TankerDelivery latest = tankerDeliveryRepository.findTopByPumpIdOrderByCreatedAtDesc(pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException("No deliveries found for this pump"));
+
+        String invoiceRef = latest.getInvoiceReference();
+        List<TankerDelivery> toDelete = tankerDeliveryRepository.findByPumpIdAndInvoiceReference(pumpId, invoiceRef);
+
+        // Block deletion if any lot from this invoice has been consumed by a shift
+        for (TankerDelivery delivery : toDelete) {
+            InventoryLot lot = inventoryLotRepository.findByTankerDeliveryId(delivery.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Inventory lot not found for delivery " + delivery.getId()));
+            if (lot.getRemainingQuantity().compareTo(lot.getOriginalQuantity()) < 0) {
+                throw new BusinessException(
+                        "This invoice cannot be deleted — fuel from it has already been consumed in a shift. " +
+                        "Use Edit to correct quantities instead.");
+            }
+        }
+
+        // All lots untouched — delete everything and reverse tank stocks
+        BigDecimal totalQty = BigDecimal.ZERO;
+        StringBuilder detail = new StringBuilder("Deleted invoice '").append(invoiceRef).append("': ");
+
+        for (TankerDelivery delivery : toDelete) {
+            InventoryLot lot = inventoryLotRepository.findByTankerDeliveryId(delivery.getId()).get();
+            UndergroundTank tank = tankRepository.findById(delivery.getTankId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Tank not found: " + delivery.getTankId()));
+
+            BigDecimal newStock = tank.getCurrentStock()
+                    .subtract(delivery.getQuantityDelivered())
+                    .setScale(3, RoundingMode.HALF_UP);
+            tank.setCurrentStock(newStock);
+            tankRepository.save(tank);
+
+            inventoryLotRepository.delete(lot);
+            tankerDeliveryRepository.delete(delivery);
+
+            totalQty = totalQty.add(delivery.getQuantityDelivered());
+            detail.append(tank.getTankIdentifier()).append(" -")
+                  .append(delivery.getQuantityDelivered().setScale(3, RoundingMode.HALF_UP)).append("L ")
+                  .append(delivery.getFuelType()).append(", ");
+        }
+
+        detail.append("Total: -").append(totalQty.setScale(3, RoundingMode.HALF_UP)).append("L");
+
+        log.info("Invoice deleted: pump={}, invoice='{}', deliveries=[{}], by={}",
+                pumpId, invoiceRef,
+                toDelete.stream().map(d -> d.getId().toString()).collect(Collectors.joining(",")),
+                currentUser.getId());
+
+        auditService.log(pumpId, AuditAction.DELIVERY_DELETED,
+                "TankerDelivery", invoiceRef,
+                detail.toString(),
+                currentUser);
     }
 
     /**
@@ -788,13 +899,7 @@ public class InventoryController {
 
     private DipCheckResponse toDipCheckResponse(DipCheck d, UndergroundTank tank,
                                                  String loggedByName, String checkedByName,
-                                                 BigDecimal variance) {
-        String reviewedByName = null;
-        if (d.getReviewedByUserId() != null) {
-            reviewedByName = userRepository.findById(d.getReviewedByUserId())
-                    .map(User::getFullName).orElse("Unknown");
-        }
-
+                                                 BigDecimal variance, String reviewedByName) {
         return DipCheckResponse.builder()
                 .id(d.getId())
                 .tankId(d.getTankId())

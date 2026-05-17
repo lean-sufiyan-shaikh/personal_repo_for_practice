@@ -33,6 +33,19 @@ public class RecordBatchDeliveryRequest {
     @Valid
     private List<LineItem> items;
 
+    /**
+     * Actual total from the physical bill (may include freight, taxes, or other charges beyond qty × cost).
+     * Optional — omit to leave it unrecorded. Stored on every row of the batch, all sharing the same value.
+     */
+    @DecimalMin(value = "0.01", message = "Bill total must be greater than 0")
+    private BigDecimal billTotal;
+
+    /**
+     * ID of the tanker (truck) that made this delivery.
+     * When provided the backend validates that sum(quantityDelivered) equals the tanker's capacity.
+     */
+    private Long tankerId;
+
     @Data
     public static class LineItem {
 

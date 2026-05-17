@@ -22,6 +22,10 @@ export interface TankerDelivery {
   quantityDelivered: number
   costPricePerUnit: number
   totalCost: number
+  /** Actual bill amount as entered by user. Null if not provided. May differ from totalCost due to freight or other charges. */
+  billTotal: number | null
+  /** Name of the tanker that made this delivery. Null for legacy entries. */
+  tankerName: string | null
   deliveryDate: string
   invoiceReference: string
   loggedByUserName: string
@@ -47,6 +51,10 @@ export interface UpdateDeliveryRequest {
 export interface RecordBatchDeliveryRequest {
   deliveryDate: string   // YYYY-MM-DD
   invoiceReference: string
+  /** Actual bill total (optional). May include freight, taxes, or other charges beyond qty × cost. */
+  billTotal?: number | null
+  /** ID of the tanker (truck) that made this delivery. Required when tanker selection is enforced. */
+  tankerId?: number | null
   items: Array<{
     tankId: number
     quantityDelivered: number
@@ -123,4 +131,7 @@ export const inventoryApi = {
 
   getActiveTankLots: (pumpId: number, tankId: number): Promise<InventoryLotDetail[]> =>
     client.get(`/inventory/${pumpId}/tanks/${tankId}/lots`).then(r => r.data),
+
+  deleteLatestDelivery: (pumpId: number) =>
+    client.delete(`/inventory/${pumpId}/deliveries/latest`),
 }
