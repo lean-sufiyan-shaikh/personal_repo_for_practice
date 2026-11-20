@@ -10,6 +10,7 @@ import com.ppms.ancillary.RecordAncillarySaleRequest;
 import com.ppms.ancillary.RecordStockDeliveryRequest;
 import com.ppms.ancillary.UnitOfMeasure;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.fuel.FuelType;
 import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditClientRepository;
 import com.ppms.credit.CreditInterestCharge;
@@ -371,6 +372,7 @@ class MoneyCorrectnessIntegrationTest {
                 .shiftId(shift.getId())
                 .clientId(client.getId())
                 .clientName(client.getName())
+                .fuelType(FuelType.PETROL.name())
                 .amount(new BigDecimal(amount))
                 .voidStatus(voidStatus)
                 .build());

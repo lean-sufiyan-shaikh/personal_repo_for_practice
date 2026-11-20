@@ -12,7 +12,7 @@ import com.ppms.ancillary.RecordStockDeliveryRequest;
 import com.ppms.ancillary.UnitOfMeasure;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.fuel.FuelType;
-import com.ppms.inventory.InventoryController;
+import com.ppms.inventory.InventoryWorkflowService;
 import com.ppms.inventory.InventoryLot;
 import com.ppms.inventory.InventoryLotRepository;
 import com.ppms.inventory.LotConsumptionRepository;
@@ -73,7 +73,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ConcurrentUpdateIntegrationTest {
 
     @Autowired private ShiftService shiftService;
-    @Autowired private InventoryController inventoryController;
+    @Autowired private InventoryWorkflowService inventoryWorkflowService;
     @Autowired private AncillaryInventoryWorkflowService ancillaryWorkflowService;
     @Autowired private OverdueShiftProcessor overdueShiftProcessor;
     @Autowired private TransactionTemplate transactionTemplate;
@@ -174,7 +174,7 @@ class ConcurrentUpdateIntegrationTest {
         CompetitorResult<?> deliveryResult = runWhileRowIsLocked(
                 () -> tankRepository.findByIdForUpdate(tank.getId()).orElseThrow(),
                 () -> shiftService.closeShift(pump.getId(), shift.getId(), closeRequestSelling("10.000"), manager),
-                () -> inventoryController.recordDelivery(pump.getId(), delivery, manager));
+                () -> inventoryWorkflowService.recordDelivery(pump.getId(), delivery, manager));
 
         assertThat(deliveryResult.failure()).isNull();
         assertThat(tankRepository.findById(tank.getId()).orElseThrow().getCurrentStock()).isEqualByComparingTo("5990.000");

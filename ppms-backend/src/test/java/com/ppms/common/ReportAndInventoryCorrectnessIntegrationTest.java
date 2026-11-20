@@ -12,7 +12,7 @@ import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.inventory.DipCheck;
 import com.ppms.inventory.DipCheckRepository;
 import com.ppms.inventory.DipCheckStatus;
-import com.ppms.inventory.InventoryController;
+import com.ppms.inventory.InventoryWorkflowService;
 import com.ppms.inventory.InventoryLot;
 import com.ppms.inventory.InventoryLotRepository;
 import com.ppms.inventory.LotConsumption;
@@ -76,7 +76,7 @@ class ReportAndInventoryCorrectnessIntegrationTest {
     private static final ZoneId IST = ZoneId.of("Asia/Kolkata");
 
     @Autowired private BalanceSheetService balanceSheetService;
-    @Autowired private InventoryController inventoryController;
+    @Autowired private InventoryWorkflowService inventoryWorkflowService;
     @Autowired private JdbcTemplate jdbcTemplate;
     @Autowired private UserRepository userRepository;
     @Autowired private PumpLocationRepository pumpLocationRepository;
@@ -258,9 +258,9 @@ class ReportAndInventoryCorrectnessIntegrationTest {
         request.setMeasuredQuantity(new BigDecimal("150"));
         request.setCheckedAt(today);
 
-        inventoryController.recordDipCheck(pump.getId(), request, owner);
+        inventoryWorkflowService.recordDipCheck(pump.getId(), request, owner);
 
-        InventoryLot gainLot = inventoryLotRepository.findActiveLotsByTankFifo(tank.getId()).stream()
+        InventoryLot gainLot = inventoryLotRepository.findActiveLotsByTankForDisplay(tank.getId()).stream()
                 .filter(lot -> lot.getOriginalQuantity().compareTo(new BigDecimal("50.000")) == 0)
                 .findFirst()
                 .orElseThrow();
@@ -279,7 +279,7 @@ class ReportAndInventoryCorrectnessIntegrationTest {
         moveLater.setDeliveryDate(deliveryDay.plusDays(2));
         moveLater.setInvoiceReference(delivery.getInvoiceReference());
 
-        assertThatThrownBy(() -> inventoryController.updateDelivery(pump.getId(), delivery.getId(), moveLater, owner))
+        assertThatThrownBy(() -> inventoryWorkflowService.updateDelivery(pump.getId(), delivery.getId(), moveLater, owner))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("already used");
     }
@@ -304,12 +304,12 @@ class ReportAndInventoryCorrectnessIntegrationTest {
         correction.setDeliveryDate(deliveryDay);
         correction.setInvoiceReference(delivery.getInvoiceReference());
 
-        inventoryController.updateDelivery(pump.getId(), delivery.getId(), correction, owner);
+        inventoryWorkflowService.updateDelivery(pump.getId(), delivery.getId(), correction, owner);
 
         InventoryLot corrected = inventoryLotRepository.findById(lot.getId()).orElseThrow();
         assertThat(corrected.getRemainingQuantity()).isEqualByComparingTo("200.000");
         assertThat(corrected.getStatus()).isEqualTo(LotStatus.ACTIVE);
-        assertThat(inventoryLotRepository.findActiveLotsByTankFifo(tank.getId())).extracting(InventoryLot::getId)
+        assertThat(inventoryLotRepository.findActiveLotsByTankForDisplay(tank.getId())).extracting(InventoryLot::getId)
                 .contains(lot.getId());
     }
 
