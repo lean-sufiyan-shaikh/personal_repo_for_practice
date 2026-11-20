@@ -37,7 +37,7 @@ public class PaymentSettlementController {
      */
     @GetMapping("/{pumpId}/settlement-configs")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
-    public List<PaymentSettlementService.ConfigResponse> getConfigs(@PathVariable Long pumpId) {
+    public List<ConfigResponse> getConfigs(@PathVariable Long pumpId) {
         return service.getConfigs(pumpId);
     }
 
@@ -48,10 +48,10 @@ public class PaymentSettlementController {
      */
     @PutMapping("/{pumpId}/settlement-configs/{paymentType}")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
-    public PaymentSettlementService.ConfigResponse upsertConfig(
+    public ConfigResponse upsertConfig(
             @PathVariable Long pumpId,
             @PathVariable String paymentType,
-            @Valid @RequestBody PaymentSettlementService.UpdateConfigRequest req,
+            @Valid @RequestBody UpdateConfigRequest req,
             @AuthenticationPrincipal User currentUser) {
         return service.upsertConfig(pumpId, paymentType, req, currentUser);
     }
@@ -65,7 +65,7 @@ public class PaymentSettlementController {
      */
     @GetMapping("/{pumpId}/settlements")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
-    public PagedResponse<PaymentSettlementService.SettlementResponse> list(
+    public PagedResponse<SettlementResponse> list(
             @PathVariable Long pumpId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -80,9 +80,9 @@ public class PaymentSettlementController {
     @PostMapping("/{pumpId}/settlements")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
     @ResponseStatus(HttpStatus.CREATED)
-    public PaymentSettlementService.SettlementResponse record(
+    public SettlementResponse record(
             @PathVariable Long pumpId,
-            @Valid @RequestBody PaymentSettlementService.RecordSettlementRequest req,
+            @Valid @RequestBody RecordSettlementRequest req,
             @AuthenticationPrincipal User currentUser) {
         return service.record(pumpId, req, currentUser);
     }
@@ -93,10 +93,10 @@ public class PaymentSettlementController {
      */
     @PostMapping("/{pumpId}/settlements/{settlementId}/void")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
-    public PaymentSettlementService.SettlementResponse voidSettlement(
+    public SettlementResponse voidSettlement(
             @PathVariable Long pumpId,
             @PathVariable Long settlementId,
-            @Valid @RequestBody PaymentSettlementService.VoidSettlementRequest req,
+            @Valid @RequestBody VoidSettlementRequest req,
             @AuthenticationPrincipal User currentUser) {
         return service.voidSettlement(pumpId, settlementId, req, currentUser);
     }
@@ -108,7 +108,7 @@ public class PaymentSettlementController {
      */
     @GetMapping("/{pumpId}/settlements/wallet")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
-    public PaymentSettlementService.WalletSummary getWallet(@PathVariable Long pumpId) {
+    public WalletSummary getWallet(@PathVariable Long pumpId) {
         return service.getWalletSummary(pumpId);
     }
 
@@ -119,7 +119,7 @@ public class PaymentSettlementController {
      */
     @GetMapping("/{pumpId}/settlements/daily-summary")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
-    public PagedResponse<PaymentSettlementService.DailySummaryEntry> getDailySummary(
+    public PagedResponse<DailySummaryEntry> getDailySummary(
             @PathVariable Long pumpId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,

@@ -1,8 +1,6 @@
 package com.ppms.ancillary;
 
 import com.ppms.common.dto.PageRequests;
-import com.ppms.audit.AuditAction;
-import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.user.User;
 import jakarta.validation.Valid;
@@ -12,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,7 +39,6 @@ public class AncillaryProductController {
     private final AncillaryProductAccessService accessService;
     private final AncillaryProductQueryService queryService;
     private final AncillaryInventoryWorkflowService workflowService;
-    private final AuditService auditService;
 
     // ── Product catalog ───────────────────────────────────────────────────────
 
@@ -64,7 +60,6 @@ public class AncillaryProductController {
      */
     @PostMapping("/{pumpId}/ancillary/products")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
-    @Transactional
     public ResponseEntity<AncillaryProductResponse> createProduct(
             @PathVariable Long pumpId,
             @Valid @RequestBody CreateProductRequest request,
@@ -86,7 +81,6 @@ public class AncillaryProductController {
      */
     @PatchMapping("/{pumpId}/ancillary/products/{id}")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
-    @Transactional
     public ResponseEntity<AncillaryProductResponse> updateProduct(
             @PathVariable Long pumpId,
             @PathVariable Long id,
@@ -108,7 +102,6 @@ public class AncillaryProductController {
      */
     @PatchMapping("/{pumpId}/ancillary/products/{id}/status")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
-    @Transactional
     public ResponseEntity<AncillaryProductResponse> setProductStatus(
             @PathVariable Long pumpId,
             @PathVariable Long id,
@@ -144,7 +137,6 @@ public class AncillaryProductController {
      */
     @PostMapping("/{pumpId}/ancillary/products/{id}/prices")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
-    @Transactional
     public ResponseEntity<AncillaryProductPrice> setPrice(
             @PathVariable Long pumpId,
             @PathVariable Long id,
@@ -168,7 +160,6 @@ public class AncillaryProductController {
      */
     @PostMapping("/{pumpId}/ancillary/products/{id}/deliveries")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
-    @Transactional
     public ResponseEntity<AncillaryStockDelivery> recordDelivery(
             @PathVariable Long pumpId,
             @PathVariable Long id,
@@ -177,23 +168,12 @@ public class AncillaryProductController {
 
         AncillaryInventoryWorkflowService.DeliveryResult result = workflowService.recordDelivery(
                 pumpId, id, request, currentUser);
-        AncillaryProduct product = result.getProduct();
         AncillaryStockDelivery delivery = result.getDelivery();
         AncillaryStockLot lot = result.getLot();
 
         log.info("Ancillary delivery recorded: pump={}, productId={}, units={}, cost={}, lot={}, backfilled={}, by={}",
                 pumpId, id, request.getQuantityUnits(), delivery.getCostPricePerUnit(),
                 lot.getId(), delivery.isBackfilled(), currentUser.getId());
-
-        AuditAction deliveryAuditAction = delivery.isBackfilled()
-                ? AuditAction.ANCILLARY_DELIVERY_BACKFILLED
-                : AuditAction.ANCILLARY_DELIVERY_RECORDED;
-        auditService.log(pumpId, deliveryAuditAction,
-                "AncillaryStockDelivery", delivery.getId().toString(),
-                (delivery.isBackfilled() ? "Backfilled stock delivery: " : "Stock delivery: ")
-                + product.getName() + " × " + request.getQuantityUnits() +
-                " units at ₹" + delivery.getCostPricePerUnit() + "/unit",
-                currentUser);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(delivery);
     }
@@ -227,7 +207,6 @@ public class AncillaryProductController {
      */
     @PostMapping("/{pumpId}/ancillary/sales")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
-    @Transactional
     public ResponseEntity<AncillarySaleResponse> recordSale(
             @PathVariable Long pumpId,
             @Valid @RequestBody RecordAncillarySaleRequest request,
@@ -241,11 +220,6 @@ public class AncillaryProductController {
                 pumpId, product.getId(), sale.getId(), request.getQuantityUnits(),
                 sale.getTotalAmount(), request.getPaymentMode(), currentUser.getId());
 
-        auditService.log(pumpId, AuditAction.ANCILLARY_SALE_RECORDED,
-                "AncillarySale", sale.getId().toString(),
-                "Sale: " + product.getName() + " × " + request.getQuantityUnits() + " units, total ₹" +
-                sale.getTotalAmount() + " (" + request.getPaymentMode() + ")",
-                currentUser);
         if (result.getCashEvent() != null) {
             log.info("Cash event recorded for ancillary sale: pump={}, saleId={}, amount={}",
                     pumpId, sale.getId(), sale.getTotalWithGst());
@@ -266,7 +240,6 @@ public class AncillaryProductController {
      */
     @PostMapping("/{pumpId}/ancillary/sales/backfill")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
-    @Transactional
     public ResponseEntity<AncillarySaleResponse> backfillSale(
             @PathVariable Long pumpId,
             @Valid @RequestBody BackfillSaleRequest request,
@@ -275,13 +248,6 @@ public class AncillaryProductController {
         AncillaryInventoryWorkflowService.SaleResult result = workflowService.backfillSale(pumpId, request, currentUser);
         AncillaryProduct product = result.getProduct();
         AncillarySale sale = result.getSale();
-
-        auditService.log(pumpId, AuditAction.ANCILLARY_SALE_BACKFILLED,
-                "AncillarySale", sale.getId().toString(),
-                "Backfilled sale: " + product.getName() + " × " + request.getQuantityUnits() +
-                " units on " + request.getSaleDate() + ", total ₹" +
-                sale.getTotalAmount() + " (" + request.getPaymentMode() + ")",
-                currentUser);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(queryService.toSaleResponse(sale, product));
     }
@@ -326,7 +292,6 @@ public class AncillaryProductController {
      */
     @PatchMapping("/{pumpId}/ancillary/lots/{lotId}")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
-    @Transactional
     public ResponseEntity<AncillaryLotDetailResponse> updateLot(
             @PathVariable Long pumpId,
             @PathVariable Long lotId,

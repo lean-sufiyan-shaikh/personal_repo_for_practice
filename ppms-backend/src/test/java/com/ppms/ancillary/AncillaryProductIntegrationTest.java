@@ -152,6 +152,113 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
         assertThat(product().get("status").asText()).isEqualTo("INACTIVE");
     }
 
+    @Test
+    void backfilledCashSaleUsesStockDeliveredByThatDayAndPutsItsCashOnTheSaleDay() throws Exception {
+        java.time.LocalDate saleDay = TestDates.today().minusDays(1);
+        jdbcTemplate.update("UPDATE ancillary_product_prices SET effective_from = effective_from - INTERVAL '5 days' WHERE product_id = ?", productId);
+        Map<String, Object> request = new HashMap<>();
+        request.put("productId", productId);
+        request.put("saleDate", saleDay.toString());
+        request.put("quantityUnits", 4);
+        request.put("paymentMode", "CASH");
+
+        perform(post("/api/pumps/{pumpId}/ancillary/sales/backfill", setup.pumpId()), setup.owner(), request)
+                .andExpect(status().is2xxSuccessful());
+
+        assertThat(product().get("currentStockUnits").asInt()).isEqualTo(6);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT remaining_quantity FROM ancillary_stock_lots WHERE product_id = ?", Integer.class, productId))
+                .isEqualTo(6);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT SUM(amount) FROM cash_events WHERE pump_id = ? AND event_date = ?", BigDecimal.class,
+                setup.pumpId(), java.sql.Date.valueOf(saleDay)))
+                .isEqualByComparingTo("1800.00");
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM audit_logs WHERE pump_id = ? AND action = 'ANCILLARY_SALE_BACKFILLED'",
+                Integer.class, setup.pumpId())).isEqualTo(1);
+    }
+
+    @Test
+    void backfilledSaleCannotUseStockThatArrivedAfterTheSaleDay() throws Exception {
+        Map<String, Object> request = new HashMap<>();
+        request.put("productId", productId);
+        request.put("saleDate", TestDates.today().minusDays(3).toString());
+        request.put("quantityUnits", 1);
+        request.put("paymentMode", "CASH");
+        jdbcTemplate.update("UPDATE ancillary_product_prices SET effective_from = effective_from - INTERVAL '5 days' WHERE product_id = ?", productId);
+
+        perform(post("/api/pumps/{pumpId}/ancillary/sales/backfill", setup.pumpId()), setup.owner(), request)
+                .andExpect(status().isBadRequest());
+
+        assertThat(product().get("currentStockUnits").asInt()).isEqualTo(10);
+    }
+
+    @Test
+    void backfillingASaleForTodayOrAsAManagerIsRefused() throws Exception {
+        Map<String, Object> request = new HashMap<>();
+        request.put("productId", productId);
+        request.put("saleDate", TestDates.today().toString());
+        request.put("quantityUnits", 1);
+        request.put("paymentMode", "CASH");
+
+        perform(post("/api/pumps/{pumpId}/ancillary/sales/backfill", setup.pumpId()), setup.owner(), request)
+                .andExpect(status().isBadRequest());
+        request.put("saleDate", TestDates.today().minusDays(1).toString());
+        perform(post("/api/pumps/{pumpId}/ancillary/sales/backfill", setup.pumpId()), setup.manager(), request)
+                .andExpect(status().isForbidden());
+
+        assertThat(product().get("currentStockUnits").asInt()).isEqualTo(10);
+    }
+
+    @Test
+    void correctingALotMovesTheProductStockByTheSameNumberOfUnits() throws Exception {
+        Long lotId = jdbcTemplate.queryForObject(
+                "SELECT id FROM ancillary_stock_lots WHERE product_id = ?", Long.class, productId);
+
+        perform(patch("/api/pumps/{pumpId}/ancillary/lots/{lotId}", setup.pumpId(), lotId), setup.owner(),
+                Map.of("remainingQuantity", 7, "costPricePerUnit", new BigDecimal("310.00")))
+                .andExpect(status().isOk());
+
+        assertThat(product().get("currentStockUnits").asInt()).isEqualTo(7);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT cost_price_per_unit FROM ancillary_stock_lots WHERE id = ?", BigDecimal.class, lotId))
+                .isEqualByComparingTo("310.00");
+    }
+
+    @Test
+    void lotCannotHoldMoreThanWasDeliveredAndEmptyingItMarksItExhausted() throws Exception {
+        Long lotId = jdbcTemplate.queryForObject(
+                "SELECT id FROM ancillary_stock_lots WHERE product_id = ?", Long.class, productId);
+
+        perform(patch("/api/pumps/{pumpId}/ancillary/lots/{lotId}", setup.pumpId(), lotId), setup.owner(),
+                Map.of("remainingQuantity", 11))
+                .andExpect(status().isBadRequest());
+        perform(patch("/api/pumps/{pumpId}/ancillary/lots/{lotId}", setup.pumpId(), lotId), setup.manager(),
+                Map.of("remainingQuantity", 5))
+                .andExpect(status().isForbidden());
+        assertThat(product().get("currentStockUnits").asInt()).isEqualTo(10);
+
+        perform(patch("/api/pumps/{pumpId}/ancillary/lots/{lotId}", setup.pumpId(), lotId), setup.owner(),
+                Map.of("remainingQuantity", 0))
+                .andExpect(status().isOk());
+        assertThat(product().get("currentStockUnits").asInt()).isZero();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT status::text FROM ancillary_stock_lots WHERE id = ?", String.class, lotId)).isEqualTo("EXHAUSTED");
+    }
+
+    @Test
+    void lotOfAnotherPumpCannotBeCorrected() throws Exception {
+        Long lotId = jdbcTemplate.queryForObject(
+                "SELECT id FROM ancillary_stock_lots WHERE product_id = ?", Long.class, productId);
+        PumpSetup other = createPumpWithStock("0");
+
+        perform(patch("/api/pumps/{pumpId}/ancillary/lots/{lotId}", other.pumpId(), lotId), other.owner(),
+                Map.of("remainingQuantity", 0))
+                .andExpect(status().isNotFound());
+
+        assertThat(product().get("currentStockUnits").asInt()).isEqualTo(10);
+    }
+
     private void stockIn(int units, String cost) throws Exception {
         perform(post("/api/pumps/{pumpId}/ancillary/products/{id}/deliveries", setup.pumpId(), productId), setup.manager(),
                 Map.of("quantityUnits", units, "costPricePerUnit", new BigDecimal(cost),

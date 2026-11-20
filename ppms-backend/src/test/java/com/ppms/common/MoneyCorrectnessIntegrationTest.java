@@ -12,6 +12,7 @@ import com.ppms.ancillary.RecordStockDeliveryRequest;
 import com.ppms.ancillary.UnitOfMeasure;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.fuel.FuelType;
+import com.ppms.credit.ReassignCreditEntryRequest;
 import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditClientRepository;
 import com.ppms.credit.CreditInterestCharge;
@@ -35,6 +36,9 @@ import com.ppms.pump.DispensaryUnitRepository;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.settlement.PaymentSettlementService;
+import com.ppms.settlement.VoidSettlementRequest;
+import com.ppms.settlement.SettlementResponse;
+import com.ppms.settlement.RecordSettlementRequest;
 import com.ppms.settlement.SettlementPaymentType;
 import com.ppms.shift.DiscrepancyType;
 import com.ppms.shift.Shift;
@@ -286,20 +290,20 @@ class MoneyCorrectnessIntegrationTest {
 
     @Test
     void voidedSettlementNoLongerReducesTheWalletAndDuplicatesAreRefused() {
-        PaymentSettlementService.RecordSettlementRequest request = PaymentSettlementService.RecordSettlementRequest.builder()
+        RecordSettlementRequest request = RecordSettlementRequest.builder()
                 .paymentType(SettlementPaymentType.UPI)
                 .settlementDate(TestDates.today())
                 .amountReceived(new BigDecimal("79000.00"))
                 .build();
-        PaymentSettlementService.SettlementResponse recorded = settlementService.record(pump.getId(), request, manager);
+        SettlementResponse recorded = settlementService.record(pump.getId(), request, manager);
         assertThat(settlementService.getWalletSummary(pump.getId()).getUpiPending()).isEqualByComparingTo("-79000.00");
 
         assertThatThrownBy(() -> settlementService.record(pump.getId(), request, manager))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("last 2 minutes");
 
-        PaymentSettlementService.SettlementResponse voided = settlementService.voidSettlement(pump.getId(), recorded.getId(),
-                PaymentSettlementService.VoidSettlementRequest.builder().reason("Typed 79000 instead of 7900").build(), owner);
+        SettlementResponse voided = settlementService.voidSettlement(pump.getId(), recorded.getId(),
+                VoidSettlementRequest.builder().reason("Typed 79000 instead of 7900").build(), owner);
 
         assertThat(voided.getVoidStatus()).isEqualTo("VOIDED");
         assertThat(settlementService.getWalletSummary(pump.getId()).getUpiPending()).isEqualByComparingTo("0.00");
@@ -383,6 +387,91 @@ class MoneyCorrectnessIntegrationTest {
         savePayment(client, "200.00", ExpenseApprovalStatus.APPROVED, owner);
 
         assertThat(interestService.computeTotalInterestRecovered(client.getId())).isEqualByComparingTo("200.00");
+    }
+
+    @Test
+    void runningInterestTwiceForTheSamePeriodChargesItOnce() {
+        CreditClient client = saveClient(new BigDecimal("3.00"));
+        seedChargeEndingOn(client, "10.00", LocalDate.of(2025, 10, 31));
+        saveCreditSaleOn(client, "30000.00", LocalDate.of(2025, 11, 1));
+        LocalDate periodTo = LocalDate.of(2025, 11, 30);
+
+        interestService.applyToClientGroupInNewTransaction(client.getId(), periodTo, "SCHEDULED", null);
+        int chargedByTheRepeat =
+                interestService.applyToClientGroupInNewTransaction(client.getId(), periodTo, "SCHEDULED", null);
+
+        assertThat(chargedByTheRepeat).isZero();
+        List<CreditInterestCharge> charges = interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId());
+        assertThat(charges).hasSize(2);
+        // ₹30,000 × 3% / 30 per day × 30 days of November
+        assertThat(charges.get(0).getAmount()).isEqualByComparingTo("900.00");
+    }
+
+    @Test
+    void deletingAnInterestChargeTakesItsAmountOffTheOutstandingBalance() {
+        CreditClient client = saveClient(new BigDecimal("2.00"));
+        saveCreditSaleOn(client, "1000.00", TestDates.today().minusDays(5));
+        seedChargeEndingOn(client, "40.00", TestDates.today().minusDays(1));
+        CreditInterestCharge charge = interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).get(0);
+        assertThat(interestService.computeOutstanding(client.getId())).isEqualByComparingTo("1040.00");
+
+        ledgerService.deleteInterestCharge(pump.getId(), client.getId(), charge.getId(), owner);
+
+        assertThat(interestService.computeOutstanding(client.getId())).isEqualByComparingTo("1000.00");
+        assertThat(interestChargeRepository.findById(charge.getId())).isEmpty();
+    }
+
+    @Test
+    void interestChargeOfAnotherClientCannotBeDeletedThroughThisClient() {
+        CreditClient client = saveClient(new BigDecimal("2.00"));
+        CreditClient otherClient = saveClient(new BigDecimal("2.00"));
+        seedChargeEndingOn(otherClient, "40.00", TestDates.today().minusDays(1));
+        CreditInterestCharge othersCharge =
+                interestChargeRepository.findByClientIdOrderByCreatedAtDesc(otherClient.getId()).get(0);
+
+        assertThatThrownBy(() -> ledgerService.deleteInterestCharge(pump.getId(), client.getId(), othersCharge.getId(), owner))
+                .isInstanceOf(BusinessException.class);
+
+        assertThat(interestChargeRepository.findById(othersCharge.getId())).isPresent();
+    }
+
+    @Test
+    void movingAPaymentToASubAccountMovesItsCreditBetweenTheTwoBalances() {
+        CreditClient parent = saveClient(BigDecimal.ZERO);
+        CreditClient child = saveClient(BigDecimal.ZERO);
+        child.setParentClientId(parent.getId());
+        clientRepository.save(child);
+        saveCreditSaleOn(parent, "1000.00", TestDates.today().minusDays(2));
+        saveCreditSaleOn(child, "600.00", TestDates.today().minusDays(2));
+        CreditPayment payment = savePayment(parent, "400.00", ExpenseApprovalStatus.APPROVED, manager);
+
+        ledgerService.reassignCreditPayment(pump.getId(), payment.getId(), reassignTo(child), owner);
+
+        assertThat(interestService.computeOutstanding(parent.getId())).isEqualByComparingTo("1000.00");
+        assertThat(interestService.computeOutstanding(child.getId())).isEqualByComparingTo("200.00");
+        assertThat(interestService.computeOutstandingWithChildren(parent.getId())).isEqualByComparingTo("1200.00");
+    }
+
+    @Test
+    void movingAPaymentToAnUnrelatedClientIsRefusedAndChangesNothing() {
+        CreditClient client = saveClient(BigDecimal.ZERO);
+        CreditClient unrelated = saveClient(BigDecimal.ZERO);
+        saveCreditSaleOn(client, "1000.00", TestDates.today().minusDays(2));
+        CreditPayment payment = savePayment(client, "400.00", ExpenseApprovalStatus.APPROVED, manager);
+
+        assertThatThrownBy(() -> ledgerService.reassignCreditPayment(pump.getId(), payment.getId(), reassignTo(unrelated), owner))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("same parent");
+
+        assertThat(paymentRepository.findById(payment.getId()).orElseThrow().getClientId()).isEqualTo(client.getId());
+        assertThat(interestService.computeOutstanding(client.getId())).isEqualByComparingTo("600.00");
+    }
+
+    private static ReassignCreditEntryRequest reassignTo(CreditClient target) {
+        ReassignCreditEntryRequest request = new ReassignCreditEntryRequest();
+        request.setToClientId(target.getId());
+        request.setReason("Recorded against the wrong account");
+        return request;
     }
 
     private void saveCreditSaleOn(CreditClient client, String amount, LocalDate day) {

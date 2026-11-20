@@ -113,6 +113,9 @@ management:
       probes:
         enabled: true
   health:
+    mail:
+      # Email is optional; an unreachable SMTP host must not fail the container health check.
+      enabled: false
     livenessstate:
       enabled: true
     readinessstate:

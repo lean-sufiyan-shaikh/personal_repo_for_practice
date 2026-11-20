@@ -167,13 +167,11 @@ public class ShiftService {
             throw new BusinessException("Shift is not open. Current status: " + shift.getStatus());
         }
 
-        // Load all nozzles for this shift from the join table
         List<Long> nozzleIds = shiftNozzleRepository.findNozzleIdsByShiftId(shiftId);
         List<Nozzle> nozzles = nozzleRepository.findAllById(nozzleIds);
         Map<Long, Nozzle> nozzleById = nozzles.stream()
                 .collect(Collectors.toMap(Nozzle::getId, Function.identity()));
 
-        // Build maxMeter per nozzle for rollover calculations
         Map<Long, BigDecimal> maxMeterByNozzleId = nozzles.stream()
                 .collect(Collectors.toMap(Nozzle::getId, Nozzle::getMaxMeterValue));
 
@@ -184,27 +182,52 @@ public class ShiftService {
                 lifecycleSupportService.validateCloseCreditEntries(shiftId, request.getCreditTotal(), request.getCreditEntries(),
                         request.getReplacedCreditEntryIds());
 
-        fuelDeductionService.lockTanksForDeduction(pumpId,
+        deductSoldFuel(shift, readings);
+
+        applyClosingValues(shift, request, closingSummary, currentUser);
+        shift = shiftRepository.save(shift);
+
+        activeNozzleRepository.deleteByShiftId(shiftId);
+
+        log.info("Shift {} closed: totalDue={}, totalCollected={}, discrepancy={}, status={}",
+                shiftId, closingSummary.getTotalDue(), closingSummary.getTotalCollected(),
+                closingSummary.getDiscrepancyAmount(), closingSummary.getStatus());
+        shiftClosedCounter.increment();
+
+        rememberLastReadings(readings, nozzleById);
+
+        lifecycleSupportService.createCashCollectionEvent(shift, currentUser, nozzles);
+        lifecycleSupportService.voidReplacedCreditEntries(request.getReplacedCreditEntryIds(), currentUser);
+        lifecycleSupportService.persistCloseCreditEntries(shift.getId(), shift.getPumpId(), creditEntries);
+
+        User operator = userRepository.findById(shift.getOperatorId())
+                .orElseThrow(() -> new ResourceNotFoundException("Operator not found"));
+        DispensaryUnit du = duRepository.findById(shift.getDuId()).orElse(null);
+        List<ShiftCreditEntry> savedEntries = creditEntryRepository.findByShiftId(shift.getId());
+        List<ShiftFuelReading> finalReadings = fuelReadingRepository.findByShiftId(shift.getId());
+        return shiftReadModelService.toResponse(shift, du, nozzles, operator, currentUser.getFullName(), finalReadings, savedEntries);
+    }
+
+    private void deductSoldFuel(Shift shift, List<ShiftFuelReading> readings) {
+        fuelDeductionService.lockTanksForDeduction(shift.getPumpId(),
                 readings.stream().map(ShiftFuelReading::getTankId).filter(Objects::nonNull).toList(),
                 readings.stream().filter(reading -> reading.getTankId() == null).map(ShiftFuelReading::getFuelType).toList());
         for (ShiftFuelReading reading : readings) {
             if (reading.getUnitsSold() != null && reading.getUnitsSold().compareTo(ZERO) > 0) {
-                fuelDeductionService.deductForShiftClose(shiftId, shift.getPumpId(), reading.getFuelType(),
+                fuelDeductionService.deductForShiftClose(shift.getId(), shift.getPumpId(), reading.getFuelType(),
                         reading.getTankId(), reading.getUnitsSold(), shift.getActualStartTime());
             }
         }
+    }
 
-        // Persist closed shift.
-        // If the operator closes after the shift's scheduled end time, record the
-        // scheduled end time as actualEndTime (not the real-world clock time).
-        // This keeps actualEndTime aligned with the definition boundary so that
-        // the DAY balance-sheet 24-hour window queries remain accurate.
-        // If closing early or on time, use the actual close time.
+    private void applyClosingValues(Shift shift, CloseShiftRequest request,
+                                    ShiftLifecycleSupportService.ClosingSummary closingSummary, User closedBy) {
+        // A late close is recorded at the scheduled end, so DAY balance-sheet windows stay aligned
+        // with the shift definition; an early or on-time close keeps the real time.
         OffsetDateTime scheduledEnd = shiftReadModelService.computeScheduledEndTime(shift);
-        OffsetDateTime closeTime    = businessClock.now();
-        shift.setActualEndTime(scheduledEnd != null && closeTime.isAfter(scheduledEnd)
-                ? scheduledEnd : closeTime);
-        shift.setClosedByUserId(currentUser.getId());
+        OffsetDateTime closeTime = businessClock.now();
+        shift.setActualEndTime(scheduledEnd != null && closeTime.isAfter(scheduledEnd) ? scheduledEnd : closeTime);
+        shift.setClosedByUserId(closedBy.getId());
         shift.setTotalAmountDue(closingSummary.getTotalDue());
         shift.setCashCollected(request.getCashCollected());
         shift.setUpiCollected(request.getUpiCollected());
@@ -217,18 +240,10 @@ public class ShiftService {
         shift.setDiscrepancyReason(request.getDiscrepancyReason());
         shift.setStatus(escalateStatusIfNeeded(closingSummary.getStatus(),
                 closingSummary.getDiscrepancyAmount(), shift.getPumpId()));
-        shift = shiftRepository.save(shift);
+    }
 
-        // Release the nozzle exclusivity lock now that the shift is closed
-        activeNozzleRepository.deleteByShiftId(shiftId);
-
-        log.info("Shift {} closed: totalDue={}, totalCollected={}, discrepancy={}, status={}",
-                shiftId, closingSummary.getTotalDue(), closingSummary.getTotalCollected(),
-                closingSummary.getDiscrepancyAmount(), closingSummary.getStatus());
-        shiftClosedCounter.increment();
-
-        // Update each nozzle's last_reading for pre-fill on next shift open.
-        // nozzleById is already populated above — no extra DB round-trip per nozzle.
+    // The next shift on a nozzle pre-fills its opening reading from here.
+    private void rememberLastReadings(List<ShiftFuelReading> readings, Map<Long, Nozzle> nozzleById) {
         List<Nozzle> updatedNozzles = new ArrayList<>();
         for (ShiftFuelReading reading : readings) {
             Nozzle nozzle = nozzleById.get(reading.getNozzleId());
@@ -238,17 +253,6 @@ public class ShiftService {
             }
         }
         nozzleRepository.saveAll(updatedNozzles);
-
-        lifecycleSupportService.createCashCollectionEvent(shift, currentUser, nozzles);
-        lifecycleSupportService.voidReplacedCreditEntries(request.getReplacedCreditEntryIds(), currentUser);
-        lifecycleSupportService.persistCloseCreditEntries(shift.getId(), shift.getPumpId(), creditEntries);
-
-        User operator = userRepository.findById(shift.getOperatorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Operator not found"));
-        DispensaryUnit du = duRepository.findById(shift.getDuId()).orElse(null);
-        List<ShiftCreditEntry> savedEntries = creditEntryRepository.findByShiftId(shift.getId());
-        List<ShiftFuelReading> finalReadings = fuelReadingRepository.findByShiftId(shift.getId());
-        return shiftReadModelService.toResponse(shift, du, nozzles, operator, currentUser.getFullName(), finalReadings, savedEntries);
     }
 
     /**

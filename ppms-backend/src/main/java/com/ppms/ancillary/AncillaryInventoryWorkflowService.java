@@ -21,8 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.List;
 
 @Slf4j
@@ -138,6 +138,14 @@ public class AncillaryInventoryWorkflowService {
         product.setCurrentStockUnits(product.getCurrentStockUnits() + request.getQuantityUnits());
         productRepository.save(product);
 
+        auditService.log(pumpId,
+                delivery.isBackfilled() ? AuditAction.ANCILLARY_DELIVERY_BACKFILLED : AuditAction.ANCILLARY_DELIVERY_RECORDED,
+                "AncillaryStockDelivery", delivery.getId().toString(),
+                (delivery.isBackfilled() ? "Backfilled stock delivery: " : "Stock delivery: ")
+                + product.getName() + " × " + request.getQuantityUnits() +
+                " units at ₹" + delivery.getCostPricePerUnit() + "/unit",
+                currentUser);
+
         return DeliveryResult.builder()
                 .product(product)
                 .delivery(delivery)
@@ -165,41 +173,22 @@ public class AncillaryInventoryWorkflowService {
         }
 
         BigDecimal sellingPrice = resolveSellingPrice(pumpId, product, request.getSellingPricePerUnit(), currentUser);
-        BigDecimal totalAmount = sellingPrice.multiply(new BigDecimal(request.getQuantityUnits()))
-                .setScale(2, RoundingMode.HALF_UP);
+        LocalDate today = businessClock.today();
 
-        AncillarySale sale = saleRepository.save(AncillarySale.builder()
-                .pumpId(pumpId)
-                .productId(product.getId())
-                .quantityUnits(request.getQuantityUnits())
-                .sellingPricePerUnit(sellingPrice)
-                .totalAmount(totalAmount)
-                .gstAmount(BigDecimal.ZERO.setScale(2))
-                .totalWithGst(totalAmount)
-                .paymentMode(request.getPaymentMode())
+        AncillarySale sale = saleRepository.save(newSale(pumpId, product, request.getQuantityUnits(), sellingPrice,
+                request.getPaymentMode(), request.getClientName(), request.getBillNo(), request.getNotes(), currentUser)
                 .clientId(request.getClientId())
-                .clientName(request.getClientName() != null ? request.getClientName().trim() : null)
-                .billNo(request.getBillNo() != null ? request.getBillNo().trim() : null)
-                .notes(request.getNotes())
-                .soldByUserId(currentUser.getId())
-                .saleDate(businessClock.today())
+                .saleDate(today)
                 .build());
 
         deductFromLots(product.getId(), sale.getId(), request.getQuantityUnits());
-        product.setCurrentStockUnits(product.getCurrentStockUnits() - request.getQuantityUnits());
-        productRepository.save(product);
+        CashEvent cashEvent = reduceStockAndRecordCash(product, sale, "Counter sale: ", today, currentUser);
 
-        CashEvent cashEvent = null;
-        if (request.getPaymentMode() == TransactionPaymentMode.CASH) {
-            cashEvent = cashEventRepository.save(CashEvent.builder()
-                    .pumpId(pumpId)
-                    .eventType(CashEventType.CASH_IN)
-                    .amount(totalAmount)
-                    .description("Counter sale: " + product.getName() + " × " + request.getQuantityUnits() + " units (Sale #" + sale.getId() + ")")
-                    .eventDate(businessClock.today())
-                    .recordedByUserId(currentUser.getId())
-                    .build());
-        }
+        auditService.log(pumpId, AuditAction.ANCILLARY_SALE_RECORDED,
+                "AncillarySale", sale.getId().toString(),
+                "Sale: " + product.getName() + " × " + request.getQuantityUnits() + " units, total ₹" +
+                sale.getTotalAmount() + " (" + request.getPaymentMode() + ")",
+                currentUser);
 
         return SaleResult.builder()
                 .product(product)
@@ -288,8 +277,6 @@ public class AncillaryInventoryWorkflowService {
      */
     @Transactional
     public SaleResult backfillSale(Long pumpId, BackfillSaleRequest request, User currentUser) {
-        ZoneId ist = businessClock.zone();
-
         if (!request.getSaleDate().isBefore(businessClock.today())) {
             throw new BusinessException(
                     "Sale date must be strictly in the past. Use the regular Sell button for today's sales.");
@@ -302,21 +289,52 @@ public class AncillaryInventoryWorkflowService {
 
         AncillaryProduct product = accessService.requireProductForPumpForUpdate(request.getProductId(), pumpId);
 
-        // A price set at any time on the sale date applies to that day's sales.
-        OffsetDateTime endOfSaleDay = request.getSaleDate().plusDays(1)
-                .atStartOfDay(ist)
-                .toOffsetDateTime();
-        AncillaryProductPrice historicalPrice = priceRepository
-                .findFirstByProductIdAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(
-                        request.getProductId(), endOfSaleDay)
+        BigDecimal sellingPrice = priceOnDate(product, request.getSaleDate());
+        List<AncillaryStockLot> historicalLots = lotsCoveringBackfill(product, request);
+
+        AncillarySale sale = saleRepository.save(newSale(pumpId, product, request.getQuantityUnits(), sellingPrice,
+                request.getPaymentMode(), request.getClientName(), request.getBillNo(), request.getNotes(), currentUser)
+                .saleDate(request.getSaleDate())
+                .isBackfilled(true)
+                .build());
+
+        deductFromSpecificLots(historicalLots, sale.getId(), request.getQuantityUnits());
+        // Dated to the sale day so that day's cash reconciliation includes it.
+        CashEvent cashEvent = reduceStockAndRecordCash(product, sale, "Backfilled sale: ", request.getSaleDate(), currentUser);
+
+        log.info("Ancillary sale backfilled: pump={}, productId={}, saleId={}, saleDate={}, units={}, price={}, by={}",
+                pumpId, product.getId(), sale.getId(), request.getSaleDate(),
+                request.getQuantityUnits(), sellingPrice, currentUser.getId());
+
+        auditService.log(pumpId, AuditAction.ANCILLARY_SALE_BACKFILLED,
+                "AncillarySale", sale.getId().toString(),
+                "Backfilled sale: " + product.getName() + " × " + request.getQuantityUnits() +
+                " units on " + request.getSaleDate() + ", total ₹" +
+                sale.getTotalAmount() + " (" + request.getPaymentMode() + ")",
+                currentUser);
+
+        return SaleResult.builder()
+                .product(product)
+                .sale(sale)
+                .cashEvent(cashEvent)
+                .build();
+    }
+
+    // A price set at any time on the sale date applies to that day's sales.
+    private BigDecimal priceOnDate(AncillaryProduct product, LocalDate saleDate) {
+        OffsetDateTime endOfSaleDay = saleDate.plusDays(1).atStartOfDay(businessClock.zone()).toOffsetDateTime();
+        return priceRepository
+                .findFirstByProductIdAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(product.getId(), endOfSaleDay)
+                .map(AncillaryProductPrice::getPricePerUnit)
                 .orElseThrow(() -> new BusinessException(
                         "No selling price was set for '" + product.getName() +
-                        "' on or before " + request.getSaleDate() +
+                        "' on or before " + saleDate +
                         ". Set a price first (even a historical one) before backfilling this sale."));
+    }
 
+    private List<AncillaryStockLot> lotsCoveringBackfill(AncillaryProduct product, BackfillSaleRequest request) {
         List<AncillaryStockLot> historicalLots = lotRepository
-                .findActiveLotsByProductAvailableOnDate(request.getProductId(), request.getSaleDate());
-
+                .findActiveLotsByProductAvailableOnDate(product.getId(), request.getSaleDate());
         int availableOnDate = historicalLots.stream()
                 .mapToInt(AncillaryStockLot::getRemainingQuantity)
                 .sum();
@@ -328,56 +346,45 @@ public class AncillaryInventoryWorkflowService {
                     " units. Requested: " + request.getQuantityUnits() +
                     " units. Record a historical stock delivery first.");
         }
+        return historicalLots;
+    }
 
-        BigDecimal sellingPrice = historicalPrice.getPricePerUnit();
-        BigDecimal totalAmount = sellingPrice.multiply(new BigDecimal(request.getQuantityUnits()))
-                .setScale(2, RoundingMode.HALF_UP);
-
-        AncillarySale sale = saleRepository.save(AncillarySale.builder()
+    private AncillarySale.AncillarySaleBuilder newSale(Long pumpId, AncillaryProduct product, int quantityUnits,
+                                                       BigDecimal sellingPrice, TransactionPaymentMode paymentMode,
+                                                       String clientName, String billNo, String notes, User soldBy) {
+        BigDecimal totalAmount = sellingPrice.multiply(new BigDecimal(quantityUnits)).setScale(2, RoundingMode.HALF_UP);
+        return AncillarySale.builder()
                 .pumpId(pumpId)
                 .productId(product.getId())
-                .quantityUnits(request.getQuantityUnits())
+                .quantityUnits(quantityUnits)
                 .sellingPricePerUnit(sellingPrice)
                 .totalAmount(totalAmount)
                 .gstAmount(BigDecimal.ZERO.setScale(2))
                 .totalWithGst(totalAmount)
-                .paymentMode(request.getPaymentMode())
-                .clientName(request.getClientName() != null ? request.getClientName().trim() : null)
-                .billNo(request.getBillNo() != null ? request.getBillNo().trim() : null)
-                .notes(request.getNotes())
-                .soldByUserId(currentUser.getId())
-                .saleDate(request.getSaleDate())
-                .isBackfilled(true)
-                .build());
+                .paymentMode(paymentMode)
+                .clientName(clientName != null ? clientName.trim() : null)
+                .billNo(billNo != null ? billNo.trim() : null)
+                .notes(notes)
+                .soldByUserId(soldBy.getId());
+    }
 
-        deductFromSpecificLots(historicalLots, sale.getId(), request.getQuantityUnits());
-
-        product.setCurrentStockUnits(product.getCurrentStockUnits() - request.getQuantityUnits());
+    private CashEvent reduceStockAndRecordCash(AncillaryProduct product, AncillarySale sale, String descriptionPrefix,
+                                               LocalDate cashDate, User recordedBy) {
+        product.setCurrentStockUnits(product.getCurrentStockUnits() - sale.getQuantityUnits());
         productRepository.save(product);
 
-        // Dated to the sale day so that day's cash reconciliation includes it.
-        CashEvent cashEvent = null;
-        if (request.getPaymentMode() == TransactionPaymentMode.CASH) {
-            cashEvent = cashEventRepository.save(CashEvent.builder()
-                    .pumpId(pumpId)
-                    .eventType(CashEventType.CASH_IN)
-                    .amount(totalAmount)
-                    .description("Backfilled sale: " + product.getName() +
-                            " × " + request.getQuantityUnits() + " units (Sale #" + sale.getId() + ")")
-                    .eventDate(request.getSaleDate())
-                    .recordedByUserId(currentUser.getId())
-                    .build());
+        if (sale.getPaymentMode() != TransactionPaymentMode.CASH) {
+            return null;
         }
-
-        log.info("Ancillary sale backfilled: pump={}, productId={}, saleId={}, saleDate={}, units={}, price={}, by={}",
-                pumpId, product.getId(), sale.getId(), request.getSaleDate(),
-                request.getQuantityUnits(), sellingPrice, currentUser.getId());
-
-        return SaleResult.builder()
-                .product(product)
-                .sale(sale)
-                .cashEvent(cashEvent)
-                .build();
+        return cashEventRepository.save(CashEvent.builder()
+                .pumpId(sale.getPumpId())
+                .eventType(CashEventType.CASH_IN)
+                .amount(sale.getTotalAmount())
+                .description(descriptionPrefix + product.getName() + " × " + sale.getQuantityUnits()
+                        + " units (Sale #" + sale.getId() + ")")
+                .eventDate(cashDate)
+                .recordedByUserId(recordedBy.getId())
+                .build());
     }
 
     private void deductFromLots(Long productId, Long saleId, int unitsToDeduct) {

@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -205,6 +206,47 @@ class AuthSecurityIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"token\":\"" + pendingLink + "\",\"newPassword\":\"Other@4567\"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void resetLinkWorksOnlyOnce() throws Exception {
+        UUID link = saveResetToken(ownerA);
+        String body = "{\"token\":\"" + link + "\",\"newPassword\":\"Fresh@4567\"}";
+
+        perform(post("/api/auth/reset-password").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+        perform(post("/api/auth/reset-password").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("already been used")));
+    }
+
+    @Test
+    void expiredOrMalformedResetLinkIsRefusedAndThePasswordStaysTheSame() throws Exception {
+        UUID expiredLink = UUID.randomUUID();
+        resetTokenRepository.save(PasswordResetToken.builder()
+                .userId(ownerA.getId())
+                .tokenHash(TokenHashing.sha256Hex(expiredLink.toString()))
+                .expiresAt(TestDates.now().minusMinutes(1))
+                .build());
+
+        perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"" + expiredLink + "\",\"newPassword\":\"Fresh@4567\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("expired")));
+        perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"not-a-token\",\"newPassword\":\"Fresh@4567\"}"))
+                .andExpect(status().isBadRequest());
+        perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"" + saveResetToken(ownerA) + "\",\"newPassword\":\"weak\"}"))
+                .andExpect(status().isBadRequest());
+
+        perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginBody(ownerA.getPhoneNumber(), "Fresh@4567")))
+                .andExpect(status().isUnauthorized());
     }
 
     private UUID saveResetToken(User user) {

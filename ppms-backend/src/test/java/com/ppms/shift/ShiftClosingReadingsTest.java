@@ -46,6 +46,28 @@ class ShiftClosingReadingsTest {
     }
 
     @Test
+    void rolloverIsAcceptedWhenTheOpeningReadingIsExactlyNinetyNinePercentOfTheMeterRange() {
+        BigDecimal roundMaxMeter = new BigDecimal("1000000.000");
+        ShiftFuelReading reading = readingStartingAt("990000.000");
+
+        lifecycleSupportService.processClosingReadings(
+                1L, Map.of(NOZZLE_ID, roundMaxMeter), closeRequest("5.000", "1000500.00"), List.of(reading));
+
+        assertThat(reading.getUnitsSold()).isEqualByComparingTo("10005.000");
+    }
+
+    @Test
+    void rolloverIsRefusedWhenTheOpeningReadingIsJustUnderNinetyNinePercentOfTheMeterRange() {
+        BigDecimal roundMaxMeter = new BigDecimal("1000000.000");
+        ShiftFuelReading reading = readingStartingAt("989999.999");
+
+        assertThatThrownBy(() -> lifecycleSupportService.processClosingReadings(
+                1L, Map.of(NOZZLE_ID, roundMaxMeter), closeRequest("5.000", "0.00"), List.of(reading)))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("is below the opening reading");
+    }
+
+    @Test
     void theSameNozzleTwiceInOneRequestIsRejected() {
         CloseShiftRequest request = closeRequest("5010.000", "1000.00");
         request.setFuelReadings(List.of(
