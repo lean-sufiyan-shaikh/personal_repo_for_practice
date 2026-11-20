@@ -10,8 +10,8 @@ import { pumpApi } from '../../api/pumpApi'
 import type { ProfitLossReport, OperatorDutyReport, OperatorDutyShiftLine, OperatorDiscrepancyReport, InventoryLotsReport, AllTanksInventoryReport, DipPlEntry, ShiftReportLine, ExpenseReportLine, InterestAccrualReport } from '../../api/reportApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
-import type { PagedResponse } from '../../types/paged'
 import { formatIstDate, formatIstDateTime, localDateInputValue } from '../../utils/date'
+import { pageSlice } from '../../utils/pageSlice'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -38,22 +38,6 @@ function fmtShortDayMonth(iso: string) {
   return formatIstDate(iso, { day: '2-digit', month: 'short' })
 }
 
-/** Builds a PagedResponse shape from a client-side array slice — used for client-side pagination of report data. */
-function pageSlice<T>(all: T[], page: number, pageSize: number): PagedResponse<T> {
-  const totalElements = all.length
-  const totalPages    = Math.max(1, Math.ceil(totalElements / pageSize))
-  const safePage      = Math.min(page, totalPages - 1)
-  const content       = all.slice(safePage * pageSize, (safePage + 1) * pageSize)
-  return {
-    content,
-    page: safePage,
-    pageSize,
-    totalElements,
-    totalPages,
-    hasNext:     safePage < totalPages - 1,
-    hasPrevious: safePage > 0,
-  }
-}
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -1423,7 +1407,12 @@ function ExpensesTab({ pumpId }: { pumpId: number }) {
 
   const rows  = data ?? []
   const paged = data ? pageSlice(rows, page, pageSize) : null
-  const total = rows.reduce((sum, e) => sum + e.amount, 0)
+  const total = rows
+    .filter(e => e.approvalStatus === 'APPROVED')
+    .reduce((sum, e) => sum + e.amount, 0)
+  const pendingTotal = rows
+    .filter(e => e.approvalStatus === 'PENDING_APPROVAL')
+    .reduce((sum, e) => sum + e.amount, 0)
 
   return (
     <div className="space-y-4">
@@ -1455,7 +1444,10 @@ function ExpensesTab({ pumpId }: { pumpId: number }) {
           <p className="ui-empty py-4 print:hidden">No expenses in this date range.</p>
         ) : (
           <div className="space-y-3 print:hidden">
-            <SummaryCard label="Total Expenses" value={fmtAmt(total)} color="text-red-600" />
+            <div className="grid grid-cols-2 gap-3">
+              <SummaryCard label="Approved Expenses" value={fmtAmt(total)} color="text-red-600" />
+              <SummaryCard label="Pending Approval" value={fmtAmt(pendingTotal)} color="text-amber-600" />
+            </div>
             <div className="ui-table-wrap">
               <table className="w-full text-sm">
               <thead>
@@ -1490,7 +1482,8 @@ function ExpensesTab({ pumpId }: { pumpId: number }) {
       {data && rows.length > 0 && (
         <div className="hidden print:block space-y-4">
           <PrintHeader title="Expenses Report" from={query?.from} to={query?.to} />
-          <SummaryCard label="Total Expenses" value={fmtAmt(total)} color="text-red-600" />
+          <SummaryCard label="Approved Expenses" value={fmtAmt(total)} color="text-red-600" />
+          <SummaryCard label="Pending Approval" value={fmtAmt(pendingTotal)} color="text-amber-600" />
           <table className="w-full text-sm border border-slate-100">
             <thead>
               <tr className="bg-slate-50 text-xs text-slate-500">

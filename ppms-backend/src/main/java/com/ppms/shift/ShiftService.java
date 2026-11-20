@@ -2,6 +2,7 @@ package com.ppms.shift;
 
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.time.DateRangeBounds;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -413,10 +415,27 @@ public class ShiftService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ShiftResponse> getShiftHistory(Long pumpId, Pageable pageable) {
-        Page<Shift> shifts = shiftRepository.findByPumpIdOrderByActualStartTimeDesc(pumpId, pageable);
+    public Page<ShiftResponse> getShiftHistory(Long pumpId, ShiftHistoryFilter filter, Pageable pageable) {
+        Page<Shift> shifts = findHistory(pumpId, filter, pageable);
         return new PageImpl<>(shiftReadModelService.toResponsesWithLookups(shifts.getContent()),
                 shifts.getPageable(), shifts.getTotalElements());
+    }
+
+    private Page<Shift> findHistory(Long pumpId, ShiftHistoryFilter filter, Pageable pageable) {
+        if (!filter.discrepanciesOnly() && filter.from() == null && filter.to() == null) {
+            return shiftRepository.findByPumpIdOrderByActualStartTimeDesc(pumpId, pageable);
+        }
+        LocalDate from = DateRangeBounds.startOrEarliest(filter.from());
+        LocalDate to = DateRangeBounds.endOrLatest(filter.to());
+        DateRangeBounds.requireStartNotAfterEnd(from, to);
+        if (filter.discrepanciesOnly()) {
+            List<DiscrepancyType> types = filter.discrepancyType() != null
+                    ? List.of(filter.discrepancyType())
+                    : List.of(DiscrepancyType.values());
+            return shiftRepository.findByPumpIdAndShiftDateBetweenAndDiscrepancyTypeInOrderByActualStartTimeDesc(
+                    pumpId, from, to, types, pageable);
+        }
+        return shiftRepository.findByPumpIdAndShiftDateBetweenOrderByActualStartTimeDesc(pumpId, from, to, pageable);
     }
 
     @Transactional(readOnly = true)

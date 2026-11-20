@@ -1007,10 +1007,10 @@ function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }: {
                 <input
                   className="ui-input"
                   type="number"
-                  min="0.01"
-                  step="0.01"
+                  min="0.001"
+                  step="0.001"
                   value={qty}
-                  onChange={e => setQty(limitDecimals(e.target.value, 2))}
+                  onChange={e => setQty(limitDecimals(e.target.value, 3))}
                 />
               </div>
               {isOwnerOrAdmin && (
@@ -1594,10 +1594,10 @@ function RecordDeliveryModal({
                           </label>
                           <input
                             type="number"
-                            step="0.01"
-                            min="0.01"
+                            step="0.001"
+                            min="0.001"
                             value={row.qty}
-                            onChange={e => updateRow(row.id, 'qty', limitDecimals(e.target.value, 2))}
+                            onChange={e => updateRow(row.id, 'qty', limitDecimals(e.target.value, 3))}
                             placeholder="e.g. 5000"
                             className="shadow-sm"
                           />
@@ -1983,7 +1983,7 @@ function DipCheckModal({
             <input
               required
               type="number"
-              step="0.01"
+              step="0.001"
               min="0"
               value={measured}
               onChange={e => setMeasured(e.target.value)}

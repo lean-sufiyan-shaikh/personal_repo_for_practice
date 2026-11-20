@@ -9,15 +9,19 @@ import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 
-/** Returns true if the given "HH:MM:SS" time window (possibly crossing midnight) contains `nowHHMM`. */
+/** Stored end times are inclusive (08:59 means the shift runs until 09:00), so the end minute is inside the window. */
 function isTimeInWindow(startTime: string, endTime: string, crossesMidnight: boolean, nowHHMM: string): boolean {
   const start = startTime.substring(0, 5)
   const end   = endTime.substring(0, 5)
   if (crossesMidnight) {
-    return nowHHMM >= start || nowHHMM < end
+    return nowHHMM >= start || nowHHMM <= end
   }
-  return nowHHMM >= start && nowHHMM < end
+  return nowHHMM >= start && nowHHMM <= end
 }
+
+const IST_TIME_FORMAT = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+})
 
 const FUEL_ABBR: Record<string, string> = {
   PETROL: 'Petrol', SPEED_PETROL: 'Speed Petrol',
@@ -80,7 +84,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
     queryFn:  () => shiftDefinitionApi.getActive(pumpId),
   })
 
-  const nowHHMM = new Date().toTimeString().substring(0, 5)
+  const nowHHMM = IST_TIME_FORMAT.format(new Date())
   const currentDefinition = activeDefinitions.find(d =>
     isTimeInWindow(d.startTime, d.endTime, d.crossesMidnight, nowHHMM)
   )

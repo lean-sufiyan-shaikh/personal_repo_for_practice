@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/authStore'
 import type { AuthUser } from '../../types/auth'
 import { PasswordInput } from '../../components/PasswordInput'
 import { parseApiError } from '../../utils/apiError'
+import { getDefaultPath } from '../../permissions/permissions'
 
 const loginSchema = z.object({
   phoneNumber: z.string().length(10, 'Phone number must be exactly 10 digits').regex(/^\d+$/, 'Must be digits only'),
@@ -39,12 +40,11 @@ export default function LoginPage() {
       const user: AuthUser = {
         userId: response.userId,
         fullName: response.fullName,
-        phoneNumber: response.phoneNumber,
         role: response.role,
         assignedPumpId: response.assignedPumpId,
       }
       setAuth(user)
-      navigate(response.role === 'SUPER_ADMIN' ? '/super-admin' : '/dashboard')
+      navigate(getDefaultPath(response.role))
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } }
       setServerError(parseApiError(error, 'Login failed. Please try again.'))

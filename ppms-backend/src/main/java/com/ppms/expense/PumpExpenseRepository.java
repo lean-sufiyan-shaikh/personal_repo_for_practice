@@ -3,12 +3,21 @@ package com.ppms.expense;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 
 public interface PumpExpenseRepository extends JpaRepository<PumpExpense, Long> {
+
+    @Query("SELECT COALESCE(SUM(e.amount), 0) FROM PumpExpense e WHERE e.pumpId = :pumpId AND e.approvalStatus = :status")
+    BigDecimal sumAmountByPumpIdAndApprovalStatus(@Param("pumpId") Long pumpId,
+                                                  @Param("status") ExpenseApprovalStatus status);
+
+    long countByPumpIdAndApprovalStatus(Long pumpId, ExpenseApprovalStatus approvalStatus);
 
     /** Expenses dated within [from, to], both days included — used by reports and CSV export. */
     List<PumpExpense> findByPumpIdAndExpenseDateBetweenOrderByExpenseDateDescCreatedAtDesc(

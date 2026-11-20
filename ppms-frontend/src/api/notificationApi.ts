@@ -10,6 +10,7 @@ export type NotificationType =
   | 'PRICE_CHANGE_OPEN_SHIFT'
   | 'ANCILLARY_LOW_STOCK'
   | 'AUTO_CLOSED_SHIFT'
+  | 'SETTLEMENT_REMINDER'
 
 export interface Notification {
   id: number

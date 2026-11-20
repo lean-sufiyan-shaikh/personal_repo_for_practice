@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware'
 interface PumpState {
   selectedPumpId: number | null
   setSelectedPumpId: (id: number) => void
+  clearSelectedPump: () => void
 }
 
 /**
@@ -17,6 +18,7 @@ export const usePumpStore = create<PumpState>()(
     (set) => ({
       selectedPumpId: null,
       setSelectedPumpId: (id) => set({ selectedPumpId: id }),
+      clearSelectedPump: () => set({ selectedPumpId: null }),
     }),
     { name: 'ppms_selected_pump' }
   )

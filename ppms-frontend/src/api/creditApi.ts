@@ -61,7 +61,9 @@ export interface CreditPayment {
   paymentMode: string
   notes: string | null
   paidAt: string
+  recordedById: number
   recordedByUserName: string
+  paymentApprovalStatus: 'APPROVED' | 'PENDING_APPROVAL' | 'REJECTED'
   createdAt: string
 }
 
@@ -100,6 +102,8 @@ export interface CreateExtensionRequest {
   reason: string
 }
 
+const LEDGER_PAGE_SIZE = 200
+
 export const creditApi = {
   // Returns all clients with outstanding balances
   getLedgerSummary: (pumpId: number) =>
@@ -108,6 +112,26 @@ export const creditApi = {
   // Returns paginated transaction history (sales + payments + interest) for a client
   getTransactions: (pumpId: number, clientId: number, page = 0, size = 10) =>
     client.get<PagedResponse<CreditTransaction>>(`/pumps/${pumpId}/credit-ledger/${clientId}/transactions`, { params: { page, size } }).then(r => r.data),
+
+  // Loads the client's whole ledger page by page (the backend caps a page at 200 rows)
+  getAllTransactions: async (pumpId: number, clientId: number): Promise<CreditTransaction[]> => {
+    const all: CreditTransaction[] = []
+    let page = 0
+    let hasNext = true
+    while (hasNext) {
+      const result = await creditApi.getTransactions(pumpId, clientId, page, LEDGER_PAGE_SIZE)
+      all.push(...result.content)
+      hasNext = result.hasNext
+      page += 1
+    }
+    return all
+  },
+
+  getPendingPayments: (pumpId: number) =>
+    client.get<CreditPayment[]>(`/pumps/${pumpId}/credit-ledger/payments/pending`).then(r => r.data),
+
+  approvePayment: (pumpId: number, paymentId: number, status: 'APPROVED' | 'REJECTED') =>
+    client.patch<CreditPayment>(`/pumps/${pumpId}/credit-ledger/payments/${paymentId}/approve`, { status }).then(r => r.data),
 
   // Records a payment against a client's balance
   recordPayment: (pumpId: number, clientId: number, req: RecordPaymentRequest) =>

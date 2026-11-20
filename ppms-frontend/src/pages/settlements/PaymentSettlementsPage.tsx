@@ -72,16 +72,8 @@ export default function PaymentSettlementsPage() {
   const [typeFilter, setTypeFilter] = useState<SettlementPaymentType | ''>('')
 
   // Date range filter for the history — defaults to last 7 days
-  function localDateStr(offsetDays = 0): string {
-    const d = new Date()
-    d.setDate(d.getDate() + offsetDays)
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${day}`
-  }
-  const [filterFrom, setFilterFrom] = useState(() => localDateStr(-7))
-  const [filterTo, setFilterTo]     = useState(() => localDateStr(0))
+  const [filterFrom, setFilterFrom] = useState(() => localDateInputValue(-7))
+  const [filterTo, setFilterTo]     = useState(() => localDateInputValue(0))
   const [summaryPage, setSummaryPage]         = useState(0)
   const [summaryPageSize, setSummaryPageSize] = useState(10)
 

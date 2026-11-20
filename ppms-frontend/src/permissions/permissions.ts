@@ -18,8 +18,8 @@ export const PAGE_PERMISSIONS: Record<string, UserRole[]> = {
   shifts:          ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
   shiftPlanning:   ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
   inventory:       ['OWNER', 'ADMIN', 'MANAGER'],
-  credit:          ['OWNER', 'ADMIN', 'MANAGER'],
-  expenses:        ['OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT'],
+  credit:          ['OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT'],
+  expenses:        ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR', 'ACCOUNTANT'],
   documents:       ['OWNER', 'ADMIN'],
   cashDrawer:      ['OWNER', 'ADMIN', 'MANAGER'],
   calibration:     ['OWNER', 'ADMIN', 'MANAGER'],
@@ -30,6 +30,25 @@ export const PAGE_PERMISSIONS: Record<string, UserRole[]> = {
   reports:         ['OWNER', 'ADMIN', 'MANAGER'],
   setup:           ['OWNER', 'ADMIN', 'MANAGER'],
   settlements:     ['OWNER', 'ADMIN', 'MANAGER'],
+}
+
+const PAGE_PATHS: Record<string, string> = {
+  overview:      '/dashboard',
+  shifts:        '/dashboard/shifts',
+  shiftPlanning: '/dashboard/shift-planning',
+  inventory:     '/dashboard/inventory',
+  credit:        '/dashboard/credit',
+  expenses:      '/dashboard/expenses',
+  documents:     '/dashboard/documents',
+  cashDrawer:    '/dashboard/cash',
+  calibration:   '/dashboard/calibration',
+  payroll:       '/dashboard/payroll',
+  products:      '/dashboard/ancillary',
+  auditLog:      '/dashboard/audit',
+  balanceSheets: '/dashboard/balance-sheets',
+  reports:       '/dashboard/reports',
+  setup:         '/dashboard/setup',
+  settlements:   '/dashboard/settlements',
 }
 
 // ─── Action-Level Permissions ───────────────────────────────────────────────
@@ -123,6 +142,6 @@ export function canPerformAction(action: string, role: UserRole | undefined): bo
 export function getDefaultPath(role: UserRole | undefined): string {
   if (!role) return '/login'
   if (role === 'SUPER_ADMIN') return '/super-admin'
-  if (role === 'OPERATOR') return '/dashboard/shifts'
-  return '/dashboard'
+  const firstPage = Object.keys(PAGE_PATHS).find(page => canAccessPage(page, role))
+  return firstPage ? PAGE_PATHS[firstPage] : '/login'
 }

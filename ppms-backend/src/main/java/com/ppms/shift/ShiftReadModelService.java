@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -117,6 +118,8 @@ public class ShiftReadModelService {
                 .map(n -> new ShiftResponse.NozzleSummary(n.getId(), n.getNozzleNumber(), n.getFuelType().name()))
                 .toList();
 
+        Map<Long, BigDecimal> maxMeterByNozzleId = nozzles.stream()
+                .collect(Collectors.toMap(Nozzle::getId, Nozzle::getMaxMeterValue, (first, second) -> first));
         List<ShiftResponse.FuelReadingResponse> fuelReadingResponses = readings.stream()
                 .map(r -> new ShiftResponse.FuelReadingResponse(
                         r.getNozzleId(),
@@ -124,12 +127,14 @@ public class ShiftReadModelService {
                         r.getStartReading(),
                         r.getEndReading(),
                         r.getPriceSnapshot(),
-                        r.getUnitsSold()))
+                        r.getUnitsSold(),
+                        maxMeterByNozzleId.get(r.getNozzleId())))
                 .toList();
 
         List<ShiftResponse.CreditEntryResponse> creditEntryResponses = entries.stream()
                 .map(entry -> new ShiftResponse.CreditEntryResponse(
                         entry.getId(),
+                        entry.getClientId(),
                         entry.getClientName(),
                         entry.getBillNo(),
                         entry.getAmount(),

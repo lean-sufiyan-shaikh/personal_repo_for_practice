@@ -1610,11 +1610,7 @@ function BackfillSaleModal({
 }) {
   useEscapeKey(onClose)
   const { addToast } = useToastStore()
-  const yesterday = (() => {
-    const d = new Date()
-    d.setDate(d.getDate() - 1)
-    return d.toISOString().split('T')[0]
-  })()
+  const yesterday = localDateInputValue(-1)
 
   const [step, setStep] = useState<'form' | 'review'>('form')
   const [form, setForm] = useState<BackfillSaleRequest>({
@@ -1643,7 +1639,7 @@ function BackfillSaleModal({
   const validate = (): string | null => {
     if (!form.productId) return 'Select a product'
     if (!form.saleDate) return 'Sale date is required'
-    if (form.saleDate >= new Date().toISOString().split('T')[0]) {
+    if (form.saleDate >= localDateInputValue()) {
       return 'Sale date must be before today. Use the Sell button on the Products tab for today\'s sales.'
     }
     if (!form.quantityUnits || form.quantityUnits < 1) return 'Quantity must be at least 1'

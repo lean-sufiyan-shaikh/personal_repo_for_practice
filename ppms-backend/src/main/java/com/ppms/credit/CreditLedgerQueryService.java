@@ -94,6 +94,7 @@ public class CreditLedgerQueryService {
                 .referenceNo(payment.getReferenceNo())
                 .notes(payment.getNotes())
                 .paidAt(payment.getPaidAt())
+                .recordedById(payment.getRecordedById())
                 .recordedByUserName(recordedByName)
                 .paymentApprovalStatus(payment.getPaymentApprovalStatus().name())
                 .approvedByUserId(payment.getApprovedByUserId())

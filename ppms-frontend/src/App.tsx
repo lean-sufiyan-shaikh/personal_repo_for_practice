@@ -1,7 +1,8 @@
 import { Suspense, lazy } from 'react'
 import type { ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from './queryClient'
 import ProtectedRoute from './components/ProtectedRoute'
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
@@ -26,20 +27,6 @@ const PayrollPage = lazy(() => import('./pages/payroll/PayrollPage'))
 const AncillaryProductsPage = lazy(() => import('./pages/ancillary/AncillaryProductsPage'))
 const PaymentSettlementsPage = lazy(() => import('./pages/settlements/PaymentSettlementsPage'))
 const CreditBalancePortalPage = lazy(() => import('./pages/portal/CreditBalancePortalPage'))
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // Never retry a 401 — the token is expired; retrying just fires the logout interceptor again
-      retry: (failureCount, error: any) => {
-        if (error?.response?.status === 401) return false
-        return failureCount < 1
-      },
-      staleTime: 30_000,
-      gcTime: 10 * 60_000, // keep cached data for 10 min after component unmounts
-    },
-  },
-})
 
 function PageFallback() {
   return (

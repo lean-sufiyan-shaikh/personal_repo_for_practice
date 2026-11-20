@@ -64,6 +64,12 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
     // Paginated version for the API — prevents unbounded result sets on busy pumps
     Page<Shift> findByPumpIdOrderByActualStartTimeDesc(Long pumpId, Pageable pageable);
 
+    Page<Shift> findByPumpIdAndShiftDateBetweenOrderByActualStartTimeDesc(
+            Long pumpId, LocalDate from, LocalDate to, Pageable pageable);
+
+    Page<Shift> findByPumpIdAndShiftDateBetweenAndDiscrepancyTypeInOrderByActualStartTimeDesc(
+            Long pumpId, LocalDate from, LocalDate to, List<DiscrepancyType> discrepancyTypes, Pageable pageable);
+
     // ── Operator deactivation guards (Business Rules 30, 45) ─────────────────
 
     /** True if operator has any open shift — blocks deactivation (Rule 45). */

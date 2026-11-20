@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { usePumpStore } from '../../store/usePumpStore'
 import { cashApi } from '../../api/cashApi'
@@ -48,8 +48,8 @@ export default function CashDrawerPage() {
   const [toDate,   setToDate]   = useState('')
 
   const { data: cashData, isLoading, error: cashError } = useQuery({
-    queryKey:  ['cashEvents', pumpId, page, pageSize, eventTypeFilter],
-    queryFn:   () => cashApi.getCashEvents(pumpId!, page, pageSize, eventTypeFilter || undefined),
+    queryKey:  ['cashEvents', pumpId, page, pageSize, eventTypeFilter, fromDate, toDate],
+    queryFn:   () => cashApi.getCashEvents(pumpId!, page, pageSize, eventTypeFilter || undefined, fromDate || undefined, toDate || undefined),
     enabled:   !!pumpId,
   })
 
@@ -113,14 +113,7 @@ export default function CashDrawerPage() {
           ? 'ui-modal-header--info'
           : 'ui-modal-header--neutral'
 
-  const allEvents = cashData?.events?.content ?? []
-  const filteredEvents = useMemo(() => {
-    return allEvents.filter(ev => {
-      if (fromDate && ev.eventDate < fromDate) return false
-      if (toDate   && ev.eventDate > toDate)   return false
-      return true
-    })
-  }, [allEvents, fromDate, toDate])
+  const filteredEvents = cashData?.events?.content ?? []
 
   return (
     <div className="ui-page ui-page--narrow space-y-5">

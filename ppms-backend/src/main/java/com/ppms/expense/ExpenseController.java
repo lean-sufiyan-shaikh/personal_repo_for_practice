@@ -60,6 +60,21 @@ public class ExpenseController {
     }
 
     /**
+     * GET /api/pumps/{pumpId}/expenses/summary
+     * Approved total and pending-approval count/total across every expense of the pump (not one page).
+     */
+    @GetMapping("/{pumpId}/expenses/summary")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'OPERATOR', 'ACCOUNTANT')")
+    public ExpenseSummaryResponse getExpenseSummary(@PathVariable Long pumpId) {
+        return new ExpenseSummaryResponse(
+                expenseRepository.sumAmountByPumpIdAndApprovalStatus(pumpId, ExpenseApprovalStatus.APPROVED)
+                        .setScale(2, RoundingMode.HALF_UP),
+                expenseRepository.countByPumpIdAndApprovalStatus(pumpId, ExpenseApprovalStatus.PENDING_APPROVAL),
+                expenseRepository.sumAmountByPumpIdAndApprovalStatus(pumpId, ExpenseApprovalStatus.PENDING_APPROVAL)
+                        .setScale(2, RoundingMode.HALF_UP));
+    }
+
+    /**
      * POST /api/pumps/{pumpId}/expenses
      * Records a new expense entry.
      *

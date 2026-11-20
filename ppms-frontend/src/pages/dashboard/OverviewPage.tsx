@@ -11,7 +11,7 @@ import { pumpApi } from '../../api/pumpApi'
 import { shiftApi } from '../../api/shiftApi'
 import { inventoryApi } from '../../api/inventoryApi'
 import { usePumpStore } from '../../store/usePumpStore'
-import { localDateInputValue } from '../../utils/date'
+import { localDateInputValue, formatIstDate } from '../../utils/date'
 import { SkeletonStat } from '../../components/Skeleton'
 import { Reveal } from '../../components/Reveal'
 import { RefreshIndicator } from '../../components/RefreshIndicator'
@@ -21,6 +21,8 @@ import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
+
+const MAX_CHART_DAYS = 30
 
 function todayIstStr() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
@@ -82,9 +84,10 @@ export default function OverviewPage() {
   })
 
   // Shift history for today's revenue
+  const chartFrom = localDateInputValue(-(MAX_CHART_DAYS - 1))
   const { data: historyShifts = [] } = useQuery({
-    queryKey: ['shiftHistory', pumpId],
-    queryFn:  () => shiftApi.getShiftHistory(pumpId!),
+    queryKey: ['shiftHistory', pumpId, 'overview', chartFrom],
+    queryFn:  () => shiftApi.getShiftHistory(pumpId!, { from: chartFrom }),
     enabled:  !!pumpId,
   })
 
@@ -152,16 +155,10 @@ export default function OverviewPage() {
     )
     const fuelTypes = Array.from(fuelTypeSet)
 
-    const today = new Date()
     const data: Array<Record<string, number | string>> = []
     for (let i = chartDays - 1; i >= 0; i--) {
-      const d = new Date(today)
-      d.setDate(d.getDate() - i)
-      const y = d.getFullYear()
-      const m = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      const dateStr = `${y}-${m}-${day}`
-      const label = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+      const dateStr = localDateInputValue(-i)
+      const label = formatIstDate(dateStr, { day: 'numeric', month: 'short' })
       const entry: Record<string, number | string> = { label, date: dateStr, revenue: 0 }
       fuelTypes.forEach(ft => { entry[ft] = 0 })
       data.push(entry)

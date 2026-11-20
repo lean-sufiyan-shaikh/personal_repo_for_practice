@@ -11,18 +11,15 @@ import { ModalPortal } from '../../components/ModalPortal'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { parseApiError } from '../../utils/apiError'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
+import { useConfirmDiscard } from '../../hooks/useConfirmDiscard'
+import { localDateInputValue } from '../../utils/date'
+import { roundToMillilitres, roundToPaise, toPaise } from '../../utils/money'
+import { pumpApi } from '../../api/pumpApi'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function localDateStr(d: Date): string {
-  const y   = d.getFullYear()
-  const m   = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
-
-function maxDate(): string { return localDateStr(new Date(Date.now() - 86_400_000)) }
-function minDate(): string { return localDateStr(new Date(Date.now() - 365 * 86_400_000)) }
+function maxDate(): string { return localDateInputValue(-1) }
+function minDate(): string { return localDateInputValue(-365) }
 
 function safeParse(v: string): number {
   const n = parseFloat(v)
@@ -42,6 +39,7 @@ const FUEL_LABELS: Record<string, string> = {
 
 interface CreditRow {
   _key: number
+  clientId: number | null
   clientName: string
   amount: string
   fuelType: string
@@ -51,7 +49,7 @@ interface CreditRow {
 
 let _rowKey = 0
 function newCreditRow(): CreditRow {
-  return { _key: ++_rowKey, clientName: '', amount: '', fuelType: '', billNo: '', description: '' }
+  return { _key: ++_rowKey, clientId: null, clientName: '', amount: '', fuelType: '', billNo: '', description: '' }
 }
 
 // ── Section header ────────────────────────────────────────────────────────────
@@ -74,7 +72,6 @@ interface Props {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function BackfillShiftModal({ pumpId, onClose }: Props) {
-  useEscapeKey(onClose)
   const qc = useQueryClient()
 
   const [shiftDate,         setShiftDate]         = useState(maxDate())
@@ -94,7 +91,6 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
   const [upiCollected,       setUpiCollected]       = useState('')
   const [cardCollected,      setCardCollected]      = useState('')
   const [fleetCardCollected, setFleetCardCollected] = useState('')
-  const [creditTotal,      setCreditTotal]      = useState('')
   const [creditRows,       setCreditRows]       = useState<CreditRow[]>([])
   const [expandedCreditId, setExpandedCreditId] = useState<number | null>(null)
   const [discrepancyReason, setDiscrepancyReason] = useState('')
@@ -116,6 +112,21 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
     queryKey: ['dus', pumpId],
     queryFn:  () => shiftApi.getDUs(pumpId),
   })
+
+  const { data: creditClients = [] } = useQuery({
+    queryKey: ['creditClients', pumpId],
+    queryFn:  () => pumpApi.getCreditClients(pumpId),
+  })
+  const creditClientOptions = useMemo(() => {
+    const nameById = new Map(creditClients.map(c => [c.id, c.name]))
+    return creditClients
+      .filter(c => c.isActive)
+      .map(c => ({
+        value: String(c.id),
+        label: c.parentClientId ? `${nameById.get(c.parentClientId) ?? ''} › ${c.name}` : c.name,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [creditClients])
 
   const { data: operators = [], isLoading: operatorsLoading } = useQuery({
     queryKey: ['operators', pumpId],
@@ -188,7 +199,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
     const c = parseFloat(closingReadings[nozzleId] ?? '')
     if (!isFinite(o) || !isFinite(c)) return null
     const diff = c - o
-    return diff >= 0 ? diff : null
+    return diff >= 0 ? roundToMillilitres(diff) : null
   }
 
   // Effective rate: DB price if available, else manual input
@@ -199,40 +210,31 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
     return isFinite(input) && input > 0 ? input : null
   }
 
-  // Per-nozzle expected amount and totals
-  const { nozzleExpected, totalExpected, allRatesResolved } = useMemo(() => {
-    const nozzleExpected: Record<number, number | null> = {}
-    let total: number | null = 0
-    let allResolved = true
-
-    for (const nozzleId of selectedNozzleIds) {
-      const nozzle = availableNozzles.find(n => n.id === nozzleId)
-      const liters = litersForNozzle(nozzleId)
-      const rate = nozzle ? getEffectiveRate(nozzle.fuelType) : null
-
-      if (liters !== null && rate !== null) {
-        nozzleExpected[nozzleId] = parseFloat((liters * rate).toFixed(2))
-        if (total !== null) total += nozzleExpected[nozzleId]!
-      } else {
-        nozzleExpected[nozzleId] = null
-        total = null
-      }
-
-      if (nozzle && getEffectiveRate(nozzle.fuelType) === null) allResolved = false
+  // Per-nozzle expected amount and totals. Like the backend, the meter total is rounded to paise once.
+  const nozzleExpected: Record<number, number | null> = {}
+  let unroundedTotal: number | null = 0
+  let allRatesResolved = true
+  for (const nozzleId of selectedNozzleIds) {
+    const nozzle = availableNozzles.find(n => n.id === nozzleId)
+    const liters = litersForNozzle(nozzleId)
+    const rate = nozzle ? getEffectiveRate(nozzle.fuelType) : null
+    if (liters !== null && rate !== null) {
+      nozzleExpected[nozzleId] = roundToPaise(liters * rate)
+      if (unroundedTotal !== null) unroundedTotal += liters * rate
+    } else {
+      nozzleExpected[nozzleId] = null
+      unroundedTotal = null
     }
+    if (nozzle && rate === null) allRatesResolved = false
+  }
+  const totalExpected = unroundedTotal !== null ? roundToPaise(unroundedTotal) : null
 
-    return { nozzleExpected, totalExpected: total, allRatesResolved: allResolved }
-  }, [selectedNozzleIds, openingReadings, closingReadings, dbPriceMap, fuelRateInputs, availableNozzles])
-
-  // Credit total as number
-  const creditNum = safeParse(creditTotal)
-
-  // Total collected (payment)
-  const totalCollected = safeParse(cashCollected) + safeParse(upiCollected) + safeParse(cardCollected) + safeParse(fleetCardCollected) + creditNum
-
-  // Expected total including credit
-  const expectedWithCredit = totalExpected !== null ? parseFloat((totalExpected + creditNum).toFixed(2)) : null
-  const discrepancyAmt = expectedWithCredit !== null ? parseFloat((totalCollected - expectedWithCredit).toFixed(2)) : null
+  // Credit sales are part of the metered fuel, so they count as collected — not as extra amount due.
+  const creditNum = roundToPaise(creditRows.reduce((sum, row) => sum + safeParse(row.amount), 0))
+  const totalCollected = roundToPaise(
+    safeParse(cashCollected) + safeParse(upiCollected) + safeParse(cardCollected) + safeParse(fleetCardCollected) + creditNum
+  )
+  const discrepancyAmt = totalExpected !== null ? (toPaise(totalCollected) - toPaise(totalExpected)) / 100 : null
 
   function addCreditRow() {
     const row = newCreditRow()
@@ -292,12 +294,13 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
 
     const creditEntries: CreditEntryInput[] = []
     for (const row of creditRows) {
-      if (!row.clientName.trim())
-        return setError('Client name is required for all credit entries.')
+      if (!row.clientId)
+        return setError('Select a credit client for every credit entry.')
       const amt = parseFloat(row.amount)
       if (!isFinite(amt) || amt <= 0)
         return setError(`Amount must be greater than 0 for credit entry: "${row.clientName}".`)
       creditEntries.push({
+        clientId:    row.clientId,
         clientName:  row.clientName.trim(),
         amount:      amt,
         fuelType:    row.fuelType || undefined,
@@ -328,7 +331,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
       upiCollected:       safeParse(upiCollected),
       cardCollected:      safeParse(cardCollected),
       fleetCardCollected: safeParse(fleetCardCollected),
-      creditTotal:        safeParse(creditTotal),
+      creditTotal:        creditNum,
       creditEntries,
       discrepancyReason: discrepancyReason.trim() || undefined,
       fuelRateOverrides: Object.keys(fuelRateOverrides).length > 0 ? fuelRateOverrides : undefined,
@@ -336,6 +339,11 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
   }
 
   const isPending = mutation.isPending
+  const hasUnsavedChanges = !!operatorId || selectedNozzleIds.size > 0 || creditRows.length > 0
+    || cashCollected !== '' || upiCollected !== '' || cardCollected !== '' || fleetCardCollected !== ''
+    || discrepancyReason.trim() !== ''
+  const requestClose = useConfirmDiscard(hasUnsavedChanges, onClose)
+  useEscapeKey(requestClose, !isPending)
   const canSubmit = !!shiftDate && !!shiftDefinitionId && !!selectedDU && !!operatorId && selectedNozzleIds.size > 0
 
   const selectedOperator = operators.find((o) => o.id === operatorId)
@@ -344,7 +352,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
 
   return (
     <ModalPortal>
-      <div className="ui-modal-backdrop" onClick={!isPending ? onClose : undefined}>
+      <div className="ui-modal-backdrop" onClick={!isPending ? requestClose : undefined}>
         <div
           className="ui-modal-panel w-full max-w-xl"
           onClick={(e) => e.stopPropagation()}
@@ -360,7 +368,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                 Record past shift data (up to 365 days back). Tanker deliveries for the shift date must be logged first — the system will block submission if stock is insufficient.
               </p>
             </div>
-            <button type="button" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close" disabled={isPending}>
+            <button type="button" onClick={requestClose} className="ui-btn ui-btn-ghost ui-modal-close" disabled={isPending}>
               ×
             </button>
           </div>
@@ -573,7 +581,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                           <div>
                             <label className="ui-label text-xs">Opening <span className="text-red-500">*</span></label>
                             <input
-                              type="number" min="0" step="0.01" placeholder="0.00"
+                              type="number" min="0" step="0.001" placeholder="0.000"
                               value={openingReadings[nozzleId] ?? ''}
                               onChange={(e) => setOpeningReadings((r) => ({ ...r, [nozzleId]: e.target.value }))}
                               className="ui-input"
@@ -583,7 +591,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                           <div>
                             <label className="ui-label text-xs">Closing <span className="text-red-500">*</span></label>
                             <input
-                              type="number" min="0" step="0.01" placeholder="0.00"
+                              type="number" min="0" step="0.001" placeholder="0.000"
                               value={closingReadings[nozzleId] ?? ''}
                               onChange={(e) => setClosingReadings((r) => ({ ...r, [nozzleId]: e.target.value }))}
                               className="ui-input"
@@ -593,15 +601,15 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                         </div>
                         {liters !== null && liters >= 0 && rate !== null && (
                           <p className="mt-1.5 text-xs text-slate-500">
-                            <span className="font-semibold text-slate-700">{liters.toFixed(2)} L</span>
+                            <span className="font-semibold text-slate-700">{liters.toFixed(3)} L</span>
                             {' × '}
                             <span className="font-semibold text-slate-700">₹{rate.toFixed(2)}</span>
                             {' = '}
-                            <span className="font-bold text-emerald-700">₹{fmt(liters * rate)}</span>
+                            <span className="font-bold text-emerald-700">₹{fmt(roundToPaise(liters * rate))}</span>
                           </p>
                         )}
                         {liters !== null && liters >= 0 && rate === null && (
-                          <p className="mt-1.5 text-xs text-amber-600">{liters.toFixed(2)} L sold — enter fuel rate above to see expected amount</p>
+                          <p className="mt-1.5 text-xs text-amber-600">{liters.toFixed(3)} L sold — enter fuel rate above to see expected amount</p>
                         )}
                         {liters !== null && liters < 0 && (
                           <p className="mt-1.5 text-xs text-red-600">Closing must be ≥ opening.</p>
@@ -616,14 +624,9 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
               <div className="rounded-xl border border-orange-100 bg-orange-50/50 p-4 space-y-3">
                 <SectionLabel>Credit Sales</SectionLabel>
 
-                <div>
-                  <label className="ui-label text-xs">Credit Total (₹)</label>
-                  <input
-                    type="number" min="0" step="0.01" placeholder="0.00"
-                    value={creditTotal}
-                    onChange={(e) => setCreditTotal(e.target.value)}
-                    className="ui-input"
-                  />
+                <div className="flex items-center justify-between text-xs text-slate-600">
+                  <span>Credit total (sum of entries below)</span>
+                  <span className="font-semibold text-slate-800">₹{fmt(creditNum)}</span>
                 </div>
 
                 {creditRows.map((row) => {
@@ -646,10 +649,19 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                         <div className="p-3 space-y-2">
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="ui-label text-xs">Client Name <span className="text-red-500">*</span></label>
-                              <input type="text" placeholder="Client name" value={row.clientName}
-                                onChange={(e) => updateCreditRow(row._key, { clientName: e.target.value })}
-                                className="ui-input" />
+                              <label id={`backfill-credit-client-${row._key}`} className="ui-label text-xs">Client <span className="text-red-500">*</span></label>
+                              <SearchableSelect
+                                aria-labelledby={`backfill-credit-client-${row._key}`}
+                                value={row.clientId ? String(row.clientId) : ''}
+                                onChange={(value) => {
+                                  const client = creditClients.find(c => c.id === Number(value))
+                                  updateCreditRow(row._key, { clientId: client?.id ?? null, clientName: client?.name ?? '' })
+                                }}
+                                options={creditClientOptions}
+                                placeholder="Select client"
+                                accentColor="orange"
+                                size="sm"
+                              />
                             </div>
                             <div>
                               <label className="ui-label text-xs">Amount (₹) <span className="text-red-500">*</span></label>
@@ -688,7 +700,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                               className="text-xs text-red-500 hover:text-red-700">Remove entry</button>
                             <button
                               type="button"
-                              disabled={!row.clientName.trim() || !row.amount}
+                              disabled={!row.clientId || !row.amount}
                               onClick={() => setExpandedCreditId(null)}
                               className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs disabled:opacity-40"
                             >Done</button>
@@ -728,14 +740,14 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                 </div>
 
                 {/* Expected vs Collected summary */}
-                {expectedWithCredit !== null && selectedNozzleIds.size > 0 && allRatesResolved && (
+                {totalExpected !== null && selectedNozzleIds.size > 0 && allRatesResolved && (
                   <div className="mt-3 rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
                     <div className="flex items-center justify-between px-3 py-2 text-xs text-slate-600">
-                      <span>Expected (fuel + credit)</span>
-                      <span className="font-semibold text-slate-800">₹{fmt(expectedWithCredit)}</span>
+                      <span>Expected (metered fuel sales)</span>
+                      <span className="font-semibold text-slate-800">₹{fmt(totalExpected)}</span>
                     </div>
                     <div className="flex items-center justify-between px-3 py-2 text-xs text-slate-600">
-                      <span>Collected (UPI + card + fleet + cash)</span>
+                      <span>Collected (UPI + card + fleet + cash + credit)</span>
                       <span className="font-semibold text-slate-800">₹{fmt(totalCollected)}</span>
                     </div>
                     {discrepancyAmt !== null && (
@@ -780,7 +792,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
 
             {/* ── Footer ────────────────────────────────────────────────── */}
             <div className="ui-modal-footer">
-              <button type="button" onClick={onClose} disabled={isPending} className="ui-btn ui-btn-ghost">
+              <button type="button" onClick={requestClose} disabled={isPending} className="ui-btn ui-btn-ghost">
                 Cancel
               </button>
               <button

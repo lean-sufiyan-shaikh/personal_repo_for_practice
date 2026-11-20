@@ -1,4 +1,4 @@
-import { useState, useDeferredValue } from 'react'
+import { useState, useDeferredValue, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
@@ -7,10 +7,11 @@ import { creditApi } from '../../api/creditApi'
 import type { CreditClient, CreditTransaction, RecordPaymentRequest, UpdateInterestSettingsRequest, CreditExtension, CreateExtensionRequest, CreditExtensionType } from '../../api/creditApi'
 import { pumpApi } from '../../api/pumpApi'
 import type { CreditClient as PumpCreditClient, UpdateCreditClientRequest } from '../../api/pumpApi'
-import type { PagedResponse } from '../../types/paged'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
-import { formatIstDate, localDateInputValue } from '../../utils/date'
+import { addDays, formatIstDate, istDateString, localDateInputValue } from '../../utils/date'
+import { pageSlice } from '../../utils/pageSlice'
+import { canPerformAction } from '../../permissions/permissions'
 import { SkeletonRows } from '../../components/Skeleton'
 import { Reveal } from '../../components/Reveal'
 import { EmptyState } from '../../components/EmptyState'
@@ -19,9 +20,6 @@ import { useToastStore } from '../../store/toastStore'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
-
-const today     = localDateInputValue()
-const yesterday = localDateInputValue(-1)
 
 // ─── Record Payment Modal ────────────────────────────────────────────────────
 
@@ -430,14 +428,13 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
 // ─── Helpers for week grouping ───────────────────────────────────────────────
 
 function getWeekKey(iso: string): string {
-  const d = new Date(iso)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Monday
-  const mon = new Date(d); mon.setDate(diff)
-  const sun = new Date(mon); sun.setDate(mon.getDate() + 6)
-  const fmt = (dt: Date) =>
-    formatIstDate(dt, { day: '2-digit', month: 'short', year: 'numeric' })
-  return `${fmt(mon)} – ${fmt(sun)}`
+  const istDate = istDateString(new Date(iso))
+  const dayOfWeek = new Date(`${istDate}T00:00:00Z`).getUTCDay()
+  const monday = addDays(istDate, dayOfWeek === 0 ? -6 : 1 - dayOfWeek)
+  const sunday = addDays(monday, 6)
+  const fmt = (date: string) =>
+    formatIstDate(date, { day: '2-digit', month: 'short', year: 'numeric' })
+  return `${fmt(monday)} – ${fmt(sunday)}`
 }
 
 function getMonthKey(iso: string): string {
@@ -463,7 +460,7 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
   const qc = useQueryClient()
   const [extensionType, setExtensionType] = useState<CreditExtensionType>('BILLING_CYCLE_EXTENSION')
   const [extensionAmount, setExtensionAmount] = useState('')
-  const [expiryDate, setExpiryDate] = useState(today)
+  const [expiryDate, setExpiryDate] = useState(() => localDateInputValue())
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -772,54 +769,77 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
     enabled: !!client,
   })
 
+  const { user } = useAuthStore()
+  const { addToast } = useToastStore()
+  const role = user?.role
+  const canApprovePayments = canPerformAction('credit:approve-payment', role)
   const [txPage, setTxPage] = useState(0)
   const [txPageSize, setTxPageSize] = useState(10)
 
-  // For parent accounts we load a large page so all sub-account data can be merged and sorted
-  // client-side. Parent accounts at a petrol pump rarely exceed a few hundred transactions.
+  // The whole ledger is loaded so filters, month chips and week totals cover every row, not one page.
   const isParent = client?.isParent === true
-  const { data: ownTxPage, isLoading } = useQuery({
-    queryKey: ['credit-transactions', pumpId, clientId, isParent ? 0 : txPage, isParent ? 1000 : txPageSize],
-    queryFn: () => creditApi.getTransactions(pumpId, clientId, isParent ? 0 : txPage, isParent ? 1000 : txPageSize),
+  const { data: ownTransactions = [], isLoading } = useQuery({
+    queryKey: ['credit-transactions', pumpId, clientId, 'all'],
+    queryFn: () => creditApi.getAllTransactions(pumpId, clientId),
   })
-  const ownTransactions = ownTxPage?.content ?? []
 
   // outstandingInterest and totalInterestRecovered are now embedded in the client response —
   // no separate API call needed. Fall back to 0 while the client data is loading.
   const outstandingInterest   = client?.outstandingInterest   ?? 0
   const totalInterestRecovered = client?.totalInterestRecovered ?? 0
 
-  // Fetch each child's transactions in parallel (only runs when viewing a parent account)
-  // Large page size since this is already a complex merged view
   const childTxQueries = useQueries({
     queries: childClients.map(child => ({
-      queryKey: ['credit-transactions', pumpId, child.id, 0, 1000],
-      queryFn:  (): Promise<PagedResponse<CreditTransaction>> => creditApi.getTransactions(pumpId, child.id, 0, 1000),
+      queryKey: ['credit-transactions', pumpId, child.id, 'all'],
+      queryFn:  () => creditApi.getAllTransactions(pumpId, child.id),
     })),
   })
 
-  // Extended transaction type that carries sub-account metadata for the merged parent view
-  type MergedTx = CreditTransaction & { subAccountName?: string; sourceClientId: number }
-  const childTransactionsByIndex: MergedTx[][] = childClients.map((child, i) =>
-    ((childTxQueries[i]?.data?.content) ?? []).map(tx => ({
-      ...tx,
-      subAccountName: child.name,
-      sourceClientId: child.id,
-    }))
+  const { data: pendingPayments = [] } = useQuery({
+    queryKey: ['credit-pending-payments', pumpId],
+    queryFn: () => creditApi.getPendingPayments(pumpId),
+    enabled: canApprovePayments,
+  })
+  const pendingPaymentRecorders = useMemo(
+    () => new Map(pendingPayments.map(p => [p.id, p.recordedById])),
+    [pendingPayments],
   )
 
-  const transactions: MergedTx[] = isParent
-    ? [
-        ...ownTransactions.map(tx => ({ ...tx, sourceClientId: clientId })),
-        ...childTransactionsByIndex.flat(),
-      ].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
-    : ownTransactions.map(tx => ({ ...tx, sourceClientId: clientId }))
+  // Extended transaction type that carries sub-account metadata for the merged parent view
+  type MergedTx = CreditTransaction & { subAccountName?: string; sourceClientId: number }
+  const childTransactionsByIndex: MergedTx[][] = useMemo(
+    () => childClients.map((child, i) =>
+      (childTxQueries[i]?.data ?? []).map(tx => ({
+        ...tx,
+        subAccountName: child.name,
+        sourceClientId: child.id,
+      }))
+    ),
+    // childTxQueries is a new array every render; its data references are what change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [childClients.map(c => c.id).join(','), ...childTxQueries.map(q => q.data)],
+  )
+
+  const transactions: MergedTx[] = useMemo(
+    () => isParent
+      ? [
+          ...ownTransactions.map(tx => ({ ...tx, sourceClientId: clientId })),
+          ...childTransactionsByIndex.flat(),
+        ].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+      : ownTransactions.map(tx => ({ ...tx, sourceClientId: clientId })),
+    [isParent, ownTransactions, childTransactionsByIndex, clientId],
+  )
+
+  const invalidateLedger = () => {
+    qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId] })
+    qc.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
+    qc.invalidateQueries({ queryKey: ['credit-pending-payments', pumpId] })
+  }
 
   const applyInterestMutation = useMutation({
     mutationFn: () => creditApi.applyInterest(pumpId, clientId),
     onSuccess: (result) => {
-      qc.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
-      qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId, clientId] })
+      invalidateLedger()
       if (result.applied) {
         setApplyInterestFeedback(`₹${result.amount?.toFixed(2)} interest applied for ${result.days} days (${result.periodFrom} – ${result.periodTo})`)
       } else {
@@ -834,10 +854,22 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
       creditApi.deleteInterestCharge(pumpId, sourceClientId, chargeId),
     onSuccess: () => {
       setConfirmDeleteInterest(null)
-      qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId, clientId] })
-      qc.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
+      invalidateLedger()
     },
-    onError: () => setConfirmDeleteInterest(null),
+    onError: (err: any) => {
+      setConfirmDeleteInterest(null)
+      addToast(parseApiError(err, 'Failed to remove interest charge'), 'error')
+    },
+  })
+
+  const approvePaymentMutation = useMutation({
+    mutationFn: ({ paymentId, status }: { paymentId: number; status: 'APPROVED' | 'REJECTED' }) =>
+      creditApi.approvePayment(pumpId, paymentId, status),
+    onSuccess: (_payment, { status }) => {
+      invalidateLedger()
+      addToast(status === 'APPROVED' ? 'Payment approved' : 'Payment rejected', 'success')
+    },
+    onError: (err: any) => addToast(parseApiError(err, 'Failed to update payment'), 'error'),
   })
 
   // ── Filter state ──────────────────────────────────────────────────────────
@@ -846,27 +878,24 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
   const [filterMode, setFilterMode] = useState<FilterMode>('all')
   const [txTypeFilter, setTxTypeFilter] = useState<TxTypeFilter>('ALL')
   const [selectedMonth, setSelectedMonth] = useState<string>('')
-  const [fromDate, setFromDate]         = useState(yesterday)
-  const [toDate, setToDate]             = useState(today)
+  const [fromDate, setFromDate]         = useState(() => localDateInputValue(-1))
+  const [toDate, setToDate]             = useState(() => localDateInputValue())
 
-  // Unique months derived from transactions (for the month picker)
-  const availableMonths = Array.from(
-    new Set(transactions.map(tx => getMonthKey(tx.occurredAt)))
+  const availableMonths = useMemo(
+    () => Array.from(new Set(transactions.map(tx => getMonthKey(tx.occurredAt)))),
+    [transactions],
   )
 
-  // Apply filter
-  const filtered = transactions.filter(tx => {
+  const applyFilters = <T extends { type: string; occurredAt: string }>(tx: T): boolean => {
     if (txTypeFilter !== 'ALL' && tx.type !== txTypeFilter) return false
-    if (filterMode === 'month' && selectedMonth) {
-      return getMonthKey(tx.occurredAt) === selectedMonth
-    }
+    if (filterMode === 'month' && selectedMonth) return getMonthKey(tx.occurredAt) === selectedMonth
     if (filterMode === 'range') {
-      const d = tx.occurredAt.slice(0, 10)
+      const d = istDateString(new Date(tx.occurredAt))
       if (fromDate && d < fromDate) return false
       if (toDate   && d > toDate)   return false
     }
     return true
-  })
+  }
 
   // Helper: groups a sorted array of transactions into week buckets
   const buildWeekGroups = <T extends CreditTransaction>(txs: T[]): Array<{ label: string; items: T[] }> => {
@@ -880,25 +909,18 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
     return groups
   }
 
-  // Group filtered transactions by week (already sorted newest→oldest from API)
-  const weekGroups = buildWeekGroups(filtered)
+  const filtered = useMemo(
+    () => transactions.filter(applyFilters),
+    // applyFilters reads only the filter state listed here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [transactions, txTypeFilter, filterMode, selectedMonth, fromDate, toDate],
+  )
+  const pagedFiltered = pageSlice(filtered, txPage, txPageSize)
+  const weekGroups = useMemo(() => buildWeekGroups(pagedFiltered.content),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filtered, txPage, txPageSize])
 
-  const applyFilters = <T extends { type: string; occurredAt: string }>(tx: T): boolean => {
-    if (txTypeFilter !== 'ALL' && tx.type !== txTypeFilter) return false
-    if (filterMode === 'month' && selectedMonth) return getMonthKey(tx.occurredAt) === selectedMonth
-    if (filterMode === 'range') {
-      const d = tx.occurredAt.slice(0, 10)
-      if (fromDate && d < fromDate) return false
-      if (toDate   && d > toDate)   return false
-    }
-    return true
-  }
-
-  // For parent view: apply the same filter to each child's transactions and to parent's own
-  const childFilteredTxs = childClients.map((_, i) => {
-    const childTxs = childTransactionsByIndex[i] ?? []
-    return childTxs.filter(applyFilters)
-  })
+  const childFilteredTxs = childTransactionsByIndex.map(childTxs => childTxs.filter(applyFilters))
   const filteredOwn = ownTransactions.filter(applyFilters)
 
   const formatDate = (iso: string) =>
@@ -906,28 +928,15 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
 
   const formatAmount = (n: number) =>
     n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  const ownOutstandingFromTransactions = ownTransactions.length > 0
-    ? Math.max(0, ownTransactions[0].runningBalance)
+
+  // The server balance already counts sub-accounts for a parent; pending payments are not yet in it.
+  const pendingPaymentTotal = transactions
+    .filter(tx => tx.type === 'PAYMENT' && tx.status === 'PENDING_APPROVAL')
+    .reduce((sum, tx) => sum + tx.amount, 0)
+  const effectiveOutstandingBalance = client
+    ? Math.max(0, Math.round((client.outstandingBalance - pendingPaymentTotal) * 100) / 100)
     : 0
-  const childOutstandingTotal = childClients.reduce((sum, child) => {
-    const childLedger = allClients.find(c => c.id === child.id)
-    return sum + (childLedger?.outstandingBalance ?? 0)
-  }, 0)
-  const childOutstandingFromTransactions = childTransactionsByIndex.reduce((sum, txs) => {
-    return sum + (txs.length > 0 ? Math.max(0, txs[0].runningBalance) : 0)
-  }, 0)
-  const effectiveOutstandingBalance = !client
-    ? 0
-    : client.isParent
-      ? Math.max(
-          client.outstandingBalance,
-          ownOutstandingFromTransactions,
-          childOutstandingTotal,
-          childOutstandingFromTransactions,
-          ownOutstandingFromTransactions + childOutstandingFromTransactions,
-        )
-      : Math.max(client.outstandingBalance, ownOutstandingFromTransactions)
-  const canRecordPayment = !!client && (
+  const canRecordPayment = !!client && canPerformAction('credit:record-payment', role) && (
     effectiveOutstandingBalance > 0 ||
     (client.isParent && childClients.length > 0)
   )
@@ -985,6 +994,27 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
                   ₹{formatAmount(tx.runningBalance)}
                 </td>
                 <td className="px-3 py-2.5 w-28 text-right">
+                  {canApprovePayments && tx.type === 'PAYMENT' && tx.status === 'PENDING_APPROVAL'
+                    && pendingPaymentRecorders.get(tx.referenceId) !== user?.userId && (
+                    <span className="inline-flex items-center gap-1 mr-2">
+                      <button
+                        type="button"
+                        onClick={() => approvePaymentMutation.mutate({ paymentId: tx.referenceId, status: 'APPROVED' })}
+                        disabled={approvePaymentMutation.isPending}
+                        className="ui-btn ui-btn-primary min-h-0 px-2 py-0.5 text-xs disabled:opacity-50"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => approvePaymentMutation.mutate({ paymentId: tx.referenceId, status: 'REJECTED' })}
+                        disabled={approvePaymentMutation.isPending}
+                        className="ui-btn ui-btn-danger min-h-0 px-2 py-0.5 text-xs disabled:opacity-50"
+                      >
+                        Reject
+                      </button>
+                    </span>
+                  )}
                   {isOwnerOrAdmin && (tx.type === 'SALE' || tx.type === 'PAYMENT') && (
                     <button
                       onClick={() => {
@@ -1093,7 +1123,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
                 Interest Settings
               </button>
             )}
-            {client.monthlyInterestRate > 0 && client.outstandingBalance > 0 && (
+            {canPerformAction('credit:manage-interest', role) && client.monthlyInterestRate > 0 && client.outstandingBalance > 0 && (
               <button
                 onClick={() => { setApplyInterestFeedback(null); applyInterestMutation.mutate() }}
                 disabled={applyInterestMutation.isPending}
@@ -1200,7 +1230,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
         <div className="ui-card">
           <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Transactions</p>
           <p className="text-lg font-bold text-slate-700">
-            {isParent ? transactions.length : (ownTxPage?.totalElements ?? transactions.length)}
+            {transactions.length}
           </p>
         </div>
       </div>
@@ -1388,7 +1418,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
                     ) : childFiltered.length === 0 ? (
                       <EmptyState
                         icon="transactions"
-                        title={(childTxQueries[i]?.data?.content ?? []).length === 0 ? 'No transactions yet' : 'No transactions match this filter'}
+                        title={(childTxQueries[i]?.data ?? []).length === 0 ? 'No transactions yet' : 'No transactions match this filter'}
                       />
                     ) : (
                       <div className="space-y-3">{renderWeekGroups(childGroups, child.id)}</div>
@@ -1405,14 +1435,11 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
         ) : (
           <>
             <div className="space-y-4">{renderWeekGroups(weekGroups, clientId)}</div>
-            {/* Pagination only for non-parent single-client view and when no filter is active */}
-            {!isParent && filterMode === 'all' && ownTxPage && (
-              <Pagination
-                data={ownTxPage}
-                onPageChange={p => { setTxPage(p); qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId, clientId] }) }}
-                onPageSizeChange={s => { setTxPageSize(s); setTxPage(0) }}
-              />
-            )}
+            <Pagination
+              data={pagedFiltered}
+              onPageChange={setTxPage}
+              onPageSizeChange={size => { setTxPageSize(size); setTxPage(0) }}
+            />
           </>
         )}
       </div>

@@ -57,6 +57,12 @@ export default function ExpensesPage() {
 
   const expenses = expensesPage?.content ?? []
 
+  const { data: summary } = useQuery({
+    queryKey: ['expenses', pumpId, 'summary'],
+    queryFn: () => expenseApi.getSummary(pumpId!),
+    enabled: !!pumpId,
+  })
+
   const [form, setForm] = useState<CreateExpenseRequest>({
     category: 'MAINTENANCE',
     amount: 0,
@@ -131,12 +137,8 @@ export default function ExpensesPage() {
     onError: (err: any) => addToast(parseApiError(err, 'Failed to update expense'), 'error'),
   })
 
-  // Note: totalExpenses and pendingCount reflect the current page only.
-  // For a pump with many expenses spread across pages, these numbers represent the visible page.
-  const totalExpenses = expenses
-    .filter(e => e.approvalStatus === 'APPROVED')
-    .reduce((sum, e) => sum + e.amount, 0)
-  const pendingCount = expenses.filter(e => e.approvalStatus === 'PENDING_APPROVAL').length
+  const totalExpenses = summary?.approvedTotal ?? 0
+  const pendingCount = summary?.pendingCount ?? 0
   const isOwner = user?.role === 'OWNER'
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const isAccountant = user?.role === 'ACCOUNTANT'

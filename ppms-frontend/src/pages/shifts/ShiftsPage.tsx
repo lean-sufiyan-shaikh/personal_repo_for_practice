@@ -15,7 +15,7 @@ import { SearchableSelect } from '../../components/SearchableSelect'
 import { SkeletonRows } from '../../components/Skeleton'
 import { Reveal } from '../../components/Reveal'
 import { RefreshIndicator } from '../../components/RefreshIndicator'
-import { formatIstDate, formatIstDateTime } from '../../utils/date'
+import { formatIstDate, formatIstDateTime, localDateInputValue } from '../../utils/date'
 import { maskPhone } from '../../utils/maskPhone'
 import { parseApiError } from '../../utils/apiError'
 import { ModalPortal } from '../../components/ModalPortal'
@@ -37,19 +37,11 @@ const PAGE_SIZE = 10
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
 
-// Use LOCAL calendar date, not UTC — toISOString() returns UTC which mismatches
-// the backend shiftDate (set in local/IST time) for users in UTC+ timezones.
-function localDateStr(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
 
 function labelForDate(d: string): string {
-  const todayStr     = localDateStr(new Date())
-  const yesterdayStr = localDateStr(new Date(Date.now() - 86_400_000))
-  const dayBeforeStr = localDateStr(new Date(Date.now() - 2 * 86_400_000))
+  const todayStr     = localDateInputValue()
+  const yesterdayStr = localDateInputValue(-1)
+  const dayBeforeStr = localDateInputValue(-2)
   if (d === todayStr)     return 'Today'
   if (d === yesterdayStr) return 'Yesterday'
   if (d === dayBeforeStr) return 'Day Before Yesterday'
@@ -95,11 +87,6 @@ export default function ShiftsPage() {
     refetchInterval: 30_000,
   })
 
-  const { data: historyShifts = [], isLoading: historyLoading } = useQuery({
-    queryKey: ['shiftHistory', pumpId],
-    queryFn:  () => shiftApi.getShiftHistory(pumpId!),
-    enabled:  !!pumpId && historyOpen,
-  })
 
   // ── Early exits ──────────────────────────────────────────────────────────
 
@@ -250,17 +237,13 @@ export default function ShiftsPage() {
                   ))}
                 </div>
 
-                <div key={historyLoading ? 'loading' : historyTab} className="ui-tab-content">
-                  {historyLoading ? (
-                    <div className="px-5 py-4"><SkeletonRows count={4} /></div>
-                  ) : historyShifts.length === 0 ? (
-                    <div className="ui-empty p-6">No shift history yet.</div>
-                  ) : historyTab === 'day' ? (
-                    <DayViewHistory shifts={historyShifts} />
+                <div key={historyTab} className="ui-tab-content">
+                  {!pumpId ? null : historyTab === 'day' ? (
+                    <DayViewHistory pumpId={pumpId} />
                   ) : historyTab === 'all' ? (
-                    <AllShiftsHistory shifts={historyShifts} />
+                    <AllShiftsHistory pumpId={pumpId} />
                   ) : (
-                    <DiscrepanciesHistory shifts={historyShifts} />
+                    <DiscrepanciesHistory pumpId={pumpId} />
                   )}
                 </div>
               </div>
@@ -309,10 +292,15 @@ export default function ShiftsPage() {
 
 // ── Day View ──────────────────────────────────────────────────────────────────
 
-function DayViewHistory({ shifts }: { shifts: Shift[] }) {
-  const [todayStr]     = useState(() => localDateStr(new Date()))
-  const [yesterdayStr] = useState(() => localDateStr(new Date(Date.now() - 86_400_000)))
-  const [dayBeforeStr] = useState(() => localDateStr(new Date(Date.now() - 2 * 86_400_000)))
+function DayViewHistory({ pumpId }: { pumpId: number }) {
+  const todayStr     = localDateInputValue()
+  const yesterdayStr = localDateInputValue(-1)
+  const dayBeforeStr = localDateInputValue(-2)
+
+  const { data: shifts = [], isLoading, error } = useQuery({
+    queryKey: ['shiftHistory', pumpId, 'days', dayBeforeStr],
+    queryFn:  () => shiftApi.getShiftHistory(pumpId, { from: dayBeforeStr }),
+  })
 
   // Group by shiftDate
   const grouped = shifts.reduce<Record<string, Shift[]>>((acc, s) => {
@@ -336,6 +324,8 @@ function DayViewHistory({ shifts }: { shifts: Shift[] }) {
   const fmtShortDate = (d: string) =>
     formatIstDate(d, { day: 'numeric', month: 'short', year: 'numeric' })
 
+  if (isLoading) return <div className="px-5 py-4"><SkeletonRows count={4} /></div>
+  if (error) return <p className="ui-alert ui-alert-error m-4 text-sm">{parseApiError(error, 'Failed to load shift history')}</p>
   if (visibleDates.length === 0) {
     return <p className="ui-empty px-6 py-6">No shift history for the last 3 days.</p>
   }
@@ -412,15 +402,14 @@ function DayViewHistory({ shifts }: { shifts: Shift[] }) {
 
 // ── All Shifts (paginated + date range filter) ────────────────────────────────
 
-function AllShiftsHistory({ shifts }: { shifts: Shift[] }) {
+function AllShiftsHistory({ pumpId }: { pumpId: number }) {
   const [page,     setPage]     = useState(0)
-  const [fromDate, setFromDate] = useState(() => localDateStr(new Date(Date.now() - 86_400_000)))
-  const [toDate,   setToDate]   = useState(() => localDateStr(new Date()))
+  const [fromDate, setFromDate] = useState(() => localDateInputValue(-1))
+  const [toDate,   setToDate]   = useState(() => localDateInputValue())
 
-  const filtered = shifts.filter((s) => {
-    if (fromDate && s.shiftDate < fromDate) return false
-    if (toDate   && s.shiftDate > toDate)   return false
-    return true
+  const { data: filtered = [], isLoading, error } = useQuery({
+    queryKey: ['shiftHistory', pumpId, 'all', fromDate, toDate],
+    queryFn:  () => shiftApi.getShiftHistory(pumpId, { from: fromDate || undefined, to: toDate || undefined }),
   })
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
@@ -481,7 +470,17 @@ function AllShiftsHistory({ shifts }: { shifts: Shift[] }) {
             </tr>
           </thead>
           <tbody>
-            {paged.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={9} className="px-5 py-4"><SkeletonRows count={4} /></td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={9} className="px-6 py-4">
+                  <p className="ui-alert ui-alert-error text-sm">{parseApiError(error, 'Failed to load shift history')}</p>
+                </td>
+              </tr>
+            ) : paged.length === 0 ? (
               <tr>
                 <td colSpan={9} className="ui-empty px-6 py-6">
                   No shifts match the selected date range.
@@ -564,20 +563,22 @@ const RESOLUTION_LABELS: Record<string, string> = {
   WAIVED:                'Waived',
 }
 
-function DiscrepanciesHistory({ shifts }: { shifts: Shift[] }) {
+function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
   const [page,     setPage]     = useState(0)
   const [fromDate, setFromDate] = useState('')
   const [toDate,   setToDate]   = useState('')
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'SHORT' | 'OVER'>('ALL')
 
-  const discrepancyShifts = shifts.filter((s) => s.discrepancyAmount != null)
-
-  const filtered = discrepancyShifts.filter((s) => {
-    if (fromDate && s.shiftDate < fromDate) return false
-    if (toDate   && s.shiftDate > toDate)   return false
-    if (typeFilter !== 'ALL' && s.discrepancyType !== typeFilter) return false
-    return true
+  const { data: filtered = [], isLoading, error } = useQuery({
+    queryKey: ['shiftHistory', pumpId, 'discrepancies', fromDate, toDate, typeFilter],
+    queryFn:  () => shiftApi.getShiftHistory(pumpId, {
+      from: fromDate || undefined,
+      to: toDate || undefined,
+      discrepanciesOnly: true,
+      discrepancyType: typeFilter === 'ALL' ? undefined : typeFilter,
+    }),
   })
+  const hasFilter = !!fromDate || !!toDate || typeFilter !== 'ALL'
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage   = Math.min(page, totalPages - 1)
@@ -590,7 +591,9 @@ function DiscrepanciesHistory({ shifts }: { shifts: Shift[] }) {
   const resolved   = filtered.filter(s => s.discrepancyResolution && s.discrepancyResolution !== 'PENDING_INVESTIGATION').length
   const cashRecovered = filtered.filter(s => s.discrepancyResolution === 'CASH_RECOVERY').reduce((sum, s) => sum + (s.cashRecoveryAmount ?? 0), 0)
 
-  if (discrepancyShifts.length === 0) {
+  if (isLoading) return <div className="px-5 py-4"><SkeletonRows count={4} /></div>
+  if (error) return <p className="ui-alert ui-alert-error m-4 text-sm">{parseApiError(error, 'Failed to load discrepancies')}</p>
+  if (filtered.length === 0 && !hasFilter) {
     return <div className="ui-empty p-6">No discrepancies recorded yet.</div>
   }
 
@@ -1541,7 +1544,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
                 </>
               ) : (
                 <>
-                  <input type="number" step="0.01" min="0.01" value={liters}
+                  <input type="number" step="0.001" min="0.001" value={liters}
                     onChange={(e) => {
                       const price = priceForFuelType(fuelType)
                       const amt = price && e.target.value ? (parseFloat(e.target.value) * price).toFixed(2) : ''

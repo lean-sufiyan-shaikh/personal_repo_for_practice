@@ -10,6 +10,8 @@ import { maskPhone } from '../../utils/maskPhone'
 import { parseApiError } from '../../utils/apiError'
 import { useNavigate } from 'react-router-dom'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
+import { useConfirmDiscard } from '../../hooks/useConfirmDiscard'
+import { roundToPaise, toPaise, unitsSold } from '../../utils/money'
 
 interface Props {
   shift: Shift
@@ -31,6 +33,8 @@ interface CreditRow {
   liters: string
   inputMode: 'amount' | 'liters'
   description: string
+  /** Set when this row corrects a pre-recorded entry; that entry is voided only when the shift is closed. */
+  replacesEntryId: number | null
 }
 
 const FUEL_LABELS: Record<string, string> = {
@@ -44,7 +48,6 @@ const FUEL_UNIT: Record<string, string> = {
 const emptyNum = (v: string) => (v === '' ? 0 : Number(v))
 
 export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props) {
-  useEscapeKey(onClose)
   const nextRowId = useRef(1)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -73,8 +76,10 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
   const [voidError,         setVoidError]        = useState<string | null>(null)
 
   // Entries that were saved mid-shift via "+ Credit"
-  // Exclude already-voided entries so they don't inflate the subtotal
-  const preRecordedEntries = (shift.creditEntries ?? []).filter(e => !localVoidedIds.has(e.id))
+  // Exclude voided entries and entries being replaced by an edited row so they don't inflate the subtotal
+  const replacedEntryIds = new Set(creditRows.map(r => r.replacesEntryId).filter((id): id is number => id !== null))
+  const preRecordedEntries = (shift.creditEntries ?? [])
+    .filter(e => !localVoidedIds.has(e.id) && !replacedEntryIds.has(e.id))
   const preRecordedTotal   = preRecordedEntries.reduce((s, e) => s + e.amount, 0)
 
   const { data: creditClients = [] } = useQuery({
@@ -101,35 +106,41 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
 
   // ── Live calculations ───────────────────────────────────────────────────────
 
-  const perFuelSales: Array<{ reading: FuelReading; sold: number; value: number }> =
+  // Mirrors the backend: units rounded to 3 decimals, the total due rounded once to paise.
+  const perFuelSales: Array<{ reading: FuelReading; sold: number; value: number; isBelowStart: boolean }> =
     shift.fuelReadings.map((r) => {
       const endRaw = endReadings[r.nozzleId] ?? ''
-      const sold = endRaw !== '' ? Math.max(0, Number(endRaw) - r.startReading) : 0
-      const value = sold * r.priceSnapshot
-      return { reading: r, sold, value }
+      const sold = endRaw !== '' ? unitsSold(r.startReading, Number(endRaw), r.maxMeterValue) : 0
+      return {
+        reading: r,
+        sold: sold ?? 0,
+        value: (sold ?? 0) * r.priceSnapshot,
+        isBelowStart: sold === null && !noChangeNozzles.has(r.nozzleId),
+      }
     })
 
-  const totalDue       = perFuelSales.reduce((s, x) => s + x.value, 0)
+  const totalDue       = roundToPaise(perFuelSales.reduce((s, x) => s + x.value, 0))
   const newCreditTotal = creditRows.reduce((s, r) => s + emptyNum(r.amount), 0)
   // creditTotal for the close request = pre-recorded entries + new entries added here
-  const creditTotal    = preRecordedTotal + newCreditTotal
-  const totalCollected = emptyNum(cash) + emptyNum(upi) + emptyNum(card) + emptyNum(fleetCard) + creditTotal
-  const diff           = totalCollected - totalDue
+  const creditTotal    = roundToPaise(preRecordedTotal + newCreditTotal)
+  const totalCollected = roundToPaise(emptyNum(cash) + emptyNum(upi) + emptyNum(card) + emptyNum(fleetCard) + creditTotal)
+  const diffPaise      = toPaise(totalCollected) - toPaise(totalDue)
+  const diff           = diffPaise / 100
 
   const readingsComplete = shift.fuelReadings.every((r) => (endReadings[r.nozzleId] ?? '') !== '')
-  const readingsBelowStart = shift.fuelReadings.some((r) => {
-    if (noChangeNozzles.has(r.nozzleId)) return false
-    const v = endReadings[r.nozzleId] ?? ''
-    return v !== '' && Number(v) < r.startReading
-  })
+  const readingsBelowStart = perFuelSales.some((x) => x.isBelowStart)
   // Consider "touched" if any payment field has a value, OR if pre-recorded credit exists
   const paymentTouched   = cash !== '' || upi !== '' || card !== '' || fleetCard !== '' || creditTotal > 0
-  const isBalanced       = readingsComplete && !readingsBelowStart && paymentTouched && Math.abs(diff) < 0.01
-  // Sub-rupee discrepancy: auto-absorbed via standard rounding, no reason required
-  const isAutoRounded    = readingsComplete && !readingsBelowStart && paymentTouched && Math.abs(diff) >= 0.01 && Math.abs(diff) < 1.0
-  const hasDiscrepancy   = readingsComplete && !readingsBelowStart && paymentTouched && Math.abs(diff) >= 1.0
+  const readyToCompare   = readingsComplete && !readingsBelowStart && paymentTouched
+  const isBalanced       = readyToCompare && diffPaise === 0
+  // The backend flags any paise difference, so a sub-rupee gap is either rounded into cash or explained.
+  const hasDiscrepancy   = readyToCompare && diffPaise !== 0
+  const canRoundOff      = hasDiscrepancy && Math.abs(diffPaise) < 100
   const reasonFilled     = discrepancyReason.trim().length > 0
-  const canClose         = isBalanced || isAutoRounded || (hasDiscrepancy && reasonFilled)
+  const canClose         = isBalanced || (hasDiscrepancy && reasonFilled)
+  const hasUnsavedChanges = Object.values(endReadings).some(v => v !== '')
+    || cash !== '' || upi !== '' || card !== '' || fleetCard !== ''
+    || creditRows.length > 0 || discrepancyReason.trim() !== ''
 
   // ── Credit row helpers ──────────────────────────────────────────────────────
 
@@ -142,6 +153,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
       subAccountId: null, subAccountName: '',
       fuelType: availableFuelTypes[0] ?? '',
       billNo: '', amount: '', liters: '', inputMode: 'amount', description: '',
+      replacesEntryId: null,
     }])
     setExpandedRowId(newId)
   }
@@ -199,29 +211,32 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
     setVoidError(null)
   }
 
+  // Editing copies the entry into a new row; the original is voided only when the shift is closed,
+  // so cancelling the edit (or the whole modal) leaves the recorded entry untouched.
   const startEdit = (e: typeof preRecordedEntries[0]) => {
-    // Void the original, then pre-fill a new credit row with its data
-    voidMutation.mutate(
-      { entryId: e.id, reason: 'Edited — replaced by corrected entry' },
-      {
-        onSuccess: () => {
-          const newId = nextRowId.current++
-          setCreditRows(rows => [...rows, {
-            id: newId,
-            clientId: null, clientName: e.clientName, clientSearch: e.clientName,
-            showDropdown: false,
-            subAccountId: null, subAccountName: '',
-            fuelType: e.fuelType ?? availableFuelTypes[0] ?? '',
-            billNo: e.billNo ?? '',
-            amount: String(e.amount),
-            liters: '',
-            inputMode: 'amount',
-            description: e.description ?? '',
-          }])
-          setExpandedRowId(newId)
-        },
-      }
-    )
+    const entryClient = creditClients.find(c => c.id === e.clientId)
+    const parentClient = entryClient?.parentClientId
+      ? creditClients.find(c => c.id === entryClient.parentClientId)
+      : null
+    const rootClient = parentClient ?? entryClient ?? null
+    const newId = nextRowId.current++
+    setCreditRows(rows => [...rows, {
+      id: newId,
+      clientId: rootClient?.id ?? null,
+      clientName: rootClient?.name ?? e.clientName,
+      clientSearch: rootClient?.name ?? e.clientName,
+      showDropdown: false,
+      subAccountId: parentClient ? entryClient?.id ?? null : null,
+      subAccountName: parentClient ? entryClient?.name ?? '' : '',
+      fuelType: e.fuelType ?? availableFuelTypes[0] ?? '',
+      billNo: e.billNo ?? '',
+      amount: String(e.amount),
+      liters: '',
+      inputMode: 'amount',
+      description: e.description ?? '',
+      replacesEntryId: e.id,
+    }])
+    setExpandedRowId(newId)
   }
 
   // Price lookup per fuel type (for liters display)
@@ -231,7 +246,14 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
   // ── Submit ──────────────────────────────────────────────────────────────────
 
   const closeMutation = useMutation({
-    mutationFn: (req: CloseShiftRequest) => shiftApi.closeShift(shift.pumpId, shift.id, req),
+    mutationFn: async (req: CloseShiftRequest) => {
+      for (const entryId of replacedEntryIds) {
+        if (localVoidedIds.has(entryId)) continue
+        await shiftApi.voidCreditEntry(shift.pumpId, shift.id, entryId, 'Edited — replaced by corrected entry')
+        setLocalVoidedIds(prev => new Set([...prev, entryId]))
+      }
+      return shiftApi.closeShift(shift.pumpId, shift.id, req)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activeShifts', shift.pumpId] })
       queryClient.invalidateQueries({ queryKey: ['shiftHistory', shift.pumpId] })
@@ -313,20 +335,21 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
   }
 
   const handleRoundOff = () => {
-    const roundedDue = Math.round(totalDue)
-    const delta = roundedDue - totalCollected
-    const newCash = emptyNum(cash) + delta
-    if (newCash < 0) {
+    const newCashPaise = toPaise(emptyNum(cash)) - diffPaise
+    if (newCashPaise < 0) {
       setServerError('Round off not possible: cash amount would become negative.')
       return
     }
-    setCash(newCash === 0 ? '' : Number.isInteger(newCash) ? String(newCash) : newCash.toFixed(2))
+    setCash(newCashPaise === 0 ? '' : (newCashPaise / 100).toFixed(2))
   }
+
+  const requestClose = useConfirmDiscard(hasUnsavedChanges, onClose)
+  useEscapeKey(requestClose, !closeMutation.isPending)
 
   const fmt = (n: number) =>
     n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-  const headerToneClass = (isBalanced || isAutoRounded)
+  const headerToneClass = isBalanced
     ? 'ui-modal-header--success'
     : hasDiscrepancy
     ? diff < 0 ? 'ui-modal-header--danger' : 'ui-modal-header--warning'
@@ -345,7 +368,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
               Nozzle {shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', ')} · {shift.operatorName} · {shift.shiftWindow}
             </p>
           </div>
-          <button type="button" onClick={onClose}
+          <button type="button" onClick={requestClose}
             className="ui-btn ui-btn-ghost ui-modal-close absolute top-3 right-3">
             ×
           </button>
@@ -383,10 +406,10 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
             {/* ── Step 1: End Readings ──────────────────────────────────── */}
             <Section label="1" title="End Meter Readings">
               <div className={`grid gap-3 ${shift.fuelReadings.length > 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                {perFuelSales.map(({ reading, sold }) => {
+                {perFuelSales.map(({ reading, sold, isBelowStart }) => {
                   const isNoChange = noChangeNozzles.has(reading.nozzleId)
                   const endVal = endReadings[reading.nozzleId] ?? ''
-                  const isInvalid = !isNoChange && endVal !== '' && Number(endVal) < reading.startReading
+                  const isInvalid = isBelowStart
                   return (
                     <ReadingField
                       key={reading.nozzleId}
@@ -488,6 +511,11 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                                   type="text"
                                   value={voidReasonInput}
                                   onChange={e => setVoidReasonInput(e.target.value)}
+                                  onKeyDown={event => {
+                                    if (event.key !== 'Escape') return
+                                    event.preventDefault()
+                                    setVoidingEntryId(null); setVoidReasonInput(''); setVoidError(null)
+                                  }}
                                   placeholder="Reason for deleting (required)"
                                   className="ui-input-compact text-xs focus:outline-none focus:ring-1 focus:ring-red-400"
                                 />
@@ -800,7 +828,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                                     </>
                                   ) : (
                                     <>
-                                      <input type="number" step="0.01" min="0.01" value={row.liters}
+                                      <input type="number" step="0.001" min="0.001" value={row.liters}
                                         onChange={(e) => {
                                           const price = priceForFuelType(row.fuelType)
                                           const raw = parseFloat(e.target.value)
@@ -892,7 +920,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
 
             {/* ── Balance status card ───────────────────────────────────── */}
             {paymentTouched && readingsComplete && (
-              <BalanceCard totalDue={totalDue} totalCollected={totalCollected} diff={diff} isAutoRounded={isAutoRounded} fmt={fmt} />
+              <BalanceCard totalDue={totalDue} totalCollected={totalCollected} diff={diff} fmt={fmt} />
             )}
 
             {/* ── Discrepancy reason ────────────────────────────────────── */}
@@ -909,18 +937,20 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                       </p>
                       <p className="text-xs text-slate-500 mt-0.5">
                         {diff < 0 ? 'The operator collected less than the amount due.' : 'The operator collected more than the amount due.'}
-                        {' '}Add a reason below to close this shift.
+                        {' '}{canRoundOff ? 'Round it off into cash, or add a reason below.' : 'Add a reason below to close this shift.'}
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleRoundOff}
-                    className="shrink-0 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-600 transition-colors"
-                    title={`Adjust cash to ₹${Math.round(totalDue).toLocaleString('en-IN')}`}
-                  >
-                    Round Off → ₹{Math.round(totalDue).toLocaleString('en-IN')}
-                  </button>
+                  {canRoundOff && (
+                    <button
+                      type="button"
+                      onClick={handleRoundOff}
+                      className="shrink-0 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-600 transition-colors"
+                      title={`Adjust cash by ₹${fmt(Math.abs(diff))} so the shift balances`}
+                    >
+                      Round off ₹{fmt(Math.abs(diff))} into cash
+                    </button>
+                  )}
                 </div>
                 <div className="px-4 py-3 bg-white">
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">
@@ -950,7 +980,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
 
           {/* ── Footer ──────────────────────────────────────────────────── */}
           <div className="ui-modal-footer bg-slate-50/80">
-            <button type="button" onClick={onClose}
+            <button type="button" onClick={requestClose}
               className="ui-btn ui-btn-secondary flex-none">
               Cancel
             </button>
@@ -960,7 +990,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                   className="ui-btn w-full bg-slate-200 text-slate-400 cursor-not-allowed">
                   Fill in readings &amp; payment to continue
                 </button>
-              ) : (isBalanced || isAutoRounded) ? (
+              ) : isBalanced ? (
                 <button type="submit" disabled={closeMutation.isPending}
                   className="ui-btn w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white">
                   {closeMutation.isPending ? 'Closing...' : <span className="inline-flex items-center gap-1.5"><Check size={14} strokeWidth={2.5} />Close Shift — Balanced</span>}
@@ -1037,7 +1067,7 @@ function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onCha
                 {' − '}
                 <span className="font-medium">{startValue}</span>
                 {' = '}
-                <span className="font-semibold text-emerald-600">{soldUnits.toFixed(2)} {unitLabel}</span>
+                <span className="font-semibold text-emerald-600">{soldUnits.toFixed(3)} {unitLabel}</span>
               </span>
             )}
             {soldUnits > 0 && (
@@ -1051,7 +1081,7 @@ function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onCha
           </>
         )}
       </div>
-      <input type="number" step="0.01" min="0" required value={value}
+      <input type="number" step="0.001" min="0" required value={value}
         disabled={noChange}
         onChange={(e) => onChange(e.target.value)}
         className={`text-sm ${
@@ -1065,7 +1095,7 @@ function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onCha
       />
       {isInvalid && (
         <p className="ui-error-text mt-1">
-          End reading cannot be less than start ({startValue})
+          End reading cannot be less than start ({startValue}) unless the meter rolled over from its maximum
         </p>
       )}
     </div>
@@ -1085,11 +1115,11 @@ function PaymentField({ label, value, onChange }: { label: string; value: string
   )
 }
 
-function BalanceCard({ totalDue, totalCollected, diff, isAutoRounded = false, fmt }: {
-  totalDue: number; totalCollected: number; diff: number; isAutoRounded?: boolean; fmt: (n: number) => string
+function BalanceCard({ totalDue, totalCollected, diff, fmt }: {
+  totalDue: number; totalCollected: number; diff: number; fmt: (n: number) => string
 }) {
-  const isBalanced = Math.abs(diff) < 0.01
-  const showAsOk   = isBalanced || isAutoRounded
+  const isBalanced = diff === 0
+  const showAsOk   = isBalanced
   return (
     <div className={`rounded-xl border-2 overflow-hidden ${
       showAsOk ? 'border-emerald-300' : diff < 0 ? 'border-red-300' : 'border-amber-300'
@@ -1106,8 +1136,6 @@ function BalanceCard({ totalDue, totalCollected, diff, isAutoRounded = false, fm
         }`}>
           {isBalanced ? (
             <span className="inline-flex items-center gap-1"><Check size={14} strokeWidth={2.5} />Balanced</span>
-          ) : isAutoRounded ? (
-            <span className="inline-flex items-center gap-1"><Check size={14} strokeWidth={2.5} />Rounded</span>
           ) : diff < 0 ? (
             <span className="inline-flex items-center gap-1"><ArrowUp size={13} strokeWidth={2} style={{ transform: 'rotate(180deg)' }} />SHORT ₹{fmt(Math.abs(diff))}</span>
           ) : (

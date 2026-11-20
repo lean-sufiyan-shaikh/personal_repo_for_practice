@@ -28,6 +28,7 @@ import { Reveal } from '../../components/Reveal'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { ModalPortal } from '../../components/ModalPortal'
+import { ConfirmButton } from '../../components/ConfirmButton'
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -919,7 +920,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                                   </label>
                                   <input
                                     type="number"
-                                    step="0.01"
+                                    step="0.001"
                                     min="0"
                                     value={adjustReading}
                                     onChange={(e) => setAdjustReading(e.target.value)}
@@ -993,7 +994,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                                   <label className="ui-label">Litres Removed</label>
                                   <input
                                     type="number"
-                                    step="0.01"
+                                    step="0.001"
                                     min="0.001"
                                     value={dipLitres}
                                     onChange={(e) => setDipLitres(e.target.value)}
@@ -1095,7 +1096,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                       <div className="w-32">
                         <label className="ui-label mb-1 text-[10px]">Start Reading</label>
                         <input
-                          type="number" step="0.01" min="0"
+                          type="number" step="0.001" min="0"
                           value={inlineReading}
                           onChange={(e) => setInlineReading(e.target.value)}
                           placeholder="0"
@@ -1244,7 +1245,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                     <label className="ui-label mb-1 text-[10px]">Start Reading</label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="0.001"
                       min="0"
                       value={row.initialReading}
                       onChange={(e) => setDuNozzles((prev) => prev.map((r, i) => i === idx ? { ...r, initialReading: e.target.value } : r))}
@@ -3401,14 +3402,13 @@ function TankersContent({ pumpId }: { pumpId: number }) {
                     >
                       <Pencil size={13} />
                     </button>
-                    <button
-                      onClick={() => deactivateMutation.mutate(t.id)}
+                    <ConfirmButton
+                      onConfirm={() => deactivateMutation.mutate(t.id)}
                       disabled={deactivateMutation.isPending}
-                      className="p-1.5 text-slate-300 hover:text-red-500 transition-colors rounded"
-                      title="Remove tanker"
-                    >
-                      <X size={14} />
-                    </button>
+                      triggerAriaLabel={`Remove tanker ${t.name}`}
+                      prompt="Remove?"
+                      triggerClassName="p-1.5 text-slate-300 hover:text-red-500 transition-colors rounded"
+                    />
                   </div>
                 </>
               )}

@@ -22,7 +22,7 @@ import type {
 import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
-import { formatIstDate, formatIstDateTime } from '../../utils/date'
+import { formatIstDate, formatIstDateTime, localDateInputValue } from '../../utils/date'
 import { SkeletonRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
@@ -34,14 +34,6 @@ import { useEscapeKey } from '../../hooks/useEscapeKey'
 // ── Date helpers ───────────────────────────────────────────────────────────────
 // Use local calendar date (not UTC) so the value matches the user's timezone.
 
-function localDateStr(offsetDays = 0): string {
-  const d = new Date()
-  d.setDate(d.getDate() + offsetDays)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
 
 // ── Formatting helpers ──────────────────────────────────────────────────────────
 
@@ -87,7 +79,7 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
   const { addToast } = useToastStore()
 
   const [reportType, setReportType] = useState<'SHIFT' | 'DAY'>('SHIFT')
-  const [reportDate, setReportDate] = useState(() => localDateStr(0))
+  const [reportDate, setReportDate] = useState(() => localDateInputValue(0))
   const [shiftDefinitionId, setShiftDefinitionId] = useState<number | null>(null)
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -376,10 +368,21 @@ interface DetailPanelProps {
 function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, pumpName }: DetailPanelProps) {
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
-  const { data: detail, isLoading } = useQuery({
+  const { data: detail, isLoading, error } = useQuery({
     queryKey: ['balance-sheet-detail', pumpId, reportId],
     queryFn: () => balanceSheetApi.getById(pumpId, reportId),
   })
+
+  if (error) {
+    return (
+      <div className="flex-1 px-6 py-6 space-y-3">
+        <div className="ui-alert ui-alert-error text-sm" role="alert">
+          {parseApiError(error, 'Failed to load this balance sheet. Please try again.')}
+        </div>
+        <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">Back to list</button>
+      </div>
+    )
+  }
 
   if (isLoading || !detail) {
     return (
@@ -1135,8 +1138,8 @@ export default function BalanceSheetPage() {
   const [deleteTarget, setDeleteTarget] = useState<BalanceSheetSummary | null>(null)
 
   // Date range filter — defaults to last 7 days → today (computed fresh on mount, not at module load)
-  const [filterFrom, setFilterFrom] = useState(() => localDateStr(-7))
-  const [filterTo, setFilterTo]     = useState(() => localDateStr(0))
+  const [filterFrom, setFilterFrom] = useState(() => localDateInputValue(-7))
+  const [filterTo, setFilterTo]     = useState(() => localDateInputValue(0))
 
   const [bsPage, setBsPage]         = useState(0)
   const [bsPageSize, setBsPageSize] = useState(10)

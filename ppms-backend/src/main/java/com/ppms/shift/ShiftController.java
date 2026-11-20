@@ -8,12 +8,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -40,14 +42,20 @@ public class ShiftController {
     }
 
     /**
-     * GET /api/pumps/{pumpId}/shifts/history?page=0&size=50
+     * GET /api/pumps/{pumpId}/shifts/history?page=0&size=50[&from=&to=][&discrepanciesOnly=true[&discrepancyType=SHORT]]
      * Returns paginated shift history for a pump, newest first. Default page size 50.
+     * from/to filter on the shift's business date (inclusive).
      */
     @GetMapping("/history")
     public ResponseEntity<Page<ShiftResponse>> getShiftHistory(
             @PathVariable Long pumpId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "false") boolean discrepanciesOnly,
+            @RequestParam(required = false) DiscrepancyType discrepancyType,
             @PageableDefault(size = 50) Pageable pageable) {
-        return ResponseEntity.ok(shiftService.getShiftHistory(pumpId, pageable));
+        ShiftHistoryFilter filter = new ShiftHistoryFilter(from, to, discrepanciesOnly, discrepancyType);
+        return ResponseEntity.ok(shiftService.getShiftHistory(pumpId, filter, pageable));
     }
 
     /**

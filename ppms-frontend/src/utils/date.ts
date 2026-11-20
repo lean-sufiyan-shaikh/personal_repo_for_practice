@@ -1,16 +1,28 @@
-export function localDateInputValue(offsetDays = 0): string {
-  const date = new Date()
-  date.setHours(12, 0, 0, 0)
-  date.setDate(date.getDate() + offsetDays)
+const IST_TIME_ZONE = 'Asia/Kolkata'
 
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
+const IST_DATE_FORMAT = new Intl.DateTimeFormat('en-CA', {
+  timeZone: IST_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
 
-  return `${year}-${month}-${day}`
+/** The IST calendar date (YYYY-MM-DD) of the given instant, whatever the device's time zone is. */
+export function istDateString(value: Date = new Date()): string {
+  return IST_DATE_FORMAT.format(value)
 }
 
-const IST_TIME_ZONE = 'Asia/Kolkata'
+/** Shifts a YYYY-MM-DD date by whole days. */
+export function addDays(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
+/** Today's IST date (offset by whole days) in the YYYY-MM-DD form date inputs expect. */
+export function localDateInputValue(offsetDays = 0): string {
+  return addDays(istDateString(), offsetDays)
+}
 
 export function formatIstDate(
   value: string | Date,
