@@ -81,6 +81,7 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'credit:grant-extension':        ['OWNER', 'ADMIN'],
   'credit:reassign':               ['OWNER', 'ADMIN', 'MANAGER'],
   'credit:delete-interest':        ['OWNER', 'ADMIN', 'MANAGER'],
+  'credit:manage-portal-pin':      ['OWNER', 'ADMIN'],
 
   // Expenses
   // MANAGER and OPERATOR can create expenses (subject to approval threshold).

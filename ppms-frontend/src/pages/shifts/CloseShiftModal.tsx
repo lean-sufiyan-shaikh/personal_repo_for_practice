@@ -117,14 +117,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
   // ── Submit ──────────────────────────────────────────────────────────────────
 
   const closeMutation = useMutation({
-    mutationFn: async (req: CloseShiftRequest) => {
-      for (const entryId of replacedEntryIds) {
-        if (localVoidedIds.has(entryId)) continue
-        await shiftApi.voidCreditEntry(shift.pumpId, shift.id, entryId, 'Edited — replaced by corrected entry')
-        setLocalVoidedIds(prev => new Set([...prev, entryId]))
-      }
-      return shiftApi.closeShift(shift.pumpId, shift.id, req)
-    },
+    mutationFn: (req: CloseShiftRequest) => shiftApi.closeShift(shift.pumpId, shift.id, req),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activeShifts', shift.pumpId] })
       queryClient.invalidateQueries({ queryKey: ['shiftHistory', shift.pumpId] })

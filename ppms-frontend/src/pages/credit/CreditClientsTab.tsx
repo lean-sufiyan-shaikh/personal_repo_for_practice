@@ -8,15 +8,17 @@ import { Spinner } from '../../components/Spinner'
 import { parseApiError } from '../../utils/apiError'
 import { onActivateKey } from '../../utils/keyboard'
 import { EditCreditClientForm } from './EditCreditClientForm'
+import { PortalPinControl } from './PortalPinControl'
 
 // ─── Credit Clients Tab ───────────────────────────────────────────────────────
 
 interface CreditClientsTabProps {
   pumpId: number
   canManageClients: boolean
+  canManagePortalPins: boolean
 }
 
-export function CreditClientsTab({ pumpId, canManageClients }: CreditClientsTabProps) {
+export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins }: CreditClientsTabProps) {
   const qc = useQueryClient()
 
   const [name, setName]               = useState('')
@@ -191,7 +193,8 @@ export function CreditClientsTab({ pumpId, canManageClients }: CreditClientsTabP
                     </div>
                   </div>
                   {canManageClients && (
-                    <div className="flex items-center gap-2 ml-3 shrink-0">
+                    <div className="flex items-center gap-2 ml-3 shrink-0 flex-wrap justify-end">
+                      {canManagePortalPins && <PortalPinControl pumpId={pumpId} client={parent} />}
                       <button
                         onClick={() => {
                           const next = addSubParentId === parent.id ? null : parent.id
@@ -247,7 +250,8 @@ export function CreditClientsTab({ pumpId, canManageClients }: CreditClientsTabP
                         </div>
                       </div>
                       {canManageClients && (
-                        <div className="flex items-center gap-2 ml-3 shrink-0">
+                        <div className="flex items-center gap-2 ml-3 shrink-0 flex-wrap justify-end">
+                          {canManagePortalPins && <PortalPinControl pumpId={pumpId} client={child} />}
                           <button
                             onClick={() => setEditingId(editingId === child.id ? null : child.id)}
                             className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800">

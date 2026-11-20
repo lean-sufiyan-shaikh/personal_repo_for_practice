@@ -83,4 +83,29 @@ describe('CloseShiftModal', () => {
     expect(screen.getByText('OVER ₹0.50')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Round off ₹0.50 into cash' })).toBeInTheDocument()
   })
+
+  it('corrects a pre-recorded credit entry by closing, without voiding it first', async () => {
+    const user = userEvent.setup()
+    vi.mocked(pumpApi.getCreditClients).mockResolvedValue([{
+      id: 3, pumpId: 3, name: 'Acme', phone: null, notes: null, createdAt: '2026-01-01T00:00:00Z',
+      parentClientId: null, parentClientName: null, isParent: false, isActive: true, hasPortalPin: false,
+    }])
+    const recordedEntry = {
+      id: 41, clientId: 3, clientName: 'Acme', billNo: null, amount: 200, fuelType: 'PETROL',
+      description: null, voidStatus: 'ACTIVE' as const, voidReason: null,
+    }
+    renderWithProviders(<CloseShiftModal shift={{ ...shift, creditEntries: [recordedEntry] }} onClose={vi.fn()} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }))
+    await user.type(screen.getByPlaceholderText('Enter end reading'), '1010')
+    await user.type(screen.getByLabelText('Cash (₹)'), '800')
+    await user.click(screen.getByRole('button', { name: 'Close Shift — Balanced' }))
+
+    expect(shiftApi.voidCreditEntry).not.toHaveBeenCalled()
+    expect(shiftApi.closeShift).toHaveBeenCalledWith(3, 11, expect.objectContaining({
+      creditTotal: 200,
+      replacedCreditEntryIds: [41],
+      creditEntries: [expect.objectContaining({ clientId: 3, amount: 200 })],
+    }))
+  })
 })

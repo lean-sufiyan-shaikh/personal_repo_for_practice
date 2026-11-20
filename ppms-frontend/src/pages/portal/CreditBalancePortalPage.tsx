@@ -1,41 +1,54 @@
 import { useState } from 'react'
-import axios from 'axios'
+import axios, { isAxiosError } from 'axios'
 import { Fuel } from 'lucide-react'
-import { parseApiError } from '../../utils/apiError'
+import { FormField } from '../../components/FormField'
+import { PasswordInput } from '../../components/PasswordInput'
+import { PORTAL_PIN_PATTERN, digitsOnly } from '../../constants/portalPin'
 import { formatCurrency } from '../../utils/format'
 
 // Uses a plain axios instance — no auth header, no JWT
 const publicClient = axios.create({ baseURL: '/api' })
 
 interface BalanceResult {
-  clientName: string
   outstandingAmount: number
   creditLimit: number
+}
+
+const DETAILS_DO_NOT_MATCH = "Details don't match. Check your phone number and PIN, or ask the pump for a PIN."
+const TOO_MANY_ATTEMPTS = 'Too many attempts. Please wait 15 minutes and try again.'
+const LOOKUP_FAILED = 'Could not check your balance. Please try again.'
+
+function lookupErrorMessage(err: unknown): string {
+  const status = isAxiosError(err) ? err.response?.status : undefined
+  if (status === 429) return TOO_MANY_ATTEMPTS
+  if (status === 404 || status === 400) return DETAILS_DO_NOT_MATCH
+  return LOOKUP_FAILED
 }
 
 export default function CreditBalancePortalPage() {
   const [pumpId, setPumpId]   = useState('')
   const [phone, setPhone]     = useState('')
+  const [pin, setPin]         = useState('')
   const [result, setResult]   = useState<BalanceResult | null>(null)
   const [error, setError]     = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!pumpId.trim() || !phone.trim()) {
-      setError('Both Pump ID and phone number are required')
+    if (!pumpId.trim() || !/^\d{10}$/.test(phone) || !PORTAL_PIN_PATTERN.test(pin)) {
+      setError('Enter the Pump ID, your 10-digit phone number and your 4 to 6 digit PIN.')
       return
     }
     setLoading(true)
     setError(null)
     setResult(null)
     try {
-      const res = await publicClient.get('/public/credit-balance', {
-        params: { pumpId: parseInt(pumpId), phone: phone.trim() },
+      const res = await publicClient.post<BalanceResult>('/public/credit-balance', {
+        pumpId: parseInt(pumpId), phone, pin,
       })
       setResult(res.data)
     } catch (err) {
-      setError(parseApiError(err, 'Account not found. Please check your pump ID and phone number.'))
+      setError(lookupErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -80,13 +93,26 @@ export default function CreditBalancePortalPage() {
                   inputMode="tel"
                   autoComplete="tel"
                   value={phone}
-                  onChange={e => setPhone(e.target.value)}
+                  onChange={e => setPhone(digitsOnly(e.target.value).slice(0, 10))}
                   className="text-sm"
                   placeholder="10-digit mobile number"
                   required
                 />
               </label>
             </div>
+
+            <FormField label="Portal PIN" help="The pump gives you this PIN. Ask them if you don't have one.">
+              <PasswordInput
+                value={pin}
+                onChange={e => setPin(digitsOnly(e.target.value))}
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={6}
+                className="text-sm"
+                placeholder="4 to 6 digits"
+                required
+              />
+            </FormField>
 
             {error && (
               <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
@@ -104,8 +130,7 @@ export default function CreditBalancePortalPage() {
           {/* Result card */}
           {result && (
             <div className="mt-4 ui-card-plain ui-card-muted px-4 py-4">
-              <p className="text-xs text-slate-500 mb-2">Account found for</p>
-              <p className="text-base font-bold text-slate-800 mb-3">{result.clientName}</p>
+              <p className="text-xs text-slate-500 mb-3">Your credit account</p>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

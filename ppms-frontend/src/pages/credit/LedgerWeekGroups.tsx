@@ -53,7 +53,7 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
             {items.map((tx, idx) => (
               <tr key={`${tx.type}-${tx.referenceId}-${idx}`} className="hover:bg-slate-50">
                 <td className="px-4 py-2.5 text-slate-500 text-xs whitespace-nowrap w-20">
-                  {formatDate(tx.occurredAt)}
+                  {formatDate(tx.businessDate)}
                 </td>
                 <td className="px-2 py-2.5 w-24">
                   <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${

@@ -75,7 +75,7 @@ export function StaffRow({
             <div className="min-w-0">
               <p className="truncate text-[15px] font-semibold text-slate-800">{member.fullName}</p>
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
-                <span>{member.phoneNumber}</span>
+                {member.phoneNumber ? <span>{member.phoneNumber}</span> : null}
                 {member.employeeId ? <span>{member.employeeId}</span> : null}
                 {member.gender ? (
                   <span>{member.gender.charAt(0) + member.gender.slice(1).toLowerCase()}</span>

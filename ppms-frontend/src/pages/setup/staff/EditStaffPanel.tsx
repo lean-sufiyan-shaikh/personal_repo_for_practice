@@ -17,7 +17,7 @@ interface Props {
 export function EditStaffPanel({ pumpId, member, isOwner, onClose }: Props) {
   const queryClient = useQueryClient()
   const [editFullName, setEditFullName]               = useState(member.fullName)
-  const [editPhone, setEditPhone]                     = useState(member.phoneNumber)
+  const [editPhone, setEditPhone]                     = useState(member.phoneNumber ?? '')
   const [editRole, setEditRole]                       = useState<string>(member.role)
   const [editGender, setEditGender]                   = useState<UserGender | ''>((member.gender as UserGender | null) ?? '')
   const [editNightShiftConsent, setEditNightShiftConsent] = useState(member.nightShiftConsent)

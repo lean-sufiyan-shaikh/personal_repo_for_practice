@@ -3,18 +3,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MergedTx } from './ledgerGroups'
 import { useLedgerFilters } from './useLedgerFilters'
 
-function tx(referenceId: number, type: MergedTx['type'], occurredAt: string): MergedTx {
+function tx(referenceId: number, type: MergedTx['type'], businessDate: string, occurredAt = `${businessDate}T06:00:00Z`): MergedTx {
   return {
     type, referenceId, reference: null, detail: null, amount: 100, runningBalance: 100,
-    occurredAt, status: 'ACTIVE', countedInBalance: true, sourceClientId: 1,
+    occurredAt, businessDate, status: 'ACTIVE', countedInBalance: true, sourceClientId: 1,
   }
 }
 
+// Payment 2 was paid on 1 April but only recorded on 5 April.
 const transactions = [
-  tx(1, 'SALE', '2026-04-02T06:00:00Z'),
-  tx(2, 'PAYMENT', '2026-03-31T19:00:00Z'),
-  tx(3, 'INTEREST', '2026-03-15T06:00:00Z'),
-  tx(4, 'SALE', '2026-02-10T06:00:00Z'),
+  tx(1, 'SALE', '2026-04-02'),
+  tx(2, 'PAYMENT', '2026-04-01', '2026-04-05T06:00:00Z'),
+  tx(3, 'INTEREST', '2026-03-15'),
+  tx(4, 'SALE', '2026-02-10'),
 ]
 
 function renderFilters(page = 0, pageSize = 10) {
@@ -51,7 +52,7 @@ describe('useLedgerFilters', () => {
     expect(result.current.childFilteredTxs[0].map(t => t.referenceId)).toEqual([1])
   })
 
-  it('filters by IST month, so a payment at 00:30 IST on 1 April counts in April', () => {
+  it('filters by the month of the business date', () => {
     const { result } = renderFilters()
     act(() => {
       result.current.setFilterMode('month')
@@ -60,7 +61,7 @@ describe('useLedgerFilters', () => {
     expect(result.current.filtered.map(t => t.referenceId)).toEqual([1, 2])
   })
 
-  it('filters by an inclusive IST date range', () => {
+  it('filters by an inclusive business-date range, placing a payment on the day it was paid', () => {
     const { result } = renderFilters()
     act(() => {
       result.current.setFilterMode('range')

@@ -6,13 +6,14 @@ import { getWeekKey } from './creditDates'
 // Transaction in the merged parent view, carrying which sub-account it came from
 export type MergedTx = CreditTransaction & { subAccountName?: string; sourceClientId: number }
 
+// Rows keep their ledger order; a back-dated payment joins the week it was paid in rather than opening a second group.
 export function buildWeekGroups<T extends CreditTransaction>(txs: T[]): Array<{ label: string; items: T[] }> {
-  const groups: Array<{ label: string; items: T[] }> = []
+  const groups = new Map<string, T[]>()
   txs.forEach(tx => {
-    const label = getWeekKey(tx.occurredAt)
-    const last = groups[groups.length - 1]
-    if (last && last.label === label) { last.items.push(tx) }
-    else { groups.push({ label, items: [tx] }) }
+    const label = getWeekKey(tx.businessDate)
+    const items = groups.get(label)
+    if (items) items.push(tx)
+    else groups.set(label, [tx])
   })
-  return groups
+  return Array.from(groups, ([label, items]) => ({ label, items }))
 }

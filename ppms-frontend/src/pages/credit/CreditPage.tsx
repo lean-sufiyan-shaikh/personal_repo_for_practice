@@ -140,7 +140,8 @@ export default function CreditPage() {
         <Reveal delay={120}>
         <div className="ui-card">
           {pumpId ? (
-            <CreditClientsTab pumpId={pumpId} canManageClients={canManageClients} />
+            <CreditClientsTab pumpId={pumpId} canManageClients={canManageClients}
+              canManagePortalPins={canPerformAction('credit:manage-portal-pin', user?.role)} />
           ) : (
             <div className="ui-empty">No pump selected. Use the pump selector in the top navigation bar.</div>
           )}

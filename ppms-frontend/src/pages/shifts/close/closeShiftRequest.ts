@@ -75,6 +75,7 @@ export function buildCloseShiftRequest(values: CloseFormValues): { request: Clos
       fleetCardCollected: emptyNum(fleetCard),
       creditTotal,
       creditEntries,
+      replacedCreditEntryIds: creditRows.map(r => r.replacesEntryId).filter((id): id is number => id !== null),
       discrepancyReason: discrepancyReason.trim() || undefined,
     },
   }

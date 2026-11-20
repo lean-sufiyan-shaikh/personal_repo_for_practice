@@ -1,7 +1,9 @@
 import { addDays, formatIstDate, istDateString } from '../../utils/date'
 
-export function getWeekKey(iso: string): string {
-  const istDate = istDateString(new Date(iso))
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
+
+export function getWeekKey(dateOrIso: string): string {
+  const istDate = DATE_ONLY.test(dateOrIso) ? dateOrIso : istDateString(new Date(dateOrIso))
   const dayOfWeek = new Date(`${istDate}T00:00:00Z`).getUTCDay()
   const monday = addDays(istDate, dayOfWeek === 0 ? -6 : 1 - dayOfWeek)
   const sunday = addDays(monday, 6)
@@ -10,6 +12,6 @@ export function getWeekKey(iso: string): string {
   return `${fmt(monday)} – ${fmt(sunday)}`
 }
 
-export function getMonthKey(iso: string): string {
-  return formatIstDate(iso, { month: 'long', year: 'numeric' })
+export function getMonthKey(dateOrIso: string): string {
+  return formatIstDate(dateOrIso, { month: 'long', year: 'numeric' })
 }

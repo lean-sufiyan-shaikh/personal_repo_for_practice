@@ -28,7 +28,7 @@ describe('buildCloseShiftRequest', () => {
       request: {
         fuelReadings: [{ nozzleId: 7, endReading: 12 }],
         cashCollected: 90, upiCollected: 0, cardCollected: 0, fleetCardCollected: 0,
-        creditTotal: 0, creditEntries: [], discrepancyReason: undefined,
+        creditTotal: 0, creditEntries: [], replacedCreditEntryIds: [], discrepancyReason: undefined,
       },
     })
   })
@@ -60,5 +60,14 @@ describe('buildCloseShiftRequest', () => {
 
   it('refuses an invalid payment amount', () => {
     expect(buildCloseShiftRequest({ ...base, upi: 'abc' })).toEqual({ error: 'UPI amount contains an invalid value.' })
+  })
+
+  it('lists the pre-recorded entries that corrected rows replace so the close voids them', () => {
+    const result = buildCloseShiftRequest({
+      ...base,
+      creditRows: [creditRow({ id: 1, replacesEntryId: 41 }), creditRow({ id: 2 }), creditRow({ id: 3, replacesEntryId: 57 })],
+      creditTotal: 270,
+    })
+    expect('request' in result && result.request.replacedCreditEntryIds).toEqual([41, 57])
   })
 })

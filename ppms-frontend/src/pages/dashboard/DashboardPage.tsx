@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Fuel } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
@@ -10,6 +10,7 @@ import { ToastContainer } from '../../components/Toast'
 import { DashboardSidebar } from './layout/DashboardSidebar'
 import { LiveClock } from './layout/LiveClock'
 import { RouteOutlet } from './layout/RouteOutlet'
+import { SuspendedPumpNotice } from './layout/SuspendedPumpNotice'
 import { UserProfileArea } from './layout/UserProfileArea'
 
 export default function DashboardPage() {
@@ -23,16 +24,23 @@ export default function DashboardPage() {
   )
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
 
-  const { selectedPumpId, setSelectedPumpId } = usePumpStore()
+  const { selectedPumpId, suspendedPumpId, setSelectedPumpId } = usePumpStore()
+  const selectedPumpSuspended = selectedPumpId !== null && selectedPumpId === suspendedPumpId
+  const queryClient = useQueryClient()
 
   // Initialise / validate the stored pump whenever the pump list loads.
   // If nothing is stored yet, or the stored pump no longer exists, default to the first pump.
+  // A pump the server just reported as suspended stays selected so its notice is seen before switching.
   useEffect(() => {
-    if (sortedPumps.length > 0) {
+    if (sortedPumps.length > 0 && !selectedPumpSuspended) {
       const valid = sortedPumps.find(p => p.id === selectedPumpId)
       if (!valid) setSelectedPumpId(sortedPumps[0].id)
     }
-  }, [sortedPumps, selectedPumpId, setSelectedPumpId])
+  }, [sortedPumps, selectedPumpId, selectedPumpSuspended, setSelectedPumpId])
+
+  useEffect(() => {
+    if (suspendedPumpId !== null) queryClient.invalidateQueries({ queryKey: ['myPumps'] })
+  }, [suspendedPumpId, queryClient])
 
   // Move focus to main content on route change so screen readers announce the new page
   useEffect(() => {
@@ -97,7 +105,7 @@ export default function DashboardPage() {
 
         {/* ── Right: Notification bell + User info + profile menu ── */}
         <div className="ui-dashboard-topbar-right">
-          {selectedPumpId && <NotificationBell pumpId={selectedPumpId} />}
+          {selectedPumpId && !selectedPumpSuspended && <NotificationBell pumpId={selectedPumpId} />}
           <UserProfileArea />
         </div>
       </header>
@@ -110,7 +118,9 @@ export default function DashboardPage() {
 
         {/* ── Main content ── */}
         <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 overflow-y-auto focus:outline-none">
-          <RouteOutlet />
+          {selectedPumpSuspended
+            ? <SuspendedPumpNotice canSwitchPump={isOwnerOrAdmin && sortedPumps.some(p => p.id !== selectedPumpId)} />
+            : <RouteOutlet />}
         </main>
       </div>
 

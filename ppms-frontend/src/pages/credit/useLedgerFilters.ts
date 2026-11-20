@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import type { CreditTransaction } from '../../api/creditApi'
-import { istDateString, localDateInputValue } from '../../utils/date'
+import { localDateInputValue } from '../../utils/date'
 import { pageSlice } from '../../utils/pageSlice'
 import { buildWeekGroups } from './ledgerGroups'
 import type { MergedTx } from './ledgerGroups'
@@ -24,17 +24,16 @@ export function useLedgerFilters(
   const [toDate, setToDate]             = useState(() => localDateInputValue())
 
   const availableMonths = useMemo(
-    () => Array.from(new Set(transactions.map(tx => getMonthKey(tx.occurredAt)))),
+    () => Array.from(new Set(transactions.map(tx => getMonthKey(tx.businessDate)))),
     [transactions],
   )
 
-  const applyFilters = useCallback((tx: { type: string; occurredAt: string }): boolean => {
+  const applyFilters = useCallback((tx: { type: string; businessDate: string }): boolean => {
     if (txTypeFilter !== 'ALL' && tx.type !== txTypeFilter) return false
-    if (filterMode === 'month' && selectedMonth) return getMonthKey(tx.occurredAt) === selectedMonth
+    if (filterMode === 'month' && selectedMonth) return getMonthKey(tx.businessDate) === selectedMonth
     if (filterMode === 'range') {
-      const d = istDateString(new Date(tx.occurredAt))
-      if (fromDate && d < fromDate) return false
-      if (toDate   && d > toDate)   return false
+      if (fromDate && tx.businessDate < fromDate) return false
+      if (toDate   && tx.businessDate > toDate)   return false
     }
     return true
   }, [txTypeFilter, filterMode, selectedMonth, fromDate, toDate])

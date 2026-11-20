@@ -33,7 +33,10 @@ export interface CreditTransaction {
   detail: string | null
   amount: number
   runningBalance: number
+  /** When the row was recorded; the ledger is ordered by this. */
   occurredAt: string
+  /** IST date (YYYY-MM-DD) the row belongs to; for a payment, the date the client paid. */
+  businessDate: string
   /** ACTIVE / VOIDED for sales; APPROVED / PENDING_APPROVAL / REJECTED for payments. */
   status: string
   /** False for voided sales and non-approved payments; they leave the running balance unchanged. */

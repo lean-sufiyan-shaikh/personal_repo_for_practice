@@ -135,6 +135,8 @@ export interface CloseShiftRequest {
   fleetCardCollected: number
   creditTotal: number
   creditEntries: CreditEntryInput[]
+  /** Pre-recorded entries corrected in the close form; the backend voids them in the same transaction as the close. */
+  replacedCreditEntryIds: number[]
   discrepancyReason?: string
 }
 

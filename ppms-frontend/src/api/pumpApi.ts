@@ -76,6 +76,8 @@ export interface CreditClient {
   isParent: boolean
   /** False when the client has been soft-disabled. */
   isActive: boolean
+  /** True when the client can check their balance on the public portal. The PIN itself is never returned. */
+  hasPortalPin: boolean
 }
 
 export interface CreateCreditClientRequest {
@@ -207,6 +209,12 @@ export const pumpApi = {
 
   toggleCreditClientStatus: (pumpId: number, clientId: number, isActive: boolean) =>
     client.patch<CreditClient>(`/pumps/${pumpId}/credit-clients/${clientId}/status`, { isActive }).then((r) => r.data),
+
+  setCreditClientPortalPin: (pumpId: number, clientId: number, pin: string) =>
+    client.put<void>(`/pumps/${pumpId}/credit-clients/${clientId}/portal-pin`, { pin }).then((r) => r.data),
+
+  removeCreditClientPortalPin: (pumpId: number, clientId: number) =>
+    client.delete<void>(`/pumps/${pumpId}/credit-clients/${clientId}/portal-pin`).then((r) => r.data),
 
   reassignCreditEntry: (pumpId: number, entryId: number, toClientId: number, reason: string) =>
     client.post(`/pumps/${pumpId}/credit-ledger/entries/${entryId}/reassign`, { toClientId, reason }).then((r) => r.data),

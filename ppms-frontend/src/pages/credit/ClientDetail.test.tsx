@@ -35,7 +35,7 @@ const client: CreditClient = {
 
 const pendingPayment: CreditTransaction = {
   type: 'PAYMENT', referenceId: PAYMENT_ID, reference: 'UPI', detail: null, amount: 2_000,
-  runningBalance: 5_000, occurredAt: '2026-03-15T06:00:00Z', status: 'PENDING_APPROVAL', countedInBalance: false,
+  runningBalance: 5_000, occurredAt: '2026-03-15T06:00:00Z', businessDate: '2026-03-15', status: 'PENDING_APPROVAL', countedInBalance: false,
 }
 
 const pendingPaymentRecord = { id: PAYMENT_ID, recordedById: RECORDER_ID } as CreditPayment
