@@ -3,7 +3,7 @@ import { withToggled } from '../../utils/setToggle'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import { creditApi } from '../../api/creditApi'
-import type { CreditTransaction, CreditExtension } from '../../api/creditApi'
+import type { CreditTransaction } from '../../api/creditApi'
 import { Pagination } from '../../components/Pagination'
 import { canPerformAction } from '../../permissions/permissions'
 import { SkeletonRows } from '../../components/Skeleton'
@@ -11,6 +11,8 @@ import { EmptyState } from '../../components/EmptyState'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { IconButton } from '../../components/IconButton'
+import { ClientActions } from './ClientActions'
+import { ActiveExtensionBanners } from './ActiveExtensionBanners'
 import { GrantExtensionModal } from './modals/GrantExtensionModal'
 import { buildWeekGroups } from './ledgerGroups'
 import { LedgerWeekGroups } from './LedgerWeekGroups'
@@ -22,22 +24,21 @@ import { useClientLedger } from './useClientLedger'
 import { useLedgerFilters } from './useLedgerFilters'
 import { LedgerFilterBar } from './LedgerFilterBar'
 import { ClientSummaryCards } from './ClientSummaryCards'
+import { formatDecimal } from '../../utils/format'
 
 // ─── Client Detail (transaction history) ────────────────────────────────────
 
 interface ClientDetailProps {
   clientId: number
   pumpId: number
-  isOwnerOrAdmin: boolean
   onBack: () => void
 }
 
-export function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetailProps) {
+export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showInterestSettingsModal, setShowInterestSettingsModal] = useState(false)
   const [showExtensionModal, setShowExtensionModal] = useState(false)
   const [applyInterestFeedback, setApplyInterestFeedback] = useState<string | null>(null)
-  const [confirmDeleteInterest, setConfirmDeleteInterest] = useState<{ chargeId: number; sourceClientId: number } | null>(null)
   const [reassignEntryId,         setReassignEntryId]         = useState<number | null>(null)
   // Track which client the entry being reassigned belongs to (may be a child in parent view)
   const [reassignSourceClientId,  setReassignSourceClientId]  = useState<number>(clientId)
@@ -53,11 +54,14 @@ export function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: Clien
   const { addToast } = useToastStore()
   const role = user?.role
   const canApprovePayments = canPerformAction('credit:approve-payment', role)
+  const canMoveEntries     = canPerformAction('credit:reassign', role)
+  const canManageInterest  = canPerformAction('credit:manage-interest', role)
+  const canGrantExtension  = canPerformAction('credit:grant-extension', role)
   const [txPage, setTxPage] = useState(0)
   const [txPageSize, setTxPageSize] = useState(10)
 
   const {
-    allClients, client, childClients, activeExtensions, ownTransactions, isLoading,
+    allClients, client, clientsLoading, clientsFailed, childClients, activeExtensions, ownTransactions, isLoading,
     outstandingInterest, totalInterestRecovered, childTxQueries, childTransactionsByIndex,
     pendingPaymentRecorders, transactions,
   } = useClientLedger(pumpId, clientId, canApprovePayments)
@@ -84,14 +88,8 @@ export function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: Clien
   const deleteInterestMutation = useMutation({
     mutationFn: ({ chargeId, sourceClientId }: { chargeId: number; sourceClientId: number }) =>
       creditApi.deleteInterestCharge(pumpId, sourceClientId, chargeId),
-    onSuccess: () => {
-      setConfirmDeleteInterest(null)
-      invalidateLedger()
-    },
-    onError: (err) => {
-      setConfirmDeleteInterest(null)
-      addToast(parseApiError(err, 'Failed to remove interest charge'), 'error')
-    },
+    onSuccess: () => invalidateLedger(),
+    onError: (err) => addToast(parseApiError(err, 'Failed to remove interest charge'), 'error'),
   })
 
   const approvePaymentMutation = useMutation({
@@ -107,9 +105,6 @@ export function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: Clien
   const ledgerFilters = useLedgerFilters(transactions, ownTransactions, childTransactionsByIndex, txPage, txPageSize)
   const { filtered, pagedFiltered, weekGroups, childFilteredTxs, filteredOwn } = ledgerFilters
 
-  const formatAmount = (n: number) =>
-    n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
   // The server balance already counts sub-accounts for a parent; pending payments are not yet in it.
   const pendingPaymentTotal = transactions
     .filter(tx => tx.type === 'PAYMENT' && tx.status === 'PENDING_APPROVAL')
@@ -123,7 +118,8 @@ export function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: Clien
   )
 
   const rowActions: LedgerRowActions = {
-    isOwnerOrAdmin,
+    canMoveEntries,
+    canDeleteInterest: canPerformAction('credit:delete-interest', role),
     canApprovePayments,
     currentUserId: user?.userId,
     pendingPaymentRecorders,
@@ -134,14 +130,20 @@ export function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: Clien
       setReassignSourceClientId(sourceClientId)
       setReassignType(type)
     },
-    confirmDeleteInterest,
-    setConfirmDeleteInterest,
     deleteInterest: (chargeId, sourceClientId) => deleteInterestMutation.mutate({ chargeId, sourceClientId }),
     isDeletingInterest: deleteInterestMutation.isPending,
   }
 
   if (!client) {
-    return <div className="px-5 py-4"><SkeletonRows count={4} /></div>
+    if (clientsLoading) return <div className="px-5 py-4"><SkeletonRows count={4} /></div>
+    return (
+      <div className="p-6 space-y-4">
+        <p className="ui-alert ui-alert-error text-sm" role="alert">
+          {clientsFailed ? 'Could not load this client. Please try again.' : 'This client was not found at the selected pump.'}
+        </p>
+        <button type="button" onClick={onBack} className="ui-btn ui-btn-secondary">Back to all clients</button>
+      </div>
+    )
   }
 
   return (
@@ -155,7 +157,7 @@ export function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: Clien
           onClose={() => setShowPaymentModal(false)}
         />
       )}
-      {reassignEntryId !== null && isOwnerOrAdmin && (
+      {reassignEntryId !== null && canMoveEntries && (
         <ReassignCreditEntryModal
           entryId={reassignEntryId}
           currentClientId={reassignSourceClientId}
@@ -171,7 +173,7 @@ export function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: Clien
           onClose={() => setShowInterestSettingsModal(false)}
         />
       )}
-      {showExtensionModal && isOwnerOrAdmin && (
+      {showExtensionModal && canGrantExtension && (
         <GrantExtensionModal
           client={client}
           pumpId={pumpId}
@@ -196,53 +198,29 @@ export function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: Clien
             <h2 className="text-xl font-bold text-slate-800">{client.name}</h2>
             <p className="text-sm text-slate-500 mt-0.5">{client.phone}</p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {isOwnerOrAdmin && (
-              <button
-                onClick={() => setShowInterestSettingsModal(true)}
-                className="ui-btn ui-btn-secondary text-purple-700 border-purple-200 hover:bg-purple-50"
-              >
-                Interest Settings
-              </button>
-            )}
-            {canPerformAction('credit:manage-interest', role) && client.monthlyInterestRate > 0 && client.outstandingBalance > 0 && (
-              <button
-                onClick={() => { setApplyInterestFeedback(null); applyInterestMutation.mutate() }}
-                disabled={applyInterestMutation.isPending}
-                className="ui-btn text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
-              >
-                {applyInterestMutation.isPending ? 'Applying…' : 'Apply Interest'}
-              </button>
-            )}
-            {isOwnerOrAdmin && (
-              <button
-                onClick={() => setShowExtensionModal(true)}
-                className="ui-btn ui-btn-secondary text-blue-700 border-blue-200 hover:bg-blue-50"
-              >
-                Grant Extension
-              </button>
-            )}
-            {canRecordPayment && (
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                className="ui-btn text-white bg-green-600 hover:bg-green-700"
-              >
-                Record Payment
-              </button>
-            )}
-          </div>
+          <ClientActions
+            canManageInterest={canManageInterest}
+            canApplyInterest={canManageInterest && client.monthlyInterestRate > 0 && client.outstandingBalance > 0}
+            isApplyingInterest={applyInterestMutation.isPending}
+            canGrantExtension={canGrantExtension}
+            canRecordPayment={canRecordPayment}
+            onOpenInterestSettings={() => setShowInterestSettingsModal(true)}
+            onApplyInterest={() => { setApplyInterestFeedback(null); applyInterestMutation.mutate() }}
+            onGrantExtension={() => setShowExtensionModal(true)}
+            onRecordPayment={() => setShowPaymentModal(true)}
+          />
         </div>
 
         {applyInterestFeedback && (
           <div className="mt-3 ui-alert text-sm bg-purple-50 border-purple-200 text-purple-800 flex items-center justify-between">
             <span>{applyInterestFeedback}</span>
-            <IconButton onClick={() => setApplyInterestFeedback(null)} className="ml-2 text-purple-400 hover:text-purple-600"
+            <IconButton onClick={() => setApplyInterestFeedback(null)} className="ml-2 text-purple-700 hover:text-purple-800"
               label="Dismiss message"
               icon={'×'}
             />
           </div>
         )}
-        {isOwnerOrAdmin && client.monthlyInterestRate === 0 && client.outstandingBalance > 0 && (
+        {canManageInterest && client.monthlyInterestRate === 0 && client.outstandingBalance > 0 && (
           <div className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-slate-500 flex items-center gap-2">
             <span>No interest rate configured.</span>
             <button
@@ -254,20 +232,7 @@ export function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: Clien
           </div>
         )}
 
-        {/* Active extension banners */}
-        {activeExtensions.map((ext: CreditExtension) => (
-          <div key={ext.id} className="mt-3 ui-alert text-sm bg-blue-50 border-blue-200 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-blue-800">
-                {ext.extensionType === 'AMOUNT_EXTENSION' && `+₹${ext.extensionAmount?.toLocaleString('en-IN')} credit headroom`}
-                {ext.extensionType === 'BILLING_CYCLE_EXTENSION' && 'Billing cycle overdue block deferred'}
-                {ext.extensionType === 'OVERDUE_BLOCK_WAIVER' && 'Overdue block waived'}
-              </span>
-              <span className="text-xs text-blue-500">expires {ext.expiryDate}</span>
-            </div>
-            <span className="text-xs text-blue-400 italic truncate max-w-xs">{ext.reason}</span>
-          </div>
-        ))}
+        <ActiveExtensionBanners extensions={activeExtensions} />
       </div>
 
       <ClientSummaryCards
@@ -277,7 +242,7 @@ export function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: Clien
         outstandingInterest={outstandingInterest}
         totalInterestRecovered={totalInterestRecovered}
         transactionCount={transactions.length}
-        isOwnerOrAdmin={isOwnerOrAdmin}
+        canManageInterest={canManageInterest}
         onOpenInterestSettings={() => setShowInterestSettingsModal(true)}
       />
 
@@ -310,7 +275,7 @@ export function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: Clien
                   </div>
                 </div>
                 <svg
-                  className={`w-4 h-4 text-slate-400 transition-transform ${expandedSections.has('own') ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.has('own') ? 'rotate-180' : ''}`}
                   fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -360,11 +325,11 @@ export function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: Clien
                       <div className="text-right">
                         <p className="text-xs text-slate-500">Outstanding</p>
                         <p className={`text-sm font-bold ${childOutstanding > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                          ₹{formatAmount(childOutstanding)}
+                          ₹{formatDecimal(childOutstanding)}
                         </p>
                       </div>
                       <svg
-                        className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                        className={`w-4 h-4 text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                         fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />

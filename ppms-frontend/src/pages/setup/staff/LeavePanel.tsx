@@ -58,7 +58,7 @@ export function LeavePanel({ pumpId, member, onClose }: Props) {
                 <IconButton
                   onClick={() => removeLeaveMutation.mutate({ leaveId: lv.id })}
                   disabled={removeLeaveMutation.isPending}
-                  className="ui-btn ui-btn-ghost ml-auto text-slate-300 hover:text-red-500 disabled:opacity-40"
+                  className="ui-btn ui-btn-ghost ml-auto text-slate-500 hover:text-red-500 disabled:opacity-40"
  label="Remove leave"
  icon={<X size={12} strokeWidth={2} />}
  />
@@ -69,20 +69,20 @@ export function LeavePanel({ pumpId, member, onClose }: Props) {
         {/* Add new leave */}
         <div className="space-y-2 pt-1 border-t border-slate-100">
           <p className="ui-label mb-0">Add leave date</p>
-          <input
+          <input aria-label="Leave date"
             type="date"
             value={newLeaveDate}
             onChange={e => setNewLeaveDate(e.target.value)}
             className="text-xs min-h-10"
           />
-          <input
+          <input aria-label="Leave reason"
             type="text"
             placeholder="Reason (optional)"
             value={newLeaveReason}
             onChange={e => setNewLeaveReason(e.target.value)}
             className="text-xs min-h-10"
           />
-          {leaveError && <p className="ui-error-text">{leaveError}</p>}
+          {leaveError && <p role="alert" className="ui-error-text">{leaveError}</p>}
           <div className="flex gap-2">
             <button
               type="button"

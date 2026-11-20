@@ -46,7 +46,7 @@ export function EditPumpForm({ pump, isSaving, error, onSave }: EditPumpFormProp
         />
       </FormField>
       {error && (
-        <p className="ui-error-text">{error}</p>
+        <p role="alert" className="ui-error-text">{error}</p>
       )}
       <button
         type="submit"

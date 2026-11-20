@@ -17,8 +17,11 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error) => !isClientError(error) && failureCount < 1,
-      staleTime: 30_000,
+      staleTime: 2 * 60_000,
       gcTime: 10 * 60_000,
     },
   },
 })
+
+/** For queries that page through a whole history: refreshed by mutation invalidation, not by focus or age. */
+export const FULL_HISTORY_QUERY_OPTIONS = { staleTime: 5 * 60_000, refetchOnWindowFocus: false } as const

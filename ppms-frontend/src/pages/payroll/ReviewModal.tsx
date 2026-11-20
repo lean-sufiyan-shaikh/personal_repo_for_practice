@@ -37,9 +37,9 @@ export function ReviewModal({ form, selectedStaff, pumpId, formError, isPending,
     .reduce((s, d) => s + d.discrepancyAmount, 0)
 
   return (
-    <ModalPortal onClose={onClose}>
-    <div className="ui-modal-backdrop" onClick={onClose}>
-      <div className="ui-modal-panel w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+    <ModalPortal onClose={onClose} closeOnBackdropClick>
+    <div className="ui-modal-backdrop">
+      <div className="ui-modal-panel w-full max-w-lg">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
           <div className="ui-modal-heading">
             <h2 className="ui-modal-title">Review Payroll</h2>
@@ -50,7 +50,7 @@ export function ReviewModal({ form, selectedStaff, pumpId, formError, isPending,
 
         <div className="ui-modal-body space-y-4">
           {formError && (
-            <div className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>
+            <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>
           )}
 
           {/* Summary */}

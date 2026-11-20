@@ -7,6 +7,7 @@ import { SearchableSelect } from '../../../components/SearchableSelect'
 import { PasswordInput } from '../../../components/PasswordInput'
 import { EMPTY_FORM } from './staffForm'
 import type { StaffCreateForm } from './staffForm'
+import { FormField } from '../../../components/FormField'
 
 export function AddStaffForm({ pumpId }: { pumpId: number }) {
   const queryClient = useQueryClient()
@@ -76,12 +77,11 @@ export function AddStaffForm({ pumpId }: { pumpId: number }) {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="block">
-                    <span className="ui-label">Password</span>
+                  <FormField label="Password">
                     <PasswordInput required value={form.password} onChange={(e) => set('password', e.target.value)}
                       placeholder="Min 6 characters"
                       className="text-sm" />
-                  </label>
+                  </FormField>
                   <p className="ui-help">Use a temporary password the staff member can reset later.</p>
                 </div>
                 <div>
@@ -156,7 +156,7 @@ export function AddStaffForm({ pumpId }: { pumpId: number }) {
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-h-[20px]">
-              {error && <p className="ui-error-text mt-0">{error}</p>}
+              {error && <p role="alert" className="ui-error-text mt-0">{error}</p>}
               {success && <p className="text-xs text-emerald-600">Staff member added successfully.</p>}
             </div>
 

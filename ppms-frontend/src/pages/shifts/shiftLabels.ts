@@ -27,11 +27,7 @@ export function labelForDate(d: string): string {
   return formatIstDate(d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-export function fmtAmt(n: number | null | undefined) {
-  return n != null
-    ? `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
-    : '—'
-}
+export { formatCurrencyOrDash as fmtAmt } from '../../utils/format'
 
 // ── Discrepancies History ─────────────────────────────────────────────────────
 

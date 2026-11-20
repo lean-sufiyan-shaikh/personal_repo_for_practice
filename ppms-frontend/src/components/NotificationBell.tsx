@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useId } from 'react'
 import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -17,6 +17,7 @@ export default function NotificationBell({ pumpId }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const bellRef = useRef<HTMLButtonElement>(null)
+  const panelId = useId()
 
   const { data } = useQuery({
     queryKey:        ['notifications', pumpId],
@@ -60,14 +61,14 @@ export default function NotificationBell({ pumpId }: Props) {
     switch (type) {
       case 'LOW_STOCK':               return <Droplets      {...base} className="text-orange-400 flex-shrink-0 mt-0.5" />
       case 'PRICE_STALE':             return <AlertTriangle {...base} className="text-amber-400  flex-shrink-0 mt-0.5" />
-      case 'DOCUMENT_EXPIRING':       return <FileText      {...base} className="text-slate-400  flex-shrink-0 mt-0.5" />
-      case 'CALIBRATION_DUE':         return <Wrench        {...base} className="text-slate-400  flex-shrink-0 mt-0.5" />
+      case 'DOCUMENT_EXPIRING':       return <FileText      {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
+      case 'CALIBRATION_DUE':         return <Wrench        {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
       case 'SHIFT_OVERDUE':           return <Clock         {...base} className="text-red-400    flex-shrink-0 mt-0.5" />
-      case 'ZERO_SALE_SHIFT':         return <TrendingDown  {...base} className="text-slate-400  flex-shrink-0 mt-0.5" />
+      case 'ZERO_SALE_SHIFT':         return <TrendingDown  {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
       case 'PRICE_CHANGE_OPEN_SHIFT': return <IndianRupee   {...base} className="text-blue-400   flex-shrink-0 mt-0.5" />
-      case 'ANCILLARY_LOW_STOCK':     return <Package       {...base} className="text-slate-400  flex-shrink-0 mt-0.5" />
-      case 'AUTO_CLOSED_SHIFT':       return <Lock          {...base} className="text-slate-400  flex-shrink-0 mt-0.5" />
-      default:                        return <Info          {...base} className="text-slate-400  flex-shrink-0 mt-0.5" />
+      case 'ANCILLARY_LOW_STOCK':     return <Package       {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
+      case 'AUTO_CLOSED_SHIFT':       return <Lock          {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
+      default:                        return <Info          {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
     }
   }
 
@@ -79,7 +80,7 @@ export default function NotificationBell({ pumpId }: Props) {
         onClick={handleOpen}
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
         aria-expanded={open}
-        aria-haspopup="true"
+        aria-controls={open ? panelId : undefined}
         className="ui-notification-bell relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 shadow-sm hover:border-white/20 hover:bg-white/10 hover:text-white"
       >
         <Bell size={18} strokeWidth={1.75} />
@@ -92,7 +93,7 @@ export default function NotificationBell({ pumpId }: Props) {
 
       {/* Dropdown panel */}
       {open && (
-        <div className="ui-notification-panel absolute right-0 top-12 z-50 w-88 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div id={panelId} role="region" aria-label="Notifications" className="ui-notification-panel absolute right-0 top-12 z-50 w-88 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
           <div className="ui-notification-panel__head flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
             <div>
               <p className="text-sm font-semibold text-slate-800">Notifications</p>

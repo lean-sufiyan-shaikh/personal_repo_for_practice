@@ -1,5 +1,4 @@
 import type { ExpenseCategory } from '../../api/expenseApi'
-import { formatIstDate } from '../../utils/date'
 
 export const CATEGORIES: ExpenseCategory[] = ['FUEL', 'MAINTENANCE', 'SALARY', 'UTILITIES', 'EQUIPMENT', 'OTHER']
 
@@ -12,6 +11,4 @@ export const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   OTHER:       'bg-gray-100 text-gray-600',
 }
 
-export function fmtDate(d: string) {
-  return formatIstDate(d)
-}
+export { formatIstDate as fmtDate } from '../../utils/date'

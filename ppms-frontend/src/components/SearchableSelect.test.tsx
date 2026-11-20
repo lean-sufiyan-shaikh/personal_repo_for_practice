@@ -111,7 +111,7 @@ describe('SearchableSelect', () => {
     render(<Controlled options={many} />)
     await user.click(screen.getByRole('button', { name: /Fuel/ }))
     await user.type(await screen.findByRole('combobox'), 'zzz')
-    expect(screen.getByText('No results found')).toBeInTheDocument()
+    expect(screen.getByText('No results found', { selector: '.ui-empty' })).toBeInTheDocument()
   })
 
   it('names itself from aria-labelledby plus the chosen value when no label is given', () => {
@@ -129,5 +129,21 @@ describe('SearchableSelect', () => {
     render(<SearchableSelect label="Fuel" value="" options={fuels} onChange={vi.fn()} disabled />)
     await user.click(screen.getByRole('button', { name: /Fuel/ }))
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  })
+})
+
+describe('SearchableSelect search announcements', () => {
+  const many: SelectOption[] = ['Petrol', 'Diesel', 'CNG', 'Speed Petrol', 'Speed Diesel', 'Lubricant'].map((label) => ({ value: label, label }))
+
+  it('announces how many options match the search and when none do', async () => {
+    const user = userEvent.setup()
+    render(<Controlled options={many} />)
+    await user.click(screen.getByRole('button', { name: /Fuel/ }))
+    const search = await screen.findByRole('combobox')
+    await user.type(search, 'diesel')
+    expect(screen.getByText('2 results')).toHaveAttribute('aria-live', 'polite')
+    await user.clear(search)
+    await user.type(search, 'xyz')
+    expect(screen.getByText('No results found', { selector: '[aria-live]' })).toBeInTheDocument()
   })
 })

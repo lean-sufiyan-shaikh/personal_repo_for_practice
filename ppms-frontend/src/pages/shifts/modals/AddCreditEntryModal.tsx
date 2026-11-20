@@ -8,12 +8,18 @@ import { parseApiError } from '../../../utils/apiError'
 import { ModalPortal } from '../../../components/ModalPortal'
 import { FUEL_LABELS } from '../../../constants/fuel'
 import { CreditClientSearch } from '../components/CreditClientSearch'
+import { useAuthStore } from '../../../store/authStore'
+import { canPerformAction } from '../../../permissions/permissions'
+import { IconButton } from '../../../components/IconButton'
+import { focusOnMount } from '../../../utils/focus'
 
 // ── Add Credit Entry Modal (mid-shift) ────────────────────────────────────────
 
 
 export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => void }) {
   const qc = useQueryClient()
+  const role = useAuthStore((state) => state.user?.role)
+  const canVoidEntry = canPerformAction('shift:void-credit-entry', role)
   const { data: creditClients = [] } = useQuery({
     queryKey: ['creditClients', shift.pumpId],
     queryFn: () => pumpApi.getCreditClients(shift.pumpId),
@@ -96,7 +102,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
               Nozzle {shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', ')} · {shift.operatorName}
             </p>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+          <IconButton label="Close" icon="×" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close" />
         </div>
 
         <div className="ui-modal-body space-y-3">
@@ -106,7 +112,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
             <div className="ui-card p-0 overflow-hidden">
               <div className="ui-toolbar px-3 py-2">
                 <p className="ui-toolbar-title text-xs">Recorded entries</p>
-                <span className="ui-toolbar-note">Click Void to cancel one</span>
+                {canVoidEntry && <span className="ui-toolbar-note">Click Void to cancel one</span>}
               </div>
               <div className="divide-y divide-slate-100 max-h-40 overflow-y-auto">
                 {shift.creditEntries.map((entry) => (
@@ -119,7 +125,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                         {entry.voidStatus === 'VOIDED' && ' · VOIDED'}
                       </p>
                     </div>
-                    {entry.voidStatus !== 'VOIDED' && voidTargetId !== entry.id && (
+                    {canVoidEntry && entry.voidStatus !== 'VOIDED' && voidTargetId !== entry.id && (
                       <button
                         onClick={() => { setVoidTargetId(entry.id); setVoidReason(''); setVoidError(null) }}
                         className="ui-btn ui-btn-ghost min-h-0 shrink-0 border border-red-200 px-2 py-0.5 text-xs text-red-600 hover:border-red-300 hover:text-red-700"
@@ -134,15 +140,15 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
               {voidTargetId !== null && (
                 <div className="border-t border-orange-200 bg-orange-50 px-3 py-2">
                   <div className="ui-inline-form space-y-2 border-orange-200 bg-white/70">
-                  <input
-                    autoFocus
+                  <input aria-label="Reason for voiding"
+                    ref={focusOnMount}
                     type="text"
                     value={voidReason}
                     onChange={(e) => setVoidReason(e.target.value)}
                     placeholder="Reason for voiding (required)"
                     className="ui-input-compact text-xs focus:outline-none focus:ring-1 focus:ring-orange-400"
                   />
-                  {voidError && <p className="ui-error-text">{voidError}</p>}
+                  {voidError && <p role="alert" className="ui-error-text">{voidError}</p>}
                   <div className="flex gap-2">
                     <button onClick={() => { setVoidTargetId(null); setVoidReason('') }}
                       className="ui-btn ui-btn-secondary min-h-0 flex-1 px-3 py-1 text-xs">
@@ -229,12 +235,12 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                   {inputMode === 'amount' ? 'Amount (₹)' : 'Liters'}{' '}
                   <span className="text-red-500">*</span>
                 </span>
-                <div className="flex rounded border border-slate-200 overflow-hidden text-xs">
+                <div className="flex gap-1 text-xs">
                   <button type="button"
                     onClick={() => { setInputMode('amount'); setLiters('') }}
                     aria-pressed={inputMode === 'amount'}
                     aria-label="Enter amount in rupees"
-                    className={`px-2 py-0.5 font-medium transition-colors ${inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+                    className={`min-h-6 min-w-8 rounded border border-slate-200 px-2 font-medium transition-colors ${inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
                     ₹
                   </button>
                   <button type="button"
@@ -247,14 +253,14 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                     disabled={!priceForFuelType(fuelType)}
                     aria-pressed={inputMode === 'liters'}
                     aria-label="Enter litres"
-                    className={`px-2 py-0.5 font-medium transition-colors ${inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
+                    className={`min-h-6 min-w-8 rounded border border-slate-200 px-2 font-medium transition-colors ${inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
                     L
                   </button>
                 </div>
               </div>
               {inputMode === 'amount' ? (
                 <>
-                  <input type="number" step="0.01" min="0.01" value={amount}
+                  <input aria-label="Credit amount in rupees" type="number" step="0.01" min="0.01" value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
                     className="text-sm" />
@@ -271,7 +277,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                 </>
               ) : (
                 <>
-                  <input type="number" step="0.001" min="0.001" value={liters}
+                  <input aria-label="Credit quantity" type="number" step="0.001" min="0.001" value={liters}
                     onChange={(e) => {
                       const price = priceForFuelType(fuelType)
                       const amt = price && e.target.value ? (parseFloat(e.target.value) * price).toFixed(2) : ''
@@ -315,7 +321,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
           </div>
 
           {error && (
-            <div className="ui-alert ui-alert-danger text-sm">{error}</div>
+            <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
           )}
         </div>
 

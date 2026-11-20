@@ -200,7 +200,7 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
             </div>
           )}
           {error && (
-            <div className="ui-alert ui-alert-danger text-sm">
+            <div role="alert" className="ui-alert ui-alert-danger text-sm">
               {error}
             </div>
           )}

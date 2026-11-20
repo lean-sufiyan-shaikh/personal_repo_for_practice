@@ -6,6 +6,7 @@ import { Pagination } from '../../components/Pagination'
 import { EmptyState } from '../../components/EmptyState'
 import { BackfillSaleModal } from './BackfillSaleModal'
 import { fmtCurrency, fmtDate } from './ancillaryFormat'
+import { ScrollRegion } from '../../components/ScrollRegion'
 
 // ── Sales History Tab ─────────────────────────────────────────────────────────
 
@@ -61,7 +62,7 @@ export function SalesTab({
           <EmptyState icon="transactions" title="No sales recorded yet" subtitle="Sales will appear here after you record them." />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <ScrollRegion label="Product sales" className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs text-slate-500 uppercase border-b border-slate-100">
@@ -100,12 +101,12 @@ export function SalesTab({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
             {salesPageData && (
               <div className="px-5">
                 <Pagination
                   data={salesPageData}
-                  onPageChange={p => { setSalesPage(p); qc.invalidateQueries({ queryKey: ['ancillarySales', pumpId] }) }}
+                  onPageChange={setSalesPage}
                   onPageSizeChange={s => { setSalesPageSize(s); setSalesPage(0) }}
                 />
               </div>

@@ -71,8 +71,9 @@ export default function SuperAdminPage() {
       <SuperAdminHeader />
 
       {/* ── Main content ───────────────────────────────────────────────────── */}
-      <div className="flex-1 p-6 overflow-y-auto">
+      <main id="main-content" tabIndex={-1} className="flex-1 p-6 overflow-y-auto focus:outline-none">
         <div className="max-w-6xl mx-auto">
+          <h1 className="sr-only">Platform administration</h1>
 
           {/* ── Platform analytics strip ───────────────────────────────────── */}
           {analytics && (
@@ -116,7 +117,7 @@ export default function SuperAdminPage() {
           </div>
           </Reveal>
         </div>
-      </div>
+      </main>
 
     </div>
   )

@@ -1,7 +1,10 @@
+import { useRef } from 'react'
 import { CircleOff, Settings, CalendarDays, RotateCcw, Pencil } from 'lucide-react'
 import type { StaffMember } from '../../../api/userApi'
 import type { ShiftDefinition } from '../../../api/shiftDefinitionApi'
-import { IconButton } from '../../../components/IconButton'
+import { RowActionMenu } from '../../../components/RowActionMenu'
+import type { RowActionMenuItem } from '../../../components/RowActionMenu'
+import { useRowPanelFocus } from '../../../hooks/useRowPanelFocus'
 import { ROLE_BADGE } from './staffForm'
 import type { StaffPanel } from './staffForm'
 import { EditStaffPanel } from './EditStaffPanel'
@@ -32,6 +35,29 @@ export function StaffRow({
   const isPrefOpen  = openPanel === 'preferences'
   const isLeaveOpen = openPanel === 'leave'
   const isOperator  = member.role === 'OPERATOR'
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  useRowPanelFocus(openPanel, panelRef, menuButtonRef)
+  const payRatesMissing = member.role === 'OPERATOR' ? member.shift1HourlyRate == null : member.dailyRate == null
+
+  const menuItems: RowActionMenuItem[] = [
+    { key: 'edit', label: 'Edit Details', description: 'Update name, phone number, or role', icon: <Pencil size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-violet-50 hover:text-violet-700', onSelect: () => onOpenPanel('edit') },
+    ...(isOwner && isOperator ? [{ key: 'preferences', label: 'Shift Preferences', description: 'Set preferred shift and weekly day off', icon: <Settings size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-blue-50 hover:text-blue-700', onSelect: () => onOpenPanel('preferences') }] : []),
+    ...(isOwner ? [
+      { key: 'leave', label: 'Manage Leave', description: 'Add or remove leave dates for this staff member', icon: <CalendarDays size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-amber-50 hover:text-amber-700', onSelect: () => onOpenPanel('leave') },
+      { key: 'rates', label: payRatesMissing ? 'Pay Rates (not set)' : 'Pay Rates', description: 'Configure hourly or daily pay rates', icon: '₹', className: 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700', onSelect: () => onOpenPanel('rates') },
+      {
+        key: 'status',
+        label: isInactive ? 'Activate Staff' : 'Deactivate Staff',
+        description: isInactive ? 'Allow this staff member to work again' : 'Temporarily remove this staff member from active use',
+        icon: isInactive ? <RotateCcw size={14} strokeWidth={2} /> : <CircleOff size={14} strokeWidth={2} />,
+        className: isInactive ? 'text-emerald-700 hover:bg-emerald-50' : 'text-red-700 hover:bg-red-50',
+        onSelect: onToggleStatus,
+        disabled: statusPending,
+      },
+    ] : []),
+  ]
+
   return (
     <div
       key={member.id}
@@ -74,117 +100,20 @@ export function StaffRow({
         </div>
         {isOwnerOrAdmin && (
           <div className="md:ml-auto">
-            <div className="relative">
-              <IconButton
-                onClick={() => onMenuChange(menuOpen ? null : member.id)}
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-lg leading-none text-slate-400 transition-colors hover:border-slate-300 hover:bg-white hover:text-slate-600"
- label="Staff actions"
- icon={'⋮'}
- />
-              {menuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-[5]"
-                    onClick={() => onMenuChange(null)}
-                  />
-                  <div className="absolute right-0 top-full z-[6] mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.14)] backdrop-blur">
-                    <button
-                      type="button"
-                      onClick={() => onOpenPanel('edit')}
-                      className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                        openPanel === 'edit'
-                          ? 'bg-violet-50 text-violet-700'
-                          : 'text-slate-700 hover:bg-violet-50 hover:text-violet-700'
-                      }`}
-                    >
-                      <span className="mt-0.5 shrink-0 leading-none"><Pencil size={14} strokeWidth={2} /></span>
-                      <span className="min-w-0">
-                        <span className="block text-xs font-semibold leading-5">Edit Details</span>
-                        <span className="block text-[11px] leading-4 text-slate-500">Update name, phone number, or role</span>
-                      </span>
-                    </button>
-                    {isOwner && isOperator && (
-                      <button
-                        type="button"
-                        onClick={() => onOpenPanel('preferences')}
-                        className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                          isPrefOpen ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-blue-50 hover:text-blue-700'
-                        }`}
-                      >
-                        <span className="mt-0.5 shrink-0 leading-none"><Settings size={14} strokeWidth={2} /></span>
-                        <span className="min-w-0">
-                          <span className="block text-xs font-semibold leading-5">Shift Preferences</span>
-                          <span className="block text-[11px] leading-4 text-slate-500">Set preferred shift and weekly day off</span>
-                        </span>
-                      </button>
-                    )}
-                    {isOwner && (
-                      <button
-                        type="button"
-                        onClick={() => onOpenPanel('leave')}
-                        className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                          isLeaveOpen ? 'bg-amber-50 text-amber-700' : 'text-slate-700 hover:bg-amber-50 hover:text-amber-700'
-                        }`}
-                      >
-                        <span className="mt-0.5 shrink-0 leading-none"><CalendarDays size={14} strokeWidth={2} /></span>
-                        <span className="min-w-0">
-                          <span className="block text-xs font-semibold leading-5">Manage Leave</span>
-                          <span className="block text-[11px] leading-4 text-slate-500">Add or remove leave dates for this staff member</span>
-                        </span>
-                      </button>
-                    )}
-                    {isOwner && (
-                      <button
-                        type="button"
-                        onClick={() => onOpenPanel('rates')}
-                        className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                          openPanel === 'rates'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700'
-                        }`}
-                      >
-                        <span className="mt-0.5 shrink-0 text-sm leading-none">₹</span>
-                        <span className="min-w-0">
-                          <span className="block text-xs font-semibold leading-5">
-                            Pay Rates{(member.role === 'OPERATOR' ? member.shift1HourlyRate == null : member.dailyRate == null) ? (
-                              <span className="ml-1 text-red-400">!</span>
-                            ) : null}
-                          </span>
-                          <span className="block text-[11px] leading-4 text-slate-500">Configure hourly or daily pay rates</span>
-                        </span>
-                      </button>
-                    )}
-                    {isOwner && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onMenuChange(null)
-                          onToggleStatus()
-                        }}
-                        disabled={statusPending}
-                        className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors disabled:opacity-50 ${
-                          isInactive ? 'text-emerald-700 hover:bg-emerald-50' : 'text-red-600 hover:bg-red-50'
-                        }`}
-                      >
-                        <span className="mt-0.5 shrink-0 leading-none">{isInactive ? <RotateCcw size={14} strokeWidth={2} /> : <CircleOff size={14} strokeWidth={2} />}</span>
-                        <span className="min-w-0">
-                          <span className="block text-xs font-semibold leading-5">{isInactive ? 'Activate Staff' : 'Deactivate Staff'}</span>
-                          <span className="block text-[11px] leading-4 text-slate-500">
-                            {isInactive ? 'Allow this staff member to work again' : 'Temporarily remove this staff member from active use'}
-                          </span>
-                        </span>
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
+            <RowActionMenu
+              label="Staff actions"
+              open={menuOpen}
+              onOpenChange={(open) => onMenuChange(open ? member.id : null)}
+              triggerRef={menuButtonRef}
+              triggerClassName="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-lg leading-none text-slate-600 transition-colors hover:border-slate-300 hover:bg-white hover:text-slate-800"
+              menuClassName="absolute right-0 top-full z-[6] mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-lg backdrop-blur"
+              items={menuItems}
+            />
           </div>
         )}
       </div>
 
+      <div ref={panelRef}>
       {/* Edit details panel */}
       {openPanel === 'edit' && (
         <EditStaffPanel pumpId={pumpId} member={member} isOwner={isOwner} onClose={onClosePanel} />
@@ -204,6 +133,7 @@ export function StaffRow({
       {isLeaveOpen && (
         <LeavePanel pumpId={pumpId} member={member} onClose={onClosePanel} />
       )}
+      </div>
     </div>
   )
 }

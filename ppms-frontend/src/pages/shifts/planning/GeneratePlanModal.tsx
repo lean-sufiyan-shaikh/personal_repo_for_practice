@@ -1,5 +1,6 @@
 import { ModalPortal } from '../../../components/ModalPortal'
 import type { ShiftPlanning } from './useShiftPlanning'
+import { IconButton } from '../../../components/IconButton'
 
 export function GeneratePlanModal({ form }: { form: ShiftPlanning }) {
   const { showGenerate, setShowGenerate, genDayOps, setGenDayOps, genNightOps, setGenNightOps, genError, generateMutation } = form
@@ -16,7 +17,7 @@ export function GeneratePlanModal({ form }: { form: ShiftPlanning }) {
                   The system will assign operators based on preferences, leave dates, and fairness.
                 </p>
               </div>
-              <button type="button" aria-label="Close" onClick={() => setShowGenerate(false)} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+              <IconButton label="Close" icon="×" onClick={() => setShowGenerate(false)} className="ui-btn ui-btn-ghost ui-modal-close" />
             </div>
             <div className="ui-modal-body space-y-3">
               <div>
@@ -43,7 +44,7 @@ export function GeneratePlanModal({ form }: { form: ShiftPlanning }) {
               </div>
             </div>
             <div className="ui-modal-body pt-0">
-              {genError && <p className="ui-error-text">{genError}</p>}
+              {genError && <p role="alert" className="ui-error-text">{genError}</p>}
             </div>
             <div className="ui-modal-footer">
               <button

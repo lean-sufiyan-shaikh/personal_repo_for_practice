@@ -12,6 +12,7 @@ import { ProductSalesSection } from './sections/ProductSalesSection'
 import { SettlementSection } from './sections/SettlementSection'
 import { DipPlSection } from './sections/DipPlSection'
 import { MeterAmendmentsSection } from './sections/MeterAmendmentsSection'
+import { ScrollRegion } from '../../components/ScrollRegion'
 
 // ── Detail Panel ────────────────────────────────────────────────────────────────
 
@@ -105,7 +106,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, su
           </button>
           <IconButton
             onClick={onClose}
-            className="hidden md:block text-slate-400 hover:text-slate-600 text-xl leading-none"
+            className="hidden md:block text-slate-500 hover:text-slate-600 text-xl leading-none"
             label="Close details"
             icon={'×'}
           />
@@ -204,7 +205,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, su
         {/* Fuel lines */}
         <section>
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Fuel Breakdown</h3>
-          <div className="ui-table-wrap overflow-x-auto print:overflow-visible">
+          <ScrollRegion label="Fuel summary" className="ui-table-wrap overflow-x-auto print:overflow-visible">
             <table className="w-full min-w-[900px] text-sm print:min-w-0 print:text-[8pt]">
               <thead>
                 <tr className="bg-slate-50 text-left">
@@ -228,7 +229,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, su
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         </section>
 
         {/* Shift lines */}
@@ -236,7 +237,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, su
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
             Shift Breakdown <span className="text-slate-500 normal-case font-normal">({detail.shiftLines.length} shift{detail.shiftLines.length !== 1 ? 's' : ''})</span>
           </h3>
-          <div className="ui-table-wrap overflow-x-auto print:overflow-visible">
+          <ScrollRegion label="Shift summary" className="ui-table-wrap overflow-x-auto print:overflow-visible">
             <table className="w-full min-w-[960px] text-xs print:min-w-0 print:text-[7pt]">
               <thead>
                 <tr className="bg-slate-50 text-left">
@@ -276,7 +277,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, su
                 </tfoot>
               )}
             </table>
-          </div>
+          </ScrollRegion>
         </section>
 
         {/* Meter Reading Amendments — only shown when amendments occurred in this period */}

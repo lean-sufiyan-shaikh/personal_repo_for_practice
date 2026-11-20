@@ -31,7 +31,7 @@ export default function ReportsPage() {
   const pumpId = selectedPumpId
 
   const { data: pumps = [] } = useQuery({
-    queryKey: ['my-pumps'],
+    queryKey: ['myPumps'],
     queryFn: () => pumpApi.getMyPumps(),
   })
 
@@ -72,7 +72,7 @@ export default function ReportsPage() {
       <div className="ui-section-hero">
         <div>
           <p className="ui-section-kicker">Analysis</p>
-          <h2 className="ui-title-sm">Reports</h2>
+          <h1 className="ui-title-sm">Reports</h1>
           <p className="ui-subtitle print:hidden">Operational and financial reports for your pump.</p>
           <p className="hidden print:block text-xs text-slate-500 mt-0.5">
             {pumpName && <><span className="font-medium">{pumpName}</span> · </>}

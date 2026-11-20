@@ -66,7 +66,7 @@ export function IncreaseDuLimit({ pump, onUpdated }: { pump: PumpSummary; onUpda
           >
             Cancel
           </button>
-          {increaseError && <p className="ui-error-text w-full">{increaseError}</p>}
+          {increaseError && <p role="alert" className="ui-error-text w-full">{increaseError}</p>}
         </div>
       )}
     </div>

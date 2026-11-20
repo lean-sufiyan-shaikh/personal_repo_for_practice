@@ -5,6 +5,7 @@ import { Reveal } from '../../../components/Reveal'
 import { IconButton } from '../../../components/IconButton'
 import { SHIFT_ROW_COLORS, STATUS_BADGE, formatDay } from './planningHelpers'
 import type { ShiftPlanning } from './useShiftPlanning'
+import { ScrollRegion } from '../../../components/ScrollRegion'
 
 export function PlanningGrid({ form }: { form: ShiftPlanning }) {
   const { isOwnerOrAdmin, setEditSlot, slotError, setSlotError, addOpId, setAddOpId, operatorStaff, staffById, plan, planLoading, sortedDefs, removeEntryMutation, addEntryMutation, days, today, entryMap, actualMap, isEditingSlot } = form
@@ -22,7 +23,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                    </div>
                  )}
 
-                 <div className="ui-card p-0 overflow-x-auto">
+                 <ScrollRegion label="Weekly shift plan" className="ui-card p-0 overflow-x-auto">
                    <table className="w-full text-xs border-collapse min-w-[640px]">
                      <thead>
                        <tr className="border-b border-slate-100">
@@ -33,7 +34,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                            <th scope="col" key={day} className={`px-2 py-3 text-center font-semibold ${day < today ? 'text-slate-500' : 'text-slate-600'}`}>
                              {formatDay(day)}
                              {day < today && (
-                               <div className="text-xs font-normal text-slate-300 mt-0.5">actual</div>
+                               <div className="text-xs font-normal text-slate-500 mt-0.5">actual</div>
                              )}
                            </th>
                          ))}
@@ -79,7 +80,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                                            e => !actualOpIds.includes(e.operatorUserId)
                                          )
                                          if (actualOpIds.length === 0 && absentEntries.length === 0) {
-                                           return <span className="text-slate-300 text-xs italic">No shift</span>
+                                           return <span className="text-slate-500 text-xs italic">No shift</span>
                                          }
                                          return (
                                            <>
@@ -121,7 +122,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                                                <IconButton
                                                  onClick={() => removeEntryMutation.mutate({ entryId: entry.id })}
                                                  disabled={removeEntryMutation.isPending}
-                                                 className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-slate-300 hover:text-red-500 transition-all ml-0.5 shrink-0"
+                                                 className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-slate-500 hover:text-red-500 transition-all ml-0.5 shrink-0"
     label="Remove from plan"
     icon={<X size={11} strokeWidth={2} />}
     />
@@ -134,7 +135,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                                            <button
                                              type="button"
                                              onClick={() => { setEditSlot({ date: day, shiftDefinitionId: def.id }); setSlotError(null); setAddOpId('') }}
-                                             className="text-slate-300 hover:text-blue-500 transition-colors text-xs"
+                                             className="text-slate-500 hover:text-blue-500 transition-colors text-xs"
                                              title="Add operator"
                                            >
                                              + Add
@@ -166,7 +167,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
     icon={<X size={12} strokeWidth={2} />}
     />
                                              </div>
-                                             {slotError && <p className="ui-error-text">{slotError}</p>}
+                                             {slotError && <p role="alert" className="ui-error-text">{slotError}</p>}
                                            </div>
                                          )}
                                        </>
@@ -180,7 +181,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                        })}
                      </tbody>
                    </table>
-                 </div>
+                 </ScrollRegion>
                </>
              )}
              </Reveal>

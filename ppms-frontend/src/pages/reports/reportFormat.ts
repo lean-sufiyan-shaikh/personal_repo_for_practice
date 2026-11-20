@@ -1,10 +1,8 @@
-import { formatIstDate, formatIstDateTime, localDateInputValue } from '../../utils/date'
+import { formatIstDate, localDateInputValue } from '../../utils/date'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-export function fmtAmt(n: number) {
-  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
+export { formatCurrency as fmtAmt } from '../../utils/format'
 
 export function fmtQty(n: number) {
   return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' L'
@@ -14,9 +12,7 @@ export function todayIso()     { return localDateInputValue() }
 
 export function yesterdayIso() { return localDateInputValue(-1) }
 
-export function fmtDateTime(iso: string) {
-  return formatIstDateTime(iso)
-}
+export { formatIstDateTime as fmtDateTime } from '../../utils/date'
 
 export function fmtShortDate(iso: string) {
   return formatIstDate(iso, { day: '2-digit', month: 'short', year: 'numeric' })

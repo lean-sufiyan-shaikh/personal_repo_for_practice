@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Fuel } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
@@ -9,6 +9,7 @@ import NotificationBell from '../../components/NotificationBell'
 import { ToastContainer } from '../../components/Toast'
 import { DashboardSidebar } from './layout/DashboardSidebar'
 import { LiveClock } from './layout/LiveClock'
+import { RouteOutlet } from './layout/RouteOutlet'
 import { UserProfileArea } from './layout/UserProfileArea'
 
 export default function DashboardPage() {
@@ -109,9 +110,7 @@ export default function DashboardPage() {
 
         {/* ── Main content ── */}
         <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 overflow-y-auto focus:outline-none">
-          <div key={location.pathname} className="ui-route-fade">
-            <Outlet />
-          </div>
+          <RouteOutlet />
         </main>
       </div>
 

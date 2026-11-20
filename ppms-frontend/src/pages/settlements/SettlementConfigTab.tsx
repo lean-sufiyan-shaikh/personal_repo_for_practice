@@ -81,7 +81,7 @@ export function SettlementConfigTab({ pumpId, canConfigure }: SettlementConfigTa
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-                <input
+                <input aria-label={`${TYPE_LABELS[cfg.paymentType]} reminder time`}
                   type="time"
                   value={alertTime}
                   disabled={!canConfigure}
@@ -104,7 +104,7 @@ export function SettlementConfigTab({ pumpId, canConfigure }: SettlementConfigTa
                     disabled={savingConfig === cfg.paymentType}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm text-white
                                bg-gradient-to-b from-emerald-500 to-emerald-600
-                               shadow-[0_4px_10px_rgba(5,150,105,0.25)]
+                               shadow-sm shadow-emerald-600/25
                                hover:from-emerald-600 hover:to-emerald-700
                                active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
                                transition-all duration-150"

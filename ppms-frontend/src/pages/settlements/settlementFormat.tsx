@@ -26,13 +26,9 @@ export const TYPE_ACCENT: Record<SettlementPaymentType, { icon: string; badge: s
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-export function fmtAmt(n: number) {
-  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
+export { formatCurrency as fmtAmt } from '../../utils/format'
 
-export function fmtDate(d: string) {
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-}
+export { formatIstDate as fmtDate } from '../../utils/date'
 
 export function getPending(wallet: { upiPending: number; cardPending: number; fleetCardPending: number } | undefined, type: SettlementPaymentType): number {
   if (!wallet) return 0

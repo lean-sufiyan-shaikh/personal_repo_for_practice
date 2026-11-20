@@ -7,9 +7,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { IconButton } from '../../components/IconButton'
 import { onActivateKey } from '../../utils/keyboard'
 import { SetCreditLimitModal } from './modals/SetCreditLimitModal'
-
-const formatAmount = (n: number) =>
-  n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+import { formatDecimal } from '../../utils/format'
 
 interface LedgerTabProps {
   pumpId: number | null
@@ -17,11 +15,11 @@ interface LedgerTabProps {
   allCreditClients: CreditClientRecord[]
   isLoading: boolean
   hasError: boolean
-  isOwnerOrAdmin: boolean
+  canAdjustLimit: boolean
   onSelectClient: (client: CreditClient) => void
 }
 
-export function LedgerTab({ pumpId, clients, allCreditClients, isLoading, hasError, isOwnerOrAdmin, onSelectClient }: LedgerTabProps) {
+export function LedgerTab({ pumpId, clients, allCreditClients, isLoading, hasError, canAdjustLimit, onSelectClient }: LedgerTabProps) {
   const [showLimitModal, setShowLimitModal] = useState<CreditClient | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const deferredSearch = useDeferredValue(searchQuery)
@@ -44,7 +42,7 @@ export function LedgerTab({ pumpId, clients, allCreditClients, isLoading, hasErr
         <svg className="ui-search-shell__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
         </svg>
-        <input
+        <input aria-label="Search clients by name or phone"
           type="text"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
@@ -73,7 +71,7 @@ icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentCo
       )}
 
       {hasError && (
-        <div className="ui-alert ui-alert-danger text-sm">
+        <div role="alert" className="ui-alert ui-alert-danger text-sm">
           Failed to load credit data. Please try again.
         </div>
       )}
@@ -136,7 +134,6 @@ icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentCo
           return (
             <div
               key={client.id}
-              onClick={hasChildren ? () => toggleParent(client.id) : undefined}
               className={`ui-card px-5 py-4 flex items-center gap-4 transition-all ${
                 isActualChild ? 'ml-8 border-l-4 border-l-blue-200 hover:border-blue-300 hover:shadow-sm' :
                 hasChildren   ? 'cursor-pointer hover:border-blue-400 hover:shadow-sm select-none' :
@@ -154,6 +151,7 @@ icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentCo
                   role={hasChildren ? 'button' : undefined}
                   tabIndex={hasChildren ? 0 : undefined}
                   aria-expanded={hasChildren ? isExpanded : undefined}
+                  onClick={hasChildren ? () => toggleParent(client.id) : undefined}
                   onKeyDown={hasChildren ? onActivateKey(() => toggleParent(client.id)) : undefined}
                 >
                 <div className="flex items-center gap-2 flex-wrap">
@@ -194,7 +192,7 @@ icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentCo
                     <p className="text-sm font-medium text-blue-500">Shared with parent</p>
                   ) : (
                     <p className="text-sm font-medium text-slate-600">
-                      {client.creditLimit > 0 ? `₹${formatAmount(client.creditLimit)}` : 'Unlimited'}
+                      {client.creditLimit > 0 ? `₹${formatDecimal(client.creditLimit)}` : 'Unlimited'}
                     </p>
                   )}
                 </div>
@@ -206,15 +204,15 @@ icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentCo
               <div className="text-right flex-shrink-0 w-28">
                 <p className="text-xs text-slate-500 mb-0.5">Outstanding</p>
                 <p className={`text-base font-bold ${client.outstandingBalance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                  ₹{formatAmount(client.outstandingBalance)}
+                  ₹{formatDecimal(client.outstandingBalance)}
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                {isOwnerOrAdmin && !isActualChild && (
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {canAdjustLimit && !isActualChild && (
                   <IconButton
                     onClick={() => setShowLimitModal(client)}
-                    className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
 label="Set credit limit"
 icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -231,7 +229,7 @@ icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentCo
 
               {hasChildren && (
                 <svg
-                  className={`w-4 h-4 text-slate-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 text-slate-500 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
                   fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />

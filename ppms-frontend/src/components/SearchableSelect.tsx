@@ -207,7 +207,7 @@ export function SearchableSelect({
         <div
           ref={dropRef}
           style={dropStyle}
-          className="ui-card p-0 overflow-hidden border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.18)]"
+          className="ui-card p-0 overflow-hidden border border-slate-200 shadow-xl"
         >
           {/* Search box — only shown when options exceed threshold */}
           {showSearch && (
@@ -215,7 +215,7 @@ export function SearchableSelect({
               <div className="relative">
                 <svg
                   aria-hidden="true"
-                  className={`absolute top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none ${isCompact ? 'left-2 w-3 h-3' : 'left-2.5 w-3.5 h-3.5'}`}
+                  className={`absolute top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none ${isCompact ? 'left-2 w-3 h-3' : 'left-2.5 w-3.5 h-3.5'}`}
                   fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -242,12 +242,16 @@ export function SearchableSelect({
             </div>
           )}
 
+          <p className="sr-only" aria-live="polite">
+            {search.trim() === '' ? '' : filtered.length === 0 ? 'No results found' : `${filtered.length} result${filtered.length === 1 ? '' : 's'}`}
+          </p>
+
           {/* Options list */}
           <div
             ref={listboxRef}
             id={listboxId}
             role="listbox"
-            tabIndex={showSearch ? undefined : -1}
+            tabIndex={-1}
             aria-label={label}
             aria-labelledby={label ? undefined : ariaLabelledby}
             aria-activedescendant={showSearch ? undefined : activeDescendant}
@@ -255,7 +259,7 @@ export function SearchableSelect({
             className="max-h-56 overflow-y-auto focus:outline-none"
           >
             {filtered.length === 0 ? (
-              <div role="presentation" className="ui-empty px-4 py-5">No results found</div>
+              <div role="presentation" aria-hidden="true" className="ui-empty px-4 py-5">No results found</div>
             ) : (
               filtered.map((opt, index) => {
                 const isSelected = opt.value === value
@@ -266,9 +270,15 @@ export function SearchableSelect({
                     id={optionId(index)}
                     role="option"
                     aria-selected={isSelected}
+                    tabIndex={-1}
                     onMouseDown={e => e.preventDefault()}
                     onMouseEnter={() => setActiveIndex(index)}
                     onClick={() => selectOption(opt)}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') return
+                      event.preventDefault()
+                      selectOption(opt)
+                    }}
                     className={[
                       'ui-select-option w-full flex items-center gap-2.5 text-left transition-colors cursor-pointer',
                       isCompact ? 'px-2 py-1.5 text-xs' : 'px-3.5 py-3 text-sm',

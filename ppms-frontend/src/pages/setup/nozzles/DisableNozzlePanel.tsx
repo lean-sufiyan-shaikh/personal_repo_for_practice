@@ -22,7 +22,7 @@ export function DisableNozzlePanel({ nozzleNumber, error, isPending, onDisable, 
         <div className="ui-alert ui-alert-danger text-xs">
           No new shifts can be opened on this nozzle until it is re-enabled. Close any active shift first.
         </div>
-        {error && <p className="ui-error-text">{error}</p>}
+        {error && <p role="alert" className="ui-error-text">{error}</p>}
         <div className="ui-disable-editor__actions">
           <button
             type="button"

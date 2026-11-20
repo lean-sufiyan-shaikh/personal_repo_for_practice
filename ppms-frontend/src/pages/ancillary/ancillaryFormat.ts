@@ -1,5 +1,4 @@
 import type { AncillaryPaymentMode, UnitOfMeasure } from '../../api/ancillaryApi'
-import { formatIstDate } from '../../utils/date'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -8,9 +7,7 @@ export function fmtCurrency(n: number | null | undefined) {
   return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-export function fmtDate(s: string) {
-  return formatIstDate(s)
-}
+export { formatIstDate as fmtDate } from '../../utils/date'
 
 export const PAYMENT_MODES: AncillaryPaymentMode[] = ['CASH', 'UPI', 'CARD', 'FLEET_CARD', 'CREDIT']
 

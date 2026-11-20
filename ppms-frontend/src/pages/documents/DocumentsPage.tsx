@@ -185,7 +185,7 @@ export default function DocumentsPage() {
             </div>
           </div>
 
-          {formError && <p className="ui-error-text">{formError}</p>}
+          {formError && <p role="alert" className="ui-error-text">{formError}</p>}
 
           <button
             type="submit"
@@ -223,9 +223,9 @@ export default function DocumentsPage() {
                   </div>
                   <div className="ui-record-row__meta">
                     <p className="text-xs text-slate-500">{doc.docType}</p>
-                    <span className="text-xs text-slate-300">·</span>
+                    <span className="text-xs text-slate-500">·</span>
                     <p className="text-xs text-slate-500">Expires: {fmtDate(doc.expiryDate)}</p>
-                    {doc.notes && <><span className="text-xs text-slate-300">·</span><p className="text-xs text-slate-500 truncate">{doc.notes}</p></>}
+                    {doc.notes && <><span className="text-xs text-slate-500">·</span><p className="text-xs text-slate-500 truncate">{doc.notes}</p></>}
                   </div>
                 </div>
                 <div className="ui-record-row__actions">

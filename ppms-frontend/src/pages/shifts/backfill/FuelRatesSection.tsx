@@ -35,7 +35,7 @@ export function FuelRatesSection({ form }: { form: BackfillForm }) {
                   <div className="flex items-center gap-2 flex-1">
                     <div className="relative flex-1 max-w-[140px]">
                       <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 pointer-events-none">₹</span>
-                      <input
+                      <input aria-label={`${FUEL_LABELS[fuelType] ?? fuelType} rate per litre`}
                         type="number"
                         min="0.01"
                         step="0.01"

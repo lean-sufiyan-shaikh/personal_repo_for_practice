@@ -35,7 +35,7 @@ export function AccordionSection({
             {summary}
           </span>
         </div>
-        <ChevronDown size={14} strokeWidth={2} className={`text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown size={14} strokeWidth={2} className={`text-slate-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (

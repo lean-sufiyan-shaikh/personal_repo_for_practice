@@ -26,7 +26,7 @@ export default function ShiftPlanningPage() {
       {/* Page title */}
       <Reveal delay={60}>
       <div>
-        <h2 className="ui-title-sm">Shift Planning</h2>
+        <h1 className="ui-title-sm">Shift Planning</h1>
         <p className="ui-subtitle">
           Plan weekly operator schedules. Published plans pre-fill shift opening.
         </p>

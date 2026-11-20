@@ -56,7 +56,7 @@ export function DeleteInvoiceModal({ invoice, rows, isPending, error, onConfirm,
               </div>
             </div>
 
-            {error && <p className="ui-error-text">{error}</p>}
+            {error && <p role="alert" className="ui-error-text">{error}</p>}
           </div>
 
           <div className="ui-modal-footer justify-end gap-2">

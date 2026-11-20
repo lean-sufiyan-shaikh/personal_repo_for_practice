@@ -44,8 +44,8 @@ function signIn(role: UserRole, userId: number) {
   useAuthStore.setState({ user: { userId, fullName: 'User', role, assignedPumpId: null }, isAuthenticated: true })
 }
 
-async function renderClient(isOwnerOrAdmin: boolean) {
-  renderWithProviders(<ClientDetail clientId={CLIENT_ID} pumpId={PUMP_ID} isOwnerOrAdmin={isOwnerOrAdmin} onBack={vi.fn()} />)
+async function renderClient() {
+  renderWithProviders(<ClientDetail clientId={CLIENT_ID} pumpId={PUMP_ID} onBack={vi.fn()} />)
   await screen.findByText('Acme Transport')
   await screen.findByText('↓ Paid')
 }
@@ -61,7 +61,7 @@ describe('ClientDetail pending payment approval', () => {
 
   it.each<UserRole>(['OWNER', 'ADMIN'])('lets %s approve or reject a payment someone else recorded', async (role) => {
     signIn(role, 1)
-    await renderClient(true)
+    await renderClient()
     expect(await screen.findByRole('button', { name: 'Approve' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reject' })).toBeInTheDocument()
   })
@@ -69,14 +69,14 @@ describe('ClientDetail pending payment approval', () => {
   it('sends the approval for the payment', async () => {
     const user = userEvent.setup()
     signIn('OWNER', 1)
-    await renderClient(true)
+    await renderClient()
     await user.click(await screen.findByRole('button', { name: 'Approve' }))
     expect(creditApi.approvePayment).toHaveBeenCalledWith(PUMP_ID, PAYMENT_ID, 'APPROVED')
   })
 
   it('hides Approve and Reject from the user who recorded the payment', async () => {
     signIn('OWNER', RECORDER_ID)
-    await renderClient(true)
+    await renderClient()
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()
   })
@@ -84,20 +84,66 @@ describe('ClientDetail pending payment approval', () => {
   it('hides Approve and Reject while it is not yet known who recorded the payment', async () => {
     vi.mocked(creditApi.getPendingPayments).mockReturnValue(new Promise(() => {}))
     signIn('OWNER', RECORDER_ID)
-    await renderClient(true)
+    await renderClient()
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
   })
 
   it.each<UserRole>(['MANAGER', 'ACCOUNTANT'])('hides Approve and Reject from %s and does not load pending payments', async (role) => {
     signIn(role, 1)
-    await renderClient(false)
+    await renderClient()
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
     expect(creditApi.getPendingPayments).not.toHaveBeenCalled()
   })
 
   it('leaves a pending payment out of the outstanding balance used for new payments', async () => {
     signIn('OWNER', 1)
-    await renderClient(true)
+    await renderClient()
     expect(screen.getAllByText(/3,000\.00/).length).toBeGreaterThan(0)
+  })
+})
+
+describe('ClientDetail actions by role', () => {
+  beforeEach(() => {
+    vi.mocked(creditApi.getLedgerSummary).mockResolvedValue([client])
+    vi.mocked(creditApi.getActiveExtensions).mockResolvedValue([])
+    vi.mocked(creditApi.getAllTransactions).mockResolvedValue([pendingPayment])
+    vi.mocked(creditApi.getPendingPayments).mockResolvedValue([pendingPaymentRecord])
+  })
+
+  it('lets a manager record payments and edit interest settings but not grant extensions', async () => {
+    signIn('MANAGER', 1)
+    await renderClient()
+    expect(screen.getByRole('button', { name: 'Record Payment' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Interest Settings' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Grant Extension' })).not.toBeInTheDocument()
+  })
+
+  it('shows an accountant no write actions', async () => {
+    signIn('ACCOUNTANT', 1)
+    await renderClient()
+    expect(screen.queryByRole('button', { name: 'Record Payment' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Interest Settings' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Move' })).not.toBeInTheDocument()
+  })
+})
+
+describe('ClientDetail when the client cannot be shown', () => {
+  beforeEach(() => {
+    vi.mocked(creditApi.getActiveExtensions).mockResolvedValue([])
+    vi.mocked(creditApi.getAllTransactions).mockResolvedValue([])
+    vi.mocked(creditApi.getPendingPayments).mockResolvedValue([])
+    signIn('OWNER', 1)
+  })
+
+  it('says the client was not found instead of loading forever', async () => {
+    vi.mocked(creditApi.getLedgerSummary).mockResolvedValue([])
+    renderWithProviders(<ClientDetail clientId={CLIENT_ID} pumpId={PUMP_ID} onBack={vi.fn()} />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('not found')
+  })
+
+  it('reports a failed load', async () => {
+    vi.mocked(creditApi.getLedgerSummary).mockRejectedValue(new Error('boom'))
+    renderWithProviders(<ClientDetail clientId={CLIENT_ID} pumpId={PUMP_ID} onBack={vi.fn()} />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load this client')
   })
 })

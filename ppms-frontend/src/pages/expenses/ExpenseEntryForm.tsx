@@ -133,7 +133,7 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
           Save as draft — submit for approval later
         </label>
 
-        {formError && <p className="ui-error-text">{formError}</p>}
+        {formError && <p role="alert" className="ui-error-text">{formError}</p>}
 
         <button
           type="submit"
@@ -147,9 +147,9 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
       </form></Reveal>
 
       {reviewOpen && (
-        <ModalPortal onClose={() => setReviewOpen(false)}>
-        <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
-          <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <ModalPortal onClose={() => setReviewOpen(false)} closeOnBackdropClick>
+        <div className="ui-modal-backdrop">
+          <div className="ui-modal-panel w-full max-w-md">
             <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
               <div className="ui-modal-heading">
                 <h2 className="ui-modal-title">Review Expense</h2>
@@ -158,7 +158,7 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
               <button type="button" aria-label="Close" onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
             </div>
             <div className="ui-modal-body space-y-4">
-              {formError && <div className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
+              {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
               <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
                 <div className="flex items-center justify-between px-4 py-2.5">
                   <span className="text-slate-500 text-xs">Category</span>

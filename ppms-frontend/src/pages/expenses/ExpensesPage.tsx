@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
+import { canPerformAction } from '../../permissions/permissions'
 import { expenseApi } from '../../api/expenseApi'
 import { Reveal } from '../../components/Reveal'
 import { formatCurrency } from '../../utils/format'
@@ -24,7 +25,18 @@ export default function ExpensesPage() {
 
   const totalExpenses = summary?.approvedTotal ?? 0
   const pendingCount = summary?.pendingCount ?? 0
-  const isAccountant = user?.role === 'ACCOUNTANT'
+  const canCreateExpense = canPerformAction('expense:create', user?.role)
+
+  if (!pumpId) {
+    return (
+      <div className="ui-page ui-page--narrow">
+        <h1 className="sr-only">Expense Tracker</h1>
+        <div className="ui-alert ui-alert-warning text-sm" role="status">
+          No pump selected. Use the pump selector in the top navigation bar, or ask the Owner or Admin to assign you to a pump.
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="ui-page ui-page--narrow space-y-5">
@@ -73,8 +85,7 @@ export default function ExpensesPage() {
         </Reveal>
       )}
 
-      {/* ── Add expense form — hidden for ACCOUNTANT (read-only role) ── */}
-      {!isAccountant && <ExpenseEntryForm pumpId={pumpId} />}
+      {canCreateExpense && <ExpenseEntryForm pumpId={pumpId} />}
 
       {/* ── Expense list ── */}
       <ExpenseList pumpId={pumpId} list={list} />

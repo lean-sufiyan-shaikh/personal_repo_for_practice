@@ -64,7 +64,7 @@ export function TankerForm({
           </label>
         </div>
       </div>
-      {error && <p className="ui-error-text">{error}</p>}
+      {error && <p role="alert" className="ui-error-text">{error}</p>}
     </div>
   )
 }

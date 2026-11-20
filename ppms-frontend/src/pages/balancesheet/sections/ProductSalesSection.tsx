@@ -2,6 +2,7 @@ import { useAuthStore } from '../../../store/authStore'
 import type { ProductSalesSummary } from '../../../api/balanceSheetApi'
 import { Td, Th } from '../bsTableCells'
 import { fmtMoney } from '../bsFormat'
+import { ScrollRegion } from '../../../components/ScrollRegion'
 
 // ── Ancillary product sales section (DAY reports only) ─────────────────────────
 
@@ -16,7 +17,7 @@ export function ProductSalesSection({ productSales }: { productSales: ProductSal
           ({productSales.productLines.length} product{productSales.productLines.length !== 1 ? 's' : ''})
         </span>
       </h3>
-      <div className="ui-card p-0 overflow-x-auto border-emerald-200">
+      <ScrollRegion label="Product sales" className="ui-card p-0 overflow-x-auto border-emerald-200">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-emerald-50 text-left">
@@ -58,7 +59,7 @@ export function ProductSalesSection({ productSales }: { productSales: ProductSal
             </tr>
           </tfoot>
         </table>
-      </div>
+      </ScrollRegion>
     </section>
   )
 }

@@ -59,8 +59,8 @@ export default function PaymentSettlementsPage() {
               onClick={() => setRecordType('UPI')}
               className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold text-sm text-white
                          bg-gradient-to-b from-emerald-500 to-emerald-600
-                         shadow-[0_10px_20px_rgba(5,150,105,0.28)]
-                         hover:from-emerald-600 hover:to-emerald-700 hover:shadow-[0_10px_20px_rgba(5,150,105,0.38)]
+                         shadow-md shadow-emerald-600/30
+                         hover:from-emerald-600 hover:to-emerald-700 hover:shadow-lg hover:shadow-emerald-600/40
                          active:scale-[0.97] transition-all duration-150"
             >
               <Landmark size={16} strokeWidth={2} />

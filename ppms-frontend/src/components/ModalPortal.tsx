@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useId, useLayoutEffect, useRef } from 'react'
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -26,20 +26,37 @@ interface ModalPortalProps {
   children: ReactNode
   /** Called on Escape. Leave undefined while the modal must not be dismissed (e.g. a save is in flight). */
   onClose?: () => void
+  /** Also call onClose when the `.ui-modal-backdrop` itself (not the panel) is clicked. */
+  closeOnBackdropClick?: boolean
+  /** Where focus goes on close when the element that opened the modal is gone. Defaults to <main>. */
+  returnFocusRef?: RefObject<HTMLElement | null>
+}
+
+function restoreFocus(opener: HTMLElement | null, fallback: HTMLElement | null | undefined) {
+  if (opener && opener !== document.body && document.contains(opener)) {
+    opener.focus()
+    return
+  }
+  const target = fallback && document.contains(fallback) ? fallback : document.querySelector<HTMLElement>('main')
+  target?.focus()
 }
 
 /**
  * Renders a modal into document.body (escaping ancestor stacking contexts) as an accessible dialog:
  * named by its `.ui-modal-title`, focus moved inside and trapped, Escape closes, and focus returns to the opener.
  */
-export function ModalPortal({ children, onClose }: ModalPortalProps) {
+export function ModalPortal({ children, onClose, closeOnBackdropClick = false, returnFocusRef }: ModalPortalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const generatedTitleId = useId()
   const onCloseRef = useRef(onClose)
+  const closeOnBackdropClickRef = useRef(closeOnBackdropClick)
+  const returnFocusRefRef = useRef(returnFocusRef)
 
   useEffect(() => {
     onCloseRef.current = onClose
-  }, [onClose])
+    closeOnBackdropClickRef.current = closeOnBackdropClick
+    returnFocusRefRef.current = returnFocusRef
+  }, [onClose, closeOnBackdropClick, returnFocusRef])
 
   useLayoutEffect(() => {
     const dialog = dialogRef.current
@@ -62,7 +79,7 @@ export function ModalPortal({ children, onClose }: ModalPortalProps) {
     return () => {
       const index = openDialogs.indexOf(dialog)
       if (index !== -1) openDialogs.splice(index, 1)
-      if (opener && document.contains(opener)) opener.focus()
+      restoreFocus(opener, returnFocusRefRef.current?.current)
     }
   }, [generatedTitleId])
 
@@ -96,8 +113,18 @@ export function ModalPortal({ children, onClose }: ModalPortalProps) {
         first.focus()
       }
     }
+    // Native listener: the backdrop is a mouse convenience; keyboard users close with Escape or the Close button.
+    const handleBackdropClick = (event: MouseEvent) => {
+      const target = event.target
+      if (!closeOnBackdropClickRef.current || !onCloseRef.current || !isTopDialog(dialog)) return
+      if (target instanceof HTMLElement && target.classList.contains('ui-modal-backdrop')) onCloseRef.current()
+    }
     document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    dialog.addEventListener('click', handleBackdropClick)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      dialog.removeEventListener('click', handleBackdropClick)
+    }
   }, [])
 
   return createPortal(

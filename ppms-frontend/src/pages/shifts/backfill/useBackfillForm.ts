@@ -55,7 +55,7 @@ export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
 
   const { data: dus = [], isLoading: dusLoading } = useQuery({
     queryKey: ['dus', pumpId],
-    queryFn:  () => shiftApi.getDUs(pumpId),
+    queryFn:  () => pumpApi.getDUs(pumpId),
   })
 
   const { data: creditClients = [] } = useQuery({

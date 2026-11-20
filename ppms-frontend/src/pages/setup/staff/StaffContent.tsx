@@ -54,7 +54,7 @@ export function StaffContent({ pump }: { pump: PumpSummary }) {
       {/* Staff list */}
       {!isLoading && staff.length > 0 && (
         <div className="space-y-2">
-          {statusError && <p className="ui-error-text">{statusError}</p>}
+          {statusError && <p role="alert" className="ui-error-text">{statusError}</p>}
           {staff.map((member: StaffMember) => (
             <StaffRow
               key={member.id}

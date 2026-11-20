@@ -114,7 +114,7 @@ export function RecordDipPanel({ pumpId, nozzle, currentPrices, onClose }: Props
             </label>
           </div>
         </div>
-        {dipError && <p className="ui-error-text">{dipError}</p>}
+        {dipError && <p role="alert" className="ui-error-text">{dipError}</p>}
         <div className="ui-dip-editor__actions">
           <button
             type="submit"

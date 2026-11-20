@@ -83,8 +83,8 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
                       <span className="text-amber-600 font-semibold">Over {fmtAmt(op.totalOverAmount)}</span>
                     )}
                     {expandedOp === op.operatorId
-                      ? <ChevronUp size={14} strokeWidth={2} className="text-slate-400" />
-                      : <ChevronDown size={14} strokeWidth={2} className="text-slate-400" />
+                      ? <ChevronUp size={14} strokeWidth={2} className="text-slate-500" />
+                      : <ChevronDown size={14} strokeWidth={2} className="text-slate-500" />
                     }
                   </div>
                 </button>

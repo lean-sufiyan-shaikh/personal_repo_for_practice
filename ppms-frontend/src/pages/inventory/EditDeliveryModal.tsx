@@ -4,6 +4,7 @@ import { inventoryApi } from '../../api/inventoryApi'
 import type { TankerDelivery, UpdateDeliveryRequest } from '../../api/inventoryApi'
 import { ModalPortal } from '../../components/ModalPortal'
 import { limitDecimals } from './inventoryFormat'
+import { IconButton } from '../../components/IconButton'
 
 // ── Edit Delivery Modal ────────────────────────────────────────────────────────
 
@@ -52,9 +53,9 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
   }
 
   return (
-    <ModalPortal onClose={onClose}>
-      <div className="ui-modal-backdrop" onClick={onClose}>
-        <div className="ui-modal-panel w-full max-w-md" onClick={e => e.stopPropagation()}>
+    <ModalPortal onClose={onClose} closeOnBackdropClick>
+      <div className="ui-modal-backdrop">
+        <div className="ui-modal-panel w-full max-w-md">
           <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
             <div className="ui-modal-heading">
               <h2 className="ui-modal-title">Edit Delivery</h2>
@@ -62,7 +63,7 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
                 {delivery.tankIdentifier} · {delivery.fuelType}
               </p>
             </div>
-            <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+            <IconButton label="Close" icon="×" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close" />
           </div>
 
           <div className="ui-modal-body space-y-4">
@@ -127,7 +128,7 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
               </label>
             </div>
 
-            {error && <p className="ui-error-text">{error}</p>}
+            {error && <p role="alert" className="ui-error-text">{error}</p>}
           </div>
 
           <div className="ui-modal-footer justify-end gap-2">

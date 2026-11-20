@@ -1,6 +1,7 @@
 import { ModalPortal } from '../../../components/ModalPortal'
 import { FUEL_COLORS, fmtDate } from '../inventoryFormat'
 import type { PreparedDeliveryItem } from './deliveryRows'
+import { IconButton } from '../../../components/IconButton'
 
 interface Props {
   items: PreparedDeliveryItem[]
@@ -22,23 +23,22 @@ export function DeliveryReviewDialog({
   isPending, onBack, onConfirm,
 }: Props) {
   return (
-    <ModalPortal onClose={onBack}>
-    <div className="ui-modal-backdrop" onClick={onBack}>
+    <ModalPortal onClose={onBack} closeOnBackdropClick>
+    <div className="ui-modal-backdrop">
       <div
         className="ui-modal-panel ui-modal-panel--lg"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
           <div className="ui-modal-heading">
             <h3 className="ui-modal-title">Review Tanker Delivery</h3>
             <p className="ui-modal-subtitle">Please verify the bill and tank-wise received fuel before submitting.</p>
           </div>
-          <button type="button" aria-label="Close" onClick={onBack} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+          <IconButton label="Close" icon="×" onClick={onBack} className="ui-btn ui-btn-ghost ui-modal-close" />
         </div>
 
         <div className="ui-modal-body space-y-5 max-h-[75vh]">
           {error && (
-            <div className="ui-alert ui-alert-danger text-sm">
+            <div role="alert" className="ui-alert ui-alert-danger text-sm">
               {error} Go back to modify the data and try again.
             </div>
           )}
@@ -55,7 +55,7 @@ export function DeliveryReviewDialog({
               const calcTotal = items.reduce((sum, item) => sum + item.totalCost, 0)
               const displayTotal = billTotalNum > 0 ? billTotalNum : calcTotal
               return (
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 shadow-[0_10px_20px_rgba(37,99,235,0.08)]">
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 shadow-md shadow-blue-600/10">
                   <p className="text-xs font-medium text-blue-600">Bill Amount</p>
                   <p className="mt-1 text-base font-bold text-blue-800">
                     ₹{displayTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}

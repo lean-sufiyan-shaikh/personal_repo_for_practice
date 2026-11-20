@@ -3,13 +3,12 @@ import { Printer } from 'lucide-react'
 import type { Shift } from '../../../types/shift'
 import { formatIstDateTime } from '../../../utils/date'
 import { ModalPortal } from '../../../components/ModalPortal'
+import { formatCurrencyOrDash as fmtAmt } from '../../../utils/format'
+import { IconButton } from '../../../components/IconButton'
 
 // ── Handover Report Modal ─────────────────────────────────────────────────────
 
 export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () => void }) {
-  const fmtAmt = (v: number | null | undefined) =>
-    v != null ? `₹${Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
-
   // Tag <body> while this modal is open so @media print can isolate it:
   // hide #root and free the panel from its max-height/overflow constraints.
   useEffect(() => {
@@ -18,9 +17,9 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
   }, [])
 
   return (
-    <ModalPortal onClose={onClose}>
-      <div className="ui-modal-backdrop" onClick={onClose}>
-      <div className="ui-modal-panel max-w-xl w-full" onClick={(e) => e.stopPropagation()}>
+    <ModalPortal onClose={onClose} closeOnBackdropClick>
+      <div className="ui-modal-backdrop">
+      <div className="ui-modal-panel max-w-xl w-full">
 
         {/* Screen header */}
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--primary print:hidden">
@@ -43,7 +42,7 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
             >
               <Printer size={13} strokeWidth={2} /> Print
             </button>
-            <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+            <IconButton label="Close" icon="×" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close" />
           </div>
         </div>
 
@@ -52,7 +51,7 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
 
           {/* Title for print */}
           <div className="hidden print:block text-center mb-4">
-            <h1 className="text-xl font-bold">Shift Handover Report</h1>
+            <h2 className="text-xl font-bold">Shift Handover Report</h2>
             <p className="text-slate-500 text-xs mt-1">Shift #{shift.id}</p>
           </div>
 

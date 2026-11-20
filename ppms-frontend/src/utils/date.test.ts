@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addDays, formatIstDate, formatIstDateTime, istDateString, localDateInputValue } from './date'
+import { addDays, formatIstDate, formatIstDateTime, istDateString, localDateInputValue, mondayOf } from './date'
 
 describe('istDateString', () => {
   it('returns the IST date when UTC is still on the previous day', () => {
@@ -67,5 +67,35 @@ describe('formatIstDateTime', () => {
     const text = formatIstDateTime('2026-03-14T19:00:00Z')
     expect(text).toContain('15 Mar 2026')
     expect(text).toMatch(/12:30\s?am/i)
+  })
+})
+
+describe('mondayOf', () => {
+  it('returns the same date for a Monday', () => {
+    expect(mondayOf('2026-11-16')).toBe('2026-11-16')
+  })
+
+  it('returns the previous Monday for a Sunday', () => {
+    expect(mondayOf('2026-11-22')).toBe('2026-11-16')
+  })
+
+  it('crosses a month boundary', () => {
+    expect(mondayOf('2026-12-02')).toBe('2026-11-30')
+  })
+
+  it('gives the IST week at 00:30 IST on Monday while UTC is still Sunday', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-15T19:00:00Z'))
+    expect(mondayOf(istDateString())).toBe('2026-11-16')
+    vi.useRealTimers()
+  })
+})
+
+describe('cached IST formatters', () => {
+  it('formats the same options twice with the same result', () => {
+    const options: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hour12: true }
+    const first = formatIstDateTime('2026-11-20T03:30:00Z', options)
+    expect(formatIstDateTime('2026-11-20T03:30:00Z', options)).toBe(first)
+    expect(first).toMatch(/09:00\s?am/i)
   })
 })

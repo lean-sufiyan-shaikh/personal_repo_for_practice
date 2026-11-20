@@ -9,6 +9,7 @@ import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
 import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
 import { fmtAmt, todayIso, yesterdayIso } from '../reportFormat'
+import { ScrollRegion } from '../../../components/ScrollRegion'
 
 // ── Operator Duty Tab ─────────────────────────────────────────────────────────
 
@@ -51,7 +52,7 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
       <td className="px-4 py-2.5 text-right font-medium text-slate-700 tabular-nums">{fmtAmt(s.totalAmountDue)}</td>
       <td className="px-4 py-2.5 text-right text-slate-600 tabular-nums">{fmtAmt(s.cashCollected)}</td>
       <td className="px-4 py-2.5 text-right text-orange-600 tabular-nums">{fmtAmt(s.creditTotal)}</td>
-      <td className={`px-4 py-2.5 text-right text-xs font-semibold tabular-nums ${s.discrepancyAmount > 0 ? (s.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600') : 'text-slate-300'}`}>
+      <td className={`px-4 py-2.5 text-right text-xs font-semibold tabular-nums ${s.discrepancyAmount > 0 ? (s.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600') : 'text-slate-500'}`}>
         {s.discrepancyAmount > 0 ? `${s.discrepancyType} ${fmtAmt(s.discrepancyAmount)}` : '—'}
       </td>
       <td className="px-4 py-2.5 text-xs text-slate-500">{s.status.replace(/_/g, ' ')}</td>
@@ -119,12 +120,12 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
             <SummaryCard label="Total Amount Due"  value={fmtAmt(data.totalAmountDue)}   color="text-slate-800" />
             <SummaryCard label="Total Discrepancy" value={fmtAmt(data.totalDiscrepancy)} color={data.totalDiscrepancy > 0 ? 'text-red-700' : 'text-green-700'} />
           </div>
-          <div className="ui-card p-0 overflow-hidden overflow-x-auto">
+          <ScrollRegion label="Operator duty" className="ui-card p-0 overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
               <thead>{dutyTableHead}</thead>
               <tbody>{data.shifts.map(dutyRow)}</tbody>
             </table>
-          </div>
+          </ScrollRegion>
         </div>
       )}
     </div>

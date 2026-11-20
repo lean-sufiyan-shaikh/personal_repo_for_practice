@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
+import { canAccessPage, canPerformAction } from '../../permissions/permissions'
 import { usePumpStore } from '../../store/usePumpStore'
 import { creditApi } from '../../api/creditApi'
 import type { CreditClient } from '../../api/creditApi'
@@ -10,13 +11,16 @@ import { Reveal } from '../../components/Reveal'
 import { ClientDetail } from './ClientDetail'
 import { LedgerTab } from './LedgerTab'
 import { CreditClientsTab } from './CreditClientsTab'
+import { formatDecimal } from '../../utils/format'
 
 // ─── Main Credit Page ────────────────────────────────────────────────────────
 
 export default function CreditPage() {
   const { user } = useAuthStore()
-  const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
-  const canSeeLedger   = isOwnerOrAdmin || user?.role === 'ACCOUNTANT'
+  const isOwnerOrAdmin    = user?.role === 'OWNER' || user?.role === 'ADMIN'
+  const canSeeLedger      = canAccessPage('credit', user?.role)
+  const canAdjustLimit    = canPerformAction('credit:adjust-limit', user?.role)
+  const canManageClients  = canPerformAction('credit:manage-client', user?.role)
 
   const { selectedPumpId } = usePumpStore()
   const [selectedClient, setSelectedClient] = useState<CreditClient | null>(null)
@@ -44,9 +48,6 @@ export default function CreditPage() {
     enabled:  !!pumpId,
   })
 
-  const formatAmount = (n: number) =>
-    n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
   if (!isOwnerOrAdmin && !pumpId) {
     return (
       <div className="ui-page ui-page--narrow">
@@ -63,7 +64,6 @@ export default function CreditPage() {
         <ClientDetail
           clientId={selectedClient.id}
           pumpId={pumpId}
-          isOwnerOrAdmin={isOwnerOrAdmin}
           onBack={() => setSelectedClient(null)}
         />
       </div>
@@ -98,7 +98,7 @@ export default function CreditPage() {
           {canSeeLedger && (
             <div className="ui-section-meta-pill">
               <span className="ui-section-meta-label">Outstanding</span>
-              <span className="ui-section-meta-value">₹{formatAmount(totalOutstanding)}</span>
+              <span className="ui-section-meta-value">₹{formatDecimal(totalOutstanding)}</span>
             </div>
           )}
         </div>
@@ -130,7 +130,7 @@ export default function CreditPage() {
           allCreditClients={allCreditClients}
           isLoading={isLoading}
           hasError={!!error}
-          isOwnerOrAdmin={isOwnerOrAdmin}
+          canAdjustLimit={canAdjustLimit}
           onSelectClient={setSelectedClient}
         />
       )}
@@ -140,7 +140,7 @@ export default function CreditPage() {
         <Reveal delay={120}>
         <div className="ui-card">
           {pumpId ? (
-            <CreditClientsTab pumpId={pumpId} isOwnerOrAdmin={isOwnerOrAdmin} />
+            <CreditClientsTab pumpId={pumpId} canManageClients={canManageClients} />
           ) : (
             <div className="ui-empty">No pump selected. Use the pump selector in the top navigation bar.</div>
           )}

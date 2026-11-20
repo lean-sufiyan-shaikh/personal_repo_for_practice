@@ -7,7 +7,7 @@ import type { ShiftPlanEntry } from '../../../api/shiftPlanApi'
 import { shiftDefinitionApi } from '../../../api/shiftDefinitionApi'
 import { useAuthStore } from '../../../store/authStore'
 import { parseApiError } from '../../../utils/apiError'
-import { getMonday, toISODate } from './planningHelpers'
+import { addDays, istDateString, mondayOf } from '../../../utils/date'
 
 export function useShiftPlanning() {
   const { user } = useAuthStore()
@@ -15,7 +15,7 @@ export function useShiftPlanning() {
   const queryClient = useQueryClient()
 
   const { selectedPumpId } = usePumpStore()
-  const [weekStart, setWeekStart] = useState<string>(() => toISODate(getMonday(new Date())))
+  const [weekStart, setWeekStart] = useState<string>(() => mondayOf(istDateString()))
 
   // Generate modal state
   const [showGenerate, setShowGenerate] = useState(false)
@@ -52,11 +52,7 @@ export function useShiftPlanning() {
   })
 
   // Last day of the displayed week (weekStart + 6 days)
-  const weekEnd = (() => {
-    const d = new Date(weekStart + 'T00:00:00')
-    d.setDate(d.getDate() + 6)
-    return toISODate(d)
-  })()
+  const weekEnd = addDays(weekStart, 6)
 
   const { data: actualAttendance = [] } = useQuery({
     queryKey: ['actualAttendance', pumpId, weekStart],
@@ -103,25 +99,13 @@ export function useShiftPlanning() {
   })
 
   // Navigation
-  const prevWeek = () => {
-    const d = new Date(weekStart + 'T00:00:00')
-    d.setDate(d.getDate() - 7)
-    setWeekStart(toISODate(d))
-  }
-  const nextWeek = () => {
-    const d = new Date(weekStart + 'T00:00:00')
-    d.setDate(d.getDate() + 7)
-    setWeekStart(toISODate(d))
-  }
+  const prevWeek = () => setWeekStart(addDays(weekStart, -7))
+  const nextWeek = () => setWeekStart(addDays(weekStart, 7))
 
   // Build 7 day columns
-  const days: string[] = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStart + 'T00:00:00')
-    d.setDate(d.getDate() + i)
-    return toISODate(d)
-  })
+  const days: string[] = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
-  const today = toISODate(new Date())
+  const today = istDateString()
 
   // The week is entirely in the past when its last day is before today
   const isWeekEntirelyPast = weekEnd < today

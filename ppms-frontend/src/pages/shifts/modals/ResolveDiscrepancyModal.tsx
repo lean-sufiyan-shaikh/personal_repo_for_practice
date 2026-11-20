@@ -7,6 +7,7 @@ import { SearchableSelect } from '../../../components/SearchableSelect'
 import { parseApiError } from '../../../utils/apiError'
 import { ModalPortal } from '../../../components/ModalPortal'
 import { RESOLUTION_OPTIONS } from '../shiftLabels'
+import { IconButton } from '../../../components/IconButton'
 
 export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onClose: () => void }) {
   const qc = useQueryClient()
@@ -38,9 +39,9 @@ export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onCl
   return (
     <tr>
       <td colSpan={8} className="p-0">
-        <ModalPortal onClose={onClose}>
-        <div className="ui-modal-backdrop" onClick={onClose}>
-          <div className="ui-modal-panel w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <ModalPortal onClose={onClose} closeOnBackdropClick>
+        <div className="ui-modal-backdrop">
+          <div className="ui-modal-panel w-full max-w-md overflow-hidden">
 
             {/* Header */}
             <div className="ui-modal-header ui-modal-header--themed ui-modal-header--danger">
@@ -50,7 +51,7 @@ export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onCl
                   Shift #{shift.id} · {discType} ₹{discAmt?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </p>
               </div>
-              <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+              <IconButton label="Close" icon="×" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close" />
             </div>
 
             <div className="ui-modal-body space-y-4">
@@ -76,7 +77,7 @@ export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onCl
                   />
                 </label>
               </div>
-              {error && <p className="ui-error-text">{error}</p>}
+              {error && <p role="alert" className="ui-error-text">{error}</p>}
               <div className="ui-modal-footer -mx-6 -mb-6">
                 <button onClick={onClose} className="ui-btn ui-btn-secondary flex-1">
                   Cancel

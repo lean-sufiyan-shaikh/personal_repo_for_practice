@@ -51,7 +51,7 @@ export function HistoryRow({ shift }: { shift: Shift }) {
               {shift.shiftWindow}
             </span>
           ) : (
-            <span className="text-xs text-slate-300">—</span>
+            <span className="text-xs text-slate-500">—</span>
           )}
         </td>
         <td className="px-5 py-3 text-sm text-slate-700 font-medium">{shift.operatorName}</td>
@@ -79,7 +79,7 @@ export function HistoryRow({ shift }: { shift: Shift }) {
               {shift.discrepancyType} {fmtAmt(shift.discrepancyAmount)}
             </span>
           ) : (
-            <span className="text-xs text-slate-300">—</span>
+            <span className="text-xs text-slate-500">—</span>
           )}
         </td>
         <td className="px-4 py-3 text-right">
@@ -103,7 +103,7 @@ export function HistoryRow({ shift }: { shift: Shift }) {
             {isClosed && (
               <IconButton
                 onClick={() => setHandoverOpen(true)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
+                className="text-slate-500 hover:text-slate-600 transition-colors"
  label="Print handover report"
  icon={<Printer size={14} strokeWidth={2} />}
  />
@@ -165,7 +165,7 @@ export function HistoryRow({ shift }: { shift: Shift }) {
                     <span className="font-semibold text-orange-700">{fmtAmt(creditAmt)}</span>
                   )
                 ) : (
-                  <span className="text-slate-300">—</span>
+                  <span className="text-slate-500">—</span>
                 )}
               </div>
             </div>

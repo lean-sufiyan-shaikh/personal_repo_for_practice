@@ -5,10 +5,11 @@ import { creditApi } from '../../api/creditApi'
 import type { CreditTransaction, CreditExtension } from '../../api/creditApi'
 import { pumpApi } from '../../api/pumpApi'
 import type { MergedTx } from './ledgerGroups'
+import { FULL_HISTORY_QUERY_OPTIONS } from '../../queryClient'
 
 export function useClientLedger(pumpId: number, clientId: number, canApprovePayments: boolean) {
   // Subscribe to the ledger summary so it refreshes automatically after a payment
-  const { data: allClients = [] } = useQuery({
+  const { data: allClients = [], isLoading: clientsLoading, isError: clientsFailed } = useQuery({
     queryKey: ['credit-ledger', pumpId],
     queryFn: () => creditApi.getLedgerSummary(pumpId),
   })
@@ -37,6 +38,7 @@ export function useClientLedger(pumpId: number, clientId: number, canApprovePaym
   const { data: ownTransactions = [], isLoading } = useQuery({
     queryKey: ['credit-transactions', pumpId, clientId, 'all'],
     queryFn: () => creditApi.getAllTransactions(pumpId, clientId),
+    ...FULL_HISTORY_QUERY_OPTIONS,
   })
 
   // outstandingInterest and totalInterestRecovered are now embedded in the client response —
@@ -61,6 +63,7 @@ export function useClientLedger(pumpId: number, clientId: number, canApprovePaym
     queries: childClients.map(child => ({
       queryKey: ['credit-transactions', pumpId, child.id, 'all'],
       queryFn:  () => creditApi.getAllTransactions(pumpId, child.id),
+      ...FULL_HISTORY_QUERY_OPTIONS,
     })),
     combine: combineChildTransactions,
   })
@@ -86,7 +89,7 @@ export function useClientLedger(pumpId: number, clientId: number, canApprovePaym
   )
 
   return {
-    allClients, client, childClients, activeExtensions, isParent, ownTransactions, isLoading,
+    allClients, client, clientsLoading, clientsFailed, childClients, activeExtensions, isParent, ownTransactions, isLoading,
     outstandingInterest, totalInterestRecovered, childTxQueries, childTransactionsByIndex,
     pendingPaymentRecorders, transactions,
   }

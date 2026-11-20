@@ -6,6 +6,7 @@ import { shiftApi } from '../../api/shiftApi'
 import { pumpApi } from '../../api/pumpApi'
 import { usePumpStore } from '../../store/usePumpStore'
 import { useAuthStore } from '../../store/authStore'
+import { canPerformAction } from '../../permissions/permissions'
 import type { Shift } from '../../types/shift'
 import OpenShiftModal from './OpenShiftModal'
 import CloseShiftModal from './CloseShiftModal'
@@ -19,18 +20,21 @@ import { AllShiftsHistory } from './history/AllShiftsHistory'
 import { DayViewHistory } from './history/DayViewHistory'
 import { DiscrepanciesHistory } from './history/DiscrepanciesHistory'
 import { AddCreditEntryModal } from './modals/AddCreditEntryModal'
+import { ScrollRegion } from '../../components/ScrollRegion'
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ShiftsPage() {
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
+  const canOpenShift  = canPerformAction('shift:open', user?.role)
+  const canCloseShift = canPerformAction('shift:close', user?.role)
 
   const { selectedPumpId } = usePumpStore()
   const [showOpenModal,     setShowOpenModal]     = useState(false)
   const [showBackfillModal, setShowBackfillModal] = useState(false)
   const [shiftToClose,      setShiftToClose]      = useState<Shift | null>(null)
-  const [shiftForCredit,    setShiftForCredit]    = useState<Shift | null>(null)
+  const [shiftIdForCredit,  setShiftIdForCredit]  = useState<number | null>(null)
   const [historyOpen,    setHistoryOpen]    = useState(true)
   const [historyTab,     setHistoryTab]     = useState<'day' | 'all' | 'discrepancies'>('day')
   const [closedShiftPrefill, setClosedShiftPrefill] = useState<{ duId: number; nozzleIds: number[] } | null>(null)
@@ -50,7 +54,7 @@ export default function ShiftsPage() {
     queryKey:      ['activeShifts', pumpId],
     queryFn:       () => shiftApi.getActiveShifts(pumpId!),
     enabled:       !!pumpId,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   })
 
 
@@ -84,6 +88,7 @@ export default function ShiftsPage() {
   }
 
   const selectedPump = sortedPumps.find((p) => p.id === pumpId)
+  const shiftForCredit = activeShifts.find((shift) => shift.id === shiftIdForCredit) ?? null
 
   return (
     <div className="ui-page ui-page--narrow space-y-6">
@@ -93,7 +98,7 @@ export default function ShiftsPage() {
       <div className="ui-section-hero">
         <div>
           <p className="ui-section-kicker">Shift control</p>
-          <h2 className="ui-title-sm">Shifts</h2>
+          <h1 className="ui-title-sm">Shifts</h1>
           <p className="ui-subtitle">Open and close operator shifts, record meter readings and payment collection.</p>
         </div>
         <div className="ui-section-meta">
@@ -132,13 +137,15 @@ export default function ShiftsPage() {
                     Backfill Shift
                   </button>
                 )}
-                <button
-                  onClick={() => setShowOpenModal(true)}
-                  className="ui-btn ui-btn-primary inline-flex items-center gap-1.5"
-                >
-                  <Plus size={14} strokeWidth={2.5} />
-                  Open Shift
-                </button>
+                {canOpenShift && (
+                  <button
+                    onClick={() => setShowOpenModal(true)}
+                    className="ui-btn ui-btn-primary inline-flex items-center gap-1.5"
+                  >
+                    <Plus size={14} strokeWidth={2.5} />
+                    Open Shift
+                  </button>
+                )}
               </div>
             </div>
 
@@ -146,10 +153,10 @@ export default function ShiftsPage() {
               <div className="px-5 py-4"><SkeletonRows count={3} /></div>
             ) : activeShifts.length === 0 ? (
               <div className="ui-empty p-6">
-                No active shifts. Click "+ Open Shift" to start one.
+                {canOpenShift ? 'No active shifts. Click "+ Open Shift" to start one.' : 'No active shifts.'}
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <ScrollRegion label="Active shifts" className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-xs text-slate-500">
@@ -167,13 +174,13 @@ export default function ShiftsPage() {
                       <ShiftRow
                         key={shift.id}
                         shift={shift}
-                        onClose={() => setShiftToClose(shift)}
-                        onAddCredit={() => setShiftForCredit(shift)}
+                        onClose={canCloseShift ? () => setShiftToClose(shift) : undefined}
+                        onAddCredit={() => setShiftIdForCredit(shift.id)}
                       />
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollRegion>
             )}
           </div>
 
@@ -249,7 +256,7 @@ export default function ShiftsPage() {
       {shiftForCredit && (
         <AddCreditEntryModal
           shift={shiftForCredit}
-          onClose={() => setShiftForCredit(null)}
+          onClose={() => setShiftIdForCredit(null)}
         />
       )}
     </div>

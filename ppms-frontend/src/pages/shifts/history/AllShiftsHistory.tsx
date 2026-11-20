@@ -6,6 +6,8 @@ import { localDateInputValue } from '../../../utils/date'
 import { parseApiError } from '../../../utils/apiError'
 import { HistoryRow } from './HistoryRow'
 import { PAGE_SIZE } from '../shiftLabels'
+import { ScrollRegion } from '../../../components/ScrollRegion'
+import { FULL_HISTORY_QUERY_OPTIONS } from '../../../queryClient'
 
 // ── All Shifts (paginated + date range filter) ────────────────────────────────
 
@@ -17,6 +19,7 @@ export function AllShiftsHistory({ pumpId }: { pumpId: number }) {
   const { data: filtered = [], isLoading, error } = useQuery({
     queryKey: ['shiftHistory', pumpId, 'all', fromDate, toDate],
     queryFn:  () => shiftApi.getShiftHistory(pumpId, { from: fromDate || undefined, to: toDate || undefined }),
+    ...FULL_HISTORY_QUERY_OPTIONS,
   })
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
@@ -32,14 +35,14 @@ export function AllShiftsHistory({ pumpId }: { pumpId: number }) {
       <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-slate-100 bg-slate-50/60">
         <span className="text-xs font-medium text-slate-500">Filter by date:</span>
         <div className="flex items-center gap-2">
-          <input
+          <input aria-label="From date"
             type="date"
             value={fromDate}
             onChange={(e) => { setFromDate(e.target.value); setPage(0) }}
             className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <span className="text-slate-500 text-xs">to</span>
-          <input
+          <input aria-label="To date"
             type="date"
             value={toDate}
             onChange={(e) => { setToDate(e.target.value); setPage(0) }}
@@ -61,7 +64,7 @@ export function AllShiftsHistory({ pumpId }: { pumpId: number }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border-t border-slate-100">
+      <ScrollRegion label="All shifts" className="overflow-x-auto border-t border-slate-100">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 text-xs text-slate-500">
@@ -84,7 +87,7 @@ export function AllShiftsHistory({ pumpId }: { pumpId: number }) {
             ) : error ? (
               <tr>
                 <td colSpan={9} className="px-6 py-4">
-                  <p className="ui-alert ui-alert-error text-sm">{parseApiError(error, 'Failed to load shift history')}</p>
+                  <p role="alert" className="ui-alert ui-alert-error text-sm">{parseApiError(error, 'Failed to load shift history')}</p>
                 </td>
               </tr>
             ) : paged.length === 0 ? (
@@ -98,7 +101,7 @@ export function AllShiftsHistory({ pumpId }: { pumpId: number }) {
             )}
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
 
       {/* Pagination */}
       {totalPages > 1 && (

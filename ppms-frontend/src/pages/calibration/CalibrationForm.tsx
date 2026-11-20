@@ -115,7 +115,6 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
                 onChange={e => setForm(f => ({ ...f, calibrationDate: e.target.value }))}
                 className="text-sm"
                 required
-                autoFocus
               />
             </label>
           </div>
@@ -172,7 +171,7 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
           </div>
         </div>
 
-        {formError && <p className="ui-error-text">{formError}</p>}
+        {formError && <p role="alert" className="ui-error-text">{formError}</p>}
 
         <button
           type="submit"
@@ -187,9 +186,9 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
       </Reveal>
 
       {reviewOpen && (
-        <ModalPortal onClose={() => setReviewOpen(false)}>
-        <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
-          <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <ModalPortal onClose={() => setReviewOpen(false)} closeOnBackdropClick>
+        <div className="ui-modal-backdrop">
+          <div className="ui-modal-panel w-full max-w-md">
             <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
               <div className="ui-modal-heading">
                 <h2 className="ui-modal-title">Review Calibration</h2>
@@ -198,7 +197,7 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
               <button type="button" aria-label="Close" onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
             </div>
             <div className="ui-modal-body space-y-4">
-              {formError && <div className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
+              {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
               <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
                 <CalibrationReviewRow
                   label="Nozzle"

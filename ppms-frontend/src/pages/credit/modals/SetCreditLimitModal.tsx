@@ -69,13 +69,13 @@ export function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitM
                 onChange={e => setLimit(e.target.value)}
                 placeholder="0 = unlimited"
                 className="w-full pl-7 pr-3 text-sm"
-                autoFocus
+                data-autofocus
               />
             </div>
           </div>
 
           {error && (
-            <div className="ui-alert ui-alert-danger text-sm">
+            <div role="alert" className="ui-alert ui-alert-danger text-sm">
               {error}
             </div>
           )}

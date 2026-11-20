@@ -10,6 +10,7 @@ import type { AuthUser } from '../../types/auth'
 import { PasswordInput } from '../../components/PasswordInput'
 import { parseApiError } from '../../utils/apiError'
 import { getDefaultPath } from '../../permissions/permissions'
+import { prefetchLandingPage } from '../../routes/pageLoaders'
 
 const loginSchema = z.object({
   phoneNumber: z.string().length(10, 'Phone number must be exactly 10 digits').regex(/^\d+$/, 'Must be digits only'),
@@ -44,7 +45,9 @@ export default function LoginPage() {
         assignedPumpId: response.assignedPumpId,
       }
       setAuth(user)
-      navigate(getDefaultPath(response.role))
+      const landingPath = getDefaultPath(response.role)
+      prefetchLandingPage(landingPath)
+      navigate(landingPath)
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } }
       setServerError(parseApiError(error, 'Login failed. Please try again.'))

@@ -1,6 +1,7 @@
 import type { BalanceSheetDetail, MeterAmendmentLine } from '../../../api/balanceSheetApi'
 import { Td, Th } from '../bsTableCells'
 import { FUEL_BADGE, IST_TIME_FORMATTER } from '../bsFormat'
+import { ScrollRegion } from '../../../components/ScrollRegion'
 
 export function MeterAmendmentsSection({ detail }: { detail: BalanceSheetDetail }) {
   return (
@@ -11,7 +12,7 @@ export function MeterAmendmentsSection({ detail }: { detail: BalanceSheetDetail 
           ({detail.meterAmendments.length} amendment{detail.meterAmendments.length !== 1 ? 's' : ''} during this period)
         </span>
       </h3>
-      <div className="ui-table-wrap overflow-x-auto border-amber-200">
+      <ScrollRegion label="Meter amendments" className="ui-table-wrap overflow-x-auto border-amber-200">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-amber-50 text-left">
@@ -28,7 +29,7 @@ export function MeterAmendmentsSection({ detail }: { detail: BalanceSheetDetail 
           <tbody>
             {detail.meterAmendments.map((a: MeterAmendmentLine) => {
               const badge = FUEL_BADGE[a.fuelType] ?? 'bg-slate-100 text-slate-600'
-              const deltaColor = a.delta < 0 ? 'text-red-600' : a.delta > 0 ? 'text-amber-600' : 'text-slate-400'
+              const deltaColor = a.delta < 0 ? 'text-red-600' : a.delta > 0 ? 'text-amber-600' : 'text-slate-500'
               return (
                 <tr key={a.id} className="border-t border-amber-100 hover:bg-amber-50 transition-colors">
                   <Td>
@@ -60,7 +61,7 @@ export function MeterAmendmentsSection({ detail }: { detail: BalanceSheetDetail 
             })}
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
     </section>
   )
 }

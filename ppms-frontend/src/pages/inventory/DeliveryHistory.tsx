@@ -193,7 +193,7 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
                             {isFirstGlobalGroup && canDeleteInvoice && (
                               <IconButton
                                 onClick={() => setDeleteInvoice({ invoice, rows })}
-                                className="shrink-0 ml-2 text-slate-300 hover:text-red-500 transition-colors rounded"
+                                className="shrink-0 ml-2 text-slate-500 hover:text-red-500 transition-colors rounded"
  label="Delete this invoice"
  icon={<Trash2 size={14} />}
  />

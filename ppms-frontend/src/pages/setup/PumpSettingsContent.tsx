@@ -57,7 +57,7 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
             className="text-sm"
           />
         </label>
-        {error && <p className="ui-error-text mt-1">{error}</p>}
+        {error && <p role="alert" className="ui-error-text mt-1">{error}</p>}
       </div>
 
       <button

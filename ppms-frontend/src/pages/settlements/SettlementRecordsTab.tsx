@@ -24,7 +24,7 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
       <div className="ui-toolbar">
         <p className="ui-toolbar-title">Settlement History</p>
         <div className="ui-toolbar-actions">
-          <input
+          <input aria-label="From date"
             type="date"
             value={filterFrom}
             max={filterTo}
@@ -33,7 +33,7 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
             className="text-sm"
           />
           <span className="text-slate-500 text-sm">–</span>
-          <input
+          <input aria-label="To date"
             type="date"
             value={filterTo}
             min={filterFrom}
@@ -61,7 +61,7 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
         <div className="px-5 py-4"><SkeletonRows count={5} /></div>
       ) : dailySummary.length === 0 ? (
         <div className="py-16 flex flex-col items-center gap-3 text-center px-6">
-          <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-1"><Landmark size={26} strokeWidth={1.5} className="text-slate-400" /></div>
+          <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-1"><Landmark size={26} strokeWidth={1.5} className="text-slate-500" /></div>
           <p className="font-semibold text-slate-700">No activity in this date range</p>
           <p className="text-sm text-slate-500 max-w-sm">
             No shift collections or settlements were found between the selected dates.

@@ -7,6 +7,7 @@ import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
 import { DateRangeInputs, ErrorBox, PrintHeader } from '../shared'
 import { fmtAmt, todayIso, yesterdayIso } from '../reportFormat'
+import { ScrollRegion } from '../../../components/ScrollRegion'
 
 // ── Shifts Tab ────────────────────────────────────────────────────────────────
 
@@ -56,7 +57,7 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
           <p className="ui-empty py-4 print:hidden">No closed shifts in this date range.</p>
         ) : (
           <div className="space-y-2 print:hidden">
-            <div className="ui-table-wrap overflow-x-auto">
+            <ScrollRegion label="Shifts" className="ui-table-wrap overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-xs text-slate-500">
@@ -85,7 +86,7 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
                       <td className={`px-4 py-2.5 text-right text-xs font-semibold ${
                         s.discrepancyAmount && s.discrepancyAmount > 0
                           ? (s.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600')
-                          : 'text-slate-300'
+                          : 'text-slate-500'
                       }`}>
                         {s.discrepancyAmount && s.discrepancyAmount > 0
                           ? `${s.discrepancyType} ${fmtAmt(s.discrepancyAmount)}`
@@ -95,7 +96,7 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
             <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
             <p className="text-xs text-slate-500">{rows.length} shift{rows.length !== 1 ? 's' : ''} in range.</p>
           </div>
@@ -134,7 +135,7 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
                   <td className={`px-4 py-2 text-right text-xs font-semibold ${
                     s.discrepancyAmount && s.discrepancyAmount > 0
                       ? (s.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600')
-                      : 'text-slate-300'
+                      : 'text-slate-500'
                   }`}>
                     {s.discrepancyAmount && s.discrepancyAmount > 0
                       ? `${s.discrepancyType} ${fmtAmt(s.discrepancyAmount)}`

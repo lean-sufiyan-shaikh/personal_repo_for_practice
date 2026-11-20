@@ -15,6 +15,7 @@ import type { DeliveryRow, PreparedDeliveryItem } from './deliveryRows'
 import { DeliveryRowEditor } from './DeliveryRowEditor'
 import { DeliveryHeaderFields } from './DeliveryHeaderFields'
 import { DeliveryReviewDialog } from './DeliveryReviewDialog'
+import { IconButton } from '../../../components/IconButton'
 
 export function RecordDeliveryModal({
   pumpId,
@@ -206,12 +207,11 @@ export function RecordDeliveryModal({
   }))
 
   return (
-    <ModalPortal onClose={onClose}>
-    <div className="ui-modal-backdrop" onClick={onClose}>
+    <ModalPortal onClose={onClose} closeOnBackdropClick>
+    <div className="ui-modal-backdrop">
       <div
         className="ui-modal-panel"
         style={{ maxHeight: '90vh' }}
-        onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info flex-shrink-0">
@@ -221,7 +221,7 @@ export function RecordDeliveryModal({
               One tanker · one invoice · multiple tanks
             </p>
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+          <IconButton label="Close" icon="×" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close" />
         </div>
 
         <form onSubmit={handleReview} className="flex flex-col flex-1 overflow-hidden">
@@ -315,7 +315,7 @@ export function RecordDeliveryModal({
             )}
 
             {error && (
-              <div className="ui-alert ui-alert-danger text-xs">
+              <div role="alert" className="ui-alert ui-alert-danger text-xs">
                 {error}
               </div>
             )}

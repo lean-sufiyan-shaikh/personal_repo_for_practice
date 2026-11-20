@@ -4,6 +4,8 @@ import { shiftApi } from '../../../api/shiftApi'
 import { SkeletonRows } from '../../../components/Skeleton'
 import { parseApiError } from '../../../utils/apiError'
 import { PAGE_SIZE, fmtAmt, RESOLUTION_LABELS } from '../shiftLabels'
+import { ScrollRegion } from '../../../components/ScrollRegion'
+import { FULL_HISTORY_QUERY_OPTIONS } from '../../../queryClient'
 
 export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
   const [page,     setPage]     = useState(0)
@@ -19,6 +21,7 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
       discrepanciesOnly: true,
       discrepancyType: typeFilter === 'ALL' ? undefined : typeFilter,
     }),
+    ...FULL_HISTORY_QUERY_OPTIONS,
   })
   const hasFilter = !!fromDate || !!toDate || typeFilter !== 'ALL'
 
@@ -34,7 +37,7 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
   const cashRecovered = filtered.filter(s => s.discrepancyResolution === 'CASH_RECOVERY').reduce((sum, s) => sum + (s.cashRecoveryAmount ?? 0), 0)
 
   if (isLoading) return <div className="px-5 py-4"><SkeletonRows count={4} /></div>
-  if (error) return <p className="ui-alert ui-alert-error m-4 text-sm">{parseApiError(error, 'Failed to load discrepancies')}</p>
+  if (error) return <p role="alert" className="ui-alert ui-alert-error m-4 text-sm">{parseApiError(error, 'Failed to load discrepancies')}</p>
   if (filtered.length === 0 && !hasFilter) {
     return <div className="ui-empty p-6">No discrepancies recorded yet.</div>
   }
@@ -67,14 +70,14 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
       <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-slate-100 bg-slate-50/60">
         <span className="text-xs font-medium text-slate-500">Filter:</span>
         <div className="flex items-center gap-2">
-          <input
+          <input aria-label="From date"
             type="date"
             value={fromDate}
             onChange={(e) => { setFromDate(e.target.value); setPage(0) }}
             className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <span className="text-slate-500 text-xs">to</span>
-          <input
+          <input aria-label="To date"
             type="date"
             value={toDate}
             onChange={(e) => { setToDate(e.target.value); setPage(0) }}
@@ -107,7 +110,7 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border-t border-slate-100">
+      <ScrollRegion label="Discrepancies" className="overflow-x-auto border-t border-slate-100">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 text-xs text-slate-500">
@@ -174,7 +177,7 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
             )}
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
 
       {/* Pagination */}
       {totalPages > 1 && (

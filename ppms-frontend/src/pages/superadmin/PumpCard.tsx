@@ -19,7 +19,7 @@ export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSa
     }`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2 text-xs min-w-0">
-          <Fuel size={12} strokeWidth={1.8} className="text-slate-400 mt-0.5 flex-shrink-0" />
+          <Fuel size={12} strokeWidth={1.8} className="text-slate-500 mt-0.5 flex-shrink-0" />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className={`font-semibold ${!pump.enabled ? 'line-through text-slate-500' : 'text-slate-700'}`}>

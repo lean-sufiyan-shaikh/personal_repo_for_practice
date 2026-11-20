@@ -194,7 +194,7 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
             {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Saving…</span> : 'Save Prices'}
           </button>
         </div>
-        {error   && <p className="ui-error-text">{error}</p>}
+        {error   && <p role="alert" className="ui-error-text">{error}</p>}
         {success && <p className="text-emerald-600 text-xs">Prices saved successfully.</p>}
       </form>
 
@@ -228,7 +228,7 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
                   <p className="ui-modal-subtitle">{deviationWarning.message}</p>
                 </div>
               </div>
-              <button type="button" aria-label="Close" onClick={() => setDeviationWarning(null)} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+              <IconButton label="Close" icon="×" onClick={() => setDeviationWarning(null)} className="ui-btn ui-btn-ghost ui-modal-close" />
             </div>
             <div className="ui-modal-body space-y-4">
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs space-y-1">

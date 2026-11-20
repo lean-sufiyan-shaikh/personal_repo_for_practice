@@ -25,7 +25,7 @@ export function ReportListItem({ report, isSelected, onClick }: ReportListItemPr
     <button
       onClick={onClick}
       className={`w-full text-left px-4 py-3.5 border-b border-slate-100 transition-colors ${
-        isSelected ? 'bg-blue-50/80 border-l-2 border-l-blue-500 shadow-[inset_0_0_0_1px_rgba(191,219,254,0.7)]' : 'hover:bg-slate-50'
+        isSelected ? 'bg-blue-50/80 border-l-2 border-l-blue-500 ring-1 ring-inset ring-blue-200' : 'hover:bg-slate-50'
       }`}
     >
       <div className="flex items-start justify-between gap-2">

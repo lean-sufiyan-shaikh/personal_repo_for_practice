@@ -67,7 +67,7 @@ export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, o
         </p>
 
         <div className="flex items-center gap-3">
-          <input
+          <input aria-label="Search staff"
             type="search"
             value={nameSearch}
             onChange={e => { setNameSearch(e.target.value); setDraftPage(0); setApprovedPage(0); setPaidPage(0) }}

@@ -9,6 +9,7 @@ import { useToastStore } from '../../store/toastStore'
 import { localDateInputValue } from '../../utils/date'
 import { parseApiError } from '../../utils/apiError'
 import { TYPES, TYPE_ACCENT, TYPE_ICONS, TYPE_LABELS, fmtAmt, getPending } from './settlementFormat'
+import { IconButton } from '../../components/IconButton'
 
 interface RecordSettlementDialogProps {
   pumpId: number
@@ -55,9 +56,9 @@ export function RecordSettlementDialog({ pumpId, wallet, initialType, onClose }:
     : null
 
   return (
-    <ModalPortal onClose={() => onClose()}>
-      <div className="ui-modal-backdrop" onClick={() => onClose()}>
-        <div className="ui-modal-panel" onClick={e => e.stopPropagation()}>
+    <ModalPortal onClose={() => onClose()} closeOnBackdropClick>
+      <div className="ui-modal-backdrop">
+        <div className="ui-modal-panel">
 
           {/* Themed header */}
           <div className="ui-modal-header ui-modal-header--themed ui-modal-header--success">
@@ -65,7 +66,7 @@ export function RecordSettlementDialog({ pumpId, wallet, initialType, onClose }:
               <h2 className="ui-modal-title text-white">Record Settlement</h2>
               <p className="ui-modal-subtitle">Enter the amount credited to your bank account</p>
             </div>
-            <button type="button" aria-label="Close" className="ui-modal-close" onClick={() => onClose()}>×</button>
+            <IconButton label="Close" icon="×" onClick={() => onClose()} className="ui-btn ui-btn-ghost ui-modal-close" />
           </div>
 
           <form onSubmit={handleRecord} className="ui-modal-body flex flex-col gap-5">
@@ -172,7 +173,7 @@ export function RecordSettlementDialog({ pumpId, wallet, initialType, onClose }:
 
             {/* Error */}
             {formError && (
-              <div className="ui-alert ui-alert-danger text-sm py-2">
+              <div role="alert" className="ui-alert ui-alert-danger text-sm py-2">
                 {formError}
               </div>
             )}
@@ -194,8 +195,8 @@ export function RecordSettlementDialog({ pumpId, wallet, initialType, onClose }:
                 disabled={recordMutation.isPending}
                 className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-xl font-semibold text-sm text-white
                            bg-gradient-to-b from-emerald-500 to-emerald-600
-                           shadow-[0_8px_16px_rgba(5,150,105,0.28)]
-                           hover:from-emerald-600 hover:to-emerald-700 hover:shadow-[0_10px_20px_rgba(5,150,105,0.38)]
+                           shadow-md shadow-emerald-600/30
+                           hover:from-emerald-600 hover:to-emerald-700 hover:shadow-lg hover:shadow-emerald-600/40
                            active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
                            transition-all duration-150"
               >

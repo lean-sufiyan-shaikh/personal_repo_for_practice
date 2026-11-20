@@ -132,19 +132,19 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
         return (
           <div key={groupKey} className="ui-card p-0 overflow-hidden">
             <div
-              className="ui-accordion-trigger cursor-pointer select-none"
-              onClick={() => toggleCollapsed(groupKey)}
+              className="ui-accordion-trigger select-none"
               >
                 <div
-                  className="flex items-center gap-2"
+                  className="flex flex-1 items-center gap-2 cursor-pointer"
                   role="button"
                   tabIndex={0}
                   aria-expanded={!isCollapsed}
+                  onClick={() => toggleCollapsed(groupKey)}
                   onKeyDown={onActivateKey(() => toggleCollapsed(groupKey))}
                 >
                 {isCollapsed
-                  ? <ChevronRight size={14} strokeWidth={2} className="text-slate-400" />
-                  : <ChevronDown size={14} strokeWidth={2} className="text-slate-400" />
+                  ? <ChevronRight size={14} strokeWidth={2} className="text-slate-500" />
+                  : <ChevronDown size={14} strokeWidth={2} className="text-slate-500" />
                 }
                 <span className="text-xs font-semibold text-slate-700">
                   {effectiveFromDate}
@@ -155,7 +155,7 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                   : <span className="text-[10px] font-medium bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full">Disabled</span>
                 }
               </div>
-              <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center gap-3">
                 {/* Disable button — only for open-ended (active) groups */}
                 {isActive && (
                   confirmDeleteKey === groupKey ? null : (
@@ -263,7 +263,7 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
       })}
 
       {actionError && (
-        <div className="ui-alert ui-alert-danger flex items-start gap-2">
+        <div role="alert" className="ui-alert ui-alert-danger flex items-start gap-2">
           <span className="text-red-600 text-xs flex-1">{actionError}</span>
           <IconButton onClick={() => setActionError(null)} className="ui-btn ui-btn-ghost text-sm leading-none text-red-400 hover:text-red-600"
  label="Dismiss error"

@@ -8,6 +8,7 @@ import { MeterReadingsSection } from './backfill/MeterReadingsSection'
 import { CreditSalesSection } from './backfill/CreditSalesSection'
 import { PaymentSection } from './backfill/PaymentSection'
 import { DiscrepancyReasonSection } from './backfill/DiscrepancyReasonSection'
+import { IconButton } from '../../components/IconButton'
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -16,11 +17,10 @@ export default function BackfillShiftModal({ pumpId, onClose }: BackfillShiftMod
   const { error, handleSubmit, isPending, requestClose, canSubmit } = form
 
   return (
-    <ModalPortal onClose={isPending ? undefined : requestClose}>
-      <div className="ui-modal-backdrop" onClick={!isPending ? requestClose : undefined}>
+    <ModalPortal onClose={isPending ? undefined : requestClose} closeOnBackdropClick>
+      <div className="ui-modal-backdrop">
         <div
           className="ui-modal-panel w-full max-w-xl"
-          onClick={(e) => e.stopPropagation()}
         >
           {/* ── Header ──────────────────────────────────────────────────── */}
           <div
@@ -33,9 +33,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: BackfillShiftMod
                 Record past shift data (up to 365 days back). Tanker deliveries for the shift date must be logged first — the system will block submission if stock is insufficient.
               </p>
             </div>
-            <button aria-label="Close" type="button" onClick={requestClose} className="ui-btn ui-btn-ghost ui-modal-close" disabled={isPending}>
-              ×
-            </button>
+            <IconButton label="Close" icon="×" onClick={requestClose} className="ui-btn ui-btn-ghost ui-modal-close" disabled={isPending} />
           </div>
 
           {/* ── Scrollable form ──────────────────────────────────────────── */}
@@ -71,7 +69,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: BackfillShiftMod
 
 
               {error && (
-                <div className="ui-alert ui-alert-error text-sm">{error}</div>
+                <div role="alert" className="ui-alert ui-alert-error text-sm">{error}</div>
               )}
             </div>
 

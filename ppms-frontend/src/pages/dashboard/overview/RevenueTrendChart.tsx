@@ -4,15 +4,8 @@ import type { Shift } from '../../../types/shift'
 import { withToggled } from '../../../utils/setToggle'
 import { localDateInputValue, formatIstDate } from '../../../utils/date'
 import { Reveal } from '../../../components/Reveal'
-import { FUEL_LABELS } from '../../../constants/fuel'
+import { FUEL_CHART_COLORS, FUEL_LABELS } from '../../../constants/fuel'
 
-const FUEL_CHART_COLORS: Record<string, string> = {
-  PETROL:       '#10b981',
-  SPEED_PETROL: '#0d9488',
-  DIESEL:       '#f59e0b',
-  SPEED_DIESEL: '#8b5cf6',
-  CNG:          '#ef4444',
-}
 
 export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] }) {
   const [chartDays, setChartDays] = useState<7 | 14 | 30>(7)

@@ -1,6 +1,7 @@
 import type { BalanceSheetDetail, DipPlLine } from '../../../api/balanceSheetApi'
 import { Td, Th } from '../bsTableCells'
 import { FUEL_BADGE, IST_TIME_FORMATTER, fmtMoney } from '../bsFormat'
+import { ScrollRegion } from '../../../components/ScrollRegion'
 
 export function DipPlSection({ detail }: { detail: BalanceSheetDetail }) {
   return (
@@ -11,7 +12,7 @@ export function DipPlSection({ detail }: { detail: BalanceSheetDetail }) {
           ({detail.dipPlEntries.length} entr{detail.dipPlEntries.length !== 1 ? 'ies' : 'y'})
         </span>
       </h3>
-      <div className="ui-table-wrap overflow-x-auto">
+      <ScrollRegion label="Dip profit and loss" className="ui-table-wrap overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-50 text-left">
@@ -28,9 +29,9 @@ export function DipPlSection({ detail }: { detail: BalanceSheetDetail }) {
               const badge = FUEL_BADGE[entry.fuelType] ?? 'bg-slate-100 text-slate-600'
               const isGain = entry.monetaryAmount > 0
               const isLoss = entry.monetaryAmount < 0
-              const plColor = isGain ? 'text-emerald-600' : isLoss ? 'text-red-600' : 'text-slate-400'
+              const plColor = isGain ? 'text-emerald-600' : isLoss ? 'text-red-600' : 'text-slate-500'
               const litresColor = entry.type === 'DIP_CHECK'
-                ? (entry.litres > 0 ? 'text-emerald-600' : entry.litres < 0 ? 'text-red-600' : 'text-slate-400')
+                ? (entry.litres > 0 ? 'text-emerald-600' : entry.litres < 0 ? 'text-red-600' : 'text-slate-500')
                 : 'text-slate-700'
               return (
                 <tr key={idx} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
@@ -80,7 +81,7 @@ export function DipPlSection({ detail }: { detail: BalanceSheetDetail }) {
               <Td right>
                 {(() => {
                   const net = detail.totalDipNetAmount
-                  const color = net > 0 ? 'text-emerald-600' : net < 0 ? 'text-red-600' : 'text-slate-400'
+                  const color = net > 0 ? 'text-emerald-600' : net < 0 ? 'text-red-600' : 'text-slate-500'
                   return (
                     <span className={color}>
                       {net > 0 ? '+' : ''}{fmtMoney(net)}
@@ -92,7 +93,7 @@ export function DipPlSection({ detail }: { detail: BalanceSheetDetail }) {
             </tr>
           </tfoot>
         </table>
-      </div>
+      </ScrollRegion>
     </section>
   )
 }

@@ -40,7 +40,7 @@ export default function BalanceSheetPage() {
   const pumpId = selectedPumpId
 
   const { data: pumps = [] } = useQuery({
-    queryKey: ['my-pumps'],
+    queryKey: ['myPumps'],
     queryFn: () => pumpApi.getMyPumps(),
   })
 
@@ -99,15 +99,15 @@ export default function BalanceSheetPage() {
 
           {/* Date range filter */}
           <div className="flex items-center gap-2">
-            <input
+            <input aria-label="From date"
               type="date"
               value={filterFrom}
               onChange={e => setFilterFrom(e.target.value)}
               className="flex-1 text-xs text-slate-700"
               placeholder="From"
             />
-            <span className="text-slate-300 text-xs">to</span>
-            <input
+            <span className="text-slate-500 text-xs">to</span>
+            <input aria-label="To date"
               type="date"
               value={filterTo}
               onChange={e => setFilterTo(e.target.value)}
@@ -117,7 +117,7 @@ export default function BalanceSheetPage() {
             {(filterFrom || filterTo) && (
               <IconButton
                 onClick={() => { setFilterFrom(''); setFilterTo(''); setBsPage(0) }}
-                className="ui-btn ui-btn-ghost text-slate-400 hover:text-slate-600"
+                className="ui-btn ui-btn-ghost text-slate-500 hover:text-slate-600"
                 label="Clear date filter"
                 icon={<X size={14} strokeWidth={2} />}
               />
@@ -178,7 +178,7 @@ export default function BalanceSheetPage() {
       {!selectedReportId && (
         <div className="flex-1 hidden sm:flex items-center justify-center bg-slate-50/70">
           <div className="ui-empty">
-            <div className="flex justify-center mb-3"><BarChart2 size={40} strokeWidth={1.5} className="text-slate-300" /></div>
+            <div className="flex justify-center mb-3"><BarChart2 size={40} strokeWidth={1.5} className="text-slate-500" /></div>
             <p className="ui-subtitle">Select a report to view details</p>
           </div>
         </div>

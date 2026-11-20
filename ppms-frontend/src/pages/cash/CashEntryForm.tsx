@@ -111,11 +111,10 @@ export function CashEntryForm({ pumpId, balance }: CashEntryFormProps) {
                 className={`text-sm ${form.eventType === 'CASH_OUT' && form.amount > balance ? 'border-red-400 focus:ring-red-300' : ''}`}
                 placeholder="0.00"
                 required
-                autoFocus
               />
             </label>
             {form.eventType === 'CASH_OUT' && (
-              <p className={`mt-1 text-xs ${form.amount > balance ? 'text-red-500 font-medium' : 'text-slate-400'}`}>
+              <p className={`mt-1 text-xs ${form.amount > balance ? 'text-red-500 font-medium' : 'text-slate-500'}`}>
                 Available balance: {fmtAmt(balance)}
               </p>
             )}
@@ -149,7 +148,7 @@ export function CashEntryForm({ pumpId, balance }: CashEntryFormProps) {
           </div>
         </div>
 
-        {formError && <p className="ui-error-text">{formError}</p>}
+        {formError && <p role="alert" className="ui-error-text">{formError}</p>}
 
         <button
           type="submit"
@@ -164,9 +163,9 @@ export function CashEntryForm({ pumpId, balance }: CashEntryFormProps) {
       </Reveal>
 
       {reviewOpen && (
-        <ModalPortal onClose={() => setReviewOpen(false)}>
-        <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
-          <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <ModalPortal onClose={() => setReviewOpen(false)} closeOnBackdropClick>
+        <div className="ui-modal-backdrop">
+          <div className="ui-modal-panel w-full max-w-md">
             <div className={`ui-modal-header ui-modal-header--themed ${reviewHeaderTone}`}>
               <div className="ui-modal-heading">
                 <h2 className="ui-modal-title">Review Cash Event</h2>
@@ -175,7 +174,7 @@ export function CashEntryForm({ pumpId, balance }: CashEntryFormProps) {
               <button type="button" aria-label="Close" onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
             </div>
             <div className="ui-modal-body space-y-4">
-              {formError && <div className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
+              {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
               <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
                 <div className="flex items-center justify-between px-4 py-2.5">
                   <span className="text-slate-500 text-xs">Event Type</span>

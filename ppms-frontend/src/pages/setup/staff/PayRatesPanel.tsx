@@ -66,7 +66,7 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
                 </div>
               </div>
             </div>
-            {rateError && <p className="ui-error-text">{rateError}</p>}
+            {rateError && <p role="alert" className="ui-error-text">{rateError}</p>}
             <div className="flex gap-2">
               <button type="button"
                 disabled={!rateShift1 || !rateStandard || rateMutation.isPending}
@@ -97,7 +97,7 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
                   className="w-full pl-5 pr-2 text-xs min-h-10" />
               </div>
             </div>
-            {rateError && <p className="ui-error-text">{rateError}</p>}
+            {rateError && <p role="alert" className="ui-error-text">{rateError}</p>}
             <div className="flex gap-2">
               <button type="button"
                 disabled={!rateDaily || rateMutation.isPending}

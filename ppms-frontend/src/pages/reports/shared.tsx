@@ -45,6 +45,6 @@ export function SummaryCard({ label, value, color }: { label: string; value: str
 
 export function ErrorBox({ message }: { message: string }) {
   return (
-    <div className="ui-alert ui-alert-danger text-sm">{message}</div>
+    <div className="ui-alert ui-alert-danger text-sm" role="alert">{message}</div>
   )
 }

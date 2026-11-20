@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check } from 'lucide-react'
 import { shiftApi } from '../../api/shiftApi'
+import { pumpApi } from '../../api/pumpApi'
 import { userApi } from '../../api/userApi'
 import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import type { DUOption, NozzleDetail, OpenShiftRequest, Shift } from '../../types/shift'
@@ -9,6 +10,7 @@ import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
 import { FUEL_LABELS, FUEL_UNIT } from '../../constants/fuel'
 import { OperatorPicker } from './components/OperatorPicker'
+import { IconButton } from '../../components/IconButton'
 
 /** Stored end times are inclusive (08:59 means the shift runs until 09:00), so the end minute is inside the window. */
 function isTimeInWindow(startTime: string, endTime: string, crossesMidnight: boolean, nowHHMM: string): boolean {
@@ -51,7 +53,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
 
   const { data: dus = [], isLoading: dusLoading } = useQuery({
     queryKey: ['dus', pumpId],
-    queryFn:  () => shiftApi.getDUs(pumpId),
+    queryFn:  () => pumpApi.getDUs(pumpId),
   })
 
   const { data: operators = [], isLoading: operatorsLoading } = useQuery({
@@ -157,10 +159,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
             <h2 className="ui-modal-title">Open New Shift</h2>
             <p className="ui-modal-subtitle">Select a Dispensary Unit and assign an operator</p>
           </div>
-          <button aria-label="Close" type="button" onClick={onClose}
-            className="ui-btn ui-btn-ghost ui-modal-close">
-            ×
-          </button>
+          <IconButton label="Close" icon="×" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close" />
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
@@ -326,7 +325,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
 
           {/* ── Errors ── */}
           {(validationError || serverError) && (
-            <div className="ui-alert ui-alert-danger">
+            <div role="alert" className="ui-alert ui-alert-danger">
               <p className="text-red-600 text-sm">{validationError ?? serverError}</p>
             </div>
           )}

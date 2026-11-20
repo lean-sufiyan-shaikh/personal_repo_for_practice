@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X, ArrowRight, ChevronLeft } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
-import { creditApi } from '../../api/creditApi'
+import { pumpApi } from '../../api/pumpApi'
 import type { AncillaryProduct, RecordAncillarySaleRequest, AncillaryPaymentMode } from '../../api/ancillaryApi'
 import { useAuthStore } from '../../store/authStore'
 import { SearchableSelect } from '../../components/SearchableSelect'
@@ -55,6 +55,7 @@ export function SellDialog({
   onSuccess: () => void
 }) {
   const { addToast } = useToastStore()
+  const queryClient = useQueryClient()
   const { user } = useAuthStore()
   const canOverridePrice = user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
   const [step, setStep] = useState<'form' | 'review'>('form')
@@ -83,14 +84,18 @@ export function SellDialog({
   }
 
   const { data: creditClients = [] } = useQuery({
-    queryKey: ['credit-ledger-all', pumpId],
-    queryFn: () => creditApi.getLedgerSummary(pumpId),
+    queryKey: ['creditClients', pumpId],
+    queryFn: () => pumpApi.getCreditClients(pumpId),
     enabled: form.paymentMode === 'CREDIT',
   })
 
   const saleMutation = useMutation({
     mutationFn: (data: RecordAncillarySaleRequest) => ancillaryApi.recordSale(pumpId, data),
-    onSuccess: () => {
+    onSuccess: (_, data) => {
+      if (data.paymentMode === 'CREDIT') {
+        queryClient.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
+        queryClient.invalidateQueries({ queryKey: ['credit-transactions', pumpId] })
+      }
       addToast('Sale recorded successfully', 'success')
       onSuccess()
     },
@@ -157,7 +162,7 @@ export function SellDialog({
         {step === 'form' && (
           <div className="ui-modal-body space-y-4">
             {error && (
-              <div className="ui-alert ui-alert-danger text-sm">{error}</div>
+              <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
 
             {/* Stock + buy price info row */}
@@ -182,7 +187,7 @@ export function SellDialog({
                   <label className="block">
                     <span className="ui-label">Quantity (units) *</span>
                     <input
-                      type="number" min="1" step="1" autoFocus
+                      type="number" min="1" step="1" data-autofocus
                       className="text-sm"
                       value={form.quantityUnits}
                       onChange={e => setForm(f => ({ ...f, quantityUnits: parseInt(e.target.value) || 0 }))}
@@ -310,7 +315,7 @@ export function SellDialog({
             </div>
 
             {error && (
-              <div className="ui-alert ui-alert-danger text-sm">{error}</div>
+              <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
 
             <div className="flex justify-between gap-2 pt-1">

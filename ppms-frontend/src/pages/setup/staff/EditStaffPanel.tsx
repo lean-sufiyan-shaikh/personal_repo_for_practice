@@ -135,7 +135,7 @@ export function EditStaffPanel({ pumpId, member, isOwner, onClose }: Props) {
           </label>
         )}
 
-        {editError && <p className="ui-error-text">{editError}</p>}
+        {editError && <p role="alert" className="ui-error-text">{editError}</p>}
 
         <div className="flex gap-2 pt-1">
           <button

@@ -5,6 +5,7 @@ import type { Shift } from '../../../types/shift'
 import { parseApiError } from '../../../utils/apiError'
 import type { CreditEntry } from '../../../types/shift'
 import { fmt } from '../components/creditRow'
+import { focusOnMount } from '../../../utils/focus'
 
 interface Props {
   shift: Shift
@@ -106,8 +107,8 @@ export function PreRecordedCreditList({ shift, entries, total, onEdit, onVoided 
               {isVoiding && (
                 <div className="border-t border-orange-100 bg-red-50/60 px-3 py-2">
                   <div className="ui-inline-form space-y-2 border-red-200 bg-white/70">
-                  <input
-                    autoFocus
+                  <input aria-label="Reason for deleting"
+                    ref={focusOnMount}
                     type="text"
                     value={voidReasonInput}
                     onChange={e => setVoidReasonInput(e.target.value)}
@@ -119,7 +120,7 @@ export function PreRecordedCreditList({ shift, entries, total, onEdit, onVoided 
                     placeholder="Reason for deleting (required)"
                     className="ui-input-compact text-xs focus:outline-none focus:ring-1 focus:ring-red-400"
                   />
-                  {voidError && <p className="ui-error-text">{voidError}</p>}
+                  {voidError && <p role="alert" className="ui-error-text">{voidError}</p>}
                   <div className="flex gap-2">
                     <button
                       type="button"

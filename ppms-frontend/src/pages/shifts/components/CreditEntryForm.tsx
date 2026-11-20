@@ -38,17 +38,17 @@ export function CreditEntryForm({
       {/* ── Collapsed summary row ── */}
       {!isExpanded ? (
         <div
-          className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-orange-50 transition-colors group"
-          onClick={() => onExpandedChange(row.id)}
+          className="flex items-center justify-between px-4 py-3 hover:bg-orange-50 transition-colors group"
           >
             <div
-              className="flex items-center gap-3 min-w-0"
+              className="flex flex-1 items-center gap-3 min-w-0 cursor-pointer"
               role="button"
               tabIndex={0}
               aria-label={`Edit credit entry ${rowNumber}`}
+              onClick={() => onExpandedChange(row.id)}
               onKeyDown={onActivateKey(() => onExpandedChange(row.id))}
             >
-            <span className="text-xs font-bold text-orange-400 shrink-0">#{rowNumber}</span>
+            <span className="text-xs font-bold text-orange-700 shrink-0">#{rowNumber}</span>
             {isFilled ? (
               <>
                 <span className="text-sm font-medium text-slate-700 truncate">{row.clientName}</span>
@@ -61,10 +61,10 @@ export function CreditEntryForm({
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-2">
-            <span className="text-xs text-orange-400 group-hover:text-orange-600 transition-colors">Edit</span>
+            <span className="text-xs text-orange-700 group-hover:text-orange-800 transition-colors">Edit</span>
             <IconButton
               onClick={(e) => { e.stopPropagation(); onRemove() }}
-              className="text-red-300 hover:text-red-600 transition-colors"
+              className="ui-btn-icon text-red-600 hover:text-red-700 transition-colors"
  label="Delete entry"
  icon={<X size={13} strokeWidth={2} />}
  />
@@ -196,12 +196,12 @@ export function CreditEntryForm({
                   {row.inputMode === 'amount' ? 'Amount (₹)' : 'Liters'}{' '}
                   <span className="text-red-500">*</span>
                 </span>
-                <div className="flex rounded border border-slate-200 overflow-hidden text-xs">
+                <div className="flex gap-1 text-xs">
                   <button type="button"
                     onClick={() => onUpdateMulti({ inputMode: 'amount', liters: '' })}
                     aria-pressed={row.inputMode === 'amount'}
                     aria-label="Enter amount in rupees"
-                    className={`px-2 py-0.5 font-medium transition-colors ${row.inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+                    className={`min-h-6 min-w-8 rounded border border-slate-200 px-2 font-medium transition-colors ${row.inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
                     ₹
                   </button>
                   <button type="button"
@@ -215,14 +215,14 @@ export function CreditEntryForm({
                     disabled={!priceForFuelType(row.fuelType)}
                     aria-pressed={row.inputMode === 'liters'}
                     aria-label="Enter litres"
-                    className={`px-2 py-0.5 font-medium transition-colors ${row.inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
+                    className={`min-h-6 min-w-8 rounded border border-slate-200 px-2 font-medium transition-colors ${row.inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
                     L
                   </button>
                 </div>
               </div>
               {row.inputMode === 'amount' ? (
                 <>
-                  <input type="number" step="0.01" min="0.01" value={row.amount}
+                  <input aria-label="Credit amount in rupees" type="number" step="0.01" min="0.01" value={row.amount}
                     onChange={(e) => onUpdate('amount', e.target.value)}
                     placeholder="0.00"
                     className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
@@ -239,7 +239,7 @@ export function CreditEntryForm({
                 </>
               ) : (
                 <>
-                  <input type="number" step="0.001" min="0.001" value={row.liters}
+                  <input aria-label="Credit quantity" type="number" step="0.001" min="0.001" value={row.liters}
                     onChange={(e) => {
                       const price = priceForFuelType(row.fuelType)
                       const raw = parseFloat(e.target.value)

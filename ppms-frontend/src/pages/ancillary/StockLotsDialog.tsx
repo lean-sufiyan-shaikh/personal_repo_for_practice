@@ -103,7 +103,7 @@ export function StockLotsDialog({
           ) : (
             <>
               {editError && (
-                <div className="ui-alert ui-alert-danger mb-3 text-sm">{editError}</div>
+                <div role="alert" className="ui-alert ui-alert-danger mb-3 text-sm">{editError}</div>
               )}
               <table className="w-full text-sm border-collapse">
                 <thead>
@@ -124,7 +124,7 @@ export function StockLotsDialog({
                           <td className="py-2.5 pr-4 text-slate-700">{fmtDate(lot.deliveryDate)}</td>
                           <td className="py-2.5 pr-4 text-slate-500">{lot.invoiceReference ?? '—'}</td>
                           <td className="py-2.5 pr-4 text-right">
-                            <input
+                            <input aria-label="Cost price per unit"
                               type="number"
                               min="0.01"
                               step="0.01"
@@ -134,7 +134,7 @@ export function StockLotsDialog({
                             />
                           </td>
                           <td className="py-2.5 pr-4 text-right">
-                            <input
+                            <input aria-label="Remaining units"
                               type="number"
                               min="0"
                               max={lot.originalQuantity}

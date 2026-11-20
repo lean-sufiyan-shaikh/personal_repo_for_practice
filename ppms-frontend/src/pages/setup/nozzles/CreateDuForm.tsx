@@ -146,7 +146,7 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
                </div>
              </div>
 
-             {addError && <p className="ui-error-text">{addError}</p>}
+             {addError && <p role="alert" className="ui-error-text">{addError}</p>}
 
              <div className="ui-nozzle-form__actions">
                <button type="submit" disabled={createDUMutation.isPending} className="ui-btn ui-btn-primary">

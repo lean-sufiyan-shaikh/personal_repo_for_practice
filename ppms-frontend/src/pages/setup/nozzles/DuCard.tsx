@@ -43,7 +43,7 @@ export function DuCard({
         onKeyDown={onActivateKey(onToggle)}
       >
         <div className="flex items-center gap-2">
-          <ChevronRight size={14} strokeWidth={2} className={`transition-transform duration-200 text-slate-400 ${isExpanded ? 'rotate-90' : ''}`} />
+          <ChevronRight size={14} strokeWidth={2} className={`transition-transform duration-200 text-slate-500 ${isExpanded ? 'rotate-90' : ''}`} />
           <span className="text-xs font-bold text-slate-500">DU #{du.duNumber}</span>
           <span className="text-sm font-bold text-slate-700">{du.name}</span>
           {isDUInactive && (

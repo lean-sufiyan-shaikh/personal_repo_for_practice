@@ -1,5 +1,4 @@
 import type { CashEventType } from '../../api/cashApi'
-import { formatIstDate } from '../../utils/date'
 
 export const EVENT_TYPES: { value: CashEventType; label: string }[] = [
   { value: 'OPENING_BALANCE', label: 'Opening Balance' },
@@ -15,10 +14,6 @@ export const EVENT_STYLES: Record<CashEventType, string> = {
   CLOSING_BALANCE: 'bg-slate-100 text-slate-700',
 }
 
-export function fmtAmt(n: number) {
-  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
+export { formatCurrency as fmtAmt } from '../../utils/format'
 
-export function fmtDate(d: string) {
-  return formatIstDate(d)
-}
+export { formatIstDate as fmtDate } from '../../utils/date'

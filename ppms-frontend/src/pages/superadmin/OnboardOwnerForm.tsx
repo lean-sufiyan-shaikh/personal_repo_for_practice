@@ -124,7 +124,7 @@ export function OnboardOwnerForm({ onSubmitStart, onCreated }: OnboardOwnerFormP
           </fieldset>
 
           {serverError && (
-            <div className="ui-alert ui-alert-danger">
+            <div role="alert" className="ui-alert ui-alert-danger">
               <p className="text-red-600 text-sm">{serverError}</p>
             </div>
           )}

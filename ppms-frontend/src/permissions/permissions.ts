@@ -7,7 +7,7 @@ import type { UserRole } from '../types/auth'
  * Sidebar items and route guards both derive from this map, keeping UI and routing consistent.
  *
  * ACTION_PERMISSIONS — controls which roles can perform specific actions within a page
- * (e.g. open a shift, add a calibration record). Used by the usePermission hook for
+ * (e.g. open a shift, add a calibration record). Read through canPerformAction for
  * conditional rendering of buttons, forms, and action menus.
  */
 
@@ -79,6 +79,8 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'credit:manage-interest':        ['OWNER', 'ADMIN', 'MANAGER'],
   'credit:approve-payment':        ['OWNER', 'ADMIN'],
   'credit:grant-extension':        ['OWNER', 'ADMIN'],
+  'credit:reassign':               ['OWNER', 'ADMIN', 'MANAGER'],
+  'credit:delete-interest':        ['OWNER', 'ADMIN', 'MANAGER'],
 
   // Expenses
   // MANAGER and OPERATOR can create expenses (subject to approval threshold).

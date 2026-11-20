@@ -64,7 +64,7 @@ export function ReadingField({ label, startValue, soldUnits, pricePerUnit, value
           </>
         )}
       </div>
-      <input type="number" step="0.001" min="0" required value={value}
+      <input aria-label={`${label} end reading`} type="number" step="0.001" min="0" required value={value}
         disabled={noChange}
         onChange={(e) => onChange(e.target.value)}
         className={`text-sm ${
@@ -77,7 +77,7 @@ export function ReadingField({ label, startValue, soldUnits, pricePerUnit, value
         placeholder={noChange ? 'Same as opening' : 'Enter end reading'}
       />
       {isInvalid && (
-        <p className="ui-error-text mt-1">
+        <p role="alert" className="ui-error-text mt-1">
           End reading cannot be less than start ({startValue}) unless the meter rolled over from its maximum
         </p>
       )}

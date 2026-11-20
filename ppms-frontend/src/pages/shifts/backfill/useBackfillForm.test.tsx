@@ -4,17 +4,16 @@ import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fuelPriceApi } from '../../../api/fuelPriceApi'
 import { pumpApi } from '../../../api/pumpApi'
-import { shiftApi } from '../../../api/shiftApi'
 import { shiftDefinitionApi } from '../../../api/shiftDefinitionApi'
 import { userApi } from '../../../api/userApi'
 import type { DUOption } from '../../../types/shift'
 import { useBackfillForm } from './useBackfillForm'
 
-vi.mock('../../../api/shiftApi', () => ({ shiftApi: { getDUs: vi.fn(), backfillShift: vi.fn() } }))
+vi.mock('../../../api/shiftApi', () => ({ shiftApi: { backfillShift: vi.fn() } }))
 vi.mock('../../../api/shiftDefinitionApi', () => ({ shiftDefinitionApi: { getForDate: vi.fn() } }))
 vi.mock('../../../api/userApi', () => ({ userApi: { getOperators: vi.fn() } }))
 vi.mock('../../../api/fuelPriceApi', () => ({ fuelPriceApi: { getForDate: vi.fn() } }))
-vi.mock('../../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn() } }))
+vi.mock('../../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn(), getDUs: vi.fn() } }))
 
 const du: DUOption = {
   id: 5, pumpId: 3, duNumber: 1, name: 'DU 1', status: 'ACTIVE',
@@ -45,7 +44,7 @@ async function renderFilledForm() {
 
 describe('useBackfillForm totals', () => {
   beforeEach(() => {
-    vi.mocked(shiftApi.getDUs).mockResolvedValue([du])
+    vi.mocked(pumpApi.getDUs).mockResolvedValue([du])
     vi.mocked(shiftDefinitionApi.getForDate).mockResolvedValue([])
     vi.mocked(userApi.getOperators).mockResolvedValue([])
     vi.mocked(pumpApi.getCreditClients).mockResolvedValue([])

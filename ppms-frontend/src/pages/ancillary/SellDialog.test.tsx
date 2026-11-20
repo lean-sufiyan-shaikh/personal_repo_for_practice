@@ -2,13 +2,15 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ancillaryApi } from '../../api/ancillaryApi'
+import { pumpApi } from '../../api/pumpApi'
+import type { CreditClient } from '../../api/pumpApi'
 import type { AncillaryProduct } from '../../api/ancillaryApi'
 import { useAuthStore } from '../../store/authStore'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import { SellDialog } from './SellDialog'
 
 vi.mock('../../api/ancillaryApi', () => ({ ancillaryApi: { getPriceHistory: vi.fn(), recordSale: vi.fn() } }))
-vi.mock('../../api/creditApi', () => ({ creditApi: { getLedgerSummary: vi.fn().mockResolvedValue([]) } }))
+vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn().mockResolvedValue([]) } }))
 
 function product(lots: AncillaryProduct['activeFifoLots']): AncillaryProduct {
   return {
@@ -58,5 +60,37 @@ describe('SellDialog projected profit', () => {
   it('shows no projection without lot data', async () => {
     await sell([], '1')
     expect(screen.queryByText(/Projected|Break-even/)).not.toBeInTheDocument()
+  })
+})
+
+describe('SellDialog credit sale', () => {
+  const acme = { id: 41, pumpId: 3, name: 'Acme Transport', phone: null, notes: null, createdAt: '', parentClientId: null, parentClientName: null, isParent: false } as CreditClient
+
+  beforeEach(() => {
+    useAuthStore.setState({ user: { userId: 1, fullName: 'Op', role: 'OPERATOR', assignedPumpId: 3 }, isAuthenticated: true })
+    vi.mocked(ancillaryApi.getPriceHistory).mockResolvedValue([
+      { id: 1, productId: 8, pumpId: 3, pricePerUnit: 120, effectiveFrom: '2026-01-01T00:00:00Z', setByUserId: 1 },
+    ])
+    vi.mocked(pumpApi.getCreditClients).mockResolvedValue([acme])
+    vi.mocked(ancillaryApi.recordSale).mockResolvedValue({} as Awaited<ReturnType<typeof ancillaryApi.recordSale>>)
+  })
+
+  it('lets an operator pick a credit client from the pump client list and refreshes the credit ledger after the sale', async () => {
+    const user = userEvent.setup()
+    const { queryClient } = renderWithProviders(<SellDialog pumpId={3} product={product([{ remainingQuantity: 5, costPricePerUnit: 100 }])} onClose={vi.fn()} onSuccess={vi.fn()} />)
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
+    await screen.findByDisplayValue('120')
+
+    await user.click(screen.getByRole('button', { name: /Payment mode/i }))
+    await user.click(await screen.findByRole('option', { name: 'CREDIT' }))
+    await user.click(await screen.findByRole('button', { name: /^Client/ }))
+    await user.click(await screen.findByRole('option', { name: 'Acme Transport' }))
+
+    expect(pumpApi.getCreditClients).toHaveBeenCalledWith(3)
+    await user.click(screen.getByRole('button', { name: /Review/ }))
+    await user.click(await screen.findByRole('button', { name: 'Confirm Sale' }))
+
+    await vi.waitFor(() => expect(ancillaryApi.recordSale).toHaveBeenCalledWith(3, expect.objectContaining({ paymentMode: 'CREDIT', clientId: 41 })))
+    await vi.waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['credit-ledger', 3] }))
   })
 })

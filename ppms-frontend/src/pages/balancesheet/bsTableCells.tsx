@@ -45,7 +45,7 @@ export function FuelLineRow({ line }: { line: BsFuelLine }) {
         </span>
       </Td>
       <Td right>{fmtLitres(line.openingStock)}</Td>
-      <Td right>{line.deliveredLitres > 0 ? fmtLitres(line.deliveredLitres) : <span className="text-slate-300">—</span>}</Td>
+      <Td right>{line.deliveredLitres > 0 ? fmtLitres(line.deliveredLitres) : <span className="text-slate-500">—</span>}</Td>
       <Td right>{fmtLitres(line.soldLitres)}</Td>
       <Td right>{fmtLitres(line.closingStock)}</Td>
       <Td right>{fmtMoney(line.sellingPrice)}<span className="text-slate-500 text-xs">/L</span></Td>
@@ -54,7 +54,7 @@ export function FuelLineRow({ line }: { line: BsFuelLine }) {
       {isOwnerOrAdmin && <Td right><span className={`font-medium ${profitColor}`}>{fmtMoney(line.grossProfit)}</span></Td>}
       <Td right>
         {line.stockVariance === 0 ? (
-          <span className="text-slate-300">—</span>
+          <span className="text-slate-500">—</span>
         ) : (
           <span className={`font-medium ${line.stockVariance > 0 ? 'text-amber-600' : 'text-red-600'}`}>
             {line.stockVariance > 0 ? '+' : ''}{line.stockVariance.toFixed(1)} L
@@ -64,9 +64,9 @@ export function FuelLineRow({ line }: { line: BsFuelLine }) {
       {isOwnerOrAdmin && <Td right>
         {line.dipLossAmount > 0
           ? <span className="text-red-600 font-medium">-{fmtMoney(line.dipLossAmount)}</span>
-          : <span className="text-slate-300">—</span>}
+          : <span className="text-slate-500">—</span>}
       </Td>}
-      <Td right>{line.creditSoldAmount > 0 ? fmtMoney(line.creditSoldAmount) : <span className="text-slate-300">—</span>}</Td>
+      <Td right>{line.creditSoldAmount > 0 ? fmtMoney(line.creditSoldAmount) : <span className="text-slate-500">—</span>}</Td>
     </tr>
   )
 }
@@ -86,11 +86,11 @@ export function ShiftLineRow({ line }: { line: BsShiftLine }) {
         <Td right>{fmtLitres(line.litresSold)}</Td>
         <Td right>{fmtMoney(line.expectedRevenue)}</Td>
         <Td right><span className="font-medium text-slate-800">{fmtMoney(line.cashCollected + line.upiCollected + line.cardCollected + fleetCard)}</span></Td>
-        <Td right>{line.cashCollected > 0 ? fmtMoney(line.cashCollected) : <span className="text-slate-300">—</span>}</Td>
-        <Td right>{line.upiCollected > 0 ? fmtMoney(line.upiCollected) : <span className="text-slate-300">—</span>}</Td>
-        <Td right>{line.cardCollected > 0 ? fmtMoney(line.cardCollected) : <span className="text-slate-300">—</span>}</Td>
-        <Td right>{fleetCard > 0 ? fmtMoney(fleetCard) : <span className="text-slate-300">—</span>}</Td>
-        <Td right>{line.creditAmount > 0 ? fmtMoney(line.creditAmount) : <span className="text-slate-300">—</span>}</Td>
+        <Td right>{line.cashCollected > 0 ? fmtMoney(line.cashCollected) : <span className="text-slate-500">—</span>}</Td>
+        <Td right>{line.upiCollected > 0 ? fmtMoney(line.upiCollected) : <span className="text-slate-500">—</span>}</Td>
+        <Td right>{line.cardCollected > 0 ? fmtMoney(line.cardCollected) : <span className="text-slate-500">—</span>}</Td>
+        <Td right>{fleetCard > 0 ? fmtMoney(fleetCard) : <span className="text-slate-500">—</span>}</Td>
+        <Td right>{line.creditAmount > 0 ? fmtMoney(line.creditAmount) : <span className="text-slate-500">—</span>}</Td>
         <DiscrepancyTd value={line.discrepancy} />
       </tr>
       {/* Per-nozzle breakdown rows — one row per nozzle showing fuel type and litres only */}

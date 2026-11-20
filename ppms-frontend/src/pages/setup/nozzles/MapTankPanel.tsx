@@ -59,7 +59,7 @@ export function MapTankPanel({ pumpId, duId, nozzle, tanks, onClose }: Props) {
             No active {FUEL_LABELS[nozzle.fuelType]} tanks available.
           </p>
         )}
-        {mapError && <p className="ui-error-text">{mapError}</p>}
+        {mapError && <p role="alert" className="ui-error-text">{mapError}</p>}
         <div className="ui-tank-map-form__actions">
           <button
             type="button"

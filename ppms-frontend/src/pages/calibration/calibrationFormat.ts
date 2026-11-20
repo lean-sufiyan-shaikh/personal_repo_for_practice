@@ -1,8 +1,6 @@
-import { formatIstDate, formatIstDateTime } from '../../utils/date'
+import { formatIstDateTime } from '../../utils/date'
 
-export function fmtDate(d: string) {
-  return formatIstDate(d)
-}
+export { formatIstDate as fmtDate } from '../../utils/date'
 
 export function fmtDateTime(d: string) {
   return formatIstDateTime(d, {

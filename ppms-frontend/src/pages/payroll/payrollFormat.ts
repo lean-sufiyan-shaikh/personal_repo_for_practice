@@ -1,5 +1,5 @@
 import type { PayrollStatus } from '../../api/payrollApi'
-import { formatIstDate, localDateInputValue } from '../../utils/date'
+import { localDateInputValue } from '../../utils/date'
 
 export const STATUS_STYLES: Record<PayrollStatus, string> = {
   DRAFT:    'bg-amber-100 text-amber-700',
@@ -15,13 +15,9 @@ export const NEXT_STATUS: Partial<Record<PayrollStatus, PayrollStatus>> = {
   APPROVED: 'PAID',
 }
 
-export function fmtAmt(n: number) {
-  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
+export { formatCurrency as fmtAmt } from '../../utils/format'
 
-export function fmtDate(d: string) {
-  return formatIstDate(d)
-}
+export { formatIstDate as fmtDate } from '../../utils/date'
 
 /** Returns "2026-04" from a date string */
 export function toMonthKey(dateStr: string): string {

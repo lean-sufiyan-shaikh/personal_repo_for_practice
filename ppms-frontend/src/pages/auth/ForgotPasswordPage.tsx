@@ -68,7 +68,6 @@ export default function ForgotPasswordPage() {
               onChange={e => setPhoneNumber(e.target.value)}
               placeholder="e.g. 9876543210"
               className="shadow-sm"
-              autoFocus
             />
           </div>
 

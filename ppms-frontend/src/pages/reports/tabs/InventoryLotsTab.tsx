@@ -124,8 +124,8 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                   <span>{fmtQty(lot.remainingQuantity)} remaining</span>
                   <span>{fmtAmt(lot.totalCogsConsumed)} COGS</span>
                   {expandedLot === lot.lotId
-                    ? <ChevronUp size={14} strokeWidth={2} className="text-slate-400" />
-                    : <ChevronDown size={14} strokeWidth={2} className="text-slate-400" />
+                    ? <ChevronUp size={14} strokeWidth={2} className="text-slate-500" />
+                    : <ChevronDown size={14} strokeWidth={2} className="text-slate-500" />
                   }
                 </div>
               </button>
@@ -196,8 +196,8 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                       )}
                       <span>{fmtAmt(section.totalStockValue)} value</span>
                       {expandedLot === section.tankId
-                        ? <ChevronUp size={14} strokeWidth={2} className="text-slate-400" />
-                        : <ChevronDown size={14} strokeWidth={2} className="text-slate-400" />}
+                        ? <ChevronUp size={14} strokeWidth={2} className="text-slate-500" />
+                        : <ChevronDown size={14} strokeWidth={2} className="text-slate-500" />}
                     </div>
                   </button>
                   {expandedLot === section.tankId && (

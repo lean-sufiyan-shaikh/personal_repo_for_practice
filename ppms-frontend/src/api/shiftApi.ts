@@ -1,5 +1,5 @@
 import client from './client'
-import type { DUOption, Shift, OpenShiftRequest, CloseShiftRequest, CreditEntryInput, BackfillShiftRequest } from '../types/shift'
+import type { Shift, OpenShiftRequest, CloseShiftRequest, CreditEntryInput, BackfillShiftRequest } from '../types/shift'
 
 export type { CreditEntryInput }
 
@@ -55,9 +55,6 @@ export const shiftApi = {
 
   closeShift: (pumpId: number, shiftId: number, request: CloseShiftRequest) =>
     client.post<Shift>(`/pumps/${pumpId}/shifts/${shiftId}/close`, request).then((r) => r.data),
-
-  getDUs: (pumpId: number) =>
-    client.get<DUOption[]>(`/pumps/${pumpId}/dus`).then((r) => r.data),
 
   resolveDiscrepancy: (pumpId: number, shiftId: number, req: ResolveDiscrepancyRequest) =>
     client.patch<Shift>(`/pumps/${pumpId}/shifts/${shiftId}/discrepancy-resolution`, req).then((r) => r.data),

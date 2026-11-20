@@ -24,6 +24,24 @@ export function localDateInputValue(offsetDays = 0): string {
   return addDays(istDateString(), offsetDays)
 }
 
+/** Monday (YYYY-MM-DD) of the week that contains the given YYYY-MM-DD date. */
+export function mondayOf(isoDate: string): string {
+  const weekday = new Date(`${isoDate}T00:00:00Z`).getUTCDay()
+  return addDays(isoDate, weekday === 0 ? -6 : 1 - weekday)
+}
+
+const istFormatters = new Map<string, Intl.DateTimeFormat>()
+
+function istFormatter(options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = JSON.stringify(options)
+  let formatter = istFormatters.get(key)
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-IN', { timeZone: IST_TIME_ZONE, ...options })
+    istFormatters.set(key, formatter)
+  }
+  return formatter
+}
+
 export function formatIstDate(
   value: string | Date,
   options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' },
@@ -34,7 +52,7 @@ export function formatIstDate(
       ? new Date(`${value}T00:00:00+05:30`)
       : new Date(value)
 
-  return new Intl.DateTimeFormat('en-IN', { timeZone: IST_TIME_ZONE, ...options }).format(date)
+  return istFormatter(options).format(date)
 }
 
 export function formatIstDateTime(
@@ -48,5 +66,5 @@ export function formatIstDateTime(
   },
 ): string {
   const date = value instanceof Date ? value : new Date(value)
-  return new Intl.DateTimeFormat('en-IN', { timeZone: IST_TIME_ZONE, ...options }).format(date)
+  return istFormatter(options).format(date)
 }

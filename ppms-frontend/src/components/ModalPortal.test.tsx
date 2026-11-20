@@ -113,3 +113,58 @@ describe('ModalPortal', () => {
     expect(outerClose).toHaveBeenCalledOnce()
   })
 })
+
+describe('ModalPortal backdrop and focus return', () => {
+  useVisibleLayout()
+
+  function BackdropDialog({ onClose, closeOnBackdropClick }: { onClose: () => void; closeOnBackdropClick: boolean }) {
+    return (
+      <ModalPortal onClose={onClose} closeOnBackdropClick={closeOnBackdropClick}>
+        <div className="ui-modal-backdrop" data-testid="backdrop">
+          <div className="ui-modal-panel">
+            <h2 className="ui-modal-title">Record</h2>
+            <input aria-label="Amount" />
+          </div>
+        </div>
+      </ModalPortal>
+    )
+  }
+
+  it('closes when the backdrop itself is clicked, but not when the panel is clicked', async () => {
+    const onClose = vi.fn()
+    render(<BackdropDialog onClose={onClose} closeOnBackdropClick />)
+    await userEvent.click(screen.getByLabelText('Amount'))
+    expect(onClose).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByTestId('backdrop'))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores backdrop clicks unless asked to close on them', async () => {
+    const onClose = vi.fn()
+    render(<BackdropDialog onClose={onClose} closeOnBackdropClick={false} />)
+    await userEvent.click(screen.getByTestId('backdrop'))
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('moves focus to main when the element that opened the modal is gone', async () => {
+    function RowThatDisappears() {
+      const [rowVisible, setRowVisible] = useState(true)
+      const [open, setOpen] = useState(false)
+      return (
+        <main tabIndex={-1}>
+          {rowVisible && <button type="button" onClick={() => { setOpen(true); setRowVisible(false) }}>Delete row</button>}
+          {open && (
+            <ModalPortal onClose={() => setOpen(false)}>
+              <h2 className="ui-modal-title">Deleted</h2>
+              <button type="button" onClick={() => setOpen(false)}>OK</button>
+            </ModalPortal>
+          )}
+        </main>
+      )
+    }
+    render(<RowThatDisappears />)
+    await userEvent.click(screen.getByRole('button', { name: 'Delete row' }))
+    await userEvent.click(screen.getByRole('button', { name: 'OK' }))
+    expect(screen.getByRole('main')).toHaveFocus()
+  })
+})

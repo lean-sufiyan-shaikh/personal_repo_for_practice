@@ -6,6 +6,7 @@ import type { PumpSummary, TankInfo, UpdateTankRequest } from '../../api/pumpApi
 import type { FuelType } from '../../types/shift'
 import { FUEL_LABELS, FUEL_UNIT } from '../../constants/fuel'
 import { ALL_FUEL_TYPES, FUEL_COLOR } from './fuelStyles'
+import { ConfirmButton } from '../../components/ConfirmButton'
 
 // ── Tanks content ─────────────────────────────────────────────────────────────
 // Owner manually creates each underground tank (name, fuel type, capacity).
@@ -41,7 +42,6 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
   const [editError, setEditError]         = useState<string | null>(null)
 
   // Disable confirmation: null = no confirm shown; tankId = confirm dialog for that tank
-  const [confirmDisableId, setConfirmDisableId] = useState<number | null>(null)
   const [statusError, setStatusError]           = useState<string | null>(null)
 
   const { data: tanks = [], isLoading } = useQuery({
@@ -74,7 +74,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
     mutationFn: ({ tankId, status }: { tankId: number; status: 'ACTIVE' | 'INACTIVE' }) =>
       pumpApi.updateTankStatus(pump.id, tankId, status),
     onSuccess: () => {
-      setConfirmDisableId(null); setStatusError(null)
+      setStatusError(null)
       queryClient.invalidateQueries({ queryKey: ['tanks', pump.id] })
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pump.id] })
     },
@@ -121,7 +121,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
       ) : (
         <div className="space-y-2">
           {statusError && (
-            <div className="ui-alert ui-alert-danger text-sm">
+            <div role="alert" className="ui-alert ui-alert-danger text-sm">
               <p className="text-red-600 text-xs">{statusError}</p>
             </div>
           )}
@@ -172,44 +172,26 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                     )}
 
                     {/* Disable / Enable toggle */}
-                    {confirmDisableId === tank.id ? (
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-orange-600">
-                          {hasSignificantStock(tank)
-                            ? `${((tank.currentStock / tank.capacity) * 100).toFixed(0)}% stock will be frozen. Confirm?`
-                            : 'Disable this tank?'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => statusMutation.mutate({ tankId: tank.id, status: 'INACTIVE' })}
-                          disabled={statusMutation.isPending}
-                          className="ui-btn min-h-0 px-2 py-1 text-xs bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white">
-                          Yes
-                        </button>
-                        <button type="button" onClick={() => setConfirmDisableId(null)}
-                          className="ui-btn ui-btn-secondary min-h-0 px-2 py-1 text-xs">
-                          No
-                        </button>
-                      </div>
-                    ) : (
+                    {isInactive ? (
                       <button
                         type="button"
-                        onClick={() => {
-                          setStatusError(null)
-                          if (isInactive) {
-                            statusMutation.mutate({ tankId: tank.id, status: 'ACTIVE' })
-                          } else {
-                            setConfirmDisableId(tank.id)
-                          }
-                        }}
+                        onClick={() => { setStatusError(null); statusMutation.mutate({ tankId: tank.id, status: 'ACTIVE' }) }}
                         disabled={statusMutation.isPending}
-                        className={`text-xs font-medium transition-colors disabled:opacity-50 ${
-                          isInactive
-                            ? 'text-emerald-600 hover:text-emerald-800'
-                            : 'text-orange-500 hover:text-orange-700'
-                        }`}>
-                        {isInactive ? 'Enable' : 'Disable'}
+                        className="min-h-6 text-xs font-medium text-emerald-700 transition-colors hover:text-emerald-800 disabled:opacity-50">
+                        Enable
                       </button>
+                    ) : (
+                      <ConfirmButton
+                        triggerLabel="Disable"
+                        triggerAriaLabel={`Disable tank ${tank.tankIdentifier}`}
+                        prompt={hasSignificantStock(tank)
+                          ? `${((tank.currentStock / tank.capacity) * 100).toFixed(0)}% stock will be frozen. Confirm?`
+                          : 'Disable this tank?'}
+                        onConfirm={() => { setStatusError(null); statusMutation.mutate({ tankId: tank.id, status: 'INACTIVE' }) }}
+                        disabled={statusMutation.isPending}
+                        triggerClassName="min-h-6 text-xs font-medium text-orange-700 transition-colors hover:text-orange-800 disabled:opacity-50"
+                        confirmClassName="ui-btn min-h-6 px-2 py-1 text-xs bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white"
+                      />
                     )}
                   </div>
                 </div>
@@ -243,7 +225,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                         {updateMutation.isPending ? 'Saving...' : 'Save'}
                       </button>
                     </div>
-                    {editError && <p className="ui-error-text">{editError}</p>}
+                    {editError && <p role="alert" className="ui-error-text">{editError}</p>}
                   </form>
                 )}
               </div>
@@ -278,7 +260,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${FUEL_COLOR[createFuelType]}`}>
                   {FUEL_LABELS[createFuelType]}
                 </span>
-                <svg className={`w-4 h-4 text-slate-400 transition-transform duration-150 ${fuelDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className={`w-4 h-4 text-slate-500 transition-transform duration-150 ${fuelDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -331,7 +313,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
               {createMutation.isPending ? 'Adding...' : 'Add Tank'}
             </button>
           </div>
-          {createError && <p className="ui-error-text">{createError}</p>}
+          {createError && <p role="alert" className="ui-error-text">{createError}</p>}
         </form>
       </div>
     </div>

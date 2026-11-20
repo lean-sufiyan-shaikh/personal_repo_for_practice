@@ -137,7 +137,7 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
                 placeholder="0.00"
-                autoFocus
+                data-autofocus
                 className="pl-7 pr-3 shadow-sm"
               />
             </div>
@@ -187,7 +187,7 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
           </div>
 
           {error && (
-            <div className="ui-alert ui-alert-danger text-sm">
+            <div role="alert" className="ui-alert ui-alert-danger text-sm">
               {error}
             </div>
           )}

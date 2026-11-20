@@ -49,7 +49,7 @@ export default function AncillaryProductsPage() {
       <div className="ui-section-hero">
         <div>
         <p className="ui-section-kicker">Counter inventory</p>
-        <h2 className="ui-title-sm">Products</h2>
+        <h1 className="ui-title-sm">Products</h1>
         <p className="ui-subtitle">
           Manage lubricants, accessories, and other counter products. Track stock and sales.
         </p>

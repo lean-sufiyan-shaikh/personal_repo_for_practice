@@ -123,7 +123,7 @@ export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, tra
                   />
                 </label>
               </div>
-              {error && <p className="ui-error-text text-sm">{error}</p>}
+              {error && <p role="alert" className="ui-error-text text-sm">{error}</p>}
             </>
           )}
         </div>

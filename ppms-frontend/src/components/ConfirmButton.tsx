@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { KeyboardEvent } from 'react'
 import { X } from 'lucide-react'
 import { IconButton } from './IconButton'
 
@@ -52,23 +53,20 @@ export function ConfirmButton({
     setConfirming(false)
   }
 
+  function closeOnEscape(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== 'Escape') return
+    event.preventDefault()
+    close()
+  }
+
   if (confirming) {
     return (
-      <span
-        role="group"
-        aria-label={prompt}
-        className="flex items-center gap-1"
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            e.preventDefault()
-            close()
-          }
-        }}
-      >
+      <span role="group" aria-label={prompt} className="flex items-center gap-1">
         <span className="text-xs text-red-600 font-medium">{prompt}</span>
         <button
           type="button"
           onClick={() => { onConfirm(); close() }}
+          onKeyDown={closeOnEscape}
           disabled={disabled}
           className={confirmClassName}
         >
@@ -78,7 +76,8 @@ export function ConfirmButton({
           ref={noRef}
           type="button"
           onClick={close}
-          className="ui-btn ui-btn-ghost min-h-0 px-2 py-0.5 text-xs"
+          onKeyDown={closeOnEscape}
+          className="ui-btn ui-btn-ghost min-h-6 px-2 py-0.5 text-xs"
         >
           No
         </button>

@@ -6,6 +6,7 @@ import { Pagination } from '../../components/Pagination'
 import { EmptyState } from '../../components/EmptyState'
 import { StockInDialog } from './StockInDialog'
 import { fmtCurrency, fmtDate } from './ancillaryFormat'
+import { ScrollRegion } from '../../components/ScrollRegion'
 
 // ── Stock In Tab ─────────────────────────────────────────────────────────────
 
@@ -70,7 +71,7 @@ export function StockInTab({
           <EmptyState icon="generic" title="No deliveries recorded yet" subtitle="Record stock deliveries using the button above." />
         ) : (
           <>
-          <div className="overflow-x-auto">
+          <ScrollRegion label="Stock-in history" className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-slate-500 uppercase border-b border-slate-100">
@@ -112,7 +113,7 @@ export function StockInTab({
                 )})}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
           {deliveriesPage && (
             <div className="px-5">
               <Pagination

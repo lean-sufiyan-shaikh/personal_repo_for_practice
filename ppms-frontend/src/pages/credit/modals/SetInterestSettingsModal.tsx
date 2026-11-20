@@ -66,7 +66,7 @@ export function SetInterestSettingsModal({ client, pumpId, onClose }: SetInteres
                 onChange={e => setRate(e.target.value)}
                 placeholder="0 = no interest"
                 className="w-full pr-8 pl-3 text-sm"
-                autoFocus
+                data-autofocus
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">%</span>
             </div>
@@ -91,7 +91,7 @@ export function SetInterestSettingsModal({ client, pumpId, onClose }: SetInteres
           </div>
 
           {error && (
-            <div className="ui-alert ui-alert-danger text-sm">{error}</div>
+            <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
           )}
         </div>
 

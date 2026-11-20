@@ -155,7 +155,7 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
                     )}
                     <IconButton
                       onClick={() => startEdit(t)}
-                      className="text-slate-400 hover:text-blue-600 transition-colors rounded"
+                      className="text-slate-500 hover:text-blue-600 transition-colors rounded"
  label="Edit tanker"
  icon={<Pencil size={13} />}
  />
@@ -164,7 +164,7 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
                       disabled={deactivateMutation.isPending}
                       triggerAriaLabel={`Remove tanker ${t.name}`}
                       prompt="Remove?"
-                      triggerClassName="p-1.5 text-slate-300 hover:text-red-500 transition-colors rounded"
+                      triggerClassName="p-1.5 text-slate-500 hover:text-red-500 transition-colors rounded"
                     />
                   </div>
                 </>

@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { shiftApi } from '../../api/shiftApi'
 import { pumpApi } from '../../api/pumpApi'
 import type { CloseShiftRequest, Shift } from '../../types/shift'
+import { formatIstDateTime } from '../../utils/date'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
 import { useConfirmDiscard } from '../../hooks/useConfirmDiscard'
@@ -10,7 +11,6 @@ import { toPaise } from '../../utils/money'
 import { FUEL_LABELS, FUEL_UNIT } from '../../constants/fuel'
 import { CreditEntryForm } from './components/CreditEntryForm'
 import { emptyNum, fmt } from './components/creditRow'
-import type { CreditRow } from './components/creditRow'
 import { PreRecordedCreditList } from './close/PreRecordedCreditList'
 import { Section, ReadingField, PaymentField, BalanceCard } from './close/CloseShiftFields'
 import { DiscrepancySection } from './close/DiscrepancySection'
@@ -18,6 +18,8 @@ import { CloseShiftFooter } from './close/CloseShiftFooter'
 import { LateCloseNotice } from './close/LateCloseNotice'
 import { computeCloseShiftTotals } from './close/closeShiftTotals'
 import { buildCloseShiftRequest } from './close/closeShiftRequest'
+import { useCloseShiftCreditRows } from './close/useCloseShiftCreditRows'
+import { IconButton } from '../../components/IconButton'
 
 interface Props {
   shift: Shift
@@ -26,7 +28,6 @@ interface Props {
 }
 
 export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props) {
-  const nextRowId = useRef(1)
   const queryClient = useQueryClient()
   const [serverError, setServerError] = useState<string | null>(null)
   const [noChangeNozzles, setNoChangeNozzles] = useState<Set<number>>(new Set())
@@ -39,10 +40,18 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
   const [upi,               setUpi]               = useState('')
   const [card,              setCard]              = useState('')
   const [fleetCard,         setFleetCard]         = useState('')
-  // creditRows = entries being added NOW at close time (not pre-recorded ones)
-  const [creditRows,        setCreditRows]        = useState<CreditRow[]>([])
-  const [expandedRowId,     setExpandedRowId]     = useState<number | null>(null)
   const [discrepancyReason, setDiscrepancyReason] = useState('')
+
+  const { data: creditClients = [] } = useQuery({
+    queryKey: ['creditClients', shift.pumpId],
+    queryFn:  () => pumpApi.getCreditClients(shift.pumpId),
+  })
+
+  const availableFuelTypes = shift.fuelReadings.map((r) => r.fuelType)
+  const {
+    creditRows, expandedRowId, setExpandedRowId,
+    addCreditRow, updateRow, updateRowMulti, selectClient, removeCreditRow, editRecordedEntry,
+  } = useCloseShiftCreditRows(availableFuelTypes, creditClients)
 
   // Void state for pre-recorded entries
   const [localVoidedIds,    setLocalVoidedIds]   = useState<Set<number>>(
@@ -56,13 +65,8 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
     .filter(e => !localVoidedIds.has(e.id) && !replacedEntryIds.has(e.id))
   const preRecordedTotal   = preRecordedEntries.reduce((s, e) => s + e.amount, 0)
 
-  const { data: creditClients = [] } = useQuery({
-    queryKey: ['creditClients', shift.pumpId],
-    queryFn:  () => pumpApi.getCreditClients(shift.pumpId),
-  })
 
   // Fuel types dispensed on this nozzle (for credit entry dropdown)
-  const availableFuelTypes = shift.fuelReadings.map((r) => r.fuelType)
 
   // nozzleId → nozzleNumber — used to label each meter reading field
   const nozzleNumberById: Record<number, number> = Object.fromEntries(
@@ -75,7 +79,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
   const scheduledEnd = shift.scheduledEndTime ? new Date(shift.scheduledEndTime) : null
   const isLateClose  = scheduledEnd !== null && new Date() > scheduledEnd
   const scheduledEndDisplay = scheduledEnd
-    ? scheduledEnd.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+    ? formatIstDateTime(scheduledEnd, { hour: '2-digit', minute: '2-digit', hour12: true })
     : null
 
   // ── Live calculations ───────────────────────────────────────────────────────
@@ -96,26 +100,6 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
 
   // ── Credit row helpers ──────────────────────────────────────────────────────
 
-  const addCreditRow = () => {
-    const newId = nextRowId.current++
-    setCreditRows((rows) => [...rows, {
-      id: newId,
-      clientId: null, clientName: '', clientSearch: '',
-      showDropdown: false,
-      subAccountId: null, subAccountName: '',
-      fuelType: availableFuelTypes[0] ?? '',
-      billNo: '', amount: '', liters: '', inputMode: 'amount', description: '',
-      replacesEntryId: null,
-    }])
-    setExpandedRowId(newId)
-  }
-
-  const updateRow = <K extends keyof CreditRow>(id: number, field: K, value: CreditRow[K]) =>
-    setCreditRows((rows) => rows.map((r) => (r.id === id ? { ...r, [field]: value } : r)))
-
-  const updateRowMulti = (id: number, updates: Partial<CreditRow>) =>
-    setCreditRows((rows) => rows.map((r) => (r.id === id ? { ...r, ...updates } : r)))
-
   const priceForFuelType = (ft: string): number | null =>
     shift.fuelReadings.find((r) => r.fuelType === ft)?.priceSnapshot ?? null
 
@@ -128,48 +112,6 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
       return next
     })
     setEndReadings(prev => ({ ...prev, [nozzleId]: wasNoChange ? '' : String(startReading) }))
-  }
-
-  const selectClient = (rowId: number, clientId: number, clientName: string) =>
-    setCreditRows((rows) => rows.map((r) =>
-      r.id === rowId
-        ? { ...r, clientId, clientName, clientSearch: clientName, showDropdown: false, subAccountId: null, subAccountName: '' }
-        : r
-    ))
-
-  const removeCreditRow = (id: number) => {
-    setCreditRows((rows) => rows.filter((r) => r.id !== id))
-    if (expandedRowId === id) setExpandedRowId(null)
-  }
-
-  // ── Pre-recorded entry void ─────────────────────────────────────────────────
-
-  // Editing copies the entry into a new row; the original is voided only when the shift is closed,
-  // so cancelling the edit (or the whole modal) leaves the recorded entry untouched.
-  const startEdit = (e: typeof preRecordedEntries[0]) => {
-    const entryClient = creditClients.find(c => c.id === e.clientId)
-    const parentClient = entryClient?.parentClientId
-      ? creditClients.find(c => c.id === entryClient.parentClientId)
-      : null
-    const rootClient = parentClient ?? entryClient ?? null
-    const newId = nextRowId.current++
-    setCreditRows(rows => [...rows, {
-      id: newId,
-      clientId: rootClient?.id ?? null,
-      clientName: rootClient?.name ?? e.clientName,
-      clientSearch: rootClient?.name ?? e.clientName,
-      showDropdown: false,
-      subAccountId: parentClient ? entryClient?.id ?? null : null,
-      subAccountName: parentClient ? entryClient?.name ?? '' : '',
-      fuelType: e.fuelType ?? availableFuelTypes[0] ?? '',
-      billNo: e.billNo ?? '',
-      amount: String(e.amount),
-      liters: '',
-      inputMode: 'amount',
-      description: e.description ?? '',
-      replacesEntryId: e.id,
-    }])
-    setExpandedRowId(newId)
   }
 
   // ── Submit ──────────────────────────────────────────────────────────────────
@@ -239,10 +181,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
               Nozzle {shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', ')} · {shift.operatorName} · {shift.shiftWindow}
             </p>
           </div>
-          <button aria-label="Close" type="button" onClick={requestClose}
-            className="ui-btn ui-btn-ghost ui-modal-close absolute top-3 right-3">
-            ×
-          </button>
+          <IconButton label="Close" icon="×" onClick={requestClose} className="ui-btn ui-btn-ghost ui-modal-close absolute top-3 right-3" />
 
           {/* Locked price pills */}
           <div className="flex flex-wrap gap-2 mt-3">
@@ -308,7 +247,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                     shift={shift}
                     entries={preRecordedEntries}
                     total={preRecordedTotal}
-                    onEdit={startEdit}
+                    onEdit={editRecordedEntry}
                     onVoided={(entryId) => setLocalVoidedIds(prev => new Set([...prev, entryId]))}
                   />
                 )}

@@ -38,7 +38,6 @@ export function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionM
       creditApi.createExtension(pumpId, client.id, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['active-extensions', pumpId, client.id] })
-      qc.invalidateQueries({ queryKey: ['extensions', pumpId, client.id] })
       onClose()
     },
     onError: (err) => setError(parseApiError(err, 'Failed to create extension')),
@@ -127,13 +126,13 @@ export function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionM
                 rows={3}
                 placeholder="Why is this extension being granted?"
                 className="resize-none text-sm"
-                autoFocus
+                data-autofocus
               />
             </label>
           </div>
 
           {error && (
-            <div className="ui-alert ui-alert-danger text-sm">{error}</div>
+            <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
           )}
         </div>
 

@@ -7,6 +7,7 @@ import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { TYPE_LABELS, fmtAmt, fmtDate } from './settlementFormat'
+import { IconButton } from '../../components/IconButton'
 
 interface VoidSettlementDialogProps {
   pumpId: number
@@ -39,9 +40,9 @@ export function VoidSettlementDialog({ pumpId, voidTarget, onClose }: VoidSettle
   }
 
   return (
-    <ModalPortal onClose={() => onClose()}>
-      <div className="ui-modal-backdrop" onClick={() => onClose()}>
-        <div className="ui-modal-panel" onClick={e => e.stopPropagation()}>
+    <ModalPortal onClose={() => onClose()} closeOnBackdropClick>
+      <div className="ui-modal-backdrop">
+        <div className="ui-modal-panel">
           <div className="ui-modal-header">
             <div className="ui-modal-heading">
               <h2 className="ui-modal-title">Void Settlement</h2>
@@ -49,7 +50,7 @@ export function VoidSettlementDialog({ pumpId, voidTarget, onClose }: VoidSettle
                 {TYPE_LABELS[voidTarget.paymentType]} · {fmtDate(voidTarget.settlementDate)} · {fmtAmt(voidTarget.amountReceived)}
               </p>
             </div>
-            <button type="button" aria-label="Close" className="ui-modal-close" onClick={() => onClose()}>×</button>
+            <IconButton label="Close" icon="×" onClick={() => onClose()} className="ui-btn ui-btn-ghost ui-modal-close" />
           </div>
 
           <form onSubmit={handleVoid} className="ui-modal-body flex flex-col gap-5">
@@ -65,13 +66,13 @@ export function VoidSettlementDialog({ pumpId, voidTarget, onClose }: VoidSettle
                   placeholder="e.g., Recorded twice by mistake"
                   value={voidReason}
                   onChange={e => setVoidReason(e.target.value)}
-                  autoFocus
+                  data-autofocus
                 />
               </label>
             </div>
 
             {voidError && (
-              <div className="ui-alert ui-alert-danger text-sm py-2">
+              <div role="alert" className="ui-alert ui-alert-danger text-sm py-2">
                 {voidError}
               </div>
             )}

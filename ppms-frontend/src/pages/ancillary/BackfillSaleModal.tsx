@@ -80,9 +80,9 @@ export function BackfillSaleModal({
   }
 
   return (
-    <ModalPortal onClose={onClose}>
-    <div className="ui-modal-backdrop px-4" onClick={onClose}>
-      <div className="ui-modal-panel w-full max-w-md" onClick={e => e.stopPropagation()}>
+    <ModalPortal onClose={onClose} closeOnBackdropClick>
+    <div className="ui-modal-backdrop px-4">
+      <div className="ui-modal-panel w-full max-w-md">
 
         {/* Header */}
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -103,7 +103,7 @@ export function BackfillSaleModal({
         {step === 'form' && (
           <div className="ui-modal-body space-y-4">
             {error && (
-              <div className="ui-alert ui-alert-danger text-sm">{error}</div>
+              <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
 
             {/* Info banner about price resolution */}
@@ -225,7 +225,7 @@ export function BackfillSaleModal({
             </div>
 
             {error && (
-              <div className="ui-alert ui-alert-danger text-sm">{error}</div>
+              <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
           </div>
         )}

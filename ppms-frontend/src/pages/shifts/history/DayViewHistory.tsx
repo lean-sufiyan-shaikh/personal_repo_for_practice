@@ -9,6 +9,7 @@ import { formatIstDate, localDateInputValue } from '../../../utils/date'
 import { parseApiError } from '../../../utils/apiError'
 import { HistoryRow } from './HistoryRow'
 import { labelForDate, fmtAmt } from '../shiftLabels'
+import { ScrollRegion } from '../../../components/ScrollRegion'
 
 // ── Day View ──────────────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
     formatIstDate(d, { day: 'numeric', month: 'short', year: 'numeric' })
 
   if (isLoading) return <div className="px-5 py-4"><SkeletonRows count={4} /></div>
-  if (error) return <p className="ui-alert ui-alert-error m-4 text-sm">{parseApiError(error, 'Failed to load shift history')}</p>
+  if (error) return <p role="alert" className="ui-alert ui-alert-error m-4 text-sm">{parseApiError(error, 'Failed to load shift history')}</p>
   if (visibleDates.length === 0) {
     return <p className="ui-empty px-6 py-6">No shift history for the last 3 days.</p>
   }
@@ -86,7 +87,7 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
 
             {/* Day shift table */}
             {isOpen && (
-              <div className="ui-accordion-content overflow-x-auto border-t border-slate-100 bg-slate-50/40">
+              <ScrollRegion label="Shifts for the day" className="ui-accordion-content overflow-x-auto border-t border-slate-100 bg-slate-50/40">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-xs text-slate-500">
@@ -107,7 +108,7 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollRegion>
             )}
           </div>
         )

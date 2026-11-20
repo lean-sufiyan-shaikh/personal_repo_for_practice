@@ -104,7 +104,7 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
               Set end date
             </label>
           </div>
-          <input
+          <input aria-label="End date"
             type="date"
             value={effectiveTo}
             onChange={e => setEffectiveTo(e.target.value)}
@@ -135,7 +135,7 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
           const endOpts    = TIME_OPTS.filter(o => !usedEnds.has(o.value))
           return (
           <div key={idx} className="grid gap-2 items-center md:grid-cols-[minmax(0,12rem)_minmax(8.5rem,1fr)_auto_minmax(8.5rem,1fr)_minmax(6.5rem,7.5rem)_auto]">
-            <input
+            <input aria-label="Shift name"
               placeholder="Name (e.g. Morning)"
               value={row.name}
               onChange={e => updateRow(idx, { name: e.target.value })}
@@ -194,7 +194,7 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
         </button>
       )}
 
-      {formError && <p className="ui-error-text">{formError}</p>}
+      {formError && <p role="alert" className="ui-error-text">{formError}</p>}
 
       <div className="flex gap-2 pt-1">
         <button

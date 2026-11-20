@@ -9,6 +9,7 @@ import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
 import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
 import { fmtAmt, fmtQty, fmtShortDate, todayIso, yesterdayIso } from '../reportFormat'
+import { ScrollRegion } from '../../../components/ScrollRegion'
 
 // ── P&L Tab ───────────────────────────────────────────────────────────────────
 
@@ -214,7 +215,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
               <p className="text-sm font-semibold text-orange-600">{fmtAmt(data.totalCreditRevenue)}</p>
             </div>
           </div>
-          <div className="ui-card p-0 overflow-hidden overflow-x-auto">
+          <ScrollRegion label="Profit and loss by fuel" className="ui-card p-0 overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-xs text-slate-500">
@@ -269,7 +270,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
           <p className="text-xs text-slate-500 mt-1">
             Gross Profit reflects fuel sales only. Operating expenses (salaries, maintenance) are excluded.
           </p>

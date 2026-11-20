@@ -38,7 +38,7 @@ export function DeliveryItem({ delivery, pumpId, isOwnerOrAdmin }: {
         )}
         <IconButton
           onClick={() => setEditing(true)}
-          className="text-slate-400 hover:text-blue-600 transition-colors"
+          className="text-slate-500 hover:text-blue-600 transition-colors"
  label="Edit delivery"
  icon={<Pencil size={13} />}
  />

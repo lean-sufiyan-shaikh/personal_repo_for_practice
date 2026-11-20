@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { Fuel, AlertTriangle, Zap, IndianRupee, Gauge } from 'lucide-react'
@@ -12,10 +13,11 @@ import { Reveal } from '../../components/Reveal'
 import { RefreshIndicator } from '../../components/RefreshIndicator'
 import { MAX_CHART_DAYS, fmtAmt, isPriceStale } from './overview/overviewFormat'
 import { ModuleGrid } from './overview/ModuleGrid'
-import { RevenueTrendChart } from './overview/RevenueTrendChart'
 import { TankStockOverview } from './overview/TankStockOverview'
 import { ShiftStatusRow } from './overview/ShiftStatusRow'
 import { StatCard } from './overview/StatCard'
+
+const RevenueTrendChart = lazy(() => import('./overview/RevenueTrendChart').then((module) => ({ default: module.RevenueTrendChart })))
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
@@ -26,6 +28,7 @@ export default function OverviewPage() {
   const { data: pumps = [] } = useQuery({
     queryKey: ['myPumps'],
     queryFn:  pumpApi.getMyPumps,
+    staleTime: 5 * 60_000,
   })
 
   const pumpId = selectedPumpId
@@ -38,7 +41,7 @@ export default function OverviewPage() {
       queryKey:        ['activeShifts', id] as const,
       queryFn:         () => shiftApi.getActiveShifts(id),
       enabled:         !!id,
-      refetchInterval: 30_000,
+      refetchInterval: 60_000,
     })),
   })
 
@@ -113,8 +116,7 @@ export default function OverviewPage() {
         </div>
       )}
 
-      {/* ── Welcome header ── */}
-      <Reveal delay={60}>
+      {/* ── Welcome header (above the fold, so not faded in) ── */}
       <div className="ui-dashboard-hero">
         <div className="ui-dashboard-hero-copy">
           <div className="ui-dashboard-chip">
@@ -123,7 +125,7 @@ export default function OverviewPage() {
           </div>
           <div>
             <p className="ui-dashboard-hero-kicker">{greeting}</p>
-            <h2 className="ui-dashboard-hero-title">{user?.fullName}</h2>
+            <h1 className="ui-dashboard-hero-title">{user?.fullName}</h1>
             <p className="ui-dashboard-hero-subtitle">
               {user?.role} · {selectedPump?.name ?? 'No pump selected'}
             </p>
@@ -141,7 +143,6 @@ export default function OverviewPage() {
           </div>
         </div>
       </div>
-      </Reveal>
 
       {/* ── Stale fuel price alert ── */}
       {priceIsStale && selectedPump && (
@@ -233,7 +234,9 @@ export default function OverviewPage() {
       )}
 
       {/* ── Revenue trend chart ── */}
-      <RevenueTrendChart historyShifts={historyShifts} />
+      <Suspense fallback={<div className="ui-card h-80" aria-busy="true" aria-label="Loading revenue chart" />}>
+        <RevenueTrendChart historyShifts={historyShifts} />
+      </Suspense>
 
       {/* ── Tank stock summary ── */}
       <TankStockOverview tanks={allTanks} />

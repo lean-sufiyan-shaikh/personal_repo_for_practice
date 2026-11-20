@@ -72,7 +72,6 @@ export default function ResetPasswordPage() {
               autoComplete="new-password"
               placeholder="Use a strong password"
               className="shadow-sm"
-              autoFocus
               minLength={8}
               required
             />

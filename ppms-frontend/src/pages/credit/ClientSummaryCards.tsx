@@ -1,8 +1,6 @@
 import type { CreditClient } from '../../api/creditApi'
 import { onActivateKey } from '../../utils/keyboard'
-
-const formatAmount = (n: number) =>
-  n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+import { formatDecimal } from '../../utils/format'
 
 interface ClientSummaryCardsProps {
   client: CreditClient
@@ -11,13 +9,13 @@ interface ClientSummaryCardsProps {
   outstandingInterest: number
   totalInterestRecovered: number
   transactionCount: number
-  isOwnerOrAdmin: boolean
+  canManageInterest: boolean
   onOpenInterestSettings: () => void
 }
 
 export function ClientSummaryCards({
   client, hasSubAccounts, outstandingBalance, outstandingInterest, totalInterestRecovered,
-  transactionCount, isOwnerOrAdmin, onOpenInterestSettings,
+  transactionCount, canManageInterest, onOpenInterestSettings,
 }: ClientSummaryCardsProps) {
   return (
         <div className="px-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
@@ -26,7 +24,7 @@ export function ClientSummaryCards({
           Outstanding{hasSubAccounts ? ' (combined)' : ''}
         </p>
         <p className={`text-lg font-bold ${outstandingBalance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-          ₹{formatAmount(outstandingBalance)}
+          ₹{formatDecimal(outstandingBalance)}
         </p>
         {hasSubAccounts && (
           <p className="text-xs text-slate-500 mt-0.5">parent + all sub-accounts</p>
@@ -34,34 +32,34 @@ export function ClientSummaryCards({
       </div>
       <div className={`ui-card ${outstandingInterest > 0 ? 'border-purple-200 bg-purple-50/30' : ''}`}>
         <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Interest Due</p>
-        <p className={`text-lg font-bold ${outstandingInterest > 0 ? 'text-purple-700' : 'text-slate-300'}`}>
-          ₹{formatAmount(outstandingInterest)}
+        <p className={`text-lg font-bold ${outstandingInterest > 0 ? 'text-purple-700' : 'text-slate-500'}`}>
+          ₹{formatDecimal(outstandingInterest)}
         </p>
         <p className="text-xs text-slate-500 mt-0.5">of outstanding balance</p>
       </div>
       <div className="ui-card">
         <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Interest Recovered</p>
-        <p className={`text-lg font-bold ${totalInterestRecovered > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
-          ₹{formatAmount(totalInterestRecovered)}
+        <p className={`text-lg font-bold ${totalInterestRecovered > 0 ? 'text-emerald-600' : 'text-slate-500'}`}>
+          ₹{formatDecimal(totalInterestRecovered)}
         </p>
         {hasSubAccounts && (
           <p className="text-xs text-slate-500 mt-0.5">parent + all sub-accounts</p>
         )}
       </div>
       <div
-        className={`ui-card ${isOwnerOrAdmin ? 'cursor-pointer hover:border-purple-300 hover:bg-purple-50/40 transition-colors' : 'border-slate-200'}`}
-        onClick={isOwnerOrAdmin ? onOpenInterestSettings : undefined}
-        role={isOwnerOrAdmin ? 'button' : undefined}
-        tabIndex={isOwnerOrAdmin ? 0 : undefined}
-        aria-label={isOwnerOrAdmin ? 'Configure interest rate' : undefined}
-        onKeyDown={isOwnerOrAdmin ? onActivateKey(onOpenInterestSettings) : undefined}
-        title={isOwnerOrAdmin ? 'Click to configure interest rate' : undefined}
+        className={`ui-card ${canManageInterest ? 'cursor-pointer hover:border-purple-300 hover:bg-purple-50/40 transition-colors' : 'border-slate-200'}`}
+        onClick={canManageInterest ? onOpenInterestSettings : undefined}
+        role={canManageInterest ? 'button' : undefined}
+        tabIndex={canManageInterest ? 0 : undefined}
+        aria-label={canManageInterest ? 'Configure interest rate' : undefined}
+        onKeyDown={canManageInterest ? onActivateKey(onOpenInterestSettings) : undefined}
+        title={canManageInterest ? 'Click to configure interest rate' : undefined}
       >
         <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Interest Rate</p>
-        <p className={`text-lg font-bold ${client.monthlyInterestRate > 0 ? 'text-purple-700' : 'text-slate-300'}`}>
+        <p className={`text-lg font-bold ${client.monthlyInterestRate > 0 ? 'text-purple-700' : 'text-slate-500'}`}>
           {client.monthlyInterestRate > 0 ? `${client.monthlyInterestRate}%/mo` : '—'}
         </p>
-        {isOwnerOrAdmin && (
+        {canManageInterest && (
           <p className="text-xs text-purple-400 mt-0.5">{client.monthlyInterestRate > 0 ? `${client.interestGraceDays}d grace` : 'Click to set'}</p>
         )}
       </div>

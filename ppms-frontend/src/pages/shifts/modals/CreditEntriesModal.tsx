@@ -18,14 +18,12 @@ export function CreditEntriesModal({
   return (
     <tr>
       <td colSpan={8} className="p-0">
-        <ModalPortal onClose={onClose}>
+        <ModalPortal onClose={onClose} closeOnBackdropClick>
         <div
           className="ui-modal-backdrop"
-          onClick={onClose}
         >
           <div
             className="ui-modal-panel w-full max-w-md overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
           >
             <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
               <div className="ui-modal-heading">
@@ -82,7 +80,7 @@ export function CreditEntriesModal({
                           Bill: <span className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-600">{entry.billNo}</span>
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-300">No bill</span>
+                        <span className="text-xs text-slate-500">No bill</span>
                       )}
                       {entry.description && (
                         <span className="text-xs text-slate-500 italic">"{entry.description}"</span>

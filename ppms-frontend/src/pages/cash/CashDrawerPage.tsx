@@ -44,7 +44,7 @@ export default function CashDrawerPage() {
 
       {/* ── Balance card ── */}
       <Reveal delay={130}>
-      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-3xl px-6 py-5 text-white shadow-[0_22px_42px_rgba(5,150,105,0.22)]">
+      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-3xl px-6 py-5 text-white shadow-xl shadow-emerald-600/20">
         <p className="text-emerald-200 text-sm">Current Balance</p>
         <p className="text-3xl font-bold mt-1">{fmtAmt(balance)}</p>
         <p className="text-emerald-200 text-xs mt-1">Calculated from all cash-in minus cash-out events</p>

@@ -80,7 +80,7 @@ export function CreatePumpForm({ onCreated }: { onCreated: (p: PumpSummary) => v
           />
         </label>
       </div>
-      {error && <p className="ui-error-text">{error}</p>}
+      {error && <p role="alert" className="ui-error-text">{error}</p>}
       <button
         type="submit"
         disabled={mutation.isPending}

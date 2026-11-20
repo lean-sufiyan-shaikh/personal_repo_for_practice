@@ -87,9 +87,9 @@ export function StockInDialog({
   }
 
   return (
-    <ModalPortal onClose={onClose}>
-    <div className="ui-modal-backdrop px-4" onClick={onClose}>
-      <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+    <ModalPortal onClose={onClose} closeOnBackdropClick>
+    <div className="ui-modal-backdrop px-4">
+      <div className="ui-modal-panel w-full max-w-md">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
           <div className="ui-modal-heading">
             <h3 className="ui-modal-title">{step === 'form' ? 'Record Stock Delivery' : 'Review Stock Delivery'}</h3>
@@ -105,7 +105,7 @@ export function StockInDialog({
         {step === 'form' && (
           <div className="ui-modal-body space-y-4">
             {error && (
-              <div className="ui-alert ui-alert-danger text-sm">{error} Go back to modify the data and try again.</div>
+              <div role="alert" className="ui-alert ui-alert-danger text-sm">{error} Go back to modify the data and try again.</div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
@@ -180,7 +180,7 @@ export function StockInDialog({
         {step === 'review' && (
           <div className="ui-modal-body space-y-4">
             {error && (
-              <div className="ui-alert ui-alert-danger text-sm">{error} Go back to modify the data and try again.</div>
+              <div role="alert" className="ui-alert ui-alert-danger text-sm">{error} Go back to modify the data and try again.</div>
             )}
             <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
               <ReviewRow label="Product" value={selectedProduct?.displayName ?? '—'} />

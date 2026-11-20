@@ -1,8 +1,10 @@
+import { useRef } from 'react'
 import { AlertTriangle, Database, Wrench, Ruler, CircleOff } from 'lucide-react'
 import type { FuelPrice, TankInfo } from '../../../api/pumpApi'
 import type { DUOption, NozzleDetail } from '../../../types/shift'
 import { Spinner } from '../../../components/Spinner'
-import { IconButton } from '../../../components/IconButton'
+import { RowActionMenu } from '../../../components/RowActionMenu'
+import { useRowPanelFocus } from '../../../hooks/useRowPanelFocus'
 import { FUEL_LABELS } from '../../../constants/fuel'
 import { FUEL_COLOR } from '../fuelStyles'
 import type { NozzlePanel } from './nozzlePanels'
@@ -33,6 +35,9 @@ export function NozzleRow({
   menuOpen, onMenuChange, statusPending, statusError, onEnable, onDisable,
 }: Props) {
   const isInactive = nozzle.status === 'INACTIVE'
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  useRowPanelFocus(openPanel, panelRef, menuButtonRef)
   return (
     <div key={nozzle.id} className={`transition-opacity ${isInactive ? 'opacity-60' : ''}`}>
       {/* Nozzle row */}
@@ -71,52 +76,26 @@ export function NozzleRow({
               {statusPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />Enabling…</span> : 'Enable'}
             </button>
           ) : (
-            <div className="relative">
-              <IconButton
-                onClick={() => onMenuChange(menuOpen ? null : nozzle.id)}
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                className="ui-btn ui-btn-ghost text-base leading-none text-slate-400 hover:text-slate-600"
-    label="Nozzle actions"
-    icon={'⋮'}
-    />
-              {menuOpen && (
-                <>
-                  <div className="fixed inset-0 z-[5]" onClick={() => onMenuChange(null)} />
-                  <div className="absolute right-0 top-full z-[6] mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.14)] backdrop-blur">
-                    {(
-                      [
-                        { label: 'Map Tank', description: 'Assign the supply tank', icon: <Database size={14} strokeWidth={2} />, panel: 'mapTank'  as NozzlePanel, color: 'text-emerald-700 hover:bg-emerald-50' },
-                        { label: 'Adjust Reading', description: 'Correct stored meter value', icon: <Wrench size={14} strokeWidth={2} />, panel: 'reading'  as NozzlePanel, color: 'text-blue-600 hover:bg-blue-50' },
-                        { label: 'Record Dip', description: 'Log a manual dip check', icon: <Ruler size={14} strokeWidth={2} />, panel: 'dip'      as NozzlePanel, color: 'text-orange-600 hover:bg-orange-50' },
-                        { label: 'Disable for Maintenance', description: 'Temporarily take nozzle offline', icon: <CircleOff size={14} strokeWidth={2} />, panel: 'disable' as NozzlePanel, color: 'text-red-600 hover:bg-red-50' },
-                      ]
-                    ).map(({ label, description, icon, panel, color }) => (
-                      <button
-                        key={panel}
-                        type="button"
-                        onClick={() => {
-                          onOpenPanel(panel)
-                          onMenuChange(null)
-                        }}
-                        className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${color}`}
-                      >
-                        <span className="mt-0.5 shrink-0 leading-none">{icon}</span>
-                        <span className="min-w-0">
-                          <span className="block text-xs font-semibold leading-5">{label}</span>
-                          <span className="block text-[11px] leading-4 text-slate-500">{description}</span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+            <RowActionMenu
+              label="Nozzle actions"
+              open={menuOpen}
+              onOpenChange={(open) => onMenuChange(open ? nozzle.id : null)}
+              triggerRef={menuButtonRef}
+              triggerClassName="ui-btn ui-btn-ghost text-base leading-none text-slate-600 hover:text-slate-800"
+              menuClassName="absolute right-0 top-full z-[6] mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-lg backdrop-blur"
+              items={[
+                { key: 'mapTank', label: 'Map Tank', description: 'Assign the supply tank', icon: <Database size={14} strokeWidth={2} />, className: 'text-emerald-700 hover:bg-emerald-50', onSelect: () => onOpenPanel('mapTank') },
+                { key: 'reading', label: 'Adjust Reading', description: 'Correct stored meter value', icon: <Wrench size={14} strokeWidth={2} />, className: 'text-blue-700 hover:bg-blue-50', onSelect: () => onOpenPanel('reading') },
+                { key: 'dip', label: 'Record Dip', description: 'Log a manual dip check', icon: <Ruler size={14} strokeWidth={2} />, className: 'text-orange-700 hover:bg-orange-50', onSelect: () => onOpenPanel('dip') },
+                { key: 'disable', label: 'Disable for Maintenance', description: 'Temporarily take nozzle offline', icon: <CircleOff size={14} strokeWidth={2} />, className: 'text-red-700 hover:bg-red-50', onSelect: () => onOpenPanel('disable') },
+              ]}
+            />
           )}
         </div>
       </div>
 
 
+      <div ref={panelRef}>
       {openPanel === 'disable' && (
         <DisableNozzlePanel
           nozzleNumber={nozzle.nozzleNumber}
@@ -138,6 +117,7 @@ export function NozzleRow({
       {openPanel === 'dip' && (
         <RecordDipPanel pumpId={pumpId} nozzle={nozzle} currentPrices={currentPrices} onClose={onClosePanel} />
       )}
+      </div>
     </div>
   )
 }

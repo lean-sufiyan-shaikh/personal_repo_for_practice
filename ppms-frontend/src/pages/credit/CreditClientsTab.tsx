@@ -1,21 +1,22 @@
 import { useState, useDeferredValue } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { pumpApi } from '../../api/pumpApi'
-import type { CreditClient as PumpCreditClient, UpdateCreditClientRequest } from '../../api/pumpApi'
+import type { CreditClient as PumpCreditClient } from '../../api/pumpApi'
 import { SkeletonRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { parseApiError } from '../../utils/apiError'
 import { onActivateKey } from '../../utils/keyboard'
+import { EditCreditClientForm } from './EditCreditClientForm'
 
 // ─── Credit Clients Tab ───────────────────────────────────────────────────────
 
 interface CreditClientsTabProps {
   pumpId: number
-  isOwnerOrAdmin: boolean
+  canManageClients: boolean
 }
 
-export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
+export function CreditClientsTab({ pumpId, canManageClients }: CreditClientsTabProps) {
   const qc = useQueryClient()
 
   const [name, setName]               = useState('')
@@ -24,10 +25,6 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
   const [addError, setAddError]       = useState<string | null>(null)
 
   const [editingId, setEditingId]     = useState<number | null>(null)
-  const [editName, setEditName]       = useState('')
-  const [editPhone, setEditPhone]     = useState('')
-  const [editNotes, setEditNotes]     = useState('')
-  const [editError, setEditError]     = useState<string | null>(null)
 
   const [clientSearch,     setClientSearch]     = useState('')
   const deferredSearch = useDeferredValue(clientSearch)
@@ -62,33 +59,12 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
     },
   })
 
-  const updateMutation = useMutation({
-    mutationFn: ({ clientId, req }: { clientId: number; req: UpdateCreditClientRequest }) =>
-      pumpApi.updateCreditClient(pumpId, clientId, req),
-    onSuccess: () => {
-      setEditingId(null); setEditError(null)
-      qc.invalidateQueries({ queryKey: ['creditClients', pumpId] })
-    },
-    onError: (err) => setEditError(parseApiError(err, 'Failed to update client')),
-  })
-
   const toggleStatusMutation = useMutation({
     mutationFn: ({ clientId, isActive }: { clientId: number; isActive: boolean }) =>
       pumpApi.toggleCreditClientStatus(pumpId, clientId, isActive),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['creditClients', pumpId] }),
     onError: (err) => setAddError(parseApiError(err, 'Failed to update client status')),
   })
-
-  const startEdit = (c: PumpCreditClient) => {
-    setEditingId(c.id); setEditName(c.name); setEditPhone(c.phone ?? ''); setEditNotes(c.notes ?? '')
-    setEditError(null)
-  }
-
-  const submitEdit = (e: React.FormEvent, clientId: number) => {
-    e.preventDefault(); setEditError(null)
-    if (!/^\d{10}$/.test(editPhone.trim())) { setEditError('Phone must be exactly 10 digits.'); return }
-    updateMutation.mutate({ clientId, req: { name: editName.trim(), phone: editPhone.trim(), notes: editNotes.trim() || undefined } })
-  }
 
   const submitAdd = (e: React.FormEvent) => {
     e.preventDefault(); setAddError(null)
@@ -136,47 +112,13 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
       )
     : rootClients
 
-  const editForm = (clientId: number, indent = false) => (
-    <form onSubmit={e => submitEdit(e, clientId)}
-      className={`${indent ? 'pl-7 pr-3' : 'px-3'} py-3 border-t border-slate-100 bg-white space-y-2`}>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="block">
-            <span className="ui-label">Name <span className="text-red-500">*</span></span>
-            <input required value={editName} onChange={e => setEditName(e.target.value)} className="text-xs min-h-10" />
-          </label>
-        </div>
-        <div>
-          <label className="block">
-            <span className="ui-label">Phone <span className="text-red-500">*</span></span>
-            <input required value={editPhone}
-              onChange={e => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-              inputMode="numeric" maxLength={10} className="text-xs min-h-10" />
-          </label>
-        </div>
-      </div>
-      <div>
-        <label className="block">
-          <span className="ui-label">Notes <span className="text-slate-500">(optional)</span></span>
-          <input value={editNotes} onChange={e => setEditNotes(e.target.value)}
-            placeholder="e.g. Fleet manager, lorry owner" className="text-xs min-h-10" />
-        </label>
-      </div>
-      {editError && <p className="ui-error-text">{editError}</p>}
-      <button type="submit" disabled={updateMutation.isPending}
-        className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs">
-        {updateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />Saving…</span> : 'Save'}
-      </button>
-    </form>
-  )
-
   if (isLoading) return <div className="px-5 py-4"><SkeletonRows count={4} /></div>
 
   return (
     <div className="space-y-4">
       <p className="text-xs text-slate-500">
         Parties who take fuel on credit. Operators pick from this list when closing a shift.
-        {isOwnerOrAdmin ? ' Disabled clients are hidden from shift dropdowns. Client records are never deleted.' : ''}
+        {canManageClients ? ' Disabled clients are hidden from shift dropdowns. Client records are never deleted.' : ''}
       </p>
 
       {rootClients.length > 0 && (
@@ -184,7 +126,7 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
           <svg className="ui-search-shell__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
           </svg>
-          <input
+          <input aria-label="Search clients"
             type="text"
             className="ui-search-shell__input"
             placeholder="Search client or sub-account…"
@@ -214,18 +156,18 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
             return (
               <div key={parent.id} className="ui-card p-0 overflow-hidden">
                 <div
-                  className={`ui-accordion-trigger ${hasChildren ? 'cursor-pointer select-none' : ''}`}
-                  onClick={hasChildren ? () => toggleCollapse(parent.id) : undefined}
+                  className={`ui-accordion-trigger ${hasChildren ? 'select-none' : ''}`}
                   >
                     <div
-                      className="min-w-0 flex items-center gap-2"
+                      className={`min-w-0 flex flex-1 items-center gap-2 ${hasChildren ? 'cursor-pointer' : ''}`}
                       role={hasChildren ? 'button' : undefined}
                       tabIndex={hasChildren ? 0 : undefined}
                       aria-expanded={hasChildren ? isExpanded : undefined}
+                      onClick={hasChildren ? () => toggleCollapse(parent.id) : undefined}
                       onKeyDown={hasChildren ? onActivateKey(() => toggleCollapse(parent.id)) : undefined}
                     >
                     {hasChildren && (
-                      <svg className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      <svg className={`w-3.5 h-3.5 text-slate-500 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                         fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                       </svg>
@@ -248,8 +190,8 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
                       </div>
                     </div>
                   </div>
-                  {isOwnerOrAdmin && (
-                    <div className="flex items-center gap-2 ml-3 shrink-0" onClick={e => e.stopPropagation()}>
+                  {canManageClients && (
+                    <div className="flex items-center gap-2 ml-3 shrink-0">
                       <button
                         onClick={() => {
                           const next = addSubParentId === parent.id ? null : parent.id
@@ -262,7 +204,7 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
                         + Sub-account
                       </button>
                       <button
-                        onClick={() => editingId === parent.id ? setEditingId(null) : startEdit(parent)}
+                        onClick={() => setEditingId(editingId === parent.id ? null : parent.id)}
                         className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800"
                       >
                         {editingId === parent.id ? 'Cancel' : 'Edit'}
@@ -282,13 +224,15 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
                   )}
                 </div>
 
-                {isOwnerOrAdmin && editingId === parent.id && editForm(parent.id)}
+                {canManageClients && editingId === parent.id && (
+                  <EditCreditClientForm pumpId={pumpId} client={parent} onSaved={() => setEditingId(null)} />
+                )}
 
                 {isExpanded && children.map(child => (
                   <div key={child.id} className="border-t border-slate-100">
                     <div className="flex items-center justify-between pl-7 pr-3 py-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-slate-300 shrink-0">└</span>
+                        <span className="text-slate-500 shrink-0">└</span>
                         <div>
                           <div className="flex items-center gap-2">
                             <p className={`text-sm font-medium ${child.isActive ? 'text-slate-600' : 'text-slate-500'}`}>{child.name}</p>
@@ -302,10 +246,10 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
                           </div>
                         </div>
                       </div>
-                      {isOwnerOrAdmin && (
+                      {canManageClients && (
                         <div className="flex items-center gap-2 ml-3 shrink-0">
                           <button
-                            onClick={() => editingId === child.id ? setEditingId(null) : startEdit(child)}
+                            onClick={() => setEditingId(editingId === child.id ? null : child.id)}
                             className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800">
                             {editingId === child.id ? 'Cancel' : 'Edit'}
                           </button>
@@ -323,11 +267,13 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
                         </div>
                       )}
                     </div>
-                    {isOwnerOrAdmin && editingId === child.id && editForm(child.id, true)}
+                    {canManageClients && editingId === child.id && (
+                      <EditCreditClientForm pumpId={pumpId} client={child} indent onSaved={() => setEditingId(null)} />
+                    )}
                   </div>
                 ))}
 
-                {isOwnerOrAdmin && addSubParentId === parent.id && (
+                {canManageClients && addSubParentId === parent.id && (
                   <form onSubmit={e => submitAddSub(e, parent.id)}
                     className="border-t border-blue-100 bg-blue-50/40 px-3 py-3 space-y-2">
                     <p className="text-xs font-semibold text-blue-700">Add sub-account under {parent.name}</p>
@@ -355,7 +301,7 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
                           placeholder="e.g. truck number, driver name" className="text-xs min-h-10" />
                       </label>
                     </div>
-                    {addSubError && <p className="ui-error-text">{addSubError}</p>}
+                    {addSubError && <p role="alert" className="ui-error-text">{addSubError}</p>}
                     <div className="flex gap-2">
                       <button type="submit" disabled={addMutation.isPending}
                         className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs">
@@ -376,7 +322,7 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
         <p className="text-sm text-slate-500 py-2">No clients match "{deferredSearch}".</p>
       ) : null}
 
-      {isOwnerOrAdmin && (
+      {canManageClients && (
         <div className={clients.length > 0 ? 'border-t border-slate-200 pt-4' : ''}>
           <p className="ui-label mb-3">
             {clients.length === 0 ? 'Add the first credit client' : 'Add another client'}
@@ -406,7 +352,7 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
                   placeholder="e.g. Fleet manager, lorry owner" className="text-sm" />
               </label>
             </div>
-            {addError && <p className="ui-error-text">{addError}</p>}
+            {addError && <p role="alert" className="ui-error-text">{addError}</p>}
             <button type="submit" disabled={addMutation.isPending} className="ui-btn ui-btn-primary">
               {addMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />Adding…</span> : 'Add Client'}
             </button>
@@ -414,7 +360,7 @@ export function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabPro
         </div>
       )}
 
-      {!isOwnerOrAdmin && rootClients.length === 0 && (
+      {!canManageClients && rootClients.length === 0 && (
         <EmptyState icon="generic" title="No credit clients yet"
           subtitle="Contact the Owner or Admin to add credit clients." />
       )}

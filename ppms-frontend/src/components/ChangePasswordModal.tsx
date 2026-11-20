@@ -7,6 +7,7 @@ import { PasswordInput } from './PasswordInput'
 import { ModalPortal } from './ModalPortal'
 import { parseApiError } from '../utils/apiError'
 import { PASSWORD_POLICY_MESSAGE, PASSWORD_POLICY_REGEX } from '../constants/passwordPolicy'
+import { FormField } from './FormField'
 
 interface ChangePasswordModalProps {
   onClose: () => void
@@ -56,11 +57,10 @@ export function ChangePasswordModal({ onClose, successMessage }: ChangePasswordM
   }
 
   return (
-    <ModalPortal onClose={onClose}>
-    <div className="ui-modal-backdrop" onClick={onClose}>
+    <ModalPortal onClose={onClose} closeOnBackdropClick>
+    <div className="ui-modal-backdrop">
       <div
         className="ui-modal-panel"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
           <div className="ui-modal-heading">
@@ -72,33 +72,30 @@ export function ChangePasswordModal({ onClose, successMessage }: ChangePasswordM
 
         <div className="ui-modal-body space-y-4">
           <div>
-            <label className="block">
-              <span className="ui-label">Current Password</span>
+            <FormField label="Current Password">
               <PasswordInput
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 autoComplete="current-password"
                 className="shadow-sm"
               />
-            </label>
+            </FormField>
           </div>
 
           <div>
-            <label className="block">
-              <span className="ui-label">New Password</span>
+            <FormField label="New Password">
               <PasswordInput
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
                 className="shadow-sm"
               />
-            </label>
+            </FormField>
             <p className="ui-help">{PASSWORD_POLICY_MESSAGE}</p>
           </div>
 
           <div>
-            <label className="block">
-              <span className="ui-label">Confirm New Password</span>
+            <FormField label="Confirm New Password">
               <PasswordInput
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -106,7 +103,7 @@ export function ChangePasswordModal({ onClose, successMessage }: ChangePasswordM
                 autoComplete="new-password"
                 className="shadow-sm"
               />
-            </label>
+            </FormField>
           </div>
 
           {passwordError && (

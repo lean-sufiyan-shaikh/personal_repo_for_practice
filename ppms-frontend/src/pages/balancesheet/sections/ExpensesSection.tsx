@@ -1,6 +1,7 @@
 import type { ExpenseSummary } from '../../../api/balanceSheetApi'
 import { Td, Th } from '../bsTableCells'
 import { fmtMoney } from '../bsFormat'
+import { ScrollRegion } from '../../../components/ScrollRegion'
 
 // ── Approved expenses section (DAY reports only) ────────────────────────────────
 
@@ -13,7 +14,7 @@ export function ExpensesSection({ expenses }: { expenses: ExpenseSummary }) {
           ({expenses.lines.length} expense{expenses.lines.length !== 1 ? 's' : ''})
         </span>
       </h3>
-      <div className="rounded-xl border border-red-200 overflow-x-auto">
+      <ScrollRegion label="Expenses" className="rounded-xl border border-red-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-red-50 text-left">
@@ -48,7 +49,7 @@ export function ExpensesSection({ expenses }: { expenses: ExpenseSummary }) {
             </tr>
           </tfoot>
         </table>
-      </div>
+      </ScrollRegion>
     </section>
   )
 }

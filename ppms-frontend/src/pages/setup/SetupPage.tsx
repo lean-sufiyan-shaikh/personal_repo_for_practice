@@ -59,7 +59,7 @@ export default function SetupPage() {
               </div>
               <span className="text-sm font-semibold text-slate-700">Create a New Pump Location</span>
             </div>
-            <ChevronDown size={14} strokeWidth={2} className={`text-slate-400 transition-transform duration-200 ${createOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown size={14} strokeWidth={2} className={`text-slate-500 transition-transform duration-200 ${createOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {createOpen && (

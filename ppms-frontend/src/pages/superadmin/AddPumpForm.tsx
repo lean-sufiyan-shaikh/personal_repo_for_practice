@@ -78,7 +78,7 @@ export function AddPumpForm({ owner, onDone }: AddPumpFormProps) {
           />
         </FormField>
         {addPumpError && (
-          <p className="ui-error-text">{addPumpError}</p>
+          <p role="alert" className="ui-error-text">{addPumpError}</p>
         )}
         <button
           type="submit"

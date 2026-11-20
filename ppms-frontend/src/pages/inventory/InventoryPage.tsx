@@ -5,6 +5,7 @@ import { pumpApi } from '../../api/pumpApi'
 import { usePumpStore } from '../../store/usePumpStore'
 import { inventoryApi } from '../../api/inventoryApi'
 import type { TankStock } from '../../api/inventoryApi'
+import { canPerformAction } from '../../permissions/permissions'
 import { useAuthStore } from '../../store/authStore'
 import { DipCheckModal } from './DipCheckModal'
 import { FuelLotsDialog } from './FuelLotsDialog'
@@ -21,6 +22,7 @@ export default function InventoryPage() {
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const canViewFinancials = isOwnerOrAdmin || user?.role === 'MANAGER'
   const canDeleteInvoice = canViewFinancials
+  const canRecordDipCheck = canPerformAction('inventory:record-dip-check', user?.role)
 
   const { selectedPumpId } = usePumpStore()
   const [showDeliveryModal, setShowDeliveryModal] = useState(false)
@@ -92,7 +94,7 @@ export default function InventoryPage() {
       <div className="ui-section-hero">
         <div>
           <p className="ui-section-kicker">Stock control</p>
-          <h2 className="ui-title-sm">Inventory</h2>
+          <h1 className="ui-title-sm">Inventory</h1>
           <p className="ui-subtitle">
             Tank stock levels, tanker deliveries, and DIP checks.
           </p>
@@ -161,7 +163,7 @@ export default function InventoryPage() {
                           dipOverdue={dipOverdue}
                           lastDipAt={last}
                           now={now}
-                          onDipCheck={isOwnerOrAdmin ? () => setDipTankId(tank.tankId) : undefined}
+                          onDipCheck={canRecordDipCheck ? () => setDipTankId(tank.tankId) : undefined}
                           onViewLots={() => setLotsForTank(tank)}
                         />
                       )

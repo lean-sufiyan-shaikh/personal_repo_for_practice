@@ -6,6 +6,8 @@ import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
 import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
 import { fmtAmt, fmtDateTime, fmtQty, todayIso, yesterdayIso } from '../reportFormat'
+import { FUEL_BADGE } from '../../../constants/fuel'
+import { ScrollRegion } from '../../../components/ScrollRegion'
 
 // ── Dip P/L Tab ───────────────────────────────────────────────────────────────
 
@@ -29,14 +31,6 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
   const netPl    = entries.reduce((s, e) => s + e.monetaryAmount, 0)
   const isNetGain = netPl > 0
   const isNetLoss = netPl < 0
-
-  const FUEL_COLORS: Record<string, string> = {
-    PETROL:       'bg-emerald-100 text-emerald-700',
-    DIESEL:       'bg-blue-100 text-blue-700',
-    SPEED_PETROL: 'bg-violet-100 text-violet-700',
-    SPEED_DIESEL: 'bg-indigo-100 text-indigo-700',
-    CNG:          'bg-amber-100 text-amber-700',
-  }
 
   return (
     <div className="space-y-4">
@@ -83,7 +77,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
             <div className="ui-empty py-6">No dip P/L entries found for this date range.</div>
           ) : (
             <>
-              <div className="ui-table-wrap overflow-x-auto">
+              <ScrollRegion label="Dip profit and loss entries" className="ui-table-wrap overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50 text-left">
@@ -99,9 +93,9 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
                     {paged.content.map((e, idx) => {
                       const isGain = e.monetaryAmount > 0
                       const isLoss = e.monetaryAmount < 0
-                      const plColor = isGain ? 'text-emerald-600' : isLoss ? 'text-red-600' : 'text-slate-400'
+                      const plColor = isGain ? 'text-emerald-600' : isLoss ? 'text-red-600' : 'text-slate-500'
                       const litresColor = e.type === 'DIP_CHECK'
-                        ? (e.litres > 0 ? 'text-emerald-600' : e.litres < 0 ? 'text-red-600' : 'text-slate-400')
+                        ? (e.litres > 0 ? 'text-emerald-600' : e.litres < 0 ? 'text-red-600' : 'text-slate-500')
                         : 'text-slate-700'
                       return (
                         <tr key={idx} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
@@ -116,7 +110,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
                             )}
                           </td>
                           <td className="px-3 py-2.5">
-                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${FUEL_COLORS[e.fuelType] ?? 'bg-slate-100 text-slate-600'}`}>
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${FUEL_BADGE[e.fuelType] ?? 'bg-slate-100 text-slate-600'}`}>
                               {e.fuelType.replace('_', ' ')}
                             </span>
                           </td>
@@ -145,7 +139,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
                     </tfoot>
                   )}
                 </table>
-              </div>
+              </ScrollRegion>
               <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
             </>
           )}
@@ -169,7 +163,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
               color="text-blue-600"
             />
           </div>
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <ScrollRegion label="Dip profit and loss summary" className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 text-left">
@@ -185,9 +179,9 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
               {entries.map((e, idx) => {
                 const isGain = e.monetaryAmount > 0
                 const isLoss = e.monetaryAmount < 0
-                const plColor = isGain ? 'text-emerald-600' : isLoss ? 'text-red-600' : 'text-slate-400'
+                const plColor = isGain ? 'text-emerald-600' : isLoss ? 'text-red-600' : 'text-slate-500'
                 const litresColor = e.type === 'DIP_CHECK'
-                  ? (e.litres > 0 ? 'text-emerald-600' : e.litres < 0 ? 'text-red-600' : 'text-slate-400')
+                  ? (e.litres > 0 ? 'text-emerald-600' : e.litres < 0 ? 'text-red-600' : 'text-slate-500')
                   : 'text-slate-700'
                 return (
                   <tr key={idx} className="border-t border-slate-100">
@@ -200,7 +194,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
                         : <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">Maintenance</span>}
                     </td>
                     <td className="px-3 py-2">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${FUEL_COLORS[e.fuelType] ?? 'bg-slate-100 text-slate-600'}`}>
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${FUEL_BADGE[e.fuelType] ?? 'bg-slate-100 text-slate-600'}`}>
                         {e.fuelType.replace('_', ' ')}
                       </span>
                     </td>
@@ -227,7 +221,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
               </tfoot>
             )}
           </table>
-          </div>
+          </ScrollRegion>
         </div>
       )}
     </div>

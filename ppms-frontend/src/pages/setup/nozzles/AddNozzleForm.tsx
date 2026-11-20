@@ -101,7 +101,7 @@ export function AddNozzleForm({ pumpId, du, onClose }: Props) {
           </button>
         </div>
       </form>
-      {inlineError && <p className="ui-error-text mt-2">{inlineError}</p>}
+      {inlineError && <p role="alert" className="ui-error-text mt-2">{inlineError}</p>}
     </div>
   )
 }

@@ -5,7 +5,7 @@ import { STATUS_LABELS } from '../shiftLabels'
 
 // ── Active shift row ──────────────────────────────────────────────────────────
 
-export function ShiftRow({ shift, onClose, onAddCredit }: { shift: Shift; onClose: () => void; onAddCredit: () => void }) {
+export function ShiftRow({ shift, onClose, onAddCredit }: { shift: Shift; onClose?: () => void; onAddCredit: () => void }) {
   const badge     = STATUS_LABELS[shift.status] ?? { label: shift.status, color: 'bg-slate-100 text-slate-600' }
   const startTime = formatIstDateTime(shift.actualStartTime, { hour: '2-digit', minute: '2-digit' })
   const fuelAbbr: Record<string, string> = {
@@ -39,12 +39,14 @@ export function ShiftRow({ shift, onClose, onAddCredit }: { shift: Shift; onClos
             <Plus size={12} strokeWidth={2.5} />
             <span>Credit</span>
           </button>
-          <button
-            onClick={onClose}
-            className="ui-btn ui-btn-primary min-h-0 rounded-xl px-3 py-1.5 text-xs"
-          >
-            Close
-          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="ui-btn ui-btn-primary min-h-0 rounded-xl px-3 py-1.5 text-xs"
+            >
+              Close
+            </button>
+          )}
         </div>
       </td>
     </tr>

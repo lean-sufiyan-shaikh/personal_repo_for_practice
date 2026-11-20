@@ -126,7 +126,7 @@ export function GeneratePayrollForm({ pumpId, staff, onGenerated }: GeneratePayr
           Configure rates in Setup → Staff → ₹ Rates.
         </p>
 
-        {formError && <p className="ui-error-text">{formError}</p>}
+        {formError && <p role="alert" className="ui-error-text">{formError}</p>}
 
         <button
           type="submit"

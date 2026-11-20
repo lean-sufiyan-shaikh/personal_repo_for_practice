@@ -130,7 +130,7 @@ export function AdjustReadingPanel({ pumpId, nozzle, onClose }: Props) {
           </label>
           <p className="ui-help">This note is stored with the adjustment log for audit history.</p>
         </div>
-        {adjustError && <p className="ui-error-text">{adjustError}</p>}
+        {adjustError && <p role="alert" className="ui-error-text">{adjustError}</p>}
         <div className="ui-reading-editor__actions">
           <button
             type="submit"
