@@ -30,17 +30,13 @@ public class AuthService {
 
     /**
      * Authenticates the user and returns a signed JWT.
-     * Rate limiting: blocks if >= 5 failures in the last 15 minutes for this phone number.
+     * Rate limiting: see LoginRateLimiterService (per phone number and per IP).
      *
      * @param request   Login credentials.
      * @param ipAddress The caller's IP address — used for rate-limit tracking and audit. May be null.
      */
     public LoginResult login(LoginRequest request, String ipAddress) {
-        // Check rate limit BEFORE authenticating — avoids burning bcrypt CPU on blocked callers
-        if (rateLimiterService.isBlocked(request.getPhoneNumber())) {
-            throw new BusinessException(
-                    "Too many failed login attempts. Please wait 15 minutes before trying again.");
-        }
+        rateLimiterService.checkLoginAllowed(request.getPhoneNumber(), ipAddress);
 
         try {
             // Spring Security verifies phone + password against the DB
@@ -57,7 +53,8 @@ public class AuthService {
             String token = jwtService.generateToken(user, Map.of(
                     "role", user.getRole().name(),
                     "userId", user.getId(),
-                    "pumpId", user.getAssignedPumpId() != null ? user.getAssignedPumpId() : ""
+                    "pumpId", user.getAssignedPumpId() != null ? user.getAssignedPumpId() : "",
+                    JwtService.TOKEN_VERSION_CLAIM, user.getTokenVersion()
             ));
 
             authLoginEventService.onLoginSuccess(user, ipAddress);
@@ -89,6 +86,7 @@ public class AuthService {
         }
 
         currentUser.setPasswordHash(passwordEncoder.encode(newPassword));
+        currentUser.setTokenVersion(currentUser.getTokenVersion() + 1);
         userRepository.save(currentUser);
     }
 }

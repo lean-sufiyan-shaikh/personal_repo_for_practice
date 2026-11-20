@@ -18,6 +18,9 @@ sleep 5
 # 2. Build and start Spring Boot backend (runs Flyway migrations automatically on startup)
 echo "[2/3] Starting Spring Boot backend..."
 cd "$PROJECT_DIR/ppms-backend"
+# The backend refuses to start without JWT_SECRET; generate a throwaway one for local runs.
+export JWT_SECRET="${JWT_SECRET:-$(openssl rand -base64 48)}"
+export COOKIE_SECURE="${COOKIE_SECURE:-false}"
 mvn spring-boot:run -q &
 BACKEND_PID=$!
 echo "      Backend PID: $BACKEND_PID"

@@ -7,19 +7,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
-import java.util.UUID;
 
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
 
-    Optional<PasswordResetToken> findByToken(UUID token);
-
     /**
-     * Fetches the token with a PESSIMISTIC WRITE (SELECT FOR UPDATE) lock.
-     * Used in the reset-password flow to serialise concurrent requests using the same token,
-     * preventing two simultaneous calls from both passing the usedAt == null check
-     * and double-resetting the password.
+     * SELECT FOR UPDATE so two concurrent resets with the same token cannot both pass the usedAt == null check.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT t FROM PasswordResetToken t WHERE t.token = :token")
-    Optional<PasswordResetToken> findByTokenForUpdate(@Param("token") UUID token);
+    @Query("SELECT t FROM PasswordResetToken t WHERE t.tokenHash = :tokenHash")
+    Optional<PasswordResetToken> findByTokenHashForUpdate(@Param("tokenHash") String tokenHash);
 }

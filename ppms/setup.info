@@ -67,6 +67,8 @@ Minimum values:
 POSTGRES_DB=ppms
 POSTGRES_USER=ppms_user
 POSTGRES_PASSWORD=strong-password
+JWT_SECRET=<output of: openssl rand -base64 48>
+SUPER_ADMIN_PASSWORD=strong-password
 DOMAIN_NAME=your-subdomain.duckdns.org
 CERTBOT_EMAIL=you@example.com
 DUCKDNS_DOMAIN=your-subdomain

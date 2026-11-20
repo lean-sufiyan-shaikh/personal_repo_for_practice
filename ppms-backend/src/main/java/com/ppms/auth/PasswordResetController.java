@@ -3,6 +3,7 @@ package com.ppms.auth;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -25,13 +26,16 @@ import java.util.UUID;
  * Handles the forgot-password / reset-password flow.
  *
  * These endpoints are public (/api/auth/**) — no authentication token required.
- * Rate-limiting is left for infrastructure-level (nginx / API gateway) to avoid complexity.
+ * forgot-password is rate-limited per phone number and per IP (LoginRateLimiterService),
+ * with nginx limit_req on /api/auth/ as an outer layer.
  *
  * Security notes:
  *  - We return the same generic response whether the phone exists or not,
  *    to prevent account enumeration attacks.
  *  - Tokens expire after 1 hour.
  *  - Used tokens are immediately marked used_at and cannot be reused.
+ *  - Only the SHA-256 hash of a token is stored; the raw token exists only in the email.
+ *  - A successful reset bumps the user's token version, signing out every existing session.
  */
 @Slf4j
 @RestController
@@ -40,10 +44,6 @@ import java.util.UUID;
 public class PasswordResetController {
 
     private static final int TOKEN_EXPIRY_HOURS = 1;
-    private static final String PASSWORD_POLICY_REGEX =
-            "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,}$";
-    private static final String PASSWORD_POLICY_MESSAGE =
-            "Password must be at least 8 characters and include 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 symbol.";
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -52,6 +52,8 @@ public class PasswordResetController {
     private final PasswordResetTokenRepository tokenRepository;
     private final JavaMailSender             mailSender;
     private final PasswordEncoder            passwordEncoder;
+    private final LoginRateLimiterService    rateLimiterService;
+    private final ClientIpResolver           clientIpResolver;
 
     /**
      * POST /api/auth/forgot-password
@@ -68,19 +70,23 @@ public class PasswordResetController {
      */
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, String>> forgotPassword(
-            @Valid @RequestBody ForgotPasswordRequest request) {
+            @Valid @RequestBody ForgotPasswordRequest request,
+            HttpServletRequest httpRequest) {
+
+        rateLimiterService.checkPasswordResetAllowed(request.getPhoneNumber(), clientIpResolver.resolve(httpRequest));
 
         userRepository.findByPhoneNumber(request.getPhoneNumber()).ifPresent(user -> {
             if (user.getEmail() == null || user.getEmail().isBlank()) {
                 // No email on record — silently skip. Logging at WARN so admin can investigate.
                 log.warn("Password reset requested for phone={} but no email is configured for userId={}",
-                        request.getPhoneNumber(), user.getId());
+                        PhoneNumberMasking.mask(request.getPhoneNumber()), user.getId());
                 return;
             }
 
+            UUID rawToken = UUID.randomUUID();
             PasswordResetToken resetToken = PasswordResetToken.builder()
                     .userId(user.getId())
-                    .token(UUID.randomUUID())
+                    .tokenHash(TokenHashing.sha256Hex(rawToken.toString()))
                     .expiresAt(OffsetDateTime.now().plusHours(TOKEN_EXPIRY_HOURS))
                     .build();
             // Spring Data's save() is @Transactional internally — the token is committed
@@ -91,7 +97,7 @@ public class PasswordResetController {
             // Email is sent AFTER the DB commit — if mail fails, the token is still valid
             // and the user can re-request. This avoids the inverse problem of sending an
             // email for a token that was never persisted.
-            sendResetEmail(user, resetToken.getToken());
+            sendResetEmail(user, rawToken);
         });
 
         // Generic response — do not reveal whether the phone number exists or has an email
@@ -117,7 +123,7 @@ public class PasswordResetController {
             throw new BusinessException("Invalid reset token format.");
         }
 
-        PasswordResetToken resetToken = tokenRepository.findByTokenForUpdate(tokenUuid)
+        PasswordResetToken resetToken = tokenRepository.findByTokenHashForUpdate(TokenHashing.sha256Hex(tokenUuid.toString()))
                 .orElseThrow(() -> new BusinessException("Invalid or expired password reset link."));
 
         if (resetToken.getUsedAt() != null) {
@@ -132,6 +138,7 @@ public class PasswordResetController {
                 .orElseThrow(() -> new BusinessException("User not found for this reset token."));
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
 
         resetToken.setUsedAt(OffsetDateTime.now());
@@ -180,7 +187,7 @@ public class PasswordResetController {
         private String token;
 
         @NotBlank(message = "New password is required")
-        @Pattern(regexp = PASSWORD_POLICY_REGEX, message = PASSWORD_POLICY_MESSAGE)
+        @Pattern(regexp = PasswordPolicy.REGEX, message = PasswordPolicy.MESSAGE)
         private String newPassword;
     }
 }
