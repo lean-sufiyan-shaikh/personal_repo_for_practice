@@ -4,9 +4,7 @@ import { AlertTriangle } from 'lucide-react'
 import { authApi } from '../../api/authApi'
 import { PasswordInput } from '../../components/PasswordInput'
 import { parseApiError } from '../../utils/apiError'
-
-const PASSWORD_POLICY_MESSAGE = 'Password must be at least 8 characters and include 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 symbol.'
-const PASSWORD_POLICY_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/
+import { PASSWORD_POLICY_MESSAGE, PASSWORD_POLICY_REGEX } from '../../constants/passwordPolicy'
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
