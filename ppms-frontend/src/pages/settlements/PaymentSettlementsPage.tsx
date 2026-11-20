@@ -119,7 +119,7 @@ export default function PaymentSettlementsPage() {
       setDialogOpen(false)
       addToast('Settlement recorded successfully', 'success')
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = parseApiError(err, 'Failed to record settlement')
       setFormError(msg)
     },
@@ -153,7 +153,7 @@ export default function PaymentSettlementsPage() {
       setVoidTarget(null)
       addToast('Settlement voided', 'success')
     },
-    onError: (err: any) => setVoidError(parseApiError(err, 'Failed to void settlement')),
+    onError: (err) => setVoidError(parseApiError(err, 'Failed to void settlement')),
   })
 
   const handleVoid = (e: React.FormEvent) => {
@@ -167,7 +167,7 @@ export default function PaymentSettlementsPage() {
   const [configEdits, setConfigEdits]   = useState<Record<string, UpdateConfigRequest>>({})
   const [savingConfig, setSavingConfig] = useState<string | null>(null)
 
-  const handleConfigChange = (type: SettlementPaymentType, field: keyof UpdateConfigRequest, value: any) => {
+  const handleConfigChange = <K extends keyof UpdateConfigRequest>(type: SettlementPaymentType, field: K, value: UpdateConfigRequest[K]) => {
     setConfigEdits(prev => ({
       ...prev,
       [type]: { ...(prev[type] ?? { alertTime: '18:00', enabled: true }), [field]: value },
@@ -187,7 +187,7 @@ export default function PaymentSettlementsPage() {
       qc.invalidateQueries({ queryKey: ['settlement-configs', pumpId] })
       setConfigEdits(prev => { const next = { ...prev }; delete next[type]; return next })
       addToast(`${TYPE_LABELS[type]} alert config saved`, 'success')
-    } catch (err: any) {
+    } catch (err) {
       addToast(parseApiError(err, 'Failed to save config'), 'error')
     } finally {
       setSavingConfig(null)

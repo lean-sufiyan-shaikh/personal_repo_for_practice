@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { withToggled } from '../../utils/setToggle'
+import { useOnValuesChange } from '../../hooks/useOnValuesChange'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronDown, Plus, AlertTriangle, AlertCircle, Check, X, Pencil, Trash2, Truck } from 'lucide-react'
 import { pumpApi } from '../../api/pumpApi'
@@ -271,6 +273,7 @@ export default function InventoryPage() {
                           tank={tank}
                           dipOverdue={dipOverdue}
                           lastDipAt={last}
+                          now={now}
                           onDipCheck={isOwnerOrAdmin ? () => setDipTankId(tank.tankId) : undefined}
                           onViewLots={() => setLotsForTank(tank)}
                         />
@@ -365,11 +368,7 @@ export default function InventoryPage() {
                           const totalCost = rows.reduce((s, r) => s + r.totalCost, 0)
                           const isCollapsed = collapsedDeliveries.has(invoice)
                           const isFirstGlobalGroup = deliveryPage === 0 && idx === 0 && !deliveryTankFilter && !deliveryFuelFilter
-                          const toggleDelivery = () => setCollapsedDeliveries(prev => {
-                            const next = new Set(prev)
-                            next.has(invoice) ? next.delete(invoice) : next.add(invoice)
-                            return next
-                          })
+                          const toggleDelivery = () => setCollapsedDeliveries(prev => withToggled(prev, invoice))
                           return (
                             <div key={invoice} className="px-5 py-4 space-y-2">
                               <div className="flex items-center gap-1">
@@ -550,11 +549,7 @@ export default function InventoryPage() {
                       {groups.map(([dateKey, rows]) => {
                         const allBalanced = rows.every(r => r.variance === 0)
                         const isCollapsed = collapsedDipGroups.has(dateKey)
-                        const toggleDip = () => setCollapsedDipGroups(prev => {
-                          const next = new Set(prev)
-                          next.has(dateKey) ? next.delete(dateKey) : next.add(dateKey)
-                          return next
-                        })
+                        const toggleDip = () => setCollapsedDipGroups(prev => withToggled(prev, dateKey))
                         return (
                           <div key={dateKey} className="px-5 py-4 space-y-2">
                             <button
@@ -733,12 +728,14 @@ function TankStockBar({
   tank,
   dipOverdue,
   lastDipAt,
+  now,
   onDipCheck,
   onViewLots,
 }: {
   tank: TankStock
   dipOverdue: boolean
   lastDipAt: Date | undefined
+  now: number
   onDipCheck?: () => void
   onViewLots: () => void
 }) {
@@ -748,7 +745,7 @@ function TankStockBar({
 
   // Human-readable time since last DIP (e.g. "8 h ago", "3 d ago")
   function timeSinceDip(d: Date) {
-    const diffMs = Date.now() - d.getTime()
+    const diffMs = now - d.getTime()
     const h = Math.floor(diffMs / (1000 * 60 * 60))
     if (h < 24) return `${h} h ago`
     return `${Math.floor(h / 24)} d ago`
@@ -1253,7 +1250,7 @@ function RecordDeliveryModal({
       queryClient.invalidateQueries({ queryKey: ['deliveries', pumpId] })
       onClose()
     },
-    onError: (err: any) =>
+    onError: (err) =>
       setError(parseApiError(err, 'Failed to record delivery')),
   })
 
@@ -1279,21 +1276,13 @@ function RecordDeliveryModal({
       }, 0)
     : 0
 
-  // Pre-select default tanker once the list loads
-  useEffect(() => {
-    if (tankers.length > 0 && selectedTankerId === null) {
-      const def = tankers.find(t => t.defaultTanker)
-      if (def) setSelectedTankerId(def.id)
-    }
-  }, [tankers])
+  const defaultTankerId = tankers.find(t => t.defaultTanker)?.id ?? null
+  useOnValuesChange([defaultTankerId], () => {
+    if (defaultTankerId !== null && selectedTankerId === null) setSelectedTankerId(defaultTankerId)
+  })
 
-  useEffect(() => {
-    if (!billTotalManual) {
-      setBillTotalStr(grandTotal > 0 ? grandTotal.toFixed(2) : '')
-    }
-  }, [grandTotal, billTotalManual])
-
-  const billTotalNum = parseFloat(billTotalStr) || 0
+  const billTotalText = billTotalManual ? billTotalStr : (grandTotal > 0 ? grandTotal.toFixed(2) : '')
+  const billTotalNum = parseFloat(billTotalText) || 0
   const otherCharges = billTotalNum - grandTotal
 
   const selectedTanker = tankers.find(t => t.id === selectedTankerId) ?? null
@@ -1713,9 +1702,9 @@ function RecordDeliveryModal({
                     type="number"
                     step="0.01"
                     min="0.01"
-                    value={billTotalStr}
+                    value={billTotalText}
                     onChange={e => { setBillTotalStr(limitDecimals(e.target.value, 2)); setBillTotalManual(true) }}
-                    onBlur={() => { if (!billTotalStr.trim()) setBillTotalManual(false) }}
+                    onBlur={() => { if (!billTotalText.trim()) setBillTotalManual(false) }}
                     className="ui-input text-sm font-semibold text-blue-900 bg-white border-blue-200 focus:border-blue-400 flex-1 min-w-0"
                     placeholder="Enter actual bill amount"
                   />
@@ -1946,7 +1935,7 @@ function DipCheckModal({
       queryClient.invalidateQueries({ queryKey: ['dipChecks', pumpId] })
       onClose()
     },
-    onError: (err: any) =>
+    onError: (err) =>
       setError(parseApiError(err, 'Failed to record DIP check')),
   })
 

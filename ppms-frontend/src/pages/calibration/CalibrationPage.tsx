@@ -82,7 +82,7 @@ export default function CalibrationPage() {
       setReviewOpen(false)
       addToast('Calibration recorded successfully', 'success')
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = parseApiError(err, 'Failed to record calibration')
       setFormError(msg)
       addToast(msg, 'error')
@@ -100,9 +100,9 @@ export default function CalibrationPage() {
 
   const selectedNozzle = nozzles.find((n) => n.id === selectedNozzleId)
   const historyNozzle  = nozzles.find((n) => n.id === historyNozzleId)
-  const calibrations   = calibrationsPage?.content ?? []
+  const calibrations   = calibrationsPage?.content
   const filteredCalibrations = useMemo(() => {
-    return calibrations.filter(c => {
+    return (calibrations ?? []).filter(c => {
       if (fromDate && c.calibrationDate < fromDate) return false
       if (toDate   && c.calibrationDate > toDate)   return false
       return true
@@ -148,7 +148,7 @@ export default function CalibrationPage() {
           </div>
           <div className="ui-section-meta-pill">
             <span className="ui-section-meta-label">History</span>
-            <span className="ui-section-meta-value">{calibrationsPage?.totalElements ?? calibrations.length}</span>
+            <span className="ui-section-meta-value">{calibrationsPage?.totalElements ?? calibrations?.length ?? 0}</span>
           </div>
         </div>
       </div>

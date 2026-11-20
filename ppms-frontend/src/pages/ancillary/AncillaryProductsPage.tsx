@@ -1,8 +1,9 @@
-import { useState, useEffect, useDeferredValue } from 'react'
+import { useState, useDeferredValue } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X, AlertTriangle, ArrowRight, ChevronLeft } from 'lucide-react'
 import { usePumpStore } from '../../store/usePumpStore'
 import { ancillaryApi } from '../../api/ancillaryApi'
+import { useOnValuesChange } from '../../hooks/useOnValuesChange'
 import { creditApi } from '../../api/creditApi'
 import type {
   AncillaryProduct,
@@ -181,8 +182,7 @@ function ProductsTab({
   const [sellProduct, setSellProduct] = useState<AncillaryProduct | null>(null)
   const [stockLotsProduct, setStockLotsProduct] = useState<AncillaryProduct | null>(null)
 
-  // Reset to page 0 whenever the deferred search query changes
-  useEffect(() => { setProductsPage(0) }, [deferredSearch])
+  useOnValuesChange([deferredSearch], () => setProductsPage(0))
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: 'ACTIVE' | 'INACTIVE' }) =>
@@ -191,7 +191,7 @@ function ProductsTab({
       qc.invalidateQueries({ queryKey: ['ancillaryProducts', pumpId] })
       addToast(status === 'ACTIVE' ? 'Product enabled' : 'Product disabled', 'success')
     },
-    onError: (err: any) => addToast(parseApiError(err, 'Failed to update product status'), 'error'),
+    onError: (err) => addToast(parseApiError(err, 'Failed to update product status'), 'error'),
   })
 
   const stockBadge = (p: AncillaryProduct) => {
@@ -425,7 +425,7 @@ function AddProductDialog({
       addToast('Product created successfully', 'success')
       onSuccess()
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = parseApiError(err, 'Failed to create product')
       setError(msg)
       addToast(msg, 'error')
@@ -675,13 +675,16 @@ function SellDialog({
     queryKey: ['ancillary-price-history', pumpId, product.id],
     queryFn: () => ancillaryApi.getPriceHistory(pumpId, product.id),
   })
+  const [openedAt] = useState(() => Date.now())
   const configuredPrice = priceHistory
-    ?.filter(p => new Date(p.effectiveFrom).getTime() <= Date.now())
+    ?.filter(p => new Date(p.effectiveFrom).getTime() <= openedAt)
     .sort((a, b) => new Date(b.effectiveFrom).getTime() - new Date(a.effectiveFrom).getTime())[0]
     ?.pricePerUnit ?? null
-  useEffect(() => {
-    if (configuredPrice != null) setForm(f => ({ ...f, sellingPricePerUnit: configuredPrice }))
-  }, [configuredPrice])
+  const [appliedPrice, setAppliedPrice] = useState<number | null>(null)
+  if (configuredPrice != null && configuredPrice !== appliedPrice) {
+    setAppliedPrice(configuredPrice)
+    setForm(f => ({ ...f, sellingPricePerUnit: configuredPrice }))
+  }
 
   const { data: creditClients = [] } = useQuery({
     queryKey: ['credit-ledger-all', pumpId],
@@ -695,7 +698,7 @@ function SellDialog({
       addToast('Sale recorded successfully', 'success')
       onSuccess()
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = parseApiError(err, 'Failed to record sale')
       setError(msg)
       addToast(msg, 'error')
@@ -988,7 +991,7 @@ function StockLotsDialog({
       addToast('Lot updated successfully', 'success')
       onUpdated()
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = parseApiError(err, 'Failed to update lot')
       setEditError(msg)
       addToast(msg, 'error')
@@ -1299,7 +1302,7 @@ function StockInDialog({
       addToast('Stock delivery recorded successfully', 'success')
       onSuccess()
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = parseApiError(err, 'Failed to record delivery')
       setError(msg)
       addToast(msg, 'error')
@@ -1650,7 +1653,7 @@ function BackfillSaleModal({
       addToast('Historical sale backfilled successfully', 'success')
       onSuccess()
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = parseApiError(err, 'Failed to backfill sale')
       setError(msg)
       addToast(msg, 'error')

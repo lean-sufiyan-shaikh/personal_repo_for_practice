@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X, Check } from 'lucide-react'
 import { shiftApi } from '../../api/shiftApi'
@@ -11,6 +11,7 @@ import { ModalPortal } from '../../components/ModalPortal'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { parseApiError } from '../../utils/apiError'
 import { useConfirmDiscard } from '../../hooks/useConfirmDiscard'
+import { useOnValuesChange } from '../../hooks/useOnValuesChange'
 import { localDateInputValue } from '../../utils/date'
 import { roundToMillilitres, roundToPaise, toPaise } from '../../utils/money'
 import { pumpApi } from '../../api/pumpApi'
@@ -98,15 +99,16 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
 
   // ── Data queries ──────────────────────────────────────────────────────────
 
-  const { data: definitions = [], isLoading: defsLoading } = useQuery({
+  const { data: definitionsData, isLoading: defsLoading } = useQuery({
     queryKey: ['shift-definitions-for-date', pumpId, shiftDate],
     queryFn:  () => shiftDefinitionApi.getForDate(pumpId, shiftDate),
     enabled:  !!shiftDate,
   })
 
-  useEffect(() => {
-    setShiftDefinitionId(definitions.length === 1 ? definitions[0].id : null)
-  }, [definitions])
+  const definitions = definitionsData ?? []
+  useOnValuesChange([definitionsData], () => {
+    setShiftDefinitionId(definitionsData?.length === 1 ? definitionsData[0].id : null)
+  })
 
   const { data: dus = [], isLoading: dusLoading } = useQuery({
     queryKey: ['dus', pumpId],
@@ -159,17 +161,13 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
     return types
   }, [selectedNozzleIds, selectedDU])
 
-  // Reset nozzle + rate state when DU changes
-  useEffect(() => {
+  const selectDU = (du: DUOption | null) => {
+    if (du?.id === selectedDU?.id) return
+    setSelectedDU(du)
     setSelectedNozzleIds(new Set())
     setOpeningReadings({})
     setClosingReadings({})
-  }, [selectedDU])
-
-  // Reset rate inputs when date changes (prices will be re-fetched)
-  useEffect(() => {
-    setFuelRateInputs({})
-  }, [shiftDate])
+  }
 
   const filteredOperators = operators.filter((op) =>
     op.status === 'ACTIVE' &&
@@ -389,7 +387,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                         value={shiftDate}
                         min={minDate()}
                         max={maxDate()}
-                        onChange={(e) => { setShiftDate(e.target.value); setShiftDefinitionId(null) }}
+                        onChange={(e) => { setShiftDate(e.target.value); setShiftDefinitionId(null); setFuelRateInputs({}) }}
                         className="ui-input"
                         required
                       />
@@ -401,7 +399,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                     <span className="ui-label">Dispensary Unit <span className="text-red-500">*</span></span>
                     <SearchableSelect label="Dispensary Unit"
                       value={String(selectedDU?.id ?? '')}
-                      onChange={(v) => setSelectedDU(dus.find((d) => String(d.id) === v) ?? null)}
+                      onChange={(v) => selectDU(dus.find((d) => String(d.id) === v) ?? null)}
                       options={dus.map((du) => ({ value: String(du.id), label: `${du.name} (DU #${du.duNumber})` }))}
                       placeholder={dusLoading ? 'Loading…' : 'Select DU…'}
                       disabled={dusLoading}

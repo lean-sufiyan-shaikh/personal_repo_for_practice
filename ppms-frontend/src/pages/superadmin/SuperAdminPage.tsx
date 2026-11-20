@@ -29,12 +29,14 @@ const addPumpSchema = z.object({
   maxDuCount: z.coerce.number().int().min(1, 'Must be at least 1').max(20, 'Cannot exceed 20'),
 })
 type AddPumpFormData = z.infer<typeof addPumpSchema>
+type AddPumpFormInput = z.input<typeof addPumpSchema>
 
 const editPumpSchema = z.object({
   pumpName:    z.string().min(1, 'Pump name is required'),
   pumpAddress: z.string().min(1, 'Pump address is required'),
 })
 type EditPumpFormData = z.infer<typeof editPumpSchema>
+type EditPumpFormInput = z.input<typeof editPumpSchema>
 
 const PASSWORD_POLICY_MESSAGE = 'Password must be at least 8 characters and include 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 symbol.'
 const PASSWORD_POLICY_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/
@@ -53,6 +55,7 @@ const onboardSchema = z.object({
 })
 
 type OnboardFormData = z.infer<typeof onboardSchema>
+type OnboardFormInput = z.input<typeof onboardSchema>
 
 // ── Page component ────────────────────────────────────────────────────────────
 
@@ -65,7 +68,8 @@ export default function SuperAdminPage() {
   // Password is stored in a ref — not in React state — so it never appears in
   // React DevTools. It is wiped immediately after the super admin copies it.
   const createdPasswordRef = useRef<string | null>(null)
-  const [showPassword, setShowPassword] = useState(false)
+  const [revealedPassword, setRevealedPassword] = useState<string | null>(null)
+  const showPassword = revealedPassword !== null
   const [serverError, setServerError] = useState<string | null>(null)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
@@ -87,9 +91,8 @@ export default function SuperAdminPage() {
   const [ownersPage, setOwnersPage] = useState(0)
   const ownersPageSize = 10
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<OnboardFormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(onboardSchema) as any,
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<OnboardFormInput, unknown, OnboardFormData>({
+    resolver: zodResolver(onboardSchema),
   })
 
   // Fetch existing owners
@@ -110,7 +113,7 @@ export default function SuperAdminPage() {
     const timer = setTimeout(() => {
       setCreatedOwner(null)
       createdPasswordRef.current = null
-      setShowPassword(false)
+      setRevealedPassword(null)
     }, 2 * 60 * 1000)
     return () => clearTimeout(timer)
   }, [createdOwner])
@@ -121,12 +124,12 @@ export default function SuperAdminPage() {
     onSuccess: (data, variables) => {
       createdPasswordRef.current = variables.password
       setCreatedOwner(data)
-      setShowPassword(false)
+      setRevealedPassword(null)
       setServerError(null)
       reset()
       queryClient.invalidateQueries({ queryKey: ['superadmin-owners'] })
     },
-    onError: (err: any) => {
+    onError: (err) => {
       setServerError(parseApiError(err, 'Failed to create owner. Please try again.'))
     },
   })
@@ -142,9 +145,8 @@ export default function SuperAdminPage() {
     handleSubmit: handleSubmitPump,
     reset: resetPump,
     formState: { errors: pumpErrors },
-  } = useForm<AddPumpFormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(addPumpSchema) as any,
+  } = useForm<AddPumpFormInput, unknown, AddPumpFormData>({
+    resolver: zodResolver(addPumpSchema),
   })
 
   const addPumpMutation = useMutation({
@@ -157,7 +159,7 @@ export default function SuperAdminPage() {
       queryClient.invalidateQueries({ queryKey: ['superadmin-owners'] })
       queryClient.invalidateQueries({ queryKey: ['superadmin-analytics'] })
     },
-    onError: (err: any) =>
+    onError: (err) =>
       setAddPumpError(parseApiError(err, 'Failed to add pump. Please try again.')),
   })
 
@@ -166,9 +168,8 @@ export default function SuperAdminPage() {
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
     formState: { errors: editErrors },
-  } = useForm<EditPumpFormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(editPumpSchema) as any,
+  } = useForm<EditPumpFormInput, unknown, EditPumpFormData>({
+    resolver: zodResolver(editPumpSchema),
   })
 
   const editPumpMutation = useMutation({
@@ -180,7 +181,7 @@ export default function SuperAdminPage() {
       resetEdit()
       queryClient.invalidateQueries({ queryKey: ['superadmin-owners'] })
     },
-    onError: (err: any) =>
+    onError: (err) =>
       setEditPumpError(parseApiError(err, 'Failed to update pump. Please try again.')),
   })
 
@@ -202,7 +203,7 @@ export default function SuperAdminPage() {
       clearAuth()
       navigate('/login', { state: { message: 'Password updated successfully. Please log in with your new password.' } })
     },
-    onError: (err: any) => {
+    onError: (err) => {
       setPasswordError(parseApiError(err, 'Failed to update password.'))
     },
   })
@@ -314,7 +315,7 @@ export default function SuperAdminPage() {
     navigator.clipboard.writeText(text)
     // Wipe the password from memory immediately after copying — one-time copy only
     createdPasswordRef.current = null
-    setShowPassword(false)
+    setRevealedPassword(null)
     setCreatedOwner(null)
   }
 
@@ -420,7 +421,7 @@ export default function SuperAdminPage() {
                         <div className="flex items-center justify-between mb-0.5">
                           <p className="text-xs text-green-600">Password</p>
                           <button
-                            onClick={() => setShowPassword(v => !v)}
+                            onClick={() => setRevealedPassword(showPassword ? null : createdPasswordRef.current)}
                             className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-green-600 hover:text-green-800"
                             title={showPassword ? 'Hide password' : 'Reveal password'}
                           >
@@ -428,7 +429,7 @@ export default function SuperAdminPage() {
                           </button>
                         </div>
                         <p className="text-sm font-semibold text-slate-800 font-mono break-all">
-                          {showPassword ? (createdPasswordRef.current ?? '••••••••') : '••••••••'}
+                          {revealedPassword ?? '••••••••'}
                         </p>
                       </div>
                       <CredentialField label="Pump" value={createdOwner.pumpName} />
@@ -444,7 +445,7 @@ export default function SuperAdminPage() {
                     Copy
                   </button>
                   <IconButton
-                    onClick={() => { setCreatedOwner(null); createdPasswordRef.current = null; setShowPassword(false) }}
+                    onClick={() => { setCreatedOwner(null); createdPasswordRef.current = null; setRevealedPassword(null) }}
                     className="ui-btn ui-btn-ghost"
  label="Dismiss"
  icon={<X size={14} strokeWidth={2} />}

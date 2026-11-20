@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { withToggled } from '../../utils/setToggle'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { ChevronDown, Plus, History, Printer } from 'lucide-react'
@@ -315,11 +316,7 @@ function DayViewHistory({ pumpId }: { pumpId: number }) {
   const [openDays, setOpenDays] = useState<Set<string>>(new Set([todayStr]))
 
   const toggle = (d: string) =>
-    setOpenDays((prev) => {
-      const next = new Set(prev)
-      next.has(d) ? next.delete(d) : next.add(d)
-      return next
-    })
+    setOpenDays(prev => withToggled(prev, d))
 
   const fmtShortDate = (d: string) =>
     formatIstDate(d, { day: 'numeric', month: 'short', year: 'numeric' })

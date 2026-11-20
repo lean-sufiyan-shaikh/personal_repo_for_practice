@@ -1,6 +1,8 @@
-import { useState, useDeferredValue, useMemo } from 'react'
+import { useState, useDeferredValue, useMemo, useCallback } from 'react'
+import { withToggled } from '../../utils/setToggle'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query'
+import type { UseQueryResult } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { creditApi } from '../../api/creditApi'
@@ -62,7 +64,7 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, subCli
       addToast(`Payment recorded for ${targetClient.name}`, 'success')
       onClose()
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = parseApiError(err, 'Failed to record payment')
       setError(msg)
       addToast(msg, 'error')
@@ -249,7 +251,7 @@ function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitModalPro
       qc.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
       onClose()
     },
-    onError: (err: any) => {
+    onError: (err) => {
       setError(parseApiError(err, 'Failed to update credit limit'))
     },
   })
@@ -343,7 +345,7 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
       qc.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
       onClose()
     },
-    onError: (err: any) => setError(parseApiError(err, 'Failed to update interest settings')),
+    onError: (err) => setError(parseApiError(err, 'Failed to update interest settings')),
   })
 
   const handleSubmit = () => {
@@ -431,6 +433,20 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
 
 // ─── Helpers for week grouping ───────────────────────────────────────────────
 
+// Transaction in the merged parent view, carrying which sub-account it came from
+type MergedTx = CreditTransaction & { subAccountName?: string; sourceClientId: number }
+
+function buildWeekGroups<T extends CreditTransaction>(txs: T[]): Array<{ label: string; items: T[] }> {
+  const groups: Array<{ label: string; items: T[] }> = []
+  txs.forEach(tx => {
+    const label = getWeekKey(tx.occurredAt)
+    const last = groups[groups.length - 1]
+    if (last && last.label === label) { last.items.push(tx) }
+    else { groups.push({ label, items: [tx] }) }
+  })
+  return groups
+}
+
 function getWeekKey(iso: string): string {
   const istDate = istDateString(new Date(iso))
   const dayOfWeek = new Date(`${istDate}T00:00:00Z`).getUTCDay()
@@ -478,7 +494,7 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
       qc.invalidateQueries({ queryKey: ['extensions', pumpId, client.id] })
       onClose()
     },
-    onError: (err: any) => setError(parseApiError(err, 'Failed to create extension')),
+    onError: (err) => setError(parseApiError(err, 'Failed to create extension')),
   })
 
   const handleSubmit = () => {
@@ -646,7 +662,7 @@ function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, transactio
       qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId] })
       onClose()
     },
-    onError: (err: any) => setError(parseApiError(err, `Failed to move ${transactionType === 'PAYMENT' ? 'payment' : 'entry'}`)),
+    onError: (err) => setError(parseApiError(err, `Failed to move ${transactionType === 'PAYMENT' ? 'payment' : 'entry'}`)),
   })
 
   const handleSubmit = () => {
@@ -754,7 +770,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
   // 'own' (parent's own transactions) starts expanded; sub-account sections start collapsed.
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['own']))
   const toggleSection = (key: string) =>
-    setExpandedSections(prev => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next })
+    setExpandedSections(prev => withToggled(prev, key))
   const qc = useQueryClient()
 
   // Subscribe to the ledger summary so it refreshes automatically after a payment
@@ -765,12 +781,15 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
   const client = allClients.find(c => c.id === clientId)
 
   // Full client list (needed to discover children, which may have 0 balance and not appear in ledger)
-  const { data: allPumpClients = [] } = useQuery({
+  const { data: pumpClientsData } = useQuery({
     queryKey: ['creditClients', pumpId],
     queryFn:  () => pumpApi.getCreditClients(pumpId),
     enabled:  client?.isParent === true,
   })
-  const childClients = allPumpClients.filter(c => c.parentClientId === clientId)
+  const childClients = useMemo(
+    () => (pumpClientsData ?? []).filter(c => c.parentClientId === clientId),
+    [pumpClientsData, clientId],
+  )
 
   // Active credit extensions for this client
   const { data: activeExtensions = [] } = useQuery<CreditExtension[]>({
@@ -798,11 +817,25 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
   const outstandingInterest   = client?.outstandingInterest   ?? 0
   const totalInterestRecovered = client?.totalInterestRecovered ?? 0
 
-  const childTxQueries = useQueries({
+  const combineChildTransactions = useCallback(
+    (results: UseQueryResult<CreditTransaction[]>[]) => ({
+      childTxQueries: results,
+      childTransactionsByIndex: results.map((result, i): MergedTx[] =>
+        (result.data ?? []).map(tx => ({
+          ...tx,
+          subAccountName: childClients[i]?.name,
+          sourceClientId: childClients[i]?.id ?? clientId,
+        }))
+      ),
+    }),
+    [childClients, clientId],
+  )
+  const { childTxQueries, childTransactionsByIndex } = useQueries({
     queries: childClients.map(child => ({
       queryKey: ['credit-transactions', pumpId, child.id, 'all'],
       queryFn:  () => creditApi.getAllTransactions(pumpId, child.id),
     })),
+    combine: combineChildTransactions,
   })
 
   const { data: pendingPayments = [] } = useQuery({
@@ -813,21 +846,6 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
   const pendingPaymentRecorders = useMemo(
     () => new Map(pendingPayments.map(p => [p.id, p.recordedById])),
     [pendingPayments],
-  )
-
-  // Extended transaction type that carries sub-account metadata for the merged parent view
-  type MergedTx = CreditTransaction & { subAccountName?: string; sourceClientId: number }
-  const childTransactionsByIndex: MergedTx[][] = useMemo(
-    () => childClients.map((child, i) =>
-      (childTxQueries[i]?.data ?? []).map(tx => ({
-        ...tx,
-        subAccountName: child.name,
-        sourceClientId: child.id,
-      }))
-    ),
-    // childTxQueries is a new array every render; its data references are what change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [childClients.map(c => c.id).join(','), ...childTxQueries.map(q => q.data)],
   )
 
   const transactions: MergedTx[] = useMemo(
@@ -856,7 +874,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
         setApplyInterestFeedback(result.reason ?? 'No interest applicable')
       }
     },
-    onError: (err: any) => setApplyInterestFeedback(parseApiError(err, 'Failed to apply interest')),
+    onError: (err) => setApplyInterestFeedback(parseApiError(err, 'Failed to apply interest')),
   })
 
   const deleteInterestMutation = useMutation({
@@ -866,7 +884,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
       setConfirmDeleteInterest(null)
       invalidateLedger()
     },
-    onError: (err: any) => {
+    onError: (err) => {
       setConfirmDeleteInterest(null)
       addToast(parseApiError(err, 'Failed to remove interest charge'), 'error')
     },
@@ -879,7 +897,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
       invalidateLedger()
       addToast(status === 'APPROVED' ? 'Payment approved' : 'Payment rejected', 'success')
     },
-    onError: (err: any) => addToast(parseApiError(err, 'Failed to update payment'), 'error'),
+    onError: (err) => addToast(parseApiError(err, 'Failed to update payment'), 'error'),
   })
 
   // ── Filter state ──────────────────────────────────────────────────────────
@@ -896,7 +914,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
     [transactions],
   )
 
-  const applyFilters = <T extends { type: string; occurredAt: string }>(tx: T): boolean => {
+  const applyFilters = useCallback((tx: { type: string; occurredAt: string }): boolean => {
     if (txTypeFilter !== 'ALL' && tx.type !== txTypeFilter) return false
     if (filterMode === 'month' && selectedMonth) return getMonthKey(tx.occurredAt) === selectedMonth
     if (filterMode === 'range') {
@@ -905,30 +923,11 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
       if (toDate   && d > toDate)   return false
     }
     return true
-  }
+  }, [txTypeFilter, filterMode, selectedMonth, fromDate, toDate])
 
-  // Helper: groups a sorted array of transactions into week buckets
-  const buildWeekGroups = <T extends CreditTransaction>(txs: T[]): Array<{ label: string; items: T[] }> => {
-    const groups: Array<{ label: string; items: T[] }> = []
-    txs.forEach(tx => {
-      const label = getWeekKey(tx.occurredAt)
-      const last = groups[groups.length - 1]
-      if (last && last.label === label) { last.items.push(tx) }
-      else { groups.push({ label, items: [tx] }) }
-    })
-    return groups
-  }
-
-  const filtered = useMemo(
-    () => transactions.filter(applyFilters),
-    // applyFilters reads only the filter state listed here.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [transactions, txTypeFilter, filterMode, selectedMonth, fromDate, toDate],
-  )
-  const pagedFiltered = pageSlice(filtered, txPage, txPageSize)
-  const weekGroups = useMemo(() => buildWeekGroups(pagedFiltered.content),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filtered, txPage, txPageSize])
+  const filtered = useMemo(() => transactions.filter(applyFilters), [transactions, applyFilters])
+  const pagedFiltered = useMemo(() => pageSlice(filtered, txPage, txPageSize), [filtered, txPage, txPageSize])
+  const weekGroups = useMemo(() => buildWeekGroups(pagedFiltered.content), [pagedFiltered])
 
   const childFilteredTxs = childTransactionsByIndex.map(childTxs => childTxs.filter(applyFilters))
   const filteredOwn = ownTransactions.filter(applyFilters)
@@ -1511,9 +1510,10 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
       setAddSubName(''); setAddSubPhone(''); setAddSubNotes(''); setAddSubError(null); setAddSubParentId(null)
       qc.invalidateQueries({ queryKey: ['creditClients', pumpId] })
     },
-    onError: (err: any, variables) => {
+    onError: (err, variables) => {
       const msg = parseApiError(err, 'Failed to add client')
-      variables.parentClientId != null ? setAddSubError(msg) : setAddError(msg)
+      if (variables.parentClientId != null) setAddSubError(msg)
+      else setAddError(msg)
     },
   })
 
@@ -1524,14 +1524,14 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
       setEditingId(null); setEditError(null)
       qc.invalidateQueries({ queryKey: ['creditClients', pumpId] })
     },
-    onError: (err: any) => setEditError(parseApiError(err, 'Failed to update client')),
+    onError: (err) => setEditError(parseApiError(err, 'Failed to update client')),
   })
 
   const toggleStatusMutation = useMutation({
     mutationFn: ({ clientId, isActive }: { clientId: number; isActive: boolean }) =>
       pumpApi.toggleCreditClientStatus(pumpId, clientId, isActive),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['creditClients', pumpId] }),
-    onError: (err: any) => setAddError(parseApiError(err, 'Failed to update client status')),
+    onError: (err) => setAddError(parseApiError(err, 'Failed to update client status')),
   })
 
   const startEdit = (c: PumpCreditClient) => {

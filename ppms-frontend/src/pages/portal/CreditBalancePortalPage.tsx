@@ -34,7 +34,7 @@ export default function CreditBalancePortalPage() {
         params: { pumpId: parseInt(pumpId), phone: phone.trim() },
       })
       setResult(res.data)
-    } catch (err: any) {
+    } catch (err) {
       setError(parseApiError(err, 'Account not found. Please check your pump ID and phone number.'))
     } finally {
       setLoading(false)

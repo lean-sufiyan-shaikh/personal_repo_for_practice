@@ -95,7 +95,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
       queryClient.invalidateQueries({ queryKey: ['activeShifts', pumpId] })
       onClose()
     },
-    onError: (err: any) =>
+    onError: (err) =>
       setServerError(parseApiError(err, 'Failed to open shift. Please try again.')),
   })
 

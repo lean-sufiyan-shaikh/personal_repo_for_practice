@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { withToggled } from '../../utils/setToggle'
+import { serverMessage } from '../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Reveal } from '../../components/Reveal'
@@ -171,11 +173,7 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
   const [expandedFuelRows, setExpandedFuelRows] = useState<Set<string>>(new Set())
 
   function toggleFuelRow(fuelType: string) {
-    setExpandedFuelRows(prev => {
-      const next = new Set(prev)
-      next.has(fuelType) ? next.delete(fuelType) : next.add(fuelType)
-      return next
-    })
+    setExpandedFuelRows(prev => withToggled(prev, fuelType))
   }
 
   const { data, isFetching, error } = useQuery<ProfitLossReport>({
@@ -209,7 +207,7 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
         </div>
       </div>
 
-      {error && <ErrorBox message={(error as any)?.response?.data?.message ?? 'Failed to load report'} />}
+      {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
 
       {/* Screen: paginated data */}
       {data && paged && (
@@ -497,7 +495,7 @@ function OperatorDutyTab({ pumpId }: { pumpId: number }) {
         </div>
         <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />
         <button
-          onClick={() => { operatorId && setQuery({ from, to, operatorId }); setPage(0) }}
+          onClick={() => { if (operatorId) setQuery({ from, to, operatorId }); setPage(0) }}
           disabled={!operatorId || isFetching}
           className="ui-btn ui-btn-primary"
         >
@@ -513,7 +511,7 @@ function OperatorDutyTab({ pumpId }: { pumpId: number }) {
         </div>
       </div>
 
-      {error && <ErrorBox message={(error as any)?.response?.data?.message ?? 'Failed to load report'} />}
+      {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
 
       {/* Screen: paginated data */}
       {data && paged && (
@@ -595,7 +593,7 @@ function DiscrepancyTab({ pumpId }: { pumpId: number }) {
         </div>
       </div>
 
-      {error && <ErrorBox message={(error as any)?.response?.data?.message ?? 'Failed to load report'} />}
+      {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
 
       {data && paged && (
         <div className="space-y-3 print:hidden">
@@ -778,7 +776,7 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
         </div>
       </div>
 
-      {error && <ErrorBox message={(error as any)?.response?.data?.message ?? 'Failed to load report'} />}
+      {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
 
       {/* Single-tank view */}
       {data && paged && query !== '' && (
@@ -1082,7 +1080,7 @@ function DipPlTab({ pumpId }: { pumpId: number }) {
         </div>
       </div>
 
-      {error && <ErrorBox message={(error as any)?.message ?? 'Failed to load dip P/L entries'} />}
+      {error && <ErrorBox message={error.message ?? 'Failed to load dip P/L entries'} />}
 
       {data && paged && (
         <div className="space-y-4 print:hidden">
@@ -1295,7 +1293,7 @@ function ShiftsTab({ pumpId }: { pumpId: number }) {
         </div>
       </div>
 
-      {error && <ErrorBox message={(error as any)?.response?.data?.message ?? 'Failed to load report'} />}
+      {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
 
       {/* Screen: paginated data */}
       {data && paged && (
@@ -1444,7 +1442,7 @@ function ExpensesTab({ pumpId }: { pumpId: number }) {
         </div>
       </div>
 
-      {error && <ErrorBox message={(error as any)?.response?.data?.message ?? 'Failed to load report'} />}
+      {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
 
       {/* Screen: paginated data */}
       {data && paged && (
@@ -1605,7 +1603,7 @@ function InterestAccrualTab({ pumpId }: { pumpId: number }) {
         </div>
       </div>
 
-      {error && <ErrorBox message={(error as any)?.response?.data?.message ?? 'Failed to load report'} />}
+      {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
 
       {data && (
         <div className="space-y-4">

@@ -73,7 +73,7 @@ export default function CashDrawerPage() {
       setReviewOpen(false)
       addToast('Cash event recorded successfully', 'success')
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = parseApiError(err, 'Failed to record event')
       setFormError(msg)
       addToast(msg, 'error')
@@ -322,7 +322,7 @@ export default function CashDrawerPage() {
             <div className="w-44">
             <SearchableSelect label="Filter by event type"
               value={eventTypeFilter}
-              onChange={v => { setEventTypeFilter(v as any); setPage(0) }}
+              onChange={v => { setEventTypeFilter(v as CashEventType | ''); setPage(0) }}
               options={[
                 { value: '', label: 'All Types' },
                 ...EVENT_TYPES.map(t => ({ value: t.value, label: t.label })),

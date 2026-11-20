@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react'
+import { withToggled } from '../../utils/setToggle'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
 import { usePumpStore } from '../../store/usePumpStore'
 import { userApi } from '../../api/userApi'
+import type { StaffMember } from '../../api/userApi'
 import { payrollApi } from '../../api/payrollApi'
 import type { GeneratePayrollRequest, PayrollRecord, PayrollStatus, PendingDiscrepancy } from '../../api/payrollApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
@@ -57,7 +59,7 @@ function yesterdayIso() { return localDateInputValue(-1) }
 
 interface ReviewModalProps {
   form: GeneratePayrollRequest
-  selectedStaff: any
+  selectedStaff: StaffMember | undefined
   pumpId: number
   formError: string | null
   isPending: boolean
@@ -75,11 +77,7 @@ function ReviewModal({ form, selectedStaff, pumpId, formError, isPending, onClos
   })
 
   const toggleDeduct = (id: number) =>
-    setDeductSet(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
+    setDeductSet(prev => withToggled(prev, id))
 
   const totalDeductAmt = pending
     .filter(d => deductSet.has(d.id))
@@ -229,7 +227,7 @@ interface GroupProps {
   onPageSizeChange: (s: number) => void
   isOpen: boolean
   onToggle: () => void
-  staff: any[]
+  staff: StaffMember[]
   onStatusChange: (recordId: number, status: PayrollStatus) => void
   onDelete: (recordId: number) => void
   isPending: boolean
@@ -280,7 +278,7 @@ function PayrollGroup({
         <div className="ui-accordion-content border-t border-slate-100">
         <div className="divide-y divide-slate-100">
           {records.map(r => {
-            const staffMember = staff.find((s: any) => s.id === r.userId)
+            const staffMember = staff.find((s) => s.id === r.userId)
             return (
               <div key={r.id} className="px-5 py-4 space-y-2.5 bg-white">
                 {/* Header row */}
@@ -503,7 +501,7 @@ export default function PayrollPage() {
     if (nameSearch.trim()) {
       const q = nameSearch.trim().toLowerCase()
       result = result.filter(r => {
-        const name = ((staff as any[]).find(s => s.id === r.userId)?.fullName ?? '').toLowerCase()
+        const name = (staff.find(s => s.id === r.userId)?.fullName ?? '').toLowerCase()
         return name.includes(q)
       })
     }
@@ -527,7 +525,7 @@ export default function PayrollPage() {
       setOpenGroup('DRAFT')
       addToast('Payroll draft generated', 'success')
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = parseApiError(err, 'Failed to generate payroll')
       setFormError(msg)
       addToast(msg, 'error')
@@ -540,7 +538,7 @@ export default function PayrollPage() {
       qc.invalidateQueries({ queryKey: ['payroll', pumpId] })
       addToast('Payroll record deleted', 'success')
     },
-    onError: (err: any) => addToast(parseApiError(err, 'Failed to delete payroll'), 'error'),
+    onError: (err) => addToast(parseApiError(err, 'Failed to delete payroll'), 'error'),
   })
 
   const statusMutation = useMutation({
@@ -550,7 +548,7 @@ export default function PayrollPage() {
       qc.invalidateQueries({ queryKey: ['payroll', pumpId] })
       addToast(`Status updated to ${status}`, 'success')
     },
-    onError: (err: any) => addToast(parseApiError(err, 'Failed to update status'), 'error'),
+    onError: (err) => addToast(parseApiError(err, 'Failed to update status'), 'error'),
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -561,7 +559,7 @@ export default function PayrollPage() {
     setReviewOpen(true)
   }
 
-  const selectedStaff = staff.find((s: any) => s.id === form.userId)
+  const selectedStaff = staff.find((s) => s.id === form.userId)
 
   return (
     <div className="ui-page ui-page--narrow space-y-5">
@@ -600,7 +598,7 @@ export default function PayrollPage() {
               value={form.userId ? form.userId.toString() : ''}
               onChange={v => setForm(f => ({ ...f, userId: parseInt(v) || 0 }))}
               placeholder="Select staff…"
-              options={staff.map((s: any) => ({ value: s.id.toString(), label: `${s.fullName} — ${s.role}` }))}
+              options={staff.map((s) => ({ value: s.id.toString(), label: `${s.fullName} — ${s.role}` }))}
             />
           </div>
 

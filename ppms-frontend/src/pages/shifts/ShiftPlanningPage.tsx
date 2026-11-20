@@ -124,7 +124,7 @@ export default function ShiftPlanningPage() {
   const generateMutation = useMutation({
     mutationFn: () => shiftPlanApi.generatePlan(pumpId!, weekStart, Number(genDayOps), Number(genNightOps)),
     onSuccess: () => { setShowGenerate(false); setGenError(null); invalidatePlan() },
-    onError: (err: any) => setGenError(parseApiError(err, 'Failed to generate plan')),
+    onError: (err) => setGenError(parseApiError(err, 'Failed to generate plan')),
   })
 
   const publishMutation = useMutation({
@@ -136,14 +136,14 @@ export default function ShiftPlanningPage() {
     mutationFn: ({ entryId }: { entryId: number }) =>
       shiftPlanApi.removeEntry(pumpId!, plan!.id, entryId),
     onSuccess: () => { invalidatePlan(); setSlotError(null) },
-    onError: (err: any) => setSlotError(parseApiError(err, 'Failed to remove')),
+    onError: (err) => setSlotError(parseApiError(err, 'Failed to remove')),
   })
 
   const addEntryMutation = useMutation({
     mutationFn: ({ opId }: { opId: number }) =>
       shiftPlanApi.addEntry(pumpId!, plan!.id, editSlot!.date, editSlot!.shiftDefinitionId, opId),
     onSuccess: () => { setAddOpId(''); setSlotError(null); invalidatePlan() },
-    onError: (err: any) => setSlotError(parseApiError(err, 'Failed to add operator')),
+    onError: (err) => setSlotError(parseApiError(err, 'Failed to add operator')),
   })
 
   // Navigation

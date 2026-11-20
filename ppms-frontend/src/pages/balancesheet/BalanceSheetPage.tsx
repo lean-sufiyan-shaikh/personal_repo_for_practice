@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X, Check, BarChart2, TrendingDown, TrendingUp } from 'lucide-react'
@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { balanceSheetApi } from '../../api/balanceSheetApi'
 import { pumpApi } from '../../api/pumpApi'
+import { useOnValuesChange } from '../../hooks/useOnValuesChange'
 import { parseApiError } from '../../utils/apiError'
 import type {
   BalanceSheetSummary,
@@ -91,15 +92,9 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
     enabled: reportType === 'SHIFT',
   })
 
-  // Auto-select first definition when definitions load (or when reportType switches to SHIFT)
-  useEffect(() => {
-    if (reportType === 'SHIFT' && shiftDefinitions.length > 0 && shiftDefinitionId === null) {
-      setShiftDefinitionId(shiftDefinitions[0].id)
-    }
-    if (reportType === 'DAY') {
-      setShiftDefinitionId(null)
-    }
-  }, [reportType, shiftDefinitions, shiftDefinitionId])
+  const selectedShiftDefinitionId = reportType === 'SHIFT'
+    ? (shiftDefinitionId ?? shiftDefinitions[0]?.id ?? null)
+    : null
 
   const mutation = useMutation({
     mutationFn: (req: GenerateBalanceSheetRequest) => balanceSheetApi.generate(pumpId, req),
@@ -108,7 +103,7 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
       addToast('Balance sheet generated successfully', 'success')
       onClose()
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg: string = parseApiError(err, 'Failed to generate balance sheet')
       // Backend returns "already exists" — offer the user a re-generate option
       if (msg.includes('already exists')) {
@@ -129,8 +124,8 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
       notes: notes.trim() || undefined,
       forceRegenerate: force || undefined,
     }
-    if (reportType === 'SHIFT' && shiftDefinitionId !== null) {
-      req.shiftDefinitionId = shiftDefinitionId
+    if (selectedShiftDefinitionId !== null) {
+      req.shiftDefinitionId = selectedShiftDefinitionId
     }
     return req
   }
@@ -168,7 +163,7 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
               {(['SHIFT', 'DAY'] as const).map(t => (
                 <button
                   key={t}
-                  onClick={() => setReportType(t)}
+                  onClick={() => { setReportType(t); if (t === 'DAY') setShiftDefinitionId(null) }}
                   className={`ui-btn min-h-0 flex-1 px-3 py-2 text-sm font-medium ${
                     reportType === t
                       ? 'bg-blue-600 text-white'
@@ -209,7 +204,7 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
                 <p className="text-xs text-red-500">No shift definitions configured for this pump. Please set them up in pump settings first.</p>
               ) : (
                 <SearchableSelect label="Shift"
-                  value={shiftDefinitionId !== null ? String(shiftDefinitionId) : ''}
+                  value={selectedShiftDefinitionId !== null ? String(selectedShiftDefinitionId) : ''}
                   onChange={v => setShiftDefinitionId(Number(v))}
                   options={shiftDefinitions.map(d => ({ value: String(d.id), label: `${d.name} · ${d.windowLabel}` }))}
                 />
@@ -311,7 +306,7 @@ function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmProps) {
       addToast('Balance sheet deleted', 'success')
       onClose()
     },
-    onError: (err: any) => addToast(parseApiError(err, 'Failed to delete balance sheet'), 'error'),
+    onError: (err) => addToast(parseApiError(err, 'Failed to delete balance sheet'), 'error'),
   })
 
   return (
@@ -1155,8 +1150,7 @@ export default function BalanceSheetPage() {
 
   const pumpName = pumpId ? (pumps.find(p => p.id === pumpId)?.name ?? '') : ''
 
-  // Reset to page 0 when filters change
-  useEffect(() => { setBsPage(0) }, [filterFrom, filterTo, pumpId])
+  useOnValuesChange([filterFrom, filterTo, pumpId], () => setBsPage(0))
 
   // Report list
   const { data: reportsPage, isLoading, isFetching: fetchingReports, dataUpdatedAt: reportsUpdatedAt } = useQuery({

@@ -48,7 +48,7 @@ export default function ResetPasswordPage() {
     try {
       await authApi.resetPassword(token, newPassword)
       navigate('/login', { state: { message: 'Password reset successful. Please log in with your new password.' } })
-    } catch (err: any) {
+    } catch (err) {
       setError(parseApiError(err, 'Failed to reset password. The link may have expired.'))
     } finally {
       setLoading(false)

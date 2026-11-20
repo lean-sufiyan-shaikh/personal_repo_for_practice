@@ -1,5 +1,6 @@
-import axios from 'axios'
+import axios, { isAxiosError } from 'axios'
 import { useAuthStore } from '../store/authStore'
+import type { ApiErrorBody } from '../utils/apiError'
 
 // All requests go to /api/* — Vite proxy forwards them to Spring Boot in dev.
 // In production, both frontend and backend run on the same server, same origin.
@@ -27,9 +28,11 @@ const DANGEROUS_MESSAGE_PATTERNS = [
 ]
 
 function sanitizeErrorMessage(error: unknown): void {
-  const data = (error as any)?.response?.data
+  if (!isAxiosError<ApiErrorBody>(error)) return
+  const data = error.response?.data
   if (!data || typeof data.message !== 'string') return
-  const isLeaking = DANGEROUS_MESSAGE_PATTERNS.some((p) => p.test(data.message))
+  const message = data.message
+  const isLeaking = DANGEROUS_MESSAGE_PATTERNS.some((p) => p.test(message))
   if (isLeaking) {
     data.message = 'Something went wrong. Please try again.'
   }

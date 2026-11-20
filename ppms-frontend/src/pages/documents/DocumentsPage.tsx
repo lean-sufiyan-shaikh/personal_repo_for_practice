@@ -56,7 +56,7 @@ export default function DocumentsPage() {
       setShowForm(false)
       setFormError(null)
     },
-    onError: (err: any) => setFormError(parseApiError(err, 'Failed to save document')),
+    onError: (err) => setFormError(parseApiError(err, 'Failed to save document')),
   })
 
   const deleteMutation = useMutation({
@@ -65,7 +65,7 @@ export default function DocumentsPage() {
       qc.invalidateQueries({ queryKey: ['documents', pumpId] })
       addToast('Document deleted.', 'success')
     },
-    onError: (err: any) => {
+    onError: (err) => {
       addToast(parseApiError(err, 'Failed to delete document'), 'error')
     },
   })

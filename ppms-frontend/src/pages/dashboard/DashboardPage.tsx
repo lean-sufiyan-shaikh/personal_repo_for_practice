@@ -68,24 +68,13 @@ export default function DashboardPage() {
       const valid = sortedPumps.find(p => p.id === selectedPumpId)
       if (!valid) setSelectedPumpId(sortedPumps[0].id)
     }
-  }, [sortedPumps.length])
+  }, [sortedPumps, selectedPumpId, setSelectedPumpId])
 
   // Live clock
   const [now, setNow] = useState(new Date())
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(timer)
-  }, [])
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
-        setProfileMenuOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   // Inline name edit
@@ -102,6 +91,17 @@ export default function DashboardPage() {
   const profileMenuRef = useRef<HTMLDivElement>(null)
   const profileButtonRef = useRef<HTMLButtonElement>(null)
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   useEscapeKey(() => {
     setProfileMenuOpen(false)
     profileButtonRef.current?.focus()
@@ -114,7 +114,7 @@ export default function DashboardPage() {
       setEditingName(false)
       setNameError(null)
     },
-    onError: (err: any) => {
+    onError: (err) => {
       setNameError(parseApiError(err, 'Failed to save name'))
     },
   })
@@ -137,7 +137,7 @@ export default function DashboardPage() {
       clearAuth()
       navigate('/login', { state: { message: data.message } })
     },
-    onError: (err: any) => {
+    onError: (err) => {
       setPasswordError(parseApiError(err, 'Failed to update password.'))
     },
   })

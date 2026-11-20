@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { withToggled } from '../../utils/setToggle'
 import { Link } from 'react-router-dom'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import {
@@ -128,11 +129,7 @@ export default function OverviewPage() {
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set())
 
   const toggleSeries = (key: string) =>
-    setHiddenSeries(prev => {
-      const next = new Set(prev)
-      next.has(key) ? next.delete(key) : next.add(key)
-      return next
-    })
+    setHiddenSeries(prev => withToggled(prev, key))
 
   const FUEL_CHART_COLORS: Record<string, string> = {
     PETROL:       '#10b981',

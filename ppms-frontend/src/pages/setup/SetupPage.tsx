@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
+import { isAxiosError } from 'axios'
+import { withToggled } from '../../utils/setToggle'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronDown, ChevronRight, Plus, AlertTriangle, Check, X,
@@ -14,7 +16,7 @@ import { DAY_LABELS } from '../../api/shiftPlanApi'
 import type { CreateUserRequest, StaffMember, UpdateStaffDetailsRequest, UserGender } from '../../api/userApi'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
-import type { PumpSummary, TankInfo, PriceDeviationWarning } from '../../api/pumpApi'
+import type { PumpSummary, TankInfo, PriceDeviationWarning, FuelPrice, UpdateTankRequest } from '../../api/pumpApi'
 import type { FuelType, DUOption, NozzleDetail } from '../../types/shift'
 import { dipApi } from '../../api/dipApi'
 import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
@@ -358,7 +360,7 @@ function CreatePumpForm({ onCreated }: { onCreated: (p: PumpSummary) => void }) 
       addToast(`Pump "${pump.name}" created`, 'success')
       onCreated(pump)
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = parseApiError(err, 'Failed to create pump')
       setError(msg)
       addToast(msg, 'error')
@@ -520,7 +522,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
       addToast('DU created successfully', 'success')
       invalidate(); onAdded()
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = parseApiError(err, 'Failed to create DU')
       setAddError(msg)
       addToast(msg, 'error')
@@ -531,28 +533,28 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
     mutationFn: ({ nozzleId, adjustmentType, reason, newReading }: { nozzleId: number; adjustmentType: 'RESET' | 'CUSTOM_READING'; reason: string; newReading?: number }) =>
       dipApi.recordAdjustment(pump.id, nozzleId, adjustmentType, reason, newReading),
     onSuccess: () => { setOpenPanel(null); setAdjustError(null); setAdjustReason(''); setAdjustReading(''); addToast('Reading adjusted', 'success'); invalidate() },
-    onError: (err: any) => { const msg = parseApiError(err, 'Failed to record adjustment'); setAdjustError(msg); addToast(msg, 'error') },
+    onError: (err) => { const msg = parseApiError(err, 'Failed to record adjustment'); setAdjustError(msg); addToast(msg, 'error') },
   })
 
   const recordDipMutation = useMutation({
     mutationFn: ({ fuelType, litresRemoved, reason, date }: { fuelType: string; litresRemoved: number; reason: string; date?: string }) =>
       dipApi.recordDip(pump.id, fuelType, litresRemoved, reason, date),
     onSuccess: () => { setOpenPanel(null); setDipError(null); setDipLitres(''); setDipReason(''); setDipDate(''); addToast('Dip recorded', 'success'); invalidate() },
-    onError: (err: any) => { const msg = parseApiError(err, 'Failed to record dip'); setDipError(msg); addToast(msg, 'error') },
+    onError: (err) => { const msg = parseApiError(err, 'Failed to record dip'); setDipError(msg); addToast(msg, 'error') },
   })
 
   const mapTankMutation = useMutation({
     mutationFn: ({ pumpId, duId, nozzleId, tankId }: { pumpId: number; duId: number; nozzleId: number; tankId: number | null }) =>
       pumpApi.mapNozzleToTank(pumpId, duId, nozzleId, tankId),
     onSuccess: () => { setOpenPanel(null); addToast('Tank mapped successfully', 'success'); invalidate() },
-    onError: (err: any) => { const msg = parseApiError(err, 'Failed to save tank mapping'); setMapError(msg); addToast(msg, 'error') },
+    onError: (err) => { const msg = parseApiError(err, 'Failed to save tank mapping'); setMapError(msg); addToast(msg, 'error') },
   })
 
   const statusMutation = useMutation({
     mutationFn: ({ pumpId, duId, nozzleId, status }: { pumpId: number; duId: number; nozzleId: number; status: 'ACTIVE' | 'INACTIVE' }) =>
       pumpApi.updateNozzleStatus(pumpId, duId, nozzleId, status),
     onSuccess: (_, { status }) => { setOpenPanel(null); setStatusError(null); addToast(status === 'ACTIVE' ? 'Nozzle enabled' : 'Nozzle disabled', 'success'); invalidate() },
-    onError: (err: any) => { const msg = parseApiError(err, 'Failed to update nozzle status'); setStatusError(msg); addToast(msg, 'error') },
+    onError: (err) => { const msg = parseApiError(err, 'Failed to update nozzle status'); setStatusError(msg); addToast(msg, 'error') },
   })
 
   const increaseMaxMutation = useMutation({
@@ -562,17 +564,13 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
       addToast('DU limit updated', 'success')
       invalidate(); onAdded()
     },
-    onError: (err: any) => { const msg = parseApiError(err, 'Failed to update DU limit'); setIncreaseError(msg); addToast(msg, 'error') },
+    onError: (err) => { const msg = parseApiError(err, 'Failed to update DU limit'); setIncreaseError(msg); addToast(msg, 'error') },
   })
 
   // Per-DU collapse state — all collapsed by default
   const [expandedDuIds, setExpandedDuIds] = useState<Set<number>>(new Set())
   const toggleDU = (duId: number) =>
-    setExpandedDuIds((prev) => {
-      const next = new Set(prev)
-      next.has(duId) ? next.delete(duId) : next.add(duId)
-      return next
-    })
+    setExpandedDuIds(prev => withToggled(prev, duId))
 
   // Per-DU inline "Add Nozzle" state
   const [addNozzleDuId, setAddNozzleDuId] = useState<number | null>(null)
@@ -589,7 +587,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
       addToast('Nozzle added', 'success')
       invalidate()
     },
-    onError: (err: any) => { const msg = parseApiError(err, 'Failed to add nozzle'); setInlineError(msg); addToast(msg, 'error') },
+    onError: (err) => { const msg = parseApiError(err, 'Failed to add nozzle'); setInlineError(msg); addToast(msg, 'error') },
   })
 
   const submitInlineNozzle = (e: React.FormEvent, du: DUOption) => {
@@ -1315,7 +1313,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
 
 // ── Fuel prices content ───────────────────────────────────────────────────────
 
-function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; currentPrices: any[] }) {
+function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; currentPrices: FuelPrice[] }) {
   const queryClient = useQueryClient()
   const { addToast } = useToastStore()
   // Dynamic price inputs keyed by fuel type (only for fuel types actually present on this pump)
@@ -1336,13 +1334,13 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
 
   const mutation = useMutation({
     mutationFn: pumpApi.setFuelPrice,
-    onError: (err: any) => {
-      if (err?.response?.status === 409 && err?.response?.data?.deviationPercent != null) {
+    onError: (err) => {
+      const warning = isAxiosError<Partial<PriceDeviationWarning>>(err) && err.response?.status === 409 ? err.response.data : undefined
+      if (warning?.deviationPercent != null) {
         // Backend returned a PriceDeviationWarning (has deviationPercent) — show confirmation dialog
-        const warning = err.response.data as PriceDeviationWarning
         // Determine which fuel type triggered the warning
         const ft = availableFuelTypes.find((f) => prices[f] && Number(prices[f]) > 0) ?? ''
-        setDeviationWarning({ ...warning, fuelType: ft })
+        setDeviationWarning({ ...(warning as PriceDeviationWarning), fuelType: ft })
       } else {
         // 409 from a DB constraint violation, or any other error — show the message directly
         setError(parseApiError(err, 'Failed to set price'))
@@ -1378,7 +1376,7 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
   const confirmUnchanged = async () => {
     setError(null); setSuccess(false); setOpenShiftsWarning(null); setConfirmingUnchanged(true)
     const tasks = currentPrices.map((p) =>
-      mutation.mutateAsync({ pumpId: pump.id, fuelType: p.fuelType as FuelType, pricePerUnit: parseFloat(p.pricePerUnit) })
+      mutation.mutateAsync({ pumpId: pump.id, fuelType: p.fuelType as FuelType, pricePerUnit: Number(p.pricePerUnit) })
     )
     try {
       const results = await Promise.all(tasks)
@@ -1407,7 +1405,7 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
       setPricesConfirmedToday(true)
       setSuccess(true); setTimeout(() => setSuccess(false), 3000)
       if (result.openShiftsWarning) setOpenShiftsWarning(result.openShiftsWarning)
-    } catch (err: any) {
+    } catch (err) {
       setError(parseApiError(err, 'Failed to set price'))
     }
   }
@@ -1642,7 +1640,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
       queryClient.invalidateQueries({ queryKey: ['staff', pump.id] })
       queryClient.invalidateQueries({ queryKey: ['operators', pump.id] })
     },
-    onError: (err: any) => setError(parseApiError(err, 'Failed to create user')),
+    onError: (err) => setError(parseApiError(err, 'Failed to create user')),
   })
 
   const statusMutation = useMutation({
@@ -1653,7 +1651,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
       queryClient.invalidateQueries({ queryKey: ['staff', pump.id] })
       queryClient.invalidateQueries({ queryKey: ['operators', pump.id] })
     },
-    onError: (err: any) => setStatusError(parseApiError(err, 'Failed to update status')),
+    onError: (err) => setStatusError(parseApiError(err, 'Failed to update status')),
   })
 
   const { data: activeShiftDefs = [] } = useQuery({
@@ -1682,7 +1680,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
       setPrefError(null)
       queryClient.invalidateQueries({ queryKey: ['staffPref', pump.id, openStaffPanel?.userId] })
     },
-    onError: (err: any) => setPrefError(parseApiError(err, 'Failed to save preferences')),
+    onError: (err) => setPrefError(parseApiError(err, 'Failed to save preferences')),
   })
 
   const addLeaveMutation = useMutation({
@@ -1692,7 +1690,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
       setNewLeaveDate(''); setNewLeaveReason(''); setLeaveError(null)
       queryClient.invalidateQueries({ queryKey: ['staffLeaves', pump.id, openStaffPanel?.userId] })
     },
-    onError: (err: any) => setLeaveError(parseApiError(err, 'Failed to add leave')),
+    onError: (err) => setLeaveError(parseApiError(err, 'Failed to add leave')),
   })
 
   const removeLeaveMutation = useMutation({
@@ -1710,7 +1708,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
       setOpenStaffPanel(null)
       queryClient.invalidateQueries({ queryKey: ['staff', pump.id] })
     },
-    onError: (err: any) => setRateError(parseApiError(err, 'Failed to save rates')),
+    onError: (err) => setRateError(parseApiError(err, 'Failed to save rates')),
   })
 
   const detailsMutation = useMutation({
@@ -1722,7 +1720,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
       queryClient.invalidateQueries({ queryKey: ['staff', pump.id] })
       queryClient.invalidateQueries({ queryKey: ['operators', pump.id] })
     },
-    onError: (err: any) => setEditError(parseApiError(err, 'Failed to save details')),
+    onError: (err) => setEditError(parseApiError(err, 'Failed to save details')),
   })
 
   const openPanel = (userId: number, panel: StaffPanel, pref?: typeof openPref, member?: StaffMember) => {
@@ -2441,17 +2439,17 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
       queryClient.invalidateQueries({ queryKey: ['tanks', pump.id] })
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pump.id] })
     },
-    onError: (err: any) => setCreateError(parseApiError(err, 'Failed to create tank')),
+    onError: (err) => setCreateError(parseApiError(err, 'Failed to create tank')),
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ tankId, req }: { tankId: number; req: any }) => pumpApi.updateTank(pump.id, tankId, req),
+    mutationFn: ({ tankId, req }: { tankId: number; req: UpdateTankRequest }) => pumpApi.updateTank(pump.id, tankId, req),
     onSuccess: () => {
       setEditingId(null); setEditError(null)
       queryClient.invalidateQueries({ queryKey: ['tanks', pump.id] })
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pump.id] })
     },
-    onError: (err: any) => setEditError(parseApiError(err, 'Failed to update tank')),
+    onError: (err) => setEditError(parseApiError(err, 'Failed to update tank')),
   })
 
   const statusMutation = useMutation({
@@ -2462,7 +2460,7 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
       queryClient.invalidateQueries({ queryKey: ['tanks', pump.id] })
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pump.id] })
     },
-    onError: (err: any) => setStatusError(parseApiError(err, 'Failed to update tank status')),
+    onError: (err) => setStatusError(parseApiError(err, 'Failed to update tank status')),
   })
 
   /** Returns true when currentStock > 5% of capacity (significant frozen stock warning). */
@@ -2815,7 +2813,7 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
       qc.invalidateQueries({ queryKey: ['shift-definitions-active', pumpId] })
       resetForm()
     },
-    onError: (err: any) => {
+    onError: (err) => {
       setFormError(parseApiError(err, 'Failed to save shift definitions'))
     },
   })
@@ -2825,23 +2823,17 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
   // ── Collapsible groups — disabled groups start collapsed ────────────────────
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set())
   const [collapsedInitialized, setCollapsedInitialized] = useState(false)
-  useEffect(() => {
-    if (!collapsedInitialized && Object.keys(groups).length > 0) {
-      const disabled = new Set<string>()
-      Object.entries(groups).forEach(([groupKey, defs]) => {
-        // Collapse groups where every definition is disabled (effectiveTo is set).
-        if (defs.every(d => d.effectiveTo !== null)) disabled.add(groupKey)
-      })
-      setCollapsedDates(disabled)
-      setCollapsedInitialized(true)
-    }
-  }, [groups, collapsedInitialized])
-  const toggleCollapsed = (date: string) =>
-    setCollapsedDates(prev => {
-      const next = new Set(prev)
-      next.has(date) ? next.delete(date) : next.add(date)
-      return next
+  if (!collapsedInitialized && Object.keys(groups).length > 0) {
+    const disabled = new Set<string>()
+    Object.entries(groups).forEach(([groupKey, defs]) => {
+      // Collapse groups where every definition is disabled (effectiveTo is set).
+      if (defs.every(d => d.effectiveTo !== null)) disabled.add(groupKey)
     })
+    setCollapsedDates(disabled)
+    setCollapsedInitialized(true)
+  }
+  const toggleCollapsed = (date: string) =>
+    setCollapsedDates(prev => withToggled(prev, date))
 
   // ── Delete ──────────────────────────────────────────────────────────────────
   // Stores the composite group key "effectiveFrom|effectiveTo" of the group pending deletion.
@@ -2859,7 +2851,7 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
       setConfirmDeleteKey(null)
       setActionError(null)
     },
-    onError: (err: any) => {
+    onError: (err) => {
       setConfirmDeleteKey(null)
       setActionError(parseApiError(err, 'Failed to delete shift schedule'))
     },
@@ -2882,7 +2874,7 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
       setDisablingDate(null)
       setActionError(null)
     },
-    onError: (err: any) => {
+    onError: (err) => {
       setDisablingDate(null)
       setActionError(parseApiError(err, 'Failed to disable shift schedule'))
     },
@@ -3274,7 +3266,7 @@ function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; onUpdated
       setError(null)
       onUpdated()
     },
-    onError: (err: any) => setError(parseApiError(err, 'Failed to save settings')),
+    onError: (err) => setError(parseApiError(err, 'Failed to save settings')),
   })
 
   const handleSave = () => {

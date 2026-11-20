@@ -50,7 +50,7 @@ export default function ExpensesPage() {
       page,
       pageSize,
       categoryFilter || undefined,
-      (statusFilter as any) || undefined,
+      statusFilter || undefined,
     ),
     enabled:   !!pumpId,
   })
@@ -83,7 +83,7 @@ export default function ExpensesPage() {
       setReviewOpen(false)
       addToast('Expense recorded successfully', 'success')
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = parseApiError(err, 'Failed to record expense')
       setFormError(msg)
       addToast(msg, 'error')
@@ -96,7 +96,7 @@ export default function ExpensesPage() {
       qc.invalidateQueries({ queryKey: ['expenses', pumpId] })
       addToast('Expense submitted for approval', 'success')
     },
-    onError: (err: any) => addToast(parseApiError(err, 'Failed to submit expense'), 'error'),
+    onError: (err) => addToast(parseApiError(err, 'Failed to submit expense'), 'error'),
   })
 
   const deleteMutation = useMutation({
@@ -105,7 +105,7 @@ export default function ExpensesPage() {
       qc.invalidateQueries({ queryKey: ['expenses', pumpId] })
       addToast('Expense deleted', 'success')
     },
-    onError: (err: any) => addToast(parseApiError(err, 'Failed to delete expense'), 'error'),
+    onError: (err) => addToast(parseApiError(err, 'Failed to delete expense'), 'error'),
   })
 
   const validateForm = () => {
@@ -134,7 +134,7 @@ export default function ExpensesPage() {
       qc.invalidateQueries({ queryKey: ['expenses', pumpId] })
       addToast(`Expense ${data.action === 'APPROVED' ? 'approved' : 'rejected'}`, data.action === 'APPROVED' ? 'success' : 'warning')
     },
-    onError: (err: any) => addToast(parseApiError(err, 'Failed to update expense'), 'error'),
+    onError: (err) => addToast(parseApiError(err, 'Failed to update expense'), 'error'),
   })
 
   const totalExpenses = summary?.approvedTotal ?? 0
@@ -340,7 +340,7 @@ export default function ExpensesPage() {
             <div className="w-52 max-w-full">
             <SearchableSelect label="Filter by category"
               value={categoryFilter}
-              onChange={v => { setCategoryFilter(v as any); setPage(0) }}
+              onChange={v => { setCategoryFilter(v as ExpenseCategory | ''); setPage(0) }}
               options={[
                 { value: '', label: 'All Categories' },
                 ...CATEGORIES.map(c => ({ value: c, label: c.replace('_', ' ') })),
@@ -352,7 +352,7 @@ export default function ExpensesPage() {
             <div className="w-52 max-w-full">
             <SearchableSelect label="Filter by status"
               value={statusFilter}
-              onChange={v => { setStatusFilter(v as any); setPage(0) }}
+              onChange={v => { setStatusFilter(v as ExpenseApprovalStatus | ''); setPage(0) }}
               options={[
                 { value: '', label: 'All Statuses' },
                 { value: 'DRAFT',            label: 'Draft' },

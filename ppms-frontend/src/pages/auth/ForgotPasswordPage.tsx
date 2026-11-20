@@ -17,7 +17,7 @@ export default function ForgotPasswordPage() {
     try {
       await authApi.forgotPassword(phoneNumber.trim())
       setSent(true)
-    } catch (err: any) {
+    } catch (err) {
       setError(parseApiError(err, 'Something went wrong. Please try again.'))
     } finally {
       setLoading(false)
