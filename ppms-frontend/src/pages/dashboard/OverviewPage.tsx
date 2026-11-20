@@ -22,6 +22,7 @@ import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
 } from 'recharts'
+import { FUEL_LABELS } from '../../constants/fuel'
 
 const MAX_CHART_DAYS = 30
 
@@ -139,10 +140,6 @@ export default function OverviewPage() {
     CNG:          '#ef4444',
   }
 
-  const FUEL_CHART_LABELS: Record<string, string> = {
-    PETROL: 'Petrol', SPEED_PETROL: 'Speed Petrol',
-    DIESEL: 'Diesel', SPEED_DIESEL: 'Speed Diesel', CNG: 'CNG',
-  }
 
   const { revenueChartData, chartFuelTypes } = useMemo(() => {
     // Collect all fuel types present in the window
@@ -377,7 +374,7 @@ export default function OverviewPage() {
                     formatter={(v, name) => {
                       const n = typeof v === 'number' ? v : 0
                       if (name === 'revenue') return [`₹${n.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, 'Revenue']
-                      return [`${n.toFixed(2)} L`, FUEL_CHART_LABELS[name as string] ?? name]
+                      return [`${n.toFixed(2)} L`, FUEL_LABELS[name as string] ?? name]
                     }}
                     labelStyle={{ color: '#64748b', marginBottom: '0.25rem' }}
                   />
@@ -421,7 +418,7 @@ export default function OverviewPage() {
                     className={`inline-flex min-h-8 items-center gap-1.5 rounded-md px-1.5 ${hidden ? 'text-slate-500 line-through' : 'text-slate-700'}`}
                   >
                     <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: hidden ? '#cbd5e1' : color }} />
-                    {series === 'revenue' ? 'Revenue' : (FUEL_CHART_LABELS[series] ?? series)}
+                    {series === 'revenue' ? 'Revenue' : (FUEL_LABELS[series] ?? series)}
                   </button>
                 )
               })}

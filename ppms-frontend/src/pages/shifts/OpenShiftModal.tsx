@@ -7,7 +7,8 @@ import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import type { DUOption, NozzleDetail, OpenShiftRequest, Shift } from '../../types/shift'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
-import { IconButton } from '../../components/IconButton'
+import { FUEL_LABELS, FUEL_UNIT } from '../../constants/fuel'
+import { OperatorPicker } from './components/OperatorPicker'
 
 /** Stored end times are inclusive (08:59 means the shift runs until 09:00), so the end minute is inside the window. */
 function isTimeInWindow(startTime: string, endTime: string, crossesMidnight: boolean, nowHHMM: string): boolean {
@@ -23,14 +24,7 @@ const IST_TIME_FORMAT = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
 })
 
-const FUEL_ABBR: Record<string, string> = {
-  PETROL: 'Petrol', SPEED_PETROL: 'Speed Petrol',
-  DIESEL: 'Diesel', SPEED_DIESEL: 'Speed Diesel', CNG: 'CNG',
-}
 
-const FUEL_UNIT: Record<string, string> = {
-  PETROL: 'L', SPEED_PETROL: 'L', DIESEL: 'L', SPEED_DIESEL: 'L', CNG: 'kg',
-}
 
 interface Props {
   pumpId: number
@@ -194,7 +188,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                   const isSelected = selectedDU?.id === du.id
                   const fuelTypes = du.nozzles
                     .filter((n) => n.status === 'ACTIVE')
-                    .map((n) => FUEL_ABBR[n.fuelType] ?? n.fuelType)
+                    .map((n) => FUEL_LABELS[n.fuelType] ?? n.fuelType)
                   return (
                     <button key={du.id} type="button"
                       onClick={() => handleSelectDU(du)}
@@ -262,7 +256,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                       <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
                         isSelected ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
                       }`}>
-                        {FUEL_ABBR[nozzle.fuelType] ?? nozzle.fuelType}
+                        {FUEL_LABELS[nozzle.fuelType] ?? nozzle.fuelType}
                       </span>
                       {isBusy
                         ? <span className="text-xs text-slate-500">In use</span>
@@ -276,70 +270,16 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
           )}
 
           {/* ── Step 3: Operator ── */}
-          <div>
-            <span className="ui-label uppercase tracking-wide mb-2">
-              {selectedDU ? 'Step 3 — ' : ''}Assign Operator
-            </span>
-            {operatorsLoading ? (
-              <p className="ui-empty">Loading operators...</p>
-            ) : availableOperators.length === 0 ? (
-              <div className="ui-alert ui-alert-warning text-xs">
-                No operators available — all are on active shifts or none are assigned to this pump.
-              </div>
-            ) : (
-              <div className="ui-card p-0 overflow-hidden">
-                <div className="ui-search-shell border-b border-slate-200 bg-slate-50 px-3 py-2">
-                  <svg className="ui-search-shell__icon" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round"
-                      d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-                  </svg>
-                  <input aria-label="Assign Operator" type="text" value={operatorSearch}
-                    onChange={(e) => setOperatorSearch(e.target.value)}
-                    placeholder="Search by name..."
-                    className="ui-search-shell__input flex-1 min-h-0 border-0 bg-transparent p-0 text-sm text-slate-700 shadow-none focus:outline-none focus:ring-0 placeholder-slate-400" />
-                  {operatorSearch && (
-                    <IconButton onClick={() => setOperatorSearch('')}
-                      className="ui-search-shell__clear text-lg leading-none"
- label="Clear search"
- icon={'×'}
- />
-                  )}
-                </div>
-                <div className="max-h-44 overflow-y-auto divide-y divide-slate-50">
-                  {filteredOperators.length === 0 ? (
-                    <p className="ui-empty p-3">No operators match "{operatorSearch}"</p>
-                  ) : (
-                    filteredOperators.map((o) => {
-                      const isSelected = selectedOperatorId === o.id
-                      return (
-                        <button key={o.id} type="button"
-                          onClick={() => setSelectedOperatorId(o.id)}
-                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${
-                            isSelected ? 'bg-blue-50' : 'hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                            isSelected ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'
-                          }`}>
-                            {o.fullName.charAt(0).toUpperCase()}
-                          </div>
-                          <span className={`flex-1 font-medium ${isSelected ? 'text-blue-800' : 'text-slate-700'}`}>
-                            {o.fullName}
-                          </span>
-                          {isSelected && (
-                            <svg className="w-4 h-4 text-blue-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </button>
-                      )
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+          <OperatorPicker
+            showStepNumber={!!selectedDU}
+            operatorsLoading={operatorsLoading}
+            noneAvailable={availableOperators.length === 0}
+            filteredOperators={filteredOperators}
+            operatorSearch={operatorSearch}
+            onSearchChange={setOperatorSearch}
+            selectedOperatorId={selectedOperatorId}
+            onSelect={setSelectedOperatorId}
+          />
 
           {/* ── Current meter readings (acknowledgment) ── */}
           {selectedNozzles.length > 0 && (
@@ -356,7 +296,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                 {selectedNozzles.map((nozzle) => (
                   <div key={nozzle.id} className="ui-card-plain bg-white border-slate-200 px-3 py-2.5">
                     <p className="text-xs text-slate-500 mb-0.5">
-                      Nozzle #{nozzle.nozzleNumber} — {FUEL_ABBR[nozzle.fuelType] ?? nozzle.fuelType} ({FUEL_UNIT[nozzle.fuelType] ?? 'L'})
+                      Nozzle #{nozzle.nozzleNumber} — {FUEL_LABELS[nozzle.fuelType] ?? nozzle.fuelType} ({FUEL_UNIT[nozzle.fuelType] ?? 'L'})
                     </p>
                     <p className="text-base font-semibold text-slate-800">
                       {nozzle.lastReading.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
