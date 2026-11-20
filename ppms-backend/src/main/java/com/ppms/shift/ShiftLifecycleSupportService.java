@@ -32,6 +32,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -279,10 +280,13 @@ public class ShiftLifecycleSupportService {
 
     public void persistCloseCreditEntries(Long shiftId, Long pumpId, List<CloseShiftRequest.CreditEntryRequest> creditEntries) {
         List<ShiftCreditEntry> toSave = new ArrayList<>();
+        Map<CreditClient, BigDecimal> amountByClient = new LinkedHashMap<>();
         for (CloseShiftRequest.CreditEntryRequest entry : creditEntries) {
             CreditClient matchedClient = creditAccountPolicyService.resolveClientForPump(
                     pumpId, entry.clientId(), entry.clientName());
-            creditAccountPolicyService.validateCreditLimit(pumpId, matchedClient, entry.amount());
+            if (matchedClient != null) {
+                amountByClient.merge(matchedClient, entry.amount(), BigDecimal::add);
+            }
 
             toSave.add(ShiftCreditEntry.builder()
                     .shiftId(shiftId)
@@ -296,6 +300,7 @@ public class ShiftLifecycleSupportService {
                     .driverName(entry.driverName())
                     .build());
         }
+        creditAccountPolicyService.validateCreditLimits(amountByClient);
         creditEntryRepository.saveAll(toSave);
     }
 

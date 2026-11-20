@@ -33,7 +33,7 @@ public class FuelTransactionService {
 
     @Transactional
     public FuelTransaction recordTransaction(Long pumpId, RecordFuelTransactionRequest request, User currentUser) {
-        Shift shift = shiftRepository.findByIdAndPumpId(request.getShiftId(), pumpId)
+        Shift shift = shiftRepository.findByIdAndPumpIdForUpdate(request.getShiftId(), pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
         if (!nozzleRepository.existsOnPump(request.getNozzleId(), pumpId)) {
             throw new ResourceNotFoundException("Nozzle not found");

@@ -21,6 +21,30 @@ class ClientIpResolverTest {
                 .isEqualTo("198.51.100.4");
     }
 
+    @Test
+    void ignoresClientWrittenEntriesLeftOfTheLastTrustedHop() {
+        assertThat(resolver.resolve(requestFrom("172.18.0.5", "1.1.1.1, 203.0.113.9")))
+                .isEqualTo("203.0.113.9");
+    }
+
+    @Test
+    void skipsEveryTrustedProxyFromTheRight() {
+        assertThat(resolver.resolve(requestFrom("127.0.0.1", "1.1.1.1, 203.0.113.9, 172.20.0.2, 172.18.0.5")))
+                .isEqualTo("203.0.113.9");
+    }
+
+    @Test
+    void fallsBackToPeerWhenRightmostEntryIsNotAnIp() {
+        assertThat(resolver.resolve(requestFrom("172.18.0.5", "a".repeat(60))))
+                .isEqualTo("172.18.0.5");
+    }
+
+    @Test
+    void acceptsIpv6Client() {
+        assertThat(resolver.resolve(requestFrom("172.18.0.5", "2001:db8::1")))
+                .isEqualTo("2001:db8::1");
+    }
+
     private MockHttpServletRequest requestFrom(String remoteAddr, String forwardedFor) {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRemoteAddr(remoteAddr);

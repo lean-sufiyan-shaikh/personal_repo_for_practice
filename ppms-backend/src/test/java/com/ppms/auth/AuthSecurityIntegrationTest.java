@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -110,6 +111,45 @@ class AuthSecurityIntegrationTest {
     }
 
     @Test
+    void tokenDoesNotFollowAPhoneNumberToAnotherUser() throws Exception {
+        String originalPhone = ownerA.getPhoneNumber();
+        Cookie cookie = loginAs(ownerA);
+
+        User moved = userRepository.findById(ownerA.getId()).orElseThrow();
+        moved.setPhoneNumber(randomPhoneNumber());
+        userRepository.save(moved);
+        User newcomer = saveOwner();
+        newcomer.setPhoneNumber(originalPhone);
+        userRepository.save(newcomer);
+
+        mockMvc.perform(get("/api/pumps").cookie(cookie)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void adminCannotChangeAnotherAdminAtTheSamePump() throws Exception {
+        User admin = saveStaff(UserRole.ADMIN, pumpA.getId());
+        User otherAdmin = saveStaff(UserRole.ADMIN, pumpA.getId());
+
+        mockMvc.perform(patch("/api/users/{userId}/details", otherAdmin.getId())
+                        .cookie(loginAs(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"OPERATOR\"}"))
+                .andExpect(status().isForbidden());
+
+        assertThat(userRepository.findById(otherAdmin.getId()).orElseThrow().getRole()).isEqualTo(UserRole.ADMIN);
+    }
+
+    @Test
+    void repeatedResetRequestsForOnePhoneStillGetTheGenericAnswer() throws Exception {
+        for (int attempt = 0; attempt <= LoginRateLimiterService.MAX_RESET_REQUESTS_PER_PHONE + 1; attempt++) {
+            mockMvc.perform(post("/api/auth/forgot-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"phoneNumber\":\"" + ownerA.getPhoneNumber() + "\"}"))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Test
     void sixthFailedLoginForSamePhoneReturns429() throws Exception {
         for (int attempt = 0; attempt < LoginRateLimiterService.MAX_FAILURES_PER_PHONE; attempt++) {
             mockMvc.perform(post("/api/auth/login")
@@ -151,6 +191,13 @@ class AuthSecurityIntegrationTest {
                 .status(UserStatus.ACTIVE)
                 .dateOfJoining(LocalDate.now())
                 .build());
+    }
+
+    private User saveStaff(UserRole role, Long pumpId) {
+        User staff = saveOwner();
+        staff.setRole(role);
+        staff.setAssignedPumpId(pumpId);
+        return userRepository.save(staff);
     }
 
     private PumpLocation savePump(User owner) {

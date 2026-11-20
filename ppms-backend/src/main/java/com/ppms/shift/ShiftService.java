@@ -392,6 +392,10 @@ public class ShiftService {
             throw new BusinessException("Credit entry is already voided.");
         }
 
+        if (entry.getClientId() != null) {
+            creditAccountPolicyService.lockLimitHolderOfClient(entry.getClientId());
+        }
+
         entry.setVoidStatus("VOIDED");
         entry.setVoidReason(voidReason.trim());
         entry.setVoidedByUserId(currentUser.getId());

@@ -128,7 +128,7 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
 
     /**
      * Returns closed shifts for an operator in a date range where the discrepancy was resolved
-     * via SALARY_DEDUCTION. Used by PayrollController to compute payroll deductions:
+     * via SALARY_DEDUCTION and no payroll has already taken the deduction (payroll_resolved_shifts).
      * deductions = SUM(discrepancy_amount) for these shifts.
      *
      * Native query required: Hibernate maps the JPQL enum literal to
@@ -142,6 +142,7 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
               AND shift_date BETWEEN :from AND :to
               AND discrepancy_resolution = 'SALARY_DEDUCTION'::discrepancy_resolution
               AND discrepancy_amount IS NOT NULL
+              AND NOT EXISTS (SELECT 1 FROM payroll_resolved_shifts prs WHERE prs.shift_id = shifts.id)
             ORDER BY shift_date ASC
             """, nativeQuery = true)
     List<Shift> findSalaryDeductionShifts(

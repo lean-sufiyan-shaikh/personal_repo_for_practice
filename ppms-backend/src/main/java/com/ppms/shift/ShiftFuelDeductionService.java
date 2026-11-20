@@ -14,6 +14,8 @@ import com.ppms.pump.UndergroundTankRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -35,6 +37,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
+@Transactional(propagation = Propagation.MANDATORY)
 @RequiredArgsConstructor
 public class ShiftFuelDeductionService {
 

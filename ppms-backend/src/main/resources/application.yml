@@ -4,6 +4,9 @@ spring:
     username: ${DB_USER:ppms_user}
     password: ${DB_PASS:ppms_pass}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      # Bounds every row-lock wait (SELECT ... FOR UPDATE); Hibernate ignores lock-timeout hints on PostgreSQL.
+      connection-init-sql: SET lock_timeout = '${DB_LOCK_TIMEOUT:10s}'
 
   jpa:
     open-in-view: false

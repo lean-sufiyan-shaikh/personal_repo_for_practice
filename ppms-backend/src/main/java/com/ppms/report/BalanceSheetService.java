@@ -100,9 +100,6 @@ public class BalanceSheetService {
                 ? shiftDefinitionService.getByIdAndPump(req.getShiftDefinitionId(), pumpId)
                 : null;
 
-        // Serialises generation per pump so two concurrent requests cannot both pass the duplicate check.
-        pumpLocationRepository.findByIdForUpdate(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found: " + pumpId));
         if (!req.isForceRegenerate()) {
             rejectDuplicateSheet(pumpId, reportDate, shiftDef);
         }
@@ -162,6 +159,14 @@ public class BalanceSheetService {
                 .map(DipPlLineResponse::getMonetaryAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
+
+        // The pump row lock is taken only around the final duplicate check and insert, so the
+        // aggregation above does not block cash-outs and settlements on this pump.
+        pumpLocationRepository.findByIdForUpdate(pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pump not found: " + pumpId));
+        if (!req.isForceRegenerate()) {
+            rejectDuplicateSheet(pumpId, reportDate, shiftDef);
+        }
 
         BalanceSheet bs = balanceSheetRepository.save(buildSheet(pumpId, req, shiftDef, generatedBy,
                 buildPeriodLabel(req, pumpId, shiftDef, isLiveDay, period.start(), period.end()),

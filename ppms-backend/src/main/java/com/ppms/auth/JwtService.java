@@ -20,6 +20,7 @@ import java.util.function.Function;
 public class JwtService {
 
     public static final String TOKEN_VERSION_CLAIM = "tokenVersion";
+    public static final String USER_ID_CLAIM = "userId";
 
     @Value("${ppms.jwt.secret}")
     private String jwtSecret;
@@ -61,7 +62,9 @@ public class JwtService {
     public boolean isTokenValid(String token, User user) {
         Claims claims = extractAllClaims(token);
         Integer tokenVersion = claims.get(TOKEN_VERSION_CLAIM, Integer.class);
+        Long userId = claims.get(USER_ID_CLAIM, Long.class);
         return claims.getSubject().equals(user.getUsername())
+                && user.getId().equals(userId)
                 && claims.getExpiration().after(new Date())
                 && tokenVersion != null
                 && tokenVersion == user.getTokenVersion();

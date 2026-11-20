@@ -4,7 +4,10 @@ import com.ppms.auth.InvalidCredentialsException;
 import com.ppms.fuel.PriceDeviationException;
 import com.ppms.fuel.PriceDeviationWarning;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.persistence.LockTimeoutException;
+import jakarta.persistence.PessimisticLockException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -59,6 +62,13 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(HttpStatus.CONFLICT,
                         "This record already exists or conflicts with existing data. " +
                         "Please check for duplicate entries (e.g. same invoice reference or interest period)."));
+    }
+
+    @ExceptionHandler({PessimisticLockingFailureException.class, PessimisticLockException.class, LockTimeoutException.class})
+    public ResponseEntity<ErrorResponse> handleLockWaitTimeout(RuntimeException ex) {
+        log.warn("Row lock not acquired: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(HttpStatus.CONFLICT, "Another update is in progress, please retry."));
     }
 
     @ExceptionHandler(BusinessException.class)

@@ -1,5 +1,6 @@
 package com.ppms.settlement;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
@@ -62,6 +63,7 @@ public class PaymentSettlementService {
         /** Wallet balance for this payment type at the time of recording. Null for legacy entries. */
         private BigDecimal pendingAtRecordTime;
         /** True when amountReceived was less than the pending balance at record time (partial settlement). */
+        @JsonProperty("isPartial")
         private boolean isPartial;
         /** ACTIVE or VOIDED. Voided settlements are excluded from wallet and daily totals. */
         private String voidStatus;

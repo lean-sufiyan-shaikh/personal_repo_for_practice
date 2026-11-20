@@ -223,6 +223,7 @@ public class CreditInterestService {
         CreditClient client = clientRepository.findById(clientId)
                 .filter(found -> found.getPumpId().equals(pumpId))
                 .orElseThrow(() -> new com.ppms.common.exception.ResourceNotFoundException("Client not found: " + clientId));
+        lockGroupRoot(client.getParentClientId() != null ? client.getParentClientId() : client.getId());
         return applyToClientGroup(client, businessClock.today(), "MANUAL", appliedByUserId).rootCharge();
     }
 
@@ -234,9 +235,17 @@ public class CreditInterestService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int applyToClientGroupInNewTransaction(Long rootClientId, LocalDate periodTo, String source, Long appliedByUserId) {
-        CreditClient root = clientRepository.findById(rootClientId)
-                .orElseThrow(() -> new com.ppms.common.exception.ResourceNotFoundException("Client not found: " + rootClientId));
+        CreditClient root = lockGroupRoot(rootClientId);
         return applyToClientGroup(root, periodTo, source, appliedByUserId).chargeCount();
+    }
+
+    /**
+     * Serialises interest runs for one client group, so a manual run and the scheduled job cannot
+     * both read the same last charge and charge the same days twice.
+     */
+    private CreditClient lockGroupRoot(Long rootClientId) {
+        return clientRepository.findByIdForUpdate(rootClientId)
+                .orElseThrow(() -> new com.ppms.common.exception.ResourceNotFoundException("Client not found: " + rootClientId));
     }
 
     private record GroupCharges(Optional<CreditInterestCharge> rootCharge, int chargeCount) {}

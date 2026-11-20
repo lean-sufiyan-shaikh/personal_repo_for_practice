@@ -74,7 +74,10 @@ public class PasswordResetController {
             @Valid @RequestBody ForgotPasswordRequest request,
             HttpServletRequest httpRequest) {
 
-        rateLimiterService.checkPasswordResetAllowed(request.getPhoneNumber(), clientIpResolver.resolve(httpRequest));
+        String genericMessage = "If this phone number is registered and has an email on file, a reset link has been sent.";
+        if (!rateLimiterService.isResetEmailAllowed(request.getPhoneNumber(), clientIpResolver.resolve(httpRequest))) {
+            return ResponseEntity.ok(Map.of("message", genericMessage));
+        }
 
         userRepository.findByPhoneNumber(request.getPhoneNumber()).ifPresent(user -> {
             if (user.getEmail() == null || user.getEmail().isBlank()) {
@@ -102,8 +105,7 @@ public class PasswordResetController {
         });
 
         // Generic response — do not reveal whether the phone number exists or has an email
-        return ResponseEntity.ok(Map.of("message",
-                "If this phone number is registered and has an email on file, a reset link has been sent."));
+        return ResponseEntity.ok(Map.of("message", genericMessage));
     }
 
     /**
@@ -135,7 +137,7 @@ public class PasswordResetController {
             throw new BusinessException("This password reset link has expired. Please request a new one.");
         }
 
-        User user = userRepository.findById(resetToken.getUserId())
+        User user = userRepository.findByIdForUpdate(resetToken.getUserId())
                 .orElseThrow(() -> new BusinessException("User not found for this reset token."));
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));

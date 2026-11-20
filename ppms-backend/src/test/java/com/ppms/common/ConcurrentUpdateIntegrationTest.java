@@ -48,13 +48,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -77,6 +77,7 @@ class ConcurrentUpdateIntegrationTest {
     @Autowired private AncillaryInventoryWorkflowService ancillaryWorkflowService;
     @Autowired private OverdueShiftProcessor overdueShiftProcessor;
     @Autowired private TransactionTemplate transactionTemplate;
+    @Autowired private JdbcTemplate jdbcTemplate;
     @Autowired private UserRepository userRepository;
     @Autowired private PumpLocationRepository pumpLocationRepository;
     @Autowired private DispensaryUnitRepository duRepository;
@@ -145,23 +146,23 @@ class ConcurrentUpdateIntegrationTest {
     }
 
     @Test
-    void closingTheSameShiftTwiceAtOnceDeductsStockOnlyOnce() throws Exception {
+    void secondCloseWaitsForTheFirstAndThenFindsTheShiftClosed() throws Exception {
         Shift shift = saveOpenShift(ShiftStatus.OPEN);
         CloseShiftRequest request = closeRequestSelling("10.000");
 
-        List<Throwable> failures = runAtTheSameTime(
+        CompetitorResult<?> second = runWhileRowIsLocked(
+                () -> shiftRepository.findByIdForUpdate(shift.getId()).orElseThrow(),
                 () -> shiftService.closeShift(pump.getId(), shift.getId(), request, manager),
                 () -> shiftService.closeShift(pump.getId(), shift.getId(), request, manager));
 
-        assertThat(failures).hasSize(1);
-        assertThat(failures.get(0)).isInstanceOf(BusinessException.class).hasMessageContaining("Shift is not open");
+        assertThat(second.failure()).isInstanceOf(BusinessException.class).hasMessageContaining("Shift is not open");
         assertThat(tankRepository.findById(tank.getId()).orElseThrow().getCurrentStock()).isEqualByComparingTo("4990.000");
         assertThat(inventoryLotRepository.findById(lot.getId()).orElseThrow().getRemainingQuantity()).isEqualByComparingTo("4990.000");
         assertThat(lotConsumptionRepository.findByShiftId(shift.getId())).hasSize(1);
     }
 
     @Test
-    void deliveryRecordedWhileShiftClosesIsKeptInTankStock() throws Exception {
+    void deliveryWaitsForShiftCloseAndIsKeptInTankStock() throws Exception {
         Shift shift = saveOpenShift(ShiftStatus.OPEN);
         RecordDeliveryRequest delivery = new RecordDeliveryRequest();
         delivery.setTankId(tank.getId());
@@ -170,16 +171,17 @@ class ConcurrentUpdateIntegrationTest {
         delivery.setDeliveryDate(LocalDate.now());
         delivery.setInvoiceReference("INV-" + shortId());
 
-        List<Throwable> failures = runAtTheSameTime(
+        CompetitorResult<?> deliveryResult = runWhileRowIsLocked(
+                () -> tankRepository.findByIdForUpdate(tank.getId()).orElseThrow(),
                 () -> shiftService.closeShift(pump.getId(), shift.getId(), closeRequestSelling("10.000"), manager),
                 () -> inventoryController.recordDelivery(pump.getId(), delivery, manager));
 
-        assertThat(failures).isEmpty();
+        assertThat(deliveryResult.failure()).isNull();
         assertThat(tankRepository.findById(tank.getId()).orElseThrow().getCurrentStock()).isEqualByComparingTo("5990.000");
     }
 
     @Test
-    void twoSalesThatTogetherExceedStockCannotBothSucceed() throws Exception {
+    void secondSaleWaitsForTheFirstAndIsRefusedWhenStockRunsOut() throws Exception {
         AncillaryProduct product = ancillaryProductRepository.save(AncillaryProduct.builder()
                 .pumpId(pump.getId())
                 .name("Engine oil " + shortId())
@@ -208,12 +210,12 @@ class ConcurrentUpdateIntegrationTest {
         sale.setSellingPricePerUnit(new BigDecimal("400.00"));
         sale.setPaymentMode(TransactionPaymentMode.UPI);
 
-        List<Throwable> failures = runAtTheSameTime(
+        CompetitorResult<?> second = runWhileRowIsLocked(
+                () -> ancillaryProductRepository.findByIdAndPumpIdForUpdate(product.getId(), pump.getId()).orElseThrow(),
                 () -> ancillaryWorkflowService.recordSale(pump.getId(), sale, manager),
                 () -> ancillaryWorkflowService.recordSale(pump.getId(), sale, manager));
 
-        assertThat(failures).hasSize(1);
-        assertThat(failures.get(0)).isInstanceOf(BusinessException.class).hasMessageContaining("Insufficient stock");
+        assertThat(second.failure()).isInstanceOf(BusinessException.class).hasMessageContaining("Insufficient stock");
         assertThat(ancillaryProductRepository.findById(product.getId()).orElseThrow().getCurrentStockUnits()).isEqualTo(4);
         assertThat(ancillaryLotRepository.findAllActiveLotsByProductIds(List.of(product.getId())))
                 .singleElement()
@@ -221,32 +223,21 @@ class ConcurrentUpdateIntegrationTest {
     }
 
     @Test
-    void overdueJobDoesNotOverwriteAShiftClosedWhileItWaited() throws Exception {
+    void overdueJobWaitsForAManualCloseAndLeavesItUnchanged() throws Exception {
         Shift shift = saveOpenShift(ShiftStatus.OPEN_OVERDUE);
-        CountDownLatch closerHoldsLock = new CountDownLatch(1);
-        CountDownLatch jobStarted = new CountDownLatch(1);
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        try {
-            Future<?> closer = executor.submit(() -> transactionTemplate.executeWithoutResult(status -> {
-                Shift locked = shiftRepository.findByIdForUpdate(shift.getId()).orElseThrow();
-                closerHoldsLock.countDown();
-                awaitQuietly(jobStarted);
-                locked.setStatus(ShiftStatus.CLOSED_BALANCED);
-                locked.setCashCollected(new BigDecimal("1000.00"));
-                shiftRepository.save(locked);
-            }));
-            closerHoldsLock.await(10, TimeUnit.SECONDS);
-            Future<OverdueShiftProcessor.Outcome> job = executor.submit(() -> {
-                jobStarted.countDown();
-                return overdueShiftProcessor.process(shift.getId(), OffsetDateTime.now());
-            });
 
-            closer.get(30, TimeUnit.SECONDS);
-            assertThat(job.get(30, TimeUnit.SECONDS)).isEqualTo(OverdueShiftProcessor.Outcome.UNCHANGED);
-        } finally {
-            executor.shutdownNow();
-        }
+        CompetitorResult<OverdueShiftProcessor.Outcome> job = runWhileRowIsLocked(
+                () -> shiftRepository.findByIdForUpdate(shift.getId()).orElseThrow(),
+                () -> {
+                    Shift locked = shiftRepository.findByIdForUpdate(shift.getId()).orElseThrow();
+                    locked.setStatus(ShiftStatus.CLOSED_BALANCED);
+                    locked.setCashCollected(new BigDecimal("1000.00"));
+                    shiftRepository.save(locked);
+                },
+                () -> overdueShiftProcessor.process(shift.getId(), OffsetDateTime.now()));
 
+        assertThat(job.failure()).isNull();
+        assertThat(job.value()).isEqualTo(OverdueShiftProcessor.Outcome.UNCHANGED);
         Shift reloaded = shiftRepository.findById(shift.getId()).orElseThrow();
         assertThat(reloaded.getStatus()).isEqualTo(ShiftStatus.CLOSED_BALANCED);
         assertThat(reloaded.getCashCollected()).isEqualByComparingTo("1000.00");
@@ -288,41 +279,67 @@ class ConcurrentUpdateIntegrationTest {
         return request;
     }
 
-    private List<Throwable> runAtTheSameTime(Callable<?> first, Callable<?> second) throws InterruptedException {
-        CountDownLatch start = new CountDownLatch(1);
+    private record CompetitorResult<T>(T value, Throwable failure) {}
+
+    /**
+     * Holds a row lock in one transaction, starts the competitor, proves the competitor is waiting
+     * on that lock, then lets the holder's write commit and returns how the competitor ended.
+     * Without the production lock the competitor would never wait and the test fails.
+     */
+    private <T> CompetitorResult<T> runWhileRowIsLocked(Runnable lockRow, Runnable firstWrite, Callable<T> competitor)
+            throws Exception {
+        CountDownLatch rowLocked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
-            List<Future<?>> futures = new ArrayList<>();
-            for (Callable<?> task : List.of(first, second)) {
-                futures.add(executor.submit(() -> {
-                    start.await();
-                    return task.call();
-                }));
+            Future<?> holder = executor.submit(() -> transactionTemplate.executeWithoutResult(status -> {
+                lockRow.run();
+                rowLocked.countDown();
+                awaitOrFail(release);
+                firstWrite.run();
+            }));
+            assertThat(rowLocked.await(10, TimeUnit.SECONDS)).as("holder took the row lock").isTrue();
+
+            Future<T> competing = executor.submit(competitor);
+            assertThat(waitUntilASessionIsBlockedOnALock()).as("competitor waits on the row lock").isTrue();
+            assertThat(competing.isDone()).isFalse();
+
+            release.countDown();
+            holder.get(30, TimeUnit.SECONDS);
+            try {
+                return new CompetitorResult<>(competing.get(30, TimeUnit.SECONDS), null);
+            } catch (ExecutionException e) {
+                return new CompetitorResult<>(null, e.getCause());
             }
-            start.countDown();
-            List<Throwable> failures = new ArrayList<>();
-            for (Future<?> future : futures) {
-                try {
-                    future.get(30, TimeUnit.SECONDS);
-                } catch (ExecutionException e) {
-                    failures.add(e.getCause());
-                } catch (java.util.concurrent.TimeoutException e) {
-                    throw new IllegalStateException("Concurrent task did not finish — possible deadlock", e);
-                }
-            }
-            return failures;
         } finally {
+            release.countDown();
             executor.shutdownNow();
         }
     }
 
-    private void awaitQuietly(CountDownLatch latch) {
+    private boolean waitUntilASessionIsBlockedOnALock() throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(8);
+        while (System.nanoTime() < deadline) {
+            Integer blocked = jdbcTemplate.queryForObject("""
+                    SELECT COUNT(*) FROM pg_stat_activity
+                    WHERE datname = current_database() AND state = 'active' AND wait_event_type = 'Lock'
+                    """, Integer.class);
+            if (blocked != null && blocked > 0) {
+                return true;
+            }
+            TimeUnit.MILLISECONDS.sleep(20);
+        }
+        return false;
+    }
+
+    private void awaitOrFail(CountDownLatch latch) {
         try {
-            latch.await(10, TimeUnit.SECONDS);
-            Thread.sleep(200);
+            if (!latch.await(20, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Test never released the row lock");
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted while holding the shift lock", e);
+            throw new IllegalStateException("Interrupted while holding the row lock", e);
         }
     }
 

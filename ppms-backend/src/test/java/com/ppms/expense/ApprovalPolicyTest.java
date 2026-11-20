@@ -19,25 +19,43 @@ class ApprovalPolicyTest {
     private final ApprovalPolicy approvalPolicy = new ApprovalPolicy(pumpLocationRepository);
 
     @Test
-    void noThresholdMeansNoApprovalNeeded() {
+    void expenseWithNoThresholdWaitsForApproval() {
         givenThreshold(null);
-        assertThat(approvalPolicy.resolveStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("50000")))
+        assertThat(approvalPolicy.resolveExpenseStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("50000")))
+                .isEqualTo(ExpenseApprovalStatus.PENDING_APPROVAL);
+    }
+
+    @Test
+    void creditPaymentWithNoThresholdIsApproved() {
+        givenThreshold(null);
+        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("50000")))
+                .isEqualTo(ExpenseApprovalStatus.APPROVED);
+    }
+
+    @Test
+    void zeroThresholdCountsAsNoThreshold() {
+        givenThreshold(BigDecimal.ZERO);
+        assertThat(approvalPolicy.resolveExpenseStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("10")))
+                .isEqualTo(ExpenseApprovalStatus.PENDING_APPROVAL);
+        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("10")))
                 .isEqualTo(ExpenseApprovalStatus.APPROVED);
     }
 
     @Test
     void amountAboveThresholdNeedsApprovalForManager() {
         givenThreshold(new BigDecimal("1000"));
-        assertThat(approvalPolicy.resolveStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("1000.01")))
+        assertThat(approvalPolicy.resolveExpenseStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("1000.01")))
                 .isEqualTo(ExpenseApprovalStatus.PENDING_APPROVAL);
-        assertThat(approvalPolicy.resolveStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("1000")))
+        assertThat(approvalPolicy.resolveExpenseStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("1000")))
                 .isEqualTo(ExpenseApprovalStatus.APPROVED);
+        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("1000.01")))
+                .isEqualTo(ExpenseApprovalStatus.PENDING_APPROVAL);
     }
 
     @Test
     void ownerIsNeverHeldForApproval() {
-        givenThreshold(new BigDecimal("1000"));
-        assertThat(approvalPolicy.resolveStatus(1L, userWithRole(UserRole.OWNER), new BigDecimal("99999")))
+        givenThreshold(null);
+        assertThat(approvalPolicy.resolveExpenseStatus(1L, userWithRole(UserRole.OWNER), new BigDecimal("99999")))
                 .isEqualTo(ExpenseApprovalStatus.APPROVED);
     }
 

@@ -66,16 +66,21 @@ public class LoginRateLimiterService {
         }
     }
 
-    public void checkPasswordResetAllowed(String phoneNumber, String ipAddress) {
-        boolean phoneOverLimit = incrementAndCheck("phone:" + phoneNumber, MAX_RESET_REQUESTS_PER_PHONE);
-        boolean ipOverLimit = ipAddress != null
-                && incrementAndCheck("ip:" + ipAddress, MAX_RESET_REQUESTS_PER_IP);
-        if (phoneOverLimit || ipOverLimit) {
-            log.warn("Password reset request blocked: phone={} ip={}",
-                    PhoneNumberMasking.mask(phoneNumber), ipAddress);
+    /**
+     * Throws 429 when the IP is over its limit. Returns false (no email, same generic response)
+     * when only the phone is over its limit, so strangers cannot lock a user out of resets.
+     */
+    public boolean isResetEmailAllowed(String phoneNumber, String ipAddress) {
+        if (ipAddress != null && incrementAndCheck("ip:" + ipAddress, MAX_RESET_REQUESTS_PER_IP)) {
+            log.warn("Password reset request blocked by IP limit: ip={}", ipAddress);
             throw new TooManyRequestsException(
                     "Too many password reset requests. Please wait " + WINDOW_MINUTES + " minutes before trying again.");
         }
+        if (incrementAndCheck("phone:" + phoneNumber, MAX_RESET_REQUESTS_PER_PHONE)) {
+            log.warn("Password reset email suppressed by phone limit: phone={}", PhoneNumberMasking.mask(phoneNumber));
+            return false;
+        }
+        return true;
     }
 
     @Transactional

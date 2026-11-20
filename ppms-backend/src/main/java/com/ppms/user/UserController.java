@@ -17,6 +17,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -171,6 +172,7 @@ public class UserController {
      */
     @PatchMapping("/{userId}/details")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'OWNER', 'ADMIN')")
+    @Transactional
     public ResponseEntity<StaffResponse> updateStaffDetails(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateStaffDetailsRequest request,
@@ -182,22 +184,27 @@ public class UserController {
             throw new BusinessException("Owner and super-admin accounts cannot be edited through this endpoint");
         }
 
+        boolean signInIdentityChanged = false;
+
         if (request.getPhoneNumber() != null) {
             String newPhone = request.getPhoneNumber().trim();
-            if (!newPhone.equals(user.getPhoneNumber()) &&
-                    userRepository.existsByPhoneNumberAndIdNot(newPhone, userId)) {
-                throw new BusinessException("Phone number " + newPhone + " is already in use by another user");
+            if (!newPhone.equals(user.getPhoneNumber())) {
+                if (userRepository.existsByPhoneNumberAndIdNot(newPhone, userId)) {
+                    throw new BusinessException("Phone number " + newPhone + " is already in use by another user");
+                }
+                user.setPhoneNumber(newPhone);
+                signInIdentityChanged = true;
             }
-            user.setPhoneNumber(newPhone);
         }
 
         if (request.getFullName() != null && !request.getFullName().isBlank()) {
             user.setFullName(request.getFullName().trim());
         }
 
-        if (request.getRole() != null) {
+        if (request.getRole() != null && request.getRole() != user.getRole()) {
             assertCanAssignRole(currentUser.getRole(), request.getRole());
             user.setRole(request.getRole());
+            signInIdentityChanged = true;
         }
 
         if (request.getGender() != null) {
@@ -210,6 +217,10 @@ public class UserController {
             user.setNightShiftConsent(Boolean.TRUE.equals(request.getNightShiftConsent()));
         } else {
             user.setNightShiftConsent(false);
+        }
+
+        if (signInIdentityChanged) {
+            user.setTokenVersion(user.getTokenVersion() + 1);
         }
 
         user = userRepository.save(user);
@@ -228,6 +239,7 @@ public class UserController {
      * No role restriction — every user can rename themselves.
      */
     @PatchMapping("/me/profile")
+    @Transactional
     public ResponseEntity<StaffResponse> updateMyProfile(
             @RequestBody UpdateProfileRequest request,
             @AuthenticationPrincipal User currentUser) {
@@ -236,8 +248,10 @@ public class UserController {
             throw new BusinessException("Full name cannot be blank");
         }
 
-        currentUser.setFullName(request.getFullName().trim());
-        User updated = userRepository.save(currentUser);
+        User user = userRepository.findByIdForUpdate(currentUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        user.setFullName(request.getFullName().trim());
+        User updated = userRepository.save(user);
         return ResponseEntity.ok(StaffResponse.from(updated));
     }
 
@@ -251,6 +265,7 @@ public class UserController {
      */
     @PatchMapping("/{userId}/status")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'OWNER')")
+    @Transactional
     public ResponseEntity<StaffResponse> updateUserStatus(
             @PathVariable Long userId,
             @RequestParam UserStatus status,
@@ -269,6 +284,9 @@ public class UserController {
             }
         }
 
+        if (status == UserStatus.INACTIVE && user.getStatus() != UserStatus.INACTIVE) {
+            user.setTokenVersion(user.getTokenVersion() + 1);
+        }
         user.setStatus(status);
         user = userRepository.save(user);
 
@@ -341,12 +359,19 @@ public class UserController {
     }
 
     private User findUserManagedBy(User currentUser, Long userId) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         if (!canAccessPump(currentUser, user.getAssignedPumpId())) {
             throw new ResourceNotFoundException("User not found");
         }
+        if (currentUser.getRole() == UserRole.ADMIN && isAdminOrAbove(user.getRole())) {
+            throw new AccessDeniedException("An admin cannot change another admin, owner or super-admin account.");
+        }
         return user;
+    }
+
+    private boolean isAdminOrAbove(UserRole role) {
+        return role == UserRole.ADMIN || role == UserRole.OWNER || role == UserRole.SUPER_ADMIN;
     }
 
     /**
@@ -359,6 +384,7 @@ public class UserController {
      */
     @PatchMapping("/{userId}/pay-rates")
     @PreAuthorize("hasRole('OWNER')")
+    @Transactional
     public ResponseEntity<StaffResponse> updatePayRates(
             @PathVariable Long userId,
             @RequestBody UpdatePayRatesRequest request,

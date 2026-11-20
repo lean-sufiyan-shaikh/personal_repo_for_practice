@@ -26,12 +26,8 @@ public class ShiftHandoverService {
 
     @Transactional
     public ShiftHandover createHandover(Long pumpId, CreateHandoverRequest request) {
-        Shift outgoingShift = shiftRepository.findById(request.outgoingShiftId())
+        Shift outgoingShift = shiftRepository.findByIdAndPumpIdForUpdate(request.outgoingShiftId(), pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
-
-        if (!outgoingShift.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Shift does not belong to this pump");
-        }
 
         if (outgoingShift.getStatus() != ShiftStatus.OPEN
                 && outgoingShift.getStatus() != ShiftStatus.OPEN_OVERDUE) {

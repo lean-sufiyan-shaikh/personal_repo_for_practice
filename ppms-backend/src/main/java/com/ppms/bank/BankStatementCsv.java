@@ -4,11 +4,17 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Parsing helpers for bank statement CSV rows (RFC 4180 quoting on a single line).
  */
 final class BankStatementCsv {
+
+    private static final Pattern DASH_PLACEHOLDER = Pattern.compile("[-\u2013\u2014]{1,2}");
+    private static final Pattern DEBIT_CREDIT_SUFFIX = Pattern.compile("(?i)\\s*(cr|dr)\\.?$");
+    private static final Pattern NOISE = Pattern.compile("[₹$,\\s\\p{Z}]|(?i)rs\\.?|(?i)inr");
 
     private BankStatementCsv() {
     }
@@ -49,21 +55,30 @@ final class BankStatementCsv {
     }
 
     /**
-     * Parses an amount such as "₹1,234.56", "Rs. 1,234.56", "-500" or "(500.00)". A blank cell is zero.
-     * A leading minus or surrounding brackets make the amount negative.
-     * Returns empty when the cell is not a number, so the caller can skip the row.
+     * Parses an amount such as "₹1,234.56", "Rs. 1,234.56", "-500", "(500.00)" or "12,345.00 Cr".
+     * A blank cell or a "-" / "--" placeholder is zero. A leading minus, surrounding brackets or a
+     * "Dr" suffix make the amount negative. Returns empty when the cell is not a number, so the
+     * caller can skip the row.
      */
     static Optional<BigDecimal> parseMoney(String raw) {
-        if (raw == null || raw.isBlank()) {
+        if (raw == null) {
             return Optional.of(BigDecimal.ZERO);
         }
-        String value = raw.trim();
-        boolean negative = false;
-        if (value.startsWith("(") && value.endsWith(")")) {
-            negative = true;
-            value = value.substring(1, value.length() - 1).trim();
+        String value = raw.replace("\uFEFF", "").strip();
+        if (value.isEmpty() || DASH_PLACEHOLDER.matcher(value).matches()) {
+            return Optional.of(BigDecimal.ZERO);
         }
-        value = value.replaceAll("[₹$,\\s]|(?i)rs\\.?|(?i)inr", "");
+        boolean negative = false;
+        Matcher suffix = DEBIT_CREDIT_SUFFIX.matcher(value);
+        if (suffix.find()) {
+            negative = suffix.group(1).equalsIgnoreCase("dr");
+            value = value.substring(0, suffix.start()).strip();
+        }
+        if (value.startsWith("(") && value.endsWith(")")) {
+            negative = !negative;
+            value = value.substring(1, value.length() - 1).strip();
+        }
+        value = NOISE.matcher(value).replaceAll("");
         if (value.startsWith("-")) {
             negative = !negative;
             value = value.substring(1);
@@ -73,5 +88,16 @@ final class BankStatementCsv {
         }
         BigDecimal amount = new BigDecimal(value);
         return Optional.of(negative ? amount.negate() : amount);
+    }
+
+    /**
+     * Balance is optional: a blank cell, a dash placeholder or an unreadable value gives null
+     * instead of rejecting the whole row.
+     */
+    static BigDecimal parseOptionalBalance(String raw) {
+        if (raw == null || raw.isBlank() || DASH_PLACEHOLDER.matcher(raw.strip()).matches()) {
+            return null;
+        }
+        return parseMoney(raw).orElse(null);
     }
 }

@@ -49,4 +49,30 @@ class BankStatementCsvTest {
         assertThat(BankStatementCsv.parseMoney("N/A")).isEqualTo(Optional.empty());
         assertThat(BankStatementCsv.parseMoney("12.3.4")).isEqualTo(Optional.empty());
     }
+
+    @Test
+    void dashPlaceholderIsZero() {
+        assertThat(BankStatementCsv.parseMoney("-")).contains(BigDecimal.ZERO);
+        assertThat(BankStatementCsv.parseMoney("--")).contains(BigDecimal.ZERO);
+    }
+
+    @Test
+    void crAndDrSuffixesSetTheSign() {
+        assertThat(BankStatementCsv.parseMoney("12,345.00 Cr")).contains(new BigDecimal("12345.00"));
+        assertThat(BankStatementCsv.parseMoney("500.00 Dr")).contains(new BigDecimal("-500.00"));
+        assertThat(BankStatementCsv.parseMoney("500.00DR.")).contains(new BigDecimal("-500.00"));
+    }
+
+    @Test
+    void nonBreakingSpaceThousandsSeparatorIsIgnored() {
+        assertThat(BankStatementCsv.parseMoney("1\u00A0234.50")).contains(new BigDecimal("1234.50"));
+        assertThat(BankStatementCsv.parseMoney("1\u202F234.50")).contains(new BigDecimal("1234.50"));
+    }
+
+    @Test
+    void unreadableBalanceBecomesNullInsteadOfRejectingTheRow() {
+        assertThat(BankStatementCsv.parseOptionalBalance("see note")).isNull();
+        assertThat(BankStatementCsv.parseOptionalBalance("-")).isNull();
+        assertThat(BankStatementCsv.parseOptionalBalance("10,000.00 Cr")).isEqualByComparingTo("10000.00");
+    }
 }

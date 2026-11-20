@@ -19,6 +19,7 @@ import com.ppms.credit.CreditInterestService;
 import com.ppms.credit.CreditLedgerQueryService;
 import com.ppms.credit.CreditLedgerService;
 import com.ppms.credit.CreditPayment;
+import com.ppms.credit.RecordPaymentRequest;
 import com.ppms.credit.CreditPaymentRepository;
 import com.ppms.credit.CreditTransactionResponse;
 import com.ppms.credit.PaymentMode;
@@ -154,10 +155,60 @@ class MoneyCorrectnessIntegrationTest {
 
         assertThatThrownBy(() -> payrollService.generate(pump.getId(), payrollRequest(discrepancy), owner))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("already exists");
+                .hasMessageContaining("already covers");
 
         assertThat(shiftRepository.findById(discrepancy.getId()).orElseThrow().getStatus())
                 .isEqualTo(ShiftStatus.CLOSED_DISCREPANCY_PENDING);
+    }
+
+    @Test
+    void payrollPeriodThatOverlapsAnEarlierOneIsRefused() {
+        payrollService.generate(pump.getId(), payrollRequest(null), owner);
+
+        GeneratePayrollRequest overlapping = payrollRequest(null);
+        overlapping.setPeriodFrom(LocalDate.now().minusDays(2));
+        overlapping.setPeriodTo(LocalDate.now().plusDays(5));
+
+        assertThatThrownBy(() -> payrollService.generate(pump.getId(), overlapping, owner))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("overlaps");
+    }
+
+    @Test
+    void discrepancyDeductedByOnePayrollIsNotDeductedAgainByAnother() {
+        Shift lastMonth = saveClosedShift(LocalDate.now().minusDays(20), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "500.00");
+        PayrollRecord current = payrollService.generate(pump.getId(), payrollRequest(lastMonth), owner);
+        assertThat(current.getDeductions()).isEqualByComparingTo("500.00");
+
+        GeneratePayrollRequest earlier = payrollRequest(null);
+        earlier.setPeriodFrom(LocalDate.now().minusDays(30));
+        earlier.setPeriodTo(LocalDate.now().minusDays(8));
+        PayrollRecord earlierPayroll = payrollService.generate(pump.getId(), earlier, owner);
+
+        assertThat(earlierPayroll.getDeductions()).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void subAccountPaymentCannotTakeTheGroupBelowZero() {
+        CreditClient parent = saveClient(BigDecimal.ZERO);
+        CreditClient child = clientRepository.save(CreditClient.builder()
+                .pumpId(pump.getId())
+                .name("Child " + shortId())
+                .parentClientId(parent.getId())
+                .monthlyInterestRate(BigDecimal.ZERO)
+                .build());
+        Shift shift = saveClosedShift(LocalDate.now(), ShiftStatus.CLOSED_BALANCED, null);
+        saveCreditSale(shift, child, "1000.00", "ACTIVE");
+        savePayment(parent, "1000.00", ExpenseApprovalStatus.APPROVED, owner);
+
+        RecordPaymentRequest request = new RecordPaymentRequest();
+        request.setAmount(new BigDecimal("1000.00"));
+        request.setPaymentMode(PaymentMode.CASH);
+        request.setPaidAt(LocalDate.now());
+
+        assertThatThrownBy(() -> ledgerService.recordPayment(pump.getId(), child.getId(), request, owner))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("exceeds the amount still payable");
     }
 
     @Test

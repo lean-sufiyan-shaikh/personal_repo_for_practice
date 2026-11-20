@@ -7,13 +7,19 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
- * Resolves the caller's IP. X-Forwarded-For is trusted only when the direct peer is a
- * configured proxy (single IPs or CIDR ranges), so clients cannot spoof their IP.
+ * Resolves the caller's IP. X-Forwarded-For is read right to left, skipping configured proxies,
+ * because entries left of the last trusted hop are written by the client and can be forged.
  */
 @Component
 public class ClientIpResolver {
+
+    private static final int MAX_IP_LENGTH = 45;
+    private static final Pattern IPV4 = Pattern.compile(
+            "^((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)$");
+    private static final Pattern IPV6 = Pattern.compile("^[0-9a-fA-F:.]{2,45}$");
 
     private final List<IpAddressMatcher> trustedProxies;
 
@@ -27,16 +33,37 @@ public class ClientIpResolver {
 
     public String resolve(HttpServletRequest request) {
         String remoteAddr = request.getRemoteAddr();
-        if (isTrustedProxy(remoteAddr)) {
-            String forwarded = request.getHeader("X-Forwarded-For");
-            if (forwarded != null && !forwarded.isBlank()) {
-                return forwarded.split(",")[0].trim();
+        if (!isTrustedProxy(remoteAddr)) {
+            return remoteAddr;
+        }
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded == null || forwarded.isBlank()) {
+            return remoteAddr;
+        }
+        String[] hops = forwarded.split(",");
+        for (int i = hops.length - 1; i >= 0; i--) {
+            String hop = hops[i].trim();
+            if (!isValidIp(hop)) {
+                return remoteAddr;
+            }
+            if (!isTrustedProxy(hop)) {
+                return hop;
             }
         }
         return remoteAddr;
     }
 
-    private boolean isTrustedProxy(String remoteAddr) {
-        return trustedProxies.stream().anyMatch(matcher -> matcher.matches(remoteAddr));
+    private boolean isTrustedProxy(String address) {
+        return isValidIp(address) && trustedProxies.stream().anyMatch(matcher -> matcher.matches(address));
+    }
+
+    static boolean isValidIp(String value) {
+        if (value == null || value.isEmpty() || value.length() > MAX_IP_LENGTH) {
+            return false;
+        }
+        if (IPV4.matcher(value).matches()) {
+            return true;
+        }
+        return value.contains(":") && IPV6.matcher(value).matches();
     }
 }

@@ -52,15 +52,18 @@ public class PayrollService {
             throw new BusinessException("periodTo must be on or after periodFrom");
         }
 
-        User staff = userRepository.findById(req.getUserId())
+        // The staff row lock serialises payroll generation per person, so two overlapping runs cannot both pass the check.
+        User staff = userRepository.findByIdForUpdate(req.getUserId())
                 .filter(found -> pumpId.equals(found.getAssignedPumpId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Staff member not found"));
 
-        if (payrollRepository.existsByPumpIdAndUserIdAndPeriodFromAndPeriodTo(
-                pumpId, req.getUserId(), req.getPeriodFrom(), req.getPeriodTo())) {
-            throw new BusinessException("A payroll record already exists for " + staff.getFullName()
-                    + " for " + req.getPeriodFrom() + " to " + req.getPeriodTo() + ".");
-        }
+        payrollRepository.findFirstByPumpIdAndUserIdAndPeriodFromLessThanEqualAndPeriodToGreaterThanEqual(
+                        pumpId, req.getUserId(), req.getPeriodTo(), req.getPeriodFrom())
+                .ifPresent(existing -> {
+                    throw new BusinessException("A payroll record for " + staff.getFullName() + " already covers "
+                            + existing.getPeriodFrom() + " to " + existing.getPeriodTo()
+                            + ", which overlaps " + req.getPeriodFrom() + " to " + req.getPeriodTo() + ".");
+                });
 
         ResolvedShifts resolved = resolveSelectedDiscrepancies(pumpId, req, currentUser);
 

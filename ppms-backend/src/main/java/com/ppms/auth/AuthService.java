@@ -50,7 +50,7 @@ public class AuthService {
             // Embed role and pump into the JWT so the frontend can read them without an extra API call
             String token = jwtService.generateToken(user, Map.of(
                     "role", user.getRole().name(),
-                    "userId", user.getId(),
+                    JwtService.USER_ID_CLAIM, user.getId(),
                     "pumpId", user.getAssignedPumpId() != null ? user.getAssignedPumpId() : "",
                     JwtService.TOKEN_VERSION_CLAIM, user.getTokenVersion()
             ));
@@ -75,16 +75,19 @@ public class AuthService {
 
     @Transactional
     public void changePassword(User currentUser, String currentPassword, String newPassword) {
-        if (!passwordEncoder.matches(currentPassword, currentUser.getPasswordHash())) {
+        User user = userRepository.findByIdForUpdate(currentUser.getId())
+                .orElseThrow(() -> new BusinessException("User not found"));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new BusinessException("Current password is incorrect.");
         }
 
-        if (passwordEncoder.matches(newPassword, currentUser.getPasswordHash())) {
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
             throw new BusinessException("New password must be different from your current password.");
         }
 
-        currentUser.setPasswordHash(passwordEncoder.encode(newPassword));
-        currentUser.setTokenVersion(currentUser.getTokenVersion() + 1);
-        userRepository.save(currentUser);
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setTokenVersion(user.getTokenVersion() + 1);
+        userRepository.save(user);
     }
 }

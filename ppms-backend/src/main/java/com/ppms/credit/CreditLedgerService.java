@@ -40,6 +40,7 @@ public class CreditLedgerService {
     private final CreditEntryReassignmentRepository reassignmentRepository;
     private final CreditInterestService interestService;
     private final ApprovalPolicy approvalPolicy;
+    private final CreditAccountPolicyService creditAccountPolicyService;
     private final UserRepository userRepository;
     private final BusinessClock businessClock;
 
@@ -61,25 +62,18 @@ public class CreditLedgerService {
             throw new BusinessException("Client does not belong to this pump");
         }
 
-        lockPaymentGroup(client);
+        creditAccountPolicyService.lockLimitHolder(client);
 
-        // For parent accounts: outstanding includes all children — payments against the parent
-        // can settle up to the full group balance, not just the parent's own portion.
-        // Payments still awaiting approval are reserved so they cannot together over-pay.
-        List<Long> scopeClientIds = paymentScopeClientIds(clientId);
-        BigDecimal outstanding = outstandingForPaymentScope(clientId, scopeClientIds);
-        BigDecimal pending = paymentRepository.sumPendingAmountByClientIds(scopeClientIds);
-        BigDecimal payable = outstanding.subtract(pending).setScale(2, RoundingMode.HALF_UP);
-
+        BigDecimal payable = payableAmount(client);
         BigDecimal paymentAmount = request.getAmount().setScale(2, RoundingMode.HALF_UP);
         if (paymentAmount.compareTo(payable) > 0) {
             throw new BusinessException(
-                    "Payment amount (" + paymentAmount + ") exceeds the outstanding balance (" + outstanding + ")"
-                            + (pending.signum() > 0 ? " less payments awaiting approval (" + pending + ")" : "")
-                            + ". You cannot over-pay a credit account.");
+                    "Payment amount (" + paymentAmount + ") exceeds the amount still payable (" + payable + "), "
+                            + "which is the outstanding balance less payments awaiting approval. "
+                            + "You cannot over-pay a credit account.");
         }
 
-        ExpenseApprovalStatus approvalStatus = approvalPolicy.resolveStatus(pumpId, currentUser, paymentAmount);
+        ExpenseApprovalStatus approvalStatus = approvalPolicy.resolveCreditPaymentStatus(pumpId, currentUser, paymentAmount);
         if (approvalStatus == ExpenseApprovalStatus.PENDING_APPROVAL) {
             log.info("Credit payment set to PENDING_APPROVAL: pumpId={} amount={}", pumpId, paymentAmount);
         }
@@ -128,6 +122,8 @@ public class CreditLedgerService {
             throw new BusinessException("Interest charge does not belong to this pump");
         }
 
+        creditAccountPolicyService.lockLimitHolderOfClient(clientId);
+
         interestChargeRepository.deleteById(chargeId);
 
         log.info("Interest charge deleted: pump={}, client={}, chargeId={}, amount={}, period={}/{}, deletedBy={}",
@@ -167,6 +163,7 @@ public class CreditLedgerService {
 
         Long fromClientId = entry.getClientId(); // null when entry was never linked to a client
         validateGroupMove(pumpId, fromClientId, request.getToClientId());
+        creditAccountPolicyService.lockLimitHolder(toClient);
 
         // Bug 6 fix: only save an audit record when the entry had a previous client.
         // When fromClientId is null the entry was never assigned — this is an initial assignment,
@@ -212,6 +209,9 @@ public class CreditLedgerService {
         }
 
         validateGroupMove(pumpId, payment.getClientId(), request.getToClientId());
+        CreditClient toClient = clientRepository.findById(request.getToClientId())
+                .orElseThrow(() -> new ResourceNotFoundException("Target credit client not found"));
+        creditAccountPolicyService.lockLimitHolder(toClient);
 
         Long fromClientId = payment.getClientId();
         payment.setClientId(request.getToClientId());
@@ -228,7 +228,7 @@ public class CreditLedgerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
         CreditClient client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Credit client not found"));
-        lockPaymentGroup(client);
+        creditAccountPolicyService.lockLimitHolder(client);
 
         CreditPayment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
@@ -242,12 +242,11 @@ public class CreditLedgerService {
         }
 
         if (newStatus == ExpenseApprovalStatus.APPROVED) {
-            BigDecimal outstanding = outstandingForPaymentScope(
-                    payment.getClientId(), paymentScopeClientIds(payment.getClientId()));
-            if (payment.getAmount().compareTo(outstanding) > 0) {
+            BigDecimal payableIncludingThisPayment = payableAmount(client).add(payment.getAmount());
+            if (payment.getAmount().compareTo(payableIncludingThisPayment) > 0) {
                 throw new BusinessException(
-                        "Approving this payment (" + payment.getAmount() + ") would exceed the current outstanding balance ("
-                                + outstanding + "). Reject it or record a smaller payment.");
+                        "Approving this payment (" + payment.getAmount() + ") would exceed the amount still payable ("
+                                + payableIncludingThisPayment + "). Reject it or record a smaller payment.");
             }
         }
 
@@ -257,23 +256,24 @@ public class CreditLedgerService {
         return paymentRepository.save(payment);
     }
 
-    /** Serialises payment recording and approval for one parent / sub-account group. */
-    private void lockPaymentGroup(CreditClient client) {
-        Long holderId = client.getParentClientId() != null ? client.getParentClientId() : client.getId();
-        clientRepository.findByIdForUpdate(holderId);
-    }
+    /**
+     * Outstanding less payments awaiting approval, for the whole parent / sub-account group.
+     * A sub-account payment is also capped at that sub-account's own payable balance.
+     */
+    private BigDecimal payableAmount(CreditClient client) {
+        Long holderId = creditAccountPolicyService.limitHolderId(client);
+        List<Long> groupClientIds = new ArrayList<>();
+        groupClientIds.add(holderId);
+        clientRepository.findByParentClientId(holderId).forEach(child -> groupClientIds.add(child.getId()));
 
-    private List<Long> paymentScopeClientIds(Long clientId) {
-        List<Long> ids = new ArrayList<>();
-        ids.add(clientId);
-        clientRepository.findByParentClientId(clientId).forEach(child -> ids.add(child.getId()));
-        return ids;
-    }
-
-    private BigDecimal outstandingForPaymentScope(Long clientId, List<Long> scopeClientIds) {
-        return scopeClientIds.size() > 1
-                ? interestService.computeOutstandingWithChildren(clientId)
-                : interestService.computeOutstanding(clientId);
+        BigDecimal groupPayable = interestService.computeOutstandingWithChildren(holderId)
+                .subtract(paymentRepository.sumPendingAmountByClientIds(groupClientIds));
+        if (client.getId().equals(holderId)) {
+            return groupPayable.setScale(2, RoundingMode.HALF_UP);
+        }
+        BigDecimal ownPayable = interestService.computeOutstanding(client.getId())
+                .subtract(paymentRepository.sumPendingAmountByClientIds(List.of(client.getId())));
+        return groupPayable.min(ownPayable).setScale(2, RoundingMode.HALF_UP);
     }
 
     public String resolveRecordedByName(Long userId) {

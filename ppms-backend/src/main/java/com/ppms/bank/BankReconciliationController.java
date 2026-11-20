@@ -170,13 +170,13 @@ public class BankReconciliationController {
                 String narration = cols.get(1).trim();
                 Optional<BigDecimal> debit  = BankStatementCsv.parseMoney(cols.get(2));
                 Optional<BigDecimal> credit = BankStatementCsv.parseMoney(cols.get(3));
-                Optional<BigDecimal> balance = cols.size() > 4 ? BankStatementCsv.parseMoney(cols.get(4)) : Optional.of(BigDecimal.ZERO);
-                if (debit.isEmpty() || credit.isEmpty() || balance.isEmpty()) {
-                    log.warn("Skipping CSV row dated {} — unparseable amount (debit='{}', credit='{}', balance='{}')",
-                            txnDate, cols.get(2), cols.get(3), cols.size() > 4 ? cols.get(4) : "");
+                if (debit.isEmpty() || credit.isEmpty()) {
+                    log.warn("Skipping CSV row dated {} — unparseable amount (debit='{}', credit='{}')",
+                            txnDate, cols.get(2), cols.get(3));
                     skippedRows++;
                     continue;
                 }
+                BigDecimal balance = cols.size() > 4 ? BankStatementCsv.parseOptionalBalance(cols.get(4)) : null;
                 String utr = cols.size() > 5 ? cols.get(5).trim() : null;
 
                 if (minDate == null || txnDate.isBefore(minDate)) minDate = txnDate;
@@ -187,7 +187,7 @@ public class BankReconciliationController {
                         .narration(narration.isEmpty() ? null : narration)
                         .debitAmount(debit.get())
                         .creditAmount(credit.get())
-                        .balance(cols.size() > 4 ? balance.get() : null)
+                        .balance(balance)
                         .utrReference(utr != null && !utr.isEmpty() ? utr : null)
                         .matchStatus(BankLineMatchStatus.UNMATCHED)
                         .build());
