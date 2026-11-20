@@ -17,7 +17,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -90,7 +89,8 @@ public class PumpShiftDefinitionService {
     /**
      * Determines which shift definition matches the current time for the given pump, and the
      * business date of that shift. A night shift opened after midnight belongs to the previous day,
-     * so the definitions in force on that previous day are checked first.
+     * so only the definitions in force on that previous day can match its after-midnight part; a
+     * definition that starts today has not begun its own night yet.
      *
      * @throws BusinessException if no active definition covers the current time
      */
@@ -108,8 +108,7 @@ public class PumpShiftDefinitionService {
                     "Ask an admin to set up shift definitions under Pump Settings.");
         }
 
-        Optional<PumpShiftDefinition> continuingNightShift = Stream.concat(
-                        yesterdaysDefinitions.stream(), todaysDefinitions.stream())
+        Optional<PumpShiftDefinition> continuingNightShift = yesterdaysDefinitions.stream()
                 .filter(d -> d.isInAfterMidnightPart(time))
                 .findFirst();
         if (continuingNightShift.isPresent()) {
@@ -117,7 +116,7 @@ public class PumpShiftDefinitionService {
         }
 
         return todaysDefinitions.stream()
-                .filter(d -> d.containsTime(time))
+                .filter(d -> d.containsTime(time) && !d.isInAfterMidnightPart(time))
                 .findFirst()
                 .map(d -> new CurrentShiftWindow(d, today))
                 .orElseThrow(() -> new BusinessException(

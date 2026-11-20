@@ -33,19 +33,25 @@ public class BalanceSheetDetailAssembler {
             BalanceSheetDetailResponse.ProductSalesSummary productSalesSummary,
             BalanceSheetDetailResponse.ExpenseSummary expenseSummary) {
 
-        BigDecimal totalDipNetAmount = balanceSheet.getTotalDipNetAmount() != null
-                ? balanceSheet.getTotalDipNetAmount()
-                : dipPlEntries.stream()
-                        .map(DipPlLineResponse::getMonetaryAmount)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add)
-                        .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal liveDipNetAmount = dipPlEntries.stream()
+                .map(DipPlLineResponse::getMonetaryAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal liveProductSalesGrossProfit = productSalesSummary != null
+                ? supportService.orZero(productSalesSummary.getGrossProfit()) : BigDecimal.ZERO;
+        BigDecimal liveExpensesAmount = expenseSummary != null
+                ? supportService.orZero(expenseSummary.getTotalAmount()) : BigDecimal.ZERO;
 
+        // Sheets saved before the totals were stored fall back to the live line items.
+        BigDecimal totalDipNetAmount = balanceSheet.getTotalDipNetAmount() != null
+                ? balanceSheet.getTotalDipNetAmount() : liveDipNetAmount;
         BigDecimal productSalesGrossProfit = balanceSheet.getProductSalesGrossProfit() != null
-                ? balanceSheet.getProductSalesGrossProfit()
-                : productSalesSummary != null ? supportService.orZero(productSalesSummary.getGrossProfit()) : BigDecimal.ZERO;
+                ? balanceSheet.getProductSalesGrossProfit() : liveProductSalesGrossProfit;
         BigDecimal totalExpensesAmount = balanceSheet.getTotalExpensesAmount() != null
-                ? balanceSheet.getTotalExpensesAmount()
-                : expenseSummary != null ? supportService.orZero(expenseSummary.getTotalAmount()) : BigDecimal.ZERO;
+                ? balanceSheet.getTotalExpensesAmount() : liveExpensesAmount;
+        boolean linesChangedSinceGenerated = totalDipNetAmount.compareTo(liveDipNetAmount) != 0
+                || productSalesGrossProfit.compareTo(liveProductSalesGrossProfit) != 0
+                || totalExpensesAmount.compareTo(liveExpensesAmount) != 0;
 
         BigDecimal totalNetProfit = supportService.orZero(balanceSheet.getTotalGrossProfit())
                 .add(totalDipNetAmount)
@@ -94,6 +100,7 @@ public class BalanceSheetDetailAssembler {
                 .totalGrossProfit(balanceSheet.getTotalGrossProfit())
                 .totalDipNetAmount(totalDipNetAmount)
                 .totalNetProfit(totalNetProfit)
+                .linesChangedSinceGenerated(linesChangedSinceGenerated)
                 .fuelLines(fuelLines.stream().map(line -> BsFuelLineResponse.builder()
                         .fuelType(line.getFuelType())
                         .openingStock(line.getOpeningStock())

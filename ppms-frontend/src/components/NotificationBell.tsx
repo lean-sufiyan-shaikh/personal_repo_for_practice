@@ -16,14 +16,16 @@ export default function NotificationBell({ pumpId }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  const { data: notifications = [] } = useQuery({
+  const { data } = useQuery({
     queryKey:        ['notifications', pumpId],
     queryFn:         () => notificationApi.getNotifications(pumpId),
     refetchInterval: 60_000, // poll every 60 seconds
   })
+  const notifications = data?.notifications ?? []
+  const unreadCount   = data?.unreadCount ?? 0
 
   const markReadMutation = useMutation({
-    mutationFn: () => notificationApi.markAllRead(pumpId),
+    mutationFn: (ids: number[]) => notificationApi.markRead(pumpId, ids),
     onSuccess:  () => qc.invalidateQueries({ queryKey: ['notifications', pumpId] }),
   })
 
@@ -42,8 +44,8 @@ export default function NotificationBell({ pumpId }: Props) {
     setOpen(s => !s)
   }
 
-  const handleMarkAllRead = () => {
-    if (unread.length > 0) markReadMutation.mutate()
+  const handleMarkShownRead = () => {
+    if (unread.length > 0) markReadMutation.mutate(unread.map(n => n.id))
   }
 
   function TypeIcon({ type }: { type: string }) {
@@ -67,15 +69,15 @@ export default function NotificationBell({ pumpId }: Props) {
       {/* Bell button */}
       <button
         onClick={handleOpen}
-        aria-label={`Notifications${unread.length > 0 ? `, ${unread.length} unread` : ''}`}
+        aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
         aria-expanded={open}
         aria-haspopup="true"
         className="ui-notification-bell relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 shadow-sm hover:border-white/20 hover:bg-white/10 hover:text-white"
       >
         <Bell size={18} strokeWidth={1.75} />
-        {unread.length > 0 && (
+        {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center leading-none">
-            {unread.length > 9 ? '9+' : unread.length}
+            {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
@@ -86,15 +88,17 @@ export default function NotificationBell({ pumpId }: Props) {
           <div className="ui-notification-panel__head flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
             <div>
               <p className="text-sm font-semibold text-slate-800">Notifications</p>
-              <p className="mt-0.5 text-xs text-slate-400">{unread.length} unread</p>
+              <p className="mt-0.5 text-xs text-slate-400">
+                {unreadCount} unread{unreadCount > notifications.length ? ` · showing newest ${notifications.length}` : ''}
+              </p>
             </div>
             {unread.length > 0 && (
               <button
-                onClick={handleMarkAllRead}
+                onClick={handleMarkShownRead}
                 disabled={markReadMutation.isPending}
                 className="ui-btn ui-btn-ghost min-h-8 px-2.5 py-1 text-xs"
               >
-                Mark all read
+                {unreadCount > unread.length ? 'Mark shown read' : 'Mark all read'}
               </button>
             )}
           </div>

@@ -524,6 +524,12 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
                 accent={detail.totalNetProfit >= 0 ? 'green' : 'red'}
               />
             ))}
+          {isOwnerOrAdmin && detail.linesChangedSinceGenerated && (
+            <p className="text-xs text-amber-600 col-span-full mt-1">
+              Some dip, product or expense entries changed after this sheet was generated. Totals show the
+              values saved at generation; regenerate the sheet to include the changes.
+            </p>
+          )}
           {!isOwnerOrAdmin && (
             <p className="text-xs text-slate-400 col-span-full mt-1">
               Financial details (cost, profit, P/L) are visible to Owner and Admin only.

@@ -68,20 +68,22 @@ public class NotificationService {
     }
 
     /**
-     * Returns the newest 100 unread notifications for a pump. Does NOT generate new ones —
-     * generation is handled by NotificationGenerationJob on a background schedule.
+     * Returns the newest 100 unread notifications for a pump and the total unread count. Does NOT generate
+     * new ones — generation is handled by NotificationGenerationJob on a background schedule.
      */
-    public List<Notification> getUnreadNotifications(Long pumpId) {
-        return notificationRepository.findTop100ByPumpIdAndReadAtIsNullOrderByCreatedAtDesc(pumpId);
+    public NotificationListResponse getUnreadNotifications(Long pumpId) {
+        return new NotificationListResponse(
+                notificationRepository.findTop100ByPumpIdAndReadAtIsNullOrderByCreatedAtDesc(pumpId),
+                notificationRepository.countByPumpIdAndReadAtIsNull(pumpId));
     }
 
     /**
-     * Deletes notifications read more than {@code days} ago. A deleted row frees its dedup key, so a
-     * condition that is still true (e.g. a document still expired) alerts once more.
+     * Deletes one batch of notifications read more than {@code days} ago, in its own transaction. A deleted
+     * row frees its dedup key, so a condition that is still true (e.g. a document still expired) alerts once more.
      */
     @Transactional
-    public int deleteReadOlderThan(int days) {
-        return notificationRepository.deleteReadBefore(businessClock.now().minusDays(days));
+    public int deleteReadBatchOlderThan(int days, int batchSize) {
+        return notificationRepository.deleteReadBefore(businessClock.now().minusDays(days), batchSize);
     }
 
     /**
@@ -113,12 +115,10 @@ public class NotificationService {
                 .toList();
     }
 
-    /**
-     * Marks all unread notifications for a pump as read.
-     */
+    /** Marks only the given notifications of this pump as read, so alerts the user has not seen stay unread. */
     @Transactional
-    public void markAllRead(Long pumpId) {
-        notificationRepository.markAllReadForPump(pumpId);
+    public int markRead(Long pumpId, List<Long> ids) {
+        return ids.isEmpty() ? 0 : notificationRepository.markReadForPump(pumpId, ids);
     }
 
     // ── Private generation helpers ────────────────────────────────────────────
@@ -171,7 +171,7 @@ public class NotificationService {
     }
 
     /**
-     * P2.4 — Generates a ZERO_SALE_SHIFT alert for each closed shift today where:
+     * P2.4 — Generates a ZERO_SALE_SHIFT alert for each shift closed since the start of yesterday where:
      *   - total_amount_due == 0 (no sales recorded)
      *   - shift duration > 30 minutes (too long to be a test or accidental open)
      *
@@ -180,11 +180,9 @@ public class NotificationService {
      * One alert per shift is generated using the shift ID as the dedup key.
      */
     private void generateZeroSaleAlerts(Long pumpId) {
-        LocalDate today = businessClock.today();
-        List<Shift> todayShifts = shiftRepository.findClosedShiftsByDate(pumpId, today);
-
-        todayShifts.stream()
-                .filter(shift -> shift.getTotalAmountDue() != null
+        recentlyEndedShifts(pumpId).stream()
+                .filter(shift -> shift.getStatus() != ShiftStatus.AUTO_CLOSED_OVERDUE
+                        && shift.getTotalAmountDue() != null
                         && shift.getTotalAmountDue().compareTo(BigDecimal.ZERO) == 0
                         && shift.getActualStartTime() != null
                         && shift.getActualEndTime() != null
@@ -199,14 +197,13 @@ public class NotificationService {
     }
 
     /**
-     * Generates AUTO_CLOSED_SHIFT alerts for shifts that the OverdueShiftJob force-closed today.
+     * Generates AUTO_CLOSED_SHIFT alerts for shifts that the OverdueShiftJob force-closed since the start of yesterday.
      * These shifts are in AUTO_CLOSED_OVERDUE status and have no end-meter readings,
      * meaning management must perform a manual reconciliation.
      * Dedup key is per shift ID — one alert per affected shift.
      */
     private void generateAutoClosedShiftAlerts(Long pumpId) {
-        LocalDate today = businessClock.today();
-        shiftRepository.findClosedShiftsByDate(pumpId, today).stream()
+        recentlyEndedShifts(pumpId).stream()
                 .filter(shift -> shift.getStatus() == ShiftStatus.AUTO_CLOSED_OVERDUE)
                 .forEach(shift -> {
                     String dedupKey = "AUTO_CLOSED_SHIFT:shift:" + shift.getId();
@@ -215,6 +212,15 @@ public class NotificationService {
                             "Shift #" + shift.getId() + " was automatically closed because the operator never submitted " +
                             "closing meter readings. End-meter data is missing — a manual reconciliation is required.");
                 });
+    }
+
+    /**
+     * Shifts that ended since the start of yesterday, matched by end time so a night shift dated the
+     * previous day is still seen. Alerts are deduplicated per shift, so the overlap between runs is harmless.
+     */
+    private List<Shift> recentlyEndedShifts(Long pumpId) {
+        return shiftRepository.findShiftsEndedBetween(pumpId,
+                businessClock.startOfDay(businessClock.today().minusDays(1)), businessClock.now());
     }
 
     /**

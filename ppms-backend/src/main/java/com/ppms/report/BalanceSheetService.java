@@ -125,28 +125,35 @@ public class BalanceSheetService {
                     : shiftRepository.sumCashRecoveriesOnDate(pumpId, reportDate));
         }
 
-        // Rebuilt from the lot ledger so historical reports show the stock of their own period.
-        // SHIFT reports span from the first included shift's start to the last one's end.
-        OffsetDateTime stockFrom = isShift
-                ? shifts.stream().map(Shift::getActualStartTime).filter(Objects::nonNull)
-                        .min(Comparator.naturalOrder()).orElse(period.start())
-                : period.start();
-        OffsetDateTime stockTo = isShift
-                ? shifts.stream().map(Shift::getActualEndTime).filter(Objects::nonNull)
-                        .max(Comparator.naturalOrder()).orElse(period.end())
-                : period.end();
-        Map<FuelType, BigDecimal> openingStockByFuel = stockByFuelTypeAt(pumpId, stockFrom);
-        Map<FuelType, BigDecimal> closingStockByFuel = stockByFuelTypeAt(pumpId, stockTo);
+        // Rebuilt from the lot ledger so historical reports show the stock of their own period, measured
+        // the same way the report picks its shifts: SHIFT and live DAY by shift end time, historical DAY by
+        // shift date. SHIFT reports span from the first included shift's start to the last one's end.
+        Map<FuelType, BigDecimal> openingStockByFuel;
+        Map<FuelType, BigDecimal> closingStockByFuel;
+        if (isShift) {
+            OffsetDateTime stockFrom = shifts.stream().map(Shift::getActualStartTime).filter(Objects::nonNull)
+                    .min(Comparator.naturalOrder()).orElse(period.start());
+            OffsetDateTime stockTo = shifts.stream().map(Shift::getActualEndTime).filter(Objects::nonNull)
+                    .max(Comparator.naturalOrder()).orElse(period.end());
+            openingStockByFuel = stockByFuelTypeAt(pumpId, stockFrom);
+            closingStockByFuel = stockByFuelTypeAt(pumpId, stockTo);
+        } else if (isLiveDay) {
+            openingStockByFuel = stockByFuelTypeAt(pumpId, period.start());
+            closingStockByFuel = stockByFuelTypeAt(pumpId, period.end());
+        } else {
+            openingStockByFuel = stockByFuelTypeBeforeDay(pumpId, reportDate);
+            closingStockByFuel = stockByFuelTypeBeforeDay(pumpId, reportDate.plusDays(1));
+        }
 
         Map<Long, FuelType> tankFuelTypeMap = tankFuelTypesFor(pumpId);
         List<FuelDipEntry> dipEntries = dipEntriesFor(pumpId, period);
         DipLosses dipLosses = sumDipLosses(dipEntries);
         // Dipstick variances (measured vs system stock) of every review status; distinct from dip
         // entries, which are fuel physically removed for maintenance or testing.
-        List<DipCheck> dipChecks = dipCheckRepository.findByPumpIdAndCheckedAtBetween(pumpId, period.start(), period.end());
+        List<DipCheck> dipChecks = dipCheckRepository.findByPumpIdAndCheckedAtGreaterThanEqualAndCheckedAtLessThan(pumpId, period.start(), period.end());
         Map<FuelType, BigDecimal> dipVarianceByFuel = sumDipCheckVariance(dipChecks, tankFuelTypeMap);
         List<NozzleReadingAdjustment> amendments =
-                adjustmentRepository.findByPumpIdAndCreatedAtBetweenOrderByCreatedAtAsc(pumpId, period.start(), period.end());
+                adjustmentRepository.findByPumpIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(pumpId, period.start(), period.end());
         List<DipPlLineResponse> dipPlEntries = supportService.buildDipPlEntries(pumpId, dipEntries, dipChecks, tankFuelTypeMap);
 
         // Totals that feed net profit are stored with the sheet so later price changes or late
@@ -319,7 +326,7 @@ public class BalanceSheetService {
     private Deliveries sumDeliveries(Long pumpId, ReportPeriod period) {
         Map<FuelType, BigDecimal> litresByFuel = new EnumMap<>(FuelType.class);
         Map<FuelType, BigDecimal> costByFuel = new EnumMap<>(FuelType.class);
-        for (TankerDelivery d : tankerDeliveryRepository.findByPumpIdAndDeliveryDateBetween(pumpId, period.start(), period.end())) {
+        for (TankerDelivery d : tankerDeliveryRepository.findByPumpIdAndDeliveryDateGreaterThanEqualAndDeliveryDateLessThan(pumpId, period.start(), period.end())) {
             litresByFuel.merge(d.getFuelType(), d.getQuantityDelivered(), BigDecimal::add);
             costByFuel.merge(d.getFuelType(), d.getQuantityDelivered().multiply(d.getCostPricePerUnit()), BigDecimal::add);
         }
@@ -588,13 +595,13 @@ public class BalanceSheetService {
         OffsetDateTime to   = period.end();
 
         List<NozzleReadingAdjustment> amendments =
-                adjustmentRepository.findByPumpIdAndCreatedAtBetweenOrderByCreatedAtAsc(pumpId, from, to);
+                adjustmentRepository.findByPumpIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(pumpId, from, to);
 
         List<MeterAmendmentLineResponse> amendmentLines = buildAmendmentLines(amendments);
 
         List<FuelDipEntry> dipEntries = dipEntriesFor(pumpId, period);
         List<DipCheck> dipChecks =
-                dipCheckRepository.findByPumpIdAndCheckedAtBetween(pumpId, from, to);
+                dipCheckRepository.findByPumpIdAndCheckedAtGreaterThanEqualAndCheckedAtLessThan(pumpId, from, to);
 
         Map<Long, FuelType> tankFuelTypeMap = tankFuelTypesFor(pumpId);
 
@@ -716,13 +723,25 @@ public class BalanceSheetService {
                 : fuelDipEntryRepository.findByPumpIdAndDipDateBetween(pumpId, period.reportDate(), period.reportDate());
     }
 
-    /** Litres held per fuel type at {@code asOf}: everything received before it minus everything consumed by it. */
+    /** Litres held per fuel type at {@code asOf}: lots received before it minus what had been consumed by then. */
     private Map<FuelType, BigDecimal> stockByFuelTypeAt(Long pumpId, OffsetDateTime asOf) {
+        return netStock(inventoryLotRepository.sumReceivedByFuelTypeBefore(pumpId, asOf),
+                lotConsumptionRepository.sumConsumedByFuelTypeAsOf(pumpId, asOf));
+    }
+
+    /** Litres held per fuel type at the start of {@code day}, with shift sales attributed by shift date. */
+    private Map<FuelType, BigDecimal> stockByFuelTypeBeforeDay(Long pumpId, LocalDate day) {
+        OffsetDateTime dayStart = supportService.startOfBusinessDay(day);
+        return netStock(inventoryLotRepository.sumReceivedByFuelTypeBefore(pumpId, dayStart),
+                lotConsumptionRepository.sumConsumedByFuelTypeBeforeDay(pumpId, day, dayStart));
+    }
+
+    private static Map<FuelType, BigDecimal> netStock(List<Object[]> receivedRows, List<Object[]> consumedRows) {
         Map<FuelType, BigDecimal> stock = new EnumMap<>(FuelType.class);
-        for (Object[] row : inventoryLotRepository.sumReceivedByFuelTypeBefore(pumpId, asOf)) {
+        for (Object[] row : receivedRows) {
             stock.merge((FuelType) row[0], (BigDecimal) row[1], BigDecimal::add);
         }
-        for (Object[] row : lotConsumptionRepository.sumConsumedByFuelTypeUpTo(pumpId, asOf)) {
+        for (Object[] row : consumedRows) {
             stock.merge((FuelType) row[0], ((BigDecimal) row[1]).negate(), BigDecimal::add);
         }
         return stock;
@@ -774,7 +793,7 @@ public class BalanceSheetService {
 
         OffsetDateTime periodStart = supportService.startOfBusinessDay(from);
         OffsetDateTime periodEnd   = supportService.startOfBusinessDay(to.plusDays(1));
-        List<DipCheck> dipChecks = dipCheckRepository.findByPumpIdAndCheckedAtBetween(pumpId, periodStart, periodEnd);
+        List<DipCheck> dipChecks = dipCheckRepository.findByPumpIdAndCheckedAtGreaterThanEqualAndCheckedAtLessThan(pumpId, periodStart, periodEnd);
 
         Map<Long, FuelType> tankFuelTypeMap = tankFuelTypesFor(pumpId);
 

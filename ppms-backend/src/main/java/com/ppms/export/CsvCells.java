@@ -7,7 +7,7 @@ final class CsvCells {
     private CsvCells() {
     }
 
-    static String number(Object value) {
+    static String number(Number value) {
         return value == null ? "" : value.toString();
     }
 

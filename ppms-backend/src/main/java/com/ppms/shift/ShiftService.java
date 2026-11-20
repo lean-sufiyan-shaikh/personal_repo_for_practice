@@ -184,7 +184,7 @@ public class ShiftService {
         for (ShiftFuelReading reading : readings) {
             if (reading.getUnitsSold() != null && reading.getUnitsSold().compareTo(ZERO) > 0) {
                 fuelDeductionService.deductForShiftClose(shiftId, shift.getPumpId(), reading.getFuelType(),
-                        reading.getTankId(), reading.getUnitsSold());
+                        reading.getTankId(), reading.getUnitsSold(), shift.getActualStartTime());
             }
         }
 

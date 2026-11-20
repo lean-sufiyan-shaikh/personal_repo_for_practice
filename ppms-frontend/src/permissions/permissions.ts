@@ -91,6 +91,7 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   // Payment Settlements
   'settlement:write':              ['OWNER', 'ADMIN', 'MANAGER'],
   'settlement:configure':          ['OWNER', 'ADMIN'],
+  'settlement:void':               ['OWNER', 'ADMIN'],
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

@@ -45,13 +45,13 @@ public interface PaymentSettlementRepository extends JpaRepository<PaymentSettle
             @Param("from") OffsetDateTime from,
             @Param("to") OffsetDateTime to);
 
-    /** ACTIVE settlements within a date range in FIFO order — used for the daily-summary endpoint. */
+    /** Settlements of every status within a date range, oldest first — voided ones are listed for the record. */
     @Query("""
             SELECT ps FROM PaymentSettlement ps
-            WHERE ps.pumpId = :pumpId AND ps.settlementDate BETWEEN :from AND :to AND ps.voidStatus = 'ACTIVE'
+            WHERE ps.pumpId = :pumpId AND ps.settlementDate BETWEEN :from AND :to
             ORDER BY ps.settlementDate ASC, ps.createdAt ASC
             """)
-    List<PaymentSettlement> findActiveByPumpIdAndSettlementDateBetween(
+    List<PaymentSettlement> findAllByPumpIdAndSettlementDateBetween(
             @Param("pumpId") Long pumpId,
             @Param("from") LocalDate from,
             @Param("to") LocalDate to);

@@ -359,9 +359,12 @@ public class PaymentSettlementService {
             });
         }
 
-        // All settlement records in the window
+        // Every settlement record in the window is listed; only ACTIVE ones count towards settled amounts
         List<PaymentSettlement> allSettlements =
-                settlementRepository.findActiveByPumpIdAndSettlementDateBetween(pumpId, from, to);
+                settlementRepository.findAllByPumpIdAndSettlementDateBetween(pumpId, from, to);
+        List<PaymentSettlement> activeSettlements = allSettlements.stream()
+                .filter(s -> PaymentSettlement.ACTIVE.equals(s.getVoidStatus()))
+                .toList();
 
         java.util.Set<Long> recorderIds = allSettlements.stream().map(PaymentSettlement::getRecordedByUserId).collect(Collectors.toSet());
         Map<Long, String> names = recorderIds.isEmpty() ? Map.of()
@@ -428,8 +431,8 @@ public class PaymentSettlementService {
             }
         }
 
-        // allSettlements is ordered settlementDate asc, createdAt asc — correct FIFO order
-        for (PaymentSettlement s : allSettlements) {
+        // activeSettlements is ordered settlementDate asc, createdAt asc — correct FIFO order
+        for (PaymentSettlement s : activeSettlements) {
             int typeIdx = typeIndex(s.getPaymentType());
             BigDecimal remaining = s.getAmountReceived();
 

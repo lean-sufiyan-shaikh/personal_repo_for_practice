@@ -67,6 +67,22 @@ class PumpShiftDefinitionServiceTest {
     }
 
     @Test
+    void afterMidnightPartIsTakenOnlyFromYesterdaysSchedule() {
+        PumpShiftDefinition yesterdaysNight = definition("Old night", "22:00", "05:59", true, LocalDate.of(2026, 1, 1), TODAY.minusDays(1));
+        PumpShiftDefinition todaysNight = definition("New night", "23:00", "06:59", true, TODAY, null);
+        PumpShiftDefinition todaysDay = definition("New day", "07:00", "22:59", false, TODAY, null);
+        when(repository.findActiveForPumpOnDate(PUMP_ID, TODAY.minusDays(1))).thenReturn(List.of(yesterdaysNight));
+        when(repository.findActiveForPumpOnDate(PUMP_ID, TODAY)).thenReturn(List.of(todaysNight, todaysDay));
+        OffsetDateTime sixThirty = LocalDateTime.of(TODAY, LocalTime.parse("06:30")).atZone(IST).toOffsetDateTime();
+        PumpShiftDefinitionService service =
+                new PumpShiftDefinitionService(repository, mock(ShiftRepository.class), supportService, fixedClock(sixThirty));
+
+        assertThatThrownBy(() -> service.detectCurrentShift(PUMP_ID))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("does not fall within any configured shift window");
+    }
+
+    @Test
     void groupOverlappingALaterBoundedGroupIsRejected() {
         PumpShiftDefinitionService service = serviceAt("10:00");
         PumpShiftDefinition laterGroup = definition("Day", "09:00", "20:59", false,

@@ -650,7 +650,7 @@ function SellDialog({
 }) {
   const { addToast } = useToastStore()
   const { user } = useAuthStore()
-  const canOverridePrice = user?.role === 'OWNER' || user?.role === 'ADMIN'
+  const canOverridePrice = user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
   const [step, setStep] = useState<'form' | 'review'>('form')
   const [form, setForm] = useState<RecordAncillarySaleRequest>({
     productId: product.id,

@@ -19,6 +19,7 @@ import com.ppms.inventory.LotConsumption;
 import com.ppms.inventory.LotConsumptionRepository;
 import com.ppms.inventory.LotConsumptionSource;
 import com.ppms.inventory.LotStatus;
+import com.ppms.inventory.RecordDipCheckRequest;
 import com.ppms.inventory.TankerDelivery;
 import com.ppms.inventory.TankerDeliveryRepository;
 import com.ppms.inventory.UpdateDeliveryRequest;
@@ -36,7 +37,9 @@ import com.ppms.report.BalanceSheetReportType;
 import com.ppms.report.BalanceSheetService;
 import com.ppms.report.BsFuelLineResponse;
 import com.ppms.report.GenerateBalanceSheetRequest;
+import com.ppms.common.exception.BusinessException;
 import com.ppms.shift.Shift;
+import com.ppms.shift.ShiftFuelDeductionService;
 import com.ppms.shift.ShiftFuelReading;
 import com.ppms.shift.ShiftFuelReadingRepository;
 import com.ppms.shift.ShiftRepository;
@@ -53,6 +56,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -62,6 +66,7 @@ import java.time.ZoneId;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -87,6 +92,8 @@ class ReportAndInventoryCorrectnessIntegrationTest {
     @Autowired private FuelDipEntryRepository fuelDipEntryRepository;
     @Autowired private DipCheckRepository dipCheckRepository;
     @Autowired private PumpExpenseRepository expenseRepository;
+    @Autowired private ShiftFuelDeductionService fuelDeductionService;
+    @Autowired private TransactionTemplate transactionTemplate;
 
     private final LocalDate today = LocalDate.now(IST);
     private User owner;
@@ -185,6 +192,96 @@ class ReportAndInventoryCorrectnessIntegrationTest {
         assertThat(generated.getTotalDipNetAmount()).isEqualByComparingTo("-1000.00");
         assertThat(reopened.getTotalDipNetAmount()).isEqualByComparingTo(generated.getTotalDipNetAmount());
         assertThat(reopened.getTotalNetProfit()).isEqualByComparingTo(generated.getTotalNetProfit());
+        assertThat(reopened.isLinesChangedSinceGenerated()).isTrue();
+    }
+
+    @Test
+    void deliveryDatedAtMidnightOfTheNextDayStaysOutOfTheEarlierDay() {
+        LocalDate day = today.minusDays(3);
+        InventoryLot opening = saveLot("1000.000", at(day.minusDays(1), "00:00"));
+        closedShiftConsuming(opening, "100.000", day);
+        saveDelivery("500.000", day.plusDays(1));
+        closedShiftConsuming(opening, "10.000", day.plusDays(1));
+
+        BsFuelLineResponse dayLine = petrolLine(generateDay(day));
+        BsFuelLineResponse nextDayLine = petrolLine(generateDay(day.plusDays(1)));
+
+        assertThat(dayLine.getDeliveredLitres()).isEqualByComparingTo("0");
+        assertThat(dayLine.getClosingStock()).isEqualByComparingTo("900.000");
+        assertThat(nextDayLine.getDeliveredLitres()).isEqualByComparingTo("500.000");
+        assertThat(nextDayLine.getOpeningStock()).isEqualByComparingTo("900.000");
+    }
+
+    @Test
+    void historicalDayWithANightShiftBalancesOpeningSalesAndClosing() {
+        LocalDate day = today.minusDays(3);
+        InventoryLot lot = saveLot("1000.000", at(day.minusDays(1), "00:00"));
+        closedShiftConsuming(lot, "100.000", day);
+        Shift night = closedShiftConsuming(lot, "300.000", day);
+        night.setActualStartTime(at(day, "22:00"));
+        night.setActualEndTime(at(day.plusDays(1), "06:00"));
+        shiftRepository.save(night);
+
+        BsFuelLineResponse dayLine = petrolLine(generateDay(day));
+
+        assertThat(dayLine.getOpeningStock()).isEqualByComparingTo("1000.000");
+        assertThat(dayLine.getSoldLitres()).isEqualByComparingTo("400.000");
+        assertThat(dayLine.getClosingStock()).isEqualByComparingTo("600.000");
+    }
+
+    @Test
+    void backfillStockExcludesLotsDeliveredOnTheFollowingDay() {
+        LocalDate day = today.minusDays(3);
+        saveLot("100.000", at(day, "00:00"));
+        saveLot("500.000", at(day.plusDays(1), "00:00"));
+
+        BigDecimal available = transactionTemplate.execute(status -> fuelDeductionService.availableStockAsOf(
+                pump.getId(), FuelType.PETROL, tank.getId(), at(day.plusDays(1), "00:00")));
+
+        assertThat(available).isEqualByComparingTo("100.000");
+    }
+
+    @Test
+    void dipGainIsCostedAtTheLastRealDeliveryNotADipAdjustmentLot() {
+        InventoryLot delivered = saveLot("1000.000", at(today.minusDays(5), "00:00"));
+        delivered.setRemainingQuantity(BigDecimal.ZERO.setScale(3));
+        delivered.setStatus(LotStatus.EXHAUSTED);
+        inventoryLotRepository.save(delivered);
+        InventoryLot zeroCostAdjustment = saveLot("100.000", at(today.minusDays(1), "00:00"));
+        zeroCostAdjustment.setIsDipAdjustment(true);
+        zeroCostAdjustment.setCostPricePerUnit(BigDecimal.ZERO);
+        inventoryLotRepository.save(zeroCostAdjustment);
+        tank.setCurrentStock(new BigDecimal("100.000"));
+        tankRepository.save(tank);
+        RecordDipCheckRequest request = new RecordDipCheckRequest();
+        request.setTankId(tank.getId());
+        request.setMeasuredQuantity(new BigDecimal("150"));
+        request.setCheckedAt(today);
+
+        inventoryController.recordDipCheck(pump.getId(), request, owner);
+
+        InventoryLot gainLot = inventoryLotRepository.findActiveLotsByTankFifo(tank.getId()).stream()
+                .filter(lot -> lot.getOriginalQuantity().compareTo(new BigDecimal("50.000")) == 0)
+                .findFirst()
+                .orElseThrow();
+        assertThat(gainLot.getCostPricePerUnit()).isEqualByComparingTo("90.00");
+    }
+
+    @Test
+    void deliveryCannotBeMovedAfterItsFuelWasFirstUsed() {
+        LocalDate deliveryDay = today.minusDays(4);
+        TankerDelivery delivery = saveDelivery("1000.000", deliveryDay);
+        InventoryLot lot = inventoryLotRepository.findByTankerDeliveryId(delivery.getId()).orElseThrow();
+        closedShiftConsuming(lot, "100.000", deliveryDay);
+        UpdateDeliveryRequest moveLater = new UpdateDeliveryRequest();
+        moveLater.setQuantityDelivered(new BigDecimal("1000"));
+        moveLater.setCostPricePerUnit(new BigDecimal("90.00"));
+        moveLater.setDeliveryDate(deliveryDay.plusDays(2));
+        moveLater.setInvoiceReference(delivery.getInvoiceReference());
+
+        assertThatThrownBy(() -> inventoryController.updateDelivery(pump.getId(), delivery.getId(), moveLater, owner))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("already used");
     }
 
     @Test
@@ -258,6 +355,23 @@ class ReportAndInventoryCorrectnessIntegrationTest {
                 .lotId(lot.getId()).sourceType(LotConsumptionSource.SHIFT_CLOSE).shiftId(shift.getId())
                 .quantityConsumed(sold).costPricePerUnit(lot.getCostPricePerUnit()).build());
         return shift;
+    }
+
+    private TankerDelivery saveDelivery(String litres, LocalDate deliveryDay) {
+        TankerDelivery delivery = tankerDeliveryRepository.save(TankerDelivery.builder()
+                .pumpId(pump.getId()).tankId(tank.getId()).fuelType(FuelType.PETROL)
+                .quantityDelivered(new BigDecimal(litres)).costPricePerUnit(new BigDecimal("90.00"))
+                .deliveryDate(at(deliveryDay, "00:00")).invoiceReference("INV-" + shortId())
+                .loggedByUserId(owner.getId()).build());
+        inventoryLotRepository.save(InventoryLot.builder()
+                .tankerDeliveryId(delivery.getId()).tankId(tank.getId()).fuelType(FuelType.PETROL)
+                .pumpId(pump.getId()).originalQuantity(new BigDecimal(litres))
+                .remainingQuantity(new BigDecimal(litres)).costPricePerUnit(new BigDecimal("90.00"))
+                .deliveryDate(at(deliveryDay, "00:00")).isDipAdjustment(false).status(LotStatus.ACTIVE)
+                .build());
+        tank.setCurrentStock(tank.getCurrentStock().add(new BigDecimal(litres)));
+        tankRepository.save(tank);
+        return delivery;
     }
 
     private FuelDipEntry saveDipEntry(String loss, LocalDate dipDate) {

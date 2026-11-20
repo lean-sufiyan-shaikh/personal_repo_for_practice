@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { paymentSettlementApi } from '../../api/paymentSettlementApi'
-import type { SettlementPaymentType, RecordSettlementRequest, UpdateConfigRequest } from '../../api/paymentSettlementApi'
+import type { Settlement, SettlementPaymentType, RecordSettlementRequest, UpdateConfigRequest } from '../../api/paymentSettlementApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
@@ -66,6 +66,7 @@ export default function PaymentSettlementsPage() {
 
   const canWrite     = canPerformAction('settlement:write', user?.role)
   const canConfigure = canPerformAction('settlement:configure', user?.role)
+  const canVoid      = canPerformAction('settlement:void', user?.role)
 
   const [activeTab, setActiveTab]   = useState<'records' | 'config'>('records')
   const [typeFilter, setTypeFilter] = useState<SettlementPaymentType | ''>('')
@@ -138,6 +139,36 @@ export default function PaymentSettlementsPage() {
     if (!form.settlementDate) { setFormError('Settlement date is required'); return }
     if (form.amountReceived <= 0) { setFormError('Amount must be greater than zero'); return }
     recordMutation.mutate({ ...form, notes: form.notes || undefined })
+  }
+
+  // ── Void settlement dialog ────────────────────────────────────────────────
+  const [voidTarget, setVoidTarget] = useState<Settlement | null>(null)
+  const [voidReason, setVoidReason] = useState('')
+  const [voidError, setVoidError]   = useState<string | null>(null)
+
+  const openVoidDialog = (settlement: Settlement) => {
+    setVoidTarget(settlement)
+    setVoidReason('')
+    setVoidError(null)
+  }
+
+  const voidMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+      paymentSettlementApi.voidSettlement(pumpId!, id, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settlements-daily', pumpId] })
+      qc.invalidateQueries({ queryKey: ['settlements-wallet', pumpId] })
+      setVoidTarget(null)
+      addToast('Settlement voided', 'success')
+    },
+    onError: (err: any) => setVoidError(parseApiError(err, 'Failed to void settlement')),
+  })
+
+  const handleVoid = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!voidTarget) return
+    if (!voidReason.trim()) { setVoidError('A reason is required'); return }
+    voidMutation.mutate({ id: voidTarget.id, reason: voidReason.trim() })
   }
 
   // ── Config update ─────────────────────────────────────────────────────────
@@ -407,17 +438,23 @@ export default function PaymentSettlementsPage() {
                         <div className="space-y-1.5 pl-1">
                           {visibleSettlements.map(s => {
                             const accent    = TYPE_ACCENT[s.paymentType]
+                            const isVoided  = s.voidStatus === 'VOIDED'
                             const shortfall = s.isPartial && s.pendingAtRecordTime != null
                               ? s.pendingAtRecordTime - s.amountReceived
                               : 0
                             return (
-                              <div key={s.id} className="flex items-start gap-3">
+                              <div key={s.id} className={`flex items-start gap-3 ${isVoided ? 'opacity-60' : ''}`}>
                                 <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${accent.badge}`}>
                                   {TYPE_ICONS[s.paymentType]} {TYPE_LABELS[s.paymentType]}
                                 </span>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    {s.isPartial && (
+                                    {isVoided && (
+                                      <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                                        Voided
+                                      </span>
+                                    )}
+                                    {!isVoided && s.isPartial && (
                                       <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
                                         <AlertTriangle size={11} strokeWidth={2} />Partial · {fmtAmt(shortfall)} short
                                       </span>
@@ -426,13 +463,27 @@ export default function PaymentSettlementsPage() {
                                       {s.notes ? `${s.notes} · ` : ''}by {s.recordedByUserName}
                                     </span>
                                   </div>
-                                  {s.isPartial && s.pendingAtRecordTime != null && (
+                                  {!isVoided && s.isPartial && s.pendingAtRecordTime != null && (
                                     <p className="text-xs text-slate-400 mt-0.5">
                                       Expected {fmtAmt(s.pendingAtRecordTime)} · received {fmtAmt(s.amountReceived)}
                                     </p>
                                   )}
+                                  {isVoided && s.voidReason && (
+                                    <p className="text-xs text-red-600 mt-0.5">Reason: {s.voidReason}</p>
+                                  )}
                                 </div>
-                                <span className="text-sm font-bold text-emerald-700 tabular-nums flex-shrink-0">+{fmtAmt(s.amountReceived)}</span>
+                                <span className={`text-sm font-bold tabular-nums flex-shrink-0 ${isVoided ? 'text-slate-400 line-through' : 'text-emerald-700'}`}>
+                                  +{fmtAmt(s.amountReceived)}
+                                </span>
+                                {canVoid && !isVoided && (
+                                  <button
+                                    type="button"
+                                    onClick={() => openVoidDialog(s)}
+                                    className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline flex-shrink-0"
+                                  >
+                                    Void
+                                  </button>
+                                )}
                               </div>
                             )
                           })}
@@ -680,6 +731,71 @@ export default function PaymentSettlementsPage() {
                       ? <><Spinner /><span>Saving…</span></>
                       : <><Landmark size={16} strokeWidth={2} /><span>Record Settlement</span></>
                     }
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* ── Void settlement dialog ── */}
+      {voidTarget && (
+        <ModalPortal>
+          <div className="ui-modal-backdrop" onClick={() => setVoidTarget(null)}>
+            <div className="ui-modal-panel" onClick={e => e.stopPropagation()}>
+              <div className="ui-modal-header">
+                <div className="ui-modal-heading">
+                  <h2 className="ui-modal-title">Void Settlement</h2>
+                  <p className="ui-modal-subtitle">
+                    {TYPE_LABELS[voidTarget.paymentType]} · {fmtDate(voidTarget.settlementDate)} · {fmtAmt(voidTarget.amountReceived)}
+                  </p>
+                </div>
+                <button className="ui-modal-close" onClick={() => setVoidTarget(null)}>×</button>
+              </div>
+
+              <form onSubmit={handleVoid} className="ui-modal-body flex flex-col gap-5">
+                <p className="text-sm text-slate-600">
+                  The settlement stays on record but no longer counts as received, so the pending balance goes back up.
+                </p>
+                <div>
+                  <label className="ui-label">Reason</label>
+                  <input
+                    type="text"
+                    className="ui-input"
+                    placeholder="e.g., Recorded twice by mistake"
+                    value={voidReason}
+                    onChange={e => setVoidReason(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+
+                {voidError && (
+                  <div className="ui-alert ui-alert-danger text-sm py-2">
+                    {voidError}
+                  </div>
+                )}
+
+                <div className="ui-modal-footer mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setVoidTarget(null)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm
+                               text-slate-600 bg-slate-100 border border-slate-200
+                               hover:bg-slate-200 hover:text-slate-800
+                               active:scale-[0.97] transition-all duration-150"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={voidMutation.isPending}
+                    className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-xl font-semibold text-sm text-white
+                               bg-red-600 hover:bg-red-700
+                               active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed
+                               transition-all duration-150"
+                  >
+                    {voidMutation.isPending ? <><Spinner /><span>Voiding…</span></> : <span>Void Settlement</span>}
                   </button>
                 </div>
               </form>

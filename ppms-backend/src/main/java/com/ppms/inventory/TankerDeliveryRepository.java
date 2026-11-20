@@ -18,8 +18,8 @@ public interface TankerDeliveryRepository extends JpaRepository<TankerDelivery, 
 
     Page<TankerDelivery> findByPumpIdOrderByDeliveryDateDesc(Long pumpId, Pageable pageable);
 
-    /** Deliveries for a pump within a UTC time window — used by DAY balance sheet */
-    List<TankerDelivery> findByPumpIdAndDeliveryDateBetween(
+    /** Deliveries dated within [from, to) — used by DAY balance sheet */
+    List<TankerDelivery> findByPumpIdAndDeliveryDateGreaterThanEqualAndDeliveryDateLessThan(
             Long pumpId, OffsetDateTime from, OffsetDateTime to);
 
     /** Duplicate guard: checks whether the same fuel type is already recorded under this invoice for this pump */

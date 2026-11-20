@@ -67,13 +67,14 @@ public class ShiftFuelDeductionService {
      * Deducts a live shift's sales from the oldest active lots. When tankId is set (frozen at shift open)
      * only that tank's lots are used, matching the physical pipe connection.
      */
-    public void deductForShiftClose(Long shiftId, Long pumpId, FuelType fuelType, Long tankId, BigDecimal unitsToDeduct) {
+    public void deductForShiftClose(Long shiftId, Long pumpId, FuelType fuelType, Long tankId,
+                                    BigDecimal unitsToDeduct, OffsetDateTime shiftStart) {
         List<InventoryLot> lots = tankId != null
                 ? inventoryLotRepository.findActiveLotsByTankFifo(tankId)
                 : inventoryLotRepository.findActiveLotsByPumpAndFuelTypeFifo(pumpId, fuelType);
 
         if (lots.isEmpty() && tankId != null) {
-            lots = healMissingLots(tankId, fuelType, pumpId);
+            lots = healMissingLots(tankId, fuelType, pumpId, shiftStart);
         }
 
         BigDecimal totalAvailable = lots.stream()
@@ -158,8 +159,9 @@ public class ShiftFuelDeductionService {
     /**
      * A tank with stock but no active lots was seeded or dip-adjusted without a delivery record.
      * Creates one synthetic lot for the current stock, costed at the latest real delivery, so the shift can close.
+     * The lot is dated at the shift's start: the stock was there before this shift drew on it.
      */
-    private List<InventoryLot> healMissingLots(Long tankId, FuelType fuelType, Long pumpId) {
+    private List<InventoryLot> healMissingLots(Long tankId, FuelType fuelType, Long pumpId, OffsetDateTime shiftStart) {
         return tankRepository.findById(tankId)
                 .filter(tank -> tank.getCurrentStock().compareTo(ZERO) > 0)
                 .map(tank -> {
@@ -176,7 +178,7 @@ public class ShiftFuelDeductionService {
                             .originalQuantity(stock)
                             .remainingQuantity(stock)
                             .costPricePerUnit(costPrice)
-                            .deliveryDate(businessClock.now())
+                            .deliveryDate(shiftStart != null ? shiftStart : businessClock.now())
                             .isDipAdjustment(true)
                             .status(LotStatus.ACTIVE)
                             .build());

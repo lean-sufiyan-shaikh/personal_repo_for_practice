@@ -110,6 +110,9 @@ public class InventoryWorkflowService {
         for (RecordBatchDeliveryRequest.LineItem item : request.getItems()) {
             UndergroundTank tank = tankRepository.findById(item.getTankId())
                     .orElseThrow(() -> new ResourceNotFoundException("Tank not found: " + item.getTankId()));
+            if (!tank.getPumpId().equals(pumpId)) {
+                throw new BusinessException("Tank " + tank.getTankIdentifier() + " does not belong to this pump");
+            }
             assertTankUsable(tank, pumpId, "recording a delivery");
             assertCapacity(tank, item.getQuantityDelivered());
             assertInvoiceNotRecorded(pumpId, invoiceRef, tank.getFuelType());
@@ -178,6 +181,7 @@ public class InventoryWorkflowService {
         tankRepository.save(tank);
 
         OffsetDateTime newDeliveryDateTime = startOfBusinessDay(request.getDeliveryDate());
+        assertDeliveryNotAfterFirstUse(lot, newDeliveryDateTime);
         // A manager edit sends no cost price, so the recorded one is kept.
         BigDecimal costPrice = request.getCostPricePerUnit() != null
                 ? request.getCostPricePerUnit()
@@ -284,7 +288,7 @@ public class InventoryWorkflowService {
         BigDecimal systemStockNow = tank.getCurrentStock().setScale(3, RoundingMode.HALF_UP);
         BigDecimal measured = request.getMeasuredQuantity().setScale(3, RoundingMode.HALF_UP);
         BigDecimal variance = measured.subtract(systemStockNow);
-        OffsetDateTime checkedAt = startOfBusinessDay(request.getCheckedAt());
+        OffsetDateTime checkedAt = dipCheckTime(request.getCheckedAt());
 
         String checkedByName = null;
         if (request.getCheckedByUserId() != null) {
@@ -410,13 +414,18 @@ public class InventoryWorkflowService {
                 variance.abs().setScale(3, RoundingMode.HALF_UP), tank.getId(), pumpId);
     }
 
-    /** Extra fuel found by a dip check is valued at the latest known purchase cost, never at zero. */
+    /**
+     * Extra fuel found by a dip check is valued at the latest real purchase cost, never at zero. Dip-adjustment
+     * and synthetic lots are skipped because they carry a copied or zero cost.
+     */
     private BigDecimal costForDipGain(Long pumpId, UndergroundTank tank) {
         return inventoryLotRepository.findActiveLotsByTankForDisplay(tank.getId())
                 .stream()
+                .filter(InventoryWorkflowService::hasRealPurchaseCost)
                 .reduce((first, second) -> second)
                 .or(() -> inventoryLotRepository
-                        .findFirstByPumpIdAndFuelTypeAndIsDipAdjustmentFalseOrderByDeliveryDateDesc(pumpId, tank.getFuelType()))
+                        .findFirstByPumpIdAndFuelTypeAndIsDipAdjustmentFalseOrderByDeliveryDateDesc(pumpId, tank.getFuelType())
+                        .filter(InventoryWorkflowService::hasRealPurchaseCost))
                 .map(InventoryLot::getCostPricePerUnit)
                 .orElseThrow(() -> new BusinessException(
                         "No " + tank.getFuelType() + " delivery has been recorded for this pump, so the extra fuel " +
@@ -528,6 +537,37 @@ public class InventoryWorkflowService {
                                 "Tanker fuel is always purchased below the pump selling price.");
                     }
                 });
+    }
+
+    private static boolean hasRealPurchaseCost(InventoryLot lot) {
+        return !Boolean.TRUE.equals(lot.getIsDipAdjustment())
+                && lot.getCostPricePerUnit() != null
+                && lot.getCostPricePerUnit().compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    /** Moving a delivery after the time its fuel was first used would make earlier days' stock negative. */
+    private void assertDeliveryNotAfterFirstUse(InventoryLot lot, OffsetDateTime newDeliveryDateTime) {
+        if (!newDeliveryDateTime.isAfter(lot.getDeliveryDate())) {
+            return;
+        }
+        lotConsumptionRepository.findFirstConsumptionTime(lot.getId())
+                .filter(firstUse -> newDeliveryDateTime.isAfter(firstUse))
+                .ifPresent(firstUse -> {
+                    throw new BusinessException(
+                            "Cannot move this delivery to " + newDeliveryDateTime.atZoneSameInstant(businessClock.zone()).toLocalDate() +
+                            " — its fuel was already used on " + firstUse.atZoneSameInstant(businessClock.zone()).toLocalDate() +
+                            ". Choose a date on or before the first use.");
+                });
+    }
+
+    /**
+     * A dip check dated today is stamped with the current time; a back-dated one with the start of its day,
+     * since the time it was taken is not known.
+     */
+    private OffsetDateTime dipCheckTime(LocalDate checkedOn) {
+        return checkedOn.equals(businessClock.today())
+                ? businessClock.now()
+                : startOfBusinessDay(checkedOn);
     }
 
     private OffsetDateTime startOfBusinessDay(LocalDate date) {
