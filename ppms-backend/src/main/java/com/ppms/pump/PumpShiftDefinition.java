@@ -4,8 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 /**
  * Defines a named shift window for a specific pump, configured by an admin/owner.
@@ -106,19 +108,28 @@ public class PumpShiftDefinition {
         updatedAt = OffsetDateTime.now();
     }
 
-    /**
-     * Returns true if the given time falls within this shift's window.
-     *
-     * For cross-midnight shifts (e.g. 22:00–10:00):
-     *   time >= startTime  OR  time < endTime
-     * For same-day shifts (e.g. 06:00–14:00):
-     *   startTime <= time < endTime
-     */
+    /** Stored end times are one minute before the displayed end, so the real boundary is endTime + 1 minute. */
+    public LocalTime exclusiveEndTime() {
+        return endTime.plusMinutes(1);
+    }
+
     public boolean containsTime(LocalTime time) {
         if (crossesMidnight) {
-            return !time.isBefore(startTime) || time.isBefore(endTime);
+            return !time.isBefore(startTime) || isInAfterMidnightPart(time);
         }
-        return !time.isBefore(startTime) && time.isBefore(endTime);
+        LocalTime end = exclusiveEndTime();
+        boolean endsAtMidnight = end.equals(LocalTime.MIDNIGHT);
+        return !time.isBefore(startTime) && (endsAtMidnight || time.isBefore(end));
+    }
+
+    /** True for the part of a cross-midnight shift that falls on the day after its shift date. */
+    public boolean isInAfterMidnightPart(LocalTime time) {
+        return crossesMidnight && time.isBefore(exclusiveEndTime());
+    }
+
+    public OffsetDateTime scheduledEnd(LocalDate shiftDate, ZoneId zone) {
+        LocalDate endDate = crossesMidnight ? shiftDate.plusDays(1) : shiftDate;
+        return LocalDateTime.of(endDate, endTime).plusMinutes(1).atZone(zone).toOffsetDateTime();
     }
 
     /**

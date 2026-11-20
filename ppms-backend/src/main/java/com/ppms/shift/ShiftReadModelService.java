@@ -1,5 +1,6 @@
 package com.ppms.shift;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.pump.DispensaryUnit;
 import com.ppms.pump.DispensaryUnitRepository;
 import com.ppms.pump.Nozzle;
@@ -10,10 +11,7 @@ import com.ppms.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -27,6 +25,7 @@ public class ShiftReadModelService {
     private final ShiftCreditEntryRepository creditEntryRepository;
     private final ShiftNozzleRepository shiftNozzleRepository;
     private final PumpShiftDefinitionRepository shiftDefinitionRepository;
+    private final BusinessClock businessClock;
 
     public ShiftResponse toResponseWithLookups(Shift shift) {
         List<Long> nozzleIds = shiftNozzleRepository.findNozzleIdsByShiftId(shift.getId());
@@ -109,19 +108,12 @@ public class ShiftReadModelService {
 
     /**
      * Derives the shift's scheduled end time from its linked definition.
-     * Cross-midnight shifts (e.g. 22:00–09:00) end on shiftDate + 1.
      * Returns null if no definition is linked (legacy data) or if the definition no longer exists.
      */
-    private OffsetDateTime computeScheduledEndTime(Shift shift) {
+    public OffsetDateTime computeScheduledEndTime(Shift shift) {
         if (shift.getShiftDefinitionId() == null) return null;
-        ZoneId ist = ZoneId.of("Asia/Kolkata");
         return shiftDefinitionRepository.findById(shift.getShiftDefinitionId())
-                .map(def -> {
-                    LocalDate endDate = def.isCrossesMidnight()
-                            ? shift.getShiftDate().plusDays(1)
-                            : shift.getShiftDate();
-                    return LocalDateTime.of(endDate, def.getEndTime()).atZone(ist).toOffsetDateTime();
-                })
+                .map(def -> def.scheduledEnd(shift.getShiftDate(), businessClock.zone()))
                 .orElse(null);
     }
 }

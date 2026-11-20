@@ -33,15 +33,19 @@ public class BalanceSheetDetailAssembler {
             BalanceSheetDetailResponse.ProductSalesSummary productSalesSummary,
             BalanceSheetDetailResponse.ExpenseSummary expenseSummary) {
 
-        BigDecimal totalDipNetAmount = dipPlEntries.stream()
-                .map(DipPlLineResponse::getMonetaryAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalDipNetAmount = balanceSheet.getTotalDipNetAmount() != null
+                ? balanceSheet.getTotalDipNetAmount()
+                : dipPlEntries.stream()
+                        .map(DipPlLineResponse::getMonetaryAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal productSalesGrossProfit = productSalesSummary != null
-                ? supportService.orZero(productSalesSummary.getGrossProfit()) : BigDecimal.ZERO;
-        BigDecimal totalExpensesAmount = expenseSummary != null
-                ? supportService.orZero(expenseSummary.getTotalAmount()) : BigDecimal.ZERO;
+        BigDecimal productSalesGrossProfit = balanceSheet.getProductSalesGrossProfit() != null
+                ? balanceSheet.getProductSalesGrossProfit()
+                : productSalesSummary != null ? supportService.orZero(productSalesSummary.getGrossProfit()) : BigDecimal.ZERO;
+        BigDecimal totalExpensesAmount = balanceSheet.getTotalExpensesAmount() != null
+                ? balanceSheet.getTotalExpensesAmount()
+                : expenseSummary != null ? supportService.orZero(expenseSummary.getTotalAmount()) : BigDecimal.ZERO;
 
         BigDecimal totalNetProfit = supportService.orZero(balanceSheet.getTotalGrossProfit())
                 .add(totalDipNetAmount)

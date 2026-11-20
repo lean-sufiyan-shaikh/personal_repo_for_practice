@@ -412,8 +412,10 @@ public class InventoryController {
                 ? request.getCostPricePerUnit()
                 : delivery.getCostPricePerUnit();
 
+        BigDecimal newRemaining = lot.getRemainingQuantity().add(deltaQty).setScale(3, RoundingMode.HALF_UP);
         lot.setOriginalQuantity(newQty);
-        lot.setRemainingQuantity(lot.getRemainingQuantity().add(deltaQty).setScale(3, RoundingMode.HALF_UP));
+        lot.setRemainingQuantity(newRemaining);
+        lot.setStatus(newRemaining.compareTo(BigDecimal.ZERO) > 0 ? LotStatus.ACTIVE : LotStatus.EXHAUSTED);
         lot.setCostPricePerUnit(resolvedCost);
         lot.setDeliveryDate(newDeliveryDateTime);
         inventoryLotRepository.save(lot);
@@ -550,11 +552,7 @@ public class InventoryController {
         // active lots — causing shift-close FIFO to report 0 L available.
         if (variance.compareTo(BigDecimal.ZERO) > 0) {
             // Physical stock is HIGHER — create a DIP-adjustment lot for the delta
-            BigDecimal adjustmentCost = inventoryLotRepository.findActiveLotsByTankForDisplay(tank.getId())
-                    .stream()
-                    .reduce((a, b) -> b)
-                    .map(InventoryLot::getCostPricePerUnit)
-                    .orElse(BigDecimal.ZERO);
+            BigDecimal adjustmentCost = costForDipGain(pumpId, tank);
             InventoryLot adjustmentLot = InventoryLot.builder()
                     .tankerDeliveryId(null)
                     .tankId(tank.getId())
@@ -594,6 +592,12 @@ public class InventoryController {
                         .build());
                 toDeduct = toDeduct.subtract(consume);
             }
+            if (toDeduct.compareTo(BigDecimal.ZERO) > 0) {
+                throw new BusinessException(
+                        "The stock lots for tank '" + tank.getTankIdentifier() + "' hold " +
+                        toDeduct.setScale(3, RoundingMode.HALF_UP) + " L less than the recorded tank stock, so this " +
+                        "dip check cannot be applied. Ask an admin to reconcile the tank's deliveries first.");
+            }
             inventoryLotRepository.saveAll(touchedLots);
             lotConsumptionRepository.saveAll(consumptions);
             log.info("DIP adjustment: FIFO-consumed {}L from lots, tank={}, pump={}",
@@ -605,6 +609,19 @@ public class InventoryController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(toDipCheckResponse(check, tank, currentUser.getFullName(), checkedByName, variance, null));
+    }
+
+    /** Extra fuel found by a dip check is valued at the latest known purchase cost, never at zero. */
+    private BigDecimal costForDipGain(Long pumpId, UndergroundTank tank) {
+        return inventoryLotRepository.findActiveLotsByTankForDisplay(tank.getId())
+                .stream()
+                .reduce((first, second) -> second)
+                .or(() -> inventoryLotRepository
+                        .findFirstByPumpIdAndFuelTypeAndIsDipAdjustmentFalseOrderByDeliveryDateDesc(pumpId, tank.getFuelType()))
+                .map(InventoryLot::getCostPricePerUnit)
+                .orElseThrow(() -> new BusinessException(
+                        "No " + tank.getFuelType() + " delivery has been recorded for this pump, so the extra fuel " +
+                        "found by this dip check has no purchase cost. Record a tanker delivery first."));
     }
 
     /**

@@ -95,7 +95,7 @@ public class AncillaryProductController {
     public ResponseEntity<AncillaryProductResponse> updateProduct(
             @PathVariable Long pumpId,
             @PathVariable Long id,
-            @RequestBody UpdateProductRequest request,
+            @Valid @RequestBody UpdateProductRequest request,
             @AuthenticationPrincipal User currentUser) {
 
         requireOwnerOrAdmin(currentUser);
@@ -341,7 +341,7 @@ public class AncillaryProductController {
     public ResponseEntity<AncillaryLotDetailResponse> updateLot(
             @PathVariable Long pumpId,
             @PathVariable Long lotId,
-            @RequestBody UpdateLotRequest request,
+            @Valid @RequestBody UpdateLotRequest request,
             @AuthenticationPrincipal User currentUser) {
 
         requireOwnerOrAdmin(currentUser);

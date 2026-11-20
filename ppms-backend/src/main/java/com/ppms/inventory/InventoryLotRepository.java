@@ -127,4 +127,14 @@ public interface InventoryLotRepository extends JpaRepository<InventoryLot, Long
     /** Most recent lot (any status) for a pump + fuelType — used to approximate cost price for synthetic healing lots. */
     java.util.Optional<InventoryLot> findFirstByPumpIdAndFuelTypeAndIsDipAdjustmentFalseOrderByDeliveryDateDesc(
             Long pumpId, FuelType fuelType);
+
+    /** Litres received per fuel type strictly before {@code asOf}, including dip-gain lots. */
+    @Query("""
+            SELECT l.fuelType, SUM(l.originalQuantity)
+            FROM InventoryLot l
+            WHERE l.pumpId = :pumpId AND l.deliveryDate < :asOf
+            GROUP BY l.fuelType
+            """)
+    List<Object[]> sumReceivedByFuelTypeBefore(@Param("pumpId") Long pumpId,
+                                                @Param("asOf") OffsetDateTime asOf);
 }

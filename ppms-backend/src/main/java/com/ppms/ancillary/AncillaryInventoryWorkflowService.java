@@ -76,7 +76,9 @@ public class AncillaryInventoryWorkflowService {
         if (request.getVariant() != null) {
             product.setVariant(request.getVariant().isBlank() ? null : request.getVariant().trim());
         }
-        product.setLowStockThreshold(request.getLowStockThreshold());
+        if (request.isLowStockThresholdProvided()) {
+            product.setLowStockThreshold(request.getLowStockThreshold());
+        }
         if (request.getGstRatePercent() != null) {
             product.setGstRatePercent(request.getGstRatePercent().setScale(2, RoundingMode.HALF_UP));
         }

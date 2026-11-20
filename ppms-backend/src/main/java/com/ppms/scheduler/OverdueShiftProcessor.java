@@ -1,6 +1,6 @@
 package com.ppms.scheduler;
 
-import com.ppms.pump.PumpShiftDefinition;
+import com.ppms.common.time.BusinessClock;
 import com.ppms.pump.PumpShiftDefinitionRepository;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftRepository;
@@ -10,10 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.Optional;
 
 /**
@@ -26,10 +23,9 @@ public class OverdueShiftProcessor {
 
     public enum Outcome { MARKED_OVERDUE, AUTO_CLOSED, UNCHANGED }
 
-    private static final ZoneId IST = ZoneId.of("Asia/Kolkata");
-
     private final ShiftRepository shiftRepository;
     private final PumpShiftDefinitionRepository shiftDefinitionRepository;
+    private final BusinessClock businessClock;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Outcome process(Long shiftId, OffsetDateTime now) {
@@ -51,8 +47,7 @@ public class OverdueShiftProcessor {
         }
 
         boolean pastEnd = shiftDefinitionRepository.findById(shift.getShiftDefinitionId())
-                .map(def -> isPastEndTime(def, now.atZoneSameInstant(IST).toLocalTime(),
-                        shift.getShiftDate(), now.atZoneSameInstant(IST).toLocalDate()))
+                .map(def -> !now.isBefore(def.scheduledEnd(shift.getShiftDate(), businessClock.zone())))
                 .orElse(false);
         if (!pastEnd) {
             return Outcome.UNCHANGED;
@@ -62,18 +57,5 @@ public class OverdueShiftProcessor {
         shift.setIsOverdueFlag(true);
         shiftRepository.save(shift);
         return Outcome.MARKED_OVERDUE;
-    }
-
-    /**
-     * Cross-midnight definitions end at endTime on the day after shiftDate; same-day definitions
-     * end at endTime on shiftDate.
-     */
-    private boolean isPastEndTime(PumpShiftDefinition def, LocalTime now,
-                                  LocalDate shiftDate, LocalDate today) {
-        LocalDate expectedEndDate = def.isCrossesMidnight() ? shiftDate.plusDays(1) : shiftDate;
-        if (today.isAfter(expectedEndDate)) {
-            return true;
-        }
-        return today.equals(expectedEndDate) && !now.isBefore(def.getEndTime());
     }
 }

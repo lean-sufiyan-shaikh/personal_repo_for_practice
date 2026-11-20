@@ -324,6 +324,20 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
             """, nativeQuery = true)
     BigDecimal sumCashRecoveriesOnDate(@Param("pumpId") Long pumpId, @Param("date") LocalDate date);
 
+    /** Cash recoveries resolved within [from, to) — used by live DAY balance sheets. */
+    @Query(value = """
+            SELECT COALESCE(SUM(cash_recovery_amount), 0)
+            FROM shifts
+            WHERE pump_id = :pumpId
+              AND discrepancy_resolution = 'CASH_RECOVERY'::discrepancy_resolution
+              AND cash_recovery_amount IS NOT NULL
+              AND cash_recovery_amount > 0
+              AND discrepancy_resolved_at >= :from AND discrepancy_resolved_at < :to
+            """, nativeQuery = true)
+    BigDecimal sumCashRecoveriesBetween(@Param("pumpId") Long pumpId,
+                                        @Param("from") OffsetDateTime from,
+                                        @Param("to") OffsetDateTime to);
+
     /**
      * Counts shifts for the given nozzle, business date, and shift definition.
      * Used during backfill to enforce the one-shift-per-nozzle-per-window-per-day constraint.

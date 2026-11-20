@@ -125,8 +125,8 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
 
   // Fetch historical fuel prices for the selected date
   const { data: pricesForDate = [] } = useQuery({
-    queryKey: ['fuel-prices-for-date', pumpId, shiftDate],
-    queryFn:  () => fuelPriceApi.getForDate(pumpId, shiftDate),
+    queryKey: ['fuel-prices-for-date', pumpId, shiftDate, shiftDefinitionId],
+    queryFn:  () => fuelPriceApi.getForDate(pumpId, shiftDate, shiftDefinitionId),
     enabled:  !!shiftDate,
   })
 

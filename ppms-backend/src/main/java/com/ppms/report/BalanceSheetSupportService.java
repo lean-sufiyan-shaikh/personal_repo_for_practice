@@ -12,6 +12,8 @@ import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.expense.PumpExpense;
 import com.ppms.expense.PumpExpenseRepository;
 import com.ppms.fuel.FuelType;
+import com.ppms.fuel.GlobalFuelPrice;
+import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.inventory.DipCheck;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
@@ -39,10 +41,14 @@ public class BalanceSheetSupportService {
     private final AncillaryProductRepository ancillaryProductRepository;
     private final PumpExpenseRepository pumpExpenseRepository;
     private final UserRepository userRepository;
+    private final GlobalFuelPriceRepository fuelPriceRepository;
     private final BusinessClock businessClock;
 
-    public BalanceSheetDetailResponse.ProductSalesSummary buildProductSalesSummary(Long pumpId, LocalDate reportDate) {
-        List<AncillarySale> sales = ancillarySaleRepository.findByPumpIdAndDateRange(pumpId, reportDate, reportDate);
+    public BalanceSheetDetailResponse.ProductSalesSummary buildProductSalesSummary(Long pumpId, ReportPeriod period) {
+        List<AncillarySale> sales = period.live()
+                ? ancillarySaleRepository.findByPumpIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(
+                        pumpId, period.start(), period.end())
+                : ancillarySaleRepository.findByPumpIdAndDateRange(pumpId, period.reportDate(), period.reportDate());
         if (sales.isEmpty()) {
             return null;
         }
@@ -111,9 +117,12 @@ public class BalanceSheetSupportService {
                 .build();
     }
 
-    public BalanceSheetDetailResponse.ExpenseSummary buildExpenseSummary(Long pumpId, LocalDate reportDate) {
-        List<PumpExpense> expenses = pumpExpenseRepository.findByPumpIdAndExpenseDateAndApprovalStatus(
-                pumpId, reportDate, ExpenseApprovalStatus.APPROVED);
+    public BalanceSheetDetailResponse.ExpenseSummary buildExpenseSummary(Long pumpId, ReportPeriod period) {
+        List<PumpExpense> expenses = period.live()
+                ? pumpExpenseRepository.findByPumpIdAndApprovalStatusAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                        pumpId, ExpenseApprovalStatus.APPROVED, period.start(), period.end())
+                : pumpExpenseRepository.findByPumpIdAndExpenseDateAndApprovalStatus(
+                        pumpId, period.reportDate(), ExpenseApprovalStatus.APPROVED);
         if (expenses.isEmpty()) {
             return null;
         }
@@ -143,9 +152,10 @@ public class BalanceSheetSupportService {
                 .build();
     }
 
-    public List<DipPlLineResponse> buildDipPlEntries(List<FuelDipEntry> dipEntries,
+    /** Dip check variances are valued at the selling price in force when each check was taken. */
+    public List<DipPlLineResponse> buildDipPlEntries(Long pumpId,
+                                                     List<FuelDipEntry> dipEntries,
                                                      List<DipCheck> dipChecks,
-                                                     Map<FuelType, BigDecimal> priceMap,
                                                      Map<Long, FuelType> tankFuelTypeMap) {
         List<DipPlLineResponse> entries = new ArrayList<>();
 
@@ -167,8 +177,12 @@ public class BalanceSheetSupportService {
             }
             BigDecimal litresVariance = dipCheck.getMeasuredQuantity().subtract(dipCheck.getSystemStock())
                     .setScale(3, RoundingMode.HALF_UP);
-            BigDecimal monetaryAmount = litresVariance.multiply(priceMap.getOrDefault(fuelType, BigDecimal.ZERO))
-                    .setScale(2, RoundingMode.HALF_UP);
+            BigDecimal priceAtCheck = fuelPriceRepository
+                    .findFirstByPumpIdAndFuelTypeAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(
+                            pumpId, fuelType, dipCheck.getCheckedAt())
+                    .map(GlobalFuelPrice::getPricePerUnit)
+                    .orElse(BigDecimal.ZERO);
+            BigDecimal monetaryAmount = litresVariance.multiply(priceAtCheck).setScale(2, RoundingMode.HALF_UP);
             entries.add(DipPlLineResponse.builder()
                     .type("DIP_CHECK")
                     .fuelType(fuelType.name())

@@ -8,10 +8,10 @@ import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
 import com.ppms.fuel.FuelType;
 import com.ppms.fuel.GlobalFuelPriceRepository;
+import com.ppms.pump.CurrentShiftWindow;
 import com.ppms.pump.DispensaryUnit;
 import com.ppms.pump.Nozzle;
 import com.ppms.pump.NozzleStatus;
-import com.ppms.pump.PumpShiftDefinition;
 import com.ppms.pump.PumpShiftDefinitionService;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTankRepository;
@@ -29,6 +29,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
 public class ShiftLifecycleSupportService {
 
     private static final BigDecimal ZERO = BigDecimal.ZERO;
+    private static final BigDecimal ROLLOVER_START_FRACTION = new BigDecimal("0.99");
 
     private final ShiftRepository shiftRepository;
     private final ShiftFuelReadingRepository fuelReadingRepository;
@@ -62,9 +64,9 @@ public class ShiftLifecycleSupportService {
      * 5. Operator does not already have an open shift
      * 6. Night-shift consent for female operators
      *
-     * Returns the active PumpShiftDefinition.
+     * Returns the matching shift definition and the business date of the shift.
      */
-    public PumpShiftDefinition validateShiftCanOpen(DispensaryUnit du, List<Nozzle> nozzles, User operator) {
+    public CurrentShiftWindow validateShiftCanOpen(DispensaryUnit du, List<Nozzle> nozzles, User operator) {
         Long pumpId = du.getPumpId();
 
         pumpClosureRepository.findByPumpIdAndClosureDate(pumpId, LocalDate.now())
@@ -127,16 +129,16 @@ public class ShiftLifecycleSupportService {
                     operator.getFullName() + " already has an open shift (ID " + existing.getId() + ").");
         });
 
-        PumpShiftDefinition shiftDef = shiftDefinitionService.detectCurrentShift(pumpId);
+        CurrentShiftWindow window = shiftDefinitionService.detectCurrentShift(pumpId);
 
-        if (shiftDef.isNightShift()
+        if (window.definition().isNightShift()
                 && operator.getGender() == UserGender.FEMALE
                 && !operator.isNightShiftConsent()) {
             throw new BusinessException(
                     operator.getFullName() + " has not given consent to work night shifts and cannot be assigned to this shift.");
         }
 
-        return shiftDef;
+        return window;
     }
 
     /**
@@ -163,6 +165,9 @@ public class ShiftLifecycleSupportService {
      */
     public ClosingSummary processClosingReadings(Long shiftId, Map<Long, BigDecimal> maxMeterByNozzleId,
                                                   CloseShiftRequest request, List<ShiftFuelReading> readings) {
+        rejectDuplicateNozzles(request.getFuelReadings().stream()
+                .map(CloseShiftRequest.OutletEndReadingRequest::nozzleId)
+                .toList());
         Map<Long, BigDecimal> endReadingByNozzleId = request.getFuelReadings().stream()
                 .collect(Collectors.toMap(
                         CloseShiftRequest.OutletEndReadingRequest::nozzleId,
@@ -186,6 +191,14 @@ public class ShiftLifecycleSupportService {
                         "End reading " + endReading.toPlainString() + " exceeds the maximum meter value of " +
                         maxMeter.toPlainString() + " for the " + reading.getFuelType() + " nozzle. " +
                         "Please verify the meter reading.");
+            }
+
+            if (endReading.compareTo(reading.getStartReading()) < 0
+                    && !isNearMeterMaximum(reading.getStartReading(), maxMeter)) {
+                throw new BusinessException(
+                        "Closing reading " + endReading.toPlainString() + " is below the opening reading " +
+                        reading.getStartReading().toPlainString() + " for the " + reading.getFuelType() +
+                        " nozzle. Please verify the meter reading.");
             }
 
             BigDecimal unitsSold = calcUnits(reading.getStartReading(), endReading, maxMeter);
@@ -292,6 +305,18 @@ public class ShiftLifecycleSupportService {
                 .recordedByUserId(currentUser.getId())
                 .build());
         log.info("Auto-created CASH_IN event for shift {}: amount={}", shift.getId(), shift.getCashCollected());
+    }
+
+    /** Request ids must be unique; a repeated nozzle would otherwise fail deep inside a map collector. */
+    public void rejectDuplicateNozzles(List<Long> nozzleIds) {
+        if (nozzleIds.size() != new HashSet<>(nozzleIds).size()) {
+            throw new BusinessException("Each nozzle can only appear once in the request.");
+        }
+    }
+
+    /** A meter only rolls over to zero from the top of its range; anything lower is a mistyped reading. */
+    private boolean isNearMeterMaximum(BigDecimal startReading, BigDecimal maxMeterValue) {
+        return startReading.compareTo(maxMeterValue.multiply(ROLLOVER_START_FRACTION)) >= 0;
     }
 
     private BigDecimal calcUnits(BigDecimal start, BigDecimal end, BigDecimal maxMeterValue) {

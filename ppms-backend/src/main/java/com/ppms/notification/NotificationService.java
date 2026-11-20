@@ -2,6 +2,7 @@ package com.ppms.notification;
 
 import com.ppms.ancillary.AncillaryProductRepository;
 import com.ppms.ancillary.AncillaryProductStatus;
+import com.ppms.common.time.BusinessClock;
 import com.ppms.document.PumpDocumentRepository;
 import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.inventory.TankStockResponse;
@@ -29,8 +30,10 @@ import java.util.List;
  * every 5 minutes for all active pumps. The GET /notifications endpoint serves
  * pre-computed results from the DB without triggering any generation logic.
  *
- * Dedup by (pump_id, dedup_key): each alert condition produces at most one unread
- * notification. Duplicate INSERTs are silently ignored by the unique constraint.
+ * Dedup by (pump_id, dedup_key): each key produces at most one notification. Ongoing conditions
+ * (low stock) include the date in the key so they re-alert daily; dated conditions (document expiry,
+ * calibration) include the due date and state so a renewal or a move from "expiring" to "expired"
+ * alerts again.
  */
 @Slf4j
 @Service
@@ -45,9 +48,7 @@ public class NotificationService {
     private final UndergroundTankRepository tankRepository;
     private final NozzleCalibrationLogRepository calibrationLogRepository;
     private final NotificationDedupService dedupService;
-
-    // No class-level TODAY constant — LocalDate.now() is always called inline so it reflects
-    // the actual current date when the method runs, not the date the class was loaded.
+    private final BusinessClock businessClock;
 
     /**
      * Generates all notifications for a pump by checking current system state.
@@ -117,7 +118,7 @@ public class NotificationService {
         tanks.stream()
                 .filter(TankStockResponse::isLowStock)
                 .forEach(tank -> {
-                    String dedupKey = "LOW_STOCK:tank:" + tank.getTankId();
+                    String dedupKey = "LOW_STOCK:tank:" + tank.getTankId() + ":" + businessClock.today();
                     dedupService.maybeInsert(pumpId, NotificationType.LOW_STOCK, dedupKey,
                             "Low Tank Stock",
                             tank.getTankIdentifier() + " (" + tank.getFuelType() + ") is at "
@@ -133,7 +134,7 @@ public class NotificationService {
         // for any pump that had already set prices, creating spam notifications.
         var currentPrices = fuelPriceRepository.findCurrentPricesForPump(pumpId);
         if (currentPrices.isEmpty()) {
-            LocalDate today = LocalDate.now();
+            LocalDate today = businessClock.today();
             // Daily dedup key — re-alerts each day until at least one price is configured.
             String dedupKey = "PRICE_STALE:" + today;
             dedupService.maybeInsert(pumpId, NotificationType.PRICE_STALE, dedupKey,
@@ -143,15 +144,16 @@ public class NotificationService {
     }
 
     private void generateDocumentExpiryAlerts(Long pumpId) {
-        LocalDate today     = LocalDate.now();
+        LocalDate today     = businessClock.today();
         LocalDate threshold = today.plusDays(30);
 
         documentRepository.findByPumpIdOrderByExpiryDateAsc(pumpId, org.springframework.data.domain.PageRequest.of(0, 500)).stream()
                 .filter(doc -> doc.getExpiryDate() != null
                         && !doc.getExpiryDate().isAfter(threshold))
                 .forEach(doc -> {
-                    String dedupKey = "DOCUMENT_EXPIRING:doc:" + doc.getId();
                     boolean expired = doc.getExpiryDate().isBefore(today);
+                    String dedupKey = "DOCUMENT_EXPIRING:doc:" + doc.getId() + ":" + doc.getExpiryDate()
+                            + ":" + (expired ? "EXPIRED" : "SOON");
                     String title   = expired ? "Document Expired" : "Document Expiring Soon";
                     String message = doc.getName() + " (" + doc.getDocType() + ") "
                             + (expired ? "expired on " : "expires on ") + doc.getExpiryDate();
@@ -169,7 +171,7 @@ public class NotificationService {
      * One alert per shift is generated using the shift ID as the dedup key.
      */
     private void generateZeroSaleAlerts(Long pumpId) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = businessClock.today();
         List<Shift> todayShifts = shiftRepository.findClosedShiftsByDate(pumpId, today);
 
         todayShifts.stream()
@@ -194,7 +196,7 @@ public class NotificationService {
      * Dedup key is per shift ID — one alert per affected shift.
      */
     private void generateAutoClosedShiftAlerts(Long pumpId) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = businessClock.today();
         shiftRepository.findClosedShiftsByDate(pumpId, today).stream()
                 .filter(shift -> shift.getStatus() == ShiftStatus.AUTO_CLOSED_OVERDUE)
                 .forEach(shift -> {
@@ -211,12 +213,12 @@ public class NotificationService {
      * has a next_calibration_due date that is today or in the past.
      * The query returns only the latest log per nozzle (not superseded records),
      * so each nozzle fires at most one alert.
-     * Dedup key is per nozzle ID — the alert stays active until the nozzle is re-calibrated.
+     * Dedup key includes the due date, so each missed calibration cycle alerts once.
      */
     private void generateCalibrationDueAlerts(Long pumpId) {
-        calibrationLogRepository.findOverdueCalibrations(pumpId, LocalDate.now())
+        calibrationLogRepository.findOverdueCalibrations(pumpId, businessClock.today())
                 .forEach(log -> {
-                    String dedupKey = "CALIBRATION_DUE:nozzle:" + log.getNozzleId();
+                    String dedupKey = "CALIBRATION_DUE:nozzle:" + log.getNozzleId() + ":" + log.getNextCalibrationDue();
                     String message = "Nozzle #" + log.getNozzleId() + " calibration was due on "
                             + log.getNextCalibrationDue() + ". Please schedule a calibration to remain compliant.";
                     dedupService.maybeInsert(pumpId, NotificationType.CALIBRATION_DUE, dedupKey,
@@ -228,7 +230,7 @@ public class NotificationService {
      * Generates ANCILLARY_LOW_STOCK alerts for active products whose current stock
      * is at or below their configured low_stock_threshold.
      * Products with no threshold (null) are skipped — the alert is opt-in per product.
-     * Dedup key is per product ID so each product generates at most one pending alert.
+     * Dedup key is per product per day, so a product that stays low re-alerts daily.
      */
     private void generateAncillaryLowStockAlerts(Long pumpId) {
         ancillaryProductRepository.findByPumpIdAndStatusOrderByNameAsc(pumpId, AncillaryProductStatus.ACTIVE)
@@ -236,7 +238,7 @@ public class NotificationService {
                 .filter(p -> p.getLowStockThreshold() != null
                         && p.getCurrentStockUnits() <= p.getLowStockThreshold())
                 .forEach(p -> {
-                    String dedupKey = "ANCILLARY_LOW_STOCK:product:" + p.getId();
+                    String dedupKey = "ANCILLARY_LOW_STOCK:product:" + p.getId() + ":" + businessClock.today();
                     String displayName = (p.getBrand() != null ? p.getBrand() + " " : "") + p.getName();
                     dedupService.maybeInsert(pumpId, NotificationType.ANCILLARY_LOW_STOCK, dedupKey,
                             "Low Product Stock",

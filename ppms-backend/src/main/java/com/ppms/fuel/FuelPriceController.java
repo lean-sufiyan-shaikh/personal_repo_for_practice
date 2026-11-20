@@ -2,8 +2,11 @@ package com.ppms.fuel;
 
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
+import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.common.time.BusinessClock;
 import com.ppms.notification.NotificationDedupService;
 import com.ppms.notification.NotificationType;
+import com.ppms.pump.PumpShiftDefinitionRepository;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
 import jakarta.validation.Valid;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
@@ -32,6 +36,8 @@ public class FuelPriceController {
     private final ShiftRepository shiftRepository;
     private final AuditService auditService;
     private final NotificationDedupService notificationDedupService;
+    private final PumpShiftDefinitionRepository shiftDefinitionRepository;
+    private final BusinessClock businessClock;
 
     /**
      * GET /api/pumps/{pumpId}/fuel-prices/current
@@ -45,19 +51,25 @@ public class FuelPriceController {
     }
 
     /**
-     * GET /api/pumps/{pumpId}/fuel-prices/for-date?date=YYYY-MM-DD
+     * GET /api/pumps/{pumpId}/fuel-prices/for-date?date=YYYY-MM-DD[&shiftDefinitionId=N]
      * Returns the price that was effective for each fuel type at a pump on the given historical date.
-     * pricePerUnit is null when no price record exists on or before that date for a fuel type.
-     * Used by the backfill shift modal to show resolved rates and flag which ones need manual entry.
+     * With a shift definition, the price is the one in force when that shift started, matching what
+     * backfill charges; without one, it is the price at the end of the day.
+     * pricePerUnit is null when no price record exists by then for a fuel type.
      */
     @GetMapping("/for-date")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
     public ResponseEntity<List<FuelPriceForDateResponse>> getPricesForDate(
             @PathVariable Long pumpId,
-            @RequestParam LocalDate date) {
+            @RequestParam LocalDate date,
+            @RequestParam(required = false) Long shiftDefinitionId) {
 
-        ZoneId ist = ZoneId.of("Asia/Kolkata");
-        OffsetDateTime asOf = date.plusDays(1).atStartOfDay(ist).toOffsetDateTime();
+        ZoneId zone = businessClock.zone();
+        OffsetDateTime asOf = shiftDefinitionId == null
+                ? date.plusDays(1).atStartOfDay(zone).toOffsetDateTime()
+                : shiftDefinitionRepository.findByIdAndPumpId(shiftDefinitionId, pumpId)
+                        .map(def -> LocalDateTime.of(date, def.getStartTime()).atZone(zone).toOffsetDateTime())
+                        .orElseThrow(() -> new ResourceNotFoundException("Shift definition not found"));
 
         List<FuelPriceForDateResponse> responses = Arrays.stream(FuelType.values())
                 .map(fuelType -> {
@@ -115,7 +127,7 @@ public class FuelPriceController {
         GlobalFuelPrice price = GlobalFuelPrice.builder()
                 .pumpId(pumpId)
                 .fuelType(request.getFuelType())
-                .pricePerUnit(request.getPricePerUnit())
+                .pricePerUnit(request.getPricePerUnit().setScale(2, RoundingMode.HALF_UP))
                 .setByUserId(currentUser.getId())
                 .build();
 
@@ -140,7 +152,7 @@ public class FuelPriceController {
             // Fire a PRICE_CHANGE_OPEN_SHIFT notification deduped per pump per day.
             // One notification per day is enough — if the admin changes price multiple times
             // on the same day while shifts remain open, we avoid spamming.
-            String dedupKey = "PRICE_CHANGE_OPEN_SHIFT:" + LocalDate.now() + ":" + pumpId;
+            String dedupKey = "PRICE_CHANGE_OPEN_SHIFT:" + businessClock.today() + ":" + pumpId;
             notificationDedupService.maybeInsert(pumpId,
                     NotificationType.PRICE_CHANGE_OPEN_SHIFT, dedupKey,
                     "Fuel Price Changed With Open Shifts",

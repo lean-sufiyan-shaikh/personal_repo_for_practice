@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 public interface PumpExpenseRepository extends JpaRepository<PumpExpense, Long> {
@@ -30,4 +31,8 @@ public interface PumpExpenseRepository extends JpaRepository<PumpExpense, Long> 
     /** Fetch approved expenses for a specific pump and date — used by balance sheet DAY reports. */
     List<PumpExpense> findByPumpIdAndExpenseDateAndApprovalStatus(
             Long pumpId, LocalDate expenseDate, ExpenseApprovalStatus approvalStatus);
+
+    /** Approved expenses recorded within [from, to) — used by live DAY balance sheets. */
+    List<PumpExpense> findByPumpIdAndApprovalStatusAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            Long pumpId, ExpenseApprovalStatus approvalStatus, OffsetDateTime from, OffsetDateTime to);
 }
