@@ -167,8 +167,8 @@ export default function CashDrawerPage() {
 
         <div className="ui-form-shell__grid">
           <div>
-            <label className="ui-label">Event Type</label>
-            <SearchableSelect
+            <span className="ui-label">Event Type</span>
+            <SearchableSelect label="Event Type"
               value={form.eventType}
               onChange={v => setForm(f => ({ ...f, eventType: v as CashEventType }))}
               options={EVENT_TYPES.map(t => ({ value: t.value, label: t.label }))}
@@ -176,18 +176,20 @@ export default function CashDrawerPage() {
           </div>
 
           <div>
-            <label className="ui-label">Amount (₹)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.amount || ''}
-              onChange={e => setForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
-              className={`text-sm ${form.eventType === 'CASH_OUT' && form.amount > balance ? 'border-red-400 focus:ring-red-300' : ''}`}
-              placeholder="0.00"
-              required
-              autoFocus
-            />
+            <label className="block">
+              <span className="ui-label">Amount (₹)</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.amount || ''}
+                onChange={e => setForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
+                className={`text-sm ${form.eventType === 'CASH_OUT' && form.amount > balance ? 'border-red-400 focus:ring-red-300' : ''}`}
+                placeholder="0.00"
+                required
+                autoFocus
+              />
+            </label>
             {form.eventType === 'CASH_OUT' && (
               <p className={`mt-1 text-xs ${form.amount > balance ? 'text-red-500 font-medium' : 'text-slate-400'}`}>
                 Available balance: {fmtAmt(balance)}
@@ -196,26 +198,30 @@ export default function CashDrawerPage() {
           </div>
 
           <div>
-            <label className="ui-label">Description</label>
-            <input
-              type="text"
-              value={form.description}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              className="text-sm"
-              placeholder="e.g. Shift 1 cash deposited"
-              required
-            />
+            <label className="block">
+              <span className="ui-label">Description</span>
+              <input
+                type="text"
+                value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                className="text-sm"
+                placeholder="e.g. Shift 1 cash deposited"
+                required
+              />
+            </label>
           </div>
 
           <div>
-            <label className="ui-label">Date</label>
-            <input
-              type="date"
-              value={form.eventDate}
-              onChange={e => setForm(f => ({ ...f, eventDate: e.target.value }))}
-              className="text-sm"
-              required
-            />
+            <label className="block">
+              <span className="ui-label">Date</span>
+              <input
+                type="date"
+                value={form.eventDate}
+                onChange={e => setForm(f => ({ ...f, eventDate: e.target.value }))}
+                className="text-sm"
+                required
+              />
+            </label>
           </div>
         </div>
 
@@ -234,7 +240,7 @@ export default function CashDrawerPage() {
       </Reveal>
 
       {reviewOpen && (
-        <ModalPortal>
+        <ModalPortal onClose={() => setReviewOpen(false)}>
         <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
           <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className={`ui-modal-header ui-modal-header--themed ${reviewHeaderTone}`}>
@@ -242,7 +248,7 @@ export default function CashDrawerPage() {
                 <h2 className="ui-modal-title">Review Cash Event</h2>
                 <p className="ui-modal-subtitle">Check the event details before recording it.</p>
               </div>
-              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+              <button type="button" aria-label="Close" onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
             </div>
             <div className="ui-modal-body space-y-4">
               {formError && <div className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
@@ -296,8 +302,8 @@ export default function CashDrawerPage() {
           <p className="ui-toolbar-title">Cash Events</p>
           <div className="ui-toolbar-actions">
             <div className="flex items-center gap-1.5">
-              <label className="text-xs text-slate-500 whitespace-nowrap">From</label>
-              <input
+              <label htmlFor="cash-events-from" className="text-xs text-slate-500 whitespace-nowrap">From</label>
+              <input id="cash-events-from"
                 type="date"
                 value={fromDate}
                 onChange={e => { setFromDate(e.target.value); setPage(0) }}
@@ -305,8 +311,8 @@ export default function CashDrawerPage() {
               />
             </div>
             <div className="flex items-center gap-1.5">
-              <label className="text-xs text-slate-500 whitespace-nowrap">To</label>
-              <input
+              <label htmlFor="cash-events-to" className="text-xs text-slate-500 whitespace-nowrap">To</label>
+              <input id="cash-events-to"
                 type="date"
                 value={toDate}
                 onChange={e => { setToDate(e.target.value); setPage(0) }}
@@ -314,7 +320,7 @@ export default function CashDrawerPage() {
               />
             </div>
             <div className="w-44">
-            <SearchableSelect
+            <SearchableSelect label="Filter by event type"
               value={eventTypeFilter}
               onChange={v => { setEventTypeFilter(v as any); setPage(0) }}
               options={[

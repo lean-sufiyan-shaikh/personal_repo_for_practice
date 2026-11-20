@@ -36,7 +36,7 @@ export default function ForgotPasswordPage() {
             If this phone number is registered and has an email address on file,
             we have sent a password reset link. Check your inbox.
           </p>
-          <p className="text-xs text-slate-400">The link expires in 1 hour.</p>
+          <p className="text-xs text-slate-500">The link expires in 1 hour.</p>
           <Link to="/login" className="ui-link inline-flex justify-center">
             Back to login
           </Link>

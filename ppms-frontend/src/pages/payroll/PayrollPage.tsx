@@ -15,7 +15,6 @@ import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
-import { useEscapeKey } from '../../hooks/useEscapeKey'
 
 const STATUS_STYLES: Record<PayrollStatus, string> = {
   DRAFT:    'bg-amber-100 text-amber-700',
@@ -67,7 +66,6 @@ interface ReviewModalProps {
 }
 
 function ReviewModal({ form, selectedStaff, pumpId, formError, isPending, onClose, onGenerate }: ReviewModalProps) {
-  useEscapeKey(onClose)
   const [deductSet, setDeductSet] = useState<Set<number>>(new Set())
 
   const { data: pending = [], isLoading: pendingLoading } = useQuery({
@@ -88,7 +86,7 @@ function ReviewModal({ form, selectedStaff, pumpId, formError, isPending, onClos
     .reduce((s, d) => s + d.discrepancyAmount, 0)
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop" onClick={onClose}>
       <div className="ui-modal-panel w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -96,7 +94,7 @@ function ReviewModal({ form, selectedStaff, pumpId, formError, isPending, onClos
             <h2 className="ui-modal-title">Review Payroll</h2>
             <p className="ui-modal-subtitle">Verify the details and handle any pending discrepancies.</p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
 
         <div className="ui-modal-body space-y-4">
@@ -124,14 +122,14 @@ function ReviewModal({ form, selectedStaff, pumpId, formError, isPending, onClos
 
           {/* Pending discrepancies */}
           {pendingLoading ? (
-            <div className="text-xs text-slate-400 px-1">Checking pending discrepancies…</div>
+            <div className="text-xs text-slate-500 px-1">Checking pending discrepancies…</div>
           ) : pending.length > 0 ? (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
                   Pending Discrepancies ({pending.length})
                 </p>
-                <p className="text-xs text-slate-400">Toggle to deduct from this salary</p>
+                <p className="text-xs text-slate-500">Toggle to deduct from this salary</p>
               </div>
               <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden">
                 {pending.map((d: PendingDiscrepancy) => {
@@ -144,7 +142,7 @@ function ReviewModal({ form, selectedStaff, pumpId, formError, isPending, onClos
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-mono text-slate-400">#{d.id}</span>
+                          <span className="text-xs font-mono text-slate-500">#{d.id}</span>
                           <span className="text-xs text-slate-600">{d.shiftDate}</span>
                           {(d.duName || d.duNumber != null) && (
                             <span className="text-xs text-slate-500">{d.duName ?? `DU #${d.duNumber}`}</span>
@@ -159,7 +157,7 @@ function ReviewModal({ form, selectedStaff, pumpId, formError, isPending, onClos
                           </span>
                         </div>
                         {d.discrepancyReason && (
-                          <p className="text-xs text-slate-400 mt-0.5 italic truncate">{d.discrepancyReason}</p>
+                          <p className="text-xs text-slate-500 mt-0.5 italic truncate">{d.discrepancyReason}</p>
                         )}
                       </div>
 
@@ -187,7 +185,7 @@ function ReviewModal({ form, selectedStaff, pumpId, formError, isPending, onClos
                 </div>
               )}
               {deductSet.size === 0 && (
-                <p className="text-xs text-slate-400 mt-1 px-1">All discrepancies set to Skip — they will remain pending for the next payroll run.</p>
+                <p className="text-xs text-slate-500 mt-1 px-1">All discrepancies set to Skip — they will remain pending for the next payroll run.</p>
               )}
             </div>
           ) : (
@@ -291,14 +289,14 @@ function PayrollGroup({
                     <span className="text-sm font-medium text-slate-700">
                       {staffMember?.fullName ?? `Staff #${r.userId}`}
                     </span>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-slate-500">
                       {fmtDate(r.periodFrom)} – {fmtDate(r.periodTo)}
                     </span>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <div className="text-base font-bold text-slate-800">{fmtAmt(r.netPay)}</div>
                     {r.deductions > 0 && (
-                      <div className="text-xs text-slate-400 line-through">{fmtAmt(r.grossAmount)}</div>
+                      <div className="text-xs text-slate-500 line-through">{fmtAmt(r.grossAmount)}</div>
                     )}
                   </div>
                 </div>
@@ -326,7 +324,7 @@ function PayrollGroup({
                           <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
                           <span className="text-slate-500">Days worked</span>
                           {r.dailyRateSnapshot != null && (
-                            <span className="text-slate-400">@ {fmtAmt(r.dailyRateSnapshot)}/day</span>
+                            <span className="text-slate-500">@ {fmtAmt(r.dailyRateSnapshot)}/day</span>
                           )}
                         </div>
                         <span className="font-medium text-slate-700">{r.daysWorked ?? 0} days</span>
@@ -339,9 +337,9 @@ function PayrollGroup({
                           <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0" />
                             <span className="text-slate-500">Night (12AM–8AM)</span>
-                            <span className="text-slate-400">{r.shift1Shifts} shift{r.shift1Shifts !== 1 ? 's' : ''} · {r.shift1Hours.toFixed(2)} hrs</span>
+                            <span className="text-slate-500">{r.shift1Shifts} shift{r.shift1Shifts !== 1 ? 's' : ''} · {r.shift1Hours.toFixed(2)} hrs</span>
                             {r.shift1RateSnapshot != null && (
-                              <span className="text-slate-400">@ {fmtAmt(r.shift1RateSnapshot)}/hr</span>
+                              <span className="text-slate-500">@ {fmtAmt(r.shift1RateSnapshot)}/hr</span>
                             )}
                           </div>
                           <span className="font-medium text-slate-700">
@@ -354,9 +352,9 @@ function PayrollGroup({
                           <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
                             <span className="text-slate-500">Day (8AM–12AM)</span>
-                            <span className="text-slate-400">{r.standardShifts} shift{r.standardShifts !== 1 ? 's' : ''} · {r.standardHours.toFixed(2)} hrs</span>
+                            <span className="text-slate-500">{r.standardShifts} shift{r.standardShifts !== 1 ? 's' : ''} · {r.standardHours.toFixed(2)} hrs</span>
                             {r.standardRateSnapshot != null && (
-                              <span className="text-slate-400">@ {fmtAmt(r.standardRateSnapshot)}/hr</span>
+                              <span className="text-slate-500">@ {fmtAmt(r.standardRateSnapshot)}/hr</span>
                             )}
                           </div>
                           <span className="font-medium text-slate-700">
@@ -365,7 +363,7 @@ function PayrollGroup({
                         </div>
                       )}
                       {r.shift1Shifts === 0 && r.standardShifts === 0 && (
-                        <p className="px-3 py-2 text-slate-400">No closed shifts in this period.</p>
+                        <p className="px-3 py-2 text-slate-500">No closed shifts in this period.</p>
                       )}
                     </>
                   )}
@@ -374,7 +372,7 @@ function PayrollGroup({
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
                         <span className="text-slate-500">Salary deductions</span>
-                        <span className="text-xs text-slate-400">(discrepancy shortfall)</span>
+                        <span className="text-xs text-slate-500">(discrepancy shortfall)</span>
                       </div>
                       <span className="font-medium text-red-600">− {fmtAmt(r.deductions)}</span>
                     </div>
@@ -383,7 +381,7 @@ function PayrollGroup({
 
                 {/* Footer */}
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     {r.salaryType === 'DAILY'
                       ? `${r.daysWorked ?? 0} day${r.daysWorked !== 1 ? 's' : ''} worked`
                       : `${r.totalShifts} shift${r.totalShifts !== 1 ? 's' : ''} total`}
@@ -597,8 +595,8 @@ export default function PayrollPage() {
 
         <div className="ui-form-shell__grid">
           <div>
-            <label className="ui-label">Staff Member</label>
-            <SearchableSelect
+            <span className="ui-label">Staff Member</span>
+            <SearchableSelect label="Staff Member"
               value={form.userId ? form.userId.toString() : ''}
               onChange={v => setForm(f => ({ ...f, userId: parseInt(v) || 0 }))}
               placeholder="Select staff…"
@@ -607,40 +605,46 @@ export default function PayrollPage() {
           </div>
 
           <div>
-            <label className="ui-label">Period From</label>
-            <input
-              type="date"
-              value={form.periodFrom}
-              onChange={e => setForm(f => ({ ...f, periodFrom: e.target.value }))}
-              className="text-sm"
-              required
-            />
+            <label className="block">
+              <span className="ui-label">Period From</span>
+              <input
+                type="date"
+                value={form.periodFrom}
+                onChange={e => setForm(f => ({ ...f, periodFrom: e.target.value }))}
+                className="text-sm"
+                required
+              />
+            </label>
           </div>
 
           <div>
-            <label className="ui-label">Period To</label>
-            <input
-              type="date"
-              value={form.periodTo}
-              onChange={e => setForm(f => ({ ...f, periodTo: e.target.value }))}
-              className="text-sm"
-              required
-            />
+            <label className="block">
+              <span className="ui-label">Period To</span>
+              <input
+                type="date"
+                value={form.periodTo}
+                onChange={e => setForm(f => ({ ...f, periodTo: e.target.value }))}
+                className="text-sm"
+                required
+              />
+            </label>
           </div>
 
           <div>
-            <label className="ui-label">Notes (optional)</label>
-            <input
-              type="text"
-              value={form.notes ?? ''}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
-              className="text-sm"
-              placeholder="Any notes about this pay period"
-            />
+            <label className="block">
+              <span className="ui-label">Notes (optional)</span>
+              <input
+                type="text"
+                value={form.notes ?? ''}
+                onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
+                className="text-sm"
+                placeholder="Any notes about this pay period"
+              />
+            </label>
           </div>
         </div>
 
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500">
           Operators: actual hours per closed shift × hourly rate (night/day separately).
           Managers &amp; Admins: daily rate × (days in period − leave days).
           Configure rates in Setup → Staff → ₹ Rates.
@@ -680,7 +684,7 @@ export default function PayrollPage() {
           <p className="text-sm font-semibold text-slate-700">
             Payroll Records
             {filtered.length > 0 && (
-              <span className="ml-1.5 text-slate-400 font-normal">({filtered.length})</span>
+              <span className="ml-1.5 text-slate-500 font-normal">({filtered.length})</span>
             )}
           </p>
 
@@ -694,8 +698,8 @@ export default function PayrollPage() {
             />
             {monthOptions.length > 0 && (
               <div className="flex items-center gap-2">
-                <label className="text-xs text-slate-500">Month</label>
-                <select
+                <label htmlFor="payroll-filter" className="text-xs text-slate-500">Month</label>
+                <select id="payroll-filter"
                   value={selectedMonth}
                   onChange={e => {
                     setSelectedMonth(e.target.value)

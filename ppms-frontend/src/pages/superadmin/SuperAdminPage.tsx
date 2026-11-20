@@ -17,7 +17,9 @@ import { Reveal } from '../../components/Reveal'
 import client from '../../api/client'
 import { formatIstDate } from '../../utils/date'
 import { ModalPortal } from '../../components/ModalPortal'
+import { FormField } from '../../components/FormField'
 import { parseApiError } from '../../utils/apiError'
+import { IconButton } from '../../components/IconButton'
 
 // ── Validation schemas ────────────────────────────────────────────────────────
 
@@ -441,12 +443,12 @@ export default function SuperAdminPage() {
                   >
                     Copy
                   </button>
-                  <button
+                  <IconButton
                     onClick={() => { setCreatedOwner(null); createdPasswordRef.current = null; setShowPassword(false) }}
-                    className="ui-btn ui-btn-ghost p-1"
-                  >
-                    <X size={14} strokeWidth={2} />
-                  </button>
+                    className="ui-btn ui-btn-ghost"
+ label="Dismiss"
+ icon={<X size={14} strokeWidth={2} />}
+ />
                 </div>
               </div>
             </div>
@@ -572,7 +574,7 @@ export default function SuperAdminPage() {
                 ) : owners.length === 0 ? (
                   <div className="ui-empty px-5 py-8">
                     <p className="ui-subtitle">No owners yet.</p>
-                    <p className="text-xs text-slate-400 mt-1">Use the form to onboard your first pump owner.</p>
+                    <p className="text-xs text-slate-500 mt-1">Use the form to onboard your first pump owner.</p>
                   </div>
                 ) : (() => {
                   const totalPages = Math.max(1, Math.ceil(owners.length / ownersPageSize))
@@ -651,7 +653,7 @@ export default function SuperAdminPage() {
                                               <Fuel size={12} strokeWidth={1.8} className="text-slate-400 mt-0.5 flex-shrink-0" />
                                               <div className="min-w-0">
                                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                                  <span className={`font-semibold ${!pump.enabled ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                                                  <span className={`font-semibold ${!pump.enabled ? 'line-through text-slate-500' : 'text-slate-700'}`}>
                                                     {pump.pumpName}
                                                   </span>
                                                   {!pump.enabled && (
@@ -660,7 +662,7 @@ export default function SuperAdminPage() {
                                                     </span>
                                                   )}
                                                 </div>
-                                                <p className="text-slate-400 mt-0.5">{pump.pumpAddress}</p>
+                                                <p className="text-slate-500 mt-0.5">{pump.pumpAddress}</p>
                                                 {/* Staff count badge */}
                                                 <span className="inline-flex items-center gap-1 mt-1 text-xs text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
                                                   <Users size={11} strokeWidth={2} />{pump.staffCount} staff
@@ -815,7 +817,7 @@ export default function SuperAdminPage() {
       </div>
 
       {passwordModalOpen && (
-        <ModalPortal>
+        <ModalPortal onClose={clearPasswordForm}>
         <div className="ui-modal-backdrop" onClick={clearPasswordForm}>
           <div
             className="ui-modal-panel"
@@ -826,37 +828,43 @@ export default function SuperAdminPage() {
                 <h2 className="ui-modal-title">Reset Password</h2>
                 <p className="ui-modal-subtitle">Update your password, then sign in again.</p>
               </div>
-              <button onClick={clearPasswordForm} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+              <button type="button" aria-label="Close" onClick={clearPasswordForm} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
             </div>
 
             <div className="ui-modal-body space-y-4">
               <div>
-                <label className="ui-label">Current Password</label>
-                <PasswordInput
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="shadow-sm"
-                />
+                <label className="block">
+                  <span className="ui-label">Current Password</span>
+                  <PasswordInput
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="shadow-sm"
+                  />
+                </label>
               </div>
 
               <div>
-                <label className="ui-label">New Password</label>
-                <PasswordInput
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="shadow-sm"
-                />
+                <label className="block">
+                  <span className="ui-label">New Password</span>
+                  <PasswordInput
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="shadow-sm"
+                  />
+                </label>
                 <p className="ui-help">{PASSWORD_POLICY_MESSAGE}</p>
               </div>
 
               <div>
-                <label className="ui-label">Confirm New Password</label>
-                <PasswordInput
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleChangePassword() }}
-                  className="shadow-sm"
-                />
+                <label className="block">
+                  <span className="ui-label">Confirm New Password</span>
+                  <PasswordInput
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleChangePassword() }}
+                    className="shadow-sm"
+                  />
+                </label>
               </div>
 
               {passwordError && (
@@ -891,16 +899,6 @@ export default function SuperAdminPage() {
 }
 
 // ── Small helper components ───────────────────────────────────────────────────
-
-function FormField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="ui-label">{label}</label>
-      {children}
-      {error && <p className="ui-error-text">{error}</p>}
-    </div>
-  )
-}
 
 // ── Animated counter — wraps useCountUp so it can be called inside a component
 // boundary rather than directly inside a conditional render.

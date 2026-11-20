@@ -29,7 +29,7 @@ import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { ModalPortal } from '../../components/ModalPortal'
 import { RefreshIndicator } from '../../components/RefreshIndicator'
-import { useEscapeKey } from '../../hooks/useEscapeKey'
+import { IconButton } from '../../components/IconButton'
 
 // ── Date helpers ───────────────────────────────────────────────────────────────
 // Use local calendar date (not UTC) so the value matches the user's timezone.
@@ -74,7 +74,6 @@ interface GenerateModalProps {
 }
 
 function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
-  useEscapeKey(onClose)
   const qc = useQueryClient()
   const { addToast } = useToastStore()
 
@@ -148,7 +147,7 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
   }
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel">
         {/* Header */}
@@ -157,15 +156,15 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
             <h2 className="ui-modal-title">Generate Balance Sheet</h2>
             <p className="ui-modal-subtitle">Create a shift or day-end financial snapshot for this pump.</p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
 
         {/* Body */}
         <div className="ui-modal-body space-y-4">
           {/* Report type toggle */}
           <div>
-            <label className="ui-label">Report Type</label>
-            <div className="ui-card-plain flex gap-1 p-1">
+            <span className="ui-label">Report Type</span>
+            <div role="group" aria-label="Report Type" className="ui-card-plain flex gap-1 p-1">
               {(['SHIFT', 'DAY'] as const).map(t => (
                 <button
                   key={t}
@@ -180,7 +179,7 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-xs text-slate-400">
+            <p className="mt-1.5 text-xs text-slate-500">
               {reportType === 'SHIFT'
                 ? 'Covers one shift. All shifts in that window must be closed first.'
                 : 'Covers the full business day. All shifts should be closed before generating.'}
@@ -189,25 +188,27 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
 
           {/* Date */}
           <div>
-            <label className="ui-label">Business Date</label>
-            <input
-              type="date"
-              value={reportDate}
-              onChange={e => setReportDate(e.target.value)}
-              className="shadow-sm"
-            />
+            <label className="block">
+              <span className="ui-label">Business Date</span>
+              <input
+                type="date"
+                value={reportDate}
+                onChange={e => setReportDate(e.target.value)}
+                className="shadow-sm"
+              />
+            </label>
           </div>
 
           {/* Shift (only for SHIFT reports) */}
           {reportType === 'SHIFT' && (
             <div>
-              <label className="ui-label">Shift</label>
+              <span className="ui-label">Shift</span>
               {defsLoading ? (
                 <p className="ui-help">Loading shifts…</p>
               ) : shiftDefinitions.length === 0 ? (
                 <p className="text-xs text-red-500">No shift definitions configured for this pump. Please set them up in pump settings first.</p>
               ) : (
-                <SearchableSelect
+                <SearchableSelect label="Shift"
                   value={shiftDefinitionId !== null ? String(shiftDefinitionId) : ''}
                   onChange={v => setShiftDefinitionId(Number(v))}
                   options={shiftDefinitions.map(d => ({ value: String(d.id), label: `${d.name} · ${d.windowLabel}` }))}
@@ -218,14 +219,16 @@ function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
 
           {/* Notes */}
           <div>
-            <label className="ui-label">Notes <span className="text-slate-400">(optional)</span></label>
-            <textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              rows={2}
-              placeholder="Any remarks for this report…"
-              className="resize-none shadow-sm"
-            />
+            <label className="block">
+              <span className="ui-label">Notes <span className="text-slate-500">(optional)</span></span>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                rows={2}
+                placeholder="Any remarks for this report…"
+                className="resize-none shadow-sm"
+              />
+            </label>
           </div>
 
           {confirmRegenerate && (
@@ -298,7 +301,6 @@ interface DeleteConfirmProps {
 }
 
 function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmProps) {
-  useEscapeKey(onClose)
   const qc = useQueryClient()
   const { addToast } = useToastStore()
 
@@ -313,7 +315,7 @@ function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmProps) {
   })
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel w-full max-w-sm">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--danger">
@@ -321,7 +323,7 @@ function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmProps) {
             <h3 className="ui-modal-title">Delete Balance Sheet?</h3>
             <p className="ui-modal-subtitle">This action removes the saved report entry.</p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
         <div className="ui-modal-body">
           <p className="text-sm text-slate-600">
@@ -443,12 +445,12 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
           >
             Print PDF
           </button>
-          <button
+          <IconButton
             onClick={onClose}
             className="hidden md:block text-slate-400 hover:text-slate-600 text-xl leading-none"
-          >
-            &times;
-          </button>
+ label="Close details"
+ icon={'×'}
+ />
         </div>
       </div>
 
@@ -534,7 +536,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
             </p>
           )}
           {!isOwnerOrAdmin && (
-            <p className="text-xs text-slate-400 col-span-full mt-1">
+            <p className="text-xs text-slate-500 col-span-full mt-1">
               Financial details (cost, profit, P/L) are visible to Owner and Admin only.
             </p>
           )}
@@ -574,7 +576,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
         {/* Shift lines */}
         <section>
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-            Shift Breakdown <span className="text-slate-400 normal-case font-normal">({detail.shiftLines.length} shift{detail.shiftLines.length !== 1 ? 's' : ''})</span>
+            Shift Breakdown <span className="text-slate-500 normal-case font-normal">({detail.shiftLines.length} shift{detail.shiftLines.length !== 1 ? 's' : ''})</span>
           </h3>
           <div className="ui-table-wrap overflow-x-auto print:overflow-visible">
             <table className="w-full min-w-[960px] text-xs print:min-w-0 print:text-[7pt]">
@@ -624,7 +626,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
           <section>
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
               Meter Reading Amendments
-              <span className="ml-2 text-slate-400 normal-case font-normal">
+              <span className="ml-2 text-slate-500 normal-case font-normal">
                 ({detail.meterAmendments.length} amendment{detail.meterAmendments.length !== 1 ? 's' : ''} during this period)
               </span>
             </h3>
@@ -668,7 +670,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
                         <Td><span className="text-xs text-slate-500">{a.reason}</span></Td>
                         <Td><span className="text-xs text-slate-500">{a.recordedByUserName}</span></Td>
                         <Td>
-                          <span className="text-xs text-slate-400">
+                          <span className="text-xs text-slate-500">
                             {IST_TIME_FORMATTER.format(new Date(a.createdAt))}
                           </span>
                         </Td>
@@ -686,7 +688,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
           <section>
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
               Dip P/L
-              <span className="ml-2 text-slate-400 normal-case font-normal">
+              <span className="ml-2 text-slate-500 normal-case font-normal">
                 ({detail.dipPlEntries.length} entr{detail.dipPlEntries.length !== 1 ? 'ies' : 'y'})
               </span>
             </h3>
@@ -740,7 +742,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
                           </span>
                         </Td>
                         <Td>
-                          <span className="text-xs text-slate-400">
+                          <span className="text-xs text-slate-500">
                             {IST_TIME_FORMATTER.format(new Date(entry.recordedAt))}
                           </span>
                         </Td>
@@ -798,7 +800,7 @@ function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, 
 
 function Th({ children, right, colSpan }: { children?: ReactNode; right?: boolean; colSpan?: number }) {
   return (
-    <th colSpan={colSpan} className={`px-2 py-2 print:px-1 print:py-1 text-[11px] font-semibold text-slate-500 whitespace-nowrap ${right ? 'text-right' : ''}`}>
+    <th scope="col" colSpan={colSpan} className={`px-2 py-2 print:px-1 print:py-1 text-[11px] font-semibold text-slate-500 whitespace-nowrap ${right ? 'text-right' : ''}`}>
       {children}
     </th>
   )
@@ -839,7 +841,7 @@ function FuelLineRow({ line }: { line: BsFuelLine }) {
       <Td right>{line.deliveredLitres > 0 ? fmtLitres(line.deliveredLitres) : <span className="text-slate-300">—</span>}</Td>
       <Td right>{fmtLitres(line.soldLitres)}</Td>
       <Td right>{fmtLitres(line.closingStock)}</Td>
-      <Td right>{fmtMoney(line.sellingPrice)}<span className="text-slate-400 text-xs">/L</span></Td>
+      <Td right>{fmtMoney(line.sellingPrice)}<span className="text-slate-500 text-xs">/L</span></Td>
       <Td right>{fmtMoney(line.expectedRevenue)}</Td>
       {isOwnerOrAdmin && <Td right>{fmtMoney(line.costOfGoods)}</Td>}
       {isOwnerOrAdmin && <Td right><span className={`font-medium ${profitColor}`}>{fmtMoney(line.grossProfit)}</span></Td>}
@@ -891,7 +893,7 @@ function ShiftLineRow({ line }: { line: BsShiftLine }) {
           <tr key={i} className="border-t border-slate-100 bg-slate-50/40">
             <Td></Td>
             <Td>
-              <span className="text-xs text-slate-400 ml-3">↳ Nozzle #{nr.nozzleNumber}</span>
+              <span className="text-xs text-slate-500 ml-3">↳ Nozzle #{nr.nozzleNumber}</span>
             </Td>
             <Td>
               <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${badge}`}>
@@ -944,7 +946,7 @@ function ProductSalesSection({ productSales }: { productSales: ProductSalesSumma
     <section>
       <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
         Ancillary Product Sales
-        <span className="ml-2 text-slate-400 normal-case font-normal">
+        <span className="ml-2 text-slate-500 normal-case font-normal">
           ({productSales.productLines.length} product{productSales.productLines.length !== 1 ? 's' : ''})
         </span>
       </h3>
@@ -1002,7 +1004,7 @@ function ExpensesSection({ expenses }: { expenses: ExpenseSummary }) {
     <section>
       <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
         Approved Expenses
-        <span className="ml-2 text-slate-400 normal-case font-normal">
+        <span className="ml-2 text-slate-500 normal-case font-normal">
           ({expenses.lines.length} expense{expenses.lines.length !== 1 ? 's' : ''})
         </span>
       </h3>
@@ -1081,13 +1083,13 @@ function SettlementSection({ summary }: { summary: SettlementSummary }) {
                 <Td right>
                   {r.settled > 0
                     ? <span className="text-emerald-600 font-medium">{fmtMoney(r.settled)}</span>
-                    : <span className="text-slate-400">—</span>
+                    : <span className="text-slate-500">—</span>
                   }
                 </Td>
                 <Td right>
                   {r.pending !== 0
                     ? <span className={r.pending > 0 ? 'text-amber-600 font-medium' : 'text-emerald-600'}>{fmtMoney(r.pending)}</span>
-                    : <span className="inline-flex items-center gap-1 text-slate-400">Settled<Check size={11} strokeWidth={2.5} /></span>
+                    : <span className="inline-flex items-center gap-1 text-slate-500">Settled<Check size={11} strokeWidth={2.5} /></span>
                   }
                 </Td>
               </tr>
@@ -1113,8 +1115,8 @@ function SettlementSection({ summary }: { summary: SettlementSummary }) {
                 <div key={s.id} className="flex items-center gap-3 text-xs text-slate-600">
                   <span className="font-medium">{TYPE_LABELS[s.paymentType]}</span>
                   <span className="text-emerald-700 font-mono font-semibold">{fmtMoney(s.amountReceived)}</span>
-                  {s.notes && <span className="text-slate-400">· {s.notes}</span>}
-                  <span className="text-slate-400 ml-auto">by {s.recordedByUserName}</span>
+                  {s.notes && <span className="text-slate-500">· {s.notes}</span>}
+                  <span className="text-slate-500 ml-auto">by {s.recordedByUserName}</span>
                 </div>
               ))}
             </div>
@@ -1223,13 +1225,12 @@ export default function BalanceSheetPage() {
               placeholder="To"
             />
             {(filterFrom || filterTo) && (
-              <button
+              <IconButton
                 onClick={() => { setFilterFrom(''); setFilterTo(''); setBsPage(0) }}
-                className="ui-btn ui-btn-ghost min-h-0 p-1 text-slate-400 hover:text-slate-600"
-                title="Clear filter"
-              >
-                <X size={14} strokeWidth={2} />
-              </button>
+                className="ui-btn ui-btn-ghost text-slate-400 hover:text-slate-600"
+ label="Clear date filter"
+ icon={<X size={14} strokeWidth={2} />}
+ />
             )}
           </div>
         </div>
@@ -1345,7 +1346,7 @@ function ReportListItem({ report, isSelected, onClick }: ReportListItemProps) {
             <span className="text-sm font-medium text-slate-700 truncate">{report.periodLabel}</span>
           </div>
           <p className="text-xs text-slate-500">{fmtDate(report.reportDate)}</p>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             {report.shiftCount} shift{report.shiftCount !== 1 ? 's' : ''} · {fmtLitres(report.totalLitresSold)} sold
           </p>
         </div>

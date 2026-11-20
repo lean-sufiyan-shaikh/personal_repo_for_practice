@@ -173,8 +173,8 @@ export default function CalibrationPage() {
 
         <div className="ui-form-shell__grid">
           <div>
-            <label className="ui-label">Nozzle</label>
-            <SearchableSelect
+            <span className="ui-label">Nozzle</span>
+            <SearchableSelect label="Nozzle"
               value={selectedNozzleId ? selectedNozzleId.toString() : ''}
               onChange={v => { setSelectedNozzleId(parseInt(v) || 0); setFormError(null) }}
               placeholder="Select nozzle…"
@@ -186,58 +186,68 @@ export default function CalibrationPage() {
           </div>
 
           <div>
-            <label className="ui-label">Calibration Date</label>
-            <input
-              type="date"
-              value={form.calibrationDate}
-              onChange={e => setForm(f => ({ ...f, calibrationDate: e.target.value }))}
-              className="text-sm"
-              required
-              autoFocus
-            />
+            <label className="block">
+              <span className="ui-label">Calibration Date</span>
+              <input
+                type="date"
+                value={form.calibrationDate}
+                onChange={e => setForm(f => ({ ...f, calibrationDate: e.target.value }))}
+                className="text-sm"
+                required
+                autoFocus
+              />
+            </label>
           </div>
 
           <div>
-            <label className="ui-label">Next Calibration Due (optional)</label>
-            <input
-              type="date"
-              value={form.nextCalibrationDue ?? ''}
-              onChange={e => setForm(f => ({ ...f, nextCalibrationDue: e.target.value || null }))}
-              className="text-sm"
-            />
+            <label className="block">
+              <span className="ui-label">Next Calibration Due (optional)</span>
+              <input
+                type="date"
+                value={form.nextCalibrationDue ?? ''}
+                onChange={e => setForm(f => ({ ...f, nextCalibrationDue: e.target.value || null }))}
+                className="text-sm"
+              />
+            </label>
           </div>
 
           <div>
-            <label className="ui-label">Calibrated By *</label>
-            <input
-              type="text"
-              value={form.calibratedBy ?? ''}
-              onChange={e => setForm(f => ({ ...f, calibratedBy: e.target.value || null }))}
-              className="text-sm"
-              placeholder="Technician or agency name"
-            />
+            <label className="block">
+              <span className="ui-label">Calibrated By *</span>
+              <input
+                type="text"
+                value={form.calibratedBy ?? ''}
+                onChange={e => setForm(f => ({ ...f, calibratedBy: e.target.value || null }))}
+                className="text-sm"
+                placeholder="Technician or agency name"
+              />
+            </label>
           </div>
 
           <div>
-            <label className="ui-label">Certificate Reference (optional)</label>
-            <input
-              type="text"
-              value={form.certificateReference ?? ''}
-              onChange={e => setForm(f => ({ ...f, certificateReference: e.target.value || null }))}
-              className="text-sm"
-              placeholder="Inspection certificate number"
-            />
+            <label className="block">
+              <span className="ui-label">Certificate Reference (optional)</span>
+              <input
+                type="text"
+                value={form.certificateReference ?? ''}
+                onChange={e => setForm(f => ({ ...f, certificateReference: e.target.value || null }))}
+                className="text-sm"
+                placeholder="Inspection certificate number"
+              />
+            </label>
           </div>
 
           <div>
-            <label className="ui-label">Notes (optional)</label>
-            <input
-              type="text"
-              value={form.notes ?? ''}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
-              className="text-sm"
-              placeholder="Additional observations"
-            />
+            <label className="block">
+              <span className="ui-label">Notes (optional)</span>
+              <input
+                type="text"
+                value={form.notes ?? ''}
+                onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
+                className="text-sm"
+                placeholder="Additional observations"
+              />
+            </label>
           </div>
         </div>
 
@@ -256,7 +266,7 @@ export default function CalibrationPage() {
       </Reveal>
 
       {reviewOpen && (
-        <ModalPortal>
+        <ModalPortal onClose={() => setReviewOpen(false)}>
         <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
           <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -264,7 +274,7 @@ export default function CalibrationPage() {
                 <h2 className="ui-modal-title">Review Calibration</h2>
                 <p className="ui-modal-subtitle">Verify the nozzle and calibration details before saving.</p>
               </div>
-              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+              <button type="button" aria-label="Close" onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
             </div>
             <div className="ui-modal-body space-y-4">
               {formError && <div className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
@@ -306,9 +316,9 @@ export default function CalibrationPage() {
           <p className="ui-toolbar-title">
             Calibration History
             {historyNozzleId === 0 ? (
-              <span className="text-slate-400 font-normal ml-1">— All nozzles</span>
+              <span className="text-slate-500 font-normal ml-1">— All nozzles</span>
             ) : historyNozzle ? (
-              <span className="text-slate-400 font-normal ml-1">
+              <span className="text-slate-500 font-normal ml-1">
                 — Nozzle #{historyNozzle.nozzleNumber} ({historyNozzle.fuelType})
               </span>
             ) : null}
@@ -316,8 +326,8 @@ export default function CalibrationPage() {
 
           <div className="ui-toolbar-actions">
             <div className="flex items-center gap-1.5">
-              <label className="text-xs text-slate-500 whitespace-nowrap">From</label>
-              <input
+              <label htmlFor="calibration-history-from" className="text-xs text-slate-500 whitespace-nowrap">From</label>
+              <input id="calibration-history-from"
                 type="date"
                 value={fromDate}
                 onChange={e => { setFromDate(e.target.value); setHistoryPage(0) }}
@@ -325,8 +335,8 @@ export default function CalibrationPage() {
               />
             </div>
             <div className="flex items-center gap-1.5">
-              <label className="text-xs text-slate-500 whitespace-nowrap">To</label>
-              <input
+              <label htmlFor="calibration-history-to" className="text-xs text-slate-500 whitespace-nowrap">To</label>
+              <input id="calibration-history-to"
                 type="date"
                 value={toDate}
                 onChange={e => { setToDate(e.target.value); setHistoryPage(0) }}
@@ -334,7 +344,7 @@ export default function CalibrationPage() {
               />
             </div>
             <div className="w-56">
-            <SearchableSelect
+            <SearchableSelect label="Filter by nozzle"
               value={historyNozzleId ? historyNozzleId.toString() : ''}
               onChange={v => { setHistoryNozzleId(parseInt(v) || 0); setHistoryPage(0) }}
               placeholder="Filter by nozzle…"
@@ -390,10 +400,10 @@ export default function CalibrationPage() {
                   <div className="ui-record-row__meta">
                     {c.calibratedBy && <span>By: {c.calibratedBy}</span>}
                     {c.certificateReference && <span>Cert: {c.certificateReference}</span>}
-                    <span className="text-slate-400">Logged by: {c.loggedByName}</span>
-                    <span className="text-slate-400">Logged at: {fmtDateTime(c.createdAt)}</span>
+                    <span className="text-slate-500">Logged by: {c.loggedByName}</span>
+                    <span className="text-slate-500">Logged at: {fmtDateTime(c.createdAt)}</span>
                   </div>
-                  {c.notes && <p className="text-xs text-slate-400">{c.notes}</p>}
+                  {c.notes && <p className="text-xs text-slate-500">{c.notes}</p>}
                   </div>
                 </div>
               )})}

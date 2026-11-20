@@ -27,7 +27,7 @@ import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
-import { useEscapeKey } from '../../hooks/useEscapeKey'
+import { IconButton } from '../../components/IconButton'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -250,12 +250,12 @@ function ProductsTab({
             className="ui-search-shell__input w-full text-sm leading-5"
           />
           {searchQuery && (
-            <button
+            <IconButton
               onClick={() => setSearchQuery('')}
               className="ui-search-shell__clear"
-            >
-              <X size={13} strokeWidth={2} />
-            </button>
+ label="Clear search"
+ icon={<X size={13} strokeWidth={2} />}
+ />
           )}
         </div>
         {isOwnerOrAdmin && (
@@ -290,7 +290,7 @@ function ProductsTab({
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold text-slate-800 leading-tight">{product.displayName}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{product.unitOfMeasure} · {product.packageSize}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{product.unitOfMeasure} · {product.packageSize}</p>
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
                   product.status === 'ACTIVE'
@@ -304,11 +304,11 @@ function ProductsTab({
               {/* Stock + buy price row */}
               <div className="flex items-center gap-2 flex-wrap">
                 {stockBadge(product)}
-                <span className="text-xs text-slate-400">·</span>
+                <span className="text-xs text-slate-500">·</span>
                 <span className="text-xs text-slate-500">
                   {product.fifoCostPricePerUnit != null
                     ? <span>Buy: <span className="font-medium text-slate-700">{fmtCurrency(product.fifoCostPricePerUnit)}/unit</span></span>
-                    : <span className="text-slate-400">No stock lot</span>}
+                    : <span className="text-slate-500">No stock lot</span>}
                 </span>
               </div>
 
@@ -470,7 +470,7 @@ function AddProductDialog({
   }
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop px-4" onClick={onClose}>
       <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -482,7 +482,7 @@ function AddProductDialog({
                 : 'Review the product details before creating it.'}
             </p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
         </div>
 
         {step === 'form' && (
@@ -492,48 +492,56 @@ function AddProductDialog({
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="ui-label">Product Name *</label>
-                <input
-                  className="text-sm"
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. Engine Oil"
-                  autoFocus
-                />
+                <label className="block">
+                  <span className="ui-label">Product Name *</span>
+                  <input
+                    className="text-sm"
+                    value={form.name}
+                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="e.g. Engine Oil"
+                    autoFocus
+                  />
+                </label>
               </div>
               <div>
-                <label className="ui-label">Brand</label>
-                <input
-                  className="text-sm"
-                  value={form.brand ?? ''}
-                  onChange={e => setForm(f => ({ ...f, brand: e.target.value }))}
-                  placeholder="e.g. Castrol"
-                />
+                <label className="block">
+                  <span className="ui-label">Brand</span>
+                  <input
+                    className="text-sm"
+                    value={form.brand ?? ''}
+                    onChange={e => setForm(f => ({ ...f, brand: e.target.value }))}
+                    placeholder="e.g. Castrol"
+                  />
+                </label>
               </div>
               <div>
-                <label className="ui-label">Variant</label>
-                <input
-                  className="text-sm"
-                  value={form.variant ?? ''}
-                  onChange={e => setForm(f => ({ ...f, variant: e.target.value }))}
-                  placeholder="e.g. GTX 10W-40"
-                />
+                <label className="block">
+                  <span className="ui-label">Variant</span>
+                  <input
+                    className="text-sm"
+                    value={form.variant ?? ''}
+                    onChange={e => setForm(f => ({ ...f, variant: e.target.value }))}
+                    placeholder="e.g. GTX 10W-40"
+                  />
+                </label>
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="ui-label">Package Size *</label>
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    className="text-sm"
-                    value={form.packageSize}
-                    onChange={e => setForm(f => ({ ...f, packageSize: parseFloat(e.target.value) || 0 }))}
-                  />
+                  <label className="block">
+                    <span className="ui-label">Package Size *</span>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      className="text-sm"
+                      value={form.packageSize}
+                      onChange={e => setForm(f => ({ ...f, packageSize: parseFloat(e.target.value) || 0 }))}
+                    />
+                  </label>
                 </div>
                 <div className="w-[132px]">
-                  <label className="ui-label">Unit *</label>
-                  <SearchableSelect
+                  <span className="ui-label">Unit *</span>
+                  <SearchableSelect label="Unit"
                     value={form.unitOfMeasure}
                     onChange={v => setForm(f => ({ ...f, unitOfMeasure: v as UnitOfMeasure }))}
                     options={UNITS.map(u => ({ value: u, label: u }))}
@@ -541,15 +549,17 @@ function AddProductDialog({
                 </div>
               </div>
               <div className="sm:col-span-2">
-                <label className="ui-label">Low Stock Alert (units)</label>
-                <input
-                  type="number"
-                  min="0"
-                  className="text-sm"
-                  value={form.lowStockThreshold ?? ''}
-                  onChange={e => setForm(f => ({ ...f, lowStockThreshold: e.target.value ? parseInt(e.target.value) : undefined }))}
-                  placeholder="Leave blank to disable"
-                />
+                <label className="block">
+                  <span className="ui-label">Low Stock Alert (units)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    className="text-sm"
+                    value={form.lowStockThreshold ?? ''}
+                    onChange={e => setForm(f => ({ ...f, lowStockThreshold: e.target.value ? parseInt(e.target.value) : undefined }))}
+                    placeholder="Leave blank to disable"
+                  />
+                </label>
               </div>
             </div>
           </div>
@@ -726,7 +736,7 @@ function SellDialog({
   const selectedClient = creditClients.find(c => c.id === form.clientId)
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop px-4">
       <div className="ui-modal-panel w-full max-w-md">
 
@@ -741,7 +751,7 @@ function SellDialog({
               {marginBadge ? ` · ${marginBadge.label}` : ''}
             </p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
         </div>
 
         {/* Step 1 — Form */}
@@ -770,25 +780,29 @@ function SellDialog({
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="ui-label">Quantity (units) *</label>
-                  <input
-                    type="number" min="1" step="1" autoFocus
-                    className="text-sm"
-                    value={form.quantityUnits}
-                    onChange={e => setForm(f => ({ ...f, quantityUnits: parseInt(e.target.value) || 0 }))}
-                  />
+                  <label className="block">
+                    <span className="ui-label">Quantity (units) *</span>
+                    <input
+                      type="number" min="1" step="1" autoFocus
+                      className="text-sm"
+                      value={form.quantityUnits}
+                      onChange={e => setForm(f => ({ ...f, quantityUnits: parseInt(e.target.value) || 0 }))}
+                    />
+                  </label>
                 </div>
                 <div>
-                  <label className="ui-label">Selling Price (₹/unit) *</label>
-                  <input
-                    type="number" min="0.01" step="0.01"
-                    className="text-sm"
-                    value={form.sellingPricePerUnit || ''}
-                    onChange={e => setForm(f => ({ ...f, sellingPricePerUnit: parseFloat(e.target.value) || 0 }))}
-                    placeholder={priceLoading ? 'Loading…' : 'MRP'}
-                    readOnly={!canOverridePrice}
-                    disabled={configuredPrice == null}
-                  />
+                  <label className="block">
+                    <span className="ui-label">Selling Price (₹/unit) *</span>
+                    <input
+                      type="number" min="0.01" step="0.01"
+                      className="text-sm"
+                      value={form.sellingPricePerUnit || ''}
+                      onChange={e => setForm(f => ({ ...f, sellingPricePerUnit: parseFloat(e.target.value) || 0 }))}
+                      placeholder={priceLoading ? 'Loading…' : 'MRP'}
+                      readOnly={!canOverridePrice}
+                      disabled={configuredPrice == null}
+                    />
+                  </label>
                   {!priceLoading && configuredPrice == null && (
                     <p className="text-xs text-red-600 mt-1">No selling price is set for this product. Set a price first.</p>
                   )}
@@ -803,8 +817,8 @@ function SellDialog({
               )}
 
               <div>
-                <label className="ui-label">Payment Mode *</label>
-                <SearchableSelect
+                <span className="ui-label">Payment Mode *</span>
+                <SearchableSelect label="Payment Mode"
                   value={form.paymentMode}
                   onChange={v => setForm(f => ({
                     ...f,
@@ -818,8 +832,8 @@ function SellDialog({
 
               {form.paymentMode === 'CREDIT' && (
                 <div>
-                  <label className="ui-label">Client * (required for credit)</label>
-                  <SearchableSelect
+                  <span className="ui-label">Client * (required for credit)</span>
+                  <SearchableSelect label="Client"
                     value={form.clientId ? form.clientId.toString() : ''}
                     onChange={v => {
                       const client = creditClients.find(c => c.id === parseInt(v))
@@ -835,13 +849,15 @@ function SellDialog({
               )}
 
               <div>
-                <label className="ui-label">Bill No</label>
-                <input
-                  className="text-sm"
-                  value={form.billNo ?? ''}
-                  onChange={e => setForm(f => ({ ...f, billNo: e.target.value || undefined }))}
-                  placeholder="Optional"
-                />
+                <label className="block">
+                  <span className="ui-label">Bill No</span>
+                  <input
+                    className="text-sm"
+                    value={form.billNo ?? ''}
+                    onChange={e => setForm(f => ({ ...f, billNo: e.target.value || undefined }))}
+                    placeholder="Optional"
+                  />
+                </label>
               </div>
             </div>
 
@@ -1004,7 +1020,7 @@ function StockLotsDialog({
   }
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel ui-modal-panel--lg w-full max-w-2xl max-h-[85vh] flex flex-col">
 
@@ -1014,7 +1030,7 @@ function StockLotsDialog({
             <h3 className="ui-modal-title">Stock Lots</h3>
             <p className="ui-modal-subtitle truncate max-w-[380px]">{product.displayName}</p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
         </div>
 
         {/* Body */}
@@ -1031,12 +1047,12 @@ function StockLotsDialog({
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="text-xs text-slate-500 border-b border-slate-200">
-                    <th className="text-left pb-2 pr-4 font-medium">In Date</th>
-                    <th className="text-left pb-2 pr-4 font-medium">Bill No</th>
-                    <th className="text-right pb-2 pr-4 font-medium">Cost Price/Unit</th>
-                    <th className="text-right pb-2 pr-4 font-medium">Remaining</th>
-                    <th className="text-right pb-2 pr-4 font-medium">Original</th>
-                    {isOwnerOrAdmin && <th className="text-right pb-2 font-medium">Actions</th>}
+                    <th scope="col" className="text-left pb-2 pr-4 font-medium">In Date</th>
+                    <th scope="col" className="text-left pb-2 pr-4 font-medium">Bill No</th>
+                    <th scope="col" className="text-right pb-2 pr-4 font-medium">Cost Price/Unit</th>
+                    <th scope="col" className="text-right pb-2 pr-4 font-medium">Remaining</th>
+                    <th scope="col" className="text-right pb-2 pr-4 font-medium">Original</th>
+                    {isOwnerOrAdmin && <th scope="col" className="text-right pb-2 font-medium">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1117,7 +1133,7 @@ function StockLotsDialog({
 
         {/* Footer */}
         <div className="ui-modal-footer shrink-0 justify-between items-center">
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             Lots shown in FIFO order — oldest consumed first
           </p>
           <button
@@ -1199,14 +1215,14 @@ function StockInTab({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-xs text-slate-400 uppercase border-b border-slate-100">
-                  <th className="px-5 py-3 text-left">Date</th>
-                  <th className="px-5 py-3 text-left">Product</th>
-                  <th className="px-5 py-3 text-right">Qty</th>
-                  <th className="px-5 py-3 text-right">Cost/Unit</th>
-                  <th className="px-5 py-3 text-right">Total Cost</th>
-                  <th className="px-5 py-3 text-left">Invoice</th>
-                  <th className="px-5 py-3 text-left">Type</th>
+                <tr className="text-xs text-slate-500 uppercase border-b border-slate-100">
+                  <th scope="col" className="px-5 py-3 text-left">Date</th>
+                  <th scope="col" className="px-5 py-3 text-left">Product</th>
+                  <th scope="col" className="px-5 py-3 text-right">Qty</th>
+                  <th scope="col" className="px-5 py-3 text-right">Cost/Unit</th>
+                  <th scope="col" className="px-5 py-3 text-right">Total Cost</th>
+                  <th scope="col" className="px-5 py-3 text-left">Invoice</th>
+                  <th scope="col" className="px-5 py-3 text-left">Type</th>
                 </tr>
               </thead>
               <tbody>
@@ -1218,7 +1234,7 @@ function StockInTab({
                     <td className="px-5 py-3 text-slate-600">
                       <div className="flex flex-col">
                         <span className="font-medium text-slate-700">{product?.displayName ?? `Product #${d.productId}`}</span>
-                        <span className="text-xs text-slate-400">#{d.productId}</span>
+                        <span className="text-xs text-slate-500">#{d.productId}</span>
                       </div>
                     </td>
                     <td className="px-5 py-3 text-right font-medium">{d.quantityUnits}</td>
@@ -1226,7 +1242,7 @@ function StockInTab({
                     <td className="px-5 py-3 text-right font-medium">
                       {fmtCurrency(d.costPricePerUnit * d.quantityUnits)}
                     </td>
-                    <td className="px-5 py-3 text-slate-400">{d.invoiceReference ?? '—'}</td>
+                    <td className="px-5 py-3 text-slate-500">{d.invoiceReference ?? '—'}</td>
                     <td className="px-5 py-3">
                       {d.isBackfilled && (
                         <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-medium">
@@ -1331,7 +1347,7 @@ function StockInDialog({
   }
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop px-4" onClick={onClose}>
       <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -1343,7 +1359,7 @@ function StockInDialog({
                 : 'Review the stock delivery before submitting it.'}
             </p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
         </div>
 
         {step === 'form' && (
@@ -1353,8 +1369,8 @@ function StockInDialog({
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
-                <label className="ui-label">Product *</label>
-                <SearchableSelect
+                <span className="ui-label">Product *</span>
+                <SearchableSelect label="Product"
                   value={form.productId ? form.productId.toString() : ''}
                   onChange={v => setForm(f => ({ ...f, productId: v ? parseInt(v) : '' }))}
                   placeholder="Select product…"
@@ -1362,45 +1378,53 @@ function StockInDialog({
                 />
               </div>
               <div>
-                <label className="ui-label">Quantity (units) *</label>
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  className="text-sm"
-                  value={form.quantityUnits}
-                  onChange={e => setForm(f => ({ ...f, quantityUnits: parseInt(e.target.value) || 0 }))}
-                />
+                <label className="block">
+                  <span className="ui-label">Quantity (units) *</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    className="text-sm"
+                    value={form.quantityUnits}
+                    onChange={e => setForm(f => ({ ...f, quantityUnits: parseInt(e.target.value) || 0 }))}
+                  />
+                </label>
               </div>
               <div>
-                <label className="ui-label">Cost Price per Unit (₹) *</label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  className="text-sm"
-                  value={form.costPricePerUnit || ''}
-                  onChange={e => setForm(f => ({ ...f, costPricePerUnit: parseFloat(e.target.value) || 0 }))}
-                  placeholder="₹"
-                />
+                <label className="block">
+                  <span className="ui-label">Cost Price per Unit (₹) *</span>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    className="text-sm"
+                    value={form.costPricePerUnit || ''}
+                    onChange={e => setForm(f => ({ ...f, costPricePerUnit: parseFloat(e.target.value) || 0 }))}
+                    placeholder="₹"
+                  />
+                </label>
               </div>
               <div>
-                <label className="ui-label">Delivery Date *</label>
-                <input
-                  type="date"
-                  className="text-sm"
-                  value={form.deliveryDate}
-                  onChange={e => setForm(f => ({ ...f, deliveryDate: e.target.value }))}
-                />
+                <label className="block">
+                  <span className="ui-label">Delivery Date *</span>
+                  <input
+                    type="date"
+                    className="text-sm"
+                    value={form.deliveryDate}
+                    onChange={e => setForm(f => ({ ...f, deliveryDate: e.target.value }))}
+                  />
+                </label>
               </div>
               <div>
-                <label className="ui-label">Invoice Reference</label>
-                <input
-                  className="text-sm"
-                  value={form.invoiceReference ?? ''}
-                  onChange={e => setForm(f => ({ ...f, invoiceReference: e.target.value }))}
-                  placeholder="Optional"
-                />
+                <label className="block">
+                  <span className="ui-label">Invoice Reference</span>
+                  <input
+                    className="text-sm"
+                    value={form.invoiceReference ?? ''}
+                    onChange={e => setForm(f => ({ ...f, invoiceReference: e.target.value }))}
+                    placeholder="Optional"
+                  />
+                </label>
               </div>
             </div>
 
@@ -1520,15 +1544,15 @@ function SalesTab({
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-xs text-slate-400 uppercase border-b border-slate-100">
-                    <th className="px-5 py-3 text-left">Date</th>
-                    <th className="px-5 py-3 text-left">Product</th>
-                    <th className="px-5 py-3 text-right">Qty</th>
-                    <th className="px-5 py-3 text-right">Price/Unit</th>
-                    <th className="px-5 py-3 text-right">Total</th>
-                    <th className="px-5 py-3 text-left">Mode</th>
-                    <th className="px-5 py-3 text-left">Client</th>
-                    <th className="px-5 py-3 text-left">Type</th>
+                  <tr className="text-xs text-slate-500 uppercase border-b border-slate-100">
+                    <th scope="col" className="px-5 py-3 text-left">Date</th>
+                    <th scope="col" className="px-5 py-3 text-left">Product</th>
+                    <th scope="col" className="px-5 py-3 text-right">Qty</th>
+                    <th scope="col" className="px-5 py-3 text-right">Price/Unit</th>
+                    <th scope="col" className="px-5 py-3 text-right">Total</th>
+                    <th scope="col" className="px-5 py-3 text-left">Mode</th>
+                    <th scope="col" className="px-5 py-3 text-left">Client</th>
+                    <th scope="col" className="px-5 py-3 text-left">Type</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1544,7 +1568,7 @@ function SalesTab({
                           {s.paymentMode.replace('_', ' ')}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-slate-400">{s.clientName ?? '—'}</td>
+                      <td className="px-5 py-3 text-slate-500">{s.clientName ?? '—'}</td>
                       <td className="px-5 py-3">
                         {s.isBackfilled && (
                           <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-medium">
@@ -1608,7 +1632,6 @@ function BackfillSaleModal({
   onClose: () => void
   onSuccess: () => void
 }) {
-  useEscapeKey(onClose)
   const { addToast } = useToastStore()
   const yesterday = localDateInputValue(-1)
 
@@ -1657,7 +1680,7 @@ function BackfillSaleModal({
   }
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop px-4" onClick={onClose}>
       <div className="ui-modal-panel w-full max-w-md" onClick={e => e.stopPropagation()}>
 
@@ -1673,7 +1696,7 @@ function BackfillSaleModal({
                 : 'Review the details before submitting.'}
             </p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
         </div>
 
         {/* Step 1 — Form */}
@@ -1692,8 +1715,8 @@ function BackfillSaleModal({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
-                <label className="ui-label">Product *</label>
-                <SearchableSelect
+                <span className="ui-label">Product *</span>
+                <SearchableSelect label="Product"
                   value={form.productId ? form.productId.toString() : ''}
                   onChange={v => setForm(f => ({ ...f, productId: v ? parseInt(v) : 0 }))}
                   placeholder="Select product…"
@@ -1702,31 +1725,35 @@ function BackfillSaleModal({
               </div>
 
               <div>
-                <label className="ui-label">Sale Date * (past only)</label>
-                <input
-                  type="date"
-                  className="text-sm"
-                  value={form.saleDate}
-                  max={yesterday}
-                  onChange={e => setForm(f => ({ ...f, saleDate: e.target.value }))}
-                />
+                <label className="block">
+                  <span className="ui-label">Sale Date * (past only)</span>
+                  <input
+                    type="date"
+                    className="text-sm"
+                    value={form.saleDate}
+                    max={yesterday}
+                    onChange={e => setForm(f => ({ ...f, saleDate: e.target.value }))}
+                  />
+                </label>
               </div>
 
               <div>
-                <label className="ui-label">Quantity (units) *</label>
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  className="text-sm"
-                  value={form.quantityUnits}
-                  onChange={e => setForm(f => ({ ...f, quantityUnits: parseInt(e.target.value) || 0 }))}
-                />
+                <label className="block">
+                  <span className="ui-label">Quantity (units) *</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    className="text-sm"
+                    value={form.quantityUnits}
+                    onChange={e => setForm(f => ({ ...f, quantityUnits: parseInt(e.target.value) || 0 }))}
+                  />
+                </label>
               </div>
 
               <div className="sm:col-span-2">
-                <label className="ui-label">Payment Mode *</label>
-                <SearchableSelect
+                <span className="ui-label">Payment Mode *</span>
+                <SearchableSelect label="Payment Mode"
                   value={form.paymentMode}
                   onChange={v => setForm(f => ({
                     ...f,
@@ -1739,34 +1766,40 @@ function BackfillSaleModal({
 
               {form.paymentMode === 'CREDIT' && (
                 <div className="sm:col-span-2">
-                  <label className="ui-label">Client Name * (required for credit)</label>
-                  <input
-                    className="text-sm"
-                    value={form.clientName ?? ''}
-                    onChange={e => setForm(f => ({ ...f, clientName: e.target.value || undefined }))}
-                    placeholder="Enter client name"
-                  />
+                  <label className="block">
+                    <span className="ui-label">Client Name * (required for credit)</span>
+                    <input
+                      className="text-sm"
+                      value={form.clientName ?? ''}
+                      onChange={e => setForm(f => ({ ...f, clientName: e.target.value || undefined }))}
+                      placeholder="Enter client name"
+                    />
+                  </label>
                 </div>
               )}
 
               <div>
-                <label className="ui-label">Bill No</label>
-                <input
-                  className="text-sm"
-                  value={form.billNo ?? ''}
-                  onChange={e => setForm(f => ({ ...f, billNo: e.target.value || undefined }))}
-                  placeholder="Optional"
-                />
+                <label className="block">
+                  <span className="ui-label">Bill No</span>
+                  <input
+                    className="text-sm"
+                    value={form.billNo ?? ''}
+                    onChange={e => setForm(f => ({ ...f, billNo: e.target.value || undefined }))}
+                    placeholder="Optional"
+                  />
+                </label>
               </div>
 
               <div>
-                <label className="ui-label">Notes</label>
-                <input
-                  className="text-sm"
-                  value={form.notes ?? ''}
-                  onChange={e => setForm(f => ({ ...f, notes: e.target.value || undefined }))}
-                  placeholder="Optional"
-                />
+                <label className="block">
+                  <span className="ui-label">Notes</span>
+                  <input
+                    className="text-sm"
+                    value={form.notes ?? ''}
+                    onChange={e => setForm(f => ({ ...f, notes: e.target.value || undefined }))}
+                    placeholder="Optional"
+                  />
+                </label>
               </div>
             </div>
           </div>

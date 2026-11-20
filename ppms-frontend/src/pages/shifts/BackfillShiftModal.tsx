@@ -10,11 +10,11 @@ import type { DUOption, NozzleDetail } from '../../types/shift'
 import { ModalPortal } from '../../components/ModalPortal'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { parseApiError } from '../../utils/apiError'
-import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useConfirmDiscard } from '../../hooks/useConfirmDiscard'
 import { localDateInputValue } from '../../utils/date'
 import { roundToMillilitres, roundToPaise, toPaise } from '../../utils/money'
 import { pumpApi } from '../../api/pumpApi'
+import { IconButton } from '../../components/IconButton'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -56,7 +56,7 @@ function newCreditRow(): CreditRow {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">
       {children}
     </p>
   )
@@ -343,7 +343,6 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
     || cashCollected !== '' || upiCollected !== '' || cardCollected !== '' || fleetCardCollected !== ''
     || discrepancyReason.trim() !== ''
   const requestClose = useConfirmDiscard(hasUnsavedChanges, onClose)
-  useEscapeKey(requestClose, !isPending)
   const canSubmit = !!shiftDate && !!shiftDefinitionId && !!selectedDU && !!operatorId && selectedNozzleIds.size > 0
 
   const selectedOperator = operators.find((o) => o.id === operatorId)
@@ -351,7 +350,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={isPending ? undefined : requestClose}>
       <div className="ui-modal-backdrop" onClick={!isPending ? requestClose : undefined}>
         <div
           className="ui-modal-panel w-full max-w-xl"
@@ -368,7 +367,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                 Record past shift data (up to 365 days back). Tanker deliveries for the shift date must be logged first — the system will block submission if stock is insufficient.
               </p>
             </div>
-            <button type="button" onClick={requestClose} className="ui-btn ui-btn-ghost ui-modal-close" disabled={isPending}>
+            <button aria-label="Close" type="button" onClick={requestClose} className="ui-btn ui-btn-ghost ui-modal-close" disabled={isPending}>
               ×
             </button>
           </div>
@@ -383,22 +382,24 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="ui-label">Shift Date <span className="text-red-500">*</span></label>
-                    <input
-                      type="date"
-                      value={shiftDate}
-                      min={minDate()}
-                      max={maxDate()}
-                      onChange={(e) => { setShiftDate(e.target.value); setShiftDefinitionId(null) }}
-                      className="ui-input"
-                      required
-                    />
-                    <p className="text-[11px] text-slate-400 mt-0.5">Last 365 days · not today</p>
+                    <label className="block">
+                      <span className="ui-label">Shift Date <span className="text-red-500">*</span></span>
+                      <input
+                        type="date"
+                        value={shiftDate}
+                        min={minDate()}
+                        max={maxDate()}
+                        onChange={(e) => { setShiftDate(e.target.value); setShiftDefinitionId(null) }}
+                        className="ui-input"
+                        required
+                      />
+                    </label>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Last 365 days · not today</p>
                   </div>
 
                   <div>
-                    <label className="ui-label">Dispensary Unit <span className="text-red-500">*</span></label>
-                    <SearchableSelect
+                    <span className="ui-label">Dispensary Unit <span className="text-red-500">*</span></span>
+                    <SearchableSelect label="Dispensary Unit"
                       value={String(selectedDU?.id ?? '')}
                       onChange={(v) => setSelectedDU(dus.find((d) => String(d.id) === v) ?? null)}
                       options={dus.map((du) => ({ value: String(du.id), label: `${du.name} (DU #${du.duNumber})` }))}
@@ -409,13 +410,13 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                 </div>
 
                 <div>
-                  <label className="ui-label">Shift Window <span className="text-red-500">*</span></label>
+                  <span className="ui-label">Shift Window <span className="text-red-500">*</span></span>
                   {definitions.length === 0 && !defsLoading ? (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
                       No shift definitions found for this pump. Configure shift windows in Setup first.
                     </div>
                   ) : (
-                    <SearchableSelect
+                    <SearchableSelect label="Shift Window"
                       value={String(shiftDefinitionId ?? '')}
                       onChange={(v) => setShiftDefinitionId(v ? Number(v) : null)}
                       options={definitions.map((def) => ({ value: String(def.id), label: `${def.name} · ${def.windowLabel}` }))}
@@ -431,12 +432,12 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                 <SectionLabel>Staff &amp; Nozzles</SectionLabel>
 
                 <div>
-                  <label className="ui-label">Operator on Duty <span className="text-red-500">*</span></label>
+                  <span className="ui-label">Operator on Duty <span className="text-red-500">*</span></span>
                   {operatorsLoading ? (
-                    <div className="ui-input text-slate-400 text-sm">Loading operators…</div>
+                    <div className="ui-input text-slate-500 text-sm">Loading operators…</div>
                   ) : (
                     <>
-                      <input
+                      <input aria-label="Operator on Duty"
                         type="text"
                         placeholder="Search by name or ID…"
                         value={operatorSearch}
@@ -445,7 +446,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                       />
                       <div className="max-h-28 overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100 bg-white">
                         {filteredOperators.length === 0 ? (
-                          <p className="text-xs text-slate-400 px-3 py-2">No operators found.</p>
+                          <p className="text-xs text-slate-500 px-3 py-2">No operators found.</p>
                         ) : (
                           filteredOperators.map((op) => (
                             <button
@@ -459,7 +460,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                               }`}
                             >
                               {op.fullName}
-                              <span className="ml-2 text-xs text-slate-400 font-mono">{op.employeeId}</span>
+                              <span className="ml-2 text-xs text-slate-500 font-mono">{op.employeeId}</span>
                             </button>
                           ))
                         )}
@@ -475,9 +476,9 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
 
                 {selectedDU && (
                   <div>
-                    <label className="ui-label">Nozzles <span className="text-red-500">*</span></label>
+                    <span className="ui-label">Nozzles <span className="text-red-500">*</span></span>
                     {availableNozzles.length === 0 ? (
-                      <p className="text-xs text-slate-400">No nozzles configured on this DU.</p>
+                      <p className="text-xs text-slate-500">No nozzles configured on this DU.</p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {availableNozzles.map((nozzle) => {
@@ -524,7 +525,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-2.5 py-1">
                               ₹{dbPrice!.toFixed(2)}/L
                             </span>
-                            <span className="text-[11px] text-slate-400">
+                            <span className="text-[11px] text-slate-500">
                               from price history · to change it, correct the price history first
                             </span>
                           </div>
@@ -543,7 +544,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                                 className="ui-input pl-6 text-sm"
                               />
                             </div>
-                            <span className="text-[11px] text-slate-400">/L</span>
+                            <span className="text-[11px] text-slate-500">/L</span>
                             <span className="text-[11px] text-amber-600 font-medium">
                               No price on record — enter manually
                             </span>
@@ -579,24 +580,28 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="ui-label text-xs">Opening <span className="text-red-500">*</span></label>
-                            <input
-                              type="number" min="0" step="0.001" placeholder="0.000"
-                              value={openingReadings[nozzleId] ?? ''}
-                              onChange={(e) => setOpeningReadings((r) => ({ ...r, [nozzleId]: e.target.value }))}
-                              className="ui-input"
-                              required
-                            />
+                            <label className="block">
+                              <span className="ui-label text-xs">Opening <span className="text-red-500">*</span></span>
+                              <input
+                                type="number" min="0" step="0.001" placeholder="0.000"
+                                value={openingReadings[nozzleId] ?? ''}
+                                onChange={(e) => setOpeningReadings((r) => ({ ...r, [nozzleId]: e.target.value }))}
+                                className="ui-input"
+                                required
+                              />
+                            </label>
                           </div>
                           <div>
-                            <label className="ui-label text-xs">Closing <span className="text-red-500">*</span></label>
-                            <input
-                              type="number" min="0" step="0.001" placeholder="0.000"
-                              value={closingReadings[nozzleId] ?? ''}
-                              onChange={(e) => setClosingReadings((r) => ({ ...r, [nozzleId]: e.target.value }))}
-                              className="ui-input"
-                              required
-                            />
+                            <label className="block">
+                              <span className="ui-label text-xs">Closing <span className="text-red-500">*</span></span>
+                              <input
+                                type="number" min="0" step="0.001" placeholder="0.000"
+                                value={closingReadings[nozzleId] ?? ''}
+                                onChange={(e) => setClosingReadings((r) => ({ ...r, [nozzleId]: e.target.value }))}
+                                className="ui-input"
+                                required
+                              />
+                            </label>
                           </div>
                         </div>
                         {liters !== null && liters >= 0 && rate !== null && (
@@ -641,15 +646,18 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                           <div className="flex items-center gap-2 shrink-0 ml-2">
                             <button type="button" onClick={() => setExpandedCreditId(row._key)}
                               className="text-blue-600 hover:underline">Edit</button>
-                            <button type="button" onClick={() => removeCreditRow(row._key)}
-                              className="text-red-500 hover:text-red-700 p-0.5"><X size={13} strokeWidth={2} /></button>
+                            <IconButton onClick={() => removeCreditRow(row._key)}
+                              className="text-red-500 hover:text-red-700"
+ label="Remove credit entry"
+ icon={<X size={13} strokeWidth={2} />}
+ />
                           </div>
                         </div>
                       ) : (
                         <div className="p-3 space-y-2">
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label id={`backfill-credit-client-${row._key}`} className="ui-label text-xs">Client <span className="text-red-500">*</span></label>
+                              <span id={`backfill-credit-client-${row._key}`} className="ui-label text-xs">Client <span className="text-red-500">*</span></span>
                               <SearchableSelect
                                 aria-labelledby={`backfill-credit-client-${row._key}`}
                                 value={row.clientId ? String(row.clientId) : ''}
@@ -664,36 +672,44 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                               />
                             </div>
                             <div>
-                              <label className="ui-label text-xs">Amount (₹) <span className="text-red-500">*</span></label>
-                              <input type="number" min="0.01" step="0.01" placeholder="0.00" value={row.amount}
-                                onChange={(e) => updateCreditRow(row._key, { amount: e.target.value })}
-                                className="ui-input" />
+                              <label className="block">
+                                <span className="ui-label text-xs">Amount (₹) <span className="text-red-500">*</span></span>
+                                <input type="number" min="0.01" step="0.01" placeholder="0.00" value={row.amount}
+                                  onChange={(e) => updateCreditRow(row._key, { amount: e.target.value })}
+                                  className="ui-input" />
+                              </label>
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="ui-label text-xs">Fuel Type</label>
-                              <select value={row.fuelType}
-                                onChange={(e) => updateCreditRow(row._key, { fuelType: e.target.value })}
-                                className="ui-input">
-                                <option value="">— optional —</option>
-                                {Object.entries(FUEL_LABELS).map(([k, v]) => (
-                                  <option key={k} value={k}>{v}</option>
-                                ))}
-                              </select>
+                              <label className="block">
+                                <span className="ui-label text-xs">Fuel Type</span>
+                                <select value={row.fuelType}
+                                  onChange={(e) => updateCreditRow(row._key, { fuelType: e.target.value })}
+                                  className="ui-input">
+                                  <option value="">— optional —</option>
+                                  {Object.entries(FUEL_LABELS).map(([k, v]) => (
+                                    <option key={k} value={k}>{v}</option>
+                                  ))}
+                                </select>
+                              </label>
                             </div>
                             <div>
-                              <label className="ui-label text-xs">Bill No.</label>
-                              <input type="text" placeholder="optional" value={row.billNo}
-                                onChange={(e) => updateCreditRow(row._key, { billNo: e.target.value })}
-                                className="ui-input" />
+                              <label className="block">
+                                <span className="ui-label text-xs">Bill No.</span>
+                                <input type="text" placeholder="optional" value={row.billNo}
+                                  onChange={(e) => updateCreditRow(row._key, { billNo: e.target.value })}
+                                  className="ui-input" />
+                              </label>
                             </div>
                           </div>
                           <div>
-                            <label className="ui-label text-xs">Description</label>
-                            <input type="text" placeholder="optional" value={row.description}
-                              onChange={(e) => updateCreditRow(row._key, { description: e.target.value })}
-                              className="ui-input" />
+                            <label className="block">
+                              <span className="ui-label text-xs">Description</span>
+                              <input type="text" placeholder="optional" value={row.description}
+                                onChange={(e) => updateCreditRow(row._key, { description: e.target.value })}
+                                className="ui-input" />
+                            </label>
                           </div>
                           <div className="flex items-center justify-between pt-1">
                             <button type="button" onClick={() => removeCreditRow(row._key)}
@@ -728,13 +744,15 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
                     { label: 'Cash (₹)',        value: cashCollected,      set: setCashCollected },
                   ].map(({ label, value, set }) => (
                     <div key={label}>
-                      <label className="ui-label text-xs">{label}</label>
-                      <input
-                        type="number" min="0" step="0.01" placeholder="0.00"
-                        value={value}
-                        onChange={(e) => set(e.target.value)}
-                        className="ui-input"
-                      />
+                      <label className="block">
+                        <span className="ui-label text-xs">{label}</span>
+                        <input
+                          type="number" min="0" step="0.01" placeholder="0.00"
+                          value={value}
+                          onChange={(e) => set(e.target.value)}
+                          className="ui-input"
+                        />
+                      </label>
                     </div>
                   ))}
                 </div>
@@ -772,17 +790,19 @@ export default function BackfillShiftModal({ pumpId, onClose }: Props) {
 
               {/* ── Discrepancy reason ──────────────────────────────────── */}
               <div>
-                <label className="ui-label">
+                <label className="block">
+                  <span className="ui-label">
                   Discrepancy Reason
-                  <span className="text-slate-400 font-normal ml-1 text-xs">(required if collected ≠ expected)</span>
+                  <span className="text-slate-500 font-normal ml-1 text-xs">(required if collected ≠ expected)</span>
+                </span>
+                  <textarea
+                    value={discrepancyReason}
+                    onChange={(e) => setDiscrepancyReason(e.target.value)}
+                    placeholder="Explain any difference between collected and expected amounts…"
+                    rows={2}
+                    className="ui-input resize-none"
+                  />
                 </label>
-                <textarea
-                  value={discrepancyReason}
-                  onChange={(e) => setDiscrepancyReason(e.target.value)}
-                  placeholder="Explain any difference between collected and expected amounts…"
-                  rows={2}
-                  className="ui-input resize-none"
-                />
               </div>
 
               {error && (

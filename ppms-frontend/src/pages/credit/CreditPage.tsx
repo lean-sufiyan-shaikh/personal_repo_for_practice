@@ -19,7 +19,8 @@ import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
-import { useEscapeKey } from '../../hooks/useEscapeKey'
+import { IconButton } from '../../components/IconButton'
+import { onActivateKey } from '../../utils/keyboard'
 
 // ─── Record Payment Modal ────────────────────────────────────────────────────
 
@@ -32,7 +33,6 @@ interface RecordPaymentModalProps {
 }
 
 function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, subClients = [], onClose }: RecordPaymentModalProps) {
-  useEscapeKey(onClose)
   const qc = useQueryClient()
   const { addToast } = useToastStore()
   const [amount, setAmount] = useState('')
@@ -84,7 +84,7 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, subCli
   }
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--success">
@@ -92,14 +92,14 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, subCli
             <h2 className="ui-modal-title">Record Payment</h2>
             <p className="ui-modal-subtitle">{client.name}</p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
 
         <div className="ui-modal-body space-y-4">
           {subClients.length > 0 && (
             <div className="ui-inline-form">
-              <label className="ui-label">Record Payment For</label>
-              <SearchableSelect
+              <span className="ui-label">Record Payment For</span>
+              <SearchableSelect label="Record Payment For"
                 value={String(targetClientId)}
                 onChange={v => { setTargetClientId(Number(v)); setAmount(''); setError(null) }}
                 options={[
@@ -138,12 +138,12 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, subCli
           </div>
 
           <div className="ui-inline-form">
-            <label className="ui-label">
+            <span className="ui-label">
               Amount <span className="text-red-500">*</span>
-            </label>
+            </span>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
-              <input
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">₹</span>
+              <input aria-label="Amount"
                 type="number"
                 min="0.01"
                 step="0.01"
@@ -157,10 +157,10 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, subCli
           </div>
 
           <div className="ui-inline-form">
-            <label className="ui-label">
+            <span className="ui-label">
               Payment Mode <span className="text-red-500">*</span>
-            </label>
-            <SearchableSelect
+            </span>
+            <SearchableSelect label="Payment Mode"
               value={paymentMode}
               onChange={v => setPaymentMode(v as typeof paymentMode)}
               options={[
@@ -173,26 +173,30 @@ function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, subCli
           </div>
 
           <div className="ui-inline-form">
-            <label className="ui-label">
+            <label className="block">
+              <span className="ui-label">
               Payment Date <span className="text-red-500">*</span>
+            </span>
+              <input
+                type="date"
+                value={paidAt}
+                onChange={e => setPaidAt(e.target.value)}
+                className="shadow-sm"
+              />
             </label>
-            <input
-              type="date"
-              value={paidAt}
-              onChange={e => setPaidAt(e.target.value)}
-              className="shadow-sm"
-            />
           </div>
 
           <div className="ui-inline-form">
-            <label className="ui-label">Notes</label>
-            <input
-              type="text"
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder="e.g. Paid via NEFT ref TXN12345"
-              className="shadow-sm"
-            />
+            <label className="block">
+              <span className="ui-label">Notes</span>
+              <input
+                type="text"
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="e.g. Paid via NEFT ref TXN12345"
+                className="shadow-sm"
+              />
+            </label>
           </div>
 
           {error && (
@@ -234,7 +238,6 @@ interface SetCreditLimitModalProps {
 }
 
 function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitModalProps) {
-  useEscapeKey(onClose)
   const qc = useQueryClient()
   const [limit, setLimit] = useState(client.creditLimit > 0 ? String(client.creditLimit) : '')
   const [error, setError] = useState<string | null>(null)
@@ -262,7 +265,7 @@ function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitModalPro
   }
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -270,7 +273,7 @@ function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitModalPro
             <h2 className="ui-modal-title">Set Credit Limit</h2>
             <p className="ui-modal-subtitle">{client.name}</p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
 
         <div className="ui-modal-body space-y-4">
@@ -278,10 +281,10 @@ function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitModalPro
             <p className="ui-inline-form__copy">
               Enter the maximum credit balance allowed. Set to <strong>0</strong> to allow unlimited credit.
             </p>
-            <label className="ui-label">Credit Limit (₹)</label>
+            <span className="ui-label">Credit Limit (₹)</span>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
-              <input
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">₹</span>
+              <input aria-label="Credit Limit (₹)"
                 type="number"
                 min="0"
                 step="0.01"
@@ -328,7 +331,6 @@ interface SetInterestSettingsModalProps {
 }
 
 function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettingsModalProps) {
-  useEscapeKey(onClose)
   const qc = useQueryClient()
   const [rate, setRate] = useState(client.monthlyInterestRate > 0 ? String(client.monthlyInterestRate) : '')
   const [graceDays, setGraceDays] = useState(String(client.interestGraceDays ?? 1))
@@ -354,7 +356,7 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
   }
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel w-full max-w-sm">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
@@ -362,7 +364,7 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
             <h2 className="ui-modal-title">Interest Settings</h2>
             <p className="ui-modal-subtitle">{client.name}</p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
 
         <div className="ui-modal-body space-y-4">
@@ -372,9 +374,9 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
               Set rate to <strong>0</strong> to disable interest for this client.
             </p>
 
-            <label className="ui-label">Monthly Interest Rate (%)</label>
+            <span className="ui-label">Monthly Interest Rate (%)</span>
             <div className="relative">
-              <input
+              <input aria-label="Monthly Interest Rate (%)"
                 type="number" min="0" max="100" step="0.01"
                 value={rate}
                 onChange={e => setRate(e.target.value)}
@@ -382,22 +384,24 @@ function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettin
                 className="w-full pr-8 pl-3 text-sm"
                 autoFocus
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">%</span>
             </div>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               e.g. 2% means ₹100 outstanding → ₹2 interest per month
             </p>
           </div>
 
           <div className="ui-inline-form">
-            <label className="ui-label">Grace Period (days)</label>
-            <input
-              type="number" min="0" step="1"
-              value={graceDays}
-              onChange={e => setGraceDays(e.target.value)}
-              className="text-sm"
-            />
-            <p className="text-xs text-slate-400 mt-1">
+            <label className="block">
+              <span className="ui-label">Grace Period (days)</span>
+              <input
+                type="number" min="0" step="1"
+                value={graceDays}
+                onChange={e => setGraceDays(e.target.value)}
+                className="text-sm"
+              />
+            </label>
+            <p className="text-xs text-slate-500 mt-1">
               Interest starts this many days after the first credit sale. Default is 1.
             </p>
           </div>
@@ -456,7 +460,6 @@ const EXTENSION_TYPE_OPTIONS = [
 ]
 
 function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalProps) {
-  useEscapeKey(onClose)
   const qc = useQueryClient()
   const [extensionType, setExtensionType] = useState<CreditExtensionType>('BILLING_CYCLE_EXTENSION')
   const [extensionAmount, setExtensionAmount] = useState('')
@@ -495,7 +498,7 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
   }
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel ui-modal-panel--lg w-full max-w-md">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
@@ -503,13 +506,13 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
             <h2 className="ui-modal-title">Grant Credit Extension</h2>
             <p className="ui-modal-subtitle">{client.name}</p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
 
         <div className="ui-modal-body space-y-4">
           <div className="ui-inline-form">
-            <label className="ui-label">Extension Type</label>
-            <SearchableSelect
+            <span className="ui-label">Extension Type</span>
+            <SearchableSelect label="Extension Type"
               value={extensionType}
               onChange={(v) => setExtensionType(v as CreditExtensionType)}
               options={EXTENSION_TYPE_OPTIONS}
@@ -518,46 +521,52 @@ function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalPro
 
           {extensionType === 'AMOUNT_EXTENSION' && (
             <div className="ui-inline-form">
-              <label className="ui-label">
+              <label className="block">
+                <span className="ui-label">
                 Additional Credit Amount (₹) <span className="text-red-500">*</span>
+              </span>
+                <input
+                  type="number" min="1" step="0.01"
+                  value={extensionAmount}
+                  onChange={(e) => setExtensionAmount(e.target.value)}
+                  placeholder="e.g. 5000"
+                  className="text-sm"
+                />
               </label>
-              <input
-                type="number" min="1" step="0.01"
-                value={extensionAmount}
-                onChange={(e) => setExtensionAmount(e.target.value)}
-                placeholder="e.g. 5000"
-                className="text-sm"
-              />
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 Current limit: {client.creditLimit > 0 ? `₹${client.creditLimit.toLocaleString('en-IN')}` : 'Unlimited'}
               </p>
             </div>
           )}
 
           <div className="ui-inline-form">
-            <label className="ui-label">
+            <label className="block">
+              <span className="ui-label">
               Expires On <span className="text-red-500">*</span>
+            </span>
+              <input
+                type="date" min={minDate}
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                className="text-sm"
+              />
             </label>
-            <input
-              type="date" min={minDate}
-              value={expiryDate}
-              onChange={(e) => setExpiryDate(e.target.value)}
-              className="text-sm"
-            />
           </div>
 
           <div className="ui-inline-form">
-            <label className="ui-label">
+            <label className="block">
+              <span className="ui-label">
               Reason / Justification <span className="text-red-500">*</span>
+            </span>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={3}
+                placeholder="Why is this extension being granted?"
+                className="resize-none text-sm"
+                autoFocus
+              />
             </label>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={3}
-              placeholder="Why is this extension being granted?"
-              className="resize-none text-sm"
-              autoFocus
-            />
           </div>
 
           {error && (
@@ -594,7 +603,6 @@ interface ReassignModalProps {
 }
 
 function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, transactionType, onClose }: ReassignModalProps) {
-  useEscapeKey(onClose)
   const qc = useQueryClient()
   const [toClientId, setToClientId] = useState<string>('')
   const [reason, setReason]         = useState('')
@@ -649,7 +657,7 @@ function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, transactio
   }
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel w-full max-w-sm">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -661,7 +669,7 @@ function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, transactio
                 : 'Reassign this sale entry within the same account group.'}
             </p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
         <div className="ui-modal-body space-y-4">
           {noTargetsReason ? (
@@ -671,10 +679,10 @@ function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, transactio
           ) : (
             <>
               <div className="ui-inline-form">
-                <label className="ui-label">
+                <span className="ui-label">
                   Move to <span className="text-red-500">*</span>
-                </label>
-                <SearchableSelect
+                </span>
+                <SearchableSelect label="Move to"
                   value={toClientId}
                   onChange={setToClientId}
                   placeholder="Search and select account…"
@@ -686,18 +694,20 @@ function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, transactio
                 />
               </div>
               <div className="ui-inline-form">
-                <label className="ui-label">
+                <label className="block">
+                  <span className="ui-label">
                   Reason <span className="text-red-500">*</span>
+                </span>
+                  <textarea
+                    value={reason}
+                    onChange={e => setReason(e.target.value)}
+                    rows={2}
+                    placeholder={transactionType === 'PAYMENT'
+                      ? 'e.g. Payment was recorded under parent but belongs to sub-account'
+                      : 'e.g. Entry was logged under parent but belongs to sub-account'}
+                    className="resize-none text-sm"
+                  />
                 </label>
-                <textarea
-                  value={reason}
-                  onChange={e => setReason(e.target.value)}
-                  rows={2}
-                  placeholder={transactionType === 'PAYMENT'
-                    ? 'e.g. Payment was recorded under parent but belongs to sub-account'
-                    : 'e.g. Entry was logged under parent but belongs to sub-account'}
-                  className="resize-none text-sm"
-                />
               </div>
               {error && <p className="ui-error-text text-sm">{error}</p>}
             </>
@@ -1154,7 +1164,10 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
         {applyInterestFeedback && (
           <div className="mt-3 ui-alert text-sm bg-purple-50 border-purple-200 text-purple-800 flex items-center justify-between">
             <span>{applyInterestFeedback}</span>
-            <button onClick={() => setApplyInterestFeedback(null)} className="ml-2 text-purple-400 hover:text-purple-600">×</button>
+            <IconButton onClick={() => setApplyInterestFeedback(null)} className="ml-2 text-purple-400 hover:text-purple-600"
+ label="Dismiss message"
+ icon={'×'}
+ />
           </div>
         )}
         {isOwnerOrAdmin && client.monthlyInterestRate === 0 && client.outstandingBalance > 0 && (
@@ -1195,7 +1208,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
             ₹{formatAmount(effectiveOutstandingBalance)}
           </p>
           {client.isParent && childClients.length > 0 && (
-            <p className="text-xs text-slate-400 mt-0.5">parent + all sub-accounts</p>
+            <p className="text-xs text-slate-500 mt-0.5">parent + all sub-accounts</p>
           )}
         </div>
         <div className={`ui-card ${outstandingInterest > 0 ? 'border-purple-200 bg-purple-50/30' : ''}`}>
@@ -1203,7 +1216,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
           <p className={`text-lg font-bold ${outstandingInterest > 0 ? 'text-purple-700' : 'text-slate-300'}`}>
             ₹{formatAmount(outstandingInterest)}
           </p>
-          <p className="text-xs text-slate-400 mt-0.5">of outstanding balance</p>
+          <p className="text-xs text-slate-500 mt-0.5">of outstanding balance</p>
         </div>
         <div className="ui-card">
           <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Interest Recovered</p>
@@ -1211,12 +1224,16 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
             ₹{formatAmount(totalInterestRecovered)}
           </p>
           {client.isParent && childClients.length > 0 && (
-            <p className="text-xs text-slate-400 mt-0.5">parent + all sub-accounts</p>
+            <p className="text-xs text-slate-500 mt-0.5">parent + all sub-accounts</p>
           )}
         </div>
         <div
           className={`ui-card ${isOwnerOrAdmin ? 'cursor-pointer hover:border-purple-300 hover:bg-purple-50/40 transition-colors' : 'border-slate-200'}`}
           onClick={isOwnerOrAdmin ? () => setShowInterestSettingsModal(true) : undefined}
+          role={isOwnerOrAdmin ? 'button' : undefined}
+          tabIndex={isOwnerOrAdmin ? 0 : undefined}
+          aria-label={isOwnerOrAdmin ? 'Configure interest rate' : undefined}
+          onKeyDown={isOwnerOrAdmin ? onActivateKey(() => setShowInterestSettingsModal(true)) : undefined}
           title={isOwnerOrAdmin ? 'Click to configure interest rate' : undefined}
         >
           <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Interest Rate</p>
@@ -1288,7 +1305,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
         {filterMode === 'month' && (
           <div className="mb-4 flex flex-wrap gap-2">
             {availableMonths.length === 0 ? (
-              <span className="text-xs text-slate-400">No transactions yet</span>
+              <span className="text-xs text-slate-500">No transactions yet</span>
             ) : (
               availableMonths.map(m => (
                 <button
@@ -1310,18 +1327,18 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
         {filterMode === 'range' && (
           <div className="mb-4 flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <label className="text-xs text-slate-500 whitespace-nowrap">From</label>
-              <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
+              <label htmlFor="credit-ledger-from" className="text-xs text-slate-500 whitespace-nowrap">From</label>
+              <input id="credit-ledger-from" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
                 className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-xs text-slate-500 whitespace-nowrap">To</label>
-              <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
+              <label htmlFor="credit-ledger-to" className="text-xs text-slate-500 whitespace-nowrap">To</label>
+              <input id="credit-ledger-to" type="date" value={toDate} onChange={e => setToDate(e.target.value)}
                 className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             {(fromDate || toDate) && (
               <button onClick={() => { setFromDate(''); setToDate('') }}
-                className="text-xs text-slate-400 hover:text-slate-600">Clear</button>
+                className="text-xs text-slate-500 hover:text-slate-600">Clear</button>
             )}
           </div>
         )}
@@ -1347,7 +1364,7 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
                       <span className="text-sm font-semibold text-slate-700">{client.name}</span>
                       <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">own transactions</span>
                     </div>
-                    <p className="text-xs text-slate-400">{client.phone}</p>
+                    <p className="text-xs text-slate-500">{client.phone}</p>
                   </div>
                 </div>
                 <svg
@@ -1394,12 +1411,12 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
                           <span className="text-sm font-semibold text-slate-700">{child.name}</span>
                           <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-medium">sub-account</span>
                         </div>
-                        <p className="text-xs text-slate-400">{child.phone}</p>
+                        <p className="text-xs text-slate-500">{child.phone}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <p className="text-xs text-slate-400">Outstanding</p>
+                        <p className="text-xs text-slate-500">Outstanding</p>
                         <p className={`text-sm font-bold ${childOutstanding > 0 ? 'text-amber-600' : 'text-green-600'}`}>
                           ₹{formatAmount(childOutstanding)}
                         </p>
@@ -1579,20 +1596,26 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
       className={`${indent ? 'pl-7 pr-3' : 'px-3'} py-3 border-t border-slate-100 bg-white space-y-2`}>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="ui-label">Name <span className="text-red-500">*</span></label>
-          <input required value={editName} onChange={e => setEditName(e.target.value)} className="text-xs min-h-10" />
+          <label className="block">
+            <span className="ui-label">Name <span className="text-red-500">*</span></span>
+            <input required value={editName} onChange={e => setEditName(e.target.value)} className="text-xs min-h-10" />
+          </label>
         </div>
         <div>
-          <label className="ui-label">Phone <span className="text-red-500">*</span></label>
-          <input required value={editPhone}
-            onChange={e => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-            inputMode="numeric" maxLength={10} className="text-xs min-h-10" />
+          <label className="block">
+            <span className="ui-label">Phone <span className="text-red-500">*</span></span>
+            <input required value={editPhone}
+              onChange={e => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              inputMode="numeric" maxLength={10} className="text-xs min-h-10" />
+          </label>
         </div>
       </div>
       <div>
-        <label className="ui-label">Notes <span className="text-slate-400">(optional)</span></label>
-        <input value={editNotes} onChange={e => setEditNotes(e.target.value)}
-          placeholder="e.g. Fleet manager, lorry owner" className="text-xs min-h-10" />
+        <label className="block">
+          <span className="ui-label">Notes <span className="text-slate-500">(optional)</span></span>
+          <input value={editNotes} onChange={e => setEditNotes(e.target.value)}
+            placeholder="e.g. Fleet manager, lorry owner" className="text-xs min-h-10" />
+        </label>
       </div>
       {editError && <p className="ui-error-text">{editError}</p>}
       <button type="submit" disabled={updateMutation.isPending}
@@ -1606,7 +1629,7 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-500">
         Parties who take fuel on credit. Operators pick from this list when closing a shift.
         {isOwnerOrAdmin ? ' Disabled clients are hidden from shift dropdowns. Client records are never deleted.' : ''}
       </p>
@@ -1648,8 +1671,14 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
                 <div
                   className={`ui-accordion-trigger ${hasChildren ? 'cursor-pointer select-none' : ''}`}
                   onClick={hasChildren ? () => toggleCollapse(parent.id) : undefined}
-                >
-                  <div className="min-w-0 flex items-center gap-2">
+                  >
+                    <div
+                      className="min-w-0 flex items-center gap-2"
+                      role={hasChildren ? 'button' : undefined}
+                      tabIndex={hasChildren ? 0 : undefined}
+                      aria-expanded={hasChildren ? isExpanded : undefined}
+                      onKeyDown={hasChildren ? onActivateKey(() => toggleCollapse(parent.id)) : undefined}
+                    >
                     {hasChildren && (
                       <svg className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                         fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -1658,7 +1687,7 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
                     )}
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className={`text-sm font-semibold ${parent.isActive ? 'text-slate-700' : 'text-slate-400'}`}>{parent.name}</p>
+                        <p className={`text-sm font-semibold ${parent.isActive ? 'text-slate-700' : 'text-slate-500'}`}>{parent.name}</p>
                         {parent.isParent && (
                           <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-medium">
                             parent · {children.length} sub-account{children.length !== 1 ? 's' : ''}
@@ -1669,8 +1698,8 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5">
-                        {parent.phone && <span className="text-xs text-slate-400">{parent.phone}</span>}
-                        {parent.notes && <span className="text-xs text-slate-400 italic truncate max-w-xs">{parent.notes}</span>}
+                        {parent.phone && <span className="text-xs text-slate-500">{parent.phone}</span>}
+                        {parent.notes && <span className="text-xs text-slate-500 italic truncate max-w-xs">{parent.notes}</span>}
                       </div>
                     </div>
                   </div>
@@ -1717,14 +1746,14 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
                         <span className="text-slate-300 shrink-0">└</span>
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className={`text-sm font-medium ${child.isActive ? 'text-slate-600' : 'text-slate-400'}`}>{child.name}</p>
+                            <p className={`text-sm font-medium ${child.isActive ? 'text-slate-600' : 'text-slate-500'}`}>{child.name}</p>
                             {!child.isActive && (
                               <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">Disabled</span>
                             )}
                           </div>
                           <div className="flex items-center gap-3">
-                            {child.phone && <span className="text-xs text-slate-400">{child.phone}</span>}
-                            {child.notes && <span className="text-xs text-slate-400 italic truncate max-w-xs">{child.notes}</span>}
+                            {child.phone && <span className="text-xs text-slate-500">{child.phone}</span>}
+                            {child.notes && <span className="text-xs text-slate-500 italic truncate max-w-xs">{child.notes}</span>}
                           </div>
                         </div>
                       </div>
@@ -1759,21 +1788,27 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
                     <p className="text-xs font-semibold text-blue-700">Add sub-account under {parent.name}</p>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="ui-label">Name <span className="text-red-500">*</span></label>
-                        <input required value={addSubName} onChange={e => setAddSubName(e.target.value)}
-                          placeholder="e.g. Driver 1" className="text-xs min-h-10" />
+                        <label className="block">
+                          <span className="ui-label">Name <span className="text-red-500">*</span></span>
+                          <input required value={addSubName} onChange={e => setAddSubName(e.target.value)}
+                            placeholder="e.g. Driver 1" className="text-xs min-h-10" />
+                        </label>
                       </div>
                       <div>
-                        <label className="ui-label">Phone <span className="text-red-500">*</span></label>
-                        <input required value={addSubPhone}
-                          onChange={e => setAddSubPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                          inputMode="numeric" maxLength={10} placeholder="e.g. 9876543210" className="text-xs min-h-10" />
+                        <label className="block">
+                          <span className="ui-label">Phone <span className="text-red-500">*</span></span>
+                          <input required value={addSubPhone}
+                            onChange={e => setAddSubPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                            inputMode="numeric" maxLength={10} placeholder="e.g. 9876543210" className="text-xs min-h-10" />
+                        </label>
                       </div>
                     </div>
                     <div>
-                      <label className="ui-label">Notes <span className="text-slate-400">(optional)</span></label>
-                      <input value={addSubNotes} onChange={e => setAddSubNotes(e.target.value)}
-                        placeholder="e.g. truck number, driver name" className="text-xs min-h-10" />
+                      <label className="block">
+                        <span className="ui-label">Notes <span className="text-slate-500">(optional)</span></span>
+                        <input value={addSubNotes} onChange={e => setAddSubNotes(e.target.value)}
+                          placeholder="e.g. truck number, driver name" className="text-xs min-h-10" />
+                      </label>
                     </div>
                     {addSubError && <p className="ui-error-text">{addSubError}</p>}
                     <div className="flex gap-2">
@@ -1793,7 +1828,7 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
           })}
         </div>
       ) : q ? (
-        <p className="text-sm text-slate-400 py-2">No clients match "{deferredSearch}".</p>
+        <p className="text-sm text-slate-500 py-2">No clients match "{deferredSearch}".</p>
       ) : null}
 
       {isOwnerOrAdmin && (
@@ -1804,21 +1839,27 @@ function CreditClientsTab({ pumpId, isOwnerOrAdmin }: CreditClientsTabProps) {
           <form onSubmit={submitAdd} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="ui-label">Client Name <span className="text-red-500">*</span></label>
-                <input required value={name} onChange={e => setName(e.target.value)}
-                  placeholder="e.g. ABC Transports" className="text-sm" />
+                <label className="block">
+                  <span className="ui-label">Client Name <span className="text-red-500">*</span></span>
+                  <input required value={name} onChange={e => setName(e.target.value)}
+                    placeholder="e.g. ABC Transports" className="text-sm" />
+                </label>
               </div>
               <div>
-                <label className="ui-label">Phone <span className="text-red-500">*</span></label>
-                <input required value={phoneNumber}
-                  onChange={e => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="e.g. 9876543210" inputMode="numeric" maxLength={10} className="text-sm" />
+                <label className="block">
+                  <span className="ui-label">Phone <span className="text-red-500">*</span></span>
+                  <input required value={phoneNumber}
+                    onChange={e => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="e.g. 9876543210" inputMode="numeric" maxLength={10} className="text-sm" />
+                </label>
               </div>
             </div>
             <div>
-              <label className="ui-label">Notes <span className="text-slate-400">(optional)</span></label>
-              <input value={notes} onChange={e => setNotes(e.target.value)}
-                placeholder="e.g. Fleet manager, lorry owner" className="text-sm" />
+              <label className="block">
+                <span className="ui-label">Notes <span className="text-slate-500">(optional)</span></span>
+                <input value={notes} onChange={e => setNotes(e.target.value)}
+                  placeholder="e.g. Fleet manager, lorry owner" className="text-sm" />
+              </label>
             </div>
             {addError && <p className="ui-error-text">{addError}</p>}
             <button type="submit" disabled={addMutation.isPending} className="ui-btn ui-btn-primary">
@@ -1986,14 +2027,14 @@ const rootClientCount  = allCreditClients.length > 0
               className="ui-search-shell__input text-sm leading-5"
             />
             {searchQuery && (
-              <button
+              <IconButton
                 onClick={() => setSearchQuery('')}
                 className="ui-search-shell__clear"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+ label="Clear search"
+ icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                </svg>}
+ />
             )}
           </div>
           </Reveal>
@@ -2083,7 +2124,13 @@ const rootClientCount  = allCreditClients.length > 0
                     {client.name.charAt(0).toUpperCase()}
                   </div>
 
-                  <div className="flex-1 min-w-0">
+                  <div
+                      className="flex-1 min-w-0"
+                      role={hasChildren ? 'button' : undefined}
+                      tabIndex={hasChildren ? 0 : undefined}
+                      aria-expanded={hasChildren ? isExpanded : undefined}
+                      onKeyDown={hasChildren ? onActivateKey(() => toggleParent(client.id)) : undefined}
+                    >
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold text-slate-800 truncate">{client.name}</p>
                       {isActualChild && (
@@ -2097,7 +2144,7 @@ const rootClientCount  = allCreditClients.length > 0
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400">{client.phone}</p>
+                    <p className="text-xs text-slate-500">{client.phone}</p>
                     {!isActualChild && client.creditLimit > 0 && (
                       <div className="mt-1.5">
                         <div className="flex items-center gap-2">
@@ -2107,7 +2154,7 @@ const rootClientCount  = allCreditClients.length > 0
                               style={{ width: `${limitPct}%` }}
                             />
                           </div>
-                          <span className={`text-xs ${isNearLimit ? 'text-red-600 font-medium' : 'text-slate-400'}`}>
+                          <span className={`text-xs ${isNearLimit ? 'text-red-600 font-medium' : 'text-slate-500'}`}>
                             {limitPct?.toFixed(0)}% of limit
                           </span>
                         </div>
@@ -2117,7 +2164,7 @@ const rootClientCount  = allCreditClients.length > 0
 
                   <div className="text-right flex-shrink-0 hidden sm:block space-y-0.5">
                     <div>
-                      <p className="text-xs text-slate-400 mb-0.5">Credit Limit</p>
+                      <p className="text-xs text-slate-500 mb-0.5">Credit Limit</p>
                       {isActualChild ? (
                         <p className="text-sm font-medium text-blue-500">Shared with parent</p>
                       ) : (
@@ -2132,7 +2179,7 @@ const rootClientCount  = allCreditClients.length > 0
                   </div>
 
                   <div className="text-right flex-shrink-0 w-28">
-                    <p className="text-xs text-slate-400 mb-0.5">Outstanding</p>
+                    <p className="text-xs text-slate-500 mb-0.5">Outstanding</p>
                     <p className={`text-base font-bold ${client.outstandingBalance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
                       ₹{formatAmount(client.outstandingBalance)}
                     </p>
@@ -2140,15 +2187,14 @@ const rootClientCount  = allCreditClients.length > 0
 
                   <div className="flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
                     {isOwnerOrAdmin && !isActualChild && (
-                      <button
+                      <IconButton
                         onClick={() => setShowLimitModal(client)}
-                        title="Set credit limit"
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+ label="Set credit limit"
+ icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
+                        </svg>}
+ />
                     )}
                     <button
                       onClick={() => setSelectedClient(client)}

@@ -14,8 +14,8 @@ import { Pagination } from '../../components/Pagination'
 import { formatIstDate, localDateInputValue } from '../../utils/date'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
-import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { Spinner } from '../../components/Spinner'
+import { IconButton } from '../../components/IconButton'
 
 // ── Colour helpers ─────────────────────────────────────────────────────────────
 
@@ -239,7 +239,7 @@ export default function InventoryPage() {
               >
                 <span className="ui-toolbar-title mr-0">Current Stock Levels</span>
                 {selectedPump && (
-                  <span className="text-xs text-slate-400">{selectedPump.name}</span>
+                  <span className="text-xs text-slate-500">{selectedPump.name}</span>
                 )}
                 <span className={`ui-accordion-arrow ml-1 ${stockOpen ? 'ui-accordion-arrow--open' : ''}`}><ChevronDown size={14} strokeWidth={2} /></span>
               </button>
@@ -257,7 +257,7 @@ export default function InventoryPage() {
                 {tanksLoading ? (
                   <div className="p-6 text-sm text-slate-500">Loading stock levels...</div>
                 ) : tanks.length === 0 ? (
-                  <div className="p-6 text-sm text-slate-400">
+                  <div className="p-6 text-sm text-slate-500">
                     No tanks configured. Add nozzles in Setup to auto-create tanks.
                   </div>
                 ) : (
@@ -297,7 +297,7 @@ export default function InventoryPage() {
                   <p className="ui-toolbar-title">Filter Deliveries</p>
                   <div className="ui-toolbar-actions">
                     <div className="w-44">
-                    <SearchableSelect
+                    <SearchableSelect label="Filter deliveries by tank"
                       value={deliveryTankFilter}
                       onChange={v => setDeliveryTankFilter(v)}
                       options={[
@@ -308,7 +308,7 @@ export default function InventoryPage() {
                     />
                   </div>
                     <div className="w-44">
-                    <SearchableSelect
+                    <SearchableSelect label="Filter deliveries by fuel type"
                       value={deliveryFuelFilter}
                       onChange={v => setDeliveryFuelFilter(v)}
                       options={[
@@ -340,7 +340,7 @@ export default function InventoryPage() {
 
                   if (filtered.length === 0) {
                     return (
-                      <div className="p-5 text-sm text-slate-400">
+                      <div className="p-5 text-sm text-slate-500">
                         {deliveries.length === 0
                           ? 'No deliveries recorded yet.'
                           : 'No deliveries match the selected filters on this page.'}
@@ -382,12 +382,12 @@ export default function InventoryPage() {
                                   <span className="font-mono text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md">
                                     {invoice}
                                   </span>
-                                  <span className="text-xs text-slate-400">{fmtDate(rows[0].deliveryDate)}</span>
-                                  <span className="text-xs text-slate-400">·</span>
+                                  <span className="text-xs text-slate-500">{fmtDate(rows[0].deliveryDate)}</span>
+                                  <span className="text-xs text-slate-500">·</span>
                                   <span className="text-xs text-slate-500">{rows.length} tank{rows.length !== 1 ? 's' : ''}</span>
                                   {rows[0].tankerName && (
                                     <>
-                                      <span className="text-xs text-slate-400">·</span>
+                                      <span className="text-xs text-slate-500">·</span>
                                       <span className="inline-flex items-center gap-1 text-xs text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
                                         <Truck size={10} strokeWidth={2} />
                                         {rows[0].tankerName}
@@ -404,7 +404,7 @@ export default function InventoryPage() {
                                           ₹{Number(rows[0].billTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                         </span>
                                         {Math.abs(Number(rows[0].billTotal) - totalCost) > 0.005 && (
-                                          <span className="text-[10px] text-slate-400">
+                                          <span className="text-[10px] text-slate-500">
                                             calc. ₹{totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                           </span>
                                         )}
@@ -418,21 +418,19 @@ export default function InventoryPage() {
                                   </div>
                                 </button>
                                 {isFirstGlobalGroup && canDeleteInvoice && (
-                                  <button
-                                    type="button"
+                                  <IconButton
                                     onClick={() => setDeleteInvoice({ invoice, rows })}
-                                    className="shrink-0 ml-2 text-slate-300 hover:text-red-500 transition-colors p-1 rounded"
-                                    title="Delete this invoice"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
+                                    className="shrink-0 ml-2 text-slate-300 hover:text-red-500 transition-colors rounded"
+ label="Delete this invoice"
+ icon={<Trash2 size={14} />}
+ />
                                 )}
                               </div>
 
                               {!isCollapsed && (
                                 <div className="ui-accordion-content ui-card p-0 overflow-hidden">
                                   <div className="px-4 py-3">
-                                    <div className={`grid gap-3 border-b border-slate-100 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400 ${
+                                    <div className={`grid gap-3 border-b border-slate-100 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 ${
                                       isOwnerOrAdmin
                                         ? 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'
                                         : 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'
@@ -486,7 +484,7 @@ export default function InventoryPage() {
                   <p className="ui-toolbar-title">Filter DIP Checks</p>
                   <div className="ui-toolbar-actions">
                     <div className="w-44">
-                    <SearchableSelect
+                    <SearchableSelect label="Filter DIP checks by tank"
                       value={dipTankFilter}
                       onChange={v => setDipTankFilter(v)}
                       options={[
@@ -497,7 +495,7 @@ export default function InventoryPage() {
                     />
                   </div>
                     <div className="w-44">
-                    <SearchableSelect
+                    <SearchableSelect label="Filter DIP checks by fuel type"
                       value={dipFuelFilter}
                       onChange={v => setDipFuelFilter(v)}
                       options={[
@@ -529,7 +527,7 @@ export default function InventoryPage() {
 
                   if (filtered.length === 0) {
                     return (
-                      <div className="p-5 text-sm text-slate-400">
+                      <div className="p-5 text-sm text-slate-500">
                         {dipChecks.length === 0
                           ? 'No DIP checks recorded yet.'
                           : 'No DIP checks match the selected filters on this page.'}
@@ -567,7 +565,7 @@ export default function InventoryPage() {
                               <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
                                 {fmtDate(dateKey)}
                               </span>
-                              <span className="text-xs text-slate-400">
+                              <span className="text-xs text-slate-500">
                                 {rows.length} tank{rows.length !== 1 ? 's' : ''} checked
                               </span>
                               {allBalanced && (
@@ -665,15 +663,14 @@ function DeleteInvoiceModal({ invoice, rows, isPending, error, onConfirm, onClos
   onConfirm: () => void
   onClose: () => void
 }) {
-  useEscapeKey(onClose)
   const totalQty = rows.reduce((s, r) => s + r.quantityDelivered, 0)
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
       <div className="ui-modal-backdrop">
         <div className="ui-modal w-full max-w-md">
           <div className="ui-modal-header">
             <h2 className="ui-modal-title">Delete Invoice?</h2>
-            <button onClick={onClose} className="ui-modal-close"><X size={16} /></button>
+            <button type="button" aria-label="Close" onClick={onClose} className="ui-modal-close"><X size={16} /></button>
           </div>
 
           <div className="ui-modal-body space-y-4">
@@ -688,7 +685,7 @@ function DeleteInvoiceModal({ invoice, rows, isPending, error, onConfirm, onClos
                 <span className="font-mono text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
                   {invoice}
                 </span>
-                <span className="text-xs text-slate-400 ml-auto">{fmtDate(rows[0].deliveryDate)}</span>
+                <span className="text-xs text-slate-500 ml-auto">{fmtDate(rows[0].deliveryDate)}</span>
               </div>
               <div className="divide-y divide-slate-100">
                 {rows.map(r => (
@@ -807,7 +804,7 @@ function TankStockBar({
         />
       </div>
 
-      <div className="flex items-center justify-between mt-1.5 text-xs text-slate-400">
+      <div className="flex items-center justify-between mt-1.5 text-xs text-slate-500">
         <span>
           <span className={`font-semibold ${isLow ? 'text-red-600' : 'text-slate-700'}`}>
             {tank.currentStock.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
@@ -842,7 +839,7 @@ function FuelLotsDialog({
   const cols = FUEL_COLORS[tank.fuelType] ?? FUEL_COLORS.PETROL
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop px-4">
       <div className="ui-modal-panel ui-modal-panel--lg w-full max-w-2xl max-h-[85vh] flex flex-col">
 
@@ -859,7 +856,7 @@ function FuelLotsDialog({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
         </div>
 
         {/* Body */}
@@ -874,11 +871,11 @@ function FuelLotsDialog({
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="text-xs text-slate-500 border-b border-slate-200">
-                  <th className="text-left pb-2 pr-4 font-medium">In Date</th>
-                  <th className="text-left pb-2 pr-4 font-medium">Invoice / Bill No</th>
-                  <th className="text-right pb-2 pr-4 font-medium">Cost Price/L</th>
-                  <th className="text-right pb-2 pr-4 font-medium">Remaining (L)</th>
-                  <th className="text-right pb-2 font-medium">Original (L)</th>
+                  <th scope="col" className="text-left pb-2 pr-4 font-medium">In Date</th>
+                  <th scope="col" className="text-left pb-2 pr-4 font-medium">Invoice / Bill No</th>
+                  <th scope="col" className="text-right pb-2 pr-4 font-medium">Cost Price/L</th>
+                  <th scope="col" className="text-right pb-2 pr-4 font-medium">Remaining (L)</th>
+                  <th scope="col" className="text-right pb-2 font-medium">Original (L)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -892,7 +889,7 @@ function FuelLotsDialog({
                     </td>
                     <td className="py-2.5 pr-4 text-right font-medium text-slate-800">
                       {lot.isDipAdjustment
-                        ? <span className="text-slate-400">—</span>
+                        ? <span className="text-slate-500">—</span>
                         : `₹${Number(lot.costPricePerUnit).toFixed(4)}`}
                     </td>
                     <td className="py-2.5 pr-4 text-right">
@@ -912,7 +909,7 @@ function FuelLotsDialog({
 
         {/* Footer */}
         <div className="ui-modal-footer shrink-0 justify-between items-center">
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             Lots shown in FIFO order — oldest consumed first
           </p>
           <button
@@ -936,7 +933,6 @@ function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }: {
   isOwnerOrAdmin: boolean
   onClose: () => void
 }) {
-  useEscapeKey(onClose)
   const qc = useQueryClient()
   const [invoiceReference, setInvoiceReference] = useState(delivery.invoiceReference)
   const [qty,   setQty]   = useState(String(delivery.quantityDelivered))
@@ -976,7 +972,7 @@ function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }: {
   }
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
       <div className="ui-modal-backdrop" onClick={onClose}>
         <div className="ui-modal-panel w-full max-w-md" onClick={e => e.stopPropagation()}>
           <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -986,61 +982,69 @@ function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }: {
                 {delivery.tankIdentifier} · {delivery.fuelType}
               </p>
             </div>
-            <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+            <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
           </div>
 
           <div className="ui-modal-body space-y-4">
 
             <div className="space-y-1">
-              <label className="ui-label">Invoice / Bill No.</label>
-              <input
-                className="ui-input"
-                value={invoiceReference}
-                onChange={e => setInvoiceReference(e.target.value)}
-                placeholder="e.g. INV-2026-001"
-              />
+              <label className="block">
+                <span className="ui-label">Invoice / Bill No.</span>
+                <input
+                  className="ui-input"
+                  value={invoiceReference}
+                  onChange={e => setInvoiceReference(e.target.value)}
+                  placeholder="e.g. INV-2026-001"
+                />
+              </label>
             </div>
 
             <div className={`grid gap-3 ${isOwnerOrAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <div className="space-y-1">
-                <label className="ui-label">Quantity (L)</label>
-                <input
-                  className="ui-input"
-                  type="number"
-                  min="0.001"
-                  step="0.001"
-                  value={qty}
-                  onChange={e => setQty(limitDecimals(e.target.value, 3))}
-                />
-              </div>
-              {isOwnerOrAdmin && (
-                <div className="space-y-1">
-                  <label className="ui-label">Cost (₹/L)</label>
+                <label className="block">
+                  <span className="ui-label">Quantity (L)</span>
                   <input
                     className="ui-input"
                     type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={cost}
-                    onChange={e => setCost(limitDecimals(e.target.value, 2))}
+                    min="0.001"
+                    step="0.001"
+                    value={qty}
+                    onChange={e => setQty(limitDecimals(e.target.value, 3))}
                   />
+                </label>
+              </div>
+              {isOwnerOrAdmin && (
+                <div className="space-y-1">
+                  <label className="block">
+                    <span className="ui-label">Cost (₹/L)</span>
+                    <input
+                      className="ui-input"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={cost}
+                      onChange={e => setCost(limitDecimals(e.target.value, 2))}
+                    />
+                  </label>
                 </div>
               )}
             </div>
             {!isOwnerOrAdmin && (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 Cost price is managed by Owner / Admin and will not be changed.
               </p>
             )}
 
             <div className="space-y-1">
-              <label className="ui-label">Delivery Date</label>
-              <input
-                className="ui-input"
-                type="date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-              />
+              <label className="block">
+                <span className="ui-label">Delivery Date</span>
+                <input
+                  className="ui-input"
+                  type="date"
+                  value={date}
+                  onChange={e => setDate(e.target.value)}
+                />
+              </label>
             </div>
 
             {error && <p className="ui-error-text">{error}</p>}
@@ -1086,20 +1090,19 @@ function DeliveryItem({ delivery, pumpId, isOwnerOrAdmin }: {
           {delivery.quantityDelivered.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
         </span>
         {isOwnerOrAdmin && (
-          <span className="text-right text-slate-400">₹{delivery.costPricePerUnit.toFixed(4)}/L</span>
+          <span className="text-right text-slate-500">₹{delivery.costPricePerUnit.toFixed(4)}/L</span>
         )}
         {isOwnerOrAdmin && (
           <span className="text-right font-semibold text-slate-800">
             ₹{delivery.totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </span>
         )}
-        <button
+        <IconButton
           onClick={() => setEditing(true)}
-          className="text-slate-400 hover:text-blue-600 transition-colors p-0.5"
-          title="Edit delivery"
-        >
-          <Pencil size={13} />
-        </button>
+          className="text-slate-400 hover:text-blue-600 transition-colors"
+ label="Edit delivery"
+ icon={<Pencil size={13} />}
+ />
       </div>
       {editing && (
         <EditDeliveryModal
@@ -1156,7 +1159,7 @@ function DipItem({ check, pumpId, canReview }: {
       <span className="text-xs text-slate-500 shrink-0">
         Measured: <span className="font-medium text-slate-700">{fmtQty(check.measuredQuantity)}</span>
       </span>
-      <span className="text-xs text-slate-400 shrink-0">System: {fmtQty(check.systemStock)}</span>
+      <span className="text-xs text-slate-500 shrink-0">System: {fmtQty(check.systemStock)}</span>
       <span className="shrink-0">
         {check.variance === 0 ? (
           <span className="text-xs text-emerald-600 font-medium">Balanced</span>
@@ -1177,9 +1180,9 @@ function DipItem({ check, pumpId, canReview }: {
         </button>
       )}
       {check.notes && (
-        <span className="text-xs text-slate-400 italic shrink-0">{check.notes}</span>
+        <span className="text-xs text-slate-500 italic shrink-0">{check.notes}</span>
       )}
-      <span className="ml-auto text-xs text-slate-400 shrink-0">{check.loggedByUserName}</span>
+      <span className="ml-auto text-xs text-slate-500 shrink-0">{check.loggedByUserName}</span>
     </div>
   )
 }
@@ -1222,7 +1225,6 @@ function RecordDeliveryModal({
   canSetBillTotal: boolean
   onClose: () => void
 }) {
-  useEscapeKey(onClose)
   const queryClient = useQueryClient()
   const defaultTankId = tanks[0]?.tankId ? String(tanks[0].tankId) : ''
 
@@ -1408,7 +1410,7 @@ function RecordDeliveryModal({
   }))
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop" onClick={onClose}>
       <div
         className="ui-modal-panel"
@@ -1423,7 +1425,7 @@ function RecordDeliveryModal({
               One tanker · one invoice · multiple tanks
             </p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
         </div>
 
         <form onSubmit={handleReview} className="flex flex-col flex-1 overflow-hidden">
@@ -1432,34 +1434,38 @@ function RecordDeliveryModal({
             <div className="ui-inline-form">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="ui-label">
+                <label className="block">
+                  <span className="ui-label">
                   Delivery Date <span className="text-red-500">*</span>
+                </span>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={e => setDate(e.target.value)}
+                    className="shadow-sm"
+                  />
                 </label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={e => setDate(e.target.value)}
-                  className="shadow-sm"
-                />
               </div>
               <div>
-                <label className="ui-label">
+                <label className="block">
+                  <span className="ui-label">
                   Invoice / Bill No. <span className="text-red-500">*</span>
+                </span>
+                  <input
+                    type="text"
+                    value={invoice}
+                    onChange={e => setInvoice(e.target.value)}
+                    placeholder="e.g. INV-2026-0042"
+                    className="shadow-sm"
+                  />
                 </label>
-                <input
-                  type="text"
-                  value={invoice}
-                  onChange={e => setInvoice(e.target.value)}
-                  placeholder="e.g. INV-2026-0042"
-                  className="shadow-sm"
-                />
               </div>
             </div>
 
             {tankers.length > 0 && (
               <div className="mt-3">
-                <label className="ui-label">Tanker (Truck)</label>
-                <SearchableSelect
+                <span className="ui-label">Tanker (Truck)</span>
+                <SearchableSelect label="Tanker (Truck)"
                   value={selectedTankerId !== null ? String(selectedTankerId) : ''}
                   onChange={v => setSelectedTankerId(v ? Number(v) : null)}
                   options={[
@@ -1513,13 +1519,13 @@ function RecordDeliveryModal({
                   {!isExpanded ? (
                     <div className="flex items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-xs font-bold text-slate-400 shrink-0">#{idx + 1}</span>
+                        <span className="text-xs font-bold text-slate-500 shrink-0">#{idx + 1}</span>
                         {isFilled ? (
                           <>
                             <span className="text-sm font-medium text-slate-700 truncate">
                               {tank?.tankIdentifier ?? '—'} · {tank?.fuelType ?? '—'}
                             </span>
-                            <span className="text-xs text-slate-400 shrink-0">{enteredQty.toLocaleString('en-IN')} L</span>
+                            <span className="text-xs text-slate-500 shrink-0">{enteredQty.toLocaleString('en-IN')} L</span>
                             {rowOverflow && (
                               <span className="text-xs text-red-600 font-semibold shrink-0">Over capacity</span>
                             )}
@@ -1530,7 +1536,7 @@ function RecordDeliveryModal({
                             )}
                           </>
                         ) : (
-                          <span className="text-xs text-slate-400 italic">Incomplete — click Edit to fill</span>
+                          <span className="text-xs text-slate-500 italic">Incomplete — click Edit to fill</span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-2">
@@ -1542,14 +1548,12 @@ function RecordDeliveryModal({
                           Edit
                         </button>
                         {rows.length > 1 && (
-                          <button
-                            type="button"
+                          <IconButton
                             onClick={() => removeRow(row.id)}
-                            className="text-red-300 hover:text-red-600 transition-colors p-0.5"
-                            title="Remove"
-                          >
-                            <X size={14} strokeWidth={2} />
-                          </button>
+                            className="text-red-300 hover:text-red-600 transition-colors"
+ label="Remove row"
+ icon={<X size={14} strokeWidth={2} />}
+ />
                         )}
                       </div>
                     </div>
@@ -1577,8 +1581,8 @@ function RecordDeliveryModal({
 
                       {/* Tank selector */}
                       <div>
-                        <label className="ui-label">Tank</label>
-                        <SearchableSelect
+                        <span className="ui-label">Tank</span>
+                        <SearchableSelect label="Tank"
                           value={row.tankId}
                           onChange={v => updateRow(row.id, 'tankId', v)}
                           options={tankOptions}
@@ -1589,38 +1593,42 @@ function RecordDeliveryModal({
                       {/* Qty + Cost */}
                       <div className={`grid gap-3 ${isOwnerOrAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
                         <div>
-                          <label className="ui-label">
+                          <label className="block">
+                            <span className="ui-label">
                             Quantity (Litres) <span className="text-red-500">*</span>
+                          </span>
+                            <input
+                              type="number"
+                              step="0.001"
+                              min="0.001"
+                              value={row.qty}
+                              onChange={e => updateRow(row.id, 'qty', limitDecimals(e.target.value, 3))}
+                              placeholder="e.g. 5000"
+                              className="shadow-sm"
+                            />
                           </label>
-                          <input
-                            type="number"
-                            step="0.001"
-                            min="0.001"
-                            value={row.qty}
-                            onChange={e => updateRow(row.id, 'qty', limitDecimals(e.target.value, 3))}
-                            placeholder="e.g. 5000"
-                            className="shadow-sm"
-                          />
                         </div>
                         {isOwnerOrAdmin && (
                           <div>
-                            <label className="ui-label">
+                            <label className="block">
+                              <span className="ui-label">
                               Cost per Litre (₹) <span className="text-red-500">*</span>
+                            </span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={row.costPrice}
+                                onChange={e => updateRow(row.id, 'costPrice', limitDecimals(e.target.value, 2))}
+                                placeholder="e.g. 88.50"
+                                className="shadow-sm"
+                              />
                             </label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0.01"
-                              value={row.costPrice}
-                              onChange={e => updateRow(row.id, 'costPrice', limitDecimals(e.target.value, 2))}
-                              placeholder="e.g. 88.50"
-                              className="shadow-sm"
-                            />
                           </div>
                         )}
                       </div>
                       {!isOwnerOrAdmin && (
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-slate-500">
                           Cost price is managed by Owner / Admin. The last recorded price for this tank will be used.
                         </p>
                       )}
@@ -1642,7 +1650,7 @@ function RecordDeliveryModal({
                                 Exceeds capacity — available: {availableSpace!.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
                               </span>
                             ) : (
-                              <span className="text-slate-400">
+                              <span className="text-slate-500">
                                 Stock after: <span className="font-semibold text-slate-600">
                                   {afterStock.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
                                 </span>
@@ -1700,8 +1708,8 @@ function RecordDeliveryModal({
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <label className="text-xs text-blue-600 font-medium shrink-0">Bill Amount (₹)</label>
-                  <input
+                  <label htmlFor="delivery-bill-total" className="text-xs text-blue-600 font-medium shrink-0">Bill Amount (₹)</label>
+                  <input id="delivery-bill-total"
                     type="number"
                     step="0.01"
                     min="0.01"
@@ -1713,7 +1721,7 @@ function RecordDeliveryModal({
                   />
                 </div>
                 {!isOwnerOrAdmin && (
-                  <p className="text-xs text-slate-400">Enter the total amount shown on the supplier's invoice.</p>
+                  <p className="text-xs text-slate-500">Enter the total amount shown on the supplier's invoice.</p>
                 )}
                 {isOwnerOrAdmin && billTotalManual && otherCharges !== 0 && (
                   <p className="text-xs text-blue-500">
@@ -1721,7 +1729,7 @@ function RecordDeliveryModal({
                     <span className={`font-medium ${otherCharges > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
                       {otherCharges > 0 ? '+' : ''}₹{Math.abs(otherCharges).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
-                    <span className="text-slate-400"> (freight / taxes / other)</span>
+                    <span className="text-slate-500"> (freight / taxes / other)</span>
                   </p>
                 )}
               </div>
@@ -1764,7 +1772,7 @@ function RecordDeliveryModal({
           if (!items) return null
 
           return (
-        <ModalPortal>
+        <ModalPortal onClose={() => setReviewOpen(false)}>
         <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
           <div
             className="ui-modal-panel ui-modal-panel--lg"
@@ -1775,7 +1783,7 @@ function RecordDeliveryModal({
                 <h3 className="ui-modal-title">Review Tanker Delivery</h3>
                 <p className="ui-modal-subtitle">Please verify the bill and tank-wise received fuel before submitting.</p>
               </div>
-              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+              <button type="button" aria-label="Close" onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
             </div>
 
             <div className="ui-modal-body space-y-5 max-h-[75vh]">
@@ -1910,7 +1918,6 @@ function DipCheckModal({
   tank: TankStock
   onClose: () => void
 }) {
-  useEscapeKey(onClose)
   const queryClient = useQueryClient()
   const cols = FUEL_COLORS[tank.fuelType] ?? FUEL_COLORS.PETROL
 
@@ -1953,7 +1960,7 @@ function DipCheckModal({
   }
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop" onClick={onClose}>
       <div className="ui-modal-panel w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--neutral">
@@ -1963,7 +1970,7 @@ function DipCheckModal({
               {tank.tankIdentifier} — <span className={cols.text.replace('text-', 'text-')}>{tank.fuelType}</span>
             </p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
         </div>
 
         <form onSubmit={handleSubmit} className="ui-modal-body space-y-4">
@@ -1977,20 +1984,22 @@ function DipCheckModal({
 
           {/* Measured quantity */}
           <div>
-            <label className="ui-label">
+            <label className="block">
+              <span className="ui-label">
               Dipstick Reading (Litres)
+            </span>
+              <input
+                required
+                type="number"
+                step="0.001"
+                min="0"
+                value={measured}
+                onChange={e => setMeasured(e.target.value)}
+                placeholder="Physically measured quantity"
+                className="text-sm"
+                autoFocus
+              />
             </label>
-            <input
-              required
-              type="number"
-              step="0.001"
-              min="0"
-              value={measured}
-              onChange={e => setMeasured(e.target.value)}
-              placeholder="Physically measured quantity"
-              className="text-sm"
-              autoFocus
-            />
           </div>
 
           {/* Live variance preview */}
@@ -2017,22 +2026,24 @@ function DipCheckModal({
 
           {/* Date */}
           <div>
-            <label className="ui-label">Check Date</label>
-            <input
-              required
-              type="date"
-              value={date}
-              onChange={e => setDate(e.target.value)}
-              className="text-sm"
-            />
+            <label className="block">
+              <span className="ui-label">Check Date</span>
+              <input
+                required
+                type="date"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                className="text-sm"
+              />
+            </label>
           </div>
 
           {/* Operator */}
           <div>
-            <label className="ui-label">
-              Checked By <span className="text-slate-400">(optional)</span>
-            </label>
-            <SearchableSelect
+            <span className="ui-label">
+              Checked By <span className="text-slate-500">(optional)</span>
+            </span>
+            <SearchableSelect label="Checked By"
               value={checkedByUserId}
               onChange={v => setCheckedByUserId(v)}
               placeholder="— Select operator —"
@@ -2045,16 +2056,18 @@ function DipCheckModal({
 
           {/* Notes */}
           <div>
-            <label className="ui-label">
-              Notes <span className="text-slate-400">(optional)</span>
+            <label className="block">
+              <span className="ui-label">
+              Notes <span className="text-slate-500">(optional)</span>
+            </span>
+              <input
+                type="text"
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="e.g. Reading taken at 6pm"
+                className="text-sm"
+              />
             </label>
-            <input
-              type="text"
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder="e.g. Reading taken at 6pm"
-              className="text-sm"
-            />
           </div>
 
           {error && <p className="ui-error-text">{error}</p>}

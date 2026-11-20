@@ -19,7 +19,7 @@ import { formatIstDate, formatIstDateTime, localDateInputValue } from '../../uti
 import { maskPhone } from '../../utils/maskPhone'
 import { parseApiError } from '../../utils/apiError'
 import { ModalPortal } from '../../components/ModalPortal'
-import { useEscapeKey } from '../../hooks/useEscapeKey'
+import { IconButton } from '../../components/IconButton'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -140,7 +140,7 @@ export default function ShiftsPage() {
       </Reveal>
 
       {!pumpId ? (
-        <div className="ui-card text-center text-sm text-slate-400">
+        <div className="ui-card text-center text-sm text-slate-500">
           No pump selected. Use the pump selector in the top navigation bar.
         </div>
       ) : (
@@ -153,7 +153,7 @@ export default function ShiftsPage() {
                 <RefreshIndicator isFetching={activeFetching} dataUpdatedAt={activeUpdatedAt ?? 0} />
               </div>
               {selectedPump && (
-                <p className="text-xs text-slate-400">{selectedPump.name}</p>
+                <p className="text-xs text-slate-500">{selectedPump.name}</p>
               )}
               <div className="flex items-center gap-2 ml-auto">
                 {isOwnerOrAdmin && (
@@ -187,13 +187,13 @@ export default function ShiftsPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-xs text-slate-500">
-                      <th className="text-left px-6 py-3 font-medium">Nozzle</th>
-                      <th className="text-left px-6 py-3 font-medium">Operator</th>
-                      <th className="text-left px-6 py-3 font-medium hidden md:table-cell">Window</th>
-                      <th className="text-left px-6 py-3 font-medium hidden md:table-cell">Started</th>
-                      <th className="text-left px-6 py-3 font-medium hidden md:table-cell">Prices (₹)</th>
-                      <th className="text-left px-6 py-3 font-medium">Status</th>
-                      <th className="px-6 py-3" />
+                      <th scope="col" className="text-left px-6 py-3 font-medium">Nozzle</th>
+                      <th scope="col" className="text-left px-6 py-3 font-medium">Operator</th>
+                      <th scope="col" className="text-left px-6 py-3 font-medium hidden md:table-cell">Window</th>
+                      <th scope="col" className="text-left px-6 py-3 font-medium hidden md:table-cell">Started</th>
+                      <th scope="col" className="text-left px-6 py-3 font-medium hidden md:table-cell">Prices (₹)</th>
+                      <th scope="col" className="text-left px-6 py-3 font-medium">Status</th>
+                      <th scope="col" className="px-6 py-3" />
                     </tr>
                   </thead>
                   <tbody>
@@ -350,8 +350,8 @@ function DayViewHistory({ pumpId }: { pumpId: number }) {
                 <span className={`text-sm font-semibold ${isToday ? 'text-blue-700' : 'text-slate-700'}`}>
                   {label}
                 </span>
-                <span className="text-xs text-slate-400">{fmtShortDate(date)}</span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-500">{fmtShortDate(date)}</span>
+                <span className="text-xs text-slate-500">
                   · {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''}
                 </span>
                 {totalAmt > 0 && (
@@ -374,15 +374,15 @@ function DayViewHistory({ pumpId }: { pumpId: number }) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-xs text-slate-500">
-                      <th className="text-left px-5 py-2.5 font-medium hidden md:table-cell">ID</th>
-                      <th className="text-left px-5 py-2.5 font-medium">Nozzle</th>
-                      <th className="text-left px-5 py-2.5 font-medium hidden md:table-cell">Shift</th>
-                      <th className="text-left px-5 py-2.5 font-medium">Operator</th>
-                      <th className="text-left px-5 py-2.5 font-medium">Date</th>
-                      <th className="text-left px-5 py-2.5 font-medium">Amount Due</th>
-                      <th className="text-left px-5 py-2.5 font-medium">Status</th>
-                      <th className="text-left px-5 py-2.5 font-medium hidden md:table-cell">Discrepancy</th>
-                      <th className="px-4 py-2.5" />
+                      <th scope="col" className="text-left px-5 py-2.5 font-medium hidden md:table-cell">ID</th>
+                      <th scope="col" className="text-left px-5 py-2.5 font-medium">Nozzle</th>
+                      <th scope="col" className="text-left px-5 py-2.5 font-medium hidden md:table-cell">Shift</th>
+                      <th scope="col" className="text-left px-5 py-2.5 font-medium">Operator</th>
+                      <th scope="col" className="text-left px-5 py-2.5 font-medium">Date</th>
+                      <th scope="col" className="text-left px-5 py-2.5 font-medium">Amount Due</th>
+                      <th scope="col" className="text-left px-5 py-2.5 font-medium">Status</th>
+                      <th scope="col" className="text-left px-5 py-2.5 font-medium hidden md:table-cell">Discrepancy</th>
+                      <th scope="col" className="px-4 py-2.5" />
                     </tr>
                   </thead>
                   <tbody>
@@ -431,7 +431,7 @@ function AllShiftsHistory({ pumpId }: { pumpId: number }) {
             onChange={(e) => { setFromDate(e.target.value); setPage(0) }}
             className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <span className="text-slate-400 text-xs">to</span>
+          <span className="text-slate-500 text-xs">to</span>
           <input
             type="date"
             value={toDate}
@@ -447,7 +447,7 @@ function AllShiftsHistory({ pumpId }: { pumpId: number }) {
             Clear
           </button>
         )}
-        <span className="ml-auto text-xs text-slate-400">
+        <span className="ml-auto text-xs text-slate-500">
           {filtered.length} shift{filtered.length !== 1 ? 's' : ''}
           {(fromDate || toDate) ? ' (filtered)' : ''}
         </span>
@@ -458,15 +458,15 @@ function AllShiftsHistory({ pumpId }: { pumpId: number }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 text-xs text-slate-500">
-              <th className="text-left px-5 py-3 font-medium hidden md:table-cell">ID</th>
-              <th className="text-left px-5 py-3 font-medium">Nozzle</th>
-              <th className="text-left px-5 py-3 font-medium hidden md:table-cell">Shift</th>
-              <th className="text-left px-5 py-3 font-medium">Operator</th>
-              <th className="text-left px-5 py-3 font-medium">Date</th>
-              <th className="text-left px-5 py-3 font-medium">Amount Due</th>
-              <th className="text-left px-5 py-3 font-medium">Status</th>
-              <th className="text-left px-5 py-3 font-medium hidden md:table-cell">Discrepancy</th>
-              <th className="px-4 py-3" />
+              <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">ID</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium">Nozzle</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">Shift</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium">Operator</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium">Date</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium">Amount Due</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium">Status</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">Discrepancy</th>
+              <th scope="col" className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
@@ -498,12 +498,12 @@ function AllShiftsHistory({ pumpId }: { pumpId: number }) {
         <div className="flex items-center justify-between px-6 py-3 border-t border-slate-100 bg-slate-50/60">
           <span className="text-xs text-slate-500">
             Page {safePage + 1} of {totalPages}
-            <span className="ml-2 text-slate-400">
+            <span className="ml-2 text-slate-500">
               (showing {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, filtered.length)} of {filtered.length})
             </span>
           </span>
           <div className="flex gap-1">
-            <button
+            <button aria-label="First page"
               onClick={() => setPage(0)}
               disabled={safePage === 0}
               className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30"
@@ -540,7 +540,7 @@ function AllShiftsHistory({ pumpId }: { pumpId: number }) {
             >
               Next
             </button>
-            <button
+            <button aria-label="Last page"
               onClick={() => setPage(totalPages - 1)}
               disabled={safePage === totalPages - 1}
               className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30"
@@ -631,7 +631,7 @@ function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
             onChange={(e) => { setFromDate(e.target.value); setPage(0) }}
             className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <span className="text-slate-400 text-xs">to</span>
+          <span className="text-slate-500 text-xs">to</span>
           <input
             type="date"
             value={toDate}
@@ -661,7 +661,7 @@ function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
             Clear
           </button>
         )}
-        <span className="ml-auto text-xs text-slate-400">{filtered.length} shift{filtered.length !== 1 ? 's' : ''}</span>
+        <span className="ml-auto text-xs text-slate-500">{filtered.length} shift{filtered.length !== 1 ? 's' : ''}</span>
       </div>
 
       {/* Table */}
@@ -669,14 +669,14 @@ function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 text-xs text-slate-500">
-              <th className="text-left px-5 py-3 font-medium hidden md:table-cell">ID</th>
-              <th className="text-left px-5 py-3 font-medium">Date</th>
-              <th className="text-left px-5 py-3 font-medium">Operator</th>
-              <th className="text-left px-5 py-3 font-medium hidden md:table-cell">DU</th>
-              <th className="text-left px-5 py-3 font-medium">Type</th>
-              <th className="text-left px-5 py-3 font-medium">Amount</th>
-              <th className="text-left px-5 py-3 font-medium">Resolution</th>
-              <th className="text-left px-5 py-3 font-medium hidden md:table-cell">Note</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">ID</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium">Date</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium">Operator</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">DU</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium">Type</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium">Amount</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium">Resolution</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">Note</th>
             </tr>
           </thead>
           <tbody>
@@ -687,7 +687,7 @@ function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
             ) : (
               paged.map((shift) => (
                 <tr key={shift.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
-                  <td className="px-5 py-3 text-slate-400 text-xs font-mono hidden md:table-cell">{shift.id}</td>
+                  <td className="px-5 py-3 text-slate-500 text-xs font-mono hidden md:table-cell">{shift.id}</td>
                   <td className="px-5 py-3 text-xs text-slate-600">{shift.shiftDate}</td>
                   <td className="px-5 py-3 text-sm text-slate-700 font-medium">{shift.operatorName}</td>
                   <td className="px-5 py-3 text-xs text-slate-500 hidden md:table-cell">
@@ -739,12 +739,12 @@ function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
         <div className="flex items-center justify-between px-6 py-3 border-t border-slate-100 bg-slate-50/60">
           <span className="text-xs text-slate-500">
             Page {safePage + 1} of {totalPages}
-            <span className="ml-2 text-slate-400">
+            <span className="ml-2 text-slate-500">
               (showing {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, filtered.length)} of {filtered.length})
             </span>
           </span>
           <div className="flex gap-1">
-            <button onClick={() => setPage(0)} disabled={safePage === 0} className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30">«</button>
+            <button aria-label="First page" onClick={() => setPage(0)} disabled={safePage === 0} className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30">«</button>
             <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0} className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30">Prev</button>
             {Array.from({ length: totalPages }, (_, i) => i)
               .filter((i) => Math.abs(i - safePage) <= 2)
@@ -760,7 +760,7 @@ function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
                 </button>
               ))}
             <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage === totalPages - 1} className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30">Next</button>
-            <button onClick={() => setPage(totalPages - 1)} disabled={safePage === totalPages - 1} className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30">»</button>
+            <button aria-label="Last page" onClick={() => setPage(totalPages - 1)} disabled={safePage === totalPages - 1} className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30">»</button>
           </div>
         </div>
       )}
@@ -807,7 +807,7 @@ function ShiftRow({ shift, onClose, onAddCredit }: { shift: Shift; onClose: () =
   return (
     <tr className="border-b border-slate-50 hover:bg-slate-50">
       <td className="px-6 py-3 font-medium text-slate-700">
-        <span className="text-xs text-slate-400 block">
+        <span className="text-xs text-slate-500 block">
           {shift.duName ?? `DU #${shift.duNumber}`}
         </span>
         {shift.nozzles.map((n) => `#${n.nozzleNumber} ${n.fuelType}`).join(', ')}
@@ -868,9 +868,9 @@ function HistoryRow({ shift }: { shift: Shift }) {
     <>
       {/* ── Main data row ─────────────────────────────────────────────────── */}
       <tr className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
-        <td className="px-5 py-3 text-slate-400 text-xs font-mono hidden md:table-cell">{shift.id}</td>
+        <td className="px-5 py-3 text-slate-500 text-xs font-mono hidden md:table-cell">{shift.id}</td>
         <td className="px-5 py-3">
-          <span className="text-xs text-slate-400 block">
+          <span className="text-xs text-slate-500 block">
             {shift.duName ?? `DU #${shift.duNumber}`}
           </span>
           <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md text-xs">
@@ -887,7 +887,7 @@ function HistoryRow({ shift }: { shift: Shift }) {
           )}
         </td>
         <td className="px-5 py-3 text-sm text-slate-700 font-medium">{shift.operatorName}</td>
-        <td className="px-5 py-3 text-xs text-slate-400">{shift.shiftDate}</td>
+        <td className="px-5 py-3 text-xs text-slate-500">{shift.shiftDate}</td>
         <td className="px-5 py-3 text-sm font-semibold text-slate-800">
           {fmtAmt(shift.totalAmountDue)}
         </td>
@@ -930,16 +930,15 @@ function HistoryRow({ shift }: { shift: Shift }) {
               <span className="text-xs text-orange-600 font-medium">Owner approval needed</span>
             )}
             {shift.discrepancyResolution && (
-              <span className="text-xs text-slate-400">{shift.discrepancyResolution.replace(/_/g, ' ')}</span>
+              <span className="text-xs text-slate-500">{shift.discrepancyResolution.replace(/_/g, ' ')}</span>
             )}
             {isClosed && (
-              <button
+              <IconButton
                 onClick={() => setHandoverOpen(true)}
-                title="Print handover report"
-                className="text-slate-400 hover:text-slate-600 transition-colors p-1"
-              >
-                <Printer size={14} strokeWidth={2} />
-              </button>
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+ label="Print handover report"
+ icon={<Printer size={14} strokeWidth={2} />}
+ />
             )}
           </div>
         </td>
@@ -966,12 +965,12 @@ function HistoryRow({ shift }: { shift: Shift }) {
                   {digitalTotal > 0 ? fmtAmt(digitalTotal) : '—'}
                 </span>
                 {(shift.upiCollected ?? 0) > 0 && (
-                  <span className="text-slate-400 bg-blue-50 px-1.5 py-0.5 rounded">
+                  <span className="text-slate-500 bg-blue-50 px-1.5 py-0.5 rounded">
                     UPI {fmtAmt(shift.upiCollected)}
                   </span>
                 )}
                 {(shift.cardCollected ?? 0) > 0 && (
-                  <span className="text-slate-400 bg-blue-50 px-1.5 py-0.5 rounded">
+                  <span className="text-slate-500 bg-blue-50 px-1.5 py-0.5 rounded">
                     Card {fmtAmt(shift.cardCollected)}
                   </span>
                 )}
@@ -1045,11 +1044,10 @@ function CreditEntriesModal({
   creditTotal: number
   onClose: () => void
 }) {
-  useEscapeKey(onClose)
   return (
     <tr>
       <td colSpan={8} className="p-0">
-        <ModalPortal>
+        <ModalPortal onClose={onClose}>
         <div
           className="ui-modal-backdrop"
           onClick={onClose}
@@ -1065,7 +1063,7 @@ function CreditEntriesModal({
                   Shift #{shift.id} · Nozzle {shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', ')} · {shift.operatorName} · {shift.shiftDate}
                 </p>
               </div>
-              <button
+              <button aria-label="Close"
                 type="button"
                 onClick={onClose}
                 className="ui-btn ui-btn-ghost ui-modal-close"
@@ -1109,7 +1107,7 @@ function CreditEntriesModal({
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
                       {entry.billNo ? (
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-slate-500">
                           Bill: <span className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-600">{entry.billNo}</span>
                         </span>
                       ) : (
@@ -1152,7 +1150,6 @@ const RESOLUTION_OPTIONS = [
 ]
 
 function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onClose: () => void }) {
-  useEscapeKey(onClose)
   const qc = useQueryClient()
   const [action, setAction] = useState<ResolveDiscrepancyRequest['resolutionAction']>('PENDING_INVESTIGATION')
   const [note,   setNote]   = useState('')
@@ -1182,7 +1179,7 @@ function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onClose: ()
   return (
     <tr>
       <td colSpan={8} className="p-0">
-        <ModalPortal>
+        <ModalPortal onClose={onClose}>
         <div className="ui-modal-backdrop" onClick={onClose}>
           <div className="ui-modal-panel w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
 
@@ -1194,29 +1191,31 @@ function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onClose: ()
                   Shift #{shift.id} · {discType} ₹{discAmt?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </p>
               </div>
-              <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+              <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
             </div>
 
             <div className="ui-modal-body space-y-4">
               <div>
-                <label className="ui-label">Resolution Action</label>
-                <SearchableSelect
+                <span className="ui-label">Resolution Action</span>
+                <SearchableSelect label="Resolution Action"
                   value={action}
                   onChange={(v) => setAction(v as ResolveDiscrepancyRequest['resolutionAction'])}
                   options={RESOLUTION_OPTIONS}
                 />
               </div>
               <div>
-                <label className="ui-label">
+                <label className="block">
+                  <span className="ui-label">
                   Note {action === 'WAIVED' && <span className="text-red-500">* required</span>}
+                </span>
+                  <textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    rows={3}
+                    placeholder="Enter justification or notes…"
+                    className="resize-none text-sm"
+                  />
                 </label>
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  rows={3}
-                  placeholder="Enter justification or notes…"
-                  className="resize-none text-sm"
-                />
               </div>
               {error && <p className="ui-error-text">{error}</p>}
               <div className="ui-modal-footer -mx-6 -mb-6">
@@ -1248,7 +1247,6 @@ const FUEL_LABELS_MAP: Record<string, string> = {
 }
 
 function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => void }) {
-  useEscapeKey(onClose)
   const qc = useQueryClient()
   const navigate = useNavigate()
   const { data: creditClients = [] } = useQuery({
@@ -1327,7 +1325,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
   }
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel w-full max-w-md overflow-hidden">
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
@@ -1337,7 +1335,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
               Nozzle {shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', ')} · {shift.operatorName}
             </p>
           </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
         </div>
 
         <div className="ui-modal-body space-y-3">
@@ -1354,7 +1352,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
                   <div key={entry.id} className={`flex items-center gap-2 px-3 py-2 ${entry.voidStatus === 'VOIDED' ? 'opacity-40' : ''}`}>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-slate-700 truncate">{entry.clientName}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-slate-500">
                         ₹{entry.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         {entry.fuelType && ` · ${entry.fuelType}`}
                         {entry.voidStatus === 'VOIDED' && ' · VOIDED'}
@@ -1407,24 +1405,26 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
 
           {/* Client — root/parent accounts only */}
           <div className="ui-search-shell">
-            <label className="ui-label">
+            <label className="block">
+              <span className="ui-label">
               Client <span className="text-red-500">*</span>
+            </span>
+              <input
+                type="text"
+                value={clientSearch}
+                onChange={(e) => {
+                  setClientSearch(e.target.value)
+                  setClientName(e.target.value)
+                  setClientId(null)
+                  setSubAccountId(null)
+                  setShowDropdown(true)
+                }}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+                placeholder="Search client name…"
+                className="text-sm"
+              />
             </label>
-            <input
-              type="text"
-              value={clientSearch}
-              onChange={(e) => {
-                setClientSearch(e.target.value)
-                setClientName(e.target.value)
-                setClientId(null)
-                setSubAccountId(null)
-                setShowDropdown(true)
-              }}
-              onFocus={() => setShowDropdown(true)}
-              onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-              placeholder="Search client name…"
-              className="text-sm"
-            />
             {showDropdown && rootClients.length > 0 && (
               <div className="ui-card absolute top-full left-0 right-0 z-50 mt-0.5 max-h-36 overflow-y-auto p-1">
                 {filtered.length === 0 ? (
@@ -1433,7 +1433,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
                     onMouseDown={() => navigate('/dashboard/credit?tab=clients')}
                     className="w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-blue-50 flex items-center justify-between gap-2"
                   >
-                    <span className="text-slate-400 text-xs truncate">
+                    <span className="text-slate-500 text-xs truncate">
                       No match{clientSearch.trim() ? ` for "${clientSearch.trim()}"` : ''}
                     </span>
                     <span className="text-xs text-blue-600 font-medium shrink-0">+ Add client →</span>
@@ -1456,7 +1456,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
                             has sub-accounts
                           </span>
                         )}
-                        {c.phone && <span className="text-xs text-slate-400">{maskPhone(c.phone)}</span>}
+                        {c.phone && <span className="text-xs text-slate-500">{maskPhone(c.phone)}</span>}
                       </div>
                     </button>
                   ))
@@ -1468,10 +1468,10 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
           {/* Sub-account picker — shown when selected parent has children */}
           {subAccounts.length > 0 && (
             <div>
-              <label className="ui-label">
-                Sub-account <span className="text-slate-400 font-normal">(optional)</span>
-              </label>
-              <SearchableSelect
+              <span className="ui-label">
+                Sub-account <span className="text-slate-500 font-normal">(optional)</span>
+              </span>
+              <SearchableSelect label="Sub-account"
                 value={subAccountId != null ? subAccountId.toString() : ''}
                 onChange={v => setSubAccountId(v === '' ? null : Number(v))}
                 placeholder={`— Bill to parent (${clientName}) —`}
@@ -1484,10 +1484,10 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
           {/* Fuel + Amount/Liters */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="ui-label">
+              <span className="ui-label">
                 Fuel <span className="text-red-500">*</span>
-              </label>
-              <SearchableSelect
+              </span>
+              <SearchableSelect label="Fuel"
                 value={fuelType}
                 onChange={v => {
                   setFuelType(v)
@@ -1502,14 +1502,16 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="ui-label mb-0">
+                <span className="ui-label mb-0">
                   {inputMode === 'amount' ? 'Amount (₹)' : 'Liters'}{' '}
                   <span className="text-red-500">*</span>
-                </label>
+                </span>
                 <div className="flex rounded border border-slate-200 overflow-hidden text-xs">
                   <button type="button"
                     onClick={() => { setInputMode('amount'); setLiters('') }}
-                    className={`px-2 py-0.5 font-medium transition-colors ${inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-400 hover:bg-slate-50'}`}>
+                    aria-pressed={inputMode === 'amount'}
+                    aria-label="Enter amount in rupees"
+                    className={`px-2 py-0.5 font-medium transition-colors ${inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
                     ₹
                   </button>
                   <button type="button"
@@ -1520,7 +1522,9 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
                       setLiters(initLiters)
                     }}
                     disabled={!priceForFuelType(fuelType)}
-                    className={`px-2 py-0.5 font-medium transition-colors ${inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-400 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
+                    aria-pressed={inputMode === 'liters'}
+                    aria-label="Enter litres"
+                    className={`px-2 py-0.5 font-medium transition-colors ${inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
                     L
                   </button>
                 </div>
@@ -1536,7 +1540,7 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
                     const unit = fuelType === 'CNG' ? 'kg' : 'L'
                     const litersCalc = price && amount ? (parseFloat(amount) / price) : null
                     return litersCalc ? (
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-slate-500 mt-1">
                         {litersCalc.toFixed(2)} {unit} × ₹{price} = ₹{parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     ) : null
@@ -1570,16 +1574,20 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
           {/* Bill No + Description */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="ui-label">Bill No</label>
-              <input type="text" value={billNo} onChange={(e) => setBillNo(e.target.value)}
-                placeholder="e.g. B-101"
-                className="text-sm" />
+              <label className="block">
+                <span className="ui-label">Bill No</span>
+                <input type="text" value={billNo} onChange={(e) => setBillNo(e.target.value)}
+                  placeholder="e.g. B-101"
+                  className="text-sm" />
+              </label>
             </div>
             <div>
-              <label className="ui-label">Description</label>
-              <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}
-                placeholder="e.g. given to driver"
-                className="text-sm" />
+              <label className="block">
+                <span className="ui-label">Description</span>
+                <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}
+                  placeholder="e.g. given to driver"
+                  className="text-sm" />
+              </label>
             </div>
           </div>
 
@@ -1607,7 +1615,6 @@ function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => 
 // ── Handover Report Modal ─────────────────────────────────────────────────────
 
 function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () => void }) {
-  useEscapeKey(onClose)
   const fmtAmt = (v: number | null | undefined) =>
     v != null ? `₹${Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
 
@@ -1619,7 +1626,7 @@ function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () => void }
   }, [])
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
       <div className="ui-modal-backdrop" onClick={onClose}>
       <div className="ui-modal-panel max-w-xl w-full" onClick={(e) => e.stopPropagation()}>
 
@@ -1644,7 +1651,7 @@ function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () => void }
             >
               <Printer size={13} strokeWidth={2} /> Print
             </button>
-            <button onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+            <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
           </div>
         </div>
 
@@ -1660,19 +1667,19 @@ function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () => void }
           {/* Shift info */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Operator</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">Operator</p>
               <p className="font-semibold text-slate-800">{shift.operatorName}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Date</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">Date</p>
               <p className="font-semibold text-slate-800">{shift.shiftDate}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">DU</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">DU</p>
               <p className="font-semibold text-slate-800">{shift.duName ?? `DU #${shift.duNumber}`}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Shift Window</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">Shift Window</p>
               <p className="font-semibold text-slate-800">{shift.shiftWindow ?? '—'}</p>
             </div>
           </div>
@@ -1684,11 +1691,11 @@ function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () => void }
               <table className="w-full text-xs border border-slate-200 rounded-lg overflow-hidden">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500">
-                    <th className="px-3 py-2 text-left">Nozzle</th>
-                    <th className="px-3 py-2 text-right">Opening</th>
-                    <th className="px-3 py-2 text-right">Closing</th>
-                    <th className="px-3 py-2 text-right">Litres Sold</th>
-                    <th className="px-3 py-2 text-right">Rate</th>
+                    <th scope="col" className="px-3 py-2 text-left">Nozzle</th>
+                    <th scope="col" className="px-3 py-2 text-right">Opening</th>
+                    <th scope="col" className="px-3 py-2 text-right">Closing</th>
+                    <th scope="col" className="px-3 py-2 text-right">Litres Sold</th>
+                    <th scope="col" className="px-3 py-2 text-right">Rate</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">

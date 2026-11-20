@@ -29,6 +29,8 @@ import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { ModalPortal } from '../../components/ModalPortal'
 import { ConfirmButton } from '../../components/ConfirmButton'
+import { IconButton } from '../../components/IconButton'
+import { onActivateKey } from '../../utils/keyboard'
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -103,7 +105,7 @@ export default function SetupPage() {
       )}
 
       {!isLoading && pumps.length === 0 && !createOpen && (
-        <div className="ui-card text-center text-sm text-slate-400 py-6">
+        <div className="ui-card text-center text-sm text-slate-500 py-6">
           No pumps yet. Create one above to get started.
         </div>
       )}
@@ -155,7 +157,7 @@ function PumpManagementPanel({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-bold text-white text-base">{pump.name}</h2>
-            <p className="text-slate-400 text-xs mt-0.5">{pump.address}</p>
+            <p className="text-slate-500 text-xs mt-0.5">{pump.address}</p>
           </div>
           <div className="flex gap-2">
             <span className="bg-white/10 text-slate-300 text-xs px-2.5 py-1 rounded-full">
@@ -373,37 +375,43 @@ function CreatePumpForm({ onCreated }: { onCreated: (p: PumpSummary) => void }) 
     <form onSubmit={submit} className="space-y-3 pt-2">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="ui-label">Pump Name</label>
-          <input
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Main Road Pump"
-            className="text-sm"
-          />
+          <label className="block">
+            <span className="ui-label">Pump Name</span>
+            <input
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Main Road Pump"
+              className="text-sm"
+            />
+          </label>
         </div>
         <div>
-          <label className="ui-label">Max DUs</label>
-          <input
-            required
-            type="number"
-            min="1"
-            max="20"
-            value={maxDUs}
-            onChange={(e) => setMaxDUs(e.target.value)}
-            className="text-sm"
-          />
+          <label className="block">
+            <span className="ui-label">Max DUs</span>
+            <input
+              required
+              type="number"
+              min="1"
+              max="20"
+              value={maxDUs}
+              onChange={(e) => setMaxDUs(e.target.value)}
+              className="text-sm"
+            />
+          </label>
         </div>
       </div>
       <div>
-        <label className="ui-label">Address</label>
-        <input
-          required
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="e.g. 123, MG Road, Bangalore"
-          className="text-sm"
-        />
+        <label className="block">
+          <span className="ui-label">Address</span>
+          <input
+            required
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="e.g. 123, MG Road, Bangalore"
+            className="text-sm"
+          />
+        </label>
       </div>
       {error && <p className="ui-error-text">{error}</p>}
       <button
@@ -668,7 +676,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-500">
         Each Dispensary Unit (DU) is a physical MPD machine. Add one or more nozzles to each DU — each nozzle carries exactly one fuel type with its own meter counter.
         CNG nozzles cannot share a DU with other fuel types.
       </p>
@@ -685,10 +693,14 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                 <div
                   className={`flex items-center justify-between px-4 py-3 bg-slate-50 border-slate-100 cursor-pointer select-none ${isExpanded ? 'rounded-t-xl border-b' : 'rounded-xl'}`}
                   onClick={() => toggleDU(du.id)}
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isExpanded}
+                  onKeyDown={onActivateKey(() => toggleDU(du.id))}
                 >
                   <div className="flex items-center gap-2">
                     <ChevronRight size={14} strokeWidth={2} className={`transition-transform duration-200 text-slate-400 ${isExpanded ? 'rotate-90' : ''}`} />
-                    <span className="text-xs font-bold text-slate-400">DU #{du.duNumber}</span>
+                    <span className="text-xs font-bold text-slate-500">DU #{du.duNumber}</span>
                     <span className="text-sm font-bold text-slate-700">{du.name}</span>
                     {isDUInactive && (
                       <span className="text-xs px-2 py-0.5 rounded-full font-medium border bg-orange-50 text-orange-700 border-orange-200">
@@ -696,7 +708,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-slate-400">{du.nozzles.filter((n) => n.status === 'ACTIVE').length} active nozzle(s)</span>
+                  <span className="text-xs text-slate-500">{du.nozzles.filter((n) => n.status === 'ACTIVE').length} active nozzle(s)</span>
                 </div>
 
                 {/* Nozzle rows + inline add form — only when expanded */}
@@ -719,7 +731,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                               </span>
                             )}
                             {!isInactive && (
-                              <span className="text-xs text-slate-400">
+                              <span className="text-xs text-slate-500">
                                 {FUEL_LABEL[nozzle.fuelType]}: {nozzle.lastReading}
                               </span>
                             )}
@@ -743,14 +755,14 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                               </button>
                             ) : (
                               <div className="relative">
-                                <button
-                                  type="button"
+                                <IconButton
                                   onClick={() => setOpenMenu(openMenu === nozzle.id ? null : nozzle.id)}
-                                  className="ui-btn ui-btn-ghost min-h-0 p-1.5 text-base leading-none text-slate-400 hover:text-slate-600"
-                                  title="Nozzle actions"
-                                >
-                                  ⋮
-                                </button>
+                                  aria-haspopup="menu"
+                                  aria-expanded={openMenu === nozzle.id}
+                                  className="ui-btn ui-btn-ghost text-base leading-none text-slate-400 hover:text-slate-600"
+ label="Nozzle actions"
+ icon={'⋮'}
+ />
                                 {openMenu === nozzle.id && (
                                   <>
                                     <div className="fixed inset-0 z-[5]" onClick={() => setOpenMenu(null)} />
@@ -775,7 +787,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                                           <span className="mt-0.5 shrink-0 leading-none">{icon}</span>
                                           <span className="min-w-0">
                                             <span className="block text-xs font-semibold leading-5">{label}</span>
-                                            <span className="block text-[11px] leading-4 text-slate-400">{description}</span>
+                                            <span className="block text-[11px] leading-4 text-slate-500">{description}</span>
                                           </span>
                                         </button>
                                       ))}
@@ -838,7 +850,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                                 )
                                 return (
                                   <>
-                                    <SearchableSelect
+                                    <SearchableSelect label="Map to tank"
                                       value={tankSelection != null ? tankSelection.toString() : ''}
                                       onChange={(v) => setTankSelection(v === '' ? null : Number(v))}
                                       placeholder="— unmap —"
@@ -915,18 +927,20 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                               </div>
                               {adjustType === 'CUSTOM_READING' && (
                                 <div className="ui-reading-editor__section">
-                                  <label className="ui-label">
+                                  <label className="block">
+                                    <span className="ui-label">
                                     New reading <span className="ui-help mt-0">Current: {nozzle.lastReading} {FUEL_UNIT[nozzle.fuelType]}</span>
+                                  </span>
+                                    <input
+                                      type="number"
+                                      step="0.001"
+                                      min="0"
+                                      value={adjustReading}
+                                      onChange={(e) => setAdjustReading(e.target.value)}
+                                      placeholder="New reading"
+                                      className="text-sm"
+                                    />
                                   </label>
-                                  <input
-                                    type="number"
-                                    step="0.001"
-                                    min="0"
-                                    value={adjustReading}
-                                    onChange={(e) => setAdjustReading(e.target.value)}
-                                    placeholder="New reading"
-                                    className="text-sm"
-                                  />
                                 </div>
                               )}
                               {adjustType === 'RESET' && (
@@ -939,14 +953,16 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                                 </div>
                               )}
                               <div className="ui-reading-editor__section">
-                                <label className="ui-label">Reason <span className="text-red-500">*</span></label>
-                                <input
-                                  type="text"
-                                  value={adjustReason}
-                                  onChange={(e) => setAdjustReason(e.target.value)}
-                                  placeholder="e.g. Meter replaced after malfunction"
-                                  className="text-sm"
-                                />
+                                <label className="block">
+                                  <span className="ui-label">Reason <span className="text-red-500">*</span></span>
+                                  <input
+                                    type="text"
+                                    value={adjustReason}
+                                    onChange={(e) => setAdjustReason(e.target.value)}
+                                    placeholder="e.g. Meter replaced after malfunction"
+                                    className="text-sm"
+                                  />
+                                </label>
                                 <p className="ui-help">This note is stored with the adjustment log for audit history.</p>
                               </div>
                               {adjustError && <p className="ui-error-text">{adjustError}</p>}
@@ -991,16 +1007,18 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                                   </div>
                                 </div>
                                 <div className="ui-dip-editor__section">
-                                  <label className="ui-label">Litres Removed</label>
-                                  <input
-                                    type="number"
-                                    step="0.001"
-                                    min="0.001"
-                                    value={dipLitres}
-                                    onChange={(e) => setDipLitres(e.target.value)}
-                                    placeholder="e.g. 12.500"
-                                    className="text-xs min-h-10"
-                                  />
+                                  <label className="block">
+                                    <span className="ui-label">Litres Removed</span>
+                                    <input
+                                      type="number"
+                                      step="0.001"
+                                      min="0.001"
+                                      value={dipLitres}
+                                      onChange={(e) => setDipLitres(e.target.value)}
+                                      placeholder="e.g. 12.500"
+                                      className="text-xs min-h-10"
+                                    />
+                                  </label>
                                   {estimatedLoss !== null && (
                                     <p className="ui-dip-editor__loss">
                                       Estimated loss: ₹{estimatedLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -1010,25 +1028,29 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                                 </div>
                                 <div className="ui-dip-editor__grid">
                                   <div className="ui-dip-editor__section">
-                                    <label className="ui-label">
-                                      Date <span className="text-slate-400">(leave blank for today)</span>
+                                    <label className="block">
+                                      <span className="ui-label">
+                                      Date <span className="text-slate-500">(leave blank for today)</span>
+                                    </span>
+                                      <input
+                                        type="date"
+                                        value={dipDate}
+                                        onChange={(e) => setDipDate(e.target.value)}
+                                        className="text-xs min-h-10"
+                                      />
                                     </label>
-                                    <input
-                                      type="date"
-                                      value={dipDate}
-                                      onChange={(e) => setDipDate(e.target.value)}
-                                      className="text-xs min-h-10"
-                                    />
                                   </div>
                                   <div className="ui-dip-editor__section">
-                                    <label className="ui-label">Reason <span className="text-red-500">*</span></label>
-                                    <input
-                                      type="text"
-                                      value={dipReason}
-                                      onChange={(e) => setDipReason(e.target.value)}
-                                      placeholder="e.g. Water contamination draining"
-                                      className="text-xs min-h-10"
-                                    />
+                                    <label className="block">
+                                      <span className="ui-label">Reason <span className="text-red-500">*</span></span>
+                                      <input
+                                        type="text"
+                                        value={dipReason}
+                                        onChange={(e) => setDipReason(e.target.value)}
+                                        placeholder="e.g. Water contamination draining"
+                                        className="text-xs min-h-10"
+                                      />
+                                    </label>
                                   </div>
                                 </div>
                                 {dipError && <p className="ui-error-text">{dipError}</p>}
@@ -1062,7 +1084,7 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                       setInlineNozzleNumber(String(du.nozzles.length + 1))
                       setInlineFuelType(''); setInlineReading(''); setInlineError(null)
                     }}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-medium text-slate-400 hover:text-blue-600 hover:bg-blue-50 border-t border-dashed border-slate-200 transition-colors rounded-b-xl"
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-medium text-slate-500 hover:text-blue-600 hover:bg-blue-50 border-t border-dashed border-slate-200 transition-colors rounded-b-xl"
                   >
                     <span className="text-base leading-none">+</span>
                     Add Nozzle
@@ -1074,18 +1096,20 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                   <div className="px-4 py-3 border-t border-blue-100 bg-blue-50/40 rounded-b-xl">
                     <form onSubmit={(e) => submitInlineNozzle(e, du)} className="flex items-end gap-2 flex-wrap">
                       <div className="w-20">
-                        <label className="ui-label mb-1 text-[10px]">Nozzle #</label>
-                        <input
-                          type="number" min="1" max="9"
-                          value={inlineNozzleNumber}
-                          onChange={(e) => setInlineNozzleNumber(e.target.value)}
-                          className="text-xs w-full"
-                          placeholder="1"
-                        />
+                        <label className="block">
+                          <span className="ui-label mb-1 text-[10px]">Nozzle #</span>
+                          <input
+                            type="number" min="1" max="9"
+                            value={inlineNozzleNumber}
+                            onChange={(e) => setInlineNozzleNumber(e.target.value)}
+                            className="text-xs w-full"
+                            placeholder="1"
+                          />
+                        </label>
                       </div>
                       <div className="flex-1 min-w-[160px]">
-                        <label className="ui-label mb-1 text-[10px]">Fuel Type</label>
-                        <SearchableSelect
+                        <span className="ui-label mb-1 text-[10px]">Fuel Type</span>
+                        <SearchableSelect label="Fuel Type"
                           value={inlineFuelType}
                           onChange={(v) => setInlineFuelType(v as FuelType)}
                           placeholder="— select —"
@@ -1094,14 +1118,16 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                         />
                       </div>
                       <div className="w-32">
-                        <label className="ui-label mb-1 text-[10px]">Start Reading</label>
-                        <input
-                          type="number" step="0.001" min="0"
-                          value={inlineReading}
-                          onChange={(e) => setInlineReading(e.target.value)}
-                          placeholder="0"
-                          className="text-xs w-full"
-                        />
+                        <label className="block">
+                          <span className="ui-label mb-1 text-[10px]">Start Reading</span>
+                          <input
+                            type="number" step="0.001" min="0"
+                            value={inlineReading}
+                            onChange={(e) => setInlineReading(e.target.value)}
+                            placeholder="0"
+                            className="text-xs w-full"
+                          />
+                        </label>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -1148,15 +1174,17 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
           ) : (
             <div className="flex items-end gap-3 flex-wrap">
               <div>
-                <label className="ui-label">New maximum DU count</label>
-                <input
-                  type="number"
-                  min={pump.maxDuCount + 1}
-                  max="20"
-                  value={newMaxCount}
-                  onChange={(e) => setNewMaxCount(e.target.value)}
-                  className="w-24 text-sm"
-                />
+                <label className="block">
+                  <span className="ui-label">New maximum DU count</span>
+                  <input
+                    type="number"
+                    min={pump.maxDuCount + 1}
+                    max="20"
+                    value={newMaxCount}
+                    onChange={(e) => setNewMaxCount(e.target.value)}
+                    className="w-24 text-sm"
+                  />
+                </label>
               </div>
               <button
                 type="button"
@@ -1190,21 +1218,23 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
           </div>
 
           <div className="ui-nozzle-form__section">
-            <label className="ui-label">DU Name <span className="text-red-500">*</span></label>
-            <input
-              required
-              type="text"
-              value={duName}
-              onChange={(e) => setDuName(e.target.value)}
-              placeholder="e.g. DU-1, Machine A"
-              className="text-sm"
-            />
+            <label className="block">
+              <span className="ui-label">DU Name <span className="text-red-500">*</span></span>
+              <input
+                required
+                type="text"
+                value={duName}
+                onChange={(e) => setDuName(e.target.value)}
+                placeholder="e.g. DU-1, Machine A"
+                className="text-sm"
+              />
+            </label>
           </div>
 
           <div className="ui-nozzle-form__section">
             <div className="ui-nozzle-form__section-head">
               <div>
-                <label className="ui-label mb-1">Nozzles</label>
+                <span className="ui-label mb-1">Nozzles</span>
                 <p className="ui-help mt-0">Each nozzle has a unique number and exactly one fuel type.</p>
               </div>
               <button
@@ -1220,20 +1250,22 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
               {duNozzles.map((row, idx) => (
                 <div key={idx} className="flex items-end gap-2 flex-wrap">
                   <div className="w-20">
-                    <label className="ui-label mb-1 text-[10px]">Nozzle #</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="20"
-                      value={row.nozzleNumber}
-                      onChange={(e) => setDuNozzles((prev) => prev.map((r, i) => i === idx ? { ...r, nozzleNumber: e.target.value } : r))}
-                      className="text-xs w-full"
-                      placeholder="1"
-                    />
+                    <label className="block">
+                      <span className="ui-label mb-1 text-[10px]">Nozzle #</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={row.nozzleNumber}
+                        onChange={(e) => setDuNozzles((prev) => prev.map((r, i) => i === idx ? { ...r, nozzleNumber: e.target.value } : r))}
+                        className="text-xs w-full"
+                        placeholder="1"
+                      />
+                    </label>
                   </div>
                   <div className="flex-1">
-                    <label className="ui-label mb-1 text-[10px]">Fuel Type</label>
-                    <SearchableSelect
+                    <span className="ui-label mb-1 text-[10px]">Fuel Type</span>
+                    <SearchableSelect label="Fuel Type"
                       value={row.fuelType}
                       onChange={(v) => setDuNozzles((prev) => prev.map((r, i) => i === idx ? { ...r, fuelType: v as FuelType } : r))}
                       placeholder="— select —"
@@ -1242,25 +1274,26 @@ function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: () => vo
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="ui-label mb-1 text-[10px]">Start Reading</label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      min="0"
-                      value={row.initialReading}
-                      onChange={(e) => setDuNozzles((prev) => prev.map((r, i) => i === idx ? { ...r, initialReading: e.target.value } : r))}
-                      placeholder="0"
-                      className="text-xs w-full"
-                    />
+                    <label className="block">
+                      <span className="ui-label mb-1 text-[10px]">Start Reading</span>
+                      <input
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        value={row.initialReading}
+                        onChange={(e) => setDuNozzles((prev) => prev.map((r, i) => i === idx ? { ...r, initialReading: e.target.value } : r))}
+                        placeholder="0"
+                        className="text-xs w-full"
+                      />
+                    </label>
                   </div>
                   {duNozzles.length > 1 && (
-                    <button
-                      type="button"
+                    <IconButton
                       onClick={() => setDuNozzles((prev) => prev.filter((_, i) => i !== idx))}
-                      className="text-red-500 hover:text-red-700 p-0.5 pb-1"
-                    >
-                      <X size={12} strokeWidth={2} />
-                    </button>
+                      className="text-red-500 hover:text-red-700"
+ label="Remove nozzle"
+ icon={<X size={12} strokeWidth={2} />}
+ />
                   )}
                 </div>
               ))}
@@ -1386,7 +1419,7 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
   const pricesStale = !pricesConfirmedToday && currentPrices.length > 0 && currentPrices.some((p) => istDateOf(p.effectiveFrom) < todayStr)
 
   if (pump.dus.length === 0) {
-    return <p className="text-xs text-slate-400">Add at least one DU with a nozzle first (Nozzles section above).</p>
+    return <p className="text-xs text-slate-500">Add at least one DU with a nozzle first (Nozzles section above).</p>
   }
 
   return (
@@ -1441,17 +1474,19 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
         <div className="flex flex-wrap gap-3 items-end">
           {availableFuelTypes.map((ft) => (
             <div key={ft}>
-              <label className="ui-label">
+              <label className="block">
+                <span className="ui-label">
                 {FUEL_LABEL[ft]} (₹/{FUEL_UNIT[ft]})
                 {getCurrentPrice(ft) != null && (
-                  <span className="text-slate-400 ml-1">current: ₹{getCurrentPrice(ft)}</span>
+                  <span className="text-slate-500 ml-1">current: ₹{getCurrentPrice(ft)}</span>
                 )}
+              </span>
+                <input type="number" step="0.01" min="0.01"
+                  value={prices[ft] ?? ''}
+                  onChange={(e) => setPrices((prev) => ({ ...prev, [ft]: e.target.value }))}
+                  className="w-32 text-sm"
+                  placeholder="e.g. 96.72" />
               </label>
-              <input type="number" step="0.01" min="0.01"
-                value={prices[ft] ?? ''}
-                onChange={(e) => setPrices((prev) => ({ ...prev, [ft]: e.target.value }))}
-                className="w-32 text-sm"
-                placeholder="e.g. 96.72" />
             </div>
           ))}
           <button type="submit" disabled={mutation.isPending}
@@ -1471,13 +1506,16 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
             <p className="text-sm font-semibold text-amber-800">Open Shifts Detected</p>
             <p className="text-xs text-amber-700 mt-0.5">{openShiftsWarning}</p>
           </div>
-          <button onClick={() => setOpenShiftsWarning(null)} className="text-amber-400 hover:text-amber-600 text-lg leading-none shrink-0">×</button>
+          <IconButton onClick={() => setOpenShiftsWarning(null)} className="text-amber-400 hover:text-amber-600 text-lg leading-none shrink-0"
+ label="Dismiss warning"
+ icon={'×'}
+ />
         </div>
       )}
 
       {/* 15% deviation confirmation dialog */}
       {deviationWarning && (
-        <ModalPortal>
+        <ModalPortal onClose={() => setDeviationWarning(null)}>
         <div className="ui-modal-backdrop">
           <div className="ui-modal-panel w-full max-w-sm">
             <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
@@ -1490,7 +1528,7 @@ function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; current
                   <p className="ui-modal-subtitle">{deviationWarning.message}</p>
                 </div>
               </div>
-              <button onClick={() => setDeviationWarning(null)} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+              <button type="button" aria-label="Close" onClick={() => setDeviationWarning(null)} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
             </div>
             <div className="ui-modal-body space-y-4">
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs space-y-1">
@@ -1754,7 +1792,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                     <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                       <div className="min-w-0">
                         <p className="truncate text-[15px] font-semibold text-slate-800">{member.fullName}</p>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400">
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
                           <span>{member.phoneNumber}</span>
                           {member.employeeId ? <span>{member.employeeId}</span> : null}
                           {member.gender ? (
@@ -1781,14 +1819,14 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                   {isOwnerOrAdmin && (
                     <div className="md:ml-auto">
                       <div className="relative">
-                        <button
-                          type="button"
+                        <IconButton
                           onClick={() => setOpenStaffMenu(openStaffMenu === member.id ? null : member.id)}
+                          aria-haspopup="menu"
+                          aria-expanded={openStaffMenu === member.id}
                           className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-lg leading-none text-slate-400 transition-colors hover:border-slate-300 hover:bg-white hover:text-slate-600"
-                          title="Staff actions"
-                        >
-                          ⋮
-                        </button>
+ label="Staff actions"
+ icon={'⋮'}
+ />
                         {openStaffMenu === member.id && (
                           <>
                             <div
@@ -1808,7 +1846,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                                 <span className="mt-0.5 shrink-0 leading-none"><Pencil size={14} strokeWidth={2} /></span>
                                 <span className="min-w-0">
                                   <span className="block text-xs font-semibold leading-5">Edit Details</span>
-                                  <span className="block text-[11px] leading-4 text-slate-400">Update name, phone number, or role</span>
+                                  <span className="block text-[11px] leading-4 text-slate-500">Update name, phone number, or role</span>
                                 </span>
                               </button>
                               {isOwner && isOperator && (
@@ -1822,7 +1860,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                                   <span className="mt-0.5 shrink-0 leading-none"><Settings size={14} strokeWidth={2} /></span>
                                   <span className="min-w-0">
                                     <span className="block text-xs font-semibold leading-5">Shift Preferences</span>
-                                    <span className="block text-[11px] leading-4 text-slate-400">Set preferred shift and weekly day off</span>
+                                    <span className="block text-[11px] leading-4 text-slate-500">Set preferred shift and weekly day off</span>
                                   </span>
                                 </button>
                               )}
@@ -1837,7 +1875,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                                   <span className="mt-0.5 shrink-0 leading-none"><CalendarDays size={14} strokeWidth={2} /></span>
                                   <span className="min-w-0">
                                     <span className="block text-xs font-semibold leading-5">Manage Leave</span>
-                                    <span className="block text-[11px] leading-4 text-slate-400">Add or remove leave dates for this staff member</span>
+                                    <span className="block text-[11px] leading-4 text-slate-500">Add or remove leave dates for this staff member</span>
                                   </span>
                                 </button>
                               )}
@@ -1858,7 +1896,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                                         <span className="ml-1 text-red-400">!</span>
                                       ) : null}
                                     </span>
-                                    <span className="block text-[11px] leading-4 text-slate-400">Configure hourly or daily pay rates</span>
+                                    <span className="block text-[11px] leading-4 text-slate-500">Configure hourly or daily pay rates</span>
                                   </span>
                                 </button>
                               )}
@@ -1877,7 +1915,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                                   <span className="mt-0.5 shrink-0 leading-none">{isInactive ? <RotateCcw size={14} strokeWidth={2} /> : <CircleOff size={14} strokeWidth={2} />}</span>
                                   <span className="min-w-0">
                                     <span className="block text-xs font-semibold leading-5">{isInactive ? 'Activate Staff' : 'Deactivate Staff'}</span>
-                                    <span className="block text-[11px] leading-4 text-slate-400">
+                                    <span className="block text-[11px] leading-4 text-slate-500">
                                       {isInactive ? 'Allow this staff member to work again' : 'Temporarily remove this staff member from active use'}
                                     </span>
                                   </span>
@@ -1901,7 +1939,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-slate-800">Edit Staff Details</p>
-                        <p className="text-[11px] text-slate-400">Changes are saved when you click Save Changes</p>
+                        <p className="text-[11px] text-slate-500">Changes are saved when you click Save Changes</p>
                       </div>
                     </div>
 
@@ -1909,33 +1947,37 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                       {/* Row 1: Name + Phone */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="ui-label">Full Name</label>
-                          <input
-                            type="text"
-                            value={editFullName}
-                            onChange={e => setEditFullName(e.target.value)}
-                            placeholder="Full name"
-                            className="text-sm"
-                          />
+                          <label className="block">
+                            <span className="ui-label">Full Name</span>
+                            <input
+                              type="text"
+                              value={editFullName}
+                              onChange={e => setEditFullName(e.target.value)}
+                              placeholder="Full name"
+                              className="text-sm"
+                            />
+                          </label>
                         </div>
                         <div>
-                          <label className="ui-label">Phone Number</label>
-                          <input
-                            type="text"
-                            value={editPhone}
-                            onChange={e => setEditPhone(e.target.value)}
-                            placeholder="10-digit number"
-                            maxLength={10}
-                            className="text-sm"
-                          />
+                          <label className="block">
+                            <span className="ui-label">Phone Number</span>
+                            <input
+                              type="text"
+                              value={editPhone}
+                              onChange={e => setEditPhone(e.target.value)}
+                              placeholder="10-digit number"
+                              maxLength={10}
+                              className="text-sm"
+                            />
+                          </label>
                         </div>
                       </div>
 
                       {/* Row 2: Role + Gender */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="ui-label">Role</label>
-                          <SearchableSelect
+                          <span className="ui-label">Role</span>
+                          <SearchableSelect label="Role"
                             value={editRole}
                             onChange={v => {
                               setEditRole(v)
@@ -1952,8 +1994,8 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                           />
                         </div>
                         <div>
-                          <label className="ui-label">Gender</label>
-                          <SearchableSelect
+                          <span className="ui-label">Gender</span>
+                          <SearchableSelect label="Gender"
                             value={editGender}
                             onChange={v => {
                               setEditGender(v as UserGender | '')
@@ -2028,8 +2070,8 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                     <div className="max-w-sm space-y-3">
                       <p className="text-xs font-semibold text-slate-700">Shift preferences for {member.fullName}</p>
                       <div>
-                        <label className="ui-label">Preferred shift</label>
-                        <SearchableSelect
+                        <span className="ui-label">Preferred shift</span>
+                        <SearchableSelect label="Preferred shift"
                           value={isPrefOpen
                             ? (prefShiftDefId !== null ? String(prefShiftDefId) : '')
                             : (openPref?.preferredShiftDefinitionId !== null && openPref?.preferredShiftDefinitionId !== undefined ? String(openPref.preferredShiftDefinitionId) : '')}
@@ -2040,8 +2082,8 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                         />
                       </div>
                       <div>
-                        <label className="ui-label">Preferred day off</label>
-                        <SearchableSelect
+                        <span className="ui-label">Preferred day off</span>
+                        <SearchableSelect label="Preferred day off"
                           value={isPrefOpen ? prefDayOff : (openPref?.preferredDayOff ?? '')}
                           onChange={v => setPrefDayOff(v as PreferredDayOff | '')}
                           placeholder="No preference"
@@ -2076,29 +2118,29 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                         <>
                           <div>
                             <p className="text-xs font-semibold text-slate-700">Hourly pay rates for {member.fullName}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">
+                            <p className="text-xs text-slate-500 mt-0.5">
                               Shift 1 (12 AM–8 AM) = night rate · Shift 2 &amp; 3 (8 AM–12 AM) = standard rate
                             </p>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="ui-label">
+                              <span className="ui-label">
                                 Night rate (₹/hr) <span className="text-red-500">*</span>
-                              </label>
+                              </span>
                               <div className="relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">₹</span>
-                                <input type="number" min="1" step="0.01" value={rateShift1}
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">₹</span>
+                                <input aria-label="Night rate (₹/hr)" type="number" min="1" step="0.01" value={rateShift1}
                                   onChange={e => setRateShift1(e.target.value)} placeholder="e.g. 60"
                                   className="w-full pl-5 pr-2 text-xs min-h-10" />
                               </div>
                             </div>
                             <div>
-                              <label className="ui-label">
+                              <span className="ui-label">
                                 Day rate (₹/hr) <span className="text-red-500">*</span>
-                              </label>
+                              </span>
                               <div className="relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">₹</span>
-                                <input type="number" min="1" step="0.01" value={rateStandard}
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">₹</span>
+                                <input aria-label="Day rate (₹/hr)" type="number" min="1" step="0.01" value={rateStandard}
                                   onChange={e => setRateStandard(e.target.value)} placeholder="e.g. 45"
                                   className="w-full pl-5 pr-2 text-xs min-h-10" />
                               </div>
@@ -2120,17 +2162,17 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                         <>
                           <div>
                             <p className="text-xs font-semibold text-slate-700">Daily pay rate for {member.fullName}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">
+                            <p className="text-xs text-slate-500 mt-0.5">
                               Paid per working day · leave days are deducted automatically
                             </p>
                           </div>
                           <div>
-                            <label className="ui-label">
+                            <span className="ui-label">
                               Daily rate (₹/day) <span className="text-red-500">*</span>
-                            </label>
+                            </span>
                             <div className="relative max-w-[160px]">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">₹</span>
-                              <input type="number" min="1" step="0.01" value={rateDaily}
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">₹</span>
+                              <input aria-label="Daily rate (₹/day)" type="number" min="1" step="0.01" value={rateDaily}
                                 onChange={e => setRateDaily(e.target.value)} placeholder="e.g. 800"
                                 className="w-full pl-5 pr-2 text-xs min-h-10" />
                             </div>
@@ -2158,7 +2200,7 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                     <div className="max-w-sm space-y-3">
                       <p className="text-xs font-semibold text-slate-700">Leave dates for {member.fullName}</p>
                       {openLeaves.length === 0 ? (
-                        <p className="text-xs text-slate-400">No leave dates recorded.</p>
+                        <p className="text-xs text-slate-500">No leave dates recorded.</p>
                       ) : (
                         <div className="space-y-1">
                           {openLeaves.map(lv => (
@@ -2166,16 +2208,14 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                               <span className="text-xs font-medium text-slate-700">
                                 {formatIstDate(lv.leaveDate)}
                               </span>
-                              {lv.reason && <span className="text-xs text-slate-400">— {lv.reason}</span>}
-                              <button
-                                type="button"
+                              {lv.reason && <span className="text-xs text-slate-500">— {lv.reason}</span>}
+                              <IconButton
                                 onClick={() => removeLeaveMutation.mutate({ leaveId: lv.id })}
                                 disabled={removeLeaveMutation.isPending}
-                                className="ui-btn ui-btn-ghost min-h-0 ml-auto p-1 text-slate-300 hover:text-red-500 disabled:opacity-40"
-                                title="Remove leave"
-                              >
-                                <X size={12} strokeWidth={2} />
-                              </button>
+                                className="ui-btn ui-btn-ghost ml-auto text-slate-300 hover:text-red-500 disabled:opacity-40"
+ label="Remove leave"
+ icon={<X size={12} strokeWidth={2} />}
+ />
                             </div>
                           ))}
                         </div>
@@ -2236,30 +2276,36 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
               <div className="space-y-4">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="ui-label">Full Name</label>
-                    <input required value={form.fullName} onChange={(e) => set('fullName', e.target.value)}
-                      placeholder="e.g. Raju Kumar"
-                      className="text-sm" />
+                    <label className="block">
+                      <span className="ui-label">Full Name</span>
+                      <input required value={form.fullName} onChange={(e) => set('fullName', e.target.value)}
+                        placeholder="e.g. Raju Kumar"
+                        className="text-sm" />
+                    </label>
                   </div>
                   <div>
-                    <label className="ui-label">Phone Number</label>
-                    <input required value={form.phoneNumber} onChange={(e) => set('phoneNumber', e.target.value)}
-                      placeholder="10-digit number" maxLength={10}
-                      className="text-sm" />
+                    <label className="block">
+                      <span className="ui-label">Phone Number</span>
+                      <input required value={form.phoneNumber} onChange={(e) => set('phoneNumber', e.target.value)}
+                        placeholder="10-digit number" maxLength={10}
+                        className="text-sm" />
+                    </label>
                   </div>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="ui-label">Password</label>
-                    <PasswordInput required value={form.password} onChange={(e) => set('password', e.target.value)}
-                      placeholder="Min 6 characters"
-                      className="text-sm" />
+                    <label className="block">
+                      <span className="ui-label">Password</span>
+                      <PasswordInput required value={form.password} onChange={(e) => set('password', e.target.value)}
+                        placeholder="Min 6 characters"
+                        className="text-sm" />
+                    </label>
                     <p className="ui-help">Use a temporary password the staff member can reset later.</p>
                   </div>
                   <div>
-                    <label className="ui-label">Gender</label>
-                    <SearchableSelect
+                    <span className="ui-label">Gender</span>
+                    <SearchableSelect label="Gender"
                       value={form.gender}
                       onChange={v => setForm(prev => ({
                         ...prev,
@@ -2284,8 +2330,8 @@ function StaffContent({ pump }: { pump: PumpSummary }) {
                 </div>
 
                 <div>
-                  <label className="ui-label">Role</label>
-                  <SearchableSelect
+                  <span className="ui-label">Role</span>
+                  <SearchableSelect label="Role"
                     value={form.role}
                     onChange={v => setForm(prev => ({
                       ...prev,
@@ -2446,16 +2492,16 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-500">
         Add each underground tank manually. Multiple tanks per fuel type are allowed.
         Set capacity so that stock level bars and low-stock alerts work correctly.
       </p>
 
       {/* Existing tanks */}
       {isLoading ? (
-        <p className="text-xs text-slate-400">Loading tanks...</p>
+        <p className="text-xs text-slate-500">Loading tanks...</p>
       ) : tanks.length === 0 ? (
-        <p className="text-xs text-slate-400">No tanks yet. Add one below.</p>
+        <p className="text-xs text-slate-500">No tanks yet. Add one below.</p>
       ) : (
         <div className="space-y-2">
           {statusError && (
@@ -2472,11 +2518,11 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
                 <div className="flex items-center justify-between px-3 py-2.5">
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
-                      isInactive ? 'bg-slate-100 text-slate-400 border-slate-200' : (FUEL_COLOR[tank.fuelType] ?? 'bg-slate-100 text-slate-600 border-slate-200')
+                      isInactive ? 'bg-slate-100 text-slate-500 border-slate-200' : (FUEL_COLOR[tank.fuelType] ?? 'bg-slate-100 text-slate-600 border-slate-200')
                     }`}>
                       {FUEL_LABEL[tank.fuelType] ?? tank.fuelType}
                     </span>
-                    <span className={`text-sm font-semibold ${isInactive ? 'text-slate-400' : 'text-slate-700'}`}>
+                    <span className={`text-sm font-semibold ${isInactive ? 'text-slate-500' : 'text-slate-700'}`}>
                       {tank.tankIdentifier}
                     </span>
                     {isInactive && (
@@ -2484,7 +2530,7 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
                         Disabled
                       </span>
                     )}
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-slate-500">
                       Capacity: <span className="text-slate-500 font-medium">
                         {Number(tank.capacity).toLocaleString('en-IN', { minimumFractionDigits: 0 })} {FUEL_UNIT[tank.fuelType] ?? 'L'}
                       </span>
@@ -2557,20 +2603,24 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
                     className="px-3 py-3 border-t border-slate-100 bg-slate-50 space-y-2">
                     <div className="flex gap-3 items-end flex-wrap">
                       <div>
-                        <label className="ui-label">
+                        <label className="block">
+                          <span className="ui-label">
                           Capacity ({FUEL_UNIT[tank.fuelType] ?? 'L'})
+                        </span>
+                          <input type="number" step="0.01" min="1" value={editCapacity}
+                            onChange={(e) => setEditCapacity(e.target.value)}
+                            className="w-36 text-xs min-h-10"
+                            placeholder="e.g. 25000" />
                         </label>
-                        <input type="number" step="0.01" min="1" value={editCapacity}
-                          onChange={(e) => setEditCapacity(e.target.value)}
-                          className="w-36 text-xs min-h-10"
-                          placeholder="e.g. 25000" />
                       </div>
                       <div>
-                        <label className="ui-label">Tank Name/ID</label>
-                        <input type="text" value={editIdentifier}
-                          onChange={(e) => setEditIdentifier(e.target.value)}
-                          className="w-36 text-xs min-h-10"
-                          placeholder="e.g. Petrol Tank 1" />
+                        <label className="block">
+                          <span className="ui-label">Tank Name/ID</span>
+                          <input type="text" value={editIdentifier}
+                            onChange={(e) => setEditIdentifier(e.target.value)}
+                            className="w-36 text-xs min-h-10"
+                            placeholder="e.g. Petrol Tank 1" />
+                        </label>
                       </div>
                       <button type="submit" disabled={updateMutation.isPending}
                         className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs">
@@ -2594,14 +2644,16 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
         <form onSubmit={submitCreate} className="space-y-3">
           <div className="flex gap-3 items-end flex-wrap">
             <div>
-              <label className="ui-label">Tank Name/ID <span className="text-red-500">*</span></label>
-              <input required type="text" value={createIdentifier}
-                onChange={(e) => setCreateIdentifier(e.target.value)}
-                placeholder="e.g. Petrol Tank 1"
-                className="w-36 text-sm" />
+              <label className="block">
+                <span className="ui-label">Tank Name/ID <span className="text-red-500">*</span></span>
+                <input required type="text" value={createIdentifier}
+                  onChange={(e) => setCreateIdentifier(e.target.value)}
+                  placeholder="e.g. Petrol Tank 1"
+                  className="w-36 text-sm" />
+              </label>
             </div>
             <div className="relative" ref={fuelDropdownRef}>
-              <label className="ui-label">Fuel Type <span className="text-red-500">*</span></label>
+              <span className="ui-label">Fuel Type <span className="text-red-500">*</span></span>
               <button
                 type="button"
                 onClick={() => setFuelDropdownOpen(o => !o)}
@@ -2637,22 +2689,26 @@ function TanksContent({ pump }: { pump: PumpSummary }) {
               )}
             </div>
             <div>
-              <label className="ui-label">
+              <label className="block">
+                <span className="ui-label">
                 Capacity ({FUEL_UNIT[createFuelType]}) <span className="text-red-500">*</span>
+              </span>
+                <input required type="number" step="0.01" min="1" value={createCapacity}
+                  onChange={(e) => setCreateCapacity(e.target.value)}
+                  placeholder="e.g. 25000"
+                  className="w-32 text-sm" />
               </label>
-              <input required type="number" step="0.01" min="1" value={createCapacity}
-                onChange={(e) => setCreateCapacity(e.target.value)}
-                placeholder="e.g. 25000"
-                className="w-32 text-sm" />
             </div>
             <div>
-              <label className="ui-label">
-                DIP Tolerance ({FUEL_UNIT[createFuelType]}) <span className="text-slate-400">(optional)</span>
+              <label className="block">
+                <span className="ui-label">
+                DIP Tolerance ({FUEL_UNIT[createFuelType]}) <span className="text-slate-500">(optional)</span>
+              </span>
+                <input type="number" step="0.01" min="0" value={createDipTol}
+                  onChange={(e) => setCreateDipTol(e.target.value)}
+                  placeholder="e.g. 50"
+                  className="w-28 text-sm" />
               </label>
-              <input type="number" step="0.01" min="0" value={createDipTol}
-                onChange={(e) => setCreateDipTol(e.target.value)}
-                placeholder="e.g. 50"
-                className="w-28 text-sm" />
             </div>
             <button type="submit" disabled={createMutation.isPending}
               className="ui-btn ui-btn-primary">
@@ -2891,14 +2947,14 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
     createMutation.mutate(reqs)
   }
 
-  if (isLoading) return <p className="text-xs text-slate-400 py-2">Loading…</p>
+  if (isLoading) return <p className="text-xs text-slate-500 py-2">Loading…</p>
 
   return (
     <div className="space-y-4">
 
       {/* Existing groups */}
       {sortedGroupKeys.length === 0 && !showForm && (
-        <p className="text-xs text-slate-400">No shift definitions yet. Add your first schedule below.</p>
+        <p className="text-xs text-slate-500">No shift definitions yet. Add your first schedule below.</p>
       )}
 
       {sortedGroupKeys.map(groupKey => {
@@ -2911,8 +2967,14 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
             <div
               className="ui-accordion-trigger cursor-pointer select-none"
               onClick={() => toggleCollapsed(groupKey)}
-            >
-              <div className="flex items-center gap-2">
+              >
+                <div
+                  className="flex items-center gap-2"
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={!isCollapsed}
+                  onKeyDown={onActivateKey(() => toggleCollapsed(groupKey))}
+                >
                 {isCollapsed
                   ? <ChevronRight size={14} strokeWidth={2} className="text-slate-400" />
                   : <ChevronDown size={14} strokeWidth={2} className="text-slate-400" />
@@ -2985,15 +3047,17 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                 </label>
                 {!disableFromToday && (
                   <div>
-                    <label className="ui-label">Last active date</label>
-                    <input
-                      type="date"
-                      value={disablePickedDate}
-                      min={todayStr}
-                      onChange={e => setDisablePickedDate(e.target.value)}
-                      className="text-sm"
-                    />
-                    <p className="text-xs text-slate-400 mt-1">The schedule will remain active until this date.</p>
+                    <label className="block">
+                      <span className="ui-label">Last active date</span>
+                      <input
+                        type="date"
+                        value={disablePickedDate}
+                        min={todayStr}
+                        onChange={e => setDisablePickedDate(e.target.value)}
+                        className="text-sm"
+                      />
+                    </label>
+                    <p className="text-xs text-slate-500 mt-1">The schedule will remain active until this date.</p>
                   </div>
                 )}
                 <div className="flex gap-2">
@@ -3034,7 +3098,10 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
       {actionError && (
         <div className="ui-alert ui-alert-danger flex items-start gap-2">
           <span className="text-red-600 text-xs flex-1">{actionError}</span>
-          <button onClick={() => setActionError(null)} className="ui-btn ui-btn-ghost min-h-0 p-0 text-sm leading-none text-red-400 hover:text-red-600">&times;</button>
+          <IconButton onClick={() => setActionError(null)} className="ui-btn ui-btn-ghost text-sm leading-none text-red-400 hover:text-red-600"
+ label="Dismiss error"
+ icon={'×'}
+ />
         </div>
       )}
 
@@ -3046,17 +3113,19 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
           {/* Date range */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="ui-label">Start Date <span className="text-red-400">*</span></label>
-              <input
-                type="date"
-                value={effectiveFrom}
-                onChange={e => setEffectiveFrom(e.target.value)}
-                className="text-sm"
-              />
+              <label className="block">
+                <span className="ui-label">Start Date <span className="text-red-400">*</span></span>
+                <input
+                  type="date"
+                  value={effectiveFrom}
+                  onChange={e => setEffectiveFrom(e.target.value)}
+                  className="text-sm"
+                />
+              </label>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <label className="ui-label mb-0">End Date</label>
+                <span className="ui-label mb-0">End Date</span>
                 <label className="flex items-center gap-1 text-xs text-slate-500 cursor-pointer">
                   <input
                     type="checkbox"
@@ -3076,11 +3145,11 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                 className="text-sm disabled:bg-slate-50 disabled:text-slate-400"
               />
               {!hasEndDate && (
-                <p className="text-xs text-slate-400 mt-1">Open-ended — no expiry date</p>
+                <p className="text-xs text-slate-500 mt-1">Open-ended — no expiry date</p>
               )}
             </div>
           </div>
-          <p className="text-xs text-slate-400 -mt-2">
+          <p className="text-xs text-slate-500 -mt-2">
             Any previously open schedule will be automatically closed on the day before the start date.
             You cannot create two schedules with overlapping date ranges.
           </p>
@@ -3104,22 +3173,22 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                   onChange={e => updateRow(idx, { name: e.target.value })}
                   className="min-w-0 text-sm md:max-w-[12rem]"
                 />
-                <SearchableSelect
+                <SearchableSelect label="Start time"
                   value={row.startTime}
                   onChange={v => updateRow(idx, { startTime: v })}
                   options={startOpts}
                   size="sm"
                   className="min-w-0"
                 />
-                <span className="text-xs text-slate-400">→</span>
-                <SearchableSelect
+                <span className="text-xs text-slate-500">→</span>
+                <SearchableSelect label="End time"
                   value={row.endTime}
                   onChange={v => updateRow(idx, { endTime: v })}
                   options={endOpts}
                   size="sm"
                   className="min-w-0"
                 />
-                <SearchableSelect
+                <SearchableSelect label="Display order"
                   value={String(row.sortOrder)}
                   onChange={v => updateRow(idx, { sortOrder: Number(v) })}
                   options={SORT_ORDER_OPTS}
@@ -3136,7 +3205,10 @@ function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                   />
                   <label htmlFor={`night-${idx}`} className="text-xs text-slate-600 select-none">Night</label>
                   {rows.length > 1 && (
-                    <button onClick={() => removeRow(idx)} className="ui-btn ui-btn-ghost min-h-0 ml-1 p-0 text-base leading-none text-red-400 hover:text-red-600">&times;</button>
+                    <IconButton onClick={() => removeRow(idx)} className="ui-btn ui-btn-ghost ml-1 text-base leading-none text-red-400 hover:text-red-600"
+ label="Remove row"
+ icon={'×'}
+ />
                   )}
                 </div>
               </div>
@@ -3227,16 +3299,18 @@ function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; onUpdated
       </div>
 
       <div className="max-w-xs">
-        <label className="ui-label">Discrepancy Escalation Threshold (₹)</label>
-        <input
-          type="number"
-          min="0"
-          step="1"
-          value={threshold}
-          onChange={(e) => setThreshold(e.target.value)}
-          placeholder="e.g. 500 — blank to disable"
-          className="text-sm"
-        />
+        <label className="block">
+          <span className="ui-label">Discrepancy Escalation Threshold (₹)</span>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={threshold}
+            onChange={(e) => setThreshold(e.target.value)}
+            placeholder="e.g. 500 — blank to disable"
+            className="text-sm"
+          />
+        </label>
         {error && <p className="ui-error-text mt-1">{error}</p>}
       </div>
 
@@ -3331,9 +3405,9 @@ function TankersContent({ pumpId }: { pumpId: number }) {
       </p>
 
       {isLoading ? (
-        <p className="text-xs text-slate-400">Loading…</p>
+        <p className="text-xs text-slate-500">Loading…</p>
       ) : tankers.length === 0 && !showAdd ? (
-        <p className="text-xs text-slate-400">No tankers configured yet.</p>
+        <p className="text-xs text-slate-500">No tankers configured yet.</p>
       ) : (
         <div className="space-y-2">
           {tankers.map(t => (
@@ -3380,7 +3454,7 @@ function TankersContent({ pumpId }: { pumpId: number }) {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       {t.capacityLitres.toLocaleString('en-IN')} L capacity
                     </p>
                   </div>
@@ -3395,13 +3469,12 @@ function TankersContent({ pumpId }: { pumpId: number }) {
                         Set Default
                       </button>
                     )}
-                    <button
+                    <IconButton
                       onClick={() => startEdit(t)}
-                      className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors rounded"
-                      title="Edit tanker"
-                    >
-                      <Pencil size={13} />
-                    </button>
+                      className="text-slate-400 hover:text-blue-600 transition-colors rounded"
+ label="Edit tanker"
+ icon={<Pencil size={13} />}
+ />
                     <ConfirmButton
                       onConfirm={() => deactivateMutation.mutate(t.id)}
                       disabled={deactivateMutation.isPending}
@@ -3460,39 +3533,45 @@ function TankerForm({
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="ui-label">Tanker Name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="e.g. Company Tanker 1"
-            className="text-sm"
-          />
+          <label className="block">
+            <span className="ui-label">Tanker Name</span>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. Company Tanker 1"
+              className="text-sm"
+            />
+          </label>
         </div>
         <div className="space-y-1">
-          <label className="ui-label">Capacity (Litres)</label>
-          <input
-            type="number"
-            min="100"
-            step="100"
-            value={capacity}
-            onChange={e => setCapacity(e.target.value)}
-            placeholder="e.g. 12000"
-            className="text-sm"
-          />
+          <label className="block">
+            <span className="ui-label">Capacity (Litres)</span>
+            <input
+              type="number"
+              min="100"
+              step="100"
+              value={capacity}
+              onChange={e => setCapacity(e.target.value)}
+              placeholder="e.g. 12000"
+              className="text-sm"
+            />
+          </label>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="ui-label">Type</label>
-          <select
-            value={tankerType}
-            onChange={e => setTankerType(e.target.value as 'OWN' | 'COMPANY')}
-            className="ui-input text-sm"
-          >
-            <option value="COMPANY">Company Tanker</option>
-            <option value="OWN">Own Tanker</option>
-          </select>
+          <label className="block">
+            <span className="ui-label">Type</span>
+            <select
+              value={tankerType}
+              onChange={e => setTankerType(e.target.value as 'OWN' | 'COMPANY')}
+              className="ui-input text-sm"
+            >
+              <option value="COMPANY">Company Tanker</option>
+              <option value="OWN">Own Tanker</option>
+            </select>
+          </label>
         </div>
         <div className="flex items-end pb-2">
           <label className="flex items-center gap-2 cursor-pointer select-none">

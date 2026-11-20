@@ -202,7 +202,7 @@ export default function ExpensesPage() {
 
         <div className="ui-form-shell__grid">
           <div>
-            <label id="expense-category-label" className="ui-label">Category</label>
+            <span id="expense-category-label" className="ui-label">Category</span>
             <SearchableSelect
               value={form.category}
               onChange={v => setForm(f => ({ ...f, category: v as ExpenseCategory }))}
@@ -276,7 +276,7 @@ export default function ExpensesPage() {
       </form></Reveal>}
 
       {reviewOpen && (
-        <ModalPortal>
+        <ModalPortal onClose={() => setReviewOpen(false)}>
         <div className="ui-modal-backdrop" onClick={() => setReviewOpen(false)}>
           <div className="ui-modal-panel w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
@@ -284,7 +284,7 @@ export default function ExpensesPage() {
                 <h2 className="ui-modal-title">Review Expense</h2>
                 <p className="ui-modal-subtitle">Verify the expense details before saving the record.</p>
               </div>
-              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+              <button type="button" aria-label="Close" onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
             </div>
             <div className="ui-modal-body space-y-4">
               {formError && <div className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
@@ -338,7 +338,7 @@ export default function ExpensesPage() {
           <p className="ui-toolbar-title">All Expenses</p>
           <div className="ui-toolbar-actions">
             <div className="w-52 max-w-full">
-            <SearchableSelect
+            <SearchableSelect label="Filter by category"
               value={categoryFilter}
               onChange={v => { setCategoryFilter(v as any); setPage(0) }}
               options={[
@@ -350,7 +350,7 @@ export default function ExpensesPage() {
           </div>
 
             <div className="w-52 max-w-full">
-            <SearchableSelect
+            <SearchableSelect label="Filter by status"
               value={statusFilter}
               onChange={v => { setStatusFilter(v as any); setPage(0) }}
               options={[
@@ -421,11 +421,11 @@ export default function ExpensesPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400">{fmtDate(e.expenseDate)}</p>
+                    <p className="text-xs text-slate-500">{fmtDate(e.expenseDate)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={`text-sm font-semibold ${e.approvalStatus === 'REJECTED' ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                  <span className={`text-sm font-semibold ${e.approvalStatus === 'REJECTED' ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
                     {formatCurrency(e.amount)}
                   </span>
                   {/* Submit — shown on DRAFT expenses to the creator or OWNER/ADMIN */}

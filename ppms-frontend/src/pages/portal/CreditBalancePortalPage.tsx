@@ -57,33 +57,39 @@ export default function CreditBalancePortalPage() {
         <div className="px-6 py-5">
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className="ui-label">Pump ID</label>
-              <input
-                type="number"
-                min="1"
-                value={pumpId}
-                onChange={e => setPumpId(e.target.value)}
-                className="text-sm"
-                placeholder="e.g. 1"
-                required
-              />
-              <p className="text-xs text-slate-400 mt-0.5">Ask the pump manager for the Pump ID</p>
+              <label className="block">
+                <span className="ui-label">Pump ID</span>
+                <input
+                  type="number"
+                  min="1"
+                  value={pumpId}
+                  onChange={e => setPumpId(e.target.value)}
+                  className="text-sm"
+                  placeholder="e.g. 1"
+                  required
+                />
+              </label>
+              <p className="text-xs text-slate-500 mt-0.5">Ask the pump manager for the Pump ID</p>
             </div>
 
             <div>
-              <label className="ui-label">Registered Phone Number</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                className="text-sm"
-                placeholder="10-digit mobile number"
-                required
-              />
+              <label className="block">
+                <span className="ui-label">Registered Phone Number</span>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  className="text-sm"
+                  placeholder="10-digit mobile number"
+                  required
+                />
+              </label>
             </div>
 
             {error && (
-              <div className="ui-alert ui-alert-danger text-sm">{error}</div>
+              <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
 
             <button
@@ -125,7 +131,7 @@ export default function CreditBalancePortalPage() {
 
         {/* Footer */}
         <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 text-center">
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             Powered by PPMS — Petrol Pump Management System
           </p>
         </div>

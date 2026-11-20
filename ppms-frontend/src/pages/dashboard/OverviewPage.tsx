@@ -19,7 +19,7 @@ import { useCountUp } from '../../hooks/useCountUp'
 import type { Shift } from '../../types/shift'
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend,
+  Tooltip, ResponsiveContainer,
 } from 'recharts'
 
 const MAX_CHART_DAYS = 30
@@ -321,6 +321,8 @@ export default function OverviewPage() {
                 <button
                   key={d}
                   onClick={() => setChartDays(d)}
+                  aria-pressed={chartDays === d}
+                  aria-label={`Last ${d} days`}
                   className={`ui-chart-day-btn ${chartDays === d ? 'ui-chart-day-btn--active' : ''}`}
                 >
                   {d}d
@@ -329,6 +331,7 @@ export default function OverviewPage() {
             </div>
           </div>
           {hasChartData ? (
+            <>
             <div
               className="ui-chart-wrap"
               role="img"
@@ -381,21 +384,6 @@ export default function OverviewPage() {
                     }}
                     labelStyle={{ color: '#64748b', marginBottom: '0.25rem' }}
                   />
-                  <Legend
-                    iconType="circle"
-                    iconSize={8}
-                    wrapperStyle={{ fontSize: '0.7rem', paddingTop: '4px', cursor: 'pointer' }}
-                    formatter={(v) => {
-                      const label = v === 'revenue' ? 'Revenue' : (FUEL_CHART_LABELS[v] ?? v)
-                      const hidden = hiddenSeries.has(v)
-                      return (
-                        <span style={{ color: hidden ? '#cbd5e1' : undefined, textDecoration: hidden ? 'line-through' : undefined }}>
-                          {label}
-                        </span>
-                      )
-                    }}
-                    onClick={(e) => toggleSeries(e.dataKey as string)}
-                  />
                   <Area
                     yAxisId="left"
                     type="monotone"
@@ -423,6 +411,25 @@ export default function OverviewPage() {
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
+            <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 px-4 pb-3 text-xs" aria-label="Chart series">
+              {['revenue', ...chartFuelTypes].map(series => {
+                const hidden = hiddenSeries.has(series)
+                const color = series === 'revenue' ? '#3b82f6' : (FUEL_CHART_COLORS[series] ?? '#94a3b8')
+                return (
+                  <button
+                    key={series}
+                    type="button"
+                    aria-pressed={!hidden}
+                    onClick={() => toggleSeries(series)}
+                    className={`inline-flex min-h-8 items-center gap-1.5 rounded-md px-1.5 ${hidden ? 'text-slate-500 line-through' : 'text-slate-700'}`}
+                  >
+                    <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: hidden ? '#cbd5e1' : color }} />
+                    {series === 'revenue' ? 'Revenue' : (FUEL_CHART_LABELS[series] ?? series)}
+                  </button>
+                )
+              })}
+            </div>
+            </>
           ) : (
             <p className="ui-empty py-10 text-xs">No closed shift revenue in the last {chartDays} days.</p>
           )}
@@ -457,7 +464,7 @@ export default function OverviewPage() {
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-semibold text-slate-700">{tank.tankIdentifier}</span>
-                      <span className="text-xs text-slate-400">{tank.fuelType}</span>
+                      <span className="text-xs text-slate-500">{tank.fuelType}</span>
                       {tank.lowStock && (
                         <span className="text-xs font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full leading-none">Low</span>
                       )}
@@ -479,7 +486,7 @@ export default function OverviewPage() {
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     {tank.currentStock.toLocaleString('en-IN', { minimumFractionDigits: 0 })} L remaining
                   </p>
                 </div>
@@ -597,14 +604,14 @@ function ShiftStatusRow({ shift }: { shift: Shift }) {
           <span className="text-sm font-semibold text-slate-800">
             {shift.duName ?? `DU ${shift.duNumber}`}
           </span>
-          {fuels && <span className="text-xs text-slate-400">{fuels}</span>}
+          {fuels && <span className="text-xs text-slate-500">{fuels}</span>}
         </div>
         <p className="text-xs text-slate-500 mt-0.5">
           {shift.operatorName} · {shift.shiftWindow}
         </p>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-xs text-slate-400">{timeOpen(shift.actualStartTime)}</span>
+        <span className="text-xs text-slate-500">{timeOpen(shift.actualStartTime)}</span>
         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
           isOverdue
             ? 'bg-red-100 text-red-700'

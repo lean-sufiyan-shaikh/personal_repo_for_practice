@@ -102,7 +102,7 @@ export default function ReportsPage() {
           <p className="hidden print:block text-xs text-slate-500 mt-0.5">
             {pumpName && <><span className="font-medium">{pumpName}</span> · </>}
             {userName && <>Printed by: <span className="font-medium">{userName}</span> · </>}
-            <span className="text-slate-400">{fmtDateTime(new Date().toISOString())}</span>
+            <span className="text-slate-500">{fmtDateTime(new Date().toISOString())}</span>
           </p>
         </div>
         <div className="ui-section-meta print:hidden">
@@ -234,19 +234,19 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
             {showRevBreakdown && (
               <div className="grid grid-cols-4 gap-3 mt-3">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Cash</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cash</p>
                   <p className="text-sm font-semibold text-slate-700 mt-0.5">{fmtAmt(data.totalCashRevenue)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">UPI</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">UPI</p>
                   <p className="text-sm font-semibold text-slate-700 mt-0.5">{fmtAmt(data.totalUpiRevenue)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Card</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Card</p>
                   <p className="text-sm font-semibold text-slate-700 mt-0.5">{fmtAmt(data.totalCardRevenue)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Credit Sales</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Credit Sales</p>
                   <p className="text-sm font-semibold text-orange-600 mt-0.5">{fmtAmt(data.totalCreditRevenue)}</p>
                 </div>
               </div>
@@ -258,12 +258,12 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-xs text-slate-500">
-                  <th className="w-6 px-2 py-2.5" />
-                  <th className="text-left px-4 py-2.5 font-medium">Fuel Type</th>
-                  <th className="text-right px-4 py-2.5 font-medium">Revenue</th>
-                  <th className="text-right px-4 py-2.5 font-medium">COGS</th>
-                  <th className="text-right px-4 py-2.5 font-medium">Gross Profit</th>
-                  <th className="text-right px-4 py-2.5 font-medium">₹/L Margin</th>
+                  <th scope="col" className="w-6 px-2 py-2.5" />
+                  <th scope="col" className="text-left px-4 py-2.5 font-medium">Fuel Type</th>
+                  <th scope="col" className="text-right px-4 py-2.5 font-medium">Revenue</th>
+                  <th scope="col" className="text-right px-4 py-2.5 font-medium">COGS</th>
+                  <th scope="col" className="text-right px-4 py-2.5 font-medium">Gross Profit</th>
+                  <th scope="col" className="text-right px-4 py-2.5 font-medium">₹/L Margin</th>
                 </tr>
               </thead>
               <tbody>
@@ -274,10 +274,18 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
                       className="border-t border-slate-100 cursor-pointer hover:bg-slate-50/60"
                       onClick={() => toggleFuelRow(row.fuelType)}
                     >
-                      <td className="px-2 py-2.5 text-slate-400">
-                        {expandedFuelRows.has(row.fuelType)
-                          ? <ChevronUp size={13} strokeWidth={2} />
-                          : <ChevronDown size={13} strokeWidth={2} />}
+                      <td className="px-2 py-2.5 text-slate-500">
+                        <button
+                          type="button"
+                          aria-expanded={expandedFuelRows.has(row.fuelType)}
+                          aria-label={`Show shift details for ${row.fuelType.replace(/_/g, ' ')}`}
+                          onClick={(e) => { e.stopPropagation(); toggleFuelRow(row.fuelType) }}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md"
+                        >
+                          {expandedFuelRows.has(row.fuelType)
+                            ? <ChevronUp size={13} strokeWidth={2} aria-hidden="true" />
+                            : <ChevronDown size={13} strokeWidth={2} aria-hidden="true" />}
+                        </button>
                       </td>
                       <td className="px-4 py-2.5 font-medium text-slate-700">{row.fuelType.replace(/_/g, ' ')}</td>
                       <td className="px-4 py-2.5 text-right text-slate-700 tabular-nums">{fmtAmt(row.revenue)}</td>
@@ -295,12 +303,12 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
                         <td colSpan={5} className="px-4 pb-3 pt-1">
                           <table className="w-full text-xs border-collapse">
                             <thead>
-                              <tr className="text-slate-400 font-semibold">
-                                <th className="text-left py-1.5 pr-3">Lot Ref</th>
-                                <th className="text-left py-1.5 pr-3">Delivery Date</th>
-                                <th className="text-right py-1.5 pr-3">Cost/L</th>
-                                <th className="text-right py-1.5 pr-3">Units Consumed</th>
-                                <th className="text-right py-1.5">Cost</th>
+                              <tr className="text-slate-500 font-semibold">
+                                <th scope="col" className="text-left py-1.5 pr-3">Lot Ref</th>
+                                <th scope="col" className="text-left py-1.5 pr-3">Delivery Date</th>
+                                <th scope="col" className="text-right py-1.5 pr-3">Cost/L</th>
+                                <th scope="col" className="text-right py-1.5 pr-3">Units Consumed</th>
+                                <th scope="col" className="text-right py-1.5">Cost</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -323,11 +331,11 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Gross Profit reflects fuel sales only. Operating expenses (salaries, maintenance) are excluded.
           </p>
           <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
-          <p className="text-xs text-slate-400">{data.totalShifts} closed shift{data.totalShifts !== 1 ? 's' : ''} in range.</p>
+          <p className="text-xs text-slate-500">{data.totalShifts} closed shift{data.totalShifts !== 1 ? 's' : ''} in range.</p>
         </div>
       )}
 
@@ -343,19 +351,19 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
           {/* Revenue breakdown — always expanded in print */}
           <div className="grid grid-cols-4 gap-3 mb-2">
             <div>
-              <p className="text-[10px] text-slate-400 uppercase font-semibold">Cash</p>
+              <p className="text-[10px] text-slate-500 uppercase font-semibold">Cash</p>
               <p className="text-sm font-semibold text-slate-700">{fmtAmt(data.totalCashRevenue)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 uppercase font-semibold">UPI</p>
+              <p className="text-[10px] text-slate-500 uppercase font-semibold">UPI</p>
               <p className="text-sm font-semibold text-slate-700">{fmtAmt(data.totalUpiRevenue)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 uppercase font-semibold">Card</p>
+              <p className="text-[10px] text-slate-500 uppercase font-semibold">Card</p>
               <p className="text-sm font-semibold text-slate-700">{fmtAmt(data.totalCardRevenue)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 uppercase font-semibold">Credit Sales</p>
+              <p className="text-[10px] text-slate-500 uppercase font-semibold">Credit Sales</p>
               <p className="text-sm font-semibold text-orange-600">{fmtAmt(data.totalCreditRevenue)}</p>
             </div>
           </div>
@@ -363,11 +371,11 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-xs text-slate-500">
-                  <th className="text-left px-4 py-2.5 font-medium">Fuel Type</th>
-                  <th className="text-right px-4 py-2.5 font-medium">Revenue</th>
-                  <th className="text-right px-4 py-2.5 font-medium">COGS</th>
-                  <th className="text-right px-4 py-2.5 font-medium">Gross Profit</th>
-                  <th className="text-right px-4 py-2.5 font-medium">₹/L Margin</th>
+                  <th scope="col" className="text-left px-4 py-2.5 font-medium">Fuel Type</th>
+                  <th scope="col" className="text-right px-4 py-2.5 font-medium">Revenue</th>
+                  <th scope="col" className="text-right px-4 py-2.5 font-medium">COGS</th>
+                  <th scope="col" className="text-right px-4 py-2.5 font-medium">Gross Profit</th>
+                  <th scope="col" className="text-right px-4 py-2.5 font-medium">₹/L Margin</th>
                 </tr>
               </thead>
               <tbody>
@@ -387,12 +395,12 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
                         <td colSpan={5} className="px-6 pb-2">
                           <table className="w-full text-xs border-collapse">
                             <thead>
-                              <tr className="text-slate-400 font-semibold">
-                                <th className="text-left py-1 pr-3">Lot Ref</th>
-                                <th className="text-left py-1 pr-3">Delivery Date</th>
-                                <th className="text-right py-1 pr-3">Cost/L</th>
-                                <th className="text-right py-1 pr-3">Units</th>
-                                <th className="text-right py-1">Cost</th>
+                              <tr className="text-slate-500 font-semibold">
+                                <th scope="col" className="text-left py-1 pr-3">Lot Ref</th>
+                                <th scope="col" className="text-left py-1 pr-3">Delivery Date</th>
+                                <th scope="col" className="text-right py-1 pr-3">Cost/L</th>
+                                <th scope="col" className="text-right py-1 pr-3">Units</th>
+                                <th scope="col" className="text-right py-1">Cost</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -415,10 +423,10 @@ function ProfitLossTab({ pumpId }: { pumpId: number }) {
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Gross Profit reflects fuel sales only. Operating expenses (salaries, maintenance) are excluded.
           </p>
-          <p className="text-xs text-slate-400">{data.totalShifts} closed shift{data.totalShifts !== 1 ? 's' : ''} in range.</p>
+          <p className="text-xs text-slate-500">{data.totalShifts} closed shift{data.totalShifts !== 1 ? 's' : ''} in range.</p>
         </div>
       )}
     </div>
@@ -450,13 +458,13 @@ function OperatorDutyTab({ pumpId }: { pumpId: number }) {
 
   const dutyTableHead = (
     <tr className="bg-slate-50 text-xs text-slate-500">
-      <th className="text-left px-4 py-2.5 font-medium">Date</th>
-      <th className="text-left px-4 py-2.5 font-medium">Window</th>
-      <th className="text-right px-4 py-2.5 font-medium">Amount Due</th>
-      <th className="text-right px-4 py-2.5 font-medium">Cash</th>
-      <th className="text-right px-4 py-2.5 font-medium">Credit</th>
-      <th className="text-right px-4 py-2.5 font-medium">Discrepancy</th>
-      <th className="text-left px-4 py-2.5 font-medium">Status</th>
+      <th scope="col" className="text-left px-4 py-2.5 font-medium">Date</th>
+      <th scope="col" className="text-left px-4 py-2.5 font-medium">Window</th>
+      <th scope="col" className="text-right px-4 py-2.5 font-medium">Amount Due</th>
+      <th scope="col" className="text-right px-4 py-2.5 font-medium">Cash</th>
+      <th scope="col" className="text-right px-4 py-2.5 font-medium">Credit</th>
+      <th scope="col" className="text-right px-4 py-2.5 font-medium">Discrepancy</th>
+      <th scope="col" className="text-left px-4 py-2.5 font-medium">Status</th>
     </tr>
   )
   const dutyRow = (s: OperatorDutyShiftLine) => (
@@ -479,8 +487,8 @@ function OperatorDutyTab({ pumpId }: { pumpId: number }) {
       <div className="ui-card ui-card-muted p-4 print:hidden">
         <div className="ui-filter-group">
         <div className="w-56">
-          <label className="ui-label">Operator</label>
-          <SearchableSelect
+          <span className="ui-label">Operator</span>
+          <SearchableSelect label="Operator"
             value={operatorId ? String(operatorId) : ''}
             onChange={(v) => setOperatorId(v ? Number(v) : null)}
             options={staffList.filter(s => s.role === 'OPERATOR').map(s => ({ value: String(s.id), label: s.fullName }))}
@@ -591,7 +599,7 @@ function DiscrepancyTab({ pumpId }: { pumpId: number }) {
 
       {data && paged && (
         <div className="space-y-3 print:hidden">
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             {data.totalDiscrepancyShifts} discrepancy shift{data.totalDiscrepancyShifts !== 1 ? 's' : ''} in range.
           </p>
           {paged.content.length === 0 ? (
@@ -605,7 +613,7 @@ function DiscrepancyTab({ pumpId }: { pumpId: number }) {
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-slate-700">{op.operatorName}</span>
-                    <span className="text-xs text-slate-400">{op.discrepancyShiftCount} shifts</span>
+                    <span className="text-xs text-slate-500">{op.discrepancyShiftCount} shifts</span>
                     {op.unresolvedCount > 0 && (
                       <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
                         {op.unresolvedCount} unresolved
@@ -629,11 +637,11 @@ function DiscrepancyTab({ pumpId }: { pumpId: number }) {
                   <table className="w-full text-xs border-t border-slate-100">
                     <thead>
                       <tr className="bg-slate-50 text-slate-500">
-                        <th className="text-left px-4 py-2 font-medium">Date</th>
-                        <th className="text-left px-4 py-2 font-medium">Type</th>
-                        <th className="text-right px-4 py-2 font-medium">Amount</th>
-                        <th className="text-left px-4 py-2 font-medium">Status</th>
-                        <th className="text-left px-4 py-2 font-medium">Resolution</th>
+                        <th scope="col" className="text-left px-4 py-2 font-medium">Date</th>
+                        <th scope="col" className="text-left px-4 py-2 font-medium">Type</th>
+                        <th scope="col" className="text-right px-4 py-2 font-medium">Amount</th>
+                        <th scope="col" className="text-left px-4 py-2 font-medium">Status</th>
+                        <th scope="col" className="text-left px-4 py-2 font-medium">Resolution</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -669,18 +677,18 @@ function DiscrepancyTab({ pumpId }: { pumpId: number }) {
             <div key={op.operatorId} className="mb-4">
               <div className="flex items-center gap-3 mb-1 pb-1 border-b border-slate-200">
                 <span className="text-sm font-semibold text-slate-700">{op.operatorName}</span>
-                <span className="text-xs text-slate-400">{op.discrepancyShiftCount} shifts</span>
+                <span className="text-xs text-slate-500">{op.discrepancyShiftCount} shifts</span>
                 {op.totalShortAmount > 0 && <span className="text-xs text-red-600 font-semibold">Short {fmtAmt(op.totalShortAmount)}</span>}
                 {op.totalOverAmount > 0  && <span className="text-xs text-amber-600 font-semibold">Over {fmtAmt(op.totalOverAmount)}</span>}
               </div>
               <table className="w-full text-xs border border-slate-100">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500">
-                    <th className="text-left px-3 py-2 font-medium">Date</th>
-                    <th className="text-left px-3 py-2 font-medium">Type</th>
-                    <th className="text-right px-3 py-2 font-medium">Amount</th>
-                    <th className="text-left px-3 py-2 font-medium">Status</th>
-                    <th className="text-left px-3 py-2 font-medium">Resolution</th>
+                    <th scope="col" className="text-left px-3 py-2 font-medium">Date</th>
+                    <th scope="col" className="text-left px-3 py-2 font-medium">Type</th>
+                    <th scope="col" className="text-right px-3 py-2 font-medium">Amount</th>
+                    <th scope="col" className="text-left px-3 py-2 font-medium">Status</th>
+                    <th scope="col" className="text-left px-3 py-2 font-medium">Resolution</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -742,8 +750,8 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
       <div className="ui-card ui-card-muted p-4 print:hidden">
         <div className="ui-filter-group">
           <div className="w-56">
-            <label className="ui-label">Tank</label>
-            <SearchableSelect
+            <span className="ui-label">Tank</span>
+            <SearchableSelect label="Tank"
               value={tankId}
               onChange={(v) => setTankId(v ?? '')}
               options={[
@@ -779,21 +787,21 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
           {data.weightedAvgCostPerUnit != null && (
             <div className="grid grid-cols-3 gap-3">
               <div className="ui-card ui-card-muted p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Total Remaining</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total Remaining</p>
                 <p className="text-sm font-semibold text-slate-700 mt-0.5">{fmtQty(data.totalRemaining)}</p>
               </div>
               <div className="ui-card ui-card-muted p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Avg Cost</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Avg Cost</p>
                 <p className="text-sm font-semibold text-slate-700 mt-0.5">₹{data.weightedAvgCostPerUnit.toFixed(2)}/L</p>
               </div>
               <div className="ui-card ui-card-muted p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Stock Value</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Stock Value</p>
                 <p className="text-sm font-semibold text-slate-700 mt-0.5">{fmtAmt(data.totalStockValue)}</p>
               </div>
             </div>
           )}
 
-          <p className="text-xs text-slate-400">{data.totalLots} lot{data.totalLots !== 1 ? 's' : ''} in this tank.</p>
+          <p className="text-xs text-slate-500">{data.totalLots} lot{data.totalLots !== 1 ? 's' : ''} in this tank.</p>
           {paged.content.map((lot) => (
             <div key={lot.lotId} className="ui-card p-0 overflow-hidden">
               <button
@@ -808,8 +816,8 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                     <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">DIP Adj.</span>
                   )}
                   <span className="text-sm font-medium text-slate-700">{fmtShortDate(lot.deliveryDate)}</span>
-                  <span className="text-xs text-slate-400">{lot.fuelType.replace(/_/g, ' ')}</span>
-                  <span className="text-xs text-slate-400">{lot.tankerReference}</span>
+                  <span className="text-xs text-slate-500">{lot.fuelType.replace(/_/g, ' ')}</span>
+                  <span className="text-xs text-slate-500">{lot.tankerReference}</span>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-slate-500">
                   <span>₹{lot.costPricePerUnit}/L</span>
@@ -825,13 +833,13 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                 <table className="w-full text-xs border-t border-slate-100">
                   <thead>
                     <tr className="bg-slate-50 text-slate-500">
-                      <th className="text-left px-4 py-2 font-medium">Tanker Ref</th>
-                      <th className="text-left px-4 py-2 font-medium">Date</th>
-                      <th className="text-left px-4 py-2 font-medium">Source</th>
-                      <th className="text-left px-4 py-2 font-medium">Shift</th>
-                      <th className="text-right px-4 py-2 font-medium">Qty (L)</th>
-                      <th className="text-right px-4 py-2 font-medium">Cost/L</th>
-                      <th className="text-right px-4 py-2 font-medium">Total</th>
+                      <th scope="col" className="text-left px-4 py-2 font-medium">Tanker Ref</th>
+                      <th scope="col" className="text-left px-4 py-2 font-medium">Date</th>
+                      <th scope="col" className="text-left px-4 py-2 font-medium">Source</th>
+                      <th scope="col" className="text-left px-4 py-2 font-medium">Shift</th>
+                      <th scope="col" className="text-right px-4 py-2 font-medium">Qty (L)</th>
+                      <th scope="col" className="text-right px-4 py-2 font-medium">Cost/L</th>
+                      <th scope="col" className="text-right px-4 py-2 font-medium">Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -878,7 +886,7 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-semibold text-slate-700">{section.tankIdentifier}</span>
-                      <span className="text-xs text-slate-400">{section.fuelType.replace(/_/g, ' ')}</span>
+                      <span className="text-xs text-slate-500">{section.fuelType.replace(/_/g, ' ')}</span>
                       <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{section.lotCount} lots</span>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-slate-500">
@@ -900,12 +908,12 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                         <table className="w-full text-xs border-collapse">
                           <thead>
                             <tr className="bg-slate-50 text-slate-500">
-                              <th className="text-left px-3 py-2 font-medium">Tanker Ref</th>
-                              <th className="text-left px-3 py-2 font-medium">Delivery Date</th>
-                              <th className="text-right px-3 py-2 font-medium">Cost/L</th>
-                              <th className="text-right px-3 py-2 font-medium">Original</th>
-                              <th className="text-right px-3 py-2 font-medium">Remaining</th>
-                              <th className="text-left px-3 py-2 font-medium">Status</th>
+                              <th scope="col" className="text-left px-3 py-2 font-medium">Tanker Ref</th>
+                              <th scope="col" className="text-left px-3 py-2 font-medium">Delivery Date</th>
+                              <th scope="col" className="text-right px-3 py-2 font-medium">Cost/L</th>
+                              <th scope="col" className="text-right px-3 py-2 font-medium">Original</th>
+                              <th scope="col" className="text-right px-3 py-2 font-medium">Remaining</th>
+                              <th scope="col" className="text-left px-3 py-2 font-medium">Status</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -936,14 +944,14 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
 
               {/* Cross-tank summary */}
               <div className="ui-card p-4 overflow-x-auto">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Cross-Tank Summary</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Cross-Tank Summary</p>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50 text-xs text-slate-500">
-                      <th className="text-left px-3 py-2 font-medium">Fuel Type</th>
-                      <th className="text-right px-3 py-2 font-medium">Total Remaining</th>
-                      <th className="text-right px-3 py-2 font-medium">Weighted Avg Cost</th>
-                      <th className="text-right px-3 py-2 font-medium">Total Value</th>
+                      <th scope="col" className="text-left px-3 py-2 font-medium">Fuel Type</th>
+                      <th scope="col" className="text-right px-3 py-2 font-medium">Total Remaining</th>
+                      <th scope="col" className="text-right px-3 py-2 font-medium">Weighted Avg Cost</th>
+                      <th scope="col" className="text-right px-3 py-2 font-medium">Total Value</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -986,13 +994,13 @@ function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                 <table className="w-full text-xs border border-slate-100">
                   <thead>
                     <tr className="bg-slate-50 text-slate-500">
-                      <th className="text-left px-3 py-2 font-medium">Tanker Ref</th>
-                      <th className="text-left px-3 py-2 font-medium">Date</th>
-                      <th className="text-left px-3 py-2 font-medium">Source</th>
-                      <th className="text-left px-3 py-2 font-medium">Shift</th>
-                      <th className="text-right px-3 py-2 font-medium">Qty (L)</th>
-                      <th className="text-right px-3 py-2 font-medium">Cost/L</th>
-                      <th className="text-right px-3 py-2 font-medium">Total</th>
+                      <th scope="col" className="text-left px-3 py-2 font-medium">Tanker Ref</th>
+                      <th scope="col" className="text-left px-3 py-2 font-medium">Date</th>
+                      <th scope="col" className="text-left px-3 py-2 font-medium">Source</th>
+                      <th scope="col" className="text-left px-3 py-2 font-medium">Shift</th>
+                      <th scope="col" className="text-right px-3 py-2 font-medium">Qty (L)</th>
+                      <th scope="col" className="text-right px-3 py-2 font-medium">Cost/L</th>
+                      <th scope="col" className="text-right px-3 py-2 font-medium">Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1100,12 +1108,12 @@ function DipPlTab({ pumpId }: { pumpId: number }) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50 text-left">
-                      <th className="px-3 py-2.5 text-xs font-semibold text-slate-500">Date &amp; Time</th>
-                      <th className="px-3 py-2.5 text-xs font-semibold text-slate-500">Type</th>
-                      <th className="px-3 py-2.5 text-xs font-semibold text-slate-500">Fuel</th>
-                      <th className="px-3 py-2.5 text-xs font-semibold text-slate-500 text-right">Litres</th>
-                      <th className="px-3 py-2.5 text-xs font-semibold text-slate-500 text-right">P/L</th>
-                      <th className="px-3 py-2.5 text-xs font-semibold text-slate-500">Notes</th>
+                      <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Date &amp; Time</th>
+                      <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Type</th>
+                      <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Fuel</th>
+                      <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500 text-right">Litres</th>
+                      <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500 text-right">P/L</th>
+                      <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Notes</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1150,7 +1158,7 @@ function DipPlTab({ pumpId }: { pumpId: number }) {
                     <tfoot>
                       <tr className="bg-slate-50 font-semibold border-t border-slate-200 text-slate-700">
                         <td colSpan={4} className="px-3 py-2.5">Net P/L</td>
-                        <td className={`px-3 py-2.5 text-right font-medium ${isNetGain ? 'text-emerald-600' : isNetLoss ? 'text-red-600' : 'text-slate-400'}`}>
+                        <td className={`px-3 py-2.5 text-right font-medium ${isNetGain ? 'text-emerald-600' : isNetLoss ? 'text-red-600' : 'text-slate-500'}`}>
                           {isNetGain ? '+' : ''}{fmtAmt(netPl)}
                         </td>
                         <td />
@@ -1186,12 +1194,12 @@ function DipPlTab({ pumpId }: { pumpId: number }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 text-left">
-                <th className="px-3 py-2.5 text-xs font-semibold text-slate-500">Date &amp; Time</th>
-                <th className="px-3 py-2.5 text-xs font-semibold text-slate-500">Type</th>
-                <th className="px-3 py-2.5 text-xs font-semibold text-slate-500">Fuel</th>
-                <th className="px-3 py-2.5 text-xs font-semibold text-slate-500 text-right">Litres</th>
-                <th className="px-3 py-2.5 text-xs font-semibold text-slate-500 text-right">P/L</th>
-                <th className="px-3 py-2.5 text-xs font-semibold text-slate-500">Notes</th>
+                <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Date &amp; Time</th>
+                <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Type</th>
+                <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Fuel</th>
+                <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500 text-right">Litres</th>
+                <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500 text-right">P/L</th>
+                <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Notes</th>
               </tr>
             </thead>
             <tbody>
@@ -1232,7 +1240,7 @@ function DipPlTab({ pumpId }: { pumpId: number }) {
               <tfoot>
                 <tr className="bg-slate-50 font-semibold border-t border-slate-200 text-slate-700">
                   <td colSpan={4} className="px-3 py-2.5">Net P/L</td>
-                  <td className={`px-3 py-2.5 text-right font-medium ${isNetGain ? 'text-emerald-600' : isNetLoss ? 'text-red-600' : 'text-slate-400'}`}>
+                  <td className={`px-3 py-2.5 text-right font-medium ${isNetGain ? 'text-emerald-600' : isNetLoss ? 'text-red-600' : 'text-slate-500'}`}>
                     {isNetGain ? '+' : ''}{fmtAmt(netPl)}
                   </td>
                   <td />
@@ -1299,15 +1307,15 @@ function ShiftsTab({ pumpId }: { pumpId: number }) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-xs text-slate-500">
-                    <th className="text-left px-4 py-2.5 font-medium">Date</th>
-                    <th className="text-left px-4 py-2.5 font-medium">Window</th>
-                    <th className="text-left px-4 py-2.5 font-medium">Status</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Amount Due</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Cash</th>
-                    <th className="text-right px-4 py-2.5 font-medium">UPI</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Card</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Credit</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Discrepancy</th>
+                    <th scope="col" className="text-left px-4 py-2.5 font-medium">Date</th>
+                    <th scope="col" className="text-left px-4 py-2.5 font-medium">Window</th>
+                    <th scope="col" className="text-left px-4 py-2.5 font-medium">Status</th>
+                    <th scope="col" className="text-right px-4 py-2.5 font-medium">Amount Due</th>
+                    <th scope="col" className="text-right px-4 py-2.5 font-medium">Cash</th>
+                    <th scope="col" className="text-right px-4 py-2.5 font-medium">UPI</th>
+                    <th scope="col" className="text-right px-4 py-2.5 font-medium">Card</th>
+                    <th scope="col" className="text-right px-4 py-2.5 font-medium">Credit</th>
+                    <th scope="col" className="text-right px-4 py-2.5 font-medium">Discrepancy</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1336,7 +1344,7 @@ function ShiftsTab({ pumpId }: { pumpId: number }) {
               </table>
             </div>
             <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
-            <p className="text-xs text-slate-400">{rows.length} shift{rows.length !== 1 ? 's' : ''} in range.</p>
+            <p className="text-xs text-slate-500">{rows.length} shift{rows.length !== 1 ? 's' : ''} in range.</p>
           </div>
         )
       )}
@@ -1348,15 +1356,15 @@ function ShiftsTab({ pumpId }: { pumpId: number }) {
           <table className="w-full text-sm border border-slate-100">
             <thead>
               <tr className="bg-slate-50 text-xs text-slate-500">
-                <th className="text-left px-4 py-2.5 font-medium">Date</th>
-                <th className="text-left px-4 py-2.5 font-medium">Window</th>
-                <th className="text-left px-4 py-2.5 font-medium">Status</th>
-                <th className="text-right px-4 py-2.5 font-medium">Amount Due</th>
-                <th className="text-right px-4 py-2.5 font-medium">Cash</th>
-                <th className="text-right px-4 py-2.5 font-medium">UPI</th>
-                <th className="text-right px-4 py-2.5 font-medium">Card</th>
-                <th className="text-right px-4 py-2.5 font-medium">Credit</th>
-                <th className="text-right px-4 py-2.5 font-medium">Discrepancy</th>
+                <th scope="col" className="text-left px-4 py-2.5 font-medium">Date</th>
+                <th scope="col" className="text-left px-4 py-2.5 font-medium">Window</th>
+                <th scope="col" className="text-left px-4 py-2.5 font-medium">Status</th>
+                <th scope="col" className="text-right px-4 py-2.5 font-medium">Amount Due</th>
+                <th scope="col" className="text-right px-4 py-2.5 font-medium">Cash</th>
+                <th scope="col" className="text-right px-4 py-2.5 font-medium">UPI</th>
+                <th scope="col" className="text-right px-4 py-2.5 font-medium">Card</th>
+                <th scope="col" className="text-right px-4 py-2.5 font-medium">Credit</th>
+                <th scope="col" className="text-right px-4 py-2.5 font-medium">Discrepancy</th>
               </tr>
             </thead>
             <tbody>
@@ -1383,7 +1391,7 @@ function ShiftsTab({ pumpId }: { pumpId: number }) {
               ))}
             </tbody>
           </table>
-          <p className="text-xs text-slate-400">{rows.length} shift{rows.length !== 1 ? 's' : ''} in range.</p>
+          <p className="text-xs text-slate-500">{rows.length} shift{rows.length !== 1 ? 's' : ''} in range.</p>
         </div>
       )}
     </div>
@@ -1452,11 +1460,11 @@ function ExpensesTab({ pumpId }: { pumpId: number }) {
               <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-xs text-slate-500">
-                  <th className="text-left px-4 py-2.5 font-medium">Date</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Category</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Description</th>
-                  <th className="text-right px-4 py-2.5 font-medium">Amount</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Status</th>
+                  <th scope="col" className="text-left px-4 py-2.5 font-medium">Date</th>
+                  <th scope="col" className="text-left px-4 py-2.5 font-medium">Category</th>
+                  <th scope="col" className="text-left px-4 py-2.5 font-medium">Description</th>
+                  <th scope="col" className="text-right px-4 py-2.5 font-medium">Amount</th>
+                  <th scope="col" className="text-left px-4 py-2.5 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -1466,14 +1474,14 @@ function ExpensesTab({ pumpId }: { pumpId: number }) {
                     <td className="px-4 py-2.5 text-slate-500 text-xs">{e.category?.replace(/_/g, ' ') ?? '—'}</td>
                     <td className="px-4 py-2.5 text-slate-700">{e.description}</td>
                     <td className="px-4 py-2.5 text-right font-medium text-red-600">{fmtAmt(e.amount)}</td>
-                    <td className="px-4 py-2.5 text-xs text-slate-400">{e.approvalStatus?.replace(/_/g, ' ') ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-xs text-slate-500">{e.approvalStatus?.replace(/_/g, ' ') ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             </div>
             <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
-            <p className="text-xs text-slate-400">{rows.length} expense{rows.length !== 1 ? 's' : ''} in range.</p>
+            <p className="text-xs text-slate-500">{rows.length} expense{rows.length !== 1 ? 's' : ''} in range.</p>
           </div>
         )
       )}
@@ -1487,11 +1495,11 @@ function ExpensesTab({ pumpId }: { pumpId: number }) {
           <table className="w-full text-sm border border-slate-100">
             <thead>
               <tr className="bg-slate-50 text-xs text-slate-500">
-                <th className="text-left px-4 py-2.5 font-medium">Date</th>
-                <th className="text-left px-4 py-2.5 font-medium">Category</th>
-                <th className="text-left px-4 py-2.5 font-medium">Description</th>
-                <th className="text-right px-4 py-2.5 font-medium">Amount</th>
-                <th className="text-left px-4 py-2.5 font-medium">Status</th>
+                <th scope="col" className="text-left px-4 py-2.5 font-medium">Date</th>
+                <th scope="col" className="text-left px-4 py-2.5 font-medium">Category</th>
+                <th scope="col" className="text-left px-4 py-2.5 font-medium">Description</th>
+                <th scope="col" className="text-right px-4 py-2.5 font-medium">Amount</th>
+                <th scope="col" className="text-left px-4 py-2.5 font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -1501,12 +1509,12 @@ function ExpensesTab({ pumpId }: { pumpId: number }) {
                   <td className="px-4 py-2 text-slate-500 text-xs">{e.category?.replace(/_/g, ' ') ?? '—'}</td>
                   <td className="px-4 py-2 text-slate-700">{e.description}</td>
                   <td className="px-4 py-2 text-right font-medium text-red-600">{fmtAmt(e.amount)}</td>
-                  <td className="px-4 py-2 text-xs text-slate-400">{e.approvalStatus?.replace(/_/g, ' ') ?? '—'}</td>
+                  <td className="px-4 py-2 text-xs text-slate-500">{e.approvalStatus?.replace(/_/g, ' ') ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="text-xs text-slate-400">{rows.length} expense{rows.length !== 1 ? 's' : ''} in range.</p>
+          <p className="text-xs text-slate-500">{rows.length} expense{rows.length !== 1 ? 's' : ''} in range.</p>
         </div>
       )}
     </div>
@@ -1530,14 +1538,18 @@ function DateRangeInputs({
   return (
     <div className="ui-filter-group">
       <div>
-        <label className="ui-label">From</label>
-        <input type="date" value={from} onChange={(e) => onFromChange(e.target.value)}
-          className="min-w-40 shadow-sm" />
+        <label className="block">
+          <span className="ui-label">From</span>
+          <input type="date" value={from} onChange={(e) => onFromChange(e.target.value)}
+            className="min-w-40 shadow-sm" />
+        </label>
       </div>
       <div>
-        <label className="ui-label">To</label>
-        <input type="date" value={to} onChange={(e) => onToChange(e.target.value)}
-          className="min-w-40 shadow-sm" />
+        <label className="block">
+          <span className="ui-label">To</span>
+          <input type="date" value={to} onChange={(e) => onToChange(e.target.value)}
+            className="min-w-40 shadow-sm" />
+        </label>
       </div>
     </div>
   )
@@ -1613,7 +1625,7 @@ function InterestAccrualTab({ pumpId }: { pumpId: number }) {
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/60">
                   <div>
                     <p className="text-sm font-semibold text-slate-800">{client.clientName}</p>
-                    <p className="text-xs text-slate-400">{client.chargeCount} charge{client.chargeCount !== 1 ? 's' : ''}</p>
+                    <p className="text-xs text-slate-500">{client.chargeCount} charge{client.chargeCount !== 1 ? 's' : ''}</p>
                   </div>
                   <span className="text-sm font-bold text-red-600">{fmtAmt(client.totalInterest)}</span>
                 </div>

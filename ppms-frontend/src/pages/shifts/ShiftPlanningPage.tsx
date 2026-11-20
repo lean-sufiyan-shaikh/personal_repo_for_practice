@@ -13,6 +13,7 @@ import { Reveal } from '../../components/Reveal'
 import { formatIstDate } from '../../utils/date'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
+import { IconButton } from '../../components/IconButton'
 
 // Cyclic color palette for shift rows — index into this by (sortOrder - 1)
 const SHIFT_ROW_COLORS = [
@@ -219,17 +220,19 @@ export default function ShiftPlanningPage() {
           <Reveal delay={130}>
           <div className="ui-card flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <button onClick={prevWeek}
-                className="ui-btn ui-btn-secondary min-h-0 px-3 py-2 text-slate-500">
-                <ChevronLeft size={14} strokeWidth={2} />
-              </button>
+              <IconButton onClick={prevWeek}
+                className="ui-btn ui-btn-secondary px-3 py-2 text-slate-500"
+ label="Previous week"
+ icon={<ChevronLeft size={14} strokeWidth={2} />}
+ />
               <span className="text-sm font-semibold text-slate-700">
                 Week of {formatIstDate(weekStart, { day: 'numeric', month: 'long', year: 'numeric' })}
               </span>
-              <button onClick={nextWeek}
-                className="ui-btn ui-btn-secondary min-h-0 px-3 py-2 text-slate-500">
-                <ChevronRight size={14} strokeWidth={2} />
-              </button>
+              <IconButton onClick={nextWeek}
+                className="ui-btn ui-btn-secondary px-3 py-2 text-slate-500"
+ label="Next week"
+ icon={<ChevronRight size={14} strokeWidth={2} />}
+ />
             </div>
 
             <div className="flex items-center gap-2">
@@ -272,7 +275,7 @@ export default function ShiftPlanningPage() {
 
           {/* Auto-generate modal */}
           {showGenerate && (
-            <ModalPortal>
+            <ModalPortal onClose={() => setShowGenerate(false)}>
             <div className="ui-modal-backdrop">
               <div className="ui-modal-panel w-full max-w-sm">
                 <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
@@ -282,26 +285,30 @@ export default function ShiftPlanningPage() {
                       The system will assign operators based on preferences, leave dates, and fairness.
                     </p>
                   </div>
-                  <button onClick={() => setShowGenerate(false)} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
+                  <button type="button" aria-label="Close" onClick={() => setShowGenerate(false)} className="ui-btn ui-btn-ghost ui-modal-close">×</button>
                 </div>
                 <div className="ui-modal-body space-y-3">
                   <div>
-                    <label className="ui-label">
+                    <label className="block">
+                      <span className="ui-label">
                       Operators per Morning / Evening shift
+                    </span>
+                      <input type="number" min="1" max="20" value={genDayOps}
+                        onChange={e => setGenDayOps(e.target.value)}
+                        className="w-24 text-sm"
+                      />
                     </label>
-                    <input type="number" min="1" max="20" value={genDayOps}
-                      onChange={e => setGenDayOps(e.target.value)}
-                      className="w-24 text-sm"
-                    />
                   </div>
                   <div>
-                    <label className="ui-label">
+                    <label className="block">
+                      <span className="ui-label">
                       Operators per Night shift (12 AM – 8 AM)
+                    </span>
+                      <input type="number" min="1" max="20" value={genNightOps}
+                        onChange={e => setGenNightOps(e.target.value)}
+                        className="w-24 text-sm"
+                      />
                     </label>
-                    <input type="number" min="1" max="20" value={genNightOps}
-                      onChange={e => setGenNightOps(e.target.value)}
-                      className="w-24 text-sm"
-                    />
                   </div>
                 </div>
                 <div className="ui-modal-body pt-0">
@@ -343,11 +350,11 @@ export default function ShiftPlanningPage() {
                 <table className="w-full text-xs border-collapse min-w-[640px]">
                   <thead>
                     <tr className="border-b border-slate-100">
-                      <th className="w-28 text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      <th scope="col" className="w-28 text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
                         Shift
                       </th>
                       {days.map(day => (
-                        <th key={day} className={`px-2 py-3 text-center font-semibold ${day < today ? 'text-slate-400' : 'text-slate-600'}`}>
+                        <th scope="col" key={day} className={`px-2 py-3 text-center font-semibold ${day < today ? 'text-slate-500' : 'text-slate-600'}`}>
                           {formatDay(day)}
                           {day < today && (
                             <div className="text-xs font-normal text-slate-300 mt-0.5">actual</div>
@@ -359,7 +366,7 @@ export default function ShiftPlanningPage() {
                   <tbody>
                     {sortedDefs.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-3 py-6 text-center text-sm text-slate-400">
+                        <td colSpan={8} className="px-3 py-6 text-center text-sm text-slate-500">
                           No shift definitions configured for this pump. Set them up in Pump Setup first.
                         </td>
                       </tr>
@@ -372,7 +379,7 @@ export default function ShiftPlanningPage() {
                             {def.isNightShift && (
                               <span className="ml-1 text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium">Night</span>
                             )}
-                            <div className="font-normal text-slate-400 text-xs mt-0.5 leading-tight">
+                            <div className="font-normal text-slate-500 text-xs mt-0.5 leading-tight">
                               {def.windowLabel}
                             </div>
                           </td>
@@ -412,7 +419,7 @@ export default function ShiftPlanningPage() {
                                           ))}
                                           {absentEntries.map(entry => (
                                             <div key={`absent-${entry.id}`} className="flex items-center gap-1">
-                                              <span className="truncate text-slate-400 font-medium">
+                                              <span className="truncate text-slate-500 font-medium">
                                                 {staffById[entry.operatorUserId]?.fullName ?? `#${entry.operatorUserId}`}
                                               </span>
                                               <span className="ml-auto flex items-center px-1.5 py-0.5 rounded-full shrink-0 bg-red-100 text-red-600">
@@ -435,15 +442,13 @@ export default function ShiftPlanningPage() {
                                             {entry.status === 'PLANNED' ? <Circle size={8} fill="currentColor" strokeWidth={0} /> : entry.status === 'CONFIRMED' ? <Check size={10} strokeWidth={2.5} /> : <X size={10} strokeWidth={2.5} />}
                                           </span>
                                           {isOwnerOrAdmin && entry.status === 'PLANNED' && (
-                                            <button
-                                              type="button"
+                                            <IconButton
                                               onClick={() => removeEntryMutation.mutate({ entryId: entry.id })}
                                               disabled={removeEntryMutation.isPending}
-                                              className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-all ml-0.5 shrink-0 p-0.5"
-                                              title="Remove"
-                                            >
-                                              <X size={11} strokeWidth={2} />
-                                            </button>
+                                              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-slate-300 hover:text-red-500 transition-all ml-0.5 shrink-0"
+ label="Remove from plan"
+ icon={<X size={11} strokeWidth={2} />}
+ />
                                           )}
                                         </div>
                                       ))}
@@ -462,7 +467,7 @@ export default function ShiftPlanningPage() {
 
                                       {isEditing && (
                                         <div className="mt-1 space-y-1">
-                                          <SearchableSelect
+                                          <SearchableSelect label="Operator to add"
                                             value={addOpId}
                                             onChange={v => setAddOpId(v)}
                                             placeholder="— pick operator —"
@@ -478,13 +483,12 @@ export default function ShiftPlanningPage() {
                                             >
                                               Add
                                             </button>
-                                            <button
-                                              type="button"
+                                            <IconButton
                                               onClick={() => { setEditSlot(null); setSlotError(null) }}
-                                              className="ui-btn ui-btn-secondary min-h-0 px-2 py-1 text-xs"
-                                            >
-                                              <X size={12} strokeWidth={2} />
-                                            </button>
+                                              className="ui-btn ui-btn-secondary px-2 py-1 text-xs"
+ label="Cancel"
+ icon={<X size={12} strokeWidth={2} />}
+ />
                                           </div>
                                           {slotError && <p className="ui-error-text">{slotError}</p>}
                                         </div>

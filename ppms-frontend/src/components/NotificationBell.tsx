@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Bell, Droplets, AlertTriangle, FileText, Wrench,
@@ -15,6 +16,7 @@ export default function NotificationBell({ pumpId }: Props) {
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const bellRef = useRef<HTMLButtonElement>(null)
 
   const { data } = useQuery({
     queryKey:        ['notifications', pumpId],
@@ -39,6 +41,11 @@ export default function NotificationBell({ pumpId }: Props) {
   }, [])
 
   const unread = notifications.filter(n => !n.readAt)
+
+  useEscapeKey(() => {
+    setOpen(false)
+    bellRef.current?.focus()
+  }, open)
 
   const handleOpen = () => {
     setOpen(s => !s)
@@ -68,6 +75,7 @@ export default function NotificationBell({ pumpId }: Props) {
     <div ref={ref} className="relative">
       {/* Bell button */}
       <button
+        ref={bellRef}
         onClick={handleOpen}
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
         aria-expanded={open}
@@ -88,7 +96,7 @@ export default function NotificationBell({ pumpId }: Props) {
           <div className="ui-notification-panel__head flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
             <div>
               <p className="text-sm font-semibold text-slate-800">Notifications</p>
-              <p className="mt-0.5 text-xs text-slate-400">
+              <p className="mt-0.5 text-xs text-slate-500">
                 {unreadCount} unread{unreadCount > notifications.length ? ` · showing newest ${notifications.length}` : ''}
               </p>
             </div>
@@ -106,7 +114,7 @@ export default function NotificationBell({ pumpId }: Props) {
           {notifications.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <p className="text-sm font-medium text-slate-500">No notifications</p>
-              <p className="mt-1 text-xs text-slate-400">You're all caught up</p>
+              <p className="mt-1 text-xs text-slate-500">You're all caught up</p>
             </div>
           ) : (
             <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
@@ -118,11 +126,11 @@ export default function NotificationBell({ pumpId }: Props) {
                   <div className="flex items-start gap-2">
                     <TypeIcon type={n.type} />
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-800">{n.title}</p>
+                      <p className="text-sm font-semibold text-slate-800">{!n.readAt && <span className="sr-only">Unread: </span>}{n.title}</p>
                       <p className="mt-1 text-sm leading-relaxed text-slate-500">{n.message}</p>
                     </div>
                     {!n.readAt && (
-                      <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1" />
+                      <span aria-hidden="true" className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1" />
                     )}
                   </div>
                 </div>

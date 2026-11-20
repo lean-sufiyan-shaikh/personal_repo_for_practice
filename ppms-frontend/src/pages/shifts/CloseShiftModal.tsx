@@ -9,9 +9,10 @@ import { ModalPortal } from '../../components/ModalPortal'
 import { maskPhone } from '../../utils/maskPhone'
 import { parseApiError } from '../../utils/apiError'
 import { useNavigate } from 'react-router-dom'
-import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useConfirmDiscard } from '../../hooks/useConfirmDiscard'
 import { roundToPaise, toPaise, unitsSold } from '../../utils/money'
+import { IconButton } from '../../components/IconButton'
+import { onActivateKey } from '../../utils/keyboard'
 
 interface Props {
   shift: Shift
@@ -344,7 +345,6 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
   }
 
   const requestClose = useConfirmDiscard(hasUnsavedChanges, onClose)
-  useEscapeKey(requestClose, !closeMutation.isPending)
 
   const fmt = (n: number) =>
     n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -356,7 +356,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
     : 'ui-modal-header--neutral'
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={closeMutation.isPending ? undefined : requestClose}>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel">
 
@@ -368,7 +368,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
               Nozzle {shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', ')} · {shift.operatorName} · {shift.shiftWindow}
             </p>
           </div>
-          <button type="button" onClick={requestClose}
+          <button aria-label="Close" type="button" onClick={requestClose}
             className="ui-btn ui-btn-ghost ui-modal-close absolute top-3 right-3">
             ×
           </button>
@@ -463,14 +463,14 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-xs font-semibold text-slate-700">{e.clientName}</span>
                                   {e.fuelType && (
-                                    <span className="text-xs text-slate-400 uppercase tracking-wide">{e.fuelType}</span>
+                                    <span className="text-xs text-slate-500 uppercase tracking-wide">{e.fuelType}</span>
                                   )}
                                   {e.billNo && (
-                                    <span className="text-xs text-slate-400">#{e.billNo}</span>
+                                    <span className="text-xs text-slate-500">#{e.billNo}</span>
                                   )}
                                 </div>
                                 {liters && price ? (
-                                  <p className="text-xs text-slate-400 mt-0.5">
+                                  <p className="text-xs text-slate-500 mt-0.5">
                                     {liters.toFixed(2)} {unit} × ₹{price} =&nbsp;
                                     <span className="font-semibold text-emerald-700">₹{fmt(e.amount)}</span>
                                   </p>
@@ -478,7 +478,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                                   <p className="text-xs font-semibold text-emerald-700 mt-0.5">₹{fmt(e.amount)}</p>
                                 )}
                                 {e.description && (
-                                  <p className="text-xs text-slate-400 italic mt-0.5">{e.description}</p>
+                                  <p className="text-xs text-slate-500 italic mt-0.5">{e.description}</p>
                                 )}
                               </div>
                               {!isVoiding && (
@@ -561,7 +561,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                         {creditRows.length} new {creditRows.length === 1 ? 'entry' : 'entries'} · ₹{fmt(newCreditTotal)}
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-slate-500">
                         {preRecordedEntries.length > 0 ? 'Add more entries below' : 'No credit this shift'}
                       </span>
                     )}
@@ -594,30 +594,34 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                             <div
                               className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-orange-50 transition-colors group"
                               onClick={() => setExpandedRowId(row.id)}
-                            >
-                              <div className="flex items-center gap-3 min-w-0">
+                              >
+                                <div
+                                  className="flex items-center gap-3 min-w-0"
+                                  role="button"
+                                  tabIndex={0}
+                                  aria-label={`Edit credit entry ${idx + 1}`}
+                                  onKeyDown={onActivateKey(() => setExpandedRowId(row.id))}
+                                >
                                 <span className="text-xs font-bold text-orange-400 shrink-0">#{idx + 1}</span>
                                 {isFilled ? (
                                   <>
                                     <span className="text-sm font-medium text-slate-700 truncate">{row.clientName}</span>
-                                    <span className="text-xs text-slate-400 shrink-0">{FUEL_LABELS[row.fuelType] ?? row.fuelType}</span>
+                                    <span className="text-xs text-slate-500 shrink-0">{FUEL_LABELS[row.fuelType] ?? row.fuelType}</span>
                                     <span className="text-sm font-semibold text-emerald-700 shrink-0">₹{fmt(emptyNum(row.amount))}</span>
-                                    {row.billNo && <span className="text-xs text-slate-400 shrink-0">· {row.billNo}</span>}
+                                    {row.billNo && <span className="text-xs text-slate-500 shrink-0">· {row.billNo}</span>}
                                   </>
                                 ) : (
-                                  <span className="text-xs text-slate-400 italic">Incomplete — tap to edit</span>
+                                  <span className="text-xs text-slate-500 italic">Incomplete — tap to edit</span>
                                 )}
                               </div>
                               <div className="flex items-center gap-2 shrink-0 ml-2">
                                 <span className="text-xs text-orange-400 group-hover:text-orange-600 transition-colors">Edit</span>
-                                <button
-                                  type="button"
+                                <IconButton
                                   onClick={(e) => { e.stopPropagation(); removeCreditRow(row.id) }}
-                                  className="text-red-300 hover:text-red-600 transition-colors p-0.5"
-                                  title="Delete entry"
-                                >
-                                  <X size={13} strokeWidth={2} />
-                                </button>
+                                  className="text-red-300 hover:text-red-600 transition-colors"
+ label="Delete entry"
+ icon={<X size={13} strokeWidth={2} />}
+ />
                               </div>
                             </div>
                           ) : (
@@ -643,21 +647,23 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
 
                               {/* Client search — root/parent accounts only */}
                               <div className="ui-search-shell">
-                                <label className="ui-label">
+                                <label className="block">
+                                  <span className="ui-label">
                                   Client <span className="text-red-500">*</span>
+                                </span>
+                                  <input type="text" value={row.clientSearch}
+                                    onChange={(e) => {
+                                      updateRow(row.id, 'clientSearch', e.target.value)
+                                      updateRow(row.id, 'clientName', e.target.value)
+                                      updateRow(row.id, 'clientId', null)
+                                      updateRow(row.id, 'showDropdown', true)
+                                    }}
+                                    onFocus={() => updateRow(row.id, 'showDropdown', true)}
+                                    onBlur={() => setTimeout(() => updateRow(row.id, 'showDropdown', false), 150)}
+                                    placeholder="Search client name..."
+                                    className="ui-search-shell__input text-sm"
+                                  />
                                 </label>
-                                <input type="text" value={row.clientSearch}
-                                  onChange={(e) => {
-                                    updateRow(row.id, 'clientSearch', e.target.value)
-                                    updateRow(row.id, 'clientName', e.target.value)
-                                    updateRow(row.id, 'clientId', null)
-                                    updateRow(row.id, 'showDropdown', true)
-                                  }}
-                                  onFocus={() => updateRow(row.id, 'showDropdown', true)}
-                                  onBlur={() => setTimeout(() => updateRow(row.id, 'showDropdown', false), 150)}
-                                  placeholder="Search client name..."
-                                  className="ui-search-shell__input text-sm"
-                                />
                                 {row.showDropdown && rootClients.length > 0 && (
                                   <div className="ui-card absolute top-full left-0 right-0 z-50 mt-0.5 max-h-36 overflow-y-auto p-1">
                                     {filtered.length === 0 ? (
@@ -666,7 +672,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                                         onMouseDown={() => navigate('/dashboard/credit?tab=clients')}
                                         className="w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-blue-50 flex items-center justify-between gap-2"
                                       >
-                                        <span className="text-slate-400 text-xs truncate">
+                                        <span className="text-slate-500 text-xs truncate">
                                           No match{row.clientSearch.trim() ? ` for "${row.clientSearch.trim()}"` : ''}
                                         </span>
                                         <span className="text-xs text-blue-600 font-medium shrink-0">+ Add client →</span>
@@ -683,7 +689,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                                                 has sub-accounts
                                               </span>
                                             )}
-                                            {c.phone && <span className="text-xs text-slate-400">{maskPhone(c.phone)}</span>}
+                                            {c.phone && <span className="text-xs text-slate-500">{maskPhone(c.phone)}</span>}
                                           </div>
                                         </button>
                                       ))
@@ -700,10 +706,10 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                               {/* Sub-account picker — only shown when the selected parent has children */}
                               {subAccounts.length > 0 && (
                                 <div>
-                                  <label className="ui-label">
-                                    Sub-account <span className="text-slate-400">(optional)</span>
-                                  </label>
-                                  <div className="ui-card p-0 overflow-hidden divide-y divide-slate-50 shadow-none border-slate-200">
+                                  <span className="ui-label">
+                                    Sub-account <span className="text-slate-500">(optional)</span>
+                                  </span>
+                                  <div role="group" aria-label="Sub-account" className="ui-card p-0 overflow-hidden divide-y divide-slate-50 shadow-none border-slate-200">
                                     {/* "Bill to parent" option */}
                                     <button
                                       type="button"
@@ -747,7 +753,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                                             {s.name}
                                           </span>
                                           {s.phone && (
-                                            <span className="text-xs text-slate-400 shrink-0">{s.phone}</span>
+                                            <span className="text-xs text-slate-500 shrink-0">{s.phone}</span>
                                           )}
                                           {isSelected && (
                                             <svg className="w-3.5 h-3.5 text-orange-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -764,10 +770,10 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                               {/* Fuel type + Amount/Liters */}
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="ui-label">
+                                  <span className="ui-label">
                                     Fuel Type <span className="text-red-500">*</span>
-                                  </label>
-                                  <SearchableSelect
+                                  </span>
+                                  <SearchableSelect label="Fuel Type"
                                     value={row.fuelType}
                                     onChange={v => updateRowMulti(row.id, {
                                       fuelType: v,
@@ -785,14 +791,16 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                                 </div>
                                 <div>
                                   <div className="flex items-center justify-between mb-1">
-                                    <label className="ui-label mb-0">
+                                    <span className="ui-label mb-0">
                                       {row.inputMode === 'amount' ? 'Amount (₹)' : 'Liters'}{' '}
                                       <span className="text-red-500">*</span>
-                                    </label>
+                                    </span>
                                     <div className="flex rounded border border-slate-200 overflow-hidden text-xs">
                                       <button type="button"
                                         onClick={() => updateRowMulti(row.id, { inputMode: 'amount', liters: '' })}
-                                        className={`px-2 py-0.5 font-medium transition-colors ${row.inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-400 hover:bg-slate-50'}`}>
+                                        aria-pressed={row.inputMode === 'amount'}
+                                        aria-label="Enter amount in rupees"
+                                        className={`px-2 py-0.5 font-medium transition-colors ${row.inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
                                         ₹
                                       </button>
                                       <button type="button"
@@ -804,7 +812,9 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                                           updateRowMulti(row.id, { inputMode: 'liters', liters: initLiters })
                                         }}
                                         disabled={!priceForFuelType(row.fuelType)}
-                                        className={`px-2 py-0.5 font-medium transition-colors ${row.inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-400 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
+                                        aria-pressed={row.inputMode === 'liters'}
+                                        aria-label="Enter litres"
+                                        className={`px-2 py-0.5 font-medium transition-colors ${row.inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
                                         L
                                       </button>
                                     </div>
@@ -820,7 +830,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                                         const unit = FUEL_UNIT[row.fuelType] ?? 'L'
                                         const litersCalc = price && row.amount ? (parseFloat(row.amount) / price) : null
                                         return litersCalc ? (
-                                          <p className="text-xs text-slate-400 mt-1">
+                                          <p className="text-xs text-slate-500 mt-1">
                                             {litersCalc.toFixed(2)} {unit} × ₹{price} = ₹{parseFloat(row.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                           </p>
                                         ) : null
@@ -856,18 +866,22 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                               {/* Bill No + Description */}
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="ui-label">Bill No</label>
-                                  <input type="text" value={row.billNo}
-                                    onChange={(e) => updateRow(row.id, 'billNo', e.target.value)}
-                                    placeholder="e.g. B-101"
-                                    className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                                  <label className="block">
+                                    <span className="ui-label">Bill No</span>
+                                    <input type="text" value={row.billNo}
+                                      onChange={(e) => updateRow(row.id, 'billNo', e.target.value)}
+                                      placeholder="e.g. B-101"
+                                      className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                                  </label>
                                 </div>
                                 <div>
-                                  <label className="ui-label">Description</label>
-                                  <input type="text" value={row.description}
-                                    onChange={(e) => updateRow(row.id, 'description', e.target.value)}
-                                    placeholder="e.g. given to driver"
-                                    className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                                  <label className="block">
+                                    <span className="ui-label">Description</span>
+                                    <input type="text" value={row.description}
+                                      onChange={(e) => updateRow(row.id, 'description', e.target.value)}
+                                      placeholder="e.g. given to driver"
+                                      className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                                  </label>
                                 </div>
                               </div>
 
@@ -953,17 +967,19 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
                   )}
                 </div>
                 <div className="px-4 py-3 bg-white">
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  <label className="block">
+                    <span className="block text-xs font-semibold text-slate-600 mb-1.5">
                     Reason <span className="text-red-500">*</span>
-                    <span className="text-slate-400 font-normal ml-1">(required to close)</span>
+                    <span className="text-slate-500 font-normal ml-1">(required to close)</span>
+                  </span>
+                    <textarea value={discrepancyReason} onChange={(e) => setDiscrepancyReason(e.target.value)}
+                      rows={2}
+                      placeholder="e.g. Customer paid partial — balance pending, meter error, etc."
+                      className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 resize-none ${
+                        reasonFilled ? 'border-emerald-300 focus:ring-emerald-400' : 'border-slate-300 focus:ring-amber-400'
+                      }`}
+                    />
                   </label>
-                  <textarea value={discrepancyReason} onChange={(e) => setDiscrepancyReason(e.target.value)}
-                    rows={2}
-                    placeholder="e.g. Customer paid partial — balance pending, meter error, etc."
-                    className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 resize-none ${
-                      reasonFilled ? 'border-emerald-300 focus:ring-emerald-400' : 'border-slate-300 focus:ring-amber-400'
-                    }`}
-                  />
                   {!reasonFilled && (
                     <p className="inline-flex items-center gap-1 text-xs text-amber-600 mt-1"><ArrowUp size={11} strokeWidth={2} />Enter a reason to enable closing</p>
                   )}
@@ -987,7 +1003,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
             <div className="flex-1">
               {!readingsComplete || !paymentTouched ? (
                 <button type="submit" disabled
-                  className="ui-btn w-full bg-slate-200 text-slate-400 cursor-not-allowed">
+                  className="ui-btn w-full bg-slate-200 text-slate-500 cursor-not-allowed">
                   Fill in readings &amp; payment to continue
                 </button>
               ) : isBalanced ? (
@@ -1027,7 +1043,7 @@ function Section({ label, title, optional = false, children }: {
           {label}
         </span>
         <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
-        {optional && <span className="text-xs text-slate-400">(optional)</span>}
+        {optional && <span className="text-xs text-slate-500">(optional)</span>}
       </div>
       {children}
     </div>
@@ -1044,7 +1060,7 @@ function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onCha
   return (
     <div>
       <div className="flex items-center justify-between mb-0.5">
-        <label className="ui-label mb-0">{label}</label>
+        <span className="ui-label mb-0">{label}</span>
         <label className="flex items-center gap-1.5 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -1055,10 +1071,10 @@ function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onCha
           <span className="text-xs text-slate-500">No change</span>
         </label>
       </div>
-      <div className="flex flex-col gap-0.5 text-xs text-slate-400 mb-1">
+      <div className="flex flex-col gap-0.5 text-xs text-slate-500 mb-1">
         <span>Start: <span className="font-medium text-slate-500">{startValue}</span></span>
         {noChange ? (
-          <span className="text-slate-400 italic">Reading unchanged — 0 {unitLabel} sold this shift</span>
+          <span className="text-slate-500 italic">Reading unchanged — 0 {unitLabel} sold this shift</span>
         ) : (
           <>
             {value !== '' && !isInvalid && soldUnits > 0 && (
@@ -1086,7 +1102,7 @@ function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onCha
         onChange={(e) => onChange(e.target.value)}
         className={`text-sm ${
           noChange
-            ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+            ? 'border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed'
             : isInvalid
             ? 'border-red-400 bg-red-50 focus:ring-red-400'
             : 'border-slate-300 focus:ring-blue-500'
@@ -1105,12 +1121,14 @@ function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onCha
 function PaymentField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>
-      <label className="ui-label">{label}</label>
-      <input type="number" step="0.01" min="0" value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="0"
-        className="text-sm"
-      />
+      <label className="block">
+        <span className="ui-label">{label}</span>
+        <input type="number" step="0.01" min="0" value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="0"
+          className="text-sm"
+        />
+      </label>
     </div>
   )
 }

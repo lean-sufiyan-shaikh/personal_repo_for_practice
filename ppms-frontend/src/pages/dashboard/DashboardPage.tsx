@@ -19,6 +19,7 @@ import { canAccessPage } from '../../permissions/permissions'
 import { formatIstDateTime } from '../../utils/date'
 import { PasswordInput } from '../../components/PasswordInput'
 import { ModalPortal } from '../../components/ModalPortal'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { parseApiError } from '../../utils/apiError'
 
 const PASSWORD_POLICY_MESSAGE = 'Password must be at least 8 characters and include 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 symbol.'
@@ -99,6 +100,12 @@ export default function DashboardPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const profileMenuRef = useRef<HTMLDivElement>(null)
+  const profileButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEscapeKey(() => {
+    setProfileMenuOpen(false)
+    profileButtonRef.current?.focus()
+  }, profileMenuOpen && !passwordModalOpen)
 
   const renameMutation = useMutation({
     mutationFn: (fullName: string) => userApi.updateMyProfile(fullName),
@@ -295,11 +302,12 @@ export default function DashboardPage() {
               <button
                 onClick={startEditing}
                 className="group text-right"
+                aria-label={`Edit your name, ${user?.fullName ?? ''}`}
                 title="Click to edit your name"
               >
                 <p className="text-xs font-semibold text-white leading-tight group-hover:text-blue-200 transition-colors">
                   {user?.fullName}
-                  <span className="ml-1 text-white/30 group-hover:text-blue-300 text-xs">✎</span>
+                  <span aria-hidden="true" className="ml-1 text-white/30 group-hover:text-blue-300 text-xs">✎</span>
                 </p>
               </button>
             )}
@@ -307,6 +315,7 @@ export default function DashboardPage() {
           </div>
           <div className="relative" ref={profileMenuRef}>
             <button
+              ref={profileButtonRef}
               onClick={() => setProfileMenuOpen((open) => !open)}
               aria-label="Open profile menu"
               aria-expanded={profileMenuOpen}
@@ -344,7 +353,7 @@ export default function DashboardPage() {
       <div className="flex flex-1 min-h-0" style={{ overflow: 'clip' }}>
 
         {/* ── Sidebar ── */}
-        <nav className="ui-dashboard-sidebar print:hidden">
+        <nav aria-label="Main" className="ui-dashboard-sidebar print:hidden">
           <div className="ui-dashboard-sidebar-head">
             <p className="ui-dashboard-sidebar-title">Navigation</p>
             <p className="ui-dashboard-sidebar-subtitle">
@@ -394,7 +403,7 @@ export default function DashboardPage() {
       <ToastContainer />
 
       {passwordModalOpen && (
-        <ModalPortal>
+        <ModalPortal onClose={clearPasswordForm}>
         <div className="ui-modal-backdrop" onClick={clearPasswordForm}>
           <div
             className="ui-modal-panel"
@@ -405,40 +414,46 @@ export default function DashboardPage() {
                 <h2 className="ui-modal-title">Reset Password</h2>
                 <p className="ui-modal-subtitle">Update your password, then sign in again.</p>
               </div>
-              <button onClick={clearPasswordForm} aria-label="Close" className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+              <button type="button" onClick={clearPasswordForm} aria-label="Close" className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
             </div>
 
             <div className="ui-modal-body space-y-4">
               <div>
-                <label className="ui-label">Current Password</label>
-                <PasswordInput
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  autoComplete="current-password"
-                  className="shadow-sm"
-                />
+                <label className="block">
+                  <span className="ui-label">Current Password</span>
+                  <PasswordInput
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    autoComplete="current-password"
+                    className="shadow-sm"
+                  />
+                </label>
               </div>
 
               <div>
-                <label className="ui-label">New Password</label>
-                <PasswordInput
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  autoComplete="new-password"
-                  className="shadow-sm"
-                />
+                <label className="block">
+                  <span className="ui-label">New Password</span>
+                  <PasswordInput
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                    className="shadow-sm"
+                  />
+                </label>
                 <p className="ui-help">{PASSWORD_POLICY_MESSAGE}</p>
               </div>
 
               <div>
-                <label className="ui-label">Confirm New Password</label>
-                <PasswordInput
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleChangePassword() }}
-                  autoComplete="new-password"
-                  className="shadow-sm"
-                />
+                <label className="block">
+                  <span className="ui-label">Confirm New Password</span>
+                  <PasswordInput
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleChangePassword() }}
+                    autoComplete="new-password"
+                    className="shadow-sm"
+                  />
+                </label>
               </div>
 
               {passwordError && (

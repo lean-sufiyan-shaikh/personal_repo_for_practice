@@ -332,7 +332,7 @@ export default function PaymentSettlementsPage() {
                   style={{ width: '155px', minHeight: '36px' }}
                   className="text-sm"
                 />
-                <span className="text-slate-400 text-sm">–</span>
+                <span className="text-slate-500 text-sm">–</span>
                 <input
                   type="date"
                   value={filterTo}
@@ -342,7 +342,7 @@ export default function PaymentSettlementsPage() {
                   className="text-sm"
                 />
                 <div style={{ width: '160px' }}>
-                  <SearchableSelect
+                  <SearchableSelect label="Filter by payment type"
                     value={typeFilter}
                     onChange={v => setTypeFilter(v as SettlementPaymentType | '')}
                     options={[
@@ -363,7 +363,7 @@ export default function PaymentSettlementsPage() {
               <div className="py-16 flex flex-col items-center gap-3 text-center px-6">
                 <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-1"><Landmark size={26} strokeWidth={1.5} className="text-slate-400" /></div>
                 <p className="font-semibold text-slate-700">No activity in this date range</p>
-                <p className="text-sm text-slate-400 max-w-sm">
+                <p className="text-sm text-slate-500 max-w-sm">
                   No shift collections or settlements were found between the selected dates.
                 </p>
               </div>
@@ -456,7 +456,7 @@ export default function PaymentSettlementsPage() {
                                     </span>
                                   </div>
                                   {!isVoided && s.isPartial && s.pendingAtRecordTime != null && (
-                                    <p className="text-xs text-slate-400 mt-0.5">
+                                    <p className="text-xs text-slate-500 mt-0.5">
                                       Expected {fmtAmt(s.pendingAtRecordTime)} · received {fmtAmt(s.amountReceived)}
                                     </p>
                                   )}
@@ -464,7 +464,7 @@ export default function PaymentSettlementsPage() {
                                     <p className="text-xs text-red-600 mt-0.5">Reason: {s.voidReason}</p>
                                   )}
                                 </div>
-                                <span className={`text-sm font-bold tabular-nums flex-shrink-0 ${isVoided ? 'text-slate-400 line-through' : 'text-emerald-700'}`}>
+                                <span className={`text-sm font-bold tabular-nums flex-shrink-0 ${isVoided ? 'text-slate-500 line-through' : 'text-emerald-700'}`}>
                                   +{fmtAmt(s.amountReceived)}
                                 </span>
                                 {canVoid && !isVoided && (
@@ -524,7 +524,7 @@ export default function PaymentSettlementsPage() {
                       </div>
                       <div>
                         <p className="font-semibold text-slate-800 text-sm">{TYPE_LABELS[cfg.paymentType]}</p>
-                        <p className="text-xs text-slate-400">Daily reminder at this time (IST)</p>
+                        <p className="text-xs text-slate-500">Daily reminder at this time (IST)</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
@@ -577,7 +577,7 @@ export default function PaymentSettlementsPage() {
 
       {/* ── Record settlement dialog ── */}
       {dialogOpen && (
-        <ModalPortal>
+        <ModalPortal onClose={() => setDialogOpen(false)}>
           <div className="ui-modal-backdrop" onClick={() => setDialogOpen(false)}>
             <div className="ui-modal-panel" onClick={e => e.stopPropagation()}>
 
@@ -587,15 +587,15 @@ export default function PaymentSettlementsPage() {
                   <h2 className="ui-modal-title text-white">Record Settlement</h2>
                   <p className="ui-modal-subtitle">Enter the amount credited to your bank account</p>
                 </div>
-                <button className="ui-modal-close" onClick={() => setDialogOpen(false)}>×</button>
+                <button type="button" aria-label="Close" className="ui-modal-close" onClick={() => setDialogOpen(false)}>×</button>
               </div>
 
               <form onSubmit={handleRecord} className="ui-modal-body flex flex-col gap-5">
 
                 {/* Payment type pill selector */}
                 <div>
-                  <label className="ui-label mb-2">Payment Type</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <span className="ui-label mb-2">Payment Type</span>
+                  <div role="group" aria-label="Payment Type" className="grid grid-cols-3 gap-2">
                     {TYPES.map(t => {
                       const accent  = TYPE_ACCENT[t]
                       const active  = form.paymentType === t
@@ -648,9 +648,9 @@ export default function PaymentSettlementsPage() {
                 {/* Date + Amount row */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="ui-label">Settlement Date</label>
-                    <p className="text-[11px] text-slate-400 mb-1.5 -mt-1">Date money arrived in bank</p>
-                    <input
+                    <span className="ui-label">Settlement Date</span>
+                    <p className="text-[11px] text-slate-500 mb-1.5 -mt-1">Date money arrived in bank</p>
+                    <input aria-label="Settlement Date"
                       type="date"
                       className="ui-input"
                       value={form.settlementDate}
@@ -660,11 +660,11 @@ export default function PaymentSettlementsPage() {
                     />
                   </div>
                   <div>
-                    <label className="ui-label">Amount Received (₹)</label>
-                    <p className="text-[11px] text-slate-400 mb-1.5 -mt-1">Bank credit amount</p>
+                    <span className="ui-label">Amount Received (₹)</span>
+                    <p className="text-[11px] text-slate-500 mb-1.5 -mt-1">Bank credit amount</p>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-sm pointer-events-none">₹</span>
-                      <input
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-semibold text-sm pointer-events-none">₹</span>
+                      <input aria-label="Amount Received (₹)"
                         type="number"
                         className="ui-input pl-7"
                         min={0}
@@ -680,14 +680,16 @@ export default function PaymentSettlementsPage() {
 
                 {/* Notes */}
                 <div>
-                  <label className="ui-label">Notes <span className="text-slate-400 font-normal">(optional)</span></label>
-                  <input
-                    type="text"
-                    className="ui-input"
-                    placeholder="e.g., Partial credit from yesterday's UPI batch"
-                    value={form.notes ?? ''}
-                    onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  />
+                  <label className="block">
+                    <span className="ui-label">Notes <span className="text-slate-500 font-normal">(optional)</span></span>
+                    <input
+                      type="text"
+                      className="ui-input"
+                      placeholder="e.g., Partial credit from yesterday's UPI batch"
+                      value={form.notes ?? ''}
+                      onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                    />
+                  </label>
                 </div>
 
                 {/* Error */}
@@ -733,7 +735,7 @@ export default function PaymentSettlementsPage() {
 
       {/* ── Void settlement dialog ── */}
       {voidTarget && (
-        <ModalPortal>
+        <ModalPortal onClose={() => setVoidTarget(null)}>
           <div className="ui-modal-backdrop" onClick={() => setVoidTarget(null)}>
             <div className="ui-modal-panel" onClick={e => e.stopPropagation()}>
               <div className="ui-modal-header">
@@ -743,7 +745,7 @@ export default function PaymentSettlementsPage() {
                     {TYPE_LABELS[voidTarget.paymentType]} · {fmtDate(voidTarget.settlementDate)} · {fmtAmt(voidTarget.amountReceived)}
                   </p>
                 </div>
-                <button className="ui-modal-close" onClick={() => setVoidTarget(null)}>×</button>
+                <button type="button" aria-label="Close" className="ui-modal-close" onClick={() => setVoidTarget(null)}>×</button>
               </div>
 
               <form onSubmit={handleVoid} className="ui-modal-body flex flex-col gap-5">
@@ -751,15 +753,17 @@ export default function PaymentSettlementsPage() {
                   The settlement stays on record but no longer counts as received, so the pending balance goes back up.
                 </p>
                 <div>
-                  <label className="ui-label">Reason</label>
-                  <input
-                    type="text"
-                    className="ui-input"
-                    placeholder="e.g., Recorded twice by mistake"
-                    value={voidReason}
-                    onChange={e => setVoidReason(e.target.value)}
-                    autoFocus
-                  />
+                  <label className="block">
+                    <span className="ui-label">Reason</span>
+                    <input
+                      type="text"
+                      className="ui-input"
+                      placeholder="e.g., Recorded twice by mistake"
+                      value={voidReason}
+                      onChange={e => setVoidReason(e.target.value)}
+                      autoFocus
+                    />
+                  </label>
                 </div>
 
                 {voidError && (

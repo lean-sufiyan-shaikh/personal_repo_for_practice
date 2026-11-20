@@ -7,7 +7,7 @@ import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import type { DUOption, NozzleDetail, OpenShiftRequest, Shift } from '../../types/shift'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
-import { useEscapeKey } from '../../hooks/useEscapeKey'
+import { IconButton } from '../../components/IconButton'
 
 /** Stored end times are inclusive (08:59 means the shift runs until 09:00), so the end minute is inside the window. */
 function isTimeInWindow(startTime: string, endTime: string, crossesMidnight: boolean, nowHHMM: string): boolean {
@@ -41,7 +41,6 @@ interface Props {
 }
 
 export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefilledDuId, prefilledNozzleIds }: Props) {
-  useEscapeKey(onClose)
   const queryClient = useQueryClient()
 
   const [selectedDU, setSelectedDU]                 = useState<DUOption | null>(null)
@@ -154,7 +153,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
     : []
 
   return (
-    <ModalPortal>
+    <ModalPortal onClose={onClose}>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel w-full max-w-lg overflow-hidden">
 
@@ -164,7 +163,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
             <h2 className="ui-modal-title">Open New Shift</h2>
             <p className="ui-modal-subtitle">Select a Dispensary Unit and assign an operator</p>
           </div>
-          <button type="button" onClick={onClose}
+          <button aria-label="Close" type="button" onClick={onClose}
             className="ui-btn ui-btn-ghost ui-modal-close">
             ×
           </button>
@@ -175,14 +174,14 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
 
           {/* ── Step 1: Select DU ── */}
           <div>
-            <label className="ui-label uppercase tracking-wide mb-2">
+            <span className="ui-label uppercase tracking-wide mb-2">
               Step 1 — Select Dispensary Unit
               {selectedDU && (
                 <span className="ml-2 text-blue-600 font-semibold normal-case">
                   DU #{selectedDU.duNumber} — {selectedDU.name}
                 </span>
               )}
-            </label>
+            </span>
             {dusLoading ? (
               <p className="ui-empty">Loading dispensary units...</p>
             ) : activeDUs.length === 0 ? (
@@ -205,7 +204,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                           : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50'
                       }`}
                     >
-                      <span className={`text-xs font-bold ${isSelected ? 'text-blue-500' : 'text-slate-400'}`}>
+                      <span className={`text-xs font-bold ${isSelected ? 'text-blue-500' : 'text-slate-500'}`}>
                         DU #{du.duNumber}
                       </span>
                       <span className={`text-sm font-bold ${isSelected ? 'text-blue-700' : 'text-slate-700'}`}>
@@ -233,15 +232,15 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
           {/* ── Step 2: Select Nozzles from selected DU ── */}
           {selectedDU && (
             <div>
-              <label className="ui-label uppercase tracking-wide mb-2">
+              <span className="ui-label uppercase tracking-wide mb-2">
                 Step 2 — Select Nozzle(s)
                 {selectedNozzleIds.size > 0 && (
                   <span className="ml-2 text-blue-600 font-semibold normal-case">
                     {selectedNozzleIds.size} selected
                   </span>
                 )}
-              </label>
-              <div className="grid grid-cols-3 gap-2">
+              </span>
+              <div role="group" aria-label="Select nozzles" className="grid grid-cols-3 gap-2">
                 {selectedDU.nozzles.filter((n) => n.status === 'ACTIVE').map((nozzle) => {
                   const isBusy     = busyNozzleIds.has(nozzle.id)
                   const isSelected = selectedNozzleIds.has(nozzle.id)
@@ -266,7 +265,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                         {FUEL_ABBR[nozzle.fuelType] ?? nozzle.fuelType}
                       </span>
                       {isBusy
-                        ? <span className="text-xs text-slate-400">In use</span>
+                        ? <span className="text-xs text-slate-500">In use</span>
                         : isSelected && <span className="inline-flex items-center gap-1 text-xs text-blue-600 font-semibold"><Check size={11} strokeWidth={2.5} />Selected</span>
                       }
                     </button>
@@ -278,9 +277,9 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
 
           {/* ── Step 3: Operator ── */}
           <div>
-            <label className="ui-label uppercase tracking-wide mb-2">
+            <span className="ui-label uppercase tracking-wide mb-2">
               {selectedDU ? 'Step 3 — ' : ''}Assign Operator
-            </label>
+            </span>
             {operatorsLoading ? (
               <p className="ui-empty">Loading operators...</p>
             ) : availableOperators.length === 0 ? (
@@ -295,13 +294,16 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                     <path strokeLinecap="round" strokeLinejoin="round"
                       d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
                   </svg>
-                  <input type="text" value={operatorSearch}
+                  <input aria-label="Assign Operator" type="text" value={operatorSearch}
                     onChange={(e) => setOperatorSearch(e.target.value)}
                     placeholder="Search by name..."
                     className="ui-search-shell__input flex-1 min-h-0 border-0 bg-transparent p-0 text-sm text-slate-700 shadow-none focus:outline-none focus:ring-0 placeholder-slate-400" />
                   {operatorSearch && (
-                    <button type="button" onClick={() => setOperatorSearch('')}
-                      className="ui-search-shell__clear text-lg leading-none">×</button>
+                    <IconButton onClick={() => setOperatorSearch('')}
+                      className="ui-search-shell__clear text-lg leading-none"
+ label="Clear search"
+ icon={'×'}
+ />
                   )}
                 </div>
                 <div className="max-h-44 overflow-y-auto divide-y divide-slate-50">

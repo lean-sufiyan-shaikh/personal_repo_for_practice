@@ -175,7 +175,7 @@ export default function LoginPage() {
             </button>
 
             <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="text-slate-400">Need help accessing your account?</span>
+              <span className="text-slate-500">Need help accessing your account?</span>
               <Link to="/forgot-password" className="ui-link text-sm">
                 Forgot password?
               </Link>
