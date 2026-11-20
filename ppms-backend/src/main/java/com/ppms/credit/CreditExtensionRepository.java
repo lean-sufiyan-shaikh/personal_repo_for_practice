@@ -28,4 +28,6 @@ public interface CreditExtensionRepository extends JpaRepository<CreditExtension
             WHERE e.status = 'ACTIVE' AND e.expiryDate < :today
             """)
     int expireOverdueExtensions(LocalDate today);
+
+    boolean existsByClientId(Long clientId);
 }

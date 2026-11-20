@@ -1,6 +1,7 @@
 package com.ppms.auth;
 
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.time.BusinessClock;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,8 @@ public class AuthService {
     private final AuthLoginEventService authLoginEventService;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private final PasswordResetTokenRepository resetTokenRepository;
+    private final BusinessClock businessClock;
 
     /**
      * Authenticates the user and returns a signed JWT.
@@ -89,5 +92,6 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
+        resetTokenRepository.markAllUnusedAsUsed(user.getId(), businessClock.now());
     }
 }

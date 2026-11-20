@@ -138,9 +138,7 @@ public class FuelPriceController {
                 "Fuel price updated: " + saved.getFuelType() + " → ₹" + saved.getPricePerUnit(),
                 currentUser);
 
-        // P2.3 — Warn if there are open shifts at this pump.
-        // Open shifts already have the old price snapshotted — they will NOT pick up the new price.
-        // The admin should close all open shifts first to avoid revenue mismatch on the day's balance sheet.
+        // Open shifts keep the price snapshotted when they opened, so the admin is warned about them.
         List<?> openShifts = shiftRepository.findActiveShiftsByPump(pumpId);
         int openShiftsCount = openShifts.size();
         String warning = openShiftsCount > 0

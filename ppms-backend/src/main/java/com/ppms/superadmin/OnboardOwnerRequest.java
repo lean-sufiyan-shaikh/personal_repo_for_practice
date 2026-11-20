@@ -2,6 +2,7 @@ package com.ppms.superadmin;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import com.ppms.auth.PasswordPolicy;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -23,7 +24,7 @@ public class OnboardOwnerRequest {
     private String phoneNumber;
 
     @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    @Pattern(regexp = PasswordPolicy.REGEX, message = PasswordPolicy.MESSAGE)
     private String password;
 
     @NotBlank(message = "Pump name is required")

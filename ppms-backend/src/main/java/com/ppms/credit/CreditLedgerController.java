@@ -30,6 +30,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CreditLedgerController {
 
+    // Only the inline styles and the single print button handler of the statement page may run.
+    private static final String STATEMENT_CONTENT_SECURITY_POLICY =
+            "default-src 'none'; style-src 'unsafe-inline'; "
+            + "script-src 'unsafe-hashes' 'sha256-MguIPR6qNR8D3B+eAlK+bIRTZe8t3wkOY4B/56Me9FU='; frame-ancestors 'none'";
+
     private final CreditClientAccessService clientAccessService;
     private final CreditInterestService interestService;
     private final CreditInterestRunService interestRunService;
@@ -71,10 +76,7 @@ public class CreditLedgerController {
     /**
      * POST /api/pumps/{pumpId}/credit-ledger/{clientId}/payments
      * Records a payment settlement against the client's outstanding balance.
-     * Owner/Admin only.
-     *
-     * Bug 10: @Transactional moved to CreditLedgerService.recordPayment().
-     * Bug 1: overpayment guard now uses combined outstanding for parent accounts.
+     * Owner/Admin/Manager; payments above the pump's threshold wait for Owner/Admin approval.
      */
     @PostMapping("/{clientId}/payments")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
@@ -111,8 +113,6 @@ public class CreditLedgerController {
     /**
      * PATCH /api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit
      * Updates the credit limit for a client. 0 = no limit.
-     *
-     * Bug 4: toClientResponse() N+1 fixed by pre-loading all pump clients in one query.
      */
     @PatchMapping("/clients/{clientId}/credit-limit")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
@@ -140,9 +140,7 @@ public class CreditLedgerController {
 
     /**
      * PATCH /api/pumps/{pumpId}/credit-ledger/clients/{clientId}/interest-settings
-     * Updates monthly interest rate and grace days for a client. Owner/Admin only.
-     *
-     * Bug 4: toClientResponse() N+1 fixed by pre-loading all pump clients in one query.
+     * Updates monthly interest rate and grace days for a client. Owner/Admin/Manager.
      */
     @PatchMapping("/clients/{clientId}/interest-settings")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
@@ -165,9 +163,7 @@ public class CreditLedgerController {
 
     /**
      * POST /api/pumps/{pumpId}/credit-ledger/{clientId}/interest/apply
-     * Applies pro-rata interest for a single client up to today. Owner/Admin only.
-     *
-     * Bug 10: @Transactional is on CreditInterestService.applyProRata(), not here.
+     * Applies pro-rata interest for a single client up to today. Owner/Admin/Manager.
      */
     @PostMapping("/{clientId}/interest/apply")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
@@ -230,9 +226,7 @@ public class CreditLedgerController {
 
     /**
      * DELETE /api/pumps/{pumpId}/credit-ledger/{clientId}/interest/{chargeId}
-     * Permanently removes an interest charge from the ledger. Owner/Admin only.
-     *
-     * Bug 10: @Transactional moved to CreditLedgerService.deleteInterestCharge().
+     * Permanently removes an interest charge from the ledger. Owner/Admin/Manager.
      */
     @DeleteMapping("/{clientId}/interest/{chargeId}")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
@@ -248,10 +242,7 @@ public class CreditLedgerController {
 
     /**
      * POST /api/pumps/{pumpId}/credit-ledger/entries/{entryId}/reassign
-     * Moves a credit entry from its current account to a different account. Owner/Admin only.
-     *
-     * Bug 6: audit trail no longer stores from==to for previously unlinked entries.
-     * Bug 10: @Transactional moved to CreditLedgerService.reassignCreditEntry().
+     * Moves a credit entry from its current account to a different account. Owner/Admin/Manager.
      */
     @PostMapping("/entries/{entryId}/reassign")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
@@ -323,6 +314,7 @@ public class CreditLedgerController {
 
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_HTML)
+                .header("Content-Security-Policy", STATEMENT_CONTENT_SECURITY_POLICY)
                 .body(html);
     }
 

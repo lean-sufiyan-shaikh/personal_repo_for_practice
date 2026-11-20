@@ -2,8 +2,10 @@ package com.ppms.credit;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ppms.support.ApiIntegrationTest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
@@ -14,14 +16,20 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class CreditLedgerIntegrationTest extends ApiIntegrationTest {
+
+    @Autowired private CreditClientRepository creditClientRepository;
 
     private PumpSetup setup;
     private long shiftId;
@@ -158,14 +166,31 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void clientWithAnOutstandingBalanceCannotBeDeleted() throws Exception {
+    void statementPageEscapesTheClientNameAndForbidsScripts() throws Exception {
+        CreditClient stored = creditClientRepository.save(CreditClient.builder()
+                .pumpId(setup.pumpId())
+                .name("</title><script>alert(1)</script>")
+                .build());
+
+        perform(get("/api/pumps/{pumpId}/credit-ledger/{clientId}/statement", setup.pumpId(), stored.getId()), setup.owner())
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Security-Policy", containsString("default-src 'none'")))
+                .andExpect(content().string(not(containsString("<script>"))))
+                .andExpect(content().string(containsString("&lt;/title&gt;&lt;script&gt;")));
+
+        perform(post("/api/pumps/{pumpId}/credit-clients", setup.pumpId()), setup.manager(),
+                Map.of("name", "<b>Bold</b>", "phone", uniquePhone()))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void paymentDatedInTheFutureIsRejected() throws Exception {
         long clientId = createClient(null);
-        sellOnCredit(clientId, "50.00");
+        sellOnCredit(clientId, "100.00");
 
-        perform(delete("/api/pumps/{pumpId}/credit-clients/{clientId}", setup.pumpId(), clientId), setup.manager())
-                .andExpect(status().is4xxClientError());
-
-        assertThat(outstandingOf(clientId)).isEqualByComparingTo("50.00");
+        perform(post("/api/pumps/{pumpId}/credit-ledger/{clientId}/payments", setup.pumpId(), clientId), setup.owner(),
+                Map.of("amount", new BigDecimal("50.00"), "paymentMode", "CASH", "paidAt", LocalDate.now().plusDays(3).toString()))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -206,16 +231,84 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void publicBalanceLookupFindsTheClientByPhoneNumber() throws Exception {
+    void publicBalanceLookupNeedsTheClientsPinAndHidesTheName() throws Exception {
         String phone = uniquePhone();
         long clientId = json(perform(post("/api/pumps/{pumpId}/credit-clients", setup.pumpId()), setup.manager(),
                 Map.of("name", "Portal Client", "phone", phone))
                 .andExpect(status().is2xxSuccessful())).get("id").asLong();
         sellOnCredit(clientId, "75.00");
 
-        mockMvc.perform(get("/api/public/credit-balance").param("phone", phone).param("pumpId", setup.pumpId().toString()))
+        lookUpBalance(phone, "4321").andExpect(status().isNotFound());
+
+        perform(put("/api/pumps/{pumpId}/credit-clients/{clientId}/portal-pin", setup.pumpId(), clientId),
+                setup.manager(), Map.of("pin", "4321"))
+                .andExpect(status().isForbidden());
+        perform(put("/api/pumps/{pumpId}/credit-clients/{clientId}/portal-pin", setup.pumpId(), clientId),
+                setup.owner(), Map.of("pin", "4321"))
+                .andExpect(status().isNoContent());
+
+        lookUpBalance(phone, "9999").andExpect(status().isNotFound())
+                .andExpect(content().string(containsString("No credit account matches these details.")));
+        lookUpBalance(phone, "4321")
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("75")));
+                .andExpect(jsonPath("$.outstandingAmount").value(75.00))
+                .andExpect(jsonPath("$.clientName").doesNotExist());
+
+        perform(delete("/api/pumps/{pumpId}/credit-clients/{clientId}/portal-pin", setup.pumpId(), clientId), setup.owner())
+                .andExpect(status().isNoContent());
+        lookUpBalance(phone, "4321").andExpect(status().isNotFound());
+    }
+
+    @Test
+    void publicBalanceLookupIsRefusedForASuspendedPump() throws Exception {
+        String phone = uniquePhone();
+        long clientId = json(perform(post("/api/pumps/{pumpId}/credit-clients", setup.pumpId()), setup.manager(),
+                Map.of("name", "Suspended Pump Client", "phone", phone))
+                .andExpect(status().is2xxSuccessful())).get("id").asLong();
+        perform(put("/api/pumps/{pumpId}/credit-clients/{clientId}/portal-pin", setup.pumpId(), clientId),
+                setup.owner(), Map.of("pin", "2468"))
+                .andExpect(status().isNoContent());
+        setup.pump().setEnabled(false);
+        pumpLocationRepository.save(setup.pump());
+
+        lookUpBalance(phone, "2468").andExpect(status().isNotFound());
+    }
+
+    @Test
+    void repeatedLookupsForOnePhoneAreLimitedEvenFromDifferentAddresses() throws Exception {
+        String phone = uniquePhone();
+        for (int attempt = 1; attempt <= 5; attempt++) {
+            lookUpBalanceFrom(phone, "1111", "203.0.113." + attempt).andExpect(status().isNotFound());
+        }
+        lookUpBalanceFrom(phone, "1111", "203.0.113.99").andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void clientWithLedgerHistoryCannotBeDeletedButANewOneCan() throws Exception {
+        long withHistory = createClient(null);
+        sellOnCredit(withHistory, "10.00");
+        long withoutHistory = createClient(null);
+
+        perform(delete("/api/pumps/{pumpId}/credit-clients/{clientId}", setup.pumpId(), withHistory), setup.owner())
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("deactivate instead")));
+        perform(delete("/api/pumps/{pumpId}/credit-clients/{clientId}", setup.pumpId(), withoutHistory), setup.owner())
+                .andExpect(status().isNoContent());
+    }
+
+    private ResultActions lookUpBalance(String phone, String pin) throws Exception {
+        return lookUpBalanceFrom(phone, pin, "198.51.100." + (Math.abs(phone.hashCode()) % 250));
+    }
+
+    private ResultActions lookUpBalanceFrom(String phone, String pin, String remoteAddress) throws Exception {
+        return mockMvc.perform(post("/api/public/credit-balance")
+                .with(request -> {
+                    request.setRemoteAddr(remoteAddress);
+                    return request;
+                })
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(
+                        Map.of("pumpId", setup.pumpId(), "phone", phone, "pin", pin))));
     }
 
     private long createClient(Long parentClientId) throws Exception {

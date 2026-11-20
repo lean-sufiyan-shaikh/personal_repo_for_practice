@@ -2,7 +2,6 @@ package com.ppms.inventory;
 
 import com.ppms.common.dto.PageRequests;
 import com.ppms.common.dto.PagedResponse;
-import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTank;
@@ -82,7 +81,7 @@ public class InventoryQueryService {
         UndergroundTank tank = tankRepository.findById(tankId)
                 .orElseThrow(() -> new ResourceNotFoundException("Tank not found: " + tankId));
         if (!tank.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Tank does not belong to this pump.");
+            throw new ResourceNotFoundException("Tank not found");
         }
 
         List<InventoryLot> lots = inventoryLotRepository.findActiveLotsByTankForDisplay(tankId);

@@ -92,12 +92,13 @@ public class ShiftHandoverController {
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'OPERATOR')")
     public ResponseEntity<HandoverResponse> createHandover(
             @PathVariable Long pumpId,
             @Valid @RequestBody CreateHandoverRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        ShiftHandover saved = handoverService.createHandover(pumpId, request);
+        ShiftHandover saved = handoverService.createHandover(pumpId, request, currentUser);
 
         log.info("Shift handover recorded: pump={} shift={} outgoing={} incoming={} cashVerified={} meterVerified={}",
                 pumpId, saved.getOutgoingShiftId(), saved.getOutgoingOperatorId(),

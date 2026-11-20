@@ -171,7 +171,7 @@ public class NotificationService {
     }
 
     /**
-     * P2.4 — Generates a ZERO_SALE_SHIFT alert for each shift closed since the start of yesterday where:
+     * Generates a ZERO_SALE_SHIFT alert for each shift closed since the start of yesterday where:
      *   - total_amount_due == 0 (no sales recorded)
      *   - shift duration > 30 minutes (too long to be a test or accidental open)
      *

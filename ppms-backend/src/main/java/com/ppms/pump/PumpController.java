@@ -29,12 +29,11 @@ public class PumpController {
 
     private final PumpLocationRepository pumpLocationRepository;
     private final DispensaryUnitRepository duRepository;
-    private final NozzleRepository nozzleRepository;
-    private final UndergroundTankRepository tankRepository;
     private final AuditService auditService;
     private final PumpShiftDefinitionService shiftDefinitionService;
     private final TankService tankService;
     private final DispensaryUnitService dispensaryUnitService;
+    private final PumpService pumpService;
 
     // ─────────────────────────────────────────────────────────────────────────
     // PUMPS
@@ -57,6 +56,7 @@ public class PumpController {
                     .toList();
         } else if (currentUser.getAssignedPumpId() != null) {
             pumps = pumpLocationRepository.findById(currentUser.getAssignedPumpId())
+                    .filter(PumpLocation::isEnabled)
                     .map(p -> List.of(toPumpResponse(p)))
                     .orElse(List.of());
         } else {
@@ -71,15 +71,10 @@ public class PumpController {
      * Creates a new pump location. SUPER_ADMIN only.
      */
     @PostMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<PumpResponse> createPump(
             @Valid @RequestBody CreatePumpRequest request,
             @AuthenticationPrincipal User currentUser) {
-
-        if (currentUser.getRole() != UserRole.SUPER_ADMIN) {
-            throw new BusinessException(
-                    "Only the Super Admin can create new pump locations. " +
-                    "Please contact support to add a pump to your subscription.");
-        }
 
         if (pumpLocationRepository.existsByOwnerIdAndName(currentUser.getId(), request.getName())) {
             throw new BusinessException(
@@ -105,35 +100,14 @@ public class PumpController {
 
     /**
      * DELETE /api/pumps/{pumpId}
-     * Owner only. Blocked if the pump has any shifts on record.
+     * Owner only; refused once the pump has shifts, staff or other recorded data.
      */
     @DeleteMapping("/{pumpId}")
-    @Transactional
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<Void> deletePump(
             @PathVariable Long pumpId,
             @AuthenticationPrincipal User currentUser) {
-
-        if (currentUser.getRole() != UserRole.OWNER) {
-            throw new BusinessException("Only the Owner can delete a pump.");
-        }
-
-        PumpLocation pump = pumpLocationRepository.findById(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found"));
-
-        if (!pump.getOwnerId().equals(currentUser.getId())) {
-            throw new BusinessException("You do not own this pump.");
-        }
-
-        // Delete in FK-safe order: nozzles → DUs → tanks → pump
-        List<DispensaryUnit> dus = duRepository.findByPumpIdOrderByDuNumberAsc(pumpId);
-        for (DispensaryUnit du : dus) {
-            nozzleRepository.findByDuIdOrderByNozzleNumberAsc(du.getId())
-                    .forEach(n -> nozzleRepository.deleteById(n.getId()));
-            duRepository.deleteById(du.getId());
-        }
-        tankRepository.findByPumpId(pumpId).forEach(t -> tankRepository.deleteById(t.getId()));
-        pumpLocationRepository.deleteById(pumpId);
-
+        pumpService.deletePump(pumpId, currentUser);
         return ResponseEntity.noContent().build();
     }
 

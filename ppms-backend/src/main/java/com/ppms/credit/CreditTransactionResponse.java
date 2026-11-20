@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 /**
@@ -32,6 +33,9 @@ public class CreditTransactionResponse {
     private BigDecimal runningBalance;
 
     private OffsetDateTime occurredAt;
+
+    // Business (IST) date the transaction belongs to; for payments the date the client paid
+    private LocalDate businessDate;
 
     // ACTIVE / VOIDED for sales, APPROVED / PENDING_APPROVAL / REJECTED for payments, ACTIVE for interest
     private String status;

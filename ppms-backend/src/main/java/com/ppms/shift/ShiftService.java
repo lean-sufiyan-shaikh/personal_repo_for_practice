@@ -79,7 +79,7 @@ public class ShiftService {
                 .orElseThrow(() -> new ResourceNotFoundException("Dispensary Unit not found: " + request.getDuId()));
 
         if (!du.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Dispensary Unit does not belong to pump " + pumpId);
+            throw new ResourceNotFoundException("Dispensary Unit not found");
         }
 
         lifecycleSupportService.rejectDuplicateNozzles(request.getNozzleIds());
@@ -178,7 +178,8 @@ public class ShiftService {
         ShiftLifecycleSupportService.ClosingSummary closingSummary =
                 lifecycleSupportService.processClosingReadings(shiftId, maxMeterByNozzleId, request, readings);
         List<CloseShiftRequest.CreditEntryRequest> creditEntries =
-                lifecycleSupportService.validateCloseCreditEntries(shiftId, request.getCreditTotal(), request.getCreditEntries());
+                lifecycleSupportService.validateCloseCreditEntries(shiftId, request.getCreditTotal(), request.getCreditEntries(),
+                        request.getReplacedCreditEntryIds());
 
         fuelDeductionService.lockTanksForDeduction(pumpId,
                 readings.stream().map(ShiftFuelReading::getTankId).filter(Objects::nonNull).toList(),
@@ -236,6 +237,7 @@ public class ShiftService {
         nozzleRepository.saveAll(updatedNozzles);
 
         lifecycleSupportService.createCashCollectionEvent(shift, currentUser, nozzles);
+        lifecycleSupportService.voidReplacedCreditEntries(request.getReplacedCreditEntryIds(), currentUser);
         lifecycleSupportService.persistCloseCreditEntries(shift.getId(), shift.getPumpId(), creditEntries);
 
         User operator = userRepository.findById(shift.getOperatorId())

@@ -125,6 +125,21 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().is4xxClientError());
     }
 
+    @Test
+    void onlyTheShiftsOwnOperatorOrAManagerCanHandItOver() throws Exception {
+        long shiftId = openShift(setup.operator());
+        User incoming = saveUser(UserRole.OPERATOR, setup.pumpId());
+        User otherOperator = saveUser(UserRole.OPERATOR, setup.pumpId());
+        Map<String, Object> handover = Map.of("outgoingShiftId", shiftId, "incomingOperatorId", incoming.getId());
+
+        perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), otherOperator, handover)
+                .andExpect(status().isForbidden());
+        perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.accountant(), handover)
+                .andExpect(status().isForbidden());
+        perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.operator(), handover)
+                .andExpect(status().is2xxSuccessful());
+    }
+
     private long openShift(User operator) throws Exception {
         return json(perform(post("/api/pumps/{pumpId}/shifts/open", setup.pumpId()), setup.manager(),
                 Map.of("duId", setup.du().getId(), "nozzleIds", List.of(setup.nozzle().getId()),

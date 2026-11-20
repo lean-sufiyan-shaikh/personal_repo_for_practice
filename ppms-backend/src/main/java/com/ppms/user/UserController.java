@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/users")
@@ -41,6 +42,7 @@ public class UserController {
      * Used by the Open Shift form's operator dropdown.
      */
     @GetMapping("/operators")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'OWNER', 'ADMIN', 'MANAGER')")
     public ResponseEntity<List<StaffResponse>> getOperators(
             @RequestParam Long pumpId,
             @AuthenticationPrincipal User currentUser) {
@@ -48,7 +50,7 @@ public class UserController {
         List<StaffResponse> operators = userRepository
                 .findByAssignedPumpIdAndRoleAndStatus(pumpId, UserRole.OPERATOR, UserStatus.ACTIVE)
                 .stream()
-                .map(StaffResponse::from)
+                .map(user -> StaffResponse.visibleTo(currentUser, user))
                 .toList();
         return ResponseEntity.ok(operators);
     }
@@ -57,8 +59,10 @@ public class UserController {
      * GET /api/users/staff?pumpId={id}
      * Returns all active staff (OPERATOR, MANAGER, ADMIN) assigned to a pump.
      * Used by the Setup page to show the current staff list.
+     * Phone numbers and pay rates are only included for Owner, Admin and Super Admin.
      */
     @GetMapping("/staff")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'OWNER', 'ADMIN', 'MANAGER', 'OPERATOR', 'ACCOUNTANT')")
     public ResponseEntity<List<StaffResponse>> getStaff(
             @RequestParam Long pumpId,
             @AuthenticationPrincipal User currentUser) {
@@ -67,7 +71,7 @@ public class UserController {
                 .findByAssignedPumpId(pumpId)
                 .stream()
                 .filter(u -> u.getRole() != UserRole.OWNER && u.getRole() != UserRole.SUPER_ADMIN)
-                .map(StaffResponse::from)
+                .map(user -> StaffResponse.visibleTo(currentUser, user))
                 .toList();
         return ResponseEntity.ok(staff);
     }
@@ -459,6 +463,18 @@ public class UserController {
             BigDecimal shift1HourlyRate,
             BigDecimal standardHourlyRate
     ) {
+        private static final Set<UserRole> ROLES_SEEING_CONTACT_AND_PAY =
+                Set.of(UserRole.SUPER_ADMIN, UserRole.OWNER, UserRole.ADMIN);
+
+        static StaffResponse visibleTo(User viewer, User u) {
+            StaffResponse full = from(u);
+            if (ROLES_SEEING_CONTACT_AND_PAY.contains(viewer.getRole())) {
+                return full;
+            }
+            return new StaffResponse(full.id(), full.employeeId(), full.fullName(), null, full.gender(),
+                    full.nightShiftConsent(), full.role(), full.assignedPumpId(), full.status(), null, null, null);
+        }
+
         static StaffResponse from(User u) {
             return new StaffResponse(
                     u.getId(),

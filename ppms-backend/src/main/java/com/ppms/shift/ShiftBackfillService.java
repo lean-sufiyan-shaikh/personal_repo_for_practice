@@ -86,7 +86,7 @@ public class ShiftBackfillService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Shift definition not found: " + request.getShiftDefinitionId()));
         if (!shiftDef.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Shift definition does not belong to this pump.");
+            throw new ResourceNotFoundException("Shift definition not found");
         }
 
         ZoneId ist = businessClock.zone();
@@ -98,7 +98,7 @@ public class ShiftBackfillService {
         DispensaryUnit du = duRepository.findById(request.getDuId())
                 .orElseThrow(() -> new ResourceNotFoundException("Dispensary Unit not found: " + request.getDuId()));
         if (!du.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Dispensary Unit does not belong to this pump.");
+            throw new ResourceNotFoundException("Dispensary Unit not found");
         }
 
         User operator = lifecycleSupportService.findOperatorForPump(request.getOperatorId(), pumpId);

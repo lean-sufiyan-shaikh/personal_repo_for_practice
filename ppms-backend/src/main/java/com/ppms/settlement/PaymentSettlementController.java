@@ -3,6 +3,7 @@ package com.ppms.settlement;
 import com.ppms.common.dto.PageRequests;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.user.User;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -50,7 +51,7 @@ public class PaymentSettlementController {
     public PaymentSettlementService.ConfigResponse upsertConfig(
             @PathVariable Long pumpId,
             @PathVariable String paymentType,
-            @RequestBody PaymentSettlementService.UpdateConfigRequest req,
+            @Valid @RequestBody PaymentSettlementService.UpdateConfigRequest req,
             @AuthenticationPrincipal User currentUser) {
         return service.upsertConfig(pumpId, paymentType, req, currentUser);
     }
@@ -81,7 +82,7 @@ public class PaymentSettlementController {
     @ResponseStatus(HttpStatus.CREATED)
     public PaymentSettlementService.SettlementResponse record(
             @PathVariable Long pumpId,
-            @RequestBody PaymentSettlementService.RecordSettlementRequest req,
+            @Valid @RequestBody PaymentSettlementService.RecordSettlementRequest req,
             @AuthenticationPrincipal User currentUser) {
         return service.record(pumpId, req, currentUser);
     }
@@ -95,7 +96,7 @@ public class PaymentSettlementController {
     public PaymentSettlementService.SettlementResponse voidSettlement(
             @PathVariable Long pumpId,
             @PathVariable Long settlementId,
-            @RequestBody PaymentSettlementService.VoidSettlementRequest req,
+            @Valid @RequestBody PaymentSettlementService.VoidSettlementRequest req,
             @AuthenticationPrincipal User currentUser) {
         return service.voidSettlement(pumpId, settlementId, req, currentUser);
     }

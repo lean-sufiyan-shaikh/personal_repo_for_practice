@@ -55,7 +55,7 @@ public class CreditStatementRenderer {
                 </style>
                 </head>
                 <body>
-                """.formatted(client.getName()));
+                """.formatted(escapeHtml(client.getName())));
 
         sb.append("<div class='header'>")
                 .append("<h1>").append(escapeHtml(pump.getName())).append("</h1>")
@@ -101,7 +101,7 @@ public class CreditStatementRenderer {
                 }
 
                 sb.append("<tr class='").append(typeClass).append("'>")
-                        .append("<td>").append(tx.getOccurredAt().toLocalDate()).append("</td>")
+                        .append("<td>").append(tx.getBusinessDate()).append("</td>")
                         .append("<td>").append(tx.getType()).append("</td>")
                         .append("<td>").append(desc).append("</td>")
                         .append("<td class='amount'>").append(debit).append("</td>")

@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.net.URI;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -44,6 +45,7 @@ class AuthSecurityIntegrationTest {
     @Autowired private PumpLocationRepository pumpLocationRepository;
     @Autowired private LoginAttemptRepository loginAttemptRepository;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private PasswordResetTokenRepository resetTokenRepository;
 
     private User ownerA;
     private PumpLocation pumpA;
@@ -162,6 +164,55 @@ class AuthSecurityIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginBody(ownerA.getPhoneNumber(), PASSWORD)))
                 .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void resettingThePasswordEndsSessionsAndCancelsOtherResetLinks() throws Exception {
+        Cookie oldSession = loginAs(ownerA);
+        UUID usedLink = saveResetToken(ownerA);
+        UUID otherLink = saveResetToken(ownerA);
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"" + usedLink + "\",\"newPassword\":\"Fresh@4567\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/pumps").cookie(oldSession)).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"" + otherLink + "\",\"newPassword\":\"Other@4567\"}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginBody(ownerA.getPhoneNumber(), "Fresh@4567")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void changingThePasswordCancelsResetLinksAlreadySent() throws Exception {
+        User owner = saveOwner();
+        Cookie session = loginAs(owner);
+        UUID pendingLink = saveResetToken(owner);
+
+        mockMvc.perform(post("/api/auth/change-password").cookie(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"" + PASSWORD + "\",\"newPassword\":\"Changed@789\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"" + pendingLink + "\",\"newPassword\":\"Other@4567\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    private UUID saveResetToken(User user) {
+        UUID token = UUID.randomUUID();
+        resetTokenRepository.save(PasswordResetToken.builder()
+                .userId(user.getId())
+                .tokenHash(TokenHashing.sha256Hex(token.toString()))
+                .expiresAt(OffsetDateTime.now().plusHours(1))
+                .build());
+        return token;
     }
 
     private Cookie loginAs(User user) throws Exception {

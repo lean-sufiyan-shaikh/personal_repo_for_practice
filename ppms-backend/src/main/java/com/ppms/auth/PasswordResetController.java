@@ -146,6 +146,7 @@ public class PasswordResetController {
 
         resetToken.setUsedAt(businessClock.now());
         tokenRepository.save(resetToken);
+        tokenRepository.markAllUnusedAsUsed(user.getId(), businessClock.now());
 
         log.info("Password reset completed for userId={}, tokenId={}", user.getId(), resetToken.getId());
 

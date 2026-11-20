@@ -1,5 +1,6 @@
 package com.ppms.credit;
 
+import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.shift.ShiftCreditEntryRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +27,10 @@ import java.util.stream.Collectors;
  * Handles all interest calculation and application logic for credit clients.
  *
  * Interest model:
- *   - Simple interest: amount = outstanding × (rate / 100) × (days / 30)
+ *   - Simple interest on principal only: earlier interest charges are never charged interest.
+ *   - Principal on a day = ACTIVE credit sales up to that day − APPROVED payments up to that day.
+ *   - Each day of the period is charged on that day's principal:
+ *     amount = Σ principal(day) × (monthly rate / 100) / 30
  *   - Rate is configured on the parent account and inherited by all sub-accounts.
  *   - Interest is applied per entity: each sub-account and the parent itself each get
  *     their own interest charge row based on their own transactions only.
@@ -41,6 +45,8 @@ import java.util.stream.Collectors;
 public class CreditInterestService {
 
     private static final BigDecimal DAYS_IN_MONTH = new BigDecimal("30");
+    private static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
+    private static final BigDecimal MINIMUM_CHARGE = new BigDecimal("0.01");
 
     private final CreditClientRepository clientRepository;
     private final CreditInterestChargeRepository interestChargeRepository;
@@ -182,19 +188,16 @@ public class CreditInterestService {
     }
 
     /**
-     * Computes the total interest ever charged to a client (and all its sub-accounts if parent).
-     * Used for the "Interest Recovered" stat on the client detail page.
+     * Interest actually paid off by the client and its sub-accounts, using interest-first allocation.
      */
     public BigDecimal computeTotalInterestRecovered(Long clientId) {
-        BigDecimal own = interestChargeRepository.sumAmountByClientId(clientId);
-        List<CreditClient> children = clientRepository.findByParentClientId(clientId);
-        if (children.isEmpty()) {
-            return own;
-        }
-        List<Long> childIds = children.stream().map(CreditClient::getId).toList();
-        Map<Long, BigDecimal> childInterest = toAmountMap(interestChargeRepository.sumAmountsByClientIds(childIds));
-        BigDecimal childrenSum = childInterest.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
-        return own.add(childrenSum).setScale(2, RoundingMode.HALF_UP);
+        List<Long> groupIds = new ArrayList<>();
+        groupIds.add(clientId);
+        clientRepository.findByParentClientId(clientId).forEach(child -> groupIds.add(child.getId()));
+        return computeInterestBreakdownBatch(groupIds).values().stream()
+                .map(InterestBreakdown::totalInterestRecovered)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     /** Converts JPQL GROUP BY result rows [clientId, sumAmount] into a clientId → amount map. */
@@ -222,7 +225,7 @@ public class CreditInterestService {
     public Optional<CreditInterestCharge> applyProRata(Long pumpId, Long clientId, Long appliedByUserId) {
         CreditClient client = clientRepository.findById(clientId)
                 .filter(found -> found.getPumpId().equals(pumpId))
-                .orElseThrow(() -> new com.ppms.common.exception.ResourceNotFoundException("Client not found: " + clientId));
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + clientId));
         lockGroupRoot(client.getParentClientId() != null ? client.getParentClientId() : client.getId());
         return applyToClientGroup(client, businessClock.today(), "MANUAL", appliedByUserId).rootCharge();
     }
@@ -245,7 +248,7 @@ public class CreditInterestService {
      */
     private CreditClient lockGroupRoot(Long rootClientId) {
         return clientRepository.findByIdForUpdate(rootClientId)
-                .orElseThrow(() -> new com.ppms.common.exception.ResourceNotFoundException("Client not found: " + rootClientId));
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + rootClientId));
     }
 
     private record GroupCharges(Optional<CreditInterestCharge> rootCharge, int chargeCount) {}
@@ -284,41 +287,26 @@ public class CreditInterestService {
             return Optional.empty();
         }
 
-        // Interest is based on this client's own outstanding balance only (not children)
-        BigDecimal outstanding = computeOutstanding(client.getId());
-
-        // No interest if nothing is owed
-        if (outstanding.compareTo(BigDecimal.ZERO) <= 0) {
-            return Optional.empty();
-        }
-
-        // Determine period_from
         LocalDate periodFrom = determinePeriodFrom(client);
-        if (periodFrom == null) {
-            // No credit entries yet — nothing to charge
+        if (periodFrom == null || periodFrom.isAfter(periodTo)) {
             return Optional.empty();
         }
 
-        // Nothing to charge if the window has not opened yet
-        if (!periodFrom.isBefore(periodTo) && !periodFrom.isEqual(periodTo)) {
-            log.debug("Client {} interest skipped: period_from {} >= period_to {}", client.getId(), periodFrom, periodTo);
-            return Optional.empty();
+        DailyPrincipal principal = loadDailyPrincipal(client.getId());
+        BigDecimal dailyRate = rate.divide(ONE_HUNDRED, 10, RoundingMode.HALF_UP)
+                .divide(DAYS_IN_MONTH, 10, RoundingMode.HALF_UP);
+        BigDecimal interest = BigDecimal.ZERO;
+        for (LocalDate day = periodFrom; !day.isAfter(periodTo); day = day.plusDays(1)) {
+            BigDecimal owed = principal.on(day);
+            if (owed.signum() > 0) {
+                interest = interest.add(owed.multiply(dailyRate));
+            }
         }
-
+        interest = interest.setScale(2, RoundingMode.HALF_UP);
         long days = ChronoUnit.DAYS.between(periodFrom, periodTo) + 1;
-        if (days <= 0) {
-            return Optional.empty();
-        }
+        BigDecimal outstanding = principal.on(periodTo).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
 
-        // Simple interest: amount = outstanding × (rate / 100) × (days / 30)
-        BigDecimal interest = outstanding
-                .multiply(rate)
-                .divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(days))
-                .divide(DAYS_IN_MONTH, 2, RoundingMode.HALF_UP);
-
-        // Skip negligible amounts (< ₹0.01)
-        if (interest.compareTo(new BigDecimal("0.01")) < 0) {
+        if (interest.compareTo(MINIMUM_CHARGE) < 0) {
             log.debug("Client {} interest skipped: calculated amount {} is negligible", client.getId(), interest);
             return Optional.empty();
         }
@@ -363,6 +351,27 @@ public class CreditInterestService {
         return BigDecimal.ZERO;
     }
 
+    private record DailyPrincipal(Map<LocalDate, BigDecimal> changesByDay) {
+        BigDecimal on(LocalDate day) {
+            return changesByDay.entrySet().stream()
+                    .filter(change -> !change.getKey().isAfter(day))
+                    .map(Map.Entry::getValue)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+    }
+
+    private DailyPrincipal loadDailyPrincipal(Long clientId) {
+        Map<LocalDate, BigDecimal> changes = new HashMap<>();
+        for (var entry : creditEntryRepository.findActiveByClientId(clientId)) {
+            LocalDate day = entry.getCreatedAt().atZoneSameInstant(businessClock.zone()).toLocalDate();
+            changes.merge(day, entry.getAmount(), BigDecimal::add);
+        }
+        for (CreditPayment payment : paymentRepository.findApprovedByClientIdIn(List.of(clientId))) {
+            changes.merge(payment.getPaidAt(), payment.getAmount().negate(), BigDecimal::add);
+        }
+        return new DailyPrincipal(changes);
+    }
+
     /**
      * Calculates the start date of the next chargeable period for a client.
      *
@@ -383,7 +392,6 @@ public class CreditInterestService {
             return null;
         }
 
-        // Bug 8 fix: convert to IST so the calendar date matches the business day
         int graceDays = client.getInterestGraceDays() != null ? client.getInterestGraceDays() : 1;
         return oldestEntry.get().atZoneSameInstant(businessClock.zone()).toLocalDate().plusDays(graceDays);
     }

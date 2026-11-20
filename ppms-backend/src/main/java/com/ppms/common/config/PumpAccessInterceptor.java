@@ -74,13 +74,13 @@ public class PumpAccessInterceptor implements HandlerInterceptor {
             if (!pumpLocationRepository.existsByIdAndOwnerId(pumpId, user.getId())) {
                 return reject(response, HttpServletResponse.SC_FORBIDDEN, "You do not have access to pump " + pumpId);
             }
-            return true;
-        }
-
-        if (!Long.valueOf(pumpId).equals(user.getAssignedPumpId())) {
+        } else if (!Long.valueOf(pumpId).equals(user.getAssignedPumpId())) {
             return reject(response, HttpServletResponse.SC_FORBIDDEN, "You are not assigned to pump " + pumpId);
         }
 
+        if (!pumpLocationRepository.existsByIdAndEnabledTrue(pumpId)) {
+            return reject(response, HttpServletResponse.SC_FORBIDDEN, "Pump is suspended");
+        }
         return true;
     }
 

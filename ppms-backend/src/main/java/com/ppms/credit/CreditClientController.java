@@ -1,7 +1,6 @@
 package com.ppms.credit;
 
 import com.ppms.common.exception.BusinessException;
-import com.ppms.shift.ShiftCreditEntryRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,9 +22,9 @@ import java.util.stream.Collectors;
 public class CreditClientController {
 
     private final CreditClientRepository creditClientRepository;
-    private final CreditPaymentRepository creditPaymentRepository;
-    private final ShiftCreditEntryRepository creditEntryRepository;
     private final CreditInterestService interestService;
+    private final CreditClientService creditClientService;
+    private final CreditClientAccessService clientAccessService;
 
     /**
      * GET /api/pumps/{pumpId}/credit-clients
@@ -97,11 +96,7 @@ public class CreditClientController {
             }
         } else {
             // Sub-account — validate parent first, then check uniqueness within that parent
-            CreditClient parent = creditClientRepository.findById(parentClientId)
-                    .orElseThrow(() -> new BusinessException("Parent client not found"));
-            if (!parent.getPumpId().equals(pumpId)) {
-                throw new BusinessException("Parent client does not belong to this pump");
-            }
+            CreditClient parent = clientAccessService.requireClientForPump(pumpId, parentClientId);
             if (parent.getParentClientId() != null) {
                 throw new BusinessException("Cannot create a sub-account under another sub-account. Only one level of nesting is allowed.");
             }
@@ -157,12 +152,7 @@ public class CreditClientController {
             @PathVariable Long clientId,
             @Valid @RequestBody UpdateCreditClientRequest request) {
 
-        CreditClient client = creditClientRepository.findById(clientId)
-                .orElseThrow(() -> new BusinessException("Credit client not found"));
-
-        if (!client.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Client does not belong to this pump");
-        }
+        CreditClient client = clientAccessService.requireClientForPump(pumpId, clientId);
 
         if (request.name() != null) {
             String trimmedName = request.name().trim();
@@ -229,14 +219,9 @@ public class CreditClientController {
             @RequestBody Map<String, Boolean> body) {
 
         Boolean active = body.get("isActive");
-        if (active == null) throw new com.ppms.common.exception.BusinessException("isActive is required");
+        if (active == null) throw new BusinessException("isActive is required");
 
-        CreditClient client = creditClientRepository.findById(clientId)
-                .orElseThrow(() -> new com.ppms.common.exception.BusinessException("Credit client not found"));
-
-        if (!client.getPumpId().equals(pumpId)) {
-            throw new com.ppms.common.exception.BusinessException("Client does not belong to this pump");
-        }
+        CreditClient client = clientAccessService.requireClientForPump(pumpId, clientId);
 
         client.setActive(active);
         client = creditClientRepository.save(client);
@@ -250,33 +235,29 @@ public class CreditClientController {
 
     /**
      * DELETE /api/pumps/{pumpId}/credit-clients/{clientId}
-     * Removes a credit client. Restricted to OWNER and ADMIN.
-     * Blocked if the client has sub-accounts — remove those first.
-     * Note: deleting a client does NOT remove historical credit entries;
-     * those store the name as a string and are not affected by deletion.
+     * Removes a client that has no sub-accounts and no ledger history; clients with history are deactivated instead.
      */
     @DeleteMapping("/{clientId}")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
-    public ResponseEntity<Void> deleteClient(
-            @PathVariable Long pumpId,
-            @PathVariable Long clientId) {
+    public ResponseEntity<Void> deleteClient(@PathVariable Long pumpId, @PathVariable Long clientId) {
+        creditClientService.deleteClient(pumpId, clientId);
+        return ResponseEntity.noContent().build();
+    }
 
-        CreditClient client = creditClientRepository.findById(clientId)
-                .orElseThrow(() -> new BusinessException("Credit client not found"));
+    /** PUT /api/pumps/{pumpId}/credit-clients/{clientId}/portal-pin — sets or replaces the client's balance-page PIN. */
+    @PutMapping("/{clientId}/portal-pin")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    public ResponseEntity<Void> setPortalPin(@PathVariable Long pumpId, @PathVariable Long clientId,
+                                             @Valid @RequestBody SetPortalPinRequest request) {
+        creditClientService.setPortalPin(pumpId, clientId, request.pin());
+        return ResponseEntity.noContent().build();
+    }
 
-        if (!client.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Client does not belong to this pump");
-        }
-
-        // Prevent orphaning sub-accounts
-        List<CreditClient> children = creditClientRepository.findByParentClientId(clientId);
-        if (!children.isEmpty()) {
-            throw new BusinessException(
-                    "Cannot remove a parent account that has sub-accounts. " +
-                    "Please remove all sub-accounts first.");
-        }
-
-        creditClientRepository.deleteById(clientId);
+    /** DELETE /api/pumps/{pumpId}/credit-clients/{clientId}/portal-pin — turns off the client's balance-page access. */
+    @DeleteMapping("/{clientId}/portal-pin")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    public ResponseEntity<Void> removePortalPin(@PathVariable Long pumpId, @PathVariable Long clientId) {
+        creditClientService.removePortalPin(pumpId, clientId);
         return ResponseEntity.noContent().build();
     }
 
@@ -315,6 +296,7 @@ public class CreditClientController {
                 .parentClientName(c.getParentClientId() != null ? nameById.get(c.getParentClientId()) : null)
                 .isParent(isParent)
                 .isActive(c.isActive())
+                .hasPortalPin(c.getPortalPinHash() != null)
                 .build();
     }
 }

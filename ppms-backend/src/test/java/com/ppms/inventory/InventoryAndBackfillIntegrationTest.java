@@ -25,6 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
 
+    @Autowired private TankerDeliveryRepository tankerDeliveryRepository;
+
     @Autowired private InventoryLotRepository lotRepository;
 
     private PumpSetup setup;
@@ -94,6 +96,34 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
         JsonNode deliveries = json(perform(get("/api/inventory/{pumpId}/deliveries", setup.pumpId()), setup.manager())
                 .andExpect(status().isOk()));
         assertThat(deliveries.get("content").size()).isEqualTo(3);
+    }
+
+    @Test
+    void oneInvoiceCanFillTwoTanksOfTheSameFuelAndAnEditMovesTheWholeInvoice() throws Exception {
+        UndergroundTank secondPetrolTank = tankRepository.save(UndergroundTank.builder()
+                .pumpId(setup.pumpId())
+                .tankIdentifier("P2-" + shortId())
+                .fuelType(setup.tank().getFuelType())
+                .capacity(new BigDecimal("10000"))
+                .currentStock(BigDecimal.ZERO)
+                .dipTolerance(new BigDecimal("50"))
+                .status(TankStatus.ACTIVE)
+                .build());
+        Map<String, Object> request = batchRequest(List.of(
+                Map.of("tankId", setup.tank().getId(), "quantityDelivered", new BigDecimal("100"), "costPricePerUnit", new BigDecimal("91")),
+                Map.of("tankId", secondPetrolTank.getId(), "quantityDelivered", new BigDecimal("200"), "costPricePerUnit", new BigDecimal("91"))));
+
+        JsonNode lines = json(perform(post("/api/inventory/{pumpId}/deliveries/batch", setup.pumpId()), setup.owner(), request)
+                .andExpect(status().is2xxSuccessful()));
+        assertThat(tankRepository.findById(secondPetrolTank.getId()).orElseThrow().getCurrentStock()).isEqualByComparingTo("200");
+
+        String newInvoice = "INV-MOVED-" + shortId();
+        perform(patch("/api/inventory/{pumpId}/deliveries/{deliveryId}", setup.pumpId(), lines.get(0).get("id").asLong()),
+                setup.owner(), Map.of("quantityDelivered", new BigDecimal("100"), "costPricePerUnit", new BigDecimal("91"),
+                        "deliveryDate", LocalDate.now().toString(), "invoiceReference", newInvoice))
+                .andExpect(status().isOk());
+
+        assertThat(tankerDeliveryRepository.findByPumpIdAndInvoiceReference(setup.pumpId(), newInvoice)).hasSize(2);
     }
 
     @Test

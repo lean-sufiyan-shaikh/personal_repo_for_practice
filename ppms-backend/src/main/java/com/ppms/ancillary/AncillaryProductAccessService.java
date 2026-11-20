@@ -1,6 +1,5 @@
 package com.ppms.ancillary;
 
-import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +19,7 @@ public class AncillaryProductAccessService {
         AncillaryProduct product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ancillary product not found: " + productId));
         if (!product.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Product does not belong to this pump.");
+            throw new ResourceNotFoundException("Product not found");
         }
         return product;
     }
@@ -39,7 +38,7 @@ public class AncillaryProductAccessService {
         AncillaryStockLot lot = lotRepository.findById(lotId)
                 .orElseThrow(() -> new ResourceNotFoundException("Stock lot not found: " + lotId));
         if (!lot.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Lot does not belong to this pump.");
+            throw new ResourceNotFoundException("Lot not found");
         }
         return lot;
     }

@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -77,6 +78,7 @@ public class AuthController {
     @Data
     public static class ChangePasswordRequest {
         @NotBlank(message = "Current password is required")
+        @Size(max = PasswordPolicy.MAX_LENGTH, message = "Password must be at most 72 characters")
         private String currentPassword;
 
         @NotBlank(message = "New password is required")

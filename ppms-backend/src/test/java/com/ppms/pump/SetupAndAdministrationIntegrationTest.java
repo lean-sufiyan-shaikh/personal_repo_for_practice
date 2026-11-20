@@ -16,11 +16,13 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
@@ -250,6 +252,48 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
         assertThat(json(perform(get("/api/super-admin/owners"), superAdmin).andExpect(status().isOk())).toString())
                 .contains("New Owner");
         perform(get("/api/super-admin/analytics"), superAdmin).andExpect(status().isOk());
+    }
+
+    @Test
+    void onboardingAnOwnerWithAWeakPasswordIsRejected() throws Exception {
+        User superAdmin = saveUser(UserRole.SUPER_ADMIN, null);
+        Map<String, Object> onboard = Map.of("fullName", "Weak Owner", "phoneNumber", "8" + String.format("%09d", System.nanoTime() % 1_000_000_000L),
+                "password", "simple", "pumpName", "Weak Pump", "pumpAddress", "Highway 2", "maxDuCount", 2);
+
+        perform(post("/api/super-admin/onboard-owner"), superAdmin, onboard).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void staffListHidesPhoneNumbersAndPayRatesFromManagers() throws Exception {
+        JsonNode forOwner = json(perform(get("/api/users/staff").param("pumpId", setup.pumpId().toString()), setup.owner())
+                .andExpect(status().isOk()));
+        JsonNode forManager = json(perform(get("/api/users/staff").param("pumpId", setup.pumpId().toString()), setup.manager())
+                .andExpect(status().isOk()));
+
+        assertThat(forOwner.get(0).get("phoneNumber").isNull()).isFalse();
+        for (JsonNode member : forManager) {
+            assertThat(member.get("phoneNumber").isNull()).isTrue();
+            assertThat(member.get("dailyRate").isNull()).isTrue();
+            assertThat(member.get("standardHourlyRate").isNull()).isTrue();
+        }
+    }
+
+    @Test
+    void ownerCanDeleteAnUnusedPumpButNotOneWithShiftsAndNobodyElseCan() throws Exception {
+        PumpLocation unused = pumpLocationRepository.save(PumpLocation.builder()
+                .ownerId(setup.owner().getId()).name("Unused " + shortId()).address("Nowhere").maxDuCount(1).build());
+        perform(delete("/api/pumps/{pumpId}", setup.pumpId()), setup.admin()).andExpect(status().isForbidden());
+
+        perform(post("/api/pumps/{pumpId}/shifts/open", setup.pumpId()), setup.manager(),
+                Map.of("duId", setup.du().getId(), "nozzleIds", List.of(setup.nozzle().getId()),
+                        "operatorId", setup.operator().getId()))
+                .andExpect(status().is2xxSuccessful());
+        perform(delete("/api/pumps/{pumpId}", setup.pumpId()), setup.owner())
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("shifts on record")));
+
+        perform(delete("/api/pumps/{pumpId}", unused.getId()), setup.owner()).andExpect(status().isNoContent());
+        assertThat(pumpLocationRepository.findById(unused.getId())).isEmpty();
     }
 
     @Test

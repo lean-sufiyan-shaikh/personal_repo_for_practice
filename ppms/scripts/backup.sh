@@ -17,7 +17,10 @@ BACKUP_DIR="${BACKUP_DIR:-/home/ubuntu/backups}"
 TIMESTAMP="$(date +%Y-%m-%d_%H-%M-%S)"
 BACKUP_FILE="${BACKUP_DIR}/ppms_${TIMESTAMP}.dump"
 
+# Dumps contain every client's data; only the backup user may read them.
+umask 077
 mkdir -p "${BACKUP_DIR}"
+chmod 700 "${BACKUP_DIR}"
 
 docker exec ppms-postgres pg_dump \
   -U "${POSTGRES_USER}" \

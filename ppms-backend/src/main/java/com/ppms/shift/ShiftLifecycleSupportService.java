@@ -1,11 +1,11 @@
 package com.ppms.shift;
 
-import com.ppms.common.time.BusinessClock;
 import com.ppms.cash.CashEvent;
 import com.ppms.cash.CashEventRepository;
 import com.ppms.cash.CashEventType;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
 import com.ppms.fuel.FuelType;
@@ -30,11 +30,14 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -248,11 +251,21 @@ public class ShiftLifecycleSupportService {
     }
 
     public List<CloseShiftRequest.CreditEntryRequest> validateCloseCreditEntries(Long shiftId, BigDecimal creditTotal,
-                                                                                  List<CloseShiftRequest.CreditEntryRequest> creditEntries) {
+                                                                                  List<CloseShiftRequest.CreditEntryRequest> creditEntries,
+                                                                                  Collection<Long> replacedEntryIds) {
         List<CloseShiftRequest.CreditEntryRequest> safeEntries = creditEntries == null ? Collections.emptyList() : creditEntries;
-
-        BigDecimal preExistingCreditSum = creditEntryRepository.findByShiftId(shiftId).stream()
+        Set<Long> replacedIds = replacedEntryIds == null ? Set.of() : new HashSet<>(replacedEntryIds);
+        List<ShiftCreditEntry> shiftEntries = creditEntryRepository.findByShiftId(shiftId);
+        Set<Long> activeEntryIds = shiftEntries.stream()
                 .filter(e -> !"VOIDED".equals(e.getVoidStatus()))
+                .map(ShiftCreditEntry::getId)
+                .collect(Collectors.toSet());
+        if (!activeEntryIds.containsAll(replacedIds)) {
+            throw new BusinessException("Only active credit entries of this shift can be replaced at close.");
+        }
+
+        BigDecimal preExistingCreditSum = shiftEntries.stream()
+                .filter(e -> activeEntryIds.contains(e.getId()) && !replacedIds.contains(e.getId()))
                 .map(ShiftCreditEntry::getAmount)
                 .reduce(ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
@@ -276,6 +289,24 @@ public class ShiftLifecycleSupportService {
             }
         }
         return safeEntries;
+    }
+
+    public void voidReplacedCreditEntries(Collection<Long> replacedEntryIds, User currentUser) {
+        if (replacedEntryIds == null || replacedEntryIds.isEmpty()) {
+            return;
+        }
+        List<ShiftCreditEntry> replaced = creditEntryRepository.findAllById(replacedEntryIds);
+        creditAccountPolicyService.lockLimitHoldersOfClients(replaced.stream()
+                .map(ShiftCreditEntry::getClientId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet()));
+        for (ShiftCreditEntry entry : replaced) {
+            entry.setVoidStatus("VOIDED");
+            entry.setVoidReason("Replaced by a corrected entry at shift close");
+            entry.setVoidedByUserId(currentUser.getId());
+            entry.setVoidedAt(businessClock.now());
+        }
+        creditEntryRepository.saveAll(replaced);
     }
 
     public void persistCloseCreditEntries(Long shiftId, Long pumpId, List<CloseShiftRequest.CreditEntryRequest> creditEntries) {

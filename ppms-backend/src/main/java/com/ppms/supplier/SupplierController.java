@@ -1,12 +1,10 @@
 package com.ppms.supplier;
 
 import com.ppms.common.exception.ResourceNotFoundException;
-import com.ppms.user.User;
-import com.ppms.user.UserRole;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,10 +21,9 @@ public class SupplierController {
      * Returns all active suppliers for a pump, alphabetically sorted.
      */
     @GetMapping("/{pumpId}/suppliers")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     public List<FuelSupplier> getSuppliers(
-            @PathVariable Long pumpId,
-            @AuthenticationPrincipal User currentUser) {
-        requireOwnerOrAdmin(currentUser);
+            @PathVariable Long pumpId) {
         return supplierRepository.findByPumpIdAndActiveTrueOrderByNameAsc(pumpId);
     }
 
@@ -36,12 +33,10 @@ public class SupplierController {
      */
     @PostMapping("/{pumpId}/suppliers")
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     public FuelSupplier createSupplier(
             @PathVariable Long pumpId,
-            @Valid @RequestBody UpsertSupplierRequest req,
-            @AuthenticationPrincipal User currentUser) {
-        requireOwnerOrAdmin(currentUser);
-
+            @Valid @RequestBody UpsertSupplierRequest req) {
         FuelSupplier supplier = FuelSupplier.builder()
                 .pumpId(pumpId)
                 .name(req.getName().trim())
@@ -59,13 +54,11 @@ public class SupplierController {
      * Updates an existing supplier's details.
      */
     @PutMapping("/{pumpId}/suppliers/{supplierId}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     public FuelSupplier updateSupplier(
             @PathVariable Long pumpId,
             @PathVariable Long supplierId,
-            @Valid @RequestBody UpsertSupplierRequest req,
-            @AuthenticationPrincipal User currentUser) {
-        requireOwnerOrAdmin(currentUser);
-
+            @Valid @RequestBody UpsertSupplierRequest req) {
         FuelSupplier supplier = supplierRepository.findByIdAndPumpId(supplierId, pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Supplier not found"));
 
@@ -85,25 +78,14 @@ public class SupplierController {
      */
     @DeleteMapping("/{pumpId}/suppliers/{supplierId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('OWNER')")
     public void deactivateSupplier(
             @PathVariable Long pumpId,
-            @PathVariable Long supplierId,
-            @AuthenticationPrincipal User currentUser) {
-        if (currentUser.getRole() != UserRole.OWNER) {
-            throw new com.ppms.common.exception.BusinessException("Only Owner can remove suppliers.");
-        }
-
+            @PathVariable Long supplierId) {
         FuelSupplier supplier = supplierRepository.findByIdAndPumpId(supplierId, pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Supplier not found"));
 
         supplier.setActive(false);
         supplierRepository.save(supplier);
-    }
-
-    private void requireOwnerOrAdmin(User user) {
-        if (user.getRole() != UserRole.OWNER && user.getRole() != UserRole.ADMIN) {
-            throw new com.ppms.common.exception.BusinessException(
-                    "Only Owner or Admin can manage suppliers.");
-        }
     }
 }

@@ -26,6 +26,8 @@ public interface PumpLocationRepository extends JpaRepository<PumpLocation, Long
     /** Used by PumpAccessInterceptor to verify a pump belongs to a given OWNER. */
     boolean existsByIdAndOwnerId(Long id, Long ownerId);
 
+    boolean existsByIdAndEnabledTrue(Long id);
+
     /** Acquires a row-level write lock on the pump row.
      *  Use this before any operation that requires serializing concurrent writes scoped to one pump
      *  (e.g. cash-drawer balance check + insert). */

@@ -380,4 +380,6 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
             @Param("nozzleId") Long nozzleId,
             @Param("shiftDate") LocalDate shiftDate,
             @Param("shiftDefinitionId") Long shiftDefinitionId);
+
+    boolean existsByPumpId(Long pumpId);
 }

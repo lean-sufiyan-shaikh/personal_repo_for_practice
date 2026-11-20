@@ -146,6 +146,37 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void correctedCreditEntryReplacesTheOriginalOnlyWhenTheShiftCloses() throws Exception {
+        long clientId = createCreditClient();
+        long shiftId = openShift();
+        JsonNode withEntry = json(perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId),
+                setup.operator(), Map.of("clientName", "Fleet Co", "clientId", clientId,
+                        "amount", new BigDecimal("250.00"), "fuelType", "PETROL"))
+                .andExpect(status().is2xxSuccessful()));
+        long originalEntryId = withEntry.get("creditEntries").get(0).get("id").asLong();
+        Map<String, Object> corrected = new HashMap<>();
+        corrected.put("clientName", "Fleet Co");
+        corrected.put("clientId", clientId);
+        corrected.put("amount", new BigDecimal("300.00"));
+        corrected.put("fuelType", "PETROL");
+
+        Map<String, Object> failingClose = closeRequest("1010.000", "700.00", "550.00", List.of(corrected), null);
+        failingClose.put("replacedCreditEntryIds", List.of(originalEntryId));
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId), setup.manager(), failingClose)
+                .andExpect(status().isBadRequest());
+        assertThat(outstandingOf(clientId)).isEqualByComparingTo("250.00");
+
+        Map<String, Object> close = closeRequest("1010.000", "700.00", "300.00", List.of(corrected), null);
+        close.put("replacedCreditEntryIds", List.of(originalEntryId));
+        JsonNode closed = json(perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
+                setup.manager(), close)
+                .andExpect(status().is2xxSuccessful()));
+
+        assertThat(closed.get("status").asText()).isEqualTo("CLOSED_BALANCED");
+        assertThat(outstandingOf(clientId)).isEqualByComparingTo("300.00");
+    }
+
+    @Test
     void closingAShiftTwiceIsRefused() throws Exception {
         long shiftId = openShift();
         Map<String, Object> request = closeRequest("1010.000", "1000.00", "0", List.of(), null);

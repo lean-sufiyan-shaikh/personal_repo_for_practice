@@ -9,9 +9,6 @@ import com.ppms.cash.CashEventType;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditClientRepository;
-import com.ppms.settlement.PaymentSettlement;
-import com.ppms.settlement.PaymentSettlementRepository;
-import com.ppms.settlement.SettlementPaymentType;
 import com.ppms.transaction.TransactionPaymentMode;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
@@ -40,7 +37,6 @@ public class AncillaryInventoryWorkflowService {
     private final AncillaryLotConsumptionRepository consumptionRepository;
     private final AncillarySaleRepository saleRepository;
     private final CashEventRepository cashEventRepository;
-    private final PaymentSettlementRepository settlementRepository;
     private final AncillaryProductAccessService accessService;
     private final CreditClientRepository creditClientRepository;
     private final AuditService auditService;
@@ -294,23 +290,19 @@ public class AncillaryInventoryWorkflowService {
     public SaleResult backfillSale(Long pumpId, BackfillSaleRequest request, User currentUser) {
         ZoneId ist = businessClock.zone();
 
-        // 1. Validate saleDate is strictly in the past
         if (!request.getSaleDate().isBefore(businessClock.today())) {
             throw new BusinessException(
                     "Sale date must be strictly in the past. Use the regular Sell button for today's sales.");
         }
 
-        if (request.getPaymentMode() == com.ppms.transaction.TransactionPaymentMode.CREDIT
+        if (request.getPaymentMode() == TransactionPaymentMode.CREDIT
                 && (request.getClientName() == null || request.getClientName().isBlank())) {
             throw new BusinessException("Client name is required for CREDIT payment mode.");
         }
 
-        // 2. Load product
         AncillaryProduct product = accessService.requireProductForPumpForUpdate(request.getProductId(), pumpId);
 
-        // 3. Resolve price effective on saleDate.
-        //    Use start-of-next-day IST as the upper bound so prices set anytime on saleDate
-        //    are included.
+        // A price set at any time on the sale date applies to that day's sales.
         OffsetDateTime endOfSaleDay = request.getSaleDate().plusDays(1)
                 .atStartOfDay(ist)
                 .toOffsetDateTime();
@@ -322,11 +314,9 @@ public class AncillaryInventoryWorkflowService {
                         "' on or before " + request.getSaleDate() +
                         ". Set a price first (even a historical one) before backfilling this sale."));
 
-        // 4. Fetch active lots delivered on or before saleDate (pessimistic lock).
         List<AncillaryStockLot> historicalLots = lotRepository
                 .findActiveLotsByProductAvailableOnDate(request.getProductId(), request.getSaleDate());
 
-        // 5. Check total available quantity across those historical lots.
         int availableOnDate = historicalLots.stream()
                 .mapToInt(AncillaryStockLot::getRemainingQuantity)
                 .sum();
@@ -339,12 +329,10 @@ public class AncillaryInventoryWorkflowService {
                     " units. Record a historical stock delivery first.");
         }
 
-        // 6. Compute amounts using the historical price.
         BigDecimal sellingPrice = historicalPrice.getPricePerUnit();
         BigDecimal totalAmount = sellingPrice.multiply(new BigDecimal(request.getQuantityUnits()))
                 .setScale(2, RoundingMode.HALF_UP);
 
-        // 7. Persist the sale (is_backfilled = true, saleDate = historical date).
         AncillarySale sale = saleRepository.save(AncillarySale.builder()
                 .pumpId(pumpId)
                 .productId(product.getId())
@@ -362,16 +350,14 @@ public class AncillaryInventoryWorkflowService {
                 .isBackfilled(true)
                 .build());
 
-        // 8. FIFO deduction — restricted to lots available on the historical date.
         deductFromSpecificLots(historicalLots, sale.getId(), request.getQuantityUnits());
 
-        // 9. Decrement live product stock.
         product.setCurrentStockUnits(product.getCurrentStockUnits() - request.getQuantityUnits());
         productRepository.save(product);
 
-        // 10. Cash event dated to the historical sale date for correct daily cash reconciliation.
+        // Dated to the sale day so that day's cash reconciliation includes it.
         CashEvent cashEvent = null;
-        if (request.getPaymentMode() == com.ppms.transaction.TransactionPaymentMode.CASH) {
+        if (request.getPaymentMode() == TransactionPaymentMode.CASH) {
             cashEvent = cashEventRepository.save(CashEvent.builder()
                     .pumpId(pumpId)
                     .eventType(CashEventType.CASH_IN)
@@ -381,23 +367,6 @@ public class AncillaryInventoryWorkflowService {
                     .eventDate(request.getSaleDate())
                     .recordedByUserId(currentUser.getId())
                     .build());
-        }
-
-        // 11. Auto-settle digital payments from this backfilled sale.
-        // Past-date sales are assumed to have already been received in the bank —
-        // auto-creating a settlement record keeps the wallet pending balance accurate.
-        SettlementPaymentType settlementType = toSettlementType(request.getPaymentMode());
-        if (settlementType != null) {
-            settlementRepository.save(PaymentSettlement.builder()
-                    .pumpId(pumpId)
-                    .paymentType(settlementType)
-                    .settlementDate(request.getSaleDate())
-                    .amountReceived(totalAmount)
-                    .notes("Auto-settled from backfilled product sale #" + sale.getId())
-                    .recordedByUserId(currentUser.getId())
-                    .build());
-            log.info("Auto-settled backfilled product {} payment: pump={}, saleId={}, amount={}, date={}",
-                    settlementType, pumpId, sale.getId(), totalAmount, request.getSaleDate());
         }
 
         log.info("Ancillary sale backfilled: pump={}, productId={}, saleId={}, saleDate={}, units={}, price={}, by={}",
@@ -456,19 +425,6 @@ public class AncillaryInventoryWorkflowService {
             remaining -= consume;
         }
         return remaining;
-    }
-
-    /**
-     * Maps a TransactionPaymentMode to its corresponding SettlementPaymentType.
-     * Returns null for CASH and CREDIT — those modes do not require settlement tracking.
-     */
-    private static SettlementPaymentType toSettlementType(TransactionPaymentMode mode) {
-        return switch (mode) {
-            case UPI        -> SettlementPaymentType.UPI;
-            case CARD       -> SettlementPaymentType.CARD;
-            case FLEET_CARD -> SettlementPaymentType.FLEET_CARD;
-            default         -> null;
-        };
     }
 
     @Getter

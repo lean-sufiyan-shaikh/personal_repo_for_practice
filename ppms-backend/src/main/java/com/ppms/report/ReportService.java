@@ -2,6 +2,7 @@ package com.ppms.report;
 
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditClient;
+import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditClientRepository;
 import com.ppms.credit.CreditInterestCharge;
 import com.ppms.credit.CreditInterestChargeRepository;
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -52,6 +54,7 @@ public class ReportService {
     private final CreditClientRepository creditClientRepository;
     private final TankerDeliveryRepository tankerDeliveryRepository;
     private final UndergroundTankRepository undergroundTankRepository;
+    private final BusinessClock businessClock;
 
     // ── P&L Report ────────────────────────────────────────────────────────────
 
@@ -127,11 +130,11 @@ public class ReportService {
             LocalDate deliveryDate;
             if (lot.getIsDipAdjustment() || lot.getTankerDeliveryId() == null) {
                 tankerRef    = "DIP Adjustment";
-                deliveryDate = lot.getDeliveryDate().toLocalDate();
+                deliveryDate = businessDateOf(lot.getDeliveryDate());
             } else {
                 TankerDelivery delivery = deliveryById.get(lot.getTankerDeliveryId());
                 tankerRef    = delivery != null ? delivery.getInvoiceReference() : "—";
-                deliveryDate = delivery != null ? delivery.getDeliveryDate().toLocalDate() : lot.getDeliveryDate().toLocalDate();
+                deliveryDate = businessDateOf(delivery != null ? delivery.getDeliveryDate() : lot.getDeliveryDate());
             }
 
             lotLinesByFuel.computeIfAbsent(fuelType, k -> new ArrayList<>())
@@ -714,5 +717,9 @@ public class ReportService {
                 BigDecimal totalRemaining,
                 BigDecimal weightedAvgCostPerUnit,
                 BigDecimal totalStockValue) {}
+    }
+
+    private LocalDate businessDateOf(OffsetDateTime moment) {
+        return moment.atZoneSameInstant(businessClock.zone()).toLocalDate();
     }
 }

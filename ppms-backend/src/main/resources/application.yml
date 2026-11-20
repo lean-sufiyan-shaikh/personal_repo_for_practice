@@ -2,7 +2,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/ppms}
     username: ${DB_USER:ppms_user}
-    password: ${DB_PASS:ppms_pass}
+    password: ${DB_PASS:}
     driver-class-name: org.postgresql.Driver
     hikari:
       # Bounds every row-lock wait (SELECT ... FOR UPDATE); Hibernate ignores lock-timeout hints on PostgreSQL.
@@ -46,14 +46,13 @@ spring:
 
   # Email / SMTP — used for password reset link delivery.
   # Set MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS as environment variables in production.
-  # For local dev, these default to a non-functional placeholder — password reset emails will not send
-  # but the application will still start. Configure a real SMTP server (e.g. Gmail SMTP, AWS SES)
+  # Without them, password reset emails will not send but the application will still start. Configure a real SMTP server (e.g. Gmail SMTP, AWS SES)
   # before enabling password reset in a live environment.
   mail:
     host: ${MAIL_HOST:smtp.example.com}
     port: ${MAIL_PORT:587}
     username: ${MAIL_USER:noreply@example.com}
-    password: ${MAIL_PASS:changeme}
+    password: ${MAIL_PASS:}
     default-encoding: UTF-8
     properties:
       mail:
@@ -64,6 +63,9 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
+  # Tomcat's RemoteIpValve trusts X-Forwarded-Proto/For only from internal (private-range) proxies such as nginx,
+  # so HTTPS is recognised behind nginx and HSTS is sent; ClientIpResolver still applies its own proxy list.
+  forward-headers-strategy: native
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}

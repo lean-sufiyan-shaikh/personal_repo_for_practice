@@ -149,7 +149,7 @@ public class ExpenseController {
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
         if (!expense.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Expense does not belong to this pump");
+            throw new ResourceNotFoundException("Expense not found");
         }
 
         if (expense.getApprovalStatus() != ExpenseApprovalStatus.DRAFT) {
@@ -190,7 +190,7 @@ public class ExpenseController {
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
         if (!expense.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Expense does not belong to this pump");
+            throw new ResourceNotFoundException("Expense not found");
         }
 
         if (expense.getApprovalStatus() != ExpenseApprovalStatus.PENDING_APPROVAL) {
@@ -224,7 +224,7 @@ public class ExpenseController {
         PumpExpense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
         if (!expense.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Expense does not belong to this pump");
+            throw new ResourceNotFoundException("Expense not found");
         }
         if (expense.getApprovalStatus() != ExpenseApprovalStatus.DRAFT) {
             throw new BusinessException(

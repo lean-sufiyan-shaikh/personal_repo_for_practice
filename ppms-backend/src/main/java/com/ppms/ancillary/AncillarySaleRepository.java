@@ -24,4 +24,8 @@ public interface AncillarySaleRepository extends JpaRepository<AncillarySale, Lo
 
     List<AncillarySale> findByPumpIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(
             Long pumpId, OffsetDateTime from, OffsetDateTime to);
+
+    boolean existsByClientId(Long clientId);
+
+    boolean existsByIdAndPumpId(Long id, Long pumpId);
 }

@@ -93,6 +93,15 @@ public class CreditAccountPolicyService {
         return holder;
     }
 
+    /** Locks the limit holders of several clients, in holder id order. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void lockLimitHoldersOfClients(Collection<Long> clientIds) {
+        List<Long> holderIds = creditClientRepository.findAllById(clientIds).stream()
+                .map(this::limitHolderId)
+                .toList();
+        lockLimitHolders(holderIds);
+    }
+
     @Transactional(propagation = Propagation.MANDATORY)
     public void lockLimitHolderOfClient(Long clientId) {
         CreditClient client = creditClientRepository.findById(clientId)

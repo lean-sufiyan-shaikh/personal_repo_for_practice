@@ -21,6 +21,8 @@ cd "$PROJECT_DIR/ppms-backend"
 # The backend refuses to start without JWT_SECRET; generate a throwaway one for local runs.
 export JWT_SECRET="${JWT_SECRET:-$(openssl rand -base64 48)}"
 export COOKIE_SECURE="${COOKIE_SECURE:-false}"
+# Matches the local-only Postgres in docker-compose.yml; production sets its own password.
+export DB_PASS="${DB_PASS:-ppms_pass}"
 mvn spring-boot:run -q &
 BACKEND_PID=$!
 echo "      Backend PID: $BACKEND_PID"

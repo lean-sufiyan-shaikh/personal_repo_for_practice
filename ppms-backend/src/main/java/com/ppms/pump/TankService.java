@@ -7,7 +7,6 @@ import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -105,7 +104,7 @@ public class TankService {
         UndergroundTank tank = tankRepository.findByIdForUpdate(tankId)
                 .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
         if (!tank.getPumpId().equals(pumpId)) {
-            throw new AccessDeniedException("Tank does not belong to pump " + pumpId);
+            throw new ResourceNotFoundException("Tank not found");
         }
         return tank;
     }

@@ -44,7 +44,28 @@ class PumpAccessInterceptorTest {
     void ownerIsAllowedForOwnPump() throws Exception {
         signInAs(User.builder().id(1L).role(UserRole.OWNER).build());
         when(pumpLocationRepository.existsByIdAndOwnerId(7L, 1L)).thenReturn(true);
+        when(pumpLocationRepository.existsByIdAndEnabledTrue(7L)).thenReturn(true);
 
+        assertThat(interceptor.preHandle(requestFor("/api/pumps/7/shifts", Map.of("pumpId", "7")),
+                new MockHttpServletResponse(), handler)).isTrue();
+    }
+
+    @Test
+    void ownerAndStaffAreRejectedForASuspendedPumpButSuperAdminIsNot() throws Exception {
+        when(pumpLocationRepository.existsByIdAndOwnerId(7L, 1L)).thenReturn(true);
+        when(pumpLocationRepository.existsByIdAndEnabledTrue(7L)).thenReturn(false);
+
+        signInAs(User.builder().id(1L).role(UserRole.OWNER).build());
+        MockHttpServletResponse ownerResponse = new MockHttpServletResponse();
+        assertThat(interceptor.preHandle(requestFor("/api/pumps/7/shifts", Map.of("pumpId", "7")), ownerResponse, handler)).isFalse();
+        assertThat(ownerResponse.getStatus()).isEqualTo(403);
+        assertThat(ownerResponse.getContentAsString()).contains("Pump is suspended");
+
+        signInAs(User.builder().id(2L).role(UserRole.OPERATOR).assignedPumpId(7L).build());
+        assertThat(interceptor.preHandle(requestFor("/api/pumps/7/shifts", Map.of("pumpId", "7")),
+                new MockHttpServletResponse(), handler)).isFalse();
+
+        signInAs(User.builder().id(3L).role(UserRole.SUPER_ADMIN).build());
         assertThat(interceptor.preHandle(requestFor("/api/pumps/7/shifts", Map.of("pumpId", "7")),
                 new MockHttpServletResponse(), handler)).isTrue();
     }

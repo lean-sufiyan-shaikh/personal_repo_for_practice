@@ -65,4 +65,8 @@ public interface CreditPaymentRepository extends JpaRepository<CreditPayment, Lo
     /** Returns all payments pending approval for a pump — for Owner/Admin approval queue. */
     @Query("SELECT p FROM CreditPayment p WHERE p.pumpId = :pumpId AND p.paymentApprovalStatus = 'PENDING_APPROVAL' ORDER BY p.createdAt ASC")
     List<CreditPayment> findPendingApprovalByPumpId(@Param("pumpId") Long pumpId);
+
+    boolean existsByClientId(Long clientId);
+
+    boolean existsByIdAndPumpId(Long id, Long pumpId);
 }

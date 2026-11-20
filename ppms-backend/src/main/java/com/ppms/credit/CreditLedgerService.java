@@ -46,10 +46,7 @@ public class CreditLedgerService {
 
     /**
      * Records a payment settlement against a client's outstanding balance.
-     *
-     * Bug 1 fix: for parent accounts the overpayment guard now checks the combined
-     * outstanding (parent + all sub-accounts), not just the parent's own balance.
-     * Previously a parent with ₹0 own but ₹200k in children would block any payment.
+     * A payment can never exceed what the whole client group still owes.
      */
     @Transactional
     public CreditPayment recordPayment(Long pumpId, Long clientId,
@@ -59,7 +56,7 @@ public class CreditLedgerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Credit client not found"));
 
         if (!client.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Client does not belong to this pump");
+            throw new ResourceNotFoundException("Client not found");
         }
 
         creditAccountPolicyService.lockLimitHolder(client);
@@ -119,7 +116,7 @@ public class CreditLedgerService {
         }
 
         if (!charge.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Interest charge does not belong to this pump");
+            throw new ResourceNotFoundException("Interest charge not found");
         }
 
         creditAccountPolicyService.lockLimitHolderOfClient(clientId);
@@ -133,10 +130,6 @@ public class CreditLedgerService {
 
     /**
      * Moves a credit entry from its current account to a different account within the same group.
-     *
-     * Bug 6 fix: when the entry has no prior clientId (was never linked), the audit record
-     * previously stored fromClientId = toClientId, making it look like a no-op. Now it stores
-     * null explicitly so the audit trail accurately reflects "previously unlinked → toClient".
      */
     @Transactional
     public void reassignCreditEntry(Long pumpId, Long entryId,
@@ -148,13 +141,13 @@ public class CreditLedgerService {
         Shift shift = shiftRepository.findById(entry.getShiftId())
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
         if (!shift.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Credit entry does not belong to this pump");
+            throw new ResourceNotFoundException("Credit entry not found");
         }
 
         CreditClient toClient = clientRepository.findById(request.getToClientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Target credit client not found"));
         if (!toClient.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Target client does not belong to this pump");
+            throw new ResourceNotFoundException("Target client not found");
         }
 
         if (entry.getClientId() != null && entry.getClientId().equals(request.getToClientId())) {
@@ -165,13 +158,7 @@ public class CreditLedgerService {
         validateGroupMove(pumpId, fromClientId, request.getToClientId());
         creditAccountPolicyService.lockLimitHolder(toClient);
 
-        // Bug 6 fix: only save an audit record when the entry had a previous client.
-        // When fromClientId is null the entry was never assigned — this is an initial assignment,
-        // not a re-assignment. The old code stored fromClientId = toClientId in this case,
-        // which made the audit log look like a no-op (moved from X to X).
-        // from_client_id is NOT NULL in the schema, so we cannot store null;
-        // skipping the audit record entirely is more accurate than a misleading from==to entry.
-        // The action is still fully captured by the log statement below.
+        // A first assignment has no previous client, and from_client_id cannot be null, so only moves are recorded.
         if (fromClientId != null) {
             reassignmentRepository.save(CreditEntryReassignment.builder()
                     .creditEntryId(entryId)
@@ -201,7 +188,7 @@ public class CreditLedgerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Credit payment not found"));
 
         if (!payment.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Credit payment does not belong to this pump");
+            throw new ResourceNotFoundException("Credit payment not found");
         }
 
         if (payment.getClientId().equals(request.getToClientId())) {
@@ -293,7 +280,7 @@ public class CreditLedgerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Target credit client not found"));
 
         if (!fromClient.getPumpId().equals(pumpId) || !toClient.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Credit accounts do not belong to this pump");
+            throw new ResourceNotFoundException("Credit client not found");
         }
 
         Long fromGroupRoot = fromClient.getParentClientId() != null ? fromClient.getParentClientId() : fromClient.getId();

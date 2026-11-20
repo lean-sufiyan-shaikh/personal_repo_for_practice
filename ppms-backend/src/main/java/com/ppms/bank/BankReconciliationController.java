@@ -1,9 +1,12 @@
 package com.ppms.bank;
 
+import com.ppms.ancillary.AncillarySaleRepository;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.credit.CreditPaymentRepository;
+import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 /**
  * REST controller for bank statement import and reconciliation.
@@ -61,6 +65,9 @@ public class BankReconciliationController {
     private final BankStatementImportRepository importRepository;
     private final BankStatementLineRepository lineRepository;
     private final AuditService auditService;
+    private final ShiftRepository shiftRepository;
+    private final AncillarySaleRepository ancillarySaleRepository;
+    private final CreditPaymentRepository creditPaymentRepository;
 
     /**
      * GET /api/pumps/{pumpId}/bank-reconciliation/imports
@@ -91,7 +98,7 @@ public class BankReconciliationController {
                 .orElseThrow(() -> new ResourceNotFoundException("Import not found"));
 
         if (!statementImport.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Import does not belong to this pump");
+            throw new ResourceNotFoundException("Import not found");
         }
 
         List<StatementLineResponse> lines = lineRepository
@@ -260,11 +267,8 @@ public class BankReconciliationController {
                 .orElseThrow(() -> new ResourceNotFoundException("Statement line not found"));
 
         BankStatementImport statementImport = importRepository.findById(line.getImportId())
-                .orElseThrow(() -> new ResourceNotFoundException("Import not found"));
-
-        if (!statementImport.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Line does not belong to this pump");
-        }
+                .filter(found -> found.getPumpId().equals(pumpId))
+                .orElseThrow(() -> new ResourceNotFoundException("Statement line not found"));
 
         String statusStr = (String) body.get("status");
         if (statusStr == null) throw new BusinessException("status is required (MATCHED or IGNORED)");
@@ -276,10 +280,17 @@ public class BankReconciliationController {
             throw new BusinessException("Invalid status. Allowed: MATCHED, IGNORED, UNMATCHED");
         }
 
+        Long matchedShiftId = extractLong(body, "matchedShiftId");
+        Long matchedSaleId = extractLong(body, "matchedSaleId");
+        Long matchedPaymentId = extractLong(body, "matchedPaymentId");
+        requireOnPump(matchedShiftId, id -> shiftRepository.existsByIdAndPumpId(id, pumpId), "Shift");
+        requireOnPump(matchedSaleId, id -> ancillarySaleRepository.existsByIdAndPumpId(id, pumpId), "Sale");
+        requireOnPump(matchedPaymentId, id -> creditPaymentRepository.existsByIdAndPumpId(id, pumpId), "Payment");
+
         line.setMatchStatus(newStatus);
-        line.setMatchedShiftId(extractLong(body, "matchedShiftId"));
-        line.setMatchedAncillarySaleId(extractLong(body, "matchedSaleId"));
-        line.setMatchedPaymentId(extractLong(body, "matchedPaymentId"));
+        line.setMatchedShiftId(matchedShiftId);
+        line.setMatchedAncillarySaleId(matchedSaleId);
+        line.setMatchedPaymentId(matchedPaymentId);
         line.setMatchNotes((String) body.get("matchNotes"));
 
         lineRepository.save(line);
@@ -290,6 +301,12 @@ public class BankReconciliationController {
         importRepository.save(statementImport);
 
         return ResponseEntity.ok(toLineResponse(line));
+    }
+
+    private void requireOnPump(Long id, Predicate<Long> belongsToPump, String label) {
+        if (id != null && !belongsToPump.test(id)) {
+            throw new ResourceNotFoundException(label + " not found");
+        }
     }
 
     // ── Parsing helpers ────────────────────────────────────────────────────────

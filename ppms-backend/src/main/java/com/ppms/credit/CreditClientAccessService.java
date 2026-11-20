@@ -1,6 +1,5 @@
 package com.ppms.credit;
 
-import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,13 +13,9 @@ public class CreditClientAccessService {
     private final CreditClientRepository clientRepository;
 
     public CreditClient requireClientForPump(Long pumpId, Long clientId) {
-        CreditClient client = clientRepository.findById(clientId)
+        return clientRepository.findById(clientId)
+                .filter(client -> client.getPumpId().equals(pumpId))
                 .orElseThrow(() -> new ResourceNotFoundException("Credit client not found"));
-
-        if (!client.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Client does not belong to this pump");
-        }
-        return client;
     }
 
     public List<CreditClient> loadPumpClients(Long pumpId) {

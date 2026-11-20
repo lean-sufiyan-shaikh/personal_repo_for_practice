@@ -48,7 +48,7 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/documents", "ADMIN", "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/audit-logs", "ADMIN", "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/supplier-payments", "ADMIN", "MANAGER"),
-                Arguments.of("/api/pumps/{pumpId}/suppliers", "ADMIN", null),
+                Arguments.of("/api/pumps/{pumpId}/suppliers", "ADMIN", "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/tankers", "MANAGER", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/calibrations", "MANAGER", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/closures", "OPERATOR", null),

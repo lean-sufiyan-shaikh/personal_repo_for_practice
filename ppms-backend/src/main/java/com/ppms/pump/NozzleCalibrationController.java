@@ -131,7 +131,7 @@ public class NozzleCalibrationController {
         DispensaryUnit du = dispensaryUnitRepository.findById(nozzle.getDuId())
                 .orElseThrow(() -> new ResourceNotFoundException("Dispensary unit not found"));
         if (!du.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Nozzle does not belong to this pump");
+            throw new ResourceNotFoundException("Nozzle not found");
         }
         return nozzle;
     }

@@ -1,18 +1,25 @@
 package com.ppms.settlement;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.ppms.common.time.BusinessClock;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.common.time.BusinessClock;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -24,9 +31,14 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -88,22 +100,30 @@ public class PaymentSettlementService {
         private BigDecimal totalPending;
     }
 
-    @Data @Builder
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
     public static class RecordSettlementRequest {
-        private String     paymentType;   // UPI | CARD | FLEET_CARD
-        private String     settlementDate; // YYYY-MM-DD
+        @NotNull(message = "paymentType is required (UPI, CARD or FLEET_CARD).")
+        private SettlementPaymentType paymentType;
+        @NotNull(message = "settlementDate is required.")
+        @PastOrPresent(message = "settlementDate cannot be in the future.")
+        private LocalDate settlementDate;
+        @NotNull(message = "amountReceived is required.")
+        @DecimalMin(value = "0.00", message = "amountReceived must be a non-negative number.")
         private BigDecimal amountReceived;
-        private String     notes;
+        private String notes;
     }
 
-    @Data @Builder
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
     public static class VoidSettlementRequest {
+        @NotBlank(message = "A reason is required to void a settlement.")
         private String reason;
     }
 
-    @Data @Builder
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
     public static class UpdateConfigRequest {
-        private String  alertTime;  // HH:mm
+        @NotNull(message = "alertTime is required (HH:mm).")
+        @JsonFormat(pattern = "HH:mm")
+        private LocalTime alertTime;
         private boolean enabled;
     }
 
@@ -155,16 +175,7 @@ public class PaymentSettlementService {
     public ConfigResponse upsertConfig(Long pumpId, String paymentTypeStr,
                                        UpdateConfigRequest req, User currentUser) {
         SettlementPaymentType type = parsePaymentType(paymentTypeStr);
-        String[] parts = req.getAlertTime().split(":");
-        if (parts.length < 2) {
-            throw new BusinessException("alertTime must be in HH:mm format.");
-        }
-        java.time.LocalTime alertTime;
-        try {
-            alertTime = java.time.LocalTime.of(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
-        } catch (NumberFormatException | java.time.DateTimeException e) {
-            throw new BusinessException("Invalid alertTime: " + req.getAlertTime());
-        }
+        LocalTime alertTime = req.getAlertTime();
 
         PaymentSettlementConfig cfg = configRepository
                 .findByPumpIdAndPaymentType(pumpId, type)
@@ -206,28 +217,15 @@ public class PaymentSettlementService {
                 .map(PaymentSettlement::getRecordedByUserId)
                 .collect(Collectors.toSet());
         Map<Long, String> names = userRepository.findAllById(userIds).stream()
-                .collect(Collectors.toMap(com.ppms.user.User::getId, com.ppms.user.User::getFullName));
+                .collect(Collectors.toMap(User::getId, User::getFullName));
 
         return PagedResponse.of(page.map(s -> toResponse(s, names)));
     }
 
     @Transactional
     public SettlementResponse record(Long pumpId, RecordSettlementRequest req, User currentUser) {
-        SettlementPaymentType type = parsePaymentType(req.getPaymentType());
-
-        if (req.getAmountReceived() == null || req.getAmountReceived().compareTo(BigDecimal.ZERO) < 0) {
-            throw new BusinessException("amountReceived must be a non-negative number.");
-        }
-        if (req.getSettlementDate() == null || req.getSettlementDate().isBlank()) {
-            throw new BusinessException("settlementDate is required.");
-        }
-
-        LocalDate settlementDate;
-        try {
-            settlementDate = LocalDate.parse(req.getSettlementDate());
-        } catch (Exception e) {
-            throw new BusinessException("settlementDate must be in YYYY-MM-DD format.");
-        }
+        SettlementPaymentType type = req.getPaymentType();
+        LocalDate settlementDate = req.getSettlementDate();
         if (settlementDate.isAfter(businessClock.today())) {
             throw new BusinessException("settlementDate cannot be in the future.");
         }
@@ -279,9 +277,6 @@ public class PaymentSettlementService {
      */
     @Transactional
     public SettlementResponse voidSettlement(Long pumpId, Long settlementId, VoidSettlementRequest req, User currentUser) {
-        if (req == null || req.getReason() == null || req.getReason().isBlank()) {
-            throw new BusinessException("A reason is required to void a settlement.");
-        }
         lockPump(pumpId);
         PaymentSettlement settlement = settlementRepository.findByIdAndPumpId(settlementId, pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Settlement not found"));
@@ -303,7 +298,7 @@ public class PaymentSettlementService {
         log.info("Settlement voided: pump={} id={} type={} amount={} by={}",
                 pumpId, settlementId, settlement.getPaymentType(), settlement.getAmountReceived(), currentUser.getId());
 
-        Map<Long, String> names = userRepository.findAllById(java.util.Set.of(settlement.getRecordedByUserId())).stream()
+        Map<Long, String> names = userRepository.findAllById(Set.of(settlement.getRecordedByUserId())).stream()
                 .collect(Collectors.toMap(User::getId, User::getFullName));
         return toResponse(settlement, names);
     }
@@ -349,7 +344,7 @@ public class PaymentSettlementService {
     public PagedResponse<DailySummaryEntry> getDailySummary(Long pumpId, LocalDate from, LocalDate to, Pageable pageable) {
         // Per-date shift collections within the requested window
         List<Object[]> rows = shiftRepository.collectionsGroupedByDate(pumpId, from, to);
-        Map<LocalDate, BigDecimal[]> collections = new java.util.LinkedHashMap<>();
+        Map<LocalDate, BigDecimal[]> collections = new LinkedHashMap<>();
         for (Object[] row : rows) {
             LocalDate date = (LocalDate) row[0];
             collections.put(date, new BigDecimal[]{
@@ -366,16 +361,16 @@ public class PaymentSettlementService {
                 .filter(s -> PaymentSettlement.ACTIVE.equals(s.getVoidStatus()))
                 .toList();
 
-        java.util.Set<Long> recorderIds = allSettlements.stream().map(PaymentSettlement::getRecordedByUserId).collect(Collectors.toSet());
+        Set<Long> recorderIds = allSettlements.stream().map(PaymentSettlement::getRecordedByUserId).collect(Collectors.toSet());
         Map<Long, String> names = recorderIds.isEmpty() ? Map.of()
                 : userRepository.findAllById(recorderIds).stream()
-                        .collect(Collectors.toMap(com.ppms.user.User::getId, com.ppms.user.User::getFullName));
+                        .collect(Collectors.toMap(User::getId, User::getFullName));
 
         Map<LocalDate, List<PaymentSettlement>> settlementsByDate = allSettlements.stream()
                 .collect(Collectors.groupingBy(PaymentSettlement::getSettlementDate));
 
         // Union of dates from both sides — TreeSet iterates ascending by default
-        java.util.TreeSet<LocalDate> allDates = new java.util.TreeSet<>();
+        TreeSet<LocalDate> allDates = new TreeSet<>();
         allDates.addAll(collections.keySet());
         allDates.addAll(settlementsByDate.keySet());
 
@@ -408,8 +403,8 @@ public class PaymentSettlementService {
         // For each settlement, first clear pre-window pending debt, then apply to the
         // oldest outstanding window collections. This means a settlement recorded on
         // May 4 will correctly show April 29's pending as cleared in April 29's row.
-        Map<LocalDate, BigDecimal[]> fifoSettled = new java.util.LinkedHashMap<>();
-        Map<LocalDate, BigDecimal[]> outstanding = new java.util.LinkedHashMap<>();
+        Map<LocalDate, BigDecimal[]> fifoSettled = new LinkedHashMap<>();
+        Map<LocalDate, BigDecimal[]> outstanding = new LinkedHashMap<>();
         for (LocalDate date : allDates) {
             BigDecimal[] col = collections.getOrDefault(date, new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO});
             outstanding.put(date, new BigDecimal[]{col[0], col[1], col[2]});
@@ -456,7 +451,7 @@ public class PaymentSettlementService {
         }
 
         // ── Build response (newest first for display) ─────────────────────────────
-        List<DailySummaryEntry> result = new java.util.ArrayList<>();
+        List<DailySummaryEntry> result = new ArrayList<>();
         for (LocalDate date : allDates.descendingSet()) {
             BigDecimal[] col = collections.getOrDefault(date, new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO});
             BigDecimal[] fs  = fifoSettled.getOrDefault(date, new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO});

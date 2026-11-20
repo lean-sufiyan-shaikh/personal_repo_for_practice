@@ -5,7 +5,6 @@ import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
-import com.ppms.fuel.FuelType;
 import com.ppms.fuel.GlobalFuelPrice;
 import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.pump.TankStatus;
@@ -62,7 +61,7 @@ public class InventoryWorkflowService {
 
         String invoiceRef = request.getInvoiceReference() != null ? request.getInvoiceReference().trim() : null;
         if (invoiceRef != null && !invoiceRef.isBlank()) {
-            assertInvoiceNotRecorded(pumpId, invoiceRef, tank.getFuelType());
+            assertInvoiceNotRecorded(pumpId, invoiceRef, tank);
         }
         validateCostPriceAgainstSellingPrice(pumpId, tank, request.getCostPricePerUnit());
 
@@ -111,11 +110,11 @@ public class InventoryWorkflowService {
             UndergroundTank tank = tankRepository.findById(item.getTankId())
                     .orElseThrow(() -> new ResourceNotFoundException("Tank not found: " + item.getTankId()));
             if (!tank.getPumpId().equals(pumpId)) {
-                throw new BusinessException("Tank " + tank.getTankIdentifier() + " does not belong to this pump");
+                throw new ResourceNotFoundException("Tank " + item.getTankId() + " not found");
             }
             assertTankUsable(tank, pumpId, "recording a delivery");
             assertCapacity(tank, item.getQuantityDelivered());
-            assertInvoiceNotRecorded(pumpId, invoiceRef, tank.getFuelType());
+            assertInvoiceNotRecorded(pumpId, invoiceRef, tank);
 
             BigDecimal costPrice = item.getCostPricePerUnit() != null
                     ? item.getCostPricePerUnit()
@@ -144,10 +143,8 @@ public class InventoryWorkflowService {
     @Transactional
     public TankerDeliveryResponse updateDelivery(Long pumpId, Long deliveryId, UpdateDeliveryRequest request, User currentUser) {
         TankerDelivery delivery = tankerDeliveryRepository.findById(deliveryId)
+                .filter(found -> found.getPumpId().equals(pumpId))
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found"));
-        if (!delivery.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Delivery does not belong to this pump");
-        }
 
         UndergroundTank tank = tankRepository.findByIdForUpdate(delivery.getTankId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
@@ -164,12 +161,8 @@ public class InventoryWorkflowService {
         }
 
         String invoiceRef = request.getInvoiceReference().trim();
-        if (tankerDeliveryRepository.existsByPumpIdAndInvoiceReferenceAndFuelTypeAndIdNot(
-                pumpId, invoiceRef, delivery.getFuelType(), deliveryId)) {
-            throw new BusinessException(
-                    "Invoice '" + invoiceRef + "' already has a " + delivery.getFuelType().name() +
-                    " delivery recorded for this pump. Use a different invoice reference.");
-        }
+        List<TankerDelivery> otherInvoiceLines = otherLinesOfInvoice(pumpId, delivery);
+        assertInvoiceFreeForLines(pumpId, invoiceRef, delivery, otherInvoiceLines);
 
         BigDecimal oldQty = lot.getOriginalQuantity();
         BigDecimal deltaQty = newQty.subtract(oldQty);
@@ -200,11 +193,12 @@ public class InventoryWorkflowService {
         delivery.setDeliveryDate(newDeliveryDateTime);
         delivery.setInvoiceReference(invoiceRef);
         delivery = tankerDeliveryRepository.save(delivery);
+        moveOtherInvoiceLines(otherInvoiceLines, invoiceRef, newDeliveryDateTime);
 
         log.info("Delivery updated: pump={}, delivery={}, fuel={}, oldQty={}L, newQty={}L, invoice={}, by={}",
                 pumpId, deliveryId, delivery.getFuelType(), oldQty, newQty, invoiceRef, currentUser.getId());
 
-        auditService.log(pumpId, AuditAction.DELIVERY_RECORDED,
+        auditService.log(pumpId, AuditAction.DELIVERY_UPDATED,
                 "TankerDelivery", delivery.getId().toString(),
                 "Delivery updated: " + delivery.getFuelType() + " qty " + oldQty + "→" + newQty + "L, " +
                 "cost ₹" + costPrice + "/L, invoice=" + invoiceRef,
@@ -330,7 +324,7 @@ public class InventoryWorkflowService {
         DipCheck check = dipCheckRepository.findById(dipCheckId)
                 .orElseThrow(() -> new ResourceNotFoundException("DIP check not found"));
         if (!check.getPumpId().equals(pumpId)) {
-            throw new BusinessException("DIP check does not belong to this pump");
+            throw new ResourceNotFoundException("DIP check not found");
         }
         if (check.getStatus() != DipCheckStatus.PENDING_REVIEW) {
             throw new BusinessException("DIP check is not pending review (current status: " + check.getStatus() + ")");
@@ -473,7 +467,7 @@ public class InventoryWorkflowService {
         Tanker tanker = tankerRepository.findById(request.getTankerId())
                 .orElseThrow(() -> new BusinessException("Tanker not found: " + request.getTankerId()));
         if (!tanker.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Tanker does not belong to this pump");
+            throw new ResourceNotFoundException("Tanker not found");
         }
         BigDecimal totalQty = request.getItems().stream()
                 .map(RecordBatchDeliveryRequest.LineItem::getQuantityDelivered)
@@ -490,7 +484,7 @@ public class InventoryWorkflowService {
 
     private void assertTankUsable(UndergroundTank tank, Long pumpId, String activity) {
         if (!tank.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Tank does not belong to this pump");
+            throw new ResourceNotFoundException("Tank not found");
         }
         if (tank.getStatus() == TankStatus.INACTIVE) {
             throw new BusinessException(
@@ -512,12 +506,52 @@ public class InventoryWorkflowService {
         }
     }
 
-    /** Same invoice + fuel type + pump is a double entry; the DB unique index is the final safety net. */
-    private void assertInvoiceNotRecorded(Long pumpId, String invoiceRef, FuelType fuelType) {
-        if (tankerDeliveryRepository.existsByPumpIdAndInvoiceReferenceAndFuelType(pumpId, invoiceRef, fuelType)) {
+    /** Lines of a batch invoice share its reference and date, so an edit to either moves the whole invoice. */
+    private List<TankerDelivery> otherLinesOfInvoice(Long pumpId, TankerDelivery delivery) {
+        if (delivery.getInvoiceReference() == null) {
+            return List.of();
+        }
+        return tankerDeliveryRepository.findByPumpIdAndInvoiceReference(pumpId, delivery.getInvoiceReference()).stream()
+                .filter(line -> !line.getId().equals(delivery.getId()))
+                .toList();
+    }
+
+    private void assertInvoiceFreeForLines(Long pumpId, String invoiceRef, TankerDelivery delivery,
+                                           List<TankerDelivery> otherInvoiceLines) {
+        List<TankerDelivery> movingLines = new ArrayList<>(otherInvoiceLines);
+        movingLines.add(delivery);
+        Set<Long> movingIds = new HashSet<>();
+        movingLines.forEach(line -> movingIds.add(line.getId()));
+        for (TankerDelivery line : movingLines) {
+            boolean takenOutsideInvoice = tankerDeliveryRepository.findByPumpIdAndInvoiceReference(pumpId, invoiceRef).stream()
+                    .anyMatch(existing -> existing.getTankId().equals(line.getTankId()) && !movingIds.contains(existing.getId()));
+            if (takenOutsideInvoice) {
+                throw new BusinessException(
+                        "Invoice '" + invoiceRef + "' already has a delivery to the same tank recorded for this pump. " +
+                        "Use a different invoice reference.");
+            }
+        }
+    }
+
+    private void moveOtherInvoiceLines(List<TankerDelivery> otherInvoiceLines, String invoiceRef, OffsetDateTime deliveryDateTime) {
+        for (TankerDelivery line : otherInvoiceLines) {
+            InventoryLot lineLot = inventoryLotRepository.findByTankerDeliveryId(line.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Inventory lot not found for delivery " + line.getId()));
+            assertDeliveryNotAfterFirstUse(lineLot, deliveryDateTime);
+            lineLot.setDeliveryDate(deliveryDateTime);
+            inventoryLotRepository.save(lineLot);
+            line.setInvoiceReference(invoiceRef);
+            line.setDeliveryDate(deliveryDateTime);
+            tankerDeliveryRepository.save(line);
+        }
+    }
+
+    /** Same invoice + tank is a double entry; the DB unique index is the final safety net. */
+    private void assertInvoiceNotRecorded(Long pumpId, String invoiceRef, UndergroundTank tank) {
+        if (tankerDeliveryRepository.existsByPumpIdAndInvoiceReferenceAndTankId(pumpId, invoiceRef, tank.getId())) {
             throw new BusinessException(
-                    "Invoice '" + invoiceRef + "' already has a " + fuelType.name() +
-                    " delivery recorded for this pump. Check the invoice number or use a different reference.");
+                    "Invoice '" + invoiceRef + "' already has a delivery to tank '" + tank.getTankIdentifier() +
+                    "' recorded for this pump. Check the invoice number or use a different reference.");
         }
     }
 

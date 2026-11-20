@@ -34,6 +34,7 @@ import com.ppms.pump.DispensaryUnitRepository;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.settlement.PaymentSettlementService;
+import com.ppms.settlement.SettlementPaymentType;
 import com.ppms.shift.DiscrepancyType;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftCreditEntry;
@@ -51,11 +52,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -82,6 +85,7 @@ class MoneyCorrectnessIntegrationTest {
     @Autowired private CreditClientRepository clientRepository;
     @Autowired private CreditPaymentRepository paymentRepository;
     @Autowired private CreditInterestChargeRepository interestChargeRepository;
+    @Autowired private JdbcTemplate jdbcTemplate;
     @Autowired private PayrollRepository payrollRepository;
     @Autowired private AncillaryProductRepository ancillaryProductRepository;
     @Autowired private AncillaryProductPriceRepository ancillaryPriceRepository;
@@ -245,13 +249,16 @@ class MoneyCorrectnessIntegrationTest {
     void interestRunKeepsOtherClientsWhenOneGroupFails() {
         CreditClient healthyRoot = saveClient(new BigDecimal("2.00"));
         seedOutstandingInterest(healthyRoot, "1000.00", 40);
+        saveCreditSaleOn(healthyRoot, "1000.00", LocalDate.now().minusDays(39));
 
         CreditClient failingRoot = saveClient(new BigDecimal("2.00"));
         seedOutstandingInterest(failingRoot, "1000.00", 40);
+        saveCreditSaleOn(failingRoot, "1000.00", LocalDate.now().minusDays(39));
         CreditClient overflowingChild = saveClient(new BigDecimal("999.99"));
         overflowingChild.setParentClientId(failingRoot.getId());
         clientRepository.save(overflowingChild);
-        seedOutstandingInterest(overflowingChild, "900000000000.00", 400);
+        seedOutstandingInterest(overflowingChild, "1.00", 400);
+        saveCreditSaleOn(overflowingChild, "900000000000.00", LocalDate.now().minusDays(399));
 
         CreditInterestRunService.InterestRunResult result =
                 interestRunService.applyProRataForAllClients(pump.getId(), owner.getId());
@@ -279,8 +286,8 @@ class MoneyCorrectnessIntegrationTest {
     @Test
     void voidedSettlementNoLongerReducesTheWalletAndDuplicatesAreRefused() {
         PaymentSettlementService.RecordSettlementRequest request = PaymentSettlementService.RecordSettlementRequest.builder()
-                .paymentType("UPI")
-                .settlementDate(LocalDate.now().toString())
+                .paymentType(SettlementPaymentType.UPI)
+                .settlementDate(LocalDate.now())
                 .amountReceived(new BigDecimal("79000.00"))
                 .build();
         PaymentSettlementService.SettlementResponse recorded = settlementService.record(pump.getId(), request, manager);
@@ -332,6 +339,76 @@ class MoneyCorrectnessIntegrationTest {
                 .hasMessageContaining("Only an Owner or Admin");
         assertThat(ancillaryWorkflowService.recordSale(pump.getId(), cheapSale, owner).getSale().getSellingPricePerUnit())
                 .isEqualByComparingTo("0.01");
+    }
+
+    @Test
+    void interestChargesOnlyTheDaysASaleWasOutstandingInThePeriod() {
+        CreditClient client = saveClient(new BigDecimal("3.00"));
+        seedChargeEndingOn(client, "500.00", LocalDate.of(2025, 10, 31));
+        saveCreditSaleOn(client, "50000.00", LocalDate.of(2025, 11, 29));
+
+        interestService.applyToClientGroupInNewTransaction(client.getId(), LocalDate.of(2025, 11, 30), "MANUAL", owner.getId());
+
+        CreditInterestCharge charge = interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).get(0);
+        // ₹50,000 × 3% / 30 per day × 2 days (29th and 30th); the earlier ₹500 interest is not charged again
+        assertThat(charge.getAmount()).isEqualByComparingTo("100.00");
+        assertThat(charge.getOutstandingBalance()).isEqualByComparingTo("50000.00");
+        assertThat(charge.getPeriodFrom()).isEqualTo(LocalDate.of(2025, 11, 1));
+    }
+
+    @Test
+    void paymentInTheMiddleOfThePeriodLowersInterestFromItsDate() {
+        CreditClient client = saveClient(new BigDecimal("3.00"));
+        seedChargeEndingOn(client, "0.00", LocalDate.of(2025, 10, 31));
+        saveCreditSaleOn(client, "30000.00", LocalDate.of(2025, 11, 1));
+        CreditPayment payment = savePayment(client, "10000.00", ExpenseApprovalStatus.APPROVED, owner);
+        payment.setPaidAt(LocalDate.of(2025, 11, 16));
+        paymentRepository.save(payment);
+
+        interestService.applyToClientGroupInNewTransaction(client.getId(), LocalDate.of(2025, 11, 30), "MANUAL", owner.getId());
+
+        // 15 days × ₹30,000 × 0.1% + 15 days × ₹20,000 × 0.1%
+        assertThat(interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).get(0).getAmount())
+                .isEqualByComparingTo("750.00");
+    }
+
+    @Test
+    void interestRecoveredCountsOnlyInterestThatPaymentsPaidOff() {
+        CreditClient client = saveClient(new BigDecimal("3.00"));
+        seedChargeEndingOn(client, "500.00", LocalDate.now().minusDays(10));
+
+        assertThat(interestService.computeTotalInterestRecovered(client.getId())).isEqualByComparingTo("0.00");
+
+        savePayment(client, "200.00", ExpenseApprovalStatus.APPROVED, owner);
+
+        assertThat(interestService.computeTotalInterestRecovered(client.getId())).isEqualByComparingTo("200.00");
+    }
+
+    private void saveCreditSaleOn(CreditClient client, String amount, LocalDate day) {
+        Shift shift = saveClosedShift(day, ShiftStatus.CLOSED_BALANCED, null);
+        ShiftCreditEntry entry = creditEntryRepository.save(ShiftCreditEntry.builder()
+                .shiftId(shift.getId())
+                .clientId(client.getId())
+                .clientName(client.getName())
+                .fuelType(FuelType.PETROL.name())
+                .amount(new BigDecimal(amount))
+                .build());
+        jdbcTemplate.update("UPDATE shift_credit_entries SET created_at = ? WHERE id = ?",
+                day.atTime(12, 0).atZone(ZoneId.of("Asia/Kolkata")).toOffsetDateTime(), entry.getId());
+    }
+
+    private void seedChargeEndingOn(CreditClient client, String amount, LocalDate periodTo) {
+        interestChargeRepository.save(CreditInterestCharge.builder()
+                .pumpId(pump.getId())
+                .clientId(client.getId())
+                .amount(new BigDecimal(amount))
+                .outstandingBalance(BigDecimal.ZERO)
+                .rateApplied(BigDecimal.ONE)
+                .daysApplied(1)
+                .periodFrom(periodTo)
+                .periodTo(periodTo)
+                .source("TEST_SEED")
+                .build());
     }
 
     private GeneratePayrollRequest payrollRequest(Shift discrepancyToDeduct) {

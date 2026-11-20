@@ -132,7 +132,7 @@ public class PumpShiftDefinitionService {
         PumpShiftDefinition def = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift definition not found: " + id));
         if (!def.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Shift definition " + id + " does not belong to pump " + pumpId);
+            throw new ResourceNotFoundException("Shift definition " + id + " not found");
         }
         return def;
     }

@@ -79,6 +79,22 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void settlementWithAnUnknownTypeAFutureDateOrNoVoidReasonIsRejected() throws Exception {
+        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
+                Map.of("paymentType", "CHEQUE", "settlementDate", LocalDate.now().toString(), "amountReceived", 10))
+                .andExpect(status().isBadRequest());
+        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
+                Map.of("paymentType", "UPI", "settlementDate", LocalDate.now().plusDays(2).toString(), "amountReceived", 10))
+                .andExpect(status().isBadRequest());
+
+        long settlementId = json(perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
+                settlementBody("40.00")).andExpect(status().is2xxSuccessful())).get("id").asLong();
+        perform(post("/api/pumps/{pumpId}/settlements/{id}/void", setup.pumpId(), settlementId), setup.owner(),
+                Map.of("reason", " "))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void settlementAlertConfigurationIsOwnerOrAdminOnly() throws Exception {
         Map<String, Object> config = Map.of("alertTime", "18:30", "enabled", true);
 

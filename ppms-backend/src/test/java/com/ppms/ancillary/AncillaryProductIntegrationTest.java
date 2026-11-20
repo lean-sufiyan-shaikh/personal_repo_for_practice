@@ -2,6 +2,8 @@ package com.ppms.ancillary;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ppms.support.ApiIntegrationTest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.ResultActions;
@@ -18,6 +20,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class AncillaryProductIntegrationTest extends ApiIntegrationTest {
+
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     private PumpSetup setup;
     private long productId;
@@ -83,6 +87,27 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void backfilledUpiSaleDoesNotCreateASettlement() throws Exception {
+        jdbcTemplate.update("UPDATE ancillary_product_prices SET effective_from = effective_from - INTERVAL '5 days' WHERE product_id = ?", productId);
+        jdbcTemplate.update("UPDATE ancillary_stock_lots SET delivery_date = delivery_date - 5 WHERE product_id = ?", productId);
+        Integer settlementsBefore = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM payment_settlements WHERE pump_id = ?", Integer.class, setup.pumpId());
+        Map<String, Object> request = new HashMap<>();
+        request.put("productId", productId);
+        request.put("saleDate", LocalDate.now().minusDays(1).toString());
+        request.put("quantityUnits", 2);
+        request.put("paymentMode", "UPI");
+
+        perform(post("/api/pumps/{pumpId}/ancillary/sales/backfill", setup.pumpId()), setup.owner(), request)
+                .andExpect(status().is2xxSuccessful());
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM payment_settlements WHERE pump_id = ?", Integer.class, setup.pumpId()))
+                .isEqualTo(settlementsBefore);
+        assertThat(product().get("currentStockUnits").asInt()).isEqualTo(8);
+    }
+
+    @Test
     void salesListShowsRecordedSales() throws Exception {
         sell(2, "450.00").andExpect(status().is2xxSuccessful());
 
@@ -106,7 +131,7 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
     void managerCannotEditProducts() throws Exception {
         perform(patch("/api/pumps/{pumpId}/ancillary/products/{id}", setup.pumpId(), productId), setup.manager(),
                 Map.of("brand", "Shell"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
 
         assertThat(product().get("brand").asText()).isEqualTo("Castrol");
     }

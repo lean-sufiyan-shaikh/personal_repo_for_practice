@@ -4,9 +4,7 @@ import com.ppms.common.dto.PageRequests;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
-import com.ppms.common.exception.BusinessException;
 import com.ppms.user.User;
-import com.ppms.user.UserRole;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -65,13 +63,12 @@ public class AncillaryProductController {
      * Owner/Admin only.
      */
     @PostMapping("/{pumpId}/ancillary/products")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     @Transactional
     public ResponseEntity<AncillaryProductResponse> createProduct(
             @PathVariable Long pumpId,
             @Valid @RequestBody CreateProductRequest request,
             @AuthenticationPrincipal User currentUser) {
-
-        requireOwnerOrAdmin(currentUser);
 
         AncillaryProduct product = workflowService.createProduct(pumpId, request);
 
@@ -88,14 +85,13 @@ public class AncillaryProductController {
      * Owner/Admin only.
      */
     @PatchMapping("/{pumpId}/ancillary/products/{id}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     @Transactional
     public ResponseEntity<AncillaryProductResponse> updateProduct(
             @PathVariable Long pumpId,
             @PathVariable Long id,
             @Valid @RequestBody UpdateProductRequest request,
             @AuthenticationPrincipal User currentUser) {
-
-        requireOwnerOrAdmin(currentUser);
 
         AncillaryProduct product = workflowService.updateProduct(pumpId, id, request);
 
@@ -111,14 +107,13 @@ public class AncillaryProductController {
      * Owner/Admin only.
      */
     @PatchMapping("/{pumpId}/ancillary/products/{id}/status")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     @Transactional
     public ResponseEntity<AncillaryProductResponse> setProductStatus(
             @PathVariable Long pumpId,
             @PathVariable Long id,
             @RequestParam AncillaryProductStatus status,
             @AuthenticationPrincipal User currentUser) {
-
-        requireOwnerOrAdmin(currentUser);
 
         AncillaryProduct product = workflowService.setProductStatus(pumpId, id, status);
 
@@ -148,14 +143,13 @@ public class AncillaryProductController {
      * Owner/Admin only.
      */
     @PostMapping("/{pumpId}/ancillary/products/{id}/prices")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     @Transactional
     public ResponseEntity<AncillaryProductPrice> setPrice(
             @PathVariable Long pumpId,
             @PathVariable Long id,
             @Valid @RequestBody SetProductPriceRequest request,
             @AuthenticationPrincipal User currentUser) {
-
-        requireOwnerOrAdmin(currentUser);
 
         AncillaryProductPrice price = workflowService.setPrice(pumpId, id, request, currentUser);
 
@@ -173,14 +167,13 @@ public class AncillaryProductController {
      * Owner/Admin/Manager.
      */
     @PostMapping("/{pumpId}/ancillary/products/{id}/deliveries")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
     @Transactional
     public ResponseEntity<AncillaryStockDelivery> recordDelivery(
             @PathVariable Long pumpId,
             @PathVariable Long id,
             @Valid @RequestBody RecordStockDeliveryRequest request,
             @AuthenticationPrincipal User currentUser) {
-
-        requireManagerOrAbove(currentUser);
 
         AncillaryInventoryWorkflowService.DeliveryResult result = workflowService.recordDelivery(
                 pumpId, id, request, currentUser);
@@ -233,13 +226,12 @@ public class AncillaryProductController {
      * 5. Only OWNER, ADMIN, MANAGER can record sales.
      */
     @PostMapping("/{pumpId}/ancillary/sales")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
     @Transactional
     public ResponseEntity<AncillarySaleResponse> recordSale(
             @PathVariable Long pumpId,
             @Valid @RequestBody RecordAncillarySaleRequest request,
             @AuthenticationPrincipal User currentUser) {
-
-        requireManagerOrAbove(currentUser);
 
         AncillaryInventoryWorkflowService.SaleResult result = workflowService.recordSale(pumpId, request, currentUser);
         AncillaryProduct product = result.getProduct();
@@ -273,13 +265,12 @@ public class AncillaryProductController {
      * 5. Total available units across those historical lots must cover the requested quantity.
      */
     @PostMapping("/{pumpId}/ancillary/sales/backfill")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     @Transactional
     public ResponseEntity<AncillarySaleResponse> backfillSale(
             @PathVariable Long pumpId,
             @Valid @RequestBody BackfillSaleRequest request,
             @AuthenticationPrincipal User currentUser) {
-
-        requireOwnerOrAdmin(currentUser);
 
         AncillaryInventoryWorkflowService.SaleResult result = workflowService.backfillSale(pumpId, request, currentUser);
         AncillaryProduct product = result.getProduct();
@@ -334,6 +325,7 @@ public class AncillaryProductController {
      * so the product's total stock stays consistent.
      */
     @PatchMapping("/{pumpId}/ancillary/lots/{lotId}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     @Transactional
     public ResponseEntity<AncillaryLotDetailResponse> updateLot(
             @PathVariable Long pumpId,
@@ -341,26 +333,11 @@ public class AncillaryProductController {
             @Valid @RequestBody UpdateLotRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        requireOwnerOrAdmin(currentUser);
-
         AncillaryInventoryWorkflowService.LotCorrectionResult result = workflowService.updateLot(pumpId, lotId, request);
         AncillaryStockLot lot = result.getLot();
 
         log.info("Ancillary lot corrected: pump={}, lotId={}, remainingQty={}, costPrice={}, by={}",
                 pumpId, lotId, lot.getRemainingQuantity(), lot.getCostPricePerUnit(), currentUser.getId());
         return ResponseEntity.ok(queryService.toLotDetailResponse(lot, result.getDelivery()));
-    }
-
-    private void requireOwnerOrAdmin(User user) {
-        if (user.getRole() != UserRole.OWNER && user.getRole() != UserRole.ADMIN
-                && user.getRole() != UserRole.SUPER_ADMIN) {
-            throw new BusinessException("Only Owner or Admin can manage ancillary products and prices.");
-        }
-    }
-
-    private void requireManagerOrAbove(User user) {
-        if (user.getRole() == UserRole.OPERATOR || user.getRole() == UserRole.ACCOUNTANT) {
-            throw new BusinessException("Operators and Accountants cannot record ancillary sales or deliveries.");
-        }
     }
 }

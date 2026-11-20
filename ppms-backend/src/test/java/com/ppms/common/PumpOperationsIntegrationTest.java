@@ -74,6 +74,15 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
         perform(patch("/api/pumps/{pumpId}/bank-reconciliation/lines/{lineId}", setup.pumpId(), lineList.get(0).get("id").asLong()),
                 setup.owner(), Map.of("status", "IGNORED"))
                 .andExpect(status().isOk());
+
+        PumpSetup otherPump = createPumpWithStock("500");
+        long otherPumpShiftId = openShift(otherPump);
+        perform(patch("/api/pumps/{pumpId}/bank-reconciliation/lines/{lineId}", setup.pumpId(), lineList.get(1).get("id").asLong()),
+                setup.owner(), Map.of("status", "MATCHED", "matchedShiftId", otherPumpShiftId))
+                .andExpect(status().isNotFound());
+        perform(patch("/api/pumps/{pumpId}/bank-reconciliation/lines/{lineId}", setup.pumpId(), lineList.get(1).get("id").asLong()),
+                setup.owner(), Map.of("status", "MATCHED", "matchedShiftId", openShift()))
+                .andExpect(status().isOk());
         mockMvc.perform(multipart("/api/pumps/{pumpId}/bank-reconciliation/import", setup.pumpId())
                         .file(file).param("bankName", "HDFC").cookie(loginAs(setup.manager())))
                 .andExpect(status().isForbidden());
@@ -168,9 +177,13 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
     }
 
     private long openShift() throws Exception {
-        return json(perform(post("/api/pumps/{pumpId}/shifts/open", setup.pumpId()), setup.manager(),
-                Map.of("duId", setup.du().getId(), "nozzleIds", List.of(setup.nozzle().getId()),
-                        "operatorId", setup.operator().getId()))
+        return openShift(setup);
+    }
+
+    private long openShift(PumpSetup pump) throws Exception {
+        return json(perform(post("/api/pumps/{pumpId}/shifts/open", pump.pumpId()), pump.manager(),
+                Map.of("duId", pump.du().getId(), "nozzleIds", List.of(pump.nozzle().getId()),
+                        "operatorId", pump.operator().getId()))
                 .andExpect(status().is2xxSuccessful())).get("id").asLong();
     }
 }
