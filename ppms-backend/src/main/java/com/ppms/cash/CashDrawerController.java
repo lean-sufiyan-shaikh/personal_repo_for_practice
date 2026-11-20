@@ -1,10 +1,10 @@
 package com.ppms.cash;
 
+import com.ppms.common.dto.PageRequests;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -41,7 +41,7 @@ public class CashDrawerController {
         // Balance computed via a single DB aggregate — avoids loading all events into heap.
         BigDecimal balance = cashEventRepository.computeBalance(pumpId).setScale(2, RoundingMode.HALF_UP);
 
-        var pageReq = PageRequest.of(page, size);
+        var pageReq = PageRequests.of(page, size);
         var pagedEvents = (eventType != null)
                 ? cashEventRepository.findByPumpIdAndEventTypeOrderByEventDateDescCreatedAtDesc(pumpId, eventType, pageReq)
                 : cashEventRepository.findByPumpIdOrderByEventDateDescCreatedAtDesc(pumpId, pageReq);

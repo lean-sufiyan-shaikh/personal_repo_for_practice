@@ -5,7 +5,6 @@ import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.user.User;
-import com.ppms.user.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -120,6 +119,7 @@ public class BankReconciliationController {
      * warning logged — partial imports are better than failed imports for large CSVs.
      */
     @PostMapping("/import")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'SUPER_ADMIN')")
     @Transactional
     public ResponseEntity<ImportSummaryResponse> importStatement(
             @PathVariable Long pumpId,
@@ -127,8 +127,6 @@ public class BankReconciliationController {
             @RequestParam("bankName") String bankName,
             @RequestParam(value = "accountNumber", required = false) String accountNumber,
             @AuthenticationPrincipal User currentUser) {
-
-        requireOwnerOrAdmin(currentUser);
 
         if (file.isEmpty()) {
             throw new BusinessException("Uploaded file is empty");
@@ -250,14 +248,13 @@ public class BankReconciliationController {
      *   matchNotes        — optional explanation
      */
     @PatchMapping("/lines/{lineId}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'SUPER_ADMIN')")
     @Transactional
     public ResponseEntity<StatementLineResponse> updateLineMatch(
             @PathVariable Long pumpId,
             @PathVariable Long lineId,
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal User currentUser) {
-
-        requireOwnerOrAdmin(currentUser);
 
         BankStatementLine line = lineRepository.findById(lineId)
                 .orElseThrow(() -> new ResourceNotFoundException("Statement line not found"));
@@ -310,14 +307,7 @@ public class BankReconciliationController {
         Object val = body.get(key);
         if (val == null) return null;
         if (val instanceof Number n) return n.longValue();
-        try { return Long.parseLong(val.toString()); } catch (Exception e) { return null; }
-    }
-
-    private void requireOwnerOrAdmin(User user) {
-        if (user.getRole() != UserRole.OWNER && user.getRole() != UserRole.ADMIN
-                && user.getRole() != UserRole.SUPER_ADMIN) {
-            throw new BusinessException("Only Owner or Admin can manage bank reconciliation.");
-        }
+        try { return Long.parseLong(val.toString()); } catch (NumberFormatException e) { return null; }
     }
 
     // ── Response builders ──────────────────────────────────────────────────────

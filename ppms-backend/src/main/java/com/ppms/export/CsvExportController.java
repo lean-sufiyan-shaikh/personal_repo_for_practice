@@ -92,10 +92,8 @@ public class CsvExportController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @AuthenticationPrincipal User currentUser) {
-        List<PumpExpense> expenses = expenseRepository.findByPumpIdOrderByExpenseDateDescCreatedAtDesc(pumpId)
-                .stream()
-                .filter(e -> !e.getExpenseDate().isBefore(from) && !e.getExpenseDate().isAfter(to))
-                .toList();
+        List<PumpExpense> expenses =
+                expenseRepository.findByPumpIdAndExpenseDateBetweenOrderByExpenseDateDescCreatedAtDesc(pumpId, from, to);
 
         StringBuilder csv = new StringBuilder();
         csv.append("Expense ID,Date,Category,Amount,Description\n");

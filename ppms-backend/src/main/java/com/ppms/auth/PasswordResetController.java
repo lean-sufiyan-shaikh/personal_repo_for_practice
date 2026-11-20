@@ -1,5 +1,6 @@
 package com.ppms.auth;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
@@ -18,7 +19,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 
@@ -54,6 +54,7 @@ public class PasswordResetController {
     private final PasswordEncoder            passwordEncoder;
     private final LoginRateLimiterService    rateLimiterService;
     private final ClientIpResolver           clientIpResolver;
+    private final BusinessClock businessClock;
 
     /**
      * POST /api/auth/forgot-password
@@ -87,7 +88,7 @@ public class PasswordResetController {
             PasswordResetToken resetToken = PasswordResetToken.builder()
                     .userId(user.getId())
                     .tokenHash(TokenHashing.sha256Hex(rawToken.toString()))
-                    .expiresAt(OffsetDateTime.now().plusHours(TOKEN_EXPIRY_HOURS))
+                    .expiresAt(businessClock.now().plusHours(TOKEN_EXPIRY_HOURS))
                     .build();
             // Spring Data's save() is @Transactional internally — the token is committed
             // to DB before sendResetEmail() is called below.
@@ -130,7 +131,7 @@ public class PasswordResetController {
             throw new BusinessException("This password reset link has already been used. Please request a new one.");
         }
 
-        if (OffsetDateTime.now().isAfter(resetToken.getExpiresAt())) {
+        if (businessClock.now().isAfter(resetToken.getExpiresAt())) {
             throw new BusinessException("This password reset link has expired. Please request a new one.");
         }
 
@@ -141,7 +142,7 @@ public class PasswordResetController {
         user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
 
-        resetToken.setUsedAt(OffsetDateTime.now());
+        resetToken.setUsedAt(businessClock.now());
         tokenRepository.save(resetToken);
 
         log.info("Password reset completed for userId={}, tokenId={}", user.getId(), resetToken.getId());

@@ -1,5 +1,6 @@
 package com.ppms.credit;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.expense.ApprovalPolicy;
@@ -40,6 +41,7 @@ public class CreditLedgerService {
     private final CreditInterestService interestService;
     private final ApprovalPolicy approvalPolicy;
     private final UserRepository userRepository;
+    private final BusinessClock businessClock;
 
     /**
      * Records a payment settlement against a client's outstanding balance.
@@ -251,7 +253,7 @@ public class CreditLedgerService {
 
         payment.setPaymentApprovalStatus(newStatus);
         payment.setApprovedByUserId(currentUser.getId());
-        payment.setApprovedAt(java.time.OffsetDateTime.now());
+        payment.setApprovedAt(businessClock.now());
         return paymentRepository.save(payment);
     }
 

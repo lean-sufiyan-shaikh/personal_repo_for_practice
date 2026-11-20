@@ -1,5 +1,6 @@
 package com.ppms.scheduler;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.shift.ShiftRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,7 +9,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.List;
 
 /**
@@ -33,11 +33,12 @@ public class OverdueShiftJob {
 
     private final ShiftRepository shiftRepository;
     private final OverdueShiftProcessor overdueShiftProcessor;
+    private final BusinessClock businessClock;
 
     @Scheduled(cron = "0 */5 * * * *")
     @SchedulerLock(name = "OverdueShiftJob", lockAtMostFor = "PT5M", lockAtLeastFor = "PT1M")
     public void processOverdueShifts() {
-        OffsetDateTime now = OffsetDateTime.now(ZoneId.of("Asia/Kolkata"));
+        OffsetDateTime now = businessClock.now();
         List<Long> openShiftIds = shiftRepository.findAllOpenShiftIds();
 
         int markedOverdue = 0;

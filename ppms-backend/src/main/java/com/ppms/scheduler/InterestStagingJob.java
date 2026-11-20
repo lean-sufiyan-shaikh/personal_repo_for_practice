@@ -1,5 +1,6 @@
 package com.ppms.scheduler;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditInterestRunService;
 import com.ppms.credit.InterestPeriod;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +10,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
 
 /**
  * Stages interest charges on a schedule driven by each client's interestPeriod setting:
@@ -30,6 +30,7 @@ import java.time.ZoneId;
 public class InterestStagingJob {
 
     private final CreditInterestRunService interestRunService;
+    private final BusinessClock businessClock;
 
     /**
      * Weekly interest — runs every Monday at 01:00 IST.
@@ -39,7 +40,7 @@ public class InterestStagingJob {
     @SchedulerLock(name = "InterestStagingJob_Weekly", lockAtMostFor = "PT30M", lockAtLeastFor = "PT5M")
     public void stageWeeklyInterest() {
         log.info("InterestStagingJob_Weekly started");
-        LocalDate periodTo = LocalDate.now(ZoneId.of("Asia/Kolkata")).minusDays(1); // yesterday = last day of elapsed week
+        LocalDate periodTo = businessClock.today().minusDays(1); // yesterday = last day of elapsed week
         CreditInterestRunService.InterestRunResult result =
                 interestRunService.applyInterestForPeriod(InterestPeriod.WEEKLY, periodTo, "WEEKLY_SCHEDULED");
         log.info("InterestStagingJob_Weekly complete: charged={} skipped={} failed={} failedClientIds={}",
@@ -54,7 +55,7 @@ public class InterestStagingJob {
     @SchedulerLock(name = "InterestStagingJob_Monthly", lockAtMostFor = "PT30M", lockAtLeastFor = "PT5M")
     public void stageMonthlyInterest() {
         log.info("InterestStagingJob_Monthly started");
-        LocalDate periodTo = LocalDate.now(ZoneId.of("Asia/Kolkata")).minusDays(1); // yesterday = last day of previous month
+        LocalDate periodTo = businessClock.today().minusDays(1); // yesterday = last day of previous month
         CreditInterestRunService.InterestRunResult result =
                 interestRunService.applyInterestForPeriod(InterestPeriod.MONTHLY, periodTo, "MONTHLY_SCHEDULED");
         log.info("InterestStagingJob_Monthly complete: charged={} skipped={} failed={} failedClientIds={}",

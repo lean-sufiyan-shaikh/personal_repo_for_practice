@@ -1,5 +1,6 @@
 package com.ppms.document;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.exception.ResourceNotFoundException;
@@ -24,6 +25,7 @@ public class DocumentController {
 
     private final PumpDocumentRepository documentRepository;
     private final AuditService           auditService;
+    private final BusinessClock businessClock;
 
     /**
      * GET /api/pumps/{pumpId}/documents
@@ -35,7 +37,7 @@ public class DocumentController {
             @PathVariable Long pumpId) {
         List<PumpDocument> docs = documentRepository.findByPumpIdOrderByExpiryDateAsc(pumpId, PageRequest.of(0, 500));
         // Refresh computed status based on today's date
-        LocalDate today = LocalDate.now();
+        LocalDate today = businessClock.today();
         docs.forEach(doc -> doc.setStatus(computeStatus(doc.getExpiryDate(), today)));
         return docs;
     }
@@ -52,7 +54,7 @@ public class DocumentController {
             @Valid @RequestBody UpsertDocumentRequest req,
             @AuthenticationPrincipal User currentUser) {
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = businessClock.today();
         PumpDocument doc = PumpDocument.builder()
                 .pumpId(pumpId)
                 .name(req.getName().trim())
@@ -89,7 +91,7 @@ public class DocumentController {
             throw new ResourceNotFoundException("Document not found");
         }
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = businessClock.today();
         doc.setName(req.getName().trim());
         doc.setDocType(req.getDocType().trim());
         doc.setExpiryDate(req.getExpiryDate());

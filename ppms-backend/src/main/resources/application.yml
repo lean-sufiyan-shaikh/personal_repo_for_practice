@@ -36,6 +36,11 @@ spring:
       max-file-size: 10MB      # Bank statement CSVs are typically small; 10 MB is generous
       max-request-size: 10MB
 
+  data:
+    web:
+      pageable:
+        max-page-size: 200   # same cap as PageRequests.MAX_PAGE_SIZE for endpoints that take a Pageable
+
   # Email / SMTP — used for password reset link delivery.
   # Set MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS as environment variables in production.
   # For local dev, these default to a non-functional placeholder — password reset emails will not send

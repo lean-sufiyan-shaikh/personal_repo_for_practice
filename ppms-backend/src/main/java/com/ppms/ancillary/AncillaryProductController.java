@@ -1,16 +1,15 @@
 package com.ppms.ancillary;
 
+import com.ppms.common.dto.PageRequests;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
-import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,8 +17,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 
 /**
@@ -218,7 +215,7 @@ public class AncillaryProductController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         return ResponseEntity.ok(PagedResponse.of(
-                deliveryRepository.findByPumpIdOrderByDeliveryDateDescCreatedAtDesc(pumpId, PageRequest.of(page, size))));
+                deliveryRepository.findByPumpIdOrderByDeliveryDateDescCreatedAtDesc(pumpId, PageRequests.of(page, size))));
     }
 
     // ── Counter sales ─────────────────────────────────────────────────────────

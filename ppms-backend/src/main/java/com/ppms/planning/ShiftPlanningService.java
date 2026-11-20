@@ -1,5 +1,6 @@
 package com.ppms.planning;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.pump.PumpShiftDefinition;
@@ -30,6 +31,7 @@ public class ShiftPlanningService {
     private final ShiftPlanningRuleService ruleService;
     private final ShiftPlanningSlotService slotService;
     private final ShiftPlanningAllocationService allocationService;
+    private final BusinessClock businessClock;
 
     // ── Preferences ────────────────────────────────────────────────────────────
 
@@ -101,7 +103,7 @@ public class ShiftPlanningService {
     @Transactional
     public ShiftPlan generatePlan(Long pumpId, GeneratePlanRequest req, Long createdByUserId) {
         LocalDate weekStart = slotService.normaliseToMonday(req.weekStart());
-        LocalDate today     = LocalDate.now();
+        LocalDate today     = businessClock.today();
         LocalDate weekEnd   = weekStart.plusDays(6);
 
         // Reject if the entire week is already in the past — nothing to plan
@@ -185,7 +187,7 @@ public class ShiftPlanningService {
 
     /** Upcoming published shifts for a staff member (from today onward). */
     public List<ShiftPlanEntry> getUpcomingForOperator(Long userId) {
-        return entryRepository.findUpcomingForOperator(userId, LocalDate.now());
+        return entryRepository.findUpcomingForOperator(userId, businessClock.today());
     }
 
     /** Planned operators for a specific date + shift definition (used to pre-fill shift opening). */
@@ -194,11 +196,11 @@ public class ShiftPlanningService {
     }
 
     // ── Plan editing ───────────────────────────────────────────────────────────
+    // Published plans stay editable on purpose (emergency overrides); the UI shows a warning instead.
 
     @Transactional
     public ShiftPlanEntry addEntry(Long pumpId, Long planId, AddEntryRequest req) {
         ShiftPlan plan = loadPlan(planId, pumpId);
-        validateNotPublishedLocked(plan);
         ruleService.validateOperatorForPump(req.operatorUserId(), pumpId);
         ruleService.validateNightShiftEligibility(req.operatorUserId(), req.shiftDefinitionId(), pumpId);
 
@@ -230,7 +232,6 @@ public class ShiftPlanningService {
     @Transactional
     public ShiftPlanEntry updateEntry(Long pumpId, Long planId, Long entryId, UpdateEntryRequest req) {
         ShiftPlan plan = loadPlan(planId, pumpId);
-        validateNotPublishedLocked(plan);
         ShiftPlanEntry entry = loadEntry(entryId, planId);
         ruleService.validateOperatorForPump(req.operatorUserId(), pumpId);
         ruleService.validateNightShiftEligibility(req.operatorUserId(), entry.getShiftDefinitionId(), pumpId);
@@ -253,7 +254,6 @@ public class ShiftPlanningService {
     @Transactional
     public void removeEntry(Long pumpId, Long planId, Long entryId) {
         ShiftPlan plan = loadPlan(planId, pumpId);
-        validateNotPublishedLocked(plan);
         ShiftPlanEntry entry = loadEntry(entryId, planId);
         entryRepository.delete(entry);
     }
@@ -304,11 +304,6 @@ public class ShiftPlanningService {
         return entryRepository.findById(entryId)
                 .filter(found -> found.getShiftPlanId().equals(planId))
                 .orElseThrow(() -> new ResourceNotFoundException("Plan entry not found"));
-    }
-
-    private void validateNotPublishedLocked(ShiftPlan plan) {
-        // Published plans can still be manually edited (emergency override allowed)
-        // No restriction here — the UI can show a warning instead
     }
 
 }

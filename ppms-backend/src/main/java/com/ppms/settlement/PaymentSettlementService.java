@@ -1,5 +1,6 @@
 package com.ppms.settlement;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
@@ -22,7 +23,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +45,7 @@ public class PaymentSettlementService {
     private final UserRepository                 userRepository;
     private final PumpLocationRepository         pumpLocationRepository;
     private final AuditService                   auditService;
+    private final BusinessClock businessClock;
 
     // ── DTOs ─────────────────────────────────────────────────────────────────
 
@@ -225,7 +226,7 @@ public class PaymentSettlementService {
         } catch (Exception e) {
             throw new BusinessException("settlementDate must be in YYYY-MM-DD format.");
         }
-        if (settlementDate.isAfter(LocalDate.now())) {
+        if (settlementDate.isAfter(businessClock.today())) {
             throw new BusinessException("settlementDate cannot be in the future.");
         }
 
@@ -233,7 +234,7 @@ public class PaymentSettlementService {
 
         lockPump(pumpId);
         if (settlementRepository.existsRecentDuplicate(pumpId, type, settlementDate, amount,
-                OffsetDateTime.now().minus(DUPLICATE_WINDOW))) {
+                businessClock.now().minus(DUPLICATE_WINDOW))) {
             throw new BusinessException("An identical " + type.name() + " settlement of ₹" + amount + " for "
                     + settlementDate + " was recorded in the last 2 minutes. Refresh the list before recording it again.");
         }
@@ -289,7 +290,7 @@ public class PaymentSettlementService {
         settlement.setVoidStatus(PaymentSettlement.VOIDED);
         settlement.setVoidReason(req.getReason().trim());
         settlement.setVoidedByUserId(currentUser.getId());
-        settlement.setVoidedAt(OffsetDateTime.now());
+        settlement.setVoidedAt(businessClock.now());
         settlement = settlementRepository.save(settlement);
 
         auditService.log(pumpId, AuditAction.SETTLEMENT_VOIDED,

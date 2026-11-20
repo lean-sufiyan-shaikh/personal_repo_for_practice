@@ -5,19 +5,22 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    List<Notification> findByPumpIdOrderByCreatedAtDesc(Long pumpId);
-
-    List<Notification> findByPumpIdAndReadAtIsNullOrderByCreatedAtDesc(Long pumpId);
+    List<Notification> findTop100ByPumpIdAndReadAtIsNullOrderByCreatedAtDesc(Long pumpId);
 
     boolean existsByPumpIdAndDedupKey(Long pumpId, String dedupKey);
 
     @Modifying
     @Query("UPDATE Notification n SET n.readAt = CURRENT_TIMESTAMP WHERE n.pumpId = :pumpId AND n.readAt IS NULL")
     int markAllReadForPump(Long pumpId);
+
+    @Modifying
+    @Query("DELETE FROM Notification n WHERE n.readAt IS NOT NULL AND n.readAt < :readBefore")
+    int deleteReadBefore(@Param("readBefore") OffsetDateTime readBefore);
 
     /**
      * Atomically inserts a notification if no row with the same (pump_id, dedup_key) exists.

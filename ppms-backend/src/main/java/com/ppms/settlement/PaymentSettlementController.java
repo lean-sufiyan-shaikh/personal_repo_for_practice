@@ -1,9 +1,9 @@
 package com.ppms.settlement;
 
+import com.ppms.common.dto.PageRequests;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -69,7 +69,7 @@ public class PaymentSettlementController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String paymentType) {
-        return service.list(pumpId, paymentType, PageRequest.of(page, size));
+        return service.list(pumpId, paymentType, PageRequests.of(page, size));
     }
 
     /**
@@ -124,6 +124,6 @@ public class PaymentSettlementController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "10") int size) {
-        return service.getDailySummary(pumpId, from, to, PageRequest.of(page, size));
+        return service.getDailySummary(pumpId, from, to, PageRequests.of(page, size));
     }
 }

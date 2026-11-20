@@ -1,5 +1,6 @@
 package com.ppms.credit;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.shift.ShiftCreditEntryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +12,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,6 +46,7 @@ public class CreditInterestService {
     private final CreditInterestChargeRepository interestChargeRepository;
     private final CreditPaymentRepository paymentRepository;
     private final ShiftCreditEntryRepository creditEntryRepository;
+    private final BusinessClock businessClock;
 
     // ── Outstanding balance ───────────────────────────────────────────────────
 
@@ -114,8 +115,6 @@ public class CreditInterestService {
         }
     }
 
-    private static final ZoneId IST = ZoneId.of("Asia/Kolkata");
-
     /**
      * Batch version — resolves interest breakdown for all clients in 2 DB queries total.
      * Uses chronological simulation: processes interest charges and payments in date order
@@ -157,7 +156,7 @@ public class CreditInterestService {
 
         List<Event> events = new ArrayList<>();
         charges.forEach(c -> events.add(new Event(
-                c.getCreatedAt().atZoneSameInstant(IST).toLocalDate(), c.getAmount(), true)));
+                c.getCreatedAt().atZoneSameInstant(businessClock.zone()).toLocalDate(), c.getAmount(), true)));
         payments.forEach(p -> events.add(new Event(p.getPaidAt(), p.getAmount(), false)));
 
         // Same-date: interest charges before payments so they can be immediately drained
@@ -224,7 +223,7 @@ public class CreditInterestService {
         CreditClient client = clientRepository.findById(clientId)
                 .filter(found -> found.getPumpId().equals(pumpId))
                 .orElseThrow(() -> new com.ppms.common.exception.ResourceNotFoundException("Client not found: " + clientId));
-        return applyToClientGroup(client, LocalDate.now(), "MANUAL", appliedByUserId).rootCharge();
+        return applyToClientGroup(client, businessClock.today(), "MANUAL", appliedByUserId).rootCharge();
     }
 
     /**
@@ -377,6 +376,6 @@ public class CreditInterestService {
 
         // Bug 8 fix: convert to IST so the calendar date matches the business day
         int graceDays = client.getInterestGraceDays() != null ? client.getInterestGraceDays() : 1;
-        return oldestEntry.get().atZoneSameInstant(ZoneId.of("Asia/Kolkata")).toLocalDate().plusDays(graceDays);
+        return oldestEntry.get().atZoneSameInstant(businessClock.zone()).toLocalDate().plusDays(graceDays);
     }
 }

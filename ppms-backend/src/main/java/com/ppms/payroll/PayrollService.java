@@ -1,5 +1,6 @@
 package com.ppms.payroll;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
@@ -20,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
-import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +38,7 @@ public class PayrollService {
     private final ShiftRepository                shiftRepository;
     private final StaffLeaveRepository           staffLeaveRepository;
     private final AuditService                   auditService;
+    private final BusinessClock businessClock;
 
     private record ResolvedShifts(BigDecimal outOfPeriodDeductions, List<PayrollResolvedShift> links) {}
 
@@ -148,7 +149,7 @@ public class PayrollService {
 
             shift.setDiscrepancyResolution(DiscrepancyResolution.SALARY_DEDUCTION);
             shift.setDiscrepancyResolvedById(resolvedBy.getId());
-            shift.setDiscrepancyResolvedAt(OffsetDateTime.now());
+            shift.setDiscrepancyResolvedAt(businessClock.now());
             shift.setStatus(ShiftStatus.CLOSED_DISCREPANCY_RESOLVED);
             shiftRepository.save(shift);
 

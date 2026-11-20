@@ -1,5 +1,6 @@
 package com.ppms.ancillary;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.cash.CashEvent;
@@ -23,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -44,6 +44,7 @@ public class AncillaryInventoryWorkflowService {
     private final AncillaryProductAccessService accessService;
     private final CreditClientRepository creditClientRepository;
     private final AuditService auditService;
+    private final BusinessClock businessClock;
 
     @Transactional
     public AncillaryProduct createProduct(Long pumpId, CreateProductRequest request) {
@@ -99,7 +100,7 @@ public class AncillaryInventoryWorkflowService {
                 .productId(product.getId())
                 .pumpId(pumpId)
                 .pricePerUnit(request.getPricePerUnit().setScale(2, RoundingMode.HALF_UP))
-                .effectiveFrom(OffsetDateTime.now())
+                .effectiveFrom(businessClock.now())
                 .setByUserId(currentUser.getId())
                 .build();
         return priceRepository.save(price);
@@ -113,7 +114,7 @@ public class AncillaryInventoryWorkflowService {
         }
 
         // Mark as backfilled when the delivery date is before today — historical entry.
-        boolean isBackfilled = request.getDeliveryDate().isBefore(LocalDate.now(ZoneId.of("Asia/Kolkata")));
+        boolean isBackfilled = request.getDeliveryDate().isBefore(businessClock.today());
 
         AncillaryStockDelivery delivery = deliveryRepository.save(AncillaryStockDelivery.builder()
                 .productId(product.getId())
@@ -185,7 +186,7 @@ public class AncillaryInventoryWorkflowService {
                 .billNo(request.getBillNo() != null ? request.getBillNo().trim() : null)
                 .notes(request.getNotes())
                 .soldByUserId(currentUser.getId())
-                .saleDate(LocalDate.now())
+                .saleDate(businessClock.today())
                 .build());
 
         deductFromLots(product.getId(), sale.getId(), request.getQuantityUnits());
@@ -199,7 +200,7 @@ public class AncillaryInventoryWorkflowService {
                     .eventType(CashEventType.CASH_IN)
                     .amount(totalAmount)
                     .description("Counter sale: " + product.getName() + " × " + request.getQuantityUnits() + " units (Sale #" + sale.getId() + ")")
-                    .eventDate(LocalDate.now())
+                    .eventDate(businessClock.today())
                     .recordedByUserId(currentUser.getId())
                     .build());
         }
@@ -217,7 +218,7 @@ public class AncillaryInventoryWorkflowService {
      */
     private BigDecimal resolveSellingPrice(Long pumpId, AncillaryProduct product, BigDecimal requestedPrice, User currentUser) {
         BigDecimal configuredPrice = priceRepository
-                .findFirstByProductIdAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(product.getId(), OffsetDateTime.now())
+                .findFirstByProductIdAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(product.getId(), businessClock.now())
                 .map(price -> price.getPricePerUnit().setScale(2, RoundingMode.HALF_UP))
                 .orElseThrow(() -> new BusinessException(
                         "No selling price is set for '" + product.getName() + "'. Set a price before recording a sale."));
@@ -291,10 +292,10 @@ public class AncillaryInventoryWorkflowService {
      */
     @Transactional
     public SaleResult backfillSale(Long pumpId, BackfillSaleRequest request, User currentUser) {
-        ZoneId ist = ZoneId.of("Asia/Kolkata");
+        ZoneId ist = businessClock.zone();
 
         // 1. Validate saleDate is strictly in the past
-        if (!request.getSaleDate().isBefore(LocalDate.now(ist))) {
+        if (!request.getSaleDate().isBefore(businessClock.today())) {
             throw new BusinessException(
                     "Sale date must be strictly in the past. Use the regular Sell button for today's sales.");
         }
@@ -411,47 +412,30 @@ public class AncillaryInventoryWorkflowService {
     }
 
     private void deductFromLots(Long productId, Long saleId, int unitsToDeduct) {
-        List<AncillaryStockLot> lots = lotRepository.findActiveLotsByProductFifo(productId);
-        int remaining = unitsToDeduct;
-
-        for (AncillaryStockLot lot : lots) {
-            if (remaining <= 0) {
-                break;
-            }
-
-            int consume = Math.min(remaining, lot.getRemainingQuantity());
-            lot.setRemainingQuantity(lot.getRemainingQuantity() - consume);
-            if (lot.getRemainingQuantity() == 0) {
-                lot.setStatus(AncillaryLotStatus.EXHAUSTED);
-            }
-            lotRepository.save(lot);
-
-            consumptionRepository.save(AncillaryLotConsumption.builder()
-                    .lotId(lot.getId())
-                    .saleId(saleId)
-                    .quantityConsumed(consume)
-                    .costPricePerUnit(lot.getCostPricePerUnit())
-                    .build());
-
-            remaining -= consume;
-        }
-
-        if (remaining > 0) {
+        int uncovered = consumeOldestFirst(lotRepository.findActiveLotsByProductFifo(productId), saleId, unitsToDeduct);
+        if (uncovered > 0) {
             log.error("Ancillary stock lot shortage: productId={}, saleId={}, {} units not covered by any lot",
-                    productId, saleId, remaining);
-            throw new BusinessException("Stock lots for this product do not cover " + remaining
+                    productId, saleId, uncovered);
+            throw new BusinessException("Stock lots for this product do not cover " + uncovered
                     + " of the requested units. Correct the stock lots before selling.");
         }
     }
 
     /**
-     * FIFO deduction across a pre-loaded, pre-locked list of lots.
-     * Used by backfillSale() to restrict deduction to historically available lots.
-     * The caller is responsible for fetching lots with a pessimistic write lock.
+     * Backfill variant: the caller passes the historically available lots, already locked.
+     * A shortfall is only logged because backfilled sales are reconciled manually.
      */
     private void deductFromSpecificLots(List<AncillaryStockLot> lots, Long saleId, int unitsToDeduct) {
-        int remaining = unitsToDeduct;
+        int uncovered = consumeOldestFirst(lots, saleId, unitsToDeduct);
+        if (uncovered > 0) {
+            log.warn("Backfill sale lot shortage: saleId={}, {} units not covered by historical lots. Investigate lot state.",
+                    saleId, uncovered);
+        }
+    }
 
+    /** Consumes units from the given lots in order and returns how many units no lot could cover. */
+    private int consumeOldestFirst(List<AncillaryStockLot> lots, Long saleId, int unitsToDeduct) {
+        int remaining = unitsToDeduct;
         for (AncillaryStockLot lot : lots) {
             if (remaining <= 0) break;
 
@@ -471,11 +455,7 @@ public class AncillaryInventoryWorkflowService {
 
             remaining -= consume;
         }
-
-        if (remaining > 0) {
-            log.warn("Backfill sale lot shortage: saleId={}, {} units not covered by historical lots. Investigate lot state.",
-                    saleId, remaining);
-        }
+        return remaining;
     }
 
     /**

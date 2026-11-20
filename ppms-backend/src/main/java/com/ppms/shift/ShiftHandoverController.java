@@ -1,5 +1,6 @@
 package com.ppms.shift;
 
+import com.ppms.common.dto.PageRequests;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
@@ -9,7 +10,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -61,7 +61,7 @@ public class ShiftHandoverController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
 
-        PageRequest pageable = PageRequest.of(page, Math.min(size, 200));
+        var pageable = PageRequests.of(page, size);
         Page<ShiftHandover> handoverPage = handoverRepository.findByPumpIdOrderByHandoverTimeDesc(pumpId, pageable);
 
         List<ShiftHandover> handovers = handoverPage.getContent();

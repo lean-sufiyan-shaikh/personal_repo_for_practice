@@ -1,5 +1,6 @@
 package com.ppms.credit;
 
+import com.ppms.common.time.BusinessClock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class CreditInterestRunService {
 
     private final CreditClientRepository clientRepository;
     private final CreditInterestService interestService;
+    private final BusinessClock businessClock;
 
     /**
      * @param groupsCharged   root clients whose group received at least one charge
@@ -34,7 +36,7 @@ public class CreditInterestRunService {
 
     public InterestRunResult applyProRataForAllClients(Long pumpId, Long appliedByUserId) {
         List<Long> rootClientIds = rootIds(clientRepository.findByPumpIdOrderByNameAsc(pumpId));
-        InterestRunResult result = applyToGroups(rootClientIds, LocalDate.now(), "MANUAL", appliedByUserId);
+        InterestRunResult result = applyToGroups(rootClientIds, businessClock.today(), "MANUAL", appliedByUserId);
         log.info("Pro-rata interest applied for pump={}: charged={}, skipped={}, failed={}/{}",
                 pumpId, result.groupsCharged(), result.groupsSkipped(), result.groupsFailed(), rootClientIds.size());
         return result;

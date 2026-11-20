@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -46,8 +47,24 @@ public class CreditClientController {
                 .map(CreditClient::getParentClientId)
                 .collect(Collectors.toSet());
 
+        // Sub-accounts always share their parent's pump, so every child is in allClients.
+        Map<Long, BigDecimal> ownOutstandingById = interestService.computeOutstandingBatch(
+                allClients.stream().map(CreditClient::getId).toList());
+        Map<Long, BigDecimal> childrenOutstandingByParentId = allClients.stream()
+                .filter(c -> c.getParentClientId() != null)
+                .collect(Collectors.toMap(CreditClient::getParentClientId,
+                        c -> ownOutstandingById.getOrDefault(c.getId(), BigDecimal.ZERO), BigDecimal::add));
+
         List<CreditClientResponse> clients = allClients.stream()
-                .map(c -> toResponse(c, nameById, idsWithChildren))
+                .map(c -> {
+                    boolean isParent = c.getParentClientId() == null && idsWithChildren.contains(c.getId());
+                    BigDecimal own = ownOutstandingById.getOrDefault(c.getId(), BigDecimal.ZERO);
+                    BigDecimal outstanding = isParent
+                            ? own.add(childrenOutstandingByParentId.getOrDefault(c.getId(), BigDecimal.ZERO))
+                                    .setScale(2, RoundingMode.HALF_UP)
+                            : own;
+                    return toResponse(c, nameById, isParent, outstanding);
+                })
                 .sorted(Comparator
                         // Active clients first, disabled last
                         .comparing((CreditClientResponse r) -> Boolean.TRUE.equals(r.getIsActive()) ? 0 : 1)
@@ -273,13 +290,16 @@ public class CreditClientController {
      * @param idsWithChildren set of client IDs that have at least one sub-account
      */
     private CreditClientResponse toResponse(CreditClient c, Map<Long, String> nameById, Set<Long> idsWithChildren) {
-        // For parent accounts: outstanding includes all children's balances
-        // For child (sub-account) or standalone accounts: own outstanding only
+        // A parent's outstanding includes all its sub-accounts; others show their own balance only.
         boolean isParent = c.getParentClientId() == null && idsWithChildren.contains(c.getId());
         BigDecimal outstanding = isParent
                 ? interestService.computeOutstandingWithChildren(c.getId())
                 : interestService.computeOutstanding(c.getId());
+        return toResponse(c, nameById, isParent, outstanding);
+    }
 
+    private CreditClientResponse toResponse(CreditClient c, Map<Long, String> nameById, boolean isParent,
+                                            BigDecimal outstanding) {
         return CreditClientResponse.builder()
                 .id(c.getId())
                 .pumpId(c.getPumpId())

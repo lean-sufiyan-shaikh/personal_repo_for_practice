@@ -27,6 +27,7 @@ import java.util.List;
 public class ShiftController {
 
     private final ShiftService shiftService;
+    private final ShiftBackfillService shiftBackfillService;
     private final AuditService auditService;
 
     /**
@@ -77,7 +78,7 @@ public class ShiftController {
             @PathVariable Long pumpId,
             @Valid @RequestBody BackfillShiftRequest request,
             @AuthenticationPrincipal User currentUser) {
-        ShiftResponse response = shiftService.backfillShift(pumpId, request, currentUser);
+        ShiftResponse response = shiftBackfillService.backfillShift(pumpId, request, currentUser);
         auditService.log(response.getPumpId(), AuditAction.SHIFT_BACKFILLED,
                 "Shift", response.getId().toString(),
                 "Historical shift backfilled for " + response.getShiftDate() + " (" + response.getShiftWindow() +

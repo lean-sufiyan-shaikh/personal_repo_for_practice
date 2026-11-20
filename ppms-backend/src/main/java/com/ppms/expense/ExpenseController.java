@@ -1,5 +1,7 @@
 package com.ppms.expense;
 
+import com.ppms.common.time.BusinessClock;
+import com.ppms.common.dto.PageRequests;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
@@ -9,7 +11,6 @@ import com.ppms.user.User;
 import com.ppms.user.UserRole;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,6 +28,7 @@ public class ExpenseController {
     private final PumpExpenseRepository  expenseRepository;
     private final ApprovalPolicy         approvalPolicy;
     private final AuditService           auditService;
+    private final BusinessClock businessClock;
 
     /**
      * GET /api/pumps/{pumpId}/expenses?page=0&size=50&category=MAINTENANCE&approvalStatus=APPROVED
@@ -46,7 +48,7 @@ public class ExpenseController {
             @RequestParam(required = false) ExpenseCategory category,
             @RequestParam(required = false) ExpenseApprovalStatus approvalStatus,
             @AuthenticationPrincipal User currentUser) {
-        var pageReq = PageRequest.of(page, size);
+        var pageReq = PageRequests.of(page, size);
         var result = (category != null && approvalStatus != null)
                 ? expenseRepository.findByPumpIdAndCategoryAndApprovalStatusOrderByExpenseDateDescCreatedAtDesc(pumpId, category, approvalStatus, pageReq)
                 : (category != null)
@@ -89,7 +91,7 @@ public class ExpenseController {
             // Immediate submission — auto-approve or queue for review
             approvalStatus = approvalPolicy.resolveStatus(pumpId, currentUser, amount);
             submittedByUserId = currentUser.getId();
-            submittedAt = OffsetDateTime.now();
+            submittedAt = businessClock.now();
         }
 
         PumpExpense expense = PumpExpense.builder()
@@ -151,7 +153,7 @@ public class ExpenseController {
         ExpenseApprovalStatus newStatus = approvalPolicy.resolveStatus(pumpId, currentUser, expense.getAmount());
         expense.setApprovalStatus(newStatus);
         expense.setSubmittedByUserId(currentUser.getId());
-        expense.setSubmittedAt(OffsetDateTime.now());
+        expense.setSubmittedAt(businessClock.now());
 
         return expenseRepository.save(expense);
     }
@@ -187,7 +189,7 @@ public class ExpenseController {
 
         expense.setApprovalStatus(req.getAction());
         expense.setApprovedByUserId(currentUser.getId());
-        expense.setApprovedAt(OffsetDateTime.now());
+        expense.setApprovedAt(businessClock.now());
         expense.setApprovalNotes(req.getNotes() != null ? req.getNotes().trim() : null);
 
         return expenseRepository.save(expense);

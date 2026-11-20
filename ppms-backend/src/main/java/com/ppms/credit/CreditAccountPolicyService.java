@@ -1,5 +1,6 @@
 package com.ppms.credit;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.shift.ShiftCreditEntryRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +23,7 @@ public class CreditAccountPolicyService {
     private final CreditExtensionRepository creditExtensionRepository;
     private final CreditPaymentRepository creditPaymentRepository;
     private final ShiftCreditEntryRepository creditEntryRepository;
+    private final BusinessClock businessClock;
 
     public CreditClient resolveClientForPump(Long pumpId, Long clientId, String clientName) {
         if (clientId != null) {
@@ -74,7 +75,7 @@ public class CreditAccountPolicyService {
         }
 
         CreditClient limitHolder = getLimitHolderWithLock(client);
-        creditExtensionRepository.expireOverdueExtensions(LocalDate.now());
+        creditExtensionRepository.expireOverdueExtensions(businessClock.today());
         List<CreditExtension> activeExtensions = creditExtensionRepository
                 .findByPumpIdAndClientIdAndStatus(pumpId, limitHolder.getId(), CreditExtensionStatus.ACTIVE);
 
@@ -135,7 +136,7 @@ public class CreditAccountPolicyService {
         }
 
         int cycleDays = client.getBillingCycle() == BillingCycle.WEEKLY ? 7 : 30;
-        LocalDate overdueThreshold = LocalDate.now().minusDays(cycleDays);
+        LocalDate overdueThreshold = businessClock.today().minusDays(cycleDays);
 
         Optional<LocalDate> lastPayment = creditPaymentRepository.findLastPaymentDateByClientId(client.getId());
         if (lastPayment.isPresent()) {
@@ -143,7 +144,7 @@ public class CreditAccountPolicyService {
         }
 
         return creditEntryRepository.findOldestEntryDateByClientId(client.getId())
-                .map(dateTime -> dateTime.atZoneSameInstant(ZoneId.of("Asia/Kolkata")).toLocalDate().isBefore(overdueThreshold))
+                .map(dateTime -> dateTime.atZoneSameInstant(businessClock.zone()).toLocalDate().isBefore(overdueThreshold))
                 .orElse(false);
     }
 }

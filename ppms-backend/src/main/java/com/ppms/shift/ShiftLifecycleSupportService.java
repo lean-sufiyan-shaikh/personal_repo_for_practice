@@ -1,9 +1,11 @@
 package com.ppms.shift;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.cash.CashEvent;
 import com.ppms.cash.CashEventRepository;
 import com.ppms.cash.CashEventType;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
 import com.ppms.fuel.FuelType;
@@ -17,6 +19,8 @@ import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTankRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserGender;
+import com.ppms.user.UserRepository;
+import com.ppms.user.UserRole;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -25,8 +29,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -52,6 +54,14 @@ public class ShiftLifecycleSupportService {
     private final com.ppms.pump.PumpClosureRepository pumpClosureRepository;
     private final com.ppms.pump.NozzleCalibrationLogRepository calibrationLogRepository;
     private final CashEventRepository cashEventRepository;
+    private final UserRepository userRepository;
+    private final BusinessClock businessClock;
+
+    public User findOperatorForPump(Long operatorId, Long pumpId) {
+        return userRepository.findById(operatorId)
+                .filter(user -> user.getRole() == UserRole.OPERATOR && pumpId.equals(user.getAssignedPumpId()))
+                .orElseThrow(() -> new ResourceNotFoundException("Operator not found"));
+    }
 
     /**
      * Validates that a shift can be opened for the given nozzles on the given DU.
@@ -69,7 +79,7 @@ public class ShiftLifecycleSupportService {
     public CurrentShiftWindow validateShiftCanOpen(DispensaryUnit du, List<Nozzle> nozzles, User operator) {
         Long pumpId = du.getPumpId();
 
-        pumpClosureRepository.findByPumpIdAndClosureDate(pumpId, LocalDate.now())
+        pumpClosureRepository.findByPumpIdAndClosureDate(pumpId, businessClock.today())
                 .ifPresent(closure -> {
                     throw new BusinessException(
                             "This pump is closed today (" + closure.getClosureDate() + "): " + closure.getReason() +
@@ -84,7 +94,7 @@ public class ShiftLifecycleSupportService {
 
             calibrationLogRepository.findLatestByNozzleId(nozzle.getId()).ifPresent(latest -> {
                 if (latest.getNextCalibrationDue() != null
-                        && LocalDate.now().isAfter(latest.getNextCalibrationDue())) {
+                        && businessClock.today().isAfter(latest.getNextCalibrationDue())) {
                     throw new BusinessException(
                             "Nozzle #" + nozzle.getNozzleNumber() + " calibration was due on " +
                             latest.getNextCalibrationDue() + " and has expired. " +
@@ -301,7 +311,7 @@ public class ShiftLifecycleSupportService {
                 .eventType(CashEventType.CASH_IN)
                 .amount(shift.getCashCollected().setScale(2, RoundingMode.HALF_UP))
                 .description("Cash collection from " + nozzleLabel + " shift close (Shift #" + shift.getId() + ")")
-                .eventDate(LocalDate.now())
+                .eventDate(businessClock.today())
                 .recordedByUserId(currentUser.getId())
                 .build());
         log.info("Auto-created CASH_IN event for shift {}: amount={}", shift.getId(), shift.getCashCollected());

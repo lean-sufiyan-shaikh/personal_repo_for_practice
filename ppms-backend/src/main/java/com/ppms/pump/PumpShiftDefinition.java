@@ -131,15 +131,4 @@ public class PumpShiftDefinition {
         LocalDate endDate = crossesMidnight ? shiftDate.plusDays(1) : shiftDate;
         return LocalDateTime.of(endDate, endTime).plusMinutes(1).atZone(zone).toOffsetDateTime();
     }
-
-    /**
-     * Returns the duration of this shift in minutes.
-     * Cross-midnight shifts are treated as (24h - start + end).
-     */
-    public long durationMinutes() {
-        if (crossesMidnight) {
-            return (24 * 60L - startTime.toSecondOfDay() / 60) + endTime.toSecondOfDay() / 60;
-        }
-        return (endTime.toSecondOfDay() - startTime.toSecondOfDay()) / 60L;
-    }
 }

@@ -1,5 +1,6 @@
 package com.ppms.credit;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.user.User;
@@ -13,7 +14,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -30,6 +30,7 @@ public class CreditExtensionController {
 
     private final CreditExtensionRepository extensionRepository;
     private final CreditClientRepository clientRepository;
+    private final BusinessClock businessClock;
 
     /**
      * GET /api/pumps/{pumpId}/credit-clients/{clientId}/extensions
@@ -55,7 +56,7 @@ public class CreditExtensionController {
             @PathVariable Long pumpId,
             @PathVariable Long clientId) {
         // Expire any whose date has passed before returning
-        extensionRepository.expireOverdueExtensions(LocalDate.now());
+        extensionRepository.expireOverdueExtensions(businessClock.today());
         return ResponseEntity.ok(
                 extensionRepository.findByPumpIdAndClientIdAndStatus(pumpId, clientId, CreditExtensionStatus.ACTIVE));
     }

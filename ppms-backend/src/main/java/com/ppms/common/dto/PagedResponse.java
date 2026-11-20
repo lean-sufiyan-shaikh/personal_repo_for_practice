@@ -53,7 +53,7 @@ public record PagedResponse<T>(
      */
     public static <T> PagedResponse<T> of(List<T> allItems, int page, int pageSize) {
         long total = allItems.size();
-        int safePage = pageSize > 0 ? pageSize : 50;
+        int safePage = pageSize > 0 ? PageRequests.cappedSize(pageSize) : 50;
         int totalPages = safePage > 0 ? (int) Math.ceil((double) total / safePage) : 1;
         int fromIndex = page * safePage;
         int toIndex = (int) Math.min((long) fromIndex + safePage, total);

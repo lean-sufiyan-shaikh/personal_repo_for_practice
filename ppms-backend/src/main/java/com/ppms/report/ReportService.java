@@ -5,7 +5,6 @@ import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditClientRepository;
 import com.ppms.credit.CreditInterestCharge;
 import com.ppms.credit.CreditInterestChargeRepository;
-import com.ppms.expense.PumpExpense;
 import com.ppms.expense.PumpExpenseRepository;
 import com.ppms.fuel.FuelType;
 import com.ppms.inventory.InventoryLot;
@@ -486,8 +485,7 @@ public class ReportService {
     }
 
     public List<ReportController.ExpenseReportLine> buildExpenseReportLines(Long pumpId, LocalDate from, LocalDate to) {
-        return expenseRepository.findByPumpIdOrderByExpenseDateDescCreatedAtDesc(pumpId).stream()
-                .filter(expense -> !expense.getExpenseDate().isBefore(from) && !expense.getExpenseDate().isAfter(to))
+        return expenseRepository.findByPumpIdAndExpenseDateBetweenOrderByExpenseDateDescCreatedAtDesc(pumpId, from, to).stream()
                 .map(expense -> new ReportController.ExpenseReportLine(
                         expense.getId(),
                         expense.getExpenseDate(),

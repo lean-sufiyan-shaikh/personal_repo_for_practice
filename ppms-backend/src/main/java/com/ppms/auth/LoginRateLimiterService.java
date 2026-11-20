@@ -1,5 +1,6 @@
 package com.ppms.auth;
 
+import com.ppms.common.time.BusinessClock;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.ppms.common.exception.TooManyRequestsException;
@@ -31,20 +32,22 @@ public class LoginRateLimiterService {
     static final int WINDOW_MINUTES = 15;
 
     private final LoginAttemptRepository attemptRepository;
+    private final BusinessClock businessClock;
     private final Cache<String, AtomicInteger> resetRequestCounts = Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofMinutes(WINDOW_MINUTES))
             .maximumSize(100_000)
             .build();
 
-    public LoginRateLimiterService(LoginAttemptRepository attemptRepository) {
+    public LoginRateLimiterService(LoginAttemptRepository attemptRepository, BusinessClock businessClock) {
         this.attemptRepository = attemptRepository;
+        this.businessClock = businessClock;
     }
 
     /**
      * Called before the password is verified so blocked callers do not burn bcrypt CPU.
      */
     public void checkLoginAllowed(String phoneNumber, String ipAddress) {
-        OffsetDateTime windowStart = OffsetDateTime.now().minusMinutes(WINDOW_MINUTES);
+        OffsetDateTime windowStart = businessClock.now().minusMinutes(WINDOW_MINUTES);
 
         long phoneFailures = attemptRepository.countRecentFailures(phoneNumber, windowStart);
         if (phoneFailures >= MAX_FAILURES_PER_PHONE) {

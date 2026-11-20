@@ -1,5 +1,6 @@
 package com.ppms.user;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
@@ -19,7 +20,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -32,6 +32,7 @@ public class UserController {
     private final ShiftRepository shiftRepository;
     private final PumpLocationRepository pumpLocationRepository;
     private final AuditService auditService;
+    private final BusinessClock businessClock;
 
     /**
      * GET /api/users/operators?pumpId={id}
@@ -149,7 +150,7 @@ public class UserController {
                 .assignedPumpId(request.getAssignedPumpId())
                 .address(request.getAddress())
                 .employeeId(employeeId)
-                .dateOfJoining(request.getDateOfJoining() != null ? request.getDateOfJoining() : LocalDate.now())
+                .dateOfJoining(request.getDateOfJoining() != null ? request.getDateOfJoining() : businessClock.today())
                 .build();
 
         user = userRepository.save(user);

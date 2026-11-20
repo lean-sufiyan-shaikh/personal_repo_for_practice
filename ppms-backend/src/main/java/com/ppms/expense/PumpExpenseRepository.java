@@ -10,8 +10,9 @@ import java.util.List;
 
 public interface PumpExpenseRepository extends JpaRepository<PumpExpense, Long> {
 
-    /** Unbounded — kept for internal/reporting use. */
-    List<PumpExpense> findByPumpIdOrderByExpenseDateDescCreatedAtDesc(Long pumpId);
+    /** Expenses dated within [from, to], both days included — used by reports and CSV export. */
+    List<PumpExpense> findByPumpIdAndExpenseDateBetweenOrderByExpenseDateDescCreatedAtDesc(
+            Long pumpId, LocalDate from, LocalDate to);
 
     /** Paginated — use for the API. */
     Page<PumpExpense> findByPumpIdOrderByExpenseDateDescCreatedAtDesc(Long pumpId, Pageable pageable);

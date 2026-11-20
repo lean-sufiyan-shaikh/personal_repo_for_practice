@@ -1,6 +1,8 @@
 package com.ppms.credit;
 
+import com.ppms.common.time.BusinessClock;
 import com.ppms.pump.PumpLocation;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -9,7 +11,10 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class CreditStatementRenderer {
+
+    private final BusinessClock businessClock;
 
     public String render(PumpLocation pump,
                          CreditClient client,
@@ -70,7 +75,7 @@ public class CreditStatementRenderer {
         sb.append("</div>")
                 .append("<div class='meta-block' style='text-align:right;'>")
                 .append("<p>").append(periodLabel).append("</p>")
-                .append("<p>Printed: ").append(LocalDate.now()).append("</p>")
+                .append("<p>Printed: ").append(businessClock.today()).append("</p>")
                 .append("</div></div>");
 
         if (transactions.isEmpty()) {

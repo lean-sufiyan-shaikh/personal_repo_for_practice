@@ -4,8 +4,6 @@ import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
-import org.springframework.security.access.AccessDeniedException;
-import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
 import jakarta.validation.Valid;
@@ -33,9 +31,10 @@ public class PumpController {
     private final DispensaryUnitRepository duRepository;
     private final NozzleRepository nozzleRepository;
     private final UndergroundTankRepository tankRepository;
-    private final ShiftRepository shiftRepository;
     private final AuditService auditService;
     private final PumpShiftDefinitionService shiftDefinitionService;
+    private final TankService tankService;
+    private final DispensaryUnitService dispensaryUnitService;
 
     // ─────────────────────────────────────────────────────────────────────────
     // PUMPS
@@ -144,12 +143,7 @@ public class PumpController {
 
     @GetMapping("/{pumpId}/tanks")
     public ResponseEntity<List<TankResponse>> getTanks(@PathVariable Long pumpId) {
-        List<TankResponse> tanks = tankRepository.findByPumpId(pumpId)
-                .stream()
-                .filter(t -> t.getStatus() != TankStatus.DECOMMISSIONED)
-                .map(this::toTankResponse)
-                .toList();
-        return ResponseEntity.ok(tanks);
+        return ResponseEntity.ok(tankService.getTanks(pumpId));
     }
 
     @PostMapping("/{pumpId}/tanks")
@@ -158,101 +152,26 @@ public class PumpController {
             @PathVariable Long pumpId,
             @Valid @RequestBody CreateTankRequest request,
             @AuthenticationPrincipal User currentUser) {
-
-        pumpLocationRepository.findById(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found"));
-
-        if (tankRepository.existsByPumpIdAndTankIdentifier(pumpId, request.getTankIdentifier().trim())) {
-            throw new BusinessException(
-                    "A tank named '" + request.getTankIdentifier() + "' already exists on this pump.");
-        }
-
-        BigDecimal tolerance = request.getDipTolerance() != null
-                ? request.getDipTolerance()
-                : new BigDecimal("20.000");
-
-        UndergroundTank tank = UndergroundTank.builder()
-                .pumpId(pumpId)
-                .tankIdentifier(request.getTankIdentifier().trim())
-                .fuelType(request.getFuelType())
-                .capacity(request.getCapacity())
-                .currentStock(BigDecimal.ZERO)
-                .dipTolerance(tolerance)
-                .status(TankStatus.ACTIVE)
-                .build();
-
-        tank = tankRepository.save(tank);
-
-        auditService.log(pumpId, AuditAction.TANK_ADDED,
-                "UndergroundTank", tank.getId().toString(),
-                "Tank added: " + tank.getTankIdentifier() + " (" + tank.getFuelType() + ", " + tank.getCapacity() + "L)",
-                currentUser);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(toTankResponse(tank));
+        return ResponseEntity.status(HttpStatus.CREATED).body(tankService.createTank(pumpId, request, currentUser));
     }
 
     @PatchMapping("/{pumpId}/tanks/{tankId}")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
-    @Transactional
     public ResponseEntity<TankResponse> updateTank(
             @PathVariable Long pumpId,
             @PathVariable Long tankId,
             @Valid @RequestBody UpdateTankRequest request) {
-
-        UndergroundTank tank = tankRepository.findByIdForUpdate(tankId)
-                .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
-
-        if (!tank.getPumpId().equals(pumpId)) {
-            throw new AccessDeniedException("Tank does not belong to pump " + pumpId);
-        }
-
-        tank.setCapacity(request.getCapacity());
-        if (request.getTankIdentifier() != null && !request.getTankIdentifier().isBlank()) {
-            tank.setTankIdentifier(request.getTankIdentifier().trim());
-        }
-        tank = tankRepository.save(tank);
-        return ResponseEntity.ok(toTankResponse(tank));
+        return ResponseEntity.ok(tankService.updateTank(pumpId, tankId, request));
     }
 
     @PatchMapping("/{pumpId}/tanks/{tankId}/status")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
-    @Transactional
     public ResponseEntity<TankResponse> updateTankStatus(
             @PathVariable Long pumpId,
             @PathVariable Long tankId,
             @Valid @RequestBody UpdateTankStatusRequest request,
             @AuthenticationPrincipal User currentUser) {
-
-        UndergroundTank tank = tankRepository.findByIdForUpdate(tankId)
-                .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
-
-        if (!tank.getPumpId().equals(pumpId)) {
-            throw new AccessDeniedException("Tank does not belong to pump " + pumpId);
-        }
-
-        if (request.status() == TankStatus.DECOMMISSIONED) {
-            throw new BusinessException("Use the decommission endpoint to permanently remove a tank.");
-        }
-        if (tank.getStatus() == request.status()) {
-            throw new BusinessException("Tank is already " + request.status().name().toLowerCase() + ".");
-        }
-
-        tank.setStatus(request.status());
-        tank = tankRepository.save(tank);
-
-        log.info("Tank {} status changed to {} by user={}", tankId, request.status(), currentUser.getId());
-
-        if (request.status() == TankStatus.INACTIVE && tank.getCapacity().compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal stockPct = tank.getCurrentStock()
-                    .multiply(new BigDecimal("100"))
-                    .divide(tank.getCapacity(), 1, RoundingMode.HALF_UP);
-            if (stockPct.compareTo(new BigDecimal("5")) > 0) {
-                log.warn("Tank {} disabled with {}% stock remaining ({} L/kg). Stock is now frozen.",
-                        tankId, stockPct, tank.getCurrentStock());
-            }
-        }
-
-        return ResponseEntity.ok(toTankResponse(tank));
+        return ResponseEntity.ok(tankService.updateTankStatus(pumpId, tankId, request.status(), currentUser));
     }
 
     /**
@@ -392,25 +311,7 @@ public class PumpController {
     // ─────────────────────────────────────────────────────────────────────────
 
     private PumpResponse toPumpResponse(PumpLocation pump) {
-        List<DUResponse> activeDUs = duRepository.findByPumpIdAndStatus(pump.getId(), NozzleStatus.ACTIVE)
-                .stream()
-                .map(du -> {
-                    List<Nozzle> nozzles = nozzleRepository.findByDuIdOrderByNozzleNumberAsc(du.getId());
-                    List<DUResponse.NozzleDetail> details = nozzles.stream()
-                            .map(n -> new DUResponse.NozzleDetail(
-                                    n.getId(), n.getNozzleNumber(), n.getFuelType(),
-                                    n.getLastReading(), n.getMaxMeterValue(), n.getTankId(), n.getStatus().name()))
-                            .toList();
-                    return DUResponse.builder()
-                            .id(du.getId())
-                            .pumpId(du.getPumpId())
-                            .duNumber(du.getDuNumber())
-                            .name(du.getName())
-                            .status(du.getStatus().name())
-                            .nozzles(details)
-                            .build();
-                })
-                .toList();
+        List<DUResponse> activeDUs = dispensaryUnitService.getActiveDUs(pump.getId());
 
         return PumpResponse.builder()
                 .id(pump.getId())
@@ -422,20 +323,6 @@ public class PumpController {
                 .discrepancyEscalationThreshold(pump.getDiscrepancyEscalationThreshold())
                 .expenseApprovalThreshold(pump.getExpenseApprovalThreshold())
                 .dus(activeDUs)
-                .build();
-    }
-
-    private TankResponse toTankResponse(UndergroundTank t) {
-        return TankResponse.builder()
-                .id(t.getId())
-                .pumpId(t.getPumpId())
-                .tankIdentifier(t.getTankIdentifier())
-                .fuelType(t.getFuelType().name())
-                .capacity(t.getCapacity())
-                .currentStock(t.getCurrentStock())
-                .dipTolerance(t.getDipTolerance())
-                .status(t.getStatus().name())
-                .createdAt(t.getCreatedAt())
                 .build();
     }
 }

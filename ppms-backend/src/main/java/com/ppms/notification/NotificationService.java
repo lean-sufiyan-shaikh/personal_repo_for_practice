@@ -68,11 +68,20 @@ public class NotificationService {
     }
 
     /**
-     * Returns all unread notifications for a pump. Does NOT generate new ones —
+     * Returns the newest 100 unread notifications for a pump. Does NOT generate new ones —
      * generation is handled by NotificationGenerationJob on a background schedule.
      */
     public List<Notification> getUnreadNotifications(Long pumpId) {
-        return notificationRepository.findByPumpIdAndReadAtIsNullOrderByCreatedAtDesc(pumpId);
+        return notificationRepository.findTop100ByPumpIdAndReadAtIsNullOrderByCreatedAtDesc(pumpId);
+    }
+
+    /**
+     * Deletes notifications read more than {@code days} ago. A deleted row frees its dedup key, so a
+     * condition that is still true (e.g. a document still expired) alerts once more.
+     */
+    @Transactional
+    public int deleteReadOlderThan(int days) {
+        return notificationRepository.deleteReadBefore(businessClock.now().minusDays(days));
     }
 
     /**
