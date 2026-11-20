@@ -3,6 +3,7 @@ package com.ppms.shift;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.user.UserRepository;
+import com.ppms.user.UserRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -45,6 +46,7 @@ public class ShiftHandoverService {
         });
 
         com.ppms.user.User incomingOperator = userRepository.findById(request.incomingOperatorId())
+                .filter(user -> user.getRole() == UserRole.OPERATOR && pumpId.equals(user.getAssignedPumpId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Incoming operator not found"));
 
         if (outgoingShift.getOperatorId().equals(request.incomingOperatorId())) {

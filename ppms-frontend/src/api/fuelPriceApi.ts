@@ -13,5 +13,5 @@ export const fuelPriceApi = {
    * Used by the backfill shift modal to resolve historical rates and flag which ones need manual entry.
    */
   getForDate: (pumpId: number, date: string): Promise<FuelPriceForDate[]> =>
-    client.get('/fuel-prices/for-date', { params: { pumpId, date } }).then(r => r.data),
+    client.get(`/pumps/${pumpId}/fuel-prices/for-date`, { params: { date } }).then(r => r.data),
 }

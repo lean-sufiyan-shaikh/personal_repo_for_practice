@@ -141,12 +141,7 @@ public class DispensaryUnitController {
             @Valid @RequestBody UpdateNozzleStatusRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        DispensaryUnit du = duRepository.findById(duId)
-                .orElseThrow(() -> new ResourceNotFoundException("Dispensary Unit not found"));
-
-        if (!du.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Dispensary Unit does not belong to this pump.");
-        }
+        DispensaryUnit du = findDuForPump(pumpId, duId);
 
         if (du.getStatus() == request.status()) {
             throw new BusinessException("Dispensary Unit is already " + request.status().name().toLowerCase() + ".");
@@ -187,12 +182,7 @@ public class DispensaryUnitController {
             @Valid @RequestBody CreateDURequest.NozzleInput request,
             @AuthenticationPrincipal User currentUser) {
 
-        DispensaryUnit du = duRepository.findById(duId)
-                .orElseThrow(() -> new ResourceNotFoundException("Dispensary Unit not found"));
-
-        if (!du.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Dispensary Unit does not belong to this pump.");
-        }
+        DispensaryUnit du = findDuForPump(pumpId, duId);
 
         if (nozzleRepository.existsByDuIdAndNozzleNumber(duId, request.getNozzleNumber())) {
             throw new BusinessException(
@@ -248,14 +238,8 @@ public class DispensaryUnitController {
             @Valid @RequestBody UpdateNozzleStatusRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        DispensaryUnit du = duRepository.findById(duId)
-                .orElseThrow(() -> new ResourceNotFoundException("Dispensary Unit not found"));
-        Nozzle nozzle = nozzleRepository.findById(nozzleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Nozzle not found"));
-
-        if (!nozzle.getDuId().equals(duId)) {
-            throw new BusinessException("Nozzle does not belong to this DU.");
-        }
+        DispensaryUnit du = findDuForPump(pumpId, duId);
+        Nozzle nozzle = findNozzleOnDu(duId, nozzleId);
 
         if (nozzle.getStatus() == request.status()) {
             throw new BusinessException("Nozzle #" + nozzle.getNozzleNumber() +
@@ -296,22 +280,12 @@ public class DispensaryUnitController {
             @PathVariable Long nozzleId,
             @RequestBody MapOutletToTankRequest request) {
 
-        DispensaryUnit du = duRepository.findById(duId)
-                .orElseThrow(() -> new ResourceNotFoundException("Dispensary Unit not found"));
-        Nozzle nozzle = nozzleRepository.findById(nozzleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Nozzle not found"));
-
-        if (!nozzle.getDuId().equals(duId)) {
-            throw new BusinessException("Nozzle does not belong to this DU.");
-        }
+        DispensaryUnit du = findDuForPump(pumpId, duId);
+        Nozzle nozzle = findNozzleOnDu(duId, nozzleId);
 
         if (request.tankId() != null) {
-            UndergroundTank tank = tankRepository.findById(request.tankId())
+            UndergroundTank tank = tankRepository.findByIdAndPumpId(request.tankId(), pumpId)
                     .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
-
-            if (!tank.getPumpId().equals(pumpId)) {
-                throw new BusinessException("Tank does not belong to the same pump as this nozzle.");
-            }
             if (tank.getFuelType() != nozzle.getFuelType()) {
                 throw new BusinessException(
                         "Fuel type mismatch: nozzle dispenses " + nozzle.getFuelType() +
@@ -345,14 +319,8 @@ public class DispensaryUnitController {
             @PathVariable Long nozzleId,
             @RequestBody UpdateNozzleReadingRequest request) {
 
-        DispensaryUnit du = duRepository.findById(duId)
-                .orElseThrow(() -> new ResourceNotFoundException("Dispensary Unit not found"));
-        Nozzle nozzle = nozzleRepository.findById(nozzleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Nozzle not found"));
-
-        if (!nozzle.getDuId().equals(duId)) {
-            throw new BusinessException("Nozzle does not belong to this DU.");
-        }
+        DispensaryUnit du = findDuForPump(pumpId, duId);
+        Nozzle nozzle = findNozzleOnDu(duId, nozzleId);
 
         if (request.getReading() != null) {
             nozzle.setLastReading(request.getReading());
@@ -365,6 +333,16 @@ public class DispensaryUnitController {
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
+
+    private DispensaryUnit findDuForPump(Long pumpId, Long duId) {
+        return duRepository.findByIdAndPumpId(duId, pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException("Dispensary Unit not found"));
+    }
+
+    private Nozzle findNozzleOnDu(Long duId, Long nozzleId) {
+        return nozzleRepository.findByIdAndDuId(nozzleId, duId)
+                .orElseThrow(() -> new ResourceNotFoundException("Nozzle not found"));
+    }
 
     private DUResponse toDUResponse(DispensaryUnit du) {
         List<Nozzle> nozzles = nozzleRepository.findByDuIdOrderByNozzleNumberAsc(du.getId());

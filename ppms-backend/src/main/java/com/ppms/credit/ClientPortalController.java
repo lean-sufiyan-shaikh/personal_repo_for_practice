@@ -1,6 +1,8 @@
 package com.ppms.credit;
 
+import com.ppms.auth.ClientIpResolver;
 import com.ppms.common.exception.ResourceNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +16,7 @@ import java.util.Map;
  * Allows a credit client to look up their own outstanding balance using
  * their phone number and the pump ID. Only the balance is returned —
  * no ledger history or personal data is exposed to protect privacy.
+ * Lookups are rate-limited per IP (CreditBalanceLookupLimiter).
  *
  * GET /api/public/credit-balance?pumpId={pumpId}&phone={phone}
  */
@@ -24,6 +27,8 @@ public class ClientPortalController {
 
     private final CreditClientRepository creditClientRepository;
     private final CreditInterestService  creditInterestService;
+    private final CreditBalanceLookupLimiter lookupLimiter;
+    private final ClientIpResolver clientIpResolver;
 
     /**
      * Looks up a credit client's outstanding balance by pump ID and phone number.
@@ -33,7 +38,10 @@ public class ClientPortalController {
     @GetMapping("/credit-balance")
     public Map<String, Object> getBalance(
             @RequestParam Long pumpId,
-            @RequestParam String phone) {
+            @RequestParam String phone,
+            HttpServletRequest request) {
+
+        lookupLimiter.checkLookupAllowed(clientIpResolver.resolve(request));
 
         CreditClient client = creditClientRepository.findByPumpIdAndPhone(pumpId, phone)
                 .orElseThrow(() -> new ResourceNotFoundException(

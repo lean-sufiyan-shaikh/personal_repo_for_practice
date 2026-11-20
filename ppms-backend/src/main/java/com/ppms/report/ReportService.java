@@ -1,5 +1,6 @@
 package com.ppms.report;
 
+import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditClientRepository;
 import com.ppms.credit.CreditInterestCharge;
@@ -178,6 +179,7 @@ public class ReportService {
         List<Shift> shifts = shiftRepository.findByPumpIdAndOperatorIdAndDateRange(pumpId, operatorId, from, to);
 
         String operatorName = userRepository.findById(operatorId)
+                .filter(operator -> !shifts.isEmpty() || pumpId.equals(operator.getAssignedPumpId()))
                 .map(User::getFullName)
                 .orElse("Unknown");
 
@@ -220,13 +222,13 @@ public class ReportService {
         Map<Long, List<Shift>> byOperator = shifts.stream()
                 .collect(Collectors.groupingBy(Shift::getOperatorId, LinkedHashMap::new, Collectors.toList()));
 
-        Map<Long, String> nameCache = new LinkedHashMap<>();
+        Map<Long, String> nameById = userRepository.findAllById(byOperator.keySet()).stream()
+                .collect(Collectors.toMap(User::getId, User::getFullName));
         List<OperatorDiscrepancyReport.OperatorSummary> summaries = new ArrayList<>();
 
         for (Map.Entry<Long, List<Shift>> entry : byOperator.entrySet()) {
             Long opId = entry.getKey();
-            String opName = nameCache.computeIfAbsent(opId, id ->
-                    userRepository.findById(id).map(User::getFullName).orElse("Unknown"));
+            String opName = nameById.getOrDefault(opId, "Unknown");
 
             List<Shift> opShifts = entry.getValue();
             BigDecimal totalShort = opShifts.stream()
@@ -270,7 +272,10 @@ public class ReportService {
      * Lists all inventory lots for a tank with their consumption history.
      * Useful for auditing FIFO deductions and verifying cost accounting.
      */
-    public InventoryLotsReport buildInventoryLotsReport(Long tankId) {
+    public InventoryLotsReport buildInventoryLotsReport(Long pumpId, Long tankId) {
+        if (undergroundTankRepository.findByIdAndPumpId(tankId, pumpId).isEmpty()) {
+            throw new ResourceNotFoundException("Tank not found");
+        }
         List<InventoryLot> lots = inventoryLotRepository.findAllByTankIdOrdered(tankId);
 
         // Batch-fetch all consumptions for all lots in one query, then group by lotId

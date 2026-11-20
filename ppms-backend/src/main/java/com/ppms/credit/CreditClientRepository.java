@@ -13,6 +13,8 @@ import java.util.Optional;
 @Repository
 public interface CreditClientRepository extends JpaRepository<CreditClient, Long> {
 
+    boolean existsByIdAndPumpId(Long id, Long pumpId);
+
     List<CreditClient> findByPumpIdOrderByNameAsc(Long pumpId);
 
     boolean existsByPumpIdAndName(Long pumpId, String name);

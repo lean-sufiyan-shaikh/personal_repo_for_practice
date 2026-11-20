@@ -2,6 +2,7 @@ package com.ppms.transaction;
 
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.pump.NozzleRepository;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.shift.ShiftStatus;
@@ -40,6 +41,7 @@ public class FuelTransactionController {
 
     private final FuelTransactionRepository transactionRepository;
     private final ShiftRepository           shiftRepository;
+    private final NozzleRepository          nozzleRepository;
 
     /**
      * POST /api/pumps/{pumpId}/fuel-transactions
@@ -52,11 +54,11 @@ public class FuelTransactionController {
             @Valid @RequestBody RecordFuelTransactionRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        Shift shift = shiftRepository.findById(request.getShiftId())
+        Shift shift = shiftRepository.findByIdAndPumpId(request.getShiftId(), pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
 
-        if (!shift.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Shift does not belong to this pump");
+        if (!nozzleRepository.existsOnPump(request.getNozzleId(), pumpId)) {
+            throw new ResourceNotFoundException("Nozzle not found");
         }
 
         if (shift.getStatus() != ShiftStatus.OPEN && shift.getStatus() != ShiftStatus.OPEN_OVERDUE) {
@@ -108,7 +110,9 @@ public class FuelTransactionController {
             @PageableDefault(size = 100) Pageable pageable) {
 
         if (shiftId != null) {
-            // Per-shift query is naturally bounded — return a simple list
+            if (!shiftRepository.existsByIdAndPumpId(shiftId, pumpId)) {
+                throw new ResourceNotFoundException("Shift not found");
+            }
             List<FuelTransaction> results = transactionRepository.findByShiftIdOrderByRecordedAtAsc(shiftId);
             return ResponseEntity.ok(results);
         }

@@ -5,6 +5,7 @@ import com.ppms.cash.CashEventRepository;
 import com.ppms.cash.CashEventType;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.credit.CreditClientRepository;
 import com.ppms.settlement.PaymentSettlement;
 import com.ppms.settlement.PaymentSettlementRepository;
 import com.ppms.settlement.SettlementPaymentType;
@@ -38,6 +39,7 @@ public class AncillaryInventoryWorkflowService {
     private final CashEventRepository cashEventRepository;
     private final PaymentSettlementRepository settlementRepository;
     private final AncillaryProductAccessService accessService;
+    private final CreditClientRepository creditClientRepository;
 
     @Transactional
     public AncillaryProduct createProduct(Long pumpId, CreateProductRequest request) {
@@ -145,6 +147,9 @@ public class AncillaryInventoryWorkflowService {
         AncillaryProduct product = accessService.requireProductForPump(request.getProductId(), pumpId);
         if (product.getStatus() == AncillaryProductStatus.INACTIVE) {
             throw new BusinessException("Product '" + product.getName() + "' is INACTIVE and cannot be sold.");
+        }
+        if (request.getClientId() != null && !creditClientRepository.existsByIdAndPumpId(request.getClientId(), pumpId)) {
+            throw new ResourceNotFoundException("Credit client not found");
         }
         if (request.getPaymentMode() == TransactionPaymentMode.CREDIT
                 && (request.getClientName() == null || request.getClientName().isBlank())) {

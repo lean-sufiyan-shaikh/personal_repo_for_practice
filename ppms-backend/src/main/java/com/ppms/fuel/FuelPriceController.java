@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/fuel-prices")
+@RequestMapping("/api/pumps/{pumpId}/fuel-prices")
 @RequiredArgsConstructor
 public class FuelPriceController {
 
@@ -34,18 +34,18 @@ public class FuelPriceController {
     private final NotificationDedupService notificationDedupService;
 
     /**
-     * GET /api/fuel-prices/current?pumpId={id}
+     * GET /api/pumps/{pumpId}/fuel-prices/current
      * Returns the most recently set price for each fuel type at a pump.
      * Accessible by all operational roles — operators need the current price to open a shift.
      */
     @GetMapping("/current")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'OPERATOR', 'ACCOUNTANT')")
-    public ResponseEntity<List<GlobalFuelPrice>> getCurrentPrices(@RequestParam Long pumpId) {
+    public ResponseEntity<List<GlobalFuelPrice>> getCurrentPrices(@PathVariable Long pumpId) {
         return ResponseEntity.ok(fuelPriceRepository.findCurrentPricesForPump(pumpId));
     }
 
     /**
-     * GET /api/fuel-prices/for-date?pumpId={id}&date=YYYY-MM-DD
+     * GET /api/pumps/{pumpId}/fuel-prices/for-date?date=YYYY-MM-DD
      * Returns the price that was effective for each fuel type at a pump on the given historical date.
      * pricePerUnit is null when no price record exists on or before that date for a fuel type.
      * Used by the backfill shift modal to show resolved rates and flag which ones need manual entry.
@@ -53,7 +53,7 @@ public class FuelPriceController {
     @GetMapping("/for-date")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
     public ResponseEntity<List<FuelPriceForDateResponse>> getPricesForDate(
-            @RequestParam Long pumpId,
+            @PathVariable Long pumpId,
             @RequestParam LocalDate date) {
 
         ZoneId ist = ZoneId.of("Asia/Kolkata");
@@ -75,7 +75,7 @@ public class FuelPriceController {
     }
 
     /**
-     * POST /api/fuel-prices
+     * POST /api/pumps/{pumpId}/fuel-prices
      * Sets (or updates) a fuel price for a pump.
      * Creates a new immutable price record — previous prices are retained as history (spec Rule 15).
      *
@@ -87,12 +87,13 @@ public class FuelPriceController {
     @PostMapping
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
     public ResponseEntity<?> setPrice(
+            @PathVariable Long pumpId,
             @Valid @RequestBody SetFuelPriceRequest request,
             @AuthenticationPrincipal User currentUser) {
 
         // Check for >15% deviation against the last recorded price for this fuel type at this pump
         fuelPriceRepository.findFirstByPumpIdAndFuelTypeOrderByEffectiveFromDesc(
-                request.getPumpId(), request.getFuelType()).ifPresent(last -> {
+                pumpId, request.getFuelType()).ifPresent(last -> {
 
             BigDecimal lastPrice = last.getPricePerUnit();
             BigDecimal newPrice  = request.getPricePerUnit();
@@ -112,7 +113,7 @@ public class FuelPriceController {
         });
 
         GlobalFuelPrice price = GlobalFuelPrice.builder()
-                .pumpId(request.getPumpId())
+                .pumpId(pumpId)
                 .fuelType(request.getFuelType())
                 .pricePerUnit(request.getPricePerUnit())
                 .setByUserId(currentUser.getId())
@@ -120,7 +121,7 @@ public class FuelPriceController {
 
         GlobalFuelPrice saved = fuelPriceRepository.save(price);
 
-        auditService.log(request.getPumpId(), AuditAction.FUEL_PRICE_UPDATED,
+        auditService.log(pumpId, AuditAction.FUEL_PRICE_UPDATED,
                 "GlobalFuelPrice", saved.getId().toString(),
                 "Fuel price updated: " + saved.getFuelType() + " → ₹" + saved.getPricePerUnit(),
                 currentUser);
@@ -128,7 +129,7 @@ public class FuelPriceController {
         // P2.3 — Warn if there are open shifts at this pump.
         // Open shifts already have the old price snapshotted — they will NOT pick up the new price.
         // The admin should close all open shifts first to avoid revenue mismatch on the day's balance sheet.
-        List<?> openShifts = shiftRepository.findActiveShiftsByPump(request.getPumpId());
+        List<?> openShifts = shiftRepository.findActiveShiftsByPump(pumpId);
         int openShiftsCount = openShifts.size();
         String warning = openShiftsCount > 0
                 ? openShiftsCount + " shift(s) are currently open at this pump. They will settle at the OLD price. " +
@@ -139,8 +140,8 @@ public class FuelPriceController {
             // Fire a PRICE_CHANGE_OPEN_SHIFT notification deduped per pump per day.
             // One notification per day is enough — if the admin changes price multiple times
             // on the same day while shifts remain open, we avoid spamming.
-            String dedupKey = "PRICE_CHANGE_OPEN_SHIFT:" + LocalDate.now() + ":" + request.getPumpId();
-            notificationDedupService.maybeInsert(request.getPumpId(),
+            String dedupKey = "PRICE_CHANGE_OPEN_SHIFT:" + LocalDate.now() + ":" + pumpId;
+            notificationDedupService.maybeInsert(pumpId,
                     NotificationType.PRICE_CHANGE_OPEN_SHIFT, dedupKey,
                     "Fuel Price Changed With Open Shifts",
                     saved.getFuelType() + " price updated to ₹" + saved.getPricePerUnit() +

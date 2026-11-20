@@ -14,6 +14,8 @@ public interface TankerDeliveryRepository extends JpaRepository<TankerDelivery, 
 
     List<TankerDelivery> findByPumpIdOrderByDeliveryDateDesc(Long pumpId);
 
+    boolean existsByIdAndPumpId(Long id, Long pumpId);
+
     Page<TankerDelivery> findByPumpIdOrderByDeliveryDateDesc(Long pumpId, Pageable pageable);
 
     /** Deliveries for a pump within a UTC time window — used by DAY balance sheet */

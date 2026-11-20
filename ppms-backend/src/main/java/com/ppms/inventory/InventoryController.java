@@ -515,8 +515,9 @@ public class InventoryController {
         String checkedByName = null;
         if (request.getCheckedByUserId() != null) {
             checkedByName = userRepository.findById(request.getCheckedByUserId())
+                    .filter(user -> pumpId.equals(user.getAssignedPumpId()))
                     .map(User::getFullName)
-                    .orElse(null);
+                    .orElseThrow(() -> new ResourceNotFoundException("Checked-by user not found"));
         }
 
         // Flag above-tolerance variances for Owner/Admin review.

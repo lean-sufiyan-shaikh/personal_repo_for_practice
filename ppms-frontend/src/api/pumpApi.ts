@@ -116,7 +116,7 @@ export interface FuelPrice {
   setByUserId: number
 }
 
-/** Response wrapper for POST /api/fuel-prices — includes price + optional open-shifts warning. */
+/** Response wrapper for POST /api/pumps/{pumpId}/fuel-prices — includes price + optional open-shifts warning. */
 export interface SetFuelPriceResponse {
   price: FuelPrice
   openShiftsCount: number
@@ -185,11 +185,11 @@ export const pumpApi = {
   // ── Fuel prices ────────────────────────────────────────────────────────────
 
   getCurrentPrices: (pumpId: number) =>
-    client.get<FuelPrice[]>('/fuel-prices/current', { params: { pumpId } }).then((r) => r.data),
+    client.get<FuelPrice[]>(`/pumps/${pumpId}/fuel-prices/current`).then((r) => r.data),
 
   // Returns SetFuelPriceResponse on success (HTTP 201), or throws with response.data = PriceDeviationWarning on HTTP 409
-  setFuelPrice: (req: SetFuelPriceRequest) =>
-    client.post<SetFuelPriceResponse>('/fuel-prices', req).then((r) => r.data),
+  setFuelPrice: ({ pumpId, ...body }: SetFuelPriceRequest) =>
+    client.post<SetFuelPriceResponse>(`/pumps/${pumpId}/fuel-prices`, body).then((r) => r.data),
 
   // ── Credit clients ─────────────────────────────────────────────────────────
 

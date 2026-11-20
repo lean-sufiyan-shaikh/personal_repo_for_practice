@@ -77,7 +77,7 @@ public class ReportController {
     public ResponseEntity<ReportService.InventoryLotsReport> getInventoryLots(
             @PathVariable Long pumpId,
             @RequestParam Long tankId) {
-        return ResponseEntity.ok(reportService.buildInventoryLotsReport(tankId));
+        return ResponseEntity.ok(reportService.buildInventoryLotsReport(pumpId, tankId));
     }
 
     /**

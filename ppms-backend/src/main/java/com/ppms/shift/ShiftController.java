@@ -2,7 +2,6 @@ package com.ppms.shift;
 
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
-import com.ppms.common.exception.BusinessException;
 import com.ppms.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -58,11 +57,7 @@ public class ShiftController {
     public ResponseEntity<ShiftResponse> getShift(
             @PathVariable Long pumpId,
             @PathVariable Long id) {
-        ShiftResponse response = shiftService.getShiftById(id);
-        if (!response.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Shift does not belong to this pump");
-        }
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(shiftService.getShiftById(pumpId, id));
     }
 
     /**

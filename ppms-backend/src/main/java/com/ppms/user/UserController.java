@@ -3,6 +3,7 @@ package com.ppms.user;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.shift.ShiftRepository;
 import jakarta.validation.Valid;
@@ -174,18 +175,10 @@ public class UserController {
             @Valid @RequestBody UpdateStaffDetailsRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException("User not found"));
+        User user = findUserManagedBy(currentUser, userId);
 
         if (user.getRole() == UserRole.OWNER || user.getRole() == UserRole.SUPER_ADMIN) {
             throw new BusinessException("Owner and super-admin accounts cannot be edited through this endpoint");
-        }
-
-        // ADMIN can only edit staff on their own pump
-        if (currentUser.getRole() == UserRole.ADMIN) {
-            if (!currentUser.getAssignedPumpId().equals(user.getAssignedPumpId())) {
-                throw new BusinessException("You can only edit staff assigned to your pump");
-            }
         }
 
         if (request.getPhoneNumber() != null) {
@@ -262,11 +255,10 @@ public class UserController {
             @RequestParam UserStatus status,
             @AuthenticationPrincipal User currentUser) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException("User not found"));
+        User user = findUserManagedBy(currentUser, userId);
 
-        if (user.getRole() == UserRole.OWNER) {
-            throw new BusinessException("Owner account status cannot be changed through this endpoint.");
+        if (user.getRole() == UserRole.OWNER || user.getRole() == UserRole.SUPER_ADMIN) {
+            throw new BusinessException("Owner and super-admin account status cannot be changed through this endpoint.");
         }
 
         if (status == UserStatus.INACTIVE) {
@@ -303,11 +295,6 @@ public class UserController {
     }
 
     /**
-     * Validates that the current user has access to the given pump.
-     * Used for /api/users endpoints that take pumpId as a query parameter
-     * (which are not covered by the URL-pattern-based PumpAccessInterceptor).
-     */
-    /**
      * Enforces the role hierarchy — a caller cannot create a user at or above their own privilege level.
      *
      * Permitted assignments by caller role:
@@ -334,18 +321,31 @@ public class UserController {
     }
 
     private void assertPumpAccess(User currentUser, Long pumpId) {
+        if (!canAccessPump(currentUser, pumpId)) {
+            throw new AccessDeniedException("You do not have access to pump " + pumpId);
+        }
+    }
+
+    private boolean canAccessPump(User currentUser, Long pumpId) {
         if (currentUser.getRole() == UserRole.SUPER_ADMIN) {
-            return;
+            return true;
+        }
+        if (pumpId == null) {
+            return false;
         }
         if (currentUser.getRole() == UserRole.OWNER) {
-            if (!pumpLocationRepository.existsByIdAndOwnerId(pumpId, currentUser.getId())) {
-                throw new AccessDeniedException("You do not have access to pump " + pumpId);
-            }
-            return;
+            return pumpLocationRepository.existsByIdAndOwnerId(pumpId, currentUser.getId());
         }
-        if (!pumpId.equals(currentUser.getAssignedPumpId())) {
-            throw new AccessDeniedException("You are not assigned to pump " + pumpId);
+        return pumpId.equals(currentUser.getAssignedPumpId());
+    }
+
+    private User findUserManagedBy(User currentUser, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (!canAccessPump(currentUser, user.getAssignedPumpId())) {
+            throw new ResourceNotFoundException("User not found");
         }
+        return user;
     }
 
     /**
@@ -363,8 +363,7 @@ public class UserController {
             @RequestBody UpdatePayRatesRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException("User not found"));
+        User user = findUserManagedBy(currentUser, userId);
 
         if (user.getRole() == UserRole.OPERATOR) {
             if (request.getShift1HourlyRate() == null || request.getShift1HourlyRate().compareTo(BigDecimal.ZERO) <= 0) {
@@ -382,6 +381,11 @@ public class UserController {
             user.setDailyRate(request.getDailyRate());
         }
         user = userRepository.save(user);
+
+        auditService.log(user.getAssignedPumpId(), AuditAction.USER_UPDATED,
+                "User", user.getId().toString(),
+                "Pay rates updated for " + user.getFullName() + " (" + user.getRole() + ")",
+                currentUser);
 
         return ResponseEntity.ok(StaffResponse.from(user));
     }

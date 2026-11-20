@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UndergroundTankRepository extends JpaRepository<UndergroundTank, Long> {
@@ -12,6 +13,8 @@ public interface UndergroundTankRepository extends JpaRepository<UndergroundTank
 
     /** Returns all tanks for a pump regardless of status. Used for deletions and setup listing. */
     List<UndergroundTank> findByPumpId(Long pumpId);
+
+    Optional<UndergroundTank> findByIdAndPumpId(Long id, Long pumpId);
 
     boolean existsByPumpIdAndTankIdentifier(Long pumpId, String tankIdentifier);
 }

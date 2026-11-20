@@ -16,6 +16,10 @@ import java.util.Optional;
 @Repository
 public interface ShiftRepository extends JpaRepository<Shift, Long> {
 
+    Optional<Shift> findByIdAndPumpId(Long id, Long pumpId);
+
+    boolean existsByIdAndPumpId(Long id, Long pumpId);
+
     // Active shifts for a pump (OPEN or OPEN_OVERDUE)
     @Query("""
             SELECT s FROM Shift s

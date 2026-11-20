@@ -589,10 +589,8 @@ public class BalanceSheetService {
     @Transactional(readOnly = true)
     public BalanceSheetDetailResponse getById(Long pumpId, Long id) {
         BalanceSheet bs = balanceSheetRepository.findById(id)
+                .filter(found -> found.getPumpId().equals(pumpId))
                 .orElseThrow(() -> new com.ppms.common.exception.ResourceNotFoundException("Balance sheet not found"));
-        if (!bs.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Balance sheet does not belong to this pump");
-        }
         List<BsFuelLine>  fuelLines  = bsFuelLineRepository.findByBalanceSheetIdOrderByFuelType(id);
         List<BsShiftLine> shiftLines = bsShiftLineRepository.findByBalanceSheetIdOrderByDuNumber(id);
         String userName = bs.getGeneratedByUserId() != null
@@ -685,10 +683,8 @@ public class BalanceSheetService {
     @Transactional
     public void delete(Long pumpId, Long id) {
         BalanceSheet bs = balanceSheetRepository.findById(id)
+                .filter(found -> found.getPumpId().equals(pumpId))
                 .orElseThrow(() -> new com.ppms.common.exception.ResourceNotFoundException("Balance sheet not found"));
-        if (!bs.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Balance sheet does not belong to this pump");
-        }
         balanceSheetRepository.delete(bs);
         log.info("Balance sheet deleted: id={}, pump={}", id, pumpId);
     }

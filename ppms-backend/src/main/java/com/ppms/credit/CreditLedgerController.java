@@ -57,6 +57,7 @@ public class CreditLedgerController {
      * balance values on each page are always correct relative to the full history.
      */
     @GetMapping("/{clientId}/transactions")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")
     public ResponseEntity<PagedResponse<CreditTransactionResponse>> getTransactions(
             @PathVariable Long pumpId,
             @PathVariable Long clientId,
@@ -98,6 +99,7 @@ public class CreditLedgerController {
      * Returns all payment records for a client, newest first.
      */
     @GetMapping("/{clientId}/payments")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")
     public ResponseEntity<List<CreditPaymentResponse>> getPayments(
             @PathVariable Long pumpId,
             @PathVariable Long clientId) {
@@ -215,6 +217,7 @@ public class CreditLedgerController {
      * For standalone or sub-accounts, returns only the client's own interest total.
      */
     @GetMapping("/{clientId}/interest/total-recovered")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")
     public ResponseEntity<Map<String, Object>> getTotalInterestRecovered(
             @PathVariable Long pumpId,
             @PathVariable Long clientId) {
@@ -296,6 +299,7 @@ public class CreditLedgerController {
      * balance, and the current outstanding balance as a footer summary.
      */
     @GetMapping(value = "/{clientId}/statement", produces = MediaType.TEXT_HTML_VALUE)
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")
     public ResponseEntity<String> getCreditStatement(
             @PathVariable Long pumpId,
             @PathVariable Long clientId,

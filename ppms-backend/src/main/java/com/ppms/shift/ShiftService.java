@@ -109,8 +109,7 @@ public class ShiftService {
                         .orElseThrow(() -> new ResourceNotFoundException("Nozzle not found: " + id)))
                 .toList();
 
-        User operator = userRepository.findById(request.getOperatorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Operator not found"));
+        User operator = findOperatorForPump(request.getOperatorId(), pumpId);
 
         com.ppms.pump.PumpShiftDefinition shiftDef = lifecycleSupportService.validateShiftCanOpen(du, nozzles, operator);
 
@@ -302,6 +301,12 @@ public class ShiftService {
      * Cross-midnight shifts (e.g. 22:00–09:00) end on shiftDate + 1.
      * Returns null if no definition is linked or if it no longer exists (legacy data).
      */
+    private User findOperatorForPump(Long operatorId, Long pumpId) {
+        return userRepository.findById(operatorId)
+                .filter(user -> user.getRole() == UserRole.OPERATOR && pumpId.equals(user.getAssignedPumpId()))
+                .orElseThrow(() -> new ResourceNotFoundException("Operator not found"));
+    }
+
     private OffsetDateTime computeScheduledEndTime(Shift shift) {
         if (shift.getShiftDefinitionId() == null) return null;
         ZoneId ist = ZoneId.of("Asia/Kolkata");
@@ -482,8 +487,8 @@ public class ShiftService {
     }
 
     @Transactional(readOnly = true)
-    public ShiftResponse getShiftById(Long shiftId) {
-        Shift shift = shiftRepository.findById(shiftId)
+    public ShiftResponse getShiftById(Long pumpId, Long shiftId) {
+        Shift shift = shiftRepository.findByIdAndPumpId(shiftId, pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
         return shiftReadModelService.toResponseWithLookups(shift);
     }
@@ -580,9 +585,8 @@ public class ShiftService {
             throw new BusinessException("Dispensary Unit does not belong to this pump.");
         }
 
-        // ── 4. Validate operator exists ───────────────────────────────────────
-        User operator = userRepository.findById(request.getOperatorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Operator not found: " + request.getOperatorId()));
+        // ── 4. Validate operator belongs to this pump ─────────────────────────
+        User operator = findOperatorForPump(request.getOperatorId(), pumpId);
 
         // ── 5. Validate nozzles + readings, resolve price and tankId per nozzle ──
         // (ist and priceAsOf are already defined above in step 2b)

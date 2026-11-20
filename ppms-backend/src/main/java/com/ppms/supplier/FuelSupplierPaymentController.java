@@ -4,6 +4,7 @@ import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.inventory.TankerDeliveryRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import jakarta.validation.Valid;
@@ -44,6 +45,7 @@ public class FuelSupplierPaymentController {
 
     private final FuelSupplierPaymentRepository paymentRepository;
     private final FuelSupplierRepository supplierRepository;
+    private final TankerDeliveryRepository deliveryRepository;
     private final UserRepository userRepository;
     private final AuditService auditService;
 
@@ -99,8 +101,12 @@ public class FuelSupplierPaymentController {
             @Valid @RequestBody RecordSupplierPaymentRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        FuelSupplier supplier = supplierRepository.findById(request.supplierId())
+        FuelSupplier supplier = supplierRepository.findByIdAndPumpId(request.supplierId(), pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Supplier not found"));
+
+        if (request.deliveryId() != null && !deliveryRepository.existsByIdAndPumpId(request.deliveryId(), pumpId)) {
+            throw new ResourceNotFoundException("Delivery not found");
+        }
 
         FuelSupplierPayment payment = FuelSupplierPayment.builder()
                 .pumpId(pumpId)

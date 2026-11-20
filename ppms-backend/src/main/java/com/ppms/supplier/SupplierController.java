@@ -66,7 +66,7 @@ public class SupplierController {
             @AuthenticationPrincipal User currentUser) {
         requireOwnerOrAdmin(currentUser);
 
-        FuelSupplier supplier = supplierRepository.findById(supplierId)
+        FuelSupplier supplier = supplierRepository.findByIdAndPumpId(supplierId, pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Supplier not found"));
 
         supplier.setName(req.getName().trim());
@@ -93,7 +93,7 @@ public class SupplierController {
             throw new com.ppms.common.exception.BusinessException("Only Owner can remove suppliers.");
         }
 
-        FuelSupplier supplier = supplierRepository.findById(supplierId)
+        FuelSupplier supplier = supplierRepository.findByIdAndPumpId(supplierId, pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Supplier not found"));
 
         supplier.setActive(false);

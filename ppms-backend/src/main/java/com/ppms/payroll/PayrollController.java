@@ -129,6 +129,7 @@ public class PayrollController {
         }
 
         User staff = userRepository.findById(req.getUserId())
+                .filter(found -> pumpId.equals(found.getAssignedPumpId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Staff member not found"));
 
         // Resolve any explicitly-selected pending discrepancies as SALARY_DEDUCTION before
