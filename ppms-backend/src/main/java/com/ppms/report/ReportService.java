@@ -3,6 +3,7 @@ package com.ppms.report;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditClient;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.common.time.DateRangeBounds;
 import com.ppms.credit.CreditClientRepository;
 import com.ppms.credit.CreditInterestCharge;
 import com.ppms.credit.CreditInterestChargeRepository;
@@ -33,6 +34,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +45,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ReportService {
+
+    private static final int DEFAULT_INVENTORY_REPORT_DAYS = 90;
 
     private final ShiftRepository shiftRepository;
     private final ShiftFuelReadingRepository fuelReadingRepository;
@@ -361,8 +365,13 @@ public class ReportService {
 
     // ── All-Tanks Inventory Report ────────────────────────────────────────────
 
-    public AllTanksInventoryReport buildAllTanksInventoryReport(Long pumpId) {
-        List<InventoryLot> allLots = inventoryLotRepository.findAllByPumpIdOrderedByTankAndDelivery(pumpId);
+    public AllTanksInventoryReport buildAllTanksInventoryReport(Long pumpId, LocalDate from, LocalDate to) {
+        LocalDate fromDate = from != null ? from : businessClock.today().minusDays(DEFAULT_INVENTORY_REPORT_DAYS);
+        LocalDate toDate = to != null ? to : businessClock.today();
+        DateRangeBounds.requireStartNotAfterEnd(fromDate, toDate);
+        OffsetDateTime rangeStart = businessClock.startOfDay(fromDate);
+        OffsetDateTime rangeEnd = businessClock.startOfDay(toDate.plusDays(1));
+        List<InventoryLot> allLots = inventoryLotRepository.findReportLots(pumpId, rangeStart, rangeEnd);
 
         Set<Long> tankIds     = allLots.stream().map(InventoryLot::getTankId).collect(Collectors.toSet());
         Set<Long> deliveryIds = allLots.stream().map(InventoryLot::getTankerDeliveryId)
@@ -375,19 +384,15 @@ public class ReportService {
                 : tankerDeliveryRepository.findAllById(deliveryIds).stream()
                         .collect(Collectors.toMap(TankerDelivery::getId, TankerDelivery::getInvoiceReference));
 
-        List<Long> lotIds = allLots.stream().map(InventoryLot::getId).toList();
-        List<LotConsumption> allConsumptions = lotIds.isEmpty()
-                ? List.of()
-                : lotConsumptionRepository.findByLotIdIn(lotIds);
-        Map<Long, List<LotConsumption>> consumptionsByLot = allConsumptions.stream()
-                .collect(Collectors.groupingBy(LotConsumption::getLotId));
-
-        List<Long> shiftIds = allConsumptions.stream().map(LotConsumption::getShiftId)
-                .filter(id -> id != null).distinct().toList();
-        Map<Long, String> shiftNameById = shiftIds.isEmpty()
+        Map<Long, List<LotConsumption>> consumptionsByLot = allLots.isEmpty()
                 ? Map.of()
-                : shiftRepository.findAllById(shiftIds).stream()
-                        .collect(Collectors.toMap(Shift::getId, s -> s.getShiftName() != null ? s.getShiftName() : ""));
+                : lotConsumptionRepository.findForReportLots(pumpId, rangeStart, rangeEnd).stream()
+                        .collect(Collectors.groupingBy(LotConsumption::getLotId));
+        Map<Long, String> shiftNameById = new HashMap<>();
+        if (!consumptionsByLot.isEmpty()) {
+            lotConsumptionRepository.findShiftNamesForReportLots(pumpId, rangeStart, rangeEnd)
+                    .forEach(row -> shiftNameById.put((Long) row[0], row[1] != null ? (String) row[1] : ""));
+        }
 
         Map<Long, List<InventoryLot>> lotsByTank = new LinkedHashMap<>();
         allLots.forEach(l -> lotsByTank.computeIfAbsent(l.getTankId(), k -> new ArrayList<>()).add(l));

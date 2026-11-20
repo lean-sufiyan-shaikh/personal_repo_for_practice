@@ -13,7 +13,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Dispensary Units (the physical dispensing machines) and their nozzles. Each DU has 1–9 nozzles,
@@ -35,12 +38,12 @@ public class DispensaryUnitService {
 
     @Transactional(readOnly = true)
     public List<DUResponse> getDUs(Long pumpId) {
-        return duRepository.findByPumpIdOrderByDuNumberAsc(pumpId).stream().map(this::toDUResponse).toList();
+        return toDUResponses(duRepository.findByPumpIdOrderByDuNumberAsc(pumpId));
     }
 
     @Transactional(readOnly = true)
     public List<DUResponse> getActiveDUs(Long pumpId) {
-        return duRepository.findByPumpIdAndStatus(pumpId, NozzleStatus.ACTIVE).stream().map(this::toDUResponse).toList();
+        return toDUResponses(duRepository.findByPumpIdAndStatus(pumpId, NozzleStatus.ACTIVE));
     }
 
     /**
@@ -223,8 +226,25 @@ public class DispensaryUnitService {
                 .build());
     }
 
+    private List<DUResponse> toDUResponses(List<DispensaryUnit> dus) {
+        if (dus.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, List<Nozzle>> nozzlesByDuId = nozzleRepository.findByDuIdIn(dus.stream().map(DispensaryUnit::getId).toList())
+                .stream()
+                .sorted(Comparator.comparing(Nozzle::getNozzleNumber))
+                .collect(Collectors.groupingBy(Nozzle::getDuId));
+        return dus.stream()
+                .map(du -> toDUResponse(du, nozzlesByDuId.getOrDefault(du.getId(), List.of())))
+                .toList();
+    }
+
     private DUResponse toDUResponse(DispensaryUnit du) {
-        List<DUResponse.NozzleDetail> nozzleDetails = nozzleRepository.findByDuIdOrderByNozzleNumberAsc(du.getId()).stream()
+        return toDUResponse(du, nozzleRepository.findByDuIdOrderByNozzleNumberAsc(du.getId()));
+    }
+
+    private DUResponse toDUResponse(DispensaryUnit du, List<Nozzle> nozzles) {
+        List<DUResponse.NozzleDetail> nozzleDetails = nozzles.stream()
                 .map(n -> new DUResponse.NozzleDetail(
                         n.getId(),
                         n.getNozzleNumber(),

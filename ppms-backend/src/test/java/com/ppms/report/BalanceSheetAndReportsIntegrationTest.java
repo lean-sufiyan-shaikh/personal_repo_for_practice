@@ -1,12 +1,18 @@
 package com.ppms.report;
 
+import com.ppms.support.TestDates;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.ppms.fuel.FuelType;
+import com.ppms.inventory.InventoryLot;
+import com.ppms.inventory.InventoryLotRepository;
+import com.ppms.inventory.LotStatus;
 import com.ppms.support.ApiIntegrationTest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,9 +25,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
 
+    @Autowired private InventoryLotRepository inventoryLotRepository;
+
     private PumpSetup setup;
     private long shiftId;
-    private final String today = LocalDate.now().toString();
+    private final String today = TestDates.today().toString();
 
     @BeforeEach
     void createPumpWithOneClosedShift() throws Exception {
@@ -86,10 +94,18 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
 
         perform(post("/api/pumps/{pumpId}/balance-sheets/generate", setup.pumpId()), setup.manager(),
                 Map.of("reportType", "DAY", "reportDate", today))
-                .andExpect(status().is4xxClientError());
+                .andExpect(status().isBadRequest());
+        assertThat(savedSheetCount()).isEqualTo(1);
+
         perform(post("/api/pumps/{pumpId}/balance-sheets/generate", setup.pumpId()), setup.manager(),
                 Map.of("reportType", "DAY", "reportDate", today, "forceRegenerate", true))
                 .andExpect(status().is2xxSuccessful());
+        assertThat(savedSheetCount()).isEqualTo(2);
+    }
+
+    private long savedSheetCount() throws Exception {
+        return json(perform(get("/api/pumps/{pumpId}/balance-sheets", setup.pumpId()), setup.owner())
+                .andExpect(status().isOk())).get("totalElements").asLong();
     }
 
     @Test
@@ -114,15 +130,56 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void otherReportsAnswerForTheirDateRange() throws Exception {
-        for (String report : List.of("dip-pl", "shifts", "expenses", "interest-accrual")) {
+        for (String report : List.of("dip-pl", "expenses", "interest-accrual")) {
             perform(get("/api/pumps/{pumpId}/reports/" + report, setup.pumpId())
                     .param("from", today).param("to", today), setup.owner())
                     .andExpect(status().isOk());
         }
-        perform(get("/api/pumps/{pumpId}/reports/inventory-lots", setup.pumpId())
-                .param("tankId", setup.tank().getId().toString()), setup.owner()).andExpect(status().isOk());
-        perform(get("/api/pumps/{pumpId}/reports/inventory-lots/all", setup.pumpId()), setup.owner())
-                .andExpect(status().isOk());
+        JsonNode shifts = json(perform(get("/api/pumps/{pumpId}/reports/shifts", setup.pumpId())
+                .param("from", today).param("to", today), setup.owner()).andExpect(status().isOk()));
+        JsonNode tankLots = json(perform(get("/api/pumps/{pumpId}/reports/inventory-lots", setup.pumpId())
+                .param("tankId", setup.tank().getId().toString()), setup.owner()).andExpect(status().isOk()));
+
+        assertThat(shifts).hasSize(1);
+        assertThat(shifts.get(0).get("id").asLong()).isEqualTo(shiftId);
+        assertThat(shifts.get(0).get("totalAmountDue").decimalValue()).isEqualByComparingTo("2000.00");
+        assertThat(shifts.get(0).get("cashCollected").decimalValue()).isEqualByComparingTo("1900.00");
+        assertThat(shifts.get(0).get("discrepancyAmount").decimalValue()).isEqualByComparingTo("100.00");
+        assertThat(shifts.get(0).get("discrepancyType").asText()).isEqualTo("SHORT");
+        assertThat(tankLots.get("totalRemaining").decimalValue()).isEqualByComparingTo("4980");
+    }
+
+    @Test
+    void allTanksLotReportShowsActiveLotsAndOnlyOlderLotsDeliveredInTheChosenRange() throws Exception {
+        InventoryLot oldExhaustedLot = inventoryLotRepository.save(InventoryLot.builder()
+                .pumpId(setup.pumpId())
+                .tankId(setup.tank().getId())
+                .fuelType(FuelType.PETROL)
+                .originalQuantity(new BigDecimal("1000.000"))
+                .remainingQuantity(BigDecimal.ZERO)
+                .costPricePerUnit(new BigDecimal("80.00"))
+                .deliveryDate(TestDates.now().minusDays(200))
+                .isDipAdjustment(true)
+                .status(LotStatus.EXHAUSTED)
+                .build());
+
+        JsonNode defaultRange = json(perform(get("/api/pumps/{pumpId}/reports/inventory-lots/all", setup.pumpId()),
+                setup.owner()).andExpect(status().isOk()));
+        JsonNode wideRange = json(perform(get("/api/pumps/{pumpId}/reports/inventory-lots/all", setup.pumpId())
+                .param("from", TestDates.today().minusDays(365).toString()).param("to", today), setup.owner())
+                .andExpect(status().isOk()));
+
+        assertThat(lotIdsIn(defaultRange)).doesNotContain(oldExhaustedLot.getId()).hasSize(1);
+        assertThat(lotIdsIn(wideRange)).contains(oldExhaustedLot.getId()).hasSize(2);
+        JsonNode activeLot = defaultRange.get("tanks").get(0).get("lots").get(0);
+        assertThat(activeLot.get("consumptions").get(0).get("shiftName").asText()).isEqualTo("All day");
+        assertThat(activeLot.get("totalConsumed").decimalValue()).isEqualByComparingTo("20");
+    }
+
+    private static List<Long> lotIdsIn(JsonNode report) {
+        List<Long> ids = new ArrayList<>();
+        report.get("tanks").forEach(tank -> tank.get("lots").forEach(lot -> ids.add(lot.get("lotId").asLong())));
+        return ids;
     }
 
     @Test

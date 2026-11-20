@@ -5,8 +5,9 @@ spring:
     password: ${DB_PASS:}
     driver-class-name: org.postgresql.Driver
     hikari:
-      # Bounds every row-lock wait (SELECT ... FOR UPDATE); Hibernate ignores lock-timeout hints on PostgreSQL.
-      connection-init-sql: SET lock_timeout = '${DB_LOCK_TIMEOUT:10s}'
+      maximum-pool-size: ${DB_POOL_SIZE:20}
+      # Bounds every row-lock wait (Hibernate ignores lock-timeout hints on PostgreSQL) and every query.
+      connection-init-sql: SET lock_timeout = '${DB_LOCK_TIMEOUT:10s}'; SET statement_timeout = '${DB_STATEMENT_TIMEOUT:30s}'
 
   jpa:
     open-in-view: false
@@ -25,6 +26,10 @@ spring:
 
   flyway:
     enabled: true
+    # Own connection, so migrations are not cut off by the pool's statement_timeout
+    url: ${spring.datasource.url}
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
     locations: classpath:db/migration
     baseline-on-migrate: true
     # V3 (seed super admin) was applied directly to the DB and its file is intentionally

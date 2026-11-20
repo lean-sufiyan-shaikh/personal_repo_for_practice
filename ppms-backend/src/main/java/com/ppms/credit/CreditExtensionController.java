@@ -51,14 +51,10 @@ public class CreditExtensionController {
      * to suppress credit blocks when an extension is in effect.
      */
     @GetMapping("/active")
-    @Transactional
     public ResponseEntity<List<CreditExtension>> getActiveExtensions(
             @PathVariable Long pumpId,
             @PathVariable Long clientId) {
-        // Expire any whose date has passed before returning
-        extensionRepository.expireOverdueExtensions(businessClock.today());
-        return ResponseEntity.ok(
-                extensionRepository.findByPumpIdAndClientIdAndStatus(pumpId, clientId, CreditExtensionStatus.ACTIVE));
+        return ResponseEntity.ok(extensionRepository.findInEffect(pumpId, clientId, businessClock.today()));
     }
 
     /**
@@ -85,8 +81,7 @@ public class CreditExtensionController {
                 .orElseThrow(() -> new ResourceNotFoundException("Credit client not found at this pump"));
 
         // Enforce Business Rule 60: only one active extension of the same type
-        extensionRepository.findByPumpIdAndClientIdAndExtensionTypeAndStatus(
-                pumpId, clientId, request.extensionType(), CreditExtensionStatus.ACTIVE)
+        extensionRepository.findInEffectOfType(pumpId, clientId, request.extensionType(), businessClock.today())
                 .ifPresent(existing -> {
                     throw new BusinessException(
                             "An active " + request.extensionType() + " already exists for this client (expires "

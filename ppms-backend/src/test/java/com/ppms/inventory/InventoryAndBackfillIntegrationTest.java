@@ -1,5 +1,6 @@
 package com.ppms.inventory;
 
+import com.ppms.support.TestDates;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ppms.fuel.FuelType;
 import com.ppms.pump.TankStatus;
@@ -38,7 +39,7 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void deliveryAddsToTankStockAndCreatesAnActiveLotAtItsCost() throws Exception {
-        recordDelivery(setup, "500", "92.50", LocalDate.now());
+        recordDelivery(setup, "500", "92.50", TestDates.today());
 
         assertThat(currentStock()).isEqualByComparingTo("1500");
         List<InventoryLot> lots = lotRepository.findActiveLotsByTankForDisplay(setup.tank().getId());
@@ -53,7 +54,7 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
     void deliveryAboveTankCapacityIsRefused() throws Exception {
         perform(post("/api/inventory/{pumpId}/deliveries", setup.pumpId()), setup.owner(),
                 Map.of("tankId", setup.tank().getId(), "quantityDelivered", new BigDecimal("19500"),
-                        "costPricePerUnit", new BigDecimal("90"), "deliveryDate", LocalDate.now().toString(),
+                        "costPricePerUnit", new BigDecimal("90"), "deliveryDate", TestDates.today().toString(),
                         "invoiceReference", "INV-" + shortId()))
                 .andExpect(status().isBadRequest());
         assertThat(currentStock()).isEqualByComparingTo("1000");
@@ -61,11 +62,11 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void correctingADeliveryQuantityMovesTankStockByTheDifference() throws Exception {
-        long deliveryId = recordDelivery(setup, "400", "90.00", LocalDate.now()).get("id").asLong();
+        long deliveryId = recordDelivery(setup, "400", "90.00", TestDates.today()).get("id").asLong();
 
         perform(patch("/api/inventory/{pumpId}/deliveries/{deliveryId}", setup.pumpId(), deliveryId), setup.owner(),
                 Map.of("quantityDelivered", new BigDecimal("450"), "costPricePerUnit", new BigDecimal("90.00"),
-                        "deliveryDate", LocalDate.now().toString(), "invoiceReference", "INV-FIXED"))
+                        "deliveryDate", TestDates.today().toString(), "invoiceReference", "INV-FIXED"))
                 .andExpect(status().isOk());
 
         assertThat(currentStock()).isEqualByComparingTo("1450");
@@ -73,7 +74,7 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void deletingTheLatestDeliveryRemovesItsStock() throws Exception {
-        recordDelivery(setup, "300", "90.00", LocalDate.now());
+        recordDelivery(setup, "300", "90.00", TestDates.today());
 
         perform(delete("/api/inventory/{pumpId}/deliveries/latest", setup.pumpId()), setup.owner())
                 .andExpect(status().is2xxSuccessful());
@@ -120,7 +121,7 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
         String newInvoice = "INV-MOVED-" + shortId();
         perform(patch("/api/inventory/{pumpId}/deliveries/{deliveryId}", setup.pumpId(), lines.get(0).get("id").asLong()),
                 setup.owner(), Map.of("quantityDelivered", new BigDecimal("100"), "costPricePerUnit", new BigDecimal("91"),
-                        "deliveryDate", LocalDate.now().toString(), "invoiceReference", newInvoice))
+                        "deliveryDate", TestDates.today().toString(), "invoiceReference", newInvoice))
                 .andExpect(status().isOk());
 
         assertThat(tankerDeliveryRepository.findByPumpIdAndInvoiceReference(setup.pumpId(), newInvoice)).hasSize(2);
@@ -139,7 +140,7 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
 
     private Map<String, Object> batchRequest(List<Map<String, Object>> items) {
         Map<String, Object> request = new HashMap<>();
-        request.put("deliveryDate", LocalDate.now().toString());
+        request.put("deliveryDate", TestDates.today().toString());
         request.put("invoiceReference", "INV-" + shortId());
         request.put("items", items);
         return request;
@@ -161,7 +162,7 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
     void dipCheckShortageSetsStockToTheMeasuredQuantityAndNeedsReview() throws Exception {
         JsonNode dip = json(perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
                 Map.of("tankId", setup.tank().getId(), "measuredQuantity", new BigDecimal("900"),
-                        "checkedAt", LocalDate.now().toString(), "checkedByUserId", setup.operator().getId()))
+                        "checkedAt", TestDates.today().toString(), "checkedByUserId", setup.operator().getId()))
                 .andExpect(status().is2xxSuccessful()));
 
         assertThat(dip.get("variance").decimalValue()).isEqualByComparingTo("-100");
@@ -177,7 +178,7 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
     void dipCheckGainWithinToleranceAddsStockWithoutReview() throws Exception {
         JsonNode dip = json(perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
                 Map.of("tankId", setup.tank().getId(), "measuredQuantity", new BigDecimal("1020"),
-                        "checkedAt", LocalDate.now().toString()))
+                        "checkedAt", TestDates.today().toString()))
                 .andExpect(status().is2xxSuccessful()));
 
         assertThat(dip.get("variance").decimalValue()).isEqualByComparingTo("20");
@@ -191,7 +192,7 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
 
         perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
                 Map.of("tankId", setup.tank().getId(), "measuredQuantity", new BigDecimal("990"),
-                        "checkedAt", LocalDate.now().toString(), "checkedByUserId", outsider.getId()))
+                        "checkedAt", TestDates.today().toString(), "checkedByUserId", outsider.getId()))
                 .andExpect(status().is4xxClientError());
         assertThat(currentStock()).isEqualByComparingTo("1000");
     }
@@ -206,7 +207,7 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void backfilledShiftForYesterdayIsClosedAndDeductsStock() throws Exception {
-        Map<String, Object> request = backfillRequest(LocalDate.now().minusDays(1), "1000.000", "1010.000", "950.00");
+        Map<String, Object> request = backfillRequest(TestDates.today().minusDays(1), "1000.000", "1010.000", "950.00");
 
         JsonNode backfilled = json(perform(post("/api/pumps/{pumpId}/shifts/backfill", setup.pumpId()), setup.owner(), request)
                 .andExpect(status().is2xxSuccessful()));
@@ -218,7 +219,7 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void backfillSellingMoreThanTheStockDeliveredByThatDateIsRefused() throws Exception {
-        Map<String, Object> request = backfillRequest(LocalDate.now().minusDays(1), "1000.000", "3000.000", "190000.00");
+        Map<String, Object> request = backfillRequest(TestDates.today().minusDays(1), "1000.000", "3000.000", "190000.00");
 
         perform(post("/api/pumps/{pumpId}/shifts/backfill", setup.pumpId()), setup.owner(), request)
                 .andExpect(status().isBadRequest());
@@ -228,7 +229,7 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
     @Test
     void managerCannotBackfillShifts() throws Exception {
         perform(post("/api/pumps/{pumpId}/shifts/backfill", setup.pumpId()), setup.manager(),
-                backfillRequest(LocalDate.now().minusDays(1), "1000.000", "1010.000", "950.00"))
+                backfillRequest(TestDates.today().minusDays(1), "1000.000", "1010.000", "950.00"))
                 .andExpect(status().isForbidden());
     }
 

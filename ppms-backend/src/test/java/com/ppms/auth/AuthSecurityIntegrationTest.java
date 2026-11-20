@@ -1,5 +1,7 @@
 package com.ppms.auth;
 
+import com.ppms.support.TestAddresses;
+import com.ppms.support.TestDates;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.support.PostgresTestContainerConfig;
@@ -19,10 +21,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.net.URI;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -43,9 +45,10 @@ class AuthSecurityIntegrationTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private UserRepository userRepository;
     @Autowired private PumpLocationRepository pumpLocationRepository;
-    @Autowired private LoginAttemptRepository loginAttemptRepository;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private PasswordResetTokenRepository resetTokenRepository;
+
+    private final String clientAddress = TestAddresses.randomPrivateAddress();
 
     private User ownerA;
     private PumpLocation pumpA;
@@ -53,7 +56,6 @@ class AuthSecurityIntegrationTest {
 
     @BeforeEach
     void createTwoOwnersWithOnePumpEach() {
-        loginAttemptRepository.deleteAll();
         ownerA = saveOwner();
         User ownerB = saveOwner();
         pumpA = savePump(ownerA);
@@ -64,9 +66,9 @@ class AuthSecurityIntegrationTest {
     void ownerCannotReadAnotherOwnersPump() throws Exception {
         Cookie cookie = loginAs(ownerA);
 
-        mockMvc.perform(get("/api/pumps/{pumpId}/audit-logs", pumpB.getId()).cookie(cookie))
+        perform(get("/api/pumps/{pumpId}/audit-logs", pumpB.getId()).cookie(cookie))
                 .andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/pumps/{pumpId}/audit-logs", pumpA.getId()).cookie(cookie))
+        perform(get("/api/pumps/{pumpId}/audit-logs", pumpA.getId()).cookie(cookie))
                 .andExpect(status().isOk());
     }
 
@@ -77,13 +79,13 @@ class AuthSecurityIntegrationTest {
                 .mapToObj(digit -> "%3" + (char) digit)
                 .collect(Collectors.joining());
 
-        mockMvc.perform(get(URI.create("/api/pumps/" + encodedPumpId + "/audit-logs")).cookie(cookie))
+        perform(get(URI.create("/api/pumps/" + encodedPumpId + "/audit-logs")).cookie(cookie))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void invalidCookieDoesNotBlockLogin() throws Exception {
-        mockMvc.perform(post("/api/auth/login")
+        perform(post("/api/auth/login")
                         .cookie(new Cookie(JwtCookieSupport.COOKIE_NAME, "not-a-valid-jwt"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginBody(ownerA.getPhoneNumber(), PASSWORD)))
@@ -92,7 +94,7 @@ class AuthSecurityIntegrationTest {
 
     @Test
     void invalidCookieOnProtectedEndpointReturns401AndClearsCookie() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/pumps")
+        MvcResult result = perform(get("/api/pumps")
                         .cookie(new Cookie(JwtCookieSupport.COOKIE_NAME, "not-a-valid-jwt")))
                 .andExpect(status().isUnauthorized())
                 .andReturn();
@@ -103,13 +105,13 @@ class AuthSecurityIntegrationTest {
     @Test
     void tokenIsRejectedAfterTokenVersionChanges() throws Exception {
         Cookie cookie = loginAs(ownerA);
-        mockMvc.perform(get("/api/pumps").cookie(cookie)).andExpect(status().isOk());
+        perform(get("/api/pumps").cookie(cookie)).andExpect(status().isOk());
 
         User reloaded = userRepository.findById(ownerA.getId()).orElseThrow();
         reloaded.setTokenVersion(reloaded.getTokenVersion() + 1);
         userRepository.save(reloaded);
 
-        mockMvc.perform(get("/api/pumps").cookie(cookie)).andExpect(status().isUnauthorized());
+        perform(get("/api/pumps").cookie(cookie)).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -124,7 +126,7 @@ class AuthSecurityIntegrationTest {
         newcomer.setPhoneNumber(originalPhone);
         userRepository.save(newcomer);
 
-        mockMvc.perform(get("/api/pumps").cookie(cookie)).andExpect(status().isUnauthorized());
+        perform(get("/api/pumps").cookie(cookie)).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -132,7 +134,7 @@ class AuthSecurityIntegrationTest {
         User admin = saveStaff(UserRole.ADMIN, pumpA.getId());
         User otherAdmin = saveStaff(UserRole.ADMIN, pumpA.getId());
 
-        mockMvc.perform(patch("/api/users/{userId}/details", otherAdmin.getId())
+        perform(patch("/api/users/{userId}/details", otherAdmin.getId())
                         .cookie(loginAs(admin))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"role\":\"OPERATOR\"}"))
@@ -144,7 +146,7 @@ class AuthSecurityIntegrationTest {
     @Test
     void repeatedResetRequestsForOnePhoneStillGetTheGenericAnswer() throws Exception {
         for (int attempt = 0; attempt <= LoginRateLimiterService.MAX_RESET_REQUESTS_PER_PHONE + 1; attempt++) {
-            mockMvc.perform(post("/api/auth/forgot-password")
+            perform(post("/api/auth/forgot-password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"phoneNumber\":\"" + ownerA.getPhoneNumber() + "\"}"))
                     .andExpect(status().isOk());
@@ -154,13 +156,13 @@ class AuthSecurityIntegrationTest {
     @Test
     void sixthFailedLoginForSamePhoneReturns429() throws Exception {
         for (int attempt = 0; attempt < LoginRateLimiterService.MAX_FAILURES_PER_PHONE; attempt++) {
-            mockMvc.perform(post("/api/auth/login")
+            perform(post("/api/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(loginBody(ownerA.getPhoneNumber(), "Wrong@123")))
                     .andExpect(status().isUnauthorized());
         }
 
-        mockMvc.perform(post("/api/auth/login")
+        perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginBody(ownerA.getPhoneNumber(), PASSWORD)))
                 .andExpect(status().isTooManyRequests());
@@ -172,17 +174,17 @@ class AuthSecurityIntegrationTest {
         UUID usedLink = saveResetToken(ownerA);
         UUID otherLink = saveResetToken(ownerA);
 
-        mockMvc.perform(post("/api/auth/reset-password")
+        perform(post("/api/auth/reset-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"token\":\"" + usedLink + "\",\"newPassword\":\"Fresh@4567\"}"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/pumps").cookie(oldSession)).andExpect(status().isUnauthorized());
-        mockMvc.perform(post("/api/auth/reset-password")
+        perform(get("/api/pumps").cookie(oldSession)).andExpect(status().isUnauthorized());
+        perform(post("/api/auth/reset-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"token\":\"" + otherLink + "\",\"newPassword\":\"Other@4567\"}"))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(post("/api/auth/login")
+        perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginBody(ownerA.getPhoneNumber(), "Fresh@4567")))
                 .andExpect(status().isOk());
@@ -194,12 +196,12 @@ class AuthSecurityIntegrationTest {
         Cookie session = loginAs(owner);
         UUID pendingLink = saveResetToken(owner);
 
-        mockMvc.perform(post("/api/auth/change-password").cookie(session)
+        perform(post("/api/auth/change-password").cookie(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"currentPassword\":\"" + PASSWORD + "\",\"newPassword\":\"Changed@789\"}"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/auth/reset-password")
+        perform(post("/api/auth/reset-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"token\":\"" + pendingLink + "\",\"newPassword\":\"Other@4567\"}"))
                 .andExpect(status().isBadRequest());
@@ -210,13 +212,13 @@ class AuthSecurityIntegrationTest {
         resetTokenRepository.save(PasswordResetToken.builder()
                 .userId(user.getId())
                 .tokenHash(TokenHashing.sha256Hex(token.toString()))
-                .expiresAt(OffsetDateTime.now().plusHours(1))
+                .expiresAt(TestDates.now().plusHours(1))
                 .build());
         return token;
     }
 
     private Cookie loginAs(User user) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/auth/login")
+        MvcResult result = perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginBody(user.getPhoneNumber(), PASSWORD)))
                 .andExpect(status().isOk())
@@ -225,6 +227,13 @@ class AuthSecurityIntegrationTest {
         String token = setCookie.substring(
                 setCookie.indexOf('=') + 1, setCookie.indexOf(';'));
         return new Cookie(JwtCookieSupport.COOKIE_NAME, token);
+    }
+
+    private ResultActions perform(MockHttpServletRequestBuilder request) throws Exception {
+        return mockMvc.perform(request.with(servletRequest -> {
+            servletRequest.setRemoteAddr(clientAddress);
+            return servletRequest;
+        }));
     }
 
     private String loginBody(String phoneNumber, String password) {
@@ -240,7 +249,7 @@ class AuthSecurityIntegrationTest {
                 .passwordHash(passwordEncoder.encode(PASSWORD))
                 .role(UserRole.OWNER)
                 .status(UserStatus.ACTIVE)
-                .dateOfJoining(LocalDate.now())
+                .dateOfJoining(TestDates.today())
                 .build());
     }
 

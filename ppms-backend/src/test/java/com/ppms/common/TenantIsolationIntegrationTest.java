@@ -1,5 +1,6 @@
 package com.ppms.common;
 
+import com.ppms.support.TestDates;
 import com.ppms.auth.JwtCookieSupport;
 import com.ppms.fuel.FuelType;
 import com.ppms.pump.DispensaryUnit;
@@ -33,8 +34,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -145,8 +144,8 @@ class TenantIsolationIntegrationTest {
                 .duId(duB.getId())
                 .operatorId(operatorB.getId())
                 .openedByUserId(operatorB.getId())
-                .shiftDate(LocalDate.now())
-                .actualStartTime(OffsetDateTime.now())
+                .shiftDate(TestDates.today())
+                .actualStartTime(TestDates.now())
                 .status(ShiftStatus.OPEN)
                 .isOverdueFlag(false)
                 .build());
@@ -186,7 +185,7 @@ class TenantIsolationIntegrationTest {
                 .role(role)
                 .status(UserStatus.ACTIVE)
                 .assignedPumpId(assignedPumpId)
-                .dateOfJoining(LocalDate.now())
+                .dateOfJoining(TestDates.today())
                 .build());
     }
 

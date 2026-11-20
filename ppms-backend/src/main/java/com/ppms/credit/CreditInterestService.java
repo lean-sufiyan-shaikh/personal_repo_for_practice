@@ -131,10 +131,11 @@ public class CreditInterestService {
         if (clientIds.isEmpty()) return Map.of();
 
         List<CreditInterestCharge> allCharges = interestChargeRepository.findByClientIdIn(clientIds);
-        List<CreditPayment> allPayments = paymentRepository.findApprovedByClientIdIn(clientIds);
-
         Map<Long, List<CreditInterestCharge>> chargesByClient = allCharges.stream()
                 .collect(Collectors.groupingBy(CreditInterestCharge::getClientId));
+        List<CreditPayment> allPayments = chargesByClient.isEmpty()
+                ? List.of()
+                : paymentRepository.findApprovedByClientIdIn(chargesByClient.keySet());
         Map<Long, List<CreditPayment>> paymentsByClient = allPayments.stream()
                 .collect(Collectors.groupingBy(CreditPayment::getClientId));
 

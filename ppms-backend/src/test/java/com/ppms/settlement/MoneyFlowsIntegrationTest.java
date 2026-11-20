@@ -1,5 +1,6 @@
 package com.ppms.settlement;
 
+import com.ppms.support.TestDates;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ppms.support.ApiIntegrationTest;
 import com.ppms.user.User;
@@ -8,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,11 +69,11 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().is2xxSuccessful());
 
         JsonNode summary = json(perform(get("/api/pumps/{pumpId}/settlements/daily-summary", setup.pumpId())
-                        .param("from", LocalDate.now().minusDays(1).toString())
-                        .param("to", LocalDate.now().toString()), setup.manager())
+                        .param("from", TestDates.today().minusDays(1).toString())
+                        .param("to", TestDates.today().toString()), setup.manager())
                 .andExpect(status().isOk()));
 
-        JsonNode today = findByDate(summary.get("content"), LocalDate.now().toString());
+        JsonNode today = findByDate(summary.get("content"), TestDates.today().toString());
         assertThat(today.get("upiCollected").decimalValue()).isEqualByComparingTo("600.00");
         assertThat(today.get("upiSettled").decimalValue()).isEqualByComparingTo("250.00");
     }
@@ -81,10 +81,10 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
     @Test
     void settlementWithAnUnknownTypeAFutureDateOrNoVoidReasonIsRejected() throws Exception {
         perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
-                Map.of("paymentType", "CHEQUE", "settlementDate", LocalDate.now().toString(), "amountReceived", 10))
+                Map.of("paymentType", "CHEQUE", "settlementDate", TestDates.today().toString(), "amountReceived", 10))
                 .andExpect(status().isBadRequest());
         perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
-                Map.of("paymentType", "UPI", "settlementDate", LocalDate.now().plusDays(2).toString(), "amountReceived", 10))
+                Map.of("paymentType", "UPI", "settlementDate", TestDates.today().plusDays(2).toString(), "amountReceived", 10))
                 .andExpect(status().isBadRequest());
 
         long settlementId = json(perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
@@ -164,7 +164,7 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
         createExpense(setup.manager(), "400.00", false).andExpect(status().is2xxSuccessful());
 
         JsonNode summary = json(perform(get("/api/pumps/{pumpId}/expenses/summary", setup.pumpId())
-                        .param("from", LocalDate.now().toString()).param("to", LocalDate.now().toString()),
+                        .param("from", TestDates.today().toString()).param("to", TestDates.today().toString()),
                 setup.accountant()).andExpect(status().isOk()));
 
         assertThat(summary.toString()).contains("1000").contains("400");
@@ -181,7 +181,7 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
                 cashEvent("CASH_OUT", "200.00")).andExpect(status().is2xxSuccessful());
 
         JsonNode events = json(perform(get("/api/pumps/{pumpId}/cash-events", setup.pumpId())
-                        .param("from", LocalDate.now().toString()).param("to", LocalDate.now().toString()),
+                        .param("from", TestDates.today().toString()).param("to", TestDates.today().toString()),
                 setup.manager()).andExpect(status().isOk()));
         assertThat(events.toString()).contains("CASH_OUT").contains("OPENING_BALANCE");
         perform(get("/api/pumps/{pumpId}/cash-events", setup.pumpId()), setup.operator())
@@ -192,8 +192,8 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
     void dailyRatePayrollIsGeneratedApprovedAndPaidByTheOwnerOnly() throws Exception {
         Map<String, Object> request = new HashMap<>();
         request.put("userId", setup.manager().getId());
-        request.put("periodFrom", LocalDate.now().minusDays(2).toString());
-        request.put("periodTo", LocalDate.now().toString());
+        request.put("periodFrom", TestDates.today().minusDays(2).toString());
+        request.put("periodTo", TestDates.today().toString());
         request.put("deductFromSalaryShiftIds", List.of());
 
         perform(post("/api/pumps/{pumpId}/payroll/generate", setup.pumpId()), setup.admin(), request)
@@ -239,19 +239,19 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
     }
 
     private Map<String, Object> settlementBody(String amount) {
-        return Map.of("paymentType", "UPI", "settlementDate", LocalDate.now().toString(),
+        return Map.of("paymentType", "UPI", "settlementDate", TestDates.today().toString(),
                 "amountReceived", new BigDecimal(amount));
     }
 
     private ResultActions createExpense(User user, String amount, boolean saveDraft) throws Exception {
         return perform(post("/api/pumps/{pumpId}/expenses", setup.pumpId()), user,
                 Map.of("category", "MAINTENANCE", "amount", new BigDecimal(amount), "description", "Pump repair",
-                        "expenseDate", LocalDate.now().toString(), "saveDraft", saveDraft));
+                        "expenseDate", TestDates.today().toString(), "saveDraft", saveDraft));
     }
 
     private Map<String, Object> cashEvent(String type, String amount) {
         return Map.of("eventType", type, "amount", new BigDecimal(amount), "description", "Drawer",
-                "eventDate", LocalDate.now().toString());
+                "eventDate", TestDates.today().toString());
     }
 
     private static JsonNode findByDate(JsonNode days, String date) {

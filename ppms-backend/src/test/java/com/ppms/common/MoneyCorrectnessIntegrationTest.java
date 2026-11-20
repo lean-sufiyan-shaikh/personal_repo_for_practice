@@ -1,5 +1,6 @@
 package com.ppms.common;
 
+import com.ppms.support.TestDates;
 import com.ppms.ancillary.AncillaryInventoryWorkflowService;
 import com.ppms.ancillary.AncillaryProduct;
 import com.ppms.ancillary.AncillaryProductPrice;
@@ -120,7 +121,7 @@ class MoneyCorrectnessIntegrationTest {
     @Test
     void ledgerRunningBalanceIgnoresVoidedSalesAndUnapprovedPayments() {
         CreditClient client = saveClient(BigDecimal.ZERO);
-        Shift shift = saveClosedShift(LocalDate.now(), ShiftStatus.CLOSED_BALANCED, null);
+        Shift shift = saveClosedShift(TestDates.today(), ShiftStatus.CLOSED_BALANCED, null);
         saveCreditSale(shift, client, "1000.00", "ACTIVE");
         saveCreditSale(shift, client, "5000.00", "VOIDED");
         savePayment(client, "300.00", ExpenseApprovalStatus.APPROVED, owner);
@@ -142,7 +143,7 @@ class MoneyCorrectnessIntegrationTest {
     void payrollThatFailsAfterResolvingDiscrepanciesLeavesThemPending() {
         operator.setShift1HourlyRate(null);
         userRepository.save(operator);
-        Shift discrepancy = saveClosedShift(LocalDate.now().minusDays(2), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "50.00");
+        Shift discrepancy = saveClosedShift(TestDates.today().minusDays(2), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "50.00");
 
         assertThatThrownBy(() -> payrollService.generate(pump.getId(), payrollRequest(discrepancy), owner))
                 .isInstanceOf(BusinessException.class)
@@ -156,7 +157,7 @@ class MoneyCorrectnessIntegrationTest {
     @Test
     void secondPayrollForTheSamePeriodIsRefusedWithoutResolvingMoreDiscrepancies() {
         payrollService.generate(pump.getId(), payrollRequest(null), owner);
-        Shift discrepancy = saveClosedShift(LocalDate.now().minusDays(2), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "50.00");
+        Shift discrepancy = saveClosedShift(TestDates.today().minusDays(2), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "50.00");
 
         assertThatThrownBy(() -> payrollService.generate(pump.getId(), payrollRequest(discrepancy), owner))
                 .isInstanceOf(BusinessException.class)
@@ -171,8 +172,8 @@ class MoneyCorrectnessIntegrationTest {
         payrollService.generate(pump.getId(), payrollRequest(null), owner);
 
         GeneratePayrollRequest overlapping = payrollRequest(null);
-        overlapping.setPeriodFrom(LocalDate.now().minusDays(2));
-        overlapping.setPeriodTo(LocalDate.now().plusDays(5));
+        overlapping.setPeriodFrom(TestDates.today().minusDays(2));
+        overlapping.setPeriodTo(TestDates.today().plusDays(5));
 
         assertThatThrownBy(() -> payrollService.generate(pump.getId(), overlapping, owner))
                 .isInstanceOf(BusinessException.class)
@@ -181,13 +182,13 @@ class MoneyCorrectnessIntegrationTest {
 
     @Test
     void discrepancyDeductedByOnePayrollIsNotDeductedAgainByAnother() {
-        Shift lastMonth = saveClosedShift(LocalDate.now().minusDays(20), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "500.00");
+        Shift lastMonth = saveClosedShift(TestDates.today().minusDays(20), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "500.00");
         PayrollRecord current = payrollService.generate(pump.getId(), payrollRequest(lastMonth), owner);
         assertThat(current.getDeductions()).isEqualByComparingTo("500.00");
 
         GeneratePayrollRequest earlier = payrollRequest(null);
-        earlier.setPeriodFrom(LocalDate.now().minusDays(30));
-        earlier.setPeriodTo(LocalDate.now().minusDays(8));
+        earlier.setPeriodFrom(TestDates.today().minusDays(30));
+        earlier.setPeriodTo(TestDates.today().minusDays(8));
         PayrollRecord earlierPayroll = payrollService.generate(pump.getId(), earlier, owner);
 
         assertThat(earlierPayroll.getDeductions()).isEqualByComparingTo("0.00");
@@ -202,14 +203,14 @@ class MoneyCorrectnessIntegrationTest {
                 .parentClientId(parent.getId())
                 .monthlyInterestRate(BigDecimal.ZERO)
                 .build());
-        Shift shift = saveClosedShift(LocalDate.now(), ShiftStatus.CLOSED_BALANCED, null);
+        Shift shift = saveClosedShift(TestDates.today(), ShiftStatus.CLOSED_BALANCED, null);
         saveCreditSale(shift, child, "1000.00", "ACTIVE");
         savePayment(parent, "1000.00", ExpenseApprovalStatus.APPROVED, owner);
 
         RecordPaymentRequest request = new RecordPaymentRequest();
         request.setAmount(new BigDecimal("1000.00"));
         request.setPaymentMode(PaymentMode.CASH);
-        request.setPaidAt(LocalDate.now());
+        request.setPaidAt(TestDates.today());
 
         assertThatThrownBy(() -> ledgerService.recordPayment(pump.getId(), child.getId(), request, owner))
                 .isInstanceOf(BusinessException.class)
@@ -218,7 +219,7 @@ class MoneyCorrectnessIntegrationTest {
 
     @Test
     void deletingPayrollDraftRestoresTheDiscrepanciesItResolved() {
-        Shift discrepancy = saveClosedShift(LocalDate.now().minusDays(2), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "50.00");
+        Shift discrepancy = saveClosedShift(TestDates.today().minusDays(2), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "50.00");
         PayrollRecord draft = payrollService.generate(pump.getId(), payrollRequest(discrepancy), owner);
         assertThat(draft.getDeductions()).isEqualByComparingTo("50.00");
         assertThat(shiftRepository.findById(discrepancy.getId()).orElseThrow().getStatus())
@@ -234,8 +235,8 @@ class MoneyCorrectnessIntegrationTest {
 
     @Test
     void payrollPaysWorkedMinutesAtTheHourlyRateRoundedOnce() {
-        Shift shift = saveClosedShift(LocalDate.now().minusDays(1), ShiftStatus.CLOSED_BALANCED, null);
-        shift.setActualStartTime(OffsetDateTime.now().minusDays(1).withHour(8).withMinute(0));
+        Shift shift = saveClosedShift(TestDates.today().minusDays(1), ShiftStatus.CLOSED_BALANCED, null);
+        shift.setActualStartTime(TestDates.now().minusDays(1).withHour(8).withMinute(0));
         shift.setActualEndTime(shift.getActualStartTime().plusMinutes(100));
         shiftRepository.save(shift);
 
@@ -249,16 +250,16 @@ class MoneyCorrectnessIntegrationTest {
     void interestRunKeepsOtherClientsWhenOneGroupFails() {
         CreditClient healthyRoot = saveClient(new BigDecimal("2.00"));
         seedOutstandingInterest(healthyRoot, "1000.00", 40);
-        saveCreditSaleOn(healthyRoot, "1000.00", LocalDate.now().minusDays(39));
+        saveCreditSaleOn(healthyRoot, "1000.00", TestDates.today().minusDays(39));
 
         CreditClient failingRoot = saveClient(new BigDecimal("2.00"));
         seedOutstandingInterest(failingRoot, "1000.00", 40);
-        saveCreditSaleOn(failingRoot, "1000.00", LocalDate.now().minusDays(39));
+        saveCreditSaleOn(failingRoot, "1000.00", TestDates.today().minusDays(39));
         CreditClient overflowingChild = saveClient(new BigDecimal("999.99"));
         overflowingChild.setParentClientId(failingRoot.getId());
         clientRepository.save(overflowingChild);
         seedOutstandingInterest(overflowingChild, "1.00", 400);
-        saveCreditSaleOn(overflowingChild, "900000000000.00", LocalDate.now().minusDays(399));
+        saveCreditSaleOn(overflowingChild, "900000000000.00", TestDates.today().minusDays(399));
 
         CreditInterestRunService.InterestRunResult result =
                 interestRunService.applyProRataForAllClients(pump.getId(), owner.getId());
@@ -272,7 +273,7 @@ class MoneyCorrectnessIntegrationTest {
     @Test
     void nobodyCanApproveAPaymentTheyRecordedThemselves() {
         CreditClient client = saveClient(BigDecimal.ZERO);
-        Shift shift = saveClosedShift(LocalDate.now(), ShiftStatus.CLOSED_BALANCED, null);
+        Shift shift = saveClosedShift(TestDates.today(), ShiftStatus.CLOSED_BALANCED, null);
         saveCreditSale(shift, client, "1000.00", "ACTIVE");
         CreditPayment payment = savePayment(client, "500.00", ExpenseApprovalStatus.PENDING_APPROVAL, owner);
 
@@ -287,7 +288,7 @@ class MoneyCorrectnessIntegrationTest {
     void voidedSettlementNoLongerReducesTheWalletAndDuplicatesAreRefused() {
         PaymentSettlementService.RecordSettlementRequest request = PaymentSettlementService.RecordSettlementRequest.builder()
                 .paymentType(SettlementPaymentType.UPI)
-                .settlementDate(LocalDate.now())
+                .settlementDate(TestDates.today())
                 .amountReceived(new BigDecimal("79000.00"))
                 .build();
         PaymentSettlementService.SettlementResponse recorded = settlementService.record(pump.getId(), request, manager);
@@ -318,13 +319,13 @@ class MoneyCorrectnessIntegrationTest {
         RecordStockDeliveryRequest stock = new RecordStockDeliveryRequest();
         stock.setQuantityUnits(10);
         stock.setCostPricePerUnit(new BigDecimal("300.00"));
-        stock.setDeliveryDate(LocalDate.now());
+        stock.setDeliveryDate(TestDates.today());
         ancillaryWorkflowService.recordDelivery(pump.getId(), product.getId(), stock, manager);
         ancillaryPriceRepository.save(AncillaryProductPrice.builder()
                 .productId(product.getId())
                 .pumpId(pump.getId())
                 .pricePerUnit(new BigDecimal("400.00"))
-                .effectiveFrom(OffsetDateTime.now().minusDays(1))
+                .effectiveFrom(TestDates.now().minusDays(1))
                 .setByUserId(owner.getId())
                 .build());
 
@@ -375,7 +376,7 @@ class MoneyCorrectnessIntegrationTest {
     @Test
     void interestRecoveredCountsOnlyInterestThatPaymentsPaidOff() {
         CreditClient client = saveClient(new BigDecimal("3.00"));
-        seedChargeEndingOn(client, "500.00", LocalDate.now().minusDays(10));
+        seedChargeEndingOn(client, "500.00", TestDates.today().minusDays(10));
 
         assertThat(interestService.computeTotalInterestRecovered(client.getId())).isEqualByComparingTo("0.00");
 
@@ -414,14 +415,14 @@ class MoneyCorrectnessIntegrationTest {
     private GeneratePayrollRequest payrollRequest(Shift discrepancyToDeduct) {
         GeneratePayrollRequest request = new GeneratePayrollRequest();
         request.setUserId(operator.getId());
-        request.setPeriodFrom(LocalDate.now().minusDays(7));
-        request.setPeriodTo(LocalDate.now());
+        request.setPeriodFrom(TestDates.today().minusDays(7));
+        request.setPeriodTo(TestDates.today());
         request.setDeductFromSalaryShiftIds(discrepancyToDeduct == null ? null : List.of(discrepancyToDeduct.getId()));
         return request;
     }
 
     private Shift saveClosedShift(LocalDate shiftDate, ShiftStatus status, String discrepancyAmount) {
-        OffsetDateTime start = shiftDate.atTime(9, 0).atOffset(OffsetDateTime.now().getOffset());
+        OffsetDateTime start = shiftDate.atTime(9, 0).atOffset(TestDates.now().getOffset());
         return shiftRepository.save(Shift.builder()
                 .pumpId(pump.getId())
                 .duId(du.getId())
@@ -461,7 +462,7 @@ class MoneyCorrectnessIntegrationTest {
                 .clientId(client.getId())
                 .amount(new BigDecimal(amount))
                 .paymentMode(PaymentMode.CASH)
-                .paidAt(LocalDate.now())
+                .paidAt(TestDates.today())
                 .recordedById(recordedBy.getId())
                 .paymentApprovalStatus(status)
                 .build());
@@ -469,7 +470,7 @@ class MoneyCorrectnessIntegrationTest {
 
     /** An earlier charge gives the client an outstanding balance and fixes where the next interest period starts. */
     private void seedOutstandingInterest(CreditClient client, String amount, int daysAgo) {
-        LocalDate periodTo = LocalDate.now().minusDays(daysAgo);
+        LocalDate periodTo = TestDates.today().minusDays(daysAgo);
         interestChargeRepository.save(CreditInterestCharge.builder()
                 .pumpId(pump.getId())
                 .clientId(client.getId())
@@ -493,7 +494,7 @@ class MoneyCorrectnessIntegrationTest {
                 .role(role)
                 .status(UserStatus.ACTIVE)
                 .assignedPumpId(assignedPumpId)
-                .dateOfJoining(LocalDate.now())
+                .dateOfJoining(TestDates.today())
                 .build());
     }
 

@@ -1,5 +1,6 @@
 package com.ppms.common;
 
+import com.ppms.support.TestDates;
 import com.ppms.ancillary.AncillaryInventoryWorkflowService;
 import com.ppms.ancillary.AncillaryProduct;
 import com.ppms.ancillary.AncillaryProductPrice;
@@ -53,8 +54,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -127,7 +126,7 @@ class ConcurrentUpdateIntegrationTest {
                 .originalQuantity(new BigDecimal("5000.000"))
                 .remainingQuantity(new BigDecimal("5000.000"))
                 .costPricePerUnit(new BigDecimal("90.00"))
-                .deliveryDate(OffsetDateTime.now().minusDays(1))
+                .deliveryDate(TestDates.now().minusDays(1))
                 .isDipAdjustment(false)
                 .status(LotStatus.ACTIVE)
                 .build());
@@ -168,7 +167,7 @@ class ConcurrentUpdateIntegrationTest {
         delivery.setTankId(tank.getId());
         delivery.setQuantityDelivered(new BigDecimal("1000"));
         delivery.setCostPricePerUnit(new BigDecimal("91.00"));
-        delivery.setDeliveryDate(LocalDate.now());
+        delivery.setDeliveryDate(TestDates.today());
         delivery.setInvoiceReference("INV-" + shortId());
 
         CompetitorResult<?> deliveryResult = runWhileRowIsLocked(
@@ -194,13 +193,13 @@ class ConcurrentUpdateIntegrationTest {
         RecordStockDeliveryRequest stock = new RecordStockDeliveryRequest();
         stock.setQuantityUnits(10);
         stock.setCostPricePerUnit(new BigDecimal("300.00"));
-        stock.setDeliveryDate(LocalDate.now());
+        stock.setDeliveryDate(TestDates.today());
         ancillaryWorkflowService.recordDelivery(pump.getId(), product.getId(), stock, manager);
         ancillaryPriceRepository.save(AncillaryProductPrice.builder()
                 .productId(product.getId())
                 .pumpId(pump.getId())
                 .pricePerUnit(new BigDecimal("400.00"))
-                .effectiveFrom(OffsetDateTime.now().minusDays(1))
+                .effectiveFrom(TestDates.now().minusDays(1))
                 .setByUserId(manager.getId())
                 .build());
 
@@ -234,7 +233,7 @@ class ConcurrentUpdateIntegrationTest {
                     locked.setCashCollected(new BigDecimal("1000.00"));
                     shiftRepository.save(locked);
                 },
-                () -> overdueShiftProcessor.process(shift.getId(), OffsetDateTime.now()));
+                () -> overdueShiftProcessor.process(shift.getId(), TestDates.now()));
 
         assertThat(job.failure()).isNull();
         assertThat(job.value()).isEqualTo(OverdueShiftProcessor.Outcome.UNCHANGED);
@@ -249,8 +248,8 @@ class ConcurrentUpdateIntegrationTest {
                 .duId(du.getId())
                 .operatorId(operator.getId())
                 .openedByUserId(manager.getId())
-                .shiftDate(LocalDate.now())
-                .actualStartTime(OffsetDateTime.now().minusHours(2))
+                .shiftDate(TestDates.today())
+                .actualStartTime(TestDates.now().minusHours(2))
                 .status(status)
                 .isOverdueFlag(status == ShiftStatus.OPEN_OVERDUE)
                 .build());
@@ -353,7 +352,7 @@ class ConcurrentUpdateIntegrationTest {
                 .role(role)
                 .status(UserStatus.ACTIVE)
                 .assignedPumpId(assignedPumpId)
-                .dateOfJoining(LocalDate.now())
+                .dateOfJoining(TestDates.today())
                 .build());
     }
 

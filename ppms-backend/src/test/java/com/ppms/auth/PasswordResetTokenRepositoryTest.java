@@ -1,5 +1,6 @@
 package com.ppms.auth;
 
+import com.ppms.support.TestDates;
 import com.ppms.support.PostgresTestContainerConfig;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
@@ -11,8 +12,6 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,13 +33,13 @@ class PasswordResetTokenRepositoryTest {
                 .passwordHash("hash")
                 .role(UserRole.OWNER)
                 .status(UserStatus.ACTIVE)
-                .dateOfJoining(LocalDate.now())
+                .dateOfJoining(TestDates.today())
                 .build());
         String rawToken = UUID.randomUUID().toString();
         tokenRepository.save(PasswordResetToken.builder()
                 .userId(user.getId())
                 .tokenHash(TokenHashing.sha256Hex(rawToken))
-                .expiresAt(OffsetDateTime.now().plusHours(1))
+                .expiresAt(TestDates.now().plusHours(1))
                 .build());
 
         assertThat(tokenRepository.findByTokenHashForUpdate(TokenHashing.sha256Hex(rawToken))).isPresent();

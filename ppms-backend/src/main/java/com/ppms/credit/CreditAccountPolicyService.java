@@ -135,9 +135,8 @@ public class CreditAccountPolicyService {
         }
 
         CreditClient limitHolder = lockLimitHolder(client);
-        creditExtensionRepository.expireOverdueExtensions(businessClock.today());
         List<CreditExtension> activeExtensions = creditExtensionRepository
-                .findByPumpIdAndClientIdAndStatus(pumpId, limitHolder.getId(), CreditExtensionStatus.ACTIVE);
+                .findInEffect(pumpId, limitHolder.getId(), businessClock.today());
 
         if (limitHolder.getCreditLimit().compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal combinedOutstanding = creditInterestService.computeOutstandingWithChildren(limitHolder.getId());

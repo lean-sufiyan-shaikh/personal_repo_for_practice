@@ -19,7 +19,10 @@ import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
 import com.ppms.user.UserStatus;
+import jakarta.persistence.EntityManagerFactory;
 import jakarta.servlet.http.Cookie;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -65,8 +68,10 @@ public abstract class ApiIntegrationTest {
     @Autowired protected UndergroundTankRepository tankRepository;
     @Autowired protected PumpShiftDefinitionRepository shiftDefinitionRepository;
     @Autowired protected PasswordEncoder passwordEncoder;
+    @Autowired private EntityManagerFactory entityManagerFactory;
 
     private final Map<Long, Cookie> cookiesByUserId = new HashMap<>();
+    private final String clientAddress = TestAddresses.randomPrivateAddress();
 
     protected record PumpSetup(PumpLocation pump, User owner, User admin, User manager, User operator,
                                User accountant, UndergroundTank tank, DispensaryUnit du, Nozzle nozzle,
@@ -119,14 +124,14 @@ public abstract class ApiIntegrationTest {
                 .crossesMidnight(false)
                 .isNightShift(false)
                 .sortOrder(1)
-                .effectiveFrom(LocalDate.now().minusYears(1))
+                .effectiveFrom(TestDates.today().minusYears(1))
                 .createdByUserId(owner.getId())
                 .build());
 
         PumpSetup setup = new PumpSetup(pump, owner, admin, manager, operator, accountant, tank, du, nozzle, allDay);
         setFuelPrice(setup, "100.00");
         if (new BigDecimal(stockLitres).signum() > 0) {
-            recordDelivery(setup, stockLitres, "90.00", LocalDate.now().minusDays(1));
+            recordDelivery(setup, stockLitres, "90.00", TestDates.today().minusDays(1));
         }
         return setup;
     }
@@ -157,6 +162,15 @@ public abstract class ApiIntegrationTest {
                 .content(objectMapper.writeValueAsString(body)));
     }
 
+    /** Number of SQL statements Hibernate prepared while running the request. */
+    protected long statementsRunBy(MockHttpServletRequestBuilder request, User user) throws Exception {
+        perform(request, user);
+        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        statistics.clear();
+        perform(request, user).andExpect(status().is2xxSuccessful());
+        return statistics.getPrepareStatementCount();
+    }
+
     protected JsonNode json(ResultActions result) throws Exception {
         String body = result.andReturn().getResponse().getContentAsString();
         return body.isEmpty() ? objectMapper.createObjectNode() : objectMapper.readTree(body);
@@ -168,6 +182,10 @@ public abstract class ApiIntegrationTest {
             return cached;
         }
         MvcResult result = mockMvc.perform(post("/api/auth/login")
+                        .with(request -> {
+                            request.setRemoteAddr(clientAddress);
+                            return request;
+                        })
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"phoneNumber\":\"" + user.getPhoneNumber() + "\",\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().is2xxSuccessful())
@@ -189,7 +207,7 @@ public abstract class ApiIntegrationTest {
                 .role(role)
                 .status(UserStatus.ACTIVE)
                 .assignedPumpId(assignedPumpId)
-                .dateOfJoining(LocalDate.now().minusYears(1))
+                .dateOfJoining(TestDates.today().minusYears(1))
                 .dailyRate(new BigDecimal("800.00"))
                 .build());
     }

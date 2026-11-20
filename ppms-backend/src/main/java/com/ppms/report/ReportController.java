@@ -81,16 +81,19 @@ public class ReportController {
     }
 
     /**
-     * GET /api/pumps/{pumpId}/reports/inventory-lots/all
+     * GET /api/pumps/{pumpId}/reports/inventory-lots/all?from=&to=
      *
-     * Returns all inventory lots for every tank at this pump, grouped by tank.
+     * Returns every ACTIVE lot plus the lots delivered between from and to (default: the last 90 days),
+     * grouped by tank.
      * Includes per-tank summaries (remaining qty, weighted avg cost, stock value)
      * and a cross-tank summary aggregated by fuel type.
      */
     @GetMapping("/inventory-lots/all")
     public ResponseEntity<ReportService.AllTanksInventoryReport> getAllTanksInventoryLots(
-            @PathVariable Long pumpId) {
-        return ResponseEntity.ok(reportService.buildAllTanksInventoryReport(pumpId));
+            @PathVariable Long pumpId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(reportService.buildAllTanksInventoryReport(pumpId, from, to));
     }
 
     /**

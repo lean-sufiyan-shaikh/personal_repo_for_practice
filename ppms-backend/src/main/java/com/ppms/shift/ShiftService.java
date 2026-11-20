@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -83,8 +84,10 @@ public class ShiftService {
         }
 
         lifecycleSupportService.rejectDuplicateNozzles(request.getNozzleIds());
+        Map<Long, Nozzle> nozzleById = nozzleRepository.findAllById(request.getNozzleIds()).stream()
+                .collect(Collectors.toMap(Nozzle::getId, Function.identity()));
         List<Nozzle> nozzles = request.getNozzleIds().stream()
-                .map(id -> nozzleRepository.findById(id)
+                .map(id -> Optional.ofNullable(nozzleById.get(id))
                         .orElseThrow(() -> new ResourceNotFoundException("Nozzle not found: " + id)))
                 .toList();
 

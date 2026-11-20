@@ -167,6 +167,8 @@ public class BalanceSheetService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
 
+        BalanceSheetDetailResponse.SettlementSummary settlementSummary = isShift ? null : buildSettlementSummary(pumpId, period);
+
         // The pump row lock is taken only around the final duplicate check and insert, so the
         // aggregation above does not block cash-outs and settlements on this pump.
         pumpLocationRepository.findByIdForUpdate(pumpId)
@@ -226,7 +228,7 @@ public class BalanceSheetService {
                 amendmentLines, dipPlEntries, generatedBy.getFullName(), productSalesSummary, expenseSummary);
 
         if (!isShift) {
-            response.setSettlementSummary(buildSettlementSummary(pumpId, period));
+            response.setSettlementSummary(settlementSummary);
             response.setIncludedShiftNames(distinctShiftNames(shifts));
         }
         return response;

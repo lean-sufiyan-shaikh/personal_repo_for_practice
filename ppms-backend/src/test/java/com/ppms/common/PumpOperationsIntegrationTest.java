@@ -1,5 +1,6 @@
 package com.ppms.common;
 
+import com.ppms.support.TestDates;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ppms.scheduler.InterestStagingJob;
 import com.ppms.scheduler.NotificationGenerationJob;
@@ -48,7 +49,7 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void bankStatementImportSkipsUnreadableRowsAndLinesCanBeMatched() throws Exception {
-        String date = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        String date = TestDates.today().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
         String csv = "Date,Description,Debit,Credit,Balance,Reference\n"
                 + date + ",\"UPI settlement, batch 1\",,\"1,234.56\",\"10,000.00\",UTR1\n"
                 + "not-a-date,Garbage,,5,,\n"
@@ -134,7 +135,7 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
     void fuelDipLossIsRecordedAndListed() throws Exception {
         perform(post("/api/pumps/{pumpId}/fuel-dips", setup.pumpId()), setup.owner(),
                 Map.of("fuelType", "PETROL", "litresRemoved", new BigDecimal("2.5"), "reason", "Quality sample",
-                        "dipDate", LocalDate.now().toString()))
+                        "dipDate", TestDates.today().toString()))
                 .andExpect(status().is2xxSuccessful());
 
         assertThat(json(perform(get("/api/pumps/{pumpId}/fuel-dips", setup.pumpId()), setup.owner())
@@ -143,7 +144,7 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void plannerCanAddMoveAndRemoveEntriesOfAnUnpublishedPlan() throws Exception {
-        LocalDate weekStart = LocalDate.now().plusWeeks(2).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate weekStart = TestDates.today().plusWeeks(2).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         long planId = json(perform(post("/api/pumps/{pumpId}/shift-plans/generate", setup.pumpId()), setup.owner(),
                 Map.of("weekStart", weekStart.toString(), "operatorsPerDayShift", 1, "operatorsPerNightShift", 1))
                 .andExpect(status().is2xxSuccessful())).get("id").asLong();
@@ -157,11 +158,22 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
         long entryId = entry.get("id").asLong();
         perform(patch("/api/pumps/{pumpId}/shift-plans/{planId}/entries/{entryId}", setup.pumpId(), planId, entryId),
                 setup.owner(), Map.of("operatorUserId", replacement, "note", "Swapped")).andExpect(status().isOk());
+        assertThat(planEntry(planId, entryId).get("operatorUserId").asLong()).isEqualTo(replacement);
+
         perform(delete("/api/pumps/{pumpId}/shift-plans/{planId}/entries/{entryId}", setup.pumpId(), planId, entryId),
                 setup.owner()).andExpect(status().is2xxSuccessful());
+        assertThat(planEntry(planId, entryId)).isNull();
+    }
 
-        perform(get("/api/pumps/{pumpId}/shift-plans", setup.pumpId()).param("weekStart", weekStart.toString()), setup.manager())
-                .andExpect(status().isOk());
+    private JsonNode planEntry(long planId, long entryId) throws Exception {
+        JsonNode entries = json(perform(get("/api/pumps/{pumpId}/shift-plans/{planId}/entries", setup.pumpId(), planId),
+                setup.owner()).andExpect(status().isOk()));
+        for (JsonNode entry : entries) {
+            if (entry.get("id").asLong() == entryId) {
+                return entry;
+            }
+        }
+        return null;
     }
 
     @Test

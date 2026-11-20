@@ -1,9 +1,11 @@
 package com.ppms.pump;
 
+import com.ppms.support.TestDates;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ppms.support.ApiIntegrationTest;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
+import com.ppms.fuel.FuelType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -35,6 +37,28 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void dispenserListRunsTheSameNumberOfQueriesHoweverManyDispensersThePumpHas() throws Exception {
+        long withOneDispenser = statementsRunBy(get("/api/pumps/{pumpId}/dus", setup.pumpId()), setup.owner());
+        for (int duNumber = 2; duNumber <= 4; duNumber++) {
+            DispensaryUnit du = duRepository.save(DispensaryUnit.builder()
+                    .pumpId(setup.pumpId()).duNumber(duNumber).name("DU-" + shortId()).build());
+            nozzleRepository.save(Nozzle.builder().duId(du.getId()).nozzleNumber(2).fuelType(FuelType.PETROL)
+                    .lastReading(BigDecimal.ZERO).tankId(setup.tank().getId()).build());
+            nozzleRepository.save(Nozzle.builder().duId(du.getId()).nozzleNumber(1).fuelType(FuelType.PETROL)
+                    .lastReading(BigDecimal.ZERO).tankId(setup.tank().getId()).build());
+        }
+
+        long withFourDispensers = statementsRunBy(get("/api/pumps/{pumpId}/dus", setup.pumpId()), setup.owner());
+        JsonNode dispensers = json(perform(get("/api/pumps/{pumpId}/dus", setup.pumpId()), setup.owner())
+                .andExpect(status().isOk()));
+
+        assertThat(withFourDispensers).isEqualTo(withOneDispenser);
+        assertThat(dispensers).hasSize(4);
+        assertThat(dispensers.get(3).get("nozzles").get(0).get("nozzleNumber").asInt()).isEqualTo(1);
+        assertThat(dispensers.get(3).get("nozzles").get(1).get("nozzleNumber").asInt()).isEqualTo(2);
+    }
+
+    @Test
     void priceChangeAboveFifteenPercentNeedsConfirmation() throws Exception {
         perform(post("/api/pumps/{pumpId}/fuel-prices", setup.pumpId()), setup.manager(),
                 Map.of("fuelType", "PETROL", "pricePerUnit", new BigDecimal("120.00")))
@@ -47,7 +71,7 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isOk()));
         assertThat(current.toString()).contains("120.0");
         JsonNode forToday = json(perform(get("/api/pumps/{pumpId}/fuel-prices/for-date", setup.pumpId())
-                .param("date", LocalDate.now().toString()), setup.manager()).andExpect(status().isOk()));
+                .param("date", TestDates.today().toString()), setup.manager()).andExpect(status().isOk()));
         assertThat(forToday.toString()).contains("120.0");
     }
 
@@ -79,7 +103,7 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/auth/login").contentType("application/json")
                         .content("{\"phoneNumber\":\"" + operator.getPhoneNumber() + "\",\"password\":\"" + PASSWORD + "\"}"))
-                .andExpect(status().is4xxClientError());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -125,7 +149,7 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void newScheduleIsRefusedWhileTheCurrentOneOverlapsAndAcceptedAfterItIsDisabled() throws Exception {
-        LocalDate from = LocalDate.now().plusDays(10);
+        LocalDate from = TestDates.today().plusDays(10);
         Map<String, Object> morning = shiftDefinition("Morning", "06:00", "13:59", false, 1, from);
         Map<String, Object> evening = shiftDefinition("Evening", "14:00", "21:59", false, 2, from);
         Map<String, Object> night = shiftDefinition("Night", "22:00", "05:59", true, 3, from);
@@ -150,7 +174,7 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
     @Test
     void closureForTodayBlocksOpeningShifts() throws Exception {
         JsonNode closure = json(perform(post("/api/pumps/{pumpId}/closures", setup.pumpId()), setup.owner(),
-                Map.of("closureDate", LocalDate.now().toString(), "reason", "Holiday"))
+                Map.of("closureDate", TestDates.today().toString(), "reason", "Holiday"))
                 .andExpect(status().is2xxSuccessful()));
 
         perform(post("/api/pumps/{pumpId}/shifts/open", setup.pumpId()), setup.manager(),
@@ -169,7 +193,7 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
     @Test
     void calibrationIsLoggedPerNozzleAndListedForThePump() throws Exception {
         perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations", setup.pumpId(), setup.nozzle().getId()),
-                setup.owner(), Map.of("calibrationDate", LocalDate.now().toString(), "calibratedBy", "Weights Dept"))
+                setup.owner(), Map.of("calibrationDate", TestDates.today().toString(), "calibratedBy", "Weights Dept"))
                 .andExpect(status().is2xxSuccessful());
 
         JsonNode calibrations = json(perform(get("/api/pumps/{pumpId}/calibrations", setup.pumpId()), setup.manager())
@@ -185,7 +209,7 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
 
         perform(post("/api/pumps/{pumpId}/supplier-payments", setup.pumpId()), setup.owner(),
                 Map.of("supplierId", supplierId, "amount", new BigDecimal("50000.00"),
-                        "paymentDate", LocalDate.now().toString(), "paymentMode", "BANK_TRANSFER"))
+                        "paymentDate", TestDates.today().toString(), "paymentMode", "BANK_TRANSFER"))
                 .andExpect(status().is2xxSuccessful());
 
         JsonNode payments = json(perform(get("/api/pumps/{pumpId}/supplier-payments", setup.pumpId()), setup.owner())
@@ -195,7 +219,7 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
         PumpSetup otherPump = createPumpWithStock("0");
         perform(post("/api/pumps/{pumpId}/supplier-payments", otherPump.pumpId()), otherPump.owner(),
                 Map.of("supplierId", supplierId, "amount", new BigDecimal("10.00"),
-                        "paymentDate", LocalDate.now().toString(), "paymentMode", "CASH"))
+                        "paymentDate", TestDates.today().toString(), "paymentMode", "CASH"))
                 .andExpect(status().is4xxClientError());
     }
 
@@ -205,7 +229,7 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
                 Map.of("name", "Tanker " + shortId(), "capacityLitres", new BigDecimal("12000"), "tankerType", "OWN"))
                 .andExpect(status().is2xxSuccessful());
         perform(post("/api/pumps/{pumpId}/documents", setup.pumpId()), setup.owner(),
-                Map.of("name", "PESO licence", "docType", "LICENCE", "expiryDate", LocalDate.now().plusDays(10).toString()))
+                Map.of("name", "PESO licence", "docType", "LICENCE", "expiryDate", TestDates.today().plusDays(10).toString()))
                 .andExpect(status().is2xxSuccessful());
 
         assertThat(json(perform(get("/api/pumps/{pumpId}/tankers", setup.pumpId()), setup.manager())
@@ -218,7 +242,7 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void weeklyPlanIsGeneratedPublishedAndShownToOperators() throws Exception {
-        LocalDate weekStart = LocalDate.now().plusWeeks(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate weekStart = TestDates.today().plusWeeks(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         perform(post("/api/pumps/{pumpId}/staff/{userId}/leaves", setup.pumpId(), setup.operator().getId()), setup.owner(),
                 Map.of("leaveDate", weekStart.plusDays(2).toString(), "reason", "Family"))
                 .andExpect(status().is2xxSuccessful());
@@ -230,8 +254,12 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
 
         perform(post("/api/pumps/{pumpId}/shift-plans/{planId}/publish", setup.pumpId(), planId), setup.owner())
                 .andExpect(status().is2xxSuccessful());
-        perform(get("/api/pumps/{pumpId}/shift-plans/{planId}/entries", setup.pumpId(), planId), setup.operator())
-                .andExpect(status().isOk());
+        JsonNode entries = json(perform(get("/api/pumps/{pumpId}/shift-plans/{planId}/entries", setup.pumpId(), planId),
+                setup.operator()).andExpect(status().isOk()));
+        String leaveDay = weekStart.plusDays(2).toString();
+        assertThat(entries).isNotEmpty();
+        assertThat(entries).noneMatch(entry -> entry.get("operatorUserId").asLong() == setup.operator().getId()
+                && leaveDay.equals(entry.get("shiftDate").asText()));
         perform(get("/api/pumps/{pumpId}/shift-plans/my-schedule", setup.pumpId())
                 .param("weekStart", weekStart.toString()), setup.operator())
                 .andExpect(status().isOk());
@@ -320,7 +348,7 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
         user.put("role", role.name());
         user.put("gender", "MALE");
         user.put("assignedPumpId", setup.pumpId());
-        user.put("dateOfJoining", LocalDate.now().toString());
+        user.put("dateOfJoining", TestDates.today().toString());
         return user;
     }
 

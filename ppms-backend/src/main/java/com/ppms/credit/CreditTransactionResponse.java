@@ -42,4 +42,9 @@ public class CreditTransactionResponse {
 
     // False for voided sales and non-approved payments; such rows are listed but leave the running balance unchanged
     private boolean countedInBalance;
+
+    // Set only by the full-history endpoint, which can return a parent's rows together with its sub-accounts'
+    private Long clientId;
+
+    private String clientName;
 }

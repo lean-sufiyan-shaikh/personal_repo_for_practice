@@ -25,6 +25,10 @@ import java.util.stream.Collectors;
 public class CreditLedgerQueryService {
 
     private static final String ACTIVE = "ACTIVE";
+    private static final Comparator<CreditTransactionResponse> NEWEST_FIRST =
+            Comparator.comparing(CreditTransactionResponse::getOccurredAt).reversed()
+                    .thenComparing(CreditTransactionResponse::getType)
+                    .thenComparing(CreditTransactionResponse::getReferenceId);
 
     private final CreditClientRepository clientRepository;
     private final CreditPaymentRepository paymentRepository;
@@ -55,9 +59,7 @@ public class CreditLedgerQueryService {
 
     public PagedResponse<CreditTransactionResponse> getTransactions(Long clientId, int page, int size) {
         List<CreditTransactionResponse> transactions = buildTransactionList(clientId);
-        transactions.sort(Comparator.comparing(CreditTransactionResponse::getOccurredAt).reversed()
-                .thenComparing(CreditTransactionResponse::getType)
-                .thenComparing(CreditTransactionResponse::getReferenceId));
+        transactions.sort(NEWEST_FIRST);
         return PagedResponse.of(transactions, page, size);
     }
 
@@ -69,16 +71,41 @@ public class CreditLedgerQueryService {
         return mapPayments(paymentRepository.findPendingApprovalByPumpId(pumpId));
     }
 
-    public CreditClientResponse toClientResponse(CreditClient client, List<CreditClient> allPumpClients) {
-        List<Long> ids = allPumpClients.stream().map(CreditClient::getId).toList();
+    public CreditClientResponse toClientResponse(CreditClient client) {
+        List<CreditClient> family = new ArrayList<>();
+        family.add(client);
+        family.addAll(clientRepository.findByParentClientId(client.getId()));
+        if (client.getParentClientId() != null) {
+            clientRepository.findById(client.getParentClientId()).ifPresent(family::add);
+        }
+        List<Long> ids = family.stream().map(CreditClient::getId).toList();
         Map<Long, BigDecimal> outstandingByClientId = interestService.computeOutstandingBatch(ids);
         Map<Long, CreditInterestService.InterestBreakdown> breakdownMap = interestService.computeInterestBreakdownBatch(ids);
-        Map<Long, List<CreditClient>> childrenByParentId = allPumpClients.stream()
+        Map<Long, List<CreditClient>> childrenByParentId = family.stream()
                 .filter(item -> item.getParentClientId() != null)
                 .collect(Collectors.groupingBy(CreditClient::getParentClientId));
-        Map<Long, String> nameById = allPumpClients.stream()
+        Map<Long, String> nameById = family.stream()
                 .collect(Collectors.toMap(CreditClient::getId, CreditClient::getName));
-        return toClientResponse(client, allPumpClients, outstandingByClientId, breakdownMap, childrenByParentId, nameById);
+        return toClientResponse(client, family, outstandingByClientId, breakdownMap, childrenByParentId, nameById);
+    }
+
+    public List<CreditTransactionResponse> getAllTransactions(CreditClient client, boolean includeChildren) {
+        List<CreditClient> accounts = new ArrayList<>();
+        accounts.add(client);
+        if (includeChildren) {
+            accounts.addAll(clientRepository.findByParentClientId(client.getId()));
+        }
+        List<CreditTransactionResponse> transactions = new ArrayList<>();
+        for (CreditClient account : accounts) {
+            List<CreditTransactionResponse> accountRows = buildTransactionList(account.getId());
+            accountRows.forEach(row -> {
+                row.setClientId(account.getId());
+                row.setClientName(account.getName());
+            });
+            transactions.addAll(accountRows);
+        }
+        transactions.sort(NEWEST_FIRST);
+        return transactions;
     }
 
     public List<CreditTransactionResponse> getStatementTransactions(Long clientId, LocalDate fromDate, LocalDate toDate) {

@@ -1,5 +1,6 @@
 package com.ppms.notification;
 
+import com.ppms.support.TestDates;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ppms.scheduler.OverdueShiftProcessor;
 import com.ppms.shift.Shift;
@@ -68,7 +69,7 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
                 .toList();
         assertThat(created).isNotEmpty();
         Notification oldRead = created.get(0);
-        oldRead.setReadAt(OffsetDateTime.now().minusDays(120));
+        oldRead.setReadAt(TestDates.now().minusDays(120));
         notificationRepository.save(oldRead);
 
         int deleted = notificationService.deleteReadBatchOlderThan(90, 100);
@@ -83,7 +84,7 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
         Shift shift = shiftRepository.findById(shiftId).orElseThrow();
         shift.setShiftDate(shift.getShiftDate().minusDays(1));
         shiftRepository.save(shift);
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = TestDates.now();
 
         assertThat(overdueShiftProcessor.process(shiftId, now)).isEqualTo(OverdueShiftProcessor.Outcome.MARKED_OVERDUE);
         assertThat(shiftRepository.findById(shiftId).orElseThrow().getStatus()).isEqualTo(ShiftStatus.OPEN_OVERDUE);
@@ -96,7 +97,7 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
     void shiftStillInsideItsWindowIsLeftOpen() throws Exception {
         long shiftId = openShift(setup.operator());
 
-        assertThat(overdueShiftProcessor.process(shiftId, OffsetDateTime.now()))
+        assertThat(overdueShiftProcessor.process(shiftId, TestDates.now()))
                 .isEqualTo(OverdueShiftProcessor.Outcome.UNCHANGED);
         assertThat(shiftRepository.findById(shiftId).orElseThrow().getStatus()).isEqualTo(ShiftStatus.OPEN);
     }

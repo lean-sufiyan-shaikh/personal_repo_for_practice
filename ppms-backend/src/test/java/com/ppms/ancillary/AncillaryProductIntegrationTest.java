@@ -1,5 +1,6 @@
 package com.ppms.ancillary;
 
+import com.ppms.support.TestDates;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ppms.support.ApiIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -76,7 +76,7 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
     void backfilledSaleBeforeAnyRecordedPriceIsRefused() throws Exception {
         Map<String, Object> request = new HashMap<>();
         request.put("productId", productId);
-        request.put("saleDate", LocalDate.now().minusDays(1).toString());
+        request.put("saleDate", TestDates.today().minusDays(1).toString());
         request.put("quantityUnits", 2);
         request.put("paymentMode", "CASH");
 
@@ -94,7 +94,7 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
                 "SELECT COUNT(*) FROM payment_settlements WHERE pump_id = ?", Integer.class, setup.pumpId());
         Map<String, Object> request = new HashMap<>();
         request.put("productId", productId);
-        request.put("saleDate", LocalDate.now().minusDays(1).toString());
+        request.put("saleDate", TestDates.today().minusDays(1).toString());
         request.put("quantityUnits", 2);
         request.put("paymentMode", "UPI");
 
@@ -155,7 +155,7 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
     private void stockIn(int units, String cost) throws Exception {
         perform(post("/api/pumps/{pumpId}/ancillary/products/{id}/deliveries", setup.pumpId(), productId), setup.manager(),
                 Map.of("quantityUnits", units, "costPricePerUnit", new BigDecimal(cost),
-                        "deliveryDate", LocalDate.now().minusDays(2).toString(), "invoiceReference", "AN-" + shortId()))
+                        "deliveryDate", TestDates.today().minusDays(2).toString(), "invoiceReference", "AN-" + shortId()))
                 .andExpect(status().is2xxSuccessful());
     }
 

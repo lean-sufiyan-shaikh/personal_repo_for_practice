@@ -60,8 +60,9 @@ public class NotificationService {
         generateLowStockAlerts(pumpId, tankStocks);
         generatePriceStalenessAlerts(pumpId);
         generateDocumentExpiryAlerts(pumpId);
-        generateZeroSaleAlerts(pumpId);
-        generateAutoClosedShiftAlerts(pumpId);
+        List<Shift> recentlyEndedShifts = recentlyEndedShifts(pumpId);
+        generateZeroSaleAlerts(pumpId, recentlyEndedShifts);
+        generateAutoClosedShiftAlerts(pumpId, recentlyEndedShifts);
         generateAncillaryLowStockAlerts(pumpId);
         generateCalibrationDueAlerts(pumpId);
         log.debug("Notification generation complete for pump={}", pumpId);
@@ -179,8 +180,8 @@ public class NotificationService {
      * meter readings to hide actual sales — a common petrol pump fraud signal.
      * One alert per shift is generated using the shift ID as the dedup key.
      */
-    private void generateZeroSaleAlerts(Long pumpId) {
-        recentlyEndedShifts(pumpId).stream()
+    private void generateZeroSaleAlerts(Long pumpId, List<Shift> recentlyEndedShifts) {
+        recentlyEndedShifts.stream()
                 .filter(shift -> shift.getStatus() != ShiftStatus.AUTO_CLOSED_OVERDUE
                         && shift.getTotalAmountDue() != null
                         && shift.getTotalAmountDue().compareTo(BigDecimal.ZERO) == 0
@@ -202,8 +203,8 @@ public class NotificationService {
      * meaning management must perform a manual reconciliation.
      * Dedup key is per shift ID — one alert per affected shift.
      */
-    private void generateAutoClosedShiftAlerts(Long pumpId) {
-        recentlyEndedShifts(pumpId).stream()
+    private void generateAutoClosedShiftAlerts(Long pumpId, List<Shift> recentlyEndedShifts) {
+        recentlyEndedShifts.stream()
                 .filter(shift -> shift.getStatus() == ShiftStatus.AUTO_CLOSED_OVERDUE)
                 .forEach(shift -> {
                     String dedupKey = "AUTO_CLOSED_SHIFT:shift:" + shift.getId();

@@ -1,5 +1,6 @@
 package com.ppms.common;
 
+import com.ppms.support.TestDates;
 import com.ppms.support.ApiIntegrationTest;
 import com.ppms.user.User;
 import org.junit.jupiter.api.BeforeAll;
@@ -9,7 +10,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import java.time.LocalDate;
 import java.util.stream.Stream;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
 
-    private static final String TODAY = LocalDate.now().toString();
+    private static final String TODAY = TestDates.today().toString();
     private static final String RANGE = "?from=" + TODAY + "&to=" + TODAY;
 
     private PumpSetup setup;

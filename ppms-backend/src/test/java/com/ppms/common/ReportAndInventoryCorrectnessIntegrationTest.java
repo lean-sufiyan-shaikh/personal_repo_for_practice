@@ -1,5 +1,6 @@
 package com.ppms.common;
 
+import com.ppms.support.TestDates;
 import com.ppms.adjustment.FuelDipEntry;
 import com.ppms.adjustment.FuelDipEntryRepository;
 import com.ppms.expense.ExpenseApprovalStatus;
@@ -396,7 +397,7 @@ class ReportAndInventoryCorrectnessIntegrationTest {
                 .role(role)
                 .status(UserStatus.ACTIVE)
                 .assignedPumpId(assignedPumpId)
-                .dateOfJoining(LocalDate.now())
+                .dateOfJoining(TestDates.today())
                 .build());
     }
 

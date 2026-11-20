@@ -185,6 +185,10 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
 
         perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId), setup.manager(), request)
                 .andExpect(status().isBadRequest());
+
+        assertThat(tankRepository.findById(setup.tank().getId()).orElseThrow().getCurrentStock())
+                .isEqualByComparingTo("4990");
+        assertThat(lotConsumptionRepository.findByShiftId(shiftId)).hasSize(1);
     }
 
     @Test

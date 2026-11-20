@@ -1,5 +1,6 @@
 package com.ppms.auth;
 
+import com.ppms.support.TestDates;
 import com.ppms.common.exception.TooManyRequestsException;
 import com.ppms.common.time.BusinessClock;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,7 +9,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.OffsetDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -32,7 +32,7 @@ class LoginRateLimiterServiceTest {
 
     @Test
     void loginIsAllowedBelowBothLimits() {
-        when(businessClock.now()).thenReturn(OffsetDateTime.now());
+        when(businessClock.now()).thenReturn(TestDates.now());
         when(attemptRepository.countRecentFailures(eq("9000000001"), any())).thenReturn(4L);
         when(attemptRepository.countRecentFailuresByIp(eq("10.0.0.1"), any())).thenReturn(19L);
 
@@ -41,7 +41,7 @@ class LoginRateLimiterServiceTest {
 
     @Test
     void fifthFailureForAPhoneBlocksFurtherLogins() {
-        when(businessClock.now()).thenReturn(OffsetDateTime.now());
+        when(businessClock.now()).thenReturn(TestDates.now());
         when(attemptRepository.countRecentFailures(eq("9000000001"), any())).thenReturn(5L);
 
         assertThatThrownBy(() -> limiter.checkLoginAllowed("9000000001", "10.0.0.1"))
@@ -50,7 +50,7 @@ class LoginRateLimiterServiceTest {
 
     @Test
     void twentiethFailureFromAnIpBlocksLoginsForAnyPhone() {
-        when(businessClock.now()).thenReturn(OffsetDateTime.now());
+        when(businessClock.now()).thenReturn(TestDates.now());
         when(attemptRepository.countRecentFailures(eq("9000000002"), any())).thenReturn(0L);
         when(attemptRepository.countRecentFailuresByIp(eq("10.0.0.9"), any())).thenReturn(20L);
 

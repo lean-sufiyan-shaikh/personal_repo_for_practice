@@ -193,6 +193,15 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- UTC JVM zone proves the code and tests rely on the IST business clock, not the machine zone -->
+                    <argLine>@{argLine} -Duser.timezone=UTC</argLine>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

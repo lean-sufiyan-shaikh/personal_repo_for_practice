@@ -18,6 +18,9 @@ public interface PumpLocationRepository extends JpaRepository<PumpLocation, Long
     /** Batch-load pumps for multiple owners — used by SuperAdmin list to avoid N+1. */
     List<PumpLocation> findByOwnerIdIn(List<Long> ownerIds);
 
+    @Query("SELECT p.id FROM PumpLocation p ORDER BY p.id")
+    List<Long> findAllIds();
+
     /** Returns only enabled pumps for an owner — used by the owner dashboard view. */
     List<PumpLocation> findByOwnerIdAndEnabledTrue(Long ownerId);
 

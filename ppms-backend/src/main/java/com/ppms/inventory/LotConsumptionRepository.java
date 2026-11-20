@@ -24,6 +24,26 @@ public interface LotConsumptionRepository extends JpaRepository<LotConsumption, 
     /** Batch fetch for all consumptions across multiple lots — avoids N+1 in inventory lots report. */
     List<LotConsumption> findByLotIdIn(java.util.Collection<Long> lotIds);
 
+    /** Consumptions of the lots selected by InventoryLotRepository.findReportLots, joined instead of passing lot ids. */
+    @Query("""
+            SELECT c FROM LotConsumption c, InventoryLot l
+            WHERE c.lotId = l.id AND l.pumpId = :pumpId
+              AND (l.status = 'ACTIVE' OR (l.deliveryDate >= :from AND l.deliveryDate < :to))
+            """)
+    List<LotConsumption> findForReportLots(@Param("pumpId") Long pumpId,
+                                           @Param("from") OffsetDateTime from,
+                                           @Param("to") OffsetDateTime to);
+
+    /** [shiftId, shiftName] of the shifts that consumed from the report lots. */
+    @Query("""
+            SELECT DISTINCT s.id, s.shiftName FROM Shift s, LotConsumption c, InventoryLot l
+            WHERE c.shiftId = s.id AND c.lotId = l.id AND l.pumpId = :pumpId
+              AND (l.status = 'ACTIVE' OR (l.deliveryDate >= :from AND l.deliveryDate < :to))
+            """)
+    List<Object[]> findShiftNamesForReportLots(@Param("pumpId") Long pumpId,
+                                               @Param("from") OffsetDateTime from,
+                                               @Param("to") OffsetDateTime to);
+
     /**
      * Litres consumed per fuel type as of {@code asOf}. A shift's consumption counts once the shift has ended
      * (end at or before {@code asOf}), matching how live and SHIFT balance sheets pick their shifts; a dip

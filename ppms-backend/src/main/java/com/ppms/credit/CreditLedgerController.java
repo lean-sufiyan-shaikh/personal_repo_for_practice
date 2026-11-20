@@ -74,6 +74,21 @@ public class CreditLedgerController {
     }
 
     /**
+     * GET /api/pumps/{pumpId}/credit-ledger/{clientId}/transactions/all?includeChildren=false
+     * The client's whole ledger in one response, newest first; each row's running balance is for its own account.
+     * With includeChildren=true a parent's sub-account rows are included, tagged with clientId and clientName.
+     */
+    @GetMapping("/{clientId}/transactions/all")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")
+    public ResponseEntity<List<CreditTransactionResponse>> getAllTransactions(
+            @PathVariable Long pumpId,
+            @PathVariable Long clientId,
+            @RequestParam(defaultValue = "false") boolean includeChildren) {
+        CreditClient client = clientAccessService.requireClientForPump(pumpId, clientId);
+        return ResponseEntity.ok(queryService.getAllTransactions(client, includeChildren));
+    }
+
+    /**
      * POST /api/pumps/{pumpId}/credit-ledger/{clientId}/payments
      * Records a payment settlement against the client's outstanding balance.
      * Owner/Admin/Manager; payments above the pump's threshold wait for Owner/Admin approval.
@@ -135,7 +150,7 @@ public class CreditLedgerController {
                 "Credit limit for " + client.getName() + " changed from ₹" + oldLimit + " to ₹" + client.getCreditLimit(),
                 currentUser);
 
-        return ResponseEntity.ok(queryService.toClientResponse(client, clientAccessService.loadPumpClients(pumpId)));
+        return ResponseEntity.ok(queryService.toClientResponse(client));
     }
 
     /**
@@ -158,7 +173,7 @@ public class CreditLedgerController {
         log.info("Interest settings updated: pump={}, client={}, rate={}%, graceDays={}",
                 pumpId, clientId, client.getMonthlyInterestRate(), client.getInterestGraceDays());
 
-        return ResponseEntity.ok(queryService.toClientResponse(client, clientAccessService.loadPumpClients(pumpId)));
+        return ResponseEntity.ok(queryService.toClientResponse(client));
     }
 
     /**
