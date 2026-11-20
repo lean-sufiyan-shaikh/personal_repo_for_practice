@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { withToggled } from '../../../utils/setToggle'
 import { serverMessage } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
@@ -117,9 +117,8 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
               </thead>
               <tbody>
                 {paged.content.map((row) => (
-                  <>
+                  <Fragment key={row.fuelType}>
                     <tr
-                      key={row.fuelType}
                       className="border-t border-slate-100 cursor-pointer hover:bg-slate-50/60"
                       onClick={() => toggleFuelRow(row.fuelType)}
                     >
@@ -175,7 +174,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -229,8 +228,8 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
               </thead>
               <tbody>
                 {data.byFuelType.map((row) => (
-                  <>
-                    <tr key={row.fuelType} className="border-t border-slate-100">
+                  <Fragment key={row.fuelType}>
+                    <tr className="border-t border-slate-100">
                       <td className="px-4 py-2.5 font-medium text-slate-700">{codeLabel(row.fuelType)}</td>
                       <td className="px-4 py-2.5 text-right text-slate-700 tabular-nums">{fmtAmt(row.revenue)}</td>
                       <td className="px-4 py-2.5 text-right text-red-600 tabular-nums">{fmtAmt(row.cogs)}</td>
@@ -267,7 +266,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>

@@ -116,7 +116,7 @@ export function SellDialog({
     setStep('review')
   }
 
-  const buyPrice   = product.fifoCostPricePerUnit
+  const buyPrice   = canSeeCost ? product.fifoCostPricePerUnit : null
   const sellPrice  = form.sellingPricePerUnit > 0 ? form.sellingPricePerUnit : null
   const totalAmount = sellPrice != null && form.quantityUnits > 0
     ? sellPrice * form.quantityUnits

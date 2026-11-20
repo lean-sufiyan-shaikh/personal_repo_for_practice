@@ -52,6 +52,7 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
       {visibleDates.map((date) => {
         const dayShifts = grouped[date]
         const isOpen    = openDays.has(date)
+        const openCount = dayShifts.filter((sh) => sh.status === 'OPEN' || sh.status === 'OPEN_OVERDUE').length
         const totalAmt  = dayShifts.reduce((s, sh) => s + (sh.totalAmountDue ?? 0), 0)
         const label     = labelForDate(date)
         const isToday   = date === todayStr
@@ -69,7 +70,7 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
                 </span>
                 <span className="text-xs text-slate-500">{fmtShortDate(date)}</span>
                 <span className="text-xs text-slate-500">
-                  · {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''}
+                  · {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''}{openCount > 0 && ` (${openCount} still open)`}
                 </span>
                 {totalAmt > 0 && (
                   <span className="text-xs font-medium text-slate-600">

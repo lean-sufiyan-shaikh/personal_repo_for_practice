@@ -61,6 +61,7 @@ describe('SellDialog projected profit', () => {
     useAuthStore.setState({ user: { userId: 1, fullName: 'Op', role: 'OPERATOR', assignedPumpId: 3 }, isAuthenticated: true })
     await sell([{ remainingQuantity: 5, costPricePerUnit: 100 }], '2')
     expect(screen.queryByText(/Projected|Break-even/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Buy price/)).not.toBeInTheDocument()
   })
 
   it('shows no projection without lot data', async () => {
@@ -73,7 +74,7 @@ describe('SellDialog credit sale', () => {
   const acme = { id: 41, pumpId: 3, name: 'Acme Transport', phone: null, notes: null, createdAt: '', parentClientId: null, parentClientName: null, isParent: false } as CreditClient
 
   beforeEach(() => {
-    useAuthStore.setState({ user: { userId: 1, fullName: 'Op', role: 'OPERATOR', assignedPumpId: 3 }, isAuthenticated: true })
+    useAuthStore.setState({ user: { userId: 1, fullName: 'Manager', role: 'MANAGER', assignedPumpId: 3 }, isAuthenticated: true })
     vi.mocked(ancillaryApi.getPriceHistory).mockResolvedValue([
       { id: 1, productId: 8, pumpId: 3, pricePerUnit: 120, effectiveFrom: '2026-01-01T00:00:00Z', setByUserId: 1 },
     ])
@@ -81,7 +82,7 @@ describe('SellDialog credit sale', () => {
     vi.mocked(ancillaryApi.recordSale).mockResolvedValue({} as Awaited<ReturnType<typeof ancillaryApi.recordSale>>)
   })
 
-  it('lets an operator pick a credit client from the pump client list and refreshes the credit ledger after the sale', async () => {
+  it('lets a manager pick a credit client from the pump client list and refreshes the credit ledger after the sale', async () => {
     const user = userEvent.setup()
     const { queryClient } = renderWithProviders(<SellDialog pumpId={3} product={product([{ remainingQuantity: 5, costPricePerUnit: 100 }])} onClose={vi.fn()} onSuccess={vi.fn()} />)
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries')

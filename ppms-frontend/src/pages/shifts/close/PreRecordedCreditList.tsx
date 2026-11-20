@@ -6,6 +6,7 @@ import { parseApiError } from '../../../utils/apiError'
 import type { CreditEntry } from '../../../types/shift'
 import { fmt } from '../components/creditRow'
 import { focusOnMount } from '../../../utils/focus'
+import { FUEL_LABELS } from '../../../constants/fuel'
 
 interface Props {
   shift: Shift
@@ -64,7 +65,7 @@ export function PreRecordedCreditList({ shift, entries, total, onEdit, onVoided 
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-semibold text-slate-700">{e.clientName}</span>
                     {e.fuelType && (
-                      <span className="text-xs text-slate-500 uppercase tracking-wide">{e.fuelType}</span>
+                      <span className="text-xs text-slate-500 uppercase tracking-wide">{FUEL_LABELS[e.fuelType] ?? e.fuelType}</span>
                     )}
                     {e.billNo && (
                       <span className="text-xs text-slate-500">#{e.billNo}</span>

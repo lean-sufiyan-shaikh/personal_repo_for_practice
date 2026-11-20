@@ -97,8 +97,8 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'calibration:add':               ['OWNER', 'ADMIN'],
 
   // Products (Ancillary)
-  'product:manage':                ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
-  'product:record-sale':           ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
+  'product:manage':                ['OWNER', 'ADMIN'],
+  'product:record-sale':           ['OWNER', 'ADMIN', 'MANAGER'],
 
   // Payroll — OWNER only (backend tightened from OWNER/ADMIN to OWNER only)
   'payroll:generate':              ['OWNER'],

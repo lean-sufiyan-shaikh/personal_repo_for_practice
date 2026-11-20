@@ -79,7 +79,7 @@ export default function BalanceSheetPage() {
   return (
     <div className="flex h-[calc(100vh-56px)] overflow-hidden print:h-auto print:overflow-visible">
       {/* ── Left panel: list ────────────────────────────────────────────────── */}
-      <div className={`flex flex-col ${selectedReportId ? 'hidden xl:flex w-[22rem] flex-shrink-0' : 'flex-1'} border-r border-slate-200 bg-white overflow-hidden print:hidden`}>
+      <div className={`flex flex-col ${selectedReportId ? 'hidden 2xl:flex w-[22rem] flex-shrink-0' : 'flex-1'} border-r border-slate-200 bg-white overflow-hidden print:hidden`}>
         {/* Page header */}
         <div className="px-5 py-4 border-b border-slate-200">
           <div className="flex items-center justify-between mb-3">

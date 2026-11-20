@@ -55,6 +55,8 @@ describe('canPerformAction', () => {
     ['shift:close', 'MANAGER', true],
     ['shift:close', 'OPERATOR', false],
     ['shift:add-credit-entry', 'OPERATOR', true],
+    ['product:record-sale', 'MANAGER', true],
+    ['product:record-sale', 'OPERATOR', false],
     ['expense:delete', 'OWNER', true],
     ['expense:delete', 'ADMIN', false],
     ['payroll:generate', 'ADMIN', false],

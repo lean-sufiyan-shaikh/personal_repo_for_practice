@@ -23,9 +23,9 @@ function renderAs(role: UserRole) {
 describe('ProductsTab by role', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('lets an operator sell but hides the buy price from them', () => {
+  it('hides Sell and the buy price from an operator, whom the server refuses for sales', () => {
     renderAs('OPERATOR')
-    expect(screen.getByRole('button', { name: 'Sell' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Sell' })).not.toBeInTheDocument()
     expect(screen.queryByText(/Buy:/)).not.toBeInTheDocument()
   })
 

@@ -3,6 +3,8 @@ import { formatIstDate } from '../../utils/date'
 import { formatDecimal } from '../../utils/format'
 import { ConfirmButton } from '../../components/ConfirmButton'
 import { ScrollRegion } from '../../components/ScrollRegion'
+import { codeLabel } from '../../constants/labels'
+import { FUEL_LABELS } from '../../constants/fuel'
 
 const formatDate = (iso: string) =>
   formatIstDate(iso, { day: '2-digit', month: 'short' })
@@ -27,6 +29,13 @@ interface LedgerWeekGroupsProps {
 }
 
 // srcClientId is passed explicitly so the Move action knows which client owns the entry.
+function detailText(tx: CreditTransaction): string {
+  if (!tx.detail) return '—'
+  if (tx.type === 'SALE') return FUEL_LABELS[tx.detail] ?? tx.detail
+  if (tx.type === 'PAYMENT') return codeLabel(tx.detail)
+  return tx.detail
+}
+
 function rowBadge(tx: CreditTransaction): { label: string; tone: string } {
   if (tx.status === 'PENDING_APPROVAL') return { label: 'Pending approval', tone: 'bg-amber-100 text-amber-800' }
   if (tx.status === 'REJECTED') return { label: 'Rejected', tone: 'bg-slate-100 text-slate-600' }
@@ -70,7 +79,7 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
                   </span>
                 </td>
                 <td className="px-2 py-2.5 text-xs max-w-[160px]">
-                  <span className="text-slate-500 truncate block">{tx.reference || tx.detail || '—'}</span>
+                  <span className="text-slate-500 truncate block">{tx.reference || detailText(tx)}</span>
                   {!tx.countedInBalance && (
                     <span className="text-[11px] font-medium text-slate-600">Not counted in balance</span>
                   )}
