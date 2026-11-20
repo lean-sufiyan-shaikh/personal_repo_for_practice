@@ -2,16 +2,14 @@ package com.ppms.credit;
 
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.expense.ApprovalPolicy;
 import com.ppms.expense.ExpenseApprovalStatus;
-import com.ppms.pump.PumpLocation;
-import com.ppms.pump.PumpLocationRepository;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftCreditEntry;
 import com.ppms.shift.ShiftCreditEntryRepository;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.user.UserRepository;
 import com.ppms.user.User;
-import com.ppms.user.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,7 +38,7 @@ public class CreditLedgerService {
     private final ShiftRepository shiftRepository;
     private final CreditEntryReassignmentRepository reassignmentRepository;
     private final CreditInterestService interestService;
-    private final PumpLocationRepository pumpLocationRepository;
+    private final ApprovalPolicy approvalPolicy;
     private final UserRepository userRepository;
 
     /**
@@ -79,21 +77,9 @@ public class CreditLedgerService {
                             + ". You cannot over-pay a credit account.");
         }
 
-        // Determine approval status:
-        // - OWNER and ADMIN payments are auto-approved regardless of amount.
-        // - For MANAGER and below: if an expense_approval_threshold is set on the pump AND
-        //   the payment exceeds it, the payment requires Owner/Admin approval before it
-        //   reduces the outstanding balance.
-        ExpenseApprovalStatus approvalStatus = ExpenseApprovalStatus.APPROVED;
-        if (currentUser.getRole() != UserRole.OWNER && currentUser.getRole() != UserRole.ADMIN
-                && currentUser.getRole() != UserRole.SUPER_ADMIN) {
-            PumpLocation pump = pumpLocationRepository.findById(pumpId).orElse(null);
-            if (pump != null && pump.getExpenseApprovalThreshold() != null
-                    && paymentAmount.compareTo(pump.getExpenseApprovalThreshold()) > 0) {
-                approvalStatus = ExpenseApprovalStatus.PENDING_APPROVAL;
-                log.info("Credit payment set to PENDING_APPROVAL: pumpId={} amount={} threshold={}",
-                        pumpId, paymentAmount, pump.getExpenseApprovalThreshold());
-            }
+        ExpenseApprovalStatus approvalStatus = approvalPolicy.resolveStatus(pumpId, currentUser, paymentAmount);
+        if (approvalStatus == ExpenseApprovalStatus.PENDING_APPROVAL) {
+            log.info("Credit payment set to PENDING_APPROVAL: pumpId={} amount={}", pumpId, paymentAmount);
         }
 
         CreditPayment payment = CreditPayment.builder()
@@ -248,6 +234,9 @@ public class CreditLedgerService {
         if (payment.getPaymentApprovalStatus() != ExpenseApprovalStatus.PENDING_APPROVAL) {
             throw new BusinessException(
                     "Payment is already " + payment.getPaymentApprovalStatus() + " — only PENDING_APPROVAL payments can be acted on");
+        }
+        if (payment.getRecordedById().equals(currentUser.getId())) {
+            throw new BusinessException("You recorded this payment, so another Owner or Admin must approve or reject it.");
         }
 
         if (newStatus == ExpenseApprovalStatus.APPROVED) {

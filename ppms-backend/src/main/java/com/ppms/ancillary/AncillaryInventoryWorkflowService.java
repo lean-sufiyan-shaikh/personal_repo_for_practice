@@ -1,5 +1,7 @@
 package com.ppms.ancillary;
 
+import com.ppms.audit.AuditAction;
+import com.ppms.audit.AuditService;
 import com.ppms.cash.CashEvent;
 import com.ppms.cash.CashEventRepository;
 import com.ppms.cash.CashEventType;
@@ -11,6 +13,7 @@ import com.ppms.settlement.PaymentSettlementRepository;
 import com.ppms.settlement.SettlementPaymentType;
 import com.ppms.transaction.TransactionPaymentMode;
 import com.ppms.user.User;
+import com.ppms.user.UserRole;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +43,7 @@ public class AncillaryInventoryWorkflowService {
     private final PaymentSettlementRepository settlementRepository;
     private final AncillaryProductAccessService accessService;
     private final CreditClientRepository creditClientRepository;
+    private final AuditService auditService;
 
     @Transactional
     public AncillaryProduct createProduct(Long pumpId, CreateProductRequest request) {
@@ -161,7 +165,7 @@ public class AncillaryInventoryWorkflowService {
                             + product.getCurrentStockUnits() + " units, requested: " + request.getQuantityUnits() + " units.");
         }
 
-        BigDecimal sellingPrice = request.getSellingPricePerUnit().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal sellingPrice = resolveSellingPrice(pumpId, product, request.getSellingPricePerUnit(), currentUser);
         BigDecimal totalAmount = sellingPrice.multiply(new BigDecimal(request.getQuantityUnits()))
                 .setScale(2, RoundingMode.HALF_UP);
 
@@ -203,6 +207,34 @@ public class AncillaryInventoryWorkflowService {
                 .sale(sale)
                 .cashEvent(cashEvent)
                 .build();
+    }
+
+    /**
+     * The sale uses the product's configured current price. Only OWNER/ADMIN may sell at a different
+     * price, and such overrides are audit-logged.
+     */
+    private BigDecimal resolveSellingPrice(Long pumpId, AncillaryProduct product, BigDecimal requestedPrice, User currentUser) {
+        BigDecimal configuredPrice = priceRepository
+                .findFirstByProductIdAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(product.getId(), OffsetDateTime.now())
+                .map(price -> price.getPricePerUnit().setScale(2, RoundingMode.HALF_UP))
+                .orElseThrow(() -> new BusinessException(
+                        "No selling price is set for '" + product.getName() + "'. Set a price before recording a sale."));
+        BigDecimal requested = requestedPrice.setScale(2, RoundingMode.HALF_UP);
+        if (requested.compareTo(configuredPrice) == 0) {
+            return configuredPrice;
+        }
+        boolean canOverride = currentUser.getRole() == UserRole.OWNER
+                || currentUser.getRole() == UserRole.ADMIN
+                || currentUser.getRole() == UserRole.SUPER_ADMIN;
+        if (!canOverride) {
+            throw new BusinessException("The selling price for '" + product.getName() + "' is ₹" + configuredPrice
+                    + ". Only an Owner or Admin can sell at a different price.");
+        }
+        auditService.log(pumpId, AuditAction.ANCILLARY_PRICE_OVERRIDDEN,
+                "AncillaryProduct", product.getId().toString(),
+                "Sold '" + product.getName() + "' at ₹" + requested + " instead of configured ₹" + configuredPrice,
+                currentUser);
+        return requested;
     }
 
     @Transactional

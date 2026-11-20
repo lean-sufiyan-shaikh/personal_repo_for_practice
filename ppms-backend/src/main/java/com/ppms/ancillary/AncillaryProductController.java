@@ -229,7 +229,8 @@ public class AncillaryProductController {
      *
      * Business rules enforced:
      * 1. Product must be ACTIVE and belong to this pump.
-     * 2. A selling price must be set — sale is rejected if no price exists.
+     * 2. A selling price must be set — sale is rejected if no price exists. Only OWNER/ADMIN may sell at a
+     *    price other than the configured one (audit-logged).
      * 3. Stock must be sufficient — rejected if not enough units available.
      * 4. CREDIT sales require clientName.
      * 5. Only OWNER, ADMIN, MANAGER can record sales.

@@ -58,7 +58,7 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'credit:record-payment':         ['OWNER', 'ADMIN', 'MANAGER'],
   'credit:adjust-limit':           ['OWNER', 'ADMIN', 'MANAGER'],
   'credit:manage-interest':        ['OWNER', 'ADMIN', 'MANAGER'],
-  'credit:approve-payment':        ['OWNER', 'ADMIN', 'MANAGER'],
+  'credit:approve-payment':        ['OWNER', 'ADMIN'],
   'credit:grant-extension':        ['OWNER', 'ADMIN'],
 
   // Expenses

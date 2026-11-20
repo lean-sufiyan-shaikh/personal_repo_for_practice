@@ -32,6 +32,7 @@ public class CreditLedgerController {
 
     private final CreditClientAccessService clientAccessService;
     private final CreditInterestService interestService;
+    private final CreditInterestRunService interestRunService;
     private final CreditLedgerService ledgerService;
     private final CreditLedgerQueryService queryService;
     private final CreditStatementRenderer statementRenderer;
@@ -193,7 +194,7 @@ public class CreditLedgerController {
      * POST /api/pumps/{pumpId}/credit-ledger/interest/apply-all
      * Applies pro-rata interest to ALL eligible clients for the pump. Owner/Admin only.
      *
-     * Bug 10: @Transactional is on CreditInterestService.applyProRataForAllClients(), not here.
+     * Each client group runs in its own transaction (CreditInterestRunService).
      */
     @PostMapping("/interest/apply-all")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
@@ -201,12 +202,12 @@ public class CreditLedgerController {
             @PathVariable Long pumpId,
             @AuthenticationPrincipal User currentUser) {
 
-        CreditInterestService.InterestApplicationResult result =
-                interestService.applyProRataForAllClients(pumpId, currentUser.getId());
+        CreditInterestRunService.InterestRunResult result =
+                interestRunService.applyProRataForAllClients(pumpId, currentUser.getId());
         return ResponseEntity.ok(Map.of(
-                "clientsCharged",    result.charged(),
-                "clientsSkipped",    result.skipped(),
-                "clientsFailed",     result.failed(),
+                "clientsCharged",    result.groupsCharged(),
+                "clientsSkipped",    result.groupsSkipped(),
+                "clientsFailed",     result.groupsFailed(),
                 "failedClientIds",   result.failedClientIds()
         ));
     }
@@ -340,11 +341,11 @@ public class CreditLedgerController {
     /**
      * PATCH /api/pumps/{pumpId}/credit-ledger/payments/{paymentId}/approve
      * Approves or rejects a PENDING_APPROVAL credit payment.
-     * Accepted status values: APPROVED, REJECTED.
+     * Accepted status values: APPROVED, REJECTED. The user who recorded the payment cannot act on it.
      * Once approved, the payment is counted in the client's outstanding balance.
      */
     @PatchMapping("/payments/{paymentId}/approve")
-    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     public ResponseEntity<CreditPaymentResponse> approvePayment(
             @PathVariable Long pumpId,
             @PathVariable Long paymentId,
@@ -356,16 +357,11 @@ public class CreditLedgerController {
             throw new BusinessException("status is required (APPROVED or REJECTED)");
         }
 
-        com.ppms.expense.ExpenseApprovalStatus newStatus;
-        try {
-            newStatus = com.ppms.expense.ExpenseApprovalStatus.valueOf(statusStr.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException("Invalid status. Allowed: APPROVED, REJECTED");
-        }
-
-        if (newStatus == com.ppms.expense.ExpenseApprovalStatus.PENDING_APPROVAL) {
-            throw new BusinessException("Cannot set status back to PENDING_APPROVAL");
-        }
+        com.ppms.expense.ExpenseApprovalStatus newStatus = switch (statusStr.toUpperCase()) {
+            case "APPROVED" -> com.ppms.expense.ExpenseApprovalStatus.APPROVED;
+            case "REJECTED" -> com.ppms.expense.ExpenseApprovalStatus.REJECTED;
+            default -> throw new BusinessException("Invalid status. Allowed: APPROVED, REJECTED");
+        };
 
         CreditPayment saved = ledgerService.approvePayment(pumpId, paymentId, newStatus, currentUser);
 

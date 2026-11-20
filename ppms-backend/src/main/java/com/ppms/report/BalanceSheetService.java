@@ -709,9 +709,9 @@ public class BalanceSheetService {
      * accurate even when viewed months later.
      */
     private BalanceSheetDetailResponse.SettlementSummary buildSettlementSummary(Long pumpId, LocalDate reportDate) {
-        // Individual settlements recorded for this date (drill-down list)
+        // ACTIVE settlements recorded for this date (drill-down list)
         List<PaymentSettlement> onDate = settlementRepository
-                .findByPumpIdAndSettlementDateOrderByCreatedAtDesc(pumpId, reportDate);
+                .findActiveByPumpIdAndSettlementDate(pumpId, reportDate);
 
         // Batch-load recorder names
         Set<Long> recorderIds = onDate.stream()

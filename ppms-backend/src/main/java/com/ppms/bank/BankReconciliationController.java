@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -26,6 +27,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * REST controller for bank statement import and reconciliation.
@@ -154,25 +156,30 @@ public class BankReconciliationController {
                     continue; // Skip the header row
                 }
 
-                // Split by comma — handle quoted fields (simple split, no full CSV parser)
-                String[] cols = line.split(",", -1);
-                if (cols.length < 4) {
+                List<String> cols = BankStatementCsv.splitLine(line).orElse(List.of());
+                if (cols.size() < 4) {
                     skippedRows++;
                     continue;
                 }
 
-                LocalDate txnDate = parseDate(cols[0].trim());
+                LocalDate txnDate = parseDate(cols.get(0).trim());
                 if (txnDate == null) {
-                    log.warn("Skipping CSV row — unparseable date: '{}'", cols[0]);
+                    log.warn("Skipping CSV row — unparseable date: '{}'", cols.get(0));
                     skippedRows++;
                     continue;
                 }
 
-                String narration = cols[1].trim();
-                BigDecimal debit  = parseMoney(cols[2].trim());
-                BigDecimal credit = parseMoney(cols[3].trim());
-                BigDecimal balance = cols.length > 4 ? parseMoney(cols[4].trim()) : null;
-                String utr = cols.length > 5 ? cols[5].trim() : null;
+                String narration = cols.get(1).trim();
+                Optional<BigDecimal> debit  = BankStatementCsv.parseMoney(cols.get(2));
+                Optional<BigDecimal> credit = BankStatementCsv.parseMoney(cols.get(3));
+                Optional<BigDecimal> balance = cols.size() > 4 ? BankStatementCsv.parseMoney(cols.get(4)) : Optional.of(BigDecimal.ZERO);
+                if (debit.isEmpty() || credit.isEmpty() || balance.isEmpty()) {
+                    log.warn("Skipping CSV row dated {} — unparseable amount (debit='{}', credit='{}', balance='{}')",
+                            txnDate, cols.get(2), cols.get(3), cols.size() > 4 ? cols.get(4) : "");
+                    skippedRows++;
+                    continue;
+                }
+                String utr = cols.size() > 5 ? cols.get(5).trim() : null;
 
                 if (minDate == null || txnDate.isBefore(minDate)) minDate = txnDate;
                 if (maxDate == null || txnDate.isAfter(maxDate)) maxDate = txnDate;
@@ -180,17 +187,17 @@ public class BankReconciliationController {
                 parsedLines.add(BankStatementLine.builder()
                         .txnDate(txnDate)
                         .narration(narration.isEmpty() ? null : narration)
-                        .debitAmount(debit)
-                        .creditAmount(credit)
-                        .balance(balance)
+                        .debitAmount(debit.get())
+                        .creditAmount(credit.get())
+                        .balance(cols.size() > 4 ? balance.get() : null)
                         .utrReference(utr != null && !utr.isEmpty() ? utr : null)
                         .matchStatus(BankLineMatchStatus.UNMATCHED)
                         .build());
             }
 
-        } catch (Exception ex) {
-            log.warn("CSV parse error for pump={}: {}", pumpId, ex.getMessage());
-            throw new BusinessException("Failed to parse the uploaded file. Ensure it is a valid CSV with the required columns.");
+        } catch (IOException ex) {
+            log.warn("CSV read error for pump={}: {}", pumpId, ex.getMessage(), ex);
+            throw new BusinessException("Failed to read the uploaded file. Ensure it is a valid CSV with the required columns.");
         }
 
         if (parsedLines.isEmpty()) {
@@ -297,18 +304,6 @@ public class BankReconciliationController {
             } catch (DateTimeParseException ignored) {}
         }
         return null;
-    }
-
-    private BigDecimal parseMoney(String raw) {
-        if (raw == null || raw.isEmpty()) return BigDecimal.ZERO;
-        // Strip currency symbols, spaces, commas (e.g. "₹1,234.56" → "1234.56")
-        String cleaned = raw.replaceAll("[^\\d.]", "");
-        if (cleaned.isEmpty() || cleaned.equals(".")) return BigDecimal.ZERO;
-        try {
-            return new BigDecimal(cleaned);
-        } catch (NumberFormatException e) {
-            return BigDecimal.ZERO;
-        }
     }
 
     private Long extractLong(Map<String, Object> body, String key) {

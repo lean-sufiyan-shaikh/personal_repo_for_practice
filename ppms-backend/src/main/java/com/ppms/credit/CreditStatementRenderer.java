@@ -91,6 +91,9 @@ public class CreditStatementRenderer {
                 if (tx.getDetail() != null) {
                     desc += " <span style='color:#888;'>(" + escapeHtml(tx.getDetail()) + ")</span>";
                 }
+                if (!tx.isCountedInBalance()) {
+                    desc += " <strong>[" + escapeHtml(tx.getStatus()) + " – not in balance]</strong>";
+                }
 
                 sb.append("<tr class='").append(typeClass).append("'>")
                         .append("<td>").append(tx.getOccurredAt().toLocalDate()).append("</td>")

@@ -4,6 +4,7 @@ import com.ppms.shift.ShiftCreditEntryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -214,121 +215,42 @@ public class CreditInterestService {
      * Applies pro-rata simple interest for a single client up to today.
      * If the client is a parent account, interest is also cascaded to all sub-accounts —
      * each sub-account receives its own interest charge based on its own transactions.
+     * The whole group succeeds or fails together.
      *
      * Returns the charge applied to the specified client itself (not sub-accounts).
      */
     @Transactional
     public Optional<CreditInterestCharge> applyProRata(Long pumpId, Long clientId, Long appliedByUserId) {
         CreditClient client = clientRepository.findById(clientId)
+                .filter(found -> found.getPumpId().equals(pumpId))
                 .orElseThrow(() -> new com.ppms.common.exception.ResourceNotFoundException("Client not found: " + clientId));
-
-        Optional<CreditInterestCharge> result = applyInterest(client, LocalDate.now(), "MANUAL", appliedByUserId);
-
-        // Cascade to all sub-accounts: each gets its own interest row based on own transactions
-        List<CreditClient> children = clientRepository.findByParentClientId(clientId);
-        for (CreditClient child : children) {
-            try {
-                applyInterest(child, LocalDate.now(), "MANUAL", appliedByUserId);
-            } catch (Exception e) {
-                log.error("Interest application failed for sub-account={} under parent={}: {}",
-                        child.getId(), clientId, e.getMessage(), e);
-            }
-        }
-
-        return result;
+        return applyToClientGroup(client, LocalDate.now(), "MANUAL", appliedByUserId).rootCharge();
     }
 
     /**
-     * Result of a bulk interest application run.
+     * Applies interest to one root client and its sub-accounts in a transaction of its own,
+     * so a failure here cannot roll back charges already made for other client groups.
      *
-     * @param charged     number of root clients that received an interest charge
-     * @param skipped     number of root clients skipped (zero balance, within grace period, etc.)
-     * @param failed      number of root clients where the application threw an exception
-     * @param failedClientIds  IDs of clients that failed — operator can retry or investigate
+     * @return number of charges created (root plus sub-accounts)
      */
-    public record InterestApplicationResult(int charged, int skipped, int failed, List<Long> failedClientIds) {}
-
-    /**
-     * Applies pro-rata interest to ALL eligible root clients for a pump up to today.
-     * Sub-accounts are processed automatically during their parent's cascade.
-     *
-     * Each client runs in its own transaction (via {@link #applyProRata}).
-     * Failures are caught, logged, and included in the returned result so the caller
-     * can surface them to the operator — a partial run is no longer silently hidden.
-     */
-    public InterestApplicationResult applyProRataForAllClients(Long pumpId, Long appliedByUserId) {
-        List<CreditClient> clients = clientRepository.findByPumpIdOrderByNameAsc(pumpId);
-        int charged = 0;
-        int skipped = 0;
-        List<Long> failedClientIds = new ArrayList<>();
-
-        for (CreditClient client : clients) {
-            // Sub-accounts are processed when their parent is processed — skip them here
-            if (client.getParentClientId() != null) continue;
-            try {
-                Optional<CreditInterestCharge> charge = applyProRata(pumpId, client.getId(), appliedByUserId);
-                if (charge.isPresent()) {
-                    charged++;
-                } else {
-                    skipped++;
-                }
-            } catch (Exception e) {
-                log.error("Interest application failed for client={} on pump={}: {}",
-                        client.getId(), pumpId, e.getMessage(), e);
-                failedClientIds.add(client.getId());
-            }
-        }
-
-        int failed = failedClientIds.size();
-        long rootCount = clients.stream().filter(c -> c.getParentClientId() == null).count();
-        log.info("Pro-rata interest applied for pump={}: charged={}, skipped={}, failed={}/{}",
-                pumpId, charged, skipped, failed, rootCount);
-        return new InterestApplicationResult(charged, skipped, failed, failedClientIds);
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public int applyToClientGroupInNewTransaction(Long rootClientId, LocalDate periodTo, String source, Long appliedByUserId) {
+        CreditClient root = clientRepository.findById(rootClientId)
+                .orElseThrow(() -> new com.ppms.common.exception.ResourceNotFoundException("Client not found: " + rootClientId));
+        return applyToClientGroup(root, periodTo, source, appliedByUserId).chargeCount();
     }
 
-    // ── Scheduled job entry points (called by InterestStagingJob) ────────────
+    private record GroupCharges(Optional<CreditInterestCharge> rootCharge, int chargeCount) {}
 
-    /**
-     * Applies interest for all root clients with the given interestPeriod, up to periodTo.
-     * Sub-accounts are cascaded from the parent — they inherit the parent's rate.
-     */
-    @Transactional
-    public int applyInterestForPeriod(InterestPeriod period, LocalDate periodTo, String source) {
-        List<CreditClient> clients = clientRepository.findByInterestPeriod(period);
-
-        List<Long> parentIds = clients.stream()
-                .filter(c -> c.getParentClientId() == null)
-                .map(CreditClient::getId)
-                .toList();
-
-        // Batch-fetch all children in one query instead of one query per parent
-        Map<Long, List<CreditClient>> childrenByParentId = clientRepository
-                .findByParentClientIdIn(parentIds)
-                .stream()
-                .collect(Collectors.groupingBy(CreditClient::getParentClientId));
-
-        int charged = 0;
-        for (CreditClient client : clients) {
-            // Sub-accounts are cascaded from their parent — skip them in the main loop
-            if (client.getParentClientId() != null) continue;
-
-            Optional<CreditInterestCharge> charge = applyInterest(client, periodTo, source, null);
-            if (charge.isPresent()) charged++;
-
-            // Cascade to sub-accounts using the pre-fetched map
-            for (CreditClient child : childrenByParentId.getOrDefault(client.getId(), List.of())) {
-                try {
-                    Optional<CreditInterestCharge> childCharge = applyInterest(child, periodTo, source, null);
-                    if (childCharge.isPresent()) charged++;
-                } catch (Exception e) {
-                    log.error("Scheduled interest failed for sub-account={} under parent={}: {}",
-                            child.getId(), client.getId(), e.getMessage(), e);
-                }
+    private GroupCharges applyToClientGroup(CreditClient root, LocalDate periodTo, String source, Long appliedByUserId) {
+        Optional<CreditInterestCharge> rootCharge = applyInterest(root, periodTo, source, appliedByUserId);
+        int count = rootCharge.isPresent() ? 1 : 0;
+        for (CreditClient child : clientRepository.findByParentClientId(root.getId())) {
+            if (applyInterest(child, periodTo, source, appliedByUserId).isPresent()) {
+                count++;
             }
         }
-
-        log.info("Interest staged: period={}, source={}, charged={}/{}", period, source, charged, clients.size());
-        return charged;
+        return new GroupCharges(rootCharge, count);
     }
 
     // ── Core calculation ──────────────────────────────────────────────────────

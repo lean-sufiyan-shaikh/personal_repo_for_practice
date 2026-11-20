@@ -4,6 +4,8 @@ import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.pump.PumpLocationRepository;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
@@ -18,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +33,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PaymentSettlementService {
 
+    private static final Duration DUPLICATE_WINDOW = Duration.ofMinutes(2);
+
     private static final SettlementPaymentType[] SETTLEMENT_TYPES = {
         SettlementPaymentType.UPI, SettlementPaymentType.CARD, SettlementPaymentType.FLEET_CARD
     };
@@ -37,6 +43,7 @@ public class PaymentSettlementService {
     private final PaymentSettlementConfigRepository configRepository;
     private final ShiftRepository                shiftRepository;
     private final UserRepository                 userRepository;
+    private final PumpLocationRepository         pumpLocationRepository;
     private final AuditService                   auditService;
 
     // ── DTOs ─────────────────────────────────────────────────────────────────
@@ -55,6 +62,10 @@ public class PaymentSettlementService {
         private BigDecimal pendingAtRecordTime;
         /** True when amountReceived was less than the pending balance at record time (partial settlement). */
         private boolean isPartial;
+        /** ACTIVE or VOIDED. Voided settlements are excluded from wallet and daily totals. */
+        private String voidStatus;
+        private String voidReason;
+        private String voidedAt;
     }
 
     @Data @Builder
@@ -80,6 +91,11 @@ public class PaymentSettlementService {
         private String     settlementDate; // YYYY-MM-DD
         private BigDecimal amountReceived;
         private String     notes;
+    }
+
+    @Data @Builder
+    public static class VoidSettlementRequest {
+        private String reason;
     }
 
     @Data @Builder
@@ -215,6 +231,13 @@ public class PaymentSettlementService {
 
         BigDecimal amount = req.getAmountReceived().setScale(2, RoundingMode.HALF_UP);
 
+        lockPump(pumpId);
+        if (settlementRepository.existsRecentDuplicate(pumpId, type, settlementDate, amount,
+                OffsetDateTime.now().minus(DUPLICATE_WINDOW))) {
+            throw new BusinessException("An identical " + type.name() + " settlement of ₹" + amount + " for "
+                    + settlementDate + " was recorded in the last 2 minutes. Refresh the list before recording it again.");
+        }
+
         // Capture wallet balance BEFORE this settlement is saved — used to detect partial settlements.
         BigDecimal collected = type == SettlementPaymentType.UPI   ? orZero(shiftRepository.sumUpiCollectedByPumpId(pumpId))
                              : type == SettlementPaymentType.CARD  ? orZero(shiftRepository.sumCardCollectedByPumpId(pumpId))
@@ -243,6 +266,42 @@ public class PaymentSettlementService {
                 pumpId, type, amount, settlementDate, currentUser.getId());
 
         Map<Long, String> names = Map.of(currentUser.getId(), currentUser.getFullName());
+        return toResponse(settlement, names);
+    }
+
+    /**
+     * Voids a settlement entered by mistake. The record stays in history; every total
+     * (wallet balance, daily FIFO allocation, balance sheet) is computed from ACTIVE rows only,
+     * so voiding automatically re-opens the collections it had cleared.
+     */
+    @Transactional
+    public SettlementResponse voidSettlement(Long pumpId, Long settlementId, VoidSettlementRequest req, User currentUser) {
+        if (req == null || req.getReason() == null || req.getReason().isBlank()) {
+            throw new BusinessException("A reason is required to void a settlement.");
+        }
+        lockPump(pumpId);
+        PaymentSettlement settlement = settlementRepository.findByIdAndPumpId(settlementId, pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException("Settlement not found"));
+        if (PaymentSettlement.VOIDED.equals(settlement.getVoidStatus())) {
+            throw new BusinessException("This settlement is already voided.");
+        }
+
+        settlement.setVoidStatus(PaymentSettlement.VOIDED);
+        settlement.setVoidReason(req.getReason().trim());
+        settlement.setVoidedByUserId(currentUser.getId());
+        settlement.setVoidedAt(OffsetDateTime.now());
+        settlement = settlementRepository.save(settlement);
+
+        auditService.log(pumpId, AuditAction.SETTLEMENT_VOIDED,
+                "PaymentSettlement", settlementId.toString(),
+                "Voided " + settlement.getPaymentType().name() + " settlement of ₹" + settlement.getAmountReceived()
+                        + " on " + settlement.getSettlementDate() + ". Reason: " + settlement.getVoidReason(),
+                currentUser);
+        log.info("Settlement voided: pump={} id={} type={} amount={} by={}",
+                pumpId, settlementId, settlement.getPaymentType(), settlement.getAmountReceived(), currentUser.getId());
+
+        Map<Long, String> names = userRepository.findAllById(java.util.Set.of(settlement.getRecordedByUserId())).stream()
+                .collect(Collectors.toMap(User::getId, User::getFullName));
         return toResponse(settlement, names);
     }
 
@@ -299,7 +358,7 @@ public class PaymentSettlementService {
 
         // All settlement records in the window
         List<PaymentSettlement> allSettlements =
-                settlementRepository.findByPumpIdAndSettlementDateBetweenOrderBySettlementDateAscCreatedAtAsc(pumpId, from, to);
+                settlementRepository.findActiveByPumpIdAndSettlementDateBetween(pumpId, from, to);
 
         java.util.Set<Long> recorderIds = allSettlements.stream().map(PaymentSettlement::getRecordedByUserId).collect(Collectors.toSet());
         Map<Long, String> names = recorderIds.isEmpty() ? Map.of()
@@ -417,6 +476,12 @@ public class PaymentSettlementService {
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
+    /** Serialises settlement writes per pump so duplicate detection and voiding see each other's results. */
+    private void lockPump(Long pumpId) {
+        pumpLocationRepository.findByIdForUpdate(pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pump not found: " + pumpId));
+    }
+
     private SettlementPaymentType parsePaymentType(String value) {
         try {
             return SettlementPaymentType.valueOf(value.toUpperCase());
@@ -439,6 +504,9 @@ public class PaymentSettlementService {
                 .createdAt(s.getCreatedAt() != null ? s.getCreatedAt().toString() : null)
                 .pendingAtRecordTime(s.getPendingAtRecordTime())
                 .isPartial(partial)
+                .voidStatus(s.getVoidStatus())
+                .voidReason(s.getVoidReason())
+                .voidedAt(s.getVoidedAt() != null ? s.getVoidedAt().toString() : null)
                 .build();
     }
 

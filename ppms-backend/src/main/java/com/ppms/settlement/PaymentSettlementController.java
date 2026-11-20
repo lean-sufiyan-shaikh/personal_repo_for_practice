@@ -18,7 +18,7 @@ import java.util.List;
  * Manages payment settlement records and per-pump alert configurations.
  *
  * All endpoints are scoped to a pump via /api/pumps/{pumpId}/...
- * Only OWNER and ADMIN can record settlements or update configs — Managers have read access.
+ * OWNER, ADMIN and MANAGER can record settlements; only OWNER and ADMIN can void them or update configs.
  */
 @RestController
 @RequestMapping("/api/pumps")
@@ -87,9 +87,23 @@ public class PaymentSettlementController {
     }
 
     /**
+     * POST /api/pumps/{pumpId}/settlements/{settlementId}/void
+     * Voids a settlement entered by mistake. Body: { "reason": "..." } (required).
+     */
+    @PostMapping("/{pumpId}/settlements/{settlementId}/void")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    public PaymentSettlementService.SettlementResponse voidSettlement(
+            @PathVariable Long pumpId,
+            @PathVariable Long settlementId,
+            @RequestBody PaymentSettlementService.VoidSettlementRequest req,
+            @AuthenticationPrincipal User currentUser) {
+        return service.voidSettlement(pumpId, settlementId, req, currentUser);
+    }
+
+    /**
      * GET /api/pumps/{pumpId}/settlements/wallet
      * Returns the current wallet balance per payment type:
-     *   pending = SUM(all shift collections) − SUM(all settlements recorded)
+     *   pending = SUM(all shift collections) − SUM(all ACTIVE settlements)
      */
     @GetMapping("/{pumpId}/settlements/wallet")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")

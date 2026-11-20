@@ -5,7 +5,6 @@ import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
-import com.ppms.pump.PumpLocationRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
 import jakarta.validation.Valid;
@@ -26,7 +25,7 @@ import java.time.OffsetDateTime;
 public class ExpenseController {
 
     private final PumpExpenseRepository  expenseRepository;
-    private final PumpLocationRepository pumpLocationRepository;
+    private final ApprovalPolicy         approvalPolicy;
     private final AuditService           auditService;
 
     /**
@@ -88,7 +87,7 @@ public class ExpenseController {
             approvalStatus = ExpenseApprovalStatus.DRAFT;
         } else {
             // Immediate submission — auto-approve or queue for review
-            approvalStatus = resolveApprovalStatus(pumpId, currentUser, amount);
+            approvalStatus = approvalPolicy.resolveStatus(pumpId, currentUser, amount);
             submittedByUserId = currentUser.getId();
             submittedAt = OffsetDateTime.now();
         }
@@ -149,7 +148,7 @@ public class ExpenseController {
             throw new BusinessException("Only the expense creator or an Owner/Admin can submit this draft.");
         }
 
-        ExpenseApprovalStatus newStatus = resolveApprovalStatus(pumpId, currentUser, expense.getAmount());
+        ExpenseApprovalStatus newStatus = approvalPolicy.resolveStatus(pumpId, currentUser, expense.getAmount());
         expense.setApprovalStatus(newStatus);
         expense.setSubmittedByUserId(currentUser.getId());
         expense.setSubmittedAt(OffsetDateTime.now());
@@ -215,32 +214,6 @@ public class ExpenseController {
                     "Only DRAFT expenses can be deleted. Submitted or reviewed expenses are permanent records.");
         }
         expenseRepository.delete(expense);
-    }
-
-    // ── Private helpers ───────────────────────────────────────────────────────
-
-    /**
-     * Determines the approval status for a new expense based on:
-     * - The submitter's role (OWNER/ADMIN → always APPROVED)
-     * - The pump's configured expense_approval_threshold
-     * - The expense amount relative to the threshold
-     */
-    private ExpenseApprovalStatus resolveApprovalStatus(Long pumpId, User currentUser, BigDecimal amount) {
-        if (currentUser.getRole() == UserRole.OWNER || currentUser.getRole() == UserRole.ADMIN
-                || currentUser.getRole() == UserRole.SUPER_ADMIN) {
-            return ExpenseApprovalStatus.APPROVED;
-        }
-
-        // MANAGER/OPERATOR — check threshold
-        var pump = pumpLocationRepository.findById(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found: " + pumpId));
-        BigDecimal threshold = pump.getExpenseApprovalThreshold();
-        if (threshold == null || threshold.compareTo(BigDecimal.ZERO) <= 0) {
-            return ExpenseApprovalStatus.PENDING_APPROVAL;
-        }
-        return amount.compareTo(threshold) <= 0
-                ? ExpenseApprovalStatus.APPROVED
-                : ExpenseApprovalStatus.PENDING_APPROVAL;
     }
 
 }

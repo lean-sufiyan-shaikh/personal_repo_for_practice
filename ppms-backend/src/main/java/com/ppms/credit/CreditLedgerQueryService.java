@@ -1,6 +1,7 @@
 package com.ppms.credit;
 
 import com.ppms.common.dto.PagedResponse;
+import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.shift.ShiftCreditEntryRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
@@ -20,6 +21,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class CreditLedgerQueryService {
+
+    private static final String ACTIVE = "ACTIVE";
 
     private final CreditClientRepository clientRepository;
     private final CreditPaymentRepository paymentRepository;
@@ -123,6 +126,8 @@ public class CreditLedgerQueryService {
                         .detail(sale.getFuelType())
                         .amount(sale.getAmount().setScale(2, RoundingMode.HALF_UP))
                         .occurredAt(sale.getCreatedAt())
+                        .status(sale.getVoidStatus())
+                        .countedInBalance(ACTIVE.equals(sale.getVoidStatus()))
                         .build()));
 
         List<CreditPayment> payments = paymentRepository.findByClientIdOrderByPaidAtDesc(clientId);
@@ -138,6 +143,8 @@ public class CreditLedgerQueryService {
                     .detail(payment.getPaymentMode().name())
                     .amount(payment.getAmount().setScale(2, RoundingMode.HALF_UP))
                     .occurredAt(payment.getCreatedAt())
+                    .status(payment.getPaymentApprovalStatus().name())
+                    .countedInBalance(payment.getPaymentApprovalStatus() == ExpenseApprovalStatus.APPROVED)
                     .build());
         });
 
@@ -151,6 +158,8 @@ public class CreditLedgerQueryService {
                             .detail(String.format("%s – %s", charge.getPeriodFrom(), charge.getPeriodTo()))
                             .amount(charge.getAmount().setScale(2, RoundingMode.HALF_UP))
                             .occurredAt(charge.getCreatedAt())
+                            .status(ACTIVE)
+                            .countedInBalance(true)
                             .build());
                 });
 
@@ -160,6 +169,10 @@ public class CreditLedgerQueryService {
 
         BigDecimal runningBalance = BigDecimal.ZERO;
         for (CreditTransactionResponse transaction : transactions) {
+            if (!transaction.isCountedInBalance()) {
+                transaction.setRunningBalance(runningBalance.setScale(2, RoundingMode.HALF_UP));
+                continue;
+            }
             if ("PAYMENT".equals(transaction.getType())) {
                 runningBalance = runningBalance.subtract(transaction.getAmount());
             } else {

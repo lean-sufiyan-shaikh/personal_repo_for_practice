@@ -58,6 +58,7 @@ public enum AuditAction {
 
     // ── Ancillary products ────────────────────────────────────────────────────
     ANCILLARY_SALE_RECORDED,
+    ANCILLARY_PRICE_OVERRIDDEN,
     ANCILLARY_SALE_BACKFILLED,
     ANCILLARY_DELIVERY_RECORDED,
     ANCILLARY_DELIVERY_BACKFILLED,
@@ -71,5 +72,6 @@ public enum AuditAction {
 
     // ── Payment settlements ───────────────────────────────────────────────────
     SETTLEMENT_RECORDED,
+    SETTLEMENT_VOIDED,
     SETTLEMENT_CONFIG_UPDATED
 }

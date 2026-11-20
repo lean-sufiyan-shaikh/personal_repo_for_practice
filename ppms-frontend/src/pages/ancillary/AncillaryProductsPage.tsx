@@ -649,14 +649,29 @@ function SellDialog({
   onSuccess: () => void
 }) {
   const { addToast } = useToastStore()
+  const { user } = useAuthStore()
+  const canOverridePrice = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const [step, setStep] = useState<'form' | 'review'>('form')
   const [form, setForm] = useState<RecordAncillarySaleRequest>({
     productId: product.id,
     quantityUnits: 1,
-    sellingPricePerUnit: product.fifoCostPricePerUnit ?? 0,
+    sellingPricePerUnit: 0,
     paymentMode: 'CASH',
   })
   const [error, setError] = useState<string | null>(null)
+
+  // Sales must use the configured price; only Owner/Admin may change it for a single sale.
+  const { data: priceHistory, isLoading: priceLoading } = useQuery({
+    queryKey: ['ancillary-price-history', pumpId, product.id],
+    queryFn: () => ancillaryApi.getPriceHistory(pumpId, product.id),
+  })
+  const configuredPrice = priceHistory
+    ?.filter(p => new Date(p.effectiveFrom).getTime() <= Date.now())
+    .sort((a, b) => new Date(b.effectiveFrom).getTime() - new Date(a.effectiveFrom).getTime())[0]
+    ?.pricePerUnit ?? null
+  useEffect(() => {
+    if (configuredPrice != null) setForm(f => ({ ...f, sellingPricePerUnit: configuredPrice }))
+  }, [configuredPrice])
 
   const { data: creditClients = [] } = useQuery({
     queryKey: ['credit-ledger-all', pumpId],
@@ -770,8 +785,13 @@ function SellDialog({
                     className="text-sm"
                     value={form.sellingPricePerUnit || ''}
                     onChange={e => setForm(f => ({ ...f, sellingPricePerUnit: parseFloat(e.target.value) || 0 }))}
-                    placeholder="MRP"
+                    placeholder={priceLoading ? 'Loading…' : 'MRP'}
+                    readOnly={!canOverridePrice}
+                    disabled={configuredPrice == null}
                   />
+                  {!priceLoading && configuredPrice == null && (
+                    <p className="text-xs text-red-600 mt-1">No selling price is set for this product. Set a price first.</p>
+                  )}
                 </div>
               </div>
 

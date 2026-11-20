@@ -34,6 +34,10 @@ export interface CreditTransaction {
   amount: number
   runningBalance: number
   occurredAt: string
+  /** ACTIVE / VOIDED for sales; APPROVED / PENDING_APPROVAL / REJECTED for payments. */
+  status: string
+  /** False for voided sales and non-approved payments; they leave the running balance unchanged. */
+  countedInBalance: boolean
 }
 
 export interface UpdateInterestSettingsRequest {

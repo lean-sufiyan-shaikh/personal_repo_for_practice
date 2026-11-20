@@ -2,6 +2,8 @@ package com.ppms.common;
 
 import com.ppms.ancillary.AncillaryInventoryWorkflowService;
 import com.ppms.ancillary.AncillaryProduct;
+import com.ppms.ancillary.AncillaryProductPrice;
+import com.ppms.ancillary.AncillaryProductPriceRepository;
 import com.ppms.ancillary.AncillaryProductRepository;
 import com.ppms.ancillary.AncillaryProductStatus;
 import com.ppms.ancillary.AncillaryStockLotRepository;
@@ -87,6 +89,7 @@ class ConcurrentUpdateIntegrationTest {
     @Autowired private ShiftFuelReadingRepository fuelReadingRepository;
     @Autowired private AncillaryProductRepository ancillaryProductRepository;
     @Autowired private AncillaryStockLotRepository ancillaryLotRepository;
+    @Autowired private AncillaryProductPriceRepository ancillaryPriceRepository;
 
     private User manager;
     private User operator;
@@ -191,6 +194,13 @@ class ConcurrentUpdateIntegrationTest {
         stock.setCostPricePerUnit(new BigDecimal("300.00"));
         stock.setDeliveryDate(LocalDate.now());
         ancillaryWorkflowService.recordDelivery(pump.getId(), product.getId(), stock, manager);
+        ancillaryPriceRepository.save(AncillaryProductPrice.builder()
+                .productId(product.getId())
+                .pumpId(pump.getId())
+                .pricePerUnit(new BigDecimal("400.00"))
+                .effectiveFrom(OffsetDateTime.now().minusDays(1))
+                .setByUserId(manager.getId())
+                .build());
 
         RecordAncillarySaleRequest sale = new RecordAncillarySaleRequest();
         sale.setProductId(product.getId());

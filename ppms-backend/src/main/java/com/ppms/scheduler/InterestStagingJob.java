@@ -1,6 +1,6 @@
 package com.ppms.scheduler;
 
-import com.ppms.credit.CreditInterestService;
+import com.ppms.credit.CreditInterestRunService;
 import com.ppms.credit.InterestPeriod;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,16 +20,16 @@ import java.time.ZoneId;
  * "Staging" means interest is calculated and written to credit_interest_charges but NOT
  * automatically collected — the Owner/Admin still reviews and approves charges via the UI.
  *
- * ShedLock prevents duplicate runs across multiple pods. The job is idempotent:
- * CreditInterestService.applyInterestForPeriod() skips clients whose interest window
- * has not yet elapsed, so re-running produces no duplicate entries.
+ * ShedLock prevents duplicate runs across multiple pods. Each client group is charged in its own
+ * transaction, so one failure does not cancel the others. The job is idempotent: a group whose
+ * interest window has not elapsed is skipped, so re-running produces no duplicate entries.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class InterestStagingJob {
 
-    private final CreditInterestService creditInterestService;
+    private final CreditInterestRunService interestRunService;
 
     /**
      * Weekly interest — runs every Monday at 01:00 IST.
@@ -40,8 +40,10 @@ public class InterestStagingJob {
     public void stageWeeklyInterest() {
         log.info("InterestStagingJob_Weekly started");
         LocalDate periodTo = LocalDate.now(ZoneId.of("Asia/Kolkata")).minusDays(1); // yesterday = last day of elapsed week
-        int charged = creditInterestService.applyInterestForPeriod(InterestPeriod.WEEKLY, periodTo, "WEEKLY_SCHEDULED");
-        log.info("InterestStagingJob_Weekly complete: {} clients charged", charged);
+        CreditInterestRunService.InterestRunResult result =
+                interestRunService.applyInterestForPeriod(InterestPeriod.WEEKLY, periodTo, "WEEKLY_SCHEDULED");
+        log.info("InterestStagingJob_Weekly complete: charged={} skipped={} failed={} failedClientIds={}",
+                result.groupsCharged(), result.groupsSkipped(), result.groupsFailed(), result.failedClientIds());
     }
 
     /**
@@ -53,7 +55,9 @@ public class InterestStagingJob {
     public void stageMonthlyInterest() {
         log.info("InterestStagingJob_Monthly started");
         LocalDate periodTo = LocalDate.now(ZoneId.of("Asia/Kolkata")).minusDays(1); // yesterday = last day of previous month
-        int charged = creditInterestService.applyInterestForPeriod(InterestPeriod.MONTHLY, periodTo, "MONTHLY_SCHEDULED");
-        log.info("InterestStagingJob_Monthly complete: {} clients charged", charged);
+        CreditInterestRunService.InterestRunResult result =
+                interestRunService.applyInterestForPeriod(InterestPeriod.MONTHLY, periodTo, "MONTHLY_SCHEDULED");
+        log.info("InterestStagingJob_Monthly complete: charged={} skipped={} failed={} failedClientIds={}",
+                result.groupsCharged(), result.groupsSkipped(), result.groupsFailed(), result.failedClientIds());
     }
 }

@@ -938,9 +938,9 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
     groups: Array<{ label: string; items: CreditTransaction[] }>,
     srcClientId: number
   ) => groups.map(({ label, items }) => {
-    const weekSales    = items.filter(t => t.type === 'SALE').reduce((s, t) => s + t.amount, 0)
-    const weekPayments = items.filter(t => t.type === 'PAYMENT').reduce((s, t) => s + t.amount, 0)
-    const weekInterest = items.filter(t => t.type === 'INTEREST').reduce((s, t) => s + t.amount, 0)
+    const weekSales    = items.filter(t => t.countedInBalance && t.type === 'SALE').reduce((s, t) => s + t.amount, 0)
+    const weekPayments = items.filter(t => t.countedInBalance && t.type === 'PAYMENT').reduce((s, t) => s + t.amount, 0)
+    const weekInterest = items.filter(t => t.countedInBalance && t.type === 'INTEREST').reduce((s, t) => s + t.amount, 0)
     return (
       <div key={label} className="ui-card p-0 overflow-hidden">
         <div className="ui-toolbar">
@@ -970,6 +970,9 @@ function ClientDetail({ clientId, pumpId, isOwnerOrAdmin, onBack }: ClientDetail
                 </td>
                 <td className="px-2 py-2.5 text-xs max-w-[160px]">
                   <span className="text-slate-500 truncate block">{tx.reference || tx.detail || '—'}</span>
+                  {!tx.countedInBalance && (
+                    <span className="text-[10px] font-semibold text-red-500">{tx.status} · not in balance</span>
+                  )}
                 </td>
                 <td className={`px-2 py-2.5 text-right text-xs font-semibold ${
                   tx.type === 'PAYMENT' ? 'text-green-600' : tx.type === 'INTEREST' ? 'text-purple-600' : 'text-orange-600'

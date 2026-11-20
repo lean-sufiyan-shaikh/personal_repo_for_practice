@@ -32,4 +32,10 @@ public class CreditTransactionResponse {
     private BigDecimal runningBalance;
 
     private OffsetDateTime occurredAt;
+
+    // ACTIVE / VOIDED for sales, APPROVED / PENDING_APPROVAL / REJECTED for payments, ACTIVE for interest
+    private String status;
+
+    // False for voided sales and non-approved payments; such rows are listed but leave the running balance unchanged
+    private boolean countedInBalance;
 }

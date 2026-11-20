@@ -1,0 +1,52 @@
+package com.ppms.expense;
+
+import com.ppms.pump.PumpLocation;
+import com.ppms.pump.PumpLocationRepository;
+import com.ppms.user.User;
+import com.ppms.user.UserRole;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+class ApprovalPolicyTest {
+
+    private final PumpLocationRepository pumpLocationRepository = mock(PumpLocationRepository.class);
+    private final ApprovalPolicy approvalPolicy = new ApprovalPolicy(pumpLocationRepository);
+
+    @Test
+    void noThresholdMeansNoApprovalNeeded() {
+        givenThreshold(null);
+        assertThat(approvalPolicy.resolveStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("50000")))
+                .isEqualTo(ExpenseApprovalStatus.APPROVED);
+    }
+
+    @Test
+    void amountAboveThresholdNeedsApprovalForManager() {
+        givenThreshold(new BigDecimal("1000"));
+        assertThat(approvalPolicy.resolveStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("1000.01")))
+                .isEqualTo(ExpenseApprovalStatus.PENDING_APPROVAL);
+        assertThat(approvalPolicy.resolveStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("1000")))
+                .isEqualTo(ExpenseApprovalStatus.APPROVED);
+    }
+
+    @Test
+    void ownerIsNeverHeldForApproval() {
+        givenThreshold(new BigDecimal("1000"));
+        assertThat(approvalPolicy.resolveStatus(1L, userWithRole(UserRole.OWNER), new BigDecimal("99999")))
+                .isEqualTo(ExpenseApprovalStatus.APPROVED);
+    }
+
+    private void givenThreshold(BigDecimal threshold) {
+        PumpLocation pump = PumpLocation.builder().id(1L).expenseApprovalThreshold(threshold).build();
+        when(pumpLocationRepository.findById(1L)).thenReturn(Optional.of(pump));
+    }
+
+    private static User userWithRole(UserRole role) {
+        return User.builder().id(7L).role(role).build();
+    }
+}
