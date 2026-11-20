@@ -84,6 +84,7 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
                 </td>
                 <td className="px-3 py-2.5 w-28 text-right">
                   {canApprovePayments && tx.type === 'PAYMENT' && tx.status === 'PENDING_APPROVAL'
+                    && pendingPaymentRecorders.has(tx.referenceId)
                     && pendingPaymentRecorders.get(tx.referenceId) !== currentUserId && (
                     <span className="inline-flex items-center gap-1 mr-2">
                       <button
