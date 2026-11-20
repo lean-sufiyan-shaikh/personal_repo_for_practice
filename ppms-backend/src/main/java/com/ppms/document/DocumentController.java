@@ -62,6 +62,7 @@ public class DocumentController {
                 .expiryDate(req.getExpiryDate())
                 .notes(req.getNotes())
                 .status(computeStatus(req.getExpiryDate(), today))
+                .uploadedByUserId(currentUser.getId())
                 .build();
 
         PumpDocument saved = documentRepository.save(doc);
