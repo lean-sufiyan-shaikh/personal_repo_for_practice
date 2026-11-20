@@ -11,6 +11,7 @@ import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
 import { formatCurrency } from '../../utils/format'
 import { CATEGORIES, CATEGORY_COLORS, fmtDate } from './expenseFormat'
+import { codeLabel } from '../../constants/labels'
 
 export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
   const qc           = useQueryClient()
@@ -77,7 +78,7 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
             <SearchableSelect
               value={form.category}
               onChange={v => setForm(f => ({ ...f, category: v as ExpenseCategory }))}
-              options={CATEGORIES.map(c => ({ value: c, label: c.replace('_', ' ') }))}
+              options={CATEGORIES.map(c => ({ value: c, label: codeLabel(c) }))}
               aria-labelledby="expense-category-label"
             />
           </div>
@@ -163,7 +164,7 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
                 <div className="flex items-center justify-between px-4 py-2.5">
                   <span className="text-slate-500 text-xs">Category</span>
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${CATEGORY_COLORS[form.category]}`}>
-                    {form.category.replace('_', ' ')}
+                    {codeLabel(form.category)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-2.5">

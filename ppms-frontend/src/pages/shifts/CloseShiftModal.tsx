@@ -7,6 +7,7 @@ import { formatIstDateTime } from '../../utils/date'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
 import { useConfirmDiscard } from '../../hooks/useConfirmDiscard'
+import { DiscardChangesDialog } from '../../components/DiscardChangesDialog'
 import { toPaise } from '../../utils/money'
 import { FUEL_LABELS, FUEL_UNIT } from '../../constants/fuel'
 import { CreditEntryForm } from './components/CreditEntryForm'
@@ -153,9 +154,13 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
     setCash(newCashPaise === 0 ? '' : (newCashPaise / 100).toFixed(2))
   }
 
-  const requestClose = useConfirmDiscard(hasUnsavedChanges, onClose)
+  const { requestClose, isConfirming, discard, keepEditing } = useConfirmDiscard(hasUnsavedChanges, onClose)
 
-  const headerToneClass = isBalanced
+  // Stays neutral until readings and payments are in; an empty form is not a shortage.
+  const totalsEntered = readingsComplete && paymentTouched
+  const headerToneClass = !totalsEntered
+    ? 'ui-modal-header--neutral'
+    : isBalanced
     ? 'ui-modal-header--success'
     : hasDiscrepancy
     ? diff < 0 ? 'ui-modal-header--danger' : 'ui-modal-header--warning'
@@ -337,6 +342,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
         </form>
       </div>
     </div>
+    {isConfirming && <DiscardChangesDialog onDiscard={discard} onKeepEditing={keepEditing} />}
     </ModalPortal>
   )
 }

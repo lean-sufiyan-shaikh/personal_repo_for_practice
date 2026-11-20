@@ -92,7 +92,7 @@ export function PaymentField({ label, value, onChange }: { label: string; value:
         <span className="ui-label">{label}</span>
         <input type="number" step="0.01" min="0" value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="0"
+          placeholder="Enter amount"
           className="text-sm"
         />
       </label>

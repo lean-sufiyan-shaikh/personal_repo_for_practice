@@ -62,7 +62,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
 
   const {
     allClients, client, clientsLoading, clientsFailed, childClients, activeExtensions, ownTransactions, isLoading,
-    outstandingInterest, totalInterestRecovered, childTxQueries, childTransactionsByIndex,
+    outstandingInterest, totalInterestRecovered, childTransactionsByIndex,
     pendingPaymentRecorders, transactions,
   } = useClientLedger(pumpId, clientId, canApprovePayments)
 
@@ -238,7 +238,8 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
       <ClientSummaryCards
         client={client}
         hasSubAccounts={client.isParent && childClients.length > 0}
-        outstandingBalance={effectiveOutstandingBalance}
+        outstandingBalance={client.outstandingBalance}
+        pendingApprovalTotal={pendingPaymentTotal}
         outstandingInterest={outstandingInterest}
         totalInterestRecovered={totalInterestRecovered}
         transactionCount={transactions.length}
@@ -337,12 +338,12 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
                     </div>
                   </button>
                   {isExpanded && (
-                    childTxQueries[i]?.isLoading ? (
+                    isLoading ? (
                       <div className="px-4 py-3"><SkeletonRows count={3} /></div>
                     ) : childFiltered.length === 0 ? (
                       <EmptyState
                         icon="transactions"
-                        title={(childTxQueries[i]?.data ?? []).length === 0 ? 'No transactions yet' : 'No transactions match this filter'}
+                        title={(childTransactionsByIndex[i] ?? []).length === 0 ? 'No transactions yet' : 'No transactions match this filter'}
                       />
                     ) : (
                       <div className="space-y-3"><LedgerWeekGroups groups={childGroups} srcClientId={child.id} actions={rowActions} /></div>

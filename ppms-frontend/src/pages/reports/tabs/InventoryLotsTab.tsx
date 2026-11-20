@@ -8,14 +8,21 @@ import type { InventoryLotsReport, AllTanksInventoryReport } from '../../../api/
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
-import { ErrorBox, PrintHeader } from '../shared'
+import { DateRangeInputs, ErrorBox, PrintHeader } from '../shared'
+import { localDateInputValue } from '../../../utils/date'
 import { fmtAmt, fmtQty, fmtShortDate, fmtShortDayMonth } from '../reportFormat'
+import { codeLabel } from '../../../constants/labels'
+
+const ALL_TANKS_DEFAULT_DAYS = 90
 
 // ── Inventory Lots Tab ────────────────────────────────────────────────────────
 
 export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
   const [tankId, setTankId] = useState<string>('')    // '' = All Tanks, '123' = specific tank id
   const [query,  setQuery]  = useState<string>('')    // mirrors tankId on Load click
+  const [from, setFrom] = useState(() => localDateInputValue(-(ALL_TANKS_DEFAULT_DAYS - 1)))
+  const [to,   setTo]   = useState(() => localDateInputValue())
+  const [range, setRange] = useState({ from, to })    // mirrors from/to on Load click
   const [expandedLot, setExpandedLot] = useState<number | null>(null)
 
   const { data: tanks = [] } = useQuery({
@@ -35,9 +42,9 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
 
   const { data: allTanksData, isFetching: allFetching, error: allError } =
     useQuery<AllTanksInventoryReport>({
-      queryKey: ['report-inventory-all', pumpId, query],
-      queryFn:  () => reportApi.getAllTanksInventoryLots(pumpId),
-      enabled:  query === '',
+      queryKey: ['report-inventory-all', pumpId, range.from, range.to],
+      queryFn:  () => reportApi.getAllTanksInventoryLots(pumpId, range.from, range.to),
+      enabled:  query === '' && !!range.from && !!range.to,
     })
 
   const isFetching = singleFetching || allFetching
@@ -61,8 +68,9 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
               placeholder="Select tank…"
             />
           </div>
+          {tankId === '' && <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />}
           <button
-            onClick={() => { setQuery(tankId); setPage(0) }}
+            onClick={() => { setQuery(tankId); setRange({ from, to }); setPage(0) }}
             disabled={isFetching}
             className="ui-btn ui-btn-primary"
           >
@@ -71,12 +79,18 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
           <button
             onClick={() => window.print()}
             disabled={!data || data.lots.length === 0}
-            className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
+            className="ui-btn ui-btn-secondary"
           >
             Print PDF
           </button>
         </div>
       </div>
+
+      {query === '' && (
+        <p className="ui-help print:hidden">
+          Showing every active lot, plus used-up lots delivered between {fmtShortDate(range.from)} and {fmtShortDate(range.to)}.
+        </p>
+      )}
 
       {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
 
@@ -111,12 +125,12 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                 <div className="flex items-center gap-3">
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     lot.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
-                  }`}>{lot.status}</span>
+                  }`}>{codeLabel(lot.status)}</span>
                   {lot.isDipAdjustment && (
                     <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">DIP Adj.</span>
                   )}
                   <span className="text-sm font-medium text-slate-700">{fmtShortDate(lot.deliveryDate)}</span>
-                  <span className="text-xs text-slate-500">{lot.fuelType.replace(/_/g, ' ')}</span>
+                  <span className="text-xs text-slate-500">{codeLabel(lot.fuelType)}</span>
                   <span className="text-xs text-slate-500">{lot.tankerReference}</span>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-slate-500">
@@ -147,7 +161,7 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                       <tr key={c.id} className="border-t border-slate-100">
                         <td className="px-4 py-2 text-slate-600 text-xs font-medium">{lot.tankerReference}</td>
                         <td className="px-4 py-2 text-slate-500">{fmtShortDayMonth(c.consumedAt)}</td>
-                        <td className="px-4 py-2 text-slate-500">{c.sourceType.replace(/_/g, ' ')}</td>
+                        <td className="px-4 py-2 text-slate-500">{codeLabel(c.sourceType)}</td>
                         <td className="px-4 py-2 text-slate-500">{c.shiftName ?? '—'}</td>
                         <td className="px-4 py-2 text-right text-slate-700">
                           {c.quantityConsumed.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -186,7 +200,7 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-semibold text-slate-700">{section.tankIdentifier}</span>
-                      <span className="text-xs text-slate-500">{section.fuelType.replace(/_/g, ' ')}</span>
+                      <span className="text-xs text-slate-500">{codeLabel(section.fuelType)}</span>
                       <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{section.lotCount} lots</span>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-slate-500">
@@ -227,7 +241,7 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                                 <td className="px-3 py-2">
                                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                                     lot.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
-                                  }`}>{lot.status}</span>
+                                  }`}>{codeLabel(lot.status)}</span>
                                   {lot.isDipAdjustment && (
                                     <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">DIP</span>
                                   )}
@@ -257,7 +271,7 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                   <tbody>
                     {allTanksData.crossTankSummary.map((row) => (
                       <tr key={row.fuelType} className="border-t border-slate-100">
-                        <td className="px-3 py-2.5 font-medium text-slate-700">{row.fuelType.replace(/_/g, ' ')}</td>
+                        <td className="px-3 py-2.5 font-medium text-slate-700">{codeLabel(row.fuelType)}</td>
                         <td className="px-3 py-2.5 text-right text-slate-600">{fmtQty(row.totalRemaining)}</td>
                         <td className="px-3 py-2.5 text-right text-slate-600">
                           {row.weightedAvgCostPerUnit != null ? `₹${row.weightedAvgCostPerUnit.toFixed(2)}/L` : '—'}
@@ -281,10 +295,10 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
           {data.lots.map((lot) => (
             <div key={lot.lotId} className="mb-4">
               <div className="flex items-center gap-3 mb-1 pb-1 border-b border-slate-200 flex-wrap">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${lot.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{lot.status}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${lot.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{codeLabel(lot.status)}</span>
                 {lot.isDipAdjustment && <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">DIP Adj.</span>}
                 <span className="text-sm font-medium text-slate-700">{fmtShortDate(lot.deliveryDate)}</span>
-                <span className="text-xs text-slate-500">{lot.fuelType.replace(/_/g, ' ')}</span>
+                <span className="text-xs text-slate-500">{codeLabel(lot.fuelType)}</span>
                 <span className="text-xs text-slate-500">{lot.tankerReference}</span>
                 <span className="text-xs text-slate-500">₹{lot.costPricePerUnit}/L</span>
                 <span className="text-xs text-slate-500">{fmtQty(lot.remainingQuantity)} remaining</span>
@@ -308,7 +322,7 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                       <tr key={c.id} className="border-t border-slate-100">
                         <td className="px-3 py-1.5 text-slate-600">{lot.tankerReference}</td>
                         <td className="px-3 py-1.5 text-slate-500">{fmtShortDayMonth(c.consumedAt)}</td>
-                        <td className="px-3 py-1.5 text-slate-500">{c.sourceType.replace(/_/g, ' ')}</td>
+                        <td className="px-3 py-1.5 text-slate-500">{codeLabel(c.sourceType)}</td>
                         <td className="px-3 py-1.5 text-slate-500">{c.shiftName ?? '—'}</td>
                         <td className="px-3 py-1.5 text-right text-slate-700">{c.quantityConsumed.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td className="px-3 py-1.5 text-right text-slate-600">₹{c.costPricePerUnit}</td>

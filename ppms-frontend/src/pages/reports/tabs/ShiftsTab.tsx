@@ -8,13 +8,14 @@ import { pageSlice } from '../../../utils/pageSlice'
 import { DateRangeInputs, ErrorBox, PrintHeader } from '../shared'
 import { fmtAmt, todayIso, yesterdayIso } from '../reportFormat'
 import { ScrollRegion } from '../../../components/ScrollRegion'
+import { codeLabel } from '../../../constants/labels'
 
 // ── Shifts Tab ────────────────────────────────────────────────────────────────
 
 export function ShiftsTab({ pumpId }: { pumpId: number }) {
   const [from, setFrom] = useState(yesterdayIso)
   const [to, setTo]     = useState(todayIso)
-  const [query, setQuery] = useState<{ from: string; to: string } | null>(null)
+  const [query, setQuery] = useState<{ from: string; to: string } | null>(() => ({ from: yesterdayIso(), to: todayIso() }))
   const [page, setPage]   = useState(0)
   const [pageSize, setPageSize] = useState(10)
 
@@ -42,7 +43,7 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
         <button
           onClick={() => window.print()}
           disabled={rows.length === 0}
-          className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
+          className="ui-btn ui-btn-secondary"
         >
           Print PDF
         </button>
@@ -77,7 +78,7 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
                     <tr key={s.id} className="border-t border-slate-100 hover:bg-slate-50/50">
                       <td className="px-4 py-2.5 text-slate-600">{s.shiftDate}</td>
                       <td className="px-4 py-2.5 text-slate-500">{s.shiftName ?? '—'}</td>
-                      <td className="px-4 py-2.5 text-slate-500 text-xs">{s.status?.replace(/_/g, ' ') ?? '—'}</td>
+                      <td className="px-4 py-2.5 text-slate-500 text-xs">{codeLabel(s.status)}</td>
                       <td className="px-4 py-2.5 text-right font-medium text-slate-700">{fmtAmt(s.totalAmountDue)}</td>
                       <td className="px-4 py-2.5 text-right text-slate-600">{fmtAmt(s.cashCollected)}</td>
                       <td className="px-4 py-2.5 text-right text-slate-600">{fmtAmt(s.upiCollected)}</td>
@@ -126,7 +127,7 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
                 <tr key={s.id} className="border-t border-slate-100">
                   <td className="px-4 py-2 text-slate-600">{s.shiftDate}</td>
                   <td className="px-4 py-2 text-slate-500">{s.shiftName ?? '—'}</td>
-                  <td className="px-4 py-2 text-slate-500 text-xs">{s.status?.replace(/_/g, ' ') ?? '—'}</td>
+                  <td className="px-4 py-2 text-slate-500 text-xs">{codeLabel(s.status)}</td>
                   <td className="px-4 py-2 text-right font-medium text-slate-700">{fmtAmt(s.totalAmountDue)}</td>
                   <td className="px-4 py-2 text-right text-slate-600">{fmtAmt(s.cashCollected)}</td>
                   <td className="px-4 py-2 text-right text-slate-600">{fmtAmt(s.upiCollected)}</td>

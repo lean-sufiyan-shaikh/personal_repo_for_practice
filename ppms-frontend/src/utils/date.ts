@@ -68,3 +68,8 @@ export function formatIstDateTime(
   const date = value instanceof Date ? value : new Date(value)
   return istFormatter(options).format(date)
 }
+
+/** Rewrites machine dates (YYYY-MM-DD) inside server-written text as readable dates, e.g. "30 Nov 2026". */
+export function withReadableDates(text: string): string {
+  return text.replace(/\b\d{4}-\d{2}-\d{2}\b/g, (isoDate) => formatIstDate(isoDate))
+}

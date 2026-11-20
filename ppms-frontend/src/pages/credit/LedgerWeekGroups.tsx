@@ -27,6 +27,15 @@ interface LedgerWeekGroupsProps {
 }
 
 // srcClientId is passed explicitly so the Move action knows which client owns the entry.
+function rowBadge(tx: CreditTransaction): { label: string; tone: string } {
+  if (tx.status === 'PENDING_APPROVAL') return { label: 'Pending approval', tone: 'bg-amber-100 text-amber-800' }
+  if (tx.status === 'REJECTED') return { label: 'Rejected', tone: 'bg-slate-100 text-slate-600' }
+  if (tx.status === 'VOIDED') return { label: 'Voided', tone: 'bg-slate-100 text-slate-600' }
+  if (tx.type === 'SALE') return { label: '↑ Sale', tone: 'bg-orange-100 text-orange-700' }
+  if (tx.type === 'INTEREST') return { label: '% Interest', tone: 'bg-purple-100 text-purple-700' }
+  return { label: '↓ Paid', tone: 'bg-green-100 text-green-700' }
+}
+
 export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGroupsProps) {
   const {
     canMoveEntries, canDeleteInterest, canApprovePayments, currentUserId, pendingPaymentRecorders,
@@ -56,18 +65,14 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
                   {formatDate(tx.businessDate)}
                 </td>
                 <td className="px-2 py-2.5 w-24">
-                  <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${
-                    tx.type === 'SALE' ? 'bg-orange-100 text-orange-700'
-                    : tx.type === 'INTEREST' ? 'bg-purple-100 text-purple-700'
-                    : 'bg-green-100 text-green-700'
-                  }`}>
-                    {tx.type === 'SALE' ? '↑ Sale' : tx.type === 'INTEREST' ? '% Interest' : '↓ Paid'}
+                  <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${rowBadge(tx).tone}`}>
+                    {rowBadge(tx).label}
                   </span>
                 </td>
                 <td className="px-2 py-2.5 text-xs max-w-[160px]">
                   <span className="text-slate-500 truncate block">{tx.reference || tx.detail || '—'}</span>
                   {!tx.countedInBalance && (
-                    <span className="text-[10px] font-semibold text-red-500">{tx.status} · not in balance</span>
+                    <span className="text-[11px] font-medium text-slate-600">Not counted in balance</span>
                   )}
                 </td>
                 <td className={`px-2 py-2.5 text-right text-xs font-semibold ${
@@ -106,7 +111,7 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
                   {canMoveEntries && (tx.type === 'SALE' || tx.type === 'PAYMENT') && (
                     <button
                       onClick={() => onMove(tx.referenceId, srcClientId, tx.type === 'PAYMENT' ? 'PAYMENT' : 'SALE')}
-                      className="ui-btn ui-btn-ghost min-h-6 px-1 text-xs text-blue-700 hover:text-blue-800"
+                      className="ui-btn ui-btn-secondary ui-btn-compact"
                       title={`Move this ${tx.type === 'PAYMENT' ? 'payment' : 'entry'} within the account group`}
                     >
                       Move

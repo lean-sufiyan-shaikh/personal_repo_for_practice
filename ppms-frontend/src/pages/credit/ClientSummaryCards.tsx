@@ -6,6 +6,8 @@ interface ClientSummaryCardsProps {
   client: CreditClient
   hasSubAccounts: boolean
   outstandingBalance: number
+  /** Payments recorded but not yet approved; they are not deducted from the outstanding balance. */
+  pendingApprovalTotal: number
   outstandingInterest: number
   totalInterestRecovered: number
   transactionCount: number
@@ -14,7 +16,7 @@ interface ClientSummaryCardsProps {
 }
 
 export function ClientSummaryCards({
-  client, hasSubAccounts, outstandingBalance, outstandingInterest, totalInterestRecovered,
+  client, hasSubAccounts, outstandingBalance, pendingApprovalTotal, outstandingInterest, totalInterestRecovered,
   transactionCount, canManageInterest, onOpenInterestSettings,
 }: ClientSummaryCardsProps) {
   return (
@@ -26,6 +28,9 @@ export function ClientSummaryCards({
         <p className={`text-lg font-bold ${outstandingBalance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
           ₹{formatDecimal(outstandingBalance)}
         </p>
+        {pendingApprovalTotal > 0 && (
+          <p className="text-xs font-medium text-amber-700 mt-0.5">₹{formatDecimal(pendingApprovalTotal)} pending approval</p>
+        )}
         {hasSubAccounts && (
           <p className="text-xs text-slate-500 mt-0.5">parent + all sub-accounts</p>
         )}

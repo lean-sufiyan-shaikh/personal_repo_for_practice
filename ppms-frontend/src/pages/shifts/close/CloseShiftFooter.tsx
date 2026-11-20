@@ -11,15 +11,15 @@ interface Props {
 
 export function CloseShiftFooter({ readingsComplete, paymentTouched, isBalanced, reasonFilled, isPending, onCancel }: Props) {
   return (
-    <div className="ui-modal-footer bg-slate-50/80">
+    <div className="ui-modal-footer flex-col-reverse sm:flex-row bg-slate-50/80">
       <button type="button" onClick={onCancel}
-        className="ui-btn ui-btn-secondary flex-none">
+        className="ui-btn ui-btn-secondary sm:flex-none">
         Cancel
       </button>
-      <div className="flex-1">
+      <div className="sm:flex-1 min-w-0">
         {!readingsComplete || !paymentTouched ? (
           <button type="submit" disabled
-            className="ui-btn w-full bg-slate-200 text-slate-500 cursor-not-allowed">
+            className="ui-btn w-full whitespace-normal bg-slate-100 text-slate-700 border-slate-300 cursor-not-allowed disabled:opacity-100">
             Fill in readings &amp; payment to continue
           </button>
         ) : isBalanced ? (
@@ -34,7 +34,7 @@ export function CloseShiftFooter({ readingsComplete, paymentTouched, isBalanced,
           </button>
         ) : (
           <button type="submit" disabled
-            className="ui-btn w-full bg-amber-100 text-amber-400 cursor-not-allowed border-2 border-amber-200 border-dashed">
+            className="ui-btn w-full whitespace-normal bg-amber-50 text-amber-900 cursor-not-allowed border-2 border-amber-400 border-dashed disabled:opacity-100">
             Add a reason above to close
           </button>
         )}

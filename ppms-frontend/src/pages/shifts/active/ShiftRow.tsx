@@ -2,6 +2,7 @@ import { Plus } from 'lucide-react'
 import type { Shift } from '../../../types/shift'
 import { formatIstDateTime } from '../../../utils/date'
 import { STATUS_LABELS } from '../shiftLabels'
+import { codeLabel } from '../../../constants/labels'
 
 // ── Active shift row ──────────────────────────────────────────────────────────
 
@@ -21,7 +22,7 @@ export function ShiftRow({ shift, onClose, onAddCredit }: { shift: Shift; onClos
         <span className="text-xs text-slate-500 block">
           {shift.duName ?? `DU #${shift.duNumber}`}
         </span>
-        {shift.nozzles.map((n) => `#${n.nozzleNumber} ${n.fuelType}`).join(', ')}
+        {shift.nozzles.map((n) => `#${n.nozzleNumber} ${codeLabel(n.fuelType)}`).join(', ')}
       </td>
       <td className="px-6 py-3 text-slate-600">{shift.operatorName}</td>
       <td className="px-6 py-3 text-slate-500 hidden md:table-cell">{shift.shiftWindow}</td>
@@ -34,7 +35,7 @@ export function ShiftRow({ shift, onClose, onAddCredit }: { shift: Shift; onClos
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onAddCredit}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100"
+            className="ui-btn ui-btn-secondary ui-btn-compact"
           >
             <Plus size={12} strokeWidth={2.5} />
             <span>Credit</span>
@@ -42,7 +43,7 @@ export function ShiftRow({ shift, onClose, onAddCredit }: { shift: Shift; onClos
           {onClose && (
             <button
               onClick={onClose}
-              className="ui-btn ui-btn-primary min-h-0 rounded-xl px-3 py-1.5 text-xs"
+              className="ui-btn ui-btn-primary ui-btn-compact"
             >
               Close
             </button>

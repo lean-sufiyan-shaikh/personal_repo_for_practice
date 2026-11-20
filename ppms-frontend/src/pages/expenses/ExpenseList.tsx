@@ -13,6 +13,7 @@ import { formatCurrency } from '../../utils/format'
 import { ConfirmButton } from '../../components/ConfirmButton'
 import { CATEGORIES, CATEGORY_COLORS, fmtDate } from './expenseFormat'
 import type { ExpenseListState } from './useExpenseList'
+import { codeLabel } from '../../constants/labels'
 
 interface ExpenseListProps {
   pumpId: number | null
@@ -73,7 +74,7 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
             onChange={v => { setCategoryFilter(v as ExpenseCategory | ''); setPage(0) }}
             options={[
               { value: '', label: 'All Categories' },
-              ...CATEGORIES.map(c => ({ value: c, label: c.replace('_', ' ') })),
+              ...CATEGORIES.map(c => ({ value: c, label: codeLabel(c) })),
             ]}
             size="sm"
           />
@@ -122,14 +123,14 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
         <>
         <div className="divide-y divide-slate-100">
           {expenses.map(e => (
-            <div key={e.id} className="px-5 py-3 flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
+            <div key={e.id} className="px-5 py-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${CATEGORY_COLORS[e.category]}`}>
-                  {e.category}
+                  {codeLabel(e.category)}
                 </span>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                    <p className="text-sm text-slate-700 truncate">{e.description}</p>
+                    <p className="text-sm text-slate-700 break-words sm:truncate">{e.description}</p>
                     {e.approvalStatus === 'DRAFT' && (
                       <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                         Draft
@@ -154,8 +155,8 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
                   <p className="text-xs text-slate-500">{fmtDate(e.expenseDate)}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <span className={`text-sm font-semibold ${e.approvalStatus === 'REJECTED' ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
+              <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0">
+                <span className={`text-sm font-semibold mr-auto sm:mr-0 ${e.approvalStatus === 'REJECTED' ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
                   {formatCurrency(e.amount)}
                 </span>
                 {/* Submit — shown on DRAFT expenses to the creator or OWNER/ADMIN */}

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import type { BsFuelLine, BsShiftLine, NozzleReadingLine } from '../../api/balanceSheetApi'
 import { FUEL_BADGE, fmtLitres, fmtMoney } from './bsFormat'
+import { codeLabel } from '../../constants/labels'
 
 // ── Table sub-components ────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ export function FuelLineRow({ line }: { line: BsFuelLine }) {
     <tr className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
       <Td>
         <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${badge}`}>
-          {line.fuelType.replace('_', ' ')}
+          {codeLabel(line.fuelType)}
         </span>
       </Td>
       <Td right>{fmtLitres(line.openingStock)}</Td>
@@ -104,7 +105,7 @@ export function ShiftLineRow({ line }: { line: BsShiftLine }) {
             </Td>
             <Td>
               <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${badge}`}>
-                {nr.fuelType.replace('_', ' ')}
+                {codeLabel(nr.fuelType)}
               </span>
             </Td>
             <Td right><span className="text-xs text-slate-500">{fmtLitres(nr.litresSold)}</span></Td>

@@ -65,9 +65,9 @@ export function CreditEntryForm({
             <IconButton
               onClick={(e) => { e.stopPropagation(); onRemove() }}
               className="ui-btn-icon text-red-600 hover:text-red-700 transition-colors"
- label="Delete entry"
- icon={<X size={13} strokeWidth={2} />}
- />
+              label="Delete entry"
+              icon={<X size={13} strokeWidth={2} />}
+            />
           </div>
         </div>
       ) : (

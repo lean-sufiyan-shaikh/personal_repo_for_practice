@@ -10,13 +10,14 @@ import { pageSlice } from '../../../utils/pageSlice'
 import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
 import { fmtAmt, fmtQty, fmtShortDate, todayIso, yesterdayIso } from '../reportFormat'
 import { ScrollRegion } from '../../../components/ScrollRegion'
+import { codeLabel } from '../../../constants/labels'
 
 // ── P&L Tab ───────────────────────────────────────────────────────────────────
 
 export function ProfitLossTab({ pumpId }: { pumpId: number }) {
   const [from, setFrom] = useState(yesterdayIso)
   const [to,   setTo]   = useState(todayIso)
-  const [query, setQuery] = useState<{ from: string; to: string } | null>(null)
+  const [query, setQuery] = useState<{ from: string; to: string } | null>(() => ({ from: yesterdayIso(), to: todayIso() }))
   const [page, setPage]   = useState(0)
   const [pageSize, setPageSize] = useState(10)
   const [showRevBreakdown, setShowRevBreakdown] = useState(false)
@@ -50,7 +51,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
           <button
             onClick={() => window.print()}
             disabled={!data || data.byFuelType.length === 0}
-            className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
+            className="ui-btn ui-btn-secondary"
           >
             Print PDF
           </button>
@@ -126,7 +127,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                         <button
                           type="button"
                           aria-expanded={expandedFuelRows.has(row.fuelType)}
-                          aria-label={`Show shift details for ${row.fuelType.replace(/_/g, ' ')}`}
+                          aria-label={`Show shift details for ${codeLabel(row.fuelType)}`}
                           onClick={(e) => { e.stopPropagation(); toggleFuelRow(row.fuelType) }}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-md"
                         >
@@ -135,7 +136,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                             : <ChevronDown size={13} strokeWidth={2} aria-hidden="true" />}
                         </button>
                       </td>
-                      <td className="px-4 py-2.5 font-medium text-slate-700">{row.fuelType.replace(/_/g, ' ')}</td>
+                      <td className="px-4 py-2.5 font-medium text-slate-700">{codeLabel(row.fuelType)}</td>
                       <td className="px-4 py-2.5 text-right text-slate-700 tabular-nums">{fmtAmt(row.revenue)}</td>
                       <td className="px-4 py-2.5 text-right text-red-600 tabular-nums">{fmtAmt(row.cogs)}</td>
                       <td className={`px-4 py-2.5 text-right font-semibold tabular-nums ${row.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
@@ -230,7 +231,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                 {data.byFuelType.map((row) => (
                   <>
                     <tr key={row.fuelType} className="border-t border-slate-100">
-                      <td className="px-4 py-2.5 font-medium text-slate-700">{row.fuelType.replace(/_/g, ' ')}</td>
+                      <td className="px-4 py-2.5 font-medium text-slate-700">{codeLabel(row.fuelType)}</td>
                       <td className="px-4 py-2.5 text-right text-slate-700 tabular-nums">{fmtAmt(row.revenue)}</td>
                       <td className="px-4 py-2.5 text-right text-red-600 tabular-nums">{fmtAmt(row.cogs)}</td>
                       <td className={`px-4 py-2.5 text-right font-semibold tabular-nums ${row.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{fmtAmt(row.grossProfit)}</td>

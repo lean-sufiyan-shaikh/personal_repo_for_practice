@@ -1,3 +1,4 @@
+import { DiscardChangesDialog } from '../../components/DiscardChangesDialog'
 import { ModalPortal } from '../../components/ModalPortal'
 import type { BackfillShiftModalProps } from './backfill/backfillHelpers'
 import { useBackfillForm } from './backfill/useBackfillForm'
@@ -14,7 +15,7 @@ import { IconButton } from '../../components/IconButton'
 
 export default function BackfillShiftModal({ pumpId, onClose }: BackfillShiftModalProps) {
   const form = useBackfillForm({ pumpId, onClose })
-  const { error, handleSubmit, isPending, requestClose, canSubmit } = form
+  const { error, handleSubmit, isPending, requestClose, isConfirming, discard, keepEditing, canSubmit } = form
 
   return (
     <ModalPortal onClose={isPending ? undefined : requestClose} closeOnBackdropClick>
@@ -90,6 +91,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: BackfillShiftMod
           </form>
         </div>
       </div>
+      {isConfirming && <DiscardChangesDialog onDiscard={discard} onKeepEditing={keepEditing} />}
     </ModalPortal>
   )
 }

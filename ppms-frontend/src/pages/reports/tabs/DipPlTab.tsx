@@ -8,13 +8,14 @@ import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
 import { fmtAmt, fmtDateTime, fmtQty, todayIso, yesterdayIso } from '../reportFormat'
 import { FUEL_BADGE } from '../../../constants/fuel'
 import { ScrollRegion } from '../../../components/ScrollRegion'
+import { codeLabel } from '../../../constants/labels'
 
 // ── Dip P/L Tab ───────────────────────────────────────────────────────────────
 
 export function DipPlTab({ pumpId }: { pumpId: number }) {
   const [from, setFrom] = useState(yesterdayIso)
   const [to,   setTo]   = useState(todayIso)
-  const [query, setQuery] = useState<{ from: string; to: string } | null>(null)
+  const [query, setQuery] = useState<{ from: string; to: string } | null>(() => ({ from: yesterdayIso(), to: todayIso() }))
   const [page, setPage]   = useState(0)
   const [pageSize, setPageSize] = useState(10)
 
@@ -48,7 +49,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
         <button
           onClick={() => window.print()}
           disabled={!data || entries.length === 0}
-          className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
+          className="ui-btn ui-btn-secondary"
         >
           Print PDF
         </button>
@@ -111,7 +112,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
                           </td>
                           <td className="px-3 py-2.5">
                             <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${FUEL_BADGE[e.fuelType] ?? 'bg-slate-100 text-slate-600'}`}>
-                              {e.fuelType.replace('_', ' ')}
+                              {codeLabel(e.fuelType)}
                             </span>
                           </td>
                           <td className={`px-3 py-2.5 text-right font-mono ${litresColor}`}>
@@ -195,7 +196,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
                     </td>
                     <td className="px-3 py-2">
                       <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${FUEL_BADGE[e.fuelType] ?? 'bg-slate-100 text-slate-600'}`}>
-                        {e.fuelType.replace('_', ' ')}
+                        {codeLabel(e.fuelType)}
                       </span>
                     </td>
                     <td className={`px-3 py-2 text-right font-mono ${litresColor}`}>

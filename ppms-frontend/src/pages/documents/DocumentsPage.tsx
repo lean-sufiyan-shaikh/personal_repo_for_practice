@@ -11,6 +11,7 @@ import { Reveal } from '../../components/Reveal'
 import { formatIstDate } from '../../utils/date'
 import { parseApiError } from '../../utils/apiError'
 import { useToastStore } from '../../store/toastStore'
+import { codeLabel } from '../../constants/labels'
 
 const STATUS_STYLES: Record<DocumentStatus, string> = {
   VALID:          'bg-emerald-100 text-emerald-700',
@@ -218,7 +219,7 @@ export default function DocumentsPage() {
                   <div className="ui-record-row__title">
                     <p className="text-sm font-medium text-slate-800">{doc.name}</p>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[doc.status]}`}>
-                      {doc.status.replace('_', ' ')}
+                      {codeLabel(doc.status)}
                     </span>
                   </div>
                   <div className="ui-record-row__meta">

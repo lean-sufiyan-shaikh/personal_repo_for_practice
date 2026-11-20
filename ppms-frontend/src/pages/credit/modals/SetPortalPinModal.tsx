@@ -61,6 +61,7 @@ export function SetPortalPinModal({ pumpId, client, onClose }: SetPortalPinModal
               help="The client enters this PIN with their phone number to check their balance. It cannot be viewed later, so share it with the client now."
             >
               <PasswordInput
+                toggleLabel="Show PIN"
                 value={pin}
                 onChange={e => setPin(digitsOnly(e.target.value))}
                 inputMode="numeric"

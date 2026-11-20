@@ -8,13 +8,14 @@ import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
 import { DateRangeInputs, ErrorBox, PrintHeader } from '../shared'
 import { fmtAmt, todayIso, yesterdayIso } from '../reportFormat'
+import { codeLabel } from '../../../constants/labels'
 
 // ── Short / Over Discrepancy Tab ──────────────────────────────────────────────
 
 export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
   const [from, setFrom] = useState(yesterdayIso)
   const [to,   setTo]   = useState(todayIso)
-  const [query, setQuery] = useState<{ from: string; to: string } | null>(null)
+  const [query, setQuery] = useState<{ from: string; to: string } | null>(() => ({ from: yesterdayIso(), to: todayIso() }))
   const [expandedOp, setExpandedOp] = useState<number | null>(null)
 
   const [page, setPage]   = useState(0)
@@ -43,7 +44,7 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
         <button
           onClick={() => window.print()}
           disabled={!data || data.operators.length === 0}
-          className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
+          className="ui-btn ui-btn-secondary"
         >
           Print PDF
         </button>
@@ -107,8 +108,8 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
                             {s.discrepancyType}
                           </td>
                           <td className="px-4 py-2 text-right font-semibold text-slate-700">{fmtAmt(s.discrepancyAmount)}</td>
-                          <td className="px-4 py-2 text-slate-500">{s.status.replace(/_/g, ' ')}</td>
-                          <td className="px-4 py-2 text-slate-500">{s.resolution?.replace(/_/g, ' ') ?? '—'}</td>
+                          <td className="px-4 py-2 text-slate-500">{codeLabel(s.status)}</td>
+                          <td className="px-4 py-2 text-slate-500">{codeLabel(s.resolution)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -152,8 +153,8 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
                       <td className="px-3 py-1.5 text-slate-600">{s.shiftDate}</td>
                       <td className={`px-3 py-1.5 font-semibold ${s.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600'}`}>{s.discrepancyType}</td>
                       <td className="px-3 py-1.5 text-right font-semibold text-slate-700">{fmtAmt(s.discrepancyAmount)}</td>
-                      <td className="px-3 py-1.5 text-slate-500">{s.status.replace(/_/g, ' ')}</td>
-                      <td className="px-3 py-1.5 text-slate-500">{s.resolution?.replace(/_/g, ' ') ?? '—'}</td>
+                      <td className="px-3 py-1.5 text-slate-500">{codeLabel(s.status)}</td>
+                      <td className="px-3 py-1.5 text-slate-500">{codeLabel(s.resolution)}</td>
                     </tr>
                   ))}
                 </tbody>

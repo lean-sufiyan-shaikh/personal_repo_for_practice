@@ -15,6 +15,9 @@ import { AddProductDialog } from './AddProductDialog'
 import { SellDialog } from './SellDialog'
 import { StockLotsDialog } from './StockLotsDialog'
 import { fmtCurrency } from './ancillaryFormat'
+import { useAuthStore } from '../../store/authStore'
+import { canPerformAction } from '../../permissions/permissions'
+import { codeLabel } from '../../constants/labels'
 
 // ── Products Tab ─────────────────────────────────────────────────────────────
 
@@ -30,6 +33,7 @@ export function ProductsTab({
 }) {
   const qc = useQueryClient()
   const { addToast } = useToastStore()
+  const canSell = canPerformAction('product:record-sale', useAuthStore((state) => state.user?.role))
   const [showAddForm, setShowAddForm] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const deferredSearch = useDeferredValue(searchQuery)
@@ -153,25 +157,28 @@ export function ProductsTab({
                     ? 'bg-emerald-100 text-emerald-700'
                     : 'bg-slate-100 text-slate-500'
                 }`}>
-                  {product.status}
+                  {codeLabel(product.status)}
                 </span>
               </div>
 
               {/* Stock + buy price row */}
               <div className="flex items-center gap-2 flex-wrap">
                 {stockBadge(product)}
-                <span className="text-xs text-slate-500">·</span>
-                <span className="text-xs text-slate-500">
-                  {product.fifoCostPricePerUnit != null
-                    ? <span>Buy: <span className="font-medium text-slate-700">{fmtCurrency(product.fifoCostPricePerUnit)}/unit</span></span>
-                    : <span className="text-slate-500">No stock lot</span>}
-                </span>
+                {isManagerOrAbove && (
+                  <>
+                    <span className="text-xs text-slate-500">·</span>
+                    <span className="text-xs text-slate-500">
+                      {product.fifoCostPricePerUnit != null
+                        ? <span>Buy: <span className="font-medium text-slate-700">{fmtCurrency(product.fifoCostPricePerUnit)}/unit</span></span>
+                        : <span className="text-slate-500">No stock lot</span>}
+                    </span>
+                  </>
+                )}
               </div>
 
               {/* Action buttons */}
               <div className="mt-auto flex items-center gap-2 pt-3 border-t border-slate-100">
-                {/* Sell button — visible to managers and above for active products */}
-                {isManagerOrAbove && product.status === 'ACTIVE' && (
+                {canSell && product.status === 'ACTIVE' && (
                   <button
                     onClick={() => setSellProduct(product)}
                     className="ui-btn ui-btn-primary min-h-0 px-2.5 py-1 text-xs"

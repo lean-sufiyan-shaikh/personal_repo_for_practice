@@ -7,6 +7,7 @@ import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
 import { Reveal } from '../../components/Reveal'
 import { formatIstDateTime, localDateInputValue } from '../../utils/date'
+import { codeLabel } from '../../constants/labels'
 
 const ACTION_STYLES: Partial<Record<AuditAction, string>> = {
   // User management
@@ -205,7 +206,7 @@ export default function AuditLogPage() {
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ACTION_STYLES[log.action] ?? 'bg-slate-100 text-slate-600'}`}>
-                      {log.action.replace(/_/g, ' ')}
+                      {codeLabel(log.action)}
                     </span>
                     <span className="text-xs text-slate-500">by <span className="font-medium text-slate-700">{log.actorName}</span></span>
                   </div>

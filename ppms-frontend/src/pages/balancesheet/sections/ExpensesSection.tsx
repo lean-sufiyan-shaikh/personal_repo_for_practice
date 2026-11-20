@@ -2,6 +2,7 @@ import type { ExpenseSummary } from '../../../api/balanceSheetApi'
 import { Td, Th } from '../bsTableCells'
 import { fmtMoney } from '../bsFormat'
 import { ScrollRegion } from '../../../components/ScrollRegion'
+import { codeLabel } from '../../../constants/labels'
 
 // ── Approved expenses section (DAY reports only) ────────────────────────────────
 
@@ -29,7 +30,7 @@ export function ExpensesSection({ expenses }: { expenses: ExpenseSummary }) {
               <tr key={line.id} className="border-t border-red-100 hover:bg-red-50 transition-colors">
                 <Td>
                   <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
-                    {line.category.replace(/_/g, ' ')}
+                    {codeLabel(line.category)}
                   </span>
                 </Td>
                 <Td><span className="text-xs text-slate-500">{line.description}</span></Td>

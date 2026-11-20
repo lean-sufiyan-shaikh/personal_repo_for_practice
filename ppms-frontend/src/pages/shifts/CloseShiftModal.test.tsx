@@ -45,6 +45,36 @@ describe('CloseShiftModal', () => {
     expect(screen.getByRole('button', { name: 'Fill in readings & payment to continue' })).toBeDisabled()
   })
 
+  it('keeps a neutral header until readings and payment are entered, then turns red for a shortage', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
+    const header = screen.getByRole('heading', { name: 'Close Shift' }).closest('.ui-modal-header')
+    await user.type(screen.getByPlaceholderText('Enter end reading'), '1010')
+    expect(header).toHaveClass('ui-modal-header--neutral')
+
+    await user.type(screen.getByLabelText('Cash (₹)'), '900')
+    expect(header).toHaveClass('ui-modal-header--danger')
+  })
+
+  it('asks inside the app before discarding entered details', async () => {
+    const onClose = vi.fn()
+    const browserConfirm = vi.spyOn(window, 'confirm')
+    const user = userEvent.setup()
+    renderWithProviders(<CloseShiftModal shift={shift} onClose={onClose} />)
+    await user.type(screen.getByPlaceholderText('Enter end reading'), '1010')
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByRole('dialog', { name: 'Discard what you entered?' })).toBeInTheDocument()
+    expect(browserConfirm).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Keep editing' }))
+    expect(onClose).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Discard' }))
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
   it('shows Balanced and closes the shift when collection matches the meter', async () => {
     const user = await fillShift('1000')
     expect(screen.getByText('Balanced')).toBeInTheDocument()

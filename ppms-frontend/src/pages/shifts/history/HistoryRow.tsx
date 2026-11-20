@@ -7,6 +7,7 @@ import { CreditEntriesModal } from '../modals/CreditEntriesModal'
 import { HandoverModal } from '../modals/HandoverModal'
 import { ResolveDiscrepancyModal } from '../modals/ResolveDiscrepancyModal'
 import { STATUS_LABELS, fmtAmt } from '../shiftLabels'
+import { codeLabel } from '../../../constants/labels'
 
 // ── History row ───────────────────────────────────────────────────────────────
 // Payment breakdown is always visible for closed shifts.
@@ -98,15 +99,15 @@ export function HistoryRow({ shift }: { shift: Shift }) {
               <span className="text-xs text-orange-600 font-medium">Owner approval needed</span>
             )}
             {shift.discrepancyResolution && (
-              <span className="text-xs text-slate-500">{shift.discrepancyResolution.replace(/_/g, ' ')}</span>
+              <span className="text-xs text-slate-500">{codeLabel(shift.discrepancyResolution)}</span>
             )}
             {isClosed && (
               <IconButton
                 onClick={() => setHandoverOpen(true)}
                 className="text-slate-500 hover:text-slate-600 transition-colors"
- label="Print handover report"
- icon={<Printer size={14} strokeWidth={2} />}
- />
+                label="Print handover report"
+                icon={<Printer size={14} strokeWidth={2} />}
+              />
             )}
           </div>
         </td>

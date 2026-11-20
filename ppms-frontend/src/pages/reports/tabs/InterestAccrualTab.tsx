@@ -11,7 +11,7 @@ import { fmtAmt, fmtShortDate, todayIso, yesterdayIso } from '../reportFormat'
 export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
   const [from, setFrom] = useState(yesterdayIso)
   const [to,   setTo]   = useState(todayIso)
-  const [query, setQuery] = useState<{ from: string; to: string } | null>(null)
+  const [query, setQuery] = useState<{ from: string; to: string } | null>(() => ({ from: yesterdayIso(), to: todayIso() }))
 
   const { data, isFetching, error } = useQuery<InterestAccrualReport>({
     queryKey: ['report-interest', pumpId, query?.from, query?.to],
@@ -34,7 +34,7 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
           <button
             onClick={() => window.print()}
             disabled={!data || data.clients.length === 0}
-            className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
+            className="ui-btn ui-btn-secondary"
           >
             Print PDF
           </button>

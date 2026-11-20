@@ -283,7 +283,7 @@ export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
   const hasUnsavedChanges = !!operatorId || selectedNozzleIds.size > 0 || creditRows.length > 0
     || cashCollected !== '' || upiCollected !== '' || cardCollected !== '' || fleetCardCollected !== ''
     || discrepancyReason.trim() !== ''
-  const requestClose = useConfirmDiscard(hasUnsavedChanges, onClose)
+  const { requestClose, isConfirming, discard, keepEditing } = useConfirmDiscard(hasUnsavedChanges, onClose)
   const canSubmit = !!shiftDate && !!shiftDefinitionId && !!selectedDU && !!operatorId && selectedNozzleIds.size > 0
 
   const selectedOperator = operators.find((o) => o.id === operatorId)
@@ -348,6 +348,9 @@ export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
     handleSubmit,
     isPending,
     requestClose,
+    isConfirming,
+    discard,
+    keepEditing,
     canSubmit,
     selectedOperator,
   }

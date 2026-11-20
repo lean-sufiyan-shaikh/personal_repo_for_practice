@@ -71,7 +71,7 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
               <button type="button"
                 disabled={!rateShift1 || !rateStandard || rateMutation.isPending}
                 onClick={() => rateMutation.mutate({ userId: member.id, shift1HourlyRate: parseFloat(rateShift1), standardHourlyRate: parseFloat(rateStandard) })}
-                className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white">
+                className="ui-btn ui-btn-primary ui-btn-compact">
                 {rateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />Saving…</span> : 'Save Rates'}
               </button>
               <button type="button" onClick={onClose}
@@ -102,7 +102,7 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
               <button type="button"
                 disabled={!rateDaily || rateMutation.isPending}
                 onClick={() => rateMutation.mutate({ userId: member.id, dailyRate: parseFloat(rateDaily) })}
-                className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white">
+                className="ui-btn ui-btn-primary ui-btn-compact">
                 {rateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />Saving…</span> : 'Save Rate'}
               </button>
               <button type="button" onClick={onClose}

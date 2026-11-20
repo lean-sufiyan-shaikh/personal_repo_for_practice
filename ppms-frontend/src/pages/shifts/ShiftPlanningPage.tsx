@@ -28,7 +28,9 @@ export default function ShiftPlanningPage() {
       <div>
         <h1 className="ui-title-sm">Shift Planning</h1>
         <p className="ui-subtitle">
-          Plan weekly operator schedules. Published plans pre-fill shift opening.
+          {isOwnerOrAdmin
+            ? 'Plan weekly operator schedules. Published plans pre-fill shift opening.'
+            : 'See who is scheduled for each shift this week.'}
         </p>
       </div>
       </Reveal>

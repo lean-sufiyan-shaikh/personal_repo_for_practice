@@ -59,9 +59,9 @@ export function LeavePanel({ pumpId, member, onClose }: Props) {
                   onClick={() => removeLeaveMutation.mutate({ leaveId: lv.id })}
                   disabled={removeLeaveMutation.isPending}
                   className="ui-btn ui-btn-ghost ml-auto text-slate-500 hover:text-red-500 disabled:opacity-40"
- label="Remove leave"
- icon={<X size={12} strokeWidth={2} />}
- />
+                  label="Remove leave"
+                  icon={<X size={12} strokeWidth={2} />}
+                />
               </div>
             ))}
           </div>
@@ -88,7 +88,7 @@ export function LeavePanel({ pumpId, member, onClose }: Props) {
               type="button"
               disabled={!newLeaveDate || addLeaveMutation.isPending}
               onClick={() => addLeaveMutation.mutate({ userId: member.id })}
-              className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300 text-white"
+              className="ui-btn ui-btn-primary ui-btn-compact"
             >
               {addLeaveMutation.isPending ? 'Adding…' : 'Add Leave'}
             </button>

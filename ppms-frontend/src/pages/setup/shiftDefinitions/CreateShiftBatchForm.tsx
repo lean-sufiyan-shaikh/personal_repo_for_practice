@@ -174,9 +174,9 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
               <label htmlFor={`night-${idx}`} className="text-xs text-slate-600 select-none">Night</label>
               {rows.length > 1 && (
                 <IconButton onClick={() => removeRow(idx)} className="ui-btn ui-btn-ghost ml-1 text-base leading-none text-red-400 hover:text-red-600"
- label="Remove row"
- icon={'×'}
- />
+                  label="Remove row"
+                  icon={'×'}
+                />
               )}
             </div>
           </div>

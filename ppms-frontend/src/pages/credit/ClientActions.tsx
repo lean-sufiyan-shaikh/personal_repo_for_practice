@@ -23,7 +23,7 @@ export function ClientActions({
       )}
       {canApplyInterest && (
         <button onClick={onApplyInterest} disabled={isApplyingInterest}
-          className="ui-btn text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50">
+          className="ui-btn ui-btn-secondary">
           {isApplyingInterest ? 'Applying…' : 'Apply Interest'}
         </button>
       )}
@@ -33,7 +33,7 @@ export function ClientActions({
         </button>
       )}
       {canRecordPayment && (
-        <button onClick={onRecordPayment} className="ui-btn text-white bg-green-600 hover:bg-green-700">
+        <button onClick={onRecordPayment} className="ui-btn ui-btn-primary">
           Record Payment
         </button>
       )}

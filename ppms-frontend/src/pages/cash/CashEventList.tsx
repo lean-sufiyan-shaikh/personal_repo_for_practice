@@ -6,6 +6,7 @@ import { Reveal } from '../../components/Reveal'
 import { EmptyState } from '../../components/EmptyState'
 import { EVENT_STYLES, EVENT_TYPES, fmtAmt, fmtDate } from './cashFormat'
 import type { CashEventsState } from './useCashEvents'
+import { codeLabel } from '../../constants/labels'
 
 export function CashEventList({ events }: { events: CashEventsState }) {
   const {
@@ -67,7 +68,7 @@ export function CashEventList({ events }: { events: CashEventsState }) {
               <div key={ev.id} className="ui-record-row">
                 <div className="flex items-center gap-3 min-w-0 ui-record-row__main">
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${EVENT_STYLES[ev.eventType]}`}>
-                    {ev.eventType.replace('_', ' ')}
+                    {codeLabel(ev.eventType)}
                   </span>
                   <div className="min-w-0">
                     <p className="text-sm text-slate-700 truncate">{ev.description}</p>

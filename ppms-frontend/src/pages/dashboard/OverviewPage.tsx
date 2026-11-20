@@ -12,10 +12,11 @@ import { SkeletonStat } from '../../components/Skeleton'
 import { Reveal } from '../../components/Reveal'
 import { RefreshIndicator } from '../../components/RefreshIndicator'
 import { MAX_CHART_DAYS, fmtAmt, isPriceStale } from './overview/overviewFormat'
-import { ModuleGrid } from './overview/ModuleGrid'
+import { MoneyOverview } from './overview/MoneyOverview'
 import { TankStockOverview } from './overview/TankStockOverview'
 import { ShiftStatusRow } from './overview/ShiftStatusRow'
 import { StatCard } from './overview/StatCard'
+import { codeLabel, roleLabel } from '../../constants/labels'
 
 const RevenueTrendChart = lazy(() => import('./overview/RevenueTrendChart').then((module) => ({ default: module.RevenueTrendChart })))
 
@@ -127,7 +128,7 @@ export default function OverviewPage() {
             <p className="ui-dashboard-hero-kicker">{greeting}</p>
             <h1 className="ui-dashboard-hero-title">{user?.fullName}</h1>
             <p className="ui-dashboard-hero-subtitle">
-              {user?.role} · {selectedPump?.name ?? 'No pump selected'}
+              {roleLabel(user?.role)} · {selectedPump?.name ?? 'No pump selected'}
             </p>
           </div>
         </div>
@@ -199,6 +200,8 @@ export default function OverviewPage() {
       </div>
       </Reveal>
 
+      {pumpId && <MoneyOverview pumpId={pumpId} />}
+
       {/* ── Low stock details (shown only when alert) ── */}
       {lowStockTanks.length > 0 && (
         <div className="ui-alert ui-alert-danger">
@@ -207,7 +210,7 @@ export default function OverviewPage() {
             {lowStockTanks.map(t => (
               <span key={t.tankId}
                 className="text-xs bg-white border border-red-200 text-red-700 px-3 py-1 rounded-full font-medium">
-                {t.tankIdentifier} ({t.fuelType}) — {t.stockPercentage.toFixed(1)}% full
+                {t.tankIdentifier} ({codeLabel(t.fuelType)}) — {t.stockPercentage.toFixed(1)}% full
               </span>
             ))}
           </div>
@@ -241,8 +244,7 @@ export default function OverviewPage() {
       {/* ── Tank stock summary ── */}
       <TankStockOverview tanks={allTanks} />
 
-      {/* ── Module navigation cards ── */}
-      <ModuleGrid />
+
     </div>
   )
 }

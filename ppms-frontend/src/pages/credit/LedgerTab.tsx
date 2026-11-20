@@ -53,11 +53,11 @@ export function LedgerTab({ pumpId, clients, allCreditClients, isLoading, hasErr
           <IconButton
             onClick={() => setSearchQuery('')}
             className="ui-search-shell__clear"
-label="Clear search"
-icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            label="Clear search"
+            icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>}
-/>
+          />
         )}
       </div>
       </Reveal>
@@ -134,7 +134,7 @@ icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentCo
           return (
             <div
               key={client.id}
-              className={`ui-card px-5 py-4 flex items-center gap-4 transition-all ${
+              className={`ui-card px-4 py-4 sm:px-5 flex flex-wrap items-center gap-x-4 gap-y-3 transition-all ${
                 isActualChild ? 'ml-8 border-l-4 border-l-blue-200 hover:border-blue-300 hover:shadow-sm' :
                 hasChildren   ? 'cursor-pointer hover:border-blue-400 hover:shadow-sm select-none' :
                                 'hover:border-blue-300 hover:shadow-sm'
@@ -147,7 +147,7 @@ icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentCo
               </div>
 
               <div
-                  className="flex-1 min-w-0"
+                  className="flex-1 min-w-[9rem]"
                   role={hasChildren ? 'button' : undefined}
                   tabIndex={hasChildren ? 0 : undefined}
                   aria-expanded={hasChildren ? isExpanded : undefined}
@@ -201,27 +201,27 @@ icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentCo
                 )}
               </div>
 
-              <div className="text-right flex-shrink-0 w-28">
+              <div className="flex-shrink-0 sm:text-right sm:w-28">
                 <p className="text-xs text-slate-500 mb-0.5">Outstanding</p>
                 <p className={`text-base font-bold ${client.outstandingBalance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
                   ₹{formatDecimal(client.outstandingBalance)}
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
                 {canAdjustLimit && !isActualChild && (
                   <IconButton
                     onClick={() => setShowLimitModal(client)}
                     className="text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-label="Set credit limit"
-icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    label="Set credit limit"
+                    icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>}
-/>
+                  />
                 )}
                 <button
                   onClick={() => onSelectClient(client)}
-                  className="ui-btn ui-btn-ghost min-h-0 px-3 py-1.5 text-xs text-blue-600 border border-blue-200 hover:bg-blue-50"
+                  className="ui-btn ui-btn-secondary ui-btn-compact"
                 >
                   View Ledger
                 </button>

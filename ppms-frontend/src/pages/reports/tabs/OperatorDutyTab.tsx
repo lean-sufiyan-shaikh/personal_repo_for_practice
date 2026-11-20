@@ -10,6 +10,7 @@ import { pageSlice } from '../../../utils/pageSlice'
 import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
 import { fmtAmt, todayIso, yesterdayIso } from '../reportFormat'
 import { ScrollRegion } from '../../../components/ScrollRegion'
+import { codeLabel } from '../../../constants/labels'
 
 // ── Operator Duty Tab ─────────────────────────────────────────────────────────
 
@@ -55,7 +56,7 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
       <td className={`px-4 py-2.5 text-right text-xs font-semibold tabular-nums ${s.discrepancyAmount > 0 ? (s.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600') : 'text-slate-500'}`}>
         {s.discrepancyAmount > 0 ? `${s.discrepancyType} ${fmtAmt(s.discrepancyAmount)}` : '—'}
       </td>
-      <td className="px-4 py-2.5 text-xs text-slate-500">{s.status.replace(/_/g, ' ')}</td>
+      <td className="px-4 py-2.5 text-xs text-slate-500">{codeLabel(s.status)}</td>
     </tr>
   )
 
@@ -84,7 +85,7 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
         <button
           onClick={() => window.print()}
           disabled={!data || data.shifts.length === 0}
-          className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
+          className="ui-btn ui-btn-secondary"
         >
           Print PDF
         </button>

@@ -11,6 +11,7 @@ import { EditStaffPanel } from './EditStaffPanel'
 import { PreferencesPanel } from './PreferencesPanel'
 import { PayRatesPanel } from './PayRatesPanel'
 import { LeavePanel } from './LeavePanel'
+import { codeLabel } from '../../../constants/labels'
 
 interface Props {
   pumpId: number
@@ -90,7 +91,7 @@ export function StaffRow({
 
             <div className="flex flex-wrap items-center gap-2">
               <span className={`text-[11px] px-2.5 py-1 rounded-full font-semibold tracking-[0.08em] ${ROLE_BADGE[member.role] ?? 'bg-slate-100 text-slate-600'}`}>
-                {member.role}
+                {codeLabel(member.role)}
               </span>
               {isInactive && (
                 <span className="text-[11px] px-2.5 py-1 rounded-full font-semibold tracking-[0.08em] bg-red-100 text-red-600">Inactive</span>

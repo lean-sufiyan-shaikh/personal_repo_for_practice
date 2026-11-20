@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import type { LucideProps } from 'lucide-react'
 import { notificationApi } from '../api/notificationApi'
+import { withReadableDates } from '../utils/date'
 
 interface Props {
   pumpId: number
@@ -128,7 +129,7 @@ export default function NotificationBell({ pumpId }: Props) {
                     <TypeIcon type={n.type} />
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-800">{!n.readAt && <span className="sr-only">Unread: </span>}{n.title}</p>
-                      <p className="mt-1 text-sm leading-relaxed text-slate-500">{n.message}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-slate-500">{withReadableDates(n.message)}</p>
                     </div>
                     {!n.readAt && (
                       <span aria-hidden="true" className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1" />

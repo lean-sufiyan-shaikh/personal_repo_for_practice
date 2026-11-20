@@ -1,13 +1,15 @@
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Fuel } from 'lucide-react'
+import { Fuel, Menu } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { pumpApi } from '../../api/pumpApi'
 import NotificationBell from '../../components/NotificationBell'
 import { ToastContainer } from '../../components/Toast'
-import { DashboardSidebar } from './layout/DashboardSidebar'
+import { IconButton } from '../../components/IconButton'
+import { DashboardSidebar, DASHBOARD_NAV_ID } from './layout/DashboardSidebar'
+import { PumpSwitcher } from './layout/PumpSwitcher'
 import { LiveClock } from './layout/LiveClock'
 import { RouteOutlet } from './layout/RouteOutlet'
 import { SuspendedPumpNotice } from './layout/SuspendedPumpNotice'
@@ -27,6 +29,12 @@ export default function DashboardPage() {
   const { selectedPumpId, suspendedPumpId, setSelectedPumpId } = usePumpStore()
   const selectedPumpSuspended = selectedPumpId !== null && selectedPumpId === suspendedPumpId
   const queryClient = useQueryClient()
+  const [navOpen, setNavOpen] = useState(false)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const closeNav = useCallback(() => {
+    setNavOpen(false)
+    menuButtonRef.current?.focus()
+  }, [])
 
   // Initialise / validate the stored pump whenever the pump list loads.
   // If nothing is stored yet, or the stored pump no longer exists, default to the first pump.
@@ -63,6 +71,15 @@ export default function DashboardPage() {
 
         {/* ── Left: Logo + tagline ── */}
         <div className="ui-dashboard-topbar-left">
+          <IconButton
+            ref={menuButtonRef}
+            label="Menu"
+            className="ui-dashboard-menu-button"
+            aria-expanded={navOpen}
+            aria-controls={DASHBOARD_NAV_ID}
+            onClick={() => setNavOpen(true)}
+            icon={<Menu size={20} strokeWidth={2} />}
+          />
           <div className="ui-dashboard-brandmark">
             <Fuel size={20} className="text-blue-300" strokeWidth={1.8} />
           </div>
@@ -82,25 +99,7 @@ export default function DashboardPage() {
         {/* ── Center: Live date/time + pump selector ── */}
         <div className="ui-dashboard-topbar-center">
           <LiveClock />
-          {isOwnerOrAdmin && sortedPumps.length > 0 && (
-            <div className="ui-dashboard-pump-switcher">
-              {sortedPumps.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => setSelectedPumpId(p.id)}
-                  aria-label={`Switch to ${p.name}`}
-                  aria-pressed={selectedPumpId === p.id}
-                  className={`ui-dashboard-pump-chip cursor-pointer ${
-                    selectedPumpId === p.id
-                      ? 'ui-dashboard-pump-chip--active'
-                      : ''
-                  }`}
-                >
-                  {p.name}
-                </button>
-              ))}
-            </div>
-          )}
+          {isOwnerOrAdmin && <PumpSwitcher pumps={sortedPumps} />}
         </div>
 
         {/* ── Right: Notification bell + User info + profile menu ── */}
@@ -114,7 +113,12 @@ export default function DashboardPage() {
       <div className="flex flex-1 min-h-0" style={{ overflow: 'clip' }}>
 
         {/* ── Sidebar ── */}
-        <DashboardSidebar pumpName={sortedPumps.find((pump) => pump.id === selectedPumpId)?.name} />
+        <DashboardSidebar
+          pumpName={sortedPumps.find((pump) => pump.id === selectedPumpId)?.name}
+          switchablePumps={isOwnerOrAdmin ? sortedPumps : []}
+          drawerOpen={navOpen}
+          onCloseDrawer={closeNav}
+        />
 
         {/* ── Main content ── */}
         <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 overflow-y-auto focus:outline-none">

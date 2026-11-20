@@ -41,13 +41,13 @@ export default function PaymentSettlementsPage() {
 
   return (
     <Reveal>
-      <div className="ui-page">
+      <div className="ui-page ui-page--narrow">
 
         {/* ── Header ── */}
         <div className="ui-page-header mb-6">
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="ui-title">Payment Settlements</h1>
+              <h1 className="ui-title-sm">Payment Settlements</h1>
               <RefreshIndicator isFetching={history.fetchingList} dataUpdatedAt={history.listUpdatedAt ?? 0} />
             </div>
             <p className="ui-subtitle">
@@ -57,11 +57,7 @@ export default function PaymentSettlementsPage() {
           {canWrite && (
             <button
               onClick={() => setRecordType('UPI')}
-              className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold text-sm text-white
-                         bg-gradient-to-b from-emerald-500 to-emerald-600
-                         shadow-md shadow-emerald-600/30
-                         hover:from-emerald-600 hover:to-emerald-700 hover:shadow-lg hover:shadow-emerald-600/40
-                         active:scale-[0.97] transition-all duration-150"
+              className="ui-btn ui-btn-primary"
             >
               <Landmark size={16} strokeWidth={2} />
               Record Settlement

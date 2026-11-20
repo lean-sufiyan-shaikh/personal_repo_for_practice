@@ -79,7 +79,7 @@ export default function BalanceSheetPage() {
   return (
     <div className="flex h-[calc(100vh-56px)] overflow-hidden print:h-auto print:overflow-visible">
       {/* ── Left panel: list ────────────────────────────────────────────────── */}
-      <div className={`flex flex-col ${selectedReportId ? 'hidden md:flex w-80 flex-shrink-0' : 'flex-1'} border-r border-slate-200 bg-white overflow-hidden print:hidden`}>
+      <div className={`flex flex-col ${selectedReportId ? 'hidden xl:flex w-[22rem] flex-shrink-0' : 'flex-1'} border-r border-slate-200 bg-white overflow-hidden print:hidden`}>
         {/* Page header */}
         <div className="px-5 py-4 border-b border-slate-200">
           <div className="flex items-center justify-between mb-3">
@@ -98,12 +98,12 @@ export default function BalanceSheetPage() {
           </div>
 
           {/* Date range filter */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input aria-label="From date"
               type="date"
               value={filterFrom}
               onChange={e => setFilterFrom(e.target.value)}
-              className="flex-1 text-xs text-slate-700"
+              className="flex-1 min-w-[8.5rem] text-xs text-slate-700"
               placeholder="From"
             />
             <span className="text-slate-500 text-xs">to</span>
@@ -111,7 +111,7 @@ export default function BalanceSheetPage() {
               type="date"
               value={filterTo}
               onChange={e => setFilterTo(e.target.value)}
-              className="flex-1 text-xs text-slate-700"
+              className="flex-1 min-w-[8.5rem] text-xs text-slate-700"
               placeholder="To"
             />
             {(filterFrom || filterTo) && (

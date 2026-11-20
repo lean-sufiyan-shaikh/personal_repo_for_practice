@@ -1,4 +1,5 @@
 import client from './client'
+import type { SpringPage } from '../types/paged'
 import type { Shift, OpenShiftRequest, CloseShiftRequest, CreditEntryInput, BackfillShiftRequest } from '../types/shift'
 
 export type { CreditEntryInput }
@@ -16,30 +17,31 @@ export interface ShiftHistoryFilter {
 }
 
 const HISTORY_PAGE_SIZE = 200
+const MAX_HISTORY_PAGES = 25
 
 export const shiftApi = {
   getActiveShifts: (pumpId: number) =>
     client.get<Shift[]>(`/pumps/${pumpId}/shifts/active`).then((r) => r.data),
 
-  // Loads every shift matching the filter, page by page (the backend caps a page at 200 rows)
-  getShiftHistory: async (pumpId: number, filter: ShiftHistoryFilter = {}): Promise<Shift[]> => {
+  getShiftHistoryPage: (pumpId: number, filter: ShiftHistoryFilter, page: number, size: number) =>
+    client.get<SpringPage<Shift>>(`/pumps/${pumpId}/shifts/history`, {
+      params: {
+        page,
+        size,
+        ...(filter.from && { from: filter.from }),
+        ...(filter.to && { to: filter.to }),
+        ...(filter.discrepanciesOnly && { discrepanciesOnly: true }),
+        ...(filter.discrepancyType && { discrepancyType: filter.discrepancyType }),
+      },
+    }).then((r) => r.data),
+
+  // Loads every shift matching the filter; callers pass a filter that bounds the result (a date range or discrepancies only)
+  getShiftHistory: async (pumpId: number, filter: ShiftHistoryFilter): Promise<Shift[]> => {
     const all: Shift[] = []
-    let page = 0
-    let isLast = false
-    while (!isLast) {
-      const result = await client.get<{ content: Shift[]; last: boolean }>(`/pumps/${pumpId}/shifts/history`, {
-        params: {
-          page,
-          size: HISTORY_PAGE_SIZE,
-          ...(filter.from && { from: filter.from }),
-          ...(filter.to && { to: filter.to }),
-          ...(filter.discrepanciesOnly && { discrepanciesOnly: true }),
-          ...(filter.discrepancyType && { discrepancyType: filter.discrepancyType }),
-        },
-      }).then((r) => r.data)
+    for (let page = 0; page < MAX_HISTORY_PAGES; page += 1) {
+      const result = await shiftApi.getShiftHistoryPage(pumpId, filter, page, HISTORY_PAGE_SIZE)
       all.push(...result.content)
-      isLast = result.last
-      page += 1
+      if (result.content.length === 0 || page + 1 >= result.page.totalPages) break
     }
     return all
   },

@@ -1,8 +1,7 @@
-import { useMemo, useCallback } from 'react'
-import { useQuery, useQueries } from '@tanstack/react-query'
-import type { UseQueryResult } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { creditApi } from '../../api/creditApi'
-import type { CreditTransaction, CreditExtension } from '../../api/creditApi'
+import type { CreditExtension } from '../../api/creditApi'
 import { pumpApi } from '../../api/pumpApi'
 import type { MergedTx } from './ledgerGroups'
 import { FULL_HISTORY_QUERY_OPTIONS } from '../../queryClient'
@@ -35,38 +34,30 @@ export function useClientLedger(pumpId: number, clientId: number, canApprovePaym
 
   // The whole ledger is loaded so filters, month chips and week totals cover every row, not one page.
   const isParent = client?.isParent === true
-  const { data: ownTransactions = [], isLoading } = useQuery({
-    queryKey: ['credit-transactions', pumpId, clientId, 'all'],
-    queryFn: () => creditApi.getAllTransactions(pumpId, clientId),
+  const { data: ledgerRows = [], isLoading } = useQuery({
+    queryKey: ['credit-transactions', pumpId, clientId, 'all', isParent],
+    queryFn: () => creditApi.getAllTransactions(pumpId, clientId, isParent),
+    enabled: !!client,
     ...FULL_HISTORY_QUERY_OPTIONS,
   })
+  const ownTransactions = useMemo(
+    () => ledgerRows.filter(tx => (tx.clientId ?? clientId) === clientId),
+    [ledgerRows, clientId],
+  )
 
   // outstandingInterest and totalInterestRecovered are now embedded in the client response —
   // no separate API call needed. Fall back to 0 while the client data is loading.
   const outstandingInterest   = client?.outstandingInterest   ?? 0
   const totalInterestRecovered = client?.totalInterestRecovered ?? 0
 
-  const combineChildTransactions = useCallback(
-    (results: UseQueryResult<CreditTransaction[]>[]) => ({
-      childTxQueries: results,
-      childTransactionsByIndex: results.map((result, i): MergedTx[] =>
-        (result.data ?? []).map(tx => ({
-          ...tx,
-          subAccountName: childClients[i]?.name,
-          sourceClientId: childClients[i]?.id ?? clientId,
-        }))
-      ),
-    }),
-    [childClients, clientId],
+  const childTransactionsByIndex = useMemo(
+    () => childClients.map((child): MergedTx[] =>
+      ledgerRows
+        .filter(tx => tx.clientId === child.id)
+        .map(tx => ({ ...tx, subAccountName: child.name, sourceClientId: child.id }))
+    ),
+    [childClients, ledgerRows],
   )
-  const { childTxQueries, childTransactionsByIndex } = useQueries({
-    queries: childClients.map(child => ({
-      queryKey: ['credit-transactions', pumpId, child.id, 'all'],
-      queryFn:  () => creditApi.getAllTransactions(pumpId, child.id),
-      ...FULL_HISTORY_QUERY_OPTIONS,
-    })),
-    combine: combineChildTransactions,
-  })
 
   const { data: pendingPayments = [] } = useQuery({
     queryKey: ['credit-pending-payments', pumpId],
@@ -79,18 +70,17 @@ export function useClientLedger(pumpId: number, clientId: number, canApprovePaym
   )
 
   const transactions: MergedTx[] = useMemo(
-    () => isParent
-      ? [
-          ...ownTransactions.map(tx => ({ ...tx, sourceClientId: clientId })),
-          ...childTransactionsByIndex.flat(),
-        ].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
-      : ownTransactions.map(tx => ({ ...tx, sourceClientId: clientId })),
-    [isParent, ownTransactions, childTransactionsByIndex, clientId],
+    () => ledgerRows.map(tx => ({
+      ...tx,
+      sourceClientId: tx.clientId ?? clientId,
+      subAccountName: tx.clientId != null && tx.clientId !== clientId ? tx.clientName : undefined,
+    })),
+    [ledgerRows, clientId],
   )
 
   return {
     allClients, client, clientsLoading, clientsFailed, childClients, activeExtensions, isParent, ownTransactions, isLoading,
-    outstandingInterest, totalInterestRecovered, childTxQueries, childTransactionsByIndex,
+    outstandingInterest, totalInterestRecovered, childTransactionsByIndex,
     pendingPaymentRecorders, transactions,
   }
 }

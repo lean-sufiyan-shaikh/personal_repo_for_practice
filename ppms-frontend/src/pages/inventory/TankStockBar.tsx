@@ -1,5 +1,6 @@
 import type { TankStock } from '../../api/inventoryApi'
 import { FUEL_COLORS } from './inventoryFormat'
+import { codeLabel } from '../../constants/labels'
 
 // ── Tank stock bar ─────────────────────────────────────────────────────────────
 
@@ -32,10 +33,10 @@ export function TankStockBar({
 
   return (
     <div className={`px-5 py-4 ${dipOverdue ? 'bg-red-50/40' : ''}`}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
           <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cols.badge}`}>
-            {tank.fuelType}
+            {codeLabel(tank.fuelType)}
           </span>
           <span className="text-sm font-semibold text-slate-700">{tank.tankIdentifier}</span>
           {isLow && (
@@ -44,7 +45,7 @@ export function TankStockBar({
             </span>
           )}
           {dipOverdue && (
-            <span className="text-xs bg-red-100 text-red-600 border border-red-200 px-2 py-0.5 rounded-full font-medium">
+            <span className="text-xs bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-lg font-medium">
               DIP OVERDUE {lastDipAt ? `· last ${timeSinceDip(lastDipAt)}` : '· never checked'}
             </span>
           )}
@@ -55,14 +56,14 @@ export function TankStockBar({
           </span>
           <button
             onClick={onViewLots}
-            className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs"
+            className="ui-btn ui-btn-secondary ui-btn-compact"
           >
             View Lots
           </button>
           {onDipCheck && (
             <button
               onClick={onDipCheck}
-              className="ui-btn ui-btn-ghost min-h-0 px-2.5 py-1 text-xs text-blue-600 border border-blue-200 hover:border-blue-400 hover:text-blue-800"
+              className="ui-btn ui-btn-secondary ui-btn-compact"
             >
               DIP Check
             </button>

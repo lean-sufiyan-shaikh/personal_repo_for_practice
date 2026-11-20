@@ -156,9 +156,9 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
                     <IconButton
                       onClick={() => startEdit(t)}
                       className="text-slate-500 hover:text-blue-600 transition-colors rounded"
- label="Edit tanker"
- icon={<Pencil size={13} />}
- />
+                      label="Edit tanker"
+                      icon={<Pencil size={13} />}
+                    />
                     <ConfirmButton
                       onConfirm={() => deactivateMutation.mutate(t.id)}
                       disabled={deactivateMutation.isPending}

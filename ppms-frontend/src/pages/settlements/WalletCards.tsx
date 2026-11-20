@@ -42,7 +42,7 @@ export function WalletCards({ wallet, loadingWallet, canWrite, onRecord }: Walle
                     {canWrite && !settled && (
                       <button
                         onClick={() => onRecord(type)}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                        className="ui-btn ui-btn-secondary ui-btn-compact"
                       >
                         Record<ArrowRight size={12} strokeWidth={2} />
                       </button>

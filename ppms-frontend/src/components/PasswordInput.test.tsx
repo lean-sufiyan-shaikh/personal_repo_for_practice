@@ -34,4 +34,9 @@ describe('PasswordInput', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Show password' }))
     expect(submitted).toBe(false)
   })
+
+  it('names the toggle for what the field holds', () => {
+    render(<PasswordInput toggleLabel="Show PIN" />)
+    expect(screen.getByRole('button', { name: 'Show PIN' })).toBeInTheDocument()
+  })
 })

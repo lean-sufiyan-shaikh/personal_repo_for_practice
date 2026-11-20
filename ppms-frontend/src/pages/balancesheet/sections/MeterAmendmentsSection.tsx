@@ -2,6 +2,7 @@ import type { BalanceSheetDetail, MeterAmendmentLine } from '../../../api/balanc
 import { Td, Th } from '../bsTableCells'
 import { FUEL_BADGE, IST_TIME_FORMATTER } from '../bsFormat'
 import { ScrollRegion } from '../../../components/ScrollRegion'
+import { codeLabel } from '../../../constants/labels'
 
 export function MeterAmendmentsSection({ detail }: { detail: BalanceSheetDetail }) {
   return (
@@ -34,7 +35,7 @@ export function MeterAmendmentsSection({ detail }: { detail: BalanceSheetDetail 
                 <tr key={a.id} className="border-t border-amber-100 hover:bg-amber-50 transition-colors">
                   <Td>
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${badge}`}>
-                      {a.fuelType.replace('_', ' ')}
+                      {codeLabel(a.fuelType)}
                     </span>
                   </Td>
                   <Td>

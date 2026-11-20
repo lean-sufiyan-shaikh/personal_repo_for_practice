@@ -47,7 +47,7 @@ function signIn(role: UserRole, userId: number) {
 async function renderClient() {
   renderWithProviders(<ClientDetail clientId={CLIENT_ID} pumpId={PUMP_ID} onBack={vi.fn()} />)
   await screen.findByText('Acme Transport')
-  await screen.findByText('↓ Paid')
+  await screen.findByText('Pending approval')
 }
 
 describe('ClientDetail pending payment approval', () => {
@@ -96,9 +96,11 @@ describe('ClientDetail pending payment approval', () => {
   })
 
   it('leaves a pending payment out of the outstanding balance used for new payments', async () => {
+    const user = userEvent.setup()
     signIn('OWNER', 1)
     await renderClient()
-    expect(screen.getAllByText(/3,000\.00/).length).toBeGreaterThan(0)
+    await user.click(screen.getByRole('button', { name: /Record Payment/ }))
+    expect((await screen.findAllByText(/3,000\.00/)).length).toBeGreaterThan(0)
   })
 })
 
@@ -124,6 +126,25 @@ describe('ClientDetail actions by role', () => {
     expect(screen.queryByRole('button', { name: 'Record Payment' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Interest Settings' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Move' })).not.toBeInTheDocument()
+  })
+})
+
+describe('ClientDetail pending payment display', () => {
+  beforeEach(() => {
+    vi.mocked(creditApi.getLedgerSummary).mockResolvedValue([client])
+    vi.mocked(creditApi.getActiveExtensions).mockResolvedValue([])
+    vi.mocked(creditApi.getAllTransactions).mockResolvedValue([pendingPayment])
+    vi.mocked(creditApi.getPendingPayments).mockResolvedValue([])
+    signIn('MANAGER', 1)
+  })
+
+  it('labels the payment as pending instead of paid and keeps the outstanding figure the list shows', async () => {
+    await renderClient()
+    expect(screen.queryByText('↓ Paid')).not.toBeInTheDocument()
+    expect(screen.queryByText(/PENDING_APPROVAL/)).not.toBeInTheDocument()
+    expect(screen.getByText('Not counted in balance')).toBeInTheDocument()
+    expect(screen.getAllByText('₹5,000.00').length).toBeGreaterThan(0)
+    expect(screen.getByText('₹2,000.00 pending approval')).toBeInTheDocument()
   })
 })
 

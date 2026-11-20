@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { shiftApi } from '../../../api/shiftApi'
 import { SkeletonRows } from '../../../components/Skeleton'
 import { localDateInputValue } from '../../../utils/date'
@@ -7,7 +7,6 @@ import { parseApiError } from '../../../utils/apiError'
 import { HistoryRow } from './HistoryRow'
 import { PAGE_SIZE } from '../shiftLabels'
 import { ScrollRegion } from '../../../components/ScrollRegion'
-import { FULL_HISTORY_QUERY_OPTIONS } from '../../../queryClient'
 
 // ── All Shifts (paginated + date range filter) ────────────────────────────────
 
@@ -16,16 +15,16 @@ export function AllShiftsHistory({ pumpId }: { pumpId: number }) {
   const [fromDate, setFromDate] = useState(() => localDateInputValue(-1))
   const [toDate,   setToDate]   = useState(() => localDateInputValue())
 
-  const { data: filtered = [], isLoading, error } = useQuery({
-    queryKey: ['shiftHistory', pumpId, 'all', fromDate, toDate],
-    queryFn:  () => shiftApi.getShiftHistory(pumpId, { from: fromDate || undefined, to: toDate || undefined }),
-    ...FULL_HISTORY_QUERY_OPTIONS,
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['shiftHistory', pumpId, 'all', fromDate, toDate, page],
+    queryFn:  () => shiftApi.getShiftHistoryPage(pumpId, { from: fromDate || undefined, to: toDate || undefined }, page, PAGE_SIZE),
+    placeholderData: keepPreviousData,
   })
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  // Reset to page 0 when filter changes
-  const safePage   = Math.min(page, totalPages - 1)
-  const paged      = filtered.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
+  const paged         = data?.content ?? []
+  const totalElements = data?.page.totalElements ?? 0
+  const totalPages    = Math.max(1, data?.page.totalPages ?? 1)
+  const safePage      = Math.min(page, totalPages - 1)
 
   const clearFilter = () => { setFromDate(''); setToDate(''); setPage(0) }
 
@@ -58,7 +57,7 @@ export function AllShiftsHistory({ pumpId }: { pumpId: number }) {
           </button>
         )}
         <span className="ml-auto text-xs text-slate-500">
-          {filtered.length} shift{filtered.length !== 1 ? 's' : ''}
+          {totalElements} shift{totalElements !== 1 ? 's' : ''}
           {(fromDate || toDate) ? ' (filtered)' : ''}
         </span>
       </div>
@@ -109,7 +108,7 @@ export function AllShiftsHistory({ pumpId }: { pumpId: number }) {
           <span className="text-xs text-slate-500">
             Page {safePage + 1} of {totalPages}
             <span className="ml-2 text-slate-500">
-              (showing {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, filtered.length)} of {filtered.length})
+              (showing {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, totalElements)} of {totalElements})
             </span>
           </span>
           <div className="flex gap-1">

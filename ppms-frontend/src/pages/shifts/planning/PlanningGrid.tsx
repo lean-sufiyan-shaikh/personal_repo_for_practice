@@ -16,10 +16,14 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
              ) : (
                <>
                  {/* No-plan notice for future weeks */}
-                 {!plan && isOwnerOrAdmin && days.some(d => d >= today) && (
+                 {!plan && days.some(d => d >= today) && (
                    <div className="ui-card-plain ui-card-muted px-5 py-3 text-sm text-slate-500 text-center">
-                     No plan generated for this week yet.{' '}
-                     <span className="text-blue-600 font-medium">Click "Auto-generate" to create a schedule.</span>
+                     {isOwnerOrAdmin ? (
+                       <>
+                         No plan generated for this week yet.{' '}
+                         <span className="text-blue-600 font-medium">Click "Auto-generate" to create a schedule.</span>
+                       </>
+                     ) : 'No plan published for this week yet.'}
                    </div>
                  )}
 

@@ -41,6 +41,9 @@ export interface CreditTransaction {
   status: string
   /** False for voided sales and non-approved payments; they leave the running balance unchanged. */
   countedInBalance: boolean
+  /** Account the row belongs to; set by the full-ledger endpoint. */
+  clientId?: number
+  clientName?: string
 }
 
 export interface UpdateInterestSettingsRequest {
@@ -105,8 +108,6 @@ export interface CreateExtensionRequest {
   reason: string
 }
 
-const LEDGER_PAGE_SIZE = 200
-
 export const creditApi = {
   // Returns all clients with outstanding balances
   getLedgerSummary: (pumpId: number) =>
@@ -116,19 +117,9 @@ export const creditApi = {
   getTransactions: (pumpId: number, clientId: number, page = 0, size = 10) =>
     client.get<PagedResponse<CreditTransaction>>(`/pumps/${pumpId}/credit-ledger/${clientId}/transactions`, { params: { page, size } }).then(r => r.data),
 
-  // Loads the client's whole ledger page by page (the backend caps a page at 200 rows)
-  getAllTransactions: async (pumpId: number, clientId: number): Promise<CreditTransaction[]> => {
-    const all: CreditTransaction[] = []
-    let page = 0
-    let hasNext = true
-    while (hasNext) {
-      const result = await creditApi.getTransactions(pumpId, clientId, page, LEDGER_PAGE_SIZE)
-      all.push(...result.content)
-      hasNext = result.hasNext
-      page += 1
-    }
-    return all
-  },
+  // The client's whole ledger in one response; for a parent, includeChildren adds its sub-accounts' rows
+  getAllTransactions: (pumpId: number, clientId: number, includeChildren = false) =>
+    client.get<CreditTransaction[]>(`/pumps/${pumpId}/credit-ledger/${clientId}/transactions/all`, { params: { includeChildren } }).then(r => r.data),
 
   getPendingPayments: (pumpId: number) =>
     client.get<CreditPayment[]>(`/pumps/${pumpId}/credit-ledger/payments/pending`).then(r => r.data),

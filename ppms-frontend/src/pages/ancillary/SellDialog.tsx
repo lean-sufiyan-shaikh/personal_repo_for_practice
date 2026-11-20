@@ -12,6 +12,7 @@ import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
 import { PAYMENT_MODES, fmtCurrency } from './ancillaryFormat'
 import { ReviewRow } from './ReviewRow'
+import { codeLabel } from '../../constants/labels'
 
 // ── Sell Dialog ───────────────────────────────────────────────────────────────
 /**
@@ -57,6 +58,7 @@ export function SellDialog({
   const { addToast } = useToastStore()
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
+  const canSeeCost = user?.role !== 'OPERATOR'
   const canOverridePrice = user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
   const [step, setStep] = useState<'form' | 'review'>('form')
   const [form, setForm] = useState<RecordAncillarySaleRequest>({
@@ -122,7 +124,7 @@ export function SellDialog({
 
   // Profit/loss indicator: walks FIFO lots in order so multi-batch sales are correct.
   // e.g. sell 6 from lots [5@100, 2@200] @ 120 → (120-100)×5 + (120-200)×1 = 20, not 120.
-  const projectedProfit = (sellPrice != null && form.quantityUnits > 0)
+  const projectedProfit = (canSeeCost && sellPrice != null && form.quantityUnits > 0)
     ? computeFifoProjectedProfit(form.quantityUnits, sellPrice, product.activeFifoLots)
     : null
   const marginBadge = projectedProfit == null ? null
@@ -150,7 +152,7 @@ export function SellDialog({
             <h3 className="ui-modal-title">
               {step === 'form' ? 'Record Sale' : 'Review & Confirm'}
             </h3>
-            <p className="ui-modal-subtitle truncate max-w-[280px]">
+            <p className="ui-modal-subtitle break-words">
               {product.displayName}
               {marginBadge ? ` · ${marginBadge.label}` : ''}
             </p>
@@ -230,7 +232,7 @@ export function SellDialog({
                     clientId: v !== 'CREDIT' ? undefined : f.clientId,
                     clientName: v !== 'CREDIT' ? undefined : f.clientName,
                   }))}
-                  options={PAYMENT_MODES.map(m => ({ value: m, label: m.replace('_', ' ') }))}
+                  options={PAYMENT_MODES.map(m => ({ value: m, label: codeLabel(m) }))}
                 />
               </div>
 
@@ -307,7 +309,7 @@ export function SellDialog({
             </div>
 
             <div className="bg-slate-50 rounded-xl border border-slate-200 divide-y divide-slate-100 text-sm">
-              <ReviewRow label="Payment mode" value={form.paymentMode.replace('_', ' ')} />
+              <ReviewRow label="Payment mode" value={codeLabel(form.paymentMode)} />
               {form.paymentMode === 'CREDIT' && selectedClient && (
                 <ReviewRow label="Client" value={selectedClient.name} />
               )}

@@ -42,9 +42,9 @@ export function OperatorPicker({
             {operatorSearch && (
               <IconButton onClick={() => onSearchChange('')}
                 className="ui-search-shell__clear text-lg leading-none"
- label="Clear search"
- icon={'×'}
- />
+                label="Clear search"
+                icon={'×'}
+              />
             )}
           </div>
           <div className="max-h-44 overflow-y-auto divide-y divide-slate-50">

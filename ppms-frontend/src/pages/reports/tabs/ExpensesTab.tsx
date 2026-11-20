@@ -7,13 +7,14 @@ import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
 import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
 import { fmtAmt, todayIso, yesterdayIso } from '../reportFormat'
+import { codeLabel } from '../../../constants/labels'
 
 // ── Expenses Tab ──────────────────────────────────────────────────────────────
 
 export function ExpensesTab({ pumpId }: { pumpId: number }) {
   const [from, setFrom] = useState(yesterdayIso)
   const [to, setTo]     = useState(todayIso)
-  const [query, setQuery] = useState<{ from: string; to: string } | null>(null)
+  const [query, setQuery] = useState<{ from: string; to: string } | null>(() => ({ from: yesterdayIso(), to: todayIso() }))
   const [page, setPage]   = useState(0)
   const [pageSize, setPageSize] = useState(10)
 
@@ -47,7 +48,7 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
         <button
           onClick={() => window.print()}
           disabled={rows.length === 0}
-          className="ui-btn bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-40"
+          className="ui-btn ui-btn-secondary"
         >
           Print PDF
         </button>
@@ -81,10 +82,10 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
                 {paged.content.map(e => (
                   <tr key={e.id} className="border-t border-slate-100 hover:bg-slate-50/50">
                     <td className="px-4 py-2.5 text-slate-600">{e.expenseDate}</td>
-                    <td className="px-4 py-2.5 text-slate-500 text-xs">{e.category?.replace(/_/g, ' ') ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-slate-500 text-xs">{codeLabel(e.category)}</td>
                     <td className="px-4 py-2.5 text-slate-700">{e.description}</td>
                     <td className="px-4 py-2.5 text-right font-medium text-red-600">{fmtAmt(e.amount)}</td>
-                    <td className="px-4 py-2.5 text-xs text-slate-500">{e.approvalStatus?.replace(/_/g, ' ') ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-xs text-slate-500">{codeLabel(e.approvalStatus)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -116,10 +117,10 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
               {rows.map(e => (
                 <tr key={e.id} className="border-t border-slate-100">
                   <td className="px-4 py-2 text-slate-600">{e.expenseDate}</td>
-                  <td className="px-4 py-2 text-slate-500 text-xs">{e.category?.replace(/_/g, ' ') ?? '—'}</td>
+                  <td className="px-4 py-2 text-slate-500 text-xs">{codeLabel(e.category)}</td>
                   <td className="px-4 py-2 text-slate-700">{e.description}</td>
                   <td className="px-4 py-2 text-right font-medium text-red-600">{fmtAmt(e.amount)}</td>
-                  <td className="px-4 py-2 text-xs text-slate-500">{e.approvalStatus?.replace(/_/g, ' ') ?? '—'}</td>
+                  <td className="px-4 py-2 text-xs text-slate-500">{codeLabel(e.approvalStatus)}</td>
                 </tr>
               ))}
             </tbody>

@@ -10,6 +10,7 @@ import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { ReviewModal } from './ReviewModal'
 import { todayIso, yesterdayIso } from './payrollFormat'
+import { codeLabel } from '../../constants/labels'
 
 interface GeneratePayrollFormProps {
   pumpId: number | null
@@ -76,7 +77,7 @@ export function GeneratePayrollForm({ pumpId, staff, onGenerated }: GeneratePayr
               value={form.userId ? form.userId.toString() : ''}
               onChange={v => setForm(f => ({ ...f, userId: parseInt(v) || 0 }))}
               placeholder="Select staff…"
-              options={staff.map((s) => ({ value: s.id.toString(), label: `${s.fullName} — ${s.role}` }))}
+              options={staff.map((s) => ({ value: s.id.toString(), label: `${s.fullName} — ${codeLabel(s.role)}` }))}
             />
           </div>
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addDays, formatIstDate, formatIstDateTime, istDateString, localDateInputValue, mondayOf } from './date'
+import { addDays, formatIstDate, formatIstDateTime, istDateString, localDateInputValue, mondayOf, withReadableDates } from './date'
 
 describe('istDateString', () => {
   it('returns the IST date when UTC is still on the previous day', () => {
@@ -97,5 +97,15 @@ describe('cached IST formatters', () => {
     const first = formatIstDateTime('2026-11-20T03:30:00Z', options)
     expect(formatIstDateTime('2026-11-20T03:30:00Z', options)).toBe(first)
     expect(first).toMatch(/09:00\s?am/i)
+  })
+})
+
+describe('withReadableDates', () => {
+  it('rewrites machine dates inside a server message', () => {
+    expect(withReadableDates('Pollution certificate expires on 2026-11-30.')).toBe('Pollution certificate expires on 30 Nov 2026.')
+  })
+
+  it('leaves text without dates unchanged', () => {
+    expect(withReadableDates('Tank T1 is low')).toBe('Tank T1 is low')
   })
 })

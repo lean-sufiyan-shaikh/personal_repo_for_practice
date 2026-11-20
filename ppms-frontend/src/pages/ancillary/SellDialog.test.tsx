@@ -31,7 +31,7 @@ async function sell(lots: AncillaryProduct['activeFifoLots'], quantity: string) 
 
 describe('SellDialog projected profit', () => {
   beforeEach(() => {
-    useAuthStore.setState({ user: { userId: 1, fullName: 'Op', role: 'OPERATOR', assignedPumpId: 3 }, isAuthenticated: true })
+    useAuthStore.setState({ user: { userId: 1, fullName: 'Manager', role: 'MANAGER', assignedPumpId: 3 }, isAuthenticated: true })
     vi.mocked(ancillaryApi.getPriceHistory).mockResolvedValue([
       { id: 1, productId: 8, pumpId: 3, pricePerUnit: 120, effectiveFrom: '2026-01-01T00:00:00Z', setByUserId: 1 },
     ])
@@ -54,6 +54,12 @@ describe('SellDialog projected profit', () => {
 
   it('shows no projection when the lots cannot cover the quantity', async () => {
     await sell([{ remainingQuantity: 2, costPricePerUnit: 100 }], '3')
+    expect(screen.queryByText(/Projected|Break-even/)).not.toBeInTheDocument()
+  })
+
+  it('hides the projection from an operator, who must not see cost prices', async () => {
+    useAuthStore.setState({ user: { userId: 1, fullName: 'Op', role: 'OPERATOR', assignedPumpId: 3 }, isAuthenticated: true })
+    await sell([{ remainingQuantity: 5, costPricePerUnit: 100 }], '2')
     expect(screen.queryByText(/Projected|Break-even/)).not.toBeInTheDocument()
   })
 
@@ -82,7 +88,7 @@ describe('SellDialog credit sale', () => {
     await screen.findByDisplayValue('120')
 
     await user.click(screen.getByRole('button', { name: /Payment mode/i }))
-    await user.click(await screen.findByRole('option', { name: 'CREDIT' }))
+    await user.click(await screen.findByRole('option', { name: 'Credit' }))
     await user.click(await screen.findByRole('button', { name: /^Client/ }))
     await user.click(await screen.findByRole('option', { name: 'Acme Transport' }))
 

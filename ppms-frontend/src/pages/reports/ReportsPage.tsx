@@ -80,16 +80,6 @@ export default function ReportsPage() {
             <span className="text-slate-500">{fmtDateTime(new Date().toISOString())}</span>
           </p>
         </div>
-        <div className="ui-section-meta print:hidden">
-          <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">Pump</span>
-            <span className="ui-section-meta-value">{pumpName || 'Not selected'}</span>
-          </div>
-          <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">Active tab</span>
-            <span className="ui-section-meta-value">{TABS.find((reportTab) => reportTab.id === activeTab)?.label ?? 'Reports'}</span>
-          </div>
-        </div>
       </div>
       </Reveal>
 

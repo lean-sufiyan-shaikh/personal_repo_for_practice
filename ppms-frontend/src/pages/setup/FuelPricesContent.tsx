@@ -207,9 +207,9 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
             <p className="text-xs text-amber-700 mt-0.5">{openShiftsWarning}</p>
           </div>
           <IconButton onClick={() => setOpenShiftsWarning(null)} className="text-amber-400 hover:text-amber-600 text-lg leading-none shrink-0"
- label="Dismiss warning"
- icon={'×'}
- />
+            label="Dismiss warning"
+            icon={'×'}
+          />
         </div>
       )}
 

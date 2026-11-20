@@ -126,7 +126,7 @@ export default function ShiftsPage() {
               {selectedPump && (
                 <p className="text-xs text-slate-500">{selectedPump.name}</p>
               )}
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="ui-toolbar-actions ml-auto">
                 {isOwnerOrAdmin && (
                   <button
                     onClick={() => setShowBackfillModal(true)}
@@ -157,7 +157,7 @@ export default function ShiftsPage() {
               </div>
             ) : (
               <ScrollRegion label="Active shifts" className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="ui-table-cards w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-xs text-slate-500">
                       <th scope="col" className="text-left px-6 py-3 font-medium">Nozzle</th>

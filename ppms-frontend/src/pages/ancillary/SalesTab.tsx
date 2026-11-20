@@ -7,6 +7,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { BackfillSaleModal } from './BackfillSaleModal'
 import { fmtCurrency, fmtDate } from './ancillaryFormat'
 import { ScrollRegion } from '../../components/ScrollRegion'
+import { codeLabel } from '../../constants/labels'
 
 // ── Sales History Tab ─────────────────────────────────────────────────────────
 
@@ -86,7 +87,7 @@ export function SalesTab({
                       <td className="px-5 py-3 text-right font-semibold text-slate-800">{fmtCurrency(s.totalAmount)}</td>
                       <td className="px-5 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${modeColor[s.paymentMode] ?? 'bg-slate-100 text-slate-600'}`}>
-                          {s.paymentMode.replace('_', ' ')}
+                          {codeLabel(s.paymentMode)}
                         </span>
                       </td>
                       <td className="px-5 py-3 text-slate-500">{s.clientName ?? '—'}</td>

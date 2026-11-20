@@ -103,6 +103,7 @@ export default function CreditBalancePortalPage() {
 
             <FormField label="Portal PIN" help="The pump gives you this PIN. Ask them if you don't have one.">
               <PasswordInput
+                toggleLabel="Show PIN"
                 value={pin}
                 onChange={e => setPin(digitsOnly(e.target.value))}
                 inputMode="numeric"

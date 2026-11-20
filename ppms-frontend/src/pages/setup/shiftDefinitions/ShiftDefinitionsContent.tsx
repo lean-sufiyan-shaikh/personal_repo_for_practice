@@ -266,9 +266,9 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
         <div role="alert" className="ui-alert ui-alert-danger flex items-start gap-2">
           <span className="text-red-600 text-xs flex-1">{actionError}</span>
           <IconButton onClick={() => setActionError(null)} className="ui-btn ui-btn-ghost text-sm leading-none text-red-400 hover:text-red-600"
- label="Dismiss error"
- icon={'×'}
- />
+            label="Dismiss error"
+            icon={'×'}
+          />
         </div>
       )}
 

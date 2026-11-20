@@ -11,6 +11,7 @@ import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
 import { PAYMENT_MODES, fmtDate } from './ancillaryFormat'
 import { ReviewRow } from './ReviewRow'
+import { codeLabel } from '../../constants/labels'
 
 // ── Backfill Sale Modal ───────────────────────────────────────────────────────
 /**
@@ -160,7 +161,7 @@ export function BackfillSaleModal({
                     paymentMode: v as AncillaryPaymentMode,
                     clientName: v !== 'CREDIT' ? undefined : f.clientName,
                   }))}
-                  options={PAYMENT_MODES.map(m => ({ value: m, label: m.replace('_', ' ') }))}
+                  options={PAYMENT_MODES.map(m => ({ value: m, label: codeLabel(m) }))}
                 />
               </div>
 
@@ -217,7 +218,7 @@ export function BackfillSaleModal({
               <ReviewRow label="Product" value={selectedProduct?.displayName ?? '—'} />
               <ReviewRow label="Sale Date" value={fmtDate(form.saleDate)} />
               <ReviewRow label="Quantity" value={`${form.quantityUnits} unit${form.quantityUnits !== 1 ? 's' : ''}`} />
-              <ReviewRow label="Payment Mode" value={form.paymentMode.replace('_', ' ')} />
+              <ReviewRow label="Payment Mode" value={codeLabel(form.paymentMode)} />
               {form.paymentMode === 'CREDIT' && <ReviewRow label="Client" value={form.clientName ?? '—'} />}
               {form.billNo && <ReviewRow label="Bill No" value={form.billNo} />}
               {form.notes && <ReviewRow label="Notes" value={form.notes} />}

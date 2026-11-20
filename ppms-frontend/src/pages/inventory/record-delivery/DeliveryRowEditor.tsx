@@ -67,9 +67,9 @@ export function DeliveryRowEditor({
               <IconButton
                 onClick={onRemove}
                 className="text-red-300 hover:text-red-600 transition-colors"
- label="Remove row"
- icon={<X size={14} strokeWidth={2} />}
- />
+                label="Remove row"
+                icon={<X size={14} strokeWidth={2} />}
+              />
             )}
           </div>
         </div>

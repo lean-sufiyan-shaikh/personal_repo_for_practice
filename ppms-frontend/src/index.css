@@ -133,7 +133,7 @@ a:focus-visible,
 }
 
 .ui-page--narrow {
-  max-width: 960px;
+  max-width: 1200px;
 }
 
 .ui-auth-shell {
@@ -562,7 +562,8 @@ a:focus-visible,
   pointer-events: none;
 }
 
-.ui-search-shell__input {
+/* Matches the specificity of the base input rule so the icon padding is not overridden */
+.ui-search-shell input.ui-search-shell__input:not([type='checkbox']):not([type='radio']):not([type='range']) {
   padding-left: 2.75rem;
   padding-right: 2.5rem;
   background: rgba(255, 255, 255, 0.96);
@@ -693,6 +694,14 @@ a:focus-visible,
 
 .ui-btn-danger:hover:not(:disabled) {
   background: #fee2e2;
+}
+
+/* Small outline action used inside rows and tables (Void, Move, Record, DIP Check) */
+.ui-btn.ui-btn-compact {
+  min-height: 2rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  border-radius: 10px;
 }
 
 .ui-btn-warning {
@@ -947,6 +956,21 @@ a:focus-visible,
 
 .ui-dashboard-sidebar-head {
   padding: 1rem 1rem 0.15rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ui-dashboard-menu-button,
+.ui-dashboard-drawer-close,
+.ui-dashboard-sidebar-pumps,
+.ui-dashboard-nav-backdrop {
+  display: none;
+}
+
+.ui-dashboard-menu-button {
+  color: #e2e8f0;
 }
 
 .ui-dashboard-sidebar-title {
@@ -1546,8 +1570,13 @@ a:focus-visible,
   backdrop-filter: blur(4px);
 }
 
-.ui-select-trigger__badge {
-  white-space: nowrap;
+/* Edge shadows that appear only while content is scrolled out of view on that side */
+.ui-scroll-region {
+  background:
+    linear-gradient(to right, #fff 30%, rgba(255, 255, 255, 0)) left center / 2.5rem 100% no-repeat local,
+    linear-gradient(to left, #fff 30%, rgba(255, 255, 255, 0)) right center / 2.5rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(15, 23, 42, 0.16), rgba(15, 23, 42, 0)) left center / 0.9rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(15, 23, 42, 0.16), rgba(15, 23, 42, 0)) right center / 0.9rem 100% no-repeat scroll;
 }
 
 .ui-select-search {
@@ -1663,28 +1692,127 @@ a:focus-visible,
   }
 
   .ui-dashboard-topbar {
-    padding: 0.85rem 1rem;
-    flex-wrap: wrap;
-    gap: 0.85rem;
-    align-items: flex-start;
-  }
-
-  .ui-dashboard-sidebar {
-    width: 12.5rem;
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
   }
 
   .ui-dashboard-topbar-center {
-    order: 3;
-    width: 100%;
-    align-items: flex-start;
+    display: none;
   }
 
   .ui-dashboard-topbar-right {
     margin-left: auto;
   }
 
-  .ui-dashboard-pump-switcher {
+  .ui-dashboard-menu-button,
+  .ui-btn.ui-dashboard-menu-button,
+  .ui-btn.ui-dashboard-drawer-close {
+    display: inline-flex;
+  }
+
+  .ui-dashboard-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 40;
+    width: min(18rem, 85vw);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0.2s;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  }
+
+  .ui-dashboard-sidebar--open {
+    transform: none;
+    visibility: visible;
+  }
+
+  .ui-dashboard-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: rgba(15, 23, 42, 0.45);
+  }
+
+  .ui-dashboard-sidebar-pumps {
+    display: block;
+    padding: 0.75rem 1rem 0;
+  }
+
+  .ui-dashboard-pump-switcher--drawer {
     justify-content: flex-start;
+  }
+
+  .ui-dashboard-pump-switcher--drawer .ui-dashboard-pump-chip:not(.ui-dashboard-pump-chip--active) {
+    color: #334155;
+    border-color: #cbd5e1;
+  }
+
+  .ui-dashboard-navlink {
+    min-height: 2.75rem;
+  }
+
+  /* A table whose rows become stacked cards on phones */
+  .ui-table-cards,
+  .ui-table-cards tbody,
+  .ui-table-cards tr,
+  .ui-table-cards td:not(.hidden) {
+    display: block;
+    width: 100%;
+  }
+
+  .ui-table-cards thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .ui-table-cards tr {
+    padding: 0.85rem 1rem;
+  }
+
+  .ui-table-cards td:not(.hidden) {
+    padding: 0.15rem 0;
+    text-align: left;
+  }
+
+  .ui-table-cards td:last-child > div {
+    justify-content: flex-start;
+    margin-top: 0.5rem;
+  }
+
+  .ui-toolbar-actions {
+    width: 100%;
+  }
+
+  .ui-toolbar-actions > .ui-btn {
+    flex: 1 1 auto;
+  }
+
+  .ui-modal-footer {
+    flex-wrap: wrap;
+  }
+
+  .ui-modal-footer > .ui-btn {
+    flex: 1 1 auto;
+  }
+
+  .ui-record-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .ui-record-row .truncate {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .ui-record-row__actions {
+    flex-wrap: wrap;
   }
 
   .ui-section-hero {
@@ -1706,6 +1834,15 @@ a:focus-visible,
   .ui-auth-display {
     max-width: none;
     font-size: 2.3rem;
+  }
+
+  .ui-auth-hero {
+    order: 2;
+  }
+
+  .ui-auth-metrics,
+  .ui-auth-points {
+    display: none;
   }
 
   .ui-auth-metrics {
@@ -1801,32 +1938,7 @@ a:focus-visible,
   }
 }
 
-/* ── Icon-only sidebar on phones (≤480px) ──────────────────── */
 @media (max-width: 480px) {
-  .ui-dashboard-sidebar {
-    width: 3.5rem;
-    flex-shrink: 0;
-  }
-  .ui-dashboard-sidebar-head,
-  .ui-dashboard-sidebar-foot {
-    display: none;
-  }
-  .ui-dashboard-navlink {
-    justify-content: center;
-    padding: 0.6rem 0;
-    gap: 0;
-  }
-  .ui-dashboard-navlink span {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
   .ui-page {
     padding: 0.75rem;
   }
@@ -2283,6 +2395,10 @@ a:focus-visible,
   /* Decorative floating orbs on the auth page */
   .ui-auth-orb {
     animation: none;
+  }
+
+  .ui-dashboard-sidebar {
+    transition: none;
   }
 
   /* Scroll-reveal — show immediately without sliding in */

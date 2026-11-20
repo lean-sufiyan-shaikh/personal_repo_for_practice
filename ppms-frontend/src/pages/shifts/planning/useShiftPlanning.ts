@@ -12,6 +12,7 @@ import { addDays, istDateString, mondayOf } from '../../../utils/date'
 export function useShiftPlanning() {
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
+  const canSeeAttendance = isOwnerOrAdmin || user?.role === 'MANAGER'
   const queryClient = useQueryClient()
 
   const { selectedPumpId } = usePumpStore()
@@ -57,7 +58,7 @@ export function useShiftPlanning() {
   const { data: actualAttendance = [] } = useQuery({
     queryKey: ['actualAttendance', pumpId, weekStart],
     queryFn: () => shiftPlanApi.getActualAttendance(pumpId!, weekStart, weekEnd),
-    enabled: !!pumpId,
+    enabled: !!pumpId && canSeeAttendance,
     refetchInterval: 60_000, // refresh every 60s so today's shifts reflect live status
   })
 

@@ -59,10 +59,6 @@ export default function AncillaryProductsPage() {
             <span className="ui-section-meta-label">Products</span>
             <span className="ui-section-meta-value">{products.length}</span>
           </div>
-          <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">View</span>
-            <span className="ui-section-meta-value">{activeTab === 'products' ? 'Catalog' : activeTab === 'stockin' ? 'Stock In' : 'Sales'}</span>
-          </div>
         </div>
       </div>
       </Reveal>

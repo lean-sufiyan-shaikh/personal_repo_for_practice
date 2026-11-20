@@ -135,11 +135,11 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
                         ? s.pendingAtRecordTime - s.amountReceived
                         : 0
                       return (
-                        <div key={s.id} className={`flex items-start gap-3 ${isVoided ? 'opacity-60' : ''}`}>
+                        <div key={s.id} className={`flex flex-wrap items-start gap-x-3 gap-y-1 ${isVoided ? 'opacity-60' : ''}`}>
                           <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${accent.badge}`}>
                             {TYPE_ICONS[s.paymentType]} {TYPE_LABELS[s.paymentType]}
                           </span>
-                          <div className="flex-1 min-w-0">
+                          <div className="order-last basis-full min-w-0 sm:order-none sm:basis-0 sm:flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               {isVoided && (
                                 <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
@@ -164,14 +164,14 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
                               <p className="text-xs text-red-600 mt-0.5">Reason: {s.voidReason}</p>
                             )}
                           </div>
-                          <span className={`text-sm font-bold tabular-nums flex-shrink-0 ${isVoided ? 'text-slate-500 line-through' : 'text-emerald-700'}`}>
+                          <span className={`text-sm font-bold tabular-nums flex-shrink-0 ml-auto sm:ml-0 ${isVoided ? 'text-slate-500 line-through' : 'text-emerald-700'}`}>
                             +{fmtAmt(s.amountReceived)}
                           </span>
                           {canVoid && !isVoided && (
                             <button
                               type="button"
                               onClick={() => onVoid(s)}
-                              className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline flex-shrink-0"
+                              className="ui-btn ui-btn-danger ui-btn-compact flex-shrink-0"
                             >
                               Void
                             </button>

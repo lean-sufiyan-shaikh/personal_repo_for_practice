@@ -2,6 +2,7 @@ import type { BalanceSheetDetail, DipPlLine } from '../../../api/balanceSheetApi
 import { Td, Th } from '../bsTableCells'
 import { FUEL_BADGE, IST_TIME_FORMATTER, fmtMoney } from '../bsFormat'
 import { ScrollRegion } from '../../../components/ScrollRegion'
+import { codeLabel } from '../../../constants/labels'
 
 export function DipPlSection({ detail }: { detail: BalanceSheetDetail }) {
   return (
@@ -48,7 +49,7 @@ export function DipPlSection({ detail }: { detail: BalanceSheetDetail }) {
                   </Td>
                   <Td>
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${badge}`}>
-                      {entry.fuelType.replace('_', ' ')}
+                      {codeLabel(entry.fuelType)}
                     </span>
                   </Td>
                   <Td right>

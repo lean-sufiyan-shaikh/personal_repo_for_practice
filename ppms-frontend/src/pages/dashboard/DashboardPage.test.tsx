@@ -12,7 +12,7 @@ import DashboardPage from './DashboardPage'
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getMyPumps: vi.fn() } }))
 vi.mock('../../components/NotificationBell', () => ({ default: () => <span>Notifications</span> }))
 vi.mock('../../components/Toast', () => ({ ToastContainer: () => null }))
-vi.mock('./layout/DashboardSidebar', () => ({ DashboardSidebar: () => <nav aria-label="Main" /> }))
+vi.mock('./layout/DashboardSidebar', () => ({ DashboardSidebar: () => <nav aria-label="Main" />, DASHBOARD_NAV_ID: 'dashboard-navigation' }))
 vi.mock('./layout/UserProfileArea', () => ({ UserProfileArea: () => null }))
 vi.mock('./layout/LiveClock', () => ({ LiveClock: () => null }))
 vi.mock('./layout/RouteOutlet', () => ({ RouteOutlet: () => <p>Page content</p> }))
