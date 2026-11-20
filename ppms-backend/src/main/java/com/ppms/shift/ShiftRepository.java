@@ -2,7 +2,9 @@ package com.ppms.shift;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -19,6 +21,15 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
     Optional<Shift> findByIdAndPumpId(Long id, Long pumpId);
 
     boolean existsByIdAndPumpId(Long id, Long pumpId);
+
+    // Lock order for state changes: shift, then tanks (by id), then inventory lots.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM Shift s WHERE s.id = :id AND s.pumpId = :pumpId")
+    Optional<Shift> findByIdAndPumpIdForUpdate(@Param("id") Long id, @Param("pumpId") Long pumpId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM Shift s WHERE s.id = :id")
+    Optional<Shift> findByIdForUpdate(@Param("id") Long id);
 
     // Active shifts for a pump (OPEN or OPEN_OVERDUE)
     @Query("""
@@ -73,13 +84,13 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
 
     // ── Overdue shift auto-close job ──────────────────────────────────────────
 
-    /** All OPEN or OPEN_OVERDUE shifts across all pumps. Used by the auto-close scheduler. */
+    /** Ids of all OPEN or OPEN_OVERDUE shifts across all pumps. Used by the auto-close scheduler. */
     @Query("""
-            SELECT s FROM Shift s
+            SELECT s.id FROM Shift s
             WHERE s.status IN ('OPEN', 'OPEN_OVERDUE')
             ORDER BY s.actualStartTime ASC
             """)
-    List<Shift> findAllOpenShifts();
+    List<Long> findAllOpenShiftIds();
 
     // ── Report queries ────────────────────────────────────────────────────────
 

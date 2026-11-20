@@ -193,12 +193,13 @@ public class PumpController {
 
     @PatchMapping("/{pumpId}/tanks/{tankId}")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    @Transactional
     public ResponseEntity<TankResponse> updateTank(
             @PathVariable Long pumpId,
             @PathVariable Long tankId,
             @Valid @RequestBody UpdateTankRequest request) {
 
-        UndergroundTank tank = tankRepository.findById(tankId)
+        UndergroundTank tank = tankRepository.findByIdForUpdate(tankId)
                 .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
 
         if (!tank.getPumpId().equals(pumpId)) {
@@ -215,13 +216,14 @@ public class PumpController {
 
     @PatchMapping("/{pumpId}/tanks/{tankId}/status")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    @Transactional
     public ResponseEntity<TankResponse> updateTankStatus(
             @PathVariable Long pumpId,
             @PathVariable Long tankId,
             @Valid @RequestBody UpdateTankStatusRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        UndergroundTank tank = tankRepository.findById(tankId)
+        UndergroundTank tank = tankRepository.findByIdForUpdate(tankId)
                 .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
 
         if (!tank.getPumpId().equals(pumpId)) {

@@ -83,7 +83,7 @@ public class InventoryController {
             @Valid @RequestBody RecordDeliveryRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        UndergroundTank tank = tankRepository.findById(request.getTankId())
+        UndergroundTank tank = tankRepository.findByIdForUpdate(request.getTankId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
 
         if (!tank.getPumpId().equals(pumpId)) {
@@ -158,7 +158,7 @@ public class InventoryController {
         inventoryLotRepository.save(lot);
 
         // Update tank running stock
-        BigDecimal newStock = tank.getCurrentStock()
+        BigDecimal newStock = currentStock
                 .add(request.getQuantityDelivered())
                 .setScale(3, RoundingMode.HALF_UP);
         tank.setCurrentStock(newStock);
@@ -239,6 +239,8 @@ public class InventoryController {
             }
         }
         final Tanker finalTanker = selectedTanker;
+
+        tankRepository.findAllByIdForUpdate(seenTankIds);
 
         List<TankerDeliveryResponse> responses = request.getItems().stream().map(item -> {
             UndergroundTank tank = tankRepository.findById(item.getTankId())
@@ -325,7 +327,7 @@ public class InventoryController {
 
             inventoryLotRepository.save(lot);
 
-            BigDecimal newStock = tank.getCurrentStock().add(qty).setScale(3, RoundingMode.HALF_UP);
+            BigDecimal newStock = currentStockItem.add(qty).setScale(3, RoundingMode.HALF_UP);
             tank.setCurrentStock(newStock);
             tankRepository.save(tank);
 
@@ -366,7 +368,7 @@ public class InventoryController {
             throw new BusinessException("Delivery does not belong to this pump");
         }
 
-        UndergroundTank tank = tankRepository.findById(delivery.getTankId())
+        UndergroundTank tank = tankRepository.findByIdForUpdate(delivery.getTankId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
 
         InventoryLot lot = inventoryLotRepository.findByTankerDeliveryId(deliveryId)
@@ -485,7 +487,7 @@ public class InventoryController {
             @Valid @RequestBody RecordDipCheckRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        UndergroundTank tank = tankRepository.findById(request.getTankId())
+        UndergroundTank tank = tankRepository.findByIdForUpdate(request.getTankId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
 
         if (!tank.getPumpId().equals(pumpId)) {
@@ -763,6 +765,7 @@ public class InventoryController {
 
         String invoiceRef = latest.getInvoiceReference();
         List<TankerDelivery> toDelete = tankerDeliveryRepository.findByPumpIdAndInvoiceReference(pumpId, invoiceRef);
+        tankRepository.findAllByIdForUpdate(toDelete.stream().map(TankerDelivery::getTankId).toList());
 
         // Block deletion if any lot from this invoice has been consumed by a shift
         for (TankerDelivery delivery : toDelete) {

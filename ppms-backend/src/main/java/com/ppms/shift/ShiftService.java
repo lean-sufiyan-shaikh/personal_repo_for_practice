@@ -1,7 +1,6 @@
 package com.ppms.shift;
 
 import com.ppms.common.exception.BusinessException;
-import org.springframework.dao.DataIntegrityViolationException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
@@ -45,8 +44,10 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -140,19 +141,14 @@ public class ShiftService {
                         .build())
                 .toList());
 
-        // DB-level nozzle exclusivity guard — PRIMARY KEY conflict here means two concurrent
-        // requests raced past the application-level check in validateShiftCanOpen.
-        try {
-            for (Nozzle nozzle : nozzles) {
-                activeNozzleRepository.save(ActiveNozzleAssignment.builder()
-                        .nozzleId(nozzle.getId())
-                        .shiftId(shiftId)
-                        .build());
+        // DB-level nozzle exclusivity guard: a nozzle already assigned means a concurrent request
+        // raced past the application-level check in validateShiftCanOpen.
+        for (Nozzle nozzle : nozzles) {
+            if (activeNozzleRepository.assignIfFree(nozzle.getId(), shiftId) == 0) {
+                throw new BusinessException(
+                        "One or more selected nozzles are already in use on an active shift. " +
+                        "Please refresh the page and try again.");
             }
-        } catch (DataIntegrityViolationException e) {
-            throw new BusinessException(
-                    "One or more selected nozzles are already in use on an active shift. " +
-                    "Please refresh the page and try again.");
         }
 
         // Create opening readings — one per nozzle (each nozzle = one fuel type)
@@ -183,12 +179,7 @@ public class ShiftService {
      */
     @Transactional
     public ShiftResponse closeShift(Long pumpId, Long shiftId, CloseShiftRequest request, User currentUser) {
-        Shift shift = shiftRepository.findById(shiftId)
-                .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
-
-        if (!shift.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Shift does not belong to pump " + pumpId);
-        }
+        Shift shift = findShiftForUpdate(pumpId, shiftId);
 
         if (shift.getStatus() != ShiftStatus.OPEN
                 && shift.getStatus() != ShiftStatus.OPEN_OVERDUE
@@ -212,7 +203,9 @@ public class ShiftService {
         List<CloseShiftRequest.CreditEntryRequest> creditEntries =
                 lifecycleSupportService.validateCloseCreditEntries(shiftId, request.getCreditTotal(), request.getCreditEntries());
 
-        // FIFO inventory deduction per nozzle reading
+        lockTanksForDeduction(pumpId,
+                readings.stream().map(ShiftFuelReading::getTankId).filter(Objects::nonNull).toList(),
+                readings.stream().filter(reading -> reading.getTankId() == null).map(ShiftFuelReading::getFuelType).toList());
         for (ShiftFuelReading reading : readings) {
             if (reading.getUnitsSold() != null && reading.getUnitsSold().compareTo(ZERO) > 0) {
                 deductFromInventory(shiftId, shift.getPumpId(), reading.getFuelType(),
@@ -301,6 +294,11 @@ public class ShiftService {
      * Cross-midnight shifts (e.g. 22:00–09:00) end on shiftDate + 1.
      * Returns null if no definition is linked or if it no longer exists (legacy data).
      */
+    private Shift findShiftForUpdate(Long pumpId, Long shiftId) {
+        return shiftRepository.findByIdAndPumpIdForUpdate(shiftId, pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
+    }
+
     private User findOperatorForPump(Long operatorId, Long pumpId) {
         return userRepository.findById(operatorId)
                 .filter(user -> user.getRole() == UserRole.OPERATOR && pumpId.equals(user.getAssignedPumpId()))
@@ -325,12 +323,7 @@ public class ShiftService {
      */
     @Transactional
     public ShiftResponse addCreditEntry(Long pumpId, Long shiftId, AddCreditEntryRequest request, User currentUser) {
-        Shift shift = shiftRepository.findById(shiftId)
-                .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
-
-        if (!shift.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Shift does not belong to pump " + pumpId);
-        }
+        Shift shift = findShiftForUpdate(pumpId, shiftId);
 
         if (shift.getStatus() != ShiftStatus.OPEN
                 && shift.getStatus() != ShiftStatus.OPEN_OVERDUE
@@ -370,12 +363,7 @@ public class ShiftService {
      */
     @Transactional
     public ShiftResponse resolveDiscrepancy(Long pumpId, Long shiftId, ResolveDiscrepancyRequest request, User currentUser) {
-        Shift shift = shiftRepository.findById(shiftId)
-                .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
-
-        if (!shift.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Shift does not belong to pump " + pumpId);
-        }
+        Shift shift = findShiftForUpdate(pumpId, shiftId);
 
         boolean isPending         = shift.getStatus() == ShiftStatus.CLOSED_DISCREPANCY_PENDING;
         boolean isPendingApproval = shift.getStatus() == ShiftStatus.CLOSED_DISCREPANCY_PENDING_APPROVAL;
@@ -433,12 +421,7 @@ public class ShiftService {
      */
     @Transactional
     public ShiftResponse voidCreditEntry(Long pumpId, Long shiftId, Long entryId, String voidReason, User currentUser) {
-        Shift shift = shiftRepository.findById(shiftId)
-                .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
-
-        if (!shift.getPumpId().equals(pumpId)) {
-            throw new BusinessException("Shift does not belong to pump " + pumpId);
-        }
+        Shift shift = findShiftForUpdate(pumpId, shiftId);
 
         if (shift.getStatus() != ShiftStatus.OPEN
                 && shift.getStatus() != ShiftStatus.OPEN_OVERDUE
@@ -634,6 +617,10 @@ public class ShiftService {
 
         // Build a lookup map once so subsequent loops are O(1) instead of O(n) per iteration
         Map<Long, Nozzle> nozzleById = nozzles.stream().collect(Collectors.toMap(Nozzle::getId, n -> n));
+
+        lockTanksForDeduction(pumpId,
+                nozzles.stream().map(Nozzle::getTankId).filter(Objects::nonNull).toList(),
+                nozzles.stream().filter(nozzle -> nozzle.getTankId() == null).map(Nozzle::getFuelType).toList());
 
         // ── 5c. Pre-validate fuel stock availability (historically accurate) ──
         // Accumulate unitsSold per inventory scope, then check available stock
@@ -861,6 +848,21 @@ public class ShiftService {
                     return List.of(lot);
                 })
                 .orElse(List.of());
+    }
+
+    /**
+     * Locks, in one id-ordered query, every tank a FIFO deduction can touch, so concurrent deliveries,
+     * dip checks and other shift closes cannot overwrite currentStock. Readings without a frozen tank
+     * deduct across all of the pump's tanks of that fuel type.
+     */
+    private void lockTanksForDeduction(Long pumpId, Collection<Long> frozenTankIds, Collection<FuelType> unscopedFuelTypes) {
+        Set<Long> tankIds = new HashSet<>(frozenTankIds);
+        if (!unscopedFuelTypes.isEmpty()) {
+            tankIds.addAll(tankRepository.findIdsByPumpIdAndFuelTypeIn(pumpId, unscopedFuelTypes));
+        }
+        if (!tankIds.isEmpty()) {
+            tankRepository.findAllByIdForUpdate(tankIds);
+        }
     }
 
     /**

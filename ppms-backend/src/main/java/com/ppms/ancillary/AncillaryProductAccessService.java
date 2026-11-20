@@ -25,6 +25,16 @@ public class AncillaryProductAccessService {
         return product;
     }
 
+    public AncillaryProduct requireProductForPumpForUpdate(Long productId, Long pumpId) {
+        return productRepository.findByIdAndPumpIdForUpdate(productId, pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ancillary product not found: " + productId));
+    }
+
+    public Long requireProductIdOfLot(Long lotId, Long pumpId) {
+        return lotRepository.findProductIdByIdAndPumpId(lotId, pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException("Stock lot not found: " + lotId));
+    }
+
     public AncillaryStockLot requireLotForPump(Long lotId, Long pumpId) {
         AncillaryStockLot lot = lotRepository.findById(lotId)
                 .orElseThrow(() -> new ResourceNotFoundException("Stock lot not found: " + lotId));

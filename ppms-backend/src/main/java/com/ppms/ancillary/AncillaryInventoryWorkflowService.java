@@ -65,7 +65,7 @@ public class AncillaryInventoryWorkflowService {
 
     @Transactional
     public AncillaryProduct updateProduct(Long pumpId, Long productId, UpdateProductRequest request) {
-        AncillaryProduct product = accessService.requireProductForPump(productId, pumpId);
+        AncillaryProduct product = accessService.requireProductForPumpForUpdate(productId, pumpId);
         if (request.getBrand() != null) {
             product.setBrand(request.getBrand().isBlank() ? null : request.getBrand().trim());
         }
@@ -81,7 +81,7 @@ public class AncillaryInventoryWorkflowService {
 
     @Transactional
     public AncillaryProduct setProductStatus(Long pumpId, Long productId, AncillaryProductStatus status) {
-        AncillaryProduct product = accessService.requireProductForPump(productId, pumpId);
+        AncillaryProduct product = accessService.requireProductForPumpForUpdate(productId, pumpId);
         product.setStatus(status);
         return productRepository.save(product);
     }
@@ -101,7 +101,7 @@ public class AncillaryInventoryWorkflowService {
 
     @Transactional
     public DeliveryResult recordDelivery(Long pumpId, Long productId, RecordStockDeliveryRequest request, User currentUser) {
-        AncillaryProduct product = accessService.requireProductForPump(productId, pumpId);
+        AncillaryProduct product = accessService.requireProductForPumpForUpdate(productId, pumpId);
         if (product.getStatus() == AncillaryProductStatus.INACTIVE) {
             throw new BusinessException("Product '" + product.getName() + "' is INACTIVE. Re-activate it before recording a delivery.");
         }
@@ -144,7 +144,7 @@ public class AncillaryInventoryWorkflowService {
 
     @Transactional
     public SaleResult recordSale(Long pumpId, RecordAncillarySaleRequest request, User currentUser) {
-        AncillaryProduct product = accessService.requireProductForPump(request.getProductId(), pumpId);
+        AncillaryProduct product = accessService.requireProductForPumpForUpdate(request.getProductId(), pumpId);
         if (product.getStatus() == AncillaryProductStatus.INACTIVE) {
             throw new BusinessException("Product '" + product.getName() + "' is INACTIVE and cannot be sold.");
         }
@@ -207,9 +207,9 @@ public class AncillaryInventoryWorkflowService {
 
     @Transactional
     public LotCorrectionResult updateLot(Long pumpId, Long lotId, UpdateLotRequest request) {
+        AncillaryProduct product = accessService.requireProductForPumpForUpdate(
+                accessService.requireProductIdOfLot(lotId, pumpId), pumpId);
         AncillaryStockLot lot = accessService.requireLotForPump(lotId, pumpId);
-        AncillaryProduct product = productRepository.findById(lot.getProductId())
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found for lot: " + lotId));
 
         if (request.getRemainingQuantity() != null) {
             int newQty = request.getRemainingQuantity();
@@ -271,7 +271,7 @@ public class AncillaryInventoryWorkflowService {
         }
 
         // 2. Load product
-        AncillaryProduct product = accessService.requireProductForPump(request.getProductId(), pumpId);
+        AncillaryProduct product = accessService.requireProductForPumpForUpdate(request.getProductId(), pumpId);
 
         // 3. Resolve price effective on saleDate.
         //    Use start-of-next-day IST as the upper bound so prices set anytime on saleDate
@@ -403,8 +403,10 @@ public class AncillaryInventoryWorkflowService {
         }
 
         if (remaining > 0) {
-            log.warn("Ancillary stock lot shortage: productId={}, saleId={}, {} units not covered by any lot. This indicates a stock count vs lot quantity drift — investigate.",
+            log.error("Ancillary stock lot shortage: productId={}, saleId={}, {} units not covered by any lot",
                     productId, saleId, remaining);
+            throw new BusinessException("Stock lots for this product do not cover " + remaining
+                    + " of the requested units. Correct the stock lots before selling.");
         }
     }
 

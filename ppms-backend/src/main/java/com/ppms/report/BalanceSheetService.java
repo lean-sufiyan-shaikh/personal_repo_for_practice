@@ -10,6 +10,7 @@ import com.ppms.adjustment.NozzleReadingAdjustmentRepository;
 import com.ppms.inventory.DipCheck;
 import com.ppms.inventory.DipCheckRepository;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditPaymentRepository;
 import com.ppms.shift.ShiftCreditEntryRepository;
@@ -23,6 +24,7 @@ import com.ppms.inventory.LotConsumptionRepository;
 import com.ppms.inventory.TankerDelivery;
 import com.ppms.inventory.TankerDeliveryRepository;
 import com.ppms.pump.NozzleRepository;
+import com.ppms.pump.PumpLocationRepository;
 import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
 import com.ppms.pump.PumpShiftDefinition;
@@ -78,6 +80,7 @@ public class BalanceSheetService {
     private final BalanceSheetSupportService supportService;
     private final BalanceSheetDetailAssembler detailAssembler;
     private final PaymentSettlementRepository settlementRepository;
+    private final PumpLocationRepository    pumpLocationRepository;
 
     // ── Generate ──────────────────────────────────────────────────────────────
 
@@ -101,6 +104,10 @@ public class BalanceSheetService {
         if (isShift) {
             shiftDef = shiftDefinitionService.getByIdAndPump(req.getShiftDefinitionId(), pumpId);
         }
+
+        // Serialises generation per pump so two concurrent requests cannot both pass the duplicate check.
+        pumpLocationRepository.findByIdForUpdate(pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pump not found: " + pumpId));
 
         // Guard: prevent accidental duplicate reports unless force flag is set
         if (!req.isForceRegenerate()) {
