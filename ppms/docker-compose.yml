@@ -83,6 +83,8 @@ services:
       - /home/ubuntu/ppms/nginx/nginx.conf:/etc/nginx/nginx.conf.template:ro
       - /home/ubuntu/ppms/ppms-frontend/dist:/usr/share/nginx/html:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      # Certbot webroot for renewals; must match the acme-challenge location in nginx.conf.
+      - /var/www/certbot:/var/www/certbot:ro
       - /home/ubuntu/ppms/logs/nginx:/var/log/nginx
     networks:
       - ppms-net
