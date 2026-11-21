@@ -42,23 +42,24 @@ public class PumpService {
     /** An owner sees every enabled pump they own; staff see the one pump they are assigned to. */
     @Transactional(readOnly = true)
     public List<PumpResponse> getMyPumps(User currentUser) {
-        List<PumpResponse> pumps;
+        return findMyPumps(currentUser).stream()
+                .map(this::toPumpResponse)
+                .toList();
+    }
 
+    /** The pumps behind {@link #getMyPumps}, without their dispensers and nozzles. */
+    @Transactional(readOnly = true)
+    public List<PumpLocation> findMyPumps(User currentUser) {
         if (currentUser.getRole() == UserRole.OWNER) {
-            pumps = pumpLocationRepository.findByOwnerIdAndEnabledTrue(currentUser.getId())
-                    .stream()
-                    .map(this::toPumpResponse)
-                    .toList();
-        } else if (currentUser.getAssignedPumpId() != null) {
-            pumps = pumpLocationRepository.findById(currentUser.getAssignedPumpId())
-                    .filter(PumpLocation::isEnabled)
-                    .map(p -> List.of(toPumpResponse(p)))
-                    .orElse(List.of());
-        } else {
-            pumps = List.of();
+            return pumpLocationRepository.findByOwnerIdAndEnabledTrue(currentUser.getId());
         }
-
-        return pumps;
+        if (currentUser.getAssignedPumpId() != null) {
+            return pumpLocationRepository.findById(currentUser.getAssignedPumpId())
+                    .filter(PumpLocation::isEnabled)
+                    .map(List::of)
+                    .orElse(List.of());
+        }
+        return List.of();
     }
 
     @Transactional

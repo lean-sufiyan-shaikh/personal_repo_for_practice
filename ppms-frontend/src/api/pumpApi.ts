@@ -125,9 +125,35 @@ export interface SetFuelPriceResponse {
   openShiftsWarning: string | null
 }
 
+/** One pump's figures for today in GET /api/pumps/overview. */
+export interface PumpOverviewSummary {
+  pumpId: number
+  name: string
+  enabled: boolean
+  todaySales: number
+  openShiftCount: number
+  overdueShiftCount: number
+  lowStockTankCount: number
+  fuelPricesStale: boolean
+}
+
+export interface PumpsOverview {
+  pumps: PumpOverviewSummary[]
+  totals: {
+    todaySales: number
+    openShiftCount: number
+    overdueShiftCount: number
+    lowStockTankCount: number
+    stalePricePumpCount: number
+  }
+}
+
 export const pumpApi = {
   getMyPumps: () =>
     client.get<PumpSummary[]>('/pumps').then((r) => r.data),
+
+  getPumpsOverview: () =>
+    client.get<PumpsOverview>('/pumps/overview').then((r) => r.data),
 
   createPump: (req: CreatePumpRequest) =>
     client.post<PumpSummary>('/pumps', req).then((r) => r.data),

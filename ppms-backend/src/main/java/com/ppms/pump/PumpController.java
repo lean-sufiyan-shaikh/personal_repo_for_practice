@@ -20,6 +20,7 @@ public class PumpController {
     private final PumpShiftDefinitionService shiftDefinitionService;
     private final TankService tankService;
     private final PumpService pumpService;
+    private final PumpOverviewService pumpOverviewService;
 
     // ─────────────────────────────────────────────────────────────────────────
     // PUMPS
@@ -29,6 +30,12 @@ public class PumpController {
     @GetMapping
     public ResponseEntity<List<PumpResponse>> getMyPumps(@AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(pumpService.getMyPumps(currentUser));
+    }
+
+    /** Today's sales, open shifts, low tanks and price status for each of the current user's pumps. */
+    @GetMapping("/overview")
+    public ResponseEntity<PumpOverviewResponse> getMyPumpsOverview(@AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(pumpOverviewService.getOverview(currentUser));
     }
 
     @PostMapping
