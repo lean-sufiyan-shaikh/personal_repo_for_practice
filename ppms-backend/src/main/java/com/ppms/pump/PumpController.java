@@ -105,12 +105,12 @@ public class PumpController {
         return ResponseEntity.ok(pumpService.updateMaxDuCount(pumpId, request.maxDuCount(), currentUser));
     }
 
-    /** Discrepancy escalation and expense approval thresholds. */
+    /** Discrepancy escalation and expense approval thresholds, and the GST details used on invoices. */
     @PatchMapping("/{pumpId}/settings")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     public ResponseEntity<PumpResponse> updatePumpSettings(
             @PathVariable Long pumpId,
-            @RequestBody UpdatePumpSettingsRequest request,
+            @Valid @RequestBody UpdatePumpSettingsRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(pumpService.updatePumpSettings(pumpId, request, currentUser));
     }

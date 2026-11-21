@@ -10,12 +10,22 @@ export interface PumpSummary {
   createdAt: string
   discrepancyEscalationThreshold: number | null
   expenseApprovalThreshold: number | null
+  /** GST details printed on credit invoices. */
+  gstin?: string | null
+  legalName?: string | null
+  stateName?: string | null
+  invoicePrefix?: string | null
   dus: DUOption[]
 }
 
 export interface UpdatePumpSettingsRequest {
   discrepancyEscalationThreshold?: number | null
   expenseApprovalThreshold?: number | null
+  /** An empty string clears the value; an omitted field is left unchanged. */
+  gstin?: string
+  legalName?: string
+  stateName?: string
+  invoicePrefix?: string
 }
 
 export interface CreatePumpRequest {
@@ -78,6 +88,9 @@ export interface CreditClient {
   isActive: boolean
   /** True when the client can check their balance on the public portal. The PIN itself is never returned. */
   hasPortalPin: boolean
+  /** Null for an unregistered (B2C) client. */
+  gstin?: string | null
+  billingAddress?: string | null
 }
 
 export interface CreateCreditClientRequest {
@@ -86,12 +99,17 @@ export interface CreateCreditClientRequest {
   notes?: string
   /** When set, this client becomes a sub-account under the specified parent. */
   parentClientId?: number
+  gstin?: string
+  billingAddress?: string
 }
 
 export interface UpdateCreditClientRequest {
   name?: string
   phone?: string
   notes?: string
+  /** An empty string removes the value. */
+  gstin?: string
+  billingAddress?: string
 }
 
 export interface SetFuelPriceRequest {
