@@ -19,7 +19,6 @@ import { codeLabel } from '../../constants/labels'
 import { CsvExportButton } from '../../components/CsvExportButton'
 import { csvFilename } from '../../utils/csv'
 import type { CsvColumn } from '../../utils/csv'
-import type { PumpExpense } from '../../api/expenseApi'
 
 const CSV_COLUMNS: CsvColumn<PumpExpense>[] = [
   { header: 'Date', value: (row) => row.expenseDate, kind: 'date' },

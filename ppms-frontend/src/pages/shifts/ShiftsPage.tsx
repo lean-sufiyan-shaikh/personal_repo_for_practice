@@ -72,8 +72,6 @@ function useHistoryFilters() {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-type HistoryTab = 'day' | 'all' | 'discrepancies'
-
 export default function ShiftsPage() {
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
