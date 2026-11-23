@@ -12,7 +12,8 @@
     "noEvents": "No audit events found.",
     "noEventsForFilters": "No audit events found for the selected filters.",
     "by": "by <name>{{name}}</name>",
-    "showing": "Showing {{from}}–{{to}} of {{total}} events"
+    "showing": "Showing {{from}}–{{to}} of {{total}} events",
+    "filtersLabel": "Audit log filters"
   },
   "actions": {
     "USER_CREATED": "Staff added",

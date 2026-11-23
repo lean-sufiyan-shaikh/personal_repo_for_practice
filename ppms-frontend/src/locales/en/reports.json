@@ -1,6 +1,5 @@
 {
   "page": {
-    "kicker": "Analysis",
     "title": "Reports",
     "subtitle": "Operational and financial reports for your pump.",
     "printedBy": "Printed by:",
@@ -13,13 +12,16 @@
       "shifts": "Shifts",
       "expenses": "Expenses",
       "interest": "Interest Accrual"
-    }
+    },
+    "tabsLabel": "Report types"
   },
   "controls": {
     "loadFailed": "Failed to load report",
     "period": "Period: {{from}} to {{to}}",
     "rangeLabel": "{{from}} to {{to}}",
-    "comparedWith": "Compared with {{range}}."
+    "comparedWith": "Compared with {{range}}.",
+    "filtersLabel": "Report filters",
+    "summaryLabel": "Report totals"
   },
   "emptyRange": {
     "noClosedShifts": "No closed shifts for yesterday or today yet.",
@@ -109,7 +111,8 @@
     "short": "Short",
     "over": "Over",
     "operatorCaption": "Short and over shifts for {{name}}",
-    "printTitle": "Short / Over Discrepancy Report"
+    "printTitle": "Short / Over Discrepancy Report",
+    "operatorsTitle": "By operator"
   },
   "inventory": {
     "dipAdjusted": "DIP Adj.",
@@ -136,7 +139,9 @@
     "noLotsInTank": "No lots in this tank.",
     "lotsInCaption": "Lots in {{tank}}",
     "crossTankSummary": "Cross-Tank Summary",
-    "printTitle": "Inventory Lots Report"
+    "printTitle": "Inventory Lots Report",
+    "lotsTitle": "Lots",
+    "tanksTitle": "Tanks"
   },
   "dip": {
     "dipCheck": "Dip Check",

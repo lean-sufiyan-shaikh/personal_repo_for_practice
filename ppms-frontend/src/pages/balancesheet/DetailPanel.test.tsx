@@ -29,7 +29,7 @@ const detail = {
 
 function renderPanel(onRegenerated = vi.fn()) {
   renderWithProviders(
-    <DetailPanel pumpId={3} reportId={7} summary={summary} onClose={vi.fn()} canDelete
+    <DetailPanel pumpId={3} reportId={7} onClose={vi.fn()} canDelete
       onDelete={vi.fn()} onRegenerated={onRegenerated} pumpName="Pump" />,
   )
 }
@@ -42,7 +42,7 @@ describe('Balance sheet staleness', () => {
   })
 
   it('marks a stale sheet in the list', () => {
-    renderWithProviders(<ReportListItem report={summary} isSelected={false} onClick={vi.fn()} />)
+    renderWithProviders(<ReportListItem report={summary} search="?sheet=7" isSelected={false} />)
     expect(screen.getByText('Stale — regenerate')).toBeInTheDocument()
   })
 

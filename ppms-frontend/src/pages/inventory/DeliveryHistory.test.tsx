@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { inventoryApi } from '../../api/inventoryApi'
@@ -34,7 +34,6 @@ describe('DeliveryHistory', () => {
   it('offers delete only on the most recently entered invoice and names it in the request', async () => {
     const user = userEvent.setup()
     renderWithProviders(<DeliveryHistory pumpId={6} tanks={[]} isOwnerOrAdmin canDeleteInvoice />)
-    await user.click(screen.getByRole('button', { name: /Tanker Delivery History/ }))
 
     const deleteButtons = await screen.findAllByRole('button', { name: 'Delete this invoice' })
     expect(deleteButtons).toHaveLength(1)
@@ -42,5 +41,20 @@ describe('DeliveryHistory', () => {
     await user.click(screen.getByRole('button', { name: 'Delete Invoice' }))
 
     expect(inventoryApi.deleteLatestDelivery).toHaveBeenCalledWith(6, 'INV-BACKDATED')
+  })
+
+  it("shows an invoice's tank lines in a side panel and closes it again", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<DeliveryHistory pumpId={6} tanks={[]} isOwnerOrAdmin canDeleteInvoice />)
+
+    expect(screen.getByRole('heading', { name: 'Tanker Delivery History' })).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: /INV-TODAY/ }))
+
+    const panel = screen.getByRole('dialog', { name: 'Invoice INV-TODAY' })
+    expect(within(panel).getByText('T1')).toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: 'Edit delivery' })).toBeInTheDocument()
+
+    await user.click(within(panel).getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

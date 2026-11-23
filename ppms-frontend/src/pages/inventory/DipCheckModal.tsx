@@ -13,6 +13,7 @@ import { NumericInput } from '../../components/NumericInput'
 import { useToastStore } from '../../store/toastStore'
 import { formatNumberIn } from '../../i18n/format'
 import { codeLabel } from '../../constants/labels'
+import { FormGrid, FormGridFullRow } from '../../components/layout/FormGrid'
 
 const ROLLOVER_START_FRACTION = 0.99
 
@@ -27,15 +28,18 @@ function soldSinceOpening(nozzle: OpenShiftNozzle, reading: string): number | nu
   return null
 }
 
-// ── DIP Check Modal ────────────────────────────────────────────────────────────
-
 export function DipCheckModal({
   pumpId,
   tank,
+  tanks = [],
+  onTankChange,
   onClose,
 }: {
   pumpId: number
   tank: TankStock
+  /** With onTankChange, shows a tank picker when the pump has more than one tank. */
+  tanks?: TankStock[]
+  onTankChange?: (tankId: number) => void
   onClose: () => void
 }) {
   const { t } = useTranslation(['inventory', 'common'])
@@ -102,11 +106,10 @@ export function DipCheckModal({
       title={t('dipCheck.title')}
       subtitle={<>{tank.tankIdentifier} — <span className={cols.text}>{codeLabel(tank.fuelType)}</span></>}
       tone="neutral"
-      size="sm"
+      size="md"
       onClose={onClose}
       closeOnBackdropClick
       onSubmit={handleSubmit}
-      bodyClassName="space-y-4"
       footer={<>
         <button
           type="button"
@@ -124,20 +127,30 @@ export function DipCheckModal({
         </button>
       </>}
     >
-          {/* Current system stock */}
-          <div className="bg-surface-sunken rounded-control px-4 py-3 text-xs text-ink-3">
+      <FormGrid>
+          {onTankChange && tanks.length > 1 && (
+            <FormGridFullRow>
+              <span className="ui-label">{t('dipCheck.tank')}</span>
+              <SearchableSelect label={t('dipCheck.tank')}
+                value={String(tank.tankId)}
+                onChange={v => onTankChange(Number(v))}
+                options={tanks.map(option => ({ value: String(option.tankId), label: `${option.tankIdentifier} · ${codeLabel(option.fuelType)}` }))}
+              />
+            </FormGridFullRow>
+          )}
+
+          <FormGridFullRow className="bg-surface-sunken rounded-control px-4 py-3 text-xs text-ink-3">
             {t('dipCheck.systemStock')}{' '}
             <span className="font-bold text-ink tabular-nums">
               {formatNumberIn(tank.currentStock, { minimumFractionDigits: 1 })} L
             </span>
             <span className="block mt-1">{t('dipCheck.noBackdate')}</span>
-          </div>
+          </FormGridFullRow>
 
-          {/* Meter readings of nozzles on open shifts */}
           {openShiftNozzlesLoading ? (
-            <p className="text-xs text-ink-3">{t('dipCheck.checkingShifts')}</p>
+            <FormGridFullRow><p className="text-xs text-ink-3">{t('dipCheck.checkingShifts')}</p></FormGridFullRow>
           ) : openShiftNozzles.length > 0 && (
-            <fieldset className="space-y-3">
+            <fieldset className="ui-form-grid__full space-y-3">
               <legend className="ui-label">{t('dipCheck.meterReadings')}</legend>
               <p className="text-xs text-ink-3">
                 {t('dipCheck.openShiftNote')}
@@ -175,7 +188,6 @@ export function DipCheckModal({
             </fieldset>
           )}
 
-          {/* Measured quantity */}
           <div>
             <label className="block">
               <span className="ui-label">
@@ -193,9 +205,23 @@ export function DipCheckModal({
             </label>
           </div>
 
-          {/* Live variance preview */}
+          <div>
+            <span className="ui-label">
+              {t('dipCheck.checkedBy')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span>
+            </span>
+            <SearchableSelect label={t('dipCheck.checkedBy')}
+              value={checkedByUserId}
+              onChange={v => setCheckedByUserId(v)}
+              placeholder={t('dipCheck.selectOperator')}
+              options={staff.map(s => ({
+                value: String(s.id),
+                label: t('dipCheck.staffOption', { name: s.fullName, role: codeLabel(s.role) }),
+              }))}
+            />
+          </div>
+
           {variance !== null && (
-            <div className={`rounded-control px-4 py-2.5 text-xs flex items-center justify-between ${
+            <div className={`ui-form-grid__full rounded-control px-4 py-2.5 text-xs flex items-center justify-between ${
               Math.abs(variance) < tank.dipTolerance
                 ? 'bg-ok-bg text-ok'
                 : variance > 0
@@ -215,24 +241,7 @@ export function DipCheckModal({
             </div>
           )}
 
-          {/* Operator */}
-          <div>
-            <span className="ui-label">
-              {t('dipCheck.checkedBy')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span>
-            </span>
-            <SearchableSelect label={t('dipCheck.checkedBy')}
-              value={checkedByUserId}
-              onChange={v => setCheckedByUserId(v)}
-              placeholder={t('dipCheck.selectOperator')}
-              options={staff.map(s => ({
-                value: String(s.id),
-                label: t('dipCheck.staffOption', { name: s.fullName, role: codeLabel(s.role) }),
-              }))}
-            />
-          </div>
-
-          {/* Notes */}
-          <div>
+          <FormGridFullRow>
             <label className="block">
               <span className="ui-label">
               {t('common:fields.notes')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span>
@@ -245,9 +254,10 @@ export function DipCheckModal({
                 className="text-sm"
               />
             </label>
-          </div>
+          </FormGridFullRow>
 
-          {error && <p role="alert" className="ui-error-text">{error}</p>}
+          {error && <FormGridFullRow><p role="alert" className="ui-error-text">{error}</p></FormGridFullRow>}
+      </FormGrid>
     </Modal>
   )
 }

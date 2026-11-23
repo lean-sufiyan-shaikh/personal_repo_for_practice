@@ -2,7 +2,9 @@
   "page": {
     "title": "Compliance Documents",
     "subtitle": "Track licences, permits, and certificates",
-    "addButton": "+ Add Document"
+    "addButton": "Add Document",
+    "documentCount_one": "{{count}} document",
+    "documentCount_other": "{{count}} documents"
   },
   "alert": {
     "title": "Compliance attention needed",
@@ -12,7 +14,6 @@
     "expiringSoon_other": "{{count}} documents expiring within 30 days."
   },
   "form": {
-    "kicker": "Document Intake",
     "editTitle": "Edit document",
     "addTitle": "Add document",
     "subtitle": "Store expiry dates, document types, and notes in one place.",
@@ -32,7 +33,10 @@
     "empty": "No documents added yet. Add your licences and permits to track their expiry.",
     "expires": "Expires: {{date}}",
     "noExpiry": "No expiry",
-    "deleteNamed": "Delete {{name}}"
+    "deleteNamed": "Delete {{name}}",
+    "filtersLabel": "Document filters",
+    "shownOf": "Showing {{count}} of {{total}}",
+    "noneWithStatus": "No documents with this status."
   },
   "toast": {
     "updated": "Document updated.",

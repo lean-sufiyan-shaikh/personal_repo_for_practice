@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { formatNumberIn } from '../../../i18n/format'
 import type { Tanker } from '../../../api/tankerApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
+import { FormGrid, FormGridFullRow } from '../../../components/layout/FormGrid'
 
 interface Props {
   date: string
@@ -23,7 +24,7 @@ export function DeliveryHeaderFields({ date, setDate, invoice, setInvoice, tanke
   return (
     <div className="border-b border-border pb-4">
       <div className="ui-inline-form">
-      <div className="grid grid-cols-2 gap-3">
+      <FormGrid>
         <div>
           <label className="block">
             <span className="ui-label">
@@ -51,10 +52,9 @@ export function DeliveryHeaderFields({ date, setDate, invoice, setInvoice, tanke
             />
           </label>
         </div>
-      </div>
 
       {tankers.length > 0 && (
-        <div className="mt-3">
+        <FormGridFullRow>
           <span className="ui-label">{t('header.tanker')}</span>
           <SearchableSelect label={t('header.tanker')}
             value={selectedTankerId !== null ? String(selectedTankerId) : ''}
@@ -87,8 +87,9 @@ export function DeliveryHeaderFields({ date, setDate, invoice, setInvoice, tanke
               </span>
             </div>
           )}
-        </div>
+        </FormGridFullRow>
       )}
+      </FormGrid>
       </div>
     </div>
   )

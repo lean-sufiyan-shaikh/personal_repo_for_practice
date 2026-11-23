@@ -11,7 +11,8 @@ import { csvFilename } from '../../../utils/csv'
 import type { CsvColumn } from '../../../utils/csv'
 import type { DateRange } from '../../../utils/datePresets'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
-import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
+import { DateRangeInputs, ErrorBox, PrintHeader, ReportFilterBar, ReportSummary, SummaryCard } from '../shared'
+import { PageSection } from '../../../components/layout/PageSection'
 import { fmtAmt, fmtShortDate } from '../reportFormat'
 import { MoneyText } from '../../../components/AmountText'
 
@@ -52,9 +53,8 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
     : []
 
   return (
-    <div className="space-y-4">
-      <div className="ui-card ui-card-muted p-4 print:hidden">
-        <div className="ui-filter-group">
+    <div className="flex flex-col gap-(--density-gap)">
+      <ReportFilterBar>
           <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} onPreset={applyRange} />
           <button
             onClick={() => setQuery({ from, to })}
@@ -71,29 +71,27 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
             {t('common:actions.printPdf')}
           </button>
           <CsvExportButton filename={csvFilename('interest-accrual', query)} columns={CSV_COLUMNS} rows={csvRows} />
-        </div>
-      </div>
+      </ReportFilterBar>
 
       {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
 
       {data && (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-(--density-gap)">
           <div className="hidden print:block">
             <PrintHeader title={t('interest.printTitle')} from={query.from} to={query.to} />
           </div>
-          {/* Summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <ReportSummary columns={3}>
             <SummaryCard label={t('interest.totalCharges')}  value={String(data.totalCharges)}  color="text-ink" />
             <SummaryCard label={t('interest.totalInterest')} value={<MoneyText value={data.totalInterest} />} color="text-bad" />
             <SummaryCard label={t('interest.clients')}        value={String(data.clients.length)} color="text-ink" />
-          </div>
+          </ReportSummary>
 
           {data.clients.length === 0 ? (
             <p className="ui-empty py-8">{t('interest.none')}</p>
           ) : (
-            data.clients.map(client => (
-              <div key={client.clientId} className="ui-card p-0 overflow-hidden">
-                {/* Client header */}
+            <PageSection title={t('interest.clients')} flush>
+            {data.clients.map(client => (
+              <div key={client.clientId} className="border-b border-border">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-sunken">
                   <div>
                     <p className="text-sm font-semibold text-ink">{client.clientName}</p>
@@ -102,7 +100,6 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
                   <MoneyText value={client.totalInterest} tone="bad" className="text-sm font-bold" />
                 </div>
 
-                {/* Charge lines */}
                 <div className="divide-y divide-border text-xs">
                   {client.charges.map(c => (
                     <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
@@ -115,8 +112,10 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
                   ))}
                 </div>
               </div>
-            ))
+            ))}
+            </PageSection>
           )}
+
         </div>
       )}
     </div>

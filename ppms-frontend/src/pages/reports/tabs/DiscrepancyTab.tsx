@@ -18,7 +18,8 @@ import type { DateRange } from '../../../utils/datePresets'
 import { discrepanciesUrl, shiftUrl } from '../../../utils/drillDown'
 import { printWhenFontsReady } from '../../../i18n/fonts'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
-import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, SummaryCard } from '../shared'
+import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, ReportFilterBar, ReportSummary, SummaryCard } from '../shared'
+import { PageSection } from '../../../components/layout/PageSection'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { StatusBadge } from '../../../components/StatusBadge'
@@ -106,9 +107,8 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
   const showEmptySuggestion = !!data && isDefaultRange && data.operators.length === 0
 
   return (
-    <div className="space-y-4">
-      <div className="ui-card ui-card-muted p-4 print:hidden">
-        <div className="ui-filter-group">
+    <div className="flex flex-col gap-(--density-gap)">
+      <ReportFilterBar>
         <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} onPreset={applyRange} />
         <button
           onClick={() => { setQuery({ from, to }); setPage(0) }}
@@ -125,8 +125,7 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
           {t('common:actions.printPdf')}
         </button>
         <CsvExportButton filename={csvFilename('short-over', query)} columns={CSV_COLUMNS} rows={csvRows} />
-        </div>
-      </div>
+      </ReportFilterBar>
 
       {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
 
@@ -137,8 +136,8 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
       )}
 
       {data && paged && current && !showEmptySuggestion && (
-        <div className="space-y-3 print:hidden">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-(--density-gap) print:hidden">
+          <ReportSummary columns={2}>
             <SummaryCard
               label={t('discrepancy.totalShort')}
               value={<MoneyText value={current.short} />}
@@ -157,16 +156,18 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
                 <Link to={discrepanciesUrl(query, 'OVER')} className="ui-link mt-1 inline-block text-xs">{t('discrepancy.viewOverShifts')}</Link>
               </>}
             />
-          </div>
+          </ReportSummary>
           {data.operators.length > 0 && <ShortOverChart operators={data.operators} />}
-          <p className="text-xs text-ink-3">
-            {t('discrepancy.shiftsInRange', { count: data.totalDiscrepancyShifts })}
-          </p>
+          <PageSection
+            title={t('discrepancy.operatorsTitle')}
+            titleMeta={<span className="text-xs text-ink-3">{t('discrepancy.shiftsInRange', { count: data.totalDiscrepancyShifts })}</span>}
+            flush
+          >
           {paged.content.length === 0 ? (
-            <div className="ui-empty py-6">{t('discrepancy.none')}</div>
+            <div className="ui-empty m-4 py-6">{t('discrepancy.none')}</div>
           ) : (
             paged.content.map((op) => (
-              <div key={op.operatorId} className="ui-card p-0 overflow-hidden">
+              <div key={op.operatorId} className="border-b border-border">
                 <button
                   className="ui-accordion-trigger"
                   onClick={() => setExpandedOp(expandedOp === op.operatorId ? null : op.operatorId)}
@@ -205,8 +206,12 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
               </div>
             ))
           )}
-          <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
+          <div className="px-4">
+            <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
+          </div>
+          </PageSection>
         </div>
+
       )}
 
       {/* Print: full dataset */}

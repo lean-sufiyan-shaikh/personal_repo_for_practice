@@ -12,25 +12,25 @@ import { DataTable } from '../../components/DataTable'
 import type { DataTableColumn } from '../../components/DataTable'
 import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
-
-// ── Sales History Tab ─────────────────────────────────────────────────────────
+import { PageSection } from '../../components/layout/PageSection'
 
 export function SalesTab({
   pumpId,
   products,
-  isOwnerOrAdmin,
+  isBackfilling,
+  onBackfillClosed,
   onRefresh,
 }: {
   pumpId: number
   products: AncillaryProduct[]
-  isOwnerOrAdmin: boolean
+  isBackfilling: boolean
+  onBackfillClosed: () => void
   onRefresh: () => void
 }) {
   const { t } = useTranslation(['ancillary', 'common'])
   const qc = useQueryClient()
   const [salesPage, setSalesPage] = useState(0)
   const [salesPageSize, setSalesPageSize] = useState(10)
-  const [backfillOpen, setBackfillOpen] = useState(false)
 
   const { data: salesPageData } = useQuery({
     queryKey: ['ancillarySales', pumpId, salesPage, salesPageSize],
@@ -50,23 +50,8 @@ export function SalesTab({
   ]
 
   return (
-    <div className="space-y-4">
-      {/* Backfill button — Admin/Owner only */}
-      {isOwnerOrAdmin && (
-        <div className="flex justify-end">
-          <button
-            onClick={() => setBackfillOpen(true)}
-            className="ui-btn ui-btn-secondary"
-          >
-            {t('salesTab.backfillSale')}
-          </button>
-        </div>
-      )}
-
-      <div className="ui-card p-0">
-        <div className="px-5 py-4 border-b border-border">
-          <h3 className="text-sm font-semibold text-ink">{t('salesTab.title')}</h3>
-        </div>
+    <>
+      <PageSection title={t('salesTab.title')} flush>
         {sales.length === 0 ? (
           <EmptyState icon="transactions" title={t('salesTab.emptyTitle')} subtitle={t('salesTab.emptySubtitle')} />
         ) : (
@@ -90,15 +75,15 @@ export function SalesTab({
             )}
           </>
         )}
-      </div>
+      </PageSection>
 
-      {backfillOpen && (
+      {isBackfilling && (
         <BackfillSaleModal
           pumpId={pumpId}
           products={products.filter(p => p.status === 'ACTIVE')}
-          onClose={() => setBackfillOpen(false)}
+          onClose={onBackfillClosed}
           onSuccess={() => {
-            setBackfillOpen(false)
+            onBackfillClosed()
             setSalesPage(0)
             qc.invalidateQueries({ queryKey: ['ancillarySales', pumpId] })
             qc.invalidateQueries({ queryKey: ['ancillaryProducts', pumpId] })
@@ -106,6 +91,6 @@ export function SalesTab({
           }}
         />
       )}
-    </div>
+    </>
   )
 }

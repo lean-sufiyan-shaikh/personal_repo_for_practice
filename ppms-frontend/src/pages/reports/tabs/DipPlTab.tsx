@@ -8,7 +8,8 @@ import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
 import { printWhenFontsReady } from '../../../i18n/fonts'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
-import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
+import { DateRangeInputs, ErrorBox, PrintHeader, ReportFilterBar, ReportSummary, SummaryCard } from '../shared'
+import { PageSection } from '../../../components/layout/PageSection'
 import { serverMessage } from '../../../utils/apiError'
 import { fmtDateTime, fmtQty } from '../reportFormat'
 import { FUEL_BADGE } from '../../../constants/fuel'
@@ -110,9 +111,8 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="ui-card ui-card-muted p-4 print:hidden">
-        <div className="ui-filter-group">
+    <div className="flex flex-col gap-(--density-gap)">
+      <ReportFilterBar>
         <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} onPreset={applyRange} />
         <button
           onClick={() => { setQuery({ from, to }); setPage(0) }}
@@ -130,14 +130,13 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
           {t('common:actions.printPdf')}
         </button>
         <CsvExportButton filename={csvFilename('dip-pl', query)} columns={CSV_COLUMNS} rows={entries} />
-        </div>
-      </div>
+      </ReportFilterBar>
 
       {error && <ErrorBox message={serverMessage(error) ?? t('dip.loadFailed')} />}
 
       {data && paged && (
-        <div className="space-y-4 print:hidden">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="flex flex-col gap-(--density-gap) print:hidden">
+          <ReportSummary columns={3}>
             <SummaryCard label={t('dip.totalEntries')}  value={String(entries.length)}  color="text-ink" />
             <SummaryCard
               label={t('dip.netPl')}
@@ -149,12 +148,12 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
               value={String(entries.filter(e => e.type === 'DIP_CHECK').length)}
               color="text-primary"
             />
-          </div>
+          </ReportSummary>
 
           {entries.length === 0 ? (
             <div className="ui-empty py-6">{t('dip.none')}</div>
           ) : (
-            <>
+            <PageSection title={t('dip.caption')} flush>
               <DataTable
                 caption={t('dip.caption')}
                 captionHidden
@@ -162,6 +161,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
                 rows={paged.content}
                 rowKey={dipEntryKey}
                 scroll
+                className="rounded-none border-0"
                 footer={entries.length > 1 && (
                   <tr className="bg-surface-sunken text-ink">
                     <td colSpan={4}>{t('dip.netPl')}</td>
@@ -170,9 +170,12 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
                   </tr>
                 )}
               />
-              <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
-            </>
+              <div className="px-4">
+                <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
+              </div>
+            </PageSection>
           )}
+
         </div>
       )}
 

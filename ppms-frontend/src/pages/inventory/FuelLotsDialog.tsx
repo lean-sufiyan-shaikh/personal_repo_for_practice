@@ -5,7 +5,7 @@ import type { TFunction } from 'i18next'
 import { Ruler } from 'lucide-react'
 import { inventoryApi } from '../../api/inventoryApi'
 import type { TankStock, InventoryLotDetail } from '../../api/inventoryApi'
-import { Modal } from '../../components/Modal'
+import { SidePanel } from '../../components/layout/SidePanel'
 import { DataTable } from '../../components/DataTable'
 import type { DataTableColumn } from '../../components/DataTable'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -59,28 +59,18 @@ export function FuelLotsDialog({
   const cols = FUEL_COLORS[tank.fuelType] ?? FUEL_COLORS.PETROL
 
   return (
-    <Modal
+    <SidePanel
       title={t('lots.title', { tank: tank.tankIdentifier })}
-      subtitle={<>{t('lots.currentStock')} <LitresText value={tank.currentStock} /></>}
-      headerExtra={
-        <span className={`mt-1 inline-block text-xs font-bold px-2 py-0.5 rounded-badge ${cols.badge}`}>
-          {codeLabel(tank.fuelType)}
+      subtitle={
+        <span className="inline-flex flex-wrap items-center gap-2">
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-badge ${cols.badge}`}>{codeLabel(tank.fuelType)}</span>
+          <span>{t('lots.currentStock')} <LitresText value={tank.currentStock} /></span>
         </span>
       }
       size="lg"
       onClose={onClose}
-      footerClassName="justify-between items-center"
-      footer={<>
-        <p className="text-xs text-ink-3">
-          {t('lots.fifoNote')}
-        </p>
-        <button
-          onClick={onClose}
-          className="ui-btn ui-btn-secondary"
-        >
-          {t('common:actions.close')}
-        </button>
-      </>}
+      bodyClassName="p-0"
+      footer={<p className="text-xs text-ink-3">{t('lots.fifoNote')}</p>}
     >
       {isLoading ? (
         <p className="ui-empty py-8">{t('lots.loading')}</p>
@@ -97,6 +87,6 @@ export function FuelLotsDialog({
           rowKey={(lot) => lot.id}
         />
       )}
-    </Modal>
+    </SidePanel>
   )
 }

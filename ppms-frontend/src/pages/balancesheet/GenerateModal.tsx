@@ -11,14 +11,14 @@ import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { Modal } from '../../components/Modal'
 
-// ── Generate Modal ──────────────────────────────────────────────────────────────
-
 interface GenerateModalProps {
   pumpId: number
   onClose: () => void
+  /** Called with the new sheet's id instead of onClose once it is saved. */
+  onGenerated: (sheetId: number) => void
 }
 
-export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
+export function GenerateModal({ pumpId, onClose, onGenerated }: GenerateModalProps) {
   const { t } = useTranslation(['balancesheet', 'common'])
   const qc = useQueryClient()
   const { addToast } = useToastStore()
@@ -43,10 +43,10 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
 
   const mutation = useMutation({
     mutationFn: (req: GenerateBalanceSheetRequest) => balanceSheetApi.generate(pumpId, req),
-    onSuccess: () => {
+    onSuccess: (generated) => {
       qc.invalidateQueries({ queryKey: ['balance-sheets', pumpId] })
       addToast(t('generate.success'), 'success')
-      onClose()
+      onGenerated(generated.id)
     },
     onError: (err) => {
       const msg: string = parseApiError(err, t('generate.failed'))

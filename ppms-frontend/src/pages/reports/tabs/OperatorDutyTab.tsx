@@ -9,7 +9,8 @@ import type { OperatorDutyReport, OperatorDutyShiftLine } from '../../../api/rep
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
-import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
+import { DateRangeInputs, ErrorBox, PrintHeader, ReportFilterBar, ReportSummary, SummaryCard } from '../shared'
+import { PageSection } from '../../../components/layout/PageSection'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
@@ -96,10 +97,8 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Screen: controls */}
-      <div className="ui-card ui-card-muted p-4 print:hidden">
-        <div className="ui-filter-group">
+    <div className="flex flex-col gap-(--density-gap)">
+      <ReportFilterBar>
         <div className="w-56">
           <span className="ui-label">{t('duty.operator')}</span>
           <SearchableSelect label={t('duty.operator')}
@@ -129,22 +128,26 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
           columns={CSV_COLUMNS}
           rows={data?.shifts ?? []}
         />
-        </div>
-      </div>
+      </ReportFilterBar>
 
       {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
 
       {/* Screen: paginated data */}
       {data && paged && (
-        <div className="space-y-4 print:hidden">
-          <div className="grid grid-cols-3 gap-4">
+        <div className="flex flex-col gap-(--density-gap) print:hidden">
+          <ReportSummary columns={3}>
             <SummaryCard label={t('duty.totalShifts')}      value={String(data.totalShifts)}      color="text-ink" />
             <SummaryCard label={t('duty.totalAmountDue')}  value={<MoneyText value={data.totalAmountDue} />} color="text-ink" />
             <SummaryCard label={t('duty.totalDiscrepancy')} value={<MoneyText value={data.totalDiscrepancy} />} color={data.totalDiscrepancy > 0 ? 'text-bad' : 'text-ok'} />
-          </div>
-          <DataTable caption={t('duty.caption')} captionHidden columns={columns} rows={paged.content} rowKey={(s) => s.shiftId} scroll />
-          <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
+          </ReportSummary>
+          <PageSection title={data.operatorName} flush>
+            <DataTable caption={t('duty.caption')} captionHidden columns={columns} rows={paged.content} rowKey={(s) => s.shiftId} scroll className="rounded-none border-0" />
+            <div className="px-4">
+              <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
+            </div>
+          </PageSection>
         </div>
+
       )}
 
       {/* Print: full dataset */}

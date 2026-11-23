@@ -1,9 +1,11 @@
 {
   "page": {
-    "kicker": "काउंटर स्टॉक",
     "title": "उत्पाद",
     "subtitle": "लुब्रिकेंट, एक्सेसरी और काउंटर के दूसरे उत्पाद संभालें। स्टॉक और बिक्री का हिसाब रखें।",
-    "productsCount": "उत्पाद"
+    "sellProduct": "उत्पाद बेचें",
+    "productCount_one": "{{count}} उत्पाद",
+    "productCount_other": "{{count}} उत्पाद",
+    "views": "उत्पाद के व्यू"
   },
   "tabs": {
     "products": "उत्पाद",
@@ -51,7 +53,7 @@
     "searchLabel": "उत्पाद खोजें",
     "searchPlaceholder": "उत्पाद खोजें…",
     "clearSearch": "खोज हटाएँ",
-    "add": "+ उत्पाद जोड़ें",
+    "add": "उत्पाद जोड़ें",
     "noMatchTitle": "\"{{query}}\" से कोई उत्पाद नहीं मिला",
     "noMatchSubtitle": "कोई दूसरा शब्द लिखकर खोजें।",
     "emptyTitle": "अभी तक कोई उत्पाद नहीं जोड़ा गया",
@@ -66,7 +68,10 @@
     "editHsnOf": "{{name}} का HSN कोड बदलें",
     "enabled": "उत्पाद चालू हुआ",
     "disabled": "उत्पाद बंद हुआ",
-    "statusFailed": "उत्पाद की स्थिति अपडेट नहीं हो सकी"
+    "statusFailed": "उत्पाद की स्थिति अपडेट नहीं हो सकी",
+    "filtersLabel": "उत्पाद फ़िल्टर",
+    "matchCount_one": "{{count}} मिला",
+    "matchCount_other": "{{count}} मिले"
   },
   "addProduct": {
     "title": "उत्पाद जोड़ें",
@@ -199,5 +204,10 @@
     "reviewBanner": "यह बिक्री {{date}} के लिए <strong>बाद में दर्ज</strong> के रूप में दर्ज होगी। बिक्री कीमत पुरानी कीमतों से ली जाती है।",
     "price": "कीमत",
     "priceFromHistory": "पुरानी कीमतों से ली गई"
+  },
+  "sellPicker": {
+    "subtitle": "ग्राहक जो उत्पाद ले रहा है, उसे चुनें।",
+    "continue": "आगे बढ़ें",
+    "noneInStock": "किसी चालू उत्पाद का स्टॉक बेचने लायक नहीं है। पहले स्टॉक आने की एंट्री करें।"
   }
 }

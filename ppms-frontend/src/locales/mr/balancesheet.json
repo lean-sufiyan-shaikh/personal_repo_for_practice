@@ -2,10 +2,9 @@
   "list": {
     "title": "बॅलन्स शीट",
     "to": "ते",
-    "clearDateFilter": "तारीख फिल्टर काढा",
     "emptyTitle": "कोणतीही बॅलन्स शीट सापडली नाही",
     "emptySubtitle": "एखाद्या कालावधीच्या सर्व शिफ्ट बंद केल्यानंतर रिपोर्ट तयार करा.",
-    "selectReport": "तपशील पाहण्यासाठी रिपोर्ट निवडा",
+    "selectReport": "एखादी शीट निवडा",
     "noPermission": "तुम्हाला बॅलन्स शीट पाहण्याची परवानगी नाही.",
     "day": "दिवस",
     "shift": "शिफ्ट",
@@ -13,7 +12,15 @@
     "shiftsSold_one": "{{count}} शिफ्ट · {{litres}} विकले",
     "shiftsSold_other": "{{count}} शिफ्ट · {{litres}} विकले",
     "balanced": "जुळले",
-    "profitSuffix": "नफा"
+    "profitSuffix": "नफा",
+    "description": "विक्री, वसुली, स्टॉक आणि नफ्याचे शिफ्ट आणि दिवसअखेरचे तपशील.",
+    "generateSheet": "शीट तयार करा",
+    "selectReportHint": "विक्री, वसुली आणि स्टॉक पाहण्यासाठी यादीतून शीट निवडा, किंवा नवीन शीट तयार करा.",
+    "filtersLabel": "बॅलन्स शीट फिल्टर",
+    "listLabel": "बॅलन्स शीट",
+    "detailLabel": "बॅलन्स शीटचा तपशील",
+    "sheetCount_one": "{{count}} शीट",
+    "sheetCount_other": "{{count}} शीट"
   },
   "generate": {
     "title": "बॅलन्स शीट तयार करा",
@@ -55,7 +62,6 @@
     "generatedLine": "{{date}} · {{name}} यांनी {{generatedAt}} ला तयार केली",
     "pumpLabel": "पंप:",
     "shiftsIncluded": "समाविष्ट शिफ्ट:",
-    "back": "← परत",
     "closeDetails": "तपशील बंद करा",
     "outOfDate": "ही शीट जुनी आहे:",
     "defaultStaleReason": "शीट तयार झाल्यानंतर या दिवसाचे खर्च, उत्पादन विक्री किंवा डिप नोंदी बदलल्या आहेत.",

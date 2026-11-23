@@ -9,10 +9,10 @@ import { useToastStore } from '../../store/toastStore'
 import { Modal } from '../../components/Modal'
 import { fmtDate } from './bsFormat'
 
-// ── Delete Confirm Modal ────────────────────────────────────────────────────────
+export type DeletableSheet = Pick<BalanceSheetSummary, 'id' | 'periodLabel' | 'periodLabelCode' | 'periodLabelParams' | 'reportDate'>
 
 interface DeleteConfirmProps {
-  report: BalanceSheetSummary
+  report: DeletableSheet
   pumpId: number
   onClose: () => void
 }

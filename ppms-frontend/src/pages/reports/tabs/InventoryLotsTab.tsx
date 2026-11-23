@@ -10,7 +10,8 @@ import type { InventoryLotsReport, AllTanksInventoryReport, InventoryLotLine, Co
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
-import { DateRangeInputs, ErrorBox, PrintHeader } from '../shared'
+import { DateRangeInputs, ErrorBox, PrintHeader, ReportFilterBar, ReportSummary } from '../shared'
+import { PageSection } from '../../../components/layout/PageSection'
 import { localDateInputValue } from '../../../utils/date'
 import { formatDecimal } from '../../../utils/format'
 import { printWhenFontsReady } from '../../../i18n/fonts'
@@ -143,9 +144,8 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="ui-card ui-card-muted p-4 print:hidden">
-        <div className="ui-filter-group">
+    <div className="flex flex-col gap-(--density-gap)">
+      <ReportFilterBar>
           <div className="w-56">
             <span className="ui-label">{t('inventory.tank')}</span>
             <SearchableSelect label={t('inventory.tank')}
@@ -178,8 +178,7 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
             columns={CSV_COLUMNS}
             rows={csvRows}
           />
-        </div>
-      </div>
+      </ReportFilterBar>
 
       {query === '' && (
         <p className="ui-help print:hidden">
@@ -191,10 +190,9 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
 
       {/* Single-tank view */}
       {data && paged && query !== '' && (
-        <div className="space-y-3 print:hidden">
-          {/* Summary strip */}
+        <div className="flex flex-col gap-(--density-gap) print:hidden">
           {data.weightedAvgCostPerUnit != null && (
-            <div className="grid grid-cols-3 gap-3">
+            <ReportSummary columns={3}>
               <div className="ui-card ui-card-muted p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">{t('inventory.totalRemaining')}</p>
                 <p className="text-sm font-semibold text-ink mt-0.5"><LitresText value={data.totalRemaining} decimals={2} /></p>
@@ -207,12 +205,16 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">{t('inventory.stockValue')}</p>
                 <MoneyText value={data.totalStockValue} className="block text-sm font-semibold text-ink mt-0.5" />
               </div>
-            </div>
+            </ReportSummary>
           )}
 
-          <p className="text-xs text-ink-3">{t('inventory.lotsInTank', { count: data.totalLots })}</p>
+          <PageSection
+            title={t('inventory.lotsTitle')}
+            titleMeta={<span className="text-xs text-ink-3">{t('inventory.lotsInTank', { count: data.totalLots })}</span>}
+            flush
+          >
           {paged.content.map((lot) => (
-            <div key={lot.lotId} className="ui-card p-0 overflow-hidden">
+            <div key={lot.lotId} className="border-b border-border">
               <button
                 className="ui-accordion-trigger"
                 onClick={() => setExpandedLot(expandedLot === lot.lotId ? null : lot.lotId)}
@@ -250,21 +252,25 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
             </div>
           ))}
           {paged.content.length === 0 && (
-            <div className="ui-empty py-6">{t('inventory.noLotsForTank')}</div>
+            <div className="ui-empty m-4 py-6">{t('inventory.noLotsForTank')}</div>
           )}
-          <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
+          <div className="px-4">
+            <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
+          </div>
+          </PageSection>
         </div>
       )}
 
       {/* All-tanks view */}
       {allTanksData && query === '' && (
-        <div className="space-y-3 print:hidden">
+        <div className="flex flex-col gap-(--density-gap) print:hidden">
           {allTanksData.tanks.length === 0 ? (
             <div className="ui-empty py-6">{t('inventory.noTanks')}</div>
           ) : (
             <>
+              <PageSection title={t('inventory.tanksTitle')} flush>
               {allTanksData.tanks.map((section) => (
-                <div key={section.tankId} className="ui-card p-0 overflow-hidden">
+                <div key={section.tankId} className="border-b border-border">
                   <button
                     className="ui-accordion-trigger"
                     onClick={() => setExpandedLot(expandedLot === section.tankId ? null : section.tankId)}
@@ -303,14 +309,19 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                   )}
                 </div>
               ))}
+              </PageSection>
 
-              {/* Cross-tank summary */}
-              <DataTable
-                caption={t('inventory.crossTankSummary')}
-                columns={crossTankColumns(t)}
-                rows={allTanksData.crossTankSummary}
-                rowKey={(row) => row.fuelType}
-              />
+              <PageSection title={t('inventory.crossTankSummary')} flush>
+                <DataTable
+                  caption={t('inventory.crossTankSummary')}
+                  captionHidden
+                  columns={crossTankColumns(t)}
+                  rows={allTanksData.crossTankSummary}
+                  rowKey={(row) => row.fuelType}
+                  className="rounded-none border-0"
+                />
+              </PageSection>
+
             </>
           )}
         </div>

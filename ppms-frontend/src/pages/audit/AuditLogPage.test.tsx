@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { auditApi } from '../../api/auditApi'
@@ -51,9 +51,20 @@ describe('AuditLogPage', () => {
     expect(await screen.findByRole('link', { name: 'Shift #123' })).toHaveAttribute('href', '/dashboard/shifts?shift=123')
   })
 
-  it('stacks the filters in one column on a phone and spreads them out on wider screens', async () => {
+  it('keeps every filter in one filter bar above the events and clears them together', async () => {
+    const user = userEvent.setup()
     renderWithProviders(<AuditLogPage />)
-    const grid = (await screen.findByLabelText('Action')).closest('.grid')
-    expect(grid).toHaveClass('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-4')
+    await screen.findByText('Closed shift')
+
+    const filters = screen.getByRole('group', { name: 'Audit log filters' })
+    for (const label of ['From', 'To', 'Action', 'User', 'Show sign-in events']) {
+      expect(within(filters).getByLabelText(label)).toBeInTheDocument()
+    }
+    expect(screen.getByRole('heading', { level: 2, name: /Filtered Events \(1\)/ })).toBeInTheDocument()
+
+    await user.click(within(filters).getByRole('button', { name: 'Clear filters' }))
+
+    await waitFor(() => expect(auditApi.getAuditLogs).toHaveBeenLastCalledWith(expect.objectContaining({ from: undefined, to: undefined })))
+    expect(screen.getByRole('heading', { level: 2, name: /All Events/ })).toBeInTheDocument()
   })
 })

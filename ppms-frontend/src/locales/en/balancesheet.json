@@ -2,10 +2,9 @@
   "list": {
     "title": "Balance Sheets",
     "to": "to",
-    "clearDateFilter": "Clear date filter",
     "emptyTitle": "No balance sheets found",
     "emptySubtitle": "Generate a report after closing all shifts for a period.",
-    "selectReport": "Select a report to view details",
+    "selectReport": "Select a sheet",
     "noPermission": "You do not have permission to view balance sheets.",
     "day": "Day",
     "shift": "Shift",
@@ -13,7 +12,15 @@
     "shiftsSold_one": "{{count}} shift · {{litres}} sold",
     "shiftsSold_other": "{{count}} shifts · {{litres}} sold",
     "balanced": "Balanced",
-    "profitSuffix": "profit"
+    "profitSuffix": "profit",
+    "description": "Shift and day-end snapshots of sales, collections, stock and profit.",
+    "generateSheet": "Generate sheet",
+    "selectReportHint": "Pick a sheet from the list to see its sales, collections and stock, or generate a new one.",
+    "filtersLabel": "Balance sheet filters",
+    "listLabel": "Balance sheets",
+    "detailLabel": "Balance sheet details",
+    "sheetCount_one": "{{count}} sheet",
+    "sheetCount_other": "{{count}} sheets"
   },
   "generate": {
     "title": "Generate Balance Sheet",
@@ -55,7 +62,6 @@
     "generatedLine": "{{date}} · Generated {{generatedAt}} by {{name}}",
     "pumpLabel": "Pump:",
     "shiftsIncluded": "Shifts included:",
-    "back": "← Back",
     "closeDetails": "Close details",
     "outOfDate": "This sheet is out of date:",
     "defaultStaleReason": "Expenses, product sales or dip entries for this day changed after the sheet was generated.",

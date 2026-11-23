@@ -6,7 +6,8 @@ import { useAuthStore } from '../../store/authStore'
 import { balanceSheetApi } from '../../api/balanceSheetApi'
 import { parseApiError } from '../../utils/apiError'
 import { useToastStore } from '../../store/toastStore'
-import type { BalanceSheetSummary, BsFuelLine, BsShiftLine } from '../../api/balanceSheetApi'
+import type { BsFuelLine, BsShiftLine } from '../../api/balanceSheetApi'
+import type { DeletableSheet } from './DeleteConfirmModal'
 import { SkeletonRows } from '../../components/Skeleton'
 import { IconButton } from '../../components/IconButton'
 import { DiscrepancyTd, FuelLineRow, ShiftLineRow, SummaryTile, Td } from './bsTableCells'
@@ -97,20 +98,17 @@ function fuelTableColumns(t: BalanceSheetT, isOwnerOrAdmin: boolean): DataTableC
   ]
 }
 
-// ── Detail Panel ────────────────────────────────────────────────────────────────
-
 interface DetailPanelProps {
   pumpId: number
   reportId: number
   onClose: () => void
   canDelete: boolean
-  onDelete: (summary: BalanceSheetSummary) => void
+  onDelete: (sheet: DeletableSheet) => void
   onRegenerated: (newReportId: number) => void
-  summary: BalanceSheetSummary
   pumpName: string
 }
 
-export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, onRegenerated, summary, pumpName }: DetailPanelProps) {
+export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, onRegenerated, pumpName }: DetailPanelProps) {
   const { t } = useTranslation(['balancesheet', 'common'])
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
@@ -132,7 +130,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
 
   if (error) {
     return (
-      <div className="flex-1 px-6 py-6 space-y-3">
+      <div className="space-y-3">
         <div className="ui-alert ui-alert-danger text-sm" role="alert">
           {parseApiError(error, t('detail.loadFailed'))}
         </div>
@@ -143,7 +141,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
 
   if (isLoading || !detail) {
     return (
-      <div className="flex-1 px-6 py-6">
+      <div>
         <SkeletonRows count={6} />
       </div>
     )
@@ -153,10 +151,9 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
   const fuelColumns = isOwnerOrAdmin ? [...FUEL_COLUMNS, ...FUEL_PROFIT_COLUMNS] : FUEL_COLUMNS
 
   return (
-    <div className="flex-1 overflow-y-auto print:overflow-visible">
-      {/* Detail header */}
-      <div className="sticky top-0 bg-surface border-b border-border px-6 py-4 flex items-center justify-between z-10">
-        <div>
+    <div>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
             <StatusBadge tone={detail.reportType === 'DAY' ? 'neutral' : 'info'} label={detail.reportType === 'DAY' ? t('detail.dayEnd') : t('detail.shift')} />
             <h2 className="text-base font-semibold text-ink">
@@ -179,15 +176,9 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
           )}
         </div>
         <div className="flex items-center gap-2 print:hidden">
-          <button
-            onClick={onClose}
-            className="md:hidden text-xs text-primary font-medium border border-info hover:border-primary px-3 py-1.5 rounded-control transition-colors"
-          >
-            {t('detail.back')}
-          </button>
           {canDelete && (
             <button
-              onClick={() => onDelete(summary)}
+              onClick={() => onDelete(detail)}
               className="text-xs text-bad hover:text-bad-strong border border-bad hover:bg-bad-bg px-3 py-1.5 rounded-control transition-colors"
             >
               {t('common:actions.delete')}
@@ -201,14 +192,14 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
           </button>
           <IconButton
             onClick={onClose}
-            className="hidden md:block text-ink-3 hover:text-ink-2 text-xl leading-none"
+            className="hidden lg:block text-ink-3 hover:text-ink-2 text-xl leading-none"
             label={t('detail.closeDetails')}
             icon={'×'}
           />
         </div>
       </div>
 
-      <div className="px-6 py-5 space-y-6">
+      <div className="space-y-6 pt-5">
         {(detail.stale || detail.linesChangedSinceGenerated) && (
           <div role="alert" className="ui-alert ui-alert-warning text-sm flex flex-wrap items-center justify-between gap-2">
             <span>

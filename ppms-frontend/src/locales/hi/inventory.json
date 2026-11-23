@@ -1,14 +1,14 @@
 {
   "page": {
-    "kicker": "स्टॉक नियंत्रण",
     "title": "स्टॉक",
     "subtitle": "टैंक का स्टॉक, टैंकर डिलीवरी और डिप जाँच।",
-    "lowStock": "कम स्टॉक",
-    "dipOverdue": "डिप जाँच बाकी",
     "currentStock": "अभी का स्टॉक",
     "recordDelivery": "डिलीवरी दर्ज करें",
-    "loadingStock": "स्टॉक लोड हो रहा है...",
-    "noTanks": "कोई टैंक नहीं है। सेटअप में नोज़ल जोड़ें, टैंक अपने-आप बन जाएँगे।"
+    "noTanks": "कोई टैंक नहीं है। सेटअप में नोज़ल जोड़ें, टैंक अपने-आप बन जाएँगे।",
+    "lowStockCount_one": "{{count}} टैंक में कम स्टॉक",
+    "lowStockCount_other": "{{count}} टैंकों में कम स्टॉक",
+    "dipOverdueCount_one": "{{count}} डिप जाँच बाकी",
+    "dipOverdueCount_other": "{{count}} डिप जाँच बाकी"
   },
   "alerts": {
     "lowStockOne": "{{tank}} ({{fuel}}) में 20% से कम स्टॉक है।",
@@ -26,7 +26,8 @@
     "viewLots": "लॉट देखें",
     "dipCheck": "डिप जाँच",
     "remaining": "बाकी",
-    "capacity": "क्षमता: {{value}} L"
+    "capacity": "क्षमता: {{value}} L",
+    "cardLabel": "{{tank}} · {{fuel}}"
   },
   "lots": {
     "title": "स्टॉक लॉट — {{tank}}",
@@ -69,7 +70,9 @@
     "calculated": "हिसाब से ₹{{amount}}",
     "deleteInvoice": "यह इनवॉइस हटाएँ",
     "deleteFailed": "इनवॉइस नहीं हट सका",
-    "editDelivery": "डिलीवरी बदलें"
+    "editDelivery": "डिलीवरी बदलें",
+    "invoiceTitle": "बिल {{invoice}}",
+    "loggedBy": "{{name}} ने दर्ज किया"
   },
   "deleteInvoice": {
     "title": "इनवॉइस हटाएँ?",
@@ -139,7 +142,8 @@
     "checkedBy": "जाँच करने वाले",
     "selectOperator": "— ऑपरेटर चुनें —",
     "staffOption": "{{name}} ({{role}})",
-    "notesPlaceholder": "जैसे शाम 6 बजे रीडिंग ली"
+    "notesPlaceholder": "जैसे शाम 6 बजे रीडिंग ली",
+    "tank": "टैंक"
   },
   "recordDelivery": {
     "title": "टैंकर डिलीवरी दर्ज करें",

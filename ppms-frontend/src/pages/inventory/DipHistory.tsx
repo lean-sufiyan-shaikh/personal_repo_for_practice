@@ -9,12 +9,14 @@ import type { TankStock, DipCheck } from '../../api/inventoryApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { StatusBadge } from '../../components/StatusBadge'
+import { SkeletonRows } from '../../components/Skeleton'
+import { FilterBar } from '../../components/layout/FilterBar'
+import { PageSection } from '../../components/layout/PageSection'
 import { DipItem } from './DipItem'
 import { fmtDate } from './inventoryFormat'
 
 export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: number; tanks: TankStock[]; canViewFinancials: boolean }) {
   const { t } = useTranslation(['inventory', 'common'])
-  const [dipHistOpen,       setDipHistOpen]       = useState(false)
   const [dipPage,           setDipPage]           = useState(0)
   const [dipPageSize,       setDipPageSize]       = useState(10)
   const [dipTankFilter,          setDipTankFilter]          = useState('')
@@ -24,7 +26,6 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
   const { data: dipChecksPage, isLoading: dipLoading } = useQuery({
     queryKey: ['dipChecks', pumpId, dipPage, dipPageSize],
     queryFn:  () => inventoryApi.getDipChecks(pumpId, dipPage, dipPageSize),
-    enabled:  dipHistOpen,
   })
   const dipChecks = dipChecksPage?.content ?? []
 
@@ -38,54 +39,38 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
   }, [dipChecksPage])
 
   return (
-      <div className="ui-card p-0 overflow-hidden">
-        <button
-          onClick={() => setDipHistOpen(v => !v)}
-          className="ui-accordion-trigger"
-        >
-          <span className="ui-accordion-title">{t('dipHistory.title')}</span>
-          <span className={`ui-accordion-arrow ${dipHistOpen ? 'ui-accordion-arrow--open' : ''}`}><ChevronDown size={14} strokeWidth={2} /></span>
-        </button>
-        {dipHistOpen && (
-          <div className="ui-accordion-content border-t border-border">
-            <div className="ui-toolbar">
-              <p className="ui-toolbar-title">{t('dipHistory.filterTitle')}</p>
-              <div className="ui-toolbar-actions">
-                <div className="w-44">
-                <SearchableSelect label={t('dipHistory.filterByTank')}
-                  value={dipTankFilter}
-                  onChange={v => setDipTankFilter(v)}
-                  options={[
-                    { value: '', label: t('filters.allTanks') },
-                    ...tanks.map(tank => ({ value: tank.tankIdentifier, label: tank.tankIdentifier })),
-                  ]}
-                  placeholder={t('filters.byTank')}
-                />
-              </div>
-                <div className="w-44">
-                <SearchableSelect label={t('dipHistory.filterByFuel')}
-                  value={dipFuelFilter}
-                  onChange={v => setDipFuelFilter(v)}
-                  options={[
-                    { value: '', label: t('filters.allFuelTypes') },
-                    ...Array.from(new Set(tanks.map(tank => tank.fuelType))).map(ft => ({ value: ft, label: codeLabel(ft) })),
-                  ]}
-                  placeholder={t('filters.byFuelType')}
-                />
-              </div>
-                {(dipTankFilter || dipFuelFilter) && (
-                  <button
-                    onClick={() => { setDipTankFilter(''); setDipFuelFilter('') }}
-                    className="ui-btn ui-btn-ghost text-xs"
-                  >
-                    {t('common:actions.clearFilters')}
-                  </button>
-                )}
-              </div>
-            </div>
+    <PageSection title={t('dipHistory.title')} flush>
+      <FilterBar
+        label={t('dipHistory.filterTitle')}
+        onClearFilters={() => { setDipTankFilter(''); setDipFuelFilter('') }}
+        hasActiveFilters={Boolean(dipTankFilter || dipFuelFilter)}
+      >
+        <div className="w-44">
+          <SearchableSelect label={t('dipHistory.filterByTank')}
+            value={dipTankFilter}
+            onChange={v => setDipTankFilter(v)}
+            options={[
+              { value: '', label: t('filters.allTanks') },
+              ...tanks.map(tank => ({ value: tank.tankIdentifier, label: tank.tankIdentifier })),
+            ]}
+            placeholder={t('filters.byTank')}
+          />
+        </div>
+        <div className="w-44">
+          <SearchableSelect label={t('dipHistory.filterByFuel')}
+            value={dipFuelFilter}
+            onChange={v => setDipFuelFilter(v)}
+            options={[
+              { value: '', label: t('filters.allFuelTypes') },
+              ...Array.from(new Set(tanks.map(tank => tank.fuelType))).map(ft => ({ value: ft, label: codeLabel(ft) })),
+            ]}
+            placeholder={t('filters.byFuelType')}
+          />
+        </div>
+      </FilterBar>
 
             {dipLoading ? (
-              <div className="p-5 text-sm text-ink-3">{t('common:loading.app')}</div>
+              <div className="p-(--density-card-pad)"><SkeletonRows count={3} /></div>
             ) : (() => {
               // Apply client-side filters on the current page's data
               const filtered = dipChecks.filter(d =>
@@ -95,7 +80,7 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
 
               if (filtered.length === 0) {
                 return (
-                  <div className="p-5 text-sm text-ink-3">
+                  <div className="p-(--density-card-pad) text-sm text-ink-3">
                     {dipChecks.length === 0
                       ? t('dipHistory.empty')
                       : t('dipHistory.noMatch')}
@@ -120,7 +105,7 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
                     const isCollapsed = collapsedDipGroups.has(dateKey)
                     const toggleDip = () => setCollapsedDipGroups(prev => withToggled(prev, dateKey))
                     return (
-                      <div key={dateKey} className="px-5 py-4 space-y-2">
+                      <div key={dateKey} className="space-y-2 px-(--density-card-pad) py-(--density-row-y)">
                         <button
                           type="button"
                           onClick={toggleDip}
@@ -157,7 +142,7 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
                   })}
                 </div>
                 {dipChecksPage && (
-                  <div className="px-5">
+                  <div className="px-(--density-card-pad)">
                     <Pagination
                       data={dipChecksPage}
                       onPageChange={p => setDipPage(p)}
@@ -169,8 +154,6 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
                 </>
               )
             })()}
-          </div>
-        )}
-      </div>
+    </PageSection>
   )
 }

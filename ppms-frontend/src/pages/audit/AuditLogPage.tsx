@@ -7,7 +7,10 @@ import type { AuditAction, AuditLog } from '../../api/auditApi'
 import { usePumpStore } from '../../store/usePumpStore'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
-import { Reveal } from '../../components/Reveal'
+import { Page } from '../../components/layout/Page'
+import { PageHeader } from '../../components/layout/PageHeader'
+import { PageSection } from '../../components/layout/PageSection'
+import { FilterBar } from '../../components/layout/FilterBar'
 import { DatePresetChips } from '../../components/DatePresetChips'
 import { CsvExportButton } from '../../components/CsvExportButton'
 import { useDateRangeParams } from '../../hooks/useDateRangeParams'
@@ -116,111 +119,88 @@ export default function AuditLogPage() {
   const rangeEnd   = Math.min((currentPage + 1) * pageSize, totalEvents)
 
   return (
-    <div className="ui-page ui-page--narrow space-y-5">
+    <Page>
+      <PageHeader
+        title={t('page.title')}
+        description={t('page.subtitle')}
+        secondaryActions={
+          <CsvExportButton
+            filename={csvFilename('audit', from && to ? { from, to } : undefined)}
+            columns={CSV_COLUMNS}
+            rows={loadAllEvents}
+            disabled={totalEvents === 0}
+          />
+        }
+      />
 
-      {/* ── Header ── */}
-      <Reveal delay={60}>
-      <div className="ui-page-header">
-        <div>
-        <h1 className="ui-title-sm">{t('page.title')}</h1>
-        <p className="ui-subtitle">
-          {t('page.subtitle')}
-        </p>
-        </div>
-      </div>
-      </Reveal>
-
-      {/* ── Filters ── */}
-      <Reveal delay={130}>
-      <div className="ui-card ui-form-shell">
-        <DatePresetChips range={range} onSelect={applyRange} />
-        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="block">
-            <span className="ui-label mb-0">{t('common:fields.from')}</span>
-            <input
-              type="date"
-              value={from}
-              onChange={e => applyRange({ from: e.target.value, to })}
-              max={to || undefined}
-              className="text-sm"
-            />
-          </label>
-          <label className="block">
-            <span className="ui-label mb-0">{t('common:fields.to')}</span>
-            <input
-              type="date"
-              value={to}
-              onChange={e => applyRange({ from, to: e.target.value })}
-              min={from || undefined}
-              className="text-sm"
-            />
-          </label>
-          <label className="block">
-            <span className="ui-label mb-0">{t('page.action')}</span>
-            <select
-              value={action}
-              onChange={e => { setAction(e.target.value as AuditAction | ''); setPage(0) }}
-              className="text-sm"
-            >
-              <option value="">{t('page.allActions')}</option>
-              {actionOptions().map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="ui-label mb-0">{t('page.user')}</span>
-            <select
-              value={actorId ?? ''}
-              onChange={e => { setActorId(e.target.value ? Number(e.target.value) : null); setPage(0) }}
-              className="text-sm"
-            >
-              <option value="">{t('page.everyone')}</option>
-              {actors.map(actor => (
-                <option key={actor.actorId} value={actor.actorId}>{actor.actorName}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="inline-flex items-center gap-2 text-sm text-ink-2">
-            <input
-              type="checkbox"
-              checked={showSignIns}
-              onChange={e => { setShowSignIns(e.target.checked); setPage(0) }}
-            />
-            {t('page.showSignIns')}
-          </label>
-          {hasFilters && (
-            <button type="button" onClick={clearFilters} className="ui-btn ui-btn-ghost text-xs">
-              {t('common:actions.clearFilters')}
-            </button>
-          )}
-          <div className="ml-auto">
-            <CsvExportButton
-              filename={csvFilename('audit', from && to ? { from, to } : undefined)}
-              columns={CSV_COLUMNS}
-              rows={loadAllEvents}
-              disabled={totalEvents === 0}
-            />
+      <PageSection
+        title={<>{hasFilters ? t('page.filteredEvents') : t('page.allEvents')} ({isLoading ? '…' : totalEvents})</>}
+        titleMeta={!isLoading && totalPages > 0 && (
+          <span className="text-xs text-ink-3">
+            {t('common:pagination.pageOf', { page: currentPage + 1, total: totalPages })}
+          </span>
+        )}
+        flush
+      >
+        <FilterBar label={t('page.filtersLabel')} onClearFilters={clearFilters} hasActiveFilters={hasFilters}>
+          <div className="ui-filter-group w-full">
+            <div className="basis-full"><DatePresetChips range={range} onSelect={applyRange} /></div>
+            <label className="block">
+              <span className="ui-label mb-0">{t('common:fields.from')}</span>
+              <input
+                type="date"
+                value={from}
+                onChange={e => applyRange({ from: e.target.value, to })}
+                max={to || undefined}
+                className="text-sm"
+              />
+            </label>
+            <label className="block">
+              <span className="ui-label mb-0">{t('common:fields.to')}</span>
+              <input
+                type="date"
+                value={to}
+                onChange={e => applyRange({ from, to: e.target.value })}
+                min={from || undefined}
+                className="text-sm"
+              />
+            </label>
+            <label className="block">
+              <span className="ui-label mb-0">{t('page.action')}</span>
+              <select
+                value={action}
+                onChange={e => { setAction(e.target.value as AuditAction | ''); setPage(0) }}
+                className="text-sm"
+              >
+                <option value="">{t('page.allActions')}</option>
+                {actionOptions().map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block min-w-40">
+              <span className="ui-label mb-0">{t('page.user')}</span>
+              <select
+                value={actorId ?? ''}
+                onChange={e => { setActorId(e.target.value ? Number(e.target.value) : null); setPage(0) }}
+                className="text-sm"
+              >
+                <option value="">{t('page.everyone')}</option>
+                {actors.map(actor => (
+                  <option key={actor.actorId} value={actor.actorId}>{actor.actorName}</option>
+                ))}
+              </select>
+            </label>
+            <label className="inline-flex min-h-10 items-center gap-2 text-sm text-ink-2">
+              <input
+                type="checkbox"
+                checked={showSignIns}
+                onChange={e => { setShowSignIns(e.target.checked); setPage(0) }}
+              />
+              {t('page.showSignIns')}
+            </label>
           </div>
-        </div>
-      </div>
-      </Reveal>
-
-      {/* ── Log list ── */}
-      <Reveal delay={200}>
-      <div className="ui-card p-0 overflow-hidden">
-        <div className="ui-toolbar">
-          <p className="ui-toolbar-title">
-            {hasFilters ? t('page.filteredEvents') : t('page.allEvents')} ({isLoading ? '…' : totalEvents})
-          </p>
-          {!isLoading && totalPages > 0 && (
-            <p className="ui-toolbar-note">
-              {t('common:pagination.pageOf', { page: currentPage + 1, total: totalPages })}
-            </p>
-          )}
-        </div>
+        </FilterBar>
 
         {isLoading ? (
           <div className="px-5 py-4"><SkeletonRows count={5} /></div>
@@ -229,11 +209,11 @@ export default function AuditLogPage() {
             {hasFilters ? t('page.noEventsForFilters') : t('page.noEvents')}
           </p>
         ) : (
-          <div className="divide-y divide-border">
+          <ul className="divide-y divide-border">
             {logs.map(log => {
               const entityUrl = auditEntityUrl(log.entityType, log.entityId)
               return (
-                <div key={log.id} className="px-5 py-3">
+                <li key={log.id} className="px-(--density-card-pad) py-(--density-row-y)">
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <StatusBadge
@@ -254,10 +234,10 @@ export default function AuditLogPage() {
                         : auditEntityLabel(log.entityType, log.entityId)}
                     </p>
                   )}
-                </div>
+                </li>
               )
             })}
-          </div>
+          </ul>
         )}
 
         {/* ── Pagination controls — always shown when there's data ── */}
@@ -284,8 +264,8 @@ export default function AuditLogPage() {
             </div>
           </div>
         )}
-      </div>
-      </Reveal>
-    </div>
+      </PageSection>
+    </Page>
   )
 }
+

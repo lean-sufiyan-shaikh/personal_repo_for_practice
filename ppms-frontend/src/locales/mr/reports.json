@@ -1,6 +1,5 @@
 {
   "page": {
-    "kicker": "विश्लेषण",
     "title": "रिपोर्ट",
     "subtitle": "तुमच्या पंपाच्या कामकाजाचे आणि हिशोबाचे रिपोर्ट.",
     "printedBy": "प्रिंट केले:",
@@ -13,13 +12,16 @@
       "shifts": "शिफ्ट",
       "expenses": "खर्च",
       "interest": "व्याज आकारणी"
-    }
+    },
+    "tabsLabel": "रिपोर्टचे प्रकार"
   },
   "controls": {
     "loadFailed": "रिपोर्ट लोड झाला नाही",
     "period": "कालावधी: {{from}} ते {{to}}",
     "rangeLabel": "{{from}} ते {{to}}",
-    "comparedWith": "{{range}} शी तुलना."
+    "comparedWith": "{{range}} शी तुलना.",
+    "filtersLabel": "रिपोर्ट फिल्टर",
+    "summaryLabel": "रिपोर्टची बेरीज"
   },
   "emptyRange": {
     "noClosedShifts": "काल किंवा आजची कोणतीही बंद शिफ्ट अजून नाही.",
@@ -109,7 +111,8 @@
     "short": "कमी",
     "over": "जास्त",
     "operatorCaption": "{{name}} च्या कमी आणि जास्त असलेल्या शिफ्ट",
-    "printTitle": "कमी / जास्त फरक रिपोर्ट"
+    "printTitle": "कमी / जास्त फरक रिपोर्ट",
+    "operatorsTitle": "ऑपरेटरनुसार"
   },
   "inventory": {
     "dipAdjusted": "डिप दुरुस्ती",
@@ -136,7 +139,9 @@
     "noLotsInTank": "या टँकमध्ये कोणताही लॉट नाही.",
     "lotsInCaption": "{{tank}} मधील लॉट",
     "crossTankSummary": "सर्व टँकचा सारांश",
-    "printTitle": "स्टॉक लॉट रिपोर्ट"
+    "printTitle": "स्टॉक लॉट रिपोर्ट",
+    "lotsTitle": "लॉट",
+    "tanksTitle": "टँक"
   },
   "dip": {
     "dipCheck": "डिप तपासणी",

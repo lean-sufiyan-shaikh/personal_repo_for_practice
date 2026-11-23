@@ -1,14 +1,14 @@
 {
   "page": {
-    "kicker": "Stock control",
     "title": "Inventory",
     "subtitle": "Tank stock levels, tanker deliveries, and DIP checks.",
-    "lowStock": "Low stock",
-    "dipOverdue": "DIP overdue",
     "currentStock": "Current Stock Levels",
     "recordDelivery": "Record Delivery",
-    "loadingStock": "Loading stock levels...",
-    "noTanks": "No tanks configured. Add nozzles in Setup to auto-create tanks."
+    "noTanks": "No tanks configured. Add nozzles in Setup to auto-create tanks.",
+    "lowStockCount_one": "{{count}} tank low",
+    "lowStockCount_other": "{{count}} tanks low",
+    "dipOverdueCount_one": "{{count}} DIP check overdue",
+    "dipOverdueCount_other": "{{count}} DIP checks overdue"
   },
   "alerts": {
     "lowStockOne": "{{tank}} ({{fuel}}) is below 20% capacity.",
@@ -26,7 +26,8 @@
     "viewLots": "View Lots",
     "dipCheck": "DIP Check",
     "remaining": "remaining",
-    "capacity": "Capacity: {{value}} L"
+    "capacity": "Capacity: {{value}} L",
+    "cardLabel": "{{tank}} · {{fuel}}"
   },
   "lots": {
     "title": "Stock Lots — {{tank}}",
@@ -69,7 +70,9 @@
     "calculated": "calc. ₹{{amount}}",
     "deleteInvoice": "Delete this invoice",
     "deleteFailed": "Failed to delete invoice",
-    "editDelivery": "Edit delivery"
+    "editDelivery": "Edit delivery",
+    "invoiceTitle": "Invoice {{invoice}}",
+    "loggedBy": "Logged by {{name}}"
   },
   "deleteInvoice": {
     "title": "Delete Invoice?",
@@ -139,7 +142,8 @@
     "checkedBy": "Checked By",
     "selectOperator": "— Select operator —",
     "staffOption": "{{name}} ({{role}})",
-    "notesPlaceholder": "e.g. Reading taken at 6pm"
+    "notesPlaceholder": "e.g. Reading taken at 6pm",
+    "tank": "Tank"
   },
   "recordDelivery": {
     "title": "Record Tanker Delivery",

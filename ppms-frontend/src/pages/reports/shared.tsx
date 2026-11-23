@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DatePresetChips } from '../../components/DatePresetChips'
+import { FilterBar } from '../../components/layout/FilterBar'
+import { KpiRow } from '../../components/layout/DashboardGrid'
 import type { DateRange } from '../../utils/datePresets'
 
-
-// ── Shared small components ───────────────────────────────────────────────────
 
 export function PrintHeader({ title, from, to }: { title: string; from?: string; to?: string }) {
   const { t } = useTranslation(['reports', 'common'])
@@ -28,7 +28,7 @@ export function DateRangeInputs({
 }) {
   const { t } = useTranslation(['reports', 'common'])
   return (
-    <div className="ui-filter-group">
+    <>
       {onPreset && <div className="basis-full"><DatePresetChips range={{ from, to }} onSelect={onPreset} /></div>}
       <div>
         <label className="block">
@@ -44,8 +44,23 @@ export function DateRangeInputs({
             className="min-w-40 shadow-sm" />
         </label>
       </div>
-    </div>
+    </>
   )
+}
+
+/** The one row of report filters and actions above a report; not printed. */
+export function ReportFilterBar({ children }: { children: ReactNode }) {
+  const { t } = useTranslation('reports')
+  return (
+    <FilterBar label={t('controls.filtersLabel')} className="rounded-card border border-border print:hidden">
+      <div className="ui-filter-group w-full">{children}</div>
+    </FilterBar>
+  )
+}
+
+export function ReportSummary({ columns, children }: { columns: 2 | 3; children: ReactNode }) {
+  const { t } = useTranslation('reports')
+  return <KpiRow label={t('controls.summaryLabel')} columns={columns}>{children}</KpiRow>
 }
 
 export function SummaryCard({ label, value, color, note }: { label: string; value: ReactNode; color: string; note?: ReactNode }) {

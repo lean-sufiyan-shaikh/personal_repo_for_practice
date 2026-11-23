@@ -18,7 +18,9 @@ import { shiftsForFuelUrl } from '../../../utils/drillDown'
 import { formatIstDate } from '../../../utils/date'
 import { printWhenFontsReady } from '../../../i18n/fonts'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
-import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, SummaryCard } from '../shared'
+import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, ReportFilterBar, ReportSummary, SummaryCard } from '../shared'
+import { PageSection } from '../../../components/layout/PageSection'
+import { StatusBadge } from '../../../components/StatusBadge'
 import { fmtShortDate } from '../reportFormat'
 import { ProfitLossDailyChart } from '../charts/ProfitLossDailyChart'
 import { DataTable } from '../../../components/DataTable'
@@ -171,10 +173,8 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
   const showEmptySuggestion = !!data && isDefaultRange && data.totalShifts === 0
 
   return (
-    <div className="space-y-4">
-      {/* Screen: controls */}
-      <div className="ui-card ui-card-muted p-4 print:hidden">
-        <div className="ui-filter-group">
+    <div className="flex flex-col gap-(--density-gap)">
+      <ReportFilterBar>
           <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} onPreset={applyRange} />
           <button
             onClick={() => setQuery({ from, to })}
@@ -195,8 +195,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
             columns={FUEL_COLUMNS}
             rows={data?.byFuelType ?? []}
           />
-        </div>
-      </div>
+      </ReportFilterBar>
 
       {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
 
@@ -208,15 +207,15 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
 
       {/* Screen: data */}
       {data && !showEmptySuggestion && (
-        <div className="space-y-4 print:hidden">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="flex flex-col gap-(--density-gap) print:hidden">
+          <ReportSummary columns={3}>
             <SummaryCard label={t('pl.totalRevenue')} value={<MoneyText value={data.totalRevenue} />} color="text-ink"
               note={previous && <PeriodChangeNote current={data.totalRevenue} previous={previous.totalRevenue} />} />
             <SummaryCard label={t('pl.costOfGoods')} value={<MoneyText value={data.totalCogs} />}    color="text-bad"
               note={previous && <PeriodChangeNote current={data.totalCogs} previous={previous.totalCogs} higherIsBetter={false} />} />
             <SummaryCard label={t('pl.grossProfit')}  value={<MoneyText value={data.grossProfit} />}  color={data.grossProfit >= 0 ? 'text-ok' : 'text-bad'}
               note={previous && <PeriodChangeNote current={data.grossProfit} previous={previous.grossProfit} />} />
-          </div>
+          </ReportSummary>
           {previous && (
             <p className="text-xs text-ink-3">{t('controls.comparedWith', { range: rangeLabel(t, previousRange) })}</p>
           )}
@@ -257,13 +256,19 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
             {showRevBreakdown && <RevenueBreakdown report={data} className="mt-3" />}
           </div>
 
-          {/* Per-fuel table with drilldown */}
+          <PageSection
+            title={t('pl.byFuelCaption')}
+            titleMeta={<StatusBadge tone="neutral" label={t('pl.closedShiftsInRange', { count: data.totalShifts })} />}
+            description={t('pl.fuelOnlyNote')}
+            flush
+          >
           <DataTable
             caption={t('pl.byFuelCaption')}
             captionHidden
             columns={fuelTableColumns(t)}
             rows={data.byFuelType}
             rowKey={(row) => row.fuelType}
+            className="rounded-none border-0"
             renderRow={(row) => (
               <>
                 <tr className="cursor-pointer" onClick={() => toggleFuelRow(row.fuelType)}>
@@ -303,10 +308,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
               </>
             )}
           />
-          <p className="text-xs text-ink-3 mt-1">
-            {t('pl.fuelOnlyNote')}
-          </p>
-          <p className="text-xs text-ink-3">{t('pl.closedShiftsInRange', { count: data.totalShifts })}</p>
+          </PageSection>
         </div>
       )}
 

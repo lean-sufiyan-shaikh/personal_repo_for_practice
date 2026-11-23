@@ -12,7 +12,8 @@
     "noEvents": "कोई ऑडिट घटना नहीं मिली।",
     "noEventsForFilters": "चुने गए फ़िल्टर के लिए कोई ऑडिट घटना नहीं मिली।",
     "by": "<name>{{name}}</name> द्वारा",
-    "showing": "{{total}} में से {{from}}–{{to}} घटनाएँ दिख रही हैं"
+    "showing": "{{total}} में से {{from}}–{{to}} घटनाएँ दिख रही हैं",
+    "filtersLabel": "ऑडिट लॉग फ़िल्टर"
   },
   "actions": {
     "USER_CREATED": "स्टाफ़ जोड़ा गया",

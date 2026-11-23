@@ -1,9 +1,11 @@
 {
   "page": {
-    "kicker": "Counter inventory",
     "title": "Products",
     "subtitle": "Manage lubricants, accessories, and other counter products. Track stock and sales.",
-    "productsCount": "Products"
+    "sellProduct": "Sell Product",
+    "productCount_one": "{{count}} product",
+    "productCount_other": "{{count}} products",
+    "views": "Product views"
   },
   "tabs": {
     "products": "Products",
@@ -51,7 +53,7 @@
     "searchLabel": "Search products",
     "searchPlaceholder": "Search products…",
     "clearSearch": "Clear search",
-    "add": "+ Add Product",
+    "add": "Add Product",
     "noMatchTitle": "No products match \"{{query}}\"",
     "noMatchSubtitle": "Try a different search term.",
     "emptyTitle": "No products configured yet",
@@ -66,7 +68,10 @@
     "editHsnOf": "Edit HSN code of {{name}}",
     "enabled": "Product enabled",
     "disabled": "Product disabled",
-    "statusFailed": "Failed to update product status"
+    "statusFailed": "Failed to update product status",
+    "filtersLabel": "Product filters",
+    "matchCount_one": "{{count}} match",
+    "matchCount_other": "{{count}} matches"
   },
   "addProduct": {
     "title": "Add Product",
@@ -199,5 +204,10 @@
     "reviewBanner": "This sale will be recorded as <strong>Backfilled</strong> for {{date}}. The selling price is resolved from price history.",
     "price": "Price",
     "priceFromHistory": "Resolved from price history"
+  },
+  "sellPicker": {
+    "subtitle": "Choose the product the customer is buying.",
+    "continue": "Continue",
+    "noneInStock": "No active product has stock to sell. Record a stock delivery first."
   }
 }

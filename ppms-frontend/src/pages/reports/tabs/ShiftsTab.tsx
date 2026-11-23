@@ -16,7 +16,8 @@ import type { DateRange } from '../../../utils/datePresets'
 import { shiftUrl } from '../../../utils/drillDown'
 import { printWhenFontsReady } from '../../../i18n/fonts'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
-import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader } from '../shared'
+import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, ReportFilterBar } from '../shared'
+import { PageSection } from '../../../components/layout/PageSection'
 import { discrepancyTypeLabel } from '../reportFormat'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
@@ -96,9 +97,8 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="ui-card ui-card-muted p-4 print:hidden">
-        <div className="ui-filter-group">
+    <div className="flex flex-col gap-(--density-gap)">
+      <ReportFilterBar>
         <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} onPreset={applyRange} />
         <button
           onClick={() => { setQuery({ from, to }); setPage(0) }}
@@ -115,8 +115,7 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
           {t('common:actions.printPdf')}
         </button>
         <CsvExportButton filename={csvFilename('shifts', query)} columns={CSV_COLUMNS} rows={rows} />
-        </div>
-      </div>
+      </ReportFilterBar>
 
       {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
 
@@ -127,7 +126,12 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
             ? <div className="print:hidden"><EmptyRangeSuggestion message={t('emptyRange.noClosedShifts')} onShowLastMonth={() => applyRange(presetRange('lastMonth'))} /></div>
             : <p className="ui-empty py-4 print:hidden">{t('shifts.none')}</p>
         ) : (
-          <div className="space-y-2 print:hidden">
+          <PageSection
+            title={t('shifts.caption')}
+            titleMeta={<span className="text-xs text-ink-3">{t('shifts.inRange', { count: rows.length })}</span>}
+            className="print:hidden"
+            flush
+          >
             <DataTable
               caption={t('shifts.caption')}
               captionHidden
@@ -135,10 +139,13 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
               rows={paged.content}
               rowKey={(s) => s.id}
               scroll
+              className="rounded-none border-0"
             />
-            <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
-            <p className="text-xs text-ink-3">{t('shifts.inRange', { count: rows.length })}</p>
-          </div>
+            <div className="px-4">
+              <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
+            </div>
+          </PageSection>
+
         )
       )}
 

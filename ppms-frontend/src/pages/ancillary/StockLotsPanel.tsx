@@ -5,21 +5,20 @@ import { ancillaryApi } from '../../api/ancillaryApi'
 import type { AncillaryProduct, AncillaryLotDetail, UpdateLotRequest } from '../../api/ancillaryApi'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
-import { Modal } from '../../components/Modal'
+import { SidePanel } from '../../components/layout/SidePanel'
 import { DataTable } from '../../components/DataTable'
 import type { DataTableColumn } from '../../components/DataTable'
 import { MoneyText } from '../../components/AmountText'
 import { parseApiError } from '../../utils/apiError'
 import { fmtDate } from './ancillaryFormat'
 
-// ── Stock Lots Dialog ─────────────────────────────────────────────────────────
 /**
  * Shows all ACTIVE FIFO lots for a product in consumption order (oldest first).
  * Each row shows: In Date, Bill No, Cost Price/unit, Remaining, Original.
  * Owner/Admin can edit remaining quantity and cost price inline per row.
  * Editing remaining quantity automatically adjusts product.currentStockUnits on the backend.
  */
-export function StockLotsDialog({
+export function StockLotsPanel({
   pumpId, product, isOwnerOrAdmin, onClose, onUpdated,
 }: {
   pumpId: number
@@ -94,10 +93,9 @@ export function StockLotsDialog({
   ]
 
   return (
-    <Modal
+    <SidePanel
       title={t('lots.title')}
-      subtitle={<span className="block truncate max-w-[380px]">{product.displayName}</span>}
-      tone="info"
+      subtitle={<span className="block truncate">{product.displayName}</span>}
       size="lg"
       onClose={onClose}
       footerClassName="justify-between items-center"
@@ -105,7 +103,7 @@ export function StockLotsDialog({
         <p className="text-xs text-ink-3">
           {t('lots.fifoNote')}
         </p>
-        <button onClick={onClose} className="ui-btn ui-btn-secondary">
+        <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
           {t('common:actions.close')}
         </button>
       </>}
@@ -197,6 +195,6 @@ export function StockLotsDialog({
               />
             </>
           )}
-    </Modal>
+    </SidePanel>
   )
 }

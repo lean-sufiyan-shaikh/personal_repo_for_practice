@@ -8,7 +8,8 @@ import type { LogCalibrationRequest } from '../../api/calibrationApi'
 import type { NozzleDetail } from '../../types/shift'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { addDays, localDateInputValue } from '../../utils/date'
-import { Reveal } from '../../components/Reveal'
+import { PageSection } from '../../components/layout/PageSection'
+import { FormGrid } from '../../components/layout/FormGrid'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { Modal } from '../../components/Modal'
@@ -95,110 +96,103 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
 
   return (
     <>
-      {/* ── Record form ── */}
-      <Reveal delay={130}>
-      <form onSubmit={handleSubmit} className="ui-card ui-form-shell">
-        <div className="ui-form-shell__head">
-          <div>
-            <p className="ui-section-kicker mb-2">{t('form.kicker')}</p>
-            <h2 className="ui-title-sm">{t('form.title')}</h2>
-            <p className="ui-subtitle mt-1">{t('form.subtitle')}</p>
-          </div>
-        </div>
-
-        <div className="ui-form-shell__grid">
-          <div>
-            <span className="ui-label">{t('form.nozzle')}</span>
-            <SearchableSelect label={t('form.nozzle')}
-              value={selectedNozzleId ? selectedNozzleId.toString() : ''}
-              onChange={v => { setSelectedNozzleId(parseInt(v) || 0); setFormError(null) }}
-              placeholder={t('form.nozzlePlaceholder')}
-              options={nozzles.map((n) => ({
-                value: n.id.toString(),
-                label: t('nozzleOption', { number: n.nozzleNumber, fuel: codeLabel(n.fuelType) }),
-              }))}
-            />
-          </div>
-
-          <div>
-            <label className="block">
-              <span className="ui-label">{t('form.calibrationDate')}</span>
-              <input
-                type="date"
-                value={form.calibrationDate}
-                onChange={e => setForm(f => ({ ...f, calibrationDate: e.target.value }))}
-                className="text-sm"
-                required
+      <PageSection title={t('form.title')} description={t('form.subtitle')}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <FormGrid>
+            <div>
+              <span className="ui-label">{t('form.nozzle')}</span>
+              <SearchableSelect label={t('form.nozzle')}
+                value={selectedNozzleId ? selectedNozzleId.toString() : ''}
+                onChange={v => { setSelectedNozzleId(parseInt(v) || 0); setFormError(null) }}
+                placeholder={t('form.nozzlePlaceholder')}
+                options={nozzles.map((n) => ({
+                  value: n.id.toString(),
+                  label: t('nozzleOption', { number: n.nozzleNumber, fuel: codeLabel(n.fuelType) }),
+                }))}
               />
-            </label>
+            </div>
+
+            <div>
+              <label className="block">
+                <span className="ui-label">{t('form.calibrationDate')}</span>
+                <input
+                  type="date"
+                  value={form.calibrationDate}
+                  onChange={e => setForm(f => ({ ...f, calibrationDate: e.target.value }))}
+                  className="text-sm"
+                  required
+                />
+              </label>
+            </div>
+
+            <div>
+              <label className="block">
+                <span className="ui-label">{t('form.nextDueRequired')}</span>
+                <input
+                  type="date"
+                  value={form.nextCalibrationDue ?? ''}
+                  min={form.calibrationDate ? addDays(form.calibrationDate, 1) : undefined}
+                  onChange={e => setForm(f => ({ ...f, nextCalibrationDue: e.target.value || null }))}
+                  className="text-sm"
+                />
+              </label>
+            </div>
+
+            <div>
+              <label className="block">
+                <span className="ui-label">{t('form.calibratedByRequired')}</span>
+                <input
+                  type="text"
+                  value={form.calibratedBy ?? ''}
+                  onChange={e => setForm(f => ({ ...f, calibratedBy: e.target.value || null }))}
+                  className="text-sm"
+                  placeholder={t('form.calibratedByPlaceholder')}
+                />
+              </label>
+            </div>
+
+            <div>
+              <label className="block">
+                <span className="ui-label">{t('form.certificateRequired')}</span>
+                <input
+                  type="text"
+                  value={form.certificateReference ?? ''}
+                  onChange={e => setForm(f => ({ ...f, certificateReference: e.target.value || null }))}
+                  className="text-sm"
+                  placeholder={t('form.certificatePlaceholder')}
+                />
+              </label>
+            </div>
+
+            <div>
+              <label className="block">
+                <span className="ui-label">{t('form.notesOptional')}</span>
+                <input
+                  type="text"
+                  value={form.notes ?? ''}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
+                  className="text-sm"
+                  placeholder={t('form.notesPlaceholder')}
+                />
+              </label>
+            </div>
+          </FormGrid>
+
+          {formError && <p role="alert" className="ui-error-text">{formError}</p>}
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={createMutation.isPending}
+              className="ui-btn ui-btn-primary"
+            >
+              {createMutation.isPending
+              ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('common:actions.saving')}</span>
+              : t('form.review')}
+            </button>
           </div>
-
-          <div>
-            <label className="block">
-              <span className="ui-label">{t('form.nextDueRequired')}</span>
-              <input
-                type="date"
-                value={form.nextCalibrationDue ?? ''}
-                min={form.calibrationDate ? addDays(form.calibrationDate, 1) : undefined}
-                onChange={e => setForm(f => ({ ...f, nextCalibrationDue: e.target.value || null }))}
-                className="text-sm"
-              />
-            </label>
-          </div>
-
-          <div>
-            <label className="block">
-              <span className="ui-label">{t('form.calibratedByRequired')}</span>
-              <input
-                type="text"
-                value={form.calibratedBy ?? ''}
-                onChange={e => setForm(f => ({ ...f, calibratedBy: e.target.value || null }))}
-                className="text-sm"
-                placeholder={t('form.calibratedByPlaceholder')}
-              />
-            </label>
-          </div>
-
-          <div>
-            <label className="block">
-              <span className="ui-label">{t('form.certificateRequired')}</span>
-              <input
-                type="text"
-                value={form.certificateReference ?? ''}
-                onChange={e => setForm(f => ({ ...f, certificateReference: e.target.value || null }))}
-                className="text-sm"
-                placeholder={t('form.certificatePlaceholder')}
-              />
-            </label>
-          </div>
-
-          <div>
-            <label className="block">
-              <span className="ui-label">{t('form.notesOptional')}</span>
-              <input
-                type="text"
-                value={form.notes ?? ''}
-                onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
-                className="text-sm"
-                placeholder={t('form.notesPlaceholder')}
-              />
-            </label>
-          </div>
-        </div>
-
-        {formError && <p role="alert" className="ui-error-text">{formError}</p>}
-
-        <button
-          type="submit"
-          disabled={createMutation.isPending}
-          className="ui-btn ui-btn-primary"
-        >
-          {createMutation.isPending
-          ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('common:actions.saving')}</span>
-          : t('form.review')}
-        </button>
-      </form>
-      </Reveal>
+        </form>
+      </PageSection>
 
       {reviewOpen && (
         <Modal

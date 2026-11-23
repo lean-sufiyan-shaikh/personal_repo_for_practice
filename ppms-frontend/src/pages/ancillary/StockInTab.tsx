@@ -12,22 +12,22 @@ import { DataTable } from '../../components/DataTable'
 import type { DataTableColumn } from '../../components/DataTable'
 import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
-
-// ── Stock In Tab ─────────────────────────────────────────────────────────────
+import { PageSection } from '../../components/layout/PageSection'
 
 export function StockInTab({
-  pumpId, products, isManagerOrAbove, onRefresh,
+  pumpId, products, isManagerOrAbove, isRecording, onRecordClosed, onRefresh,
 }: {
   pumpId: number
   products: AncillaryProduct[]
   isManagerOrAbove: boolean
+  isRecording: boolean
+  onRecordClosed: () => void
   onRefresh: () => void
 }) {
   const { t } = useTranslation('ancillary')
   const qc = useQueryClient()
   const [deliveryPage, setDeliveryPage] = useState(0)
   const [deliveryPageSize, setDeliveryPageSize] = useState(10)
-  const [stockInOpen, setStockInOpen] = useState(false)
   const productMap = new Map(products.map((product) => [product.id, product]))
 
   const { data: deliveriesPage } = useQuery({
@@ -52,30 +52,20 @@ export function StockInTab({
   ]
 
   return (
-    <div className="space-y-5">
-      {/* Stock-in form */}
-      {isManagerOrAbove ? (
-        <div className="flex justify-end">
-          <button
-            onClick={() => setStockInOpen(true)}
-            className="ui-btn ui-btn-primary"
-          >
-            {t('stockInTab.record')}
-          </button>
-        </div>
-      ) : (
+    <div className="flex flex-col gap-(--density-gap)">
+      {!isManagerOrAbove && (
         <div className="ui-alert ui-alert-warning text-sm">
           {t('stockInTab.onlyManagers')}
         </div>
       )}
 
-      {stockInOpen && (
+      {isRecording && (
         <StockInDialog
           pumpId={pumpId}
           products={products}
-          onClose={() => setStockInOpen(false)}
+          onClose={onRecordClosed}
           onSuccess={() => {
-            setStockInOpen(false)
+            onRecordClosed()
             setDeliveryPage(0)
             qc.invalidateQueries({ queryKey: ['ancillaryDeliveries', pumpId] })
             onRefresh()
@@ -83,11 +73,7 @@ export function StockInTab({
         />
       )}
 
-      {/* Delivery history */}
-      <div className="ui-card p-0">
-        <div className="px-5 py-4 border-b border-border">
-          <h3 className="text-sm font-semibold text-ink">{t('stockInTab.recent')}</h3>
-        </div>
+      <PageSection title={t('stockInTab.recent')} flush>
         {deliveries.length === 0 ? (
           <EmptyState icon="generic" title={t('stockInTab.emptyTitle')} subtitle={t('stockInTab.emptySubtitle')} />
         ) : (
@@ -112,7 +98,7 @@ export function StockInTab({
           )}
           </>
         )}
-      </div>
+      </PageSection>
     </div>
   )
 }

@@ -15,7 +15,8 @@ import { presetRange, previousPeriod } from '../../../utils/datePresets'
 import type { DateRange } from '../../../utils/datePresets'
 import { printWhenFontsReady } from '../../../i18n/fonts'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
-import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, SummaryCard } from '../shared'
+import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, ReportFilterBar, ReportSummary, SummaryCard } from '../shared'
+import { PageSection } from '../../../components/layout/PageSection'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { StatusBadge } from '../../../components/StatusBadge'
@@ -87,9 +88,8 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
     .reduce((sum, e) => sum + e.amount, 0)
 
   return (
-    <div className="space-y-4">
-      <div className="ui-card ui-card-muted p-4 print:hidden">
-        <div className="ui-filter-group">
+    <div className="flex flex-col gap-(--density-gap)">
+      <ReportFilterBar>
         <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} onPreset={applyRange} />
         <button
           onClick={() => { setQuery({ from, to }); setPage(0) }}
@@ -106,8 +106,7 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
           {t('common:actions.printPdf')}
         </button>
         <CsvExportButton filename={csvFilename('expenses', query)} columns={CSV_COLUMNS} rows={rows} />
-        </div>
-      </div>
+      </ReportFilterBar>
 
       {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
 
@@ -118,16 +117,24 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
             ? <div className="print:hidden"><EmptyRangeSuggestion message={t('emptyRange.noExpenses')} onShowLastMonth={() => applyRange(presetRange('lastMonth'))} /></div>
             : <p className="ui-empty py-4 print:hidden">{t('expenses.none')}</p>
         ) : (
-          <div className="space-y-3 print:hidden">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-(--density-gap) print:hidden">
+            <ReportSummary columns={2}>
               <SummaryCard label={t('expenses.approved')} value={<MoneyText value={total} />} color="text-bad"
                 note={previous && <PeriodChangeNote current={total} previous={approvedTotal(previous)} higherIsBetter={false} />} />
               <SummaryCard label={t('expenses.pending')} value={<MoneyText value={pendingTotal} />} color="text-warn" />
-            </div>
-            <DataTable caption={t('expenses.caption')} captionHidden columns={columns} rows={paged.content} rowKey={(e) => e.id} scroll />
-            <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
-            <p className="text-xs text-ink-3">{t('expenses.inRange', { count: rows.length })}</p>
+            </ReportSummary>
+            <PageSection
+              title={t('expenses.caption')}
+              titleMeta={<span className="text-xs text-ink-3">{t('expenses.inRange', { count: rows.length })}</span>}
+              flush
+            >
+              <DataTable caption={t('expenses.caption')} captionHidden columns={columns} rows={paged.content} rowKey={(e) => e.id} scroll className="rounded-none border-0" />
+              <div className="px-4">
+                <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
+              </div>
+            </PageSection>
           </div>
+
         )
       )}
 

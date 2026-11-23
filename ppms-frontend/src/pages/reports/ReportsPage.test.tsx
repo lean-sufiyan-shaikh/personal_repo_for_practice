@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
@@ -11,7 +11,8 @@ import ReportsPage from './ReportsPage'
 import { presetRange } from '../../utils/datePresets'
 
 vi.mock('../../api/reportApi', () => ({
-  reportApi: { getProfitLoss: vi.fn(), getExpensesReport: vi.fn().mockResolvedValue([]) },
+  reportApi: { getProfitLoss: vi.fn(), getExpensesReport: vi.fn().mockResolvedValue([]), getShiftsReport: vi.fn().mockResolvedValue([]) },
+
 }))
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getMyPumps: vi.fn().mockResolvedValue([]) } }))
 
@@ -52,8 +53,44 @@ describe('ReportsPage', () => {
     renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
 
     await waitFor(() => expect(reportApi.getProfitLoss).toHaveBeenCalledWith(PUMP_ID, '2026-01-01', '2026-01-31'))
-    expect(screen.getByRole('button', { name: 'Profit & Loss' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('link', { name: 'Profit & Loss' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByLabelText('From')).toHaveValue('2026-01-01')
+  })
+
+  it('shows the report types as tabs under the page title', async () => {
+    renderReportsAt('/dashboard/reports?tab=expenses')
+
+    const tabs = screen.getByRole('navigation', { name: 'Report types' })
+    expect(screen.getByRole('heading', { level: 1, name: 'Reports' })).toBeInTheDocument()
+    expect(within(tabs).getByRole('link', { name: 'Expenses' })).toHaveAttribute('aria-current', 'page')
+    expect(within(tabs).getByRole('link', { name: 'Profit & Loss' })).not.toHaveAttribute('aria-current')
+    await waitFor(() => expect(reportApi.getExpensesReport).toHaveBeenCalled())
+  })
+
+  it('keeps the presets, dates and report actions in one filter bar', async () => {
+    renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
+
+    expect(await screen.findByRole('region', { name: 'Report totals' })).toBeInTheDocument()
+    const filters = screen.getByRole('group', { name: 'Report filters' })
+    expect(within(filters).getByRole('button', { name: 'Last month' })).toBeInTheDocument()
+    expect(within(filters).getByLabelText('From')).toHaveValue('2026-01-01')
+    expect(within(filters).getByLabelText('To')).toHaveValue('2026-01-31')
+    expect(within(filters).getByRole('button', { name: 'Generate' })).toBeInTheDocument()
+  })
+
+  it('writes the generated range into the address and keeps it when switching tab', async () => {
+    const user = userEvent.setup()
+    const router = renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
+
+    const from = await screen.findByLabelText('From')
+    await user.clear(from)
+    await user.type(from, '2026-01-05')
+    expect(router.state.location.search).toBe('?tab=pl&from=2026-01-01&to=2026-01-31')
+    await user.click(screen.getByRole('button', { name: 'Generate' }))
+    expect(router.state.location.search).toBe('?tab=pl&from=2026-01-05&to=2026-01-31')
+
+    await user.click(screen.getByRole('link', { name: 'Shifts' }))
+    expect(router.state.location.search).toBe('?tab=shifts&from=2026-01-05&to=2026-01-31')
   })
 
   it('keeps the chosen dates when switching to another tab', async () => {
@@ -67,7 +104,7 @@ describe('ReportsPage', () => {
     await user.clear(to)
     await user.type(to, '2026-02-10')
     await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await user.click(screen.getByRole('button', { name: 'Expenses' }))
+    await user.click(screen.getByRole('link', { name: 'Expenses' }))
 
     await waitFor(() => expect(reportApi.getExpensesReport).toHaveBeenCalledWith(PUMP_ID, '2026-02-01', '2026-02-10'))
     expect(screen.getByLabelText('From')).toHaveValue('2026-02-01')

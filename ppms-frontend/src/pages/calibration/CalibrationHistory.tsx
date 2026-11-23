@@ -8,7 +8,8 @@ import type { NozzleDetail } from '../../types/shift'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
-import { Reveal } from '../../components/Reveal'
+import { PageSection } from '../../components/layout/PageSection'
+import { FilterBar } from '../../components/layout/FilterBar'
 import { EmptyState } from '../../components/EmptyState'
 import { fmtDate, fmtDateTime } from './calibrationFormat'
 import type { CalibrationHistoryState } from './useCalibrationHistory'
@@ -32,41 +33,46 @@ export function CalibrationHistory({ history, nozzles }: CalibrationHistoryProps
     [nozzles],
   )
 
-  return (
-    <Reveal delay={200}>
-    <div className="ui-card p-0 overflow-hidden">
-      <div className="ui-toolbar">
-        <p className="ui-toolbar-title">
-          {t('history.title')}
-          {historyNozzleId === 0 ? (
-            <span className="text-ink-3 font-normal ml-1">{t('history.allNozzlesSuffix')}</span>
-          ) : historyNozzle ? (
-            <span className="text-ink-3 font-normal ml-1">
-              {t('history.nozzleSuffix', { number: historyNozzle.nozzleNumber, fuel: codeLabel(historyNozzle.fuelType) })}
-            </span>
-          ) : null}
-        </p>
+  const hasActiveFilters = Boolean(fromDate || toDate || historyNozzleId)
+  const clearFilters = () => {
+    setFromDate('')
+    setToDate('')
+    setHistoryNozzleId(0)
+    setHistoryPage(0)
+  }
 
-        <div className="ui-toolbar-actions">
-          <div className="flex items-center gap-1.5">
-            <label htmlFor="calibration-history-from" className="text-xs text-ink-3 whitespace-nowrap">{t('common:fields.from')}</label>
-            <input id="calibration-history-from"
-              type="date"
-              value={fromDate}
-              onChange={e => { setFromDate(e.target.value); setHistoryPage(0) }}
-              className="text-xs h-7 px-2 rounded-control border border-border"
-            />
-          </div>
-          <div className="flex items-center gap-1.5">
-            <label htmlFor="calibration-history-to" className="text-xs text-ink-3 whitespace-nowrap">{t('common:fields.to')}</label>
-            <input id="calibration-history-to"
-              type="date"
-              value={toDate}
-              onChange={e => { setToDate(e.target.value); setHistoryPage(0) }}
-              className="text-xs h-7 px-2 rounded-control border border-border"
-            />
-          </div>
-          <div className="w-56">
+  return (
+    <PageSection
+      title={t('history.title')}
+      titleMeta={historyNozzleId === 0 ? (
+        <span className="text-sm text-ink-3">{t('history.allNozzlesSuffix')}</span>
+      ) : historyNozzle ? (
+        <span className="text-sm text-ink-3">
+          {t('history.nozzleSuffix', { number: historyNozzle.nozzleNumber, fuel: codeLabel(historyNozzle.fuelType) })}
+        </span>
+      ) : null}
+      flush
+    >
+      <FilterBar label={t('history.filtersLabel')} onClearFilters={clearFilters} hasActiveFilters={hasActiveFilters}>
+        <label className="flex items-center gap-1.5 text-xs text-ink-3">
+          {t('common:fields.from')}
+          <input
+            type="date"
+            value={fromDate}
+            onChange={e => { setFromDate(e.target.value); setHistoryPage(0) }}
+            className="min-w-[8.5rem] text-xs"
+          />
+        </label>
+        <label className="flex items-center gap-1.5 text-xs text-ink-3">
+          {t('common:fields.to')}
+          <input
+            type="date"
+            value={toDate}
+            onChange={e => { setToDate(e.target.value); setHistoryPage(0) }}
+            className="min-w-[8.5rem] text-xs"
+          />
+        </label>
+        <div className="w-full sm:w-56">
           <SearchableSelect label={t('history.filterLabel')}
             value={historyNozzleId ? historyNozzleId.toString() : ''}
             onChange={v => { setHistoryNozzleId(parseInt(v) || 0); setHistoryPage(0) }}
@@ -81,8 +87,7 @@ export function CalibrationHistory({ history, nozzles }: CalibrationHistoryProps
             size="sm"
           />
         </div>
-        </div>
-      </div>
+      </FilterBar>
 
       {isLoading ? (
         <div className="px-5 py-4"><SkeletonRows count={4} /></div>
@@ -141,7 +146,6 @@ export function CalibrationHistory({ history, nozzles }: CalibrationHistoryProps
           )}
         </>
       )}
-    </div>
-    </Reveal>
+    </PageSection>
   )
 }
