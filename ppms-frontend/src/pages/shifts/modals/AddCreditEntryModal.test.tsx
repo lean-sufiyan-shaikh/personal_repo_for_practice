@@ -67,7 +67,7 @@ describe('AddCreditEntryModal', () => {
     const first = userEvent.setup()
     renderWithProviders(<AddCreditEntryModal shift={shift} onClose={vi.fn()} />)
     await first.type(screen.getByPlaceholderText('Search client name…'), 'Fleet')
-    fireEvent.mouseDown(await screen.findByRole('button', { name: /Fleet Co/ }))
+    fireEvent.mouseDown(await screen.findByRole('option', { name: /Fleet Co/ }))
     await first.type(screen.getByLabelText('Credit amount in rupees'), '250')
     await first.type(screen.getByLabelText('Bill No'), 'B-9')
     await first.click(screen.getByRole('button', { name: 'Save Entry' }))
