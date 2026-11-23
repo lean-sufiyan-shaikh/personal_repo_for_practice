@@ -1,12 +1,10 @@
 {
   "page": {
-    "notAssigned": "आपको किसी पंप पर नहीं लगाया गया है। मालिक या एडमिन से पंप देने को कहें।",
     "kicker": "स्टॉक नियंत्रण",
     "title": "स्टॉक",
     "subtitle": "टैंक का स्टॉक, टैंकर डिलीवरी और डिप जाँच।",
     "lowStock": "कम स्टॉक",
     "dipOverdue": "डिप जाँच बाकी",
-    "noPump": "कोई पंप नहीं चुना गया। ऊपर की पट्टी में पंप चुनें।",
     "currentStock": "अभी का स्टॉक",
     "recordDelivery": "डिलीवरी दर्ज करें",
     "loadingStock": "स्टॉक लोड हो रहा है...",
@@ -48,9 +46,7 @@
     "allTanks": "सभी टैंक",
     "allFuelTypes": "सभी ईंधन",
     "byTank": "टैंक से छाँटें",
-    "byFuelType": "ईंधन से छाँटें",
-    "clear": "फ़िल्टर हटाएँ",
-    "loading": "लोड हो रहा है..."
+    "byFuelType": "ईंधन से छाँटें"
   },
   "columns": {
     "tank": "टैंक",
@@ -84,7 +80,6 @@
   },
   "editDelivery": {
     "title": "डिलीवरी बदलें",
-    "saving": "सेव हो रहा है…",
     "save": "बदलाव सेव करें",
     "invoice": "इनवॉइस / बिल नंबर",
     "invoicePlaceholder": "जैसे INV-2026-001",
@@ -142,10 +137,8 @@
     "shortage": "कम मिला",
     "variance": "{{value}} L अंतर",
     "checkedBy": "जाँच करने वाले",
-    "optional": "(वैकल्पिक)",
     "selectOperator": "— ऑपरेटर चुनें —",
     "staffOption": "{{name}} ({{role}})",
-    "notes": "नोट",
     "notesPlaceholder": "जैसे शाम 6 बजे रीडिंग ली"
   },
   "recordDelivery": {
@@ -191,10 +184,8 @@
   "row": {
     "overCapacity": "क्षमता से ज़्यादा",
     "incomplete": "अधूरा — भरने के लिए बदलें दबाएँ",
-    "edit": "बदलें",
     "removeRow": "लाइन हटाएँ",
     "tankNumber": "टैंक {{number}}",
-    "remove": "हटाएँ",
     "tank": "टैंक",
     "selectTank": "टैंक चुनें…",
     "quantity": "मात्रा (लीटर)",
@@ -204,8 +195,7 @@
     "costManaged": "खरीद दर मालिक / एडमिन तय करते हैं। इस टैंक की पिछली दर ली जाएगी।",
     "deliveryCost": "₹{{amount}} डिलीवरी लागत",
     "exceedsCapacity": "क्षमता से ज़्यादा — खाली जगह: {{value}} L",
-    "stockAfter": "बाद में स्टॉक:",
-    "done": "हो गया"
+    "stockAfter": "बाद में स्टॉक:"
   },
   "review": {
     "title": "टैंकर डिलीवरी जाँचें",
@@ -214,7 +204,6 @@
     "recording": "दर्ज हो रहा है…",
     "confirm_one": "डिलीवरी पक्की करें",
     "confirm_other": "डिलीवरी पक्की करें",
-    "goBack": "पीछे जाकर जानकारी ठीक करें और फिर से कोशिश करें।",
     "date": "डिलीवरी की तारीख",
     "invoice": "इनवॉइस / बिल नंबर",
     "billAmount": "बिल राशि",

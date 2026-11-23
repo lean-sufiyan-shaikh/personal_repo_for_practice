@@ -11,7 +11,7 @@ import { codeLabel } from '../../../constants/labels'
 export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
   shift: Shift; onClose?: () => void; onHandOver?: () => void; onAddCredit: () => void
 }) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const startTime = formatIstDateTime(shift.actualStartTime, { hour: '2-digit', minute: '2-digit' })
   const fuelAbbr: Record<string, string> = {
     PETROL: 'P', SPEED_PETROL: 'SP', DIESEL: 'D', SPEED_DIESEL: 'SD', CNG: 'CNG',
@@ -62,7 +62,7 @@ export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
               onClick={onClose}
               className="ui-btn ui-btn-primary ui-btn-compact"
             >
-              {t('active.close')}
+              {t('common:actions.close')}
             </button>
           )}
         </div>

@@ -25,7 +25,7 @@ import { CsvExportButton } from '../../components/CsvExportButton'
 import { csvFilename } from '../../utils/csv'
 import type { CsvColumn } from '../../utils/csv'
 
-function csvColumns(t: TFunction<'expenses'>): CsvColumn<PumpExpense>[] {
+function csvColumns(t: TFunction<['expenses', 'common']>): CsvColumn<PumpExpense>[] {
   return [
     { header: t('csv.date'), value: (row) => row.expenseDate, kind: 'date' },
     { header: t('csv.category'), value: (row) => codeLabel(row.category) },
@@ -37,7 +37,7 @@ function csvColumns(t: TFunction<'expenses'>): CsvColumn<PumpExpense>[] {
 }
 
 function ApprovalBadge({ expense }: { expense: PumpExpense }) {
-  const { t } = useTranslation('expenses')
+  const { t } = useTranslation(['expenses', 'common'])
   const badge = approvalStatusBadge(expense.approvalStatus)
   const label = expense.approvalStatus === 'REJECTED' && expense.approvalNotes
     ? t('list.rejectedWithNotes', { label: badge.label, notes: expense.approvalNotes })
@@ -51,7 +51,7 @@ interface ExpenseListProps {
 }
 
 export function ExpenseList({ pumpId, list }: ExpenseListProps) {
-  const { t } = useTranslation('expenses')
+  const { t } = useTranslation(['expenses', 'common'])
   const columns = useMemo(() => csvColumns(t), [t])
   const { user }     = useAuthStore()
   const qc           = useQueryClient()
@@ -158,7 +158,7 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
               onClick={() => { setCategoryFilter(''); setStatusFilter(''); setPage(0) }}
               className="ui-btn ui-btn-ghost text-xs"
             >
-              {t('list.clearFilters')}
+              {t('common:actions.clearFilters')}
             </button>
           )}
           <CsvExportButton filename={csvFilename('expenses')} columns={columns} rows={loadAllExpenses}
@@ -206,7 +206,7 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
                     disabled={submitMutation.isPending}
                     className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
                   >
-                    {t('list.submit')}
+                    {t('common:actions.submit')}
                   </button>
                 )}
                 {/* Approve/Reject — only for Owner/Admin on pending expenses */}
@@ -217,14 +217,14 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
                       disabled={approveMutation.isPending}
                       className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
                     >
-                      {t('list.approve')}
+                      {t('common:actions.approve')}
                     </button>
                     <button
                       onClick={() => openRejectDialog(e)}
                       disabled={approveMutation.isPending}
                       className="ui-btn ui-btn-danger min-h-0 px-3 py-1 text-xs"
                     >
-                      {t('list.reject')}
+                      {t('common:actions.reject')}
                     </button>
                   </>
                 )}

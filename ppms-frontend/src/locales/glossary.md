@@ -142,3 +142,66 @@ Marathi is not Hindi with different spelling. Watch these:
 | Date | तारीख | तारीख | translate |
 | Today / Yesterday | आज / कल | आज / काल | translate |
 | Financial year (FY) | वित्त वर्ष | आर्थिक वर्ष | translate |
+| Revenue (money from sales) | बिक्री | विक्री | same word as "sale" on every screen; not आय / उत्पन्न |
+| Selling price | बिक्री दर | विक्री दर | translate |
+| Cost price (per litre / unit) | खरीद दर | खरेदी दर | translate; not लागत कीमत / खरीद कीमत |
+| Cost of goods (COGS) | माल की लागत | मालाचा खर्च | translate |
+| Gross profit / Net profit | सकल लाभ / शुद्ध लाभ | ढोबळ नफा / निव्वळ नफा | translate |
+| Profit or loss (P/L) | लाभ/हानि | नफा/तोटा | translate |
+| Category (expense) | श्रेणी | वर्ग | translate |
+| Type | प्रकार | प्रकार | translate; Marathi keeps प्रकार only for "type" |
+| Variant (product) | वेरिएंट | व्हेरिएंट | transliterate |
+| Collected / Received | मिला | मिळाले | translate; वसूली is only for recovering a shortage or interest |
+| Over limit | सीमा से ज़्यादा | मर्यादेपेक्षा जास्त | translate |
+| Notes | टिप्पणी | टीप | translate |
+| Optional | वैकल्पिक | ऐच्छिक | translate |
+| Edit / Review / Approve | बदलें / जाँचें / मंज़ूर करें | बदला / तपासा / मंजूर करा | translate |
+
+## Shared words (`common.json`)
+
+Buttons, field names, payment methods and notices that appear on many screens live once in `common.json` (`actions`, `fields`, `paymentMethods`, `notices`, `pagination`, `duration`, `pumpScope`). Use those keys instead of adding the same words to an area file.
+
+## Operator and manager screens
+
+| English | Hindi | Marathi |
+|---|---|---|
+| Open shift / Close shift | शिफ्ट खोलें / शिफ्ट बंद करें | शिफ्ट उघडा / शिफ्ट बंद करा |
+| Hand over | हैंडओवर | हँडओव्हर |
+| Credit entry / Credit sales | क्रेडिट एंट्री / क्रेडिट बिक्री | क्रेडिट नोंद / क्रेडिट विक्री |
+| Sub-account | उप-खाता | उप-खाते |
+| Backfill (enter an old shift or sale) | पुरानी शिफ्ट भरें / पुरानी बिक्री दर्ज करें | जुनी शिफ्ट भरा / जुनी विक्री नोंदवा |
+| Backfilled | बाद में भरी गई | नंतर भरलेली |
+| Payment collected | मिला भुगतान | मिळालेले पेमेंट |
+| Meter readings | मीटर रीडिंग | मीटर रीडिंग |
+| Cash in / Cash out | नकद जमा / नकद निकासी | रोख जमा / रोख काढली |
+| Shift #12 | शिफ्ट #12 | शिफ्ट #12 |
+| Overdue (shift, settlement) | समय पार | वेळ उलटली |
+| Confirmed / Absent (planning) | पक्का / अनुपस्थित | निश्चित / गैरहजर |
+
+## Owner screens
+
+| English | Hindi | Marathi |
+|---|---|---|
+| Needs attention today | आज ध्यान देने वाले काम | आज लक्ष देण्याची कामे |
+| Approvals | मंज़ूरियाँ | मंजुरी |
+| Escalated shortage | आगे भेजी गई कमी | पुढे पाठवलेली रोख कमी |
+| Pending investigation | जाँच बाकी | चौकशी प्रलंबित |
+| Cash recovery / Waived | नकद वसूली / माफ़ | रोख वसुली / माफ |
+| Payment settlements / In transit | भुगतान सेटलमेंट / रास्ते में | पेमेंट सेटलमेंट / येणे बाकी |
+| Ledger / Statement | लेजर / स्टेटमेंट | लेजर / स्टेटमेंट |
+| Billing cycle extension / Amount extension | बिलिंग चक्र विस्तार / सीमा विस्तार | बिलिंग चक्र वाढ / मर्यादा वाढ |
+| Opening balance | शुरुआती शेष | सुरुवातीची शिल्लक |
+| Day end (balance sheet) | दिन का अंत | दिवसअखेर |
+
+## Reports
+
+| English | Hindi | Marathi |
+|---|---|---|
+| Profit & Loss report | लाभ-हानि रिपोर्ट | नफा-तोटा रिपोर्ट |
+| Dip P/L | डिप लाभ/हानि | डिप नफा/तोटा |
+| Operator duty | ऑपरेटर ड्यूटी | ऑपरेटर ड्युटी |
+| Interest accrual | ब्याज जमा | व्याज आकारणी |
+| Stock lot / Inventory lots | स्टॉक लॉट | स्टॉक लॉट |
+| Opening stock / Closing stock | शुरुआती स्टॉक / अंतिम स्टॉक | सुरुवातीचा स्टॉक / शेवटचा स्टॉक |
+| Stock variance | स्टॉक अंतर | स्टॉक फरक |
+| Maintenance removal / Dip correction | रखरखाव निकासी / डिप सुधार | देखभालीसाठी काढले / डिप दुरुस्ती |

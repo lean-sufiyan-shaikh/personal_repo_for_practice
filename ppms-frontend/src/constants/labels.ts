@@ -1,4 +1,3 @@
-import type { UserRole } from '../types/auth'
 import { translateKey } from '../i18n'
 import { FUEL_LABELS } from './fuel'
 
@@ -31,6 +30,6 @@ export function codeLabel(code: string | null | undefined, fallback = '—'): st
   return translateKey(`enums:${code}`, { defaultValue: englishCodeLabel(code) })
 }
 
-export function roleLabel(role: UserRole | undefined): string {
+export function roleLabel(role: string | undefined): string {
   return codeLabel(role, '')
 }

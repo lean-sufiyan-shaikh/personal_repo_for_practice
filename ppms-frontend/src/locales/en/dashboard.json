@@ -1,14 +1,6 @@
 {
-  "header": {
-    "noPump": "No pump selected"
-  },
-  "duration": {
-    "minutes": "{{minutes}}m",
-    "hoursMinutes": "{{hours}}h {{minutes}}m"
-  },
   "overview": {
     "loadError": "Some live data could not be loaded. Figures shown may be incomplete — refresh to try again.",
-    "allPumps": "All pumps",
     "stalePrices": {
       "title": "Fuel prices not updated today",
       "body": "{{pump}} — tap here to update prices in Setup",
@@ -72,7 +64,6 @@
     },
     "severityPrefix": "{{severity}}: ",
     "urgentPrefix": "Urgent · ",
-    "review": "Review",
     "reviewLabel": "Review: {{reason}}",
     "reviewLabelWithPump": "Review: {{pump}}, {{reason}}",
     "loading": "Loading what needs attention",
@@ -101,8 +92,6 @@
   },
   "allPumps": {
     "scope": "Overview scope",
-    "allPumps": "All pumps",
-    "selectedPump": "Selected pump",
     "overdueShifts_one": "{{count}} overdue shift",
     "overdueShifts_other": "{{count}} overdue shifts",
     "lowTanks_one": "{{count}} low tank",

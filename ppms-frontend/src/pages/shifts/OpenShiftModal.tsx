@@ -251,7 +251,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                           <span key={tag} className={`text-xs px-1.5 py-0.5 rounded-badge font-medium ${
                             isSelected ? 'bg-info-bg text-info' : 'bg-surface-sunken text-ink-3'
                           }`}>
-                            {tag}
+                            {codeLabel(tag)}
                           </span>
                         ))}
                       </div>

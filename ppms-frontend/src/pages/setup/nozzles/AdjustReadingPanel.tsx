@@ -121,7 +121,7 @@ export function AdjustReadingPanel({ pumpId, nozzle, onClose }: Props) {
         )}
         <div className="ui-reading-editor__section">
           <label className="block">
-            <span className="ui-label">{t('nozzles.reason')} <span className="text-bad">*</span></span>
+            <span className="ui-label">{t('common:fields.reason')} <span className="text-bad">*</span></span>
             <input
               type="text"
               value={adjustReason}
@@ -139,7 +139,7 @@ export function AdjustReadingPanel({ pumpId, nozzle, onClose }: Props) {
             disabled={recordAdjustmentMutation.isPending}
             className={`ui-btn ${adjustType === 'RESET' ? 'ui-btn-danger' : 'ui-btn-primary'}`}
           >
-            {recordAdjustmentMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-3 h-3" />{t('actions.saving')}</span> : adjustType === 'RESET' ? t('nozzles.reading.resetSubmit') : t('nozzles.reading.saveSubmit')}
+            {recordAdjustmentMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-3 h-3" />{t('common:actions.saving')}</span> : adjustType === 'RESET' ? t('nozzles.reading.resetSubmit') : t('nozzles.reading.saveSubmit')}
           </button>
           <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
             {t('common:actions.cancel')}

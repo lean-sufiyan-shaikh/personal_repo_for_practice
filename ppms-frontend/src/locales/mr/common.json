@@ -10,7 +10,24 @@
     "delete": "हटवा",
     "reject": "नाकारा",
     "rejecting": "नाकारत आहे…",
-    "exportCsv": "CSV डाउनलोड करा"
+    "exportCsv": "CSV डाउनलोड करा",
+    "save": "सेव्ह करा",
+    "saving": "सेव्ह होत आहे…",
+    "edit": "बदला",
+    "add": "जोडा",
+    "back": "मागे",
+    "done": "झाले",
+    "remove": "काढा",
+    "submit": "पाठवा",
+    "approve": "मंजूर करा",
+    "review": "तपासा",
+    "generate": "तयार करा",
+    "generating": "तयार होत आहे…",
+    "printPdf": "PDF प्रिंट करा",
+    "enable": "सुरू करा",
+    "disable": "बंद करा",
+    "clear": "साफ करा",
+    "clearFilters": "फिल्टर काढा"
   },
   "language": {
     "label": "भाषा",
@@ -19,7 +36,8 @@
   },
   "loading": {
     "app": "लोड होत आहे...",
-    "page": "पान लोड होत आहे…"
+    "page": "पान लोड होत आहे…",
+    "short": "लोड होत आहे…"
   },
   "time": {
     "justNow": "आत्ताच",
@@ -47,7 +65,10 @@
     "ofTotal": "एकूण {{total}} पैकी",
     "previousPage": "मागील पान",
     "nextPage": "पुढील पान",
-    "rowsPerPage": "प्रत्येक पानावर ओळी"
+    "rowsPerPage": "प्रत्येक पानावर ओळी",
+    "prev": "मागे",
+    "next": "पुढे",
+    "pageOf": "पान {{page}} / {{total}}"
   },
   "select": {
     "placeholder": "निवडा…",
@@ -70,7 +91,9 @@
     "allCaughtUp": "सर्व पाहून झाले",
     "unreadPrefix": "न वाचलेली: ",
     "identicalAlerts": "({{count}} सारख्या सूचना)",
-    "viewAll": "सर्व सूचना पाहा"
+    "viewAll": "सर्व सूचना पाहा",
+    "read": "वाचली",
+    "unread": "न वाचलेली"
   },
   "csvExport": {
     "exported_one": "{{count}} ओळ {{filename}} मध्ये सेव्ह झाली",
@@ -105,9 +128,49 @@
     "sale": "विक्री",
     "shopSale": "दुकान विक्री",
     "interest": "व्याज",
-    "paid": "भरले"
+    "paid": "भरले",
+    "overdue": "वेळ उलटली"
   },
   "passwordInput": {
     "show": "पासवर्ड दाखवा"
+  },
+  "fields": {
+    "optionalSuffix": "(ऐच्छिक)",
+    "optional": "ऐच्छिक",
+    "notes": "टीप",
+    "reason": "कारण",
+    "from": "पासून",
+    "to": "पर्यंत",
+    "fromDate": "सुरुवातीची तारीख",
+    "toDate": "शेवटची तारीख",
+    "total": "एकूण"
+  },
+  "paymentMethods": {
+    "CASH": "रोख",
+    "UPI": "UPI",
+    "CARD": "कार्ड",
+    "FLEET_CARD": "फ्लीट कार्ड",
+    "CREDIT": "क्रेडिट",
+    "BANK_TRANSFER": "बँक ट्रान्सफर",
+    "OTHER": "इतर"
+  },
+  "notices": {
+    "noPumpTitle": "कोणताही पंप निवडलेला नाही",
+    "noPump": "कोणताही पंप निवडलेला नाही. वरच्या पट्टीत पंप निवडा.",
+    "notAssigned": "तुम्हाला कोणत्याही पंपावर जोडलेले नाही. मालक किंवा ॲडमिनला जोडायला सांगा.",
+    "goBackRetry": "{{error}} मागे जाऊन माहिती दुरुस्त करा आणि पुन्हा प्रयत्न करा."
+  },
+  "pumpScope": {
+    "allPumps": "सर्व पंप",
+    "selectedPump": "निवडलेला पंप"
+  },
+  "duration": {
+    "minutes": "{{minutes}} मि",
+    "hoursMinutes": "{{hours}} ता {{minutes}} मि"
+  },
+  "shiftNumber": "शिफ्ट #{{id}}",
+  "gst": {
+    "gstinFormat": "GSTIN 15 अक्षरांचा असावा, 27ABCDE1234F1Z5 या स्वरूपात.",
+    "gstinPlaceholder": "उदा. 27ABCDE1234F1Z5"
   }
 }

@@ -10,7 +10,7 @@ import { isValidGstin, isValidInvoicePrefix, normaliseGstText } from '../../util
 // ── GST details used on credit invoices ──────────────────────────────────────
 
 export function GstDetailsContent({ pump, onUpdated }: { pump: PumpSummary; onUpdated: () => void }) {
-  const { t } = useTranslation('setup')
+  const { t } = useTranslation(['setup', 'common'])
   const { addToast } = useToastStore()
   const [gstin, setGstin]                 = useState(pump.gstin ?? '')
   const [legalName, setLegalName]         = useState(pump.legalName ?? '')
@@ -35,7 +35,7 @@ export function GstDetailsContent({ pump, onUpdated }: { pump: PumpSummary; onUp
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isValidGstin(gstin)) { setError(t('gst.gstinFormat')); return }
+    if (!isValidGstin(gstin)) { setError(t('common:gst.gstinFormat')); return }
     if (!isValidInvoicePrefix(invoicePrefix)) { setError(t('gst.prefixFormat')); return }
     setError(null)
     mutation.mutate()
@@ -52,7 +52,7 @@ export function GstDetailsContent({ pump, onUpdated }: { pump: PumpSummary; onUp
         <label className="block">
           <span className="ui-label">GSTIN</span>
           <input value={gstin} onChange={(e) => setGstin(e.target.value.toUpperCase())}
-            maxLength={15} autoCapitalize="characters" placeholder={t('gst.gstinPlaceholder')} className="text-sm" />
+            maxLength={15} autoCapitalize="characters" placeholder={t('common:gst.gstinPlaceholder')} className="text-sm" />
         </label>
         <label className="block">
           <span className="ui-label">{t('gst.legalName')}</span>
@@ -74,7 +74,7 @@ export function GstDetailsContent({ pump, onUpdated }: { pump: PumpSummary; onUp
       {error && <p role="alert" className="ui-error-text">{error}</p>}
 
       <button type="submit" disabled={mutation.isPending} className="ui-btn ui-btn-primary">
-        {mutation.isPending ? t('actions.saving') : t('gst.save')}
+        {mutation.isPending ? t('common:actions.saving') : t('gst.save')}
       </button>
     </form>
   )

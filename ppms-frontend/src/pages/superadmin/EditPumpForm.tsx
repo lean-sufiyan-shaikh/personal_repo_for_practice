@@ -15,7 +15,7 @@ interface EditPumpFormProps {
 }
 
 export function EditPumpForm({ pump, isSaving, error, onSave }: EditPumpFormProps) {
-  const { t } = useTranslation('superadmin')
+  const { t } = useTranslation(['superadmin', 'common'])
   const schema = useMemo(() => editPumpSchema(t), [t])
   const {
     register: registerEdit,
@@ -57,7 +57,7 @@ export function EditPumpForm({ pump, isSaving, error, onSave }: EditPumpFormProp
         disabled={isSaving}
         className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs"
       >
-        {isSaving ? t('pump.saving') : t('pump.saveChanges')}
+        {isSaving ? t('common:actions.saving') : t('pump.saveChanges')}
       </button>
     </form>
   )

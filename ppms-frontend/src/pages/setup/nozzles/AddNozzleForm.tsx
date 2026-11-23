@@ -92,7 +92,7 @@ export function AddNozzleForm({ pumpId, du, onClose }: Props) {
             disabled={addNozzleMutation.isPending}
             className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs"
           >
-            {addNozzleMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('actions.adding')}</span> : t('actions.add')}
+            {addNozzleMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('actions.adding')}</span> : t('common:actions.add')}
           </button>
           <button
             type="button"

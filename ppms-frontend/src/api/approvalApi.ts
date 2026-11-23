@@ -17,6 +17,8 @@ export interface ApprovalItem {
   note: string | null
   /** Why the current user cannot decide this item; null when they can. */
   blockedReason: string | null
+  blockedReasonCode: string | null
+  blockedReasonParams: Record<string, unknown>
 }
 
 export interface ApprovalItemKey {
@@ -27,7 +29,7 @@ export interface ApprovalItemKey {
 export interface ApprovalDecisionResult {
   succeeded: number
   failed: number
-  results: Array<ApprovalItemKey & { succeeded: boolean; message: string | null }>
+  results: Array<ApprovalItemKey & { succeeded: boolean; message: string | null; code: string | null; params: Record<string, unknown> | null }>
 }
 
 export const approvalApi = {

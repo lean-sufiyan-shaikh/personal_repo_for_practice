@@ -1,5 +1,7 @@
 package com.ppms.report;
 
+import com.ppms.common.text.ServerTextCodes;
+import com.ppms.fuel.FuelType;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.pump.PumpShiftDefinition;
@@ -22,6 +24,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,7 +68,7 @@ class BalanceSheetStalenessServiceTest {
         BalanceSheet otherShiftSheet = saveSheet(BalanceSheetReportType.SHIFT, today, eveningShiftId);
         BalanceSheet yesterdaySheet = saveSheet(BalanceSheetReportType.DAY, today.minusDays(1), null);
 
-        stalenessService.markSheetsOfShiftStale(pumpId, today, morningShiftId, "Shift #1 was closed");
+        stalenessService.markSheetsOfShiftStale(pumpId, today, morningShiftId, StaleReasons.shiftClosed(1L));
 
         assertThat(staleFlagsOf(daySheet, ownShiftSheet, otherShiftSheet, yesterdaySheet))
                 .containsExactly(true, true, false, false);
@@ -76,7 +79,7 @@ class BalanceSheetStalenessServiceTest {
         BalanceSheet daySheet = saveSheet(BalanceSheetReportType.DAY, today, null);
         BalanceSheet shiftSheet = saveSheet(BalanceSheetReportType.SHIFT, today, morningShiftId);
 
-        stalenessService.markDaySheetsStale(pumpId, List.of(today), "Cash recovered");
+        stalenessService.markDaySheetsStale(pumpId, List.of(today), StaleReasons.cashRecovered(1L));
 
         assertThat(staleFlagsOf(daySheet, shiftSheet)).containsExactly(true, false);
     }
@@ -85,11 +88,30 @@ class BalanceSheetStalenessServiceTest {
     void sheetKeepsTheFirstReasonItWentStaleFor() {
         BalanceSheet daySheet = saveSheet(BalanceSheetReportType.DAY, today, null);
 
-        stalenessService.markAllSheetsStale(pumpId, List.of(today), "First change");
-        stalenessService.markAllSheetsStale(pumpId, List.of(today), "Second change");
+        stalenessService.markAllSheetsStale(pumpId, List.of(today), StaleReasons.dipCheckRecorded("T1"));
+        stalenessService.markAllSheetsStale(pumpId, List.of(today), StaleReasons.drainRecorded("5.000"));
 
         entityManager.clear();
-        assertThat(balanceSheetRepository.findById(daySheet.getId()).orElseThrow().getStaleReason()).isEqualTo("First change");
+        BalanceSheet stored = balanceSheetRepository.findById(daySheet.getId()).orElseThrow();
+        assertThat(stored.getStaleReason()).isEqualTo("A dip check on tank 'T1' was recorded after this sheet was generated.");
+        assertThat(stored.getStaleReasonCode()).isEqualTo(ServerTextCodes.STALE_DIP_CHECK_RECORDED);
+        assertThat(stored.getStaleReasonParams()).isEqualTo(Map.of("tankIdentifier", "T1"));
+    }
+
+    @Test
+    void storesTheCodeAndParamsOfTheReasonBesideItsEnglishText() {
+        BalanceSheet daySheet = saveSheet(BalanceSheetReportType.DAY, today, null);
+
+        stalenessService.markAllSheetsStale(pumpId, List.of(today),
+                StaleReasons.fuelCostCorrected(FuelType.DIESEL, "INV-7", "90.000", "80.000"));
+
+        entityManager.clear();
+        BalanceSheet stored = balanceSheetRepository.findById(daySheet.getId()).orElseThrow();
+        assertThat(stored.getStaleReason()).isEqualTo(
+                "The purchase cost of DIESEL delivery (invoice INV-7) was corrected ₹90.000 → ₹80.000/L after this sheet was generated.");
+        assertThat(stored.getStaleReasonCode()).isEqualTo(ServerTextCodes.STALE_FUEL_COST_CORRECTED);
+        assertThat(stored.getStaleReasonParams()).containsExactlyInAnyOrderEntriesOf(Map.of(
+                "fuelTypeCode", "DIESEL", "invoiceReference", "INV-7", "oldCost", "90.000", "newCost", "80.000"));
     }
 
     private BalanceSheet saveSheet(BalanceSheetReportType type, LocalDate date, Long shiftDefinitionId) {

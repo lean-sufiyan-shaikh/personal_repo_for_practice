@@ -63,7 +63,7 @@ export function VoidSettlementDialog({ pumpId, voidTarget, onClose }: VoidSettle
       </p>
       <div>
         <label className="block">
-          <span className="ui-label">{t('void.reason')}</span>
+          <span className="ui-label">{t('common:fields.reason')}</span>
           <input
             type="text"
             className="ui-input"

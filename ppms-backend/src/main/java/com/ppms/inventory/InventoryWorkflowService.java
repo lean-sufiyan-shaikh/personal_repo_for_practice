@@ -13,6 +13,7 @@ import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
 import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
@@ -356,7 +357,7 @@ public class InventoryWorkflowService {
 
         applyDipAdjustment(pumpId, tank, check, variance, checkedAt);
         balanceSheetStalenessService.markAllSheetsStale(pumpId, List.of(businessClock.today()),
-                "A dip check on tank '" + tank.getTankIdentifier() + "' was recorded after this sheet was generated.");
+                StaleReasons.dipCheckRecorded(tank.getTankIdentifier()));
 
         log.info("DIP check recorded: pump={}, tank={}, measured={}L, system={}L, soldOnOpenShifts={}L, variance={}L, status={}, by={}, checkedBy={}",
                 pumpId, tank.getId(), measured, systemStockNow, soldOnOpenShifts, variance, status, currentUser.getId(),

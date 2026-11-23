@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { codeLabel } from '../../constants/labels'
 import type { TankerDelivery } from '../../api/inventoryApi'
 import { Modal } from '../../components/Modal'
 import { LitresText } from '../../components/AmountText'
@@ -49,7 +50,7 @@ export function DeleteInvoiceModal({ invoice, rows, isPending, error, onConfirm,
             <div key={r.id} className="flex items-center justify-between py-1.5 text-xs">
               <span className="font-medium text-ink">{r.tankIdentifier}</span>
               <span className={`px-1.5 py-0.5 rounded-badge text-xs font-medium ${(FUEL_COLORS[r.fuelType] ?? FUEL_COLORS.PETROL).badge}`}>
-                {r.fuelType}
+                {codeLabel(r.fuelType)}
               </span>
               <LitresText value={-r.quantityDelivered} showSign className="text-ink-2" />
             </div>

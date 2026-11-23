@@ -16,7 +16,7 @@ interface SettlementConfigTabProps {
 }
 
 export function SettlementConfigTab({ pumpId, canConfigure }: SettlementConfigTabProps) {
-  const { t } = useTranslation('settlements')
+  const { t } = useTranslation(['settlements', 'common'])
   const qc           = useQueryClient()
   const { addToast } = useToastStore()
 
@@ -62,7 +62,7 @@ export function SettlementConfigTab({ pumpId, canConfigure }: SettlementConfigTa
         {t('alerts.intro')}
       </p>
       {loadingConfigs ? (
-        <div className="flex items-center gap-2 text-ink-3 text-sm"><Spinner /> {t('alerts.loading')}</div>
+        <div className="flex items-center gap-2 text-ink-3 text-sm"><Spinner /> {t('common:loading.short')}</div>
       ) : (
         configs.map(cfg => {
           const edit      = configEdits[cfg.paymentType]
@@ -107,8 +107,8 @@ export function SettlementConfigTab({ pumpId, canConfigure }: SettlementConfigTa
                     className="ui-btn ui-btn-primary"
                   >
                     {savingConfig === cfg.paymentType
-                      ? <><Spinner /><span>{t('alerts.saving')}</span></>
-                      : <><Check size={14} strokeWidth={2.5} aria-hidden="true" /><span>{t('alerts.save')}</span></>}
+                      ? <><Spinner /><span>{t('common:actions.saving')}</span></>
+                      : <><Check size={14} strokeWidth={2.5} aria-hidden="true" /><span>{t('common:actions.save')}</span></>}
                   </button>
                 )}
                 {!isDirty && (

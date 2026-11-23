@@ -13,12 +13,12 @@ vi.mock('../../api/approvalApi', () => ({ approvalApi: { getPending: vi.fn(), de
 const expense: ApprovalItem = {
   kind: 'EXPENSE', id: 7, amount: 1200, itemDate: '2026-11-20', submittedByName: 'Ravi Manager',
   submittedAt: new Date(Date.now() - 3 * 24 * 3_600_000).toISOString(), category: 'MAINTENANCE',
-  clientId: null, clientName: null, note: 'Compressor repair', blockedReason: null,
+  clientId: null, clientName: null, note: 'Compressor repair', blockedReason: null, blockedReasonCode: null, blockedReasonParams: {},
 }
 const payment: ApprovalItem = {
   kind: 'CREDIT_PAYMENT', id: 12, amount: 5000, itemDate: '2026-11-22', submittedByName: 'Ravi Manager',
   submittedAt: new Date(Date.now() - 5 * 3_600_000).toISOString(), category: null,
-  clientId: 40, clientName: 'Sharma Transport', note: null, blockedReason: null,
+  clientId: 40, clientName: 'Sharma Transport', note: null, blockedReason: null, blockedReasonCode: null, blockedReasonParams: {},
 }
 const ownPayment: ApprovalItem = {
   ...payment, id: 13, amount: 800, clientName: 'Gupta Logistics',
@@ -61,8 +61,8 @@ describe('ApprovalsPage', () => {
     vi.mocked(approvalApi.decide).mockResolvedValue({
       succeeded: 1, failed: 1,
       results: [
-        { kind: 'EXPENSE', id: 7, succeeded: true, message: null },
-        { kind: 'CREDIT_PAYMENT', id: 12, succeeded: false, message: 'Approving this payment would exceed the amount still payable' },
+        { kind: 'EXPENSE', id: 7, succeeded: true, message: null, code: null, params: null },
+        { kind: 'CREDIT_PAYMENT', id: 12, succeeded: false, message: 'Approving this payment would exceed the amount still payable', code: 'CREDIT_PAYMENT_APPROVAL_EXCEEDS_PAYABLE', params: { amount: '5000.00', payable: '3000.00' } },
       ],
     })
     renderApprovals()
@@ -80,7 +80,7 @@ describe('ApprovalsPage', () => {
   it('asks for a reason before rejecting and sends it with the selected items', async () => {
     const user = userEvent.setup()
     vi.mocked(approvalApi.decide).mockResolvedValue({
-      succeeded: 1, failed: 0, results: [{ kind: 'EXPENSE', id: 7, succeeded: true, message: null }],
+      succeeded: 1, failed: 0, results: [{ kind: 'EXPENSE', id: 7, succeeded: true, message: null, code: null, params: null }],
     })
     renderApprovals()
 

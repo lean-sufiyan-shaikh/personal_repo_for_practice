@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { codeLabel } from '../../../constants/labels'
 import { Printer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -27,7 +28,7 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
       header: t('handover.report.columns.nozzle'),
       cell: (r) => {
         const nozzle = shift.nozzles.find(n => n.id === r.nozzleId)
-        return <span className="font-medium">{nozzle ? `#${nozzle.nozzleNumber} ${r.fuelType}` : r.fuelType}</span>
+        return <span className="font-medium">{nozzle ? `#${nozzle.nozzleNumber} ${codeLabel(r.fuelType)}` : codeLabel(r.fuelType)}</span>
       },
     },
     { key: 'opening', header: t('handover.report.columns.opening'), numeric: true, cell: (r) => r.startReading ?? '—' },
@@ -72,7 +73,7 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
           {/* Title for print */}
           <div className="hidden print:block text-center mb-4">
             <h2 className="text-xl font-bold">{t('handover.report.title')}</h2>
-            <p className="text-ink-3 text-xs mt-1">{t('handover.report.shiftNumber', { id: shift.id })}</p>
+            <p className="text-ink-3 text-xs mt-1">{t('common:shiftNumber', { id: shift.id })}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -103,11 +104,11 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
             <p className="text-xs font-semibold text-ink-3 uppercase tracking-wide mb-2">{t('handover.report.collections')}</p>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: t('handover.report.cash'),      val: shift.cashCollected },
-                { label: t('handover.report.upi'),       val: shift.upiCollected },
-                { label: t('handover.report.card'),      val: shift.cardCollected },
-                { label: t('handover.report.fleetCard'), val: shift.fleetCardCollected },
-                { label: t('handover.report.credit'),    val: shift.creditTotal },
+                { label: t('common:paymentMethods.CASH'),      val: shift.cashCollected },
+                { label: t('common:paymentMethods.UPI'),       val: shift.upiCollected },
+                { label: t('common:paymentMethods.CARD'),      val: shift.cardCollected },
+                { label: t('common:paymentMethods.FLEET_CARD'), val: shift.fleetCardCollected },
+                { label: t('common:paymentMethods.CREDIT'),    val: shift.creditTotal },
               ].map(({ label, val }) => (
                 <div key={label} className="flex justify-between bg-surface-sunken rounded-control px-3 py-2">
                   <span className="text-ink-3">{label}</span>

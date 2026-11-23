@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { serverText } from '../../utils/serverText'
 import { Trans, useTranslation } from 'react-i18next'
 import { balanceSheetApi } from '../../api/balanceSheetApi'
 import { parseApiError } from '../../utils/apiError'
@@ -17,7 +18,7 @@ interface DeleteConfirmProps {
 }
 
 export function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmProps) {
-  const { t } = useTranslation('balancesheet')
+  const { t } = useTranslation(['balancesheet', 'common'])
   const qc = useQueryClient()
   const { addToast } = useToastStore()
 
@@ -43,7 +44,7 @@ export function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmPro
             onClick={onClose}
             className="ui-btn ui-btn-secondary"
           >
-            {t('delete.cancel')}
+            {t('common:actions.cancel')}
           </button>
           <button
             onClick={() => mutation.mutate()}
@@ -60,7 +61,7 @@ export function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmPro
             <Trans
               t={t}
               i18nKey="delete.body"
-              values={{ period: report.periodLabel, date: fmtDate(report.reportDate) }}
+              values={{ period: serverText(report.periodLabelCode, report.periodLabelParams, report.periodLabel), date: fmtDate(report.reportDate) }}
               components={{ period: <span className="font-medium" />, date: <span className="font-medium" /> }}
             />
           </p>

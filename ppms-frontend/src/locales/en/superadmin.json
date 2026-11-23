@@ -27,8 +27,7 @@
     "show": "Show",
     "pump": "Pump",
     "employeeId": "Employee ID",
-    "copy": "Copy",
-    "dismiss": "Dismiss"
+    "copy": "Copy"
   },
   "fields": {
     "pumpName": "Pump Name",
@@ -46,7 +45,6 @@
     "phoneNumber": "Phone Number",
     "phonePlaceholder": "10-digit mobile number",
     "initialPassword": "Initial Password",
-    "passwordPlaceholder": "Min. 6 characters",
     "pumpDetails": "Pump Details",
     "pumpNamePlaceholder": "e.g. Sharma Petrol Station",
     "creating": "Creating...",
@@ -66,7 +64,6 @@
     "pumpCount_other": "{{count}} pumps",
     "disabledCount": "· {{value}} disabled",
     "resetPassword": "Reset Password",
-    "cancel": "Cancel",
     "addPump": "Add Pump",
     "noPumps": "No pumps added yet.",
     "idLabel": "ID:",
@@ -85,10 +82,6 @@
     "disabled": "disabled",
     "staff": "{{value}} staff",
     "setup": "Setup {{done}} of {{required}} done",
-    "edit": "Edit",
-    "disable": "Disable",
-    "enable": "Enable",
-    "saving": "Saving…",
     "saveChanges": "Save Changes"
   },
   "validation": {

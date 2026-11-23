@@ -46,8 +46,7 @@
     "title": "मेनू",
     "workspace": "{{role}} कार्यक्षेत्र",
     "closeMenu": "मेनू बंद करा",
-    "currentPump": "सध्याचा पंप",
-    "noPump": "कोणताही पंप निवडलेला नाही"
+    "currentPump": "सध्याचा पंप"
   },
   "topbar": {
     "skipToContent": "मुख्य मजकुराकडे जा",
@@ -68,9 +67,7 @@
   "profile": {
     "yourName": "तुमचे नाव",
     "saveName": "नाव सेव्ह करा",
-    "save": "सेव्ह करा",
     "cancelEditing": "बदल रद्द करा",
-    "cancel": "रद्द करा",
     "editName": "तुमचे नाव बदला, {{name}}",
     "editNameHint": "नाव बदलण्यासाठी क्लिक करा",
     "nameBlank": "नाव रिकामे असू शकत नाही",

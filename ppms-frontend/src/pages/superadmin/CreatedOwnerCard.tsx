@@ -13,7 +13,7 @@ interface CreatedOwnerCardProps {
 }
 
 export function CreatedOwnerCard({ createdOwner, revealedPassword, onToggleReveal, onCopy, onDismiss }: CreatedOwnerCardProps) {
-  const { t } = useTranslation('superadmin')
+  const { t } = useTranslation(['superadmin', 'common'])
   const showPassword = revealedPassword !== null
 
   return (
@@ -60,7 +60,7 @@ export function CreatedOwnerCard({ createdOwner, revealedPassword, onToggleRevea
           <IconButton
             onClick={onDismiss}
             className="ui-btn ui-btn-ghost"
-            label={t('created.dismiss')}
+            label={t('common:actions.dismiss')}
             icon={<X size={14} strokeWidth={2} />}
           />
         </div>

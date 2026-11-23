@@ -8,7 +8,7 @@ import { discrepancyTypeOf } from './closeShiftTotals'
 export function Section({ label, title, optional = false, children }: {
   label: string; title: string; optional?: boolean; children: React.ReactNode
 }) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   return (
     <div>
       <div className="flex items-center gap-2 mb-2.5">
@@ -16,7 +16,7 @@ export function Section({ label, title, optional = false, children }: {
           {label}
         </span>
         <h3 className="text-sm font-semibold text-ink">{title}</h3>
-        {optional && <span className="text-xs text-ink-3">{t('close.fields.optional')}</span>}
+        {optional && <span className="text-xs text-ink-3">{t('common:fields.optionalSuffix')}</span>}
       </div>
       {children}
     </div>
@@ -28,7 +28,7 @@ export function ReadingField({ label, startValue, soldUnits, pricePerUnit, value
   value: string; onChange: (v: string) => void; unitLabel: string; isInvalid?: boolean
   noChange?: boolean; onNoChangeToggle?: () => void; focusOnOpen?: boolean
 }) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const saleValue = soldUnits > 0 ? soldUnits * pricePerUnit : null
 
   return (
@@ -89,7 +89,7 @@ export function ReadingField({ label, startValue, soldUnits, pricePerUnit, value
 }
 
 export function PaymentField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   return (
     <div>
       <label className="block">
@@ -104,7 +104,7 @@ export function PaymentField({ label, value, onChange }: { label: string; value:
 }
 
 export function BalanceCard({ totalDue, totalCollected, diff }: { totalDue: number; totalCollected: number; diff: number }) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const borderClass = diff === 0 ? 'border-ok' : diff < 0 ? 'border-bad' : 'border-warn'
   return (
     <div className={`rounded-card border-2 overflow-hidden ${borderClass}`}>

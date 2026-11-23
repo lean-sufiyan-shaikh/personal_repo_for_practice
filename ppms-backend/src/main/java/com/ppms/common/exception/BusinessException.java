@@ -4,8 +4,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-// Thrown when a business rule is violated (e.g., shift already open, credit limit exceeded).
-// Maps to HTTP 422 Unprocessable Entity so the frontend can distinguish it from a 400 (bad input).
+/** A broken business rule (e.g. shift already open, credit limit exceeded); GlobalExceptionHandler answers 400. */
 public class BusinessException extends RuntimeException implements CodedError {
 
     private final String code;

@@ -7,6 +7,7 @@ import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.common.text.ServerTextCodes;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.user.User;
@@ -222,7 +223,9 @@ public class CreditLedgerController {
                         "periodTo", charge.getPeriodTo().toString()
                 )))
                 .orElseGet(() -> ResponseEntity.ok(Map.of("applied", false,
-                        "reason", "No eligible interest period — client may have no balance, no rate configured, or interest was already applied recently.")));
+                        "reason", "No eligible interest period — client may have no balance, no rate configured, or interest was already applied recently.",
+                        "reasonCode", ServerTextCodes.INTEREST_NOT_DUE,
+                        "reasonParams", Map.of())));
     }
 
     /**

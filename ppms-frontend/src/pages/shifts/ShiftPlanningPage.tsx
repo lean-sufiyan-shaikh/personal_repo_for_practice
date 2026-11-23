@@ -8,7 +8,7 @@ import { PlanningGrid } from './planning/PlanningGrid'
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function ShiftPlanningPage() {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const form = useShiftPlanning()
   const { isOwnerOrAdmin, pumpId } = form
 
@@ -16,7 +16,7 @@ export default function ShiftPlanningPage() {
     return (
       <div className="ui-page ui-page--narrow">
         <div className="ui-alert ui-alert-warning text-sm">
-          {t('page.notAssigned')}
+          {t('common:notices.notAssigned')}
         </div>
       </div>
     )

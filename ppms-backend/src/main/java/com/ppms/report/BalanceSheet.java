@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.Map;
 
 @Entity
 @Table(name = "balance_sheets")
@@ -52,6 +53,14 @@ public class BalanceSheet {
     /** Human-readable label, e.g. "Shift 1 · 12 AM – 8 AM" */
     @Column(name = "period_label", nullable = false)
     private String periodLabel;
+
+    /** Names periodLabel for translated screens; null with null params on sheets generated before V38. */
+    @Column(name = "period_label_code")
+    private String periodLabelCode;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "period_label_params", columnDefinition = "jsonb")
+    private Map<String, Object> periodLabelParams;
 
     @Column(name = "generated_by_user_id")
     private Long generatedByUserId;
@@ -142,6 +151,14 @@ public class BalanceSheet {
 
     @Column(name = "stale_reason", length = 500)
     private String staleReason;
+
+    /** Names staleReason for translated screens; null with null params on sheets marked stale before V38. */
+    @Column(name = "stale_reason_code")
+    private String staleReasonCode;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "stale_reason_params", columnDefinition = "jsonb")
+    private Map<String, Object> staleReasonParams;
 
     /** Shifts of the report date still open when a live sheet for today was generated. */
     @Column(name = "open_shift_count", nullable = false)

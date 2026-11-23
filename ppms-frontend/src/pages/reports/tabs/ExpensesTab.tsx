@@ -38,7 +38,7 @@ function approvedTotal(rows: ExpenseReportLine[]): number {
 
 // ── Expenses Tab ──────────────────────────────────────────────────────────────
 
-function expenseColumns(t: TFunction<'reports'>): DataTableColumn<ExpenseReportLine>[] {
+function expenseColumns(t: TFunction<['reports', 'common']>): DataTableColumn<ExpenseReportLine>[] {
   return [
     { key: 'date', header: t('columns.date'), cell: (e) => <span className="text-ink-2">{e.expenseDate}</span> },
     { key: 'category', header: t('columns.category'), cell: (e) => <span className="text-ink-3 text-xs">{codeLabel(e.category)}</span> },
@@ -52,7 +52,7 @@ function expenseColumns(t: TFunction<'reports'>): DataTableColumn<ExpenseReportL
 }
 
 export function ExpensesTab({ pumpId }: { pumpId: number }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   const [query, setQuery, isDefaultRange] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
@@ -96,14 +96,14 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
           disabled={isFetching}
           className="ui-btn ui-btn-primary"
         >
-          {isFetching ? t('controls.loading') : t('controls.generate')}
+          {isFetching ? t('common:loading.short') : t('common:actions.generate')}
         </button>
         <button
           onClick={() => { void printWhenFontsReady() }}
           disabled={rows.length === 0}
           className="ui-btn ui-btn-secondary"
         >
-          {t('controls.printPdf')}
+          {t('common:actions.printPdf')}
         </button>
         <CsvExportButton filename={csvFilename('expenses', query)} columns={CSV_COLUMNS} rows={rows} />
         </div>

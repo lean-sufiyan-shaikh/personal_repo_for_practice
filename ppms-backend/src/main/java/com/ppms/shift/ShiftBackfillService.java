@@ -15,6 +15,7 @@ import com.ppms.pump.NozzleRepository;
 import com.ppms.pump.PumpShiftDefinition;
 import com.ppms.pump.PumpShiftDefinitionRepository;
 import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.settlement.PaymentSettlement;
 import com.ppms.settlement.PaymentSettlementRepository;
 import com.ppms.settlement.SettlementPaymentType;
@@ -139,7 +140,7 @@ public class ShiftBackfillService {
 
         autoSettleBackfilledDigitalPayments(pumpId, shiftId, shiftDate, request, currentUser);
         balanceSheetStalenessService.markSheetsOfShiftStale(pumpId, shiftDate, shiftDef.getId(),
-                "Shift #" + shiftId + " was backfilled after this sheet was generated.");
+                StaleReasons.shiftBackfilled(shiftId));
 
         log.info("Shift {} backfilled by {}: du={}, operator={}, date={}, definition='{}', totalDue={}, status={}",
                 shiftId, currentUser.getId(), du.getId(), operator.getId(),

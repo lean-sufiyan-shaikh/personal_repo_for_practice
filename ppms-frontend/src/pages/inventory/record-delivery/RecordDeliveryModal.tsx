@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { codeLabel } from '../../../constants/labels'
 import { useTranslation } from 'react-i18next'
 import { useOnValuesChange } from '../../../hooks/useOnValuesChange'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -214,7 +215,7 @@ export function RecordDeliveryModal({
 
   const tankOptions = tanks.map(tank => ({
     value: String(tank.tankId),
-    label: t('recordDelivery.tankOption', { tank: tank.tankIdentifier, fuel: tank.fuelType, stock: tank.currentStock.toFixed(0) }),
+    label: t('recordDelivery.tankOption', { tank: tank.tankIdentifier, fuel: codeLabel(tank.fuelType), stock: tank.currentStock.toFixed(0) }),
   }))
 
   return (

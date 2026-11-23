@@ -16,7 +16,7 @@ export function OverviewScopeToggle({ pumpCount, selectedPumpName, showAllPumps,
   showAllPumps: boolean
   onShowAllPumpsChange: (showAllPumps: boolean) => void
 }) {
-  const { t } = useTranslation('dashboard')
+  const { t } = useTranslation(['dashboard', 'common'])
   if (pumpCount < 2) return null
 
   return (
@@ -27,7 +27,7 @@ export function OverviewScopeToggle({ pumpCount, selectedPumpName, showAllPumps,
         aria-pressed={showAllPumps}
         className={`ui-dashboard-pump-chip ${showAllPumps ? 'ui-dashboard-pump-chip--active' : ''}`}
       >
-        {t('allPumps.allPumps')}
+        {t('common:pumpScope.allPumps')}
       </button>
       <button
         type="button"
@@ -35,14 +35,14 @@ export function OverviewScopeToggle({ pumpCount, selectedPumpName, showAllPumps,
         aria-pressed={!showAllPumps}
         className={`ui-dashboard-pump-chip ${showAllPumps ? '' : 'ui-dashboard-pump-chip--active'}`}
       >
-        {selectedPumpName ?? t('allPumps.selectedPump')}
+        {selectedPumpName ?? t('common:pumpScope.selectedPump')}
       </button>
     </div>
   )
 }
 
 function PumpRow({ pump, onSelect }: { pump: PumpOverviewSummary; onSelect: (pumpId: number) => void }) {
-  const { t } = useTranslation('dashboard')
+  const { t } = useTranslation(['dashboard', 'common'])
   return (
     <button
       type="button"
@@ -76,7 +76,7 @@ function PumpRow({ pump, onSelect }: { pump: PumpOverviewSummary; onSelect: (pum
 
 /** Today's totals across all of the user's pumps, with one row per pump that opens that pump's own overview. */
 export function AllPumpsOverview({ onPumpSelected }: { onPumpSelected: () => void }) {
-  const { t } = useTranslation('dashboard')
+  const { t } = useTranslation(['dashboard', 'common'])
   const setSelectedPumpId = usePumpStore(state => state.setSelectedPumpId)
 
   const { data: overview, isLoading, isError } = useQuery({

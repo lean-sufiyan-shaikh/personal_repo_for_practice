@@ -1,13 +1,4 @@
 {
-  "form": {
-    "reason": "Reason",
-    "saving": "Saving…",
-    "save": "Save"
-  },
-  "period": {
-    "from": "From",
-    "to": "To"
-  },
   "extension": {
     "summary": {
       "amount": "+₹{{amount}} credit headroom",
@@ -180,11 +171,8 @@
     "invalidPeriod": "Choose a period whose start is on or before its end.",
     "title": "Generate Invoices",
     "subtitle": "One invoice per client with uninvoiced credit sales",
-    "done": "Done",
-    "generating": "Generating…",
     "generateCount_one": "Generate {{count}} invoice",
     "generateCount_other": "Generate {{count}} invoices",
-    "generate": "Generate",
     "result": {
       "issued_one": "<strong>{{count}}</strong> invoice issued.",
       "issued_other": "<strong>{{count}}</strong> invoices issued.",
@@ -259,14 +247,7 @@
     "overSuffix": " (over)",
     "amount": "Amount",
     "mode": "Payment Mode",
-    "modes": {
-      "CASH": "Cash",
-      "UPI": "UPI",
-      "BANK_TRANSFER": "Bank Transfer",
-      "OTHER": "Other"
-    },
     "date": "Payment Date",
-    "notes": "Notes",
     "notesPlaceholder": "e.g. Paid via NEFT ref TXN12345"
   },
   "ledger": {
@@ -283,7 +264,6 @@
       "INTEREST": "% Interest"
     },
     "noTransactions": "No transactions yet",
-    "clear": "Clear",
     "columns": {
       "date": "Date",
       "type": "Type",
@@ -299,7 +279,6 @@
     },
     "weekCaption": "Transactions, {{week}}",
     "notCounted": "Not counted in balance",
-    "approve": "Approve",
     "movePaymentTitle": "Move this payment within the account group",
     "moveEntryTitle": "Move this entry within the account group",
     "move": "Move",
@@ -309,14 +288,10 @@
   "clientForm": {
     "updateFailed": "Failed to update client",
     "phoneInvalid": "Phone must be exactly 10 digits.",
-    "gstinFormat": "GSTIN must be 15 characters in the format 27ABCDE1234F1Z5.",
     "name": "Name",
     "phone": "Phone",
-    "notes": "Notes",
-    "optional": "(optional)",
     "notesPlaceholder": "e.g. Fleet manager, lorry owner",
     "gstinHint": "(blank if unregistered)",
-    "gstinPlaceholder": "e.g. 27ABCDE1234F1Z5",
     "billingAddress": "Billing address",
     "billingAddressPlaceholder": "Printed on invoices"
   },
@@ -339,7 +314,6 @@
     "generateButton": "Generate Invoice"
   },
   "page": {
-    "notAssigned": "You are not assigned to any pump. Ask the Owner or Admin to assign you.",
     "kickerLedger": "Client balances",
     "kickerClients": "Credit management",
     "titleLedger": "Credit Ledger",
@@ -350,8 +324,7 @@
     "tabs": {
       "clients": "Clients",
       "ledger": "Ledger"
-    },
-    "noPump": "No pump selected. Use the pump selector in the top navigation bar."
+    }
   },
   "clients": {
     "addFailed": "Failed to add client",
@@ -367,9 +340,6 @@
     "parentBadge_other": "parent · {{count}} sub-accounts",
     "disabled": "Disabled",
     "addSubAccountToggle": "+ Sub-account",
-    "edit": "Edit",
-    "disable": "Disable",
-    "enable": "Enable",
     "addSubAccountUnder": "Add sub-account under {{name}}",
     "subNamePlaceholder": "e.g. Driver 1",
     "phonePlaceholder": "e.g. 9876543210",

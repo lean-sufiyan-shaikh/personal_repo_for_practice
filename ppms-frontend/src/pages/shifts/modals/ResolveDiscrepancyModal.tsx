@@ -78,7 +78,7 @@ export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onCl
                 disabled={mutation.isPending || !action}
                 className="ui-btn ui-btn-danger flex-1"
               >
-                {mutation.isPending ? t('resolveDiscrepancy.saving') : action === 'PENDING_INVESTIGATION' ? t('resolveDiscrepancy.startInvestigation') : t('resolveDiscrepancy.confirm')}
+                {mutation.isPending ? t('common:actions.saving') : action === 'PENDING_INVESTIGATION' ? t('resolveDiscrepancy.startInvestigation') : t('resolveDiscrepancy.confirm')}
               </button>
             </>
           }

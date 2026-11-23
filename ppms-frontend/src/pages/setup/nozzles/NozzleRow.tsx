@@ -35,7 +35,7 @@ export function NozzleRow({
   pumpId, du, nozzle, tanks, openPanel, onOpenPanel, onClosePanel,
   menuOpen, onMenuChange, statusPending, statusError, onEnable, onDisable,
 }: Props) {
-  const { t } = useTranslation('setup')
+  const { t } = useTranslation(['setup', 'common'])
   const isInactive = nozzle.status === 'INACTIVE'
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -73,7 +73,7 @@ export function NozzleRow({
               disabled={statusPending}
               className="text-xs text-ok font-medium border border-ok hover:bg-ok-bg px-2.5 py-1 rounded-control transition-colors disabled:opacity-50"
             >
-              {statusPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('actions.enabling')}</span> : t('actions.enable')}
+              {statusPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('actions.enabling')}</span> : t('common:actions.enable')}
             </button>
           ) : (
             <RowActionMenu

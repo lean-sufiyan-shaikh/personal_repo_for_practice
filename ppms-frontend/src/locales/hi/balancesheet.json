@@ -1,11 +1,6 @@
 {
   "list": {
     "title": "बैलेंस शीट",
-    "generate": "बनाएँ",
-    "fromDate": "शुरुआती तारीख",
-    "toDate": "अंतिम तारीख",
-    "fromPlaceholder": "से",
-    "toPlaceholder": "तक",
     "to": "से",
     "clearDateFilter": "तारीख फ़िल्टर हटाएँ",
     "emptyTitle": "कोई बैलेंस शीट नहीं मिली",
@@ -23,8 +18,6 @@
   "generate": {
     "title": "बैलेंस शीट बनाएँ",
     "subtitle": "इस पंप की शिफ्ट या दिन के अंत की हिसाब-झलक बनाएँ।",
-    "cancel": "रद्द करें",
-    "generating": "बन रही है…",
     "submit": "रिपोर्ट बनाएँ",
     "success": "बैलेंस शीट बन गई",
     "failed": "बैलेंस शीट नहीं बन सकी",
@@ -37,8 +30,6 @@
     "shift": "शिफ्ट",
     "loadingShifts": "शिफ्ट लोड हो रही हैं…",
     "noShiftDefinitions": "इस पंप के लिए कोई शिफ्ट सेट नहीं है। पहले पंप सेटिंग में शिफ्ट सेट करें।",
-    "notes": "टिप्पणी",
-    "optional": "(ज़रूरी नहीं)",
     "notesPlaceholder": "इस रिपोर्ट के लिए कोई टिप्पणी…",
     "alreadyExists": "इस अवधि की बैलेंस शीट पहले से है।",
     "revisionHelp": "अगर वह सूची में नहीं दिख रही, तो तारीख फ़िल्टर बढ़ाएँ। क्या आप इसकी जगह नया संस्करण बनाना चाहते हैं? वह अलग एंट्री के रूप में सेव होगा (जैसे Shift 1 · 12 AM – 8 AM #2)।",
@@ -47,7 +38,6 @@
   "delete": {
     "title": "बैलेंस शीट हटाएँ?",
     "subtitle": "इससे सेव की गई रिपोर्ट हट जाएगी।",
-    "cancel": "रद्द करें",
     "deleting": "हटाई जा रही है…",
     "confirm": "रिपोर्ट हटाएँ",
     "deleted": "बैलेंस शीट हटा दी गई",
@@ -66,8 +56,6 @@
     "pumpLabel": "पंप:",
     "shiftsIncluded": "शामिल शिफ्ट:",
     "back": "← वापस",
-    "delete": "हटाएँ",
-    "printPdf": "PDF प्रिंट करें",
     "closeDetails": "विवरण बंद करें",
     "outOfDate": "यह शीट पुरानी है:",
     "defaultStaleReason": "शीट बनने के बाद इस दिन के खर्च, उत्पाद बिक्री या डिप एंट्री बदली हैं।",
@@ -78,8 +66,8 @@
     "openShifts_other": "{{count}} शिफ्ट अभी चालू हैं — इस शीट में सिर्फ़ बंद शिफ्ट हैं।"
   },
   "summary": {
-    "title": "नकद और आय का सारांश",
-    "expectedRevenue": "अपेक्षित आय",
+    "title": "नकद और बिक्री का सारांश",
+    "expectedRevenue": "अपेक्षित बिक्री",
     "cashCollected": "मिला नकद",
     "upiCollected": "मिला UPI",
     "cardCollected": "मिला कार्ड",
@@ -116,7 +104,6 @@
     "count_other": "({{count}} शिफ्ट)",
     "caption": "शिफ्ट का ब्योरा",
     "region": "शिफ्ट सारांश",
-    "total": "कुल",
     "openShift": "{{name}} की शिफ्ट {{id}} खोलें",
     "duNumber": "DU #{{number}}",
     "nozzle": "↳ नोज़ल #{{number}}"
@@ -128,7 +115,7 @@
     "sold": "बिका",
     "closingStock": "अंतिम स्टॉक",
     "sellingPrice": "बिक्री दर",
-    "revenue": "आय",
+    "revenue": "बिक्री",
     "cogs": "माल की लागत",
     "profit": "लाभ",
     "grossProfit": "सकल लाभ",
@@ -141,16 +128,11 @@
     "litres": "लीटर",
     "expected": "अपेक्षित",
     "received": "मिला",
-    "cash": "नकद",
-    "upi": "UPI",
-    "card": "कार्ड",
     "fleet": "फ़्लीट",
-    "credit": "क्रेडिट",
     "discrepancy": "अंतर",
     "type": "प्रकार",
     "profitLoss": "लाभ/हानि",
     "time": "समय",
-    "notes": "टिप्पणी",
     "category": "श्रेणी",
     "description": "विवरण",
     "recordedBy": "दर्ज करने वाले",
@@ -158,7 +140,6 @@
     "previous": "पिछली",
     "new": "नई",
     "change": "बदलाव",
-    "reason": "कारण",
     "by": "किसने",
     "product": "उत्पाद",
     "unitsSold": "बिकी इकाइयाँ",
@@ -197,17 +178,12 @@
     "count_one": "({{count}} उत्पाद)",
     "count_other": "({{count}} उत्पाद)",
     "caption": "अन्य उत्पादों की बिक्री",
-    "region": "उत्पाद बिक्री",
-    "total": "कुल"
+    "region": "उत्पाद बिक्री"
   },
   "settlements": {
     "title": "डिजिटल भुगतान सेटलमेंट",
     "caption": "डिजिटल भुगतान सेटलमेंट",
-    "upi": "UPI",
-    "card": "कार्ड",
-    "fleetCard": "फ़्लीट कार्ड",
     "settled": "सेटल",
-    "total": "कुल",
     "recordedOnDate": "इस तारीख को दर्ज",
     "recordedBy": "{{name}} द्वारा"
   }

@@ -52,7 +52,7 @@ export function EditHsnDialog({
       footer={<>
         <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
         <button type="submit" disabled={mutation.isPending} className="ui-btn ui-btn-primary">
-          {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('actions.saving')}</span> : t('actions.save')}
+          {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('common:actions.saving')}</span> : t('common:actions.save')}
         </button>
       </>}
     >

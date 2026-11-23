@@ -10,6 +10,8 @@ import com.ppms.inventory.DipCheck;
 import com.ppms.inventory.DipCheckRepository;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.common.text.CodedText;
+import com.ppms.common.text.ServerTextCodes;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditPaymentRepository;
 import com.ppms.fuel.FuelType;
@@ -248,7 +250,7 @@ public class BalanceSheetService {
 
 
     private BalanceSheet buildSheet(Long pumpId, GenerateBalanceSheetRequest req, PumpShiftDefinition shiftDef,
-                                    User generatedBy, String periodLabel, List<Shift> shifts,
+                                    User generatedBy, CodedText periodLabel, List<Shift> shifts,
                                     FuelSales fuelSales, CostOfGoods costOfGoods, Deliveries deliveries,
                                     BigDecimal creditRecovered, BigDecimal totalCashRecovery,
                                     DipLosses dipLosses, BigDecimal dipNetAmount,
@@ -276,7 +278,9 @@ public class BalanceSheetService {
                 .reportDate(req.getReportDate())
                 .shiftWindow(shiftDef != null ? shiftDef.getName() : null)
                 .shiftDefinitionId(shiftDef != null ? shiftDef.getId() : null)
-                .periodLabel(periodLabel)
+                .periodLabel(periodLabel.text())
+                .periodLabelCode(periodLabel.code())
+                .periodLabelParams(periodLabel.params())
                 .generatedByUserId(generatedBy.getId())
                 .generatedAt(businessClock.now())
                 .notes(req.getNotes())
@@ -420,11 +424,15 @@ public class BalanceSheetService {
                     .reportDate(bs.getReportDate())
                     .shiftWindow(bs.getShiftWindow())
                     .periodLabel(bs.getPeriodLabel())
+                    .periodLabelCode(bs.getPeriodLabelCode())
+                    .periodLabelParams(Objects.requireNonNullElse(bs.getPeriodLabelParams(), Map.of()))
                     .generatedByUserName(userName)
                     .generatedAt(bs.getGeneratedAt())
                     .shiftCount(shiftCount)
                     .stale(bs.isStale())
                     .staleReason(bs.getStaleReason())
+                    .staleReasonCode(bs.getStaleReasonCode())
+                    .staleReasonParams(Objects.requireNonNullElse(bs.getStaleReasonParams(), Map.of()))
                     .openShiftCount(bs.getOpenShiftCount())
                     .totalLitresSold(bs.getTotalLitresSold())
                     .totalExpectedRevenue(bs.getTotalExpectedRevenue())
@@ -542,25 +550,38 @@ public class BalanceSheetService {
         }
     }
 
-    private String buildPeriodLabel(GenerateBalanceSheetRequest req, Long pumpId,
-                                     com.ppms.pump.PumpShiftDefinition shiftDef, ReportPeriod period) {
-        String base = req.getReportType() == BalanceSheetReportType.DAY
-                ? "Day End · " + req.getReportDate()
-                : shiftDef.getName() + " · " + req.getReportDate();
-        if (req.getReportType() == BalanceSheetReportType.DAY && period.endsBeforeDayEnd()) {
-            // Example: "Day End · 2026-04-22 (up to 15:05)"
-            base += " (up to " + period.end().atZoneSameInstant(businessClock.zone())
-                    .format(DateTimeFormatter.ofPattern("HH:mm")) + ")";
+    private CodedText buildPeriodLabel(GenerateBalanceSheetRequest req, Long pumpId,
+                                       com.ppms.pump.PumpShiftDefinition shiftDef, ReportPeriod period) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        String code;
+        String base;
+        if (req.getReportType() == BalanceSheetReportType.DAY) {
+            params.put("date", req.getReportDate().toString());
+            code = ServerTextCodes.PERIOD_DAY_END;
+            base = "Day End · " + req.getReportDate();
+            if (period.endsBeforeDayEnd()) {
+                // Example: "Day End · 2026-04-22 (up to 15:05)"
+                String upTo = period.end().atZoneSameInstant(businessClock.zone()).format(DateTimeFormatter.ofPattern("HH:mm"));
+                params.put("time", upTo);
+                code = ServerTextCodes.PERIOD_DAY_END_UP_TO;
+                base += " (up to " + upTo + ")";
+            }
+        } else {
+            params.put("shiftName", shiftDef.getName());
+            params.put("date", req.getReportDate().toString());
+            code = ServerTextCodes.PERIOD_SHIFT;
+            base = shiftDef.getName() + " · " + req.getReportDate();
         }
 
-        if (!req.isForceRegenerate()) return base;
+        if (!req.isForceRegenerate()) return new CodedText(code, params, base);
 
         // Count existing reports for this period to determine the next revision number.
         long existing = req.getReportType() == BalanceSheetReportType.DAY
                 ? balanceSheetRepository.countByPumpIdAndReportDateAndReportType(pumpId, req.getReportDate(), BalanceSheetReportType.DAY)
                 : balanceSheetRepository.countByPumpIdAndReportDateAndShiftDefinitionId(pumpId, req.getReportDate(), req.getShiftDefinitionId());
 
-        return base + " #" + (existing + 1);
+        params.put("revision", existing + 1);
+        return new CodedText(code + "_REVISION", params, base + " #" + (existing + 1));
     }
 
     /**

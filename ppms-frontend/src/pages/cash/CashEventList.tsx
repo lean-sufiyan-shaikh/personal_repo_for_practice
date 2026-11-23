@@ -12,7 +12,7 @@ import type { CashEventsState } from './useCashEvents'
 import { codeLabel } from '../../constants/labels'
 
 export function CashEventList({ events }: { events: CashEventsState }) {
-  const { t } = useTranslation('cash')
+  const { t } = useTranslation(['cash', 'common'])
   const {
     cashData, isLoading, filteredEvents,
     eventTypeFilter, setEventTypeFilter, fromDate, setFromDate, toDate, setToDate,
@@ -26,7 +26,7 @@ export function CashEventList({ events }: { events: CashEventsState }) {
         <p className="ui-toolbar-title">{t('list.title')}</p>
         <div className="ui-toolbar-actions">
           <div className="flex items-center gap-1.5">
-            <label htmlFor="cash-events-from" className="text-xs text-ink-3 whitespace-nowrap">{t('list.from')}</label>
+            <label htmlFor="cash-events-from" className="text-xs text-ink-3 whitespace-nowrap">{t('common:fields.from')}</label>
             <input id="cash-events-from"
               type="date"
               value={fromDate}
@@ -35,7 +35,7 @@ export function CashEventList({ events }: { events: CashEventsState }) {
             />
           </div>
           <div className="flex items-center gap-1.5">
-            <label htmlFor="cash-events-to" className="text-xs text-ink-3 whitespace-nowrap">{t('list.to')}</label>
+            <label htmlFor="cash-events-to" className="text-xs text-ink-3 whitespace-nowrap">{t('common:fields.to')}</label>
             <input id="cash-events-to"
               type="date"
               value={toDate}

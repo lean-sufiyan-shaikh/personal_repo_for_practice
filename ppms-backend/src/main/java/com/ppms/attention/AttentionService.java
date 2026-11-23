@@ -2,6 +2,8 @@ package com.ppms.attention;
 
 import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.common.text.CodedText;
+import com.ppms.common.text.ServerTextCodes;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditAgingResponse;
 import com.ppms.credit.CreditAgingService;
@@ -45,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -142,7 +145,8 @@ public class AttentionService {
         if (!overdue.isEmpty()) {
             items.add(item.of(AttentionType.OVERDUE_CREDIT, AttentionSeverity.HIGH, overdue.size(),
                     sumOf(overdue.stream().map(CreditAgingResponse.Row::outstanding).toList()),
-                    plural(overdue.size(), "credit client") + " past the billing cycle without paying",
+                    counted(ServerTextCodes.ATTENTION_OVERDUE_CREDIT, overdue.size(),
+                            plural(overdue.size(), "credit client") + " past the billing cycle without paying"),
                     OVERDUE_CREDIT_PATH));
         }
         List<CreditAgingResponse.Row> overLimit = rows.stream()
@@ -150,7 +154,8 @@ public class AttentionService {
         if (!overLimit.isEmpty()) {
             items.add(item.of(AttentionType.OVER_LIMIT_CREDIT, AttentionSeverity.MEDIUM, overLimit.size(),
                     sumOf(overLimit.stream().map(CreditAgingResponse.Row::outstanding).toList()),
-                    plural(overLimit.size(), "credit client") + " at or over the credit limit",
+                    counted(ServerTextCodes.ATTENTION_OVER_LIMIT_CREDIT, overLimit.size(),
+                            plural(overLimit.size(), "credit client") + " at or over the credit limit"),
                     OVER_LIMIT_CREDIT_PATH));
         }
     }
@@ -165,15 +170,19 @@ public class AttentionService {
         }
         BigDecimal amount = sumOf(List.of(expenseAmount,
                 sumOf(payments.stream().map(CreditPayment::getAmount).toList())));
-        List<String> parts = new ArrayList<>();
-        if (expenseCount > 0) {
-            parts.add(plural(expenseCount, "expense"));
+        String waiting = " waiting for your approval";
+        CodedText reason;
+        if (payments.isEmpty()) {
+            reason = counted(ServerTextCodes.ATTENTION_PENDING_EXPENSES, expenseCount, plural(expenseCount, "expense") + waiting);
+        } else if (expenseCount == 0) {
+            reason = counted(ServerTextCodes.ATTENTION_PENDING_CREDIT_PAYMENTS, payments.size(),
+                    plural(payments.size(), "credit payment") + waiting);
+        } else {
+            reason = new CodedText(ServerTextCodes.ATTENTION_PENDING_EXPENSES_AND_CREDIT_PAYMENTS,
+                    params("expenseCount", expenseCount, "paymentCount", payments.size()),
+                    plural(expenseCount, "expense") + " and " + plural(payments.size(), "credit payment") + waiting);
         }
-        if (!payments.isEmpty()) {
-            parts.add(plural(payments.size(), "credit payment"));
-        }
-        items.add(item.of(AttentionType.PENDING_APPROVALS, AttentionSeverity.MEDIUM, total, amount,
-                String.join(" and ", parts) + " waiting for your approval", APPROVALS_PATH));
+        items.add(item.of(AttentionType.PENDING_APPROVALS, AttentionSeverity.MEDIUM, total, amount, reason, APPROVALS_PATH));
     }
 
     private void addShortages(List<AttentionItem> items, Item item, Long pumpId) {
@@ -184,7 +193,8 @@ public class AttentionService {
         if (!escalated.isEmpty()) {
             items.add(item.of(AttentionType.ESCALATED_SHORTAGES, AttentionSeverity.HIGH, escalated.size(),
                     sumOf(escalated.stream().map(Shift::getDiscrepancyAmount).toList()),
-                    plural(escalated.size(), "cash shortage") + " escalated to you for a decision",
+                    counted(ServerTextCodes.ATTENTION_ESCALATED_SHORTAGES, escalated.size(),
+                            plural(escalated.size(), "cash shortage") + " escalated to you for a decision"),
                     DISCREPANCIES_PATH));
         }
         var cutoff = businessClock.startOfDay(businessClock.today().minusDays(INVESTIGATION_DAYS));
@@ -194,8 +204,10 @@ public class AttentionService {
         if (!longInvestigations.isEmpty()) {
             items.add(item.of(AttentionType.LONG_INVESTIGATIONS, AttentionSeverity.MEDIUM, longInvestigations.size(),
                     sumOf(longInvestigations.stream().map(Shift::getDiscrepancyAmount).toList()),
-                    plural(longInvestigations.size(), "cash shortage") + " under investigation for more than "
-                            + INVESTIGATION_DAYS + " days",
+                    new CodedText(ServerTextCodes.ATTENTION_LONG_INVESTIGATIONS,
+                            params("count", longInvestigations.size(), "days", INVESTIGATION_DAYS),
+                            plural(longInvestigations.size(), "cash shortage") + " under investigation for more than "
+                                    + INVESTIGATION_DAYS + " days"),
                     DISCREPANCIES_PATH));
         }
     }
@@ -219,8 +231,9 @@ public class AttentionService {
         });
         if (!late.isEmpty()) {
             items.add(item.of(AttentionType.UNSETTLED_PAYMENTS, AttentionSeverity.MEDIUM, late.size(), sumOf(late),
-                    "UPI, card or fleet card money not received in the bank more than "
-                            + SETTLEMENT_GRACE_DAYS + " days after collection",
+                    CodedText.of(ServerTextCodes.ATTENTION_UNSETTLED_PAYMENTS, "days", SETTLEMENT_GRACE_DAYS,
+                            "UPI, card or fleet card money not received in the bank more than "
+                                    + SETTLEMENT_GRACE_DAYS + " days after collection"),
                     SETTLEMENTS_PATH));
         }
     }
@@ -242,15 +255,19 @@ public class AttentionService {
         if (missingDays + staleSheets == 0) {
             return;
         }
-        List<String> parts = new ArrayList<>();
-        if (missingDays > 0) {
-            parts.add(plural(missingDays, "recent day") + " with closed shifts but no day balance sheet");
-        }
-        if (staleSheets > 0) {
-            parts.add(plural(staleSheets, "balance sheet") + " out of date after later changes");
+        String missingText = plural(missingDays, "recent day") + " with closed shifts but no day balance sheet";
+        String staleText = plural(staleSheets, "balance sheet") + " out of date after later changes";
+        CodedText reason;
+        if (staleSheets == 0) {
+            reason = counted(ServerTextCodes.ATTENTION_MISSING_DAY_SHEETS, missingDays, missingText);
+        } else if (missingDays == 0) {
+            reason = counted(ServerTextCodes.ATTENTION_STALE_SHEETS, staleSheets, staleText);
+        } else {
+            reason = new CodedText(ServerTextCodes.ATTENTION_MISSING_AND_STALE_SHEETS,
+                    params("missingCount", missingDays, "staleCount", staleSheets), missingText + "; " + staleText);
         }
         items.add(item.of(AttentionType.BALANCE_SHEETS, staleSheets > 0 ? AttentionSeverity.MEDIUM : AttentionSeverity.LOW,
-                missingDays + staleSheets, null, String.join("; ", parts), BALANCE_SHEETS_PATH));
+                missingDays + staleSheets, null, reason, BALANCE_SHEETS_PATH));
     }
 
     private void addShifts(List<AttentionItem> items, Item item, Long pumpId) {
@@ -261,13 +278,15 @@ public class AttentionService {
         long autoClosed = openByStatus.getOrDefault(ShiftStatus.AUTO_CLOSED_OVERDUE, 0L);
         if (autoClosed > 0) {
             items.add(item.of(AttentionType.AUTO_CLOSED_SHIFTS, AttentionSeverity.HIGH, autoClosed, null,
-                    plural(autoClosed, "shift") + " closed automatically without closing meter readings",
+                    counted(ServerTextCodes.ATTENTION_AUTO_CLOSED_SHIFTS, autoClosed,
+                            plural(autoClosed, "shift") + " closed automatically without closing meter readings"),
                     SHIFTS_PATH));
         }
         long overdue = openByStatus.getOrDefault(ShiftStatus.OPEN_OVERDUE, 0L);
         if (overdue > 0) {
             items.add(item.of(AttentionType.OVERDUE_SHIFTS, AttentionSeverity.MEDIUM, overdue, null,
-                    plural(overdue, "shift") + " still open past the scheduled end",
+                    counted(ServerTextCodes.ATTENTION_OVERDUE_SHIFTS, overdue,
+                            plural(overdue, "shift") + " still open past the scheduled end"),
                     SHIFTS_PATH));
         }
     }
@@ -283,14 +302,20 @@ public class AttentionService {
         }
         long expired = expiring.stream().filter(doc -> doc.getExpiryDate().isBefore(today)).count();
         long expiringSoon = expiring.size() - expired;
-        List<String> parts = new ArrayList<>();
-        if (expired > 0) {
-            parts.add(plural(expired, "document") + " expired");
+        String expiredText = plural(expired, "document") + " expired";
+        String expiringText = plural(expiringSoon, "document") + " expiring within " + DOCUMENT_WARNING_DAYS + " days";
+        CodedText reason;
+        if (expiringSoon == 0) {
+            reason = counted(ServerTextCodes.ATTENTION_EXPIRED_DOCUMENTS, expired, expiredText);
+        } else if (expired == 0) {
+            reason = new CodedText(ServerTextCodes.ATTENTION_EXPIRING_DOCUMENTS,
+                    params("count", expiringSoon, "days", DOCUMENT_WARNING_DAYS), expiringText);
+        } else {
+            Map<String, Object> params = params("expiredCount", expired, "expiringCount", expiringSoon);
+            params.put("days", DOCUMENT_WARNING_DAYS);
+            reason = new CodedText(ServerTextCodes.ATTENTION_EXPIRED_AND_EXPIRING_DOCUMENTS, params,
+                    expiredText + " and " + expiringText);
         }
-        if (expiringSoon > 0) {
-            parts.add(plural(expiringSoon, "document") + " expiring within " + DOCUMENT_WARNING_DAYS + " days");
-        }
-        String reason = String.join(" and ", parts);
         items.add(item.of(AttentionType.EXPIRING_DOCUMENTS, expired > 0 ? AttentionSeverity.HIGH : AttentionSeverity.MEDIUM,
                 expiring.size(), null, reason, DOCUMENTS_PATH));
     }
@@ -307,37 +332,48 @@ public class AttentionService {
             return;
         }
         items.add(item.of(AttentionType.CALIBRATIONS_DUE, anyOverdue ? AttentionSeverity.HIGH : AttentionSeverity.MEDIUM,
-                nozzleIds.size(), null,
-                plural(nozzleIds.size(), "nozzle") + (anyOverdue ? " with calibration due or overdue" : " due for calibration within "
-                        + CALIBRATION_WARNING_DAYS + " days"),
-                CALIBRATION_PATH));
+                nozzleIds.size(), null, calibrationReason(nozzleIds.size(), anyOverdue), CALIBRATION_PATH));
+    }
+
+    private static CodedText calibrationReason(int nozzleCount, boolean anyOverdue) {
+        String nozzles = plural(nozzleCount, "nozzle");
+        if (anyOverdue) {
+            return counted(ServerTextCodes.ATTENTION_CALIBRATIONS_OVERDUE, nozzleCount, nozzles + " with calibration due or overdue");
+        }
+        return new CodedText(ServerTextCodes.ATTENTION_CALIBRATIONS_DUE_SOON,
+                params("count", nozzleCount, "days", CALIBRATION_WARNING_DAYS),
+                nozzles + " due for calibration within " + CALIBRATION_WARNING_DAYS + " days");
     }
 
     private void addSetupAndPrices(List<AttentionItem> items, Item item, PumpLocation pump) {
         LocalDate today = businessClock.today();
         List<GlobalFuelPrice> prices = fuelPriceRepository.findCurrentPricesForPump(pump.getId());
-        List<String> missing = new ArrayList<>();
+        Map<String, String> missing = new LinkedHashMap<>();
         if (!CreditInvoiceService.hasGstDetails(pump)) {
-            missing.add("GST details");
+            missing.put("GST_DETAILS", "GST details");
         }
         if (tankRepository.findByPumpId(pump.getId()).stream().allMatch(tank -> tank.getStatus() == TankStatus.DECOMMISSIONED)) {
-            missing.add("tanks");
+            missing.put("TANKS", "tanks");
         }
         if (prices.isEmpty()) {
-            missing.add("fuel prices");
+            missing.put("FUEL_PRICES", "fuel prices");
         }
         if (shiftDefinitionRepository.findActiveForPumpOnDate(pump.getId(), today).isEmpty()) {
-            missing.add("shift timings");
+            missing.put("SHIFT_TIMINGS", "shift timings");
         }
         if (!missing.isEmpty()) {
             items.add(item.of(AttentionType.SETUP_INCOMPLETE, AttentionSeverity.MEDIUM, missing.size(), null,
-                    "Setup is missing " + String.join(", ", missing), SETUP_PATH));
+                    CodedText.of(ServerTextCodes.ATTENTION_SETUP_INCOMPLETE, "missingCodes", List.copyOf(missing.keySet()),
+                            "Setup is missing " + String.join(", ", missing.values())),
+                    SETUP_PATH));
         }
         boolean pricesFromEarlierDay = prices.stream().anyMatch(price ->
                 price.getEffectiveFrom().atZoneSameInstant(businessClock.zone()).toLocalDate().isBefore(today));
         if (pricesFromEarlierDay) {
             items.add(item.of(AttentionType.STALE_FUEL_PRICES, AttentionSeverity.LOW, 1, null,
-                    "Fuel prices were last set before today — confirm or update them", SETUP_PATH));
+                    CodedText.of(ServerTextCodes.ATTENTION_STALE_FUEL_PRICES,
+                            "Fuel prices were last set before today — confirm or update them"),
+                    SETUP_PATH));
         }
     }
 
@@ -354,10 +390,22 @@ public class AttentionService {
         return count + " " + noun + (count == 1 ? "" : "s");
     }
 
+    private static CodedText counted(String code, long count, String text) {
+        return CodedText.of(code, "count", count, text);
+    }
+
+    private static Map<String, Object> params(String firstName, long firstValue, String secondName, long secondValue) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put(firstName, firstValue);
+        params.put(secondName, secondValue);
+        return params;
+    }
+
     private record Item(PumpLocation pump) {
         AttentionItem of(AttentionType type, AttentionSeverity severity, long count, BigDecimal amount,
-                         String reason, String targetPath) {
-            return new AttentionItem(type, severity, pump.getId(), pump.getName(), count, amount, reason, targetPath);
+                         CodedText reason, String targetPath) {
+            return new AttentionItem(type, severity, pump.getId(), pump.getName(), count, amount,
+                    reason.text(), reason.code(), reason.params(), targetPath);
         }
     }
 }

@@ -3,6 +3,8 @@ package com.ppms.approval;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.common.text.CodedText;
+import com.ppms.common.text.ServerTextCodes;
 import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditClientRepository;
 import com.ppms.credit.CreditPayment;
@@ -37,7 +39,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ApprovalQueueService {
 
-    private static final String OWN_PAYMENT_REASON = "You recorded this payment, so another Owner or Admin must decide it.";
+    private static final CodedText OWN_PAYMENT_REASON = CodedText.of(ServerTextCodes.APPROVAL_OWN_PAYMENT,
+            "You recorded this payment, so another Owner or Admin must decide it.");
     private static final String UNEXPECTED_FAILURE_MESSAGE = "Could not be saved. Try this item again.";
 
     private final PumpExpenseRepository expenseRepository;
@@ -67,14 +70,16 @@ public class ApprovalQueueService {
             items.add(new ApprovalItemResponse(ApprovalKind.EXPENSE, expense.getId(), expense.getAmount(),
                     expense.getExpenseDate(), userNameById.get(submitterOf(expense)),
                     expense.getSubmittedAt() != null ? expense.getSubmittedAt() : expense.getCreatedAt(),
-                    expense.getCategory().name(), null, null, expense.getDescription(), null));
+                    expense.getCategory().name(), null, null, expense.getDescription(), null, null, Map.of()));
         }
         for (CreditPayment payment : payments) {
             boolean ownPayment = payment.getRecordedById().equals(currentUser.getId());
             items.add(new ApprovalItemResponse(ApprovalKind.CREDIT_PAYMENT, payment.getId(), payment.getAmount(),
                     payment.getPaidAt(), userNameById.get(payment.getRecordedById()), payment.getCreatedAt(),
                     null, payment.getClientId(), clientNameById.get(payment.getClientId()), payment.getNotes(),
-                    ownPayment ? OWN_PAYMENT_REASON : null));
+                    ownPayment ? OWN_PAYMENT_REASON.text() : null,
+                    ownPayment ? OWN_PAYMENT_REASON.code() : null,
+                    ownPayment ? OWN_PAYMENT_REASON.params() : Map.of()));
         }
         items.sort(Comparator.comparing(ApprovalItemResponse::submittedAt,
                 Comparator.nullsLast(Comparator.<OffsetDateTime>naturalOrder())));

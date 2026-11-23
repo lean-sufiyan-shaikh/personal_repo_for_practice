@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { serverText } from '../../utils/serverText'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { withToggled } from '../../utils/setToggle'
@@ -110,7 +111,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           amount: `₹${result.amount?.toFixed(2)}`, days: result.days, from: result.periodFrom, to: result.periodTo,
         }))
       } else {
-        setApplyInterestFeedback(result.reason ?? t('detail.noInterestApplicable'))
+        setApplyInterestFeedback(result.reason ? serverText(result.reasonCode, result.reasonParams, result.reason) : t('detail.noInterestApplicable'))
       }
     },
     onError: (err) => setApplyInterestFeedback(parseApiError(err, t('detail.applyInterestFailed'))),

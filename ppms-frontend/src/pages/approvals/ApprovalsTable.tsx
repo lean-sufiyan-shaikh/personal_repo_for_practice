@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { serverText } from '../../utils/serverText'
 import type { ApprovalItem } from '../../api/approvalApi'
 import { DataTable } from '../../components/DataTable'
 import type { DataTableColumn } from '../../components/DataTable'
@@ -15,6 +16,10 @@ interface ApprovalsTableProps {
   now: number
   onToggle: (item: ApprovalItem) => void
   onToggleAll: () => void
+}
+
+function blockedReasonText(item: ApprovalItem): string | undefined {
+  return item.blockedReason === null ? undefined : serverText(item.blockedReasonCode, item.blockedReasonParams, item.blockedReason)
 }
 
 function itemName(item: ApprovalItem) {
@@ -47,7 +52,7 @@ export function ApprovalsTable({ items, selectedKeys, now, onToggle, onToggleAll
           aria-label={t(item.kind === 'EXPENSE' ? 'table.selectExpense' : 'table.selectPayment', { name: itemName(item), amount: formatCurrency(item.amount) })}
           checked={selectedKeys.has(approvalKey(item))}
           disabled={item.blockedReason !== null}
-          title={item.blockedReason ?? undefined}
+          title={blockedReasonText(item)}
           onChange={() => onToggle(item)}
         />
       ),
@@ -59,7 +64,7 @@ export function ApprovalsTable({ items, selectedKeys, now, onToggle, onToggleAll
       cell: item => (
         <span className="font-medium text-ink">
           {itemName(item)}
-          {item.blockedReason && <span className="block text-xs font-normal text-warn">{item.blockedReason}</span>}
+          {item.blockedReason && <span className="block text-xs font-normal text-warn">{blockedReasonText(item)}</span>}
         </span>
       ),
     },

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { serverText } from '../../utils/serverText'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { useAuthStore } from '../../store/authStore'
@@ -61,7 +62,7 @@ const SHIFT_COLUMNS: CsvColumn<BsShiftLine>[] = [
   { header: 'Discrepancy', value: (row) => row.discrepancy, kind: 'money' },
 ]
 
-type BalanceSheetT = TFunction<'balancesheet'>
+type BalanceSheetT = TFunction<['balancesheet', 'common']>
 
 function shiftTableColumns(t: BalanceSheetT): DataTableColumn<BsShiftLine>[] {
   return [
@@ -71,11 +72,11 @@ function shiftTableColumns(t: BalanceSheetT): DataTableColumn<BsShiftLine>[] {
     bsColumn('litres', t('columns.litres'), true),
     bsColumn('expected', t('columns.expected'), true),
     bsColumn('received', t('columns.received'), true),
-    bsColumn('cash', t('columns.cash'), true),
-    bsColumn('upi', t('columns.upi'), true),
-    bsColumn('card', t('columns.card'), true),
+    bsColumn('cash', t('common:paymentMethods.CASH'), true),
+    bsColumn('upi', t('common:paymentMethods.UPI'), true),
+    bsColumn('card', t('common:paymentMethods.CARD'), true),
     bsColumn('fleet', t('columns.fleet'), true),
-    bsColumn('credit', t('columns.credit'), true),
+    bsColumn('credit', t('common:paymentMethods.CREDIT'), true),
     bsColumn('discrepancy', t('columns.discrepancy'), true),
   ]
 }
@@ -110,7 +111,7 @@ interface DetailPanelProps {
 }
 
 export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, onRegenerated, summary, pumpName }: DetailPanelProps) {
-  const { t } = useTranslation('balancesheet')
+  const { t } = useTranslation(['balancesheet', 'common'])
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const { data: detail, isLoading, error } = useQuery({
@@ -159,7 +160,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
           <div className="flex items-center gap-2">
             <StatusBadge tone={detail.reportType === 'DAY' ? 'neutral' : 'info'} label={detail.reportType === 'DAY' ? t('detail.dayEnd') : t('detail.shift')} />
             <h2 className="text-base font-semibold text-ink">
-              <span className="hidden print:inline">{t('detail.printTitlePrefix')}</span>{detail.periodLabel}
+              <span className="hidden print:inline">{t('detail.printTitlePrefix')}</span>{serverText(detail.periodLabelCode, detail.periodLabelParams, detail.periodLabel)}
             </h2>
           </div>
           <p className="text-xs text-ink-3 mt-0.5">
@@ -189,14 +190,14 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
               onClick={() => onDelete(summary)}
               className="text-xs text-bad hover:text-bad-strong border border-bad hover:bg-bad-bg px-3 py-1.5 rounded-control transition-colors"
             >
-              {t('detail.delete')}
+              {t('common:actions.delete')}
             </button>
           )}
           <button
             onClick={() => { void printWhenFontsReady() }}
             className="text-xs text-ink-2 hover:text-ink border border-control hover:border-ink-3 px-3 py-1.5 rounded-control transition-colors"
           >
-            {t('detail.printPdf')}
+            {t('common:actions.printPdf')}
           </button>
           <IconButton
             onClick={onClose}
@@ -212,7 +213,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
           <div role="alert" className="ui-alert ui-alert-warning text-sm flex flex-wrap items-center justify-between gap-2">
             <span>
               {t('detail.outOfDate')}{' '}
-              {detail.staleReason ?? t('detail.defaultStaleReason')}
+              {detail.staleReason ? serverText(detail.staleReasonCode, detail.staleReasonParams, detail.staleReason) : t('detail.defaultStaleReason')}
               {' '}{t('detail.staleTail')}
             </span>
             {canDelete && (
@@ -370,7 +371,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
             tableClassName="min-w-[960px] text-xs print:min-w-0 print:text-[7pt]"
             footer={detail.shiftLines.length > 1 && (
               <tr className="bg-surface-sunken text-ink">
-                <Td colSpan={3}>{t('shifts.total')}</Td>
+                <Td colSpan={3}>{t('common:fields.total')}</Td>
                 <Td right><LitresText value={detail.shiftLines.reduce((s, l) => s + l.litresSold, 0)} decimals={1} /></Td>
                 <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.expectedRevenue, 0)} /></Td>
                 <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.cashCollected + l.upiCollected + l.cardCollected + (l.fleetCardCollected ?? 0), 0)} /></Td>

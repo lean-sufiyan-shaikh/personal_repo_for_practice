@@ -28,7 +28,7 @@ const TX_TYPE_FILTERS: { value: TxTypeFilter; color: string }[] = [
 ]
 
 export function LedgerFilterBar({ filters }: { filters: LedgerFilters }) {
-  const { t } = useTranslation('credit')
+  const { t } = useTranslation(['credit', 'common'])
   const {
     filterMode, setFilterMode, txTypeFilter, setTxTypeFilter, availableMonths,
     selectedMonth, setSelectedMonth, fromDate, setFromDate, toDate, setToDate, filtered,
@@ -110,18 +110,18 @@ export function LedgerFilterBar({ filters }: { filters: LedgerFilters }) {
     {filterMode === 'range' && (
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <label htmlFor="credit-ledger-from" className="text-xs text-ink-3 whitespace-nowrap">{t('period.from')}</label>
+          <label htmlFor="credit-ledger-from" className="text-xs text-ink-3 whitespace-nowrap">{t('common:fields.from')}</label>
           <input id="credit-ledger-from" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
             className="border border-control rounded-control px-3 py-1.5 text-sm" />
         </div>
         <div className="flex items-center gap-2">
-          <label htmlFor="credit-ledger-to" className="text-xs text-ink-3 whitespace-nowrap">{t('period.to')}</label>
+          <label htmlFor="credit-ledger-to" className="text-xs text-ink-3 whitespace-nowrap">{t('common:fields.to')}</label>
           <input id="credit-ledger-to" type="date" value={toDate} onChange={e => setToDate(e.target.value)}
             className="border border-control rounded-control px-3 py-1.5 text-sm" />
         </div>
         {(fromDate || toDate) && (
           <button onClick={() => { setFromDate(''); setToDate('') }}
-            className="text-xs text-ink-3 hover:text-ink-2">{t('ledger.clear')}</button>
+            className="text-xs text-ink-3 hover:text-ink-2">{t('common:actions.clear')}</button>
         )}
       </div>
     )}

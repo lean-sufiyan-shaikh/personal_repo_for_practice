@@ -7,21 +7,21 @@ import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { codeLabel } from '../../../constants/labels'
 
-function amendmentColumns(t: TFunction<'balancesheet'>): DataTableColumn<MeterAmendmentLine>[] {
+function amendmentColumns(t: TFunction<['balancesheet', 'common']>): DataTableColumn<MeterAmendmentLine>[] {
   return [
     bsColumn('fuel', t('columns.fuel')),
     bsColumn('type', t('columns.type')),
     bsColumn('previous', t('columns.previous'), true),
     bsColumn('new', t('columns.new'), true),
     bsColumn('change', t('columns.change'), true),
-    bsColumn('reason', t('columns.reason')),
+    bsColumn('reason', t('common:fields.reason')),
     bsColumn('by', t('columns.by')),
     bsColumn('time', t('columns.time')),
   ]
 }
 
 export function MeterAmendmentsSection({ detail }: { detail: BalanceSheetDetail }) {
-  const { t } = useTranslation('balancesheet')
+  const { t } = useTranslation(['balancesheet', 'common'])
   return (
     <section>
       <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-wider mb-3">

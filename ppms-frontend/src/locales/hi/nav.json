@@ -46,8 +46,7 @@
     "title": "मेनू",
     "workspace": "{{role}} कार्यक्षेत्र",
     "closeMenu": "मेनू बंद करें",
-    "currentPump": "मौजूदा पंप",
-    "noPump": "कोई पंप नहीं चुना"
+    "currentPump": "मौजूदा पंप"
   },
   "topbar": {
     "skipToContent": "मुख्य सामग्री पर जाएँ",
@@ -68,9 +67,7 @@
   "profile": {
     "yourName": "आपका नाम",
     "saveName": "नाम सेव करें",
-    "save": "सेव करें",
     "cancelEditing": "बदलाव रद्द करें",
-    "cancel": "रद्द करें",
     "editName": "अपना नाम बदलें, {{name}}",
     "editNameHint": "नाम बदलने के लिए क्लिक करें",
     "nameBlank": "नाम ख़ाली नहीं हो सकता",

@@ -8,9 +8,7 @@
     "allTypes": "All types",
     "loadFailed": "Could not load notifications.",
     "emptyForType": "No notifications of this type.",
-    "empty": "No notifications yet.",
-    "read": "Read",
-    "unread": "Unread"
+    "empty": "No notifications yet."
   },
   "types": {
     "LOW_STOCK": "Low tank stock",

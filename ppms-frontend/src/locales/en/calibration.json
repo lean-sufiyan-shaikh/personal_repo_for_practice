@@ -22,7 +22,6 @@
     "certificatePlaceholder": "Inspection certificate number",
     "notesOptional": "Notes (optional)",
     "notesPlaceholder": "Additional observations",
-    "saving": "Saving…",
     "review": "Review Calibration"
   },
   "validation": {
@@ -40,22 +39,17 @@
   "review": {
     "title": "Review Calibration",
     "subtitle": "Verify the nozzle and calibration details before saving.",
-    "back": "Back",
     "confirm": "Confirm Calibration",
-    "goBack": "Go back to modify the data and try again.",
     "nozzle": "Nozzle",
     "calibrationDate": "Calibration Date",
     "nextDue": "Next Calibration Due",
     "calibratedBy": "Calibrated By",
-    "certificate": "Certificate Reference",
-    "notes": "Notes"
+    "certificate": "Certificate Reference"
   },
   "history": {
     "title": "Calibration History",
     "allNozzlesSuffix": "— All nozzles",
     "nozzleSuffix": "— Nozzle #{{number}} ({{fuel}})",
-    "from": "From",
-    "to": "To",
     "filterLabel": "Filter by nozzle",
     "filterPlaceholder": "Filter by nozzle…",
     "allNozzles": "All nozzles",

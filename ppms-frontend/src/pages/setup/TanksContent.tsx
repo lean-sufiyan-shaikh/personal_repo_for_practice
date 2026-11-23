@@ -169,7 +169,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                             }
                           }}
                           className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong">
-                          {editingId === tank.id ? t('common:actions.cancel') : t('actions.edit')}
+                          {editingId === tank.id ? t('common:actions.cancel') : t('common:actions.edit')}
                         </button>
                     )}
 
@@ -180,11 +180,11 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                         onClick={() => { setStatusError(null); statusMutation.mutate({ tankId: tank.id, status: 'ACTIVE' }) }}
                         disabled={statusMutation.isPending}
                         className="min-h-6 text-xs font-medium text-ok transition-colors hover:underline disabled:opacity-50">
-                        {t('actions.enable')}
+                        {t('common:actions.enable')}
                       </button>
                     ) : (
                       <ConfirmButton
-                        triggerLabel={t('actions.disable')}
+                        triggerLabel={t('common:actions.disable')}
                         triggerAriaLabel={t('tanks.disableAria', { name: tank.tankIdentifier })}
                         prompt={hasSignificantStock(tank)
                           ? t('tanks.freezePrompt', { percent: ((tank.currentStock / tank.capacity) * 100).toFixed(0) })
@@ -224,7 +224,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                       </div>
                       <button type="submit" disabled={updateMutation.isPending}
                         className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs">
-                        {updateMutation.isPending ? t('actions.savingDots') : t('actions.save')}
+                        {updateMutation.isPending ? t('actions.savingDots') : t('common:actions.save')}
                       </button>
                     </div>
                     {editError && <p role="alert" className="ui-error-text">{editError}</p>}
@@ -302,7 +302,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
             <div>
               <label className="block">
                 <span className="ui-label">
-                {t('tanks.dipTolerance', { unit: FUEL_UNIT[createFuelType] })} <span className="text-ink-3">{t('optionalHint')}</span>
+                {t('tanks.dipTolerance', { unit: FUEL_UNIT[createFuelType] })} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span>
               </span>
                 <input type="number" step="0.01" min="0" value={createDipTol}
                   onChange={(e) => setCreateDipTol(e.target.value)}

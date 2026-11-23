@@ -59,7 +59,7 @@ export function SetInterestSettingsModal({ client, pumpId, onClose }: SetInteres
             disabled={mutation.isPending}
             className="ui-btn ui-btn-primary"
           >
-            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('form.saving')}</span> : t('interestSettings.save')}
+            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.saving')}</span> : t('interestSettings.save')}
           </button>
         </>
       }

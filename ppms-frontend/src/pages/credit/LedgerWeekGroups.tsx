@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { serverText } from '../../utils/serverText'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import type { CreditTransaction } from '../../api/creditApi'
@@ -44,7 +45,7 @@ function detailText(tx: CreditTransaction): string {
 
 const isSale = (tx: CreditTransaction) => tx.type === 'SALE' || tx.type === 'COUNTER_SALE'
 
-function ledgerColumns(t: TFunction<'credit'>): DataTableColumn<CreditTransaction>[] {
+function ledgerColumns(t: TFunction<['credit', 'common']>): DataTableColumn<CreditTransaction>[] {
   return [
     { key: 'date', header: t('ledger.columns.date'), className: 'px-4 w-20' },
     { key: 'type', header: t('ledger.columns.type'), className: 'px-2 w-40' },
@@ -95,7 +96,7 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
                 <StatusBadge {...creditTransactionBadge(tx)} />
               </td>
               <td className="px-2 py-2.5 text-xs">
-                <span className="text-ink-3 truncate block">{tx.reference || detailText(tx)}</span>
+                <span className="text-ink-3 truncate block">{(tx.reference && serverText(tx.referenceCode, tx.referenceParams, tx.reference)) || detailText(tx)}</span>
                 {!tx.countedInBalance && (
                   <span className="text-xs font-medium text-ink-2">{t('ledger.notCounted')}</span>
                 )}
@@ -121,7 +122,7 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
                       disabled={isApproving}
                       className="ui-btn ui-btn-primary min-h-0 px-2 py-0.5 text-xs disabled:opacity-50"
                     >
-                      {t('ledger.approve')}
+                      {t('common:actions.approve')}
                     </button>
                     <button
                       type="button"

@@ -10,14 +10,14 @@ import { MoneyText } from '../../../components/AmountText'
 import type { StatusTone } from '../../../components/StatusBadge'
 import { codeLabel } from '../../../constants/labels'
 
-function dipColumns(t: TFunction<'balancesheet'>): DataTableColumn<DipPlLine>[] {
+function dipColumns(t: TFunction<['balancesheet', 'common']>): DataTableColumn<DipPlLine>[] {
   return [
     bsColumn('type', t('columns.type')),
     bsColumn('fuel', t('columns.fuel')),
     bsColumn('litres', t('columns.litres'), true),
     bsColumn('pl', t('columns.profitLoss'), true),
     bsColumn('time', t('columns.time')),
-    bsColumn('notes', t('columns.notes')),
+    bsColumn('notes', t('common:fields.notes')),
   ]
 }
 
@@ -26,7 +26,7 @@ function signTone(value: number): StatusTone {
 }
 
 export function DipPlSection({ detail }: { detail: BalanceSheetDetail }) {
-  const { t } = useTranslation('balancesheet')
+  const { t } = useTranslation(['balancesheet', 'common'])
   return (
     <section>
       <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-wider mb-3">

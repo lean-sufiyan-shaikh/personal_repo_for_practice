@@ -9,7 +9,7 @@ import { useToastStore } from '../../store/toastStore'
 // ── Pump Settings Content ─────────────────────────────────────────────────────
 
 export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; onUpdated: () => void }) {
-  const { t } = useTranslation('setup')
+  const { t } = useTranslation(['setup', 'common'])
   const { addToast } = useToastStore()
   const [threshold, setThreshold] = useState(pump.discrepancyEscalationThreshold?.toString() ?? '')
   const [error, setError]         = useState<string | null>(null)
@@ -66,7 +66,7 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
         disabled={mutation.isPending}
         className="ui-btn ui-btn-primary"
       >
-        {mutation.isPending ? t('actions.saving') : t('settings.save')}
+        {mutation.isPending ? t('common:actions.saving') : t('settings.save')}
       </button>
     </div>
   )

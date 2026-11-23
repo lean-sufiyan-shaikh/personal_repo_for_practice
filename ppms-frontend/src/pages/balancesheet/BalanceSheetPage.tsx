@@ -24,7 +24,7 @@ import { ReportListItem } from './ReportListItem'
 // ── Main page ───────────────────────────────────────────────────────────────────
 
 export default function BalanceSheetPage() {
-  const { t } = useTranslation('balancesheet')
+  const { t } = useTranslation(['balancesheet', 'common'])
   const { user } = useAuthStore()
   const canManage = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const canView   = canManage || user?.role === 'MANAGER'
@@ -99,7 +99,7 @@ export default function BalanceSheetPage() {
               className="ui-btn ui-btn-primary gap-1.5 px-3 py-1.5 text-sm disabled:opacity-40"
             >
               <span className="text-base leading-none">+</span>
-              {t('list.generate')}
+              {t('common:actions.generate')}
             </button>
           </div>
 
@@ -108,20 +108,20 @@ export default function BalanceSheetPage() {
             <DatePresetChips range={filterRange} onSelect={setFilterRange} />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <input aria-label={t('list.fromDate')}
+            <input aria-label={t('common:fields.fromDate')}
               type="date"
               value={filterFrom}
               onChange={e => setFilterFrom(e.target.value)}
               className="flex-1 min-w-[8.5rem] text-xs text-ink"
-              placeholder={t('list.fromPlaceholder')}
+              placeholder={t('common:fields.from')}
             />
             <span className="text-ink-3 text-xs">{t('list.to')}</span>
-            <input aria-label={t('list.toDate')}
+            <input aria-label={t('common:fields.toDate')}
               type="date"
               value={filterTo}
               onChange={e => setFilterTo(e.target.value)}
               className="flex-1 min-w-[8.5rem] text-xs text-ink"
-              placeholder={t('list.toPlaceholder')}
+              placeholder={t('common:fields.to')}
             />
             {(filterFrom || filterTo) && (
               <IconButton

@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function LeavePanel({ pumpId, member, onClose }: Props) {
-  const { t } = useTranslation('setup')
+  const { t } = useTranslation(['setup', 'common'])
   const queryClient = useQueryClient()
   const [newLeaveDate, setNewLeaveDate] = useState('')
   const [newLeaveReason, setNewLeaveReason] = useState('')
@@ -96,7 +96,7 @@ export function LeavePanel({ pumpId, member, onClose }: Props) {
             </button>
             <button type="button" onClick={onClose}
               className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
-              {t('actions.done')}
+              {t('common:actions.done')}
             </button>
           </div>
         </div>

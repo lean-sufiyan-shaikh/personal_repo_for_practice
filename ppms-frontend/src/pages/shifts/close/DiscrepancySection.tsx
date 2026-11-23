@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function DiscrepancySection({ diff, canRoundOff, onRoundOff, reason, onReasonChange }: Props) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   return (
     <div className={`border-2 rounded-card overflow-hidden ${diff < 0 ? 'border-bad' : 'border-warn'}`}>
       <div className={`px-4 py-3 flex items-start justify-between gap-3 ${diff < 0 ? 'bg-bad-bg' : 'bg-warn-bg'}`}>
@@ -44,7 +44,7 @@ export function DiscrepancySection({ diff, canRoundOff, onRoundOff, reason, onRe
       <div className="px-4 py-3 bg-surface">
         <label className="block">
           <span className="block text-xs font-semibold text-ink-2 mb-1.5">
-          {t('close.discrepancy.reason')} <span className="text-bad">*</span>
+          {t('common:fields.reason')} <span className="text-bad">*</span>
           <span className="text-ink-3 font-normal ml-1">{t('close.discrepancy.requiredToClose')}</span>
         </span>
           <textarea value={reason} onChange={(e) => onReasonChange(e.target.value)}

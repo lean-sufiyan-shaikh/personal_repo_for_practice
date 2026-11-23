@@ -21,7 +21,7 @@ export function GeneratePlanModal({ form }: { form: ShiftPlanning }) {
             disabled={generateMutation.isPending}
             className="ui-btn ui-btn-primary"
           >
-            {generateMutation.isPending ? t('planning.generate.generating') : t('planning.generate.submit')}
+            {generateMutation.isPending ? t('common:actions.generating') : t('common:actions.generate')}
           </button>
           <button onClick={() => setShowGenerate(false)}
             className="ui-btn ui-btn-secondary">

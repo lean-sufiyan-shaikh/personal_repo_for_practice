@@ -69,7 +69,7 @@ export function MapTankPanel({ pumpId, duId, nozzle, tanks, onClose }: Props) {
             disabled={mapTankMutation.isPending}
             className="ui-btn ui-btn-primary"
           >
-            {mapTankMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-3 h-3" />{t('actions.saving')}</span> : t('actions.save')}
+            {mapTankMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-3 h-3" />{t('common:actions.saving')}</span> : t('common:actions.save')}
           </button>
           <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
             {t('common:actions.cancel')}

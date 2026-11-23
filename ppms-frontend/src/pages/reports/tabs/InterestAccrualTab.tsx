@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { codeLabel } from '../../../constants/labels'
 import { useTranslation } from 'react-i18next'
 import { printWhenFontsReady } from '../../../i18n/fonts'
 import { serverMessage } from '../../../utils/apiError'
@@ -10,7 +11,7 @@ import { csvFilename } from '../../../utils/csv'
 import type { CsvColumn } from '../../../utils/csv'
 import type { DateRange } from '../../../utils/datePresets'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
-import { DateRangeInputs, ErrorBox, SummaryCard } from '../shared'
+import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
 import { fmtAmt, fmtShortDate } from '../reportFormat'
 import { MoneyText } from '../../../components/AmountText'
 
@@ -24,13 +25,13 @@ const CSV_COLUMNS: CsvColumn<InterestCsvRow>[] = [
   { header: 'Outstanding balance', value: (row) => row.outstandingBalance, kind: 'money' },
   { header: 'Monthly rate %', value: (row) => row.rateApplied, kind: 'number' },
   { header: 'Interest', value: (row) => row.amount, kind: 'money' },
-  { header: 'Source', value: (row) => row.source },
+  { header: 'Source', value: (row) => codeLabel(row.source) },
 ]
 
 // ── Interest Accrual Tab ───────────────────────────────────────────────────────
 
 export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   const [query, setQuery] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
@@ -60,14 +61,14 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
             disabled={isFetching}
             className="ui-btn ui-btn-primary"
           >
-            {isFetching ? t('controls.loading') : t('controls.generate')}
+            {isFetching ? t('common:loading.short') : t('common:actions.generate')}
           </button>
           <button
             onClick={() => { void printWhenFontsReady() }}
             disabled={!data || data.clients.length === 0}
             className="ui-btn ui-btn-secondary"
           >
-            {t('controls.printPdf')}
+            {t('common:actions.printPdf')}
           </button>
           <CsvExportButton filename={csvFilename('interest-accrual', query)} columns={CSV_COLUMNS} rows={csvRows} />
         </div>
@@ -77,6 +78,9 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
 
       {data && (
         <div className="space-y-4">
+          <div className="hidden print:block">
+            <PrintHeader title={t('interest.printTitle')} from={query.from} to={query.to} />
+          </div>
           {/* Summary */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <SummaryCard label={t('interest.totalCharges')}  value={String(data.totalCharges)}  color="text-ink" />
@@ -104,7 +108,7 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
                     <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                       <div className="text-ink-3 space-y-0.5">
                         <p>{t('interest.period', { from: fmtShortDate(c.periodFrom), to: fmtShortDate(c.periodTo), days: c.daysApplied })}</p>
-                        <p>{t('interest.balanceAtRate', { balance: fmtAmt(c.outstandingBalance), rate: c.rateApplied, source: c.source })}</p>
+                        <p>{t('interest.balanceAtRate', { balance: fmtAmt(c.outstandingBalance), rate: c.rateApplied, source: codeLabel(c.source) })}</p>
                       </div>
                       <MoneyText value={c.amount} className="font-medium text-ink flex-shrink-0" />
                     </div>

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { serverText } from '../../utils/serverText'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -31,6 +32,11 @@ function stepBadge(checklist: SetupChecklist | undefined, step: SetupStep): Stat
   const item = checklist?.items.find((entry) => entry.step === step)
   if (!item) return NEUTRAL_BADGE
   return item.done ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE
+}
+
+function stepDetail(checklist: SetupChecklist | undefined, step: SetupStep): string | undefined {
+  const item = checklist?.items.find((entry) => entry.step === step)
+  return item && serverText(item.detailCode, item.detailParams, item.detail)
 }
 
 /** checklist is passed for owners and admins; it colours each section's badge by whether that step is done. */
@@ -138,7 +144,7 @@ export function PumpManagementPanel({
             onToggle={() => toggle('tanks')}
             icon={<div className="w-7 h-7 rounded-control bg-info-bg flex items-center justify-center shrink-0"><Database size={14} strokeWidth={2} className="text-primary" /></div>}
             title={t('sections.tanks.title')}
-            summary={checklist?.items.find((item) => item.step === 'TANKS')?.detail
+            summary={stepDetail(checklist, 'TANKS')
               ?? (pump.dus.length > 0 ? t('sections.tanks.tapToConfigure') : t('sections.tanks.addDuFirst'))}
             badgeTone={stepBadge(checklist, 'TANKS')}
           >

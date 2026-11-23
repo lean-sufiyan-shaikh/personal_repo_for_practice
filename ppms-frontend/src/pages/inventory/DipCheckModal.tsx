@@ -100,7 +100,7 @@ export function DipCheckModal({
   return (
     <Modal
       title={t('dipCheck.title')}
-      subtitle={<>{tank.tankIdentifier} — <span className={cols.text}>{tank.fuelType}</span></>}
+      subtitle={<>{tank.tankIdentifier} — <span className={cols.text}>{codeLabel(tank.fuelType)}</span></>}
       tone="neutral"
       size="sm"
       onClose={onClose}
@@ -218,7 +218,7 @@ export function DipCheckModal({
           {/* Operator */}
           <div>
             <span className="ui-label">
-              {t('dipCheck.checkedBy')} <span className="text-ink-3">{t('dipCheck.optional')}</span>
+              {t('dipCheck.checkedBy')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span>
             </span>
             <SearchableSelect label={t('dipCheck.checkedBy')}
               value={checkedByUserId}
@@ -235,7 +235,7 @@ export function DipCheckModal({
           <div>
             <label className="block">
               <span className="ui-label">
-              {t('dipCheck.notes')} <span className="text-ink-3">{t('dipCheck.optional')}</span>
+              {t('common:fields.notes')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span>
             </span>
               <input
                 type="text"

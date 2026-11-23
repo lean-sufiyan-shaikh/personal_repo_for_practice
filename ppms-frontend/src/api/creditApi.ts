@@ -31,6 +31,9 @@ export interface CreditTransaction {
   type: 'SALE' | 'COUNTER_SALE' | 'PAYMENT' | 'INTEREST'
   referenceId: number
   reference: string | null
+  /** Set when the server wrote the reference (INTEREST rows), for translated screens. */
+  referenceCode: string | null
+  referenceParams: Record<string, unknown>
   detail: string | null
   amount: number
   runningBalance: number
@@ -59,6 +62,8 @@ export interface ApplyInterestResponse {
   periodFrom?: string
   periodTo?: string
   reason?: string
+  reasonCode?: string
+  reasonParams?: Record<string, unknown>
 }
 
 export interface CreditPayment {

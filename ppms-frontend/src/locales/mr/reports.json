@@ -4,8 +4,6 @@
     "title": "रिपोर्ट",
     "subtitle": "तुमच्या पंपाच्या कामकाजाचे आणि हिशोबाचे रिपोर्ट.",
     "printedBy": "प्रिंट केले:",
-    "notAssigned": "तुम्हाला कोणत्याही पंपावर नेमलेले नाही. मालक किंवा ॲडमिनला पंपावर नेमायला सांगा.",
-    "noPump": "कोणताही पंप निवडलेला नाही. वरच्या पट्टीत पंप निवडा.",
     "tabs": {
       "pl": "नफा-तोटा",
       "duty": "ऑपरेटर ड्युटी",
@@ -18,16 +16,10 @@
     }
   },
   "controls": {
-    "from": "पासून",
-    "to": "पर्यंत",
-    "generate": "रिपोर्ट तयार करा",
-    "loading": "लोड होत आहे…",
-    "printPdf": "PDF प्रिंट करा",
     "loadFailed": "रिपोर्ट लोड झाला नाही",
     "period": "कालावधी: {{from}} ते {{to}}",
     "rangeLabel": "{{from}} ते {{to}}",
-    "comparedWith": "{{range}} शी तुलना.",
-    "shiftLink": "शिफ्ट #{{id}}"
+    "comparedWith": "{{range}} शी तुलना."
   },
   "emptyRange": {
     "noClosedShifts": "काल किंवा आजची कोणतीही बंद शिफ्ट अजून नाही.",
@@ -43,15 +35,11 @@
     "status": "स्थिती",
     "amount": "रक्कम",
     "amountDue": "देय रक्कम",
-    "cash": "रोख",
-    "upi": "UPI",
-    "card": "कार्ड",
-    "credit": "क्रेडिट",
     "discrepancy": "फरक",
     "type": "प्रकार",
     "fuel": "इंधन",
     "fuelType": "इंधन प्रकार",
-    "revenue": "उत्पन्न",
+    "revenue": "विक्री",
     "costOfGoods": "मालाचा खर्च",
     "grossProfit": "ढोबळ नफा",
     "cogs": "मालाचा खर्च",
@@ -67,7 +55,6 @@
     "cost": "खर्च",
     "source": "स्रोत",
     "quantityLitres": "प्रमाण (L)",
-    "total": "एकूण",
     "original": "सुरुवातीचे",
     "remaining": "शिल्लक",
     "totalRemaining": "एकूण शिल्लक",
@@ -77,18 +64,17 @@
     "dateTime": "तारीख आणि वेळ",
     "litres": "लिटर",
     "profitLoss": "नफा/तोटा",
-    "notes": "टीप",
-    "category": "प्रकार",
+    "category": "वर्ग",
     "description": "तपशील"
   },
   "pl": {
-    "totalRevenue": "एकूण उत्पन्न",
+    "totalRevenue": "एकूण विक्री",
     "costOfGoods": "मालाचा खर्च",
     "grossProfit": "ढोबळ नफा",
     "dailyTable": "रोजच्या आकड्यांचा तक्ता",
-    "dailyCaption": "दिवसानुसार उत्पन्न, मालाचा खर्च आणि ढोबळ नफा",
+    "dailyCaption": "दिवसानुसार विक्री, मालाचा खर्च आणि ढोबळ नफा",
     "dailyRegion": "रोजचे आकडे",
-    "revenueBreakdown": "उत्पन्नाचा तपशील (रोख / UPI / कार्ड / क्रेडिट)",
+    "revenueBreakdown": "विक्रीचा तपशील (रोख / UPI / कार्ड / क्रेडिट)",
     "creditSales": "क्रेडिट विक्री",
     "byFuelCaption": "इंधनानुसार नफा-तोटा",
     "byFuelPrintCaption": "इंधनानुसार नफा-तोटा, प्रिंट",
@@ -155,7 +141,6 @@
   "dip": {
     "dipCheck": "डिप तपासणी",
     "maintenance": "दुरुस्ती",
-    "loading": "लोड होत आहे...",
     "loadFailed": "डिप नफा/तोटा नोंदी लोड झाल्या नाहीत",
     "totalEntries": "एकूण नोंदी",
     "netPl": "निव्वळ नफा/तोटा",
@@ -191,17 +176,18 @@
     "chargeCount_one": "{{count}} आकार",
     "chargeCount_other": "{{count}} आकार",
     "period": "{{from}} – {{to}} ({{days}} दिवस)",
-    "balanceAtRate": "थकबाकी {{balance}} @ {{rate}}%/महिना · {{source}}"
+    "balanceAtRate": "थकबाकी {{balance}} @ {{rate}}%/महिना · {{source}}",
+    "printTitle": "व्याज आकारणी रिपोर्ट"
   },
   "charts": {
     "pl": {
-      "title": "रोजचे उत्पन्न आणि ढोबळ नफा",
-      "revenue": "उत्पन्न",
+      "title": "रोजची विक्री आणि ढोबळ नफा",
+      "revenue": "विक्री",
       "grossProfit": "ढोबळ नफा",
       "empty": "या कालावधीत कोणतीही बंद शिफ्ट नाही.",
-      "totals_one": "विक्री झालेल्या {{count}} दिवसात उत्पन्न {{revenue}} आणि ढोबळ नफा {{profit}}.",
-      "totals_other": "विक्री झालेल्या {{count}} दिवसांत उत्पन्न {{revenue}} आणि ढोबळ नफा {{profit}}.",
-      "best": "सर्वाधिक उत्पन्न {{date}} रोजी ({{amount}}).",
+      "totals_one": "विक्री झालेल्या {{count}} दिवसात एकूण विक्री {{revenue}} आणि ढोबळ नफा {{profit}}.",
+      "totals_other": "विक्री झालेल्या {{count}} दिवसांत एकूण विक्री {{revenue}} आणि ढोबळ नफा {{profit}}.",
+      "best": "सर्वाधिक विक्री {{date}} रोजी ({{amount}}).",
       "lossDays_one": "{{count}} दिवस ढोबळ तोटा.",
       "lossDays_other": "{{count}} दिवस ढोबळ तोटा."
     },

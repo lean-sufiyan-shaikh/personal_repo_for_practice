@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function PreferencesPanel({ pumpId, member, activeShiftDefs, onClose }: Props) {
-  const { t } = useTranslation('setup')
+  const { t } = useTranslation(['setup', 'common'])
   const { data: savedPreference, isLoading, isError } = useQuery({
     queryKey: ['staffPref', pumpId, member.id],
     queryFn: () => shiftPlanApi.getPreference(pumpId, member.id),
@@ -53,7 +53,7 @@ interface FormProps extends Props {
 }
 
 function PreferencesForm({ pumpId, member, activeShiftDefs, savedPreference, onClose }: FormProps) {
-  const { t } = useTranslation('setup')
+  const { t } = useTranslation(['setup', 'common'])
   const queryClient = useQueryClient()
   const [prefShiftDefId, setPrefShiftDefId] = useState<number | null>(savedPreference?.preferredShiftDefinitionId ?? null)
   const [prefDayOff, setPrefDayOff] = useState<PreferredDayOff | ''>(savedPreference?.preferredDayOff ?? '')
@@ -98,11 +98,11 @@ function PreferencesForm({ pumpId, member, activeShiftDefs, savedPreference, onC
           disabled={prefMutation.isPending}
           className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs"
         >
-          {prefMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('actions.saving')}</span> : t('actions.save')}
+          {prefMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('common:actions.saving')}</span> : t('common:actions.save')}
         </button>
         <button type="button" onClick={onClose}
           className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
-          {t('actions.done')}
+          {t('common:actions.done')}
         </button>
       </div>
     </>

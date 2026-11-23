@@ -18,7 +18,7 @@ const CREDIT_PATH = '/dashboard/credit'
 // ─── Main Credit Page ────────────────────────────────────────────────────────
 
 export default function CreditPage() {
-  const { t } = useTranslation('credit')
+  const { t } = useTranslation(['credit', 'common'])
   const { user } = useAuthStore()
   const isOwnerOrAdmin    = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const canSeeLedger      = canAccessPage('credit', user?.role)
@@ -67,7 +67,7 @@ export default function CreditPage() {
     return (
       <div className="ui-page ui-page--narrow">
         <div className="ui-alert ui-alert-warning text-sm">
-          {t('page.notAssigned')}
+          {t('common:notices.notAssigned')}
         </div>
       </div>
     )
@@ -158,7 +158,7 @@ export default function CreditPage() {
             <CreditClientsTab pumpId={pumpId} canManageClients={canManageClients}
               canManagePortalPins={canPerformAction('credit:manage-portal-pin', user?.role)} />
           ) : (
-            <div className="ui-empty">{t('page.noPump')}</div>
+            <div className="ui-empty">{t('common:notices.noPump')}</div>
           )}
         </div>
         </Reveal>

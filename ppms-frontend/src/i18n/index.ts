@@ -62,8 +62,8 @@ export function translateKey(key: string, options?: TOptions): string {
   return (i18n.t as (key: string, options?: TOptions) => string)(key, options)
 }
 
-export function hasTranslation(key: string): boolean {
-  return i18n.exists(key)
+export function hasTranslation(key: string, options?: TOptions): boolean {
+  return i18n.exists(key, options)
 }
 
 export default i18n

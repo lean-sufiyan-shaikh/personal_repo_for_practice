@@ -119,8 +119,15 @@ describe('parseApiError in Hindi and Marathi', () => {
   it('names a missing field in readable words when no label is translated for it', async () => {
     await changeAppLanguage('mr')
     expect(parseApiError(axiosError(400, {
+      message: 'Validation failed', code: 'FIELD_REQUIRED', params: { fieldCode: 'SORT_ORDER' },
+    }))).toBe('Sort order भरणे आवश्यक आहे.')
+  })
+
+  it('names a common field by its translated label', async () => {
+    await changeAppLanguage('mr')
+    expect(parseApiError(axiosError(400, {
       message: 'Validation failed', code: 'FIELD_REQUIRED', params: { fieldCode: 'CASH_COLLECTED' },
-    }))).toBe('Cash collected भरणे आवश्यक आहे.')
+    }))).toBe('मिळालेली रोख भरणे आवश्यक आहे.')
   })
 
   it('translates a code sent outside an error response, and leaves English to the server text', async () => {

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { codeLabel } from '../../constants/labels'
 import { CalendarClock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -18,7 +19,7 @@ interface CalibrationHistoryProps {
 }
 
 export function CalibrationHistory({ history, nozzles }: CalibrationHistoryProps) {
-  const { t } = useTranslation('calibration')
+  const { t } = useTranslation(['calibration', 'common'])
   const {
     calibrationsPage, isLoading, filteredCalibrations,
     historyNozzleId, setHistoryNozzleId, setHistoryPage, setHistoryPageSize,
@@ -41,14 +42,14 @@ export function CalibrationHistory({ history, nozzles }: CalibrationHistoryProps
             <span className="text-ink-3 font-normal ml-1">{t('history.allNozzlesSuffix')}</span>
           ) : historyNozzle ? (
             <span className="text-ink-3 font-normal ml-1">
-              {t('history.nozzleSuffix', { number: historyNozzle.nozzleNumber, fuel: historyNozzle.fuelType })}
+              {t('history.nozzleSuffix', { number: historyNozzle.nozzleNumber, fuel: codeLabel(historyNozzle.fuelType) })}
             </span>
           ) : null}
         </p>
 
         <div className="ui-toolbar-actions">
           <div className="flex items-center gap-1.5">
-            <label htmlFor="calibration-history-from" className="text-xs text-ink-3 whitespace-nowrap">{t('history.from')}</label>
+            <label htmlFor="calibration-history-from" className="text-xs text-ink-3 whitespace-nowrap">{t('common:fields.from')}</label>
             <input id="calibration-history-from"
               type="date"
               value={fromDate}
@@ -57,7 +58,7 @@ export function CalibrationHistory({ history, nozzles }: CalibrationHistoryProps
             />
           </div>
           <div className="flex items-center gap-1.5">
-            <label htmlFor="calibration-history-to" className="text-xs text-ink-3 whitespace-nowrap">{t('history.to')}</label>
+            <label htmlFor="calibration-history-to" className="text-xs text-ink-3 whitespace-nowrap">{t('common:fields.to')}</label>
             <input id="calibration-history-to"
               type="date"
               value={toDate}
@@ -74,7 +75,7 @@ export function CalibrationHistory({ history, nozzles }: CalibrationHistoryProps
               { value: '', label: t('history.allNozzles') },
               ...nozzles.map((n) => ({
                 value: n.id.toString(),
-                label: t('nozzleOption', { number: n.nozzleNumber, fuel: n.fuelType }),
+                label: t('nozzleOption', { number: n.nozzleNumber, fuel: codeLabel(n.fuelType) }),
               })),
             ]}
             size="sm"
@@ -110,7 +111,7 @@ export function CalibrationHistory({ history, nozzles }: CalibrationHistoryProps
                     <p className="text-sm font-medium text-ink">{fmtDate(c.calibrationDate)}</p>
                     <div className="ui-record-row__meta mt-0">
                       {t('history.nozzleNumber', { number: nozzle?.nozzleNumber ?? c.nozzleId })}
-                      {nozzle?.fuelType ? ` · ${nozzle.fuelType}` : ''}
+                      {nozzle?.fuelType ? ` · ${codeLabel(nozzle.fuelType)}` : ''}
                     </div>
                   </div>
                   {c.nextCalibrationDue && (

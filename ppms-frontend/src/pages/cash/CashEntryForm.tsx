@@ -22,7 +22,7 @@ interface CashEntryFormProps {
 }
 
 export function CashEntryForm({ pumpId, balance }: CashEntryFormProps) {
-  const { t } = useTranslation('cash')
+  const { t } = useTranslation(['cash', 'common'])
   const qc           = useQueryClient()
   const { addToast } = useToastStore()
   const [form, setForm] = useState<RecordCashEventRequest>({
@@ -161,7 +161,7 @@ export function CashEntryForm({ pumpId, balance }: CashEntryFormProps) {
           className="ui-btn ui-btn-primary"
         >
           {createMutation.isPending
-          ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('form.saving')}</span>
+          ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('common:actions.saving')}</span>
           : t('form.review')}
         </button>
       </form>
@@ -177,7 +177,7 @@ export function CashEntryForm({ pumpId, balance }: CashEntryFormProps) {
           bodyClassName="space-y-4"
           footer={<>
             <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
-              {t('review.back')}
+              {t('common:actions.back')}
             </button>
             <button
               onClick={() => {
@@ -189,11 +189,11 @@ export function CashEntryForm({ pumpId, balance }: CashEntryFormProps) {
               disabled={createMutation.isPending}
               className="ui-btn ui-btn-primary"
             >
-              {createMutation.isPending ? t('form.saving') : t('review.record')}
+              {createMutation.isPending ? t('common:actions.saving') : t('review.record')}
             </button>
           </>}
         >
-          {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('review.goBack', { error: formError })}</div>}
+          {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('common:notices.goBackRetry', { error: formError })}</div>}
           <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
             <div className="flex items-center justify-between px-4 py-2.5">
               <span className="text-ink-3 text-xs">{t('form.eventType')}</span>

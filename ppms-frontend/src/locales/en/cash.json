@@ -17,8 +17,6 @@
   },
   "list": {
     "title": "Cash Events",
-    "from": "From",
-    "to": "To",
     "filterByType": "Filter by event type",
     "allTypes": "All Types",
     "emptyRangeTitle": "No events in this date range",
@@ -37,7 +35,6 @@
     "description": "Description",
     "descriptionPlaceholder": "e.g. Shift 1 cash deposited",
     "date": "Date",
-    "saving": "Saving…",
     "review": "Review Event",
     "recorded": "Cash event recorded successfully",
     "recordFailed": "Failed to record event",
@@ -48,8 +45,6 @@
   "review": {
     "title": "Review Cash Event",
     "subtitle": "Check the event details before recording it.",
-    "back": "Back",
-    "record": "Record Event",
-    "goBack": "{{error}} Go back to modify the data and try again."
+    "record": "Record Event"
   }
 }

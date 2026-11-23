@@ -10,7 +10,7 @@ import type { AttentionItem, AttentionSeverity, AttentionType } from '../../../a
 import { SkeletonRows } from '../../../components/Skeleton'
 import { usePumpStore } from '../../../store/usePumpStore'
 import { MoneyText } from '../../../components/AmountText'
-import { codeLabel } from '../../../constants/labels'
+import { serverText } from '../../../utils/serverText'
 
 const ICON_BY_TYPE: Record<AttentionType, LucideIcon> = {
   PENDING_APPROVALS: ClipboardCheck,
@@ -35,12 +35,11 @@ const SEVERITY_CHIP: Record<AttentionSeverity, string> = {
 }
 
 function AttentionRow({ item, showPumpName }: { item: AttentionItem; showPumpName: boolean }) {
-  const { t, i18n } = useTranslation('dashboard')
+  const { t } = useTranslation(['dashboard', 'common'])
   const navigate = useNavigate()
   const { selectedPumpId, setSelectedPumpId } = usePumpStore()
   const Icon = ICON_BY_TYPE[item.type]
-  // The server writes the reason in English; other languages show the item's translated type instead.
-  const reason = i18n.resolvedLanguage === 'en' ? item.reason : codeLabel(item.type)
+  const reason = serverText(item.reasonCode, item.reasonParams, item.reason)
   const actionLabel = showPumpName
     ? t('attention.reviewLabelWithPump', { pump: item.pumpName, reason })
     : t('attention.reviewLabel', { reason })
@@ -70,11 +69,11 @@ function AttentionRow({ item, showPumpName }: { item: AttentionItem; showPumpNam
       </div>
       {item.pumpId === selectedPumpId || !showPumpName ? (
         <Link to={item.targetPath} aria-label={actionLabel} className="ui-btn ui-btn-secondary ui-btn-compact">
-          {t('attention.review')}
+          {t('common:actions.review')}
         </Link>
       ) : (
         <button type="button" onClick={openOtherPump} aria-label={actionLabel} className="ui-btn ui-btn-secondary ui-btn-compact">
-          {t('attention.review')}
+          {t('common:actions.review')}
         </button>
       )}
     </li>
@@ -83,7 +82,7 @@ function AttentionRow({ item, showPumpName }: { item: AttentionItem; showPumpNam
 
 /** The ranked list of things to act on today, each linking to the page and filter that handles it. */
 export function AttentionInbox({ pumpId, allPumps }: { pumpId: number | null; allPumps: boolean }) {
-  const { t } = useTranslation('dashboard')
+  const { t } = useTranslation(['dashboard', 'common'])
   const { data: items, isLoading, isError } = useQuery({
     queryKey: ['attention', allPumps ? 'all' : pumpId],
     queryFn: () => (allPumps ? attentionApi.getForMyPumps() : attentionApi.getForPump(pumpId!)),

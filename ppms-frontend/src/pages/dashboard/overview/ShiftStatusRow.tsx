@@ -6,7 +6,7 @@ import { timeOpen } from './overviewFormat'
 
 export function ShiftStatusRow({ shift }: { shift: Shift }) {
   const isOverdue = shift.status === 'OPEN_OVERDUE'
-  const fuels = [...new Set(shift.nozzles.map(n => n.fuelType))].join(' · ')
+  const fuels = [...new Set(shift.nozzles.map(n => n.fuelType))].map((fuel) => codeLabel(fuel)).join(' · ')
 
   return (
     <div className="flex items-center gap-3 px-5 py-3 hover:bg-bg transition-colors">
@@ -29,7 +29,7 @@ export function ShiftStatusRow({ shift }: { shift: Shift }) {
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         <span className="text-xs text-ink-3">{timeOpen(shift.actualStartTime)}</span>
-        <StatusBadge {...shiftStatusBadge(shift.status)} label={codeLabel(isOverdue ? 'OVERDUE' : 'OPEN')} />
+        <StatusBadge {...shiftStatusBadge(shift.status)} />
       </div>
     </div>
   )

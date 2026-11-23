@@ -14,7 +14,7 @@ type Tab = 'products' | 'stockin' | 'sales'
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function AncillaryProductsPage() {
-  const { t } = useTranslation('ancillary')
+  const { t } = useTranslation(['ancillary', 'common'])
   const { user } = useAuthStore()
   const qc = useQueryClient()
 
@@ -37,7 +37,7 @@ export default function AncillaryProductsPage() {
     return (
       <div className="ui-page ui-page--narrow">
         <div className="ui-alert ui-alert-warning text-sm">
-          {t('page.notAssigned')}
+          {t('common:notices.notAssigned')}
         </div>
       </div>
     )
@@ -67,7 +67,7 @@ export default function AncillaryProductsPage() {
 
       {!pumpId ? (
         <div className="ui-empty">
-          {t('page.noPump')}
+          {t('common:notices.noPump')}
         </div>
       ) : (
         <>

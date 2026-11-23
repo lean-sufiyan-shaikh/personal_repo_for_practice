@@ -8,7 +8,7 @@ import { translateKey } from '../../i18n'
 export const TYPES: SettlementPaymentType[] = ['UPI', 'CARD', 'FLEET_CARD']
 
 export function typeLabel(type: SettlementPaymentType): string {
-  return translateKey(`settlements:types.${type}`)
+  return translateKey(`common:paymentMethods.${type}`)
 }
 
 export const TYPE_ICONS: Record<SettlementPaymentType, ReactNode> = {

@@ -19,7 +19,7 @@ interface GenerateModalProps {
 }
 
 export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
-  const { t } = useTranslation('balancesheet')
+  const { t } = useTranslation(['balancesheet', 'common'])
   const qc = useQueryClient()
   const { addToast } = useToastStore()
 
@@ -99,7 +99,7 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
             onClick={onClose}
             className="ui-btn ui-btn-secondary"
           >
-            {t('generate.cancel')}
+            {t('common:actions.cancel')}
           </button>
           <button
             onClick={handleSubmit}
@@ -107,7 +107,7 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
             className="ui-btn ui-btn-primary"
           >
             {mutation.isPending
-              ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('generate.generating')}</span>
+              ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('common:actions.generating')}</span>
               : t('generate.submit')}
           </button>
       </>}
@@ -171,7 +171,7 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
           {/* Notes */}
           <div>
             <label className="block">
-              <span className="ui-label">{t('generate.notes')} <span className="text-ink-3">{t('generate.optional')}</span></span>
+              <span className="ui-label">{t('common:fields.notes')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span></span>
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
@@ -200,14 +200,14 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
                   className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-warn hover:bg-warn-strong text-white disabled:opacity-50"
                 >
                   {mutation.isPending
-                    ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('generate.generating')}</span>
+                    ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('common:actions.generating')}</span>
                     : t('generate.confirmRevision')}
                 </button>
                 <button
                   onClick={() => setConfirmRegenerate(false)}
                   className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs text-warn border-warn hover:bg-warn-bg"
                 >
-                  {t('generate.cancel')}
+                  {t('common:actions.cancel')}
                 </button>
               </div>
             </div>

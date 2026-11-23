@@ -165,7 +165,7 @@ export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Prop
             })}
             className="ui-btn ui-btn-primary min-h-0 px-4 py-2 text-sm"
           >
-            {detailsMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-3 h-3" />{t('actions.saving')}</span> : t('staff.edit.save')}
+            {detailsMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-3 h-3" />{t('common:actions.saving')}</span> : t('staff.edit.save')}
           </button>
           <button
             type="button"

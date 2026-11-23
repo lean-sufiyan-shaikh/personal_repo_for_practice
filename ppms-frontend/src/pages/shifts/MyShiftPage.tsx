@@ -10,7 +10,7 @@ import { MyShiftCard } from './active/MyShiftCard'
 import { AddCreditEntryModal } from './modals/AddCreditEntryModal'
 
 export default function MyShiftPage() {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const pumpId = usePumpStore((state) => state.selectedPumpId)
   const now = useNow(30_000)
   const [shiftIdForCredit, setShiftIdForCredit] = useState<number | null>(null)
@@ -36,7 +36,7 @@ export default function MyShiftPage() {
 
       {!pumpId ? (
         <div className="ui-alert ui-alert-warning text-sm">
-          {t('page.notAssigned')}
+          {t('common:notices.notAssigned')}
         </div>
       ) : isLoading ? (
         <SkeletonRows count={3} />

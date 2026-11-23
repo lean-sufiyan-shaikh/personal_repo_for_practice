@@ -1,11 +1,9 @@
 {
   "page": {
-    "notAssigned": "You are not assigned to any pump. Ask the Owner or Admin to assign you.",
     "kicker": "Counter inventory",
     "title": "Products",
     "subtitle": "Manage lubricants, accessories, and other counter products. Track stock and sales.",
-    "productsCount": "Products",
-    "noPump": "No pump selected. Use the pump selector in the top navigation bar."
+    "productsCount": "Products"
   },
   "tabs": {
     "products": "Products",
@@ -18,14 +16,8 @@
     "PIECE": "PIECE"
   },
   "actions": {
-    "review": "Review",
     "reviewNext": "Review →",
-    "back": "Back",
-    "saving": "Saving…",
-    "recording": "Recording…",
-    "save": "Save",
-    "edit": "Edit",
-    "goBack": "{{error}} Go back to modify the data and try again."
+    "recording": "Recording…"
   },
   "fields": {
     "date": "Date",
@@ -36,14 +28,11 @@
     "quantityUnits_one": "{{count}} unit",
     "quantityUnits_other": "{{count}} units",
     "qty": "Qty",
-    "total": "Total",
     "type": "Type",
     "client": "Client",
     "clientRequired": "Client * (required for credit)",
     "searchClient": "Search client…",
     "billNo": "Bill No",
-    "notes": "Notes",
-    "optional": "Optional",
     "paymentMode": "Payment Mode",
     "paymentModeRequired": "Payment Mode *",
     "selectProduct": "Select product…",
@@ -75,8 +64,6 @@
     "sell": "Sell",
     "inventory": "Inventory",
     "editHsnOf": "Edit HSN code of {{name}}",
-    "disable": "Disable",
-    "enable": "Enable",
     "enabled": "Product enabled",
     "disabled": "Product disabled",
     "statusFailed": "Failed to update product status"
@@ -130,7 +117,6 @@
     "stockUnits": "{{value}} units",
     "buyPrice": "Buy price",
     "sellingPriceRequired": "Selling Price (₹/unit) *",
-    "loadingPrice": "Loading…",
     "mrp": "MRP",
     "noPrice": "No selling price is set for this product. Set a price first.",
     "reviewHint": "Please review the details before confirming.",

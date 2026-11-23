@@ -6,6 +6,7 @@ import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
@@ -58,9 +59,8 @@ public class LotCostCorrectionService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(3, RoundingMode.HALF_UP);
         String costChange = "₹" + perLitre(oldCost) + " → ₹" + perLitre(newCost) + "/L";
-        balanceSheetStalenessService.markAllSheetsStale(pumpId, affectedDates,
-                "The purchase cost of " + delivery.getFuelType() + " delivery (invoice " + delivery.getInvoiceReference() +
-                ") was corrected " + costChange + " after this sheet was generated.");
+        balanceSheetStalenessService.markAllSheetsStale(pumpId, affectedDates, StaleReasons.fuelCostCorrected(
+                delivery.getFuelType(), delivery.getInvoiceReference(), perLitre(oldCost), perLitre(newCost)));
 
         log.info("Fuel lot re-costed: pump={}, lot={}, delivery={}, cost {} -> {}, litresRecosted={}, days={}",
                 pumpId, lot.getId(), delivery.getId(), oldCost, newCost, litresRecosted, affectedDates.size());

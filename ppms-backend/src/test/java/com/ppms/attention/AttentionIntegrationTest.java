@@ -53,6 +53,8 @@ class AttentionIntegrationTest extends ApiIntegrationTest {
         JsonNode item = itemOf(attention(setup.owner()), "SETUP_INCOMPLETE");
 
         assertThat(item.get("reason").asText()).contains("GST details");
+        assertThat(item.get("reasonCode").asText()).isEqualTo("ATTENTION_SETUP_INCOMPLETE");
+        assertThat(item.get("reasonParams").get("missingCodes").get(0).asText()).isEqualTo("GST_DETAILS");
         assertThat(item.get("targetPath").asText()).isEqualTo("/dashboard/setup");
     }
 
@@ -66,6 +68,8 @@ class AttentionIntegrationTest extends ApiIntegrationTest {
         assertThat(item.get("count").asLong()).isEqualTo(2);
         assertThat(item.get("amount").decimalValue()).isEqualByComparingTo("750.50");
         assertThat(item.get("reason").asText()).isEqualTo("2 expenses waiting for your approval");
+        assertThat(item.get("reasonCode").asText()).isEqualTo("ATTENTION_PENDING_EXPENSES");
+        assertThat(item.get("reasonParams").get("count").asLong()).isEqualTo(2);
         assertThat(item.get("targetPath").asText()).isEqualTo("/dashboard/approvals");
         assertThat(item.get("pumpId").asLong()).isEqualTo(setup.pumpId());
     }
@@ -147,6 +151,10 @@ class AttentionIntegrationTest extends ApiIntegrationTest {
         assertThat(documents.get("count").asLong()).isEqualTo(2);
         assertThat(documents.get("severity").asText()).isEqualTo("HIGH");
         assertThat(documents.get("reason").asText()).isEqualTo("1 document expired and 1 document expiring within 30 days");
+        assertThat(documents.get("reasonCode").asText()).isEqualTo("ATTENTION_EXPIRED_AND_EXPIRING_DOCUMENTS");
+        assertThat(documents.get("reasonParams").get("expiredCount").asLong()).isEqualTo(1);
+        assertThat(documents.get("reasonParams").get("expiringCount").asLong()).isEqualTo(1);
+        assertThat(documents.get("reasonParams").get("days").asLong()).isEqualTo(30);
         assertThat(itemOf(items, "CALIBRATIONS_DUE").get("severity").asText()).isEqualTo("MEDIUM");
         assertThat(itemOf(items, "STALE_FUEL_PRICES").get("severity").asText()).isEqualTo("LOW");
     }

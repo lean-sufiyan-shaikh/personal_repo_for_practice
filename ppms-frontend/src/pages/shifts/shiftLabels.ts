@@ -48,8 +48,8 @@ export function labelForDate(d: string): string {
   const todayStr     = localDateInputValue()
   const yesterdayStr = localDateInputValue(-1)
   const dayBeforeStr = localDateInputValue(-2)
-  if (d === todayStr)     return i18n.t('labels.today', { ns: 'shifts' })
-  if (d === yesterdayStr) return i18n.t('labels.yesterday', { ns: 'shifts' })
+  if (d === todayStr)     return i18n.t('common:datePresets.today')
+  if (d === yesterdayStr) return i18n.t('common:datePresets.yesterday')
   if (d === dayBeforeStr) return i18n.t('labels.dayBeforeYesterday', { ns: 'shifts' })
   return formatIstDate(d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }

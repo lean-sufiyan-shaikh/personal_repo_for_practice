@@ -75,7 +75,7 @@ function useHistoryFilters() {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-function activeShiftColumns(t: TFunction<'shifts'>): DataTableColumn<Shift>[] {
+function activeShiftColumns(t: TFunction<['shifts', 'common']>): DataTableColumn<Shift>[] {
   return [
     { key: 'nozzle', header: t('page.columns.nozzle') },
     { key: 'operator', header: t('page.columns.operator') },
@@ -88,7 +88,7 @@ function activeShiftColumns(t: TFunction<'shifts'>): DataTableColumn<Shift>[] {
 }
 
 export default function ShiftsPage() {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const canOpenShift  = canPerformAction('shift:open', user?.role)
@@ -156,7 +156,7 @@ export default function ShiftsPage() {
     return (
       <div className="ui-page ui-page--narrow">
         <div className="ui-alert ui-alert-warning text-sm">
-          {t('page.notAssigned')}
+          {t('common:notices.notAssigned')}
         </div>
       </div>
     )
@@ -187,7 +187,7 @@ export default function ShiftsPage() {
 
       {!pumpId ? (
         <div className="ui-card text-center text-sm text-ink-3">
-          {t('page.noPumpSelected')}
+          {t('common:notices.noPump')}
         </div>
       ) : (
         <>

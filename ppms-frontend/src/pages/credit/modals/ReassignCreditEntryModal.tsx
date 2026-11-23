@@ -120,7 +120,7 @@ export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, tra
           <div className="ui-inline-form">
             <label className="block">
               <span className="ui-label">
-              {t('form.reason')} <span className="text-bad">*</span>
+              {t('common:fields.reason')} <span className="text-bad">*</span>
             </span>
               <textarea
                 value={reason}

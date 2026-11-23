@@ -188,7 +188,7 @@ public class GlobalExceptionHandler {
             String code,
             Map<String, Object> params
     ) {
-        static ErrorResponse of(HttpStatus status, String code, Map<String, Object> params, String message) {
+        public static ErrorResponse of(HttpStatus status, String code, Map<String, Object> params, String message) {
             return new ErrorResponse(status.value(), message, null, OffsetDateTime.now(), code, params);
         }
 

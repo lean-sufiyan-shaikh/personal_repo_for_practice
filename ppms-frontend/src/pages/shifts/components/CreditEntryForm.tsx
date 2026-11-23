@@ -67,7 +67,7 @@ export function CreditEntryForm({
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-2">
-            <span className="text-xs text-warn group-hover:text-warn transition-colors">{t('creditEntry.edit')}</span>
+            <span className="text-xs text-warn group-hover:text-warn transition-colors">{t('common:actions.edit')}</span>
             <IconButton
               onClick={(e) => { e.stopPropagation(); onRemove() }}
               className="ui-btn-icon text-bad hover:text-bad transition-colors"
@@ -115,7 +115,7 @@ export function CreditEntryForm({
           {subAccounts.length > 0 && (
             <div>
               <span className="ui-label">
-                {t('creditEntry.subAccount')} <span className="text-ink-3">{t('creditEntry.optional')}</span>
+                {t('creditEntry.subAccount')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span>
               </span>
               <div role="group" aria-label={t('creditEntry.subAccount')} className="ui-card p-0 overflow-hidden divide-y divide-border shadow-none border-border">
                 {/* "Bill to parent" option */}
@@ -311,7 +311,7 @@ export function CreditEntryForm({
               disabled={!row.clientId || emptyNum(row.amount) <= 0}
               className="ui-btn ui-btn-warning text-xs px-3 py-1.5 min-h-0 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {t('creditEntry.add')}
+              {t('common:actions.add')}
             </button>
           </div>
         </div>

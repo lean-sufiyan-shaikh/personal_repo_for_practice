@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { codeLabel } from '../../../constants/labels'
 import type { Shift, CreditEntry } from '../../../types/shift'
 import { Modal } from '../../../components/Modal'
 import { StatusBadge } from '../../../components/StatusBadge'
@@ -51,7 +52,7 @@ export function CreditEntriesModal({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-semibold text-ink">{entry.clientName}</p>
-                  {entry.fuelType && <StatusBadge tone="neutral" label={entry.fuelType} />}
+                  {entry.fuelType && <StatusBadge tone="neutral" label={codeLabel(entry.fuelType)} />}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
                   {entry.billNo ? (

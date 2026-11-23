@@ -6,6 +6,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Map;
 
 /**
  * Represents a single line in the client's ledger — a fuel or counter credit sale or an interest
@@ -22,6 +23,12 @@ public class CreditTransactionResponse {
 
     // For SALE: the entry description. For COUNTER_SALE: product, quantity and bill number. For PAYMENT: notes.
     private String reference;
+
+    // Names the reference for translated screens when the server wrote it (INTEREST), filled with referenceParams
+    private String referenceCode;
+
+    @Builder.Default
+    private Map<String, Object> referenceParams = Map.of();
 
     // For SALE: the fuel type. For PAYMENT: the payment mode.
     private String detail;

@@ -19,7 +19,7 @@ import { DipHistory } from './DipHistory'
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function InventoryPage() {
-  const { t } = useTranslation('inventory')
+  const { t } = useTranslation(['inventory', 'common'])
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const canViewFinancials = isOwnerOrAdmin || user?.role === 'MANAGER'
@@ -82,7 +82,7 @@ export default function InventoryPage() {
     return (
       <div className="p-6">
         <div className="bg-warn-bg border border-warn rounded-card p-4 text-warn text-sm">
-          {t('page.notAssigned')}
+          {t('common:notices.notAssigned')}
         </div>
       </div>
     )
@@ -115,7 +115,7 @@ export default function InventoryPage() {
 
       {!pumpId ? (
         <div className="ui-empty">
-          {t('page.noPump')}
+          {t('common:notices.noPump')}
         </div>
       ) : (
         <>

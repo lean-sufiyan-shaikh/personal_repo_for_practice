@@ -27,7 +27,7 @@ function clientRow(id: number, name: string, extra: Partial<CreditClient>): Cred
 
 function row(referenceId: number, clientId: number, clientName: string): CreditTransaction {
   return {
-    type: 'SALE', referenceId, reference: null, detail: null, amount: 100, runningBalance: 100,
+    type: 'SALE', referenceId, reference: null, referenceCode: null, referenceParams: {}, detail: null, amount: 100, runningBalance: 100,
     occurredAt: '2026-11-10T10:00:00+05:30', businessDate: '2026-11-10', status: 'ACTIVE', countedInBalance: true,
     clientId, clientName,
   }

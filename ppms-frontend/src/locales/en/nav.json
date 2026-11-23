@@ -46,8 +46,7 @@
     "title": "Navigation",
     "workspace": "{{role}} workspace",
     "closeMenu": "Close menu",
-    "currentPump": "Current pump",
-    "noPump": "No pump selected"
+    "currentPump": "Current pump"
   },
   "topbar": {
     "skipToContent": "Skip to main content",
@@ -68,9 +67,7 @@
   "profile": {
     "yourName": "Your name",
     "saveName": "Save name",
-    "save": "Save",
     "cancelEditing": "Cancel editing",
-    "cancel": "Cancel",
     "editName": "Edit your name, {{name}}",
     "editNameHint": "Click to edit your name",
     "nameBlank": "Name cannot be blank",

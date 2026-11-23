@@ -117,7 +117,7 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
     disableMutation.mutate({ effectiveFrom: disablingDate, disableDate })
   }
 
-  if (isLoading) return <p className="text-xs text-ink-3 py-2">{t('tankers.loading')}</p>
+  if (isLoading) return <p className="text-xs text-ink-3 py-2">{t('common:loading.short')}</p>
 
   return (
     <div className="space-y-4">
@@ -166,7 +166,7 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                       onClick={() => openDisable(effectiveFromDate)}
                       className="text-xs text-warn hover:text-warn-strong font-medium"
                     >
-                      {t('actions.disable')}
+                      {t('common:actions.disable')}
                     </button>
                   )
                 )}

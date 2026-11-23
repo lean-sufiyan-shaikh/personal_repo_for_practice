@@ -15,7 +15,7 @@ interface PumpCardProps {
 }
 
 export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSaving, editError, onSaveEdit }: PumpCardProps) {
-  const { t } = useTranslation('superadmin')
+  const { t } = useTranslation(['superadmin', 'common'])
   return (
     <div className={`rounded-control border p-2.5 ${
       pump.enabled ? 'border-border bg-bg' : 'border-bad bg-bad-bg opacity-60'
@@ -53,7 +53,7 @@ export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSa
                 : 'border-border text-ink-3 hover:border-info hover:text-primary hover:bg-info-bg'
             }`}
           >
-            {isEditOpen ? <X size={12} strokeWidth={2} /> : t('pump.edit')}
+            {isEditOpen ? <X size={12} strokeWidth={2} /> : t('common:actions.edit')}
           </button>
           <button
             onClick={onToggleEnabled}
@@ -64,7 +64,7 @@ export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSa
                 : 'border-ok text-ok hover:bg-ok-bg'
             }`}
           >
-            {pump.enabled ? t('pump.disable') : t('pump.enable')}
+            {pump.enabled ? t('common:actions.disable') : t('common:actions.enable')}
           </button>
         </div>
       </div>

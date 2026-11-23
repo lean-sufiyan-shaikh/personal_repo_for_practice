@@ -5,7 +5,7 @@ import { useLedgerFilters } from './useLedgerFilters'
 
 function tx(referenceId: number, type: MergedTx['type'], businessDate: string, occurredAt = `${businessDate}T06:00:00Z`): MergedTx {
   return {
-    type, referenceId, reference: null, detail: null, amount: 100, runningBalance: 100,
+    type, referenceId, reference: null, referenceCode: null, referenceParams: {}, detail: null, amount: 100, runningBalance: 100,
     occurredAt, businessDate, status: 'ACTIVE', countedInBalance: true, sourceClientId: 1,
   }
 }

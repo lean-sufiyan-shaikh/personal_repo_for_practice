@@ -1,12 +1,10 @@
 {
   "page": {
-    "notAssigned": "You are not assigned to any pump. Ask the Owner or Admin to assign you.",
     "kicker": "Stock control",
     "title": "Inventory",
     "subtitle": "Tank stock levels, tanker deliveries, and DIP checks.",
     "lowStock": "Low stock",
     "dipOverdue": "DIP overdue",
-    "noPump": "No pump selected. Use the pump selector in the top navigation bar.",
     "currentStock": "Current Stock Levels",
     "recordDelivery": "Record Delivery",
     "loadingStock": "Loading stock levels...",
@@ -48,9 +46,7 @@
     "allTanks": "All Tanks",
     "allFuelTypes": "All Fuel Types",
     "byTank": "Filter by tank",
-    "byFuelType": "Filter by fuel type",
-    "clear": "Clear filters",
-    "loading": "Loading..."
+    "byFuelType": "Filter by fuel type"
   },
   "columns": {
     "tank": "Tank",
@@ -84,7 +80,6 @@
   },
   "editDelivery": {
     "title": "Edit Delivery",
-    "saving": "Saving…",
     "save": "Save Changes",
     "invoice": "Invoice / Bill No.",
     "invoicePlaceholder": "e.g. INV-2026-001",
@@ -142,10 +137,8 @@
     "shortage": "Shortage detected",
     "variance": "{{value}} L variance",
     "checkedBy": "Checked By",
-    "optional": "(optional)",
     "selectOperator": "— Select operator —",
     "staffOption": "{{name}} ({{role}})",
-    "notes": "Notes",
     "notesPlaceholder": "e.g. Reading taken at 6pm"
   },
   "recordDelivery": {
@@ -191,10 +184,8 @@
   "row": {
     "overCapacity": "Over capacity",
     "incomplete": "Incomplete — click Edit to fill",
-    "edit": "Edit",
     "removeRow": "Remove row",
     "tankNumber": "Tank {{number}}",
-    "remove": "Remove",
     "tank": "Tank",
     "selectTank": "Select tank…",
     "quantity": "Quantity (Litres)",
@@ -204,8 +195,7 @@
     "costManaged": "Cost price is managed by Owner / Admin. The last recorded price for this tank will be used.",
     "deliveryCost": "₹{{amount}} delivery cost",
     "exceedsCapacity": "Exceeds capacity — available: {{value}} L",
-    "stockAfter": "Stock after:",
-    "done": "Done"
+    "stockAfter": "Stock after:"
   },
   "review": {
     "title": "Review Tanker Delivery",
@@ -214,7 +204,6 @@
     "recording": "Recording…",
     "confirm_one": "Confirm Delivery",
     "confirm_other": "Confirm Deliveries",
-    "goBack": "Go back to modify the data and try again.",
     "date": "Delivery Date",
     "invoice": "Invoice / Bill No.",
     "billAmount": "Bill Amount",

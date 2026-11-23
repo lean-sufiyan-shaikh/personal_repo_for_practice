@@ -87,7 +87,7 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
         </button>
         <button type="submit" disabled={recordMutation.isPending} className="ui-btn ui-btn-primary">
           {recordMutation.isPending
-            ? <><Spinner /><span>{t('alerts.saving')}</span></>
+            ? <><Spinner /><span>{t('common:actions.saving')}</span></>
             : <><Landmark size={16} strokeWidth={2} aria-hidden="true" /><span>{t('page.record')}</span></>
           }
         </button>
@@ -175,7 +175,7 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
 
             <div>
               <label className="block">
-                <span className="ui-label">{t('record.bankReference')} <span className="text-ink-3 font-normal">{t('record.optional')}</span></span>
+                <span className="ui-label">{t('record.bankReference')} <span className="text-ink-3 font-normal">{t('common:fields.optionalSuffix')}</span></span>
                 <input
                   type="text"
                   className="ui-input"
@@ -191,7 +191,7 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
             {/* Notes */}
             <div>
               <label className="block">
-                <span className="ui-label">{t('record.notes')} <span className="text-ink-3 font-normal">{t('record.optional')}</span></span>
+                <span className="ui-label">{t('common:fields.notes')} <span className="text-ink-3 font-normal">{t('common:fields.optionalSuffix')}</span></span>
                 <input
                   type="text"
                   className="ui-input"

@@ -21,7 +21,6 @@
     "descriptionPlaceholder": "जैसे XYZ से पंप की सर्विसिंग",
     "expenseDate": "खर्च की तारीख",
     "saveDraft": "ड्राफ्ट के रूप में सेव करें — मंज़ूरी के लिए बाद में भेजें",
-    "saving": "सेव हो रहा है…",
     "review": "खर्च जाँचें",
     "recorded": "खर्च दर्ज हो गया",
     "recordFailed": "खर्च दर्ज नहीं हो सका",
@@ -31,9 +30,7 @@
   "review": {
     "title": "खर्च जाँचें",
     "subtitle": "सेव करने से पहले खर्च का विवरण जाँच लें।",
-    "back": "वापस",
-    "add": "खर्च जोड़ें",
-    "goBack": "{{error}} वापस जाकर जानकारी ठीक करें और फिर से कोशिश करें।"
+    "add": "खर्च जोड़ें"
   },
   "list": {
     "title": "सभी खर्च",
@@ -45,14 +42,10 @@
     "statusPendingApproval": "मंज़ूरी बाकी",
     "statusApproved": "मंज़ूर",
     "statusRejected": "अस्वीकृत",
-    "clearFilters": "फ़िल्टर हटाएँ",
     "approvalHint": "मंज़ूर और अस्वीकार के बटन सिर्फ़ <status>मंज़ूरी बाकी</status> वाले खर्चों पर दिखते हैं।",
     "emptyTitle": "अभी तक कोई खर्च दर्ज नहीं",
     "emptyAccountant": "दिखाने के लिए कोई रिकॉर्ड नहीं।",
     "emptySubtitle": "पहला खर्च दर्ज करने के लिए ऊपर का फ़ॉर्म भरें।",
-    "submit": "भेजें",
-    "approve": "मंज़ूर करें",
-    "reject": "अस्वीकार करें",
     "deleteExpense": "खर्च हटाएँ",
     "rejectTitle": "खर्च अस्वीकार करें",
     "rejectedWithNotes": "{{label}}: {{notes}}"

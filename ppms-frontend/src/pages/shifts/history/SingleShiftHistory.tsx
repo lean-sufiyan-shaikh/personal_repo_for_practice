@@ -9,7 +9,7 @@ import { historyColumns } from './historyColumns'
 
 /** One shift opened from a link elsewhere (a notification, a report row, the audit log). */
 export function SingleShiftHistory({ pumpId, shiftId, onShowAll }: { pumpId: number; shiftId: number; onShowAll: () => void }) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const { data: shift, isLoading, error } = useQuery({
     queryKey: ['shift', pumpId, shiftId],
     queryFn: () => shiftApi.getShift(pumpId, shiftId),
@@ -18,7 +18,7 @@ export function SingleShiftHistory({ pumpId, shiftId, onShowAll }: { pumpId: num
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-border bg-surface-sunken">
-        <span className="text-sm font-semibold text-ink">{t('history.shiftNumber', { id: shiftId })}</span>
+        <span className="text-sm font-semibold text-ink">{t('common:shiftNumber', { id: shiftId })}</span>
         <button type="button" onClick={onShowAll} className="ui-btn ui-btn-ghost ml-auto text-xs">{t('history.showAll')}</button>
       </div>
       {isLoading ? (
@@ -29,7 +29,7 @@ export function SingleShiftHistory({ pumpId, shiftId, onShowAll }: { pumpId: num
         </p>
       ) : (
         <DataTable
-          caption={t('history.shiftNumber', { id: shiftId })}
+          caption={t('common:shiftNumber', { id: shiftId })}
           captionHidden
           regionLabel={t('history.shiftRegion', { id: shiftId })}
           columns={historyColumns(t)}

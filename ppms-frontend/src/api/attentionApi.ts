@@ -27,6 +27,8 @@ export interface AttentionItem {
   /** Money involved; null when the item is not about money. */
   amount: number | null
   reason: string
+  reasonCode: string
+  reasonParams: Record<string, unknown>
   /** Page that handles the item, with the filters that show exactly these records. */
   targetPath: string
 }

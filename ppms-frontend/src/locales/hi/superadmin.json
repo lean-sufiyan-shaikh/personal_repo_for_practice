@@ -27,8 +27,7 @@
     "show": "दिखाएँ",
     "pump": "पंप",
     "employeeId": "कर्मचारी ID",
-    "copy": "कॉपी करें",
-    "dismiss": "बंद करें"
+    "copy": "कॉपी करें"
   },
   "fields": {
     "pumpName": "पंप का नाम",
@@ -46,7 +45,6 @@
     "phoneNumber": "फ़ोन नंबर",
     "phonePlaceholder": "10 अंकों का मोबाइल नंबर",
     "initialPassword": "शुरुआती पासवर्ड",
-    "passwordPlaceholder": "कम से कम 6 अक्षर",
     "pumpDetails": "पंप की जानकारी",
     "pumpNamePlaceholder": "जैसे शर्मा पेट्रोल स्टेशन",
     "creating": "बन रहा है...",
@@ -66,7 +64,6 @@
     "pumpCount_other": "{{count}} पंप",
     "disabledCount": "· {{value}} बंद",
     "resetPassword": "पासवर्ड रीसेट करें",
-    "cancel": "रद्द करें",
     "addPump": "पंप जोड़ें",
     "noPumps": "अभी कोई पंप नहीं जोड़ा गया।",
     "idLabel": "ID:",
@@ -85,10 +82,6 @@
     "disabled": "बंद",
     "staff": "{{value}} स्टाफ़",
     "setup": "सेटअप {{required}} में से {{done}} पूरा",
-    "edit": "बदलें",
-    "disable": "बंद करें",
-    "enable": "चालू करें",
-    "saving": "सेव हो रहा है…",
     "saveChanges": "बदलाव सेव करें"
   },
   "validation": {

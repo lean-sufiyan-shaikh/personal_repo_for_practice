@@ -10,7 +10,7 @@ import { MoneyText } from '../../../components/AmountText'
 
 type ProductLine = ProductSalesSummary['productLines'][number]
 
-function productColumns(t: TFunction<'balancesheet'>, isOwnerOrAdmin: boolean): DataTableColumn<ProductLine>[] {
+function productColumns(t: TFunction<['balancesheet', 'common']>, isOwnerOrAdmin: boolean): DataTableColumn<ProductLine>[] {
   return [
     bsColumn('product', t('columns.product')),
     bsColumn('units', t('columns.unitsSold'), true),
@@ -22,7 +22,7 @@ function productColumns(t: TFunction<'balancesheet'>, isOwnerOrAdmin: boolean): 
 // ── Ancillary product sales section (DAY reports only) ─────────────────────────
 
 export function ProductSalesSection({ productSales }: { productSales: ProductSalesSummary }) {
-  const { t } = useTranslation('balancesheet')
+  const { t } = useTranslation(['balancesheet', 'common'])
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   return (
@@ -56,7 +56,7 @@ export function ProductSalesSection({ productSales }: { productSales: ProductSal
         }}
         footer={
           <tr className="bg-surface-sunken">
-            <Td>{t('products.total')}</Td>
+            <Td>{t('common:fields.total')}</Td>
             <Td right>—</Td>
             <Td right><MoneyText value={productSales.totalRevenue} /></Td>
             {isOwnerOrAdmin && <Td right><MoneyText value={productSales.totalCogs} /></Td>}

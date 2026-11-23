@@ -1,12 +1,16 @@
 package com.ppms.common.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ppms.common.exception.ErrorCodes;
+import com.ppms.common.exception.GlobalExceptionHandler.ErrorResponse;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -17,7 +21,6 @@ import org.springframework.web.servlet.HandlerMapping;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Enforces pump-level access on every /api/pumps/** and /api/inventory/** request:
@@ -40,6 +43,7 @@ public class PumpAccessInterceptor implements HandlerInterceptor {
             "/api/pumps/attention");
 
     private final PumpLocationRepository pumpLocationRepository;
+    private final ObjectMapper objectMapper;
 
     @Override
     public boolean preHandle(HttpServletRequest request,
@@ -55,7 +59,7 @@ public class PumpAccessInterceptor implements HandlerInterceptor {
             if (PATHS_WITHOUT_PUMP_ID.contains(request.getRequestURI())) {
                 return true;
             }
-            return reject(response, HttpServletResponse.SC_FORBIDDEN, ErrorCodes.PUMP_NOT_DETERMINED, Map.of(),
+            return reject(response, HttpStatus.FORBIDDEN, ErrorCodes.PUMP_NOT_DETERMINED, Map.of(),
                     "Pump could not be determined for this request");
         }
 
@@ -63,12 +67,12 @@ public class PumpAccessInterceptor implements HandlerInterceptor {
         try {
             pumpId = Long.parseLong(pumpIdText);
         } catch (NumberFormatException e) {
-            return reject(response, HttpServletResponse.SC_FORBIDDEN, ErrorCodes.INVALID_PUMP_ID, Map.of(), "Invalid pump id");
+            return reject(response, HttpStatus.FORBIDDEN, ErrorCodes.INVALID_PUMP_ID, Map.of(), "Invalid pump id");
         }
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
-            return reject(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCodes.NOT_SIGNED_IN, Map.of(), "Unauthorized");
+            return reject(response, HttpStatus.UNAUTHORIZED, ErrorCodes.NOT_SIGNED_IN, Map.of(), "Unauthorized");
         }
 
         if (user.getRole() == UserRole.SUPER_ADMIN) {
@@ -77,18 +81,18 @@ public class PumpAccessInterceptor implements HandlerInterceptor {
 
         if (user.getRole() == UserRole.OWNER) {
             if (!pumpLocationRepository.existsByIdAndOwnerId(pumpId, user.getId())) {
-                return reject(response, HttpServletResponse.SC_FORBIDDEN, ErrorCodes.PUMP_ACCESS_DENIED,
-                        Map.of("pumpId", pumpId),
+                return reject(response, HttpStatus.FORBIDDEN, ErrorCodes.PUMP_ACCESS_DENIED,
+                        Map.<String, Object>of("pumpId", pumpId),
                         "You do not have access to pump " + pumpId);
             }
         } else if (!Long.valueOf(pumpId).equals(user.getAssignedPumpId())) {
-            return reject(response, HttpServletResponse.SC_FORBIDDEN, ErrorCodes.PUMP_NOT_ASSIGNED,
-                    Map.of("pumpId", pumpId),
+            return reject(response, HttpStatus.FORBIDDEN, ErrorCodes.PUMP_NOT_ASSIGNED,
+                    Map.<String, Object>of("pumpId", pumpId),
                     "You are not assigned to pump " + pumpId);
         }
 
         if (!pumpLocationRepository.existsByIdAndEnabledTrue(pumpId)) {
-            return reject(response, HttpServletResponse.SC_FORBIDDEN, ErrorCodes.PUMP_SUSPENDED, Map.of(), "Pump is suspended");
+            return reject(response, HttpStatus.FORBIDDEN, ErrorCodes.PUMP_SUSPENDED, Map.of(), "Pump is suspended");
         }
         return true;
     }
@@ -101,14 +105,12 @@ public class PumpAccessInterceptor implements HandlerInterceptor {
         return null;
     }
 
-    private boolean reject(HttpServletResponse response, int status, String code, Map<String, Long> params,
+    private boolean reject(HttpServletResponse response, HttpStatus status, String code, Map<String, Object> params,
                            String message) throws IOException {
-        String paramsJson = params.entrySet().stream()
-                .map(param -> "\"" + param.getKey() + "\":" + param.getValue())
-                .collect(Collectors.joining(",", "{", "}"));
-        response.setStatus(status);
-        response.setContentType("application/json");
-        response.getWriter().write("{\"message\":\"" + message + "\",\"code\":\"" + code + "\",\"params\":" + paramsJson + "}");
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+        objectMapper.writeValue(response.getWriter(), ErrorResponse.of(status, code, params, message));
         return false;
     }
 }

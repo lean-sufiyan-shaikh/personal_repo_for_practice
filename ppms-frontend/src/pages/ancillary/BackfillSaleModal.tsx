@@ -111,7 +111,7 @@ export function BackfillSaleModal({
                 onClick={() => { setStep('form'); setError(null) }}
                 className="ui-btn ui-btn-secondary"
               >
-                <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} aria-hidden="true" />{t('actions.back')}</span>
+                <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} aria-hidden="true" />{t('common:actions.back')}</span>
               </button>
               <button
                 onClick={() => backfillMutation.mutate(form)}
@@ -216,19 +216,19 @@ export function BackfillSaleModal({
                     className="text-sm"
                     value={form.billNo ?? ''}
                     onChange={e => setForm(f => ({ ...f, billNo: e.target.value || undefined }))}
-                    placeholder={t('fields.optional')}
+                    placeholder={t('common:fields.optional')}
                   />
                 </label>
               </div>
 
               <div>
                 <label className="block">
-                  <span className="ui-label">{t('fields.notes')}</span>
+                  <span className="ui-label">{t('common:fields.notes')}</span>
                   <input
                     className="text-sm"
                     value={form.notes ?? ''}
                     onChange={e => setForm(f => ({ ...f, notes: e.target.value || undefined }))}
-                    placeholder={t('fields.optional')}
+                    placeholder={t('common:fields.optional')}
                   />
                 </label>
               </div>
@@ -250,7 +250,7 @@ export function BackfillSaleModal({
               <ReviewRow label={t('fields.paymentMode')} value={codeLabel(form.paymentMode)} />
               {form.paymentMode === 'CREDIT' && <ReviewRow label={t('fields.client')} value={form.clientName ?? '—'} />}
               {form.billNo && <ReviewRow label={t('fields.billNo')} value={form.billNo} />}
-              {form.notes && <ReviewRow label={t('fields.notes')} value={form.notes} />}
+              {form.notes && <ReviewRow label={t('common:fields.notes')} value={form.notes} />}
               <ReviewRow label={t('backfill.price')} value={t('backfill.priceFromHistory')} />
             </div>
 

@@ -30,7 +30,7 @@ const RevenueTrendChart = lazy(() => import('./overview/RevenueTrendChart').then
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function OverviewPage() {
-  const { t } = useTranslation('dashboard')
+  const { t } = useTranslation(['dashboard', 'common'])
   const { user } = useAuthStore()
   const { selectedPumpId } = usePumpStore()
   const isManager = user?.role === 'MANAGER'
@@ -50,7 +50,7 @@ export default function OverviewPage() {
   const pumpId = allPumpsView ? null : selectedPumpId
   const pumpIds: number[] = pumpId && !isAccountant ? [pumpId] : []
   const selectedPump = pumps.find(p => p.id === selectedPumpId)
-  const focusName = allPumpsView ? t('overview.allPumps') : selectedPump?.name
+  const focusName = allPumpsView ? t('common:pumpScope.allPumps') : selectedPump?.name
 
   // Active shifts for the selected pump
   const activeShiftQueries = useQueries({

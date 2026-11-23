@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { codeLabel } from '../../constants/labels'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { inventoryApi } from '../../api/inventoryApi'
@@ -56,7 +57,7 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
   return (
     <Modal
       title={t('editDelivery.title')}
-      subtitle={`${delivery.tankIdentifier} · ${delivery.fuelType}`}
+      subtitle={`${delivery.tankIdentifier} · ${codeLabel(delivery.fuelType)}`}
       tone="info"
       onClose={onClose}
       closeOnBackdropClick
@@ -69,7 +70,7 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
           disabled={mutation.isPending}
           className="ui-btn ui-btn-primary"
         >
-          {mutation.isPending ? t('editDelivery.saving') : t('editDelivery.save')}
+          {mutation.isPending ? t('common:actions.saving') : t('editDelivery.save')}
         </button>
       </>}
     >

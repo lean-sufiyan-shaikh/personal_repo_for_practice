@@ -22,7 +22,7 @@ type Tab = 'pl' | 'duty' | 'discrepancy' | 'inventory' | 'dip' | 'shifts' | 'exp
 const MANAGER_TABS: Tab[] = ['duty', 'discrepancy', 'shifts']
 
 export default function ReportsPage() {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const isManager = user?.role === 'MANAGER'
@@ -69,7 +69,7 @@ export default function ReportsPage() {
     return (
       <div className="ui-page ui-page--narrow">
         <div className="ui-alert ui-alert-warning text-sm">
-          {t('page.notAssigned')}
+          {t('common:notices.notAssigned')}
         </div>
       </div>
     )
@@ -94,7 +94,7 @@ export default function ReportsPage() {
 
       {!pumpId ? (
         <div className="ui-empty">
-          {t('page.noPump')}
+          {t('common:notices.noPump')}
         </div>
       ) : (
         <div className="ui-card p-0 overflow-hidden">

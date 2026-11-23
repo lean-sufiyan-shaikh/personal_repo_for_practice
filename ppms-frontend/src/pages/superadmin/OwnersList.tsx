@@ -21,14 +21,14 @@ interface OwnersListProps {
   ownersLoading: boolean
 }
 
-function ownerStatusLabel(t: TFunction<'superadmin'>, status: string): string {
+function ownerStatusLabel(t: TFunction<['superadmin', 'common']>, status: string): string {
   if (status === 'ACTIVE') return t('owners.statusActive')
   if (status === 'INACTIVE') return t('owners.statusInactive')
   return status.toLowerCase()
 }
 
 export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
-  const { t } = useTranslation('superadmin')
+  const { t } = useTranslation(['superadmin', 'common'])
   const queryClient = useQueryClient()
 
   // Which owner's "Add Pump" form is currently open (null = none)
@@ -148,7 +148,7 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
                   : 'border-border text-ink-2 hover:border-info hover:text-info hover:bg-info-bg'
               }`}
             >
-                              {isPumpFormOpen ? <span className="inline-flex items-center gap-1"><X size={12} strokeWidth={2} />{t('owners.cancel')}</span> : <span className="inline-flex items-center gap-1"><Plus size={12} strokeWidth={2.5} />{t('owners.addPump')}</span>}
+                              {isPumpFormOpen ? <span className="inline-flex items-center gap-1"><X size={12} strokeWidth={2} />{t('common:actions.cancel')}</span> : <span className="inline-flex items-center gap-1"><Plus size={12} strokeWidth={2.5} />{t('owners.addPump')}</span>}
                             </button>
                           </div>
                         </div>

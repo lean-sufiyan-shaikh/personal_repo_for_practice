@@ -22,7 +22,6 @@
     "certificatePlaceholder": "तपासणी प्रमाणपत्र क्रमांक",
     "notesOptional": "टीप (ऐच्छिक)",
     "notesPlaceholder": "इतर निरीक्षणे",
-    "saving": "सेव्ह होत आहे…",
     "review": "कॅलिब्रेशन तपासा"
   },
   "validation": {
@@ -40,22 +39,17 @@
   "review": {
     "title": "कॅलिब्रेशन तपासा",
     "subtitle": "सेव्ह करण्यापूर्वी नोझल आणि कॅलिब्रेशनची माहिती तपासा.",
-    "back": "मागे",
     "confirm": "कॅलिब्रेशन निश्चित करा",
-    "goBack": "मागे जाऊन माहिती दुरुस्त करा आणि पुन्हा प्रयत्न करा.",
     "nozzle": "नोझल",
     "calibrationDate": "कॅलिब्रेशनची तारीख",
     "nextDue": "पुढचे कॅलिब्रेशन कधी",
     "calibratedBy": "कॅलिब्रेशन कोणी केले",
-    "certificate": "प्रमाणपत्र क्रमांक",
-    "notes": "टीप"
+    "certificate": "प्रमाणपत्र क्रमांक"
   },
   "history": {
     "title": "कॅलिब्रेशन इतिहास",
     "allNozzlesSuffix": "— सर्व नोझल",
     "nozzleSuffix": "— नोझल #{{number}} ({{fuel}})",
-    "from": "पासून",
-    "to": "पर्यंत",
     "filterLabel": "नोझलनुसार निवडा",
     "filterPlaceholder": "नोझलनुसार निवडा…",
     "allNozzles": "सर्व नोझल",

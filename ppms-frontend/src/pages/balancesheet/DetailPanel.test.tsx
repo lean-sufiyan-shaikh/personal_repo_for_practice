@@ -11,10 +11,11 @@ import { ReportListItem } from './ReportListItem'
 vi.mock('../../api/balanceSheetApi', () => ({ balanceSheetApi: { getById: vi.fn(), regenerate: vi.fn() } }))
 
 const summary: BalanceSheetSummary = {
-  id: 7, reportType: 'DAY', reportDate: '2026-03-15', shiftWindow: null, periodLabel: 'Day End · 2026-03-15',
+  id: 7, reportType: 'DAY', reportDate: '2026-03-15', shiftWindow: null, periodLabel: 'Day End · 2026-03-15', periodLabelCode: 'PERIOD_DAY_END', periodLabelParams: { date: '2026-03-15' },
   generatedByUserName: 'Owner', generatedAt: '2026-03-15T18:00:00Z', shiftCount: 1, totalLitresSold: 20,
   totalExpectedRevenue: 2000, totalGrossProfit: 200, cashDiscrepancy: 0,
-  stale: true, staleReason: 'Shift #11 was closed after this sheet was generated', openShiftCount: 0,
+  stale: true, staleReason: 'Shift #11 was closed after this sheet was generated', staleReasonCode: 'STALE_SHIFT_CLOSED',
+  staleReasonParams: { shiftId: 11 }, openShiftCount: 0,
 }
 
 const detail = {

@@ -15,7 +15,7 @@ interface EditCreditClientFormProps {
 }
 
 export function EditCreditClientForm({ pumpId, client, indent = false, onSaved }: EditCreditClientFormProps) {
-  const { t } = useTranslation('credit')
+  const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
   const [editName, setEditName]   = useState(client.name)
   const [editPhone, setEditPhone] = useState(client.phone ?? '')
@@ -37,7 +37,7 @@ export function EditCreditClientForm({ pumpId, client, indent = false, onSaved }
   const submitEdit = (e: React.FormEvent) => {
     e.preventDefault(); setEditError(null)
     if (!/^\d{10}$/.test(editPhone.trim())) { setEditError(t('clientForm.phoneInvalid')); return }
-    if (!isValidGstin(editGstin)) { setEditError(t('clientForm.gstinFormat')); return }
+    if (!isValidGstin(editGstin)) { setEditError(t('common:gst.gstinFormat')); return }
     updateMutation.mutate({
       name: editName.trim(), phone: editPhone.trim(), notes: editNotes.trim() || undefined,
       gstin: normaliseGstText(editGstin), billingAddress: editBillingAddress.trim(),
@@ -65,7 +65,7 @@ export function EditCreditClientForm({ pumpId, client, indent = false, onSaved }
       </div>
       <div>
         <label className="block">
-          <span className="ui-label">{t('clientForm.notes')} <span className="text-ink-3">{t('clientForm.optional')}</span></span>
+          <span className="ui-label">{t('common:fields.notes')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span></span>
           <input value={editNotes} onChange={e => setEditNotes(e.target.value)}
             placeholder={t('clientForm.notesPlaceholder')} className="text-xs min-h-10" />
         </label>
@@ -74,10 +74,10 @@ export function EditCreditClientForm({ pumpId, client, indent = false, onSaved }
         <label className="block">
           <span className="ui-label">GSTIN <span className="text-ink-3">{t('clientForm.gstinHint')}</span></span>
           <input value={editGstin} onChange={e => setEditGstin(e.target.value.toUpperCase())}
-            maxLength={15} autoCapitalize="characters" placeholder={t('clientForm.gstinPlaceholder')} className="text-xs min-h-10" />
+            maxLength={15} autoCapitalize="characters" placeholder={t('common:gst.gstinPlaceholder')} className="text-xs min-h-10" />
         </label>
         <label className="block">
-          <span className="ui-label">{t('clientForm.billingAddress')} <span className="text-ink-3">{t('clientForm.optional')}</span></span>
+          <span className="ui-label">{t('clientForm.billingAddress')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span></span>
           <input value={editBillingAddress} onChange={e => setEditBillingAddress(e.target.value)}
             maxLength={500} placeholder={t('clientForm.billingAddressPlaceholder')} className="text-xs min-h-10" />
         </label>
@@ -85,7 +85,7 @@ export function EditCreditClientForm({ pumpId, client, indent = false, onSaved }
       {editError && <p role="alert" className="ui-error-text">{editError}</p>}
       <button type="submit" disabled={updateMutation.isPending}
         className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs">
-        {updateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('form.saving')}</span> : t('form.save')}
+        {updateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('common:actions.saving')}</span> : t('common:actions.save')}
       </button>
     </form>
   )

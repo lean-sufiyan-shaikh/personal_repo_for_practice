@@ -6,7 +6,7 @@ import type { Shift } from '../../../types/shift'
 import type { TankStock } from '../../../api/inventoryApi'
 import { useAuthStore } from '../../../store/authStore'
 import { canPerformAction } from '../../../permissions/permissions'
-import { codeLabel, roleLabel } from '../../../constants/labels'
+import { roleLabel } from '../../../constants/labels'
 import { MoneyText } from '../../../components/AmountText'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { shiftStatusBadge } from '../../../components/statusBadges'
@@ -21,11 +21,11 @@ interface ManagerHeaderProps {
 }
 
 export function ManagerHeader({ pumpName }: ManagerHeaderProps) {
-  const { t } = useTranslation('dashboard')
+  const { t } = useTranslation(['dashboard', 'common'])
   const user = useAuthStore((state) => state.user)
   return (
     <div>
-      <h1 className="ui-title-sm">{pumpName ?? t('header.noPump')}</h1>
+      <h1 className="ui-title-sm">{pumpName ?? t('common:notices.noPumpTitle')}</h1>
       <p className="text-sm text-ink-3">{user?.fullName} · {roleLabel(user?.role)}</p>
     </div>
   )
@@ -38,7 +38,7 @@ interface QuickActionsProps {
 }
 
 export function ManagerQuickActions({ pumpId, activeShifts, tanks }: QuickActionsProps) {
-  const { t } = useTranslation('dashboard')
+  const { t } = useTranslation(['dashboard', 'common'])
   const role = useAuthStore((state) => state.user?.role)
   const [openShiftVisible, setOpenShiftVisible] = useState(false)
   const [deliveryVisible, setDeliveryVisible] = useState(false)
@@ -106,7 +106,7 @@ interface OpenShiftsLiveProps {
 }
 
 export function OpenShiftsLive({ shifts, isFetching, dataUpdatedAt }: OpenShiftsLiveProps) {
-  const { t } = useTranslation('dashboard')
+  const { t } = useTranslation(['dashboard', 'common'])
   const now = useNow(30_000)
   return (
     <section aria-labelledby="open-shifts-heading" className="ui-card p-0 overflow-hidden">
@@ -135,7 +135,7 @@ export function OpenShiftsLive({ shifts, isFetching, dataUpdatedAt }: OpenShifts
                     {' · '}<MoneyText value={creditTotal} /> {t('manager.credit')}
                   </span>
                   {isOverdue && (
-                    <StatusBadge {...shiftStatusBadge(shift.status)} label={codeLabel('OVERDUE')} className="shrink-0" />
+                    <StatusBadge {...shiftStatusBadge(shift.status)} className="shrink-0" />
                   )}
                 </Link>
               </li>

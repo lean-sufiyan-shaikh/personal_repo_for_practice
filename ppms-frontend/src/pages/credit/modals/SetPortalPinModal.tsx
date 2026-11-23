@@ -57,7 +57,7 @@ export function SetPortalPinModal({ pumpId, client, onClose }: SetPortalPinModal
         <>
           <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
           <button type="submit" disabled={mutation.isPending} className="ui-btn ui-btn-primary">
-            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('form.saving')}</span> : t('portalPin.save')}
+            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.saving')}</span> : t('portalPin.save')}
           </button>
         </>
       }

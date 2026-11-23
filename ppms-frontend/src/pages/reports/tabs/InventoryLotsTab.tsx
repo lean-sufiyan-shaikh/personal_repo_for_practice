@@ -28,10 +28,10 @@ import type { DateRange } from '../../../utils/datePresets'
 
 const ALL_TANKS_DEFAULT_DAYS = 90
 
-type ReportsT = TFunction<'reports'>
+type ReportsT = TFunction<['reports', 'common']>
 
 function LotBadges({ lot, dipLabel }: { lot: InventoryLotLine; dipLabel?: string }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   return (
     <>
       <StatusBadge tone={lot.status === 'ACTIVE' ? 'ok' : 'neutral'} label={codeLabel(lot.status)} />
@@ -51,7 +51,7 @@ function consumptionColumns(t: ReportsT, lot: InventoryLotLine): DataTableColumn
       cell: (c) => <span className="text-ink">{formatDecimal(c.quantityConsumed)}</span>,
     },
     { key: 'cost', header: t('columns.costPerLitre'), numeric: true, cell: (c) => <MoneyText value={c.costPricePerUnit} className="text-ink-2" /> },
-    { key: 'total', header: t('columns.total'), numeric: true, cell: (c) => <MoneyText value={c.totalCost} className="font-medium text-ink" /> },
+    { key: 'total', header: t('common:fields.total'), numeric: true, cell: (c) => <MoneyText value={c.totalCost} className="font-medium text-ink" /> },
   ]
 }
 
@@ -98,7 +98,7 @@ function allTanksDefaultRange() {
 // ── Inventory Lots Tab ────────────────────────────────────────────────────────
 
 export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   const [tankId, setTankId] = useState<string>('')    // '' = All Tanks, '123' = specific tank id
   const [query,  setQuery]  = useState<string>('')    // mirrors tankId on Load click
   const [range, setRange] = useReportRange(allTanksDefaultRange)
@@ -153,7 +153,7 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
               onChange={(v) => setTankId(v ?? '')}
               options={[
                 { value: '', label: t('inventory.allTanks') },
-                ...tanks.map(tank => ({ value: String(tank.id), label: `${tank.tankIdentifier} (${tank.fuelType})` })),
+                ...tanks.map(tank => ({ value: String(tank.id), label: `${tank.tankIdentifier} (${codeLabel(tank.fuelType)})` })),
               ]}
               placeholder={t('inventory.selectTank')}
             />
@@ -164,14 +164,14 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
             disabled={isFetching}
             className="ui-btn ui-btn-primary"
           >
-            {isFetching ? t('controls.loading') : t('inventory.loadLots')}
+            {isFetching ? t('common:loading.short') : t('inventory.loadLots')}
           </button>
           <button
             onClick={() => { void printWhenFontsReady() }}
             disabled={!data || data.lots.length === 0}
             className="ui-btn ui-btn-secondary"
           >
-            {t('controls.printPdf')}
+            {t('common:actions.printPdf')}
           </button>
           <CsvExportButton
             filename={csvFilename(query === '' ? 'inventory-lots' : `inventory-lots-tank-${query}`, query === '' ? range : undefined)}

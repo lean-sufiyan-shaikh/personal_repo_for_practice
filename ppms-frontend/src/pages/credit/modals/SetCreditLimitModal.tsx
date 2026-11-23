@@ -61,7 +61,7 @@ export function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitM
             disabled={mutation.isPending}
             className="ui-btn ui-btn-primary"
           >
-            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('form.saving')}</span> : t('creditLimit.save')}
+            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.saving')}</span> : t('creditLimit.save')}
           </button>
         </>
       }

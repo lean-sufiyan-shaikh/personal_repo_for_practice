@@ -165,7 +165,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                                                  disabled={!addOpId || addEntryMutation.isPending}
                                                  className="ui-btn ui-btn-primary min-h-0 px-2 py-1 text-xs disabled:opacity-60"
                                                >
-                                                 {t('planning.grid.add')}
+                                                 {t('common:actions.add')}
                                                </button>
                                                <IconButton
                                                  onClick={() => { setEditSlot(null); setSlotError(null) }}

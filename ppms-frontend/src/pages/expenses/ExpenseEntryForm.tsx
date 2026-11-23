@@ -16,7 +16,7 @@ import { CATEGORIES, fmtDate } from './expenseFormat'
 import { codeLabel } from '../../constants/labels'
 
 export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
-  const { t } = useTranslation('expenses')
+  const { t } = useTranslation(['expenses', 'common'])
   const qc           = useQueryClient()
   const { addToast } = useToastStore()
   const [form, setForm] = useState<CreateExpenseRequest>({
@@ -145,7 +145,7 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
           className="ui-btn ui-btn-primary"
         >
           {createMutation.isPending
-            ? <span className="flex items-center gap-1.5"><Spinner />{t('form.saving')}</span>
+            ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.saving')}</span>
             : t('form.review')}
         </button>
       </form></Reveal>
@@ -160,7 +160,7 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
           bodyClassName="space-y-4"
           footer={<>
               <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
-                {t('review.back')}
+                {t('common:actions.back')}
               </button>
               <button
                 onClick={() => {
@@ -171,12 +171,12 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
                 className="ui-btn ui-btn-primary"
               >
                 {createMutation.isPending
-                  ? <span className="flex items-center gap-1.5"><Spinner />{t('form.saving')}</span>
+                  ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.saving')}</span>
                   : t('review.add')}
               </button>
           </>}
         >
-              {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('review.goBack', { error: formError })}</div>}
+              {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('common:notices.goBackRetry', { error: formError })}</div>}
               <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
                 <div className="flex items-center justify-between px-4 py-2.5">
                   <span className="text-ink-3 text-xs">{t('form.category')}</span>

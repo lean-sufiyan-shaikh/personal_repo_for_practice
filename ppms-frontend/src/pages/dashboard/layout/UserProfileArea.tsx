@@ -130,14 +130,14 @@ export function UserProfileArea() {
                 disabled={renameMutation.isPending}
                 aria-label={t('profile.saveName')}
                 className="text-on-dark-2 hover:text-surface p-0.5 disabled:opacity-50"
-                title={t('profile.save')}
+                title={t('common:actions.save')}
               ><Check size={13} strokeWidth={2.5} /></button>
               <button
                 onClick={cancelEdit}
                 disabled={renameMutation.isPending}
                 aria-label={t('profile.cancelEditing')}
                 className="text-on-dark-2 hover:text-surface p-0.5 disabled:opacity-50"
-                title={t('profile.cancel')}
+                title={t('common:actions.cancel')}
               ><X size={13} strokeWidth={2} /></button>
             </div>
             {nameError && <p className="text-accent text-xs">{nameError}</p>}

@@ -26,7 +26,7 @@ export function SalesTab({
   isOwnerOrAdmin: boolean
   onRefresh: () => void
 }) {
-  const { t } = useTranslation('ancillary')
+  const { t } = useTranslation(['ancillary', 'common'])
   const qc = useQueryClient()
   const [salesPage, setSalesPage] = useState(0)
   const [salesPageSize, setSalesPageSize] = useState(10)
@@ -43,7 +43,7 @@ export function SalesTab({
     { key: 'product', header: t('fields.product'), className: 'px-5 text-ink font-medium max-w-[180px] truncate', cell: (sale) => sale.productDisplayName },
     { key: 'qty', header: t('fields.qty'), numeric: true, className: 'px-5', cell: (sale) => sale.quantityUnits },
     { key: 'pricePerUnit', header: t('salesTab.pricePerUnit'), numeric: true, className: 'px-5 text-ink-3', cell: (sale) => <MoneyText value={sale.sellingPricePerUnit} /> },
-    { key: 'total', header: t('fields.total'), numeric: true, className: 'px-5 font-semibold text-ink', cell: (sale) => <MoneyText value={sale.totalAmount} /> },
+    { key: 'total', header: t('common:fields.total'), numeric: true, className: 'px-5 font-semibold text-ink', cell: (sale) => <MoneyText value={sale.totalAmount} /> },
     { key: 'mode', header: t('salesTab.mode'), className: 'px-5', cell: (sale) => <StatusBadge {...paymentModeBadge(sale.paymentMode)} /> },
     { key: 'client', header: t('fields.client'), className: 'px-5 text-ink-3', cell: (sale) => sale.clientName ?? '—' },
     { key: 'type', header: t('fields.type'), className: 'px-5', cell: (sale) => sale.isBackfilled && <StatusBadge tone="info" icon={History} label={t('fields.backfilled')} /> },

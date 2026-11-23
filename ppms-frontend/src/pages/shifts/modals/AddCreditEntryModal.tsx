@@ -191,7 +191,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                       <p className="text-xs font-medium text-ink truncate">{entry.clientName}</p>
                       <p className="text-xs text-ink-3">
                         {formatCurrency(entry.amount)}
-                        {entry.fuelType && ` · ${entry.fuelType}`}
+                        {entry.fuelType && ` · ${codeLabel(entry.fuelType)}`}
                         {entry.voidStatus === 'VOIDED' && ` · ${t('creditEntry.voidedTag')}`}
                       </p>
                     </div>
@@ -268,7 +268,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
           {subAccounts.length > 0 && (
             <div>
               <span className="ui-label">
-                {t('creditEntry.subAccount')} <span className="text-ink-3 font-normal">{t('creditEntry.optional')}</span>
+                {t('creditEntry.subAccount')} <span className="text-ink-3 font-normal">{t('common:fields.optionalSuffix')}</span>
               </span>
               <SearchableSelect label={t('creditEntry.subAccount')}
                 value={subAccountId != null ? subAccountId.toString() : ''}

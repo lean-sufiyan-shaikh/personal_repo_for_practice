@@ -9,7 +9,7 @@ import { MoneyText } from '../../../components/AmountText'
 import type { BackfillForm } from './useBackfillForm'
 
 export function CreditSalesSection({ form }: { form: BackfillForm }) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const { creditRows, expandedCreditId, setExpandedCreditId, creditClients, creditClientOptions, creditNum, addCreditRow, removeCreditRow, updateCreditRow } = form
   return (
                  <div className="rounded-card border border-border bg-warn-bg p-4 space-y-3">
@@ -31,7 +31,7 @@ export function CreditSalesSection({ form }: { form: BackfillForm }) {
                              </span>
                              <div className="flex items-center gap-2 shrink-0 ml-2">
                                <button type="button" onClick={() => setExpandedCreditId(row._key)}
-                                 className="text-primary hover:underline">{t('backfill.credit.edit')}</button>
+                                 className="text-primary hover:underline">{t('common:actions.edit')}</button>
                                <IconButton onClick={() => removeCreditRow(row._key)}
                                  className="text-bad hover:text-bad-strong"
     label={t('backfill.credit.removeLabel')}
@@ -105,7 +105,7 @@ export function CreditSalesSection({ form }: { form: BackfillForm }) {
                                  disabled={!row.clientId || !row.amount}
                                  onClick={() => setExpandedCreditId(null)}
                                  className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs disabled:opacity-40"
-                               >{t('backfill.credit.done')}</button>
+                               >{t('common:actions.done')}</button>
                              </div>
                            </div>
                          )}

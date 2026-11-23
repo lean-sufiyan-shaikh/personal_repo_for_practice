@@ -11,7 +11,7 @@ const actions: LedgerRowActions = {
 
 function row(overrides: Partial<CreditTransaction>): CreditTransaction {
   return {
-    type: 'SALE', referenceId: 1, reference: null, detail: null, amount: 100, runningBalance: 100,
+    type: 'SALE', referenceId: 1, reference: null, referenceCode: null, referenceParams: {}, detail: null, amount: 100, runningBalance: 100,
     occurredAt: '2026-11-10T06:00:00Z', businessDate: '2026-11-10', status: 'ACTIVE', countedInBalance: true,
     ...overrides,
   }

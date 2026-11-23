@@ -38,7 +38,7 @@ interface Props {
   serverError: string | null
 }
 
-function saleColumns(t: TFunction<'shifts'>): DataTableColumn<NozzleSaleLine>[] {
+function saleColumns(t: TFunction<['shifts', 'common']>): DataTableColumn<NozzleSaleLine>[] {
   return [
     { key: 'nozzle', header: t('close.review.columns.nozzle'), cell: (line) => line.label },
     { key: 'sold', header: t('close.review.columns.sold'), numeric: true, cell: (line) => `${line.units.toFixed(3)} ${line.unit}` },
@@ -50,12 +50,12 @@ export function CloseShiftReview({
   isHandover, incomingOperatorName, lines, totalDue, payments, creditEntryCount, totalCollected, diff,
   discrepancyReason, escalationThreshold, serverError,
 }: Props) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const discrepancyType = discrepancyTypeOf(diff)
   const paymentRows: Array<[string, number]> = [
-    [t('close.review.cash'), payments.cash],
-    [t('close.review.upi'), payments.upi],
-    [t('close.review.card'), payments.card],
+    [t('common:paymentMethods.CASH'), payments.cash],
+    [t('common:paymentMethods.UPI'), payments.upi],
+    [t('common:paymentMethods.CARD'), payments.card],
     [t('close.review.fleetCard'), payments.fleetCard],
     [t('close.review.credit', { count: creditEntryCount }), payments.credit],
   ]
@@ -134,11 +134,11 @@ interface ActionsProps {
 }
 
 export function CloseShiftReviewActions({ isHandover, isSubmitting, onConfirm, onEdit }: ActionsProps) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   return (
     <>
       <button type="button" onClick={onEdit} disabled={isSubmitting} className="ui-btn ui-btn-secondary flex-1">
-        {t('close.review.edit')}
+        {t('common:actions.edit')}
       </button>
       <LoadingButton type="button" onClick={onConfirm} isLoading={isSubmitting}
         loadingLabel={isHandover ? t('close.review.handingOver') : t('close.review.closing')}

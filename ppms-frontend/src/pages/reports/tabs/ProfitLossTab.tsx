@@ -42,7 +42,7 @@ const DAY_COLUMNS: CsvColumn<ProfitLossDayLine>[] = [
   { header: 'Gross profit', value: (row) => row.grossProfit, kind: 'money' },
 ]
 
-type ReportsT = TFunction<'reports'>
+type ReportsT = TFunction<['reports', 'common']>
 
 function rangeLabel(t: ReportsT, range: DateRange): string {
   return t('controls.rangeLabel', { from: formatIstDate(range.from), to: formatIstDate(range.to) })
@@ -89,7 +89,7 @@ function lotCostColumns(t: ReportsT): DataTableColumn<LotCostLine>[] {
 }
 
 function LotCostTable({ fuelType, lines }: { fuelType: string; lines: LotCostLine[] }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   return (
     <DataTable
       caption={t('pl.lotsUsedFor', { fuel: codeLabel(fuelType) })}
@@ -117,11 +117,11 @@ function FuelFigureCells({ row }: { row: ProfitLossFuelLine }) {
 }
 
 function RevenueBreakdown({ report, className }: { report: ProfitLossReport; className: string }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   const figures = [
-    { key: 'cash', label: t('columns.cash'), value: report.totalCashRevenue, tone: undefined },
-    { key: 'upi', label: t('columns.upi'), value: report.totalUpiRevenue, tone: undefined },
-    { key: 'card', label: t('columns.card'), value: report.totalCardRevenue, tone: undefined },
+    { key: 'cash', label: t('common:paymentMethods.CASH'), value: report.totalCashRevenue, tone: undefined },
+    { key: 'upi', label: t('common:paymentMethods.UPI'), value: report.totalUpiRevenue, tone: undefined },
+    { key: 'card', label: t('common:paymentMethods.CARD'), value: report.totalCardRevenue, tone: undefined },
     { key: 'credit', label: t('pl.creditSales'), value: report.totalCreditRevenue, tone: 'warn' as const },
   ]
   return (
@@ -139,7 +139,7 @@ function RevenueBreakdown({ report, className }: { report: ProfitLossReport; cla
 // ── P&L Tab ───────────────────────────────────────────────────────────────────
 
 export function ProfitLossTab({ pumpId }: { pumpId: number }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   const [query, setQuery, isDefaultRange] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
@@ -181,14 +181,14 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
             disabled={isFetching}
             className="ui-btn ui-btn-primary"
           >
-            {isFetching ? t('controls.loading') : t('controls.generate')}
+            {isFetching ? t('common:loading.short') : t('common:actions.generate')}
           </button>
           <button
             onClick={() => { void printWhenFontsReady() }}
             disabled={!data || data.byFuelType.length === 0}
             className="ui-btn ui-btn-secondary"
           >
-            {t('controls.printPdf')}
+            {t('common:actions.printPdf')}
           </button>
           <CsvExportButton
             filename={csvFilename('pl', query)}

@@ -21,6 +21,8 @@ export interface BalanceSheetSummary {
   reportDate: string
   shiftWindow: string | null
   periodLabel: string
+  periodLabelCode: string | null
+  periodLabelParams: Record<string, unknown>
   generatedByUserName: string
   generatedAt: string
   shiftCount: number
@@ -31,6 +33,8 @@ export interface BalanceSheetSummary {
   /** True when a shift close, cash recovery, dip or cost correction changed this sheet's date after it was generated. */
   stale: boolean
   staleReason: string | null
+  staleReasonCode: string | null
+  staleReasonParams: Record<string, unknown>
   /** Shifts of the period still open when today's live sheet was generated. */
   openShiftCount: number
 }
@@ -153,6 +157,8 @@ export interface BalanceSheetDetail {
   reportDate: string
   shiftWindow: string | null
   periodLabel: string
+  periodLabelCode: string | null
+  periodLabelParams: Record<string, unknown>
   generatedByUserName: string
   generatedAt: string
   notes: string | null
@@ -195,6 +201,8 @@ export interface BalanceSheetDetail {
   includedShiftNames: string[] | null
   stale: boolean
   staleReason: string | null
+  staleReasonCode: string | null
+  staleReasonParams: Record<string, unknown>
   openShiftCount: number
 }
 

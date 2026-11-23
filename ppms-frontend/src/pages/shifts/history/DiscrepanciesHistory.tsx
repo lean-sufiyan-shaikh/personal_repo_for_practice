@@ -46,7 +46,7 @@ function DiscrepancyStatus({ shift }: { shift: Shift }) {
 function DiscrepancyAction({ shift, role, onOpen, className = '' }: {
   shift: Shift; role: UserRole | undefined; onOpen: (shift: Shift) => void; className?: string
 }) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const action = discrepancyAction(shift, role)
   if (action === 'resolve') {
     return (
@@ -62,7 +62,7 @@ function DiscrepancyAction({ shift, role, onOpen, className = '' }: {
       <button type="button" onClick={() => onOpen(shift)}
         aria-label={t('history.discrepancies.approveLabel', { id: shift.id })}
         className={`ui-btn ui-btn-warning ${className}`}>
-        {t('history.approve')}
+        {t('common:actions.approve')}
       </button>
     )
   }
@@ -173,14 +173,14 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
       <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-border bg-surface-sunken">
         <span className="text-xs font-medium text-ink-3">{t('history.discrepancies.filter')}</span>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <input aria-label={t('history.fromDate')}
+          <input aria-label={t('common:fields.fromDate')}
             type="date"
             value={fromDate}
             onChange={(e) => { setFromDate(e.target.value); setPage(0) }}
             className="flex-1 min-w-[8.5rem] border border-control rounded-control px-2.5 py-1.5 text-xs"
           />
           <span className="text-ink-3 text-xs">{t('history.to')}</span>
-          <input aria-label={t('history.toDate')}
+          <input aria-label={t('common:fields.toDate')}
             type="date"
             value={toDate}
             onChange={(e) => { setToDate(e.target.value); setPage(0) }}
@@ -207,7 +207,7 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
         </div>
         {(fromDate || toDate || typeFilter !== 'ALL') && (
           <button onClick={clearFilter} className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-ink-3 hover:text-ink underline">
-            {t('history.clear')}
+            {t('common:actions.clear')}
           </button>
         )}
         <span className="ml-auto text-xs text-ink-3">{t('history.shiftCount', { count: filtered.length })}</span>
@@ -259,14 +259,14 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-surface-sunken">
           <span className="text-xs text-ink-3">
-            {t('history.pageOf', { page: safePage + 1, total: totalPages })}
+            {t('common:pagination.pageOf', { page: safePage + 1, total: totalPages })}
             <span className="ml-2 text-ink-3">
               {t('history.showingRange', { from: safePage * PAGE_SIZE + 1, to: Math.min((safePage + 1) * PAGE_SIZE, filtered.length), total: filtered.length })}
             </span>
           </span>
           <div className="flex gap-1">
             <button aria-label={t('history.firstPage')} onClick={() => setPage(0)} disabled={safePage === 0} className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30">«</button>
-            <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0} className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30">{t('history.prev')}</button>
+            <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0} className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30">{t('common:pagination.prev')}</button>
             {Array.from({ length: totalPages }, (_, i) => i)
               .filter((i) => Math.abs(i - safePage) <= 2)
               .map((i) => (
@@ -280,7 +280,7 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
                   {i + 1}
                 </button>
               ))}
-            <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage === totalPages - 1} className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30">{t('history.next')}</button>
+            <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage === totalPages - 1} className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30">{t('common:pagination.next')}</button>
             <button aria-label={t('history.lastPage')} onClick={() => setPage(totalPages - 1)} disabled={safePage === totalPages - 1} className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30">»</button>
           </div>
         </div>

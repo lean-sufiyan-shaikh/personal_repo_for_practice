@@ -5,7 +5,7 @@ import { maxDate, minDate } from './backfillHelpers'
 import type { BackfillForm } from './useBackfillForm'
 
 export function ShiftDetailsSection({ form }: { form: BackfillForm }) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const { shiftDate, setShiftDate, shiftDefinitionId, setShiftDefinitionId, selectedDU, setFuelRateInputs, defsLoading, definitions, dus, dusLoading, selectDU } = form
   return (
     <div className="rounded-card border border-border bg-surface-sunken p-4 space-y-3">
@@ -34,7 +34,7 @@ export function ShiftDetailsSection({ form }: { form: BackfillForm }) {
             value={String(selectedDU?.id ?? '')}
             onChange={(v) => selectDU(dus.find((d) => String(d.id) === v) ?? null)}
             options={dus.map((du) => ({ value: String(du.id), label: t('backfill.details.duOption', { name: du.name, number: du.duNumber }) }))}
-            placeholder={dusLoading ? t('backfill.details.loading') : t('backfill.details.selectDu')}
+            placeholder={dusLoading ? t('common:loading.short') : t('backfill.details.selectDu')}
             disabled={dusLoading}
           />
         </div>

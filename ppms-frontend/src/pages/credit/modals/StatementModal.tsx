@@ -32,7 +32,7 @@ interface StatementModalProps {
 }
 
 export function StatementModal({ pumpId, clientId, clientName, phone, outstanding, onClose }: StatementModalProps) {
-  const { t } = useTranslation('credit')
+  const { t } = useTranslation(['credit', 'common'])
   const today = istDateString()
   const [preset, setPreset] = useState<PeriodPreset>('last-month')
   const [period, setPeriod] = useState(() => presetPeriod('last-month', today))
@@ -83,13 +83,13 @@ export function StatementModal({ pumpId, clientId, clientName, phone, outstandin
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="ui-label">{t('period.from')}</span>
+          <span className="ui-label">{t('common:fields.from')}</span>
           <input type="date" value={period.fromDate} max={period.toDate || undefined}
             onChange={e => { setPreset('custom'); setPeriod(current => ({ ...current, fromDate: e.target.value })) }}
             className="text-sm" />
         </label>
         <label className="block">
-          <span className="ui-label">{t('period.to')}</span>
+          <span className="ui-label">{t('common:fields.to')}</span>
           <input type="date" value={period.toDate} min={period.fromDate || undefined} max={today}
             onChange={e => { setPreset('custom'); setPeriod(current => ({ ...current, toDate: e.target.value })) }}
             className="text-sm" />

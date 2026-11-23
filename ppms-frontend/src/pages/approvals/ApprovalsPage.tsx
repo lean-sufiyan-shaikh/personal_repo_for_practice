@@ -11,7 +11,7 @@ import { SkeletonTable } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { RejectReasonDialog } from '../../components/RejectReasonDialog'
-import { parseApiError } from '../../utils/apiError'
+import { parseApiError, translatedErrorCode } from '../../utils/apiError'
 import { formatCurrency } from '../../utils/format'
 import { withToggled } from '../../utils/setToggle'
 import { MoneyText } from '../../components/AmountText'
@@ -32,7 +32,7 @@ function matchesKind(item: ApprovalItem, filter: KindFilter) {
   return true
 }
 
-function outcomeText(t: TFunction<'approvals'>, action: 'APPROVED' | 'REJECTED', result: ApprovalDecisionResult) {
+function outcomeText(t: TFunction<['approvals', 'common']>, action: 'APPROVED' | 'REJECTED', result: ApprovalDecisionResult) {
   const approved = action === 'APPROVED'
   const done = t(approved ? 'outcome.approved' : 'outcome.rejected', { count: result.succeeded })
   if (result.failed === 0) return done
@@ -41,7 +41,7 @@ function outcomeText(t: TFunction<'approvals'>, action: 'APPROVED' | 'REJECTED',
 
 /** Expenses and credit payments waiting for an Owner or Admin, decided one by one or many at once. */
 export default function ApprovalsPage() {
-  const { t } = useTranslation('approvals')
+  const { t } = useTranslation(['approvals', 'common'])
   const pumpId = usePumpStore(state => state.selectedPumpId)
   const qc = useQueryClient()
   const now = useNow(60_000)
@@ -75,7 +75,7 @@ export default function ApprovalsPage() {
           const name = source
             ? t(source.kind === 'EXPENSE' ? 'outcome.expenseName' : 'outcome.paymentName', { amount: formatCurrency(source.amount) })
             : `#${item.id}`
-          return `${name}: ${item.message ?? t('outcome.notSaved')}`
+          return `${name}: ${translatedErrorCode(item.code, item.params) ?? item.message ?? t('outcome.notSaved')}`
         }),
       })
       setSelectedKeys(new Set())
@@ -147,7 +147,7 @@ export default function ApprovalsPage() {
       </div>
 
       {pumpId == null ? (
-        <div className="ui-card"><EmptyState icon="generic" title={t('page.noPumpTitle')} subtitle={t('page.noPumpSubtitle')} /></div>
+        <div className="ui-card"><EmptyState icon="generic" title={t('common:notices.noPumpTitle')} subtitle={t('page.noPumpSubtitle')} /></div>
       ) : isLoading ? (
         <div className="ui-card"><SkeletonTable rows={4} cols={6} /></div>
       ) : isError ? (

@@ -2,6 +2,8 @@ package com.ppms.pump;
 
 import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.common.text.CodedText;
+import com.ppms.common.text.ServerTextCodes;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.fuel.FuelType;
 import com.ppms.fuel.GlobalFuelPrice;
@@ -87,21 +89,26 @@ public class SetupChecklistService {
 
     private static Item dispensersItem(List<ActiveNozzle> nozzles) {
         return nozzles.isEmpty()
-                ? new Item(Step.DISPENSERS, false, false, "Add a dispensing unit and its nozzles")
-                : new Item(Step.DISPENSERS, true, false, plural(nozzles.size(), "active nozzle"));
+                ? Item.of(Step.DISPENSERS, false, false,
+                        CodedText.of(ServerTextCodes.SETUP_DISPENSERS_MISSING, "Add a dispensing unit and its nozzles"))
+                : Item.of(Step.DISPENSERS, true, false,
+                        counted(ServerTextCodes.SETUP_ACTIVE_NOZZLES, nozzles.size(), "active nozzle"));
     }
 
     private static Item tanksItem(List<ActiveNozzle> nozzles, long tankCount) {
         if (tankCount == 0) {
-            return new Item(Step.TANKS, false, false, "Add an underground tank");
+            return Item.of(Step.TANKS, false, false, CodedText.of(ServerTextCodes.SETUP_TANKS_MISSING, "Add an underground tank"));
         }
         if (nozzles.isEmpty()) {
-            return new Item(Step.TANKS, false, false, "Add nozzles, then link each one to a tank");
+            return Item.of(Step.TANKS, false, false,
+                    CodedText.of(ServerTextCodes.SETUP_TANKS_NEED_NOZZLES, "Add nozzles, then link each one to a tank"));
         }
         long unlinked = nozzles.stream().filter(nozzle -> nozzle.tankId() == null).count();
         return unlinked == 0
-                ? new Item(Step.TANKS, true, false, plural(tankCount, "tank") + ", every nozzle linked")
-                : new Item(Step.TANKS, false, false, plural(unlinked, "nozzle") + " not linked to a tank");
+                ? Item.of(Step.TANKS, true, false, CodedText.of(ServerTextCodes.SETUP_TANKS_ALL_LINKED, "count", tankCount,
+                        plural(tankCount, "tank") + ", every nozzle linked"))
+                : Item.of(Step.TANKS, false, false, CodedText.of(ServerTextCodes.SETUP_NOZZLES_NOT_LINKED, "count", unlinked,
+                        plural(unlinked, "nozzle") + " not linked to a tank"));
     }
 
     private Item fuelPricesItem(List<ActiveNozzle> nozzles, List<GlobalFuelPrice> currentPrices) {
@@ -111,7 +118,8 @@ public class SetupChecklistService {
         nozzles.forEach(nozzle -> fuelsSold.add(nozzle.fuelType()));
         Set<FuelType> fuelsToPrice = fuelsSold.isEmpty() ? priceByFuel.keySet() : fuelsSold;
         if (fuelsToPrice.isEmpty()) {
-            return new Item(Step.FUEL_PRICES, false, false, "Set today's fuel prices");
+            return Item.of(Step.FUEL_PRICES, false, false,
+                    CodedText.of(ServerTextCodes.SETUP_FUEL_PRICES_MISSING, "Set today's fuel prices"));
         }
         OffsetDateTime startOfToday = businessClock.startOfDay(businessClock.today());
         long missingOrOld = fuelsToPrice.stream()
@@ -119,37 +127,49 @@ public class SetupChecklistService {
                         || priceByFuel.get(fuel).getEffectiveFrom().isBefore(startOfToday))
                 .count();
         return missingOrOld == 0
-                ? new Item(Step.FUEL_PRICES, true, false, "Prices set today")
-                : new Item(Step.FUEL_PRICES, false, false, plural(missingOrOld, "fuel") + " without today's price");
+                ? Item.of(Step.FUEL_PRICES, true, false, CodedText.of(ServerTextCodes.SETUP_FUEL_PRICES_SET_TODAY, "Prices set today"))
+                : Item.of(Step.FUEL_PRICES, false, false, CodedText.of(ServerTextCodes.SETUP_FUEL_PRICES_NOT_TODAY, "count",
+                        missingOrOld, plural(missingOrOld, "fuel") + " without today's price"));
     }
 
     private static Item shiftDefinitionsItem(long count) {
         return count == 0
-                ? new Item(Step.SHIFT_DEFINITIONS, false, false, "Define the shifts the pump runs")
-                : new Item(Step.SHIFT_DEFINITIONS, true, false, plural(count, "shift") + " defined");
+                ? Item.of(Step.SHIFT_DEFINITIONS, false, false,
+                        CodedText.of(ServerTextCodes.SETUP_SHIFT_DEFINITIONS_MISSING, "Define the shifts the pump runs"))
+                : Item.of(Step.SHIFT_DEFINITIONS, true, false, CodedText.of(ServerTextCodes.SETUP_SHIFT_DEFINITIONS_DEFINED,
+                        "count", count, plural(count, "shift") + " defined"));
     }
 
     private static Item staffItem(long count) {
         return count == 0
-                ? new Item(Step.STAFF, false, false, "Add your manager and operators")
-                : new Item(Step.STAFF, true, false, plural(count, "active staff member"));
+                ? Item.of(Step.STAFF, false, false,
+                        CodedText.of(ServerTextCodes.SETUP_STAFF_MISSING, "Add your manager and operators"))
+                : Item.of(Step.STAFF, true, false, counted(ServerTextCodes.SETUP_STAFF_ACTIVE, count, "active staff member"));
     }
 
     private static Item gstItem(PumpLocation pump) {
         boolean complete = isFilled(pump.getGstin()) && isFilled(pump.getLegalName()) && isFilled(pump.getStateName());
         return complete
-                ? new Item(Step.GST_DETAILS, true, false, "GSTIN " + pump.getGstin())
-                : new Item(Step.GST_DETAILS, false, false, "Add GSTIN, legal name and state for tax invoices");
+                ? Item.of(Step.GST_DETAILS, true, false,
+                        CodedText.of(ServerTextCodes.SETUP_GST_DETAILS_SET, "gstin", pump.getGstin(), "GSTIN " + pump.getGstin()))
+                : Item.of(Step.GST_DETAILS, false, false, CodedText.of(ServerTextCodes.SETUP_GST_DETAILS_MISSING,
+                        "Add GSTIN, legal name and state for tax invoices"));
     }
 
     private static Item creditClientsItem(long count) {
         return count == 0
-                ? new Item(Step.CREDIT_CLIENTS, false, true, "Add customers who buy on credit, if any")
-                : new Item(Step.CREDIT_CLIENTS, true, true, plural(count, "credit client"));
+                ? Item.of(Step.CREDIT_CLIENTS, false, true,
+                        CodedText.of(ServerTextCodes.SETUP_CREDIT_CLIENTS_NONE, "Add customers who buy on credit, if any"))
+                : Item.of(Step.CREDIT_CLIENTS, true, true,
+                        counted(ServerTextCodes.SETUP_CREDIT_CLIENTS_ACTIVE, count, "credit client"));
     }
 
     private static boolean isFilled(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private static CodedText counted(String code, long count, String noun) {
+        return CodedText.of(code, "count", count, plural(count, noun));
     }
 
     private static String plural(long count, String noun) {

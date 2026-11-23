@@ -15,6 +15,7 @@ import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditClientRepository;
 import com.ppms.invoice.GstFields;
 import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.transaction.TransactionPaymentMode;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
@@ -305,8 +306,7 @@ public class AncillaryInventoryWorkflowService {
                         consumptions.stream().map(AncillaryLotConsumption::getSaleId).collect(Collectors.toSet()))
                 .stream().map(AncillarySale::getSaleDate).collect(Collectors.toSet());
         balanceSheetStalenessService.markDaySheetsStale(pumpId, saleDates,
-                "The purchase cost of '" + product.getName() + "' was corrected from ₹" + oldCost + " to ₹" + newCost +
-                " after this sheet was generated.");
+                StaleReasons.productCostCorrected(product.getName(), oldCost.toString(), newCost.toString()));
 
         log.info("Ancillary lot re-costed: pump={}, lot={}, cost {} -> {}, unitsRecosted={}, days={}",
                 pumpId, lot.getId(), oldCost, newCost, unitsRecosted, saleDates.size());

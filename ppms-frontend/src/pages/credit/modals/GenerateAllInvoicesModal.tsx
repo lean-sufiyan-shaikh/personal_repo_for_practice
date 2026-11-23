@@ -60,7 +60,7 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
       footer={
         <>
           {result ? (
-            <button onClick={onClose} className="ui-btn ui-btn-primary">{t('generateInvoices.done')}</button>
+            <button onClick={onClose} className="ui-btn ui-btn-primary">{t('common:actions.done')}</button>
           ) : (
             <>
               <button onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
@@ -68,10 +68,10 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
                 disabled={mutation.isPending || !preview.data || gstMissing || nothingToInvoice}
                 className="ui-btn ui-btn-primary">
                 {mutation.isPending
-                  ? <span className="flex items-center gap-1.5"><Spinner />{t('generateInvoices.generating')}</span>
+                  ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.generating')}</span>
                   : preview.data && !nothingToInvoice
                     ? t('generateInvoices.generateCount', { count: preview.data.clientsToInvoice })
-                    : t('generateInvoices.generate')}
+                    : t('common:actions.generate')}
               </button>
             </>
           )}
@@ -102,12 +102,12 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="block">
-              <span className="ui-label">{t('period.from')}</span>
+              <span className="ui-label">{t('common:fields.from')}</span>
               <input type="date" value={periodFrom} max={periodTo || undefined}
                 onChange={e => setPeriodFrom(e.target.value)} className="text-sm" data-autofocus />
             </label>
             <label className="block">
-              <span className="ui-label">{t('period.to')}</span>
+              <span className="ui-label">{t('common:fields.to')}</span>
               <input type="date" value={periodTo} min={periodFrom || undefined}
                 onChange={e => setPeriodTo(e.target.value)} className="text-sm" />
             </label>

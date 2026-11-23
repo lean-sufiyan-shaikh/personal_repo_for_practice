@@ -9,6 +9,7 @@ import { pageSlice } from '../../../utils/pageSlice'
 import { printWhenFontsReady } from '../../../i18n/fonts'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
+import { serverMessage } from '../../../utils/apiError'
 import { fmtDateTime, fmtQty } from '../reportFormat'
 import { FUEL_BADGE } from '../../../constants/fuel'
 import { DataTable } from '../../../components/DataTable'
@@ -39,7 +40,7 @@ function dipEntryKey(e: DipPlEntry) {
   return `${e.type}-${e.fuelType}-${e.recordedAt}`
 }
 
-function dipColumns(t: TFunction<'reports'>): DataTableColumn<DipPlEntry>[] {
+function dipColumns(t: TFunction<['reports', 'common']>): DataTableColumn<DipPlEntry>[] {
   return [
     { key: 'recordedAt', header: t('columns.dateTime'), cell: (e) => <span className="text-ink-2 text-xs">{fmtDateTime(e.recordedAt)}</span> },
     {
@@ -71,7 +72,7 @@ function dipColumns(t: TFunction<'reports'>): DataTableColumn<DipPlEntry>[] {
     },
     { key: 'pl', header: t('columns.profitLoss'), numeric: true, cell: (e) => <MoneyText value={e.monetaryAmount} showSign tone={signTone(e.monetaryAmount)} className="font-medium" /> },
     {
-      key: 'notes', header: t('columns.notes'),
+      key: 'notes', header: t('common:fields.notes'),
       cell: (e) => <span className="block max-w-52 truncate text-ink-2 text-xs" title={e.notes ?? ''}>{e.notes ?? '—'}</span>,
     },
   ]
@@ -80,7 +81,7 @@ function dipColumns(t: TFunction<'reports'>): DataTableColumn<DipPlEntry>[] {
 // ── Dip P/L Tab ───────────────────────────────────────────────────────────────
 
 export function DipPlTab({ pumpId }: { pumpId: number }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   const [query, setQuery] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
@@ -118,7 +119,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
           disabled={isFetching}
           className="ui-btn ui-btn-primary disabled:opacity-60"
         >
-          {isFetching ? t('dip.loading') : t('controls.generate')}
+          {isFetching ? t('common:loading.app') : t('common:actions.generate')}
         </button>
 
         <button
@@ -126,13 +127,13 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
           disabled={!data || entries.length === 0}
           className="ui-btn ui-btn-secondary"
         >
-          {t('controls.printPdf')}
+          {t('common:actions.printPdf')}
         </button>
         <CsvExportButton filename={csvFilename('dip-pl', query)} columns={CSV_COLUMNS} rows={entries} />
         </div>
       </div>
 
-      {error && <ErrorBox message={error.message ?? t('dip.loadFailed')} />}
+      {error && <ErrorBox message={serverMessage(error) ?? t('dip.loadFailed')} />}
 
       {data && paged && (
         <div className="space-y-4 print:hidden">

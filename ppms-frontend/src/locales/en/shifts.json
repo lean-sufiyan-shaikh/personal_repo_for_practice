@@ -44,16 +44,9 @@
       "fuelRequired": "Each credit entry must have a fuel type.",
       "amountPositive": "Each credit entry amount must be > 0.",
       "readingInvalid": "End reading contains an invalid value. Please re-enter.",
-      "paymentInvalid": "{{field}} amount contains an invalid value.",
-      "fields": {
-        "cash": "Cash",
-        "upi": "UPI",
-        "card": "Card",
-        "fleetCard": "Fleet Card"
-      }
+      "paymentInvalid": "{{field}} amount contains an invalid value."
     },
     "fields": {
-      "optional": "(optional)",
       "start": "Start:",
       "unchanged": "Reading unchanged — 0 {{unit}} sold this shift",
       "endReadingAria": "{{label}} end reading",
@@ -86,9 +79,6 @@
       },
       "totalDue": "Total due",
       "collected": "Collected",
-      "cash": "Cash",
-      "upi": "UPI",
-      "card": "Card",
       "fleetCard": "Fleet card",
       "credit_one": "Credit ({{count}} entry)",
       "credit_other": "Credit ({{count}} entries)",
@@ -96,7 +86,6 @@
       "result": "Result",
       "reason": "Reason: {{reason}}",
       "needsApproval": "This is more than the ₹{{limit}} limit, so the owner or admin must approve it.",
-      "edit": "Edit",
       "handingOver": "Handing over the shift",
       "closing": "Closing the shift",
       "confirmHandover": "Confirm handover",
@@ -112,8 +101,7 @@
       "listed": "The difference is listed under Discrepancies for a manager to resolve.",
       "openNext": "Open next shift",
       "preparing": "Preparing the report",
-      "print": "Print / share",
-      "done": "Done"
+      "print": "Print / share"
     },
     "discrepancy": {
       "short": "Shift is SHORT by ₹{{amount}}",
@@ -124,7 +112,6 @@
       "reasonToClose": "Add a reason below to close this shift.",
       "roundOffTitle": "Adjust cash by ₹{{amount}} so the shift balances",
       "roundOff": "Round off ₹{{amount}} into cash",
-      "reason": "Reason",
       "requiredToClose": "(required to close)",
       "placeholder": "e.g. Customer paid partial — balance pending, meter error, etc.",
       "enterReason": "Enter a reason to enable closing"
@@ -135,7 +122,6 @@
     },
     "preRecorded": {
       "heading": "Pre-recorded during shift ({{count}})",
-      "edit": "Edit",
       "reasonAria": "Reason for deleting",
       "reasonPlaceholder": "Reason for deleting (required)",
       "reasonRequired": "Reason is required",
@@ -158,7 +144,6 @@
       "subtitle": "Shift #{{id}} · {{operator}} · {{date}}",
       "stillOpen": "Open",
       "print": "Print",
-      "shiftNumber": "Shift #{{id}}",
       "operator": "Operator",
       "date": "Date",
       "du": "DU",
@@ -173,11 +158,6 @@
         "rate": "Rate"
       },
       "collections": "Collections",
-      "cash": "Cash",
-      "upi": "UPI",
-      "card": "Card",
-      "fleetCard": "Fleet Card",
-      "credit": "Credit",
       "totalDue": "Total Due",
       "discrepancy": "Discrepancy",
       "reason": "Reason: {{reason}}",
@@ -207,7 +187,6 @@
     "searchClient": "Search client name…",
     "searchClientShort": "Search client name...",
     "subAccount": "Sub-account",
-    "optional": "(optional)",
     "billToParentOption": "— Bill to parent ({{name}}) —",
     "billToParent": "Bill to parent ({{name}})",
     "fuel": "Fuel",
@@ -224,10 +203,8 @@
     "descriptionPlaceholder": "e.g. given to driver",
     "editAria": "Edit credit entry {{number}}",
     "incomplete": "Incomplete — tap to edit",
-    "edit": "Edit",
     "deleteEntry": "Delete entry",
-    "entryNumber": "Entry {{number}}",
-    "add": "Add"
+    "entryNumber": "Entry {{number}}"
   },
   "clientSearch": {
     "noMatch": "No match",
@@ -269,7 +246,6 @@
     "title": "Resolve Discrepancy",
     "subtitle": "Shift #{{id}} · {{operator}} · {{type}} {{amount}}",
     "reasonAtClose": "Reason given at close: {{reason}}",
-    "saving": "Saving…",
     "startInvestigation": "Start Investigation",
     "confirm": "Confirm Resolution",
     "actionLabel": "Resolution Action",
@@ -300,8 +276,6 @@
       "resolved": "Resolved"
     },
     "awaitingOwnerApproval": "Waiting for owner approval",
-    "today": "Today",
-    "yesterday": "Yesterday",
     "dayBeforeYesterday": "Day Before Yesterday",
     "resolution": {
       "pendingInvestigation": "Pending Investigation",
@@ -325,12 +299,10 @@
     "noPumpsTitle": "No pumps set up yet",
     "noPumpsBody": "Create a pump location first, then add nozzles and set fuel prices.",
     "goToSetup": "Go to Setup",
-    "notAssigned": "You are not assigned to any pump. Ask the Owner or Admin to assign you.",
     "kicker": "Shift control",
     "title": "Shifts",
     "subtitle": "Open and close operator shifts, record meter readings and payment collection.",
     "openNow": "Open now",
-    "noPumpSelected": "No pump selected. Use the pump selector in the top navigation bar.",
     "myActiveShifts": "My Active Shifts",
     "activeShifts": "Active Shifts",
     "activeShiftsCaption": "Active shifts",
@@ -404,13 +376,11 @@
     "priceNotSet": "Not set",
     "startedTime": "Started {{time}}",
     "credit": "Credit",
-    "handOver": "Hand over",
-    "close": "Close"
+    "handOver": "Hand over"
   },
   "backfill": {
     "title": "Backfill Historical Shift",
     "subtitle": "Record past shift data (up to 365 days back). Tanker deliveries for the shift date must be logged first — the system will block submission if stock is insufficient.",
-    "saving": "Saving…",
     "save": "Save Historical Shift",
     "reason": {
       "label": "Discrepancy Reason",
@@ -423,7 +393,6 @@
       "dateHint": "Last 365 days · not today",
       "du": "Dispensary Unit",
       "duOption": "{{name}} (DU #{{number}})",
-      "loading": "Loading…",
       "selectDu": "Select DU…",
       "window": "Shift Window",
       "noDefinitions": "No shift definitions found for this pump. Configure shift windows in Setup first.",
@@ -470,7 +439,6 @@
       "title": "Credit Sales",
       "total": "Credit total (sum of entries below)",
       "newEntry": "New entry",
-      "edit": "Edit",
       "removeLabel": "Remove credit entry",
       "client": "Client",
       "selectClient": "Select client",
@@ -481,7 +449,6 @@
       "optional": "optional",
       "description": "Description",
       "removeEntry": "Remove entry",
-      "done": "Done",
       "add": "+ Add Credit Entry"
     },
     "errors": {
@@ -511,7 +478,6 @@
       "discrepancy": "Discrepancy",
       "actions": "Actions"
     },
-    "shiftNumber": "Shift #{{id}}",
     "shiftRegion": "Shift {{id}}",
     "showAll": "Show all shifts",
     "shiftNotFound": "Shift #{{id}} could not be found at this pump.",
@@ -523,31 +489,22 @@
     "shiftsFor": "Shifts for {{label}}",
     "shiftsForDay": "Shifts for the day",
     "filterByDate": "Filter by date:",
-    "fromDate": "From date",
     "to": "to",
-    "toDate": "To date",
     "fuelOnlyLabel": "Showing {{fuel}} shifts only. Show all fuels",
     "fuelOnly": "{{fuel}} only ×",
-    "clear": "Clear",
     "filtered": " (filtered)",
     "allShiftsCaption": "All shifts",
     "allEmpty": "No shifts match the selected date range.",
-    "pageOf": "Page {{page}} of {{total}}",
     "showingRange": "(showing {{from}}–{{to}} of {{total}})",
     "firstPage": "First page",
-    "prev": "Prev",
-    "next": "Next",
     "lastPage": "Last page",
     "backfilled": "Backfilled",
     "resolve": "Resolve",
-    "approve": "Approve",
     "printHandover": "Print handover report",
     "payment": {
-      "cash": "Cash",
       "upiCard": "UPI + Card",
       "upiAmount": "UPI {{amount}}",
       "cardAmount": "Card {{amount}}",
-      "credit": "Credit",
       "viewCredit": "Click to view credit details",
       "clientCount_one": "{{count}} client",
       "clientCount_other": "{{count}} clients"
@@ -592,8 +549,6 @@
     "generate": {
       "title": "Auto-generate Schedule",
       "subtitle": "The system will assign operators based on preferences, leave dates, and fairness.",
-      "generating": "Generating…",
-      "submit": "Generate",
       "dayOperators": "Operators per Morning / Evening shift",
       "nightOperators": "Operators per Night shift (12 AM – 8 AM)"
     },
@@ -623,8 +578,7 @@
       "addOperator": "Add operator",
       "addShort": "+ Add",
       "operatorToAdd": "Operator to add",
-      "pickOperator": "— pick operator —",
-      "add": "Add"
+      "pickOperator": "— pick operator —"
     }
   }
 }

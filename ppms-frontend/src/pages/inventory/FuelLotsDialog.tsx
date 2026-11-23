@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { codeLabel } from '../../constants/labels'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Ruler } from 'lucide-react'
@@ -11,7 +12,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { LitresText } from '../../components/AmountText'
 import { FUEL_COLORS, fmtDate } from './inventoryFormat'
 
-function lotColumns(t: TFunction<'inventory'>): DataTableColumn<InventoryLotDetail>[] {
+function lotColumns(t: TFunction<['inventory', 'common']>): DataTableColumn<InventoryLotDetail>[] {
   return [
   { key: 'date', header: t('lots.inDate'), cell: (lot) => fmtDate(lot.deliveryDate) },
   {
@@ -63,7 +64,7 @@ export function FuelLotsDialog({
       subtitle={<>{t('lots.currentStock')} <LitresText value={tank.currentStock} /></>}
       headerExtra={
         <span className={`mt-1 inline-block text-xs font-bold px-2 py-0.5 rounded-badge ${cols.badge}`}>
-          {tank.fuelType}
+          {codeLabel(tank.fuelType)}
         </span>
       }
       size="lg"

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { codeLabel } from '../../constants/labels'
 import { withToggled } from '../../utils/setToggle'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronDown, Trash2, Truck } from 'lucide-react'
@@ -25,7 +26,7 @@ interface Props {
 const NO_INVOICE_KEY = 'No Invoice'
 
 export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoice }: Props) {
-  const { t } = useTranslation('inventory')
+  const { t } = useTranslation(['inventory', 'common'])
   const queryClient = useQueryClient()
   const [deliveryHistOpen,  setDeliveryHistOpen]  = useState(false)
   const [deliveryPage,      setDeliveryPage]      = useState(0)
@@ -105,7 +106,7 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
                   onChange={v => setDeliveryFuelFilter(v)}
                   options={[
                     { value: '', label: t('filters.allFuelTypes') },
-                    ...Array.from(new Set(tanks.map(tank => tank.fuelType))).map(ft => ({ value: ft, label: ft })),
+                    ...Array.from(new Set(tanks.map(tank => tank.fuelType))).map(ft => ({ value: ft, label: codeLabel(ft) })),
                   ]}
                   placeholder={t('filters.byFuelType')}
                 />
@@ -115,14 +116,14 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
                     onClick={() => { setDeliveryTankFilter(''); setDeliveryFuelFilter('') }}
                     className="ui-btn ui-btn-ghost text-xs"
                   >
-                    {t('filters.clear')}
+                    {t('common:actions.clearFilters')}
                   </button>
                 )}
               </div>
             </div>
 
             {deliveriesLoading ? (
-              <div className="p-5 text-sm text-ink-3">{t('filters.loading')}</div>
+              <div className="p-5 text-sm text-ink-3">{t('common:loading.app')}</div>
             ) : (() => {
               // Apply client-side filters on the current page's data
               const filtered = deliveries.filter(d =>

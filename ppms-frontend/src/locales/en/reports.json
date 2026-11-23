@@ -4,8 +4,6 @@
     "title": "Reports",
     "subtitle": "Operational and financial reports for your pump.",
     "printedBy": "Printed by:",
-    "notAssigned": "You are not assigned to any pump. Ask the Owner or Admin to assign you.",
-    "noPump": "No pump selected. Use the pump selector in the top navigation bar.",
     "tabs": {
       "pl": "Profit & Loss",
       "duty": "Operator Duty",
@@ -18,16 +16,10 @@
     }
   },
   "controls": {
-    "from": "From",
-    "to": "To",
-    "generate": "Generate",
-    "loading": "Loading…",
-    "printPdf": "Print PDF",
     "loadFailed": "Failed to load report",
     "period": "Period: {{from}} to {{to}}",
     "rangeLabel": "{{from}} to {{to}}",
-    "comparedWith": "Compared with {{range}}.",
-    "shiftLink": "Shift #{{id}}"
+    "comparedWith": "Compared with {{range}}."
   },
   "emptyRange": {
     "noClosedShifts": "No closed shifts for yesterday or today yet.",
@@ -43,10 +35,6 @@
     "status": "Status",
     "amount": "Amount",
     "amountDue": "Amount Due",
-    "cash": "Cash",
-    "upi": "UPI",
-    "card": "Card",
-    "credit": "Credit",
     "discrepancy": "Discrepancy",
     "type": "Type",
     "fuel": "Fuel",
@@ -67,7 +55,6 @@
     "cost": "Cost",
     "source": "Source",
     "quantityLitres": "Qty (L)",
-    "total": "Total",
     "original": "Original",
     "remaining": "Remaining",
     "totalRemaining": "Total Remaining",
@@ -77,7 +64,6 @@
     "dateTime": "Date & Time",
     "litres": "Litres",
     "profitLoss": "P/L",
-    "notes": "Notes",
     "category": "Category",
     "description": "Description"
   },
@@ -155,7 +141,6 @@
   "dip": {
     "dipCheck": "Dip Check",
     "maintenance": "Maintenance",
-    "loading": "Loading...",
     "loadFailed": "Failed to load dip P/L entries",
     "totalEntries": "Total Entries",
     "netPl": "Net P/L",
@@ -191,7 +176,8 @@
     "chargeCount_one": "{{count}} charge",
     "chargeCount_other": "{{count}} charges",
     "period": "{{from}} – {{to}} ({{days}} days)",
-    "balanceAtRate": "Balance {{balance}} @ {{rate}}%/month · {{source}}"
+    "balanceAtRate": "Balance {{balance}} @ {{rate}}%/month · {{source}}",
+    "printTitle": "Interest Accrual Report"
   },
   "charts": {
     "pl": {

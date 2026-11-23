@@ -10,7 +10,24 @@
     "delete": "Delete",
     "reject": "Reject",
     "rejecting": "Rejecting…",
-    "exportCsv": "Export CSV"
+    "exportCsv": "Export CSV",
+    "save": "Save",
+    "saving": "Saving…",
+    "edit": "Edit",
+    "add": "Add",
+    "back": "Back",
+    "done": "Done",
+    "remove": "Remove",
+    "submit": "Submit",
+    "approve": "Approve",
+    "review": "Review",
+    "generate": "Generate",
+    "generating": "Generating…",
+    "printPdf": "Print PDF",
+    "enable": "Enable",
+    "disable": "Disable",
+    "clear": "Clear",
+    "clearFilters": "Clear filters"
   },
   "language": {
     "label": "Language",
@@ -19,7 +36,8 @@
   },
   "loading": {
     "app": "Loading...",
-    "page": "Loading page…"
+    "page": "Loading page…",
+    "short": "Loading…"
   },
   "time": {
     "justNow": "just now",
@@ -47,7 +65,10 @@
     "ofTotal": "of {{total}}",
     "previousPage": "Previous page",
     "nextPage": "Next page",
-    "rowsPerPage": "Rows per page"
+    "rowsPerPage": "Rows per page",
+    "prev": "Prev",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{total}}"
   },
   "select": {
     "placeholder": "Select…",
@@ -70,7 +91,9 @@
     "allCaughtUp": "You're all caught up",
     "unreadPrefix": "Unread: ",
     "identicalAlerts": "({{count}} identical alerts)",
-    "viewAll": "View all notifications"
+    "viewAll": "View all notifications",
+    "read": "Read",
+    "unread": "Unread"
   },
   "csvExport": {
     "exported_one": "Exported {{count}} row to {{filename}}",
@@ -105,9 +128,49 @@
     "sale": "Sale",
     "shopSale": "Shop sale",
     "interest": "Interest",
-    "paid": "Paid"
+    "paid": "Paid",
+    "overdue": "Overdue"
   },
   "passwordInput": {
     "show": "Show password"
+  },
+  "fields": {
+    "optionalSuffix": "(optional)",
+    "optional": "Optional",
+    "notes": "Notes",
+    "reason": "Reason",
+    "from": "From",
+    "to": "To",
+    "fromDate": "From date",
+    "toDate": "To date",
+    "total": "Total"
+  },
+  "paymentMethods": {
+    "CASH": "Cash",
+    "UPI": "UPI",
+    "CARD": "Card",
+    "FLEET_CARD": "Fleet Card",
+    "CREDIT": "Credit",
+    "BANK_TRANSFER": "Bank transfer",
+    "OTHER": "Other"
+  },
+  "notices": {
+    "noPumpTitle": "No pump selected",
+    "noPump": "No pump selected. Use the pump selector in the top navigation bar.",
+    "notAssigned": "You are not assigned to any pump. Ask the Owner or Admin to assign you.",
+    "goBackRetry": "{{error}} Go back to modify the data and try again."
+  },
+  "pumpScope": {
+    "allPumps": "All pumps",
+    "selectedPump": "Selected pump"
+  },
+  "duration": {
+    "minutes": "{{minutes}}m",
+    "hoursMinutes": "{{hours}}h {{minutes}}m"
+  },
+  "shiftNumber": "Shift #{{id}}",
+  "gst": {
+    "gstinFormat": "GSTIN must be 15 characters in the format 27ABCDE1234F1Z5.",
+    "gstinPlaceholder": "e.g. 27ABCDE1234F1Z5"
   }
 }

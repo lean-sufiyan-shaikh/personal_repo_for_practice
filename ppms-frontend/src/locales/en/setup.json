@@ -9,10 +9,7 @@
     "title": "Setup checklist",
     "doneCount": "{{done}} of {{required}} done",
     "progress": "Setup progress",
-    "done": "Done",
-    "optional": "Optional",
     "toDo": "To do",
-    "review": "Review",
     "setUp": "Set up",
     "actionLabel": "{{action}} {{step}}",
     "steps": {
@@ -26,7 +23,6 @@
     }
   },
   "example": "e.g. {{value}}",
-  "optionalHint": "(optional)",
   "sections": {
     "duUsage": "{{used}}/{{max}} DUs",
     "managerNote": "You can update daily fuel prices below. Other pump settings are managed by your Owner or Admin.",
@@ -81,11 +77,9 @@
   "gst": {
     "saved": "GST details saved",
     "saveFailed": "Failed to save GST details",
-    "gstinFormat": "GSTIN must be 15 characters in the format 27ABCDE1234F1Z5.",
     "prefixFormat": "Invoice prefix must be 1 to 5 letters or digits.",
     "introBefore": "Needed before you can issue tax invoices to credit clients. Invoice numbers look like",
     "introAfter": "and restart every April.",
-    "gstinPlaceholder": "e.g. 27ABCDE1234F1Z5",
     "legalName": "Legal name (as registered)",
     "legalNamePlaceholder": "e.g. Lakshmi Fuels Pvt Ltd",
     "state": "State",
@@ -163,7 +157,6 @@
     "nozzleNumber": "Nozzle #",
     "startReading": "Start Reading",
     "selectPlaceholder": "— select —",
-    "reason": "Reason",
     "reasonRequired": "Please provide a reason.",
     "du": {
       "number": "DU #{{number}}",
@@ -376,21 +369,13 @@
     }
   },
   "actions": {
-    "save": "Save",
-    "saving": "Saving…",
     "savingDots": "Saving...",
-    "add": "Add",
     "adding": "Adding…",
     "addingDots": "Adding...",
-    "edit": "Edit",
-    "enable": "Enable",
-    "enabling": "Enabling…",
-    "disable": "Disable",
-    "done": "Done"
+    "enabling": "Enabling…"
   },
   "tankers": {
     "intro": "Configure the tanker trucks used to deliver fuel. When recording a delivery, the total quantity across all tanks must exactly match the selected tanker's capacity.",
-    "loading": "Loading…",
     "empty": "No tankers configured yet.",
     "added": "Tanker added",
     "addFailed": "Failed to add tanker",

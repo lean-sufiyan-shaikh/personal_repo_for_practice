@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { codeLabel } from '../../constants/labels'
 import { withToggled } from '../../utils/setToggle'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, Check, ChevronDown } from 'lucide-react'
@@ -12,7 +13,7 @@ import { DipItem } from './DipItem'
 import { fmtDate } from './inventoryFormat'
 
 export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: number; tanks: TankStock[]; canViewFinancials: boolean }) {
-  const { t } = useTranslation('inventory')
+  const { t } = useTranslation(['inventory', 'common'])
   const [dipHistOpen,       setDipHistOpen]       = useState(false)
   const [dipPage,           setDipPage]           = useState(0)
   const [dipPageSize,       setDipPageSize]       = useState(10)
@@ -67,7 +68,7 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
                   onChange={v => setDipFuelFilter(v)}
                   options={[
                     { value: '', label: t('filters.allFuelTypes') },
-                    ...Array.from(new Set(tanks.map(tank => tank.fuelType))).map(ft => ({ value: ft, label: ft })),
+                    ...Array.from(new Set(tanks.map(tank => tank.fuelType))).map(ft => ({ value: ft, label: codeLabel(ft) })),
                   ]}
                   placeholder={t('filters.byFuelType')}
                 />
@@ -77,14 +78,14 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
                     onClick={() => { setDipTankFilter(''); setDipFuelFilter('') }}
                     className="ui-btn ui-btn-ghost text-xs"
                   >
-                    {t('filters.clear')}
+                    {t('common:actions.clearFilters')}
                   </button>
                 )}
               </div>
             </div>
 
             {dipLoading ? (
-              <div className="p-5 text-sm text-ink-3">{t('filters.loading')}</div>
+              <div className="p-5 text-sm text-ink-3">{t('common:loading.app')}</div>
             ) : (() => {
               // Apply client-side filters on the current page's data
               const filtered = dipChecks.filter(d =>

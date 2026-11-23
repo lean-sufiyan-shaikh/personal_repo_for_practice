@@ -35,7 +35,7 @@ const client: CreditClient = {
 }
 
 const pendingPayment: CreditTransaction = {
-  type: 'PAYMENT', referenceId: PAYMENT_ID, reference: 'UPI', detail: null, amount: 2_000,
+  type: 'PAYMENT', referenceId: PAYMENT_ID, reference: 'UPI', referenceCode: null, referenceParams: {}, detail: null, amount: 2_000,
   runningBalance: 5_000, occurredAt: '2026-03-15T06:00:00Z', businessDate: '2026-03-15', status: 'PENDING_APPROVAL', countedInBalance: false,
 }
 
@@ -216,7 +216,7 @@ describe('ClientDetail when the client cannot be shown', () => {
 
 describe('ClientDetail interest waiver', () => {
   const interestCharge: CreditTransaction = {
-    type: 'INTEREST', referenceId: 91, reference: '30 days @ 2.00%/month', detail: '2026-02-01 – 2026-03-02', amount: 100,
+    type: 'INTEREST', referenceId: 91, reference: '30 days @ 2.00%/month', referenceCode: 'INTEREST_CHARGE_DETAILS', referenceParams: { days: 30, rate: 2 }, detail: '2026-02-01 – 2026-03-02', amount: 100,
     runningBalance: 5_000, occurredAt: '2026-03-02T06:00:00Z', businessDate: '2026-03-02', status: 'ACTIVE', countedInBalance: true,
   }
 

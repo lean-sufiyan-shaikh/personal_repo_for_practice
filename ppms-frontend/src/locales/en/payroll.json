@@ -25,13 +25,9 @@
   "review": {
     "title": "Review Payroll",
     "subtitle": "Verify the details and handle any pending discrepancies.",
-    "back": "Back",
     "generate": "Generate Payroll",
-    "generating": "Generating…",
-    "goBack": "Go back to modify the data and try again.",
     "staffMember": "Staff Member",
     "period": "Period",
-    "notes": "Notes",
     "checking": "Checking pending discrepancies…",
     "pendingTitle": "Pending Discrepancies ({{count}})",
     "toggleHint": "Toggle to deduct from this salary",

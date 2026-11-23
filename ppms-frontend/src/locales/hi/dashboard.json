@@ -1,14 +1,6 @@
 {
-  "header": {
-    "noPump": "कोई पंप नहीं चुना गया"
-  },
-  "duration": {
-    "minutes": "{{minutes}} मि",
-    "hoursMinutes": "{{hours}} घं {{minutes}} मि"
-  },
   "overview": {
     "loadError": "कुछ लाइव डेटा लोड नहीं हो सका। दिखाए गए आँकड़े अधूरे हो सकते हैं — दोबारा कोशिश करने के लिए रिफ्रेश करें।",
-    "allPumps": "सभी पंप",
     "stalePrices": {
       "title": "आज ईंधन कीमतें अपडेट नहीं हुईं",
       "body": "{{pump}} — सेटअप में कीमतें अपडेट करने के लिए यहाँ टैप करें",
@@ -72,7 +64,6 @@
     },
     "severityPrefix": "{{severity}}: ",
     "urgentPrefix": "ज़रूरी · ",
-    "review": "देखें",
     "reviewLabel": "देखें: {{reason}}",
     "reviewLabelWithPump": "देखें: {{pump}}, {{reason}}",
     "loading": "ध्यान देने वाले काम लोड हो रहे हैं",
@@ -101,8 +92,6 @@
   },
   "allPumps": {
     "scope": "सारांश का दायरा",
-    "allPumps": "सभी पंप",
-    "selectedPump": "चुना गया पंप",
     "overdueShifts_one": "{{count}} शिफ्ट समय पार",
     "overdueShifts_other": "{{count}} शिफ्ट समय पार",
     "lowTanks_one": "{{count}} टैंक कम",

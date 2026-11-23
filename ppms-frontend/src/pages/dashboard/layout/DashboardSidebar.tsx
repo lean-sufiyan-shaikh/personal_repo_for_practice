@@ -23,7 +23,7 @@ interface DashboardSidebarProps {
 }
 
 export function DashboardSidebar({ pumpName, switchablePumps, drawerOpen, onCloseDrawer }: DashboardSidebarProps) {
-  const { t } = useTranslation('nav')
+  const { t } = useTranslation(['nav', 'common'])
   const location = useLocation()
   const { user } = useAuthStore()
   const navRef = useRef<HTMLElement>(null)
@@ -78,7 +78,7 @@ export function DashboardSidebar({ pumpName, switchablePumps, drawerOpen, onClos
         <div className="ui-dashboard-sidebar-foot">
           <p className="ui-dashboard-sidebar-foot-label">{t('sidebar.currentPump')}</p>
           <p className="ui-dashboard-sidebar-foot-value">
-            {pumpName ?? t('sidebar.noPump')}
+            {pumpName ?? t('common:notices.noPumpTitle')}
           </p>
         </div>
       </nav>

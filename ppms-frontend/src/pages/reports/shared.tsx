@@ -7,7 +7,7 @@ import type { DateRange } from '../../utils/datePresets'
 // ── Shared small components ───────────────────────────────────────────────────
 
 export function PrintHeader({ title, from, to }: { title: string; from?: string; to?: string }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   return (
     <div className="mb-4 border-b border-border pb-3">
       <h2 className="ui-title-sm">{title}</h2>
@@ -26,20 +26,20 @@ export function DateRangeInputs({
   /** When given, quick-range chips are shown and a chosen range is applied straight away. */
   onPreset?: (range: DateRange) => void
 }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   return (
     <div className="ui-filter-group">
       {onPreset && <div className="basis-full"><DatePresetChips range={{ from, to }} onSelect={onPreset} /></div>}
       <div>
         <label className="block">
-          <span className="ui-label">{t('controls.from')}</span>
+          <span className="ui-label">{t('common:fields.from')}</span>
           <input type="date" value={from} onChange={(e) => onFromChange(e.target.value)}
             className="min-w-40 shadow-sm" />
         </label>
       </div>
       <div>
         <label className="block">
-          <span className="ui-label">{t('controls.to')}</span>
+          <span className="ui-label">{t('common:fields.to')}</span>
           <input type="date" value={to} onChange={(e) => onToChange(e.target.value)}
             className="min-w-40 shadow-sm" />
         </label>
@@ -60,7 +60,7 @@ export function SummaryCard({ label, value, color, note }: { label: string; valu
 
 /** Shown instead of ₹0.00 cards when the default range has nothing in it, pointing at a range that likely does. */
 export function EmptyRangeSuggestion({ message, onShowLastMonth }: { message: string; onShowLastMonth: () => void }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   return (
     <div className="ui-card ui-card-muted flex flex-col items-center gap-3 p-6 text-center" role="status">
       <p className="text-sm font-medium text-ink">{message}</p>

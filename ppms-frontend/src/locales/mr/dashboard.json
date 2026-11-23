@@ -1,14 +1,6 @@
 {
-  "header": {
-    "noPump": "कोणताही पंप निवडलेला नाही"
-  },
-  "duration": {
-    "minutes": "{{minutes}} मि",
-    "hoursMinutes": "{{hours}} ता {{minutes}} मि"
-  },
   "overview": {
     "loadError": "काही लाइव्ह माहिती लोड होऊ शकली नाही. दाखवलेले आकडे अपूर्ण असू शकतात — पुन्हा प्रयत्न करण्यासाठी रिफ्रेश करा.",
-    "allPumps": "सर्व पंप",
     "stalePrices": {
       "title": "आज इंधन दर अपडेट केले नाहीत",
       "body": "{{pump}} — सेटअपमध्ये दर अपडेट करण्यासाठी येथे टॅप करा",
@@ -72,7 +64,6 @@
     },
     "severityPrefix": "{{severity}}: ",
     "urgentPrefix": "तातडीचे · ",
-    "review": "पाहा",
     "reviewLabel": "पाहा: {{reason}}",
     "reviewLabelWithPump": "पाहा: {{pump}}, {{reason}}",
     "loading": "लक्ष देण्याची कामे लोड होत आहेत",
@@ -101,8 +92,6 @@
   },
   "allPumps": {
     "scope": "सारांशाची व्याप्ती",
-    "allPumps": "सर्व पंप",
-    "selectedPump": "निवडलेला पंप",
     "overdueShifts_one": "{{count}} शिफ्टची वेळ उलटली",
     "overdueShifts_other": "{{count}} शिफ्टची वेळ उलटली",
     "lowTanks_one": "{{count}} टँक कमी",

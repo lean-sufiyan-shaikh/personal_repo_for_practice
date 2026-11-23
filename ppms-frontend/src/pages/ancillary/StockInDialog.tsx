@@ -105,7 +105,7 @@ export function StockInDialog({
                 {t('common:actions.cancel')}
               </button>
               <button onClick={handleReview} className="ui-btn ui-btn-primary">
-                {t('actions.review')}
+                {t('common:actions.review')}
               </button>
             </>
           ) : (
@@ -114,7 +114,7 @@ export function StockInDialog({
                 onClick={() => { setStep('form'); setError(null) }}
                 className="ui-btn ui-btn-secondary"
               >
-                {t('actions.back')}
+                {t('common:actions.back')}
               </button>
               <button
                 onClick={handleSubmit}
@@ -131,7 +131,7 @@ export function StockInDialog({
         {step === 'form' && (
           <>
             {error && (
-              <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('actions.goBack', { error })}</div>
+              <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('common:notices.goBackRetry', { error })}</div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
@@ -188,7 +188,7 @@ export function StockInDialog({
                     className="text-sm"
                     value={form.invoiceReference ?? ''}
                     onChange={e => setForm(f => ({ ...f, invoiceReference: e.target.value }))}
-                    placeholder={t('fields.optional')}
+                    placeholder={t('common:fields.optional')}
                   />
                 </label>
               </div>
@@ -206,7 +206,7 @@ export function StockInDialog({
         {step === 'review' && (
           <>
             {error && (
-              <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('actions.goBack', { error })}</div>
+              <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('common:notices.goBackRetry', { error })}</div>
             )}
             <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
               <ReviewRow label={t('fields.product')} value={selectedProduct?.displayName ?? '—'} />

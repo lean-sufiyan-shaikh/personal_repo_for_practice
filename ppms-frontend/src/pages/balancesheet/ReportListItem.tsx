@@ -1,4 +1,5 @@
 import { RefreshCw, TrendingDown, TrendingUp } from 'lucide-react'
+import { serverText } from '../../utils/serverText'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
 import type { BalanceSheetSummary } from '../../api/balanceSheetApi'
@@ -36,7 +37,7 @@ export function ReportListItem({ report, isSelected, onClick }: ReportListItemPr
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
             <StatusBadge tone={isDay ? 'neutral' : 'info'} label={isDay ? t('list.day') : t('list.shift')} />
-            <span className="text-sm font-medium text-ink truncate">{report.periodLabel}</span>
+            <span className="text-sm font-medium text-ink truncate">{serverText(report.periodLabelCode, report.periodLabelParams, report.periodLabel)}</span>
           </div>
           {report.stale && (
             <StatusBadge tone="warn" icon={RefreshCw} label={t('list.stale')} className="mb-0.5" />

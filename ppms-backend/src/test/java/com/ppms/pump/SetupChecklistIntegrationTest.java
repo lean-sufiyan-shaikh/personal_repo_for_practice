@@ -46,6 +46,8 @@ class SetupChecklistIntegrationTest extends ApiIntegrationTest {
         assertThat(step(checklist, "GST_DETAILS").get("done").asBoolean()).isFalse();
         assertThat(step(checklist, "CREDIT_CLIENTS").get("done").asBoolean()).isFalse();
         assertThat(step(checklist, "CREDIT_CLIENTS").get("optional").asBoolean()).isTrue();
+        assertThat(step(checklist, "GST_DETAILS").get("detailCode").asText()).isEqualTo("SETUP_GST_DETAILS_MISSING");
+        assertThat(step(checklist, "GST_DETAILS").get("detailParams").isEmpty()).isTrue();
     }
 
     @Test
@@ -78,6 +80,8 @@ class SetupChecklistIntegrationTest extends ApiIntegrationTest {
 
         assertThat(tanks.get("done").asBoolean()).isFalse();
         assertThat(tanks.get("detail").asText()).isEqualTo("1 nozzle not linked to a tank");
+        assertThat(tanks.get("detailCode").asText()).isEqualTo("SETUP_NOZZLES_NOT_LINKED");
+        assertThat(tanks.get("detailParams").get("count").asLong()).isEqualTo(1);
     }
 
     @Test

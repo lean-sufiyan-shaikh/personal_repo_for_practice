@@ -1,6 +1,9 @@
 package com.ppms.pump;
 
+import com.ppms.common.text.CodedText;
+
 import java.util.List;
+import java.util.Map;
 
 /** How far a pump's setup has got: each step with its state, and how many of the required steps are done. */
 public record SetupChecklistResponse(Long pumpId, int doneCount, int requiredCount, List<Item> items) {
@@ -15,8 +18,16 @@ public record SetupChecklistResponse(Long pumpId, int doneCount, int requiredCou
         CREDIT_CLIENTS
     }
 
-    /** One step; {@code detail} says what is set up or what is still missing. */
-    public record Item(Step step, boolean done, boolean optional, String detail) {
+    /**
+     * One step; {@code detail} says what is set up or what is still missing, and {@code detailCode} with
+     * {@code detailParams} name it for translated screens.
+     */
+    public record Item(Step step, boolean done, boolean optional, String detail, String detailCode,
+                       Map<String, Object> detailParams) {
+
+        static Item of(Step step, boolean done, boolean optional, CodedText detail) {
+            return new Item(step, done, optional, detail.text(), detail.code(), detail.params());
+        }
     }
 
     static SetupChecklistResponse of(Long pumpId, List<Item> items) {

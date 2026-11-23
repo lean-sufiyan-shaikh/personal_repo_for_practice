@@ -11,6 +11,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { discrepancyBadge } from '../../components/statusBadges'
 import { MoneyText } from '../../components/AmountText'
 import { fmtAmt, fmtDate } from './payrollFormat'
+import { roleLabel } from '../../constants/labels'
 
 // ── Review + Discrepancy Modal ────────────────────────────────────────────────
 
@@ -25,7 +26,7 @@ interface ReviewModalProps {
 }
 
 export function ReviewModal({ form, selectedStaff, pumpId, formError, isPending, onClose, onGenerate }: ReviewModalProps) {
-  const { t } = useTranslation('payroll')
+  const { t } = useTranslation(['payroll', 'common'])
   const [deductSet, setDeductSet] = useState<Set<number>>(new Set())
 
   const { data: pending = [], isLoading: pendingLoading } = useQuery({
@@ -51,27 +52,27 @@ export function ReviewModal({ form, selectedStaff, pumpId, formError, isPending,
       closeOnBackdropClick
       bodyClassName="space-y-4"
       footer={<>
-          <button onClick={onClose} className="ui-btn ui-btn-secondary">{t('review.back')}</button>
+          <button onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.back')}</button>
           <button
             onClick={() => onGenerate(Array.from(deductSet))}
             disabled={isPending}
             className="ui-btn ui-btn-primary"
           >
             {isPending
-              ? <span className="flex items-center gap-1.5"><Spinner />{t('review.generating')}</span>
+              ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.generating')}</span>
               : t('review.generate')}
           </button>
       </>}
     >
           {formError && (
-            <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} {t('review.goBack')}</div>
+            <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('common:notices.goBackRetry', { error: formError })}</div>
           )}
 
           {/* Summary */}
           <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
             <div className="flex items-center justify-between px-4 py-2.5">
               <span className="text-ink-3 text-xs">{t('review.staffMember')}</span>
-              <span className="font-medium text-ink">{selectedStaff ? `${selectedStaff.fullName} — ${selectedStaff.role}` : '—'}</span>
+              <span className="font-medium text-ink">{selectedStaff ? `${selectedStaff.fullName} — ${roleLabel(selectedStaff.role)}` : '—'}</span>
             </div>
             <div className="flex items-center justify-between px-4 py-2.5">
               <span className="text-ink-3 text-xs">{t('review.period')}</span>
@@ -79,7 +80,7 @@ export function ReviewModal({ form, selectedStaff, pumpId, formError, isPending,
             </div>
             {form.notes?.trim() && (
               <div className="flex items-center justify-between px-4 py-2.5">
-                <span className="text-ink-3 text-xs">{t('review.notes')}</span>
+                <span className="text-ink-3 text-xs">{t('common:fields.notes')}</span>
                 <span className="font-medium text-ink">{form.notes}</span>
               </div>
             )}

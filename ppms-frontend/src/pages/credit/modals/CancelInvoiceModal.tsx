@@ -17,7 +17,7 @@ interface CancelInvoiceModalProps {
 }
 
 export function CancelInvoiceModal({ invoice, pumpId, onClose }: CancelInvoiceModalProps) {
-  const { t } = useTranslation('credit')
+  const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
   const { addToast } = useToastStore()
   const [reason, setReason] = useState('')
@@ -61,7 +61,7 @@ export function CancelInvoiceModal({ invoice, pumpId, onClose }: CancelInvoiceMo
       </p>
       <div className="ui-inline-form">
         <label className="block">
-          <span className="ui-label">{t('form.reason')} <span aria-hidden="true" className="text-bad">*</span></span>
+          <span className="ui-label">{t('common:fields.reason')} <span aria-hidden="true" className="text-bad">*</span></span>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}

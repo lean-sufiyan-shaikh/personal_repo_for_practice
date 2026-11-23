@@ -4,8 +4,6 @@
     "title": "रिपोर्ट",
     "subtitle": "आपके पंप की कामकाज और हिसाब की रिपोर्ट।",
     "printedBy": "प्रिंट किया:",
-    "notAssigned": "आपको किसी पंप पर नहीं लगाया गया है। मालिक या एडमिन से पंप पर लगाने को कहें।",
-    "noPump": "कोई पंप नहीं चुना गया। ऊपर की पट्टी में पंप चुनें।",
     "tabs": {
       "pl": "लाभ-हानि",
       "duty": "ऑपरेटर ड्यूटी",
@@ -18,16 +16,10 @@
     }
   },
   "controls": {
-    "from": "से",
-    "to": "तक",
-    "generate": "रिपोर्ट बनाएँ",
-    "loading": "लोड हो रहा है…",
-    "printPdf": "PDF प्रिंट करें",
     "loadFailed": "रिपोर्ट लोड नहीं हो सकी",
     "period": "अवधि: {{from}} से {{to}}",
     "rangeLabel": "{{from}} से {{to}}",
-    "comparedWith": "{{range}} से तुलना।",
-    "shiftLink": "शिफ्ट #{{id}}"
+    "comparedWith": "{{range}} से तुलना।"
   },
   "emptyRange": {
     "noClosedShifts": "कल या आज की कोई बंद शिफ्ट अभी नहीं है।",
@@ -43,15 +35,11 @@
     "status": "स्थिति",
     "amount": "राशि",
     "amountDue": "देय राशि",
-    "cash": "नकद",
-    "upi": "UPI",
-    "card": "कार्ड",
-    "credit": "क्रेडिट",
     "discrepancy": "अंतर",
     "type": "प्रकार",
     "fuel": "ईंधन",
     "fuelType": "ईंधन प्रकार",
-    "revenue": "आय",
+    "revenue": "बिक्री",
     "costOfGoods": "माल की लागत",
     "grossProfit": "सकल लाभ",
     "cogs": "माल की लागत",
@@ -67,7 +55,6 @@
     "cost": "लागत",
     "source": "स्रोत",
     "quantityLitres": "मात्रा (L)",
-    "total": "कुल",
     "original": "शुरुआती",
     "remaining": "बचा हुआ",
     "totalRemaining": "कुल बचा हुआ",
@@ -77,18 +64,17 @@
     "dateTime": "तारीख और समय",
     "litres": "लीटर",
     "profitLoss": "लाभ/हानि",
-    "notes": "टिप्पणी",
     "category": "श्रेणी",
     "description": "विवरण"
   },
   "pl": {
-    "totalRevenue": "कुल आय",
+    "totalRevenue": "कुल बिक्री",
     "costOfGoods": "माल की लागत",
     "grossProfit": "सकल लाभ",
     "dailyTable": "रोज़ के आँकड़ों की तालिका",
-    "dailyCaption": "दिन के हिसाब से आय, माल की लागत और सकल लाभ",
+    "dailyCaption": "दिन के हिसाब से बिक्री, माल की लागत और सकल लाभ",
     "dailyRegion": "रोज़ के आँकड़े",
-    "revenueBreakdown": "आय का ब्योरा (नकद / UPI / कार्ड / क्रेडिट)",
+    "revenueBreakdown": "बिक्री का ब्योरा (नकद / UPI / कार्ड / क्रेडिट)",
     "creditSales": "क्रेडिट बिक्री",
     "byFuelCaption": "ईंधन के हिसाब से लाभ-हानि",
     "byFuelPrintCaption": "ईंधन के हिसाब से लाभ-हानि, प्रिंट",
@@ -155,7 +141,6 @@
   "dip": {
     "dipCheck": "डिप जाँच",
     "maintenance": "मरम्मत",
-    "loading": "लोड हो रहा है...",
     "loadFailed": "डिप लाभ/हानि की एंट्री लोड नहीं हो सकीं",
     "totalEntries": "कुल एंट्री",
     "netPl": "शुद्ध लाभ/हानि",
@@ -191,17 +176,18 @@
     "chargeCount_one": "{{count}} शुल्क",
     "chargeCount_other": "{{count}} शुल्क",
     "period": "{{from}} – {{to}} ({{days}} दिन)",
-    "balanceAtRate": "बकाया {{balance}} @ {{rate}}%/महीना · {{source}}"
+    "balanceAtRate": "बकाया {{balance}} @ {{rate}}%/महीना · {{source}}",
+    "printTitle": "ब्याज जमा रिपोर्ट"
   },
   "charts": {
     "pl": {
-      "title": "रोज़ की आय और सकल लाभ",
-      "revenue": "आय",
+      "title": "रोज़ की बिक्री और सकल लाभ",
+      "revenue": "बिक्री",
       "grossProfit": "सकल लाभ",
       "empty": "इस अवधि में कोई बंद शिफ्ट नहीं।",
-      "totals_one": "बिक्री वाले {{count}} दिन में आय {{revenue}} और सकल लाभ {{profit}}।",
-      "totals_other": "बिक्री वाले {{count}} दिनों में आय {{revenue}} और सकल लाभ {{profit}}।",
-      "best": "सबसे ज़्यादा आय {{date}} को ({{amount}})।",
+      "totals_one": "बिक्री वाले {{count}} दिन में कुल बिक्री {{revenue}} और सकल लाभ {{profit}}।",
+      "totals_other": "बिक्री वाले {{count}} दिनों में कुल बिक्री {{revenue}} और सकल लाभ {{profit}}।",
+      "best": "सबसे ज़्यादा बिक्री {{date}} को ({{amount}})।",
       "lossDays_one": "{{count}} दिन सकल हानि।",
       "lossDays_other": "{{count}} दिन सकल हानि।"
     },

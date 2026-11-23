@@ -74,7 +74,7 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
                 disabled={!rateShift1 || !rateStandard || rateMutation.isPending}
                 onClick={() => rateMutation.mutate({ userId: member.id, shift1HourlyRate: parseFloat(rateShift1), standardHourlyRate: parseFloat(rateStandard) })}
                 className="ui-btn ui-btn-primary ui-btn-compact">
-                {rateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('actions.saving')}</span> : t('staff.rates.saveRates')}
+                {rateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('common:actions.saving')}</span> : t('staff.rates.saveRates')}
               </button>
               <button type="button" onClick={onClose}
                 className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">{t('common:actions.cancel')}</button>
@@ -105,7 +105,7 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
                 disabled={!rateDaily || rateMutation.isPending}
                 onClick={() => rateMutation.mutate({ userId: member.id, dailyRate: parseFloat(rateDaily) })}
                 className="ui-btn ui-btn-primary ui-btn-compact">
-                {rateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('actions.saving')}</span> : t('staff.rates.saveRate')}
+                {rateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('common:actions.saving')}</span> : t('staff.rates.saveRate')}
               </button>
               <button type="button" onClick={onClose}
                 className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">{t('common:actions.cancel')}</button>

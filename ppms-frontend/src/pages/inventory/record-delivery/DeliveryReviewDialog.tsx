@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { codeLabel } from '../../../constants/labels'
 import { Modal } from '../../../components/Modal'
 import { formatNumberIn } from '../../../i18n/format'
 import { LitresText, MoneyText } from '../../../components/AmountText'
@@ -24,7 +25,7 @@ export function DeliveryReviewDialog({
   items, date, invoice, error, isOwnerOrAdmin, canSetBillTotal, billTotalManual, billTotalNum, otherCharges,
   isPending, onBack, onConfirm,
 }: Props) {
-  const { t } = useTranslation('inventory')
+  const { t } = useTranslation(['inventory', 'common'])
   return (
     <Modal
       title={t('review.title')}
@@ -55,7 +56,7 @@ export function DeliveryReviewDialog({
     >
           {error && (
             <div role="alert" className="ui-alert ui-alert-danger text-sm">
-              {error} {t('review.goBack')}
+              {t('common:notices.goBackRetry', { error })}
             </div>
           )}
           <div className={`grid gap-3 ${(canSetBillTotal && billTotalNum > 0) || isOwnerOrAdmin ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
@@ -112,7 +113,7 @@ export function DeliveryReviewDialog({
                   }`}>
                     <span className="font-semibold text-ink">{item.tankIdentifier}</span>
                     <span className={`inline-flex w-fit rounded-badge px-2 py-0.5 text-xs font-medium ${FUEL_COLORS[item.fuelType]?.badge ?? FUEL_COLORS.PETROL.badge}`}>
-                      {item.fuelType}
+                      {codeLabel(item.fuelType)}
                     </span>
                     <LitresText value={item.quantityDelivered} className="text-right text-ink-2" />
                     {isOwnerOrAdmin && (

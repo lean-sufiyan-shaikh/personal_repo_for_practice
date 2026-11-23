@@ -8,12 +8,12 @@ import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { MoneyText } from '../../../components/AmountText'
 
-type BalanceSheetT = TFunction<'balancesheet'>
+type BalanceSheetT = TFunction<['balancesheet', 'common']>
 
 function paymentTypeLabel(t: BalanceSheetT, type: string): string {
-  if (type === 'UPI') return t('settlements.upi')
-  if (type === 'CARD') return t('settlements.card')
-  if (type === 'FLEET_CARD') return t('settlements.fleetCard')
+  if (type === 'UPI') return t('common:paymentMethods.UPI')
+  if (type === 'CARD') return t('common:paymentMethods.CARD')
+  if (type === 'FLEET_CARD') return t('common:paymentMethods.FLEET_CARD')
   return type
 }
 
@@ -34,7 +34,7 @@ function settlementColumns(t: BalanceSheetT): DataTableColumn<SettlementRow>[] {
 // ── Payment settlement section (DAY reports only) ──────────────────────────────
 
 export function SettlementSection({ summary }: { summary: SettlementSummary }) {
-  const { t } = useTranslation('balancesheet')
+  const { t } = useTranslation(['balancesheet', 'common'])
   const rows: SettlementRow[] = [
     { type: 'UPI',        settled: summary.upiSettledOnDate,        pending: summary.walletUpiPending },
     { type: 'CARD',       settled: summary.cardSettledOnDate,        pending: summary.walletCardPending },
@@ -74,7 +74,7 @@ export function SettlementSection({ summary }: { summary: SettlementSummary }) {
         )}
         footer={
           <tr className="bg-surface-sunken">
-            <Td>{t('settlements.total')}</Td>
+            <Td>{t('common:fields.total')}</Td>
             <Td right>{totalSettled > 0 ? <MoneyText value={totalSettled} /> : '—'}</Td>
             <Td right><MoneyText value={totalPending} tone={totalPending > 0 ? 'warn' : 'ok'} /></Td>
           </tr>

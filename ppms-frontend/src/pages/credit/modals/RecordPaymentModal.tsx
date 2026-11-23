@@ -22,7 +22,7 @@ interface RecordPaymentModalProps {
   onClose: () => void
 }
 
-/** Each label is credit.json recordPayment.modes.<mode>. */
+/** Each label is common.json paymentMethods.<mode>. */
 const PAYMENT_MODES = ['CASH', 'UPI', 'BANK_TRANSFER', 'OTHER'] as const
 
 export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, subClients = [], onClose }: RecordPaymentModalProps) {
@@ -99,7 +99,7 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
             className="ui-btn ui-btn-primary"
           >
             {mutation.isPending
-              ? <span className="flex items-center gap-1.5"><Spinner />{t('form.saving')}</span>
+              ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.saving')}</span>
               : t('clientActions.recordPayment')}
           </button>
         </>
@@ -170,7 +170,7 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
         <SearchableSelect label={t('recordPayment.mode')}
           value={paymentMode}
           onChange={v => setPaymentMode(v as typeof paymentMode)}
-          options={PAYMENT_MODES.map(mode => ({ value: mode, label: t(`recordPayment.modes.${mode}`) }))}
+          options={PAYMENT_MODES.map(mode => ({ value: mode, label: t(`common:paymentMethods.${mode}`) }))}
         />
       </div>
 
@@ -189,7 +189,7 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
 
       <div className="ui-inline-form">
         <label className="block">
-          <span className="ui-label">{t('recordPayment.notes')}</span>
+          <span className="ui-label">{t('common:fields.notes')}</span>
           <input
             type="text"
             value={notes}

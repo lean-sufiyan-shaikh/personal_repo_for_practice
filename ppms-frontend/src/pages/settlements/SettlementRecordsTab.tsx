@@ -36,7 +36,7 @@ interface SettlementRecordsTabProps {
 }
 
 export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRecordsTabProps) {
-  const { t } = useTranslation('settlements')
+  const { t } = useTranslation(['settlements', 'common'])
   const {
     filterFrom, setFilterFrom, filterTo, setFilterTo, typeFilter, setTypeFilter, setRange, loadAllDays,
     setSummaryPage, setSummaryPageSize, dailySummaryPage, dailySummary, loadingList,
@@ -51,7 +51,7 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
           <DatePresetChips range={{ from: filterFrom, to: filterTo }} onSelect={setRange} />
         </div>
         <div className="ui-toolbar-actions w-full sm:w-auto">
-          <input aria-label={t('history.fromDate')}
+          <input aria-label={t('common:fields.fromDate')}
             type="date"
             value={filterFrom}
             max={filterTo}
@@ -59,7 +59,7 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
             className="flex-1 min-w-36 text-sm sm:w-40 sm:flex-none"
           />
           <span className="text-ink-3 text-sm">–</span>
-          <input aria-label={t('history.toDate')}
+          <input aria-label={t('common:fields.toDate')}
             type="date"
             value={filterTo}
             min={filterFrom}

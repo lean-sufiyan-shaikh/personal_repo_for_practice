@@ -43,7 +43,7 @@ export function HistoryRow({ shift }: { shift: Shift }) {
             {shift.duName ?? `DU #${shift.duNumber}`}
           </span>
           <span className="font-semibold text-ink bg-surface-sunken px-2 py-0.5 rounded-control text-xs">
-            {shift.nozzles.map((n) => `#${n.nozzleNumber} ${n.fuelType}`).join(', ')}
+            {shift.nozzles.map((n) => `#${n.nozzleNumber} ${codeLabel(n.fuelType)}`).join(', ')}
           </span>
         </td>
         <td className="px-5 py-3 hidden md:table-cell">
@@ -84,7 +84,7 @@ export function HistoryRow({ shift }: { shift: Shift }) {
             )}
             {resolveAction === 'approve' && (
               <button onClick={() => setResolveModalOpen(true)} className="ui-btn ui-btn-warning min-h-0 px-3 py-1.5 text-xs">
-                {t('history.approve')}
+                {t('common:actions.approve')}
               </button>
             )}
             {resolveAction === 'awaiting-owner' && (
@@ -117,7 +117,7 @@ export function HistoryRow({ shift }: { shift: Shift }) {
               {/* Cash */}
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-ok shrink-0" />
-                <span className="text-ink-3">{t('history.payment.cash')}</span>
+                <span className="text-ink-3">{t('common:paymentMethods.CASH')}</span>
                 <MoneyText value={shift.cashCollected} className="font-semibold text-ink" />
               </div>
 
@@ -141,7 +141,7 @@ export function HistoryRow({ shift }: { shift: Shift }) {
               {/* Credit — clickable pill that opens the modal */}
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-warn shrink-0" />
-                <span className="text-ink-3">{t('history.payment.credit')}</span>
+                <span className="text-ink-3">{t('common:paymentMethods.CREDIT')}</span>
                 {creditAmt > 0 ? (
                   hasCreditEntries ? (
                     <button

@@ -44,10 +44,10 @@ export function buildCloseShiftRequest(values: CloseFormValues): { request: Clos
   }
 
   const paymentFields = [
-    { label: i18n.t('shifts:close.validation.fields.cash'),      val: cash },
-    { label: i18n.t('shifts:close.validation.fields.upi'),       val: upi },
-    { label: i18n.t('shifts:close.validation.fields.card'),      val: card },
-    { label: i18n.t('shifts:close.validation.fields.fleetCard'), val: fleetCard },
+    { label: i18n.t('common:paymentMethods.CASH'),      val: cash },
+    { label: i18n.t('common:paymentMethods.UPI'),       val: upi },
+    { label: i18n.t('common:paymentMethods.CARD'),      val: card },
+    { label: i18n.t('common:paymentMethods.FLEET_CARD'), val: fleetCard },
   ]
   for (const f of paymentFields) {
     if (f.val !== '' && safeParse(f.val) === null) {

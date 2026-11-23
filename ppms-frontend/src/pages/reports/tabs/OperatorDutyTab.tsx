@@ -41,14 +41,14 @@ const CSV_COLUMNS: CsvColumn<OperatorDutyShiftLine>[] = [
   { header: 'Status', value: (row) => codeLabel(row.status) },
 ]
 
-function dutyColumns(t: TFunction<'reports'>): DataTableColumn<OperatorDutyShiftLine>[] {
+function dutyColumns(t: TFunction<['reports', 'common']>): DataTableColumn<OperatorDutyShiftLine>[] {
   return [
-    { key: 'shift', header: t('columns.shift'), cell: (s) => <Link to={shiftUrl(s.shiftId)} className="ui-link">{t('controls.shiftLink', { id: s.shiftId })}</Link> },
+    { key: 'shift', header: t('columns.shift'), cell: (s) => <Link to={shiftUrl(s.shiftId)} className="ui-link">{t('common:shiftNumber', { id: s.shiftId })}</Link> },
     { key: 'date', header: t('columns.date'), cell: (s) => <span className="text-ink-2">{s.shiftDate}</span> },
     { key: 'window', header: t('columns.window'), cell: (s) => <span className="text-ink-3">{s.shiftWindow}</span> },
     { key: 'due', header: t('columns.amountDue'), numeric: true, cell: (s) => <MoneyText value={s.totalAmountDue} className="font-medium text-ink" /> },
-    { key: 'cash', header: t('columns.cash'), numeric: true, cell: (s) => <MoneyText value={s.cashCollected} className="text-ink-2" /> },
-    { key: 'credit', header: t('columns.credit'), numeric: true, cell: (s) => <MoneyText value={s.creditTotal} tone="warn" /> },
+    { key: 'cash', header: t('common:paymentMethods.CASH'), numeric: true, cell: (s) => <MoneyText value={s.cashCollected} className="text-ink-2" /> },
+    { key: 'credit', header: t('common:paymentMethods.CREDIT'), numeric: true, cell: (s) => <MoneyText value={s.creditTotal} tone="warn" /> },
     {
       key: 'discrepancy', header: t('columns.discrepancy'), numeric: true,
       cell: (s) => s.discrepancyAmount > 0 ? (
@@ -64,7 +64,7 @@ function dutyColumns(t: TFunction<'reports'>): DataTableColumn<OperatorDutyShift
 // ── Operator Duty Tab ─────────────────────────────────────────────────────────
 
 export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   const [query, setQuery] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
@@ -115,14 +115,14 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
           disabled={!operatorId || isFetching}
           className="ui-btn ui-btn-primary"
         >
-          {isFetching ? t('controls.loading') : t('controls.generate')}
+          {isFetching ? t('common:loading.short') : t('common:actions.generate')}
         </button>
         <button
           onClick={() => { void printWhenFontsReady() }}
           disabled={!data || data.shifts.length === 0}
           className="ui-btn ui-btn-secondary"
         >
-          {t('controls.printPdf')}
+          {t('common:actions.printPdf')}
         </button>
         <CsvExportButton
           filename={csvFilename(`operator-duty-${data?.operatorName.toLowerCase().replace(/[^a-z0-9]+/g, '-') ?? 'operator'}`, query)}

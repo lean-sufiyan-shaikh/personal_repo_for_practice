@@ -49,23 +49,23 @@ function discrepancyCell(s: ShiftReportLine) {
   )
 }
 
-function printColumns(t: TFunction<'reports'>): DataTableColumn<ShiftReportLine>[] {
+function printColumns(t: TFunction<['reports', 'common']>): DataTableColumn<ShiftReportLine>[] {
   return [
     { key: 'date', header: t('columns.date'), cell: (s) => <span className="text-ink-2">{s.shiftDate}</span> },
     { key: 'window', header: t('columns.window'), cell: (s) => <span className="text-ink-3">{s.shiftName ?? '—'}</span> },
     { key: 'status', header: t('columns.status'), cell: (s) => s.status ? <StatusBadge {...shiftStatusBadge(s.status as ShiftStatus)} /> : '—' },
     { key: 'due', header: t('columns.amountDue'), numeric: true, cell: (s) => <MoneyText value={s.totalAmountDue} className="font-medium text-ink" /> },
-    { key: 'cash', header: t('columns.cash'), numeric: true, cell: (s) => <MoneyText value={s.cashCollected} className="text-ink-2" /> },
-    { key: 'upi', header: t('columns.upi'), numeric: true, cell: (s) => <MoneyText value={s.upiCollected} className="text-ink-2" /> },
-    { key: 'card', header: t('columns.card'), numeric: true, cell: (s) => <MoneyText value={s.cardCollected} className="text-ink-2" /> },
-    { key: 'credit', header: t('columns.credit'), numeric: true, cell: (s) => <MoneyText value={s.creditTotal} tone="warn" /> },
+    { key: 'cash', header: t('common:paymentMethods.CASH'), numeric: true, cell: (s) => <MoneyText value={s.cashCollected} className="text-ink-2" /> },
+    { key: 'upi', header: t('common:paymentMethods.UPI'), numeric: true, cell: (s) => <MoneyText value={s.upiCollected} className="text-ink-2" /> },
+    { key: 'card', header: t('common:paymentMethods.CARD'), numeric: true, cell: (s) => <MoneyText value={s.cardCollected} className="text-ink-2" /> },
+    { key: 'credit', header: t('common:paymentMethods.CREDIT'), numeric: true, cell: (s) => <MoneyText value={s.creditTotal} tone="warn" /> },
     { key: 'discrepancy', header: t('columns.discrepancy'), numeric: true, cell: discrepancyCell },
   ]
 }
 
-function screenColumns(t: TFunction<'reports'>): DataTableColumn<ShiftReportLine>[] {
+function screenColumns(t: TFunction<['reports', 'common']>): DataTableColumn<ShiftReportLine>[] {
   return [
-    { key: 'shift', header: t('columns.shift'), cell: (s) => <Link to={shiftUrl(s.id)} className="ui-link">{t('controls.shiftLink', { id: s.id })}</Link> },
+    { key: 'shift', header: t('columns.shift'), cell: (s) => <Link to={shiftUrl(s.id)} className="ui-link">{t('common:shiftNumber', { id: s.id })}</Link> },
     ...printColumns(t),
   ]
 }
@@ -73,7 +73,7 @@ function screenColumns(t: TFunction<'reports'>): DataTableColumn<ShiftReportLine
 // ── Shifts Tab ────────────────────────────────────────────────────────────────
 
 export function ShiftsTab({ pumpId }: { pumpId: number }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   const [query, setQuery, isDefaultRange] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
@@ -105,14 +105,14 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
           disabled={isFetching}
           className="ui-btn ui-btn-primary"
         >
-          {isFetching ? t('controls.loading') : t('controls.generate')}
+          {isFetching ? t('common:loading.short') : t('common:actions.generate')}
         </button>
         <button
           onClick={() => { void printWhenFontsReady() }}
           disabled={rows.length === 0}
           className="ui-btn ui-btn-secondary"
         >
-          {t('controls.printPdf')}
+          {t('common:actions.printPdf')}
         </button>
         <CsvExportButton filename={csvFilename('shifts', query)} columns={CSV_COLUMNS} rows={rows} />
         </div>

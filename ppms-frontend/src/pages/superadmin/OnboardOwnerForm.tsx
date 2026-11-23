@@ -17,7 +17,7 @@ interface OnboardOwnerFormProps {
 }
 
 export function OnboardOwnerForm({ onSubmitStart, onCreated }: OnboardOwnerFormProps) {
-  const { t } = useTranslation('superadmin')
+  const { t } = useTranslation(['superadmin', 'auth'])
   const queryClient = useQueryClient()
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -80,10 +80,9 @@ export function OnboardOwnerForm({ onSubmitStart, onCreated }: OnboardOwnerFormP
                 />
               </FormField>
 
-              <FormField label={t('onboard.initialPassword')} error={errors.password?.message}>
+              <FormField label={t('onboard.initialPassword')} error={errors.password?.message} help={t('auth:passwordPolicy')}>
                 <PasswordInput
                   {...register('password')}
-                  placeholder={t('onboard.passwordPlaceholder')}
                   className="text-sm"
                 />
               </FormField>

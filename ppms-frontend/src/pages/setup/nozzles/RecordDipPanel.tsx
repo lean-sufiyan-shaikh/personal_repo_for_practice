@@ -111,7 +111,7 @@ export function RecordDipPanel({ pumpId, nozzle, tank, onClose }: Props) {
           </div>
           <div className="ui-dip-editor__section">
             <label className="block">
-              <span className="ui-label">{t('nozzles.reason')} <span className="text-bad">*</span></span>
+              <span className="ui-label">{t('common:fields.reason')} <span className="text-bad">*</span></span>
               <input
                 type="text"
                 value={dipReason}

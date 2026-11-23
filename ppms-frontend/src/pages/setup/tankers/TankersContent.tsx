@@ -93,7 +93,7 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
       </p>
 
       {isLoading ? (
-        <p className="text-xs text-ink-3">{t('tankers.loading')}</p>
+        <p className="text-xs text-ink-3">{t('common:loading.short')}</p>
       ) : tankers.length === 0 && !showAdd ? (
         <p className="text-xs text-ink-3">{t('tankers.empty')}</p>
       ) : (
@@ -117,7 +117,7 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
                   />
                   <div className="flex gap-2">
                     <button onClick={handleSubmit} disabled={isPending} className="ui-btn ui-btn-primary text-xs py-1.5 px-3 min-h-0">
-                      {isPending ? t('actions.saving') : t('actions.save')}
+                      {isPending ? t('common:actions.saving') : t('common:actions.save')}
                     </button>
                     <button onClick={resetForm} className="ui-btn ui-btn-secondary text-xs py-1.5 px-3 min-h-0">{t('common:actions.cancel')}</button>
                   </div>

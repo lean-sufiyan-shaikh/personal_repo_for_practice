@@ -202,7 +202,7 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
           disabled={createMutation.isPending}
           className="ui-btn ui-btn-primary"
         >
-          {createMutation.isPending ? t('actions.saving') : t('shiftDefs.form.save')}
+          {createMutation.isPending ? t('common:actions.saving') : t('shiftDefs.form.save')}
         </button>
         <button
           type="button"

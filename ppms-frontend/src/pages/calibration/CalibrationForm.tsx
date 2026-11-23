@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { codeLabel } from '../../constants/labels'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -21,7 +22,7 @@ interface CalibrationFormProps {
   onRecorded: (nozzleId: number) => void
 }
 
-function missingDetailError(form: LogCalibrationRequest, t: TFunction<'calibration'>): string | null {
+function missingDetailError(form: LogCalibrationRequest, t: TFunction<['calibration', 'common']>): string | null {
   if (!form.calibratedBy?.trim()) return t('validation.calibratedByRequired')
   if (!form.calibrationDate) return t('validation.dateRequired')
   if (!form.nextCalibrationDue) return t('validation.nextDueRequired')
@@ -31,7 +32,7 @@ function missingDetailError(form: LogCalibrationRequest, t: TFunction<'calibrati
 }
 
 export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationFormProps) {
-  const { t } = useTranslation('calibration')
+  const { t } = useTranslation(['calibration', 'common'])
   const qc           = useQueryClient()
   const { addToast } = useToastStore()
   const [selectedNozzleId, setSelectedNozzleId] = useState<number>(0)
@@ -114,7 +115,7 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
               placeholder={t('form.nozzlePlaceholder')}
               options={nozzles.map((n) => ({
                 value: n.id.toString(),
-                label: t('nozzleOption', { number: n.nozzleNumber, fuel: n.fuelType }),
+                label: t('nozzleOption', { number: n.nozzleNumber, fuel: codeLabel(n.fuelType) }),
               }))}
             />
           </div>
@@ -193,7 +194,7 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
           className="ui-btn ui-btn-primary"
         >
           {createMutation.isPending
-          ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('form.saving')}</span>
+          ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('common:actions.saving')}</span>
           : t('form.review')}
         </button>
       </form>
@@ -209,30 +210,30 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
           bodyClassName="space-y-4"
           footer={<>
             <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
-              {t('review.back')}
+              {t('common:actions.back')}
             </button>
             <button
               onClick={submitCalibration}
               disabled={createMutation.isPending}
               className="ui-btn ui-btn-primary"
             >
-              {createMutation.isPending ? t('form.saving') : t('review.confirm')}
+              {createMutation.isPending ? t('common:actions.saving') : t('review.confirm')}
             </button>
           </>}
         >
-          {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} {t('review.goBack')}</div>}
+          {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('common:notices.goBackRetry', { error: formError })}</div>}
           <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
             <CalibrationReviewRow
               label={t('review.nozzle')}
               value={selectedNozzle
-                ? t('nozzleOption', { number: selectedNozzle.nozzleNumber, fuel: selectedNozzle.fuelType })
+                ? t('nozzleOption', { number: selectedNozzle.nozzleNumber, fuel: codeLabel(selectedNozzle.fuelType) })
                 : '—'}
             />
             <CalibrationReviewRow label={t('review.calibrationDate')} value={fmtDate(form.calibrationDate)} />
             <CalibrationReviewRow label={t('review.nextDue')} value={form.nextCalibrationDue ? fmtDate(form.nextCalibrationDue) : '—'} />
             <CalibrationReviewRow label={t('review.calibratedBy')} value={form.calibratedBy?.trim() || '—'} />
             <CalibrationReviewRow label={t('review.certificate')} value={form.certificateReference?.trim() || '—'} />
-            <CalibrationReviewRow label={t('review.notes')} value={form.notes?.trim() || '—'} />
+            <CalibrationReviewRow label={t('common:fields.notes')} value={form.notes?.trim() || '—'} />
           </div>
         </Modal>
       )}

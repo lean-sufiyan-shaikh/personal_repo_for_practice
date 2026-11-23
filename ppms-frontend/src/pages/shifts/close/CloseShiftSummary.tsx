@@ -20,7 +20,7 @@ interface Props {
 export function CloseShiftSummary({
   incomingOperatorName, totalDue, totalCollected, diff, creditEntryCount, isEscalated, printError,
 }: Props) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const discrepancyType = discrepancyTypeOf(diff)
   const figures: Array<[string, ReactNode]> = [
     [t('close.summary.totalDue'), <MoneyText value={totalDue} />],
@@ -66,7 +66,7 @@ interface ActionsProps {
 }
 
 export function CloseShiftSummaryActions({ isPreparingPrint, onPrint, onOpenNextShift, onDone }: ActionsProps) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   return (
     <>
       {onOpenNextShift && (
@@ -79,7 +79,7 @@ export function CloseShiftSummaryActions({ isPreparingPrint, onPrint, onOpenNext
         <Printer size={16} strokeWidth={2} aria-hidden="true" />{t('close.summary.print')}
       </LoadingButton>
       <button type="button" onClick={onDone} className={`ui-btn ${onOpenNextShift ? 'ui-btn-secondary' : 'ui-btn-primary'}`}>
-        {t('close.summary.done')}
+        {t('common:actions.done')}
       </button>
     </>
   )

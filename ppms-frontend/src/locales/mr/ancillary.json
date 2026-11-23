@@ -1,11 +1,9 @@
 {
   "page": {
-    "notAssigned": "तुम्हाला कोणत्याही पंपावर जोडलेले नाही. मालक किंवा ॲडमिनला जोडायला सांगा.",
     "kicker": "काउंटर स्टॉक",
     "title": "उत्पादने",
     "subtitle": "लुब्रिकंट, ॲक्सेसरी आणि काउंटरवरील इतर उत्पादने सांभाळा. स्टॉक आणि विक्रीचा हिशोब ठेवा.",
-    "productsCount": "उत्पादने",
-    "noPump": "कोणताही पंप निवडलेला नाही. वरच्या पट्टीत पंप निवडा."
+    "productsCount": "उत्पादने"
   },
   "tabs": {
     "products": "उत्पादने",
@@ -18,14 +16,8 @@
     "PIECE": "नग"
   },
   "actions": {
-    "review": "तपासा",
     "reviewNext": "तपासा →",
-    "back": "मागे",
-    "saving": "सेव्ह होत आहे…",
-    "recording": "नोंद होत आहे…",
-    "save": "सेव्ह करा",
-    "edit": "बदला",
-    "goBack": "{{error}} मागे जाऊन माहिती दुरुस्त करा आणि पुन्हा प्रयत्न करा."
+    "recording": "नोंद होत आहे…"
   },
   "fields": {
     "date": "तारीख",
@@ -36,14 +28,11 @@
     "quantityUnits_one": "{{count}} नग",
     "quantityUnits_other": "{{count}} नग",
     "qty": "संख्या",
-    "total": "एकूण",
     "type": "प्रकार",
     "client": "ग्राहक",
     "clientRequired": "ग्राहक * (क्रेडिटसाठी आवश्यक)",
     "searchClient": "ग्राहक शोधा…",
     "billNo": "बिल क्रमांक",
-    "notes": "टीप",
-    "optional": "ऐच्छिक",
     "paymentMode": "पेमेंटची पद्धत",
     "paymentModeRequired": "पेमेंटची पद्धत *",
     "selectProduct": "उत्पादन निवडा…",
@@ -75,8 +64,6 @@
     "sell": "विका",
     "inventory": "स्टॉक",
     "editHsnOf": "{{name}} चा HSN कोड बदला",
-    "disable": "बंद करा",
-    "enable": "चालू करा",
     "enabled": "उत्पादन चालू झाले",
     "disabled": "उत्पादन बंद झाले",
     "statusFailed": "उत्पादनाची स्थिती अपडेट करता आली नाही"
@@ -93,7 +80,7 @@
     "namePlaceholder": "उदा. इंजिन ऑइल",
     "brand": "ब्रँड",
     "brandPlaceholder": "उदा. Castrol",
-    "variant": "प्रकार",
+    "variant": "व्हेरिएंट",
     "variantPlaceholder": "उदा. GTX 10W-40",
     "packageSizeRequired": "पॅकचा आकार *",
     "packageSize": "पॅकचा आकार",
@@ -130,7 +117,6 @@
     "stockUnits": "{{value}} नग",
     "buyPrice": "खरेदी दर",
     "sellingPriceRequired": "विक्री दर (₹/नग) *",
-    "loadingPrice": "लोड होत आहे…",
     "mrp": "MRP",
     "noPrice": "या उत्पादनाचा विक्री दर ठरलेला नाही. आधी दर ठरवा.",
     "reviewHint": "पक्के करण्यापूर्वी तपशील तपासा.",

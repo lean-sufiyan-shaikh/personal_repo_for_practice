@@ -34,7 +34,7 @@ export function ProductsTab({
   isManagerOrAbove: boolean
   onRefresh: () => void
 }) {
-  const { t } = useTranslation('ancillary')
+  const { t } = useTranslation(['ancillary', 'common'])
   const qc = useQueryClient()
   const { addToast } = useToastStore()
   const canSell = canPerformAction('product:record-sale', useAuthStore((state) => state.user?.role))
@@ -223,7 +223,7 @@ export function ProductsTab({
                         : 'ui-btn-secondary'
                     }`}
                   >
-                    {product.status === 'ACTIVE' ? t('products.disable') : t('products.enable')}
+                    {product.status === 'ACTIVE' ? t('common:actions.disable') : t('common:actions.enable')}
                   </button>
                 )}
               </div>

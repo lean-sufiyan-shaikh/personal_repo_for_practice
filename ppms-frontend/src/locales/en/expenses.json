@@ -21,7 +21,6 @@
     "descriptionPlaceholder": "e.g. Pump servicing by XYZ",
     "expenseDate": "Expense Date",
     "saveDraft": "Save as draft — submit for approval later",
-    "saving": "Saving…",
     "review": "Review Expense",
     "recorded": "Expense recorded successfully",
     "recordFailed": "Failed to record expense",
@@ -31,9 +30,7 @@
   "review": {
     "title": "Review Expense",
     "subtitle": "Verify the expense details before saving the record.",
-    "back": "Back",
-    "add": "Add Expense",
-    "goBack": "{{error}} Go back to modify the data and try again."
+    "add": "Add Expense"
   },
   "list": {
     "title": "All Expenses",
@@ -45,14 +42,10 @@
     "statusPendingApproval": "Pending Approval",
     "statusApproved": "Approved",
     "statusRejected": "Rejected",
-    "clearFilters": "Clear filters",
     "approvalHint": "Approve and reject actions appear only for expenses in <status>Pending Approval</status>.",
     "emptyTitle": "No expenses recorded yet",
     "emptyAccountant": "No records to display.",
     "emptySubtitle": "Use the form above to record your first expense.",
-    "submit": "Submit",
-    "approve": "Approve",
-    "reject": "Reject",
     "deleteExpense": "Delete expense",
     "rejectTitle": "Reject Expense",
     "rejectedWithNotes": "{{label}}: {{notes}}"

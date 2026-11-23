@@ -3,7 +3,7 @@ import { isAxiosError } from 'axios'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Check } from 'lucide-react'
-import { parseApiError } from '../../utils/apiError'
+import { parseApiError, translatedServerError } from '../../utils/apiError'
 import { pumpApi } from '../../api/pumpApi'
 import type { PumpSummary, PriceDeviationWarning, FuelPrice } from '../../api/pumpApi'
 import type { FuelType } from '../../types/shift'
@@ -48,7 +48,7 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
         // Backend returned a PriceDeviationWarning (has deviationPercent) — show confirmation dialog
         // Determine which fuel type triggered the warning
         const ft = availableFuelTypes.find((f) => prices[f] && Number(prices[f]) > 0) ?? ''
-        setDeviationWarning({ ...(warning as PriceDeviationWarning), fuelType: ft })
+        setDeviationWarning({ ...(warning as PriceDeviationWarning), message: translatedServerError(err) ?? warning.message ?? '', fuelType: ft })
       } else {
         // 409 from a DB constraint violation, or any other error — show the message directly
         setError(parseApiError(err, t('prices.setFailed')))
@@ -193,7 +193,7 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
           ))}
           <button type="submit" disabled={mutation.isPending}
             className="ui-btn ui-btn-primary">
-            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('actions.saving')}</span> : t('prices.save')}
+            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('common:actions.saving')}</span> : t('prices.save')}
           </button>
         </div>
         {error   && <p role="alert" className="ui-error-text">{error}</p>}

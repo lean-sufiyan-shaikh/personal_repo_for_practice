@@ -23,7 +23,6 @@
     "expiryDate": "Expiry Date (optional)",
     "notes": "Notes (optional)",
     "notesPlaceholder": "Any additional notes",
-    "saving": "Saving…",
     "update": "Update",
     "add": "Add Document",
     "required": "Name and document type are required"
@@ -33,7 +32,6 @@
     "empty": "No documents added yet. Add your licences and permits to track their expiry.",
     "expires": "Expires: {{date}}",
     "noExpiry": "No expiry",
-    "edit": "Edit",
     "deleteNamed": "Delete {{name}}"
   },
   "toast": {

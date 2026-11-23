@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { codeLabel } from '../../constants/labels'
 import { Pencil } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { TankerDelivery } from '../../api/inventoryApi'
@@ -26,7 +27,7 @@ export function DeliveryItem({ delivery, pumpId, isOwnerOrAdmin }: {
       }`}>
         <span className="font-semibold text-ink">{delivery.tankIdentifier}</span>
         <span className={`font-medium px-2 py-0.5 rounded-badge justify-self-start ${cols.badge}`}>
-          {delivery.fuelType}
+          {codeLabel(delivery.fuelType)}
         </span>
         <LitresText value={delivery.quantityDelivered} className="text-right text-ink-2" />
         {isOwnerOrAdmin && (

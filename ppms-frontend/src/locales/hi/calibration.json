@@ -22,7 +22,6 @@
     "certificatePlaceholder": "जाँच सर्टिफ़िकेट नंबर",
     "notesOptional": "नोट (वैकल्पिक)",
     "notesPlaceholder": "और कोई बात",
-    "saving": "सेव हो रहा है…",
     "review": "कैलिब्रेशन जाँचें"
   },
   "validation": {
@@ -40,22 +39,17 @@
   "review": {
     "title": "कैलिब्रेशन जाँचें",
     "subtitle": "सेव करने से पहले नोज़ल और कैलिब्रेशन की जानकारी जाँच लें।",
-    "back": "पीछे",
     "confirm": "कैलिब्रेशन पक्का करें",
-    "goBack": "पीछे जाकर जानकारी ठीक करें और फिर से कोशिश करें।",
     "nozzle": "नोज़ल",
     "calibrationDate": "कैलिब्रेशन की तारीख",
     "nextDue": "अगला कैलिब्रेशन कब",
     "calibratedBy": "किसने कैलिब्रेशन किया",
-    "certificate": "सर्टिफ़िकेट नंबर",
-    "notes": "नोट"
+    "certificate": "सर्टिफ़िकेट नंबर"
   },
   "history": {
     "title": "कैलिब्रेशन इतिहास",
     "allNozzlesSuffix": "— सभी नोज़ल",
     "nozzleSuffix": "— नोज़ल #{{number}} ({{fuel}})",
-    "from": "से",
-    "to": "तक",
     "filterLabel": "नोज़ल से छाँटें",
     "filterPlaceholder": "नोज़ल से छाँटें…",
     "allNozzles": "सभी नोज़ल",

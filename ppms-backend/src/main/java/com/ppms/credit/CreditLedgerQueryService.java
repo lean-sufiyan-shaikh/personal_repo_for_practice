@@ -6,6 +6,7 @@ import com.ppms.ancillary.AncillaryProductRepository;
 import com.ppms.ancillary.AncillarySale;
 import com.ppms.ancillary.AncillarySaleRepository;
 import com.ppms.common.dto.PagedResponse;
+import com.ppms.common.text.ServerTextCodes;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.shift.ShiftCreditEntryRepository;
@@ -21,6 +22,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -258,10 +260,15 @@ public class CreditLedgerQueryService {
         interestChargeRepository.findByClientIdOrderByCreatedAtDesc(clientId)
                 .forEach(charge -> {
                     String label = String.format("%d days @ %.2f%%/month", charge.getDaysApplied(), charge.getRateApplied());
+                    Map<String, Object> labelParams = new LinkedHashMap<>();
+                    labelParams.put("days", charge.getDaysApplied());
+                    labelParams.put("rate", charge.getRateApplied().setScale(2, RoundingMode.HALF_UP));
                     transactions.add(CreditTransactionResponse.builder()
                             .type("INTEREST")
                             .referenceId(charge.getId())
                             .reference(label)
+                            .referenceCode(ServerTextCodes.INTEREST_CHARGE_DETAILS)
+                            .referenceParams(labelParams)
                             .detail(String.format("%s – %s", charge.getPeriodFrom(), charge.getPeriodTo()))
                             .amount(charge.getAmount().setScale(2, RoundingMode.HALF_UP))
                             .occurredAt(charge.getCreatedAt())

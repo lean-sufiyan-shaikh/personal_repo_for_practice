@@ -44,16 +44,9 @@
       "fuelRequired": "हर क्रेडिट एंट्री में ईंधन का प्रकार होना ज़रूरी है।",
       "amountPositive": "हर क्रेडिट एंट्री की राशि 0 से ज़्यादा होनी चाहिए।",
       "readingInvalid": "अंतिम रीडिंग में गलत मान है। कृपया फिर से डालें।",
-      "paymentInvalid": "{{field}} राशि में गलत मान है।",
-      "fields": {
-        "cash": "नकद",
-        "upi": "UPI",
-        "card": "कार्ड",
-        "fleetCard": "फ़्लीट कार्ड"
-      }
+      "paymentInvalid": "{{field}} राशि में गलत मान है।"
     },
     "fields": {
-      "optional": "(वैकल्पिक)",
       "start": "शुरुआत:",
       "unchanged": "रीडिंग नहीं बदली — इस शिफ्ट में 0 {{unit}} बिका",
       "endReadingAria": "{{label}} अंतिम रीडिंग",
@@ -86,9 +79,6 @@
       },
       "totalDue": "कुल देय",
       "collected": "मिला",
-      "cash": "नकद",
-      "upi": "UPI",
-      "card": "कार्ड",
       "fleetCard": "फ़्लीट कार्ड",
       "credit_one": "क्रेडिट ({{count}} एंट्री)",
       "credit_other": "क्रेडिट ({{count}} एंट्री)",
@@ -96,7 +86,6 @@
       "result": "नतीजा",
       "reason": "कारण: {{reason}}",
       "needsApproval": "यह ₹{{limit}} की सीमा से ज़्यादा है, इसलिए मालिक या एडमिन की मंज़ूरी चाहिए।",
-      "edit": "बदलें",
       "handingOver": "शिफ्ट हैंडओवर हो रही है",
       "closing": "शिफ्ट बंद हो रही है",
       "confirmHandover": "हैंडओवर पक्का करें",
@@ -112,8 +101,7 @@
       "listed": "यह अंतर, अंतर की सूची में दर्ज है; मैनेजर इसे सुलझाएँगे।",
       "openNext": "अगली शिफ्ट शुरू करें",
       "preparing": "रिपोर्ट तैयार हो रही है",
-      "print": "प्रिंट / शेयर करें",
-      "done": "हो गया"
+      "print": "प्रिंट / शेयर करें"
     },
     "discrepancy": {
       "short": "शिफ्ट में ₹{{amount}} कम हैं",
@@ -124,7 +112,6 @@
       "reasonToClose": "यह शिफ्ट बंद करने के लिए नीचे कारण लिखें।",
       "roundOffTitle": "नकद को ₹{{amount}} बदलें ताकि शिफ्ट संतुलित हो जाए",
       "roundOff": "₹{{amount}} नकद में राउंड ऑफ करें",
-      "reason": "कारण",
       "requiredToClose": "(बंद करने के लिए ज़रूरी)",
       "placeholder": "जैसे ग्राहक ने आधा भुगतान किया — बाकी बकाया, मीटर गड़बड़ी आदि।",
       "enterReason": "बंद करने के लिए कारण लिखें"
@@ -135,7 +122,6 @@
     },
     "preRecorded": {
       "heading": "शिफ्ट के दौरान दर्ज ({{count}})",
-      "edit": "बदलें",
       "reasonAria": "हटाने का कारण",
       "reasonPlaceholder": "हटाने का कारण (ज़रूरी)",
       "reasonRequired": "कारण ज़रूरी है",
@@ -158,7 +144,6 @@
       "subtitle": "शिफ्ट #{{id}} · {{operator}} · {{date}}",
       "stillOpen": "चालू",
       "print": "प्रिंट करें",
-      "shiftNumber": "शिफ्ट #{{id}}",
       "operator": "ऑपरेटर",
       "date": "तारीख",
       "du": "DU",
@@ -173,11 +158,6 @@
         "rate": "दर"
       },
       "collections": "वसूली",
-      "cash": "नकद",
-      "upi": "UPI",
-      "card": "कार्ड",
-      "fleetCard": "फ़्लीट कार्ड",
-      "credit": "क्रेडिट",
       "totalDue": "कुल देय",
       "discrepancy": "अंतर",
       "reason": "कारण: {{reason}}",
@@ -207,7 +187,6 @@
     "searchClient": "ग्राहक का नाम खोजें…",
     "searchClientShort": "ग्राहक का नाम खोजें...",
     "subAccount": "उप-खाता",
-    "optional": "(वैकल्पिक)",
     "billToParentOption": "— मुख्य खाते ({{name}}) में बिल करें —",
     "billToParent": "मुख्य खाते ({{name}}) में बिल करें",
     "fuel": "ईंधन",
@@ -224,10 +203,8 @@
     "descriptionPlaceholder": "जैसे ड्राइवर को दिया",
     "editAria": "क्रेडिट एंट्री {{number}} बदलें",
     "incomplete": "अधूरी — बदलने के लिए दबाएँ",
-    "edit": "बदलें",
     "deleteEntry": "एंट्री हटाएँ",
-    "entryNumber": "एंट्री {{number}}",
-    "add": "जोड़ें"
+    "entryNumber": "एंट्री {{number}}"
   },
   "clientSearch": {
     "noMatch": "कोई मेल नहीं",
@@ -269,7 +246,6 @@
     "title": "अंतर सुलझाएँ",
     "subtitle": "शिफ्ट #{{id}} · {{operator}} · {{type}} {{amount}}",
     "reasonAtClose": "बंद करते समय दिया कारण: {{reason}}",
-    "saving": "सेव हो रहा है…",
     "startInvestigation": "जाँच शुरू करें",
     "confirm": "फ़ैसला पक्का करें",
     "actionLabel": "सुलझाने का तरीका",
@@ -300,8 +276,6 @@
       "resolved": "सुलझा"
     },
     "awaitingOwnerApproval": "मालिक की मंज़ूरी का इंतज़ार",
-    "today": "आज",
-    "yesterday": "कल",
     "dayBeforeYesterday": "परसों",
     "resolution": {
       "pendingInvestigation": "जाँच बाकी",
@@ -325,12 +299,10 @@
     "noPumpsTitle": "अभी कोई पंप सेट नहीं है",
     "noPumpsBody": "पहले पंप की जगह बनाएँ, फिर नोज़ल जोड़ें और ईंधन कीमत सेट करें।",
     "goToSetup": "सेटअप पर जाएँ",
-    "notAssigned": "आपको किसी पंप पर नहीं लगाया गया है। मालिक या एडमिन से कहें।",
     "kicker": "शिफ्ट नियंत्रण",
     "title": "शिफ्ट",
     "subtitle": "ऑपरेटर की शिफ्ट खोलें और बंद करें, मीटर रीडिंग और भुगतान दर्ज करें।",
     "openNow": "अभी चालू",
-    "noPumpSelected": "कोई पंप नहीं चुना। ऊपर की पट्टी में पंप चुनें।",
     "myActiveShifts": "मेरी चालू शिफ्ट",
     "activeShifts": "चालू शिफ्ट",
     "activeShiftsCaption": "चालू शिफ्ट",
@@ -404,13 +376,11 @@
     "priceNotSet": "सेट नहीं",
     "startedTime": "{{time}} पर शुरू",
     "credit": "क्रेडिट",
-    "handOver": "हैंडओवर",
-    "close": "बंद करें"
+    "handOver": "हैंडओवर"
   },
   "backfill": {
     "title": "पुरानी शिफ्ट भरें",
     "subtitle": "पिछली शिफ्ट का डेटा दर्ज करें (365 दिन पीछे तक)। उस तारीख की टैंकर डिलीवरी पहले दर्ज होनी चाहिए — स्टॉक कम होने पर सिस्टम इसे सेव नहीं करेगा।",
-    "saving": "सेव हो रहा है…",
     "save": "पुरानी शिफ्ट सेव करें",
     "reason": {
       "label": "अंतर का कारण",
@@ -423,7 +393,6 @@
       "dateHint": "पिछले 365 दिन · आज नहीं",
       "du": "DU",
       "duOption": "{{name}} (DU #{{number}})",
-      "loading": "लोड हो रहा है…",
       "selectDu": "DU चुनें…",
       "window": "शिफ्ट का समय",
       "noDefinitions": "इस पंप के लिए कोई शिफ्ट समय नहीं मिला। पहले सेटअप में शिफ्ट समय बनाएँ।",
@@ -470,7 +439,6 @@
       "title": "क्रेडिट बिक्री",
       "total": "कुल क्रेडिट (नीचे की एंट्री का जोड़)",
       "newEntry": "नई एंट्री",
-      "edit": "बदलें",
       "removeLabel": "क्रेडिट एंट्री हटाएँ",
       "client": "ग्राहक",
       "selectClient": "ग्राहक चुनें",
@@ -481,7 +449,6 @@
       "optional": "वैकल्पिक",
       "description": "विवरण",
       "removeEntry": "एंट्री हटाएँ",
-      "done": "हो गया",
       "add": "+ क्रेडिट एंट्री जोड़ें"
     },
     "errors": {
@@ -511,7 +478,6 @@
       "discrepancy": "अंतर",
       "actions": "कार्रवाई"
     },
-    "shiftNumber": "शिफ्ट #{{id}}",
     "shiftRegion": "शिफ्ट {{id}}",
     "showAll": "सभी शिफ्ट देखें",
     "shiftNotFound": "शिफ्ट #{{id}} इस पंप पर नहीं मिली।",
@@ -523,31 +489,22 @@
     "shiftsFor": "{{label}} की शिफ्ट",
     "shiftsForDay": "दिन की शिफ्ट",
     "filterByDate": "तारीख से छाँटें:",
-    "fromDate": "शुरू की तारीख",
     "to": "से",
-    "toDate": "आखिरी तारीख",
     "fuelOnlyLabel": "सिर्फ़ {{fuel}} की शिफ्ट दिख रही हैं। सभी ईंधन देखें",
     "fuelOnly": "सिर्फ़ {{fuel}} ×",
-    "clear": "हटाएँ",
     "filtered": " (छाँटी गई)",
     "allShiftsCaption": "सभी शिफ्ट",
     "allEmpty": "चुनी गई तारीखों में कोई शिफ्ट नहीं।",
-    "pageOf": "पेज {{page}} / {{total}}",
     "showingRange": "({{total}} में से {{from}}–{{to}})",
     "firstPage": "पहला पेज",
-    "prev": "पिछला",
-    "next": "अगला",
     "lastPage": "आखिरी पेज",
     "backfilled": "बाद में भरी गई",
     "resolve": "सुलझाएँ",
-    "approve": "मंज़ूर करें",
     "printHandover": "हैंडओवर रिपोर्ट प्रिंट करें",
     "payment": {
-      "cash": "नकद",
       "upiCard": "UPI + कार्ड",
       "upiAmount": "UPI {{amount}}",
       "cardAmount": "कार्ड {{amount}}",
-      "credit": "क्रेडिट",
       "viewCredit": "क्रेडिट की जानकारी देखने के लिए दबाएँ",
       "clientCount_one": "{{count}} ग्राहक",
       "clientCount_other": "{{count}} ग्राहक"
@@ -592,8 +549,6 @@
     "generate": {
       "title": "शेड्यूल अपने-आप बनाएँ",
       "subtitle": "सिस्टम पसंद, छुट्टी की तारीखों और बराबरी के हिसाब से ऑपरेटर लगाएगा।",
-      "generating": "बन रहा है…",
-      "submit": "बनाएँ",
       "dayOperators": "सुबह / शाम की हर शिफ्ट में ऑपरेटर",
       "nightOperators": "रात की हर शिफ्ट में ऑपरेटर (12 AM – 8 AM)"
     },
@@ -623,8 +578,7 @@
       "addOperator": "ऑपरेटर जोड़ें",
       "addShort": "+ जोड़ें",
       "operatorToAdd": "जोड़ने के लिए ऑपरेटर",
-      "pickOperator": "— ऑपरेटर चुनें —",
-      "add": "जोड़ें"
+      "pickOperator": "— ऑपरेटर चुनें —"
     }
   }
 }

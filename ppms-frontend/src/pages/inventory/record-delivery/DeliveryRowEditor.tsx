@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import { codeLabel } from '../../../constants/labels'
 import { useTranslation } from 'react-i18next'
 import { formatNumberIn } from '../../../i18n/format'
 import type { TankStock } from '../../../api/inventoryApi'
@@ -25,7 +26,7 @@ interface Props {
 export function DeliveryRowEditor({
   row, rowNumber, tanks, tankOptions, isOwnerOrAdmin, isExpanded, onExpandedChange, canRemove, onRemove, onChange,
 }: Props) {
-  const { t } = useTranslation('inventory')
+  const { t } = useTranslation(['inventory', 'common'])
   const tank          = tanks.find(t => t.tankId === Number(row.tankId))
   const rowCost       = isOwnerOrAdmin ? (parseFloat(row.qty) || 0) * (parseFloat(row.costPrice) || 0) : 0
   const enteredQty    = parseFloat(row.qty) || 0
@@ -44,7 +45,7 @@ export function DeliveryRowEditor({
             {isFilled ? (
               <>
                 <span className="text-sm font-medium text-ink truncate">
-                  {tank?.tankIdentifier ?? '—'} · {tank?.fuelType ?? '—'}
+                  {tank?.tankIdentifier ?? '—'} · {codeLabel(tank?.fuelType)}
                 </span>
                 <span className="text-xs text-ink-3 shrink-0">{formatNumberIn(enteredQty)} L</span>
                 {rowOverflow && (
@@ -64,7 +65,7 @@ export function DeliveryRowEditor({
               onClick={() => onExpandedChange(row.id)}
               className="text-xs text-primary hover:text-primary-strong transition-colors"
             >
-              {t('row.edit')}
+              {t('common:actions.edit')}
             </button>
             {canRemove && (
               <IconButton
@@ -93,7 +94,7 @@ export function DeliveryRowEditor({
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                {t('row.remove')}
+                {t('common:actions.remove')}
               </button>
             )}
           </div>
@@ -186,7 +187,7 @@ export function DeliveryRowEditor({
                 onClick={() => onExpandedChange(null)}
                 className="ui-btn ui-btn-ghost text-xs px-3 py-1.5 min-h-0"
               >
-                {t('row.done')}
+                {t('common:actions.done')}
               </button>
             </div>
           )}

@@ -7,9 +7,9 @@ import { SetupChecklistCard } from './SetupChecklistCard'
 const checklist: SetupChecklist = {
   pumpId: 3, doneCount: 1, requiredCount: 2,
   items: [
-    { step: 'DISPENSERS', done: true, optional: false, detail: '4 active nozzles' },
-    { step: 'TANKS', done: false, optional: false, detail: '1 nozzle not linked to a tank' },
-    { step: 'CREDIT_CLIENTS', done: false, optional: true, detail: 'Add customers who buy on credit, if any' },
+    { step: 'DISPENSERS', done: true, optional: false, detail: '4 active nozzles', detailCode: 'SETUP_ACTIVE_NOZZLES', detailParams: { count: 4 } },
+    { step: 'TANKS', done: false, optional: false, detail: '1 nozzle not linked to a tank', detailCode: 'SETUP_NOZZLES_NOT_LINKED', detailParams: { count: 1 } },
+    { step: 'CREDIT_CLIENTS', done: false, optional: true, detail: 'Add customers who buy on credit, if any', detailCode: 'SETUP_CREDIT_CLIENTS_NONE', detailParams: {} },
   ],
 }
 

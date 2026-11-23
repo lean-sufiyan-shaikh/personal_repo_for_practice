@@ -194,7 +194,7 @@ export default function DocumentsPage() {
             className="ui-btn ui-btn-primary"
           >
             {saveMutation.isPending
-              ? <span className="flex items-center gap-1.5"><Spinner />{t('form.saving')}</span>
+              ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.saving')}</span>
               : editId ? t('form.update') : t('form.add')}
           </button>
         </form>
@@ -232,7 +232,7 @@ export default function DocumentsPage() {
                     onClick={() => startEdit(doc)}
                     className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
                   >
-                    {t('list.edit')}
+                    {t('common:actions.edit')}
                   </button>
                   {isOwner && (
                     <ConfirmButton

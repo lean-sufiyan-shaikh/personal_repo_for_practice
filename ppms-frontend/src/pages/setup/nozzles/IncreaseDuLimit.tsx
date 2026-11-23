@@ -59,7 +59,7 @@ export function IncreaseDuLimit({ pump, onUpdated }: { pump: PumpSummary; onUpda
             disabled={increaseMaxMutation.isPending || !newMaxCount}
             className="ui-btn ui-btn-primary"
           >
-            {increaseMaxMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('actions.saving')}</span> : t('nozzles.limit.submit')}
+            {increaseMaxMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('common:actions.saving')}</span> : t('nozzles.limit.submit')}
           </button>
           <button
             type="button"

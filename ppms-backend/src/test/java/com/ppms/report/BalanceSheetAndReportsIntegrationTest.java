@@ -118,6 +118,10 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
         assertThat(shiftIdsOf(yesterdaysSheet)).containsExactly(yesterdaysShiftId);
         assertThat(yesterdaysSheet.get("totalLitresSold").decimalValue()).isEqualByComparingTo("10");
         assertThat(yesterdaysSheet.get("periodLabel").asText()).isEqualTo("Day End · " + yesterday);
+        assertThat(yesterdaysSheet.get("periodLabelCode").asText()).isEqualTo("PERIOD_DAY_END");
+        assertThat(yesterdaysSheet.get("periodLabelParams").get("date").asText()).isEqualTo(yesterday);
+        assertThat(todaysSheet.get("periodLabelCode").asText()).isEqualTo("PERIOD_DAY_END_UP_TO");
+        assertThat(todaysSheet.get("periodLabelParams").has("time")).isTrue();
     }
 
     private static List<Long> shiftIdsOf(JsonNode sheet) {

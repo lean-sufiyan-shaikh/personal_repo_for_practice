@@ -54,7 +54,7 @@ export function ResetPasswordDialog({ userId, userName, onClose }: ResetPassword
       closeOnBackdropClick
       bodyClassName={resetMutation.isSuccess ? 'space-y-3' : 'space-y-4'}
       footer={resetMutation.isSuccess ? (
-        <button type="button" onClick={onClose} className="ui-btn ui-btn-primary">{t('resetPasswordDialog.done')}</button>
+        <button type="button" onClick={onClose} className="ui-btn ui-btn-primary">{t('common:actions.done')}</button>
       ) : (
         <>
           <button type="button" onClick={onClose} disabled={resetMutation.isPending} className="ui-btn ui-btn-secondary">

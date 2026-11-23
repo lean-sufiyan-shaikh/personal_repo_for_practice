@@ -98,7 +98,7 @@ export function AddProductDialog({
                 {t('common:actions.cancel')}
               </button>
               <button onClick={handleReview} className="ui-btn ui-btn-primary">
-                {t('actions.review')}
+                {t('common:actions.review')}
               </button>
             </>
           ) : (
@@ -107,7 +107,7 @@ export function AddProductDialog({
                 onClick={() => { setStep('form'); setError(null) }}
                 className="ui-btn ui-btn-secondary"
               >
-                {t('actions.back')}
+                {t('common:actions.back')}
               </button>
               <button
                 onClick={handleCreate}
@@ -126,7 +126,7 @@ export function AddProductDialog({
         {step === 'form' && (
           <>
             {error && (
-              <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('actions.goBack', { error })}</div>
+              <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('common:notices.goBackRetry', { error })}</div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>

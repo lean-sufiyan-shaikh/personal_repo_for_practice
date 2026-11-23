@@ -65,7 +65,7 @@ export function creditStandingBadge(standing: CreditStanding): StatusBadgeSpec {
 }
 
 export function settlementOverdueBadge(): StatusBadgeSpec {
-  return { tone: 'bad', icon: Clock, label: codeLabel('OVERDUE') }
+  return { tone: 'bad', icon: Clock, label: i18n.t('common:badges.overdue') }
 }
 
 /** A ledger row's status wins over its type, so a voided sale reads "Voided" rather than "Sale". */

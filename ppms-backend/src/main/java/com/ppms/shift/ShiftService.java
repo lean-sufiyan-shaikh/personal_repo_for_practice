@@ -18,6 +18,7 @@ import com.ppms.pump.NozzleRepository;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.pump.PumpShiftDefinition;
 import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
@@ -236,7 +237,7 @@ public class ShiftService {
 
         activeNozzleRepository.deleteByShiftId(shiftId);
         balanceSheetStalenessService.markSheetsOfShiftStale(shift.getPumpId(), shift.getShiftDate(),
-                shift.getShiftDefinitionId(), "Shift #" + shiftId + " was closed after this sheet was generated.");
+                shift.getShiftDefinitionId(), StaleReasons.shiftClosed(shiftId));
 
         log.info("Shift {} closed: totalDue={}, totalCollected={}, discrepancy={}, status={}",
                 shiftId, closingSummary.getTotalDue(), closingSummary.getTotalCollected(),
@@ -438,7 +439,7 @@ public class ShiftService {
         if (request.resolutionAction() == DiscrepancyResolution.CASH_RECOVERY) {
             lifecycleSupportService.createCashRecoveryEvent(shift, currentUser);
             balanceSheetStalenessService.markDaySheetsStale(shift.getPumpId(), List.of(businessClock.today()),
-                    "Cash was recovered for the shortage on Shift #" + shift.getId() + " after this sheet was generated.");
+                    StaleReasons.cashRecovered(shift.getId()));
         }
 
         log.info("Discrepancy resolved: shiftId={}, action={}, resolvedBy={}",

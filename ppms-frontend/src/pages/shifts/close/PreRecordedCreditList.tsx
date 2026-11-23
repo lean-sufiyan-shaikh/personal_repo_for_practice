@@ -94,7 +94,7 @@ export function PreRecordedCreditList({ shift, entries, total, onEdit, onVoided 
                       className="text-xs text-primary hover:text-primary-strong font-medium
  transition-colors disabled:opacity-40"
                     >
-                      {t('close.preRecorded.edit')}
+                      {t('common:actions.edit')}
                     </button>
                     <button
                       type="button"

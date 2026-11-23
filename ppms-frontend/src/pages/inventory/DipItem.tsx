@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { codeLabel } from '../../constants/labels'
 import { inventoryApi } from '../../api/inventoryApi'
 import type { DipCheck } from '../../api/inventoryApi'
 import { AlertTriangle, Check } from 'lucide-react'
@@ -44,7 +45,7 @@ export function DipItem({ check, pumpId, canReview }: {
       check.status === 'PENDING_REVIEW' ? 'bg-bad-bg border border-bad' : 'bg-bg'
     }`}>
       <span className={`text-xs font-medium px-2 py-0.5 rounded-badge shrink-0 ${cols.badge}`}>
-        {check.fuelType}
+        {codeLabel(check.fuelType)}
       </span>
       <span className="text-xs font-semibold text-ink w-14 shrink-0">{check.tankIdentifier}</span>
       <span className="text-xs text-ink-3 shrink-0">

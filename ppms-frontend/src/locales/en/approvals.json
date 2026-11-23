@@ -5,7 +5,6 @@
     "subtitle": "Expenses and credit payments that need your decision before they count",
     "waiting": "Waiting",
     "amount": "Amount",
-    "noPumpTitle": "No pump selected",
     "noPumpSubtitle": "Choose a pump in the top bar.",
     "emptyTitle": "Nothing is waiting for approval",
     "emptySubtitle": "New expenses and payments above your approval limit will appear here."

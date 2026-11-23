@@ -15,7 +15,7 @@ interface RevokeExtensionModalProps {
 }
 
 export function RevokeExtensionModal({ pumpId, extension, onClose }: RevokeExtensionModalProps) {
-  const { t } = useTranslation('credit')
+  const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -57,7 +57,7 @@ export function RevokeExtensionModal({ pumpId, extension, onClose }: RevokeExten
       </p>
       <div className="ui-inline-form">
         <label className="block">
-          <span className="ui-label">{t('form.reason')} <span aria-hidden="true" className="text-bad">*</span></span>
+          <span className="ui-label">{t('common:fields.reason')} <span aria-hidden="true" className="text-bad">*</span></span>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}

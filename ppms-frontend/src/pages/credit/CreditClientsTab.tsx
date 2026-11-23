@@ -82,7 +82,7 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
     if (clients.some(c => c.name.toLowerCase() === trimmedName.toLowerCase())) {
       setAddError(t('clients.duplicateName', { name: trimmedName })); return
     }
-    if (!isValidGstin(gstin)) { setAddError(t('clientForm.gstinFormat')); return }
+    if (!isValidGstin(gstin)) { setAddError(t('common:gst.gstinFormat')); return }
     addMutation.mutate({
       name: trimmedName, phone: trimmedPhone, notes: notes.trim() || undefined,
       gstin: normaliseGstText(gstin) || undefined, billingAddress: billingAddress.trim() || undefined,
@@ -220,7 +220,7 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
                         onClick={() => setEditingId(editingId === parent.id ? null : parent.id)}
                         className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
                       >
-                        {editingId === parent.id ? t('common:actions.cancel') : t('clients.edit')}
+                        {editingId === parent.id ? t('common:actions.cancel') : t('common:actions.edit')}
                       </button>
                       <button
                         onClick={() => toggleStatusMutation.mutate({ clientId: parent.id, isActive: !parent.isActive })}
@@ -231,7 +231,7 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
                             : 'text-ok border-ok/30 hover:bg-ok-bg'
                         }`}
                       >
-                        {parent.isActive ? t('clients.disable') : t('clients.enable')}
+                        {parent.isActive ? t('common:actions.disable') : t('common:actions.enable')}
                       </button>
                     </div>
                   )}
@@ -265,7 +265,7 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
                           <button
                             onClick={() => setEditingId(editingId === child.id ? null : child.id)}
                             className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong">
-                            {editingId === child.id ? t('common:actions.cancel') : t('clients.edit')}
+                            {editingId === child.id ? t('common:actions.cancel') : t('common:actions.edit')}
                           </button>
                           <button
                             onClick={() => toggleStatusMutation.mutate({ clientId: child.id, isActive: !child.isActive })}
@@ -276,7 +276,7 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
                                 : 'text-ok border-ok/30 hover:bg-ok-bg'
                             }`}
                           >
-                            {child.isActive ? t('clients.disable') : t('clients.enable')}
+                            {child.isActive ? t('common:actions.disable') : t('common:actions.enable')}
                           </button>
                         </div>
                       )}
@@ -310,7 +310,7 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
                     </div>
                     <div>
                       <label className="block">
-                        <span className="ui-label">{t('clientForm.notes')} <span className="text-ink-3">{t('clientForm.optional')}</span></span>
+                        <span className="ui-label">{t('common:fields.notes')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span></span>
                         <input value={addSubNotes} onChange={e => setAddSubNotes(e.target.value)}
                           placeholder={t('clients.subNotesPlaceholder')} className="text-xs min-h-10" />
                       </label>
@@ -361,7 +361,7 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
             </div>
             <div>
               <label className="block">
-                <span className="ui-label">{t('clientForm.notes')} <span className="text-ink-3">{t('clientForm.optional')}</span></span>
+                <span className="ui-label">{t('common:fields.notes')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span></span>
                 <input value={notes} onChange={e => setNotes(e.target.value)}
                   placeholder={t('clientForm.notesPlaceholder')} className="text-sm" />
               </label>
@@ -370,10 +370,10 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
               <label className="block">
                 <span className="ui-label">GSTIN <span className="text-ink-3">{t('clientForm.gstinHint')}</span></span>
                 <input value={gstin} onChange={e => setGstin(e.target.value.toUpperCase())}
-                  maxLength={15} autoCapitalize="characters" placeholder={t('clientForm.gstinPlaceholder')} className="text-sm" />
+                  maxLength={15} autoCapitalize="characters" placeholder={t('common:gst.gstinPlaceholder')} className="text-sm" />
               </label>
               <label className="block">
-                <span className="ui-label">{t('clientForm.billingAddress')} <span className="text-ink-3">{t('clientForm.optional')}</span></span>
+                <span className="ui-label">{t('clientForm.billingAddress')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span></span>
                 <input value={billingAddress} onChange={e => setBillingAddress(e.target.value)}
                   maxLength={500} placeholder={t('clientForm.billingAddressPlaceholder')} className="text-sm" />
               </label>

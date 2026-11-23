@@ -28,7 +28,7 @@ import type { DiscrepancyType, ShiftStatus } from '../../../types/shift'
 import { codeLabel } from '../../../constants/labels'
 import { ShortOverChart } from '../charts/ShortOverChart'
 
-function printColumns(t: TFunction<'reports'>): DataTableColumn<DiscrepancyLine>[] {
+function printColumns(t: TFunction<['reports', 'common']>): DataTableColumn<DiscrepancyLine>[] {
   return [
     { key: 'date', header: t('columns.date'), cell: (s) => <span className="text-ink-2">{s.shiftDate}</span> },
     { key: 'type', header: t('columns.type'), cell: (s) => <StatusBadge {...discrepancyBadge(s.discrepancyType as DiscrepancyType)} /> },
@@ -38,9 +38,9 @@ function printColumns(t: TFunction<'reports'>): DataTableColumn<DiscrepancyLine>
   ]
 }
 
-function screenColumns(t: TFunction<'reports'>): DataTableColumn<DiscrepancyLine>[] {
+function screenColumns(t: TFunction<['reports', 'common']>): DataTableColumn<DiscrepancyLine>[] {
   return [
-    { key: 'shift', header: t('columns.shift'), cell: (s) => <Link to={shiftUrl(s.shiftId)} className="ui-link">{t('controls.shiftLink', { id: s.shiftId })}</Link> },
+    { key: 'shift', header: t('columns.shift'), cell: (s) => <Link to={shiftUrl(s.shiftId)} className="ui-link">{t('common:shiftNumber', { id: s.shiftId })}</Link> },
     ...printColumns(t),
   ]
 }
@@ -68,7 +68,7 @@ function totals(report: OperatorDiscrepancyReport) {
 // ── Short / Over Discrepancy Tab ──────────────────────────────────────────────
 
 export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
-  const { t } = useTranslation('reports')
+  const { t } = useTranslation(['reports', 'common'])
   const [query, setQuery, isDefaultRange] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
@@ -115,14 +115,14 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
           disabled={isFetching}
           className="ui-btn ui-btn-primary"
         >
-          {isFetching ? t('controls.loading') : t('controls.generate')}
+          {isFetching ? t('common:loading.short') : t('common:actions.generate')}
         </button>
         <button
           onClick={() => { void printWhenFontsReady() }}
           disabled={!data || data.operators.length === 0}
           className="ui-btn ui-btn-secondary"
         >
-          {t('controls.printPdf')}
+          {t('common:actions.printPdf')}
         </button>
         <CsvExportButton filename={csvFilename('short-over', query)} columns={CSV_COLUMNS} rows={csvRows} />
         </div>

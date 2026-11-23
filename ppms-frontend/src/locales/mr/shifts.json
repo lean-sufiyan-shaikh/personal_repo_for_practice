@@ -43,17 +43,10 @@
       "clientFromList": "प्रत्येक क्रेडिट नोंदीसाठी यादीतून ग्राहक निवडा.",
       "fuelRequired": "प्रत्येक क्रेडिट नोंदीला इंधनाचा प्रकार हवा.",
       "amountPositive": "प्रत्येक क्रेडिट नोंदीची रक्कम 0 पेक्षा जास्त हवी.",
-      "readingInvalid": "शेवटच्या रीडिंगमध्ये चुकीची किंमत आहे. कृपया पुन्हा टाका.",
-      "paymentInvalid": "{{field}} रकमेत चुकीची किंमत आहे.",
-      "fields": {
-        "cash": "रोख",
-        "upi": "UPI",
-        "card": "कार्ड",
-        "fleetCard": "फ्लीट कार्ड"
-      }
+      "readingInvalid": "शेवटच्या रीडिंगमध्ये चुकीचे मूल्य आहे. कृपया पुन्हा टाका.",
+      "paymentInvalid": "{{field}} रकमेत चुकीचे मूल्य आहे."
     },
     "fields": {
-      "optional": "(ऐच्छिक)",
       "start": "सुरुवात:",
       "unchanged": "रीडिंग बदलले नाही — या शिफ्टमध्ये 0 {{unit}} विकले",
       "endReadingAria": "{{label}} शेवटचे रीडिंग",
@@ -86,9 +79,6 @@
       },
       "totalDue": "एकूण देय",
       "collected": "मिळाले",
-      "cash": "रोख",
-      "upi": "UPI",
-      "card": "कार्ड",
       "fleetCard": "फ्लीट कार्ड",
       "credit_one": "क्रेडिट ({{count}} नोंद)",
       "credit_other": "क्रेडिट ({{count}} नोंदी)",
@@ -96,7 +86,6 @@
       "result": "निकाल",
       "reason": "कारण: {{reason}}",
       "needsApproval": "हे ₹{{limit}} मर्यादेपेक्षा जास्त आहे, म्हणून मालक किंवा ॲडमिनची मंजुरी हवी.",
-      "edit": "बदला",
       "handingOver": "शिफ्ट हँडओव्हर होत आहे",
       "closing": "शिफ्ट बंद होत आहे",
       "confirmHandover": "हँडओव्हर नक्की करा",
@@ -112,8 +101,7 @@
       "listed": "हा फरक फरकांच्या यादीत नोंदला आहे; मॅनेजर तो सोडवतील.",
       "openNext": "पुढची शिफ्ट सुरू करा",
       "preparing": "रिपोर्ट तयार होत आहे",
-      "print": "प्रिंट / शेअर करा",
-      "done": "झाले"
+      "print": "प्रिंट / शेअर करा"
     },
     "discrepancy": {
       "short": "शिफ्टमध्ये ₹{{amount}} कमी आहेत",
@@ -124,7 +112,6 @@
       "reasonToClose": "ही शिफ्ट बंद करण्यासाठी खाली कारण लिहा.",
       "roundOffTitle": "शिफ्ट जुळण्यासाठी रोख ₹{{amount}} ने बदला",
       "roundOff": "₹{{amount}} रोखीत राउंड ऑफ करा",
-      "reason": "कारण",
       "requiredToClose": "(बंद करण्यासाठी आवश्यक)",
       "placeholder": "उदा. ग्राहकाने अर्धे पैसे दिले — बाकी थकबाकी, मीटरमध्ये चूक इ.",
       "enterReason": "बंद करण्यासाठी कारण लिहा"
@@ -135,7 +122,6 @@
     },
     "preRecorded": {
       "heading": "शिफ्टदरम्यान नोंदलेले ({{count}})",
-      "edit": "बदला",
       "reasonAria": "हटवण्याचे कारण",
       "reasonPlaceholder": "हटवण्याचे कारण (आवश्यक)",
       "reasonRequired": "कारण आवश्यक आहे",
@@ -158,7 +144,6 @@
       "subtitle": "शिफ्ट #{{id}} · {{operator}} · {{date}}",
       "stillOpen": "चालू",
       "print": "प्रिंट करा",
-      "shiftNumber": "शिफ्ट #{{id}}",
       "operator": "ऑपरेटर",
       "date": "तारीख",
       "du": "DU",
@@ -173,11 +158,6 @@
         "rate": "दर"
       },
       "collections": "वसुली",
-      "cash": "रोख",
-      "upi": "UPI",
-      "card": "कार्ड",
-      "fleetCard": "फ्लीट कार्ड",
-      "credit": "क्रेडिट",
       "totalDue": "एकूण देय",
       "discrepancy": "फरक",
       "reason": "कारण: {{reason}}",
@@ -207,7 +187,6 @@
     "searchClient": "ग्राहकाचे नाव शोधा…",
     "searchClientShort": "ग्राहकाचे नाव शोधा...",
     "subAccount": "उप-खाते",
-    "optional": "(ऐच्छिक)",
     "billToParentOption": "— मुख्य खात्यावर ({{name}}) बिल करा —",
     "billToParent": "मुख्य खात्यावर ({{name}}) बिल करा",
     "fuel": "इंधन",
@@ -224,10 +203,8 @@
     "descriptionPlaceholder": "उदा. ड्रायव्हरला दिले",
     "editAria": "क्रेडिट नोंद {{number}} बदला",
     "incomplete": "अपूर्ण — बदलण्यासाठी दाबा",
-    "edit": "बदला",
     "deleteEntry": "नोंद हटवा",
-    "entryNumber": "नोंद {{number}}",
-    "add": "जोडा"
+    "entryNumber": "नोंद {{number}}"
   },
   "clientSearch": {
     "noMatch": "काहीही जुळले नाही",
@@ -269,7 +246,6 @@
     "title": "फरक सोडवा",
     "subtitle": "शिफ्ट #{{id}} · {{operator}} · {{type}} {{amount}}",
     "reasonAtClose": "बंद करताना दिलेले कारण: {{reason}}",
-    "saving": "सेव्ह होत आहे…",
     "startInvestigation": "चौकशी सुरू करा",
     "confirm": "निर्णय नक्की करा",
     "actionLabel": "सोडवण्याचा मार्ग",
@@ -300,8 +276,6 @@
       "resolved": "सोडवले"
     },
     "awaitingOwnerApproval": "मालकाच्या मंजुरीची वाट",
-    "today": "आज",
-    "yesterday": "काल",
     "dayBeforeYesterday": "परवा",
     "resolution": {
       "pendingInvestigation": "चौकशी प्रलंबित",
@@ -325,12 +299,10 @@
     "noPumpsTitle": "अजून कोणताही पंप सेट नाही",
     "noPumpsBody": "आधी पंपाची जागा तयार करा, मग नोझल जोडा आणि इंधन दर सेट करा.",
     "goToSetup": "सेटअपवर जा",
-    "notAssigned": "तुम्हाला कोणत्याही पंपावर नेमलेले नाही. मालक किंवा ॲडमिनला सांगा.",
     "kicker": "शिफ्ट नियंत्रण",
     "title": "शिफ्ट",
     "subtitle": "ऑपरेटरच्या शिफ्ट उघडा आणि बंद करा, मीटर रीडिंग आणि पेमेंट नोंदवा.",
     "openNow": "आता चालू",
-    "noPumpSelected": "पंप निवडलेला नाही. वरच्या पट्टीत पंप निवडा.",
     "myActiveShifts": "माझ्या चालू शिफ्ट",
     "activeShifts": "चालू शिफ्ट",
     "activeShiftsCaption": "चालू शिफ्ट",
@@ -404,13 +376,11 @@
     "priceNotSet": "सेट नाही",
     "startedTime": "{{time}} ला सुरू",
     "credit": "क्रेडिट",
-    "handOver": "हँडओव्हर",
-    "close": "बंद करा"
+    "handOver": "हँडओव्हर"
   },
   "backfill": {
     "title": "जुनी शिफ्ट भरा",
     "subtitle": "मागील शिफ्टचा डेटा नोंदवा (365 दिवस मागेपर्यंत). त्या तारखेची टँकर डिलिव्हरी आधी नोंदलेली हवी — स्टॉक कमी असल्यास सिस्टम हे सेव्ह करणार नाही.",
-    "saving": "सेव्ह होत आहे…",
     "save": "जुनी शिफ्ट सेव्ह करा",
     "reason": {
       "label": "फरकाचे कारण",
@@ -423,7 +393,6 @@
       "dateHint": "मागील 365 दिवस · आज नाही",
       "du": "DU",
       "duOption": "{{name}} (DU #{{number}})",
-      "loading": "लोड होत आहे…",
       "selectDu": "DU निवडा…",
       "window": "शिफ्टची वेळ",
       "noDefinitions": "या पंपासाठी शिफ्टच्या वेळा सापडल्या नाहीत. आधी सेटअपमध्ये शिफ्टच्या वेळा तयार करा.",
@@ -470,7 +439,6 @@
       "title": "क्रेडिट विक्री",
       "total": "एकूण क्रेडिट (खालील नोंदींची बेरीज)",
       "newEntry": "नवी नोंद",
-      "edit": "बदला",
       "removeLabel": "क्रेडिट नोंद हटवा",
       "client": "ग्राहक",
       "selectClient": "ग्राहक निवडा",
@@ -481,7 +449,6 @@
       "optional": "ऐच्छिक",
       "description": "वर्णन",
       "removeEntry": "नोंद हटवा",
-      "done": "झाले",
       "add": "+ क्रेडिट नोंद जोडा"
     },
     "errors": {
@@ -511,7 +478,6 @@
       "discrepancy": "फरक",
       "actions": "कृती"
     },
-    "shiftNumber": "शिफ्ट #{{id}}",
     "shiftRegion": "शिफ्ट {{id}}",
     "showAll": "सर्व शिफ्ट पाहा",
     "shiftNotFound": "शिफ्ट #{{id}} या पंपावर सापडली नाही.",
@@ -523,31 +489,22 @@
     "shiftsFor": "{{label}} च्या शिफ्ट",
     "shiftsForDay": "दिवसाच्या शिफ्ट",
     "filterByDate": "तारखेनुसार निवडा:",
-    "fromDate": "सुरुवातीची तारीख",
     "to": "ते",
-    "toDate": "शेवटची तारीख",
     "fuelOnlyLabel": "फक्त {{fuel}} च्या शिफ्ट दिसत आहेत. सर्व इंधन पाहा",
     "fuelOnly": "फक्त {{fuel}} ×",
-    "clear": "काढा",
     "filtered": " (निवडलेले)",
     "allShiftsCaption": "सर्व शिफ्ट",
     "allEmpty": "निवडलेल्या तारखांमध्ये शिफ्ट नाहीत.",
-    "pageOf": "पान {{page}} / {{total}}",
     "showingRange": "({{total}} पैकी {{from}}–{{to}})",
     "firstPage": "पहिले पान",
-    "prev": "मागे",
-    "next": "पुढे",
     "lastPage": "शेवटचे पान",
     "backfilled": "नंतर भरलेली",
     "resolve": "सोडवा",
-    "approve": "मंजूर करा",
     "printHandover": "हँडओव्हर रिपोर्ट प्रिंट करा",
     "payment": {
-      "cash": "रोख",
       "upiCard": "UPI + कार्ड",
       "upiAmount": "UPI {{amount}}",
       "cardAmount": "कार्ड {{amount}}",
-      "credit": "क्रेडिट",
       "viewCredit": "क्रेडिटची माहिती पाहण्यासाठी दाबा",
       "clientCount_one": "{{count}} ग्राहक",
       "clientCount_other": "{{count}} ग्राहक"
@@ -592,8 +549,6 @@
     "generate": {
       "title": "वेळापत्रक आपोआप बनवा",
       "subtitle": "सिस्टम आवड, रजेच्या तारखा आणि समान वाटप पाहून ऑपरेटर नेमेल.",
-      "generating": "तयार होत आहे…",
-      "submit": "तयार करा",
       "dayOperators": "सकाळ / संध्याकाळच्या प्रत्येक शिफ्टसाठी ऑपरेटर",
       "nightOperators": "रात्रीच्या प्रत्येक शिफ्टसाठी ऑपरेटर (12 AM – 8 AM)"
     },
@@ -623,8 +578,7 @@
       "addOperator": "ऑपरेटर जोडा",
       "addShort": "+ जोडा",
       "operatorToAdd": "जोडायचा ऑपरेटर",
-      "pickOperator": "— ऑपरेटर निवडा —",
-      "add": "जोडा"
+      "pickOperator": "— ऑपरेटर निवडा —"
     }
   }
 }

@@ -120,7 +120,7 @@ interface GenerateInvoiceFormProps {
 }
 
 function GenerateInvoiceForm({ pumpId, clientId, defaultPeriod, onGenerated }: GenerateInvoiceFormProps) {
-  const { t } = useTranslation('credit')
+  const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
   const { addToast } = useToastStore()
   const [periodFrom, setPeriodFrom] = useState(defaultPeriod.periodFrom)
@@ -154,19 +154,19 @@ function GenerateInvoiceForm({ pumpId, clientId, defaultPeriod, onGenerated }: G
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
-          <span className="ui-label">{t('period.from')}</span>
+          <span className="ui-label">{t('common:fields.from')}</span>
           <input type="date" value={periodFrom} max={periodTo || undefined}
             onChange={e => setPeriodFrom(e.target.value)} className="text-sm" />
         </label>
         <label className="block">
-          <span className="ui-label">{t('period.to')}</span>
+          <span className="ui-label">{t('common:fields.to')}</span>
           <input type="date" value={periodTo} min={periodFrom || undefined}
             onChange={e => setPeriodTo(e.target.value)} className="text-sm" />
         </label>
       </div>
       {error && <p role="alert" className="ui-error-text">{error}</p>}
       <button type="submit" disabled={mutation.isPending} className="ui-btn ui-btn-primary">
-        {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('generateInvoices.generating')}</span> : t('invoices.generateButton')}
+        {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.generating')}</span> : t('invoices.generateButton')}
       </button>
     </form>
   )

@@ -185,7 +185,7 @@ export interface SetupChecklist {
   pumpId: number
   doneCount: number
   requiredCount: number
-  items: { step: SetupStep; done: boolean; optional: boolean; detail: string }[]
+  items: { step: SetupStep; done: boolean; optional: boolean; detail: string; detailCode: string; detailParams: Record<string, unknown> }[]
 }
 
 export const pumpApi = {

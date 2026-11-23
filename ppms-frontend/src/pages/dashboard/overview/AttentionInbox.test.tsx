@@ -14,7 +14,9 @@ vi.mock('../../../api/attentionApi', () => ({ attentionApi: { getForPump: vi.fn(
 function item(overrides: Partial<AttentionItem>): AttentionItem {
   return {
     type: 'PENDING_APPROVALS', severity: 'MEDIUM', pumpId: 4, pumpName: 'Highway Pump', count: 3, amount: 1500,
-    reason: '2 expenses and 1 credit payment waiting for your approval', targetPath: '/dashboard/approvals',
+    reason: '2 expenses and 1 credit payment waiting for your approval',
+    reasonCode: 'ATTENTION_PENDING_EXPENSES_AND_CREDIT_PAYMENTS', reasonParams: { expenseCount: 2, paymentCount: 1 },
+    targetPath: '/dashboard/approvals',
     ...overrides,
   }
 }

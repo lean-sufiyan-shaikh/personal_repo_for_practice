@@ -9,6 +9,7 @@ import { SkeletonRows } from '../../components/Skeleton'
 import { StatusBadge } from '../../components/StatusBadge'
 import { NotificationTypeIcon } from '../../components/NotificationTypeIcon'
 import { NOTIFICATION_TYPES, notificationTypeLabel, openableHref } from '../../components/notificationLinks'
+import { notificationText } from '../../components/notificationGroups'
 import { useNow } from '../../hooks/useNow'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
@@ -17,17 +18,18 @@ import { formatIstDateTime, withReadableDates } from '../../utils/date'
 import { relativeTime } from '../../utils/relativeTime'
 
 function NotificationRow({ notification, now, onOpen }: { notification: Notification; now: number; onOpen: (id: number) => void }) {
-  const { t } = useTranslation('notifications')
+  const { t } = useTranslation(['notifications', 'common'])
   const role = useAuthStore((state) => state.user?.role)
   const href = openableHref(notification.target, role)
+  const { title, message } = notificationText(notification)
   const body = (
     <div className="flex items-start gap-3">
       <NotificationTypeIcon type={notification.type} />
       <div className="min-w-0 flex-1">
         <p className={`text-sm ${notification.read ? 'font-medium text-ink-2' : 'font-semibold text-ink'}`}>
-          {notification.title}
+          {title}
         </p>
-        <p className="mt-1 text-sm text-ink-3">{withReadableDates(notification.message)}</p>
+        <p className="mt-1 text-sm text-ink-3">{withReadableDates(message)}</p>
         <p className="mt-1 flex flex-wrap gap-x-2 text-xs text-ink-3">
           <time dateTime={notification.createdAt} title={formatIstDateTime(notification.createdAt)}>
             {relativeTime(notification.createdAt, new Date(now))}
@@ -36,7 +38,7 @@ function NotificationRow({ notification, now, onOpen }: { notification: Notifica
           <span>{notificationTypeLabel(notification.type)}</span>
         </p>
       </div>
-      <StatusBadge tone={notification.read ? 'neutral' : 'info'} label={notification.read ? t('page.read') : t('page.unread')} className="flex-shrink-0" />
+      <StatusBadge tone={notification.read ? 'neutral' : 'info'} label={notification.read ? t('common:notifications.read') : t('common:notifications.unread')} className="flex-shrink-0" />
     </div>
   )
   return (
@@ -53,7 +55,7 @@ function NotificationRow({ notification, now, onOpen }: { notification: Notifica
 }
 
 export default function NotificationsPage() {
-  const { t, i18n } = useTranslation('notifications')
+  const { t, i18n } = useTranslation(['notifications', 'common'])
   const { selectedPumpId: pumpId } = usePumpStore()
   const qc = useQueryClient()
   const now = useNow(60_000)

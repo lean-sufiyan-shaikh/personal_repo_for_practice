@@ -160,7 +160,7 @@ export function StockLotsDialog({
                                 disabled={updateMutation.isPending}
                                 className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs disabled:opacity-50"
                               >
-                                {updateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('actions.saving')}</span> : t('actions.save')}
+                                {updateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('common:actions.saving')}</span> : t('common:actions.save')}
                               </button>
                               <button
                                 onClick={() => { setEditingLotId(null); setEditError(null) }}
@@ -186,7 +186,7 @@ export function StockLotsDialog({
                                 onClick={() => startEdit(lot)}
                                 className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
                               >
-                                {t('actions.edit')}
+                                {t('common:actions.edit')}
                               </button>
                             </td>
                           )}

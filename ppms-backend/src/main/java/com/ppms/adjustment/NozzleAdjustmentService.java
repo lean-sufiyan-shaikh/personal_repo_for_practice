@@ -13,6 +13,7 @@ import com.ppms.pump.Nozzle;
 import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
 import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -150,7 +151,7 @@ public class NozzleAdjustmentService {
         draws.forEach(draw -> draw.setFuelDipEntryId(saved.getId()));
         lotConsumptionRepository.saveAll(draws);
         balanceSheetStalenessService.markAllSheetsStale(pumpId, List.of(dipDate),
-                "A drain of " + litresRemoved + " L was recorded after this sheet was generated.");
+                StaleReasons.drainRecorded(litresRemoved.toPlainString()));
 
         log.info("Fuel dip recorded: pump={}, tank={}, fuel={}, litres={}, loss={}, date={}, by={}",
                 pumpId, tank.getId(), tank.getFuelType(), litresRemoved, monetaryLoss, dipDate, currentUser.getId());

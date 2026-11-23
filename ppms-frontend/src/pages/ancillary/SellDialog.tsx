@@ -159,7 +159,7 @@ export function SellDialog({
             onClick={handleProceedToReview}
             className="ui-btn ui-btn-primary"
           >
-            <span className="inline-flex items-center gap-1.5">{t('actions.review')}<ArrowRight size={14} strokeWidth={2} aria-hidden="true" /></span>
+            <span className="inline-flex items-center gap-1.5">{t('common:actions.review')}<ArrowRight size={14} strokeWidth={2} aria-hidden="true" /></span>
           </button>
         </>
       ) : (
@@ -168,7 +168,7 @@ export function SellDialog({
             onClick={() => { setStep('form'); setError(null) }}
             className="ui-btn ui-btn-secondary"
           >
-            <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} aria-hidden="true" />{t('actions.back')}</span>
+            <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} aria-hidden="true" />{t('common:actions.back')}</span>
           </button>
           <button
             onClick={() => saleMutation.mutate(form)}
@@ -225,7 +225,7 @@ export function SellDialog({
                       className="text-sm"
                       value={form.sellingPricePerUnit || ''}
                       onChange={e => setForm(f => ({ ...f, sellingPricePerUnit: parseFloat(e.target.value) || 0 }))}
-                      placeholder={priceLoading ? t('sell.loadingPrice') : t('sell.mrp')}
+                      placeholder={priceLoading ? t('common:loading.short') : t('sell.mrp')}
                       readOnly={!canOverridePrice}
                       disabled={configuredPrice == null}
                     />
@@ -282,7 +282,7 @@ export function SellDialog({
                     className="text-sm"
                     value={form.billNo ?? ''}
                     onChange={e => setForm(f => ({ ...f, billNo: e.target.value || undefined }))}
-                    placeholder={t('fields.optional')}
+                    placeholder={t('common:fields.optional')}
                   />
                 </label>
               </div>
@@ -291,7 +291,7 @@ export function SellDialog({
             {/* Live total */}
             {totalAmount != null && (
               <div className="bg-info-bg border border-border rounded-control px-4 py-3 flex items-center justify-between">
-                <span className="text-sm text-info">{t('fields.total')}</span>
+                <span className="text-sm text-info">{t('common:fields.total')}</span>
                 <MoneyText value={totalAmount} className="text-sm font-semibold text-info" />
               </div>
             )}
@@ -308,7 +308,7 @@ export function SellDialog({
               <ReviewRow label={t('fields.quantity')} value={t('fields.quantityUnits', { count: form.quantityUnits })} />
               {buyPrice != null && <ReviewRow label={t('sell.buyPricePerUnit')} value={fmtCurrency(buyPrice)} />}
               <ReviewRow label={t('sell.sellPricePerUnit')} value={fmtCurrency(form.sellingPricePerUnit)} />
-              <ReviewRow label={t('fields.total')} value={fmtCurrency(totalAmount)} highlight />
+              <ReviewRow label={t('common:fields.total')} value={fmtCurrency(totalAmount)} highlight />
               {marginBadge && (
                 <div className={`flex items-center justify-between px-4 py-2.5 rounded-b-card ${marginBadge.cls}`}>
                   <span className="text-xs">{t('sell.margin')}</span>

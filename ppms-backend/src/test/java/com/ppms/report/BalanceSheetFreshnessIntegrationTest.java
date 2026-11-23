@@ -86,6 +86,9 @@ class BalanceSheetFreshnessIntegrationTest extends ApiIntegrationTest {
         JsonNode afterClose = sheet(live.get("id").asLong());
         assertThat(afterClose.get("stale").asBoolean()).isTrue();
         assertThat(afterClose.get("staleReason").asText()).contains("Shift #" + openShiftId);
+        assertThat(afterClose.get("staleReasonCode").asText()).isEqualTo("STALE_SHIFT_CLOSED");
+        assertThat(afterClose.get("staleReasonParams").get("shiftId").asLong()).isEqualTo(openShiftId);
+        assertThat(sheetList().get("content").get(0).get("staleReasonCode").asText()).isEqualTo("STALE_SHIFT_CLOSED");
         assertThat(sheetList().get("content").get(0).get("stale").asBoolean()).isTrue();
 
         perform(post("/api/pumps/{pumpId}/balance-sheets/{id}/regenerate", setup.pumpId(), live.get("id").asLong()),

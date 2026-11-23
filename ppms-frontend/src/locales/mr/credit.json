@@ -1,13 +1,4 @@
 {
-  "form": {
-    "reason": "कारण",
-    "saving": "सेव्ह होत आहे…",
-    "save": "सेव्ह करा"
-  },
-  "period": {
-    "from": "पासून",
-    "to": "पर्यंत"
-  },
   "extension": {
     "summary": {
       "amount": "+₹{{amount}} जादा क्रेडिट मर्यादा",
@@ -180,11 +171,8 @@
     "invalidPeriod": "ज्याची सुरुवात शेवटाच्या आधी किंवा त्याच दिवशी आहे असा कालावधी निवडा.",
     "title": "इनव्हॉइस तयार करा",
     "subtitle": "इनव्हॉइस न झालेल्या क्रेडिट विक्रीच्या प्रत्येक ग्राहकासाठी एक इनव्हॉइस",
-    "done": "झाले",
-    "generating": "तयार करत आहे…",
     "generateCount_one": "{{count}} इनव्हॉइस तयार करा",
     "generateCount_other": "{{count}} इनव्हॉइस तयार करा",
-    "generate": "तयार करा",
     "result": {
       "issued_one": "<strong>{{count}}</strong> इनव्हॉइस जारी झाले.",
       "issued_other": "<strong>{{count}}</strong> इनव्हॉइस जारी झाले.",
@@ -259,14 +247,7 @@
     "overSuffix": " (जास्त)",
     "amount": "रक्कम",
     "mode": "पेमेंटची पद्धत",
-    "modes": {
-      "CASH": "रोख",
-      "UPI": "UPI",
-      "BANK_TRANSFER": "बँक ट्रान्सफर",
-      "OTHER": "इतर"
-    },
     "date": "पेमेंटची तारीख",
-    "notes": "नोंद",
     "notesPlaceholder": "उदा. NEFT ने भरले, संदर्भ TXN12345"
   },
   "ledger": {
@@ -283,7 +264,6 @@
       "INTEREST": "% व्याज"
     },
     "noTransactions": "अजून व्यवहार नाहीत",
-    "clear": "साफ करा",
     "columns": {
       "date": "तारीख",
       "type": "प्रकार",
@@ -299,7 +279,6 @@
     },
     "weekCaption": "व्यवहार, {{week}}",
     "notCounted": "बॅलन्समध्ये धरलेले नाही",
-    "approve": "मंजूर करा",
     "movePaymentTitle": "हे पेमेंट खाते गटातील दुसऱ्या खात्यात हलवा",
     "moveEntryTitle": "ही नोंद खाते गटातील दुसऱ्या खात्यात हलवा",
     "move": "हलवा",
@@ -309,14 +288,10 @@
   "clientForm": {
     "updateFailed": "ग्राहक अपडेट करता आला नाही",
     "phoneInvalid": "फोन बरोबर 10 अंकी असावा.",
-    "gstinFormat": "GSTIN 15 अक्षरी, 27ABCDE1234F1Z5 या स्वरूपात असावा.",
     "name": "नाव",
     "phone": "फोन",
-    "notes": "नोंद",
-    "optional": "(ऐच्छिक)",
     "notesPlaceholder": "उदा. फ्लीट मॅनेजर, लॉरी मालक",
     "gstinHint": "(नोंदणी नसल्यास रिकामे ठेवा)",
-    "gstinPlaceholder": "उदा. 27ABCDE1234F1Z5",
     "billingAddress": "बिलिंग पत्ता",
     "billingAddressPlaceholder": "इनव्हॉइसवर छापला जातो"
   },
@@ -339,7 +314,6 @@
     "generateButton": "इनव्हॉइस तयार करा"
   },
   "page": {
-    "notAssigned": "तुम्हाला कोणत्याही पंपावर नेमलेले नाही. मालक किंवा ॲडमिनला सांगा.",
     "kickerLedger": "ग्राहकांची थकबाकी",
     "kickerClients": "क्रेडिट व्यवस्थापन",
     "titleLedger": "क्रेडिट लेजर",
@@ -350,8 +324,7 @@
     "tabs": {
       "clients": "ग्राहक",
       "ledger": "लेजर"
-    },
-    "noPump": "पंप निवडलेला नाही. वरच्या नेव्हिगेशन बारमध्ये पंप निवडा."
+    }
   },
   "clients": {
     "addFailed": "ग्राहक जोडता आला नाही",
@@ -367,9 +340,6 @@
     "parentBadge_other": "मुख्य · {{count}} उप-खाती",
     "disabled": "बंद",
     "addSubAccountToggle": "+ उप-खाते",
-    "edit": "बदला",
-    "disable": "बंद करा",
-    "enable": "चालू करा",
     "addSubAccountUnder": "{{name}} मध्ये उप-खाते जोडा",
     "subNamePlaceholder": "उदा. ड्रायव्हर 1",
     "phonePlaceholder": "उदा. 9876543210",

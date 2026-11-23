@@ -1,11 +1,6 @@
 {
   "list": {
     "title": "Balance Sheets",
-    "generate": "Generate",
-    "fromDate": "From date",
-    "toDate": "To date",
-    "fromPlaceholder": "From",
-    "toPlaceholder": "To",
     "to": "to",
     "clearDateFilter": "Clear date filter",
     "emptyTitle": "No balance sheets found",
@@ -23,8 +18,6 @@
   "generate": {
     "title": "Generate Balance Sheet",
     "subtitle": "Create a shift or day-end financial snapshot for this pump.",
-    "cancel": "Cancel",
-    "generating": "Generating…",
     "submit": "Generate Report",
     "success": "Balance sheet generated successfully",
     "failed": "Failed to generate balance sheet",
@@ -37,8 +30,6 @@
     "shift": "Shift",
     "loadingShifts": "Loading shifts…",
     "noShiftDefinitions": "No shift definitions configured for this pump. Please set them up in pump settings first.",
-    "notes": "Notes",
-    "optional": "(optional)",
     "notesPlaceholder": "Any remarks for this report…",
     "alreadyExists": "A balance sheet already exists for this period.",
     "revisionHelp": "If you can't see it in the list, widen the date filter. Do you want to generate a new revision instead? It will be saved as a separate entry (e.g. Shift 1 · 12 AM – 8 AM #2).",
@@ -47,7 +38,6 @@
   "delete": {
     "title": "Delete Balance Sheet?",
     "subtitle": "This action removes the saved report entry.",
-    "cancel": "Cancel",
     "deleting": "Deleting…",
     "confirm": "Delete Report",
     "deleted": "Balance sheet deleted",
@@ -66,8 +56,6 @@
     "pumpLabel": "Pump:",
     "shiftsIncluded": "Shifts included:",
     "back": "← Back",
-    "delete": "Delete",
-    "printPdf": "Print PDF",
     "closeDetails": "Close details",
     "outOfDate": "This sheet is out of date:",
     "defaultStaleReason": "Expenses, product sales or dip entries for this day changed after the sheet was generated.",
@@ -116,7 +104,6 @@
     "count_other": "({{count}} shifts)",
     "caption": "Shift breakdown",
     "region": "Shift summary",
-    "total": "Total",
     "openShift": "Open shift {{id}} by {{name}}",
     "duNumber": "DU #{{number}}",
     "nozzle": "↳ Nozzle #{{number}}"
@@ -141,16 +128,11 @@
     "litres": "Litres",
     "expected": "Expected",
     "received": "Received",
-    "cash": "Cash",
-    "upi": "UPI",
-    "card": "Card",
     "fleet": "Fleet",
-    "credit": "Credit",
     "discrepancy": "Discrepancy",
     "type": "Type",
     "profitLoss": "P/L",
     "time": "Time",
-    "notes": "Notes",
     "category": "Category",
     "description": "Description",
     "recordedBy": "Recorded By",
@@ -158,7 +140,6 @@
     "previous": "Previous",
     "new": "New",
     "change": "Change",
-    "reason": "Reason",
     "by": "By",
     "product": "Product",
     "unitsSold": "Units Sold",
@@ -197,17 +178,12 @@
     "count_one": "({{count}} product)",
     "count_other": "({{count}} products)",
     "caption": "Ancillary product sales",
-    "region": "Product sales",
-    "total": "Total"
+    "region": "Product sales"
   },
   "settlements": {
     "title": "Digital Payment Settlements",
     "caption": "Digital payment settlements",
-    "upi": "UPI",
-    "card": "Card",
-    "fleetCard": "Fleet Card",
     "settled": "Settled",
-    "total": "Total",
     "recordedOnDate": "Recorded on this date",
     "recordedBy": "by {{name}}"
   }

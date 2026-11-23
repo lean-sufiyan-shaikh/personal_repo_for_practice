@@ -48,7 +48,7 @@ function actionOptions(): [AuditAction, string][] {
 }
 
 export default function AuditLogPage() {
-  const { t } = useTranslation('audit')
+  const { t } = useTranslation(['audit', 'common'])
   const [range, setRange] = useDateRangeParams(() => ({ from: localDateInputValue(-1), to: localDateInputValue() }))
   const { from, to } = range
   const [action, setAction]       = useState<AuditAction | ''>('')
@@ -136,7 +136,7 @@ export default function AuditLogPage() {
         <DatePresetChips range={range} onSelect={applyRange} />
         <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block">
-            <span className="ui-label mb-0">{t('page.from')}</span>
+            <span className="ui-label mb-0">{t('common:fields.from')}</span>
             <input
               type="date"
               value={from}
@@ -146,7 +146,7 @@ export default function AuditLogPage() {
             />
           </label>
           <label className="block">
-            <span className="ui-label mb-0">{t('page.to')}</span>
+            <span className="ui-label mb-0">{t('common:fields.to')}</span>
             <input
               type="date"
               value={to}
@@ -193,7 +193,7 @@ export default function AuditLogPage() {
           </label>
           {hasFilters && (
             <button type="button" onClick={clearFilters} className="ui-btn ui-btn-ghost text-xs">
-              {t('page.clearFilters')}
+              {t('common:actions.clearFilters')}
             </button>
           )}
           <div className="ml-auto">
@@ -217,7 +217,7 @@ export default function AuditLogPage() {
           </p>
           {!isLoading && totalPages > 0 && (
             <p className="ui-toolbar-note">
-              {t('page.pageOf', { page: currentPage + 1, total: totalPages })}
+              {t('common:pagination.pageOf', { page: currentPage + 1, total: totalPages })}
             </p>
           )}
         </div>

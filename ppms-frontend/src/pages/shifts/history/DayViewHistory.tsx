@@ -18,7 +18,7 @@ import { MoneyText } from '../../../components/AmountText'
 // ── Day View ──────────────────────────────────────────────────────────────────
 
 export function DayViewHistory({ pumpId }: { pumpId: number }) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const todayStr     = localDateInputValue()
   const yesterdayStr = localDateInputValue(-1)
   const dayBeforeStr = localDateInputValue(-2)
@@ -83,7 +83,7 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
                   </span>
                 )}
                 {isToday && (
-                  <StatusBadge tone="info" label={t('labels.today')} />
+                  <StatusBadge tone="info" label={t('common:datePresets.today')} />
                 )}
               </div>
               <ChevronDown size={14} strokeWidth={2} className={`ui-accordion-arrow ${isOpen ? 'ui-accordion-arrow--open' : ''}`} />
