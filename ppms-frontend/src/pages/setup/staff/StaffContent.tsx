@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../../utils/apiError'
 import { userApi } from '../../../api/userApi'
 import type { StaffMember } from '../../../api/userApi'
@@ -12,6 +13,7 @@ import { AddStaffForm } from './AddStaffForm'
 import { canPerformAction } from '../../../permissions/permissions'
 
 export function StaffContent({ pump }: { pump: PumpSummary }) {
+  const { t } = useTranslation('setup')
   const queryClient = useQueryClient()
   const { user: currentUser } = useAuthStore()
   const viewerRole = currentUser?.role
@@ -35,7 +37,7 @@ export function StaffContent({ pump }: { pump: PumpSummary }) {
       queryClient.invalidateQueries({ queryKey: ['staff', pump.id] })
       queryClient.invalidateQueries({ queryKey: ['operators', pump.id] })
     },
-    onError: (err) => setStatusError(parseApiError(err, 'Failed to update status')),
+    onError: (err) => setStatusError(parseApiError(err, t('staff.statusFailed'))),
   })
 
   const { data: activeShiftDefs = [] } = useQuery({

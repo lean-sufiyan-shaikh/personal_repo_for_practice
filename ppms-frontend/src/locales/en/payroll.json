@@ -1,1 +1,96 @@
-{}
+{
+  "page": {
+    "title": "Payroll",
+    "subtitle": "Calculate and track staff salary payments based on shift history",
+    "loadFailed": "Could not load payroll records. Check your connection and refresh."
+  },
+  "generate": {
+    "kicker": "Payroll Draft",
+    "title": "Generate payroll",
+    "subtitle": "Select a staff member and pay period to calculate a draft salary record.",
+    "staffMember": "Staff Member",
+    "selectStaff": "Select staff…",
+    "periodFrom": "Period From",
+    "periodTo": "Period To",
+    "notes": "Notes (optional)",
+    "notesPlaceholder": "Any notes about this pay period",
+    "howCalculated": "Operators: actual hours per closed shift × hourly rate (night/day separately). Managers & Admins: daily rate × (days in period − leave days). Configure rates in Setup → Staff → ₹ Rates.",
+    "calculating": "Calculating…",
+    "review": "Review Payroll",
+    "generated": "Payroll draft generated",
+    "failed": "Failed to generate payroll",
+    "staffRequired": "Please select a staff member",
+    "periodRequired": "Period dates are required"
+  },
+  "review": {
+    "title": "Review Payroll",
+    "subtitle": "Verify the details and handle any pending discrepancies.",
+    "back": "Back",
+    "generate": "Generate Payroll",
+    "generating": "Generating…",
+    "goBack": "Go back to modify the data and try again.",
+    "staffMember": "Staff Member",
+    "period": "Period",
+    "notes": "Notes",
+    "checking": "Checking pending discrepancies…",
+    "pendingTitle": "Pending Discrepancies ({{count}})",
+    "toggleHint": "Toggle to deduct from this salary",
+    "duNumber": "DU #{{number}}",
+    "deduct": "Deduct ✓",
+    "skip": "Skip",
+    "notDeductible": "Not deductible",
+    "deductionsSelected_one": "{{count}} deduction selected",
+    "deductionsSelected_other": "{{count}} deductions selected",
+    "fromNetPay": "−{{amount}} from net pay",
+    "allSkipped": "All discrepancies set to Skip — they will remain pending for the next payroll run.",
+    "noDiscrepancies": "No pending discrepancies for this staff member."
+  },
+  "records": {
+    "title": "Payroll Records",
+    "searchLabel": "Search staff",
+    "searchPlaceholder": "Search staff…",
+    "month": "Month",
+    "allMonths": "All months",
+    "emptyTitle": "No payroll records yet",
+    "emptySubtitle": "Generate your first payroll draft above.",
+    "emptyMonthTitle": "No records for this month",
+    "emptyMonthSubtitle": "Try selecting a different month.",
+    "deleted": "Payroll record deleted",
+    "deleteFailed": "Failed to delete payroll",
+    "statusFailed": "Failed to update status",
+    "statusUpdated": {
+      "DRAFT": "Status updated to DRAFT",
+      "APPROVED": "Status updated to APPROVED",
+      "PAID": "Status updated to PAID"
+    }
+  },
+  "group": {
+    "records_one": "{{count}} record",
+    "records_other": "{{count}} records",
+    "staffNumber": "Staff #{{id}}",
+    "totalDays": "Total days in period",
+    "leaveDays": "Leave days deducted",
+    "daysWorked": "Days worked",
+    "perDay": "@ {{rate}}/day",
+    "days_one": "{{count}} days",
+    "days_other": "{{count}} days",
+    "night": "Night (12AM–8AM)",
+    "day": "Day (8AM–12AM)",
+    "shiftsHours_one": "{{count}} shift · {{hours}} hrs",
+    "shiftsHours_other": "{{count}} shifts · {{hours}} hrs",
+    "perHour": "@ {{rate}}/hr",
+    "noShifts": "No closed shifts in this period.",
+    "deductions": "Salary deductions",
+    "shortfall": "(discrepancy shortfall)",
+    "daysWorkedTotal_one": "{{count}} day worked",
+    "daysWorkedTotal_other": "{{count}} days worked",
+    "shiftsTotal_one": "{{count}} shift total",
+    "shiftsTotal_other": "{{count}} shifts total",
+    "deleting": "Deleting…",
+    "mark": {
+      "DRAFT": "Mark DRAFT",
+      "APPROVED": "Mark APPROVED",
+      "PAID": "Mark PAID"
+    }
+  }
+}

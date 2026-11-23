@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
 import type { CreditClient, CreateExtensionRequest, CreditExtensionType } from '../../../api/creditApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { localDateInputValue } from '../../../utils/date'
+import { formatNumberIn } from '../../../i18n/format'
 import { Spinner } from '../../../components/Spinner'
 import { Modal } from '../../../components/Modal'
 import { parseApiError } from '../../../utils/apiError'
@@ -16,15 +18,13 @@ interface GrantExtensionModalProps {
   onClose: () => void
 }
 
-const EXTENSION_TYPE_OPTIONS = [
-  { value: 'AMOUNT_EXTENSION',       label: 'Amount Extension — extra credit headroom' },
-  { value: 'BILLING_CYCLE_EXTENSION', label: 'Billing Cycle Extension — defer overdue block' },
-  { value: 'OVERDUE_BLOCK_WAIVER',   label: 'Overdue Block Waiver — one-time waiver' },
-]
+/** Each label is credit.json grantExtension.types.<type>. */
+const EXTENSION_TYPES = ['AMOUNT_EXTENSION', 'BILLING_CYCLE_EXTENSION', 'OVERDUE_BLOCK_WAIVER'] as const
 
 export function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionModalProps) {
-  const qc = useQueryClient()
+  const { t } = useTranslation(['credit', 'common'])
   const [extensionType, setExtensionType] = useState<CreditExtensionType>('BILLING_CYCLE_EXTENSION')
+  const qc = useQueryClient()
   const [extensionAmount, setExtensionAmount] = useState('')
   const [expiryDate, setExpiryDate] = useState(() => localDateInputValue())
   const [reason, setReason] = useState('')
@@ -40,15 +40,15 @@ export function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionM
       qc.invalidateQueries({ queryKey: ['active-extensions', pumpId, client.id] })
       onClose()
     },
-    onError: (err) => setError(parseApiError(err, 'Failed to create extension')),
+    onError: (err) => setError(parseApiError(err, t('grantExtension.failed'))),
   })
 
   const handleSubmit = () => {
-    if (!expiryDate) { setError('Expiry date is required'); return }
-    if (!reason.trim()) { setError('A reason is required'); return }
+    if (!expiryDate) { setError(t('grantExtension.expiryRequired')); return }
+    if (!reason.trim()) { setError(t('grantExtension.reasonRequired')); return }
     if (extensionType === 'AMOUNT_EXTENSION') {
       const amt = parseFloat(extensionAmount)
-      if (!extensionAmount || isNaN(amt) || amt <= 0) { setError('A positive amount is required for Amount Extension'); return }
+      if (!extensionAmount || isNaN(amt) || amt <= 0) { setError(t('grantExtension.amountRequired')); return }
     }
     setError(null)
     mutation.mutate({
@@ -61,7 +61,7 @@ export function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionM
 
   return (
     <Modal
-      title="Grant Credit Extension"
+      title={t('grantExtension.title')}
       subtitle={client.name}
       tone="warning"
       onClose={onClose}
@@ -69,24 +69,24 @@ export function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionM
       footer={
         <>
           <button onClick={onClose} className="ui-btn ui-btn-secondary">
-            Cancel
+            {t('common:actions.cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={mutation.isPending}
             className="ui-btn ui-btn-primary"
           >
-            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />Granting…</span> : 'Grant Extension'}
+            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('grantExtension.granting')}</span> : t('clientActions.grantExtension')}
           </button>
         </>
       }
     >
       <div className="ui-inline-form">
-        <span className="ui-label">Extension Type</span>
-        <SearchableSelect label="Extension Type"
+        <span className="ui-label">{t('grantExtension.typeLabel')}</span>
+        <SearchableSelect label={t('grantExtension.typeLabel')}
           value={extensionType}
           onChange={(v) => setExtensionType(v as CreditExtensionType)}
-          options={EXTENSION_TYPE_OPTIONS}
+          options={EXTENSION_TYPES.map(type => ({ value: type, label: t(`grantExtension.types.${type}`) }))}
         />
       </div>
 
@@ -94,18 +94,20 @@ export function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionM
         <div className="ui-inline-form">
           <label className="block">
             <span className="ui-label">
-            Additional Credit Amount (₹) <span className="text-bad">*</span>
+            {t('grantExtension.amountLabel')} <span className="text-bad">*</span>
           </span>
             <input
               type="number" min="1" step="0.01"
               value={extensionAmount}
               onChange={(e) => setExtensionAmount(e.target.value)}
-              placeholder="e.g. 5000"
+              placeholder={t('grantExtension.amountPlaceholder')}
               className="text-sm"
             />
           </label>
           <p className="text-xs text-ink-3 mt-1">
-            Current limit: {client.creditLimit > 0 ? `₹${client.creditLimit.toLocaleString('en-IN')}` : 'Unlimited'}
+            {t('grantExtension.currentLimit', {
+              limit: client.creditLimit > 0 ? `₹${formatNumberIn(client.creditLimit)}` : t('grantExtension.unlimited'),
+            })}
           </p>
         </div>
       )}
@@ -113,7 +115,7 @@ export function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionM
       <div className="ui-inline-form">
         <label className="block">
           <span className="ui-label">
-          Expires On <span className="text-bad">*</span>
+          {t('grantExtension.expiresOn')} <span className="text-bad">*</span>
         </span>
           <input
             type="date" min={minDate}
@@ -127,13 +129,13 @@ export function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionM
       <div className="ui-inline-form">
         <label className="block">
           <span className="ui-label">
-          Reason / Justification <span className="text-bad">*</span>
+          {t('grantExtension.reasonLabel')} <span className="text-bad">*</span>
         </span>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={3}
-            placeholder="Why is this extension being granted?"
+            placeholder={t('grantExtension.reasonPlaceholder')}
             className="resize-none text-sm"
             data-autofocus
           />

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { approvalApi } from '../../api/approvalApi'
 import type { ApprovalDecisionResult, ApprovalItem } from '../../api/approvalApi'
@@ -18,11 +20,7 @@ import { approvalKey } from './approvalFormat'
 
 type KindFilter = 'all' | 'expenses' | 'payments'
 
-const KIND_FILTERS: { value: KindFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'expenses', label: 'Expenses' },
-  { value: 'payments', label: 'Credit payments' },
-]
+const KIND_FILTERS: KindFilter[] = ['all', 'expenses', 'payments']
 
 function kindFilterOf(value: string | null): KindFilter {
   return value === 'expenses' || value === 'payments' ? value : 'all'
@@ -34,13 +32,16 @@ function matchesKind(item: ApprovalItem, filter: KindFilter) {
   return true
 }
 
-function outcomeText(action: 'APPROVED' | 'REJECTED', result: ApprovalDecisionResult) {
-  const done = `${result.succeeded} item${result.succeeded !== 1 ? 's' : ''} ${action === 'APPROVED' ? 'approved' : 'rejected'}.`
-  return result.failed > 0 ? `${done} ${result.failed} could not be ${action === 'APPROVED' ? 'approved' : 'rejected'}:` : done
+function outcomeText(t: TFunction<'approvals'>, action: 'APPROVED' | 'REJECTED', result: ApprovalDecisionResult) {
+  const approved = action === 'APPROVED'
+  const done = t(approved ? 'outcome.approved' : 'outcome.rejected', { count: result.succeeded })
+  if (result.failed === 0) return done
+  return `${done} ${t(approved ? 'outcome.notApproved' : 'outcome.notRejected', { count: result.failed })}`
 }
 
 /** Expenses and credit payments waiting for an Owner or Admin, decided one by one or many at once. */
 export default function ApprovalsPage() {
+  const { t } = useTranslation('approvals')
   const pumpId = usePumpStore(state => state.selectedPumpId)
   const qc = useQueryClient()
   const now = useNow(60_000)
@@ -68,11 +69,13 @@ export default function ApprovalsPage() {
     onSuccess: (result, { action }) => {
       const itemByKey = new Map(items.map(item => [approvalKey(item), item]))
       setOutcome({
-        text: outcomeText(action, result),
+        text: outcomeText(t, action, result),
         failures: result.results.filter(item => !item.succeeded).map(item => {
           const source = itemByKey.get(approvalKey(item))
-          const name = source ? `${source.kind === 'EXPENSE' ? 'Expense' : 'Payment'} ${formatCurrency(source.amount)}` : `#${item.id}`
-          return `${name}: ${item.message ?? 'not saved'}`
+          const name = source
+            ? t(source.kind === 'EXPENSE' ? 'outcome.expenseName' : 'outcome.paymentName', { amount: formatCurrency(source.amount) })
+            : `#${item.id}`
+          return `${name}: ${item.message ?? t('outcome.notSaved')}`
         }),
       })
       setSelectedKeys(new Set())
@@ -82,7 +85,7 @@ export default function ApprovalsPage() {
       }
     },
     onError: (err, { action }) => {
-      const message = parseApiError(err, action === 'APPROVED' ? 'Could not approve the selected items' : 'Could not reject the selected items')
+      const message = parseApiError(err, action === 'APPROVED' ? t('errors.approveFailed') : t('errors.rejectFailed'))
       if (action === 'REJECTED') setRejectError(message)
       else setOutcome({ text: message, failures: [] })
     },
@@ -103,28 +106,28 @@ export default function ApprovalsPage() {
     <div className="ui-page space-y-5">
       <div className="ui-section-hero">
         <div>
-          <p className="ui-section-kicker">Owner and Admin</p>
-          <h1 className="ui-title-sm">Approvals</h1>
-          <p className="ui-subtitle">Expenses and credit payments that need your decision before they count</p>
+          <p className="ui-section-kicker">{t('page.kicker')}</p>
+          <h1 className="ui-title-sm">{t('page.title')}</h1>
+          <p className="ui-subtitle">{t('page.subtitle')}</p>
         </div>
         <div className="ui-section-meta">
           <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">Waiting</span>
+            <span className="ui-section-meta-label">{t('page.waiting')}</span>
             <span className="ui-section-meta-value">{shown.length}</span>
           </div>
           <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">Amount</span>
+            <span className="ui-section-meta-label">{t('page.amount')}</span>
             <MoneyText value={shownTotal} className="ui-section-meta-value" />
           </div>
         </div>
       </div>
 
-      <div role="group" aria-label="Show" className="ui-tabbar w-fit">
+      <div role="group" aria-label={t('filters.label')} className="ui-tabbar w-fit">
         {KIND_FILTERS.map(filter => (
-          <button key={filter.value} type="button" aria-pressed={kindFilter === filter.value}
-            onClick={() => setKindFilter(filter.value)}
-            className={`ui-tabbar__button ${kindFilter === filter.value ? 'ui-tabbar__button--active' : ''}`}>
-            {filter.label}
+          <button key={filter} type="button" aria-pressed={kindFilter === filter}
+            onClick={() => setKindFilter(filter)}
+            className={`ui-tabbar__button ${kindFilter === filter ? 'ui-tabbar__button--active' : ''}`}>
+            {t(`filters.${filter}`)}
           </button>
         ))}
       </div>
@@ -144,29 +147,29 @@ export default function ApprovalsPage() {
       </div>
 
       {pumpId == null ? (
-        <div className="ui-card"><EmptyState icon="generic" title="No pump selected" subtitle="Choose a pump in the top bar." /></div>
+        <div className="ui-card"><EmptyState icon="generic" title={t('page.noPumpTitle')} subtitle={t('page.noPumpSubtitle')} /></div>
       ) : isLoading ? (
         <div className="ui-card"><SkeletonTable rows={4} cols={6} /></div>
       ) : isError ? (
-        <div role="alert" className="ui-alert ui-alert-danger text-sm">Could not load the approval queue. Refresh to try again.</div>
+        <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('errors.loadFailed')}</div>
       ) : shown.length === 0 ? (
         <div className="ui-card">
-          <EmptyState icon="generic" title="Nothing is waiting for approval" subtitle="New expenses and payments above your approval limit will appear here." />
+          <EmptyState icon="generic" title={t('page.emptyTitle')} subtitle={t('page.emptySubtitle')} />
         </div>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-ink-2">
-              {selected.length > 0 ? `${selected.length} selected · ${formatCurrency(selectedTotal)}` : 'Select items to approve or reject them together.'}
+              {selected.length > 0 ? t('selection.summary', { count: selected.length, amount: formatCurrency(selectedTotal) }) : t('selection.hint')}
             </p>
             <div className="flex gap-2">
               <button type="button" className="ui-btn ui-btn-danger" disabled={selected.length === 0 || decision.isPending}
                 onClick={() => { setRejectError(null); setRejecting(true) }}>
-                Reject selected
+                {t('selection.reject')}
               </button>
               <button type="button" className="ui-btn ui-btn-primary" disabled={selected.length === 0 || decision.isPending}
                 onClick={() => decision.mutate({ action: 'APPROVED' })}>
-                {decision.isPending && !rejecting ? <span className="flex items-center gap-1.5"><Spinner />Approving…</span> : 'Approve selected'}
+                {decision.isPending && !rejecting ? <span className="flex items-center gap-1.5"><Spinner />{t('selection.approving')}</span> : t('selection.approve')}
               </button>
             </div>
           </div>
@@ -178,8 +181,8 @@ export default function ApprovalsPage() {
 
       {rejecting && (
         <RejectReasonDialog
-          title={`Reject ${selected.length} item${selected.length !== 1 ? 's' : ''}`}
-          subtitle={`${formatCurrency(selectedTotal)} in total; the reason is saved with each rejection`}
+          title={t('rejectDialog.title', { count: selected.length })}
+          subtitle={t('rejectDialog.subtitle', { amount: formatCurrency(selectedTotal) })}
           isPending={decision.isPending}
           error={rejectError}
           onConfirm={reason => decision.mutate({ action: 'REJECTED', reason })}

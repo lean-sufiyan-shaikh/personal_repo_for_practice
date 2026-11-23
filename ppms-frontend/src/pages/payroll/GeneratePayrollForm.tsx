@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import type { StaffMember } from '../../api/userApi'
 import { payrollApi } from '../../api/payrollApi'
 import type { GeneratePayrollRequest } from '../../api/payrollApi'
@@ -19,6 +20,7 @@ interface GeneratePayrollFormProps {
 }
 
 export function GeneratePayrollForm({ pumpId, staff, onGenerated }: GeneratePayrollFormProps) {
+  const { t } = useTranslation('payroll')
   const { addToast } = useToastStore()
   const qc = useQueryClient()
   const [form, setForm] = useState<GeneratePayrollRequest>(() => ({
@@ -38,10 +40,10 @@ export function GeneratePayrollForm({ pumpId, staff, onGenerated }: GeneratePayr
       setFormError(null)
       setReviewOpen(false)
       onGenerated()
-      addToast('Payroll draft generated', 'success')
+      addToast(t('generate.generated'), 'success')
     },
     onError: (err) => {
-      const msg = parseApiError(err, 'Failed to generate payroll')
+      const msg = parseApiError(err, t('generate.failed'))
       setFormError(msg)
       addToast(msg, 'error')
     },
@@ -49,8 +51,8 @@ export function GeneratePayrollForm({ pumpId, staff, onGenerated }: GeneratePayr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.userId) { setFormError('Please select a staff member'); return }
-    if (!form.periodFrom || !form.periodTo) { setFormError('Period dates are required'); return }
+    if (!form.userId) { setFormError(t('generate.staffRequired')); return }
+    if (!form.periodFrom || !form.periodTo) { setFormError(t('generate.periodRequired')); return }
     setFormError(null)
     setReviewOpen(true)
   }
@@ -64,26 +66,26 @@ export function GeneratePayrollForm({ pumpId, staff, onGenerated }: GeneratePayr
       <form onSubmit={handleSubmit} className="ui-card ui-form-shell">
         <div className="ui-form-shell__head">
           <div>
-            <p className="ui-section-kicker mb-2">Payroll Draft</p>
-            <h2 className="ui-title-sm">Generate payroll</h2>
-            <p className="ui-subtitle mt-1">Select a staff member and pay period to calculate a draft salary record.</p>
+            <p className="ui-section-kicker mb-2">{t('generate.kicker')}</p>
+            <h2 className="ui-title-sm">{t('generate.title')}</h2>
+            <p className="ui-subtitle mt-1">{t('generate.subtitle')}</p>
           </div>
         </div>
 
         <div className="ui-form-shell__grid">
           <div>
-            <span className="ui-label">Staff Member</span>
-            <SearchableSelect label="Staff Member"
+            <span className="ui-label">{t('generate.staffMember')}</span>
+            <SearchableSelect label={t('generate.staffMember')}
               value={form.userId ? form.userId.toString() : ''}
               onChange={v => setForm(f => ({ ...f, userId: parseInt(v) || 0 }))}
-              placeholder="Select staff…"
+              placeholder={t('generate.selectStaff')}
               options={staff.map((s) => ({ value: s.id.toString(), label: `${s.fullName} — ${codeLabel(s.role)}` }))}
             />
           </div>
 
           <div>
             <label className="block">
-              <span className="ui-label">Period From</span>
+              <span className="ui-label">{t('generate.periodFrom')}</span>
               <input
                 type="date"
                 value={form.periodFrom}
@@ -96,7 +98,7 @@ export function GeneratePayrollForm({ pumpId, staff, onGenerated }: GeneratePayr
 
           <div>
             <label className="block">
-              <span className="ui-label">Period To</span>
+              <span className="ui-label">{t('generate.periodTo')}</span>
               <input
                 type="date"
                 value={form.periodTo}
@@ -109,22 +111,20 @@ export function GeneratePayrollForm({ pumpId, staff, onGenerated }: GeneratePayr
 
           <div>
             <label className="block">
-              <span className="ui-label">Notes (optional)</span>
+              <span className="ui-label">{t('generate.notes')}</span>
               <input
                 type="text"
                 value={form.notes ?? ''}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
                 className="text-sm"
-                placeholder="Any notes about this pay period"
+                placeholder={t('generate.notesPlaceholder')}
               />
             </label>
           </div>
         </div>
 
         <p className="text-xs text-ink-3">
-          Operators: actual hours per closed shift × hourly rate (night/day separately).
-          Managers &amp; Admins: daily rate × (days in period − leave days).
-          Configure rates in Setup → Staff → ₹ Rates.
+          {t('generate.howCalculated')}
         </p>
 
         {formError && <p role="alert" className="ui-error-text">{formError}</p>}
@@ -135,8 +135,8 @@ export function GeneratePayrollForm({ pumpId, staff, onGenerated }: GeneratePayr
           className="ui-btn ui-btn-primary"
         >
           {generateMutation.isPending
-            ? <span className="flex items-center gap-1.5"><Spinner />Calculating…</span>
-            : 'Review Payroll'}
+            ? <span className="flex items-center gap-1.5"><Spinner />{t('generate.calculating')}</span>
+            : t('generate.review')}
         </button>
       </form>
       </Reveal>

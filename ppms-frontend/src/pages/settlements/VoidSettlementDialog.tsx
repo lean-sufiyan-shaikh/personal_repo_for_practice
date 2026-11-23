@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { paymentSettlementApi } from '../../api/paymentSettlementApi'
 import type { Settlement } from '../../api/paymentSettlementApi'
 import { Modal } from '../../components/Modal'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
-import { TYPE_LABELS, fmtAmt, fmtDate } from './settlementFormat'
+import { fmtAmt, fmtDate, typeLabel } from './settlementFormat'
 
 interface VoidSettlementDialogProps {
   pumpId: number
@@ -15,6 +16,7 @@ interface VoidSettlementDialogProps {
 }
 
 export function VoidSettlementDialog({ pumpId, voidTarget, onClose }: VoidSettlementDialogProps) {
+  const { t } = useTranslation(['settlements', 'common'])
   const qc           = useQueryClient()
   const { addToast } = useToastStore()
   const [voidReason, setVoidReason] = useState('')
@@ -27,21 +29,21 @@ export function VoidSettlementDialog({ pumpId, voidTarget, onClose }: VoidSettle
       qc.invalidateQueries({ queryKey: ['settlements-daily', pumpId] })
       qc.invalidateQueries({ queryKey: ['settlements-wallet', pumpId] })
       onClose()
-      addToast('Settlement voided', 'success')
+      addToast(t('void.voided'), 'success')
     },
-    onError: (err) => setVoidError(parseApiError(err, 'Failed to void settlement')),
+    onError: (err) => setVoidError(parseApiError(err, t('void.failed'))),
   })
 
   const handleVoid = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!voidReason.trim()) { setVoidError('A reason is required'); return }
+    if (!voidReason.trim()) { setVoidError(t('void.reasonRequired')); return }
     voidMutation.mutate({ id: voidTarget.id, reason: voidReason.trim() })
   }
 
   return (
     <Modal
-      title="Void Settlement"
-      subtitle={<>{TYPE_LABELS[voidTarget.paymentType]} · {fmtDate(voidTarget.settlementDate)} · {fmtAmt(voidTarget.amountReceived)}</>}
+      title={t('void.title')}
+      subtitle={<>{typeLabel(voidTarget.paymentType)} · {fmtDate(voidTarget.settlementDate)} · {fmtAmt(voidTarget.amountReceived)}</>}
       size="lg"
       onClose={onClose}
       closeOnBackdropClick
@@ -49,23 +51,23 @@ export function VoidSettlementDialog({ pumpId, voidTarget, onClose }: VoidSettle
       bodyClassName="flex flex-col gap-5"
       footer={<>
         <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
-          Cancel
+          {t('common:actions.cancel')}
         </button>
         <button type="submit" disabled={voidMutation.isPending} className="ui-btn ui-btn-danger">
-          {voidMutation.isPending ? <><Spinner /><span>Voiding…</span></> : <span>Void Settlement</span>}
+          {voidMutation.isPending ? <><Spinner /><span>{t('void.voiding')}</span></> : <span>{t('void.title')}</span>}
         </button>
       </>}
     >
       <p className="text-sm text-ink-2">
-        The settlement stays on record but no longer counts as received, so the pending balance goes back up.
+        {t('void.explanation')}
       </p>
       <div>
         <label className="block">
-          <span className="ui-label">Reason</span>
+          <span className="ui-label">{t('void.reason')}</span>
           <input
             type="text"
             className="ui-input"
-            placeholder="e.g., Recorded twice by mistake"
+            placeholder={t('void.reasonPlaceholder')}
             value={voidReason}
             onChange={e => setVoidReason(e.target.value)}
             data-autofocus

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { BellOff, BellRing, Check } from 'lucide-react'
 import { paymentSettlementApi } from '../../api/paymentSettlementApi'
 import type { SettlementPaymentType, UpdateConfigRequest } from '../../api/paymentSettlementApi'
@@ -7,7 +8,7 @@ import { Spinner } from '../../components/Spinner'
 import { StatusBadge } from '../../components/StatusBadge'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
-import { TYPE_ACCENT, TYPE_ICONS, TYPE_LABELS } from './settlementFormat'
+import { TYPE_ACCENT, TYPE_ICONS, typeLabel } from './settlementFormat'
 
 interface SettlementConfigTabProps {
   pumpId: number
@@ -15,6 +16,7 @@ interface SettlementConfigTabProps {
 }
 
 export function SettlementConfigTab({ pumpId, canConfigure }: SettlementConfigTabProps) {
+  const { t } = useTranslation('settlements')
   const qc           = useQueryClient()
   const { addToast } = useToastStore()
 
@@ -46,9 +48,9 @@ export function SettlementConfigTab({ pumpId, canConfigure }: SettlementConfigTa
       })
       qc.invalidateQueries({ queryKey: ['settlement-configs', pumpId] })
       setConfigEdits(prev => { const next = { ...prev }; delete next[type]; return next })
-      addToast(`${TYPE_LABELS[type]} alert config saved`, 'success')
+      addToast(t('alerts.saved', { type: typeLabel(type) }), 'success')
     } catch (err) {
-      addToast(parseApiError(err, 'Failed to save config'), 'error')
+      addToast(parseApiError(err, t('alerts.saveFailed')), 'error')
     } finally {
       setSavingConfig(null)
     }
@@ -57,11 +59,10 @@ export function SettlementConfigTab({ pumpId, canConfigure }: SettlementConfigTa
   return (
     <div className="space-y-3">
       <p className="text-sm text-ink-3 mb-4">
-        Set the time when you want to receive a daily reminder to record each payment type's settlement.
-        Alerts arrive as in-app notifications — once per day, after the configured time.
+        {t('alerts.intro')}
       </p>
       {loadingConfigs ? (
-        <div className="flex items-center gap-2 text-ink-3 text-sm"><Spinner /> Loading…</div>
+        <div className="flex items-center gap-2 text-ink-3 text-sm"><Spinner /> {t('alerts.loading')}</div>
       ) : (
         configs.map(cfg => {
           const edit      = configEdits[cfg.paymentType]
@@ -77,12 +78,12 @@ export function SettlementConfigTab({ pumpId, canConfigure }: SettlementConfigTa
                   {TYPE_ICONS[cfg.paymentType]}
                 </div>
                 <div>
-                  <p className="font-semibold text-ink text-sm">{TYPE_LABELS[cfg.paymentType]}</p>
-                  <p className="text-xs text-ink-3">Daily reminder at this time (IST)</p>
+                  <p className="font-semibold text-ink text-sm">{typeLabel(cfg.paymentType)}</p>
+                  <p className="text-xs text-ink-3">{t('alerts.dailyReminder')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-                <input aria-label={`${TYPE_LABELS[cfg.paymentType]} reminder time`}
+                <input aria-label={t('alerts.reminderTime', { type: typeLabel(cfg.paymentType) })}
                   type="time"
                   value={alertTime}
                   disabled={!canConfigure}
@@ -97,7 +98,7 @@ export function SettlementConfigTab({ pumpId, canConfigure }: SettlementConfigTa
                     onChange={e => handleConfigChange(cfg.paymentType, 'enabled', e.target.checked)}
                     className="rounded accent-primary w-4 h-4"
                   />
-                  Enabled
+                  {t('alerts.enabled')}
                 </label>
                 {canConfigure && isDirty && (
                   <button
@@ -106,12 +107,12 @@ export function SettlementConfigTab({ pumpId, canConfigure }: SettlementConfigTa
                     className="ui-btn ui-btn-primary"
                   >
                     {savingConfig === cfg.paymentType
-                      ? <><Spinner /><span>Saving…</span></>
-                      : <><Check size={14} strokeWidth={2.5} aria-hidden="true" /><span>Save</span></>}
+                      ? <><Spinner /><span>{t('alerts.saving')}</span></>
+                      : <><Check size={14} strokeWidth={2.5} aria-hidden="true" /><span>{t('alerts.save')}</span></>}
                   </button>
                 )}
                 {!isDirty && (
-                  <StatusBadge tone={enabled ? 'ok' : 'neutral'} icon={enabled ? BellRing : BellOff} label={enabled ? 'Active' : 'Disabled'} />
+                  <StatusBadge tone={enabled ? 'ok' : 'neutral'} icon={enabled ? BellRing : BellOff} label={enabled ? t('alerts.active') : t('alerts.disabled')} />
                 )}
               </div>
             </div>

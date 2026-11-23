@@ -1,6 +1,7 @@
 import type { Shift } from '../../../types/shift'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { shiftStatusBadge } from '../../../components/statusBadges'
+import { codeLabel } from '../../../constants/labels'
 import { timeOpen } from './overviewFormat'
 
 export function ShiftStatusRow({ shift }: { shift: Shift }) {
@@ -28,7 +29,7 @@ export function ShiftStatusRow({ shift }: { shift: Shift }) {
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         <span className="text-xs text-ink-3">{timeOpen(shift.actualStartTime)}</span>
-        <StatusBadge {...shiftStatusBadge(shift.status)} label={isOverdue ? 'Overdue' : 'Open'} />
+        <StatusBadge {...shiftStatusBadge(shift.status)} label={codeLabel(isOverdue ? 'OVERDUE' : 'OPEN')} />
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
 import type { CreditExtension } from '../../../api/creditApi'
 import { Spinner } from '../../../components/Spinner'
@@ -14,6 +15,7 @@ interface RevokeExtensionModalProps {
 }
 
 export function RevokeExtensionModal({ pumpId, extension, onClose }: RevokeExtensionModalProps) {
+  const { t } = useTranslation('credit')
   const qc = useQueryClient()
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -24,45 +26,44 @@ export function RevokeExtensionModal({ pumpId, extension, onClose }: RevokeExten
       qc.invalidateQueries({ queryKey: ['active-extensions', pumpId, extension.clientId] })
       onClose()
     },
-    onError: (err) => setError(parseApiError(err, 'Failed to revoke extension')),
+    onError: (err) => setError(parseApiError(err, t('revokeExtension.failed'))),
   })
 
   const handleSubmit = () => {
-    if (!reason.trim()) { setError('A reason is required to revoke an extension'); return }
+    if (!reason.trim()) { setError(t('revokeExtension.reasonRequired')); return }
     setError(null)
     mutation.mutate()
   }
 
   return (
     <Modal
-      title="Revoke Extension"
-      subtitle={`${extensionSummary(extension)} · expires ${extension.expiryDate}`}
+      title={t('revokeExtension.title')}
+      subtitle={t('revokeExtension.subtitle', { summary: extensionSummary(extension), date: extension.expiryDate })}
       tone="warning"
       onClose={onClose}
       canClose={!mutation.isPending}
       bodyClassName="space-y-4"
       footer={
         <>
-          <button onClick={onClose} className="ui-btn ui-btn-secondary">Keep Extension</button>
+          <button onClick={onClose} className="ui-btn ui-btn-secondary">{t('revokeExtension.keep')}</button>
           <button onClick={handleSubmit} disabled={mutation.isPending} className="ui-btn ui-btn-danger">
-            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />Revoking…</span> : 'Revoke Extension'}
+            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('revokeExtension.revoking')}</span> : t('revokeExtension.title')}
           </button>
         </>
       }
     >
       <p className="text-sm text-ink-2">
-        The extension stops applying to new credit sales at once. It stays in the client's history as revoked,
-        and the revocation is recorded in the audit log.
+        {t('revokeExtension.explanation')}
       </p>
       <div className="ui-inline-form">
         <label className="block">
-          <span className="ui-label">Reason <span aria-hidden="true" className="text-bad">*</span></span>
+          <span className="ui-label">{t('form.reason')} <span aria-hidden="true" className="text-bad">*</span></span>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={3}
             maxLength={500}
-            placeholder="e.g. Client missed the promised payment"
+            placeholder={t('revokeExtension.reasonPlaceholder')}
             className="resize-none text-sm"
             data-autofocus
           />

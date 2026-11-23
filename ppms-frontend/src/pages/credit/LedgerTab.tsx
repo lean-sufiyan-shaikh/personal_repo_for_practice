@@ -1,6 +1,7 @@
 import { useState, useDeferredValue } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { creditApi } from '../../api/creditApi'
 import type { CreditClient } from '../../api/creditApi'
 import { SkeletonRows } from '../../components/Skeleton'
@@ -36,6 +37,7 @@ function SummaryFigure({ label, value, tone }: { label: string; value: string; t
 }
 
 export function LedgerTab({ pumpId, clients, isLoading, hasError, canAdjustLimit, canIssueInvoices, onSelectClient }: LedgerTabProps) {
+  const { t } = useTranslation('credit')
   const [limitClientId, setLimitClientId] = useState<number | null>(null)
   const [showGenerateAllModal, setShowGenerateAllModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -87,18 +89,18 @@ export function LedgerTab({ pumpId, clients, isLoading, hasError, canAdjustLimit
       {canIssueInvoices && pumpId && clients.length > 0 && (
         <div className="flex justify-end">
           <button type="button" onClick={() => setShowGenerateAllModal(true)} className="ui-btn ui-btn-secondary">
-            Generate invoices for all clients
+            {t('aging.generateAllInvoices')}
           </button>
         </div>
       )}
 
       {aging && allRows.length > 0 && (
         <Reveal delay={110}>
-          <section aria-label="Credit aging summary" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <SummaryFigure label="Total outstanding" value={formatCurrency(aging.summary.totalOutstanding)} />
-            <SummaryFigure label="Overdue" value={formatCurrency(aging.summary.overdueAmount)}
+          <section aria-label={t('aging.summaryLabel')} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <SummaryFigure label={t('aging.totalOutstanding')} value={formatCurrency(aging.summary.totalOutstanding)} />
+            <SummaryFigure label={t('aging.filters.overdue')} value={formatCurrency(aging.summary.overdueAmount)}
               tone={aging.summary.overdueAmount > 0 ? 'text-bad' : undefined} />
-            <SummaryFigure label="Older than 60 days" value={formatCurrency(aging.summary.overSixtyAmount)}
+            <SummaryFigure label={t('aging.olderThan60')} value={formatCurrency(aging.summary.overSixtyAmount)}
               tone={aging.summary.overSixtyAmount > 0 ? 'text-warn' : undefined} />
           </section>
         </Reveal>
@@ -106,12 +108,12 @@ export function LedgerTab({ pumpId, clients, isLoading, hasError, canAdjustLimit
 
       <Reveal delay={120}>
       <div className="flex flex-wrap items-center gap-3">
-        <div role="group" aria-label="Show clients" className="ui-tabbar w-fit">
+        <div role="group" aria-label={t('aging.showClients')} className="ui-tabbar w-fit">
           {AGING_FILTERS.map(option => (
             <button key={option.value} type="button" aria-pressed={filter === option.value}
               onClick={() => setFilter(option.value)}
               className={`ui-tabbar__button ${filter === option.value ? 'ui-tabbar__button--active' : ''}`}>
-              {option.label}{aging ? ` (${countByFilter[option.value]})` : ''}
+              {t(`aging.filters.${option.labelKey}`)}{aging ? ` (${countByFilter[option.value]})` : ''}
             </button>
           ))}
         </div>
@@ -119,18 +121,18 @@ export function LedgerTab({ pumpId, clients, isLoading, hasError, canAdjustLimit
           <svg className="ui-search-shell__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
           </svg>
-          <input aria-label="Search clients by name or phone"
+          <input aria-label={t('aging.searchLabel')}
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search by client name or phone…"
+            placeholder={t('aging.searchPlaceholder')}
             className="ui-search-shell__input text-sm leading-5"
           />
           {searchQuery && (
             <IconButton
               onClick={() => setSearchQuery('')}
               className="ui-search-shell__clear"
-              label="Clear search"
+              label={t('aging.clearSearch')}
               icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>}
@@ -148,20 +150,20 @@ export function LedgerTab({ pumpId, clients, isLoading, hasError, canAdjustLimit
 
       {(hasError || agingFailed) && (
         <div role="alert" className="ui-alert ui-alert-danger text-sm">
-          Failed to load credit data. Please try again.
+          {t('aging.loadFailed')}
         </div>
       )}
 
       {!isLoading && !agingLoading && aging && (
         allRows.length === 0 ? (
           <div className="ui-card">
-            <EmptyState icon="transactions" title="No credit clients yet" subtitle="Go to the Clients tab to add credit clients." />
+            <EmptyState icon="transactions" title={t('aging.noClients')} subtitle={t('aging.noClientsHint')} />
           </div>
         ) : rows.length === 0 ? (
           <div className="ui-card">
             <EmptyState icon="generic"
-              title={query ? `No clients match "${deferredSearch.trim()}"` : 'No clients in this view'}
-              subtitle={query ? 'Try a different name or phone number.' : 'Choose All to see every client.'} />
+              title={query ? t('aging.noMatch', { query: deferredSearch.trim() }) : t('aging.noneInView')}
+              subtitle={query ? t('aging.noMatchHint') : t('aging.noneInViewHint')} />
           </div>
         ) : (
           <CreditAgingTable

@@ -1,6 +1,7 @@
 import type { NotificationTarget, NotificationType } from '../api/notificationApi'
 import { canAccessPath } from '../permissions/permissions'
 import type { UserRole } from '../types/auth'
+import { translateKey } from '../i18n'
 
 /** The address a notification opens, e.g. /dashboard/shifts?shift=123. */
 export function notificationHref(target: NotificationTarget): string {
@@ -13,16 +14,21 @@ export function openableHref(target: NotificationTarget, role: UserRole | undefi
   return canAccessPath(target.route, role) ? notificationHref(target) : null
 }
 
-export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
-  LOW_STOCK:               'Low tank stock',
-  PRICE_STALE:             'Fuel prices not set',
-  DOCUMENT_EXPIRING:       'Document expiry',
-  CALIBRATION_DUE:         'Calibration overdue',
-  CALIBRATION_DUE_SOON:    'Calibration due soon',
-  SHIFT_OVERDUE:           'Shift overdue',
-  ZERO_SALE_SHIFT:         'Zero-sale shift',
-  PRICE_CHANGE_OPEN_SHIFT: 'Price changed during a shift',
-  ANCILLARY_LOW_STOCK:     'Low product stock',
-  AUTO_CLOSED_SHIFT:       'Shift force-closed',
-  SETTLEMENT_REMINDER:     'Settlement reminder',
+export const NOTIFICATION_TYPES: NotificationType[] = [
+  'LOW_STOCK',
+  'PRICE_STALE',
+  'DOCUMENT_EXPIRING',
+  'CALIBRATION_DUE',
+  'CALIBRATION_DUE_SOON',
+  'SHIFT_OVERDUE',
+  'ZERO_SALE_SHIFT',
+  'PRICE_CHANGE_OPEN_SHIFT',
+  'ANCILLARY_LOW_STOCK',
+  'AUTO_CLOSED_SHIFT',
+  'SETTLEMENT_REMINDER',
+]
+
+/** The type's name in the active language (notifications.json types.<TYPE>); the raw code when the type is new. */
+export function notificationTypeLabel(type: NotificationType): string {
+  return translateKey(`notifications:types.${type}`, { defaultValue: type })
 }

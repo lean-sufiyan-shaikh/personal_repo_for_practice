@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { parseApiError } from '../../../utils/apiError'
 import { shiftPlanApi } from '../../../api/shiftPlanApi'
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function LeavePanel({ pumpId, member, onClose }: Props) {
+  const { t } = useTranslation('setup')
   const queryClient = useQueryClient()
   const [newLeaveDate, setNewLeaveDate] = useState('')
   const [newLeaveReason, setNewLeaveReason] = useState('')
@@ -31,7 +33,7 @@ export function LeavePanel({ pumpId, member, onClose }: Props) {
       setNewLeaveDate(''); setNewLeaveReason(''); setLeaveError(null)
       queryClient.invalidateQueries({ queryKey: ['staffLeaves', pumpId, member.id] })
     },
-    onError: (err) => setLeaveError(parseApiError(err, 'Failed to add leave')),
+    onError: (err) => setLeaveError(parseApiError(err, t('staff.leave.failed'))),
   })
 
   const removeLeaveMutation = useMutation({
@@ -44,9 +46,9 @@ export function LeavePanel({ pumpId, member, onClose }: Props) {
   return (
     <div className="px-3 py-3 border-t border-border">
       <div className="max-w-sm space-y-3">
-        <p className="text-xs font-semibold text-ink">Leave dates for {member.fullName}</p>
+        <p className="text-xs font-semibold text-ink">{t('staff.leave.title', { name: member.fullName })}</p>
         {openLeaves.length === 0 ? (
-          <p className="text-xs text-ink-3">No leave dates recorded.</p>
+          <p className="text-xs text-ink-3">{t('staff.leave.empty')}</p>
         ) : (
           <div className="space-y-1">
             {openLeaves.map(lv => (
@@ -59,7 +61,7 @@ export function LeavePanel({ pumpId, member, onClose }: Props) {
                   onClick={() => removeLeaveMutation.mutate({ leaveId: lv.id })}
                   disabled={removeLeaveMutation.isPending}
                   className="ui-btn ui-btn-ghost ml-auto text-ink-3 hover:text-bad disabled:opacity-40"
-                  label="Remove leave"
+                  label={t('staff.leave.remove')}
                   icon={<X size={12} strokeWidth={2} />}
                 />
               </div>
@@ -68,16 +70,16 @@ export function LeavePanel({ pumpId, member, onClose }: Props) {
         )}
         {/* Add new leave */}
         <div className="space-y-2 pt-1 border-t border-border">
-          <p className="ui-label mb-0">Add leave date</p>
-          <input aria-label="Leave date"
+          <p className="ui-label mb-0">{t('staff.leave.addDate')}</p>
+          <input aria-label={t('staff.leave.date')}
             type="date"
             value={newLeaveDate}
             onChange={e => setNewLeaveDate(e.target.value)}
             className="text-xs min-h-10"
           />
-          <input aria-label="Leave reason"
+          <input aria-label={t('staff.leave.reason')}
             type="text"
-            placeholder="Reason (optional)"
+            placeholder={t('staff.leave.reasonPlaceholder')}
             value={newLeaveReason}
             onChange={e => setNewLeaveReason(e.target.value)}
             className="text-xs min-h-10"
@@ -90,11 +92,11 @@ export function LeavePanel({ pumpId, member, onClose }: Props) {
               onClick={() => addLeaveMutation.mutate({ userId: member.id })}
               className="ui-btn ui-btn-primary ui-btn-compact"
             >
-              {addLeaveMutation.isPending ? 'Adding…' : 'Add Leave'}
+              {addLeaveMutation.isPending ? t('actions.adding') : t('staff.leave.submit')}
             </button>
             <button type="button" onClick={onClose}
               className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
-              Done
+              {t('actions.done')}
             </button>
           </div>
         </div>

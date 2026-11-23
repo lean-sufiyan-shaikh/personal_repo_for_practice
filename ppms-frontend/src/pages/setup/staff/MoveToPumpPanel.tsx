@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../../utils/apiError'
 import { userApi } from '../../../api/userApi'
 import type { StaffMember } from '../../../api/userApi'
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function MoveToPumpPanel({ pumpId, member, onClose }: Props) {
+  const { t } = useTranslation(['setup', 'common'])
   const queryClient = useQueryClient()
   const [targetPumpId, setTargetPumpId] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -31,26 +33,25 @@ export function MoveToPumpPanel({ pumpId, member, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ['operators', pumpId] })
       queryClient.invalidateQueries({ queryKey: ['operators', toPumpId] })
     },
-    onError: (err) => setError(parseApiError(err, 'Failed to move staff member')),
+    onError: (err) => setError(parseApiError(err, t('staff.move.failed'))),
   })
 
   return (
     <div className="px-3 py-3 border-t border-border">
       <div className="max-w-sm space-y-3">
         <div>
-          <p className="text-xs font-semibold text-ink">Move {member.fullName} to another of your pumps</p>
+          <p className="text-xs font-semibold text-ink">{t('staff.move.title', { name: member.fullName })}</p>
           <p className="text-xs text-ink-3 mt-0.5">
-            They are signed out and see the new pump at their next sign-in. Not allowed while they have an open
-            shift or an unresolved discrepancy.
+            {t('staff.move.explanation')}
           </p>
         </div>
         {otherPumps.length === 0 ? (
-          <p className="ui-help">You have no other active pump to move them to.</p>
+          <p className="ui-help">{t('staff.move.noOtherPump')}</p>
         ) : (
-          <SearchableSelect label="Move to pump"
+          <SearchableSelect label={t('staff.move.selectLabel')}
             value={targetPumpId}
             onChange={setTargetPumpId}
-            placeholder="Select pump"
+            placeholder={t('staff.move.selectPlaceholder')}
             options={otherPumps.map(pump => ({ value: String(pump.id), label: pump.name }))}
           />
         )}
@@ -60,10 +61,10 @@ export function MoveToPumpPanel({ pumpId, member, onClose }: Props) {
             disabled={!targetPumpId || moveMutation.isPending}
             onClick={() => moveMutation.mutate(Number(targetPumpId))}
             className="ui-btn ui-btn-primary ui-btn-compact">
-            {moveMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />Moving…</span> : 'Move'}
+            {moveMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('staff.move.moving')}</span> : t('staff.move.submit')}
           </button>
           <button type="button" onClick={onClose}
-            className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">Cancel</button>
+            className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">{t('common:actions.cancel')}</button>
         </div>
       </div>
     </div>

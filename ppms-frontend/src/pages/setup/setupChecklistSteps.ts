@@ -1,14 +1,9 @@
 import type { SetupStep } from '../../api/pumpApi'
+import { translateKey } from '../../i18n'
 import type { SectionKey } from './sectionKey'
 
-export const SETUP_STEP_LABELS: Record<SetupStep, string> = {
-  DISPENSERS:        'Dispensing units and nozzles',
-  TANKS:             'Tanks, with every nozzle linked',
-  FUEL_PRICES:       "Today's fuel prices",
-  SHIFT_DEFINITIONS: 'Shift definitions',
-  STAFF:             'Staff added',
-  GST_DETAILS:       'GST details',
-  CREDIT_CLIENTS:    'Credit clients',
+export function setupStepLabel(step: SetupStep): string {
+  return translateKey(`setup:checklist.steps.${step}`)
 }
 
 export const SETUP_STEP_SECTIONS: Partial<Record<SetupStep, SectionKey>> = {

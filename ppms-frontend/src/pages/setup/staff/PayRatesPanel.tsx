@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../../utils/apiError'
 import { userApi } from '../../../api/userApi'
 import type { StaffMember } from '../../../api/userApi'
@@ -14,6 +15,7 @@ interface Props {
 const rateText = (rate: number | null | undefined) => (rate != null ? String(rate) : '')
 
 export function PayRatesPanel({ pumpId, member, onClose }: Props) {
+  const { t } = useTranslation(['setup', 'common'])
   const queryClient = useQueryClient()
   const [rateShift1, setRateShift1]       = useState(rateText(member.shift1HourlyRate))
   const [rateStandard, setRateStandard]   = useState(rateText(member.standardHourlyRate))
@@ -28,7 +30,7 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
       onClose()
       queryClient.invalidateQueries({ queryKey: ['staff', pumpId] })
     },
-    onError: (err) => setRateError(parseApiError(err, 'Failed to save rates')),
+    onError: (err) => setRateError(parseApiError(err, t('staff.rates.failed'))),
   })
 
   return (
@@ -37,31 +39,31 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
         {member.role === 'OPERATOR' ? (
           <>
             <div>
-              <p className="text-xs font-semibold text-ink">Hourly pay rates for {member.fullName}</p>
+              <p className="text-xs font-semibold text-ink">{t('staff.rates.hourlyTitle', { name: member.fullName })}</p>
               <p className="text-xs text-ink-3 mt-0.5">
-                Shift 1 (12 AM–8 AM) = night rate · Shift 2 &amp; 3 (8 AM–12 AM) = standard rate
+                {t('staff.rates.hourlyHint')}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <span className="ui-label">
-                  Night rate (₹/hr) <span className="text-bad">*</span>
+                  {t('staff.rates.night')} <span className="text-bad">*</span>
                 </span>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-ink-3">₹</span>
-                  <input aria-label="Night rate (₹/hr)" type="number" min="1" step="0.01" value={rateShift1}
-                    onChange={e => setRateShift1(e.target.value)} placeholder="e.g. 60"
+                  <input aria-label={t('staff.rates.night')} type="number" min="1" step="0.01" value={rateShift1}
+                    onChange={e => setRateShift1(e.target.value)} placeholder={t('example', { value: '60' })}
                     className="w-full pl-5 pr-2 text-xs min-h-10" />
                 </div>
               </div>
               <div>
                 <span className="ui-label">
-                  Day rate (₹/hr) <span className="text-bad">*</span>
+                  {t('staff.rates.day')} <span className="text-bad">*</span>
                 </span>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-ink-3">₹</span>
-                  <input aria-label="Day rate (₹/hr)" type="number" min="1" step="0.01" value={rateStandard}
-                    onChange={e => setRateStandard(e.target.value)} placeholder="e.g. 45"
+                  <input aria-label={t('staff.rates.day')} type="number" min="1" step="0.01" value={rateStandard}
+                    onChange={e => setRateStandard(e.target.value)} placeholder={t('example', { value: '45' })}
                     className="w-full pl-5 pr-2 text-xs min-h-10" />
                 </div>
               </div>
@@ -72,28 +74,28 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
                 disabled={!rateShift1 || !rateStandard || rateMutation.isPending}
                 onClick={() => rateMutation.mutate({ userId: member.id, shift1HourlyRate: parseFloat(rateShift1), standardHourlyRate: parseFloat(rateStandard) })}
                 className="ui-btn ui-btn-primary ui-btn-compact">
-                {rateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />Saving…</span> : 'Save Rates'}
+                {rateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('actions.saving')}</span> : t('staff.rates.saveRates')}
               </button>
               <button type="button" onClick={onClose}
-                className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">Cancel</button>
+                className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">{t('common:actions.cancel')}</button>
             </div>
           </>
         ) : (
           <>
             <div>
-              <p className="text-xs font-semibold text-ink">Daily pay rate for {member.fullName}</p>
+              <p className="text-xs font-semibold text-ink">{t('staff.rates.dailyTitle', { name: member.fullName })}</p>
               <p className="text-xs text-ink-3 mt-0.5">
-                Paid per working day · leave days are deducted automatically
+                {t('staff.rates.dailyHint')}
               </p>
             </div>
             <div>
               <span className="ui-label">
-                Daily rate (₹/day) <span className="text-bad">*</span>
+                {t('staff.rates.daily')} <span className="text-bad">*</span>
               </span>
               <div className="relative max-w-40">
                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-ink-3">₹</span>
-                <input aria-label="Daily rate (₹/day)" type="number" min="1" step="0.01" value={rateDaily}
-                  onChange={e => setRateDaily(e.target.value)} placeholder="e.g. 800"
+                <input aria-label={t('staff.rates.daily')} type="number" min="1" step="0.01" value={rateDaily}
+                  onChange={e => setRateDaily(e.target.value)} placeholder={t('example', { value: '800' })}
                   className="w-full pl-5 pr-2 text-xs min-h-10" />
               </div>
             </div>
@@ -103,10 +105,10 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
                 disabled={!rateDaily || rateMutation.isPending}
                 onClick={() => rateMutation.mutate({ userId: member.id, dailyRate: parseFloat(rateDaily) })}
                 className="ui-btn ui-btn-primary ui-btn-compact">
-                {rateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />Saving…</span> : 'Save Rate'}
+                {rateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('actions.saving')}</span> : t('staff.rates.saveRate')}
               </button>
               <button type="button" onClick={onClose}
-                className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">Cancel</button>
+                className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">{t('common:actions.cancel')}</button>
             </div>
           </>
         )}

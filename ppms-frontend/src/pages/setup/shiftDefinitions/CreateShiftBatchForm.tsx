@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../../utils/apiError'
 import { shiftDefinitionApi } from '../../../api/shiftDefinitionApi'
 import type { CreateShiftDefinitionRequest } from '../../../api/shiftDefinitionApi'
@@ -9,6 +10,7 @@ import { subtractOneMinute, TIME_OPTS, SORT_ORDER_OPTS, defaultRows } from './sh
 import type { ShiftRow } from './shiftDefinitionRows'
 
 export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onClose: () => void }) {
+  const { t } = useTranslation(['setup', 'common'])
   const qc = useQueryClient()
   const [effectiveFrom, setEffectiveFrom] = useState('')
   const [hasEndDate, setHasEndDate] = useState(false)
@@ -25,7 +27,7 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
       onClose()
     },
     onError: (err) => {
-      setFormError(parseApiError(err, 'Failed to save shift definitions'))
+      setFormError(parseApiError(err, t('shiftDefs.form.saveFailed')))
     },
   })
 
@@ -44,18 +46,16 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
 
   const handleSubmit = () => {
     setFormError(null)
-    if (!effectiveFrom) { setFormError('Start date (Effective From) is required'); return }
-    if (hasEndDate && !effectiveTo) { setFormError('End date is required when "Has end date" is checked'); return }
-    if (hasEndDate && effectiveTo <= effectiveFrom) { setFormError('End date must be after the start date'); return }
-    if (rows.some(r => !r.name.trim())) { setFormError('Each shift must have a name'); return }
+    if (!effectiveFrom) { setFormError(t('shiftDefs.form.startRequired')); return }
+    if (hasEndDate && !effectiveTo) { setFormError(t('shiftDefs.form.endRequired')); return }
+    if (hasEndDate && effectiveTo <= effectiveFrom) { setFormError(t('shiftDefs.form.endAfterStart')); return }
+    if (rows.some(r => !r.name.trim())) { setFormError(t('shiftDefs.form.nameRequired')); return }
 
     // Guard: only the night shift is allowed to cross midnight (endTime < startTime).
     // If a non-night shift has end < start, the user almost certainly picked AM instead of PM.
     const badRow = rows.find(r => !r.isNightShift && r.endTime <= r.startTime)
     if (badRow) {
-      setFormError(
-        `"${badRow.name}" ends before it starts. Only the Night shift can cross midnight. Did you select AM instead of PM?`
-      )
+      setFormError(t('shiftDefs.form.endsBeforeStart', { name: badRow.name }))
       return
     }
 
@@ -76,13 +76,13 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
 
   return (
     <div className="ui-card-plain p-4 space-y-4">
-      <h3 className="text-sm font-semibold text-ink">New Shift Schedule</h3>
+      <h3 className="text-sm font-semibold text-ink">{t('shiftDefs.form.title')}</h3>
 
       {/* Date range */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block">
-            <span className="ui-label">Start Date <span className="text-bad">*</span></span>
+            <span className="ui-label">{t('shiftDefs.form.startDate')} <span className="text-bad">*</span></span>
             <input
               type="date"
               value={effectiveFrom}
@@ -93,7 +93,7 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
         </div>
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="ui-label mb-0">End Date</span>
+            <span className="ui-label mb-0">{t('shiftDefs.form.endDate')}</span>
             <label className="flex items-center gap-1 text-xs text-ink-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -101,10 +101,10 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
                 onChange={e => { setHasEndDate(e.target.checked); if (!e.target.checked) setEffectiveTo('') }}
                 className="w-3 h-3 accent-primary"
               />
-              Set end date
+              {t('shiftDefs.form.setEndDate')}
             </label>
           </div>
-          <input aria-label="End date"
+          <input aria-label={t('shiftDefs.form.endDateAria')}
             type="date"
             value={effectiveTo}
             onChange={e => setEffectiveTo(e.target.value)}
@@ -113,13 +113,12 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
             className="text-sm disabled:bg-bg disabled:text-ink-3"
           />
           {!hasEndDate && (
-            <p className="text-xs text-ink-3 mt-1">Open-ended — no expiry date</p>
+            <p className="text-xs text-ink-3 mt-1">{t('shiftDefs.form.openEnded')}</p>
           )}
         </div>
       </div>
       <p className="text-xs text-ink-3 -mt-2">
-        Any previously open schedule will be automatically closed on the day before the start date.
-        You cannot create two schedules with overlapping date ranges.
+        {t('shiftDefs.form.overlapHint')}
       </p>
 
       {/* Shift rows */}
@@ -135,13 +134,13 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
           const endOpts    = TIME_OPTS.filter(o => !usedEnds.has(o.value))
           return (
           <div key={idx} className="grid gap-2 items-center md:grid-cols-[minmax(0,12rem)_minmax(8.5rem,1fr)_auto_minmax(8.5rem,1fr)_minmax(6.5rem,7.5rem)_auto]">
-            <input aria-label="Shift name"
-              placeholder="Name (e.g. Morning)"
+            <input aria-label={t('shiftDefs.form.shiftName')}
+              placeholder={t('shiftDefs.form.shiftNamePlaceholder')}
               value={row.name}
               onChange={e => updateRow(idx, { name: e.target.value })}
               className="min-w-0 text-sm md:max-w-48"
             />
-            <SearchableSelect label="Start time"
+            <SearchableSelect label={t('shiftDefs.form.startTime')}
               value={row.startTime}
               onChange={v => updateRow(idx, { startTime: v })}
               options={startOpts}
@@ -149,14 +148,14 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
               className="min-w-0"
             />
             <span className="text-xs text-ink-3">→</span>
-            <SearchableSelect label="End time"
+            <SearchableSelect label={t('shiftDefs.form.endTime')}
               value={row.endTime}
               onChange={v => updateRow(idx, { endTime: v })}
               options={endOpts}
               size="sm"
               className="min-w-0"
             />
-            <SearchableSelect label="Display order"
+            <SearchableSelect label={t('shiftDefs.form.displayOrder')}
               value={String(row.sortOrder)}
               onChange={v => updateRow(idx, { sortOrder: Number(v) })}
               options={SORT_ORDER_OPTS}
@@ -171,10 +170,10 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
                 onChange={e => updateRow(idx, { isNightShift: e.target.checked })}
                 className="w-3.5 h-3.5 accent-primary"
               />
-              <label htmlFor={`night-${idx}`} className="text-xs text-ink-2 select-none">Night</label>
+              <label htmlFor={`night-${idx}`} className="text-xs text-ink-2 select-none">{t('shiftDefs.night')}</label>
               {rows.length > 1 && (
                 <IconButton onClick={() => removeRow(idx)} className="ui-btn ui-btn-ghost ml-1 text-base leading-none text-bad hover:text-bad-strong"
-                  label="Remove row"
+                  label={t('shiftDefs.form.removeRow')}
                   icon={'×'}
                 />
               )}
@@ -190,7 +189,7 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
           onClick={addRow}
           className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
         >
-          + Add another shift
+          {t('shiftDefs.form.addShift')}
         </button>
       )}
 
@@ -203,14 +202,14 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
           disabled={createMutation.isPending}
           className="ui-btn ui-btn-primary"
         >
-          {createMutation.isPending ? 'Saving…' : 'Save Schedule'}
+          {createMutation.isPending ? t('actions.saving') : t('shiftDefs.form.save')}
         </button>
         <button
           type="button"
           onClick={onClose}
           className="ui-btn ui-btn-secondary"
         >
-          Cancel
+          {t('common:actions.cancel')}
         </button>
       </div>
     </div>

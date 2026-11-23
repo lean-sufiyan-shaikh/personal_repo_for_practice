@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronDown, Plus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { pumpApi } from '../../api/pumpApi'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
@@ -14,6 +15,7 @@ import { canPerformAction } from '../../permissions/permissions'
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function SetupPage() {
+  const { t } = useTranslation('setup')
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
   const { selectedPumpId, setSelectedPumpId } = usePumpStore()
@@ -47,10 +49,8 @@ export default function SetupPage() {
       {/* Page title */}
       <Reveal delay={60}>
       <div>
-        <h1 className="ui-title-sm">Pump Setup</h1>
-        <p className="ui-subtitle">
-          Create pump locations, configure nozzles, set prices, manage staff and credit clients.
-        </p>
+        <h1 className="ui-title-sm">{t('page.title')}</h1>
+        <p className="ui-subtitle">{t('page.subtitle')}</p>
       </div>
       </Reveal>
 
@@ -66,7 +66,7 @@ export default function SetupPage() {
               <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shrink-0">
                 <Plus size={12} strokeWidth={3} className="text-on-primary" />
               </div>
-              <span className="text-sm font-semibold text-ink">Create a New Pump Location</span>
+              <span className="text-sm font-semibold text-ink">{t('page.createPumpToggle')}</span>
             </div>
             <ChevronDown size={14} strokeWidth={2} className={`text-ink-3 transition-transform duration-200 ${createOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -99,7 +99,7 @@ export default function SetupPage() {
 
       {!isLoading && pumps.length === 0 && !createOpen && (
         <div className="ui-card text-center text-sm text-ink-3 py-6">
-          No pumps yet. Create one above to get started.
+          {t('page.noPumps')}
         </div>
       )}
     </div>

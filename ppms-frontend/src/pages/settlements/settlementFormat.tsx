@@ -1,15 +1,14 @@
 import { Smartphone, CreditCard, Truck } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { SettlementPaymentType } from '../../api/paymentSettlementApi'
+import { translateKey } from '../../i18n'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
 export const TYPES: SettlementPaymentType[] = ['UPI', 'CARD', 'FLEET_CARD']
 
-export const TYPE_LABELS: Record<SettlementPaymentType, string> = {
-  UPI:        'UPI',
-  CARD:       'Card',
-  FLEET_CARD: 'Fleet Card',
+export function typeLabel(type: SettlementPaymentType): string {
+  return translateKey(`settlements:types.${type}`)
 }
 
 export const TYPE_ICONS: Record<SettlementPaymentType, ReactNode> = {

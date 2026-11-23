@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { usePumpStore } from '../../store/usePumpStore'
 import { userApi } from '../../api/userApi'
 import { payrollApi } from '../../api/payrollApi'
@@ -10,6 +11,7 @@ import { PayrollRecords } from './PayrollRecords'
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function PayrollPage() {
+  const { t } = useTranslation('payroll')
   const { selectedPumpId: pumpId } = usePumpStore()
 
   const { data: staff = [] } = useQuery({
@@ -34,15 +36,15 @@ export default function PayrollPage() {
       <Reveal delay={60}>
       <div className="ui-page-header">
         <div>
-        <h1 className="ui-title-sm">Payroll</h1>
-        <p className="ui-subtitle">Calculate and track staff salary payments based on shift history</p>
+        <h1 className="ui-title-sm">{t('page.title')}</h1>
+        <p className="ui-subtitle">{t('page.subtitle')}</p>
         </div>
       </div>
       </Reveal>
 
       {recordsError && (
         <div className="ui-alert ui-alert-warning text-sm">
-          Could not load payroll records. Check your connection and refresh.
+          {t('page.loadFailed')}
         </div>
       )}
 

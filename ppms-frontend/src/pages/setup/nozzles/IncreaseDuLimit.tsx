@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../../utils/apiError'
 import { pumpApi } from '../../../api/pumpApi'
 import type { PumpSummary } from '../../../api/pumpApi'
@@ -7,6 +8,7 @@ import { Spinner } from '../../../components/Spinner'
 import { useToastStore } from '../../../store/toastStore'
 
 export function IncreaseDuLimit({ pump, onUpdated }: { pump: PumpSummary; onUpdated: () => void }) {
+  const { t } = useTranslation(['setup', 'common'])
   const { addToast } = useToastStore()
   const [showIncreaseMax, setShowIncreaseMax] = useState(false)
   const [newMaxCount, setNewMaxCount] = useState('')
@@ -16,17 +18,17 @@ export function IncreaseDuLimit({ pump, onUpdated }: { pump: PumpSummary; onUpda
     mutationFn: (count: number) => pumpApi.updateMaxDuCount(pump.id, count),
     onSuccess: () => {
       setShowIncreaseMax(false); setNewMaxCount(''); setIncreaseError(null)
-      addToast('DU limit updated', 'success')
+      addToast(t('nozzles.limit.updated'), 'success')
       onUpdated()
     },
-    onError: (err) => { const msg = parseApiError(err, 'Failed to update DU limit'); setIncreaseError(msg); addToast(msg, 'error') },
+    onError: (err) => { const msg = parseApiError(err, t('nozzles.limit.failed')); setIncreaseError(msg); addToast(msg, 'error') },
   })
 
   return (
     <div className="space-y-2">
       <p className="ui-alert ui-alert-warning text-xs">
-        Maximum DU count ({pump.maxDuCount}) reached.
-        {' '}If you have added a new machine, you can increase the limit below.
+        {t('nozzles.limit.reached', { max: pump.maxDuCount })}
+        {' '}{t('nozzles.limit.increaseHint')}
       </p>
       {!showIncreaseMax ? (
         <button
@@ -34,13 +36,13 @@ export function IncreaseDuLimit({ pump, onUpdated }: { pump: PumpSummary; onUpda
           onClick={() => { setShowIncreaseMax(true); setNewMaxCount(String(pump.maxDuCount + 1)) }}
           className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
         >
-          + Increase DU limit
+          {t('nozzles.limit.increaseToggle')}
         </button>
       ) : (
         <div className="flex items-end gap-3 flex-wrap">
           <div>
             <label className="block">
-              <span className="ui-label">New maximum DU count</span>
+              <span className="ui-label">{t('nozzles.limit.newMax')}</span>
               <input
                 type="number"
                 min={pump.maxDuCount + 1}
@@ -57,14 +59,14 @@ export function IncreaseDuLimit({ pump, onUpdated }: { pump: PumpSummary; onUpda
             disabled={increaseMaxMutation.isPending || !newMaxCount}
             className="ui-btn ui-btn-primary"
           >
-            {increaseMaxMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Saving…</span> : 'Increase Limit'}
+            {increaseMaxMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('actions.saving')}</span> : t('nozzles.limit.submit')}
           </button>
           <button
             type="button"
             onClick={() => { setShowIncreaseMax(false); setIncreaseError(null) }}
             className="ui-btn ui-btn-ghost text-xs"
           >
-            Cancel
+            {t('common:actions.cancel')}
           </button>
           {increaseError && <p role="alert" className="ui-error-text w-full">{increaseError}</p>}
         </div>

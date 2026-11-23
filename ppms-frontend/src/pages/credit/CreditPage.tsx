@@ -1,5 +1,6 @@
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
 import { canAccessPage, canPerformAction } from '../../permissions/permissions'
 import { usePumpStore } from '../../store/usePumpStore'
@@ -17,6 +18,7 @@ const CREDIT_PATH = '/dashboard/credit'
 // ─── Main Credit Page ────────────────────────────────────────────────────────
 
 export default function CreditPage() {
+  const { t } = useTranslation('credit')
   const { user } = useAuthStore()
   const isOwnerOrAdmin    = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const canSeeLedger      = canAccessPage('credit', user?.role)
@@ -65,7 +67,7 @@ export default function CreditPage() {
     return (
       <div className="ui-page ui-page--narrow">
         <div className="ui-alert ui-alert-warning text-sm">
-          You are not assigned to any pump. Ask the Owner or Admin to assign you.
+          {t('page.notAssigned')}
         </div>
       </div>
     )
@@ -97,20 +99,20 @@ export default function CreditPage() {
       <Reveal delay={60}>
       <div className="ui-section-hero">
         <div>
-          <p className="ui-section-kicker">{canSeeLedger ? 'Client balances' : 'Credit management'}</p>
-          <h1 className="ui-title-sm">Credit {canSeeLedger ? 'Ledger' : 'Clients'}</h1>
+          <p className="ui-section-kicker">{canSeeLedger ? t('page.kickerLedger') : t('page.kickerClients')}</p>
+          <h1 className="ui-title-sm">{canSeeLedger ? t('page.titleLedger') : t('page.titleClients')}</h1>
           <p className="ui-subtitle">
-            {canSeeLedger ? 'Track outstanding balances and record payments' : 'View credit client accounts'}
+            {canSeeLedger ? t('page.subtitleLedger') : t('page.subtitleClients')}
           </p>
         </div>
         <div className="ui-section-meta">
           <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">Accounts</span>
+            <span className="ui-section-meta-label">{t('page.accounts')}</span>
             <span className="ui-section-meta-value">{rootClientCount}</span>
           </div>
           {canSeeLedger && (
             <div className="ui-section-meta-pill">
-              <span className="ui-section-meta-label">Outstanding</span>
+              <span className="ui-section-meta-label">{t('summaryCards.outstanding')}</span>
               <MoneyText value={totalOutstanding} className="ui-section-meta-value" />
             </div>
           )}
@@ -128,7 +130,7 @@ export default function CreditPage() {
               onClick={() => setActiveTab(tab)}
               className={`ui-tabbar__button ${activeTab === tab ? 'ui-tabbar__button--active' : ''}`}
             >
-              {tab === 'clients' ? 'Clients' : 'Ledger'}
+              {t(`page.tabs.${tab}`)}
             </button>
           ))}
         </div>
@@ -156,7 +158,7 @@ export default function CreditPage() {
             <CreditClientsTab pumpId={pumpId} canManageClients={canManageClients}
               canManagePortalPins={canPerformAction('credit:manage-portal-pin', user?.role)} />
           ) : (
-            <div className="ui-empty">No pump selected. Use the pump selector in the top navigation bar.</div>
+            <div className="ui-empty">{t('page.noPump')}</div>
           )}
         </div>
         </Reveal>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Trans, useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
 import type { CreditClient, UpdateInterestSettingsRequest } from '../../../api/creditApi'
 import { Spinner } from '../../../components/Spinner'
@@ -15,6 +16,7 @@ interface SetInterestSettingsModalProps {
 }
 
 export function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettingsModalProps) {
+  const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
   const [rate, setRate] = useState(client.monthlyInterestRate > 0 ? String(client.monthlyInterestRate) : '')
   const [graceDays, setGraceDays] = useState(String(client.interestGraceDays ?? 1))
@@ -27,21 +29,21 @@ export function SetInterestSettingsModal({ client, pumpId, onClose }: SetInteres
       qc.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
       onClose()
     },
-    onError: (err) => setError(parseApiError(err, 'Failed to update interest settings')),
+    onError: (err) => setError(parseApiError(err, t('interestSettings.failed'))),
   })
 
   const handleSubmit = () => {
     const r = rate.trim() === '' ? 0 : parseFloat(rate)
     const g = parseInt(graceDays, 10)
-    if (isNaN(r) || r < 0 || r > 100) { setError('Rate must be between 0 and 100'); return }
-    if (isNaN(g) || g < 0) { setError('Grace days must be 0 or more'); return }
+    if (isNaN(r) || r < 0 || r > 100) { setError(t('interestSettings.invalidRate')); return }
+    if (isNaN(g) || g < 0) { setError(t('interestSettings.invalidGraceDays')); return }
     setError(null)
     mutation.mutate({ monthlyInterestRate: r, interestGraceDays: g })
   }
 
   return (
     <Modal
-      title="Interest Settings"
+      title={t('interestSettings.title')}
       subtitle={client.name}
       tone="warning"
       size="sm"
@@ -50,44 +52,43 @@ export function SetInterestSettingsModal({ client, pumpId, onClose }: SetInteres
       footer={
         <>
           <button onClick={onClose} className="ui-btn ui-btn-secondary">
-            Cancel
+            {t('common:actions.cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={mutation.isPending}
             className="ui-btn ui-btn-primary"
           >
-            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />Saving…</span> : 'Save Settings'}
+            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('form.saving')}</span> : t('interestSettings.save')}
           </button>
         </>
       }
     >
       <div className="ui-inline-form">
         <p className="ui-inline-form__copy">
-          Simple interest is calculated as: <strong>outstanding × rate × (days / 30)</strong>.
-          Set rate to <strong>0</strong> to disable interest for this client.
+          <Trans t={t} i18nKey="interestSettings.explanation" components={{ strong: <strong /> }} />
         </p>
 
-        <span className="ui-label">Monthly Interest Rate (%)</span>
+        <span className="ui-label">{t('interestSettings.rateLabel')}</span>
         <div className="relative">
-          <input aria-label="Monthly Interest Rate (%)"
+          <input aria-label={t('interestSettings.rateLabel')}
             type="number" min="0" max="100" step="0.01"
             value={rate}
             onChange={e => setRate(e.target.value)}
-            placeholder="0 = no interest"
+            placeholder={t('interestSettings.ratePlaceholder')}
             className="w-full pr-8 pl-3 text-sm"
             data-autofocus
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-3 text-sm">%</span>
         </div>
         <p className="text-xs text-ink-3 mt-1">
-          e.g. 2% means ₹100 outstanding → ₹2 interest per month
+          {t('interestSettings.rateExample')}
         </p>
       </div>
 
       <div className="ui-inline-form">
         <label className="block">
-          <span className="ui-label">Grace Period (days)</span>
+          <span className="ui-label">{t('interestSettings.graceLabel')}</span>
           <input
             type="number" min="0" step="1"
             value={graceDays}
@@ -96,7 +97,7 @@ export function SetInterestSettingsModal({ client, pumpId, onClose }: SetInteres
           />
         </label>
         <p className="text-xs text-ink-3 mt-1">
-          Interest starts this many days after the first credit sale. Default is 1.
+          {t('interestSettings.graceHelp')}
         </p>
       </div>
 

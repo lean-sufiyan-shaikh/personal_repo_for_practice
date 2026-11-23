@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { pumpApi } from '../../../api/pumpApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { Spinner } from '../../../components/Spinner'
@@ -17,10 +18,12 @@ interface ReassignModalProps {
 }
 
 export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, transactionType, onClose }: ReassignModalProps) {
+  const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
   const [toClientId, setToClientId] = useState<string>('')
   const [reason, setReason]         = useState('')
   const [error, setError]           = useState<string | null>(null)
+  const isPayment = transactionType === 'PAYMENT'
 
   const { data: allClients = [] } = useQuery({
     queryKey: ['creditClients', pumpId],
@@ -39,7 +42,7 @@ export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, tra
   if (currentClient?.isParent) {
     targets = allClients.filter(c => c.parentClientId === currentClientId)
     if (targets.length === 0) {
-      noTargetsReason = 'This account has no sub-accounts yet. Add sub-accounts in Setup first.'
+      noTargetsReason = t('reassign.noSubAccounts')
     }
   } else if (currentClient?.parentClientId !== null && currentClient?.parentClientId !== undefined) {
     targets = allClients.filter(c =>
@@ -47,12 +50,12 @@ export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, tra
       (c.id === currentClient.parentClientId || c.parentClientId === currentClient.parentClientId)
     )
   } else {
-    noTargetsReason = 'Entries can only be moved within a parent / sub-account group. This is a standalone account with no group.'
+    noTargetsReason = t('reassign.standalone')
   }
 
   const mutation = useMutation({
     mutationFn: ({ toId, rsn }: { toId: number; rsn: string }) =>
-      transactionType === 'PAYMENT'
+      isPayment
         ? pumpApi.reassignCreditPayment(pumpId, entryId, toId, rsn)
         : pumpApi.reassignCreditEntry(pumpId, entryId, toId, rsn),
     onSuccess: () => {
@@ -60,22 +63,20 @@ export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, tra
       qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId] })
       onClose()
     },
-    onError: (err) => setError(parseApiError(err, `Failed to move ${transactionType === 'PAYMENT' ? 'payment' : 'entry'}`)),
+    onError: (err) => setError(parseApiError(err, isPayment ? t('reassign.failedPayment') : t('reassign.failedEntry'))),
   })
 
   const handleSubmit = () => {
-    if (!toClientId)        { setError('Select a target client'); return }
-    if (!reason.trim())     { setError('Reason is required'); return }
+    if (!toClientId)        { setError(t('reassign.selectTarget')); return }
+    if (!reason.trim())     { setError(t('reassign.reasonRequired')); return }
     setError(null)
     mutation.mutate({ toId: Number(toClientId), rsn: reason.trim() })
   }
 
   return (
     <Modal
-      title="Move Credit Entry"
-      subtitle={transactionType === 'PAYMENT'
-        ? 'Reassign this payment within the same account group.'
-        : 'Reassign this sale entry within the same account group.'}
+      title={t('reassign.title')}
+      subtitle={isPayment ? t('reassign.subtitlePayment') : t('reassign.subtitleSale')}
       tone="info"
       size="sm"
       onClose={onClose}
@@ -84,12 +85,12 @@ export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, tra
         <>
           <button onClick={onClose}
             className="ui-btn ui-btn-secondary flex-1">
-            {noTargetsReason ? 'Close' : 'Cancel'}
+            {noTargetsReason ? t('common:actions.close') : t('common:actions.cancel')}
           </button>
           {!noTargetsReason && (
             <button onClick={handleSubmit} disabled={mutation.isPending}
               className="ui-btn ui-btn-primary flex-1">
-              {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />Moving…</span> : 'Move Entry'}
+              {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('reassign.moving')}</span> : t('reassign.submit')}
             </button>
           )}
         </>
@@ -103,31 +104,29 @@ export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, tra
         <>
           <div className="ui-inline-form">
             <span className="ui-label">
-              Move to <span className="text-bad">*</span>
+              {t('reassign.moveTo')} <span className="text-bad">*</span>
             </span>
-            <SearchableSelect label="Move to"
+            <SearchableSelect label={t('reassign.moveTo')}
               value={toClientId}
               onChange={setToClientId}
-              placeholder="Search and select account…"
+              placeholder={t('reassign.targetPlaceholder')}
               searchThreshold={0}
               options={targets.map(c => ({
                 value: String(c.id),
-                label: c.parentClientId === null ? `${c.name} (parent)` : c.name,
+                label: c.parentClientId === null ? t('reassign.parentOption', { name: c.name }) : c.name,
               }))}
             />
           </div>
           <div className="ui-inline-form">
             <label className="block">
               <span className="ui-label">
-              Reason <span className="text-bad">*</span>
+              {t('form.reason')} <span className="text-bad">*</span>
             </span>
               <textarea
                 value={reason}
                 onChange={e => setReason(e.target.value)}
                 rows={2}
-                placeholder={transactionType === 'PAYMENT'
-                  ? 'e.g. Payment was recorded under parent but belongs to sub-account'
-                  : 'e.g. Entry was logged under parent but belongs to sub-account'}
+                placeholder={isPayment ? t('reassign.reasonPlaceholderPayment') : t('reassign.reasonPlaceholderSale')}
                 className="resize-none text-sm"
               />
             </label>

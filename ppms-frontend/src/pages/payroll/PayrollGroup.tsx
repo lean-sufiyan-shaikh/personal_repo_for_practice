@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { StaffMember } from '../../api/userApi'
 import type { PayrollRecord, PayrollStatus } from '../../api/payrollApi'
 import { Pagination } from '../../components/Pagination'
 import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
-import { NEXT_STATUS, STATUS_BADGES, fmtAmt, fmtDate } from './payrollFormat'
+import { formatDecimal } from '../../utils/format'
+import { NEXT_STATUS, fmtAmt, fmtDate, statusBadge } from './payrollFormat'
 
 // ── Collapsible group header ──────────────────────────────────────────────────
 interface GroupProps {
@@ -34,6 +36,7 @@ export function PayrollGroup({
   page, pageSize, onPageChange, onPageSizeChange,
   isOpen, onToggle, staff, onStatusChange, onDelete, isPending, isDeletePending,
 }: GroupProps) {
+  const { t } = useTranslation(['payroll', 'common'])
   const next = NEXT_STATUS[status]
   const [rejectRecordId, setRejectRecordId] = useState<number | null>(null)
 
@@ -57,9 +60,9 @@ export function PayrollGroup({
         className="ui-accordion-trigger"
       >
         <div className="flex items-center gap-3">
-          <StatusBadge {...STATUS_BADGES[status]} />
+          <StatusBadge {...statusBadge(status)} />
           <span className="text-sm text-ink-3">
-            {totalRecords} record{totalRecords !== 1 ? 's' : ''}
+            {t('group.records', { count: totalRecords })}
           </span>
           <MoneyText value={totalAmount} className="text-sm font-semibold text-ink" />
         </div>
@@ -78,7 +81,7 @@ export function PayrollGroup({
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium text-ink">
-                      {staffMember?.fullName ?? `Staff #${r.userId}`}
+                      {staffMember?.fullName ?? t('group.staffNumber', { id: r.userId })}
                     </span>
                     <span className="text-xs text-ink-3">
                       {fmtDate(r.periodFrom)} – {fmtDate(r.periodTo)}
@@ -99,26 +102,26 @@ export function PayrollGroup({
                       <div className="flex items-center justify-between px-3 py-2">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-info shrink-0" />
-                          <span className="text-ink-3">Total days in period</span>
+                          <span className="text-ink-3">{t('group.totalDays')}</span>
                         </div>
                         <span className="font-medium text-ink">{r.totalDays ?? 0}</span>
                       </div>
                       <div className="flex items-center justify-between px-3 py-2">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-warn shrink-0" />
-                          <span className="text-ink-3">Leave days deducted</span>
+                          <span className="text-ink-3">{t('group.leaveDays')}</span>
                         </div>
                         <span className="font-medium text-warn">− {r.leaveDays ?? 0}</span>
                       </div>
                       <div className="flex items-center justify-between px-3 py-2">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-ok shrink-0" />
-                          <span className="text-ink-3">Days worked</span>
+                          <span className="text-ink-3">{t('group.daysWorked')}</span>
                           {r.dailyRateSnapshot != null && (
-                            <span className="text-ink-3">@ {fmtAmt(r.dailyRateSnapshot)}/day</span>
+                            <span className="text-ink-3">{t('group.perDay', { rate: fmtAmt(r.dailyRateSnapshot) })}</span>
                           )}
                         </div>
-                        <span className="font-medium text-ink">{r.daysWorked ?? 0} days</span>
+                        <span className="font-medium text-ink">{t('group.days', { count: r.daysWorked ?? 0 })}</span>
                       </div>
                     </>
                   ) : (
@@ -127,10 +130,10 @@ export function PayrollGroup({
                         <div className="flex items-center justify-between px-3 py-2">
                           <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                            <span className="text-ink-3">Night (12AM–8AM)</span>
-                            <span className="text-ink-3">{r.shift1Shifts} shift{r.shift1Shifts !== 1 ? 's' : ''} · {r.shift1Hours.toFixed(2)} hrs</span>
+                            <span className="text-ink-3">{t('group.night')}</span>
+                            <span className="text-ink-3">{t('group.shiftsHours', { count: r.shift1Shifts, hours: formatDecimal(r.shift1Hours) })}</span>
                             {r.shift1RateSnapshot != null && (
-                              <span className="text-ink-3">@ {fmtAmt(r.shift1RateSnapshot)}/hr</span>
+                              <span className="text-ink-3">{t('group.perHour', { rate: fmtAmt(r.shift1RateSnapshot) })}</span>
                             )}
                           </div>
                           <MoneyText value={r.shift1RateSnapshot != null ? r.shift1Hours * r.shift1RateSnapshot : null} className="font-medium text-ink" />
@@ -140,17 +143,17 @@ export function PayrollGroup({
                         <div className="flex items-center justify-between px-3 py-2">
                           <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-accent shrink-0" />
-                            <span className="text-ink-3">Day (8AM–12AM)</span>
-                            <span className="text-ink-3">{r.standardShifts} shift{r.standardShifts !== 1 ? 's' : ''} · {r.standardHours.toFixed(2)} hrs</span>
+                            <span className="text-ink-3">{t('group.day')}</span>
+                            <span className="text-ink-3">{t('group.shiftsHours', { count: r.standardShifts, hours: formatDecimal(r.standardHours) })}</span>
                             {r.standardRateSnapshot != null && (
-                              <span className="text-ink-3">@ {fmtAmt(r.standardRateSnapshot)}/hr</span>
+                              <span className="text-ink-3">{t('group.perHour', { rate: fmtAmt(r.standardRateSnapshot) })}</span>
                             )}
                           </div>
                           <MoneyText value={r.standardRateSnapshot != null ? r.standardHours * r.standardRateSnapshot : null} className="font-medium text-ink" />
                         </div>
                       )}
                       {r.shift1Shifts === 0 && r.standardShifts === 0 && (
-                        <p className="px-3 py-2 text-ink-3">No closed shifts in this period.</p>
+                        <p className="px-3 py-2 text-ink-3">{t('group.noShifts')}</p>
                       )}
                     </>
                   )}
@@ -158,8 +161,8 @@ export function PayrollGroup({
                     <div className="flex items-center justify-between px-3 py-2 bg-bad-bg">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-bad shrink-0" />
-                        <span className="text-ink-3">Salary deductions</span>
-                        <span className="text-xs text-ink-3">(discrepancy shortfall)</span>
+                        <span className="text-ink-3">{t('group.deductions')}</span>
+                        <span className="text-xs text-ink-3">{t('group.shortfall')}</span>
                       </div>
                       <MoneyText value={-r.deductions} showSign tone="bad" className="font-medium" />
                     </div>
@@ -170,8 +173,8 @@ export function PayrollGroup({
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs text-ink-3">
                     {r.salaryType === 'DAILY'
-                      ? `${r.daysWorked ?? 0} day${r.daysWorked !== 1 ? 's' : ''} worked`
-                      : `${r.totalShifts} shift${r.totalShifts !== 1 ? 's' : ''} total`}
+                      ? t('group.daysWorkedTotal', { count: r.daysWorked ?? 0 })
+                      : t('group.shiftsTotal', { count: r.totalShifts })}
                     {r.notes && ` · ${r.notes}`}
                   </p>
                   <div className="flex items-center gap-2">
@@ -181,14 +184,14 @@ export function PayrollGroup({
                           onClick={() => setRejectRecordId(null)}
                           className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs"
                         >
-                          Cancel
+                          {t('common:actions.cancel')}
                         </button>
                         <button
                           onClick={() => onDelete(r.id)}
                           disabled={isDeletePending}
                           className="ui-btn ui-btn-danger min-h-0 px-3 py-1 text-xs"
                         >
-                          {isDeletePending ? 'Deleting…' : 'Delete'}
+                          {isDeletePending ? t('group.deleting') : t('common:actions.delete')}
                         </button>
                       </>
                     ) : (
@@ -199,7 +202,7 @@ export function PayrollGroup({
                             disabled={isPending}
                             className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
                           >
-                            Mark {next}
+                            {t(`group.mark.${next}`)}
                           </button>
                         )}
                         {status === 'DRAFT' && (
@@ -207,7 +210,7 @@ export function PayrollGroup({
                             onClick={() => setRejectRecordId(r.id)}
                             className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs"
                           >
-                            Reject
+                            {t('common:actions.reject')}
                           </button>
                         )}
                       </>

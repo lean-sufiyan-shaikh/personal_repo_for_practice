@@ -1,4 +1,6 @@
 
+import { useTranslation } from 'react-i18next'
+
 export function TankerForm({
   name, setName, capacity, setCapacity, tankerType, setTankerType, makeDefault, setMakeDefault, error,
 }: {
@@ -8,31 +10,32 @@ export function TankerForm({
   makeDefault: boolean; setMakeDefault: (v: boolean) => void
   error: string | null
 }) {
+  const { t } = useTranslation('setup')
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="block">
-            <span className="ui-label">Tanker Name</span>
+            <span className="ui-label">{t('tankers.name')}</span>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="e.g. Company Tanker 1"
+              placeholder={t('tankers.namePlaceholder')}
               className="text-sm"
             />
           </label>
         </div>
         <div className="space-y-1">
           <label className="block">
-            <span className="ui-label">Capacity (Litres)</span>
+            <span className="ui-label">{t('tankers.capacity')}</span>
             <input
               type="number"
               min="100"
               step="100"
               value={capacity}
               onChange={e => setCapacity(e.target.value)}
-              placeholder="e.g. 12000"
+              placeholder={t('example', { value: '12000' })}
               className="text-sm"
             />
           </label>
@@ -41,14 +44,14 @@ export function TankerForm({
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="block">
-            <span className="ui-label">Type</span>
+            <span className="ui-label">{t('tankers.type')}</span>
             <select
               value={tankerType}
               onChange={e => setTankerType(e.target.value as 'OWN' | 'COMPANY')}
               className="ui-input text-sm"
             >
-              <option value="COMPANY">Company Tanker</option>
-              <option value="OWN">Own Tanker</option>
+              <option value="COMPANY">{t('tankers.companyTanker')}</option>
+              <option value="OWN">{t('tankers.ownTanker')}</option>
             </select>
           </label>
         </div>
@@ -60,7 +63,7 @@ export function TankerForm({
               onChange={e => setMakeDefault(e.target.checked)}
               className="rounded-badge accent-primary"
             />
-            <span className="text-sm text-ink">Set as default</span>
+            <span className="text-sm text-ink">{t('tankers.setAsDefault')}</span>
           </label>
         </div>
       </div>

@@ -1,8 +1,10 @@
+import { useTranslation } from 'react-i18next'
 import type { ApprovalItem } from '../../api/approvalApi'
 import { DataTable } from '../../components/DataTable'
 import type { DataTableColumn } from '../../components/DataTable'
 import { MoneyText } from '../../components/AmountText'
 import { codeLabel } from '../../constants/labels'
+import { translateKey } from '../../i18n'
 import { formatIstDate } from '../../utils/date'
 import { formatCurrency } from '../../utils/format'
 import { approvalKey, waitingFor } from './approvalFormat'
@@ -16,10 +18,11 @@ interface ApprovalsTableProps {
 }
 
 function itemName(item: ApprovalItem) {
-  return item.kind === 'EXPENSE' ? codeLabel(item.category ?? '') : (item.clientName ?? `Client #${item.clientId}`)
+  return item.kind === 'EXPENSE' ? codeLabel(item.category ?? '') : (item.clientName ?? translateKey('approvals:table.clientNumber', { id: item.clientId }))
 }
 
 export function ApprovalsTable({ items, selectedKeys, now, onToggle, onToggleAll }: ApprovalsTableProps) {
+  const { t } = useTranslation('approvals')
   const selectable = items.filter(item => item.blockedReason === null)
   const allSelected = selectable.length > 0 && selectable.every(item => selectedKeys.has(approvalKey(item)))
   const someSelected = selectable.some(item => selectedKeys.has(approvalKey(item)))
@@ -31,7 +34,7 @@ export function ApprovalsTable({ items, selectedKeys, now, onToggle, onToggleAll
       header: (
         <input
           type="checkbox"
-          aria-label="Select all items"
+          aria-label={t('table.selectAll')}
           checked={allSelected}
           ref={element => { if (element) element.indeterminate = someSelected && !allSelected }}
           disabled={selectable.length === 0}
@@ -41,7 +44,7 @@ export function ApprovalsTable({ items, selectedKeys, now, onToggle, onToggleAll
       cell: item => (
         <input
           type="checkbox"
-          aria-label={`Select ${item.kind === 'EXPENSE' ? 'expense' : 'credit payment'} ${itemName(item)} ${formatCurrency(item.amount)}`}
+          aria-label={t(item.kind === 'EXPENSE' ? 'table.selectExpense' : 'table.selectPayment', { name: itemName(item), amount: formatCurrency(item.amount) })}
           checked={selectedKeys.has(approvalKey(item))}
           disabled={item.blockedReason !== null}
           title={item.blockedReason ?? undefined}
@@ -49,10 +52,10 @@ export function ApprovalsTable({ items, selectedKeys, now, onToggle, onToggleAll
         />
       ),
     },
-    { key: 'type', header: 'Type', className: 'whitespace-nowrap', cell: item => <span className="text-ink-2">{item.kind === 'EXPENSE' ? 'Expense' : 'Credit payment'}</span> },
+    { key: 'type', header: t('table.type'), className: 'whitespace-nowrap', cell: item => <span className="text-ink-2">{item.kind === 'EXPENSE' ? t('kind.expense') : t('kind.creditPayment')}</span> },
     {
       key: 'what',
-      header: 'Category or client',
+      header: t('table.categoryOrClient'),
       cell: item => (
         <span className="font-medium text-ink">
           {itemName(item)}
@@ -60,18 +63,18 @@ export function ApprovalsTable({ items, selectedKeys, now, onToggle, onToggleAll
         </span>
       ),
     },
-    { key: 'amount', header: 'Amount', numeric: true, cell: item => <MoneyText value={item.amount} className="font-semibold text-ink" /> },
-    { key: 'submittedBy', header: 'Submitted by', cell: item => <span className="text-ink-2">{item.submittedByName ?? '—'}</span> },
-    { key: 'waiting', header: 'Waiting', className: 'whitespace-nowrap', cell: item => <span className="text-ink-2">{waitingFor(item.submittedAt, now)}</span> },
-    { key: 'date', header: 'Date', className: 'whitespace-nowrap', cell: item => <span className="text-ink-3">{formatIstDate(item.itemDate)}</span> },
-    { key: 'note', header: 'Note', className: 'max-w-xs', cell: item => <span className="text-ink-3">{item.note || '—'}</span> },
+    { key: 'amount', header: t('table.amount'), numeric: true, cell: item => <MoneyText value={item.amount} className="font-semibold text-ink" /> },
+    { key: 'submittedBy', header: t('table.submittedBy'), cell: item => <span className="text-ink-2">{item.submittedByName ?? '—'}</span> },
+    { key: 'waiting', header: t('table.waiting'), className: 'whitespace-nowrap', cell: item => <span className="text-ink-2">{waitingFor(item.submittedAt, now)}</span> },
+    { key: 'date', header: t('table.date'), className: 'whitespace-nowrap', cell: item => <span className="text-ink-3">{formatIstDate(item.itemDate)}</span> },
+    { key: 'note', header: t('table.note'), className: 'max-w-xs', cell: item => <span className="text-ink-3">{item.note || '—'}</span> },
   ]
 
   return (
     <DataTable
-      caption="Expenses and credit payments waiting for approval, oldest first"
+      caption={t('table.caption')}
       captionHidden
-      regionLabel="Approval queue"
+      regionLabel={t('table.region')}
       columns={columns}
       rows={items}
       rowKey={approvalKey}

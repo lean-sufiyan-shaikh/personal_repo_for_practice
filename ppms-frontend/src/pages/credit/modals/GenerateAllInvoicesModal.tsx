@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Trans, useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
 import type { GenerateAllInvoicesResult } from '../../../api/creditApi'
 import { Spinner } from '../../../components/Spinner'
@@ -17,6 +18,7 @@ interface GenerateAllInvoicesModalProps {
 }
 
 export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoicesModalProps) {
+  const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
   const [periodFrom, setPeriodFrom] = useState(() => lastCompletedMonth().periodFrom)
   const [periodTo, setPeriodTo] = useState(() => lastCompletedMonth().periodTo)
@@ -38,19 +40,19 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
       qc.invalidateQueries({ queryKey: ['credit-invoices', pumpId] })
       setResult(runResult)
     },
-    onError: (err) => setError(parseApiError(err, 'Failed to generate invoices')),
+    onError: (err) => setError(parseApiError(err, t('generateInvoices.failed'))),
   })
 
   const handleSubmit = () => {
-    if (!periodValid) { setError('Choose a period whose start is on or before its end.'); return }
+    if (!periodValid) { setError(t('generateInvoices.invalidPeriod')); return }
     setError(null)
     mutation.mutate()
   }
 
   return (
     <Modal
-      title="Generate Invoices"
-      subtitle="One invoice per client with uninvoiced credit sales"
+      title={t('generateInvoices.title')}
+      subtitle={t('generateInvoices.subtitle')}
       tone="info"
       onClose={onClose}
       canClose={!mutation.isPending}
@@ -58,18 +60,18 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
       footer={
         <>
           {result ? (
-            <button onClick={onClose} className="ui-btn ui-btn-primary">Done</button>
+            <button onClick={onClose} className="ui-btn ui-btn-primary">{t('generateInvoices.done')}</button>
           ) : (
             <>
-              <button onClick={onClose} className="ui-btn ui-btn-secondary">Cancel</button>
+              <button onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
               <button onClick={handleSubmit}
                 disabled={mutation.isPending || !preview.data || gstMissing || nothingToInvoice}
                 className="ui-btn ui-btn-primary">
                 {mutation.isPending
-                  ? <span className="flex items-center gap-1.5"><Spinner />Generating…</span>
+                  ? <span className="flex items-center gap-1.5"><Spinner />{t('generateInvoices.generating')}</span>
                   : preview.data && !nothingToInvoice
-                    ? `Generate ${preview.data.clientsToInvoice} invoice${preview.data.clientsToInvoice !== 1 ? 's' : ''}`
-                    : 'Generate'}
+                    ? t('generateInvoices.generateCount', { count: preview.data.clientsToInvoice })
+                    : t('generateInvoices.generate')}
               </button>
             </>
           )}
@@ -78,51 +80,51 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
     >
       {result ? (
         <div role="status" className="ui-alert ui-alert-success text-sm space-y-1">
-          <p><strong>{result.invoicesIssued}</strong> invoice{result.invoicesIssued !== 1 ? 's' : ''} issued.</p>
-          <p>{result.clientsSkipped} client{result.clientsSkipped !== 1 ? 's' : ''} had nothing to bill.</p>
+          <p><Trans t={t} i18nKey="generateInvoices.result.issued" count={result.invoicesIssued} components={{ strong: <strong /> }} /></p>
+          <p>{t('generateInvoices.result.skipped', { count: result.clientsSkipped })}</p>
           {result.clientsFailed > 0 && (
-            <p className="text-bad">{result.clientsFailed} client{result.clientsFailed !== 1 ? 's' : ''} failed — try them one by one from the client screen.</p>
+            <p className="text-bad">{t('generateInvoices.result.failed', { count: result.clientsFailed })}</p>
           )}
         </div>
       ) : (
         <>
           {gstMissing && (
             <div role="alert" className="ui-alert ui-alert-danger text-sm">
-              <p className="font-semibold">Add the pump&apos;s GST details before issuing invoices.</p>
+              <p className="font-semibold">{t('generateInvoices.gstMissing.title')}</p>
               <p>
-                Invoices need the GSTIN, legal name and invoice prefix.{' '}
-                <Link to="/dashboard/setup" onClick={onClose} className="ui-link">Open Setup → GST details</Link>
+                {t('generateInvoices.gstMissing.body')}{' '}
+                <Link to="/dashboard/setup" onClick={onClose} className="ui-link">{t('generateInvoices.gstMissing.link')}</Link>
               </p>
             </div>
           )}
           <p className="text-sm text-ink-2">
-            Clients with nothing to bill in the period are skipped. Interest is not included.
+            {t('generateInvoices.skipNote')}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="block">
-              <span className="ui-label">From</span>
+              <span className="ui-label">{t('period.from')}</span>
               <input type="date" value={periodFrom} max={periodTo || undefined}
                 onChange={e => setPeriodFrom(e.target.value)} className="text-sm" data-autofocus />
             </label>
             <label className="block">
-              <span className="ui-label">To</span>
+              <span className="ui-label">{t('period.to')}</span>
               <input type="date" value={periodTo} min={periodFrom || undefined}
                 onChange={e => setPeriodTo(e.target.value)} className="text-sm" />
             </label>
           </div>
           <div role="status" aria-live="polite" className="ui-card-plain px-4 py-3 text-sm">
             {!periodValid ? (
-              <span className="text-ink-3">Choose a period to see what would be invoiced.</span>
+              <span className="text-ink-3">{t('generateInvoices.preview.choosePeriod')}</span>
             ) : preview.isLoading ? (
-              <span className="flex items-center gap-1.5 text-ink-3"><Spinner />Working out what would be invoiced…</span>
+              <span className="flex items-center gap-1.5 text-ink-3"><Spinner />{t('generateInvoices.preview.loading')}</span>
             ) : preview.isError ? (
-              <span className="text-bad">{parseApiError(preview.error, 'Could not work out what would be invoiced')}</span>
+              <span className="text-bad">{parseApiError(preview.error, t('generateInvoices.preview.failed'))}</span>
             ) : preview.data && (
               <span className="text-ink">
                 {nothingToInvoice
-                  ? 'No client has uninvoiced credit sales in this period.'
-                  : <><strong>{preview.data.clientsToInvoice}</strong> client{preview.data.clientsToInvoice !== 1 ? 's' : ''} would
-                    be invoiced for <strong>{formatCurrency(preview.data.totalAmount)}</strong> in total.</>}
+                  ? t('generateInvoices.preview.nothing')
+                  : <Trans t={t} i18nKey="generateInvoices.preview.summary" count={preview.data.clientsToInvoice}
+                      values={{ amount: formatCurrency(preview.data.totalAmount) }} components={{ strong: <strong /> }} />}
               </span>
             )}
           </div>

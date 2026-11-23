@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../utils/apiError'
 import { pumpApi } from '../../api/pumpApi'
 import type { PumpSummary, TankInfo, UpdateTankRequest } from '../../api/pumpApi'
 import type { FuelType } from '../../types/shift'
-import { FUEL_LABELS, FUEL_UNIT } from '../../constants/fuel'
+import { FUEL_UNIT } from '../../constants/fuel'
+import { codeLabel } from '../../constants/labels'
+import { formatNumberIn } from '../../i18n/format'
 import { ALL_FUEL_TYPES, FUEL_COLOR } from './fuelStyles'
 import { ConfirmButton } from '../../components/ConfirmButton'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -14,6 +17,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 // Multiple tanks per fuel type are supported (e.g. 3 petrol tanks).
 
 export function TanksContent({ pump }: { pump: PumpSummary }) {
+  const { t } = useTranslation(['setup', 'common'])
   const queryClient = useQueryClient()
 
   // Create form state
@@ -58,7 +62,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
       queryClient.invalidateQueries({ queryKey: ['tanks', pump.id] })
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pump.id] })
     },
-    onError: (err) => setCreateError(parseApiError(err, 'Failed to create tank')),
+    onError: (err) => setCreateError(parseApiError(err, t('tanks.createFailed'))),
   })
 
   const updateMutation = useMutation({
@@ -68,7 +72,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
       queryClient.invalidateQueries({ queryKey: ['tanks', pump.id] })
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pump.id] })
     },
-    onError: (err) => setEditError(parseApiError(err, 'Failed to update tank')),
+    onError: (err) => setEditError(parseApiError(err, t('tanks.updateFailed'))),
   })
 
   const statusMutation = useMutation({
@@ -79,7 +83,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
       queryClient.invalidateQueries({ queryKey: ['tanks', pump.id] })
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pump.id] })
     },
-    onError: (err) => setStatusError(parseApiError(err, 'Failed to update tank status')),
+    onError: (err) => setStatusError(parseApiError(err, t('tanks.statusFailed'))),
   })
 
   /** Returns true when currentStock > 5% of capacity (significant frozen stock warning). */
@@ -88,8 +92,8 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
 
   const submitCreate = (e: React.FormEvent) => {
     e.preventDefault(); setCreateError(null)
-    if (!createIdentifier.trim()) { setCreateError('Tank name is required.'); return }
-    if (!createCapacity || Number(createCapacity) <= 0) { setCreateError('Capacity must be greater than 0.'); return }
+    if (!createIdentifier.trim()) { setCreateError(t('tanks.nameRequired')); return }
+    if (!createCapacity || Number(createCapacity) <= 0) { setCreateError(t('tanks.capacityPositive')); return }
     createMutation.mutate({
       tankIdentifier: createIdentifier.trim(),
       fuelType: createFuelType,
@@ -100,7 +104,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
 
   const submitEdit = (e: React.FormEvent, tank: TankInfo) => {
     e.preventDefault(); setEditError(null)
-    if (!editCapacity || Number(editCapacity) <= 0) { setEditError('Capacity must be greater than 0.'); return }
+    if (!editCapacity || Number(editCapacity) <= 0) { setEditError(t('tanks.capacityPositive')); return }
     updateMutation.mutate({
       tankId: tank.id,
       req: { capacity: Number(editCapacity), tankIdentifier: editIdentifier.trim() || undefined },
@@ -110,15 +114,14 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
   return (
     <div className="space-y-4">
       <p className="text-xs text-ink-3">
-        Add each underground tank manually. Multiple tanks per fuel type are allowed.
-        Set capacity so that stock level bars and low-stock alerts work correctly.
+        {t('tanks.intro')}
       </p>
 
       {/* Existing tanks */}
       {isLoading ? (
-        <p className="text-xs text-ink-3">Loading tanks...</p>
+        <p className="text-xs text-ink-3">{t('tanks.loading')}</p>
       ) : tanks.length === 0 ? (
-        <p className="text-xs text-ink-3">No tanks yet. Add one below.</p>
+        <p className="text-xs text-ink-3">{t('tanks.empty')}</p>
       ) : (
         <div className="space-y-2">
           {statusError && (
@@ -137,20 +140,20 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-badge border ${
                       isInactive ? 'bg-surface-sunken text-ink-3 border-border' : (FUEL_COLOR[tank.fuelType] ?? 'bg-surface-sunken text-ink-2 border-border')
                     }`}>
-                      {FUEL_LABELS[tank.fuelType] ?? tank.fuelType}
+                      {codeLabel(tank.fuelType)}
                     </span>
                     <span className={`text-sm font-semibold ${isInactive ? 'text-ink-3' : 'text-ink'}`}>
                       {tank.tankIdentifier}
                     </span>
                     {isInactive && (
-                      <StatusBadge tone="warn" label="Disabled" />
+                      <StatusBadge tone="warn" label={t('tanks.disabled')} />
                     )}
                     <span className="text-xs text-ink-3">
-                      Capacity: <span className="text-ink-3 font-medium">
-                        {Number(tank.capacity).toLocaleString('en-IN', { minimumFractionDigits: 0 })} {FUEL_UNIT[tank.fuelType] ?? 'L'}
+                      {t('tanks.capacityPrefix')} <span className="text-ink-3 font-medium">
+                        {formatNumberIn(Number(tank.capacity), { minimumFractionDigits: 0 })} {FUEL_UNIT[tank.fuelType] ?? 'L'}
                       </span>
                       {isInactive && (
-                        <span className="ml-1 text-warn">(stock frozen)</span>
+                        <span className="ml-1 text-warn">{t('tanks.stockFrozen')}</span>
                       )}
                     </span>
                   </div>
@@ -166,7 +169,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                             }
                           }}
                           className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong">
-                          {editingId === tank.id ? 'Cancel' : 'Edit'}
+                          {editingId === tank.id ? t('common:actions.cancel') : t('actions.edit')}
                         </button>
                     )}
 
@@ -177,15 +180,15 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                         onClick={() => { setStatusError(null); statusMutation.mutate({ tankId: tank.id, status: 'ACTIVE' }) }}
                         disabled={statusMutation.isPending}
                         className="min-h-6 text-xs font-medium text-ok transition-colors hover:underline disabled:opacity-50">
-                        Enable
+                        {t('actions.enable')}
                       </button>
                     ) : (
                       <ConfirmButton
-                        triggerLabel="Disable"
-                        triggerAriaLabel={`Disable tank ${tank.tankIdentifier}`}
+                        triggerLabel={t('actions.disable')}
+                        triggerAriaLabel={t('tanks.disableAria', { name: tank.tankIdentifier })}
                         prompt={hasSignificantStock(tank)
-                          ? `${((tank.currentStock / tank.capacity) * 100).toFixed(0)}% stock will be frozen. Confirm?`
-                          : 'Disable this tank?'}
+                          ? t('tanks.freezePrompt', { percent: ((tank.currentStock / tank.capacity) * 100).toFixed(0) })
+                          : t('tanks.disablePrompt')}
                         onConfirm={() => { setStatusError(null); statusMutation.mutate({ tankId: tank.id, status: 'INACTIVE' }) }}
                         disabled={statusMutation.isPending}
                         triggerClassName="min-h-6 text-xs font-medium text-warn transition-colors hover:text-warn-strong disabled:opacity-50"
@@ -202,26 +205,26 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                       <div>
                         <label className="block">
                           <span className="ui-label">
-                          Capacity ({FUEL_UNIT[tank.fuelType] ?? 'L'})
+                          {t('tanks.capacityLabel', { unit: FUEL_UNIT[tank.fuelType] ?? 'L' })}
                         </span>
                           <input type="number" step="0.01" min="1" value={editCapacity}
                             onChange={(e) => setEditCapacity(e.target.value)}
                             className="w-36 text-xs min-h-10"
-                            placeholder="e.g. 25000" />
+                            placeholder={t('example', { value: '25000' })} />
                         </label>
                       </div>
                       <div>
                         <label className="block">
-                          <span className="ui-label">Tank Name/ID</span>
+                          <span className="ui-label">{t('tanks.nameLabel')}</span>
                           <input type="text" value={editIdentifier}
                             onChange={(e) => setEditIdentifier(e.target.value)}
                             className="w-36 text-xs min-h-10"
-                            placeholder="e.g. Petrol Tank 1" />
+                            placeholder={t('tanks.namePlaceholder')} />
                         </label>
                       </div>
                       <button type="submit" disabled={updateMutation.isPending}
                         className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs">
-                        {updateMutation.isPending ? 'Saving...' : 'Save'}
+                        {updateMutation.isPending ? t('actions.savingDots') : t('actions.save')}
                       </button>
                     </div>
                     {editError && <p role="alert" className="ui-error-text">{editError}</p>}
@@ -236,28 +239,28 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
       {/* Add tank form */}
       <div className={tanks.length > 0 ? 'border-t border-border pt-4' : ''}>
         <p className="ui-label mb-3">
-          {tanks.length === 0 ? 'Add the first tank' : 'Add another tank'}
+          {tanks.length === 0 ? t('tanks.addFirst') : t('tanks.addAnother')}
         </p>
         <form onSubmit={submitCreate} className="space-y-3">
           <div className="flex gap-3 items-end flex-wrap">
             <div>
               <label className="block">
-                <span className="ui-label">Tank Name/ID <span className="text-bad">*</span></span>
+                <span className="ui-label">{t('tanks.nameLabel')} <span className="text-bad">*</span></span>
                 <input required type="text" value={createIdentifier}
                   onChange={(e) => setCreateIdentifier(e.target.value)}
-                  placeholder="e.g. Petrol Tank 1"
+                  placeholder={t('tanks.namePlaceholder')}
                   className="w-36 text-sm" />
               </label>
             </div>
             <div className="relative" ref={fuelDropdownRef}>
-              <span className="ui-label">Fuel Type <span className="text-bad">*</span></span>
+              <span className="ui-label">{t('tanks.fuelType')} <span className="text-bad">*</span></span>
               <button
                 type="button"
                 onClick={() => setFuelDropdownOpen(o => !o)}
                 className="ui-btn ui-btn-secondary min-w-37 justify-between bg-surface text-sm"
               >
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-badge text-xs font-medium border ${FUEL_COLOR[createFuelType]}`}>
-                  {FUEL_LABELS[createFuelType]}
+                  {codeLabel(createFuelType)}
                 </span>
                 <svg className={`w-4 h-4 text-ink-3 transition-transform duration-150 ${fuelDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -273,7 +276,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                       className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-bg transition-colors ${createFuelType === ft ? 'bg-bg' : ''}`}
                     >
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-badge text-xs font-medium border ${FUEL_COLOR[ft]}`}>
-                        {FUEL_LABELS[ft]}
+                        {codeLabel(ft)}
                       </span>
                       {createFuelType === ft && (
                         <svg className="ml-auto w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -288,28 +291,28 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
             <div>
               <label className="block">
                 <span className="ui-label">
-                Capacity ({FUEL_UNIT[createFuelType]}) <span className="text-bad">*</span>
+                {t('tanks.capacityLabel', { unit: FUEL_UNIT[createFuelType] })} <span className="text-bad">*</span>
               </span>
                 <input required type="number" step="0.01" min="1" value={createCapacity}
                   onChange={(e) => setCreateCapacity(e.target.value)}
-                  placeholder="e.g. 25000"
+                  placeholder={t('example', { value: '25000' })}
                   className="w-32 text-sm" />
               </label>
             </div>
             <div>
               <label className="block">
                 <span className="ui-label">
-                DIP Tolerance ({FUEL_UNIT[createFuelType]}) <span className="text-ink-3">(optional)</span>
+                {t('tanks.dipTolerance', { unit: FUEL_UNIT[createFuelType] })} <span className="text-ink-3">{t('optionalHint')}</span>
               </span>
                 <input type="number" step="0.01" min="0" value={createDipTol}
                   onChange={(e) => setCreateDipTol(e.target.value)}
-                  placeholder="e.g. 50"
+                  placeholder={t('example', { value: '50' })}
                   className="w-28 text-sm" />
               </label>
             </div>
             <button type="submit" disabled={createMutation.isPending}
               className="ui-btn ui-btn-primary">
-              {createMutation.isPending ? 'Adding...' : 'Add Tank'}
+              {createMutation.isPending ? t('actions.addingDots') : t('tanks.add')}
             </button>
           </div>
           {createError && <p role="alert" className="ui-error-text">{createError}</p>}

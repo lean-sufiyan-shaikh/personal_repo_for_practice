@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Banknote, CreditCard, ClipboardCheck, Landmark, type LucideIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cashApi } from '../../../api/cashApi'
 import { creditApi } from '../../../api/creditApi'
 import { expenseApi } from '../../../api/expenseApi'
@@ -32,6 +33,7 @@ function MoneyTile({ to, icon: Icon, label, value, note }: {
 
 /** The money figures an owner or manager checks first, each linking to the page where it is handled. */
 export function MoneyOverview({ pumpId }: { pumpId: number }) {
+  const { t } = useTranslation('dashboard')
   const role = useAuthStore((state) => state.user?.role)
   const canApprovePayments = canPerformAction('credit:approve-payment', role)
 
@@ -65,17 +67,17 @@ export function MoneyOverview({ pumpId }: { pumpId: number }) {
 
   return (
     <Reveal delay={335}>
-      <section aria-label="Money at a glance" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MoneyTile to="/dashboard/cash" icon={Banknote} label="Cash in drawer"
-          value={cash ? <MoneyText value={cash.currentBalance} /> : undefined} note="Current drawer balance" />
-        <MoneyTile to="/dashboard/credit" icon={CreditCard} label="Credit outstanding"
-          value={creditOutstanding != null ? <MoneyText value={creditOutstanding} /> : undefined} note="Owed by credit clients" />
+      <section aria-label={t('money.label')} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MoneyTile to="/dashboard/cash" icon={Banknote} label={t('money.cashInDrawer')}
+          value={cash ? <MoneyText value={cash.currentBalance} /> : undefined} note={t('money.cashNote')} />
+        <MoneyTile to="/dashboard/credit" icon={CreditCard} label={t('money.creditOutstanding')}
+          value={creditOutstanding != null ? <MoneyText value={creditOutstanding} /> : undefined} note={t('money.creditNote')} />
         <MoneyTile to={canAccessPage('approvals', role) ? '/dashboard/approvals' : '/dashboard/expenses'}
-          icon={ClipboardCheck} label="Waiting for approval"
+          icon={ClipboardCheck} label={t('money.waitingForApproval')}
           value={waitingCount}
-          note={canApprovePayments ? 'Expenses and credit payments' : 'Expenses'} />
-        <MoneyTile to="/dashboard/settlements" icon={Landmark} label="Not yet settled"
-          value={wallet ? <MoneyText value={wallet.totalPending} /> : undefined} note="UPI, card and fleet card" />
+          note={canApprovePayments ? t('money.waitingNoteWithPayments') : t('money.waitingNote')} />
+        <MoneyTile to="/dashboard/settlements" icon={Landmark} label={t('money.notSettled')}
+          value={wallet ? <MoneyText value={wallet.totalPending} /> : undefined} note={t('money.notSettledNote')} />
       </section>
     </Reveal>
   )

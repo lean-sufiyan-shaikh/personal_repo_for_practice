@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { Landmark } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
@@ -20,6 +21,7 @@ import { PendingByAgeCard } from './PendingByAgeCard'
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function PaymentSettlementsPage() {
+  const { t } = useTranslation('settlements')
   const { user }                   = useAuthStore()
   const { selectedPumpId: pumpId } = usePumpStore()
 
@@ -44,7 +46,7 @@ export default function PaymentSettlementsPage() {
     enabled:  !!pumpId,
   })
 
-  if (!pumpId) return <EmptyState icon="generic" title="Select a pump to view settlement records." />
+  if (!pumpId) return <EmptyState icon="generic" title={t('page.noPump')} />
 
   return (
     <Reveal>
@@ -54,11 +56,11 @@ export default function PaymentSettlementsPage() {
         <div className="ui-page-header mb-6">
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="ui-title-sm">Payment Settlements</h1>
+              <h1 className="ui-title-sm">{t('page.title')}</h1>
               <RefreshIndicator isFetching={history.fetchingList} dataUpdatedAt={history.listUpdatedAt ?? 0} />
             </div>
             <p className="ui-subtitle">
-              Track when UPI, Card &amp; Fleet Card payments arrive in your bank account.
+              {t('page.subtitle')}
             </p>
           </div>
           {canWrite && (
@@ -67,7 +69,7 @@ export default function PaymentSettlementsPage() {
               className="ui-btn ui-btn-primary"
             >
               <Landmark size={16} strokeWidth={2} />
-              Record Settlement
+              {t('page.record')}
             </button>
           )}
         </div>
@@ -88,7 +90,7 @@ export default function PaymentSettlementsPage() {
                   : 'border-transparent text-ink-3 hover:text-ink'
               }`}
             >
-              {tab === 'records' ? 'Settlement History' : 'Alert Settings'}
+              {tab === 'records' ? t('page.historyTab') : t('page.alertsTab')}
             </button>
           ))}
         </div>

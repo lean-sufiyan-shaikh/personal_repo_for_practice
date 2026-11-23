@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { AlertTriangle, ChevronRight, Clock, Gauge, IndianRupee, Zap } from 'lucide-react'
 import { pumpApi, type PumpOverviewSummary } from '../../../api/pumpApi'
 import { Reveal } from '../../../components/Reveal'
@@ -8,10 +9,6 @@ import { StatusBadge } from '../../../components/StatusBadge'
 import { usePumpStore } from '../../../store/usePumpStore'
 import { StatCard } from './StatCard'
 
-function plural(count: number, word: string) {
-  return `${count} ${word}${count !== 1 ? 's' : ''}`
-}
-
 /** Switches the Overview between the selected pump and all pumps; hidden unless the user has two or more pumps. */
 export function OverviewScopeToggle({ pumpCount, selectedPumpName, showAllPumps, onShowAllPumpsChange }: {
   pumpCount: number
@@ -19,17 +16,18 @@ export function OverviewScopeToggle({ pumpCount, selectedPumpName, showAllPumps,
   showAllPumps: boolean
   onShowAllPumpsChange: (showAllPumps: boolean) => void
 }) {
+  const { t } = useTranslation('dashboard')
   if (pumpCount < 2) return null
 
   return (
-    <div role="group" aria-label="Overview scope" className="ui-dashboard-pump-switcher">
+    <div role="group" aria-label={t('allPumps.scope')} className="ui-dashboard-pump-switcher">
       <button
         type="button"
         onClick={() => onShowAllPumpsChange(true)}
         aria-pressed={showAllPumps}
         className={`ui-dashboard-pump-chip ${showAllPumps ? 'ui-dashboard-pump-chip--active' : ''}`}
       >
-        All pumps
+        {t('allPumps.allPumps')}
       </button>
       <button
         type="button"
@@ -37,13 +35,14 @@ export function OverviewScopeToggle({ pumpCount, selectedPumpName, showAllPumps,
         aria-pressed={!showAllPumps}
         className={`ui-dashboard-pump-chip ${showAllPumps ? '' : 'ui-dashboard-pump-chip--active'}`}
       >
-        {selectedPumpName ?? 'Selected pump'}
+        {selectedPumpName ?? t('allPumps.selectedPump')}
       </button>
     </div>
   )
 }
 
 function PumpRow({ pump, onSelect }: { pump: PumpOverviewSummary; onSelect: (pumpId: number) => void }) {
+  const { t } = useTranslation('dashboard')
   return (
     <button
       type="button"
@@ -54,17 +53,17 @@ function PumpRow({ pump, onSelect }: { pump: PumpOverviewSummary; onSelect: (pum
         <div className="ui-record-row__title">
           <span className="text-sm font-semibold text-ink">{pump.name}</span>
           {pump.overdueShiftCount > 0 && (
-            <StatusBadge tone="warn" icon={Clock} label={plural(pump.overdueShiftCount, 'overdue shift')} />
+            <StatusBadge tone="warn" icon={Clock} label={t('allPumps.overdueShifts', { count: pump.overdueShiftCount })} />
           )}
           {pump.lowStockTankCount > 0 && (
-            <StatusBadge tone="bad" icon={Gauge} label={plural(pump.lowStockTankCount, 'low tank')} />
+            <StatusBadge tone="bad" icon={Gauge} label={t('allPumps.lowTanks', { count: pump.lowStockTankCount })} />
           )}
           {pump.fuelPricesStale && (
-            <StatusBadge tone="bad" icon={AlertTriangle} label="Prices not updated today" />
+            <StatusBadge tone="bad" icon={AlertTriangle} label={t('allPumps.pricesNotUpdated')} />
           )}
         </div>
         <div className="ui-record-row__meta">
-          <span>{plural(pump.openShiftCount, 'active shift')}</span>
+          <span>{t('allPumps.activeShifts', { count: pump.openShiftCount })}</span>
         </div>
       </div>
       <div className="ui-record-row__actions">
@@ -77,6 +76,7 @@ function PumpRow({ pump, onSelect }: { pump: PumpOverviewSummary; onSelect: (pum
 
 /** Today's totals across all of the user's pumps, with one row per pump that opens that pump's own overview. */
 export function AllPumpsOverview({ onPumpSelected }: { onPumpSelected: () => void }) {
+  const { t } = useTranslation('dashboard')
   const setSelectedPumpId = usePumpStore(state => state.setSelectedPumpId)
 
   const { data: overview, isLoading, isError } = useQuery({
@@ -93,14 +93,14 @@ export function AllPumpsOverview({ onPumpSelected }: { onPumpSelected: () => voi
   if (isError) {
     return (
       <div className="ui-alert ui-alert-warning">
-        Figures for your pumps could not be loaded. Refresh to try again.
+        {t('allPumps.loadError')}
       </div>
     )
   }
 
   if (isLoading || !overview) {
     return (
-      <div className="space-y-5" aria-busy="true" aria-label="Loading all pumps">
+      <div className="space-y-5" aria-busy="true" aria-label={t('allPumps.loading')}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <SkeletonStat />
           <SkeletonStat />
@@ -121,33 +121,33 @@ export function AllPumpsOverview({ onPumpSelected }: { onPumpSelected: () => voi
       <Reveal delay={150}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            label="Active Shifts"
+            label={t('stats.activeShifts')}
             value={totals.openShiftCount}
-            sub={totals.overdueShiftCount > 0 ? `${plural(totals.overdueShiftCount, 'shift')} overdue` : 'None overdue'}
+            sub={totals.overdueShiftCount > 0 ? t('stats.shiftsOverdue', { count: totals.overdueShiftCount }) : t('stats.noneOverdue')}
             color="bg-ok"
             icon={Zap}
             alert={totals.overdueShiftCount > 0}
           />
           <StatCard
-            label="Today's Revenue"
+            label={t('stats.todaysRevenue')}
             value={totals.todaySales}
             money
-            sub={`Across ${plural(pumps.length, 'pump')}`}
+            sub={t('stats.acrossPumps', { count: pumps.length })}
             color="bg-primary"
             icon={IndianRupee}
           />
           <StatCard
-            label="Low Stock Tanks"
+            label={t('stats.lowStockTanks')}
             value={totals.lowStockTankCount}
-            sub={totals.lowStockTankCount === 0 ? 'All tanks OK' : 'Need attention'}
+            sub={totals.lowStockTankCount === 0 ? t('stats.allTanksOk') : t('stats.needAttention')}
             color={totals.lowStockTankCount > 0 ? 'bg-bad' : 'bg-ink-3'}
             icon={Gauge}
             alert={totals.lowStockTankCount > 0}
           />
           <StatCard
-            label="Stale Fuel Prices"
+            label={t('stats.staleFuelPrices')}
             value={totals.stalePricePumpCount}
-            sub={totals.stalePricePumpCount === 0 ? 'All prices updated today' : 'Pumps to update in Setup'}
+            sub={totals.stalePricePumpCount === 0 ? t('stats.allPricesUpdated') : t('stats.pumpsToUpdate')}
             color={totals.stalePricePumpCount > 0 ? 'bg-bad' : 'bg-ink-3'}
             icon={AlertTriangle}
             alert={totals.stalePricePumpCount > 0}
@@ -156,10 +156,10 @@ export function AllPumpsOverview({ onPumpSelected }: { onPumpSelected: () => voi
       </Reveal>
 
       <Reveal delay={195}>
-        <section aria-label="Pumps" className="ui-card p-0 overflow-hidden">
+        <section aria-label={t('allPumps.pumps')} className="ui-card p-0 overflow-hidden">
           <div className="ui-toolbar">
-            <p className="ui-toolbar-title">Pumps</p>
-            <p className="text-xs text-ink-3">Select a pump to open its overview</p>
+            <p className="ui-toolbar-title">{t('allPumps.pumps')}</p>
+            <p className="text-xs text-ink-3">{t('allPumps.selectHint')}</p>
           </div>
           <div className="ui-record-list">
             {pumps.map(pump => (

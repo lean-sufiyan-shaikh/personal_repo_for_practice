@@ -1,1 +1,96 @@
-{}
+{
+  "page": {
+    "title": "पगार",
+    "subtitle": "शिफ्ट इतिहासावरून कर्मचाऱ्यांच्या पगाराची गणना करा आणि त्याचा हिशोब ठेवा",
+    "loadFailed": "पगार नोंदी लोड होऊ शकल्या नाहीत. तुमचे कनेक्शन तपासा आणि पान रिफ्रेश करा."
+  },
+  "generate": {
+    "kicker": "पगार मसुदा",
+    "title": "पगार तयार करा",
+    "subtitle": "पगाराचा मसुदा काढण्यासाठी कर्मचारी आणि पगाराचा कालावधी निवडा.",
+    "staffMember": "कर्मचारी",
+    "selectStaff": "कर्मचारी निवडा…",
+    "periodFrom": "कालावधी पासून",
+    "periodTo": "कालावधी पर्यंत",
+    "notes": "टीप (ऐच्छिक)",
+    "notesPlaceholder": "या पगार कालावधीबद्दल काही टीप",
+    "howCalculated": "ऑपरेटर: प्रत्येक बंद शिफ्टचे प्रत्यक्ष तास × ताशी दर (रात्र/दिवस वेगळे). मॅनेजर आणि ॲडमिन: रोजचा दर × (कालावधीतील दिवस − रजेचे दिवस). दर सेटअप → कर्मचारी → ₹ दर येथे सेट करा.",
+    "calculating": "गणना होत आहे…",
+    "review": "पगार तपासा",
+    "generated": "पगाराचा मसुदा तयार झाला",
+    "failed": "पगार तयार होऊ शकला नाही",
+    "staffRequired": "कृपया कर्मचारी निवडा",
+    "periodRequired": "कालावधीच्या तारखा आवश्यक आहेत"
+  },
+  "review": {
+    "title": "पगार तपासा",
+    "subtitle": "तपशील तपासा आणि प्रलंबित फरक हाताळा.",
+    "back": "मागे",
+    "generate": "पगार तयार करा",
+    "generating": "तयार होत आहे…",
+    "goBack": "माहिती बदलण्यासाठी मागे जा आणि पुन्हा प्रयत्न करा.",
+    "staffMember": "कर्मचारी",
+    "period": "कालावधी",
+    "notes": "टीप",
+    "checking": "प्रलंबित फरक तपासत आहे…",
+    "pendingTitle": "प्रलंबित फरक ({{count}})",
+    "toggleHint": "या पगारातून कापण्यासाठी बदला",
+    "duNumber": "DU #{{number}}",
+    "deduct": "कापा ✓",
+    "skip": "वगळा",
+    "notDeductible": "कापता येत नाही",
+    "deductionsSelected_one": "{{count}} कपात निवडली",
+    "deductionsSelected_other": "{{count}} कपाती निवडल्या",
+    "fromNetPay": "निव्वळ पगारातून −{{amount}}",
+    "allSkipped": "सर्व फरक वगळा वर आहेत — ते पुढच्या पगार गणनेसाठी प्रलंबित राहतील.",
+    "noDiscrepancies": "या कर्मचाऱ्याचा कोणताही फरक प्रलंबित नाही."
+  },
+  "records": {
+    "title": "पगार नोंदी",
+    "searchLabel": "कर्मचारी शोधा",
+    "searchPlaceholder": "कर्मचारी शोधा…",
+    "month": "महिना",
+    "allMonths": "सर्व महिने",
+    "emptyTitle": "अजून पगाराची कोणतीही नोंद नाही",
+    "emptySubtitle": "वर तुमचा पहिला पगार मसुदा तयार करा.",
+    "emptyMonthTitle": "या महिन्याची कोणतीही नोंद नाही",
+    "emptyMonthSubtitle": "दुसरा महिना निवडून पाहा.",
+    "deleted": "पगार नोंद हटवली",
+    "deleteFailed": "पगार नोंद हटवता आली नाही",
+    "statusFailed": "स्थिती बदलता आली नाही",
+    "statusUpdated": {
+      "DRAFT": "स्थिती मसुदा केली",
+      "APPROVED": "स्थिती मंजूर केली",
+      "PAID": "स्थिती 'पेमेंट झाले' केली"
+    }
+  },
+  "group": {
+    "records_one": "{{count}} नोंद",
+    "records_other": "{{count}} नोंदी",
+    "staffNumber": "कर्मचारी #{{id}}",
+    "totalDays": "कालावधीतील एकूण दिवस",
+    "leaveDays": "कापलेले रजेचे दिवस",
+    "daysWorked": "कामाचे दिवस",
+    "perDay": "@ {{rate}}/दिवस",
+    "days_one": "{{count}} दिवस",
+    "days_other": "{{count}} दिवस",
+    "night": "रात्र (12AM–8AM)",
+    "day": "दिवस (8AM–12AM)",
+    "shiftsHours_one": "{{count}} शिफ्ट · {{hours}} तास",
+    "shiftsHours_other": "{{count}} शिफ्ट · {{hours}} तास",
+    "perHour": "@ {{rate}}/तास",
+    "noShifts": "या कालावधीत एकही बंद शिफ्ट नाही.",
+    "deductions": "पगारातून कपात",
+    "shortfall": "(फरकाची कमी)",
+    "daysWorkedTotal_one": "{{count}} दिवस काम केले",
+    "daysWorkedTotal_other": "{{count}} दिवस काम केले",
+    "shiftsTotal_one": "एकूण {{count}} शिफ्ट",
+    "shiftsTotal_other": "एकूण {{count}} शिफ्ट",
+    "deleting": "हटवत आहे…",
+    "mark": {
+      "DRAFT": "मसुदा करा",
+      "APPROVED": "मंजूर करा",
+      "PAID": "पेमेंट झाले म्हणून नोंदवा"
+    }
+  }
+}

@@ -4,11 +4,13 @@ import {
   AlertTriangle, BarChart2, CheckCircle2, ClipboardCheck, Clock, CreditCard, FileText, Fuel, Gauge, Landmark,
   Search, Settings, Wrench, ZapOff, type LucideIcon,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { attentionApi } from '../../../api/attentionApi'
 import type { AttentionItem, AttentionSeverity, AttentionType } from '../../../api/attentionApi'
 import { SkeletonRows } from '../../../components/Skeleton'
 import { usePumpStore } from '../../../store/usePumpStore'
 import { MoneyText } from '../../../components/AmountText'
+import { codeLabel } from '../../../constants/labels'
 
 const ICON_BY_TYPE: Record<AttentionType, LucideIcon> = {
   PENDING_APPROVALS: ClipboardCheck,
@@ -26,18 +28,22 @@ const ICON_BY_TYPE: Record<AttentionType, LucideIcon> = {
   SETUP_INCOMPLETE: Settings,
 }
 
-const SEVERITY_STYLE: Record<AttentionSeverity, { chip: string; label: string }> = {
-  HIGH:   { chip: 'bg-bad-bg text-bad',   label: 'Urgent' },
-  MEDIUM: { chip: 'bg-warn-bg text-warn', label: 'Soon' },
-  LOW:    { chip: 'bg-info-bg text-info', label: 'When you can' },
+const SEVERITY_CHIP: Record<AttentionSeverity, string> = {
+  HIGH:   'bg-bad-bg text-bad',
+  MEDIUM: 'bg-warn-bg text-warn',
+  LOW:    'bg-info-bg text-info',
 }
 
 function AttentionRow({ item, showPumpName }: { item: AttentionItem; showPumpName: boolean }) {
+  const { t, i18n } = useTranslation('dashboard')
   const navigate = useNavigate()
   const { selectedPumpId, setSelectedPumpId } = usePumpStore()
   const Icon = ICON_BY_TYPE[item.type]
-  const severity = SEVERITY_STYLE[item.severity]
-  const actionLabel = `Review: ${showPumpName ? `${item.pumpName}, ` : ''}${item.reason}`
+  // The server writes the reason in English; other languages show the item's translated type instead.
+  const reason = i18n.resolvedLanguage === 'en' ? item.reason : codeLabel(item.type)
+  const actionLabel = showPumpName
+    ? t('attention.reviewLabelWithPump', { pump: item.pumpName, reason })
+    : t('attention.reviewLabel', { reason })
 
   // The target pages show the selected pump, so an item from another pump switches to it first
   const openOtherPump = () => {
@@ -47,28 +53,28 @@ function AttentionRow({ item, showPumpName }: { item: AttentionItem; showPumpNam
 
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-control ${severity.chip}`} aria-hidden="true">
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-control ${SEVERITY_CHIP[item.severity]}`} aria-hidden="true">
         <Icon size={18} strokeWidth={2} />
       </span>
       <div className="min-w-0 flex-1 basis-48">
         <p className="text-sm font-medium text-ink">
-          <span className="sr-only">{severity.label}: </span>
-          {item.reason}
+          <span className="sr-only">{t('attention.severityPrefix', { severity: t(`attention.severity.${item.severity}`) })}</span>
+          {reason}
         </p>
         <p className="text-xs text-ink-3">
           {showPumpName && <span>{item.pumpName} · </span>}
-          {item.severity === 'HIGH' && <span className="font-semibold text-bad" aria-hidden="true">Urgent · </span>}
+          {item.severity === 'HIGH' && <span className="font-semibold text-bad" aria-hidden="true">{t('attention.urgentPrefix')}</span>}
           {item.amount != null ? `${item.count} · ` : ''}
           {item.amount != null ? <MoneyText value={item.amount} /> : <span className="tabular-nums">{item.count}</span>}
         </p>
       </div>
       {item.pumpId === selectedPumpId || !showPumpName ? (
         <Link to={item.targetPath} aria-label={actionLabel} className="ui-btn ui-btn-secondary ui-btn-compact">
-          Review
+          {t('attention.review')}
         </Link>
       ) : (
         <button type="button" onClick={openOtherPump} aria-label={actionLabel} className="ui-btn ui-btn-secondary ui-btn-compact">
-          Review
+          {t('attention.review')}
         </button>
       )}
     </li>
@@ -77,6 +83,7 @@ function AttentionRow({ item, showPumpName }: { item: AttentionItem; showPumpNam
 
 /** The ranked list of things to act on today, each linking to the page and filter that handles it. */
 export function AttentionInbox({ pumpId, allPumps }: { pumpId: number | null; allPumps: boolean }) {
+  const { t } = useTranslation('dashboard')
   const { data: items, isLoading, isError } = useQuery({
     queryKey: ['attention', allPumps ? 'all' : pumpId],
     queryFn: () => (allPumps ? attentionApi.getForMyPumps() : attentionApi.getForPump(pumpId!)),
@@ -88,23 +95,23 @@ export function AttentionInbox({ pumpId, allPumps }: { pumpId: number | null; al
   return (
     <section aria-labelledby="attention-heading" className="ui-card p-0 overflow-hidden">
       <div className="ui-toolbar">
-        <h2 id="attention-heading" className="ui-toolbar-title">Needs attention today</h2>
+        <h2 id="attention-heading" className="ui-toolbar-title">{t('attention.title')}</h2>
         {items && items.length > 0 && (
-          <span className="text-xs text-ink-3">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+          <span className="text-xs text-ink-3">{t('attention.itemCount', { count: items.length })}</span>
         )}
       </div>
       {isLoading ? (
-        <div className="px-4 py-3" aria-busy="true" aria-label="Loading what needs attention">
+        <div className="px-4 py-3" aria-busy="true" aria-label={t('attention.loading')}>
           <SkeletonRows count={3} />
         </div>
       ) : isError ? (
         <p role="alert" className="px-4 py-3 text-sm text-bad">
-          Could not load what needs attention. Refresh to try again.
+          {t('attention.loadError')}
         </p>
       ) : !items || items.length === 0 ? (
         <p role="status" className="flex items-center gap-2 px-4 py-4 text-sm font-medium text-ok">
           <CheckCircle2 size={18} strokeWidth={2} aria-hidden="true" />
-          All clear for today
+          {t('attention.allClear')}
         </p>
       ) : (
         <ul className="divide-y divide-border">

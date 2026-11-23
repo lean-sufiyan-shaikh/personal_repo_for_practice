@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
 import { Modal } from '../../../components/Modal'
 import { istDateString } from '../../../utils/date'
@@ -8,10 +9,11 @@ import { statementMessage } from '../statementMessage'
 
 type PeriodPreset = 'last-month' | 'this-month' | 'custom'
 
-const PRESETS: { value: PeriodPreset; label: string }[] = [
-  { value: 'last-month', label: 'Last month' },
-  { value: 'this-month', label: 'This month' },
-  { value: 'custom', label: 'Custom' },
+/** Each label is credit.json statement.presets.<labelKey>. */
+const PRESETS: { value: PeriodPreset; labelKey: 'lastMonth' | 'thisMonth' | 'custom' }[] = [
+  { value: 'last-month', labelKey: 'lastMonth' },
+  { value: 'this-month', labelKey: 'thisMonth' },
+  { value: 'custom', labelKey: 'custom' },
 ]
 
 function presetPeriod(preset: Exclude<PeriodPreset, 'custom'>, today: string) {
@@ -30,6 +32,7 @@ interface StatementModalProps {
 }
 
 export function StatementModal({ pumpId, clientId, clientName, phone, outstanding, onClose }: StatementModalProps) {
+  const { t } = useTranslation('credit')
   const today = istDateString()
   const [preset, setPreset] = useState<PeriodPreset>('last-month')
   const [period, setPeriod] = useState(() => presetPeriod('last-month', today))
@@ -46,7 +49,7 @@ export function StatementModal({ pumpId, clientId, clientName, phone, outstandin
 
   return (
     <Modal
-      title="Statement"
+      title={t('statement.title')}
       subtitle={clientName}
       tone="info"
       onClose={onClose}
@@ -55,48 +58,48 @@ export function StatementModal({ pumpId, clientId, clientName, phone, outstandin
         <>
           {shareUrl && (
             <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="ui-btn ui-btn-secondary">
-              Share on WhatsApp
+              {t('statement.shareWhatsapp')}
             </a>
           )}
           {periodValid ? (
             <a href={creditApi.statementUrl(pumpId, clientId, period)} target="_blank" rel="noopener noreferrer"
               className="ui-btn ui-btn-primary">
-              Open printable statement
+              {t('statement.openPrintable')}
             </a>
           ) : (
-            <button type="button" disabled className="ui-btn ui-btn-primary">Open printable statement</button>
+            <button type="button" disabled className="ui-btn ui-btn-primary">{t('statement.openPrintable')}</button>
           )}
         </>
       }
     >
-      <div role="group" aria-label="Statement period" className="ui-tabbar w-fit">
+      <div role="group" aria-label={t('statement.period')} className="ui-tabbar w-fit">
         {PRESETS.map(option => (
           <button key={option.value} type="button" aria-pressed={preset === option.value}
             onClick={() => choosePreset(option.value)}
             className={`ui-tabbar__button ${preset === option.value ? 'ui-tabbar__button--active' : ''}`}>
-            {option.label}
+            {t(`statement.presets.${option.labelKey}`)}
           </button>
         ))}
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="ui-label">From</span>
+          <span className="ui-label">{t('period.from')}</span>
           <input type="date" value={period.fromDate} max={period.toDate || undefined}
             onChange={e => { setPreset('custom'); setPeriod(current => ({ ...current, fromDate: e.target.value })) }}
             className="text-sm" />
         </label>
         <label className="block">
-          <span className="ui-label">To</span>
+          <span className="ui-label">{t('period.to')}</span>
           <input type="date" value={period.toDate} min={period.fromDate || undefined} max={today}
             onChange={e => { setPreset('custom'); setPeriod(current => ({ ...current, toDate: e.target.value })) }}
             className="text-sm" />
         </label>
       </div>
       {!periodValid && (
-        <p role="alert" className="text-sm text-bad">Choose a start date on or before the end date.</p>
+        <p role="alert" className="text-sm text-bad">{t('statement.invalidPeriod')}</p>
       )}
       {!whatsAppNumber(phone) && (
-        <p className="text-sm text-ink-3">Add a 10-digit mobile number to this client to share the statement on WhatsApp.</p>
+        <p className="text-sm text-ink-3">{t('statement.addMobileToShare')}</p>
       )}
     </Modal>
   )

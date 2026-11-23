@@ -3,11 +3,16 @@ import type { PayrollStatus } from '../../api/payrollApi'
 import type { StatusBadgeSpec } from '../../components/statusBadges'
 import { codeLabel } from '../../constants/labels'
 import { localDateInputValue } from '../../utils/date'
+import { formatDateTimeIn } from '../../i18n/format'
 
-export const STATUS_BADGES: Record<PayrollStatus, StatusBadgeSpec> = {
-  DRAFT:    { tone: 'warn', icon: Hourglass, label: codeLabel('DRAFT') },
-  APPROVED: { tone: 'info', icon: Check, label: codeLabel('APPROVED') },
-  PAID:     { tone: 'ok', icon: Wallet, label: codeLabel('PAID') },
+const STATUS_BADGE_STYLES: Record<PayrollStatus, Omit<StatusBadgeSpec, 'label'>> = {
+  DRAFT:    { tone: 'warn', icon: Hourglass },
+  APPROVED: { tone: 'info', icon: Check },
+  PAID:     { tone: 'ok', icon: Wallet },
+}
+
+export function statusBadge(status: PayrollStatus): StatusBadgeSpec {
+  return { ...STATUS_BADGE_STYLES[status], label: codeLabel(status) }
 }
 
 // Order in which status groups are displayed
@@ -30,8 +35,7 @@ export function toMonthKey(dateStr: string): string {
 /** Returns "Apr 2026" from "2026-04" */
 export function fmtMonthKey(key: string): string {
   const [year, month] = key.split('-')
-  return new Date(Number(year), Number(month) - 1, 1)
-    .toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', year: 'numeric' })
+  return formatDateTimeIn(new Date(Number(year), Number(month) - 1, 1), { month: 'short', year: 'numeric' })
 }
 
 export function todayIso()     { return localDateInputValue() }

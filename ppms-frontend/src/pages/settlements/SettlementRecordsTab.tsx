@@ -1,4 +1,5 @@
 import { Landmark, Check, AlertTriangle, Ban } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { DailySummaryEntry, Settlement, SettlementPaymentType } from '../../api/paymentSettlementApi'
 import { CsvExportButton } from '../../components/CsvExportButton'
 import { DatePresetChips } from '../../components/DatePresetChips'
@@ -9,8 +10,11 @@ import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
 import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
-import { TYPE_ACCENT, TYPE_ICONS, TYPE_LABELS, fmtAmt, fmtDate } from './settlementFormat'
+import { TYPE_ACCENT, TYPE_ICONS, fmtAmt, fmtDate, typeLabel } from './settlementFormat'
 import type { SettlementHistory } from './useSettlementHistory'
+
+// The CSV is shared with accountants, so its headings and type names stay English whatever the screen language.
+const CSV_TYPE_NAMES: Record<SettlementPaymentType, string> = { UPI: 'UPI', CARD: 'Card', FLEET_CARD: 'Fleet Card' }
 
 const CSV_COLUMNS: CsvColumn<DailySummaryEntry>[] = [
   { header: 'Date', value: (row) => row.date, kind: 'date' },
@@ -21,7 +25,7 @@ const CSV_COLUMNS: CsvColumn<DailySummaryEntry>[] = [
   { header: 'Fleet card collected', value: (row) => row.fleetCardCollected, kind: 'money' },
   { header: 'Fleet card settled', value: (row) => row.fleetCardSettled, kind: 'money' },
   { header: 'Settlements recorded', value: (row) => row.settlements
-    .map((s) => `${TYPE_LABELS[s.paymentType]} ${s.amountReceived.toFixed(2)}${s.voidStatus === 'VOIDED' ? ' (voided)' : ''}${s.bankReference ? ` ref ${s.bankReference}` : ''}`)
+    .map((s) => `${CSV_TYPE_NAMES[s.paymentType]} ${s.amountReceived.toFixed(2)}${s.voidStatus === 'VOIDED' ? ' (voided)' : ''}${s.bankReference ? ` ref ${s.bankReference}` : ''}`)
     .join('; ') },
 ]
 
@@ -32,6 +36,7 @@ interface SettlementRecordsTabProps {
 }
 
 export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRecordsTabProps) {
+  const { t } = useTranslation('settlements')
   const {
     filterFrom, setFilterFrom, filterTo, setFilterTo, typeFilter, setTypeFilter, setRange, loadAllDays,
     setSummaryPage, setSummaryPageSize, dailySummaryPage, dailySummary, loadingList,
@@ -41,12 +46,12 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
     <div className="ui-card p-0 overflow-hidden">
       {/* Toolbar: date range + type filter */}
       <div className="ui-toolbar">
-        <p className="ui-toolbar-title">Settlement History</p>
+        <p className="ui-toolbar-title">{t('page.historyTab')}</p>
         <div className="basis-full">
           <DatePresetChips range={{ from: filterFrom, to: filterTo }} onSelect={setRange} />
         </div>
         <div className="ui-toolbar-actions w-full sm:w-auto">
-          <input aria-label="From date"
+          <input aria-label={t('history.fromDate')}
             type="date"
             value={filterFrom}
             max={filterTo}
@@ -54,7 +59,7 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
             className="flex-1 min-w-36 text-sm sm:w-40 sm:flex-none"
           />
           <span className="text-ink-3 text-sm">–</span>
-          <input aria-label="To date"
+          <input aria-label={t('history.toDate')}
             type="date"
             value={filterTo}
             min={filterFrom}
@@ -62,14 +67,14 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
             className="flex-1 min-w-36 text-sm sm:w-40 sm:flex-none"
           />
           <div className="w-full sm:w-40">
-            <SearchableSelect label="Filter by payment type"
+            <SearchableSelect label={t('history.typeFilter')}
               value={typeFilter}
               onChange={v => setTypeFilter(v as SettlementPaymentType | '')}
               options={[
-                { value: '',           label: 'All Types'  },
-                { value: 'UPI',        label: 'UPI'        },
-                { value: 'CARD',       label: 'Card'       },
-                { value: 'FLEET_CARD', label: 'Fleet Card' },
+                { value: '',           label: t('history.allTypes') },
+                { value: 'UPI',        label: typeLabel('UPI') },
+                { value: 'CARD',       label: typeLabel('CARD') },
+                { value: 'FLEET_CARD', label: typeLabel('FLEET_CARD') },
               ]}
               size="sm"
             />
@@ -88,9 +93,9 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
       ) : dailySummary.length === 0 ? (
         <div className="py-16 flex flex-col items-center gap-3 text-center px-6">
           <div className="w-14 h-14 rounded-full bg-surface-sunken flex items-center justify-center mb-1"><Landmark size={26} strokeWidth={1.5} className="text-ink-3" aria-hidden="true" /></div>
-          <p className="font-semibold text-ink">No activity in this date range</p>
+          <p className="font-semibold text-ink">{t('history.emptyTitle')}</p>
           <p className="text-sm text-ink-3 max-w-sm">
-            No shift collections or settlements were found between the selected dates.
+            {t('history.emptySubtitle')}
           </p>
         </div>
       ) : (
@@ -124,24 +129,24 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
                         <div key={type} className="rounded-control border border-border bg-bg px-3 py-2.5 flex flex-col gap-1">
                           <div className="flex items-center justify-between">
                             <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-badge ${accent.badge}`}>
-                              {TYPE_ICONS[type]} {TYPE_LABELS[type]}
+                              {TYPE_ICONS[type]} {typeLabel(type)}
                             </span>
                             {balanced
-                              ? <span className="inline-flex items-center gap-1 text-xs text-ok font-medium"><Check size={11} strokeWidth={2.5} aria-hidden="true" />Settled</span>
-                              : <span className="text-xs text-warn font-medium">In transit</span>
+                              ? <span className="inline-flex items-center gap-1 text-xs text-ok font-medium"><Check size={11} strokeWidth={2.5} aria-hidden="true" />{t('history.settled')}</span>
+                              : <span className="text-xs text-warn font-medium">{t('wallet.inTransit')}</span>
                             }
                           </div>
                           <div className="flex justify-between text-xs text-ink-3 mt-0.5">
-                            <span>Collected</span>
+                            <span>{t('history.collected')}</span>
                             <MoneyText value={collected} className="font-semibold text-ink" />
                           </div>
                           <div className="flex justify-between text-xs text-ink-3">
-                            <span>Settled</span>
+                            <span>{t('history.settled')}</span>
                             <MoneyText value={settled} tone="ok" className="font-semibold" />
                           </div>
                           {!balanced && (
                             <div className="flex justify-between text-xs border-t border-dashed border-border pt-1 mt-0.5">
-                              <span className="text-warn">Pending</span>
+                              <span className="text-warn">{t('history.pending')}</span>
                               <MoneyText value={balance} tone="warn" className="font-bold" />
                             </div>
                           )}
@@ -163,27 +168,27 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
                       return (
                         <div key={s.id} className={`flex flex-wrap items-start gap-x-3 gap-y-1 ${isVoided ? 'opacity-60' : ''}`}>
                           <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-badge flex-shrink-0 mt-0.5 ${accent.badge}`}>
-                            {TYPE_ICONS[s.paymentType]} {TYPE_LABELS[s.paymentType]}
+                            {TYPE_ICONS[s.paymentType]} {typeLabel(s.paymentType)}
                           </span>
                           <div className="order-last basis-full min-w-0 sm:order-none sm:basis-0 sm:flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               {isVoided && (
-                                <StatusBadge tone="bad" icon={Ban} label="Voided" />
+                                <StatusBadge tone="bad" icon={Ban} label={t('history.voided')} />
                               )}
                               {!isVoided && s.isPartial && (
-                                <StatusBadge tone="warn" icon={AlertTriangle} label={`Partial · ${fmtAmt(shortfall)} short`} />
+                                <StatusBadge tone="warn" icon={AlertTriangle} label={t('history.partialShort', { amount: fmtAmt(shortfall) })} />
                               )}
                               <span className="text-xs text-ink-3 truncate">
-                                {s.notes ? `${s.notes} · ` : ''}by {s.recordedByUserName}
+                                {s.notes ? `${s.notes} · ` : ''}{t('history.by', { name: s.recordedByUserName })}
                               </span>
                             </div>
                             {!isVoided && s.isPartial && s.pendingAtRecordTime != null && (
                               <p className="text-xs text-ink-3 mt-0.5">
-                                Expected {fmtAmt(s.pendingAtRecordTime)} · received {fmtAmt(s.amountReceived)}
+                                {t('history.expectedReceived', { expected: fmtAmt(s.pendingAtRecordTime), received: fmtAmt(s.amountReceived) })}
                               </p>
                             )}
                             {isVoided && s.voidReason && (
-                              <p className="text-xs text-bad mt-0.5">Reason: {s.voidReason}</p>
+                              <p className="text-xs text-bad mt-0.5">{t('history.voidReason', { reason: s.voidReason })}</p>
                             )}
                           </div>
                           <MoneyText
@@ -197,7 +202,7 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
                               onClick={() => onVoid(s)}
                               className="ui-btn ui-btn-danger ui-btn-compact flex-shrink-0"
                             >
-                              Void
+                              {t('history.void')}
                             </button>
                           )}
                         </div>

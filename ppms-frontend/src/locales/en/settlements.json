@@ -1,1 +1,97 @@
-{}
+{
+  "types": {
+    "UPI": "UPI",
+    "CARD": "Card",
+    "FLEET_CARD": "Fleet Card"
+  },
+  "page": {
+    "title": "Payment Settlements",
+    "subtitle": "Track when UPI, Card & Fleet Card payments arrive in your bank account.",
+    "noPump": "Select a pump to view settlement records.",
+    "record": "Record Settlement",
+    "historyTab": "Settlement History",
+    "alertsTab": "Alert Settings"
+  },
+  "wallet": {
+    "fullySettled": "Fully settled",
+    "inTransit": "In transit",
+    "record": "Record",
+    "totalInTransit": "Total amount still in transit — not yet credited to your bank account",
+    "allSettled": "All payments have been settled — no pending amounts"
+  },
+  "pendingByAge": {
+    "title": "Waiting for the bank",
+    "overdueCount_one": "{{count}} overdue",
+    "overdueCount_other": "{{count}} overdue",
+    "note": "Unsettled collections by collection date. Card and UPI money is due within 2 days (T+2).",
+    "loadFailed": "Could not load unsettled collections.",
+    "empty": "Everything collected has been settled.",
+    "ageOverdue": "{{age}} · overdue",
+    "today": "today",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days"
+  },
+  "history": {
+    "fromDate": "From date",
+    "toDate": "To date",
+    "typeFilter": "Filter by payment type",
+    "allTypes": "All Types",
+    "emptyTitle": "No activity in this date range",
+    "emptySubtitle": "No shift collections or settlements were found between the selected dates.",
+    "settled": "Settled",
+    "collected": "Collected",
+    "pending": "Pending",
+    "voided": "Voided",
+    "partialShort": "Partial · {{amount}} short",
+    "by": "by {{name}}",
+    "expectedReceived": "Expected {{expected}} · received {{received}}",
+    "voidReason": "Reason: {{reason}}",
+    "void": "Void"
+  },
+  "alerts": {
+    "intro": "Set the time when you want to receive a daily reminder to record each payment type's settlement. Alerts arrive as in-app notifications — once per day, after the configured time.",
+    "loading": "Loading…",
+    "dailyReminder": "Daily reminder at this time (IST)",
+    "reminderTime": "{{type}} reminder time",
+    "enabled": "Enabled",
+    "saving": "Saving…",
+    "save": "Save",
+    "active": "Active",
+    "disabled": "Disabled",
+    "saved": "{{type}} alert config saved",
+    "saveFailed": "Failed to save config"
+  },
+  "record": {
+    "subtitle": "Enter the amount credited to your bank account",
+    "recorded": "Settlement recorded successfully",
+    "failed": "Failed to record settlement",
+    "dateRequired": "Settlement date is required",
+    "amountPositive": "Amount must be greater than zero",
+    "amountTooHigh": "Amount is more than the {{pending}} still pending for {{type}}",
+    "paymentType": "Payment Type",
+    "currentPending": "{{type}} — Current Pending",
+    "afterThis": "After this settlement",
+    "date": "Settlement Date",
+    "dateHint": "Date money arrived in bank",
+    "amount": "Amount Received (₹)",
+    "amountHint": "Bank credit amount",
+    "bankReference": "Bank Reference / UTR",
+    "bankReferencePlaceholder": "As shown on the bank statement",
+    "bankReferenceHelp": "A reference already recorded for this pump is refused, so the same credit is not counted twice.",
+    "notes": "Notes",
+    "notesPlaceholder": "e.g., Partial credit from yesterday's UPI batch",
+    "optional": "(optional)",
+    "clears": "This settlement clears {{type}} collected on",
+    "partOf": "{{covered}} of {{unsettled}} (part)"
+  },
+  "void": {
+    "title": "Void Settlement",
+    "voiding": "Voiding…",
+    "voided": "Settlement voided",
+    "failed": "Failed to void settlement",
+    "reasonRequired": "A reason is required",
+    "explanation": "The settlement stays on record but no longer counts as received, so the pending balance goes back up.",
+    "reason": "Reason",
+    "reasonPlaceholder": "e.g., Recorded twice by mistake"
+  }
+}

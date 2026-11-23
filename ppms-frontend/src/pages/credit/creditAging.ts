@@ -6,11 +6,12 @@ export type AgingSortKey =
   | 'oldestUnpaidSaleDate' | 'lastPaymentDate' | 'daysOverdue'
 export type SortDirection = 'asc' | 'desc'
 
-export const AGING_FILTERS: { value: AgingFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'overdue', label: 'Overdue' },
-  { value: 'over-limit', label: 'Over limit' },
-  { value: 'pending-approval', label: 'Pending approval' },
+/** Each label is credit.json aging.filters.<labelKey>, read when the filter bar renders. */
+export const AGING_FILTERS: { value: AgingFilter; labelKey: 'all' | 'overdue' | 'overLimit' | 'pendingApproval' }[] = [
+  { value: 'all', labelKey: 'all' },
+  { value: 'overdue', labelKey: 'overdue' },
+  { value: 'over-limit', labelKey: 'overLimit' },
+  { value: 'pending-approval', labelKey: 'pendingApproval' },
 ]
 
 const SORT_KEYS: AgingSortKey[] = [

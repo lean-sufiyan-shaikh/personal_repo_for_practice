@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../utils/apiError'
 import { pumpApi } from '../../api/pumpApi'
 import type { PumpSummary } from '../../api/pumpApi'
@@ -9,6 +10,7 @@ import { useToastStore } from '../../store/toastStore'
 // ── Create pump form ──────────────────────────────────────────────────────────
 
 export function CreatePumpForm({ onCreated }: { onCreated: (p: PumpSummary) => void }) {
+  const { t } = useTranslation('setup')
   const { addToast } = useToastStore()
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
@@ -22,11 +24,11 @@ export function CreatePumpForm({ onCreated }: { onCreated: (p: PumpSummary) => v
       setAddress('')
       setMaxDUs('4')
       setError(null)
-      addToast(`Pump "${pump.name}" created`, 'success')
+      addToast(t('createPump.created', { name: pump.name }), 'success')
       onCreated(pump)
     },
     onError: (err) => {
-      const msg = parseApiError(err, 'Failed to create pump')
+      const msg = parseApiError(err, t('createPump.failed'))
       setError(msg)
       addToast(msg, 'error')
     },
@@ -43,19 +45,19 @@ export function CreatePumpForm({ onCreated }: { onCreated: (p: PumpSummary) => v
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block">
-            <span className="ui-label">Pump Name</span>
+            <span className="ui-label">{t('createPump.name')}</span>
             <input
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Main Road Pump"
+              placeholder={t('createPump.namePlaceholder')}
               className="text-sm"
             />
           </label>
         </div>
         <div>
           <label className="block">
-            <span className="ui-label">Max DUs</span>
+            <span className="ui-label">{t('createPump.maxDus')}</span>
             <input
               required
               type="number"
@@ -70,12 +72,12 @@ export function CreatePumpForm({ onCreated }: { onCreated: (p: PumpSummary) => v
       </div>
       <div>
         <label className="block">
-          <span className="ui-label">Address</span>
+          <span className="ui-label">{t('createPump.address')}</span>
           <input
             required
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder="e.g. 123, MG Road, Bangalore"
+            placeholder={t('createPump.addressPlaceholder')}
             className="text-sm"
           />
         </label>
@@ -87,8 +89,8 @@ export function CreatePumpForm({ onCreated }: { onCreated: (p: PumpSummary) => v
         className="ui-btn ui-btn-primary"
       >
         {mutation.isPending
-        ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Creating…</span>
-        : 'Create Pump'}
+        ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('createPump.creating')}</span>
+        : t('createPump.submit')}
       </button>
     </form>
   )

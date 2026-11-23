@@ -1,13 +1,17 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import type { Shift } from '../../../types/shift'
 import { withToggled } from '../../../utils/setToggle'
 import { localDateInputValue, formatIstDate } from '../../../utils/date'
 import { Reveal } from '../../../components/Reveal'
-import { FUEL_CHART_COLORS, FUEL_LABELS } from '../../../constants/fuel'
+import { FUEL_CHART_COLORS } from '../../../constants/fuel'
+import { codeLabel } from '../../../constants/labels'
+import { formatNumberIn } from '../../../i18n/format'
 import { CHART_COLORS, CHART_TOOLTIP_STYLE, compactRupees } from '../../../constants/chartColors'
 
 export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] }) {
+  const { t } = useTranslation('dashboard')
   const [chartDays, setChartDays] = useState<7 | 14 | 30>(7)
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set())
 
@@ -49,17 +53,17 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
       <Reveal delay={230}>
       <div className="ui-card p-0 overflow-hidden">
         <div className="ui-toolbar">
-          <p className="ui-toolbar-title">Revenue Trend</p>
+          <p className="ui-toolbar-title">{t('chart.title')}</p>
           <div className="ui-chart-days-toggle">
             {([7, 14, 30] as const).map(d => (
               <button
                 key={d}
                 onClick={() => setChartDays(d)}
                 aria-pressed={chartDays === d}
-                aria-label={`Last ${d} days`}
+                aria-label={t('chart.lastDays', { days: d })}
                 className={`ui-chart-day-btn ${chartDays === d ? 'ui-chart-day-btn--active' : ''}`}
               >
-                {d}d
+                {t('chart.dayButton', { days: d })}
               </button>
             ))}
           </div>
@@ -69,7 +73,7 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
           <div
             className="ui-chart-wrap"
             role="img"
-            aria-label={`Revenue and fuel quantity trend for the last ${chartDays} days`}
+            aria-label={t('chart.summary', { days: chartDays })}
           >
             <ResponsiveContainer width="100%" height={200}>
               <ComposedChart data={revenueChartData} margin={{ top: 4, right: 52, left: 0, bottom: 0 }}>
@@ -105,8 +109,8 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
                   contentStyle={CHART_TOOLTIP_STYLE}
                   formatter={(v, name) => {
                     const n = typeof v === 'number' ? v : 0
-                    if (name === 'revenue') return [`₹${n.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, 'Revenue']
-                    return [`${n.toFixed(2)} L`, FUEL_LABELS[name as string] ?? name]
+                    if (name === 'revenue') return [`₹${formatNumberIn(n, { maximumFractionDigits: 0 })}`, t('chart.revenue')]
+                    return [`${n.toFixed(2)} L`, codeLabel(String(name))]
                   }}
                   labelStyle={{ color: CHART_COLORS.axis, marginBottom: '0.25rem' }}
                 />
@@ -137,7 +141,7 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 px-4 pb-3 text-xs" aria-label="Chart series">
+          <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 px-4 pb-3 text-xs" aria-label={t('chart.series')}>
             {['revenue', ...chartFuelTypes].map(series => {
               const hidden = hiddenSeries.has(series)
               const color = series === 'revenue' ? CHART_COLORS.primary : (FUEL_CHART_COLORS[series] ?? CHART_COLORS.axis)
@@ -150,7 +154,7 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
                   className={`inline-flex min-h-8 items-center gap-1.5 rounded-control px-1.5 ${hidden ? 'text-ink-3 line-through' : 'text-ink'}`}
                 >
                   <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: hidden ? CHART_COLORS.grid : color }} />
-                  {series === 'revenue' ? 'Revenue' : (FUEL_LABELS[series] ?? series)}
+                  {series === 'revenue' ? t('chart.revenue') : codeLabel(series)}
                 </button>
               )
             })}
@@ -158,7 +162,7 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
           </>
         ) : (
           <p role="status" className="ui-empty py-10 text-xs">
-            No closed shift revenue in the last {chartDays} days. The chart fills in as shifts are closed.
+            {t('chart.empty', { days: chartDays })}
           </p>
         )}
       </div>

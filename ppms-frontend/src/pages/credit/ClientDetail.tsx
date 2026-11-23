@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { withToggled } from '../../utils/setToggle'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
@@ -44,6 +45,7 @@ interface ClientDetailProps {
 }
 
 export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
+  const { t } = useTranslation('credit')
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showInterestSettingsModal, setShowInterestSettingsModal] = useState(false)
   const [showExtensionModal, setShowExtensionModal] = useState(false)
@@ -104,12 +106,14 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
     onSuccess: (result) => {
       invalidateLedger()
       if (result.applied) {
-        setApplyInterestFeedback(`₹${result.amount?.toFixed(2)} interest applied for ${result.days} days (${result.periodFrom} – ${result.periodTo})`)
+        setApplyInterestFeedback(t('detail.interestApplied', {
+          amount: `₹${result.amount?.toFixed(2)}`, days: result.days, from: result.periodFrom, to: result.periodTo,
+        }))
       } else {
-        setApplyInterestFeedback(result.reason ?? 'No interest applicable')
+        setApplyInterestFeedback(result.reason ?? t('detail.noInterestApplicable'))
       }
     },
-    onError: (err) => setApplyInterestFeedback(parseApiError(err, 'Failed to apply interest')),
+    onError: (err) => setApplyInterestFeedback(parseApiError(err, t('detail.applyInterestFailed'))),
   })
 
   const approvePaymentMutation = useMutation({
@@ -118,10 +122,10 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
     onSuccess: (_payment, { status }) => {
       invalidateLedger()
       setRejectingPayment(null)
-      addToast(status === 'APPROVED' ? 'Payment approved' : 'Payment rejected', 'success')
+      addToast(status === 'APPROVED' ? t('detail.paymentApproved') : t('detail.paymentRejected'), 'success')
     },
     onError: (err, { status }) => {
-      const message = parseApiError(err, 'Failed to update payment')
+      const message = parseApiError(err, t('detail.paymentUpdateFailed'))
       if (status === 'REJECTED') setRejectError(message)
       else addToast(message, 'error')
     },
@@ -167,9 +171,9 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
     return (
       <div className="p-6 space-y-4">
         <p className="ui-alert ui-alert-error text-sm" role="alert">
-          {clientsFailed ? 'Could not load this client. Please try again.' : 'This client was not found at the selected pump.'}
+          {clientsFailed ? t('detail.loadFailed') : t('detail.notFound')}
         </p>
-        <button type="button" onClick={onBack} className="ui-btn ui-btn-secondary">Back to all clients</button>
+        <button type="button" onClick={onBack} className="ui-btn ui-btn-secondary">{t('detail.back')}</button>
       </div>
     )
   }
@@ -206,13 +210,13 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           pumpId={pumpId}
           clientId={waivingInterest.sourceClientId}
           charge={waivingInterest.charge}
-          onWaived={() => { invalidateLedger(); addToast('Interest waived', 'success') }}
+          onWaived={() => { invalidateLedger(); addToast(t('detail.interestWaived'), 'success') }}
           onClose={() => setWaivingInterest(null)}
         />
       )}
       {rejectingPayment && (
         <RejectReasonDialog
-          title="Reject Payment"
+          title={t('detail.rejectPayment')}
           subtitle={`${formatCurrency(rejectingPayment.amount)} · ${rejectingPayment.reference || codeLabel(rejectingPayment.detail)}`}
           isPending={approvePaymentMutation.isPending}
           error={rejectError}
@@ -257,7 +261,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          Back to all clients
+          {t('detail.back')}
         </button>
 
         <div className="flex items-start justify-between flex-wrap gap-3">
@@ -281,33 +285,35 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
 
         {canManageInterestForRole && isSubAccount && (
           <p className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-ink-3">
-            Interest is charged on the parent account{client.parentClientName ? ` (${client.parentClientName})` : ''} for
-            the combined balance of the whole group.
+            {client.parentClientName
+              ? t('detail.interestOnParentNamed', { name: client.parentClientName })
+              : t('detail.interestOnParent')}
           </p>
         )}
         {canManageExtensions && isSubAccount && (
           <p className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-ink-3">
-            Credit limit and billing cycle are checked on the parent account
-            {client.parentClientName ? ` (${client.parentClientName})` : ''} for the whole group. Grant credit extensions there.
+            {client.parentClientName
+              ? t('detail.limitOnParentNamed', { name: client.parentClientName })
+              : t('detail.limitOnParent')}
           </p>
         )}
         {applyInterestFeedback && (
           <div className="mt-3 ui-alert text-sm bg-info-bg border-info/30 text-info flex items-center justify-between">
             <span>{applyInterestFeedback}</span>
             <IconButton onClick={() => setApplyInterestFeedback(null)} className="ml-2 text-info hover:text-ink"
-              label="Dismiss message"
+              label={t('detail.dismissMessage')}
               icon={'×'}
             />
           </div>
         )}
         {canManageInterest && client.monthlyInterestRate === 0 && client.outstandingBalance > 0 && (
           <div className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-ink-3 flex items-center gap-2">
-            <span>No interest rate configured.</span>
+            <span>{t('detail.noInterestRate')}</span>
             <button
               onClick={() => setShowInterestSettingsModal(true)}
               className="text-primary font-medium hover:text-primary-strong underline-offset-2 hover:underline"
             >
-              Set interest rate
+              {t('detail.setInterestRate')}
             </button>
           </div>
         )}
@@ -328,7 +334,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
       />
 
       <div className="px-6 mb-4">
-        <div className="ui-tabbar w-fit" role="tablist" aria-label="Client records">
+        <div className="ui-tabbar w-fit" role="tablist" aria-label={t('detail.recordsLabel')}>
           {(['ledger', 'invoices'] as const).map(tab => (
             <button
               key={tab}
@@ -338,7 +344,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
               onClick={() => setActiveTab(tab)}
               className={`ui-tabbar__button ${activeTab === tab ? 'ui-tabbar__button--active' : ''}`}
             >
-              {tab === 'ledger' ? 'Ledger' : 'Invoices'}
+              {t(`detail.tabs.${tab}`)}
             </button>
           ))}
         </div>
@@ -374,7 +380,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
                   <div className="text-left">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-ink">{client.name}</span>
-                      <StatusBadge tone="neutral" label="own transactions" />
+                      <StatusBadge tone="neutral" label={t('detail.ownTransactions')} />
                     </div>
                     <p className="text-xs text-ink-3">{client.phone}</p>
                   </div>
@@ -389,7 +395,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
               {expandedSections.has('own') && (
                 filteredOwn.length === 0 ? (
                   <div className="ui-empty py-4">
-                    {ownTransactions.length === 0 ? 'No own transactions yet.' : 'No transactions match this filter.'}
+                    {ownTransactions.length === 0 ? t('detail.noOwnTransactions') : t('detail.noFilterMatch')}
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -421,14 +427,14 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
                       <div className="text-left">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-ink">{child.name}</span>
-                          <StatusBadge tone="info" label="sub-account" />
+                          <StatusBadge tone="info" label={t('detail.subAccount')} />
                         </div>
                         <p className="text-xs text-ink-3">{child.phone}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <p className="text-xs text-ink-3">Outstanding</p>
+                        <p className="text-xs text-ink-3">{t('summaryCards.outstanding')}</p>
                         <MoneyText value={childOutstanding} tone={childOutstanding > 0 ? 'warn' : 'ok'} className="block text-sm font-bold" />
                       </div>
                       <svg
@@ -445,7 +451,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
                     ) : childFiltered.length === 0 ? (
                       <EmptyState
                         icon="transactions"
-                        title={(childTransactionsByIndex[i] ?? []).length === 0 ? 'No transactions yet' : 'No transactions match this filter'}
+                        title={(childTransactionsByIndex[i] ?? []).length === 0 ? t('detail.noTransactionsTitle') : t('detail.noFilterMatchTitle')}
                       />
                     ) : (
                       <div className="space-y-3"><LedgerWeekGroups groups={childGroups} srcClientId={child.id} actions={rowActions} /></div>
@@ -457,7 +463,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           </div>
         ) : filtered.length === 0 ? (
           <div className="ui-empty py-8">
-            {transactions.length === 0 ? 'No transactions yet.' : 'No transactions match this filter.'}
+            {transactions.length === 0 ? t('detail.noTransactions') : t('detail.noFilterMatch')}
           </div>
         ) : (
           <>

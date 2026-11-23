@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Gauge, Truck, Wallet, Zap, type LucideIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { Shift } from '../../../types/shift'
 import type { TankStock } from '../../../api/inventoryApi'
 import { useAuthStore } from '../../../store/authStore'
 import { canPerformAction } from '../../../permissions/permissions'
-import { roleLabel } from '../../../constants/labels'
+import { codeLabel, roleLabel } from '../../../constants/labels'
 import { MoneyText } from '../../../components/AmountText'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { shiftStatusBadge } from '../../../components/statusBadges'
@@ -20,10 +21,11 @@ interface ManagerHeaderProps {
 }
 
 export function ManagerHeader({ pumpName }: ManagerHeaderProps) {
+  const { t } = useTranslation('dashboard')
   const user = useAuthStore((state) => state.user)
   return (
     <div>
-      <h1 className="ui-title-sm">{pumpName ?? 'No pump selected'}</h1>
+      <h1 className="ui-title-sm">{pumpName ?? t('header.noPump')}</h1>
       <p className="text-sm text-ink-3">{user?.fullName} · {roleLabel(user?.role)}</p>
     </div>
   )
@@ -36,25 +38,26 @@ interface QuickActionsProps {
 }
 
 export function ManagerQuickActions({ pumpId, activeShifts, tanks }: QuickActionsProps) {
+  const { t } = useTranslation('dashboard')
   const role = useAuthStore((state) => state.user?.role)
   const [openShiftVisible, setOpenShiftVisible] = useState(false)
   const [deliveryVisible, setDeliveryVisible] = useState(false)
 
   return (
     <section aria-labelledby="quick-actions-heading">
-      <h2 id="quick-actions-heading" className="sr-only">Quick actions</h2>
+      <h2 id="quick-actions-heading" className="sr-only">{t('manager.quickActions')}</h2>
       <div className="grid grid-cols-2 gap-3">
         {canPerformAction('shift:open', role) && (
-          <QuickActionButton icon={Zap} label="Open shift" onClick={() => setOpenShiftVisible(true)} />
+          <QuickActionButton icon={Zap} label={t('manager.openShift')} onClick={() => setOpenShiftVisible(true)} />
         )}
         {canPerformAction('inventory:record-dip-check', role) && (
-          <QuickActionLink icon={Gauge} label="Dip check" to="/dashboard/inventory" />
+          <QuickActionLink icon={Gauge} label={t('manager.dipCheck')} to="/dashboard/inventory" />
         )}
         {canPerformAction('inventory:record-delivery', role) && (
-          <QuickActionButton icon={Truck} label="Delivery" onClick={() => setDeliveryVisible(true)} disabled={tanks.length === 0} />
+          <QuickActionButton icon={Truck} label={t('manager.delivery')} onClick={() => setDeliveryVisible(true)} disabled={tanks.length === 0} />
         )}
         {canPerformAction('cash:record-event', role) && (
-          <QuickActionLink icon={Wallet} label="Cash entry" to="/dashboard/cash" />
+          <QuickActionLink icon={Wallet} label={t('manager.cashEntry')} to="/dashboard/cash" />
         )}
       </div>
 
@@ -103,17 +106,18 @@ interface OpenShiftsLiveProps {
 }
 
 export function OpenShiftsLive({ shifts, isFetching, dataUpdatedAt }: OpenShiftsLiveProps) {
+  const { t } = useTranslation('dashboard')
   const now = useNow(30_000)
   return (
     <section aria-labelledby="open-shifts-heading" className="ui-card p-0 overflow-hidden">
       <div className="ui-toolbar">
         <div className="flex items-center gap-2.5">
-          <h2 id="open-shifts-heading" className="ui-toolbar-title">Open shifts</h2>
+          <h2 id="open-shifts-heading" className="ui-toolbar-title">{t('manager.openShifts')}</h2>
           <RefreshIndicator isFetching={isFetching} dataUpdatedAt={dataUpdatedAt} />
         </div>
       </div>
       {shifts.length === 0 ? (
-        <p className="px-5 py-4 text-sm text-ink-3">No shift is open right now.</p>
+        <p className="px-5 py-4 text-sm text-ink-3">{t('manager.noneOpen')}</p>
       ) : (
         <ul className="divide-y divide-border">
           {shifts.map((shift) => {
@@ -127,11 +131,11 @@ export function OpenShiftsLive({ shifts, isFetching, dataUpdatedAt }: OpenShifts
                   <span className="min-w-0 flex-1 text-ink">
                     <span className="font-semibold">{shift.operatorName}</span>
                     {' · '}{shift.duName ?? `DU ${shift.duNumber}`}
-                    {' · '}open {timeOpen(shift.actualStartTime, now)}
-                    {' · '}<MoneyText value={creditTotal} /> credit
+                    {' · '}{t('manager.openFor', { duration: timeOpen(shift.actualStartTime, now) })}
+                    {' · '}<MoneyText value={creditTotal} /> {t('manager.credit')}
                   </span>
                   {isOverdue && (
-                    <StatusBadge {...shiftStatusBadge(shift.status)} label="Overdue" className="shrink-0" />
+                    <StatusBadge {...shiftStatusBadge(shift.status)} label={codeLabel('OVERDUE')} className="shrink-0" />
                   )}
                 </Link>
               </li>

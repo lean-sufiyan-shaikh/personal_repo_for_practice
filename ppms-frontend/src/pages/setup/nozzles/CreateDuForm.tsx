@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../../utils/apiError'
 import { pumpApi } from '../../../api/pumpApi'
 import type { FuelType } from '../../../types/shift'
@@ -8,10 +9,11 @@ import { SearchableSelect } from '../../../components/SearchableSelect'
 import { Spinner } from '../../../components/Spinner'
 import { useToastStore } from '../../../store/toastStore'
 import { IconButton } from '../../../components/IconButton'
-import { FUEL_LABELS } from '../../../constants/fuel'
+import { codeLabel } from '../../../constants/labels'
 import { ALL_FUEL_TYPES } from '../fuelStyles'
 
 export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated: () => void }) {
+  const { t } = useTranslation('setup')
   const { addToast } = useToastStore()
   const [duName, setDuName] = useState('')
   const [duNozzles, setDuNozzles] = useState<Array<{ nozzleNumber: string; fuelType: FuelType | ''; initialReading: string }>>([
@@ -26,11 +28,11 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
       setDuName('')
       setDuNozzles([{ nozzleNumber: '1', fuelType: '', initialReading: '' }])
       setAddError(null)
-      addToast('DU created successfully', 'success')
+      addToast(t('nozzles.createDu.created'), 'success')
       onCreated()
     },
     onError: (err) => {
-      const msg = parseApiError(err, 'Failed to create DU')
+      const msg = parseApiError(err, t('nozzles.createDu.failed'))
       setAddError(msg)
       addToast(msg, 'error')
     },
@@ -38,9 +40,9 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
 
   const submitAdd = (e: React.FormEvent) => {
     e.preventDefault(); setAddError(null)
-    if (!duName.trim()) { setAddError('Enter a DU name.'); return }
+    if (!duName.trim()) { setAddError(t('nozzles.createDu.nameRequired')); return }
     const validNozzles = duNozzles.filter((n) => n.nozzleNumber && n.fuelType)
-    if (validNozzles.length === 0) { setAddError('Add at least one nozzle with a fuel type.'); return }
+    if (validNozzles.length === 0) { setAddError(t('nozzles.createDu.nozzleRequired')); return }
     createDUMutation.mutate({
       name: duName.trim(),
       nozzles: validNozzles.map((n) => ({
@@ -55,23 +57,23 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
            <form onSubmit={submitAdd} className="ui-nozzle-form">
              <div className="ui-nozzle-form__hero">
                <div>
-                 <p className="ui-section-kicker mb-2">DU Setup</p>
-                 <h3 className="ui-title-sm">Add a new Dispensary Unit</h3>
+                 <p className="ui-section-kicker mb-2">{t('nozzles.createDu.kicker')}</p>
+                 <h3 className="ui-title-sm">{t('nozzles.createDu.title')}</h3>
                  <p className="ui-subtitle mt-1">
-                   A Dispensary Unit (DU) is a physical MPD machine. Give it a name and add one or more nozzles — each nozzle carries exactly one fuel type.
+                   {t('nozzles.createDu.subtitle')}
                  </p>
                </div>
              </div>
 
              <div className="ui-nozzle-form__section">
                <label className="block">
-                 <span className="ui-label">DU Name <span className="text-bad">*</span></span>
+                 <span className="ui-label">{t('nozzles.createDu.name')} <span className="text-bad">*</span></span>
                  <input
                    required
                    type="text"
                    value={duName}
                    onChange={(e) => setDuName(e.target.value)}
-                   placeholder="e.g. DU-1, Machine A"
+                   placeholder={t('nozzles.createDu.namePlaceholder')}
                    className="text-sm"
                  />
                </label>
@@ -80,15 +82,15 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
              <div className="ui-nozzle-form__section">
                <div className="ui-nozzle-form__section-head">
                  <div>
-                   <span className="ui-label mb-1">Nozzles</span>
-                   <p className="ui-help mt-0">Each nozzle has a unique number and exactly one fuel type.</p>
+                   <span className="ui-label mb-1">{t('nozzles.createDu.nozzles')}</span>
+                   <p className="ui-help mt-0">{t('nozzles.createDu.nozzlesHint')}</p>
                  </div>
                  <button
                    type="button"
                    onClick={() => setDuNozzles((prev) => [...prev, { nozzleNumber: String(prev.length + 1), fuelType: '', initialReading: '' }])}
                    className="ui-btn ui-btn-ghost min-h-0 px-2 py-1 text-xs text-primary"
                  >
-                   + Add nozzle
+                   {t('nozzles.createDu.addNozzle')}
                  </button>
                </div>
 
@@ -97,7 +99,7 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
                    <div key={idx} className="flex items-end gap-2 flex-wrap">
                      <div className="w-20">
                        <label className="block">
-                         <span className="ui-label mb-1 text-xs">Nozzle #</span>
+                         <span className="ui-label mb-1 text-xs">{t('nozzles.nozzleNumber')}</span>
                          <input
                            type="number"
                            min="1"
@@ -110,18 +112,18 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
                        </label>
                      </div>
                      <div className="flex-1">
-                       <span className="ui-label mb-1 text-xs">Fuel Type</span>
-                       <SearchableSelect label="Fuel Type"
+                       <span className="ui-label mb-1 text-xs">{t('tanks.fuelType')}</span>
+                       <SearchableSelect label={t('tanks.fuelType')}
                          value={row.fuelType}
                          onChange={(v) => setDuNozzles((prev) => prev.map((r, i) => i === idx ? { ...r, fuelType: v as FuelType } : r))}
-                         placeholder="— select —"
+                         placeholder={t('nozzles.selectPlaceholder')}
                          size="sm"
-                         options={ALL_FUEL_TYPES.map((ft) => ({ value: ft, label: FUEL_LABELS[ft] }))}
+                         options={ALL_FUEL_TYPES.map((ft) => ({ value: ft, label: codeLabel(ft) }))}
                        />
                      </div>
                      <div className="flex-1">
                        <label className="block">
-                         <span className="ui-label mb-1 text-xs">Start Reading</span>
+                         <span className="ui-label mb-1 text-xs">{t('nozzles.startReading')}</span>
                          <input
                            type="number"
                            step="0.001"
@@ -137,7 +139,7 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
                        <IconButton
                          onClick={() => setDuNozzles((prev) => prev.filter((_, i) => i !== idx))}
                          className="text-bad hover:text-bad-strong"
-    label="Remove nozzle"
+    label={t('nozzles.createDu.removeNozzle')}
     icon={<X size={12} strokeWidth={2} />}
     />
                      )}
@@ -150,7 +152,7 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
 
              <div className="ui-nozzle-form__actions">
                <button type="submit" disabled={createDUMutation.isPending} className="ui-btn ui-btn-primary">
-                 {createDUMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Creating…</span> : 'Create DU'}
+                 {createDUMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('createPump.creating')}</span> : t('nozzles.createDu.submit')}
                </button>
              </div>
            </form>

@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../../utils/apiError'
 import { pumpApi } from '../../../api/pumpApi'
 import type { FuelType, DUOption } from '../../../types/shift'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { Spinner } from '../../../components/Spinner'
 import { useToastStore } from '../../../store/toastStore'
-import { FUEL_LABELS } from '../../../constants/fuel'
+import { codeLabel } from '../../../constants/labels'
 import { ALL_FUEL_TYPES } from '../fuelStyles'
 import { useInvalidateNozzles } from './nozzlePanels'
 
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function AddNozzleForm({ pumpId, du, onClose }: Props) {
+  const { t } = useTranslation(['setup', 'common'])
   const { addToast } = useToastStore()
   const invalidate = useInvalidateNozzles(pumpId)
   const [inlineNozzleNumber, setInlineNozzleNumber] = useState(String(du.nozzles.length + 1))
@@ -29,16 +31,16 @@ export function AddNozzleForm({ pumpId, du, onClose }: Props) {
       pumpApi.addNozzle(pumpId, duId, nozzleNumber, fuelType, initialReading),
     onSuccess: () => {
       onClose()
-      addToast('Nozzle added', 'success')
+      addToast(t('nozzles.add.added'), 'success')
       invalidate()
     },
-    onError: (err) => { const msg = parseApiError(err, 'Failed to add nozzle'); setInlineError(msg); addToast(msg, 'error') },
+    onError: (err) => { const msg = parseApiError(err, t('nozzles.add.failed')); setInlineError(msg); addToast(msg, 'error') },
   })
 
   const submitInlineNozzle = (e: React.FormEvent) => {
     e.preventDefault(); setInlineError(null)
-    if (!inlineFuelType) { setInlineError('Select a fuel type.'); return }
-    if (!inlineNozzleNumber) { setInlineError('Enter a nozzle number.'); return }
+    if (!inlineFuelType) { setInlineError(t('nozzles.add.selectFuel')); return }
+    if (!inlineNozzleNumber) { setInlineError(t('nozzles.add.enterNumber')); return }
     addNozzleMutation.mutate({
       duId: du.id,
       nozzleNumber: Number(inlineNozzleNumber),
@@ -52,7 +54,7 @@ export function AddNozzleForm({ pumpId, du, onClose }: Props) {
       <form onSubmit={submitInlineNozzle} className="flex items-end gap-2 flex-wrap">
         <div className="w-20">
           <label className="block">
-            <span className="ui-label mb-1 text-xs">Nozzle #</span>
+            <span className="ui-label mb-1 text-xs">{t('nozzles.nozzleNumber')}</span>
             <input
               type="number" min="1" max="9"
               value={inlineNozzleNumber}
@@ -63,18 +65,18 @@ export function AddNozzleForm({ pumpId, du, onClose }: Props) {
           </label>
         </div>
         <div className="flex-1 min-w-40">
-          <span className="ui-label mb-1 text-xs">Fuel Type</span>
-          <SearchableSelect label="Fuel Type"
+          <span className="ui-label mb-1 text-xs">{t('tanks.fuelType')}</span>
+          <SearchableSelect label={t('tanks.fuelType')}
             value={inlineFuelType}
             onChange={(v) => setInlineFuelType(v as FuelType)}
-            placeholder="— select —"
+            placeholder={t('nozzles.selectPlaceholder')}
             size="sm"
-            options={ALL_FUEL_TYPES.map((ft) => ({ value: ft, label: FUEL_LABELS[ft] }))}
+            options={ALL_FUEL_TYPES.map((ft) => ({ value: ft, label: codeLabel(ft) }))}
           />
         </div>
         <div className="w-32">
           <label className="block">
-            <span className="ui-label mb-1 text-xs">Start Reading</span>
+            <span className="ui-label mb-1 text-xs">{t('nozzles.startReading')}</span>
             <input
               type="number" step="0.001" min="0"
               value={inlineReading}
@@ -90,14 +92,14 @@ export function AddNozzleForm({ pumpId, du, onClose }: Props) {
             disabled={addNozzleMutation.isPending}
             className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs"
           >
-            {addNozzleMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />Adding…</span> : 'Add'}
+            {addNozzleMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('actions.adding')}</span> : t('actions.add')}
           </button>
           <button
             type="button"
             onClick={onClose}
             className="ui-btn ui-btn-ghost min-h-0 px-3 py-1.5 text-xs text-ink-3"
           >
-            Cancel
+            {t('common:actions.cancel')}
           </button>
         </div>
       </form>

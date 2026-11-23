@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
 import type { CreditClient, RecordPaymentRequest } from '../../../api/creditApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { localDateInputValue } from '../../../utils/date'
+import { formatNumberIn } from '../../../i18n/format'
 import { Spinner } from '../../../components/Spinner'
 import { useToastStore } from '../../../store/toastStore'
 import { Modal } from '../../../components/Modal'
@@ -20,7 +22,11 @@ interface RecordPaymentModalProps {
   onClose: () => void
 }
 
+/** Each label is credit.json recordPayment.modes.<mode>. */
+const PAYMENT_MODES = ['CASH', 'UPI', 'BANK_TRANSFER', 'OTHER'] as const
+
 export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, subClients = [], onClose }: RecordPaymentModalProps) {
+  const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
   const { addToast } = useToastStore()
   const [amount, setAmount] = useState('')
@@ -47,11 +53,11 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
       if (targetClientId !== client.id) {
         qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId, targetClientId] })
       }
-      addToast(`Payment recorded for ${targetClient.name}`, 'success')
+      addToast(t('recordPayment.recorded', { name: targetClient.name }), 'success')
       onClose()
     },
     onError: (err) => {
-      const msg = parseApiError(err, 'Failed to record payment')
+      const msg = parseApiError(err, t('recordPayment.failed'))
       setError(msg)
       addToast(msg, 'error')
     },
@@ -60,11 +66,11 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
   const handleSubmit = () => {
     const amt = parseFloat(amount)
     if (!amount || isNaN(amt) || amt <= 0) {
-      setError('Please enter a valid amount')
+      setError(t('recordPayment.invalidAmount'))
       return
     }
     if (amt > outstandingBalance) {
-      setError(`Amount cannot exceed outstanding balance (₹${outstandingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })})`)
+      setError(t('recordPayment.exceedsOutstanding', { amount: `₹${formatNumberIn(outstandingBalance, { minimumFractionDigits: 2 })}` }))
       return
     }
     setError(null)
@@ -73,7 +79,7 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
 
   return (
     <Modal
-      title="Record Payment"
+      title={t('clientActions.recordPayment')}
       subtitle={client.name}
       tone="success"
       size="lg"
@@ -85,7 +91,7 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
             onClick={onClose}
             className="ui-btn ui-btn-secondary"
           >
-            Cancel
+            {t('common:actions.cancel')}
           </button>
           <button
             onClick={handleSubmit}
@@ -93,20 +99,20 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
             className="ui-btn ui-btn-primary"
           >
             {mutation.isPending
-              ? <span className="flex items-center gap-1.5"><Spinner />Saving…</span>
-              : 'Record Payment'}
+              ? <span className="flex items-center gap-1.5"><Spinner />{t('form.saving')}</span>
+              : t('clientActions.recordPayment')}
           </button>
         </>
       }
     >
       {subClients.length > 0 && (
         <div className="ui-inline-form">
-          <span className="ui-label">Record Payment For</span>
-          <SearchableSelect label="Record Payment For"
+          <span className="ui-label">{t('recordPayment.recordFor')}</span>
+          <SearchableSelect label={t('recordPayment.recordFor')}
             value={String(targetClientId)}
             onChange={v => { setTargetClientId(Number(v)); setAmount(''); setError(null) }}
             options={[
-              { value: String(client.id), label: `${client.name} (Parent)` },
+              { value: String(client.id), label: t('recordPayment.parentOption', { name: client.name }) },
               ...subClients.map(c => ({ value: String(c.id), label: c.name })),
             ]}
           />
@@ -116,7 +122,7 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
       {/* Outstanding + Remaining live feedback */}
       <div className="ui-card p-0 overflow-hidden border-warn/30">
         <div className="bg-warn-bg px-4 py-3 flex items-center justify-between">
-          <span className="text-sm text-warn">Outstanding Balance</span>
+          <span className="text-sm text-warn">{t('recordPayment.outstandingBalance')}</span>
           <MoneyText value={outstandingBalance} tone="warn" className="text-base font-bold" />
         </div>
         {amount !== '' && (() => {
@@ -127,11 +133,11 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
               remaining >= 0 ? 'bg-ok-bg border-ok/30' : 'bg-bad-bg border-bad/30'
             }`}>
               <span className={`text-sm ${remaining >= 0 ? 'text-ok' : 'text-bad'}`}>
-                Remaining after payment
+                {t('recordPayment.remainingAfter')}
               </span>
               <span className={`text-sm font-bold ${remaining >= 0 ? 'text-ok' : 'text-bad'}`}>
                 <MoneyText value={Math.abs(remaining)} />
-                {remaining < 0 ? ' (over)' : ''}
+                {remaining < 0 ? t('recordPayment.overSuffix') : ''}
               </span>
             </div>
           )
@@ -140,11 +146,11 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
 
       <div className="ui-inline-form">
         <span className="ui-label">
-          Amount <span className="text-bad">*</span>
+          {t('recordPayment.amount')} <span className="text-bad">*</span>
         </span>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 text-sm">₹</span>
-          <input aria-label="Amount"
+          <input aria-label={t('recordPayment.amount')}
             type="number"
             min="0.01"
             step="0.01"
@@ -159,24 +165,19 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
 
       <div className="ui-inline-form">
         <span className="ui-label">
-          Payment Mode <span className="text-bad">*</span>
+          {t('recordPayment.mode')} <span className="text-bad">*</span>
         </span>
-        <SearchableSelect label="Payment Mode"
+        <SearchableSelect label={t('recordPayment.mode')}
           value={paymentMode}
           onChange={v => setPaymentMode(v as typeof paymentMode)}
-          options={[
-            { value: 'CASH',          label: 'Cash' },
-            { value: 'UPI',           label: 'UPI' },
-            { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
-            { value: 'OTHER',         label: 'Other' },
-          ]}
+          options={PAYMENT_MODES.map(mode => ({ value: mode, label: t(`recordPayment.modes.${mode}`) }))}
         />
       </div>
 
       <div className="ui-inline-form">
         <label className="block">
           <span className="ui-label">
-          Payment Date <span className="text-bad">*</span>
+          {t('recordPayment.date')} <span className="text-bad">*</span>
         </span>
           <input
             type="date"
@@ -188,12 +189,12 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
 
       <div className="ui-inline-form">
         <label className="block">
-          <span className="ui-label">Notes</span>
+          <span className="ui-label">{t('recordPayment.notes')}</span>
           <input
             type="text"
             value={notes}
             onChange={e => setNotes(e.target.value)}
-            placeholder="e.g. Paid via NEFT ref TXN12345"
+            placeholder={t('recordPayment.notesPlaceholder')}
           />
         </label>
       </div>

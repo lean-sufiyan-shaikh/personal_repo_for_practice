@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { CircleOff, Settings, CalendarDays, RotateCcw, Pencil, KeyRound, ArrowRightLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { StaffMember } from '../../../api/userApi'
 import type { ShiftDefinition } from '../../../api/shiftDefinitionApi'
 import { RowActionMenu } from '../../../components/RowActionMenu'
@@ -36,6 +37,7 @@ export function StaffRow({
   pumpId, member, viewerRole, activeShiftDefs, openPanel, onOpenPanel, onClosePanel,
   menuOpen, onMenuChange, statusPending, onToggleStatus,
 }: Props) {
+  const { t } = useTranslation('setup')
   const isInactive = member.status === 'INACTIVE'
   const isPrefOpen  = openPanel === 'preferences'
   const isLeaveOpen = openPanel === 'leave'
@@ -56,16 +58,16 @@ export function StaffRow({
   const canMoveToPump = managesMember && canPerformAction('staff:move-pump', viewerRole)
 
   const menuItems: RowActionMenuItem[] = [
-    ...(canEditDetails ? [{ key: 'edit', label: 'Edit Details', description: 'Update name, phone number, or role', icon: <Pencil size={14} strokeWidth={2} />, className: 'text-ink hover:bg-info-bg hover:text-info', onSelect: () => onOpenPanel('edit') }] : []),
-    ...(canResetPassword ? [{ key: 'reset-password', label: 'Reset Password', description: 'Set a temporary password they must change at next sign-in', icon: <KeyRound size={14} strokeWidth={2} />, className: 'text-ink hover:bg-warn-bg hover:text-warn', onSelect: () => { onMenuChange(null); setResetDialogOpen(true) } }] : []),
-    ...(canSetPreferences ? [{ key: 'preferences', label: 'Shift Preferences', description: 'Set preferred shift and weekly day off', icon: <Settings size={14} strokeWidth={2} />, className: 'text-ink hover:bg-info-bg hover:text-info', onSelect: () => onOpenPanel('preferences') }] : []),
-    ...(canManageLeave ? [{ key: 'leave', label: 'Manage Leave', description: 'Add or remove leave dates for this staff member', icon: <CalendarDays size={14} strokeWidth={2} />, className: 'text-ink hover:bg-warn-bg hover:text-warn', onSelect: () => onOpenPanel('leave') }] : []),
-    ...(canSetPayRates ? [{ key: 'rates', label: payRatesMissing ? 'Pay Rates (not set)' : 'Pay Rates', description: 'Configure hourly or daily pay rates', icon: '₹', className: 'text-ink hover:bg-ok-bg hover:text-ok', onSelect: () => onOpenPanel('rates') }] : []),
-    ...(canMoveToPump ? [{ key: 'move', label: 'Move to Another Pump', description: 'Assign this staff member to another of your pumps', icon: <ArrowRightLeft size={14} strokeWidth={2} />, className: 'text-ink hover:bg-info-bg hover:text-info', onSelect: () => onOpenPanel('move') }] : []),
+    ...(canEditDetails ? [{ key: 'edit', label: t('staff.menu.edit'), description: t('staff.menu.editHint'), icon: <Pencil size={14} strokeWidth={2} />, className: 'text-ink hover:bg-info-bg hover:text-info', onSelect: () => onOpenPanel('edit') }] : []),
+    ...(canResetPassword ? [{ key: 'reset-password', label: t('staff.menu.resetPassword'), description: t('staff.menu.resetPasswordHint'), icon: <KeyRound size={14} strokeWidth={2} />, className: 'text-ink hover:bg-warn-bg hover:text-warn', onSelect: () => { onMenuChange(null); setResetDialogOpen(true) } }] : []),
+    ...(canSetPreferences ? [{ key: 'preferences', label: t('staff.menu.preferences'), description: t('staff.menu.preferencesHint'), icon: <Settings size={14} strokeWidth={2} />, className: 'text-ink hover:bg-info-bg hover:text-info', onSelect: () => onOpenPanel('preferences') }] : []),
+    ...(canManageLeave ? [{ key: 'leave', label: t('staff.menu.leave'), description: t('staff.menu.leaveHint'), icon: <CalendarDays size={14} strokeWidth={2} />, className: 'text-ink hover:bg-warn-bg hover:text-warn', onSelect: () => onOpenPanel('leave') }] : []),
+    ...(canSetPayRates ? [{ key: 'rates', label: payRatesMissing ? t('staff.menu.payRatesNotSet') : t('staff.menu.payRates'), description: t('staff.menu.payRatesHint'), icon: '₹', className: 'text-ink hover:bg-ok-bg hover:text-ok', onSelect: () => onOpenPanel('rates') }] : []),
+    ...(canMoveToPump ? [{ key: 'move', label: t('staff.menu.move'), description: t('staff.menu.moveHint'), icon: <ArrowRightLeft size={14} strokeWidth={2} />, className: 'text-ink hover:bg-info-bg hover:text-info', onSelect: () => onOpenPanel('move') }] : []),
     ...(canChangeStatus ? [{
       key: 'status',
-      label: isInactive ? 'Activate Staff' : 'Deactivate Staff',
-      description: isInactive ? 'Allow this staff member to work again' : 'Temporarily remove this staff member from active use',
+      label: isInactive ? t('staff.menu.activate') : t('staff.menu.deactivate'),
+      description: isInactive ? t('staff.menu.activateHint') : t('staff.menu.deactivateHint'),
       icon: isInactive ? <RotateCcw size={14} strokeWidth={2} /> : <CircleOff size={14} strokeWidth={2} />,
       className: isInactive ? 'text-ok hover:bg-ok-bg' : 'text-bad hover:bg-bad-bg',
       onSelect: onToggleStatus,
@@ -93,11 +95,11 @@ export function StaffRow({
                 {member.phoneNumber ? <span>{member.phoneNumber}</span> : null}
                 {member.employeeId ? <span>{member.employeeId}</span> : null}
                 {member.gender ? (
-                  <span>{member.gender.charAt(0) + member.gender.slice(1).toLowerCase()}</span>
+                  <span>{codeLabel(member.gender)}</span>
                 ) : null}
                 {member.role === 'OPERATOR' && member.gender === 'FEMALE' ? (
                   <span className={member.nightShiftConsent ? 'text-ok' : 'text-warn'}>
-                    {member.nightShiftConsent ? 'Night shift okay' : 'No night shift'}
+                    {member.nightShiftConsent ? t('staff.nightShiftOkay') : t('staff.noNightShift')}
                   </span>
                 ) : null}
               </div>
@@ -108,7 +110,7 @@ export function StaffRow({
                 {codeLabel(member.role)}
               </span>
               {isInactive && (
-                <StatusBadge tone="bad" icon={CircleOff} label="Inactive" />
+                <StatusBadge tone="bad" icon={CircleOff} label={t('nozzles.du.inactive')} />
               )}
             </div>
           </div>
@@ -116,7 +118,7 @@ export function StaffRow({
         {menuItems.length > 0 && (
           <div className="md:ml-auto">
             <RowActionMenu
-              label="Staff actions"
+              label={t('staff.menu.label')}
               open={menuOpen}
               onOpenChange={(open) => onMenuChange(open ? member.id : null)}
               triggerRef={menuButtonRef}

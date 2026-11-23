@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
 import type { CreditInvoice } from '../../../api/creditApi'
 import { Spinner } from '../../../components/Spinner'
@@ -16,6 +17,7 @@ interface CancelInvoiceModalProps {
 }
 
 export function CancelInvoiceModal({ invoice, pumpId, onClose }: CancelInvoiceModalProps) {
+  const { t } = useTranslation('credit')
   const qc = useQueryClient()
   const { addToast } = useToastStore()
   const [reason, setReason] = useState('')
@@ -25,21 +27,21 @@ export function CancelInvoiceModal({ invoice, pumpId, onClose }: CancelInvoiceMo
     mutationFn: () => creditApi.cancelInvoice(pumpId, invoice.id, reason.trim()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['credit-invoices', pumpId] })
-      addToast(`Invoice ${invoice.invoiceNumber} cancelled`, 'success')
+      addToast(t('cancelInvoice.cancelled', { number: invoice.invoiceNumber }), 'success')
       onClose()
     },
-    onError: (err) => setError(parseApiError(err, 'Failed to cancel invoice')),
+    onError: (err) => setError(parseApiError(err, t('cancelInvoice.failed'))),
   })
 
   const handleSubmit = () => {
-    if (!reason.trim()) { setError('A reason is required to cancel an invoice'); return }
+    if (!reason.trim()) { setError(t('cancelInvoice.reasonRequired')); return }
     setError(null)
     mutation.mutate()
   }
 
   return (
     <Modal
-      title="Cancel Invoice"
+      title={t('cancelInvoice.title')}
       subtitle={invoice.invoiceNumber}
       tone="warning"
       onClose={onClose}
@@ -47,26 +49,25 @@ export function CancelInvoiceModal({ invoice, pumpId, onClose }: CancelInvoiceMo
       bodyClassName="space-y-4"
       footer={
         <>
-          <button onClick={onClose} className="ui-btn ui-btn-secondary">Keep Invoice</button>
+          <button onClick={onClose} className="ui-btn ui-btn-secondary">{t('cancelInvoice.keep')}</button>
           <button onClick={handleSubmit} disabled={mutation.isPending} className="ui-btn ui-btn-danger">
-            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />Cancelling…</span> : 'Cancel Invoice'}
+            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('cancelInvoice.cancelling')}</span> : t('cancelInvoice.title')}
           </button>
         </>
       }
     >
       <p className="text-sm text-ink-2">
-        The invoice stays on record marked as cancelled and its number is not reused.
-        Its sales can then be put on a new invoice.
+        {t('cancelInvoice.explanation')}
       </p>
       <div className="ui-inline-form">
         <label className="block">
-          <span className="ui-label">Reason <span aria-hidden="true" className="text-bad">*</span></span>
+          <span className="ui-label">{t('form.reason')} <span aria-hidden="true" className="text-bad">*</span></span>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={3}
             maxLength={500}
-            placeholder="e.g. Issued for the wrong period"
+            placeholder={t('cancelInvoice.reasonPlaceholder')}
             className="resize-none text-sm"
             data-autofocus
           />

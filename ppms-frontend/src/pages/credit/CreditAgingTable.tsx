@@ -1,4 +1,7 @@
+import { useMemo } from 'react'
 import { Hourglass } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import type { CreditAgingRow } from '../../api/creditApi'
 import { formatCurrency } from '../../utils/format'
 import { formatIstDate } from '../../utils/date'
@@ -9,23 +12,27 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { creditStandingBadge } from '../../components/statusBadges'
 import type { AgingSortKey, SortDirection } from './creditAging'
 
-const SORTABLE_COLUMNS: { key: AgingSortKey; label: string; numeric: boolean }[] = [
-  { key: 'name', label: 'Client', numeric: false },
-  { key: 'outstanding', label: 'Outstanding', numeric: true },
-  { key: 'upTo30Days', label: '0–30 days', numeric: true },
-  { key: 'days31To60', label: '31–60', numeric: true },
-  { key: 'days61To90', label: '61–90', numeric: true },
-  { key: 'over90Days', label: '90+', numeric: true },
-  { key: 'oldestUnpaidSaleDate', label: 'Oldest unpaid', numeric: false },
-  { key: 'lastPaymentDate', label: 'Last payment', numeric: false },
-  { key: 'daysOverdue', label: 'Days overdue', numeric: true },
+const SORTABLE_COLUMNS: { key: AgingSortKey; numeric: boolean }[] = [
+  { key: 'name', numeric: false },
+  { key: 'outstanding', numeric: true },
+  { key: 'upTo30Days', numeric: true },
+  { key: 'days31To60', numeric: true },
+  { key: 'days61To90', numeric: true },
+  { key: 'over90Days', numeric: true },
+  { key: 'oldestUnpaidSaleDate', numeric: false },
+  { key: 'lastPaymentDate', numeric: false },
+  { key: 'daysOverdue', numeric: true },
 ]
 
-const COLUMNS: DataTableColumn<CreditAgingRow>[] = [
-  ...SORTABLE_COLUMNS.map(column => ({ key: column.key, header: column.label, numeric: column.numeric, sortable: true })),
-  { key: 'status', header: 'Status' },
-  { key: 'actions', header: <span className="sr-only">Actions</span>, align: 'right' },
-]
+function agingColumns(t: TFunction<'credit'>): DataTableColumn<CreditAgingRow>[] {
+  return [
+    ...SORTABLE_COLUMNS.map(column => ({
+      key: column.key, header: t(`aging.columns.${column.key}`), numeric: column.numeric, sortable: true,
+    })),
+    { key: 'status', header: t('aging.columns.status') },
+    { key: 'actions', header: <span className="sr-only">{t('aging.columns.actions')}</span>, align: 'right' },
+  ]
+}
 
 function amountCell(amount: number) {
   return amount > 0 ? <MoneyText value={amount} /> : <span className="text-ink-3">—</span>
@@ -43,12 +50,14 @@ interface CreditAgingTableProps {
 export function CreditAgingTable({
   rows, sortKey, sortDirection, canAdjustLimit, onSort, onOpenClient, onSetLimit,
 }: CreditAgingTableProps) {
+  const { t } = useTranslation('credit')
+  const columns = useMemo(() => agingColumns(t), [t])
   return (
     <DataTable
-      caption="Credit accounts with their unpaid balance by age; column headers sort the table"
+      caption={t('aging.caption')}
       captionHidden
-      regionLabel="Credit aging"
-      columns={COLUMNS}
+      regionLabel={t('aging.region')}
+      columns={columns}
       rows={rows}
       rowKey={row => row.clientId}
       sort={{ key: sortKey, direction: sortDirection }}
@@ -60,9 +69,9 @@ export function CreditAgingTable({
               {row.name}
             </button>
             <span className="block text-xs font-normal text-ink-3">
-              {row.phone ?? 'No phone'}
-              {row.subAccountCount > 0 && ` · ${row.subAccountCount} sub-account${row.subAccountCount !== 1 ? 's' : ''}`}
-              {row.creditLimit > 0 && ` · limit ${formatCurrency(row.creditLimit)}`}
+              {row.phone ?? t('aging.noPhone')}
+              {row.subAccountCount > 0 && ` · ${t('aging.subAccounts', { count: row.subAccountCount })}`}
+              {row.creditLimit > 0 && ` · ${t('aging.limit', { amount: formatCurrency(row.creditLimit) })}`}
             </span>
           </th>
           <td className="text-right font-semibold text-ink"><MoneyText value={row.outstanding} /></td>
@@ -71,26 +80,26 @@ export function CreditAgingTable({
           <td className="text-right">{amountCell(row.days61To90)}</td>
           <td className="text-right">{amountCell(row.over90Days)}</td>
           <td className="whitespace-nowrap text-ink-2">{row.oldestUnpaidSaleDate ? formatIstDate(row.oldestUnpaidSaleDate) : '—'}</td>
-          <td className="whitespace-nowrap text-ink-2">{row.lastPaymentDate ? formatIstDate(row.lastPaymentDate) : 'Never'}</td>
+          <td className="whitespace-nowrap text-ink-2">{row.lastPaymentDate ? formatIstDate(row.lastPaymentDate) : t('aging.never')}</td>
           <td className={`whitespace-nowrap text-right tabular-nums ${row.daysOverdue > 0 ? 'font-semibold text-bad' : 'text-ink-3'}`}>
             {row.daysOverdue > 0 ? row.daysOverdue : '—'}
           </td>
           <td className="whitespace-nowrap">
             <StatusBadge {...creditStandingBadge(row.creditStatus)} />
             {row.pendingPaymentCount > 0 && (
-              <StatusBadge tone="info" icon={Hourglass} label={`${row.pendingPaymentCount} pending`} className="ml-1" />
+              <StatusBadge tone="info" icon={Hourglass} label={t('aging.pendingCount', { count: row.pendingPaymentCount })} className="ml-1" />
             )}
           </td>
           <td className="whitespace-nowrap text-right">
             {canAdjustLimit && (
               <button type="button" onClick={() => onSetLimit(row.clientId)}
-                aria-label={`Set credit limit for ${row.name}`} className="ui-btn ui-btn-ghost ui-btn-compact">
-                Limit
+                aria-label={t('aging.setLimitFor', { name: row.name })} className="ui-btn ui-btn-ghost ui-btn-compact">
+                {t('aging.limitButton')}
               </button>
             )}
             <button type="button" onClick={() => onOpenClient(row.clientId)}
-              aria-label={`View ledger of ${row.name}`} className="ui-btn ui-btn-secondary ui-btn-compact">
-              View ledger
+              aria-label={t('aging.viewLedgerOf', { name: row.name })} className="ui-btn ui-btn-secondary ui-btn-compact">
+              {t('aging.viewLedger')}
             </button>
           </td>
         </tr>

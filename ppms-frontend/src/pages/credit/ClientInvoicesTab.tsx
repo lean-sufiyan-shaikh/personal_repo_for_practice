@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { creditApi } from '../../api/creditApi'
 import type { CreditInvoice, InvoicePeriod } from '../../api/creditApi'
 import { Pagination } from '../../components/Pagination'
@@ -25,6 +26,7 @@ interface ClientInvoicesTabProps {
 const shortDate = (date: string) => formatIstDate(date, { day: '2-digit', month: 'short', year: 'numeric' })
 
 export function ClientInvoicesTab({ pumpId, clientId, canIssueInvoices }: ClientInvoicesTabProps) {
+  const { t } = useTranslation(['credit', 'common'])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
   const [cancelling, setCancelling] = useState<CreditInvoice | null>(null)
@@ -54,13 +56,13 @@ export function ClientInvoicesTab({ pumpId, clientId, canIssueInvoices }: Client
       {isLoading ? (
         <SkeletonRows count={3} />
       ) : isError ? (
-        <p role="alert" className="ui-alert ui-alert-danger text-sm">Could not load invoices. Please try again.</p>
+        <p role="alert" className="ui-alert ui-alert-danger text-sm">{t('invoices.loadFailed')}</p>
       ) : !invoices || invoices.content.length === 0 ? (
-        <EmptyState icon="transactions" title="No invoices yet"
-          subtitle={canIssueInvoices ? 'Generate one for a billing period above.' : undefined} />
+        <EmptyState icon="transactions" title={t('invoices.empty')}
+          subtitle={canIssueInvoices ? t('invoices.emptyHint') : undefined} />
       ) : (
         <>
-          <ul className="space-y-2" aria-label="Invoices">
+          <ul className="space-y-2" aria-label={t('invoices.listLabel')}>
             {invoices.content.map(invoice => (
               <li key={invoice.id} className="ui-card-plain px-4 py-3 flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -69,10 +71,12 @@ export function ClientInvoicesTab({ pumpId, clientId, canIssueInvoices }: Client
                     <StatusBadge {...invoiceStatusBadge(invoice.status)} />
                   </div>
                   <p className="text-xs text-ink-3 mt-0.5">
-                    {shortDate(invoice.periodFrom)} – {shortDate(invoice.periodTo)} · issued {shortDate(invoice.issuedOn)}
+                    {t('invoices.periodIssued', {
+                      from: shortDate(invoice.periodFrom), to: shortDate(invoice.periodTo), issued: shortDate(invoice.issuedOn),
+                    })}
                   </p>
                   {invoice.cancelReason && (
-                    <p className="text-xs text-bad mt-0.5">Reason: {invoice.cancelReason}</p>
+                    <p className="text-xs text-bad mt-0.5">{t('invoices.cancelReason', { reason: invoice.cancelReason })}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -82,15 +86,15 @@ export function ClientInvoicesTab({ pumpId, clientId, canIssueInvoices }: Client
                     target="_blank"
                     rel="noopener noreferrer"
                     className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs"
-                    aria-label={`View or print invoice ${invoice.invoiceNumber}`}
+                    aria-label={t('invoices.viewPrintLabel', { number: invoice.invoiceNumber })}
                   >
-                    View / Print
+                    {t('invoices.viewPrint')}
                   </a>
                   {canIssueInvoices && invoice.status === 'ISSUED' && (
                     <button type="button" onClick={() => setCancelling(invoice)}
                       className="ui-btn ui-btn-ghost min-h-0 px-3 py-1.5 text-xs text-bad border border-bad/30"
-                      aria-label={`Cancel invoice ${invoice.invoiceNumber}`}>
-                      Cancel
+                      aria-label={t('invoices.cancelLabel', { number: invoice.invoiceNumber })}>
+                      {t('common:actions.cancel')}
                     </button>
                   )}
                 </div>
@@ -116,6 +120,7 @@ interface GenerateInvoiceFormProps {
 }
 
 function GenerateInvoiceForm({ pumpId, clientId, defaultPeriod, onGenerated }: GenerateInvoiceFormProps) {
+  const { t } = useTranslation('credit')
   const qc = useQueryClient()
   const { addToast } = useToastStore()
   const [periodFrom, setPeriodFrom] = useState(defaultPeriod.periodFrom)
@@ -127,41 +132,41 @@ function GenerateInvoiceForm({ pumpId, clientId, defaultPeriod, onGenerated }: G
     onSuccess: (invoice) => {
       setError(null)
       qc.invalidateQueries({ queryKey: ['credit-invoices', pumpId] })
-      addToast(`Invoice ${invoice.invoiceNumber} issued`, 'success')
+      addToast(t('invoices.issued', { number: invoice.invoiceNumber }), 'success')
       onGenerated()
     },
-    onError: (err) => setError(parseApiError(err, 'Failed to generate invoice')),
+    onError: (err) => setError(parseApiError(err, t('invoices.generateFailed'))),
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!periodFrom || !periodTo) { setError('Choose both dates of the period.'); return }
-    if (periodFrom > periodTo) { setError('The period start must be on or before its end.'); return }
+    if (!periodFrom || !periodTo) { setError(t('invoices.bothDatesRequired')); return }
+    if (periodFrom > periodTo) { setError(t('invoices.startAfterEnd')); return }
     setError(null)
     mutation.mutate()
   }
 
   return (
-    <form onSubmit={handleSubmit} className="ui-card-plain px-4 py-3 space-y-3" aria-label="Generate invoice">
-      <p className="text-sm font-semibold text-ink">Generate invoice</p>
+    <form onSubmit={handleSubmit} className="ui-card-plain px-4 py-3 space-y-3" aria-label={t('invoices.generateHeading')}>
+      <p className="text-sm font-semibold text-ink">{t('invoices.generateHeading')}</p>
       <p className="text-xs text-ink-3">
-        Bills every credit sale in the period that is not already on an invoice. Interest is not included.
+        {t('invoices.generateHelp')}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
-          <span className="ui-label">From</span>
+          <span className="ui-label">{t('period.from')}</span>
           <input type="date" value={periodFrom} max={periodTo || undefined}
             onChange={e => setPeriodFrom(e.target.value)} className="text-sm" />
         </label>
         <label className="block">
-          <span className="ui-label">To</span>
+          <span className="ui-label">{t('period.to')}</span>
           <input type="date" value={periodTo} min={periodFrom || undefined}
             onChange={e => setPeriodTo(e.target.value)} className="text-sm" />
         </label>
       </div>
       {error && <p role="alert" className="ui-error-text">{error}</p>}
       <button type="submit" disabled={mutation.isPending} className="ui-btn ui-btn-primary">
-        {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />Generating…</span> : 'Generate Invoice'}
+        {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('generateInvoices.generating')}</span> : t('invoices.generateButton')}
       </button>
     </form>
   )

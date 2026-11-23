@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import type { StaffMember } from '../../api/userApi'
 import { payrollApi } from '../../api/payrollApi'
 import type { PayrollRecord, PayrollStatus } from '../../api/payrollApi'
@@ -42,6 +43,7 @@ interface PayrollRecordsProps {
 }
 
 export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, onOpenGroupChange }: PayrollRecordsProps) {
+  const { t } = useTranslation('payroll')
   const { addToast } = useToastStore()
   const qc = useQueryClient()
   const {
@@ -60,9 +62,9 @@ export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, o
     mutationFn: (recordId: number) => payrollApi.deletePayroll(pumpId!, recordId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['payroll', pumpId] })
-      addToast('Payroll record deleted', 'success')
+      addToast(t('records.deleted'), 'success')
     },
-    onError: (err) => addToast(parseApiError(err, 'Failed to delete payroll'), 'error'),
+    onError: (err) => addToast(parseApiError(err, t('records.deleteFailed')), 'error'),
   })
 
   const statusMutation = useMutation({
@@ -70,9 +72,9 @@ export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, o
       payrollApi.updateStatus(pumpId!, recordId, status),
     onSuccess: (_, { status }) => {
       qc.invalidateQueries({ queryKey: ['payroll', pumpId] })
-      addToast(`Status updated to ${status}`, 'success')
+      addToast(t(`records.statusUpdated.${status}`), 'success')
     },
-    onError: (err) => addToast(parseApiError(err, 'Failed to update status'), 'error'),
+    onError: (err) => addToast(parseApiError(err, t('records.statusFailed')), 'error'),
   })
 
   return (
@@ -81,7 +83,7 @@ export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, o
       {/* Section header + month filter */}
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-semibold text-ink">
-          Payroll Records
+          {t('records.title')}
           {filtered.length > 0 && (
             <span className="ml-1.5 text-ink-3 font-normal">({filtered.length})</span>
           )}
@@ -93,16 +95,16 @@ export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, o
             columns={payrollColumns(staff)}
             rows={filtered}
           />
-          <input aria-label="Search staff"
+          <input aria-label={t('records.searchLabel')}
             type="search"
             value={nameSearch}
             onChange={e => { setNameSearch(e.target.value); setDraftPage(0); setApprovedPage(0); setPaidPage(0) }}
-            placeholder="Search staff…"
+            placeholder={t('records.searchPlaceholder')}
             className="text-sm h-8 px-2.5 rounded-control border border-control w-36"
           />
           {monthOptions.length > 0 && (
             <div className="flex items-center gap-2">
-              <label htmlFor="payroll-filter" className="text-xs text-ink-3">Month</label>
+              <label htmlFor="payroll-filter" className="text-xs text-ink-3">{t('records.month')}</label>
               <select id="payroll-filter"
                 value={selectedMonth}
                 onChange={e => {
@@ -111,7 +113,7 @@ export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, o
                 }}
                 className="text-sm bg-surface"
               >
-                <option value="">All months</option>
+                <option value="">{t('records.allMonths')}</option>
                 {monthOptions.map(key => (
                   <option key={key} value={key}>{fmtMonthKey(key)}</option>
                 ))}
@@ -129,8 +131,8 @@ export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, o
         <div className="ui-card">
           <EmptyState
             icon="payroll"
-            title={records.length === 0 ? 'No payroll records yet' : 'No records for this month'}
-            subtitle={records.length === 0 ? 'Generate your first payroll draft above.' : 'Try selecting a different month.'}
+            title={records.length === 0 ? t('records.emptyTitle') : t('records.emptyMonthTitle')}
+            subtitle={records.length === 0 ? t('records.emptySubtitle') : t('records.emptyMonthSubtitle')}
           />
         </div>
       ) : (

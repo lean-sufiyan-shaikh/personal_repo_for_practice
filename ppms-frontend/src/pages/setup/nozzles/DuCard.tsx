@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { TankInfo } from '../../../api/pumpApi'
 import type { DUOption } from '../../../types/shift'
 import { onActivateKey } from '../../../utils/keyboard'
@@ -30,6 +31,7 @@ export function DuCard({
   pumpId, du, isExpanded, onToggle, tanks, openPanelFor, onOpenPanel, onClosePanel,
   openMenu, onMenuChange, statusPending, statusError, onStatusChange, addingNozzle, onStartAddNozzle, onStopAddNozzle,
 }: Props) {
+  const { t } = useTranslation('setup')
   const isDUInactive = du.status === 'INACTIVE'
   return (
     <div key={du.id} className={`border rounded-card bg-surface transition-opacity ${isDUInactive ? 'border-border opacity-60' : 'border-border'}`}>
@@ -44,13 +46,13 @@ export function DuCard({
       >
         <div className="flex items-center gap-2">
           <ChevronRight size={14} strokeWidth={2} className={`transition-transform duration-200 text-ink-3 ${isExpanded ? 'rotate-90' : ''}`} />
-          <span className="text-xs font-bold text-ink-3">DU #{du.duNumber}</span>
+          <span className="text-xs font-bold text-ink-3">{t('nozzles.du.number', { number: du.duNumber })}</span>
           <span className="text-sm font-bold text-ink">{du.name}</span>
           {isDUInactive && (
-            <StatusBadge tone="warn" label="Inactive" />
+            <StatusBadge tone="warn" label={t('nozzles.du.inactive')} />
           )}
         </div>
-        <span className="text-xs text-ink-3">{du.nozzles.filter((n) => n.status === 'ACTIVE').length} active nozzle(s)</span>
+        <span className="text-xs text-ink-3">{t('nozzles.du.activeNozzles', { count: du.nozzles.filter((n) => n.status === 'ACTIVE').length })}</span>
       </div>
 
 
@@ -85,7 +87,7 @@ export function DuCard({
           className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-medium text-ink-3 hover:text-primary hover:bg-info-bg border-t border-dashed border-border transition-colors rounded-b-card"
         >
           <span className="text-base leading-none">+</span>
-          Add Nozzle
+          {t('nozzles.du.addNozzle')}
         </button>
       )}
 

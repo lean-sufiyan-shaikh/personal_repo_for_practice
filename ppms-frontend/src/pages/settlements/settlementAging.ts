@@ -1,5 +1,6 @@
 import type { PendingSettlementRange, SettlementPaymentType } from '../../api/paymentSettlementApi'
 import { formatIstDate } from '../../utils/date'
+import { translateKey } from '../../i18n'
 
 /** "18–20 Nov", "30 Nov – 2 Dec", or "18 Nov" for a single day. */
 export function collectionDaysLabel(fromDate: string, toDate: string): string {
@@ -11,8 +12,8 @@ export function collectionDaysLabel(fromDate: string, toDate: string): string {
 }
 
 export function ageLabel(ageDays: number): string {
-  if (ageDays <= 0) return 'today'
-  return `${ageDays} day${ageDays === 1 ? '' : 's'}`
+  if (ageDays <= 0) return translateKey('settlements:pendingByAge.today')
+  return translateKey('settlements:pendingByAge.days', { count: ageDays })
 }
 
 export interface CoveredDay {

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { Landmark, Check } from 'lucide-react'
 import { paymentSettlementApi } from '../../api/paymentSettlementApi'
 import type { PendingSettlementRange, RecordSettlementRequest, SettlementPaymentType, WalletSummary } from '../../api/paymentSettlementApi'
@@ -11,7 +12,7 @@ import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { localDateInputValue } from '../../utils/date'
 import { parseApiError } from '../../utils/apiError'
-import { TYPES, TYPE_ACCENT, TYPE_ICONS, TYPE_LABELS, fmtAmt, getPending } from './settlementFormat'
+import { TYPES, TYPE_ACCENT, TYPE_ICONS, fmtAmt, getPending, typeLabel } from './settlementFormat'
 
 interface RecordSettlementDialogProps {
   pumpId: number
@@ -23,6 +24,7 @@ interface RecordSettlementDialogProps {
 }
 
 export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialType, onClose }: RecordSettlementDialogProps) {
+  const { t } = useTranslation(['settlements', 'common'])
   const qc           = useQueryClient()
   const { addToast } = useToastStore()
   const [formError, setFormError] = useState<string | null>(null)
@@ -41,10 +43,10 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
       qc.invalidateQueries({ queryKey: ['settlements-wallet', pumpId] })
       qc.invalidateQueries({ queryKey: ['settlements-pending-age', pumpId] })
       onClose()
-      addToast('Settlement recorded successfully', 'success')
+      addToast(t('record.recorded'), 'success')
     },
     onError: (err) => {
-      const msg = parseApiError(err, 'Failed to record settlement')
+      const msg = parseApiError(err, t('record.failed'))
       setFormError(msg)
     },
   })
@@ -52,10 +54,10 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
   const handleRecord = (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
-    if (!form.settlementDate) { setFormError('Settlement date is required'); return }
-    if (form.amountReceived <= 0) { setFormError('Amount must be greater than zero'); return }
+    if (!form.settlementDate) { setFormError(t('record.dateRequired')); return }
+    if (form.amountReceived <= 0) { setFormError(t('record.amountPositive')); return }
     if (wallet && form.amountReceived > getPending(wallet, form.paymentType)) {
-      setFormError(`Amount is more than the ${fmtAmt(getPending(wallet, form.paymentType))} still pending for ${TYPE_LABELS[form.paymentType]}`)
+      setFormError(t('record.amountTooHigh', { pending: fmtAmt(getPending(wallet, form.paymentType)), type: typeLabel(form.paymentType) }))
       return
     }
     recordMutation.mutate({ ...form, notes: form.notes || undefined, bankReference: form.bankReference?.trim() || undefined })
@@ -71,8 +73,8 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
 
   return (
     <Modal
-      title="Record Settlement"
-      subtitle="Enter the amount credited to your bank account"
+      title={t('page.record')}
+      subtitle={t('record.subtitle')}
       tone="success"
       size="lg"
       onClose={onClose}
@@ -81,34 +83,34 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
       bodyClassName="flex flex-col gap-5"
       footer={<>
         <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
-          Cancel
+          {t('common:actions.cancel')}
         </button>
         <button type="submit" disabled={recordMutation.isPending} className="ui-btn ui-btn-primary">
           {recordMutation.isPending
-            ? <><Spinner /><span>Saving…</span></>
-            : <><Landmark size={16} strokeWidth={2} aria-hidden="true" /><span>Record Settlement</span></>
+            ? <><Spinner /><span>{t('alerts.saving')}</span></>
+            : <><Landmark size={16} strokeWidth={2} aria-hidden="true" /><span>{t('page.record')}</span></>
           }
         </button>
       </>}
     >
             {/* Payment type pill selector */}
             <div>
-              <span className="ui-label mb-2">Payment Type</span>
-              <div role="group" aria-label="Payment Type" className="grid grid-cols-3 gap-2">
-                {TYPES.map(t => {
-                  const accent  = TYPE_ACCENT[t]
-                  const active  = form.paymentType === t
+              <span className="ui-label mb-2">{t('record.paymentType')}</span>
+              <div role="group" aria-label={t('record.paymentType')} className="grid grid-cols-3 gap-2">
+                {TYPES.map(type => {
+                  const accent  = TYPE_ACCENT[type]
+                  const active  = form.paymentType === type
                   return (
                     <button
-                      key={t}
+                      key={type}
                       type="button"
-                      onClick={() => setForm(f => ({ ...f, paymentType: t }))}
+                      onClick={() => setForm(f => ({ ...f, paymentType: type }))}
                       className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-card border-2 font-semibold text-sm transition-all ${
                         active ? accent.pillActive : accent.pill + ' bg-surface'
                       }`}
                     >
-                      <span className="leading-none">{TYPE_ICONS[t]}</span>
-                      <span>{TYPE_LABELS[t]}</span>
+                      <span className="leading-none">{TYPE_ICONS[type]}</span>
+                      <span>{typeLabel(type)}</span>
                     </button>
                   )
                 })}
@@ -122,16 +124,16 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
               }`}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-ink-3 uppercase tracking-wide">
-                    {TYPE_LABELS[form.paymentType]} — Current Pending
+                    {t('record.currentPending', { type: typeLabel(form.paymentType) })}
                   </span>
                   <MoneyText value={pendingNow} tone={pendingNow > 0 ? 'warn' : 'ok'} className="text-base font-bold" />
                 </div>
                 {form.amountReceived > 0 && pendingAfterRecord !== null && (
                   <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-dashed border-border">
-                    <span className="text-xs text-ink-3">After this settlement</span>
+                    <span className="text-xs text-ink-3">{t('record.afterThis')}</span>
                     <span className={`text-sm font-bold tabular-nums ${pendingAfterRecord > 0 ? 'text-warn' : 'text-ok'}`}>
                       <MoneyText value={pendingAfterRecord} />
-                      {pendingAfterRecord <= 0 && <span className="ml-1 inline-flex items-center gap-1 text-xs"><Check size={11} strokeWidth={2.5} aria-hidden="true" />Fully settled</span>}
+                      {pendingAfterRecord <= 0 && <span className="ml-1 inline-flex items-center gap-1 text-xs"><Check size={11} strokeWidth={2.5} aria-hidden="true" />{t('wallet.fullySettled')}</span>}
                     </span>
                   </div>
                 )}
@@ -141,9 +143,9 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
             {/* Date + Amount row */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <span className="ui-label">Settlement Date</span>
-                <p className="text-xs text-ink-3 mb-1.5 -mt-1">Date money arrived in bank</p>
-                <input aria-label="Settlement Date"
+                <span className="ui-label">{t('record.date')}</span>
+                <p className="text-xs text-ink-3 mb-1.5 -mt-1">{t('record.dateHint')}</p>
+                <input aria-label={t('record.date')}
                   type="date"
                   className="ui-input"
                   value={form.settlementDate}
@@ -153,11 +155,11 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
                 />
               </div>
               <div>
-                <span className="ui-label">Amount Received (₹)</span>
-                <p className="text-xs text-ink-3 mb-1.5 -mt-1">Bank credit amount</p>
+                <span className="ui-label">{t('record.amount')}</span>
+                <p className="text-xs text-ink-3 mb-1.5 -mt-1">{t('record.amountHint')}</p>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 font-semibold text-sm pointer-events-none">₹</span>
-                  <input aria-label="Amount Received (₹)"
+                  <input aria-label={t('record.amount')}
                     type="number"
                     className="ui-input pl-7"
                     min={0}
@@ -173,27 +175,27 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
 
             <div>
               <label className="block">
-                <span className="ui-label">Bank Reference / UTR <span className="text-ink-3 font-normal">(optional)</span></span>
+                <span className="ui-label">{t('record.bankReference')} <span className="text-ink-3 font-normal">{t('record.optional')}</span></span>
                 <input
                   type="text"
                   className="ui-input"
                   maxLength={100}
-                  placeholder="As shown on the bank statement"
+                  placeholder={t('record.bankReferencePlaceholder')}
                   value={form.bankReference ?? ''}
                   onChange={e => setForm(f => ({ ...f, bankReference: e.target.value }))}
                 />
               </label>
-              <p className="ui-help">A reference already recorded for this pump is refused, so the same credit is not counted twice.</p>
+              <p className="ui-help">{t('record.bankReferenceHelp')}</p>
             </div>
 
             {/* Notes */}
             <div>
               <label className="block">
-                <span className="ui-label">Notes <span className="text-ink-3 font-normal">(optional)</span></span>
+                <span className="ui-label">{t('record.notes')} <span className="text-ink-3 font-normal">{t('record.optional')}</span></span>
                 <input
                   type="text"
                   className="ui-input"
-                  placeholder="e.g., Partial credit from yesterday's UPI batch"
+                  placeholder={t('record.notesPlaceholder')}
                   value={form.notes ?? ''}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 />
@@ -202,14 +204,14 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
 
             {coveredDays.length > 0 && (
               <div className="ui-card ui-card-muted px-4 py-3" aria-live="polite">
-                <p className="text-xs font-semibold text-ink-2">This settlement clears {TYPE_LABELS[form.paymentType]} collected on</p>
+                <p className="text-xs font-semibold text-ink-2">{t('record.clears', { type: typeLabel(form.paymentType) })}</p>
                 <ul className="mt-1 space-y-0.5 text-xs text-ink-2">
                   {coveredDays.map((day) => (
                     <li key={day.date} className="flex justify-between gap-3">
                       <span>{formatIstDate(day.date, { day: 'numeric', month: 'short' })}</span>
                       <span className="tabular-nums">
                         {day.covered < day.unsettled
-                          ? `${fmtAmt(day.covered)} of ${fmtAmt(day.unsettled)} (part)`
+                          ? t('record.partOf', { covered: fmtAmt(day.covered), unsettled: fmtAmt(day.unsettled) })
                           : fmtAmt(day.covered)}
                       </span>
                     </li>

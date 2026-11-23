@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Gauge, Database, IndianRupee, Users, Clock, Settings, Truck, Receipt } from 'lucide-react'
 import { pumpApi } from '../../api/pumpApi'
 import { userApi } from '../../api/userApi'
@@ -42,6 +43,7 @@ export function PumpManagementPanel({
   onPumpUpdated: () => void
   checklist?: SetupChecklist
 }) {
+  const { t } = useTranslation('setup')
   const { user } = useAuthStore()
   const isManager = user?.role === 'MANAGER'
   const [searchParams, setSearchParams] = useSearchParams()
@@ -76,9 +78,9 @@ export function PumpManagementPanel({
 
   const pricesStale = isPriceStale(currentPrices)
   const priceSummary = currentPrices.length === 0
-    ? 'Not set'
+    ? t('sections.prices.notSet')
     : currentPrices.map((p) => `${p.fuelType.charAt(0)}: ₹${p.pricePerUnit}`).join(' · ')
-      + (pricesStale ? ' · not updated today' : '')
+      + (pricesStale ? t('sections.prices.notUpdatedToday') : '')
 
   return (
     <div className="ui-card p-0">
@@ -92,7 +94,7 @@ export function PumpManagementPanel({
           </div>
           <div className="flex gap-2">
             <span className="bg-white/10 text-on-dark-2 text-xs px-2.5 py-1 rounded-badge">
-              {pump.dus.length}/{pump.maxDuCount} DUs
+              {t('sections.duUsage', { used: pump.dus.length, max: pump.maxDuCount })}
             </span>
           </div>
         </div>
@@ -108,7 +110,7 @@ export function PumpManagementPanel({
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
             </svg>
             <p className="text-xs text-info">
-              You can update daily fuel prices below. Other pump settings are managed by your Owner or Admin.
+              {t('sections.managerNote')}
             </p>
           </div>
         )}
@@ -120,8 +122,8 @@ export function PumpManagementPanel({
             open={openSection === 'nozzles'}
             onToggle={() => toggle('nozzles')}
             icon={<div className="w-7 h-7 rounded-control bg-surface-sunken flex items-center justify-center shrink-0"><Gauge size={14} strokeWidth={2} className="text-ink-2" /></div>}
-            title="Dispensary Units"
-            summary={`${pump.dus.length} of ${pump.maxDuCount} DUs configured`}
+            title={t('sections.nozzles.title')}
+            summary={t('sections.nozzles.summary', { used: pump.dus.length, max: pump.maxDuCount })}
             badgeTone={stepBadge(checklist, 'DISPENSERS')}
           >
             <NozzleContent pump={pump} onAdded={onPumpUpdated} />
@@ -135,9 +137,9 @@ export function PumpManagementPanel({
             open={openSection === 'tanks'}
             onToggle={() => toggle('tanks')}
             icon={<div className="w-7 h-7 rounded-control bg-info-bg flex items-center justify-center shrink-0"><Database size={14} strokeWidth={2} className="text-primary" /></div>}
-            title="Underground Tanks"
+            title={t('sections.tanks.title')}
             summary={checklist?.items.find((item) => item.step === 'TANKS')?.detail
-              ?? (pump.dus.length > 0 ? 'Tap to configure capacity' : 'Add a DU first')}
+              ?? (pump.dus.length > 0 ? t('sections.tanks.tapToConfigure') : t('sections.tanks.addDuFirst'))}
             badgeTone={stepBadge(checklist, 'TANKS')}
           >
             <TanksContent pump={pump} />
@@ -150,7 +152,7 @@ export function PumpManagementPanel({
           open={openSection === 'prices'}
           onToggle={() => toggle('prices')}
           icon={<div className="w-7 h-7 rounded-control bg-ok-bg flex items-center justify-center shrink-0"><IndianRupee size={14} strokeWidth={2} className="text-ok" /></div>}
-          title="Fuel Prices"
+          title={t('sections.prices.title')}
           summary={priceSummary}
           badgeTone={pricesStale ? NEEDS_ATTENTION_BADGE : COMPLETE_BADGE}
         >
@@ -164,8 +166,8 @@ export function PumpManagementPanel({
             open={openSection === 'staff'}
             onToggle={() => toggle('staff')}
             icon={<div className="w-7 h-7 rounded-control bg-info-bg flex items-center justify-center shrink-0"><Users size={14} strokeWidth={2} className="text-primary" /></div>}
-            title="Staff"
-            summary={staff.length > 0 ? `${staff.length} member${staff.length !== 1 ? 's' : ''}` : 'None added'}
+            title={t('sections.staff.title')}
+            summary={staff.length > 0 ? t('sections.staff.members', { count: staff.length }) : t('sections.staff.noneAdded')}
             badgeTone={staff.length > 0 ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE}
           >
             <StaffContent pump={pump} />
@@ -179,10 +181,10 @@ export function PumpManagementPanel({
             open={openSection === 'shifts'}
             onToggle={() => toggle('shifts')}
             icon={<div className="w-7 h-7 rounded-control bg-info-bg flex items-center justify-center shrink-0"><Clock size={14} strokeWidth={2} className="text-primary" /></div>}
-            title="Shift Definitions"
+            title={t('sections.shifts.title')}
             summary={(() => {
               const groupCount = new Set(shiftDefs.map(d => `${d.effectiveFrom}|${d.effectiveTo ?? 'open'}`)).size
-              return groupCount > 0 ? `${groupCount} schedule${groupCount !== 1 ? 's' : ''}` : 'Not configured'
+              return groupCount > 0 ? t('sections.shifts.schedules', { count: groupCount }) : t('sections.notConfigured')
             })()}
             badgeTone={shiftDefs.length > 0 ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE}
           >
@@ -197,8 +199,8 @@ export function PumpManagementPanel({
             open={openSection === 'tankers'}
             onToggle={() => toggle('tankers')}
             icon={<div className="w-7 h-7 rounded-control bg-warn-bg flex items-center justify-center shrink-0"><Truck size={14} strokeWidth={2} className="text-warn" /></div>}
-            title="Tankers (Trucks)"
-            summary="Configure tanker sizes and set the default"
+            title={t('sections.tankers.title')}
+            summary={t('sections.tankers.summary')}
             badgeTone={NEUTRAL_BADGE}
           >
             <TankersContent pumpId={pump.id} />
@@ -212,8 +214,8 @@ export function PumpManagementPanel({
             open={openSection === 'settings'}
             onToggle={() => toggle('settings')}
             icon={<div className="w-7 h-7 rounded-control bg-warn-bg flex items-center justify-center shrink-0"><Settings size={14} strokeWidth={2} className="text-warn" /></div>}
-            title="Thresholds & Rules"
-            summary={pump.discrepancyEscalationThreshold ? `Escalation: ₹${pump.discrepancyEscalationThreshold}` : 'Not configured'}
+            title={t('sections.settings.title')}
+            summary={pump.discrepancyEscalationThreshold ? t('sections.settings.escalation', { amount: pump.discrepancyEscalationThreshold }) : t('sections.notConfigured')}
             badgeTone={pump.discrepancyEscalationThreshold ? COMPLETE_BADGE : NEUTRAL_BADGE}
           >
             <PumpSettingsContent pump={pump} onUpdated={onPumpUpdated} />
@@ -227,8 +229,8 @@ export function PumpManagementPanel({
             open={openSection === 'gst'}
             onToggle={() => toggle('gst')}
             icon={<div className="w-7 h-7 rounded-control bg-info-bg flex items-center justify-center shrink-0"><Receipt size={14} strokeWidth={2} className="text-primary" /></div>}
-            title="GST & Invoices"
-            summary={pump.gstin ? `GSTIN ${pump.gstin}` : 'Not configured'}
+            title={t('sections.gst.title')}
+            summary={pump.gstin ? t('sections.gst.summary', { gstin: pump.gstin }) : t('sections.notConfigured')}
             badgeTone={pump.gstin ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE}
           >
             <GstDetailsContent pump={pump} onUpdated={onPumpUpdated} />

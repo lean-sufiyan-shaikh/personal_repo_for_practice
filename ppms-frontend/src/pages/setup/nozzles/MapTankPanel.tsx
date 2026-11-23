@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../../utils/apiError'
 import { pumpApi } from '../../../api/pumpApi'
 import type { TankInfo } from '../../../api/pumpApi'
@@ -7,7 +8,7 @@ import type { NozzleDetail } from '../../../types/shift'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { Spinner } from '../../../components/Spinner'
 import { useToastStore } from '../../../store/toastStore'
-import { FUEL_LABELS } from '../../../constants/fuel'
+import { codeLabel } from '../../../constants/labels'
 import { useInvalidateNozzles } from './nozzlePanels'
 
 interface Props {
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export function MapTankPanel({ pumpId, duId, nozzle, tanks, onClose }: Props) {
+  const { t } = useTranslation(['setup', 'common'])
   const { addToast } = useToastStore()
   const invalidate = useInvalidateNozzles(pumpId)
   const [tankSelection, setTankSelection] = useState<number | null>(nozzle.tankId ?? null)
@@ -27,12 +29,12 @@ export function MapTankPanel({ pumpId, duId, nozzle, tanks, onClose }: Props) {
   const mapTankMutation = useMutation({
     mutationFn: ({ pumpId, duId, nozzleId, tankId }: { pumpId: number; duId: number; nozzleId: number; tankId: number | null }) =>
       pumpApi.mapNozzleToTank(pumpId, duId, nozzleId, tankId),
-    onSuccess: () => { onClose(); addToast('Tank mapped successfully', 'success'); invalidate() },
-    onError: (err) => { const msg = parseApiError(err, 'Failed to save tank mapping'); setMapError(msg); addToast(msg, 'error') },
+    onSuccess: () => { onClose(); addToast(t('nozzles.mapTank.mapped'), 'success'); invalidate() },
+    onError: (err) => { const msg = parseApiError(err, t('nozzles.mapTank.failed')); setMapError(msg); addToast(msg, 'error') },
   })
 
   const compatibleTanks = tanks.filter(
-    (t) => t.fuelType === nozzle.fuelType && t.status === 'ACTIVE'
+    (tank) => tank.fuelType === nozzle.fuelType && tank.status === 'ACTIVE'
   )
 
   return (
@@ -40,23 +42,23 @@ export function MapTankPanel({ pumpId, duId, nozzle, tanks, onClose }: Props) {
       <div className="ui-tank-map-form">
         <div className="ui-tank-map-form__hero">
           <div>
-            <p className="ui-section-kicker mb-2">Tank Mapping</p>
-            <h3 className="ui-title-sm">Map nozzle to tank</h3>
+            <p className="ui-section-kicker mb-2">{t('nozzles.mapTank.kicker')}</p>
+            <h3 className="ui-title-sm">{t('nozzles.mapTank.title')}</h3>
             <p className="ui-subtitle mt-1">
-              Assign nozzle #{nozzle.nozzleNumber} ({FUEL_LABELS[nozzle.fuelType]}) to the tank it draws from.
+              {t('nozzles.mapTank.subtitle', { number: nozzle.nozzleNumber, fuel: codeLabel(nozzle.fuelType) })}
             </p>
           </div>
         </div>
-        <SearchableSelect label="Map to tank"
+        <SearchableSelect label={t('nozzles.mapTank.selectLabel')}
           value={tankSelection != null ? tankSelection.toString() : ''}
           onChange={(v) => setTankSelection(v === '' ? null : Number(v))}
-          placeholder="— unmap —"
+          placeholder={t('nozzles.mapTank.unmap')}
           size="sm"
-          options={compatibleTanks.map((t) => ({ value: t.id.toString(), label: t.tankIdentifier }))}
+          options={compatibleTanks.map((tank) => ({ value: tank.id.toString(), label: tank.tankIdentifier }))}
         />
         {compatibleTanks.length === 0 && (
           <p className="text-xs text-warn mt-1">
-            No active {FUEL_LABELS[nozzle.fuelType]} tanks available.
+            {t('nozzles.mapTank.noTanks', { fuel: codeLabel(nozzle.fuelType) })}
           </p>
         )}
         {mapError && <p role="alert" className="ui-error-text">{mapError}</p>}
@@ -67,10 +69,10 @@ export function MapTankPanel({ pumpId, duId, nozzle, tanks, onClose }: Props) {
             disabled={mapTankMutation.isPending}
             className="ui-btn ui-btn-primary"
           >
-            {mapTankMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-3 h-3" />Saving…</span> : 'Save'}
+            {mapTankMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-3 h-3" />{t('actions.saving')}</span> : t('actions.save')}
           </button>
           <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
-            Cancel
+            {t('common:actions.cancel')}
           </button>
         </div>
       </div>

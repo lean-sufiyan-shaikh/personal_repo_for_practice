@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { notificationApi } from '../../api/notificationApi'
 import type { Notification, NotificationType } from '../../api/notificationApi'
@@ -7,7 +8,7 @@ import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
 import { StatusBadge } from '../../components/StatusBadge'
 import { NotificationTypeIcon } from '../../components/NotificationTypeIcon'
-import { NOTIFICATION_TYPE_LABELS, openableHref } from '../../components/notificationLinks'
+import { NOTIFICATION_TYPES, notificationTypeLabel, openableHref } from '../../components/notificationLinks'
 import { useNow } from '../../hooks/useNow'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
@@ -15,10 +16,8 @@ import { parseApiError } from '../../utils/apiError'
 import { formatIstDateTime, withReadableDates } from '../../utils/date'
 import { relativeTime } from '../../utils/relativeTime'
 
-const TYPE_OPTIONS = (Object.entries(NOTIFICATION_TYPE_LABELS) as [NotificationType, string][])
-  .sort(([, a], [, b]) => a.localeCompare(b))
-
 function NotificationRow({ notification, now, onOpen }: { notification: Notification; now: number; onOpen: (id: number) => void }) {
+  const { t } = useTranslation('notifications')
   const role = useAuthStore((state) => state.user?.role)
   const href = openableHref(notification.target, role)
   const body = (
@@ -34,10 +33,10 @@ function NotificationRow({ notification, now, onOpen }: { notification: Notifica
             {relativeTime(notification.createdAt, new Date(now))}
           </time>
           <span aria-hidden="true">·</span>
-          <span>{NOTIFICATION_TYPE_LABELS[notification.type] ?? notification.type}</span>
+          <span>{notificationTypeLabel(notification.type)}</span>
         </p>
       </div>
-      <StatusBadge tone={notification.read ? 'neutral' : 'info'} label={notification.read ? 'Read' : 'Unread'} className="flex-shrink-0" />
+      <StatusBadge tone={notification.read ? 'neutral' : 'info'} label={notification.read ? t('page.read') : t('page.unread')} className="flex-shrink-0" />
     </div>
   )
   return (
@@ -54,6 +53,7 @@ function NotificationRow({ notification, now, onOpen }: { notification: Notifica
 }
 
 export default function NotificationsPage() {
+  const { t, i18n } = useTranslation('notifications')
   const { selectedPumpId: pumpId } = usePumpStore()
   const qc = useQueryClient()
   const now = useNow(60_000)
@@ -76,31 +76,35 @@ export default function NotificationsPage() {
     },
   })
 
+  const typeOptions = NOTIFICATION_TYPES
+    .map((value) => [value, notificationTypeLabel(value)] as const)
+    .sort(([, a], [, b]) => a.localeCompare(b, i18n.language))
+
   if (!pumpId) {
-    return <div className="ui-page ui-page--narrow"><div className="ui-empty">No pump selected.</div></div>
+    return <div className="ui-page ui-page--narrow"><div className="ui-empty">{t('page.noPump')}</div></div>
   }
 
   return (
     <div className="ui-page ui-page--narrow space-y-5">
       <div className="ui-page-header">
         <div>
-          <h1 className="ui-title-sm">Notifications</h1>
-          <p className="ui-subtitle">Every alert for this pump, read and unread. Open one to go where it can be dealt with.</p>
+          <h1 className="ui-title-sm">{t('page.title')}</h1>
+          <p className="ui-subtitle">{t('page.subtitle')}</p>
         </div>
       </div>
 
       <div className="ui-card p-0 overflow-hidden">
         <div className="ui-toolbar">
-          <p className="ui-toolbar-title">All notifications ({data?.totalElements ?? '…'})</p>
+          <p className="ui-toolbar-title">{t('page.allCount', { total: data?.totalElements ?? '…' })}</p>
           <label className="flex w-full items-center gap-2 text-sm sm:w-auto">
-            <span className="text-ink-3">Type</span>
+            <span className="text-ink-3">{t('page.typeFilter')}</span>
             <select
               value={type}
               onChange={(e) => { setType(e.target.value as NotificationType | ''); setPage(0) }}
               className="text-sm"
             >
-              <option value="">All types</option>
-              {TYPE_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              <option value="">{t('page.allTypes')}</option>
+              {typeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
         </div>
@@ -108,9 +112,9 @@ export default function NotificationsPage() {
         {isLoading ? (
           <div className="px-5 py-4"><SkeletonRows count={5} /></div>
         ) : error ? (
-          <p role="alert" className="ui-alert ui-alert-danger m-4 text-sm">{parseApiError(error, 'Could not load notifications.')}</p>
+          <p role="alert" className="ui-alert ui-alert-danger m-4 text-sm">{parseApiError(error, t('page.loadFailed'))}</p>
         ) : !data || data.content.length === 0 ? (
-          <p className="ui-empty px-5 py-6">{type ? 'No notifications of this type.' : 'No notifications yet.'}</p>
+          <p className="ui-empty px-5 py-6">{type ? t('page.emptyForType') : t('page.empty')}</p>
         ) : (
           <ul className="divide-y divide-border">
             {data.content.map((notification) => (

@@ -1,27 +1,31 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import type { TankStock } from '../../../api/inventoryApi'
 import { Reveal } from '../../../components/Reveal'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { FUEL_STOCK_COLORS } from '../../../constants/fuel'
 import { codeLabel } from '../../../constants/labels'
+import { formatNumberIn } from '../../../i18n/format'
 
 export function TankStockOverview({ tanks: allTanks }: { tanks: TankStock[] }) {
+  const { t } = useTranslation('dashboard')
   return (
     <>
     {allTanks.length > 0 && (
       <Reveal delay={295}>
       <div className="ui-card p-0 overflow-hidden">
         <div className="ui-toolbar">
-          <p className="ui-toolbar-title">Tank Stock Overview</p>
+          <p className="ui-toolbar-title">{t('tankStock.title')}</p>
           <Link to="/dashboard/inventory"
             className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong">
-            Full inventory →
+            {t('tankStock.fullInventory')}
           </Link>
         </div>
         <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {allTanks.map(tank => {
             const pct = Math.min(100, Math.max(0, tank.stockPercentage))
             const barColor = tank.lowStock ? 'bg-bad' : FUEL_STOCK_COLORS[tank.fuelType]?.bar ?? 'bg-control'
+            const percent = pct.toFixed(0)
 
             return (
             <div key={tank.tankId} className="ui-card-plain ui-card-muted px-3 py-2.5">
@@ -29,10 +33,10 @@ export function TankStockOverview({ tanks: allTanks }: { tanks: TankStock[] }) {
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold text-ink">{tank.tankIdentifier}</span>
                     <span className="text-xs text-ink-3">{codeLabel(tank.fuelType)}</span>
-                    {tank.lowStock && <StatusBadge tone="bad" label="Low" />}
+                    {tank.lowStock && <StatusBadge tone="bad" label={t('tankStock.low')} />}
                   </div>
                   <span className={`text-xs font-medium ${tank.lowStock ? 'text-bad' : 'text-ink-3'}`}>
-                    {pct.toFixed(0)}%
+                    {percent}%
                   </span>
                 </div>
                 <div
@@ -41,7 +45,7 @@ export function TankStockOverview({ tanks: allTanks }: { tanks: TankStock[] }) {
                   aria-valuenow={pct}
                   aria-valuemin={0}
                   aria-valuemax={100}
-                  aria-label={`${tank.tankIdentifier} stock: ${pct.toFixed(0)}%${tank.lowStock ? ' – low stock' : ''}`}
+                  aria-label={t(tank.lowStock ? 'tankStock.progressLow' : 'tankStock.progress', { tank: tank.tankIdentifier, percent })}
                 >
                   <div
                     className={`h-full rounded-full transition-all duration-700 ${barColor} ${tank.lowStock ? 'animate-pulse' : ''}`}
@@ -49,7 +53,7 @@ export function TankStockOverview({ tanks: allTanks }: { tanks: TankStock[] }) {
                   />
                 </div>
                 <p className="text-xs text-ink-3 mt-1">
-                  {tank.currentStock.toLocaleString('en-IN', { minimumFractionDigits: 0 })} L remaining
+                  {t('tankStock.remaining', { litres: formatNumberIn(tank.currentStock, { minimumFractionDigits: 0 }) })}
                 </p>
               </div>
             )

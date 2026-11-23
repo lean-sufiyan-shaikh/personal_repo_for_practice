@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { Pencil } from 'lucide-react'
 import { parseApiError } from '../../../utils/apiError'
 import { userApi } from '../../../api/userApi'
 import type { StaffMember, UpdateStaffDetailsRequest, UserGender } from '../../../api/userApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
+import { codeLabel } from '../../../constants/labels'
 import { Spinner } from '../../../components/Spinner'
 import { LanguagePicker } from '../../../components/LanguagePicker'
 import { isAppLanguage } from '../../../i18n/languages'
@@ -18,6 +20,7 @@ interface Props {
 }
 
 export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Props) {
+  const { t } = useTranslation(['setup', 'common'])
   const queryClient = useQueryClient()
   const [editFullName, setEditFullName]               = useState(member.fullName)
   const [editPhone, setEditPhone]                     = useState(member.phoneNumber ?? '')
@@ -36,7 +39,7 @@ export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Prop
       queryClient.invalidateQueries({ queryKey: ['staff', pumpId] })
       queryClient.invalidateQueries({ queryKey: ['operators', pumpId] })
     },
-    onError: (err) => setEditError(parseApiError(err, 'Failed to save details')),
+    onError: (err) => setEditError(parseApiError(err, t('staff.edit.failed'))),
   })
 
   return (
@@ -47,8 +50,8 @@ export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Prop
           <Pencil size={13} strokeWidth={2.5} />
         </div>
         <div>
-          <p className="text-sm font-semibold text-ink">Edit Staff Details</p>
-          <p className="text-xs text-ink-3">Changes are saved when you click Save Changes</p>
+          <p className="text-sm font-semibold text-ink">{t('staff.edit.title')}</p>
+          <p className="text-xs text-ink-3">{t('staff.edit.subtitle')}</p>
         </div>
       </div>
 
@@ -57,24 +60,24 @@ export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Prop
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block">
-              <span className="ui-label">Full Name</span>
+              <span className="ui-label">{t('staff.fullName')}</span>
               <input
                 type="text"
                 value={editFullName}
                 onChange={e => setEditFullName(e.target.value)}
-                placeholder="Full name"
+                placeholder={t('staff.fullNamePlaceholder')}
                 className="text-sm"
               />
             </label>
           </div>
           <div>
             <label className="block">
-              <span className="ui-label">Phone Number</span>
+              <span className="ui-label">{t('staff.phone')}</span>
               <input
                 type="text"
                 value={editPhone}
                 onChange={e => setEditPhone(e.target.value)}
-                placeholder="10-digit number"
+                placeholder={t('staff.phonePlaceholder')}
                 maxLength={10}
                 className="text-sm"
               />
@@ -85,37 +88,37 @@ export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Prop
         {/* Row 2: Role + Gender */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <span className="ui-label">Role</span>
-            <SearchableSelect label="Role"
+            <span className="ui-label">{t('staff.role')}</span>
+            <SearchableSelect label={t('staff.role')}
               value={editRole}
               onChange={v => {
                 setEditRole(v)
                 if (v !== 'OPERATOR') setEditNightShiftConsent(false)
               }}
-              placeholder="Select role"
+              placeholder={t('staff.selectRole')}
               size="sm"
               options={[
-                { value: 'OPERATOR',   label: 'Operator' },
-                { value: 'MANAGER',    label: 'Manager' },
-                ...(canAssignAdmin ? [{ value: 'ADMIN', label: 'Admin' }] : []),
-                { value: 'ACCOUNTANT', label: 'Accountant' },
+                { value: 'OPERATOR',   label: codeLabel('OPERATOR') },
+                { value: 'MANAGER',    label: codeLabel('MANAGER') },
+                ...(canAssignAdmin ? [{ value: 'ADMIN', label: codeLabel('ADMIN') }] : []),
+                { value: 'ACCOUNTANT', label: codeLabel('ACCOUNTANT') },
               ]}
             />
           </div>
           <div>
-            <span className="ui-label">Gender</span>
-            <SearchableSelect label="Gender"
+            <span className="ui-label">{t('staff.gender')}</span>
+            <SearchableSelect label={t('staff.gender')}
               value={editGender}
               onChange={v => {
                 setEditGender(v as UserGender | '')
                 if (v !== 'FEMALE') setEditNightShiftConsent(false)
               }}
-              placeholder="Select gender"
+              placeholder={t('staff.selectGender')}
               size="sm"
               options={[
-                { value: 'MALE',   label: 'Male' },
-                { value: 'FEMALE', label: 'Female' },
-                { value: 'OTHER',  label: 'Other' },
+                { value: 'MALE',   label: codeLabel('MALE') },
+                { value: 'FEMALE', label: codeLabel('FEMALE') },
+                { value: 'OTHER',  label: codeLabel('OTHER') },
               ]}
             />
           </div>
@@ -133,9 +136,9 @@ export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Prop
               className="mt-0.5 h-4 w-4 accent-warn"
             />
             <span className="min-w-0">
-              <span className="block text-sm font-semibold text-warn-strong">Okay for night shift</span>
+              <span className="block text-sm font-semibold text-warn-strong">{t('staff.nightShiftConsent')}</span>
               <span className="mt-1 block text-xs leading-5 text-warn-strong">
-                If left unchecked, shift planning will skip night-shift assignment for this operator.
+                {t('staff.nightShiftConsentHint')}
               </span>
             </span>
           </label>
@@ -162,14 +165,14 @@ export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Prop
             })}
             className="ui-btn ui-btn-primary min-h-0 px-4 py-2 text-sm"
           >
-            {detailsMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-3 h-3" />Saving…</span> : 'Save Changes'}
+            {detailsMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-3 h-3" />{t('actions.saving')}</span> : t('staff.edit.save')}
           </button>
           <button
             type="button"
             onClick={onClose}
             className="ui-btn ui-btn-secondary min-h-0 px-4 py-2 text-sm"
           >
-            Cancel
+            {t('common:actions.cancel')}
           </button>
         </div>
       </div>
