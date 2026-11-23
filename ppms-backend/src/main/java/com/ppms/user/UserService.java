@@ -4,6 +4,8 @@ import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.auth.LoginRateLimiterService;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.planning.ShiftPlanningService;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Slf4j
@@ -61,14 +64,17 @@ public class UserService {
     @Transactional
     public StaffResponse createUser(CreateUserRequest request, User currentUser) {
         if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
-            throw new BusinessException("A user with phone number " + request.getPhoneNumber() + " already exists");
+            throw new BusinessException(ErrorCodes.USER_PHONE_ALREADY_EXISTS, Map.of(),
+                    "A user with phone number " + request.getPhoneNumber() + " already exists");
         }
 
         assertCanAssignRole(currentUser.getRole(), request.getRole());
 
         boolean isStaffRole = STAFF_ROLES.contains(request.getRole());
         if (isStaffRole && request.getAssignedPumpId() == null) {
-            throw new BusinessException(request.getRole() + " must be assigned to a pump");
+            throw new BusinessException(ErrorCodes.STAFF_ROLE_REQUIRES_PUMP,
+                    Map.of("roleCode", request.getRole().name()),
+                    request.getRole() + " must be assigned to a pump");
         }
         assertCanCreateStaffForPump(currentUser, request.getAssignedPumpId());
 
@@ -79,7 +85,8 @@ public class UserService {
                     : "OWN" + System.currentTimeMillis();
         }
         if (userRepository.existsByEmployeeId(employeeId)) {
-            throw new BusinessException("Employee ID '" + employeeId + "' is already taken. Please provide a different one.");
+            throw new BusinessException(ErrorCodes.EMPLOYEE_ID_TAKEN, Map.of("employeeId", employeeId),
+                    "Employee ID '" + employeeId + "' is already taken. Please provide a different one.");
         }
 
         User user = User.builder()
@@ -117,7 +124,8 @@ public class UserService {
         User user = findUserManagedBy(currentUser, userId);
 
         if (user.getRole() == UserRole.OWNER || user.getRole() == UserRole.SUPER_ADMIN) {
-            throw new BusinessException("Owner and super-admin accounts cannot be edited through this endpoint");
+            throw new BusinessException(ErrorCodes.OWNER_ACCOUNT_NOT_EDITABLE_HERE, Map.of(),
+                    "Owner and super-admin accounts cannot be edited through this endpoint");
         }
 
         boolean signInIdentityChanged = false;
@@ -126,7 +134,8 @@ public class UserService {
             String newPhone = request.getPhoneNumber().trim();
             if (!newPhone.equals(user.getPhoneNumber())) {
                 if (userRepository.existsByPhoneNumberAndIdNot(newPhone, userId)) {
-                    throw new BusinessException("Phone number " + newPhone + " is already in use by another user");
+                    throw new BusinessException(ErrorCodes.PHONE_IN_USE_BY_ANOTHER_USER, Map.of(),
+                            "Phone number " + newPhone + " is already in use by another user");
                 }
                 user.setPhoneNumber(newPhone);
                 signInIdentityChanged = true;
@@ -175,11 +184,11 @@ public class UserService {
     @Transactional
     public StaffResponse updateMyProfile(UpdateProfileRequest request, User currentUser) {
         if (request.getFullName() == null || request.getFullName().isBlank()) {
-            throw new BusinessException("Full name cannot be blank");
+            throw new BusinessException(ErrorCodes.FULL_NAME_BLANK, Map.of(), "Full name cannot be blank");
         }
 
         User user = userRepository.findByIdForUpdate(currentUser.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.USER, "User not found"));
         user.setFullName(request.getFullName().trim());
         return StaffResponse.from(userRepository.save(user));
     }
@@ -187,7 +196,7 @@ public class UserService {
     @Transactional
     public StaffResponse updateMyLanguage(String language, User currentUser) {
         User user = userRepository.findByIdForUpdate(currentUser.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.USER, "User not found"));
         user.setPreferredLanguage(language);
         return StaffResponse.from(userRepository.save(user));
     }
@@ -222,7 +231,8 @@ public class UserService {
         User user = findUserManagedBy(currentUser, userId);
 
         if (user.getRole() == UserRole.OWNER || user.getRole() == UserRole.SUPER_ADMIN) {
-            throw new BusinessException("Owner and super-admin account status cannot be changed through this endpoint.");
+            throw new BusinessException(ErrorCodes.OWNER_ACCOUNT_STATUS_NOT_CHANGEABLE_HERE, Map.of(),
+                    "Owner and super-admin account status cannot be changed through this endpoint.");
         }
 
         if (status == UserStatus.INACTIVE) {
@@ -245,21 +255,42 @@ public class UserService {
     }
 
     private void assertCanDeactivate(User user) {
-        assertNoOpenShiftOrDiscrepancy(user, "deactivating");
+        assertNoOpenShiftOrDiscrepancy(user, StaffChange.DEACTIVATE);
     }
 
-    private void assertNoOpenShiftOrDiscrepancy(User user, String action) {
+    private void assertNoOpenShiftOrDiscrepancy(User user, StaffChange change) {
+        String action = change.englishAction;
+        Map<String, Object> params = Map.of("staffName", user.getFullName());
         if (shiftRepository.hasOpenShift(user.getId())) {
-            throw new BusinessException(
+            throw new BusinessException(change.openShiftCode, params,
                     user.getFullName() + " has an open shift. Close the shift before " + action + " (Business Rule 45).");
         }
         if (shiftRepository.hasDiscrepancyPendingApproval(user.getId())) {
-            throw new BusinessException(
+            throw new BusinessException(change.pendingApprovalCode, params,
                     user.getFullName() + " has a shift discrepancy waiting for approval. Approve or reject it before " + action + " (Business Rule 30).");
         }
         if (shiftRepository.hasUnresolvedDiscrepancy(user.getId())) {
-            throw new BusinessException(
+            throw new BusinessException(change.unresolvedCode, params,
                     user.getFullName() + " has unresolved shift discrepancies. Resolve all pending discrepancies before " + action + " (Business Rule 30).");
+        }
+    }
+
+    private enum StaffChange {
+        DEACTIVATE("deactivating", ErrorCodes.DEACTIVATE_BLOCKED_BY_OPEN_SHIFT,
+                ErrorCodes.DEACTIVATE_BLOCKED_BY_DISCREPANCY_PENDING_APPROVAL, ErrorCodes.DEACTIVATE_BLOCKED_BY_UNRESOLVED_DISCREPANCY),
+        MOVE_PUMP("moving them to another pump", ErrorCodes.MOVE_STAFF_BLOCKED_BY_OPEN_SHIFT,
+                ErrorCodes.MOVE_STAFF_BLOCKED_BY_DISCREPANCY_PENDING_APPROVAL, ErrorCodes.MOVE_STAFF_BLOCKED_BY_UNRESOLVED_DISCREPANCY);
+
+        private final String englishAction;
+        private final String openShiftCode;
+        private final String pendingApprovalCode;
+        private final String unresolvedCode;
+
+        StaffChange(String englishAction, String openShiftCode, String pendingApprovalCode, String unresolvedCode) {
+            this.englishAction = englishAction;
+            this.openShiftCode = openShiftCode;
+            this.pendingApprovalCode = pendingApprovalCode;
+            this.unresolvedCode = unresolvedCode;
         }
     }
 
@@ -271,16 +302,20 @@ public class UserService {
     public StaffResponse moveToPump(Long userId, Long targetPumpId, User currentUser) {
         User user = findUserManagedBy(currentUser, userId);
         if (!STAFF_ROLES.contains(user.getRole())) {
-            throw new BusinessException("Only staff accounts can be moved to another pump.");
+            throw new BusinessException(ErrorCodes.ONLY_STAFF_CAN_MOVE_PUMP,
+                    Map.of(),
+                    "Only staff accounts can be moved to another pump.");
         }
         Long fromPumpId = user.getAssignedPumpId();
         if (targetPumpId.equals(fromPumpId)) {
-            throw new BusinessException(user.getFullName() + " already works at this pump.");
+            throw new BusinessException(ErrorCodes.STAFF_ALREADY_AT_PUMP, Map.of("staffName", user.getFullName()),
+                    user.getFullName() + " already works at this pump.");
         }
         PumpLocation targetPump = pumpLocationRepository.findById(targetPumpId)
                 .filter(pump -> pump.getOwnerId().equals(currentUser.getId()))
-                .orElseThrow(() -> new BusinessException("You can only move staff to another pump you own."));
-        assertNoOpenShiftOrDiscrepancy(user, "moving them to another pump");
+                .orElseThrow(() -> new BusinessException(ErrorCodes.MOVE_STAFF_TARGET_PUMP_NOT_OWNED, Map.of(),
+                        "You can only move staff to another pump you own."));
+        assertNoOpenShiftOrDiscrepancy(user, StaffChange.MOVE_PUMP);
 
         user.setAssignedPumpId(targetPumpId);
         user.setTokenVersion(user.getTokenVersion() + 1);
@@ -308,16 +343,20 @@ public class UserService {
 
         if (user.getRole() == UserRole.OPERATOR) {
             if (request.getShift1HourlyRate() == null || request.getShift1HourlyRate().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new BusinessException("Shift 1 (night) hourly rate must be greater than zero");
+                throw new BusinessException(ErrorCodes.NIGHT_HOURLY_RATE_NOT_POSITIVE, Map.of(),
+                        "Shift 1 (night) hourly rate must be greater than zero");
             }
             if (request.getStandardHourlyRate() == null || request.getStandardHourlyRate().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new BusinessException("Standard (day) hourly rate must be greater than zero");
+                throw new BusinessException(ErrorCodes.DAY_HOURLY_RATE_NOT_POSITIVE, Map.of(),
+                        "Standard (day) hourly rate must be greater than zero");
             }
             user.setShift1HourlyRate(request.getShift1HourlyRate());
             user.setStandardHourlyRate(request.getStandardHourlyRate());
         } else {
             if (request.getDailyRate() == null || request.getDailyRate().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new BusinessException("Daily rate must be greater than zero");
+                throw new BusinessException(ErrorCodes.DAILY_RATE_NOT_POSITIVE,
+                        Map.of(),
+                        "Daily rate must be greater than zero");
             }
             user.setDailyRate(request.getDailyRate());
         }
@@ -355,7 +394,8 @@ public class UserService {
      */
     private void assertCanAssignRole(UserRole callerRole, UserRole targetRole) {
         if (!canAssignRole(callerRole, targetRole)) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.ROLE_NOT_ASSIGNABLE,
+                    Map.of("targetRoleCode", targetRole.name(), "callerRoleCode", callerRole.name()),
                     "You do not have permission to create a user with role " + targetRole + ". " +
                     "A " + callerRole + " can only create users with a lower role.");
         }
@@ -374,7 +414,8 @@ public class UserService {
 
     private void assertCanResetPassword(User currentUser, User target) {
         if (target.getId().equals(currentUser.getId())) {
-            throw new BusinessException("Use Change Password to change your own password.");
+            throw new BusinessException(ErrorCodes.RESET_OWN_PASSWORD_NOT_ALLOWED, Map.of(),
+                    "Use Change Password to change your own password.");
         }
         boolean allowed = currentUser.getRole() == UserRole.SUPER_ADMIN
                 ? target.getRole() == UserRole.OWNER
@@ -390,10 +431,13 @@ public class UserService {
         }
         if (currentUser.getRole() == UserRole.OWNER
                 && !pumpLocationRepository.existsByIdAndOwnerId(targetPumpId, currentUser.getId())) {
-            throw new BusinessException("You do not own pump " + targetPumpId);
+            throw new BusinessException(ErrorCodes.PUMP_NOT_OWNED, Map.of("pumpId", targetPumpId),
+                    "You do not own pump " + targetPumpId);
         }
         if (currentUser.getRole() == UserRole.ADMIN && !targetPumpId.equals(currentUser.getAssignedPumpId())) {
-            throw new BusinessException("You can only create staff for pump " + currentUser.getAssignedPumpId());
+            throw new BusinessException(ErrorCodes.STAFF_CREATE_ONLY_FOR_OWN_PUMP,
+                    Map.of("pumpId", String.valueOf(currentUser.getAssignedPumpId())),
+                    "You can only create staff for pump " + currentUser.getAssignedPumpId());
         }
     }
 
@@ -418,9 +462,9 @@ public class UserService {
 
     private User findUserManagedBy(User currentUser, Long userId) {
         User user = userRepository.findByIdForUpdate(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.USER, "User not found"));
         if (!canAccessPump(currentUser, user.getAssignedPumpId())) {
-            throw new ResourceNotFoundException("User not found");
+            throw new ResourceNotFoundException(EntityType.USER, "User not found");
         }
         if (currentUser.getRole() == UserRole.ADMIN && isAdminOrAbove(user.getRole())) {
             throw new AccessDeniedException("An admin cannot change another admin, owner or super-admin account.");

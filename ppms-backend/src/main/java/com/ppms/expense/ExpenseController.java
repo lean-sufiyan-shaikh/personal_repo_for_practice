@@ -1,5 +1,8 @@
 package com.ppms.expense;
 
+import java.util.Map;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.dto.PageRequests;
 import com.ppms.audit.AuditAction;
@@ -150,14 +153,15 @@ public class ExpenseController {
             @AuthenticationPrincipal User currentUser) {
 
         PumpExpense expense = expenseRepository.findById(expenseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.EXPENSE, "Expense not found"));
 
         if (!expense.getPumpId().equals(pumpId)) {
-            throw new ResourceNotFoundException("Expense not found");
+            throw new ResourceNotFoundException(EntityType.EXPENSE, "Expense not found");
         }
 
         if (expense.getApprovalStatus() != ExpenseApprovalStatus.DRAFT) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.EXPENSE_SUBMIT_NOT_DRAFT,
+                    Map.of("statusCode", expense.getApprovalStatus().name()),
                     "Only DRAFT expenses can be submitted (current status: " + expense.getApprovalStatus() + ")");
         }
 
@@ -166,7 +170,9 @@ public class ExpenseController {
                 || currentUser.getRole() == UserRole.ADMIN
                 || currentUser.getRole() == UserRole.SUPER_ADMIN;
         if (!isOwnerOrAdmin && !expense.getRecordedByUserId().equals(currentUser.getId())) {
-            throw new BusinessException("Only the expense creator or an Owner/Admin can submit this draft.");
+            throw new BusinessException(ErrorCodes.EXPENSE_SUBMIT_NOT_ALLOWED,
+                    Map.of(),
+                    "Only the expense creator or an Owner/Admin can submit this draft.");
         }
 
         ExpenseApprovalStatus newStatus = approvalPolicy.resolveExpenseStatus(pumpId, currentUser, expense.getAmount(),
@@ -205,12 +211,12 @@ public class ExpenseController {
             @PathVariable Long expenseId,
             @AuthenticationPrincipal User currentUser) {
         PumpExpense expense = expenseRepository.findById(expenseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.EXPENSE, "Expense not found"));
         if (!expense.getPumpId().equals(pumpId)) {
-            throw new ResourceNotFoundException("Expense not found");
+            throw new ResourceNotFoundException(EntityType.EXPENSE, "Expense not found");
         }
         if (expense.getApprovalStatus() != ExpenseApprovalStatus.DRAFT) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.EXPENSE_DELETE_NOT_DRAFT, Map.of(),
                     "Only DRAFT expenses can be deleted. Submitted or reviewed expenses are permanent records.");
         }
         expenseRepository.delete(expense);

@@ -1,6 +1,7 @@
 package com.ppms.approval;
 
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditClientRepository;
@@ -99,15 +100,17 @@ public class ApprovalQueueService {
             } else {
                 paymentApprovalService.review(pumpId, item.id(), action, reason, reviewer);
             }
-            return new ApprovalDecisionResult.ItemResult(item.kind(), item.id(), true, null);
+            return new ApprovalDecisionResult.ItemResult(item.kind(), item.id(), true, null, null, null);
         } catch (BusinessException | ResourceNotFoundException e) {
             log.warn("Approval queue item refused: pump={} kind={} id={} action={}: {}",
                     pumpId, item.kind(), item.id(), action, e.getMessage());
-            return new ApprovalDecisionResult.ItemResult(item.kind(), item.id(), false, e.getMessage());
+            return new ApprovalDecisionResult.ItemResult(item.kind(), item.id(), false, e.getMessage(),
+                    e.getCode(), e.getParams());
         } catch (RuntimeException e) {
             log.error("Approval queue item failed: pump={} kind={} id={} action={}",
                     pumpId, item.kind(), item.id(), action, e);
-            return new ApprovalDecisionResult.ItemResult(item.kind(), item.id(), false, UNEXPECTED_FAILURE_MESSAGE);
+            return new ApprovalDecisionResult.ItemResult(item.kind(), item.id(), false, UNEXPECTED_FAILURE_MESSAGE,
+                    ErrorCodes.APPROVAL_ITEM_NOT_SAVED, Map.of());
         }
     }
 

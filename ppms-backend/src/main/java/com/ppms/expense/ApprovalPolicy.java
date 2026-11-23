@@ -1,5 +1,6 @@
 package com.ppms.expense;
 
+import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
@@ -37,7 +38,7 @@ public class ApprovalPolicy {
             return ExpenseApprovalStatus.APPROVED;
         }
         PumpLocation pump = pumpLocationRepository.findByIdForUpdate(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found: " + pumpId));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found: " + pumpId));
         BigDecimal sameDayTotal = expenseRepository.sumSubmittedAmountByPumpIdAndCategoryAndExpenseDate(
                 pumpId, category, expenseDate).add(amount);
         return statusForAmount(sameDayTotal, pump.getExpenseApprovalThreshold(), ExpenseApprovalStatus.PENDING_APPROVAL);
@@ -48,7 +49,7 @@ public class ApprovalPolicy {
             return ExpenseApprovalStatus.APPROVED;
         }
         BigDecimal threshold = pumpLocationRepository.findById(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found: " + pumpId))
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found: " + pumpId))
                 .getExpenseApprovalThreshold();
         return statusForAmount(amount, threshold, ExpenseApprovalStatus.APPROVED);
     }

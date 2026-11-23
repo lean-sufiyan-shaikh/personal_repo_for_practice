@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ppms.auth.TokenHashing;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.IdempotencyKeyInUseException;
 import com.ppms.common.exception.IdempotencyKeyReusedException;
 import com.ppms.common.time.BusinessClock;
@@ -18,6 +19,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
+import java.util.Map;
 
 /**
  * Runs a write at most once per user and Idempotency-Key, so a client may safely resend it after a timeout.
@@ -54,7 +56,9 @@ public class IdempotencyService {
             return write.get();
         }
         if (!VALID_KEY.matcher(request.key()).matches()) {
-            throw new BusinessException("Idempotency-Key must be 8 to 128 letters, digits, '-' or '_'.");
+            throw new BusinessException(ErrorCodes.IDEMPOTENCY_KEY_INVALID,
+                    Map.of(),
+                    "Idempotency-Key must be 8 to 128 letters, digits, '-' or '_'.");
         }
         String requestHash = TokenHashing.sha256Hex(request.endpoint() + "\n" + toJson(request.body()));
         return transactionTemplate.execute(status -> runInTransaction(request, requestHash, write));

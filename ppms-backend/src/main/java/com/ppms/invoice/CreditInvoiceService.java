@@ -8,6 +8,8 @@ import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PageRequests;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditClient;
@@ -56,7 +58,9 @@ public class CreditInvoiceService {
     @Transactional
     public CreditInvoice issue(Long pumpId, Long clientId, LocalDate periodFrom, LocalDate periodTo, User issuedBy) {
         return issueIfAnythingToBill(pumpId, clientId, periodFrom, periodTo, issuedBy)
-                .orElseThrow(() -> new BusinessException("Nothing to invoice: this client has no uninvoiced credit sales between "
+                .orElseThrow(() -> new BusinessException(ErrorCodes.INVOICE_NOTHING_TO_BILL,
+                        Map.of("periodFrom", periodFrom.toString(), "periodTo", periodTo.toString()),
+                        "Nothing to invoice: this client has no uninvoiced credit sales between "
                         + periodFrom + " and " + periodTo + "."));
     }
 
@@ -70,9 +74,11 @@ public class CreditInvoiceService {
     @Transactional
     public CreditInvoice cancel(Long pumpId, Long invoiceId, String reason, User cancelledBy) {
         CreditInvoice invoice = invoiceRepository.findByIdAndPumpIdForUpdate(invoiceId, pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.INVOICE, "Invoice not found"));
         if (invoice.getStatus() == CreditInvoiceStatus.CANCELLED) {
-            throw new BusinessException("Invoice " + invoice.getInvoiceNumber() + " is already cancelled.");
+            throw new BusinessException(ErrorCodes.INVOICE_ALREADY_CANCELLED,
+                    Map.of("invoiceNumber", invoice.getInvoiceNumber()),
+                    "Invoice " + invoice.getInvoiceNumber() + " is already cancelled.");
         }
         invoice.setStatus(CreditInvoiceStatus.CANCELLED);
         invoice.setCancelReason(reason.trim());
@@ -103,7 +109,7 @@ public class CreditInvoiceService {
     @Transactional(readOnly = true)
     public CreditInvoice requireInvoiceForPump(Long pumpId, Long invoiceId) {
         return invoiceRepository.findByIdAndPumpId(invoiceId, pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.INVOICE, "Invoice not found"));
     }
 
     @Transactional(readOnly = true)
@@ -118,7 +124,7 @@ public class CreditInvoiceService {
     @Transactional(readOnly = true)
     public InvoiceRunPreview previewForAllClients(Long pumpId, LocalDate periodFrom, LocalDate periodTo) {
         PumpLocation pump = pumpLocationRepository.findById(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found"));
         validatePeriod(periodFrom, periodTo);
 
         Map<Long, List<ShiftCreditEntry>> fuelByClient = lineRepository
@@ -151,9 +157,9 @@ public class CreditInvoiceService {
     /** Throws when the pump cannot issue tax invoices yet, so a pump-wide run fails before touching any client. */
     public PumpLocation requirePumpWithGstDetails(Long pumpId) {
         PumpLocation pump = pumpLocationRepository.findById(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found"));
         if (!hasGstDetails(pump)) {
-            throw new BusinessException(MISSING_GST_DETAILS_MESSAGE);
+            throw new BusinessException(ErrorCodes.INVOICE_GST_DETAILS_MISSING, Map.of(), MISSING_GST_DETAILS_MESSAGE);
         }
         return pump;
     }
@@ -164,10 +170,14 @@ public class CreditInvoiceService {
 
     public void validatePeriod(LocalDate periodFrom, LocalDate periodTo) {
         if (periodFrom.isAfter(periodTo)) {
-            throw new BusinessException("The period start must be on or before its end.");
+            throw new BusinessException(ErrorCodes.INVOICE_PERIOD_START_AFTER_END,
+                    Map.of(),
+                    "The period start must be on or before its end.");
         }
         if (periodTo.isAfter(businessClock.today())) {
-            throw new BusinessException("The period cannot end after today.");
+            throw new BusinessException(ErrorCodes.INVOICE_PERIOD_ENDS_IN_FUTURE,
+                    Map.of(),
+                    "The period cannot end after today.");
         }
     }
 

@@ -5,6 +5,8 @@ import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
@@ -92,7 +94,8 @@ public class NozzleCalibrationController {
         Nozzle nozzle = findNozzleForPump(nozzleId, pumpId);
 
         if (!request.nextCalibrationDue().isAfter(request.calibrationDate())) {
-            throw new BusinessException("The next calibration due date must be after the calibration date.");
+            throw new BusinessException(ErrorCodes.CALIBRATION_NEXT_DUE_NOT_AFTER_DATE, Map.of(),
+                    "The next calibration due date must be after the calibration date.");
         }
 
         NozzleCalibrationLog log = NozzleCalibrationLog.builder()
@@ -125,11 +128,12 @@ public class NozzleCalibrationController {
 
     private Nozzle findNozzleForPump(Long nozzleId, Long pumpId) {
         Nozzle nozzle = nozzleRepository.findById(nozzleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Nozzle not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.NOZZLE, "Nozzle not found"));
         DispensaryUnit du = dispensaryUnitRepository.findById(nozzle.getDuId())
-                .orElseThrow(() -> new ResourceNotFoundException("Dispensary unit not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.DISPENSARY_UNIT,
+                        "Dispensary unit not found"));
         if (!du.getPumpId().equals(pumpId)) {
-            throw new ResourceNotFoundException("Nozzle not found");
+            throw new ResourceNotFoundException(EntityType.NOZZLE, "Nozzle not found");
         }
         return nozzle;
     }

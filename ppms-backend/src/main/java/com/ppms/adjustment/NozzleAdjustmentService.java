@@ -1,6 +1,8 @@
 package com.ppms.adjustment;
 
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.inventory.LotConsumption;
@@ -21,6 +23,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -103,11 +106,12 @@ public class NozzleAdjustmentService {
     public FuelDipEntry recordDip(Long pumpId, RecordDipRequest req, User currentUser) {
         UndergroundTank tank = tankRepository.findByIdForUpdate(req.getTankId())
                 .filter(found -> found.getPumpId().equals(pumpId))
-                .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.TANK, "Tank not found"));
 
         LocalDate dipDate = businessClock.today();
         if (req.getDipDate() != null && !req.getDipDate().equals(dipDate)) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.DRAIN_ONLY_TODAY,
+                    Map.of("today", dipDate.toString(), "enteredDate", req.getDipDate().toString()),
                     "A drain can only be recorded for today (" + dipDate + "). It takes the fuel out of today's tank " +
                     "stock, so one dated " + req.getDipDate() + " would put the loss on the wrong day.");
         }
@@ -115,7 +119,8 @@ public class NozzleAdjustmentService {
         BigDecimal litresRemoved = req.getLitresRemoved().setScale(3, RoundingMode.HALF_UP);
         BigDecimal stock = tank.getCurrentStock() != null ? tank.getCurrentStock() : BigDecimal.ZERO;
         if (litresRemoved.compareTo(stock) > 0) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.DRAIN_EXCEEDS_TANK_STOCK, Map.of("tankName", tank.getTankIdentifier(),
+                            "stock", stock.setScale(3, RoundingMode.HALF_UP).toPlainString(), "litresRemoved", litresRemoved.toPlainString()),
                     "Tank '" + tank.getTankIdentifier() + "' holds only " + stock.setScale(3, RoundingMode.HALF_UP) +
                     " L, so " + litresRemoved + " L cannot be removed from it.");
         }

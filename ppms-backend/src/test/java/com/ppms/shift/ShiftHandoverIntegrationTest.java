@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** A handover closes the outgoing operator's shift with their figures and opens the incoming operator's shift. */
@@ -104,7 +105,9 @@ class ShiftHandoverIntegrationTest extends ApiIntegrationTest {
 
         perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.manager(),
                 handoverRequest(outgoingShiftId, closing("990.000", "0", "0", List.of(), null)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CLOSING_READING_BELOW_OPENING"))
+                .andExpect(jsonPath("$.params.closingReading").value("990.000"));
 
         assertThat(shiftRepository.findById(outgoingShiftId).orElseThrow().getStatus()).isEqualTo(ShiftStatus.OPEN);
         assertThat(shiftRepository.findOpenShiftByOperator(incoming.getId())).isEmpty();
@@ -121,7 +124,9 @@ class ShiftHandoverIntegrationTest extends ApiIntegrationTest {
         perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.manager(),
                 handoverRequest(outgoingShiftId, closing("1010.000", "1000.00", "0", List.of(), null)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("Close this shift and open a new shift")));
+                .andExpect(content().string(containsString("Close this shift and open a new shift")))
+                .andExpect(jsonPath("$.code").value("HANDOVER_SHIFT_OVERDUE"))
+                .andExpect(jsonPath("$.params.statusCode").value("OPEN_OVERDUE"));
 
         assertThat(shiftRepository.findById(outgoingShiftId).orElseThrow().getStatus()).isEqualTo(ShiftStatus.OPEN_OVERDUE);
     }
@@ -133,7 +138,8 @@ class ShiftHandoverIntegrationTest extends ApiIntegrationTest {
         perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.manager(),
                 Map.of("outgoingShiftId", outgoingShiftId, "incomingOperatorId", incoming.getId()))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("closing meter readings and payments")));
+                .andExpect(content().string(containsString("closing meter readings and payments")))
+                .andExpect(jsonPath("$.code").value("HANDOVER_CLOSING_REQUIRED"));
 
         assertThat(shiftRepository.findById(outgoingShiftId).orElseThrow().getStatus()).isEqualTo(ShiftStatus.OPEN);
     }

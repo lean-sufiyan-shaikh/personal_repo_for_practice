@@ -100,8 +100,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
      */
     @Modifying
     @Query(value = """
-            INSERT INTO notifications (pump_id, type, title, message, dedup_key, created_at)
-            VALUES (:pumpId, CAST(:type AS notification_type), :title, :message, :dedupKey, NOW())
+            INSERT INTO notifications (pump_id, type, title, message, dedup_key, params, created_at)
+            VALUES (:pumpId, CAST(:type AS notification_type), :title, :message, :dedupKey, CAST(:params AS jsonb), NOW())
             ON CONFLICT (pump_id, dedup_key) DO NOTHING
             """, nativeQuery = true)
     int insertIfNotExists(
@@ -109,7 +109,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             @Param("type") String type,
             @Param("title") String title,
             @Param("message") String message,
-            @Param("dedupKey") String dedupKey
+            @Param("dedupKey") String dedupKey,
+            @Param("params") String params
     );
 
     /** Deletes this pump's notifications whose dedup key starts with {@code seriesPrefix}, except {@code keptKey}. */

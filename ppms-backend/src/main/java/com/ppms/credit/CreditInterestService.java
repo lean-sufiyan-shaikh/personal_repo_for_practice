@@ -5,6 +5,8 @@ import com.ppms.ancillary.AncillarySaleRepository;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.shift.ShiftCreditEntryRepository;
@@ -256,12 +258,15 @@ public class CreditInterestService {
     public Optional<CreditInterestCharge> applyProRata(Long pumpId, Long clientId, Long appliedByUserId) {
         CreditClient client = clientRepository.findById(clientId)
                 .filter(found -> found.getPumpId().equals(pumpId))
-                .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + clientId));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_CLIENT,
+                        "Client not found: " + clientId));
         if (client.getParentClientId() != null) {
             String parentName = clientRepository.findById(client.getParentClientId())
                     .map(CreditClient::getName)
                     .orElse("the parent account");
-            throw new BusinessException("Interest for sub-account '" + client.getName()
+            throw new BusinessException(ErrorCodes.CREDIT_INTEREST_ON_SUB_ACCOUNT,
+                    Map.of("clientName", client.getName(), "parentName", parentName),
+                    "Interest for sub-account '" + client.getName()
                     + "' is charged on its parent account '" + parentName + "'. Apply interest on the parent instead.");
         }
         CreditClient root = lockGroupRoot(client.getId());
@@ -286,7 +291,8 @@ public class CreditInterestService {
      */
     private CreditClient lockGroupRoot(Long rootClientId) {
         return clientRepository.findByIdForUpdate(rootClientId)
-                .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + rootClientId));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_CLIENT,
+                        "Client not found: " + rootClientId));
     }
 
     private Optional<CreditInterestCharge> applyToClientGroup(CreditClient root, LocalDate periodTo, String source,
@@ -381,7 +387,8 @@ public class CreditInterestService {
     @Transactional(propagation = Propagation.MANDATORY)
     public void recalculateChargedInterestFrom(Long clientId, LocalDate changeDate, String reason, User actor) {
         CreditClient client = clientRepository.findById(clientId)
-                .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + clientId));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_CLIENT,
+                        "Client not found: " + clientId));
         Long rootId = client.getParentClientId() != null ? client.getParentClientId() : client.getId();
         CreditClient root = lockGroupRoot(rootId);
         List<Long> groupClientIds = groupClientIds(rootId);

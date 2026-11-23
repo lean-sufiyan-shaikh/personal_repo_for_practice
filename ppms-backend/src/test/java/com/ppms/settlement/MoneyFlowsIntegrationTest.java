@@ -73,7 +73,11 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
         perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
                 settlementWithReference("150.01", "UTR-OVER"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(containsString("₹150.00 still pending")));
+                .andExpect(jsonPath("$.message").value(containsString("₹150.00 still pending")))
+                .andExpect(jsonPath("$.code").value("SETTLEMENT_EXCEEDS_PENDING"))
+                .andExpect(jsonPath("$.params.paymentTypeCode").value("UPI"))
+                .andExpect(jsonPath("$.params.amount").value("150.01"))
+                .andExpect(jsonPath("$.params.pending").value("150.00"));
         perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
                 settlementWithReference("150.00", "UTR-EXACT"))
                 .andExpect(status().is2xxSuccessful());

@@ -10,6 +10,7 @@
   "AUTO_CLOSED_OVERDUE": "वेळ उलटली, आपोआप बंद",
   "AUTO_CLOSED_SHIFT": "शिफ्ट आपोआप बंद",
   "AUTO_CLOSED_SHIFTS": "आपोआप बंद शिफ्ट",
+  "BALANCE_SHEET": "बॅलन्स शीट",
   "BALANCE_SHEETS": "बॅलन्स शीट",
   "BANK_TRANSFER": "बँक ट्रान्सफर",
   "BILLING_CYCLE_EXTENSION": "बिलिंग चक्र वाढ",
@@ -31,11 +32,18 @@
   "COMPANY": "कंपनी",
   "CONFIRMED": "निश्चित",
   "CREDIT": "क्रेडिट",
+  "CREDIT_CLIENT": "क्रेडिट ग्राहक",
+  "CREDIT_ENTRY": "क्रेडिट नोंद",
+  "CREDIT_EXTENSION": "क्रेडिट वाढ",
   "CREDIT_PAYMENT": "क्रेडिट पेमेंट",
   "DAY": "दिवस",
   "DECOMMISSIONED": "सेवेतून काढले",
+  "DELIVERY": "डिलिव्हरी",
   "DIESEL": "डिझेल",
+  "DIP_CHECK": "डिप तपासणी",
   "DIP_CORRECTION": "डिप दुरुस्ती",
+  "DISPENSARY_UNIT": "DU",
+  "DOCUMENT": "कागदपत्र",
   "DOCUMENT_EXPIRING": "कागदपत्राची मुदत संपत आहे",
   "DRAFT": "मसुदा",
   "EQUIPMENT": "उपकरणे",
@@ -53,8 +61,11 @@
   "HIGH": "जास्त",
   "IGNORED": "दुर्लक्षित",
   "INACTIVE": "निष्क्रिय",
+  "INTEREST_CHARGE": "व्याज आकारणी",
+  "INVOICE": "इनव्हॉइस",
   "ISSUED": "जारी",
   "KG": "kg",
+  "LEAVE_RECORD": "रजेची नोंद",
   "LITRE": "लिटर",
   "LONG_INVESTIGATIONS": "दीर्घ चौकशी",
   "LOW": "कमी",
@@ -68,6 +79,7 @@
   "ML": "ml",
   "MONDAY": "सोमवार",
   "MONTHLY": "मासिक",
+  "NOZZLE": "नोझल",
   "OK": "ठीक",
   "OPEN": "चालू",
   "OPENING_BALANCE": "सुरुवातीची शिल्लक",
@@ -84,6 +96,8 @@
   "OWN": "स्वतःचा",
   "OWNER": "मालक",
   "PAID": "भरले",
+  "PAYMENT": "पेमेंट",
+  "PAYROLL_RECORD": "पगार नोंद",
   "PENDING_APPROVAL": "मंजुरी प्रलंबित",
   "PENDING_APPROVALS": "प्रलंबित मंजुरी",
   "PENDING_INVESTIGATION": "चौकशी प्रलंबित",
@@ -93,34 +107,95 @@
   "PLANNED": "नियोजित",
   "PRICE_CHANGE_OPEN_SHIFT": "शिफ्ट चालू असताना दर बदलला",
   "PRICE_STALE": "इंधन दर ठरलेले नाहीत",
+  "PRODUCT": "उत्पादन",
   "PUBLISHED": "प्रकाशित",
+  "PUMP": "पंप",
+  "PUMP_CLOSURE": "पंप बंद",
   "REJECTED": "नाकारले",
   "REVIEWED": "तपासले",
   "REVOKED": "मागे घेतले",
   "SALARY": "पगार",
   "SALARY_DEDUCTION": "पगारातून कपात",
+  "SALE": "विक्री",
   "SATURDAY": "शनिवार",
+  "SETTLEMENT": "सेटलमेंट",
   "SETTLEMENT_REMINDER": "सेटलमेंट आठवण",
   "SETUP_INCOMPLETE": "सेटअप अपूर्ण",
   "SHIFT": "शिफ्ट",
   "SHIFT_CLOSE": "शिफ्ट बंद",
+  "SHIFT_DEFINITION": "शिफ्टची वेळ",
   "SHIFT_OVERDUE": "शिफ्टची वेळ उलटली",
+  "SHIFT_PLAN": "शिफ्ट नियोजन",
+  "SHIFT_PLAN_ENTRY": "शिफ्ट नियोजन नोंद",
   "SHORT": "कमी",
   "SPEED_DIESEL": "स्पीड डिझेल",
   "SPEED_PETROL": "स्पीड पेट्रोल",
   "STALE_FUEL_PRICES": "जुने इंधन दर",
+  "STATEMENT_IMPORT": "बँक स्टेटमेंट इम्पोर्ट",
+  "STATEMENT_LINE": "बँक स्टेटमेंट ओळ",
+  "STOCK_LOT": "स्टॉक लॉट",
   "SUNDAY": "रविवार",
   "SUPER_ADMIN": "सुपर ॲडमिन",
+  "SUPPLIER": "पुरवठादार",
+  "TANK": "टँक",
+  "TANKER": "टँकर",
   "THURSDAY": "गुरुवार",
   "TUESDAY": "मंगळवार",
   "UNMATCHED": "जुळले नाही",
   "UNSETTLED_PAYMENTS": "सेटलमेंट न झालेली पेमेंट",
   "UPI": "UPI",
+  "USER": "वापरकर्ता",
   "UTILITIES": "वीज-पाणी",
   "VALID": "वैध",
   "WAIVED": "माफ",
   "WEDNESDAY": "बुधवार",
   "WEEKLY": "साप्ताहिक",
   "WITHIN_TOLERANCE": "मर्यादेत",
-  "ZERO_SALE_SHIFT": "शून्य विक्री शिफ्ट"
+  "ZERO_SALE_SHIFT": "शून्य विक्री शिफ्ट",
+  "notifications": {
+    "LOW_STOCK": {
+      "title": "टँकमध्ये स्टॉक कमी",
+      "message": "{{tankName}} ({{fuelTypeCode}}) मध्ये {{stockPercent}}% स्टॉक उरला आहे — डिलिव्हरी मागवा."
+    },
+    "PRICE_STALE": {
+      "title": "इंधन दर सेट केलेले नाहीत",
+      "message": "या पंपासाठी अजून इंधन दर सेट केलेले नाहीत. सेटअप → इंधन दर येथे जाऊन सेट करा."
+    },
+    "DOCUMENT_EXPIRING": {
+      "title": "कागदपत्राची मुदत लवकरच संपणार",
+      "message": "{{documentName}} ({{documentType}}) ची मुदत {{expiryDate}} रोजी संपेल"
+    },
+    "DOCUMENT_EXPIRED": {
+      "title": "कागदपत्राची मुदत संपली",
+      "message": "{{documentName}} ({{documentType}}) ची मुदत {{expiryDate}} रोजी संपली"
+    },
+    "ZERO_SALE_SHIFT": {
+      "title": "शून्य विक्रीची शिफ्ट",
+      "message": "शिफ्ट '{{shiftName}}' (#{{shiftId}}) 30 मिनिटांपेक्षा जास्त चालू होती, पण विक्री ₹0 नोंदली गेली. ही नोंदीतील चूक किंवा राहिलेले रीडिंग असू शकते. कृपया तपासा."
+    },
+    "AUTO_CLOSED_SHIFT": {
+      "title": "शिफ्ट रीडिंगशिवाय आपोआप बंद झाली",
+      "message": "शिफ्ट #{{shiftId}} आपोआप बंद केली गेली कारण ऑपरेटरने शेवटचे मीटर रीडिंग दिले नाही. शेवटचे रीडिंग नाही — हाताने ताळमेळ करणे आवश्यक आहे."
+    },
+    "CALIBRATION_DUE": {
+      "title": "नोझल कॅलिब्रेशनची वेळ उलटली",
+      "message": "नोझल #{{nozzleNumber}} चे कॅलिब्रेशन {{dueDate}} रोजी व्हायला हवे होते. नियमांचे पालन करण्यासाठी कॅलिब्रेशन करून घ्या."
+    },
+    "CALIBRATION_DUE_SOON": {
+      "title": "नोझल कॅलिब्रेशन लवकरच करायचे आहे",
+      "message": "नोझल #{{nozzleNumber}} चे कॅलिब्रेशन {{dueDate}} रोजी करायचे आहे ({{daysLeft}} दिवस बाकी). त्या तारखेनंतर नवीन कॅलिब्रेशन नोंदेपर्यंत या नोझलवर शिफ्ट सुरू करता येणार नाही."
+    },
+    "ANCILLARY_LOW_STOCK": {
+      "title": "उत्पादनाचा स्टॉक कमी",
+      "message": "{{productName}} चे फक्त {{unitsLeft}} युनिट उरले आहेत (मर्यादा: {{threshold}}). लवकर स्टॉक भरा."
+    },
+    "PRICE_CHANGE_OPEN_SHIFT": {
+      "title": "शिफ्ट चालू असताना इंधन दर बदलला",
+      "message": "{{fuelTypeCode}} चा दर ₹{{price}} झाला, पण {{openShiftCount}} शिफ्ट अजून चालू आहेत. त्यांचा हिशोब जुन्या दराने होईल. बॅलन्समधील फरक टाळण्यासाठी सर्व चालू शिफ्ट बंद करा."
+    },
+    "SETTLEMENT_REMINDER": {
+      "title": "{{paymentTypeCode}} सेटलमेंट आठवण",
+      "message": "आजचे {{paymentTypeCode}} सेटलमेंट नोंदवा — बँक खात्यात आलेली रक्कम. सेटलमेंट पानावर जाऊन नोंदवा."
+    }
+  }
 }

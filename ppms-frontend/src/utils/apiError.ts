@@ -50,13 +50,21 @@ export function serverMessage(err: unknown): string | undefined {
  * and are shown as their translated labels. Undefined in English, where the server's own message is exact.
  */
 export function translatedServerError(err: unknown): string | undefined {
-  if (activeLanguage() === 'en' || !isAxiosError<ApiErrorBody>(err)) return undefined
-  const code = err.response?.data?.code
-  if (typeof code !== 'string' || !hasTranslation(`errors:${code}`)) return undefined
-  return translateKey(`errors:${code}`, translatedParams(err.response?.data?.params))
+  if (!isAxiosError<ApiErrorBody>(err)) return undefined
+  return translatedErrorCode(err.response?.data?.code, err.response?.data?.params)
 }
 
-function translatedParams(params: unknown): Record<string, unknown> {
+/**
+ * errors:<code> in the user's language for a code and params the server sent outside an error response,
+ * such as a refused item of a bulk approval. Undefined in English or for an unknown code.
+ */
+export function translatedErrorCode(code: unknown, params: unknown): string | undefined {
+  if (activeLanguage() === 'en' || typeof code !== 'string' || !hasTranslation(`errors:${code}`)) return undefined
+  return translateKey(`errors:${code}`, translatedParams(params))
+}
+
+/** Params ready for a translation: those named "…Code" are enum codes, replaced by their translated labels. */
+export function translatedParams(params: unknown): Record<string, unknown> {
   if (!params || typeof params !== 'object') return {}
   return Object.fromEntries(Object.entries(params).map(([name, value]) => [
     name,

@@ -1,5 +1,6 @@
 package com.ppms.attention;
 
+import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditAgingResponse;
@@ -100,7 +101,7 @@ public class AttentionService {
     @Transactional(readOnly = true)
     public List<AttentionItem> itemsForPump(Long pumpId, User currentUser) {
         PumpLocation pump = pumpLocationRepository.findById(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found"));
         List<AttentionItem> items = checksFor(pump, currentUser);
         items.sort(MOST_URGENT_FIRST);
         return items;

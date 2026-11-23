@@ -164,7 +164,8 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
         perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId), setup.operator(),
                 creditEntry(childId, "100.00"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(containsString("disabled")));
+                .andExpect(jsonPath("$.message").value(containsString("disabled")))
+                .andExpect(jsonPath("$.code").value("CREDIT_PARENT_ACCOUNT_DISABLED"));
 
         assertThat(outstandingOf(childId)).isEqualByComparingTo("0");
     }
@@ -179,7 +180,8 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
         perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId), setup.operator(),
                 creditEntry(parentId, "100.00"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(containsString("billing cycle overdue")));
+                .andExpect(jsonPath("$.message").value(containsString("billing cycle overdue")))
+                .andExpect(jsonPath("$.code").value("CREDIT_BILLING_CYCLE_OVERDUE"));
         perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId), setup.operator(),
                 creditEntry(childId, "100.00"))
                 .andExpect(status().isBadRequest());

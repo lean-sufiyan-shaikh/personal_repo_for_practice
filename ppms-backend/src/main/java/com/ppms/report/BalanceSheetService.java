@@ -4,6 +4,8 @@ import com.ppms.adjustment.FuelDipEntry;
 import com.ppms.adjustment.FuelDipEntryRepository;
 import com.ppms.adjustment.NozzleReadingAdjustment;
 import com.ppms.adjustment.NozzleReadingAdjustmentRepository;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.inventory.DipCheck;
 import com.ppms.inventory.DipCheckRepository;
 import com.ppms.common.exception.BusinessException;
@@ -92,7 +94,12 @@ public class BalanceSheetService {
                 : shiftRepository.findOpenShiftsByDate(pumpId, reportDate);
         boolean isLiveSheet = reportDate.equals(businessClock.today());
         if (!openShifts.isEmpty() && !isLiveSheet) {
-            throw new BusinessException(describeOpenShifts(reportDate, openShifts));
+            String listedShifts = listOpenShifts(openShifts);
+            throw new BusinessException(ErrorCodes.BALANCE_SHEET_BLOCKED_BY_OPEN_SHIFTS,
+                    Map.of("reportDate", reportDate.toString(),
+                           "openShiftCount", openShifts.size(),
+                           "shifts", listedShifts),
+                    describeOpenShifts(reportDate, openShifts.size(), listedShifts));
         }
 
         List<Shift> shifts = findClosedShiftsForReport(pumpId, reportDate, shiftDef);
@@ -135,7 +142,7 @@ public class BalanceSheetService {
         // The pump row lock is taken only around the final duplicate check and insert, so the
         // aggregation above does not block cash-outs and settlements on this pump.
         pumpLocationRepository.findByIdForUpdate(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found: " + pumpId));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found: " + pumpId));
         if (!req.isForceRegenerate()) {
             rejectDuplicateSheet(pumpId, reportDate, shiftDef);
         }
@@ -185,12 +192,16 @@ public class BalanceSheetService {
     private void rejectDuplicateSheet(Long pumpId, LocalDate reportDate, PumpShiftDefinition shiftDef) {
         if (shiftDef != null) {
             balanceSheetRepository.findFirstByPumpIdAndReportDateAndShiftDefinitionId(pumpId, reportDate, shiftDef.getId())
-                    .ifPresent(bs -> { throw new BusinessException(
+                    .ifPresent(bs -> { throw new BusinessException(ErrorCodes.SHIFT_BALANCE_SHEET_ALREADY_EXISTS,
+                            Map.of("shiftName", shiftDef.getName(),
+                                   "reportDate", reportDate.toString(),
+                                   "balanceSheetId", bs.getId()),
                             "A balance sheet for \"" + shiftDef.getName() + "\" on " + reportDate +
                             " already exists (ID " + bs.getId() + "). Delete it first to regenerate."); });
         } else {
             balanceSheetRepository.findFirstByPumpIdAndReportDateAndReportType(pumpId, reportDate, BalanceSheetReportType.DAY)
-                    .ifPresent(bs -> { throw new BusinessException(
+                    .ifPresent(bs -> { throw new BusinessException(ErrorCodes.DAY_BALANCE_SHEET_ALREADY_EXISTS,
+                            Map.of("reportDate", reportDate.toString(), "balanceSheetId", bs.getId()),
                             "A day-end balance sheet for " + reportDate + " already exists (ID " + bs.getId() + "). Delete it first to regenerate."); });
         }
     }
@@ -203,20 +214,28 @@ public class BalanceSheetService {
 
         if (shifts.isEmpty()) {
             String shiftLabel = shiftDef != null ? "\"" + shiftDef.getName() + "\" on " : "";
-            throw new BusinessException("No closed shifts found for " + shiftLabel + reportDate + ". Close all shifts before generating a balance sheet.");
+            String code = shiftDef != null ? ErrorCodes.NO_CLOSED_SHIFTS_FOR_SHIFT_REPORT : ErrorCodes.NO_CLOSED_SHIFTS_FOR_DAY_REPORT;
+            Map<String, Object> params = shiftDef != null
+                    ? Map.of("shiftName", shiftDef.getName(), "reportDate", reportDate.toString())
+                    : Map.of("reportDate", reportDate.toString());
+            throw new BusinessException(code, params,
+                    "No closed shifts found for " + shiftLabel + reportDate + ". Close all shifts before generating a balance sheet.");
         }
         return shifts;
     }
 
-    private String describeOpenShifts(LocalDate reportDate, List<Shift> openShifts) {
+    private String listOpenShifts(List<Shift> openShifts) {
         Map<Long, String> operatorNames = userRepository
                 .findAllById(openShifts.stream().map(Shift::getOperatorId).collect(Collectors.toSet())).stream()
                 .collect(Collectors.toMap(User::getId, User::getFullName));
-        String listed = openShifts.stream()
+        return openShifts.stream()
                 .map(shift -> "Shift #" + shift.getId() + " (" + operatorNames.getOrDefault(shift.getOperatorId(), "Unknown") +
                         ", " + shift.getStatus() + ")")
                 .collect(Collectors.joining(", "));
-        return "The balance sheet for " + reportDate + " cannot be generated while " + openShifts.size() +
+    }
+
+    private String describeOpenShifts(LocalDate reportDate, int openShiftCount, String listed) {
+        return "The balance sheet for " + reportDate + " cannot be generated while " + openShiftCount +
                 " shift(s) of that day are still open: " + listed + ". Close them first.";
     }
 
@@ -421,7 +440,7 @@ public class BalanceSheetService {
     public BalanceSheetDetailResponse getById(Long pumpId, Long id) {
         BalanceSheet bs = balanceSheetRepository.findById(id)
                 .filter(found -> found.getPumpId().equals(pumpId))
-                .orElseThrow(() -> new ResourceNotFoundException("Balance sheet not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.BALANCE_SHEET, "Balance sheet not found"));
         List<BsFuelLine>  fuelLines  = bsFuelLineRepository.findByBalanceSheetIdOrderByFuelType(id);
         List<BsShiftLine> shiftLines = bsShiftLineRepository.findByBalanceSheetIdOrderByDuNumber(id);
         String userName = bs.getGeneratedByUserId() != null
@@ -469,7 +488,7 @@ public class BalanceSheetService {
     public void delete(Long pumpId, Long id) {
         BalanceSheet bs = balanceSheetRepository.findById(id)
                 .filter(found -> found.getPumpId().equals(pumpId))
-                .orElseThrow(() -> new ResourceNotFoundException("Balance sheet not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.BALANCE_SHEET, "Balance sheet not found"));
         balanceSheetRepository.delete(bs);
         log.info("Balance sheet deleted: id={}, pump={}", id, pumpId);
     }
@@ -482,7 +501,7 @@ public class BalanceSheetService {
     public BalanceSheetDetailResponse regenerate(Long pumpId, Long id, User regeneratedBy) {
         BalanceSheet old = balanceSheetRepository.findById(id)
                 .filter(found -> found.getPumpId().equals(pumpId))
-                .orElseThrow(() -> new ResourceNotFoundException("Balance sheet not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.BALANCE_SHEET, "Balance sheet not found"));
 
         GenerateBalanceSheetRequest request = new GenerateBalanceSheetRequest();
         request.setReportType(old.getReportType());
@@ -517,7 +536,8 @@ public class BalanceSheetService {
     private void validateRequest(GenerateBalanceSheetRequest req) {
         if (req.getReportType() == BalanceSheetReportType.SHIFT) {
             if (req.getShiftDefinitionId() == null) {
-                throw new BusinessException("shiftDefinitionId is required for SHIFT reports. Select a shift from the dropdown.");
+                throw new BusinessException(ErrorCodes.SHIFT_REPORT_REQUIRES_SHIFT_DEFINITION, Map.of(),
+                        "shiftDefinitionId is required for SHIFT reports. Select a shift from the dropdown.");
             }
         }
     }

@@ -22,9 +22,11 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
@@ -63,7 +65,7 @@ class NotificationServiceTest {
 
         ArgumentCaptor<LocalDate> days = ArgumentCaptor.forClass(LocalDate.class);
         verify(dedupService, times(2)).insertDaily(eq(PUMP_ID), eq(NotificationType.LOW_STOCK),
-                eq("LOW_STOCK:tank:21"), days.capture(), eq("Low Tank Stock"), anyString());
+                eq("LOW_STOCK:tank:21"), days.capture(), eq("Low Tank Stock"), anyString(), anyMap());
         assertThat(days.getAllValues()).containsExactly(LocalDate.of(2026, 3, 6), LocalDate.of(2026, 3, 7));
     }
 
@@ -97,7 +99,8 @@ class NotificationServiceTest {
 
         ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
         verify(dedupService).maybeInsert(eq(PUMP_ID), eq(NotificationType.CALIBRATION_DUE_SOON),
-                eq("CALIBRATION_DUE_SOON:nozzle:40:2026-03-13"), eq("Nozzle Calibration Due Soon"), message.capture());
+                eq("CALIBRATION_DUE_SOON:nozzle:40:2026-03-13"), eq("Nozzle Calibration Due Soon"), message.capture(),
+                eq(Map.of("nozzleNumber", 2, "dueDate", "2026-03-13", "daysLeft", 7L)));
         assertThat(message.getValue()).contains("Nozzle #2", "2026-03-13", "7 day(s) left");
     }
 
@@ -112,13 +115,13 @@ class NotificationServiceTest {
 
         ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
         verify(dedupService).maybeInsert(eq(PUMP_ID), eq(NotificationType.CALIBRATION_DUE),
-                eq("CALIBRATION_DUE:nozzle:40:2026-03-04"), eq("Nozzle Calibration Overdue"), message.capture());
+                eq("CALIBRATION_DUE:nozzle:40:2026-03-04"), eq("Nozzle Calibration Overdue"), message.capture(), anyMap());
         assertThat(message.getValue()).contains("Nozzle #2", "2026-03-04").doesNotContain("#40");
     }
 
     private List<String> keysSentFor(NotificationType type) {
         ArgumentCaptor<String> keys = ArgumentCaptor.forClass(String.class);
-        verify(dedupService, atLeastOnce()).maybeInsert(eq(PUMP_ID), eq(type), keys.capture(), anyString(), anyString());
+        verify(dedupService, atLeastOnce()).maybeInsert(eq(PUMP_ID), eq(type), keys.capture(), anyString(), anyString(), anyMap());
         return keys.getAllValues();
     }
 

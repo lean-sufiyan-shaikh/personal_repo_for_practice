@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { AxiosError, AxiosHeaders } from 'axios'
-import { NO_CONNECTION_MESSAGE, NO_SERVER_RESPONSE_MESSAGE, parseApiError, serverMessage } from './apiError'
+import { NO_CONNECTION_MESSAGE, NO_SERVER_RESPONSE_MESSAGE, parseApiError, serverMessage, translatedErrorCode } from './apiError'
 import { changeAppLanguage } from '../i18n'
 
 function axiosError(status: number | undefined, data?: unknown) {
@@ -106,8 +106,29 @@ describe('parseApiError in Hindi and Marathi', () => {
 
   it('falls back to the English server message for codes without a translation', async () => {
     await changeAppLanguage('hi')
-    expect(parseApiError(axiosError(400, { message: 'Tank is inactive', code: 'TANK_INACTIVE' }))).toBe('Tank is inactive')
+    expect(parseApiError(axiosError(400, { message: 'Tank is inactive', code: 'NO_SUCH_CODE' }))).toBe('Tank is inactive')
     expect(parseApiError(axiosError(400, { message: 'Shift is not open.' }))).toBe('Shift is not open.')
+  })
+
+  it('names the missing record by its translated entity label', async () => {
+    await changeAppLanguage('hi')
+    expect(parseApiError(axiosError(404, { message: 'Tank not found', code: 'NOT_FOUND', params: { entityCode: 'TANK' } })))
+      .toBe('टैंक: रिकॉर्ड नहीं मिला')
+  })
+
+  it('names a missing field in readable words when no label is translated for it', async () => {
+    await changeAppLanguage('mr')
+    expect(parseApiError(axiosError(400, {
+      message: 'Validation failed', code: 'FIELD_REQUIRED', params: { fieldCode: 'CASH_COLLECTED' },
+    }))).toBe('Cash collected भरणे आवश्यक आहे.')
+  })
+
+  it('translates a code sent outside an error response, and leaves English to the server text', async () => {
+    expect(translatedErrorCode('SHIFT_NOT_OPEN', {})).toBeUndefined()
+    await changeAppLanguage('hi')
+    expect(translatedErrorCode('NOT_FOUND', { entityCode: 'EXPENSE' })).toBe('खर्च: रिकॉर्ड नहीं मिला')
+    expect(translatedErrorCode('NO_SUCH_CODE', {})).toBeUndefined()
+    expect(translatedErrorCode(null, {})).toBeUndefined()
   })
 
   it('translates the network and generic fallbacks', async () => {

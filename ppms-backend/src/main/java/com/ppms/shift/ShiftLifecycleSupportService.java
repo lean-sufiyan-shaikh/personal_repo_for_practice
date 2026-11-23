@@ -4,6 +4,7 @@ import com.ppms.cash.CashEvent;
 import com.ppms.cash.CashEventRepository;
 import com.ppms.cash.CashEventType;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
@@ -68,7 +69,7 @@ public class ShiftLifecycleSupportService {
     public User findOperatorForPump(Long operatorId, Long pumpId) {
         User operator = userRepository.findById(operatorId)
                 .filter(user -> user.getRole() == UserRole.OPERATOR && pumpId.equals(user.getAssignedPumpId()))
-                .orElseThrow(() -> new ResourceNotFoundException("Operator not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.OPERATOR, "Operator not found"));
         if (operator.getStatus() != UserStatus.ACTIVE) {
             throw new BusinessException(ErrorCodes.OPERATOR_INACTIVE, Map.of("operatorName", operator.getFullName()),
                     operator.getFullName() + " is inactive and cannot be assigned a shift.");
@@ -94,21 +95,25 @@ public class ShiftLifecycleSupportService {
 
         pumpClosureRepository.findByPumpIdAndClosureDate(pumpId, businessClock.today())
                 .ifPresent(closure -> {
-                    throw new BusinessException(
+                    throw new BusinessException(ErrorCodes.PUMP_CLOSED_TODAY,
+                            Map.of("closureDate", closure.getClosureDate().toString(),
+                                   "reason", String.valueOf(closure.getReason())),
                             "This pump is closed today (" + closure.getClosureDate() + "): " + closure.getReason() +
                             ". Remove the closure record in Setup → Closures if operations have resumed.");
                 });
 
         for (Nozzle nozzle : nozzles) {
             if (!nozzle.getDuId().equals(du.getId())) {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.NOZZLE_NOT_IN_DU,
+                        Map.of("nozzleNumber", nozzle.getNozzleNumber(), "duName", du.getName()),
                         "Nozzle #" + nozzle.getNozzleNumber() + " does not belong to DU '" + du.getName() + "'.");
             }
 
             rejectExpiredCalibration(nozzle);
 
             if (nozzle.getStatus() != NozzleStatus.ACTIVE) {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.NOZZLE_INACTIVE,
+                        Map.of("nozzleNumber", nozzle.getNozzleNumber()),
                         "Nozzle #" + nozzle.getNozzleNumber() + " is inactive and cannot accept shifts.");
             }
 
@@ -120,19 +125,24 @@ public class ShiftLifecycleSupportService {
 
             BigDecimal price = getLatestPrice(pumpId, nozzle.getFuelType());
             if (price == null) {
-                throw new BusinessException("No price is set for " + nozzle.getFuelType() +
+                throw new BusinessException(ErrorCodes.FUEL_PRICE_NOT_SET,
+                        Map.of("fuelTypeCode", nozzle.getFuelType().name()),
+                        "No price is set for " + nozzle.getFuelType() +
                         " on this pump. Please set a price before opening a shift.");
             }
 
             if (nozzle.getTankId() == null) {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.NOZZLE_HAS_NO_TANK,
+                        Map.of("fuelTypeCode", nozzle.getFuelType().name(), "nozzleNumber", nozzle.getNozzleNumber()),
                         nozzle.getFuelType() + " nozzle #" + nozzle.getNozzleNumber() +
                         " has no tank mapped. Please assign a tank in Setup before opening a shift.");
             }
 
             tankRepository.findById(nozzle.getTankId()).ifPresent(tank -> {
                 if (tank.getStatus() == TankStatus.INACTIVE) {
-                    throw new BusinessException(
+                    throw new BusinessException(ErrorCodes.NOZZLE_TANK_INACTIVE,
+                            Map.of("tankName", tank.getTankIdentifier(), "fuelTypeCode", nozzle.getFuelType().name(),
+                                    "nozzleNumber", nozzle.getNozzleNumber()),
                             "Tank '" + tank.getTankIdentifier() + "' mapped to " + nozzle.getFuelType() +
                             " nozzle #" + nozzle.getNozzleNumber() +
                             " is currently inactive. Re-enable the tank or remap the nozzle before opening a shift.");
@@ -155,7 +165,9 @@ public class ShiftLifecycleSupportService {
         calibrationLogRepository.findLatestByNozzleId(nozzle.getId()).ifPresent(latest -> {
             if (latest.getNextCalibrationDue() != null
                     && businessClock.today().isAfter(latest.getNextCalibrationDue())) {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.NOZZLE_CALIBRATION_EXPIRED,
+                        Map.of("nozzleNumber", nozzle.getNozzleNumber(),
+                               "dueDate", latest.getNextCalibrationDue().toString()),
                         "Nozzle #" + nozzle.getNozzleNumber() + " calibration was due on " +
                         latest.getNextCalibrationDue() + " and has expired. " +
                         "Log a new calibration record (Setup → Calibration) before opening a shift.");
@@ -167,7 +179,8 @@ public class ShiftLifecycleSupportService {
         if (isNightShift
                 && operator.getGender() == UserGender.FEMALE
                 && !operator.isNightShiftConsent()) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.OPERATOR_NO_NIGHT_SHIFT_CONSENT,
+                    Map.of("operatorName", operator.getFullName()),
                     operator.getFullName() + " has not given consent to work night shifts and cannot be assigned to this shift.");
         }
     }
@@ -207,18 +220,22 @@ public class ShiftLifecycleSupportService {
         BigDecimal totalDue = ZERO;
         for (ShiftFuelReading reading : readings) {
             if (!endReadingByNozzleId.containsKey(reading.getNozzleId())) {
-                throw new BusinessException("End reading missing for " + reading.getFuelType() + " nozzle");
+                throw new BusinessException(ErrorCodes.END_READING_MISSING,
+                        Map.of("fuelTypeCode", reading.getFuelType().name()),
+                        "End reading missing for " + reading.getFuelType() + " nozzle");
             }
             BigDecimal endReading = endReadingByNozzleId.get(reading.getNozzleId());
             BigDecimal maxMeter = maxMeterByNozzleId.getOrDefault(reading.getNozzleId(), new BigDecimal("99999999.999"));
 
             if (endReading.compareTo(ZERO) < 0) {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.END_READING_NEGATIVE,
+                        Map.of("fuelTypeCode", reading.getFuelType().name()),
                         "End reading for " + reading.getFuelType() + " nozzle cannot be negative. " +
                         "Please verify the meter reading.");
             }
             if (endReading.compareTo(maxMeter) > 0) {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.END_READING_ABOVE_METER_MAX, Map.of("endReading", endReading.toPlainString(),
+                                "maxMeter", maxMeter.toPlainString(), "fuelTypeCode", reading.getFuelType().name()),
                         "End reading " + endReading.toPlainString() + " exceeds the maximum meter value of " +
                         maxMeter.toPlainString() + " for the " + reading.getFuelType() + " nozzle. " +
                         "Please verify the meter reading.");
@@ -281,7 +298,9 @@ public class ShiftLifecycleSupportService {
                 .map(ShiftCreditEntry::getId)
                 .collect(Collectors.toSet());
         if (!activeEntryIds.containsAll(replacedIds)) {
-            throw new BusinessException("Only active credit entries of this shift can be replaced at close.");
+            throw new BusinessException(ErrorCodes.CREDIT_ENTRY_NOT_REPLACEABLE,
+                    Map.of(),
+                    "Only active credit entries of this shift can be replaced at close.");
         }
 
         BigDecimal preExistingCreditSum = shiftEntries.stream()
@@ -298,7 +317,7 @@ public class ShiftLifecycleSupportService {
         BigDecimal expectedCreditTotal = creditTotal.setScale(2, RoundingMode.HALF_UP);
 
         if (expectedCreditTotal.compareTo(ZERO) > 0 && safeEntries.isEmpty() && preExistingCreditSum.compareTo(ZERO) == 0) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.CREDIT_ENTRIES_REQUIRED, Map.of(),
                     "Credit entries are required when credit total is greater than zero. " +
                     "Please add each client's name and amount.");
         }
@@ -393,7 +412,9 @@ public class ShiftLifecycleSupportService {
     /** Request ids must be unique; a repeated nozzle would otherwise fail deep inside a map collector. */
     public void rejectDuplicateNozzles(List<Long> nozzleIds) {
         if (nozzleIds.size() != new HashSet<>(nozzleIds).size()) {
-            throw new BusinessException("Each nozzle can only appear once in the request.");
+            throw new BusinessException(ErrorCodes.NOZZLE_REPEATED_IN_REQUEST,
+                    Map.of(),
+                    "Each nozzle can only appear once in the request.");
         }
     }
 

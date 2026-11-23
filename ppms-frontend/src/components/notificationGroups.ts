@@ -1,4 +1,19 @@
 import type { Notification } from '../api/notificationApi'
+import { activeLanguage, hasTranslation, translateKey } from '../i18n'
+import { translatedParams } from '../utils/apiError'
+
+/**
+ * Title and message in the user's language from enums:notifications.<code>, filled with the notification's params.
+ * In English, or for a notification stored without a code, the server's own English text.
+ */
+export function notificationText(notification: Notification): { title: string; message: string } {
+  const key = `enums:notifications.${notification.code}`
+  if (activeLanguage() === 'en' || !notification.code || !notification.params || !hasTranslation(`${key}.title`)) {
+    return { title: notification.title, message: notification.message }
+  }
+  const params = translatedParams(notification.params)
+  return { title: translateKey(`${key}.title`, params), message: translateKey(`${key}.message`, params) }
+}
 
 export interface NotificationGroup {
   latest: Notification

@@ -75,7 +75,8 @@ public class LoginRateLimiterService {
     public boolean isResetEmailAllowed(String phoneNumber, String ipAddress) {
         if (ipAddress != null && incrementAndCheck("ip:" + ipAddress, MAX_RESET_REQUESTS_PER_IP)) {
             log.warn("Password reset request blocked by IP limit: ip={}", ipAddress);
-            throw new TooManyRequestsException(
+            throw new TooManyRequestsException(ErrorCodes.TOO_MANY_PASSWORD_RESET_REQUESTS,
+                    Map.of("minutes", WINDOW_MINUTES),
                     "Too many password reset requests. Please wait " + WINDOW_MINUTES + " minutes before trying again.");
         }
         if (incrementAndCheck("phone:" + phoneNumber, MAX_RESET_REQUESTS_PER_PHONE)) {

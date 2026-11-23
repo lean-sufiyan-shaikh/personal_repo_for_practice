@@ -1,6 +1,8 @@
 package com.ppms.transaction;
 
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.pump.NozzleRepository;
 import com.ppms.shift.Shift;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Optional per-sale records (fleet vehicles, UPI references) logged during an open shift.
@@ -36,12 +39,14 @@ public class FuelTransactionService {
     public FuelTransaction recordTransaction(Long pumpId, RecordFuelTransactionRequest request, User currentUser) {
         Shift shift = shiftRepository.findByIdAndPumpIdForUpdate(request.getShiftId(), pumpId)
                 .filter(found -> canSeeShift(currentUser, found))
-                .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.SHIFT, "Shift not found"));
         if (!nozzleRepository.existsOnPump(request.getNozzleId(), pumpId)) {
-            throw new ResourceNotFoundException("Nozzle not found");
+            throw new ResourceNotFoundException(EntityType.NOZZLE, "Nozzle not found");
         }
         if (shift.getStatus() != ShiftStatus.OPEN && shift.getStatus() != ShiftStatus.OPEN_OVERDUE) {
-            throw new BusinessException("Fuel transactions can only be logged for open shifts");
+            throw new BusinessException(ErrorCodes.FUEL_TRANSACTION_SHIFT_NOT_OPEN,
+                    Map.of(),
+                    "Fuel transactions can only be logged for open shifts");
         }
 
         BigDecimal totalAmount = request.getQuantityLitres()
@@ -77,7 +82,7 @@ public class FuelTransactionService {
                 .filter(shift -> canSeeShift(currentUser, shift))
                 .isPresent();
         if (!visible) {
-            throw new ResourceNotFoundException("Shift not found");
+            throw new ResourceNotFoundException(EntityType.SHIFT, "Shift not found");
         }
         return transactionRepository.findByShiftIdOrderByRecordedAtAsc(shiftId);
     }

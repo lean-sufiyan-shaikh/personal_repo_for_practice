@@ -4,6 +4,8 @@ import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
@@ -350,7 +352,7 @@ public class CreditLedgerController {
         CreditClient client = clientAccessService.requireClientForPump(pumpId, clientId);
 
         PumpLocation pump = pumpLocationRepository.findById(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found"));
 
         String html = statementRenderer.render(pump, client, queryService.getStatement(client, fromDate, toDate),
                 fromDate, toDate);
@@ -389,13 +391,17 @@ public class CreditLedgerController {
 
         String statusStr = body.get("status");
         if (statusStr == null) {
-            throw new BusinessException("status is required (APPROVED or REJECTED)");
+            throw new BusinessException(ErrorCodes.APPROVAL_STATUS_REQUIRED,
+                    Map.of(),
+                    "status is required (APPROVED or REJECTED)");
         }
 
         com.ppms.expense.ExpenseApprovalStatus newStatus = switch (statusStr.toUpperCase()) {
             case "APPROVED" -> com.ppms.expense.ExpenseApprovalStatus.APPROVED;
             case "REJECTED" -> com.ppms.expense.ExpenseApprovalStatus.REJECTED;
-            default -> throw new BusinessException("Invalid status. Allowed: APPROVED, REJECTED");
+            default -> throw new BusinessException(ErrorCodes.APPROVAL_STATUS_INVALID,
+                    Map.of(),
+                    "Invalid status. Allowed: APPROVED, REJECTED");
         };
 
         CreditPayment saved = paymentApprovalService.review(pumpId, paymentId, newStatus, body.get("reason"), currentUser);

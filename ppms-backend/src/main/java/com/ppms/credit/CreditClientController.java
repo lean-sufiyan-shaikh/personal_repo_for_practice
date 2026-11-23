@@ -1,6 +1,7 @@
 package com.ppms.credit;
 
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.invoice.GstFields;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
@@ -119,16 +120,22 @@ public class CreditClientController {
         if (parentClientId == null) {
             // Root client — name must be unique per pump among root accounts
             if (creditClientRepository.existsByPumpIdAndNameIgnoreCaseAndParentClientIdIsNull(pumpId, trimmedName)) {
-                throw new BusinessException("A client named \"" + trimmedName + "\" already exists.");
+                throw new BusinessException(ErrorCodes.CREDIT_CLIENT_NAME_TAKEN,
+                        Map.of("clientName", trimmedName),
+                        "A client named \"" + trimmedName + "\" already exists.");
             }
         } else {
             // Sub-account — validate parent first, then check uniqueness within that parent
             CreditClient parent = clientAccessService.requireClientForPump(pumpId, parentClientId);
             if (parent.getParentClientId() != null) {
-                throw new BusinessException("Cannot create a sub-account under another sub-account. Only one level of nesting is allowed.");
+                throw new BusinessException(ErrorCodes.CREDIT_SUB_ACCOUNT_NESTING_NOT_ALLOWED,
+                        Map.of(),
+                        "Cannot create a sub-account under another sub-account. Only one level of nesting is allowed.");
             }
             if (creditClientRepository.existsByParentClientIdAndNameIgnoreCase(parentClientId, trimmedName)) {
-                throw new BusinessException("A sub-account named \"" + trimmedName + "\" already exists under this parent.");
+                throw new BusinessException(ErrorCodes.CREDIT_SUB_ACCOUNT_NAME_TAKEN,
+                        Map.of("clientName", trimmedName),
+                        "A sub-account named \"" + trimmedName + "\" already exists under this parent.");
             }
         }
 
@@ -142,7 +149,9 @@ public class CreditClientController {
                     // Sub-account — only conflict if the phone belongs to a client outside this group
                     : creditClientRepository.existsPhoneConflictForSubAccount(pumpId, phone, parentClientId);
             if (conflict) {
-                throw new BusinessException("Phone number " + phone + " is already registered to another client group in this pump.");
+                throw new BusinessException(ErrorCodes.CREDIT_CLIENT_PHONE_TAKEN,
+                        Map.of(),
+                        "Phone number " + phone + " is already registered to another client group in this pump.");
             }
         }
 
@@ -189,12 +198,16 @@ public class CreditClientController {
                 if (client.getParentClientId() == null) {
                     // Root client — name must be unique per pump among root accounts
                     if (creditClientRepository.existsByPumpIdAndNameIgnoreCaseAndParentClientIdIsNull(pumpId, trimmedName)) {
-                        throw new BusinessException("A client named \"" + trimmedName + "\" already exists.");
+                        throw new BusinessException(ErrorCodes.CREDIT_CLIENT_NAME_TAKEN,
+                                Map.of("clientName", trimmedName),
+                                "A client named \"" + trimmedName + "\" already exists.");
                     }
                 } else {
                     // Sub-account — name must be unique within the same parent
                     if (creditClientRepository.existsByParentClientIdAndNameIgnoreCase(client.getParentClientId(), trimmedName)) {
-                        throw new BusinessException("A sub-account named \"" + trimmedName + "\" already exists under this parent.");
+                        throw new BusinessException(ErrorCodes.CREDIT_SUB_ACCOUNT_NAME_TAKEN,
+                                Map.of("clientName", trimmedName),
+                                "A sub-account named \"" + trimmedName + "\" already exists under this parent.");
                     }
                 }
             }
@@ -210,7 +223,9 @@ public class CreditClientController {
                         // Sub-account update — conflict if phone belongs to a client outside this group
                         : creditClientRepository.existsPhoneConflictForSubAccount(pumpId, newPhone, client.getParentClientId());
                 if (conflict) {
-                    throw new BusinessException("Phone number " + newPhone + " is already registered to another client group in this pump.");
+                    throw new BusinessException(ErrorCodes.CREDIT_CLIENT_PHONE_TAKEN,
+                            Map.of(),
+                            "Phone number " + newPhone + " is already registered to another client group in this pump.");
                 }
             }
             client.setPhone(newPhone);
@@ -254,7 +269,9 @@ public class CreditClientController {
             @RequestBody Map<String, Boolean> body) {
 
         Boolean active = body.get("isActive");
-        if (active == null) throw new BusinessException("isActive is required");
+        if (active == null) throw new BusinessException(ErrorCodes.CREDIT_CLIENT_ACTIVE_FLAG_REQUIRED,
+                Map.of(),
+                "isActive is required");
 
         CreditClient client = clientAccessService.requireClientForPump(pumpId, clientId);
 

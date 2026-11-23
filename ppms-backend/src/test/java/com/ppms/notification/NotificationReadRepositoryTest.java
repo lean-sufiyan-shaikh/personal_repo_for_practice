@@ -102,7 +102,7 @@ class NotificationReadRepositoryTest {
 
     private long insertNotification(NotificationType type) {
         String dedupKey = type + ":test:" + shortId();
-        notificationRepository.insertIfNotExists(pump.getId(), type.name(), "Title", "Message", dedupKey);
+        notificationRepository.insertIfNotExists(pump.getId(), type.name(), "Title", "Message", dedupKey, "{}");
         return notificationRepository.findAll().stream()
                 .filter(notification -> dedupKey.equals(notification.getDedupKey()))
                 .findFirst()

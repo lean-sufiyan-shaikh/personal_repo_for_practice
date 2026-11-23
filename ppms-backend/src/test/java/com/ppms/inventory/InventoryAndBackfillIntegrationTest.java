@@ -85,7 +85,9 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
         perform(post("/api/inventory/{pumpId}/deliveries", setup.pumpId()), setup.manager(),
                 managerDelivery(dieselTank.getId(), "200"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(containsString("an owner or admin must enter the first cost")));
+                .andExpect(jsonPath("$.message").value(containsString("an owner or admin must enter the first cost")))
+                .andExpect(jsonPath("$.code").value("FIRST_COST_PRICE_NEEDS_OWNER"))
+                .andExpect(jsonPath("$.params.tankIdentifier").value(dieselTank.getTankIdentifier()));
 
         assertThat(tankRepository.findById(dieselTank.getId()).orElseThrow().getCurrentStock()).isEqualByComparingTo("0");
     }

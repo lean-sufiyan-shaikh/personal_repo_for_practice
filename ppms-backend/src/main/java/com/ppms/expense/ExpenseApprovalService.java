@@ -1,8 +1,11 @@
 package com.ppms.expense;
 
+import java.util.Map;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.user.User;
@@ -25,14 +28,17 @@ public class ExpenseApprovalService {
     public PumpExpense review(Long pumpId, Long expenseId, ExpenseApprovalStatus action, String notes, User reviewer) {
         PumpExpense expense = expenseRepository.findById(expenseId)
                 .filter(found -> found.getPumpId().equals(pumpId))
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.EXPENSE, "Expense not found"));
 
         if (expense.getApprovalStatus() != ExpenseApprovalStatus.PENDING_APPROVAL) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.EXPENSE_NOT_PENDING_APPROVAL,
+                    Map.of("statusCode", expense.getApprovalStatus().name()),
                     "Expense is not pending approval (current status: " + expense.getApprovalStatus() + ")");
         }
         if (action != ExpenseApprovalStatus.APPROVED && action != ExpenseApprovalStatus.REJECTED) {
-            throw new BusinessException("Action must be APPROVED or REJECTED");
+            throw new BusinessException(ErrorCodes.APPROVAL_STATUS_INVALID,
+                    Map.of(),
+                    "Action must be APPROVED or REJECTED");
         }
 
         String trimmedNotes = notes != null && !notes.isBlank() ? notes.trim() : null;

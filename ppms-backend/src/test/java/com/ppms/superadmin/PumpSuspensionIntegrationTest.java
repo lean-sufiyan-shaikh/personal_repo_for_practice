@@ -121,7 +121,8 @@ class PumpSuspensionIntegrationTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(0));
         perform(get("/api/pumps/{pumpId}/notifications", setup.pumpId()), setup.manager())
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("Pump is suspended"));
+                .andExpect(jsonPath("$.message").value("Pump is suspended"))
+                .andExpect(jsonPath("$.code").value("PUMP_SUSPENDED"));
     }
 
     private ResultActions updatePump(String name, boolean enabled) throws Exception {

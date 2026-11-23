@@ -182,11 +182,14 @@ public class NotificationService {
         tanks.stream()
                 .filter(TankStockResponse::isLowStock)
                 .forEach(tank -> {
+                    String stockPercent = String.format("%.1f", tank.getStockPercentage().doubleValue());
                     dedupService.insertDaily(pumpId, NotificationType.LOW_STOCK,
                             "LOW_STOCK:tank:" + tank.getTankId(), businessClock.today(),
                             "Low Tank Stock",
                             tank.getTankIdentifier() + " (" + tank.getFuelType() + ") is at "
-                                    + String.format("%.1f", tank.getStockPercentage().doubleValue()) + "% — delivery needed.");
+                                    + stockPercent + "% — delivery needed.",
+                            Map.of("tankName", tank.getTankIdentifier(), "fuelTypeCode", tank.getFuelType(),
+                                    "stockPercent", stockPercent));
                 });
     }
 
@@ -201,7 +204,8 @@ public class NotificationService {
             // Re-alerts each day until at least one price is configured.
             dedupService.insertDaily(pumpId, NotificationType.PRICE_STALE, "PRICE_STALE", businessClock.today(),
                     "Fuel Prices Not Configured",
-                    "No fuel prices have been set for this pump yet. Go to Setup → Fuel Prices to configure them.");
+                    "No fuel prices have been set for this pump yet. Go to Setup → Fuel Prices to configure them.",
+                    Map.of());
         }
     }
 
@@ -219,7 +223,9 @@ public class NotificationService {
                     String title   = expired ? "Document Expired" : "Document Expiring Soon";
                     String message = doc.getName() + " (" + doc.getDocType() + ") "
                             + (expired ? "expired on " : "expires on ") + doc.getExpiryDate();
-                    dedupService.maybeInsert(pumpId, NotificationType.DOCUMENT_EXPIRING, dedupKey, title, message);
+                    dedupService.maybeInsert(pumpId, NotificationType.DOCUMENT_EXPIRING, dedupKey, title, message,
+                            Map.of("documentName", doc.getName(), "documentType", String.valueOf(doc.getDocType()),
+                                    "expiryDate", doc.getExpiryDate().toString()));
                 });
     }
 
@@ -245,7 +251,8 @@ public class NotificationService {
                     dedupService.maybeInsert(pumpId, NotificationType.ZERO_SALE_SHIFT, dedupKey,
                             "Zero-Sale Shift Detected",
                             "Shift '" + shift.getShiftName() + "' (#" + shift.getId() + ") was open for over 30 minutes but recorded ₹0 in sales. " +
-                            "This may indicate a data entry error or missing readings. Please review.");
+                            "This may indicate a data entry error or missing readings. Please review.",
+                            Map.of("shiftName", String.valueOf(shift.getShiftName()), "shiftId", shift.getId()));
                 });
     }
 
@@ -263,7 +270,8 @@ public class NotificationService {
                     dedupService.maybeInsert(pumpId, NotificationType.AUTO_CLOSED_SHIFT, dedupKey,
                             "Shift Force-Closed Without Readings",
                             "Shift #" + shift.getId() + " was automatically closed because the operator never submitted " +
-                            "closing meter readings. End-meter data is missing — a manual reconciliation is required.");
+                            "closing meter readings. End-meter data is missing — a manual reconciliation is required.",
+                            Map.of("shiftId", shift.getId()));
                 });
     }
 
@@ -291,11 +299,13 @@ public class NotificationService {
         Map<Long, Integer> nozzleNumberById = nozzleNumbersFor(overdue);
         for (NozzleCalibrationLog calibration : overdue) {
             String dedupKey = "CALIBRATION_DUE:nozzle:" + calibration.getNozzleId() + ":" + calibration.getNextCalibrationDue();
-            String message = "Nozzle #" + nozzleNumberById.getOrDefault(calibration.getNozzleId(), 0)
+            int nozzleNumber = nozzleNumberById.getOrDefault(calibration.getNozzleId(), 0);
+            String message = "Nozzle #" + nozzleNumber
                     + " calibration was due on " + calibration.getNextCalibrationDue()
                     + ". Please schedule a calibration to remain compliant.";
             dedupService.maybeInsert(pumpId, NotificationType.CALIBRATION_DUE, dedupKey,
-                    "Nozzle Calibration Overdue", message);
+                    "Nozzle Calibration Overdue", message,
+                    Map.of("nozzleNumber", nozzleNumber, "dueDate", calibration.getNextCalibrationDue().toString()));
         }
     }
 
@@ -315,11 +325,14 @@ public class NotificationService {
         for (NozzleCalibrationLog calibration : dueSoon) {
             LocalDate due = calibration.getNextCalibrationDue();
             String dedupKey = "CALIBRATION_DUE_SOON:nozzle:" + calibration.getNozzleId() + ":" + due;
-            String message = "Nozzle #" + nozzleNumberById.getOrDefault(calibration.getNozzleId(), 0)
-                    + " calibration is due on " + due + " (" + ChronoUnit.DAYS.between(today, due) + " day(s) left)."
+            int nozzleNumber = nozzleNumberById.getOrDefault(calibration.getNozzleId(), 0);
+            long daysLeft = ChronoUnit.DAYS.between(today, due);
+            String message = "Nozzle #" + nozzleNumber
+                    + " calibration is due on " + due + " (" + daysLeft + " day(s) left)."
                     + " Shifts on this nozzle are blocked after that date until a new calibration is logged.";
             dedupService.maybeInsert(pumpId, NotificationType.CALIBRATION_DUE_SOON, dedupKey,
-                    "Nozzle Calibration Due Soon", message);
+                    "Nozzle Calibration Due Soon", message,
+                    Map.of("nozzleNumber", nozzleNumber, "dueDate", due.toString(), "daysLeft", daysLeft));
         }
     }
 
@@ -346,7 +359,9 @@ public class NotificationService {
                             "ANCILLARY_LOW_STOCK:product:" + p.getId(), businessClock.today(),
                             "Low Product Stock",
                             displayName + " has only " + p.getCurrentStockUnits()
-                            + " unit(s) remaining (threshold: " + p.getLowStockThreshold() + "). Restock soon.");
+                            + " unit(s) remaining (threshold: " + p.getLowStockThreshold() + "). Restock soon.",
+                            Map.of("productName", displayName, "unitsLeft", p.getCurrentStockUnits(),
+                                    "threshold", p.getLowStockThreshold()));
                 });
     }
 }

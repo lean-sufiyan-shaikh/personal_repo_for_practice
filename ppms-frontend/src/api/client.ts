@@ -1,5 +1,6 @@
 import axios, { isAxiosError } from 'axios'
 import type { InternalAxiosRequestConfig } from 'axios'
+import { translateKey } from '../i18n'
 import { useAuthStore } from '../store/authStore'
 import { usePumpStore } from '../store/usePumpStore'
 import type { ApiErrorBody } from '../utils/apiError'
@@ -39,7 +40,7 @@ function sanitizeErrorMessage(error: unknown): void {
   const message = data.message
   const isLeaking = DANGEROUS_MESSAGE_PATTERNS.some((p) => p.test(message))
   if (isLeaking) {
-    data.message = 'Something went wrong. Please try again.'
+    data.message = translateKey('errors:generic')
   }
 }
 

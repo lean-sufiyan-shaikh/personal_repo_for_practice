@@ -1,5 +1,7 @@
 package com.ppms.shift;
 
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.time.DateRangeBounds;
@@ -83,10 +85,11 @@ public class ShiftService {
     @Transactional
     public ShiftResponse openShift(Long pumpId, OpenShiftRequest request, User currentUser) {
         DispensaryUnit du = duRepository.findById(request.getDuId())
-                .orElseThrow(() -> new ResourceNotFoundException("Dispensary Unit not found: " + request.getDuId()));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.DISPENSARY_UNIT,
+                        "Dispensary Unit not found: " + request.getDuId()));
 
         if (!du.getPumpId().equals(pumpId)) {
-            throw new ResourceNotFoundException("Dispensary Unit not found");
+            throw new ResourceNotFoundException(EntityType.DISPENSARY_UNIT, "Dispensary Unit not found");
         }
 
         lifecycleSupportService.rejectDuplicateNozzles(request.getNozzleIds());
@@ -94,7 +97,7 @@ public class ShiftService {
                 .collect(Collectors.toMap(Nozzle::getId, Function.identity()));
         List<Nozzle> nozzles = request.getNozzleIds().stream()
                 .map(id -> Optional.ofNullable(nozzleById.get(id))
-                        .orElseThrow(() -> new ResourceNotFoundException("Nozzle not found: " + id)))
+                        .orElseThrow(() -> new ResourceNotFoundException(EntityType.NOZZLE, "Nozzle not found: " + id)))
                 .toList();
 
         User operator = lifecycleSupportService.findOperatorForPump(request.getOperatorId(), pumpId);
@@ -129,7 +132,8 @@ public class ShiftService {
     public ShiftResponse openShiftForHandover(Shift closedShift, User incomingOperator, User currentUser) {
         List<Nozzle> nozzles = nozzleRepository.findAllById(shiftNozzleRepository.findNozzleIdsByShiftId(closedShift.getId()));
         DispensaryUnit du = duRepository.findById(closedShift.getDuId())
-                .orElseThrow(() -> new ResourceNotFoundException("Dispensary Unit not found: " + closedShift.getDuId()));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.DISPENSARY_UNIT,
+                        "Dispensary Unit not found: " + closedShift.getDuId()));
         nozzles.forEach(lifecycleSupportService::rejectExpiredCalibration);
         lifecycleSupportService.rejectNightShiftWithoutConsent(
                 Boolean.TRUE.equals(closedShift.getIsNightShift()), incomingOperator);
@@ -168,7 +172,7 @@ public class ShiftService {
         // raced past the application-level check in validateShiftCanOpen.
         for (Nozzle nozzle : nozzles) {
             if (activeNozzleRepository.assignIfFree(nozzle.getId(), shiftId) == 0) {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.NOZZLES_ALREADY_IN_USE, Map.of(),
                         "One or more selected nozzles are already in use on an active shift. " +
                         "Please refresh the page and try again.");
             }
@@ -205,7 +209,9 @@ public class ShiftService {
         Shift shift = findShiftForUpdate(pumpId, shiftId);
 
         if (!shift.getStatus().isOpen()) {
-            throw new BusinessException("Shift is not open. Current status: " + shift.getStatus());
+            throw new BusinessException(ErrorCodes.SHIFT_NOT_OPEN,
+                    Map.of("statusCode", shift.getStatus().name()),
+                    "Shift is not open. Current status: " + shift.getStatus());
         }
 
         List<Long> nozzleIds = shiftNozzleRepository.findNozzleIdsByShiftId(shiftId);
@@ -244,7 +250,7 @@ public class ShiftService {
         lifecycleSupportService.persistCloseCreditEntries(shift.getId(), shift.getPumpId(), businessClock.today(), creditEntries);
 
         User operator = userRepository.findById(shift.getOperatorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Operator not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.OPERATOR, "Operator not found"));
         DispensaryUnit du = duRepository.findById(shift.getDuId()).orElse(null);
         List<ShiftCreditEntry> savedEntries = creditEntryRepository.findByShiftId(shift.getId());
         List<ShiftFuelReading> finalReadings = fuelReadingRepository.findByShiftId(shift.getId());
@@ -320,7 +326,7 @@ public class ShiftService {
 
     private Shift findShiftForUpdate(Long pumpId, Long shiftId) {
         return shiftRepository.findByIdAndPumpIdForUpdate(shiftId, pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.SHIFT, "Shift not found"));
     }
 
     /**
@@ -331,12 +337,16 @@ public class ShiftService {
         Shift shift = findShiftForUpdate(pumpId, shiftId);
 
         if (!shift.getStatus().isOpen()) {
-            throw new BusinessException("Cannot add credit entries to a shift that is not open.");
+            throw new BusinessException(ErrorCodes.CREDIT_ENTRY_SHIFT_NOT_OPEN,
+                    Map.of(),
+                    "Cannot add credit entries to a shift that is not open.");
         }
 
         if (currentUser.getRole() == UserRole.OPERATOR
                 && !currentUser.getId().equals(shift.getOperatorId())) {
-            throw new BusinessException("Operators can only add credit entries to their own active shift.");
+            throw new BusinessException(ErrorCodes.CREDIT_ENTRY_NOT_OWN_SHIFT,
+                    Map.of(),
+                    "Operators can only add credit entries to their own active shift.");
         }
 
         CreditClient matchedClient = creditAccountPolicyService.requireClientForCreditEntry(
@@ -372,14 +382,15 @@ public class ShiftService {
         boolean isPending         = shift.getStatus() == ShiftStatus.CLOSED_DISCREPANCY_PENDING;
         boolean isPendingApproval = shift.getStatus() == ShiftStatus.CLOSED_DISCREPANCY_PENDING_APPROVAL;
         if (!isPending && !isPendingApproval) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.NO_PENDING_DISCREPANCY,
+                    Map.of("statusCode", shift.getStatus().name()),
                     "Shift has no pending discrepancy to resolve. Current status: " + shift.getStatus());
         }
 
         if (isPendingApproval) {
             UserRole role = currentUser.getRole();
             if (role != UserRole.OWNER && role != UserRole.ADMIN && role != UserRole.SUPER_ADMIN) {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.ESCALATED_DISCREPANCY_NEEDS_OWNER, Map.of(),
                         "This discrepancy exceeds the escalation threshold and requires Owner or Admin approval. " +
                         "Managers cannot resolve escalated discrepancies.");
             }
@@ -391,7 +402,7 @@ public class ShiftService {
 
         if (request.resolutionAction() == DiscrepancyResolution.WAIVED
                 && (request.resolutionNote() == null || request.resolutionNote().isBlank())) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.WAIVER_REASON_REQUIRED, Map.of(),
                     "A mandatory reason is required when waiving a discrepancy (Business Rule 19).");
         }
 
@@ -400,14 +411,14 @@ public class ShiftService {
         // means the operator handed in excess money; there is nothing to recover.
         if (request.resolutionAction() == DiscrepancyResolution.CASH_RECOVERY
                 && shift.getDiscrepancyType() != DiscrepancyType.SHORT) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.CASH_RECOVERY_ONLY_FOR_SHORT, Map.of(),
                     "CASH_RECOVERY can only be applied to SHORT discrepancies. " +
                     "Use WAIVED or PENDING_INVESTIGATION for OVER discrepancies.");
         }
 
         if (request.resolutionAction() == DiscrepancyResolution.SALARY_DEDUCTION
                 && shift.getDiscrepancyType() != DiscrepancyType.SHORT) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.SALARY_DEDUCTION_ONLY_FOR_SHORT, Map.of(),
                     "SALARY_DEDUCTION can only be applied to SHORT discrepancies. " +
                     "Use WAIVED or PENDING_INVESTIGATION for OVER discrepancies.");
         }
@@ -439,7 +450,7 @@ public class ShiftService {
     /** Records who is investigating and why; the shift stays pending until a final action is taken. */
     private ShiftResponse startInvestigation(Shift shift, String note, User currentUser) {
         if (note == null || note.isBlank()) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.INVESTIGATION_NOTE_REQUIRED, Map.of(),
                     "A note is required when putting a discrepancy under investigation.");
         }
         shift.setInvestigationNote(note.trim());
@@ -461,23 +472,29 @@ public class ShiftService {
         Shift shift = findShiftForUpdate(pumpId, shiftId);
 
         if (!shift.getStatus().isOpen()) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.CREDIT_VOID_SHIFT_NOT_OPEN, Map.of(),
                     "Credit entries can only be voided while the shift is open (Business Rule 7).");
         }
 
         if (voidReason == null || voidReason.isBlank()) {
-            throw new BusinessException("A mandatory void reason is required.");
+            throw new BusinessException(ErrorCodes.VOID_REASON_REQUIRED,
+                    Map.of(),
+                    "A mandatory void reason is required.");
         }
 
         ShiftCreditEntry entry = creditEntryRepository.findByIdForUpdate(entryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Credit entry not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_ENTRY, "Credit entry not found"));
 
         if (!entry.getShiftId().equals(shiftId)) {
-            throw new BusinessException("Credit entry does not belong to this shift.");
+            throw new BusinessException(ErrorCodes.CREDIT_ENTRY_NOT_IN_SHIFT,
+                    Map.of(),
+                    "Credit entry does not belong to this shift.");
         }
 
         if ("VOIDED".equals(entry.getVoidStatus())) {
-            throw new BusinessException("Credit entry is already voided.");
+            throw new BusinessException(ErrorCodes.CREDIT_ENTRY_ALREADY_VOIDED,
+                    Map.of(),
+                    "Credit entry is already voided.");
         }
         invoicedSaleGuard.requireFuelEntriesNotInvoiced(List.of(entryId));
 
@@ -558,7 +575,9 @@ public class ShiftService {
 
     private DateRange fuelFilterRange(ShiftHistoryFilter filter) {
         if (filter.discrepanciesOnly()) {
-            throw new BusinessException("Filter shift history by fuel or by discrepancies, not both.");
+            throw new BusinessException(ErrorCodes.SHIFT_HISTORY_FILTER_CONFLICT,
+                    Map.of(),
+                    "Filter shift history by fuel or by discrepancies, not both.");
         }
         LocalDate from = DateRangeBounds.startOrEarliest(filter.from());
         LocalDate to = DateRangeBounds.endOrLatest(filter.to());
@@ -579,7 +598,7 @@ public class ShiftService {
     public ShiftResponse getShiftById(Long pumpId, Long shiftId, User currentUser) {
         Shift shift = shiftRepository.findByIdAndPumpId(shiftId, pumpId)
                 .filter(found -> canSeeShift(currentUser, found))
-                .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.SHIFT, "Shift not found"));
         return shiftReadModelService.toResponseWithLookups(shift);
     }
 

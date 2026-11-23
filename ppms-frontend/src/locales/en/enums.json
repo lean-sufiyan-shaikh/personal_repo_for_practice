@@ -10,6 +10,7 @@
   "AUTO_CLOSED_OVERDUE": "Auto closed overdue",
   "AUTO_CLOSED_SHIFT": "Auto closed shift",
   "AUTO_CLOSED_SHIFTS": "Auto closed shifts",
+  "BALANCE_SHEET": "Balance sheet",
   "BALANCE_SHEETS": "Balance sheets",
   "BANK_TRANSFER": "Bank transfer",
   "BILLING_CYCLE_EXTENSION": "Billing cycle extension",
@@ -31,11 +32,18 @@
   "COMPANY": "Company",
   "CONFIRMED": "Confirmed",
   "CREDIT": "Credit",
+  "CREDIT_CLIENT": "Credit client",
+  "CREDIT_ENTRY": "Credit entry",
+  "CREDIT_EXTENSION": "Credit extension",
   "CREDIT_PAYMENT": "Credit payment",
   "DAY": "Day",
   "DECOMMISSIONED": "Decommissioned",
+  "DELIVERY": "Delivery",
   "DIESEL": "Diesel",
+  "DIP_CHECK": "Dip check",
   "DIP_CORRECTION": "Dip correction",
+  "DISPENSARY_UNIT": "Dispensing unit (DU)",
+  "DOCUMENT": "Document",
   "DOCUMENT_EXPIRING": "Document expiring",
   "DRAFT": "Draft",
   "EQUIPMENT": "Equipment",
@@ -53,8 +61,11 @@
   "HIGH": "High",
   "IGNORED": "Ignored",
   "INACTIVE": "Inactive",
+  "INTEREST_CHARGE": "Interest charge",
+  "INVOICE": "Invoice",
   "ISSUED": "Issued",
   "KG": "kg",
+  "LEAVE_RECORD": "Leave record",
   "LITRE": "Litre",
   "LONG_INVESTIGATIONS": "Long investigations",
   "LOW": "Low",
@@ -68,6 +79,7 @@
   "ML": "ml",
   "MONDAY": "Monday",
   "MONTHLY": "Monthly",
+  "NOZZLE": "Nozzle",
   "OK": "OK",
   "OPEN": "Open",
   "OPENING_BALANCE": "Opening balance",
@@ -84,6 +96,8 @@
   "OWN": "Own",
   "OWNER": "Owner",
   "PAID": "Paid",
+  "PAYMENT": "Payment",
+  "PAYROLL_RECORD": "Payroll record",
   "PENDING_APPROVAL": "Pending approval",
   "PENDING_APPROVALS": "Pending approvals",
   "PENDING_INVESTIGATION": "Pending investigation",
@@ -93,34 +107,95 @@
   "PLANNED": "Planned",
   "PRICE_CHANGE_OPEN_SHIFT": "Price change open shift",
   "PRICE_STALE": "Price stale",
+  "PRODUCT": "Product",
   "PUBLISHED": "Published",
+  "PUMP": "Pump",
+  "PUMP_CLOSURE": "Pump closure",
   "REJECTED": "Rejected",
   "REVIEWED": "Reviewed",
   "REVOKED": "Revoked",
   "SALARY": "Salary",
   "SALARY_DEDUCTION": "Salary deduction",
+  "SALE": "Sale",
   "SATURDAY": "Saturday",
+  "SETTLEMENT": "Settlement",
   "SETTLEMENT_REMINDER": "Settlement reminder",
   "SETUP_INCOMPLETE": "Setup incomplete",
   "SHIFT": "Shift",
   "SHIFT_CLOSE": "Shift close",
+  "SHIFT_DEFINITION": "Shift timing",
   "SHIFT_OVERDUE": "Shift overdue",
+  "SHIFT_PLAN": "Shift plan",
+  "SHIFT_PLAN_ENTRY": "Shift plan entry",
   "SHORT": "Short",
   "SPEED_DIESEL": "Speed Diesel",
   "SPEED_PETROL": "Speed Petrol",
   "STALE_FUEL_PRICES": "Stale fuel prices",
+  "STATEMENT_IMPORT": "Bank statement import",
+  "STATEMENT_LINE": "Bank statement line",
+  "STOCK_LOT": "Stock lot",
   "SUNDAY": "Sunday",
   "SUPER_ADMIN": "Super admin",
+  "SUPPLIER": "Supplier",
+  "TANK": "Tank",
+  "TANKER": "Tanker",
   "THURSDAY": "Thursday",
   "TUESDAY": "Tuesday",
   "UNMATCHED": "Unmatched",
   "UNSETTLED_PAYMENTS": "Unsettled payments",
   "UPI": "UPI",
+  "USER": "User",
   "UTILITIES": "Utilities",
   "VALID": "Valid",
   "WAIVED": "Waived",
   "WEDNESDAY": "Wednesday",
   "WEEKLY": "Weekly",
   "WITHIN_TOLERANCE": "Within tolerance",
-  "ZERO_SALE_SHIFT": "Zero sale shift"
+  "ZERO_SALE_SHIFT": "Zero sale shift",
+  "notifications": {
+    "LOW_STOCK": {
+      "title": "Low Tank Stock",
+      "message": "{{tankName}} ({{fuelTypeCode}}) is at {{stockPercent}}% — delivery needed."
+    },
+    "PRICE_STALE": {
+      "title": "Fuel Prices Not Configured",
+      "message": "No fuel prices have been set for this pump yet. Go to Setup → Fuel Prices to configure them."
+    },
+    "DOCUMENT_EXPIRING": {
+      "title": "Document Expiring Soon",
+      "message": "{{documentName}} ({{documentType}}) expires on {{expiryDate}}"
+    },
+    "DOCUMENT_EXPIRED": {
+      "title": "Document Expired",
+      "message": "{{documentName}} ({{documentType}}) expired on {{expiryDate}}"
+    },
+    "ZERO_SALE_SHIFT": {
+      "title": "Zero-Sale Shift Detected",
+      "message": "Shift '{{shiftName}}' (#{{shiftId}}) was open for over 30 minutes but recorded ₹0 in sales. This may indicate a data entry error or missing readings. Please review."
+    },
+    "AUTO_CLOSED_SHIFT": {
+      "title": "Shift Force-Closed Without Readings",
+      "message": "Shift #{{shiftId}} was automatically closed because the operator never submitted closing meter readings. End-meter data is missing — a manual reconciliation is required."
+    },
+    "CALIBRATION_DUE": {
+      "title": "Nozzle Calibration Overdue",
+      "message": "Nozzle #{{nozzleNumber}} calibration was due on {{dueDate}}. Please schedule a calibration to remain compliant."
+    },
+    "CALIBRATION_DUE_SOON": {
+      "title": "Nozzle Calibration Due Soon",
+      "message": "Nozzle #{{nozzleNumber}} calibration is due on {{dueDate}} ({{daysLeft}} day(s) left). Shifts on this nozzle are blocked after that date until a new calibration is logged."
+    },
+    "ANCILLARY_LOW_STOCK": {
+      "title": "Low Product Stock",
+      "message": "{{productName}} has only {{unitsLeft}} unit(s) remaining (threshold: {{threshold}}). Restock soon."
+    },
+    "PRICE_CHANGE_OPEN_SHIFT": {
+      "title": "Fuel Price Changed With Open Shifts",
+      "message": "{{fuelTypeCode}} price updated to ₹{{price}} but {{openShiftCount}} shift(s) are still open. They will settle at the old price. Close all open shifts to avoid balance discrepancies."
+    },
+    "SETTLEMENT_REMINDER": {
+      "title": "{{paymentTypeCode}} Settlement Reminder",
+      "message": "Record today's {{paymentTypeCode}} settlement — amount received in bank account. Go to Settlements to log the credit."
+    }
+  }
 }

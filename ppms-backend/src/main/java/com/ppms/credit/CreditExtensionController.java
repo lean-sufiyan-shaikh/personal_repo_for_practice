@@ -1,7 +1,10 @@
 package com.ppms.credit;
 
+import java.util.Map;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
@@ -80,12 +83,15 @@ public class CreditExtensionController {
 
         CreditClient client = clientRepository.findById(clientId)
                 .filter(c -> c.getPumpId().equals(pumpId))
-                .orElseThrow(() -> new ResourceNotFoundException("Credit client not found at this pump"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_CLIENT,
+                        "Credit client not found at this pump"));
         if (client.getParentClientId() != null) {
             String parentName = clientRepository.findById(client.getParentClientId())
                     .map(CreditClient::getName)
                     .orElse("the parent account");
-            throw new BusinessException("Credit limits and billing cycles of sub-account '" + client.getName()
+            throw new BusinessException(ErrorCodes.CREDIT_EXTENSION_ON_SUB_ACCOUNT,
+                    Map.of("clientName", client.getName(), "parentName", parentName),
+                    "Credit limits and billing cycles of sub-account '" + client.getName()
                     + "' are checked on its parent account '" + parentName
                     + "'. Grant the extension on the parent account instead.");
         }
@@ -93,7 +99,9 @@ public class CreditExtensionController {
         // Enforce Business Rule 60: only one active extension of the same type
         extensionRepository.findInEffectOfType(pumpId, clientId, request.extensionType(), businessClock.today())
                 .ifPresent(existing -> {
-                    throw new BusinessException(
+                    throw new BusinessException(ErrorCodes.CREDIT_EXTENSION_ALREADY_ACTIVE,
+                            Map.of("extensionTypeCode", request.extensionType().name(),
+                                   "expiryDate", String.valueOf(existing.getExpiryDate())),
                             "An active " + request.extensionType() + " already exists for this client (expires "
                             + existing.getExpiryDate() + "). Expire it before creating a new one (Business Rule 60).");
                 });
@@ -101,7 +109,9 @@ public class CreditExtensionController {
         // AMOUNT_EXTENSION must have an amount
         if (request.extensionType() == CreditExtensionType.AMOUNT_EXTENSION) {
             if (request.extensionAmount() == null || request.extensionAmount().signum() <= 0) {
-                throw new BusinessException("AMOUNT_EXTENSION requires a positive extensionAmount.");
+                throw new BusinessException(ErrorCodes.CREDIT_EXTENSION_AMOUNT_REQUIRED,
+                        Map.of(),
+                        "AMOUNT_EXTENSION requires a positive extensionAmount.");
             }
         }
 
@@ -146,9 +156,12 @@ public class CreditExtensionController {
 
         CreditExtension extension = extensionRepository.findByIdForUpdate(extensionId)
                 .filter(found -> found.getPumpId().equals(pumpId) && found.getClientId().equals(clientId))
-                .orElseThrow(() -> new ResourceNotFoundException("Credit extension not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_EXTENSION,
+                        "Credit extension not found"));
         if (extension.getStatus() != CreditExtensionStatus.ACTIVE) {
-            throw new BusinessException("Only an active extension can be revoked; this one is " + extension.getStatus() + ".");
+            throw new BusinessException(ErrorCodes.CREDIT_EXTENSION_NOT_ACTIVE,
+                    Map.of("statusCode", extension.getStatus().name()),
+                    "Only an active extension can be revoked; this one is " + extension.getStatus() + ".");
         }
 
         extension.setStatus(CreditExtensionStatus.REVOKED);

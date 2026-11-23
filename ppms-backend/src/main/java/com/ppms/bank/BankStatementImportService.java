@@ -4,6 +4,8 @@ import com.ppms.ancillary.AncillarySaleRepository;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditPaymentRepository;
@@ -72,7 +74,7 @@ public class BankStatementImportService {
     public List<StatementLineResponse> getLines(Long pumpId, Long importId) {
         importRepository.findById(importId)
                 .filter(found -> found.getPumpId().equals(pumpId))
-                .orElseThrow(() -> new ResourceNotFoundException("Import not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.STATEMENT_IMPORT, "Import not found"));
 
         return lineRepository.findByImportIdOrderByTxnDateAscIdAsc(importId).stream()
                 .map(this::toLineResponse)
@@ -87,25 +89,29 @@ public class BankStatementImportService {
     public ImportSummaryResponse importStatement(Long pumpId, MultipartFile file, String bankName,
                                                  String accountNumber, User currentUser) {
         if (file.isEmpty()) {
-            throw new BusinessException("Uploaded file is empty");
+            throw new BusinessException(ErrorCodes.BANK_STATEMENT_FILE_EMPTY, Map.of(), "Uploaded file is empty");
         }
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".csv")) {
-            throw new BusinessException("Only CSV files are accepted");
+            throw new BusinessException(ErrorCodes.BANK_STATEMENT_NOT_CSV, Map.of(), "Only CSV files are accepted");
         }
 
         ParsedStatement parsed = parse(pumpId, file);
         if (parsed.lines().isEmpty()) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.BANK_STATEMENT_NO_ROWS, Map.of(),
                     "No valid transaction rows found in the uploaded file. " +
                     "Ensure the CSV format is: Date, Narration, Debit, Credit, Balance, UTR");
         }
 
         pumpLocationRepository.findByIdForUpdate(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found: " + pumpId));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found: " + pumpId));
         String fileHash = sha256Hex(file);
         importRepository.findFirstByPumpIdAndFileHash(pumpId, fileHash).ifPresent(existing -> {
-            throw new BusinessException("This statement file was already imported on "
+            throw new BusinessException(ErrorCodes.BANK_STATEMENT_ALREADY_IMPORTED,
+                    Map.of("importedOn", existing.getImportedAt().atZoneSameInstant(businessClock.zone()).toLocalDate().toString(),
+                           "fromDate", String.valueOf(existing.getStatementFromDate()),
+                           "toDate", String.valueOf(existing.getStatementToDate())),
+                    "This statement file was already imported on "
                     + existing.getImportedAt().atZoneSameInstant(businessClock.zone()).toLocalDate()
                     + " (" + existing.getStatementFromDate() + " to " + existing.getStatementToDate() + ").");
         });
@@ -156,7 +162,10 @@ public class BankStatementImportService {
         }
         List<String> alreadyImported = lineRepository.findImportedUtrReferences(pumpId, utrReferences);
         if (!alreadyImported.isEmpty()) {
-            throw new BusinessException(alreadyImported.size() + " line(s) of this statement were already imported (UTR "
+            throw new BusinessException(ErrorCodes.BANK_STATEMENT_UTR_ALREADY_IMPORTED,
+                    Map.of("count", alreadyImported.size(),
+                           "utrReferences", alreadyImported.stream().sorted().limit(3).collect(Collectors.joining(", ")) + (alreadyImported.size() > 3 ? ", …" : "")),
+                    alreadyImported.size() + " line(s) of this statement were already imported (UTR "
                     + alreadyImported.stream().sorted().limit(3).collect(Collectors.joining(", "))
                     + (alreadyImported.size() > 3 ? ", …" : "")
                     + "). Export a statement that starts after the last import.");
@@ -168,7 +177,9 @@ public class BankStatementImportService {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(file.getBytes()));
         } catch (IOException ex) {
             log.warn("CSV read error while hashing statement: {}", ex.getMessage(), ex);
-            throw new BusinessException("Failed to read the uploaded file. Ensure it is a valid CSV with the required columns.");
+            throw new BusinessException(ErrorCodes.BANK_STATEMENT_UNREADABLE,
+                    Map.of(),
+                    "Failed to read the uploaded file. Ensure it is a valid CSV with the required columns.");
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 is not available on this JVM", ex);
         }
@@ -182,20 +193,26 @@ public class BankStatementImportService {
     @Transactional
     public StatementLineResponse updateLineMatch(Long pumpId, Long lineId, Map<String, Object> body) {
         BankStatementLine line = lineRepository.findById(lineId)
-                .orElseThrow(() -> new ResourceNotFoundException("Statement line not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.STATEMENT_LINE,
+                        "Statement line not found"));
 
         BankStatementImport statementImport = importRepository.findById(line.getImportId())
                 .filter(found -> found.getPumpId().equals(pumpId))
-                .orElseThrow(() -> new ResourceNotFoundException("Statement line not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.STATEMENT_LINE,
+                        "Statement line not found"));
 
         String statusStr = (String) body.get("status");
-        if (statusStr == null) throw new BusinessException("status is required (MATCHED or IGNORED)");
+        if (statusStr == null) throw new BusinessException(ErrorCodes.BANK_LINE_STATUS_REQUIRED,
+                Map.of(),
+                "status is required (MATCHED or IGNORED)");
 
         BankLineMatchStatus newStatus;
         try {
             newStatus = BankLineMatchStatus.valueOf(statusStr.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new BusinessException("Invalid status. Allowed: MATCHED, IGNORED, UNMATCHED");
+            throw new BusinessException(ErrorCodes.BANK_LINE_STATUS_INVALID,
+                    Map.of(),
+                    "Invalid status. Allowed: MATCHED, IGNORED, UNMATCHED");
         }
 
         Long matchedShiftId = null;
@@ -208,15 +225,22 @@ public class BankStatementImportService {
             matchedPaymentId = extractLong(body, "matchedPaymentId");
             long linkedCount = Stream.of(matchedShiftId, matchedSaleId, matchedPaymentId).filter(Objects::nonNull).count();
             if (linkedCount != 1) {
-                throw new BusinessException("A matched line must be linked to exactly one shift, sale or credit payment.");
+                throw new BusinessException(ErrorCodes.BANK_LINE_MATCH_TARGET_REQUIRED,
+                        Map.of(),
+                        "A matched line must be linked to exactly one shift, sale or credit payment.");
             }
             BigDecimal linkedAmount = linkedAmount(pumpId, matchedShiftId, matchedSaleId, matchedPaymentId);
             if (matchedPaymentId != null && lineRepository.existsByMatchedPaymentIdAndIdNot(matchedPaymentId, lineId)) {
-                throw new BusinessException("Credit payment #" + matchedPaymentId
+                throw new BusinessException(ErrorCodes.BANK_LINE_PAYMENT_ALREADY_MATCHED,
+                        Map.of("paymentId", matchedPaymentId),
+                        "Credit payment #" + matchedPaymentId
                         + " is already matched to another bank line. Unmatch that line first.");
             }
             if (linkedAmount.compareTo(line.getCreditAmount()) != 0 && (matchNotes == null || matchNotes.isBlank())) {
-                throw new BusinessException("The line's credit of ₹" + line.getCreditAmount()
+                throw new BusinessException(ErrorCodes.BANK_LINE_AMOUNT_MISMATCH_NOTE_REQUIRED,
+                        Map.of("lineAmount", line.getCreditAmount().toPlainString(),
+                               "linkedAmount", linkedAmount.toPlainString()),
+                        "The line's credit of ₹" + line.getCreditAmount()
                         + " does not equal the linked amount of ₹" + linkedAmount
                         + ". Add a note explaining the difference to match it anyway.");
             }
@@ -265,7 +289,9 @@ public class BankStatementImportService {
             }
         } catch (IOException ex) {
             log.warn("CSV read error for pump={}: {}", pumpId, ex.getMessage(), ex);
-            throw new BusinessException("Failed to read the uploaded file. Ensure it is a valid CSV with the required columns.");
+            throw new BusinessException(ErrorCodes.BANK_STATEMENT_UNREADABLE,
+                    Map.of(),
+                    "Failed to read the uploaded file. Ensure it is a valid CSV with the required columns.");
         }
         return new ParsedStatement(lines, skippedRows, minDate, maxDate);
     }
@@ -308,7 +334,7 @@ public class BankStatementImportService {
         if (shiftId != null) {
             Shift shift = shiftRepository.findById(shiftId)
                     .filter(found -> found.getPumpId().equals(pumpId))
-                    .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException(EntityType.SHIFT, "Shift not found"));
             return orZero(shift.getUpiCollected()).add(orZero(shift.getCardCollected()))
                     .add(orZero(shift.getFleetCardCollected())).setScale(2, RoundingMode.HALF_UP);
         }
@@ -316,12 +342,12 @@ public class BankStatementImportService {
             return ancillarySaleRepository.findById(saleId)
                     .filter(found -> found.getPumpId().equals(pumpId))
                     .map(sale -> sale.getTotalWithGst().setScale(2, RoundingMode.HALF_UP))
-                    .orElseThrow(() -> new ResourceNotFoundException("Sale not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException(EntityType.SALE, "Sale not found"));
         }
         return creditPaymentRepository.findById(paymentId)
                 .filter(found -> found.getPumpId().equals(pumpId))
                 .map(payment -> payment.getAmount().setScale(2, RoundingMode.HALF_UP))
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PAYMENT, "Payment not found"));
     }
 
     private static BigDecimal orZero(BigDecimal amount) {

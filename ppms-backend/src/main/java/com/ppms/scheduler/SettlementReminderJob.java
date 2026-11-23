@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Fires daily settlement reminder notifications after the configured alert time (per pump, per type).
@@ -67,7 +68,8 @@ public class SettlementReminderJob {
                     today,
                     typeLabel + " Settlement Reminder",
                     "Record today's " + typeLabel + " settlement — amount received in bank account. " +
-                    "Go to Settlements to log the credit."
+                    "Go to Settlements to log the credit.",
+                    Map.of("paymentTypeCode", type)
             );
             fired++;
         }

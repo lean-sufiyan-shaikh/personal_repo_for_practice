@@ -1,5 +1,6 @@
 package com.ppms.pump;
 
+import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.fuel.FuelType;
@@ -38,7 +39,7 @@ public class SetupChecklistService {
     @Transactional(readOnly = true)
     public SetupChecklistResponse getChecklist(Long pumpId) {
         PumpLocation pump = pumpLocationRepository.findById(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found: " + pumpId));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found: " + pumpId));
         return checklistsFor(List.of(pump)).get(pumpId);
     }
 

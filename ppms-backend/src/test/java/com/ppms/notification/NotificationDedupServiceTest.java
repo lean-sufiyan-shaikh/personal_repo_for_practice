@@ -11,12 +11,14 @@ import com.ppms.user.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** A daily alert keeps one current copy per pump and series, so an unread yesterday's copy never doubles up with today's. */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({PostgresTestContainerConfig.class, NotificationDedupService.class})
+@Import({PostgresTestContainerConfig.class, NotificationDedupService.class, JacksonAutoConfiguration.class})
 class NotificationDedupServiceTest {
 
     private static final LocalDate YESTERDAY = LocalDate.of(2026, 11, 9);
@@ -72,7 +74,8 @@ class NotificationDedupServiceTest {
     @Test
     void otherSeriesAndOtherPumpsAreLeftAlone() {
         String cardSeries = "SETTLEMENT_REMINDER:CARD:" + pumpId;
-        dedupService.insertDaily(pumpId, NotificationType.SETTLEMENT_REMINDER, cardSeries, YESTERDAY, "Card Settlement Reminder", "Record it");
+        dedupService.insertDaily(pumpId, NotificationType.SETTLEMENT_REMINDER, cardSeries, YESTERDAY, "Card Settlement Reminder", "Record it",
+                Map.of("paymentTypeCode", "CARD"));
         upiReminder(otherPumpId, YESTERDAY);
 
         upiReminder(pumpId, TODAY);
@@ -83,7 +86,7 @@ class NotificationDedupServiceTest {
 
     private void upiReminder(Long pump, LocalDate day) {
         dedupService.insertDaily(pump, NotificationType.SETTLEMENT_REMINDER, upiSeries(pump), day,
-                "UPI Settlement Reminder", "Record today's UPI settlement");
+                "UPI Settlement Reminder", "Record today's UPI settlement", Map.of("paymentTypeCode", "UPI"));
     }
 
     private static String upiSeries(Long pump) {

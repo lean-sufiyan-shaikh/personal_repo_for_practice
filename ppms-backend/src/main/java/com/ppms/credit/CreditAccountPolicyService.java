@@ -2,6 +2,7 @@ package com.ppms.credit;
 
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import jakarta.persistence.EntityManager;
@@ -44,14 +45,18 @@ public class CreditAccountPolicyService {
         if (clientId != null) {
             return creditClientRepository.findById(clientId)
                     .filter(client -> client.getPumpId().equals(pumpId))
-                    .orElseThrow(() -> new BusinessException(
+                    .orElseThrow(() -> new BusinessException(ErrorCodes.CREDIT_CLIENT_NOT_AT_PUMP,
+                            Map.of("clientId", clientId),
                             "Credit client #" + clientId + " does not exist at this pump. Pick a client from the list."));
         }
         if (clientName == null || clientName.isBlank()) {
-            throw new BusinessException("Pick a credit client for every credit entry.");
+            throw new BusinessException(ErrorCodes.CREDIT_CLIENT_REQUIRED_FOR_ENTRY,
+                    Map.of(),
+                    "Pick a credit client for every credit entry.");
         }
         return creditClientRepository.findByPumpIdAndName(pumpId, clientName.trim())
-                .orElseThrow(() -> new BusinessException(
+                .orElseThrow(() -> new BusinessException(ErrorCodes.CREDIT_CLIENT_NAME_NOT_AT_PUMP,
+                        Map.of("clientName", clientName.trim()),
                         "No credit client named '" + clientName.trim() + "' exists at this pump. "
                                 + "Add the client on the Credit page first, then pick it from the list."));
     }
@@ -67,9 +72,12 @@ public class CreditAccountPolicyService {
             return;
         }
         CreditClient parent = creditClientRepository.findById(client.getParentClientId())
-                .orElseThrow(() -> new ResourceNotFoundException("Credit client not found: " + client.getParentClientId()));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_CLIENT,
+                        "Credit client not found: " + client.getParentClientId()));
         if (!parent.isActive()) {
-            throw new BusinessException("Credit is disabled for '" + client.getName() + "' because its parent account '"
+            throw new BusinessException(ErrorCodes.CREDIT_PARENT_ACCOUNT_DISABLED,
+                    Map.of("clientName", client.getName(), "parentName", parent.getName()),
+                    "Credit is disabled for '" + client.getName() + "' because its parent account '"
                     + parent.getName() + "' is disabled.");
         }
     }
@@ -89,7 +97,8 @@ public class CreditAccountPolicyService {
 
         for (Map.Entry<Long, BigDecimal> holderAmount : amountByHolderId.entrySet()) {
             CreditClient limitHolder = creditClientRepository.findById(holderAmount.getKey())
-                    .orElseThrow(() -> new ResourceNotFoundException("Credit client not found: " + holderAmount.getKey()));
+                    .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_CLIENT,
+                            "Credit client not found: " + holderAmount.getKey()));
             if (limitHolder.getCreditLimit().compareTo(BigDecimal.ZERO) <= 0) {
                 continue;
             }
@@ -123,7 +132,8 @@ public class CreditAccountPolicyService {
     public CreditClient lockLimitHolder(CreditClient client) {
         Long holderId = limitHolderId(client);
         CreditClient holder = creditClientRepository.findByIdForUpdate(holderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Credit client not found: " + holderId));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_CLIENT,
+                        "Credit client not found: " + holderId));
         entityManager.refresh(holder);
         return holder;
     }
@@ -140,7 +150,8 @@ public class CreditAccountPolicyService {
     @Transactional(propagation = Propagation.MANDATORY)
     public void lockLimitHolderOfClient(Long clientId) {
         CreditClient client = creditClientRepository.findById(clientId)
-                .orElseThrow(() -> new ResourceNotFoundException("Credit client not found: " + clientId));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_CLIENT,
+                        "Credit client not found: " + clientId));
         lockLimitHolder(client);
     }
 
@@ -149,7 +160,8 @@ public class CreditAccountPolicyService {
     public void lockLimitHolders(Collection<Long> holderIds) {
         for (Long holderId : new TreeSet<>(holderIds)) {
             CreditClient holder = creditClientRepository.findByIdForUpdate(holderId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Credit client not found: " + holderId));
+                    .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_CLIENT,
+                            "Credit client not found: " + holderId));
             entityManager.refresh(holder);
         }
     }
@@ -189,7 +201,8 @@ public class CreditAccountPolicyService {
         }
 
         if (!hasCycleWaiver(activeExtensions) && isBillingCycleOverdue(limitHolder)) {
-            throw new BusinessException(ErrorCodes.CREDIT_BILLING_CYCLE_OVERDUE, Map.of("clientName", limitHolder.getName()),
+            throw new BusinessException(ErrorCodes.CREDIT_BILLING_CYCLE_OVERDUE,
+                    Map.of("clientName", limitHolder.getName()),
                     "Credit sales blocked for '" + limitHolder.getName() + "': billing cycle overdue. " +
                             "The client must settle their outstanding balance or an Admin/Owner must grant a Credit Extension.");
         }

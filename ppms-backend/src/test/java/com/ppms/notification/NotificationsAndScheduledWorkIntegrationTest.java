@@ -130,7 +130,8 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
     @Test
     void notificationsCarryThePageTheyOpen() throws Exception {
         notificationDedupService.maybeInsert(setup.pumpId(), NotificationType.ZERO_SALE_SHIFT,
-                "ZERO_SALE_SHIFT:shift:4242", "Zero-Sale Shift Detected", "Shift #4242 recorded nothing");
+                "ZERO_SALE_SHIFT:shift:4242", "Zero-Sale Shift Detected", "Shift #4242 recorded nothing",
+                Map.of("shiftName", "Morning", "shiftId", 4242));
 
         JsonNode unread = json(perform(get("/api/pumps/{pumpId}/notifications", setup.pumpId()), setup.manager())
                 .andExpect(status().isOk()));
@@ -139,6 +140,21 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
         assertThat(zeroSale.get("target").get("params").get("shift").asText()).isEqualTo("4242");
         assertThat(zeroSale.get("read").asBoolean()).isFalse();
         assertThat(zeroSale.has("createdAt")).isTrue();
+    }
+
+    @Test
+    void notificationsCarryTheCodeAndParamsTheirTextWasBuiltFrom() throws Exception {
+        notificationDedupService.maybeInsert(setup.pumpId(), NotificationType.DOCUMENT_EXPIRING,
+                "DOCUMENT_EXPIRING:doc:77:2026-01-01:EXPIRED", "Document Expired", "Licence (LICENCE) expired on 2026-01-01",
+                Map.of("documentName", "Licence", "documentType", "LICENCE", "expiryDate", "2026-01-01"));
+
+        JsonNode unread = json(perform(get("/api/pumps/{pumpId}/notifications", setup.pumpId()), setup.manager())
+                .andExpect(status().isOk()));
+        JsonNode expired = findByType(unread.get("notifications"), "DOCUMENT_EXPIRING");
+        assertThat(expired.get("code").asText()).isEqualTo("DOCUMENT_EXPIRED");
+        assertThat(expired.get("params").get("documentName").asText()).isEqualTo("Licence");
+        assertThat(expired.get("params").get("expiryDate").asText()).isEqualTo("2026-01-01");
+        assertThat(expired.get("message").asText()).isEqualTo("Licence (LICENCE) expired on 2026-01-01");
     }
 
     @Test
@@ -260,7 +276,7 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
 
     private long insertNotification(NotificationType type) {
         String dedupKey = type + ":test:" + shortId();
-        notificationDedupService.maybeInsert(setup.pumpId(), type, dedupKey, "Test alert", "Test message");
+        notificationDedupService.maybeInsert(setup.pumpId(), type, dedupKey, "Test alert", "Test message", Map.of());
         return notificationRepository.findAll().stream()
                 .filter(notification -> dedupKey.equals(notification.getDedupKey()))
                 .findFirst()

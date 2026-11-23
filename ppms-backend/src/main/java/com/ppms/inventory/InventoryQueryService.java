@@ -2,6 +2,7 @@ package com.ppms.inventory;
 
 import com.ppms.common.dto.PageRequests;
 import com.ppms.common.dto.PagedResponse;
+import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTank;
@@ -76,7 +77,7 @@ public class InventoryQueryService {
     public List<OpenShiftNozzleResponse> getOpenShiftNozzles(Long pumpId, Long tankId) {
         UndergroundTank tank = tankRepository.findById(tankId)
                 .filter(found -> found.getPumpId().equals(pumpId))
-                .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.TANK, "Tank not found"));
         return openShiftMeterService.findOpenShiftNozzles(tank);
     }
 
@@ -105,9 +106,9 @@ public class InventoryQueryService {
     /** Active FIFO lots of one tank, oldest first, with each delivery's invoice reference. */
     public List<InventoryLotDetailResponse> getActiveTankLots(Long pumpId, Long tankId) {
         UndergroundTank tank = tankRepository.findById(tankId)
-                .orElseThrow(() -> new ResourceNotFoundException("Tank not found: " + tankId));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.TANK, "Tank not found: " + tankId));
         if (!tank.getPumpId().equals(pumpId)) {
-            throw new ResourceNotFoundException("Tank not found");
+            throw new ResourceNotFoundException(EntityType.TANK, "Tank not found");
         }
 
         List<InventoryLot> lots = inventoryLotRepository.findActiveLotsByTankForDisplay(tankId);

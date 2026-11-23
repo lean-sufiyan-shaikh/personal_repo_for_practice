@@ -30,6 +30,10 @@ export interface Notification {
   /** Whether the signed-in user has read it; other users keep their own read state. */
   read: boolean
   target: NotificationTarget
+  /** Names title and message in enums.json notifications; null on old notifications, which show title and message as stored. */
+  code?: string | null
+  /** The values title and message were built from. */
+  params?: Record<string, unknown> | null
 }
 
 /** The newest notifications the signed-in user has not read (at most 100), and their total unread count. */

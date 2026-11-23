@@ -2,6 +2,8 @@ package com.ppms.superadmin;
 
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -45,7 +48,7 @@ public class OnboardOwnerService {
     @Transactional
     public OnboardOwnerResponse onboard(OnboardOwnerRequest request, User superAdmin) {
         if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.USER_PHONE_ALREADY_EXISTS, Map.of(),
                     "A user with phone number " + request.getPhoneNumber() + " already exists");
         }
 
@@ -99,10 +102,11 @@ public class OnboardOwnerService {
     @Transactional
     public OwnerSummaryResponse addPump(Long ownerId, AddPumpRequest request, User superAdmin) {
         User owner = userRepository.findById(ownerId)
-                .orElseThrow(() -> new BusinessException("Owner not found: " + ownerId));
+                .orElseThrow(() -> new BusinessException(ErrorCodes.OWNER_ACCOUNT_NOT_FOUND, Map.of("ownerId", ownerId),
+                        "Owner not found: " + ownerId));
 
         if (owner.getRole() != UserRole.OWNER) {
-            throw new BusinessException("User is not an owner");
+            throw new BusinessException(ErrorCodes.USER_NOT_OWNER, Map.of(), "User is not an owner");
         }
 
         PumpLocation pump = PumpLocation.builder()
@@ -127,7 +131,7 @@ public class OnboardOwnerService {
     @Transactional
     public OwnerSummaryResponse updatePump(Long pumpId, UpdatePumpRequest request, User superAdmin) {
         PumpLocation pump = pumpLocationRepository.findByIdForUpdate(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pump not found: " + pumpId));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found: " + pumpId));
 
         boolean suspending = pump.isEnabled() && !request.getEnabled();
         boolean enabling = !pump.isEnabled() && request.getEnabled();
@@ -136,7 +140,9 @@ public class OnboardOwnerService {
                     .filter(shift -> shift.getStatus() == ShiftStatus.OPEN || shift.getStatus() == ShiftStatus.OPEN_OVERDUE)
                     .count();
             if (openShifts > 0) {
-                throw new BusinessException("Pump '" + pump.getName() + "' has " + openShifts
+                throw new BusinessException(ErrorCodes.PUMP_SUSPEND_BLOCKED_BY_OPEN_SHIFTS,
+                        Map.of("pumpName", pump.getName(), "openShiftCount", openShifts),
+                        "Pump '" + pump.getName() + "' has " + openShifts
                         + " open shift(s). Ask the owner to close them before suspending the pump.");
             }
         }
@@ -167,7 +173,8 @@ public class OnboardOwnerService {
                 pumpId, pump.getName(), pump.getAddress(), pump.isEnabled());
 
         User owner = userRepository.findById(pump.getOwnerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Owner not found for pump: " + pumpId));
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.OWNER,
+                        "Owner not found for pump: " + pumpId));
         return ownerSummaryAssembler.buildOwnerSummary(owner);
     }
 

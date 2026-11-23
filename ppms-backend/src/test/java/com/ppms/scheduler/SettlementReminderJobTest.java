@@ -14,8 +14,10 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -37,7 +39,7 @@ class SettlementReminderJobTest {
 
         jobRunningAt("17:59").fireReminders();
 
-        verify(dedupService, never()).insertDaily(any(), any(), anyString(), any(), anyString(), anyString());
+        verify(dedupService, never()).insertDaily(any(), any(), anyString(), any(), anyString(), anyString(), anyMap());
     }
 
     @Test
@@ -47,7 +49,8 @@ class SettlementReminderJobTest {
         jobRunningAt("18:00").fireReminders();
 
         verify(dedupService).insertDaily(eq(PUMP_ID), eq(NotificationType.SETTLEMENT_REMINDER),
-                eq("SETTLEMENT_REMINDER:UPI:" + PUMP_ID), eq(TODAY), eq("UPI Settlement Reminder"), anyString());
+                eq("SETTLEMENT_REMINDER:UPI:" + PUMP_ID), eq(TODAY), eq("UPI Settlement Reminder"), anyString(),
+                eq(Map.of("paymentTypeCode", "UPI")));
     }
 
     @Test
@@ -60,7 +63,7 @@ class SettlementReminderJobTest {
                 .fireReminders();
 
         verify(dedupService).insertDaily(eq(PUMP_ID), eq(NotificationType.SETTLEMENT_REMINDER),
-                eq("SETTLEMENT_REMINDER:UPI:" + PUMP_ID), eq(TODAY), anyString(), anyString());
+                eq("SETTLEMENT_REMINDER:UPI:" + PUMP_ID), eq(TODAY), anyString(), anyString(), anyMap());
     }
 
     private void givenUpiAlertAt(String alertTime) {

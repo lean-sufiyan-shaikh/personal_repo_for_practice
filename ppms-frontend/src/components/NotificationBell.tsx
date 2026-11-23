@@ -9,7 +9,7 @@ import { notificationApi } from '../api/notificationApi'
 import { useAuthStore } from '../store/authStore'
 import { formatIstDateTime, withReadableDates } from '../utils/date'
 import { relativeTime } from '../utils/relativeTime'
-import { groupIdenticalNotifications } from './notificationGroups'
+import { groupIdenticalNotifications, notificationText } from './notificationGroups'
 import { openableHref } from './notificationLinks'
 import { NotificationTypeIcon } from './NotificationTypeIcon'
 
@@ -120,12 +120,13 @@ export default function NotificationBell({ pumpId }: Props) {
             <ul className="max-h-80 overflow-y-auto divide-y divide-border">
               {groups.map(({ latest: n, count, ids }) => {
                 const href = openableHref(n.target, role)
+                const text = notificationText(n)
                 const body = (
                   <div className="flex items-start gap-2">
                     <NotificationTypeIcon type={n.type} />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-ink">
-                        <span className="sr-only">{t('notifications.unreadPrefix')}</span>{n.title}
+                        <span className="sr-only">{t('notifications.unreadPrefix')}</span>{text.title}
                         {count > 1 && (
                           <span className="ml-1.5 rounded-badge bg-surface-sunken px-1.5 py-0.5 text-xs font-medium text-ink-2">
                             <span aria-hidden="true">×{count}</span>
@@ -133,7 +134,7 @@ export default function NotificationBell({ pumpId }: Props) {
                           </span>
                         )}
                       </p>
-                      <p className="mt-1 text-sm leading-relaxed text-ink-3">{withReadableDates(n.message)}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-ink-3">{withReadableDates(text.message)}</p>
                       <time dateTime={n.createdAt} title={formatIstDateTime(n.createdAt)} className="mt-1 block text-xs text-ink-3">
                         {relativeTime(n.createdAt, new Date(now))}
                       </time>

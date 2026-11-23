@@ -67,10 +67,14 @@ public class AuthService {
     @Transactional
     public void changePassword(User currentUser, String currentPassword, String newPassword) {
         User user = userRepository.findByIdForUpdate(currentUser.getId())
-                .orElseThrow(() -> new BusinessException("User not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCodes.USER_ACCOUNT_NOT_FOUND,
+                        Map.of(),
+                        "User not found"));
 
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
-            throw new BusinessException(ErrorCodes.CURRENT_PASSWORD_INCORRECT, Map.of(), "Current password is incorrect.");
+            throw new BusinessException(ErrorCodes.CURRENT_PASSWORD_INCORRECT,
+                    Map.of(),
+                    "Current password is incorrect.");
         }
 
         if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {

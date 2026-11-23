@@ -1,6 +1,7 @@
 package com.ppms.inventory;
 
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.pump.DispensaryUnit;
 import com.ppms.pump.DispensaryUnitRepository;
 import com.ppms.pump.Nozzle;
@@ -66,7 +67,8 @@ public class OpenShiftMeterService {
 
         Set<Long> openNozzleIds = openings.stream().map(ShiftFuelReading::getNozzleId).collect(Collectors.toSet());
         if (!openNozzleIds.containsAll(readingByNozzleId.keySet())) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.METER_READING_FOR_NOZZLE_WITHOUT_OPEN_SHIFT,
+                    Map.of("tankIdentifier", tank.getTankIdentifier()),
                     "A meter reading was entered for a nozzle that is not on an open shift drawing from tank '" +
                     tank.getTankIdentifier() + "'. The shift may have just closed — reload and enter the readings again.");
         }
@@ -79,7 +81,11 @@ public class OpenShiftMeterService {
                         " (opened at " + opening.getStartReading().toPlainString() + ")")
                 .toList();
         if (!missing.isEmpty()) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.OPEN_SHIFT_METER_READINGS_MISSING,
+                    Map.of("tankIdentifier", tank.getTankIdentifier(), "nozzleNumbers", openings.stream()
+                            .filter(opening -> !readingByNozzleId.containsKey(opening.getNozzleId()))
+                            .map(opening -> "#" + nozzleById.get(opening.getNozzleId()).getNozzleNumber())
+                            .collect(Collectors.joining(", "))),
                     "Tank '" + tank.getTankIdentifier() + "' supplies a shift that is still open. Enter the current " +
                     "meter reading of " + String.join(", ", missing) + " so the fuel sold so far is not counted as a loss.");
         }
@@ -91,13 +97,19 @@ public class OpenShiftMeterService {
             BigDecimal meterReading = readingByNozzleId.get(opening.getNozzleId()).setScale(3, RoundingMode.HALF_UP);
             BigDecimal maxMeter = nozzle.getMaxMeterValue();
             if (meterReading.compareTo(maxMeter) > 0) {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.METER_READING_ABOVE_MAXIMUM,
+                        Map.of("meterReading", meterReading.toPlainString(),
+                               "nozzleNumber", nozzle.getNozzleNumber(),
+                               "maxMeterValue", maxMeter.toPlainString()),
                         "Meter reading " + meterReading.toPlainString() + " for " + label + " exceeds the maximum " +
                         "meter value of " + maxMeter.toPlainString() + ". Please verify the meter reading.");
             }
             if (meterReading.compareTo(opening.getStartReading()) < 0
                     && !MeterRollover.canRollOverFrom(opening.getStartReading(), maxMeter)) {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.METER_READING_BELOW_SHIFT_OPENING,
+                        Map.of("meterReading", meterReading.toPlainString(),
+                               "nozzleNumber", nozzle.getNozzleNumber(),
+                               "openingReading", opening.getStartReading().toPlainString()),
                         "Meter reading " + meterReading.toPlainString() + " for " + label + " is below the shift's " +
                         "opening reading " + opening.getStartReading().toPlainString() + ". Please verify the meter reading.");
             }
@@ -119,7 +131,8 @@ public class OpenShiftMeterService {
         }
         for (RecordDipCheckRequest.NozzleMeterReading reading : meterReadings) {
             if (readingByNozzleId.put(reading.nozzleId(), reading.meterReading()) != null) {
-                throw new BusinessException("Each nozzle can only appear once in the request.");
+                throw new BusinessException(ErrorCodes.NOZZLE_REPEATED_IN_REQUEST, Map.of(),
+                        "Each nozzle can only appear once in the request.");
             }
         }
         return readingByNozzleId;
