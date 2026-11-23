@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, ChevronRight, Clock, Gauge, IndianRupee, Zap } from 'lucide-react'
@@ -6,6 +7,8 @@ import { Reveal } from '../../../components/Reveal'
 import { SkeletonRows, SkeletonStat } from '../../../components/Skeleton'
 import { MoneyText } from '../../../components/AmountText'
 import { StatusBadge } from '../../../components/StatusBadge'
+import { DashboardColumns, KpiRow } from '../../../components/layout/DashboardGrid'
+import { PageSection } from '../../../components/layout/PageSection'
 import { usePumpStore } from '../../../store/usePumpStore'
 import { StatCard } from './StatCard'
 
@@ -74,8 +77,11 @@ function PumpRow({ pump, onSelect }: { pump: PumpOverviewSummary; onSelect: (pum
   )
 }
 
-/** Today's totals across all of the user's pumps, with one row per pump that opens that pump's own overview. */
-export function AllPumpsOverview({ onPumpSelected }: { onPumpSelected: () => void }) {
+/**
+ * Today's totals across all of the user's pumps, then the pump list (one row per pump, opening that pump's own overview)
+ * beside the attention inbox on desktop.
+ */
+export function AllPumpsOverview({ onPumpSelected, attention }: { onPumpSelected: () => void; attention?: ReactNode }) {
   const { t } = useTranslation(['dashboard', 'common'])
   const setSelectedPumpId = usePumpStore(state => state.setSelectedPumpId)
 
@@ -101,7 +107,7 @@ export function AllPumpsOverview({ onPumpSelected }: { onPumpSelected: () => voi
   if (isLoading || !overview) {
     return (
       <div className="space-y-5" aria-busy="true" aria-label={t('allPumps.loading')}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="ui-kpi-row">
           <SkeletonStat />
           <SkeletonStat />
           <SkeletonStat />
@@ -117,9 +123,9 @@ export function AllPumpsOverview({ onPumpSelected }: { onPumpSelected: () => voi
   const { totals, pumps } = overview
 
   return (
-    <div className="space-y-5">
+    <>
       <Reveal delay={150}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiRow label={t('stats.label')}>
           <StatCard
             label={t('stats.activeShifts')}
             value={totals.openShiftCount}
@@ -152,22 +158,21 @@ export function AllPumpsOverview({ onPumpSelected }: { onPumpSelected: () => voi
             icon={AlertTriangle}
             alert={totals.stalePricePumpCount > 0}
           />
-        </div>
+        </KpiRow>
       </Reveal>
 
-      <Reveal delay={195}>
-        <section aria-label={t('allPumps.pumps')} className="ui-card p-0 overflow-hidden">
-          <div className="ui-toolbar">
-            <p className="ui-toolbar-title">{t('allPumps.pumps')}</p>
-            <p className="text-xs text-ink-3">{t('allPumps.selectHint')}</p>
-          </div>
-          <div className="ui-record-list">
-            {pumps.map(pump => (
-              <PumpRow key={pump.pumpId} pump={pump} onSelect={selectPump} />
-            ))}
-          </div>
-        </section>
-      </Reveal>
-    </div>
+      <DashboardColumns>
+        {attention}
+        <Reveal delay={195}>
+          <PageSection title={t('allPumps.pumps')} description={t('allPumps.selectHint')} flush>
+            <div className="ui-record-list">
+              {pumps.map(pump => (
+                <PumpRow key={pump.pumpId} pump={pump} onSelect={selectPump} />
+              ))}
+            </div>
+          </PageSection>
+        </Reveal>
+      </DashboardColumns>
+    </>
   )
 }

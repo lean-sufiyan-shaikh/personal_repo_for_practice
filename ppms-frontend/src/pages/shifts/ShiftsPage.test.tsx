@@ -17,6 +17,7 @@ vi.mock('../../api/shiftApi', () => ({
     addCreditEntry: vi.fn(),
   },
 }))
+vi.mock('./OpenShiftModal', () => ({ default: () => <div role="dialog" aria-label="Open shift form" /> }))
 vi.mock('../../api/pumpApi', () => ({
   pumpApi: { getMyPumps: vi.fn().mockResolvedValue([]), getCreditClients: vi.fn().mockResolvedValue([]) },
 }))
@@ -78,6 +79,30 @@ describe('ShiftsPage', () => {
     expect(await screen.findByText('No active shifts. Tap Open Shift to start one.')).toBeInTheDocument()
   })
 
+  it('heads the page with its title, the open-shift count and the Open Shift action', async () => {
+    signIn('MANAGER')
+    renderWithProviders(<ShiftsPage />)
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Shifts' })).toBeInTheDocument()
+    expect(await screen.findByText('1 open now')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Active Shifts' })).toBeInTheDocument()
+  })
+
+  it('opens the Open Shift form from the address, as the Jump to… palette links it', async () => {
+    signIn('MANAGER')
+    renderWithProviders(<ShiftsPage />, { route: '/dashboard/shifts?action=open-shift' })
+
+    expect(await screen.findByRole('dialog', { name: 'Open shift form' })).toBeInTheDocument()
+  })
+
+  it('ignores the open-shift address for a role that cannot open shifts', async () => {
+    signIn('OPERATOR')
+    renderWithProviders(<ShiftsPage />, { route: '/dashboard/shifts?action=open-shift' })
+
+    await screen.findByText('Asha')
+    expect(screen.queryByRole('dialog', { name: 'Open shift form' })).not.toBeInTheDocument()
+  })
+
   it('shows Open Shift and Close to a manager', async () => {
     signIn('MANAGER')
     renderWithProviders(<ShiftsPage />)
@@ -109,9 +134,9 @@ describe('ShiftsPage', () => {
 
     expect(await screen.findByText('My Active Shifts')).toBeInTheDocument()
     expect(screen.getByText('My Shift History')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'By Day' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'All Shifts' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Discrepancies' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'By Day' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'All Shifts' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Discrepancies' })).not.toBeInTheDocument()
   })
 
   it('shows a manager every shift view including Discrepancies', async () => {
@@ -119,6 +144,6 @@ describe('ShiftsPage', () => {
     renderWithProviders(<ShiftsPage />)
 
     expect(await screen.findByText('Active Shifts')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Discrepancies' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Discrepancies' })).toHaveAttribute('href', '/?history=discrepancies')
   })
 })

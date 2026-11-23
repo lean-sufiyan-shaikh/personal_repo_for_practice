@@ -8,6 +8,9 @@ import { useNow } from '../../hooks/useNow'
 import { SkeletonRows } from '../../components/Skeleton'
 import { MyShiftCard } from './active/MyShiftCard'
 import { AddCreditEntryModal } from './modals/AddCreditEntryModal'
+import { Page } from '../../components/layout/Page'
+import { PageHeader } from '../../components/layout/PageHeader'
+import { StickyActions } from '../../components/layout/StickyActions'
 
 export default function MyShiftPage() {
   const { t } = useTranslation(['shifts', 'common'])
@@ -31,8 +34,8 @@ export default function MyShiftPage() {
   const shiftForCredit = myShifts.find((shift) => shift.id === shiftIdForCredit) ?? null
 
   return (
-    <div className="ui-page ui-page--narrow flex min-h-full flex-col gap-4">
-      <h1 className="ui-title-sm">{t('myShift.title')}</h1>
+    <Page className="min-h-full">
+      <PageHeader title={t('myShift.title')} />
 
       {!pumpId ? (
         <div className="ui-alert ui-alert-warning text-sm">
@@ -54,7 +57,7 @@ export default function MyShiftPage() {
           {myShifts.map((shift) => (
             <MyShiftCard key={shift.id} shift={shift} currentPrices={currentPrices} now={now} />
           ))}
-          <div className="ui-sticky-action">
+          <StickyActions>
             {myShifts.map((shift) => (
               <button
                 key={shift.id}
@@ -65,13 +68,13 @@ export default function MyShiftPage() {
                 {t('myShift.addCreditSale')}{myShifts.length > 1 ? ` · ${shift.duName ?? `DU ${shift.duNumber}`}` : ''}
               </button>
             ))}
-          </div>
+          </StickyActions>
         </>
       )}
 
       {shiftForCredit && (
         <AddCreditEntryModal shift={shiftForCredit} onClose={() => setShiftIdForCredit(null)} />
       )}
-    </div>
+    </Page>
   )
 }

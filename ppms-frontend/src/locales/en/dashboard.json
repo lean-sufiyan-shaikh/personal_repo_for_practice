@@ -31,7 +31,8 @@
     "acrossPumps_other": "Across {{count}} pumps",
     "staleFuelPrices": "Stale Fuel Prices",
     "allPricesUpdated": "All prices updated today",
-    "pumpsToUpdate": "Pumps to update in Setup"
+    "pumpsToUpdate": "Pumps to update in Setup",
+    "label": "Today at a glance"
   },
   "tankStock": {
     "title": "Tank Stock Overview",

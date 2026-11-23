@@ -1,4 +1,4 @@
-import { act, screen } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { pumpApi } from '../../api/pumpApi'
@@ -14,7 +14,6 @@ vi.mock('../../components/NotificationBell', () => ({ default: () => <span>Notif
 vi.mock('../../components/Toast', () => ({ ToastContainer: () => null }))
 vi.mock('./layout/DashboardSidebar', () => ({ DashboardSidebar: () => <nav aria-label="Main" />, DASHBOARD_NAV_ID: 'dashboard-navigation' }))
 vi.mock('./layout/UserProfileArea', () => ({ UserProfileArea: () => null }))
-vi.mock('./layout/LiveClock', () => ({ LiveClock: () => null }))
 vi.mock('./layout/RouteOutlet', () => ({ RouteOutlet: () => <p>Page content</p> }))
 
 const highway = { id: 4, name: 'Highway Pump', createdAt: '2026-01-01T00:00:00Z' } as PumpSummary
@@ -23,6 +22,33 @@ const city = { id: 9, name: 'City Pump', createdAt: '2026-02-01T00:00:00Z' } as 
 function signIn(role: UserRole) {
   useAuthStore.setState({ user: { userId: 1, fullName: 'User', role, assignedPumpId: 4 }, isAuthenticated: true })
 }
+
+describe('DashboardPage shell', () => {
+  beforeEach(() => usePumpStore.setState({ selectedPumpId: 4, suspendedPumpId: null }))
+
+  it('has a skip link, a compact top bar with the pump and Jump to…, the sidebar and the main region', async () => {
+    signIn('OWNER')
+    vi.mocked(pumpApi.getMyPumps).mockResolvedValue([highway, city])
+    renderWithProviders(<DashboardPage />)
+
+    expect(screen.getByRole('link', { name: 'Skip to main content' })).toHaveAttribute('href', '#main-content')
+    const topBar = screen.getByRole('banner')
+    expect(within(topBar).getByRole('button', { name: 'Jump to…' })).toBeInTheDocument()
+    expect(await within(topBar).findByRole('button', { name: 'Switch to City Pump' })).toBeInTheDocument()
+    expect(within(topBar).queryByText('Petrol Pump Management')).not.toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+    expect(screen.getByRole('main')).toHaveTextContent('Page content')
+  })
+
+  it('shows staff the name of their pump instead of a switcher', async () => {
+    signIn('MANAGER')
+    vi.mocked(pumpApi.getMyPumps).mockResolvedValue([highway])
+    renderWithProviders(<DashboardPage />)
+
+    expect(await within(screen.getByRole('banner')).findByText('Highway Pump')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Switch to/ })).not.toBeInTheDocument()
+  })
+})
 
 describe('DashboardPage suspended pump', () => {
   beforeEach(() => usePumpStore.setState({ selectedPumpId: 4, suspendedPumpId: null }))

@@ -12,6 +12,8 @@ import { StatusBadge } from '../../../components/StatusBadge'
 import { shiftStatusBadge } from '../../../components/statusBadges'
 import { useNow } from '../../../hooks/useNow'
 import { RefreshIndicator } from '../../../components/RefreshIndicator'
+import { PageHeader } from '../../../components/layout/PageHeader'
+import { PageSection } from '../../../components/layout/PageSection'
 import OpenShiftModal from '../../shifts/OpenShiftModal'
 import { RecordDeliveryModal } from '../../inventory/record-delivery/RecordDeliveryModal'
 import { timeOpen } from './overviewFormat'
@@ -24,10 +26,10 @@ export function ManagerHeader({ pumpName }: ManagerHeaderProps) {
   const { t } = useTranslation(['dashboard', 'common'])
   const user = useAuthStore((state) => state.user)
   return (
-    <div>
-      <h1 className="ui-title-sm">{pumpName ?? t('common:notices.noPumpTitle')}</h1>
-      <p className="text-sm text-ink-3">{user?.fullName} · {roleLabel(user?.role)}</p>
-    </div>
+    <PageHeader
+      title={pumpName ?? t('common:notices.noPumpTitle')}
+      description={`${user?.fullName ?? ''} · ${roleLabel(user?.role)}`}
+    />
   )
 }
 
@@ -109,13 +111,11 @@ export function OpenShiftsLive({ shifts, isFetching, dataUpdatedAt }: OpenShifts
   const { t } = useTranslation(['dashboard', 'common'])
   const now = useNow(30_000)
   return (
-    <section aria-labelledby="open-shifts-heading" className="ui-card p-0 overflow-hidden">
-      <div className="ui-toolbar">
-        <div className="flex items-center gap-2.5">
-          <h2 id="open-shifts-heading" className="ui-toolbar-title">{t('manager.openShifts')}</h2>
-          <RefreshIndicator isFetching={isFetching} dataUpdatedAt={dataUpdatedAt} />
-        </div>
-      </div>
+    <PageSection
+      title={t('manager.openShifts')}
+      titleMeta={<RefreshIndicator isFetching={isFetching} dataUpdatedAt={dataUpdatedAt} />}
+      flush
+    >
       {shifts.length === 0 ? (
         <p className="px-5 py-4 text-sm text-ink-3">{t('manager.noneOpen')}</p>
       ) : (
@@ -143,6 +143,6 @@ export function OpenShiftsLive({ shifts, isFetching, dataUpdatedAt }: OpenShifts
           })}
         </ul>
       )}
-    </section>
+    </PageSection>
   )
 }

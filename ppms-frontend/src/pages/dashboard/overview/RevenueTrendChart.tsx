@@ -5,6 +5,7 @@ import type { Shift } from '../../../types/shift'
 import { withToggled } from '../../../utils/setToggle'
 import { localDateInputValue, formatIstDate } from '../../../utils/date'
 import { Reveal } from '../../../components/Reveal'
+import { PageSection } from '../../../components/layout/PageSection'
 import { FUEL_CHART_COLORS } from '../../../constants/fuel'
 import { codeLabel } from '../../../constants/labels'
 import { formatNumberIn } from '../../../i18n/format'
@@ -51,9 +52,9 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
 
   return (
       <Reveal delay={230}>
-      <div className="ui-card p-0 overflow-hidden">
-        <div className="ui-toolbar">
-          <p className="ui-toolbar-title">{t('chart.title')}</p>
+      <PageSection
+        title={t('chart.title')}
+        actions={
           <div className="ui-chart-days-toggle">
             {([7, 14, 30] as const).map(d => (
               <button
@@ -67,7 +68,9 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
               </button>
             ))}
           </div>
-        </div>
+        }
+        flush
+      >
         {hasChartData ? (
           <>
           <div
@@ -165,7 +168,7 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
             {t('chart.empty', { days: chartDays })}
           </p>
         )}
-      </div>
+      </PageSection>
       </Reveal>
   )
 }

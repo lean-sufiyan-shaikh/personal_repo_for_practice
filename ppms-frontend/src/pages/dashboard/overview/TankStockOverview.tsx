@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TankStock } from '../../../api/inventoryApi'
 import { Reveal } from '../../../components/Reveal'
+import { PageSection } from '../../../components/layout/PageSection'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { FUEL_STOCK_COLORS } from '../../../constants/fuel'
 import { codeLabel } from '../../../constants/labels'
@@ -13,15 +14,16 @@ export function TankStockOverview({ tanks: allTanks }: { tanks: TankStock[] }) {
     <>
     {allTanks.length > 0 && (
       <Reveal delay={295}>
-      <div className="ui-card p-0 overflow-hidden">
-        <div className="ui-toolbar">
-          <p className="ui-toolbar-title">{t('tankStock.title')}</p>
+      <PageSection
+        title={t('tankStock.title')}
+        actions={
           <Link to="/dashboard/inventory"
             className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong">
             {t('tankStock.fullInventory')}
           </Link>
-        </div>
-        <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        }
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {allTanks.map(tank => {
             const pct = Math.min(100, Math.max(0, tank.stockPercentage))
             const barColor = tank.lowStock ? 'bg-bad' : FUEL_STOCK_COLORS[tank.fuelType]?.bar ?? 'bg-control'
@@ -59,7 +61,7 @@ export function TankStockOverview({ tanks: allTanks }: { tanks: TankStock[] }) {
             )
           })}
         </div>
-      </div>
+      </PageSection>
       </Reveal>
     )}
     </>

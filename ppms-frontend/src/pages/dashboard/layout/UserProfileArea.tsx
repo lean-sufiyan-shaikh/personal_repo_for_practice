@@ -1,23 +1,29 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { Check, X } from 'lucide-react'
+import { Check, Pencil, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { authApi } from '../../../api/authApi'
 import { useAuthStore } from '../../../store/authStore'
 import { userApi } from '../../../api/userApi'
 import { ChangePasswordModal } from '../../../components/ChangePasswordModal'
 import { useEscapeKey } from '../../../hooks/useEscapeKey'
+import { useDensity } from '../../../hooks/useDensity'
+import { IconButton } from '../../../components/IconButton'
+import type { Density } from '../../../utils/density'
 import { parseApiError } from '../../../utils/apiError'
 import { roleLabel } from '../../../constants/labels'
 import { LanguagePicker } from '../../../components/LanguagePicker'
 import { activeLanguage } from '../../../i18n'
 import type { AppLanguage } from '../../../i18n/languages'
 
+const DENSITIES: Density[] = ['comfortable', 'compact']
+
 export function UserProfileArea() {
   const { t } = useTranslation(['nav', 'common'])
   const navigate = useNavigate()
   const { user, clearAuth, updateUser } = useAuthStore()
+  const [density, setDensity] = useDensity()
 
   // Inline name edit
   const [editingName, setEditingName] = useState(false)
@@ -111,52 +117,42 @@ export function UserProfileArea() {
     logoutMutation.mutate()
   }
 
+  const nameBlock = editingName ? (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1">
+        <input aria-label={t('profile.yourName')}
+          ref={nameInputRef}
+          value={nameInput}
+          onChange={(e) => setNameInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') saveName()
+            if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
+          }}
+          disabled={renameMutation.isPending}
+          className="text-sm"
+        />
+        <IconButton label={t('profile.saveName')} onClick={saveName} disabled={renameMutation.isPending}
+          icon={<Check size={14} strokeWidth={2.5} />} />
+        <IconButton label={t('profile.cancelEditing')} onClick={cancelEdit} disabled={renameMutation.isPending}
+          icon={<X size={14} strokeWidth={2} />} />
+      </div>
+      {nameError && <p role="alert" className="ui-error-text">{nameError}</p>}
+    </div>
+  ) : (
+    <button
+      type="button"
+      onClick={startEditing}
+      className="group flex w-full items-center gap-1 text-left text-sm font-semibold text-ink"
+      aria-label={t('profile.editName', { name: user?.fullName ?? '' })}
+      title={t('profile.editNameHint')}
+    >
+      <span className="truncate">{user?.fullName}</span>
+      <Pencil size={12} strokeWidth={2} aria-hidden="true" className="shrink-0 text-ink-3 group-hover:text-primary" />
+    </button>
+  )
+
   return (
     <>
-      <div className="text-right hidden sm:block">
-        {editingName ? (
-          <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-1">
-              <input aria-label={t('profile.yourName')}
-                ref={nameInputRef}
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') cancelEdit() }}
-                disabled={renameMutation.isPending}
-                className="text-xs font-semibold bg-white/10 text-surface border border-white/30 rounded-control px-2 py-0.5 w-36"
-              />
-              <button
-                onClick={saveName}
-                disabled={renameMutation.isPending}
-                aria-label={t('profile.saveName')}
-                className="text-on-dark-2 hover:text-surface p-0.5 disabled:opacity-50"
-                title={t('common:actions.save')}
-              ><Check size={13} strokeWidth={2.5} /></button>
-              <button
-                onClick={cancelEdit}
-                disabled={renameMutation.isPending}
-                aria-label={t('profile.cancelEditing')}
-                className="text-on-dark-2 hover:text-surface p-0.5 disabled:opacity-50"
-                title={t('common:actions.cancel')}
-              ><X size={13} strokeWidth={2} /></button>
-            </div>
-            {nameError && <p className="text-accent text-xs">{nameError}</p>}
-          </div>
-        ) : (
-          <button
-            onClick={startEditing}
-            className="group text-right"
-            aria-label={t('profile.editName', { name: user?.fullName ?? '' })}
-            title={t('profile.editNameHint')}
-          >
-            <p className="text-xs font-semibold text-surface leading-tight group-hover:text-accent transition-colors">
-              {user?.fullName}
-              <span aria-hidden="true" className="ml-1 text-on-dark-2 group-hover:text-accent text-xs">✎</span>
-            </p>
-          </button>
-        )}
-        <p className="text-xs text-on-dark-2 leading-tight capitalize">{roleLabel(user?.role)}</p>
-      </div>
       <div className="relative" ref={profileMenuRef}>
         <button
           ref={profileButtonRef}
@@ -164,7 +160,7 @@ export function UserProfileArea() {
           aria-label={t('profile.openMenu')}
           aria-expanded={profileMenuOpen}
           aria-haspopup="true"
-          className="w-9 h-9 bg-white/10 border border-white/25 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
+          className="ui-dashboard-avatar"
           title={t('profile.openMenu')}
         >
           <span className="text-sm font-bold text-surface">
@@ -173,7 +169,11 @@ export function UserProfileArea() {
         </button>
 
         {profileMenuOpen && (
-          <div className="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-card border border-border bg-surface shadow-overlay">
+          <div className="ui-profile-menu">
+            <div className="border-b border-border px-4 py-3">
+              {nameBlock}
+              <p className="text-xs text-ink-3">{roleLabel(user?.role)}</p>
+            </div>
             <LanguagePicker
               value={activeLanguage()}
               onChange={(language) => languageMutation.mutate(language)}
@@ -182,6 +182,19 @@ export function UserProfileArea() {
               className="border-b border-border px-4 py-3"
               selectClassName="text-sm"
             />
+            <fieldset className="border-b border-border px-4 py-3">
+              <legend className="ui-label">{t('profile.density')}</legend>
+              <div className="flex flex-col gap-1">
+                {DENSITIES.map((option) => (
+                  <label key={option} className="flex min-h-8 items-center gap-2 text-sm text-ink">
+                    <input type="radio" name="ppms-density" value={option} checked={density === option}
+                      onChange={() => setDensity(option)} />
+                    {option === 'compact' ? t('profile.densityCompact') : t('profile.densityComfortable')}
+                  </label>
+                ))}
+              </div>
+              <p className="ui-help">{t('profile.densityHint')}</p>
+            </fieldset>
             <button
               onClick={openPasswordModal}
               className="ui-btn ui-btn-ghost w-full justify-start rounded-none border-0 px-4 py-3 text-left text-sm font-medium text-ink hover:bg-bg"

@@ -17,7 +17,8 @@
     "settlements": "सेटलमेंट",
     "balanceSheets": "बैलेंस शीट",
     "reports": "रिपोर्ट",
-    "setup": "सेटअप"
+    "setup": "सेटअप",
+    "notifications": "सूचनाएँ"
   },
   "bottomTabs": {
     "label": "जल्दी पहुँच",
@@ -46,12 +47,11 @@
     "title": "मेनू",
     "workspace": "{{role}} कार्यक्षेत्र",
     "closeMenu": "मेनू बंद करें",
-    "currentPump": "मौजूदा पंप"
+    "currentPump": "मौजूदा पंप",
+    "collapse": "साइडबार छोटा करें"
   },
   "topbar": {
-    "skipToContent": "मुख्य सामग्री पर जाएँ",
-    "tagline": "पेट्रोल पंप प्रबंधन",
-    "motto": "हर शिफ्ट में कुशल काम।"
+    "skipToContent": "मुख्य सामग्री पर जाएँ"
   },
   "pumpSwitcher": {
     "switchTo": "{{name}} पर जाएँ"
@@ -75,6 +75,36 @@
     "openMenu": "प्रोफ़ाइल मेनू खोलें",
     "resetPassword": "पासवर्ड रीसेट करें",
     "logout": "लॉग आउट",
-    "loggingOut": "लॉग आउट हो रहा है..."
+    "loggingOut": "लॉग आउट हो रहा है...",
+    "density": "घनत्व",
+    "densityComfortable": "आरामदायक",
+    "densityCompact": "सघन",
+    "densityHint": "सघन में बड़ी स्क्रीन पर ज़्यादा पंक्तियाँ दिखती हैं। फ़ोन पर आरामदायक ही रहता है।"
+  },
+  "groups": {
+    "operations": "कामकाज",
+    "money": "पैसा",
+    "reports": "रिपोर्ट",
+    "admin": "एडमिन"
+  },
+  "palette": {
+    "open": "यहाँ जाएँ…",
+    "shortcutOther": "Ctrl K",
+    "shortcutMac": "⌘K",
+    "title": "किसी पेज या काम पर जाएँ",
+    "searchLabel": "पेज और काम खोजें",
+    "placeholder": "पेज या काम का नाम लिखें…",
+    "resultsLabel": "पेज और काम",
+    "pages": "पेज",
+    "noResults": "कोई पेज या काम नहीं मिला।",
+    "keyboardHint": "↑ ↓ से चुनें · Enter से खोलें · Esc से बंद करें",
+    "actions": {
+      "label": "झटपट काम",
+      "openShift": "शिफ्ट शुरू करें",
+      "recordDelivery": "डिलीवरी दर्ज करें",
+      "recordPayment": "भुगतान दर्ज करें",
+      "addExpense": "खर्च जोड़ें",
+      "cashEntry": "नकद एंट्री दर्ज करें"
+    }
   }
 }

@@ -172,5 +172,9 @@
   "gst": {
     "gstinFormat": "GSTIN 15 अक्षरांचा असावा, 27ABCDE1234F1Z5 या स्वरूपात.",
     "gstinPlaceholder": "उदा. 27ABCDE1234F1Z5"
+  },
+  "layout": {
+    "breadcrumbs": "तुम्ही येथे आहात",
+    "backToList": "यादीकडे परत"
   }
 }

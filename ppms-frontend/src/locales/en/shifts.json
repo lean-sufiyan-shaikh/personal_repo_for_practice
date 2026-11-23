@@ -232,8 +232,6 @@
   "creditEntries": {
     "title": "Credit Sales",
     "subtitle": "Shift #{{id}} · Nozzle {{nozzles}} · {{operator}} · {{date}}",
-    "clients_one": "{{count}} client with outstanding credit",
-    "clients_other": "{{count}} clients with outstanding credit",
     "total": "Total Credit",
     "bill": "Bill:",
     "noBill": "No bill"
@@ -299,10 +297,8 @@
     "noPumpsTitle": "No pumps set up yet",
     "noPumpsBody": "Create a pump location first, then add nozzles and set fuel prices.",
     "goToSetup": "Go to Setup",
-    "kicker": "Shift control",
     "title": "Shifts",
     "subtitle": "Open and close operator shifts, record meter readings and payment collection.",
-    "openNow": "Open now",
     "myActiveShifts": "My Active Shifts",
     "activeShifts": "Active Shifts",
     "activeShiftsCaption": "Active shifts",
@@ -318,7 +314,10 @@
       "day": "By Day",
       "all": "All Shifts",
       "discrepancies": "Discrepancies"
-    }
+    },
+    "openNowCount_one": "{{count}} open now",
+    "openNowCount_other": "{{count}} open now",
+    "historyViews": "Shift history views"
   },
   "myShift": {
     "title": "My shift",
@@ -478,8 +477,6 @@
       "discrepancy": "Discrepancy",
       "actions": "Actions"
     },
-    "shiftRegion": "Shift {{id}}",
-    "showAll": "Show all shifts",
     "shiftNotFound": "Shift #{{id}} could not be found at this pump.",
     "loadFailed": "Failed to load shift history",
     "dayEmpty": "No shift history for the last 3 days.",
@@ -488,7 +485,6 @@
     "stillOpen": " ({{count}} still open)",
     "shiftsFor": "Shifts for {{label}}",
     "shiftsForDay": "Shifts for the day",
-    "filterByDate": "Filter by date:",
     "to": "to",
     "fuelOnlyLabel": "Showing {{fuel}} shifts only. Show all fuels",
     "fuelOnly": "{{fuel}} only ×",
@@ -530,7 +526,11 @@
       "all": "ALL",
       "caption": "Discrepancies",
       "noMatch": "No discrepancies match the selected filters."
-    }
+    },
+    "filtersLabel": "Shift filters",
+    "listLabel": "Shifts",
+    "detailLabel": "Shift details",
+    "selectShift": "Choose a shift from the list to see its details."
   },
   "planning": {
     "title": "Shift Planning",
@@ -580,5 +580,9 @@
       "operatorToAdd": "Operator to add",
       "pickOperator": "— pick operator —"
     }
+  },
+  "detail": {
+    "nozzles": "Nozzles",
+    "time": "Time"
   }
 }

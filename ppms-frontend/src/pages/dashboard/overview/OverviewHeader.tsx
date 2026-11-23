@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { PageHeader } from '../../../components/layout/PageHeader'
 import { useAuthStore } from '../../../store/authStore'
 import { roleLabel } from '../../../constants/labels'
 import { formatIstDate } from '../../../utils/date'
@@ -11,12 +12,10 @@ export function OverviewHeader({ focusName, children }: { focusName: string | un
   const today = formatIstDate(new Date(), { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 className="ui-title-sm">{focusName ?? t('common:notices.noPumpTitle')}</h1>
-        <p className="text-sm text-ink-3">{user?.fullName} · {roleLabel(user?.role)} · {today}</p>
-      </div>
-      {children}
-    </div>
+    <PageHeader
+      title={focusName ?? t('common:notices.noPumpTitle')}
+      description={`${user?.fullName ?? ''} · ${roleLabel(user?.role)} · ${today}`}
+      secondaryActions={children}
+    />
   )
 }

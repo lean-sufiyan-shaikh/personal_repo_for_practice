@@ -17,7 +17,8 @@
     "settlements": "सेटलमेंट",
     "balanceSheets": "बॅलन्स शीट",
     "reports": "रिपोर्ट",
-    "setup": "सेटअप"
+    "setup": "सेटअप",
+    "notifications": "सूचना"
   },
   "bottomTabs": {
     "label": "झटपट",
@@ -46,12 +47,11 @@
     "title": "मेनू",
     "workspace": "{{role}} कार्यक्षेत्र",
     "closeMenu": "मेनू बंद करा",
-    "currentPump": "सध्याचा पंप"
+    "currentPump": "सध्याचा पंप",
+    "collapse": "साइडबार लहान करा"
   },
   "topbar": {
-    "skipToContent": "मुख्य मजकुराकडे जा",
-    "tagline": "पेट्रोल पंप व्यवस्थापन",
-    "motto": "प्रत्येक शिफ्टमध्ये कार्यक्षम काम."
+    "skipToContent": "मुख्य मजकुराकडे जा"
   },
   "pumpSwitcher": {
     "switchTo": "{{name}} वर जा"
@@ -75,6 +75,36 @@
     "openMenu": "प्रोफाइल मेनू उघडा",
     "resetPassword": "पासवर्ड रीसेट करा",
     "logout": "लॉग आउट",
-    "loggingOut": "लॉग आउट होत आहे..."
+    "loggingOut": "लॉग आउट होत आहे...",
+    "density": "घनता",
+    "densityComfortable": "आरामदायक",
+    "densityCompact": "दाट",
+    "densityHint": "दाट मध्ये मोठ्या स्क्रीनवर जास्त ओळी दिसतात. फोनवर आरामदायकच राहते."
+  },
+  "groups": {
+    "operations": "कामकाज",
+    "money": "पैसे",
+    "reports": "रिपोर्ट",
+    "admin": "ॲडमिन"
+  },
+  "palette": {
+    "open": "येथे जा…",
+    "shortcutOther": "Ctrl K",
+    "shortcutMac": "⌘K",
+    "title": "एखाद्या पानावर किंवा कामावर जा",
+    "searchLabel": "पाने आणि कामे शोधा",
+    "placeholder": "पान किंवा कामाचे नाव लिहा…",
+    "resultsLabel": "पाने आणि कामे",
+    "pages": "पाने",
+    "noResults": "एकही पान किंवा काम सापडले नाही.",
+    "keyboardHint": "↑ ↓ ने निवडा · Enter ने उघडा · Esc ने बंद करा",
+    "actions": {
+      "label": "झटपट कामे",
+      "openShift": "शिफ्ट सुरू करा",
+      "recordDelivery": "डिलिव्हरी नोंदवा",
+      "recordPayment": "पेमेंट नोंदवा",
+      "addExpense": "खर्च जोडा",
+      "cashEntry": "रोख नोंद करा"
+    }
   }
 }

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Page } from '../../../components/layout/Page'
 
 interface SuspendedPumpNoticeProps {
   canSwitchPump: boolean
@@ -9,16 +10,16 @@ export function SuspendedPumpNotice({ canSwitchPump, isStaff }: SuspendedPumpNot
   const { t } = useTranslation('nav')
   if (isStaff && !canSwitchPump) {
     return (
-      <div className="p-6">
+      <Page>
         <div role="alert" className="ui-card max-w-xl mx-auto text-center space-y-2">
           <h1 className="text-lg font-bold text-ink">{t('suspended.yourPumpTitle')}</h1>
           <p className="text-sm text-ink-2">{t('suspended.yourPumpBody')}</p>
         </div>
-      </div>
+      </Page>
     )
   }
   return (
-    <div className="p-6">
+    <Page>
       <div role="alert" className="ui-card max-w-xl mx-auto text-center space-y-2">
         <h1 className="text-lg font-bold text-ink">{t('suspended.thisPumpTitle')}</h1>
         <p className="text-sm text-ink-2">
@@ -26,6 +27,6 @@ export function SuspendedPumpNotice({ canSwitchPump, isStaff }: SuspendedPumpNot
           {canSwitchPump ? t('suspended.chooseAnotherPump') : t('suspended.contactOwnerOrSupport')}
         </p>
       </div>
-    </div>
+    </Page>
   )
 }

@@ -121,6 +121,15 @@ describe('OverviewPage owner and accountant home', () => {
     expect(options.refetchInterval).toBe(60_000)
   })
 
+  it('leads with the headline figures, then puts the inbox beside the live shifts', async () => {
+    renderOverview('OWNER')
+
+    expect(await screen.findByRole('region', { name: 'Today at a glance' })).toBeInTheDocument()
+    const inbox = await screen.findByRole('region', { name: 'Needs attention today' })
+    const liveShifts = await screen.findByRole('region', { name: 'Live Shifts' })
+    expect(inbox.parentElement).toBe(liveShifts.closest('.ui-dashboard-columns'))
+  })
+
   it('links the three stat cards to the shifts, shift history and inventory pages', async () => {
     renderOverview('ADMIN')
 

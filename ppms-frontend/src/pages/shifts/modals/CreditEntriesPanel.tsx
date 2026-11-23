@@ -1,13 +1,12 @@
 import { useTranslation } from 'react-i18next'
 import { codeLabel } from '../../../constants/labels'
 import type { Shift, CreditEntry } from '../../../types/shift'
-import { Modal } from '../../../components/Modal'
+import { SidePanel } from '../../../components/layout/SidePanel'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { MoneyText } from '../../../components/AmountText'
 
-// ── Credit entries modal ───────────────────────────────────────────────────────
-
-export function CreditEntriesModal({
+/** The credit sales recorded on one closed shift, read-only. */
+export function CreditEntriesPanel({
   shift,
   entries,
   creditTotal,
@@ -22,19 +21,11 @@ export function CreditEntriesModal({
   return (
     <tr>
       <td colSpan={8} className="p-0">
-        <Modal
+        <SidePanel
           title={t('creditEntries.title')}
           subtitle={t('creditEntries.subtitle', { id: shift.id, nozzles: shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', '), operator: shift.operatorName, date: shift.shiftDate })}
-          headerExtra={
-            <p className="mt-1 text-xs text-ink-3">
-              {t('creditEntries.clients', { count: entries.length })}
-            </p>
-          }
-          tone="warning"
-          size="md"
           onClose={onClose}
-          closeOnBackdropClick
-          bodyClassName="p-0 divide-y divide-border max-h-96"
+          bodyClassName="p-0 divide-y divide-border"
           footerClassName="justify-between bg-warn-bg"
           footer={
             <>
@@ -71,7 +62,7 @@ export function CreditEntriesModal({
               <MoneyText value={entry.amount} className="text-sm font-bold text-warn shrink-0" />
             </div>
           ))}
-        </Modal>
+        </SidePanel>
       </td>
     </tr>
   )

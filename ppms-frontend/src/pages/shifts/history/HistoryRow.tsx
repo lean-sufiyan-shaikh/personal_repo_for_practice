@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../../store/authStore'
 import type { Shift } from '../../../types/shift'
 import { IconButton } from '../../../components/IconButton'
-import { CreditEntriesModal } from '../modals/CreditEntriesModal'
-import { HandoverModal } from '../modals/HandoverModal'
+import { CreditEntriesPanel } from '../modals/CreditEntriesPanel'
+import { HandoverReportPanel } from '../modals/HandoverReportPanel'
 import { ResolveDiscrepancyModal } from '../modals/ResolveDiscrepancyModal'
 import { awaitingOwnerApprovalLabel, discrepancyAction, fmtAmt, investigationLabel } from '../shiftLabels'
 import { StatusBadge } from '../../../components/StatusBadge'
@@ -167,9 +167,9 @@ export function HistoryRow({ shift }: { shift: Shift }) {
         </tr>
       )}
 
-      {/* ── Credit entries popup modal ─────────────────────────────────────── */}
+      {/* ── Credit entries panel ─────────────────────────────────────── */}
       {creditModalOpen && hasCreditEntries && (
-        <CreditEntriesModal
+        <CreditEntriesPanel
           shift={shift}
           entries={shift.creditEntries}
           creditTotal={creditAmt}
@@ -185,9 +185,9 @@ export function HistoryRow({ shift }: { shift: Shift }) {
         />
       )}
 
-      {/* ── Handover print modal ──────────────────────────────────────────── */}
+      {/* ── Handover report panel ──────────────────────────────────────────── */}
       {handoverOpen && (
-        <HandoverModal shift={shift} onClose={() => setHandoverOpen(false)} />
+        <HandoverReportPanel shift={shift} onClose={() => setHandoverOpen(false)} />
       )}
     </>
   )

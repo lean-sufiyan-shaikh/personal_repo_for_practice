@@ -21,6 +21,9 @@ import { ShiftStatusRow } from './overview/ShiftStatusRow'
 import { StatCard } from './overview/StatCard'
 import { AllPumpsOverview, OverviewScopeToggle } from './overview/AllPumpsOverview'
 import { ManagerHeader, ManagerQuickActions, OpenShiftsLive } from './overview/ManagerHome'
+import { Page } from '../../components/layout/Page'
+import { PageSection } from '../../components/layout/PageSection'
+import { DashboardColumns, KpiRow } from '../../components/layout/DashboardGrid'
 import { AttentionInbox } from './overview/AttentionInbox'
 import { OverviewHeader } from './overview/OverviewHeader'
 import { codeLabel } from '../../constants/labels'
@@ -119,8 +122,43 @@ export default function OverviewPage() {
 
   const closedShiftCountToday = historyShifts.filter(s => s.shiftDate === todayStr).length
 
+  const liveShifts = isManager ? (
+    !statsLoading && <OpenShiftsLive shifts={allActiveShifts} isFetching={activeShiftsFetching} dataUpdatedAt={activeShiftsUpdatedAt} />
+  ) : (
+    !statsLoading && allActiveShifts.length > 0 && (
+      <Reveal delay={195}>
+        <PageSection
+          title={t('overview.liveShifts')}
+          titleMeta={<RefreshIndicator isFetching={activeShiftsFetching} dataUpdatedAt={activeShiftsUpdatedAt} />}
+          flush
+        >
+          <div className="divide-y divide-border">
+            {allActiveShifts.map(shift => (
+              <ShiftStatusRow key={shift.id} shift={shift} />
+            ))}
+          </div>
+        </PageSection>
+      </Reveal>
+    )
+  )
+
   return (
-    <div className="ui-page ui-page--narrow space-y-5">
+    <Page>
+      {isManager ? (
+        <>
+          <ManagerHeader pumpName={selectedPump?.name} />
+          {pumpId && <ManagerQuickActions pumpId={pumpId} activeShifts={allActiveShifts} tanks={allTanks} />}
+        </>
+      ) : (
+        <OverviewHeader focusName={focusName}>
+          <OverviewScopeToggle
+            pumpCount={pumps.length}
+            selectedPumpName={selectedPump?.name}
+            showAllPumps={allPumpsView}
+            onShowAllPumpsChange={setShowAllPumps}
+          />
+        </OverviewHeader>
+      )}
 
       {/* ── Live data error banner ── */}
       {anyQueryError && (
@@ -130,30 +168,13 @@ export default function OverviewPage() {
         </div>
       )}
 
-      {isManager ? (
-        <>
-          <ManagerHeader pumpName={selectedPump?.name} />
-          {pumpId && <ManagerQuickActions pumpId={pumpId} activeShifts={allActiveShifts} tanks={allTanks} />}
-          {!statsLoading && (
-            <OpenShiftsLive shifts={allActiveShifts} isFetching={activeShiftsFetching} dataUpdatedAt={activeShiftsUpdatedAt} />
-          )}
-        </>
-      ) : (
-        <>
-          <OverviewHeader focusName={focusName}>
-            <OverviewScopeToggle
-              pumpCount={pumps.length}
-              selectedPumpName={selectedPump?.name}
-              showAllPumps={allPumpsView}
-              onShowAllPumpsChange={setShowAllPumps}
-            />
-          </OverviewHeader>
-          <AttentionInbox pumpId={pumpId} allPumps={allPumpsView} />
-        </>
-      )}
-
-      {isAccountant ? null : allPumpsView ? (
-        <AllPumpsOverview onPumpSelected={() => setShowAllPumps(false)} />
+      {isAccountant ? (
+        <AttentionInbox pumpId={pumpId} allPumps={allPumpsView} />
+      ) : allPumpsView ? (
+        <AllPumpsOverview
+          onPumpSelected={() => setShowAllPumps(false)}
+          attention={<AttentionInbox pumpId={null} allPumps />}
+        />
       ) : (
         <>
           {/* ── Stale fuel price alert ── */}
@@ -174,47 +195,53 @@ export default function OverviewPage() {
 
           {/* ── Live stat cards ── */}
           <Reveal delay={150}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {statsLoading ? (
-              <>
-                <SkeletonStat />
-                <SkeletonStat />
-                <SkeletonStat />
-              </>
-            ) : (
-              <>
-                <StatCard
-                  label={t('stats.activeShifts')}
-                  value={activeCount}
-                  sub={activeCount === 0 ? t('stats.noOpenShifts') : t('stats.atPump', { pump: selectedPump?.name ?? t('stats.selectedPump') })}
-                  color="bg-ok"
-                  icon={Zap}
-                  to="/dashboard/shifts"
-                />
-                <StatCard
-                  label={t('stats.todaysRevenue')}
-                  value={todayRevenue}
-                  money
-                  sub={t('stats.closedToday', { count: closedShiftCountToday })}
-                  color="bg-primary"
-                  icon={IndianRupee}
-                  to="/dashboard/shifts?history=all"
-                />
-                <StatCard
-                  label={t('stats.lowStockTanks')}
-                  value={lowStockTanks.length}
-                  sub={lowStockTanks.length === 0 ? t('stats.allTanksOk') : t('stats.needAttention')}
-                  color={lowStockTanks.length > 0 ? 'bg-bad' : 'bg-ink-3'}
-                  icon={Gauge}
-                  alert={lowStockTanks.length > 0}
-                  to="/dashboard/inventory"
-                />
-              </>
-            )}
-          </div>
+            <KpiRow label={t('stats.label')} columns={3}>
+              {statsLoading ? (
+                <>
+                  <SkeletonStat />
+                  <SkeletonStat />
+                  <SkeletonStat />
+                </>
+              ) : (
+                <>
+                  <StatCard
+                    label={t('stats.activeShifts')}
+                    value={activeCount}
+                    sub={activeCount === 0 ? t('stats.noOpenShifts') : t('stats.atPump', { pump: selectedPump?.name ?? t('stats.selectedPump') })}
+                    color="bg-ok"
+                    icon={Zap}
+                    to="/dashboard/shifts"
+                  />
+                  <StatCard
+                    label={t('stats.todaysRevenue')}
+                    value={todayRevenue}
+                    money
+                    sub={t('stats.closedToday', { count: closedShiftCountToday })}
+                    color="bg-primary"
+                    icon={IndianRupee}
+                    to="/dashboard/shifts?history=all"
+                  />
+                  <StatCard
+                    label={t('stats.lowStockTanks')}
+                    value={lowStockTanks.length}
+                    sub={lowStockTanks.length === 0 ? t('stats.allTanksOk') : t('stats.needAttention')}
+                    color={lowStockTanks.length > 0 ? 'bg-bad' : 'bg-ink-3'}
+                    icon={Gauge}
+                    alert={lowStockTanks.length > 0}
+                    to="/dashboard/inventory"
+                  />
+                </>
+              )}
+            </KpiRow>
           </Reveal>
 
           {pumpId && <MoneyOverview pumpId={pumpId} />}
+
+          {/* ── Attention inbox beside the live shift board ── */}
+          <DashboardColumns>
+            {!isManager && <AttentionInbox pumpId={pumpId} allPumps={false} />}
+            {liveShifts}
+          </DashboardColumns>
 
           {/* ── Low stock details (shown only when alert) ── */}
           {lowStockTanks.length > 0 && (
@@ -229,35 +256,15 @@ export default function OverviewPage() {
             </div>
           )}
 
-          {/* ── Live shift board ── */}
-          {!isManager && !statsLoading && allActiveShifts.length > 0 && (
-            <Reveal delay={195}>
-            <div className="ui-card p-0 overflow-hidden">
-              <div className="ui-toolbar">
-                <div className="flex items-center gap-2.5">
-                  <p className="ui-toolbar-title">{t('overview.liveShifts')}</p>
-                  <RefreshIndicator isFetching={activeShiftsFetching} dataUpdatedAt={activeShiftsUpdatedAt} />
-                </div>
-              </div>
-              <div className="divide-y divide-border">
-                {allActiveShifts.map(shift => (
-                  <ShiftStatusRow key={shift.id} shift={shift} />
-                ))}
-              </div>
-            </div>
-            </Reveal>
-          )}
-
-          {/* ── Revenue trend chart ── */}
-          <Suspense fallback={<div className="ui-card h-80" aria-busy="true" aria-label={t('overview.loadingChart')} />}>
-            <RevenueTrendChart historyShifts={historyShifts} />
-          </Suspense>
-
-          {/* ── Tank stock summary ── */}
-          <TankStockOverview tanks={allTanks} />
+          {/* ── Revenue trend beside tank stock ── */}
+          <DashboardColumns>
+            <Suspense fallback={<div className="ui-card h-80" aria-busy="true" aria-label={t('overview.loadingChart')} />}>
+              <RevenueTrendChart historyShifts={historyShifts} />
+            </Suspense>
+            <TankStockOverview tanks={allTanks} />
+          </DashboardColumns>
         </>
       )}
-
-    </div>
+    </Page>
   )
 }

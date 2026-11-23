@@ -31,7 +31,8 @@
     "acrossPumps_other": "{{count}} पंपांमध्ये",
     "staleFuelPrices": "जुने इंधन दर",
     "allPricesUpdated": "आज सर्व दर अपडेट आहेत",
-    "pumpsToUpdate": "सेटअपमध्ये अपडेट करायचे पंप"
+    "pumpsToUpdate": "सेटअपमध्ये अपडेट करायचे पंप",
+    "label": "आज एका नजरेत"
   },
   "tankStock": {
     "title": "टँक स्टॉक सारांश",

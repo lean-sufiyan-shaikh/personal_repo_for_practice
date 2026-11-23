@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Reveal } from '../../components/Reveal'
+import { Page } from '../../components/layout/Page'
+import { PageHeader } from '../../components/layout/PageHeader'
 import { useShiftPlanning } from './planning/useShiftPlanning'
 import { WeekNavigator } from './planning/WeekNavigator'
 import { GeneratePlanModal } from './planning/GeneratePlanModal'
@@ -14,28 +16,20 @@ export default function ShiftPlanningPage() {
 
   if (!isOwnerOrAdmin && !pumpId) {
     return (
-      <div className="ui-page ui-page--narrow">
+      <Page>
         <div className="ui-alert ui-alert-warning text-sm">
           {t('common:notices.notAssigned')}
         </div>
-      </div>
+      </Page>
     )
   }
 
   return (
-    <div className="ui-page ui-page--narrow space-y-5">
-
-      {/* Page title */}
-      <Reveal delay={60}>
-      <div>
-        <h1 className="ui-title-sm">{t('planning.title')}</h1>
-        <p className="ui-subtitle">
-          {isOwnerOrAdmin
-            ? t('planning.subtitleOwner')
-            : t('planning.subtitleStaff')}
-        </p>
-      </div>
-      </Reveal>
+    <Page>
+      <PageHeader
+        title={t('planning.title')}
+        description={isOwnerOrAdmin ? t('planning.subtitleOwner') : t('planning.subtitleStaff')}
+      />
 
       {pumpId && (
         <>
@@ -67,6 +61,6 @@ export default function ShiftPlanningPage() {
           </Reveal>
         </>
       )}
-    </div>
+    </Page>
   )
 }

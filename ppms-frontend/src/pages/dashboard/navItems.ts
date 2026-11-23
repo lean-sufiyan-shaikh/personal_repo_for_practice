@@ -1,4 +1,4 @@
-import { Clock, LayoutDashboard, ClipboardCheck, Zap, CalendarDays, Database, CreditCard, ReceiptText, FileText, Wallet, Wrench, HardHat, Package, ClipboardList, Landmark, BarChart2, TrendingUp, Settings, type LucideIcon } from 'lucide-react'
+import { Bell, Clock, LayoutDashboard, ClipboardCheck, Zap, CalendarDays, Database, CreditCard, ReceiptText, FileText, Wallet, Wrench, HardHat, Package, ClipboardList, Landmark, BarChart2, TrendingUp, Settings, type LucideIcon } from 'lucide-react'
 import type { UserRole } from '../../types/auth'
 import { canAccessPage } from '../../permissions/permissions'
 import { translateKey } from '../../i18n'
@@ -23,7 +23,37 @@ export const ALL_NAV_ITEMS: { path: string; icon: LucideIcon; page: string; bg: 
   { path: '/dashboard/balance-sheets', icon: BarChart2,       page: 'balanceSheets', bg: 'bg-info-bg',     color: 'text-primary'     },
   { path: '/dashboard/reports',        icon: TrendingUp,      page: 'reports',       bg: 'bg-ok-bg',   color: 'text-ok'   },
   { path: '/dashboard/setup',          icon: Settings,        page: 'setup',         bg: 'bg-surface-sunken',    color: 'text-ink-2'    },
+  { path: '/dashboard/notifications',  icon: Bell,            page: 'notifications', bg: 'bg-info-bg',        color: 'text-primary'  },
 ]
+
+export type NavItem = (typeof ALL_NAV_ITEMS)[number]
+
+export type NavGroupId = 'operations' | 'money' | 'reports' | 'admin'
+
+/** Sidebar groups in display order; each group's label is nav.json groups.<id>. */
+const NAV_GROUP_PAGES: { id: NavGroupId; pages: string[] }[] = [
+  { id: 'operations', pages: ['myShift', 'overview', 'shifts', 'shiftPlanning', 'inventory', 'cashDrawer', 'products', 'calibration', 'documents'] },
+  { id: 'money',      pages: ['credit', 'settlements', 'expenses', 'approvals', 'payroll'] },
+  { id: 'reports',    pages: ['reports', 'balanceSheets', 'auditLog'] },
+  { id: 'admin',      pages: ['setup', 'notifications'] },
+]
+
+export interface NavGroup {
+  id: NavGroupId
+  items: NavItem[]
+}
+
+/** The sidebar groups holding only the pages this role can open; groups left empty are dropped. */
+export function navGroupsFor(role: UserRole | undefined): NavGroup[] {
+  return NAV_GROUP_PAGES
+    .map(({ id, pages }) => ({
+      id,
+      items: pages
+        .filter(page => canAccessPage(page, role))
+        .flatMap(page => ALL_NAV_ITEMS.filter(item => item.page === page)),
+    }))
+    .filter(group => group.items.length > 0)
+}
 
 const BOTTOM_TAB_PAGES_BY_ROLE: Partial<Record<UserRole, string[]>> = {
   OPERATOR:   ['myShift', 'expenses', 'shiftPlanning'],

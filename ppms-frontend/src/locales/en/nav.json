@@ -17,7 +17,8 @@
     "settlements": "Settlements",
     "balanceSheets": "Balance Sheets",
     "reports": "Reports",
-    "setup": "Setup"
+    "setup": "Setup",
+    "notifications": "Notifications"
   },
   "bottomTabs": {
     "label": "Quick",
@@ -46,12 +47,11 @@
     "title": "Navigation",
     "workspace": "{{role}} workspace",
     "closeMenu": "Close menu",
-    "currentPump": "Current pump"
+    "currentPump": "Current pump",
+    "collapse": "Collapse sidebar"
   },
   "topbar": {
-    "skipToContent": "Skip to main content",
-    "tagline": "Petrol Pump Management",
-    "motto": "Fuelling efficiency, every shift."
+    "skipToContent": "Skip to main content"
   },
   "pumpSwitcher": {
     "switchTo": "Switch to {{name}}"
@@ -75,6 +75,36 @@
     "openMenu": "Open profile menu",
     "resetPassword": "Reset Password",
     "logout": "Logout",
-    "loggingOut": "Logging out..."
+    "loggingOut": "Logging out...",
+    "density": "Density",
+    "densityComfortable": "Comfortable",
+    "densityCompact": "Compact",
+    "densityHint": "Compact fits more rows on larger screens. Phones stay comfortable."
+  },
+  "groups": {
+    "operations": "Operations",
+    "money": "Money",
+    "reports": "Reports",
+    "admin": "Admin"
+  },
+  "palette": {
+    "open": "Jump to…",
+    "shortcutOther": "Ctrl K",
+    "shortcutMac": "⌘K",
+    "title": "Jump to a page or action",
+    "searchLabel": "Search pages and actions",
+    "placeholder": "Type a page or action…",
+    "resultsLabel": "Pages and actions",
+    "pages": "Pages",
+    "noResults": "No page or action matches.",
+    "keyboardHint": "↑ ↓ to move · Enter to open · Esc to close",
+    "actions": {
+      "label": "Quick actions",
+      "openShift": "Open shift",
+      "recordDelivery": "Record delivery",
+      "recordPayment": "Record payment",
+      "addExpense": "Add expense",
+      "cashEntry": "Record cash entry"
+    }
   }
 }

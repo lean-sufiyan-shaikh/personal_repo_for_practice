@@ -35,7 +35,8 @@ import { closeShiftDraftName, restoredCreditRows } from './close/closeShiftDraft
 import type { CloseShiftDraft } from './close/closeShiftDraft'
 import { CloseShiftReview, CloseShiftReviewActions } from './close/CloseShiftReview'
 import { CloseShiftSummary, CloseShiftSummaryActions } from './close/CloseShiftSummary'
-import { HandoverModal } from './modals/HandoverModal'
+import { HandoverReportPanel } from './modals/HandoverReportPanel'
+import { FormGrid, FormGridFullRow } from '../../components/layout/FormGrid'
 
 interface Props {
   shift: Shift
@@ -352,7 +353,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   const dismiss = step === 'done' ? onClose : step === 'review' ? backToForm : requestClose
 
   if (printedShift) {
-    return <HandoverModal shift={printedShift} onClose={() => setPrintedShift(null)} />
+    return <HandoverReportPanel shift={printedShift} onClose={() => setPrintedShift(null)} />
   }
 
   const footer = step === 'form' ? (
@@ -463,7 +464,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
 
             {/* ── Step 1: End Readings ──────────────────────────────────── */}
             <Section label="1" title={t('close.sections.endReadings')}>
-              <div className={`grid gap-3 ${shift.fuelReadings.length > 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              <FormGrid>
                 {perFuelSales.map(({ reading, sold, isBelowStart }, index) => {
                   const isNoChange = noChangeNozzles.has(reading.nozzleId)
                   const endVal = endReadings[reading.nozzleId] ?? ''
@@ -485,7 +486,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
                     />
                   )
                 })}
-              </div>
+              </FormGrid>
             </Section>
 
             {/* ── Total due card ─────────────────────────────────────────── */}
@@ -555,8 +556,8 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
 
             {/* ── Step 3: Payment Collected ────────────────────────────── */}
             <Section label="3" title={t('close.sections.payment')}>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 flex flex-col gap-2 sm:flex-row sm:items-end">
+              <FormGrid>
+                <FormGridFullRow className="flex flex-col gap-2 sm:flex-row sm:items-end">
                   <div className="flex-1 min-w-0">
                     <PaymentField label={t('close.payment.cash')} value={cash} onChange={setCash} />
                   </div>
@@ -564,11 +565,11 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
                     className="ui-btn ui-btn-secondary">
                     {t('close.payment.restInCash', { amount: fmt(restInCashPaise / 100) })}
                   </button>
-                </div>
+                </FormGridFullRow>
                 <PaymentField label={t('close.payment.upi')} value={upi}       onChange={setUpi} />
                 <PaymentField label={t('close.payment.card')} value={card}      onChange={setCard} />
                 <PaymentField label={t('close.payment.fleetCard')} value={fleetCard} onChange={setFleetCard} />
-              </div>
+              </FormGrid>
               {creditTotal > 0 && (
                 <div className="flex items-center justify-between bg-warn-bg border border-warn rounded-control px-3 py-2 mt-2">
                   <span className="text-xs font-medium text-warn">{t('close.payment.creditTotal')}</span>

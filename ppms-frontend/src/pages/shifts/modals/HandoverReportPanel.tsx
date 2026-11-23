@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import type { FuelReading, Shift } from '../../../types/shift'
 import { formatIstDateTime } from '../../../utils/date'
-import { Modal } from '../../../components/Modal'
+import { SidePanel } from '../../../components/layout/SidePanel'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { LitresText, MoneyText } from '../../../components/AmountText'
@@ -18,9 +18,7 @@ function discrepancyTypeText(type: Shift['discrepancyType'], t: TFunction<['shif
   return type
 }
 
-// ── Handover Report Modal ─────────────────────────────────────────────────────
-
-export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () => void }) {
+export function HandoverReportPanel({ shift, onClose }: { shift: Shift; onClose: () => void }) {
   const { t } = useTranslation(['shifts', 'common'])
   const readingColumns: DataTableColumn<FuelReading>[] = [
     {
@@ -37,7 +35,7 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
     { key: 'rate', header: t('handover.report.columns.rate'), numeric: true, cell: (r) => <MoneyText value={r.priceSnapshot} className="text-ink-3" /> },
   ]
 
-  // Tag <body> while this modal is open so @media print can isolate it:
+  // Tag <body> while this panel is open so @media print can isolate it:
   // hide #root and free the panel from its max-height/overflow constraints.
   useEffect(() => {
     document.body.classList.add('handover-printing')
@@ -45,7 +43,7 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
   }, [])
 
   return (
-    <Modal
+    <SidePanel
       title={t('handover.report.title')}
       subtitle={
         <>
@@ -63,10 +61,8 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
           <Printer size={14} strokeWidth={2} aria-hidden="true" /> {t('handover.report.print')}
         </button>
       }
-      tone="info"
-      size="md-wide"
+      size="lg"
       onClose={onClose}
-      closeOnBackdropClick
       headerClassName="print:hidden"
       bodyClassName="p-6 space-y-5 text-sm print:overflow-visible"
     >
@@ -144,6 +140,6 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
               <p className="text-xs text-ink-3">{t('handover.report.supervisorSignature')}</p>
             </div>
           </div>
-    </Modal>
+    </SidePanel>
   )
 }

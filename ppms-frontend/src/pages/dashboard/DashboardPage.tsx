@@ -1,20 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Fuel } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { pumpApi } from '../../api/pumpApi'
-import NotificationBell from '../../components/NotificationBell'
 import { ToastContainer } from '../../components/Toast'
 import { DashboardSidebar } from './layout/DashboardSidebar'
 import { DashboardBottomNav } from './layout/DashboardBottomNav'
-import { PumpSwitcher } from './layout/PumpSwitcher'
-import { LiveClock } from './layout/LiveClock'
 import { RouteOutlet } from './layout/RouteOutlet'
 import { SuspendedPumpNotice } from './layout/SuspendedPumpNotice'
-import { UserProfileArea } from './layout/UserProfileArea'
+import { DashboardTopBar } from './layout/DashboardTopBar'
 
 export default function DashboardPage() {
   const { t } = useTranslation('nav')
@@ -33,6 +29,7 @@ export default function DashboardPage() {
     && !pumps.some(pump => pump.id === user.assignedPumpId)
 
   const { selectedPumpId, suspendedPumpId, setSelectedPumpId } = usePumpStore()
+  const selectedPumpName = sortedPumps.find((pump) => pump.id === selectedPumpId)?.name
   const selectedPumpSuspended = selectedPumpId !== null && selectedPumpId === suspendedPumpId
   const showSuspendedNotice = selectedPumpSuspended || assignedPumpSuspended
   const queryClient = useQueryClient()
@@ -73,46 +70,18 @@ export default function DashboardPage() {
         {t('topbar.skipToContent')}
       </a>
 
-      {/* ── Top header ─────────────────────────────────────────────────────────── */}
-      <header className="ui-dashboard-topbar print:hidden">
-
-        {/* ── Left: Logo + tagline ── */}
-        <div className="ui-dashboard-topbar-left">
-          <div className="ui-dashboard-brandmark">
-            <Fuel size={20} className="text-ink" strokeWidth={1.8} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-base font-extrabold text-surface tracking-wide">PPMS</span>
-              <span className="text-xs text-on-dark-2 font-medium hidden sm:inline border border-white/25 px-2 py-0.5 rounded-badge">
-                {t('topbar.tagline')}
-              </span>
-            </div>
-            <p className="text-xs text-on-dark-2 italic hidden sm:block mt-0.5">
-              {t('topbar.motto')}
-            </p>
-          </div>
-        </div>
-
-        {/* ── Center: Live date/time + pump selector ── */}
-        <div className="ui-dashboard-topbar-center">
-          <LiveClock />
-          {isOwnerOrAdmin && <PumpSwitcher pumps={sortedPumps} />}
-        </div>
-
-        {/* ── Right: Notification bell + User info + profile menu ── */}
-        <div className="ui-dashboard-topbar-right">
-          {selectedPumpId && !showSuspendedNotice && <NotificationBell pumpId={selectedPumpId} />}
-          <UserProfileArea />
-        </div>
-      </header>
+      <DashboardTopBar
+        switchablePumps={isOwnerOrAdmin ? sortedPumps : []}
+        pumpName={selectedPumpName}
+        notificationPumpId={selectedPumpId && !showSuspendedNotice ? selectedPumpId : null}
+      />
 
       {/* ── Body ───────────────────────────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0" style={{ overflow: 'clip' }}>
 
         {/* ── Sidebar ── */}
         <DashboardSidebar
-          pumpName={sortedPumps.find((pump) => pump.id === selectedPumpId)?.name}
+          pumpName={selectedPumpName}
           switchablePumps={isOwnerOrAdmin ? sortedPumps : []}
           drawerOpen={navOpen}
           onCloseDrawer={closeNav}

@@ -205,3 +205,13 @@ Buttons, field names, payment methods and notices that appear on many screens li
 | Opening stock / Closing stock | शुरुआती स्टॉक / अंतिम स्टॉक | सुरुवातीचा स्टॉक / शेवटचा स्टॉक |
 | Stock variance | स्टॉक अंतर | स्टॉक फरक |
 | Maintenance removal / Dip correction | रखरखाव निकासी / डिप सुधार | देखभालीसाठी काढले / डिप दुरुस्ती |
+
+## Navigation and layout
+
+| English | Hindi | Marathi |
+|---|---|---|
+| Sidebar groups: Operations / Money / Reports / Admin | कामकाज / पैसा / रिपोर्ट / एडमिन | कामकाज / पैसे / रिपोर्ट / ॲडमिन |
+| Jump to… (page and action search) | यहाँ जाएँ… | येथे जा… |
+| Quick actions | झटपट काम | झटपट कामे |
+| Density: Comfortable / Compact | घनत्व: आरामदायक / सघन | घनता: आरामदायक / दाट |
+| Back to list | सूची पर वापस | यादीकडे परत |

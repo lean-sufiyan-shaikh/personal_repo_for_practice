@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { attentionApi } from '../../../api/attentionApi'
 import type { AttentionItem, AttentionSeverity, AttentionType } from '../../../api/attentionApi'
 import { SkeletonRows } from '../../../components/Skeleton'
+import { PageSection } from '../../../components/layout/PageSection'
 import { usePumpStore } from '../../../store/usePumpStore'
 import { MoneyText } from '../../../components/AmountText'
 import { serverText } from '../../../utils/serverText'
@@ -92,13 +93,13 @@ export function AttentionInbox({ pumpId, allPumps }: { pumpId: number | null; al
   })
 
   return (
-    <section aria-labelledby="attention-heading" className="ui-card p-0 overflow-hidden">
-      <div className="ui-toolbar">
-        <h2 id="attention-heading" className="ui-toolbar-title">{t('attention.title')}</h2>
-        {items && items.length > 0 && (
-          <span className="text-xs text-ink-3">{t('attention.itemCount', { count: items.length })}</span>
-        )}
-      </div>
+    <PageSection
+      title={t('attention.title')}
+      actions={items && items.length > 0 && (
+        <span className="text-xs text-ink-3">{t('attention.itemCount', { count: items.length })}</span>
+      )}
+      flush
+    >
       {isLoading ? (
         <div className="px-4 py-3" aria-busy="true" aria-label={t('attention.loading')}>
           <SkeletonRows count={3} />
@@ -119,6 +120,6 @@ export function AttentionInbox({ pumpId, allPumps }: { pumpId: number | null; al
           ))}
         </ul>
       )}
-    </section>
+    </PageSection>
   )
 }

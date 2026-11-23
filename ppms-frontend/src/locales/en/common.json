@@ -172,5 +172,9 @@
   "gst": {
     "gstinFormat": "GSTIN must be 15 characters in the format 27ABCDE1234F1Z5.",
     "gstinPlaceholder": "e.g. 27ABCDE1234F1Z5"
+  },
+  "layout": {
+    "breadcrumbs": "Breadcrumb",
+    "backToList": "Back to list"
   }
 }

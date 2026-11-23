@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AxiosError, AxiosHeaders } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -71,5 +71,47 @@ describe('UserProfileArea language switch', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     await waitFor(() => expect(document.documentElement.lang).toBe('en'))
     expect(useAuthStore.getState().user?.preferredLanguage).toBe('en')
+  })
+})
+
+describe('UserProfileArea menu', () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      isAuthenticated: true,
+      user: { userId: 7, fullName: 'Ramesh Patil', role: 'OWNER', assignedPumpId: null, preferredLanguage: 'en' },
+    })
+  })
+
+  afterEach(() => {
+    useAuthStore.setState({ user: null, isAuthenticated: false })
+    delete document.documentElement.dataset.density
+  })
+
+  it('shows who is signed in, with the name editable, inside the menu', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<UserProfileArea />)
+
+    expect(screen.queryByText('Owner')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Open profile menu' }))
+
+    expect(screen.getByRole('button', { name: 'Edit your name, Ramesh Patil' })).toBeInTheDocument()
+    expect(screen.getByText('Owner')).toBeInTheDocument()
+  })
+
+  it('switches this device to compact density and back', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<UserProfileArea />)
+    await user.click(screen.getByRole('button', { name: 'Open profile menu' }))
+
+    const density = screen.getByRole('group', { name: 'Density' })
+    expect(within(density).getByRole('radio', { name: 'Comfortable' })).toBeChecked()
+
+    await user.click(within(density).getByRole('radio', { name: 'Compact' }))
+
+    expect(document.documentElement).toHaveAttribute('data-density', 'compact')
+    expect(localStorage.getItem('ppms_density')).toBe('compact')
+
+    await user.click(within(density).getByRole('radio', { name: 'Comfortable' }))
+    expect(document.documentElement).toHaveAttribute('data-density', 'comfortable')
   })
 })

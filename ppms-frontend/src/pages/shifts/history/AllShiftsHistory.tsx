@@ -1,160 +1,155 @@
 import { useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { shiftApi } from '../../../api/shiftApi'
+import { MoneyText } from '../../../components/AmountText'
 import { SkeletonRows } from '../../../components/Skeleton'
-import { localDateInputValue } from '../../../utils/date'
-import { parseApiError } from '../../../utils/apiError'
-import { HistoryRow } from './HistoryRow'
-import { historyColumns } from './historyColumns'
-import { PAGE_SIZE } from '../shiftLabels'
-import { DataTable } from '../../../components/DataTable'
+import { StatusBadge } from '../../../components/StatusBadge'
+import { shiftStatusBadge } from '../../../components/statusBadges'
+import { FilterBar } from '../../../components/layout/FilterBar'
+import { ListDetail } from '../../../components/layout/ListDetail'
 import { codeLabel } from '../../../constants/labels'
+import { useDateRangeParams } from '../../../hooks/useDateRangeParams'
+import type { Shift } from '../../../types/shift'
+import { parseApiError } from '../../../utils/apiError'
+import { localDateInputValue } from '../../../utils/date'
+import { PAGE_SIZE } from '../shiftLabels'
+import { ShiftDetail } from './ShiftDetail'
 
-// ── All Shifts (paginated + date range filter) ────────────────────────────────
+const lastTwoDays = () => ({ from: localDateInputValue(-1), to: localDateInputValue() })
 
-/** initialFrom/initialTo/fuelType come from the address, e.g. a "View shifts" link on the P&L report. */
-export function AllShiftsHistory({ pumpId, initialFrom, initialTo, fuelType, onClearFuel }: {
-  pumpId: number
-  initialFrom?: string
-  initialTo?: string
-  fuelType?: string
-  onClearFuel?: () => void
-}) {
+function ShiftListItem({ shift, search, selected }: { shift: Shift; search: string; selected: boolean }) {
   const { t } = useTranslation(['shifts', 'common'])
-  const [page,     setPage]     = useState(0)
-  const [fromDate, setFromDate] = useState(() => initialFrom ?? localDateInputValue(-1))
-  const [toDate,   setToDate]   = useState(() => initialTo ?? localDateInputValue())
+  return (
+    <Link to={{ search }} aria-current={selected ? 'page' : undefined} className="ui-list-item">
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold text-ink">{t('common:shiftNumber', { id: shift.id })} · {shift.operatorName}</span>
+        <span className="block text-xs text-ink-3">
+          {shift.duName ?? `DU #${shift.duNumber}`} · {shift.shiftDate}{shift.shiftWindow ? ` · ${shift.shiftWindow}` : ''}
+        </span>
+      </span>
+      <span className="flex shrink-0 flex-col items-end gap-1">
+        <MoneyText value={shift.totalAmountDue} className="text-sm font-semibold text-ink" />
+        <StatusBadge {...shiftStatusBadge(shift.status)} />
+      </span>
+    </Link>
+  )
+}
+
+/**
+ * Every shift in a date range as a list, with the shift named in ?shift= open beside it (desktop) or on its own screen.
+ * from, to and fuel come from the address too, e.g. a "View shifts" link on the P&L report.
+ */
+export function AllShiftsHistory({ pumpId }: { pumpId: number }) {
+  const { t } = useTranslation(['shifts', 'common'])
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [range, setRange] = useDateRangeParams(lastTwoDays)
+  const [page, setPage] = useState(0)
+  const fuelText = searchParams.get('fuel')
+  const fuelType = fuelText && /^[A-Z_]+$/.test(fuelText) ? fuelText : undefined
+  const shiftText = searchParams.get('shift')
+  const selectedId = shiftText && /^\d+$/.test(shiftText) ? Number(shiftText) : null
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['shiftHistory', pumpId, 'all', fromDate, toDate, fuelType, page],
-    queryFn:  () => shiftApi.getShiftHistoryPage(pumpId, { from: fromDate || undefined, to: toDate || undefined, fuelType }, page, PAGE_SIZE),
+    queryKey: ['shiftHistory', pumpId, 'all', range.from, range.to, fuelType, page],
+    queryFn:  () => shiftApi.getShiftHistoryPage(pumpId, { from: range.from || undefined, to: range.to || undefined, fuelType }, page, PAGE_SIZE),
     placeholderData: keepPreviousData,
   })
 
-  const paged         = data?.content ?? []
+  const shifts        = data?.content ?? []
   const totalElements = data?.page.totalElements ?? 0
   const totalPages    = Math.max(1, data?.page.totalPages ?? 1)
   const safePage      = Math.min(page, totalPages - 1)
+  const isFiltered    = Boolean(range.from || range.to || fuelType)
 
-  const clearFilter = () => { setFromDate(''); setToDate(''); setPage(0) }
+  const updateParams = (change: (params: URLSearchParams) => void, replace: boolean) => setSearchParams((params) => {
+    const updated = new URLSearchParams(params)
+    change(updated)
+    return updated
+  }, { replace })
 
-  return (
-    <div>
-      {/* Date range filter bar */}
-      <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-border bg-surface-sunken">
-        <span className="text-xs font-medium text-ink-3">{t('history.filterByDate')}</span>
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <input aria-label={t('common:fields.fromDate')}
-            type="date"
-            value={fromDate}
-            onChange={(e) => { setFromDate(e.target.value); setPage(0) }}
-            className="flex-1 min-w-[8.5rem] border border-control rounded-control px-2.5 py-1.5 text-xs"
-          />
-          <span className="text-ink-3 text-xs">{t('history.to')}</span>
-          <input aria-label={t('common:fields.toDate')}
-            type="date"
-            value={toDate}
-            onChange={(e) => { setToDate(e.target.value); setPage(0) }}
-            className="flex-1 min-w-[8.5rem] border border-control rounded-control px-2.5 py-1.5 text-xs"
-          />
+  const changeDate = (name: 'from' | 'to', value: string) => {
+    setRange({ ...range, [name]: value })
+    setPage(0)
+  }
+  const clearFilters = () => {
+    updateParams((params) => { params.set('from', ''); params.set('to', ''); params.delete('fuel') }, true)
+    setPage(0)
+  }
+  const searchFor = (shiftId: number) => {
+    const params = new URLSearchParams(searchParams)
+    params.set('history', 'all')
+    params.set('shift', String(shiftId))
+    return `?${params.toString()}`
+  }
+
+  const list = (
+    <>
+      <FilterBar
+        label={t('history.filtersLabel')}
+        onClearFilters={clearFilters}
+        hasActiveFilters={isFiltered}
+        summary={`${t('history.shiftCount', { count: totalElements })}${isFiltered ? t('history.filtered') : ''}`}
+      >
+        <div className="flex w-full flex-wrap items-center gap-2">
+          <input aria-label={t('common:fields.fromDate')} type="date" value={range.from}
+            onChange={(e) => changeDate('from', e.target.value)} className="min-w-[8.5rem] flex-1 text-xs" />
+          <span className="text-xs text-ink-3">{t('history.to')}</span>
+          <input aria-label={t('common:fields.toDate')} type="date" value={range.to}
+            onChange={(e) => changeDate('to', e.target.value)} className="min-w-[8.5rem] flex-1 text-xs" />
         </div>
-        {fuelType && onClearFuel && (
-          <button type="button" onClick={onClearFuel} className="ui-chip" aria-pressed="true"
+        {fuelType && (
+          <button type="button" onClick={() => updateParams((params) => params.delete('fuel'), true)} className="ui-chip" aria-pressed="true"
             aria-label={t('history.fuelOnlyLabel', { fuel: codeLabel(fuelType) })}>
             {t('history.fuelOnly', { fuel: codeLabel(fuelType) })}
           </button>
         )}
-        {(fromDate || toDate) && (
-          <button
-            onClick={clearFilter}
-            className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-ink-3 hover:text-ink underline"
-          >
-            {t('common:actions.clear')}
-          </button>
-        )}
-        <span className="ml-auto text-xs text-ink-3">
-          {t('history.shiftCount', { count: totalElements })}
-          {(fromDate || toDate || fuelType) ? t('history.filtered') : ''}
-        </span>
-      </div>
+      </FilterBar>
 
       {isLoading ? (
-        <div className="px-5 py-4 border-t border-border"><SkeletonRows count={4} /></div>
+        <div className="px-4 py-3"><SkeletonRows count={4} /></div>
       ) : error ? (
-        <div className="px-6 py-4 border-t border-border">
-          <p role="alert" className="ui-alert ui-alert-error text-sm">{parseApiError(error, t('history.loadFailed'))}</p>
-        </div>
+        <p role="alert" className="ui-alert ui-alert-error m-4 text-sm">{parseApiError(error, t('history.loadFailed'))}</p>
+      ) : shifts.length === 0 ? (
+        <p className="ui-empty m-4">{t('history.allEmpty')}</p>
       ) : (
-        <DataTable
-          caption={t('history.allShiftsCaption')}
-          captionHidden
-          columns={historyColumns(t)}
-          rows={paged}
-          rowKey={(shift) => shift.id}
-          renderRow={(shift) => <HistoryRow shift={shift} />}
-          empty={<p className="ui-empty px-6 py-6">{t('history.allEmpty')}</p>}
-          className="rounded-none border-x-0 border-b-0"
-        />
+        <ul>
+          {shifts.map((shift) => (
+            <li key={shift.id}>
+              <ShiftListItem shift={shift} search={searchFor(shift.id)} selected={shift.id === selectedId} />
+            </li>
+          ))}
+        </ul>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-surface-sunken">
-          <span className="text-xs text-ink-3">
-            {t('common:pagination.pageOf', { page: safePage + 1, total: totalPages })}
-            <span className="ml-2 text-ink-3">
-              {t('history.showingRange', { from: safePage * PAGE_SIZE + 1, to: Math.min((safePage + 1) * PAGE_SIZE, totalElements), total: totalElements })}
-            </span>
-          </span>
+        <div className="flex items-center justify-between gap-2 px-4 py-3">
+          <span className="text-xs text-ink-3">{t('common:pagination.pageOf', { page: safePage + 1, total: totalPages })}</span>
           <div className="flex gap-1">
-            <button aria-label={t('history.firstPage')}
-              onClick={() => setPage(0)}
-              disabled={safePage === 0}
-              className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30"
-            >
-              «
-            </button>
-            <button
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={safePage === 0}
-              className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30"
-            >
+            <button type="button" onClick={() => setPage(Math.max(0, safePage - 1))} disabled={safePage === 0}
+              className="ui-btn ui-btn-secondary ui-btn-compact disabled:opacity-30">
               {t('common:pagination.prev')}
             </button>
-            {/* Page number pills — show window of 5 */}
-            {Array.from({ length: totalPages }, (_, i) => i)
-              .filter((i) => Math.abs(i - safePage) <= 2)
-              .map((i) => (
-                <button
-                  key={i}
-                  onClick={() => setPage(i)}
-                  className={`ui-btn min-h-0 px-3 py-1 text-xs rounded-control border transition-colors ${
-                    i === safePage
-                      ? 'bg-primary border-primary text-on-primary'
-                      : 'border-border hover:bg-surface-sunken text-ink-2'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={safePage === totalPages - 1}
-              className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30"
-            >
+            <button type="button" onClick={() => setPage(Math.min(totalPages - 1, safePage + 1))} disabled={safePage === totalPages - 1}
+              className="ui-btn ui-btn-secondary ui-btn-compact disabled:opacity-30">
               {t('common:pagination.next')}
-            </button>
-            <button aria-label={t('history.lastPage')}
-              onClick={() => setPage(totalPages - 1)}
-              disabled={safePage === totalPages - 1}
-              className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30"
-            >
-              »
             </button>
           </div>
         </div>
       )}
-    </div>
+    </>
+  )
+
+  return (
+    <ListDetail
+      listLabel={t('history.listLabel')}
+      detailLabel={t('history.detailLabel')}
+      list={list}
+      selectedId={selectedId}
+      detail={selectedId !== null && <ShiftDetail pumpId={pumpId} shiftId={selectedId} />}
+      placeholder={<p className="ui-empty">{t('history.selectShift')}</p>}
+      onBack={() => updateParams((params) => params.delete('shift'), false)}
+    />
   )
 }

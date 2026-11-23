@@ -232,8 +232,6 @@
   "creditEntries": {
     "title": "क्रेडिट बिक्री",
     "subtitle": "शिफ्ट #{{id}} · नोज़ल {{nozzles}} · {{operator}} · {{date}}",
-    "clients_one": "{{count}} ग्राहक पर क्रेडिट बकाया",
-    "clients_other": "{{count}} ग्राहकों पर क्रेडिट बकाया",
     "total": "कुल क्रेडिट",
     "bill": "बिल:",
     "noBill": "बिल नहीं"
@@ -299,10 +297,8 @@
     "noPumpsTitle": "अभी कोई पंप सेट नहीं है",
     "noPumpsBody": "पहले पंप की जगह बनाएँ, फिर नोज़ल जोड़ें और ईंधन कीमत सेट करें।",
     "goToSetup": "सेटअप पर जाएँ",
-    "kicker": "शिफ्ट नियंत्रण",
     "title": "शिफ्ट",
     "subtitle": "ऑपरेटर की शिफ्ट खोलें और बंद करें, मीटर रीडिंग और भुगतान दर्ज करें।",
-    "openNow": "अभी चालू",
     "myActiveShifts": "मेरी चालू शिफ्ट",
     "activeShifts": "चालू शिफ्ट",
     "activeShiftsCaption": "चालू शिफ्ट",
@@ -318,7 +314,10 @@
       "day": "दिन के हिसाब से",
       "all": "सभी शिफ्ट",
       "discrepancies": "अंतर"
-    }
+    },
+    "openNowCount_one": "अभी {{count}} चालू",
+    "openNowCount_other": "अभी {{count}} चालू",
+    "historyViews": "शिफ्ट इतिहास के व्यू"
   },
   "myShift": {
     "title": "मेरी शिफ्ट",
@@ -478,8 +477,6 @@
       "discrepancy": "अंतर",
       "actions": "कार्रवाई"
     },
-    "shiftRegion": "शिफ्ट {{id}}",
-    "showAll": "सभी शिफ्ट देखें",
     "shiftNotFound": "शिफ्ट #{{id}} इस पंप पर नहीं मिली।",
     "loadFailed": "शिफ्ट इतिहास लोड नहीं हुआ",
     "dayEmpty": "पिछले 3 दिनों का कोई शिफ्ट इतिहास नहीं।",
@@ -488,7 +485,6 @@
     "stillOpen": " ({{count}} अभी चालू)",
     "shiftsFor": "{{label}} की शिफ्ट",
     "shiftsForDay": "दिन की शिफ्ट",
-    "filterByDate": "तारीख से छाँटें:",
     "to": "से",
     "fuelOnlyLabel": "सिर्फ़ {{fuel}} की शिफ्ट दिख रही हैं। सभी ईंधन देखें",
     "fuelOnly": "सिर्फ़ {{fuel}} ×",
@@ -530,7 +526,11 @@
       "all": "सभी",
       "caption": "अंतर",
       "noMatch": "चुने गए फ़िल्टर से कोई अंतर नहीं मिला।"
-    }
+    },
+    "filtersLabel": "शिफ्ट फ़िल्टर",
+    "listLabel": "शिफ्ट",
+    "detailLabel": "शिफ्ट का ब्योरा",
+    "selectShift": "ब्योरा देखने के लिए सूची से कोई शिफ्ट चुनें।"
   },
   "planning": {
     "title": "शिफ्ट योजना",
@@ -580,5 +580,9 @@
       "operatorToAdd": "जोड़ने के लिए ऑपरेटर",
       "pickOperator": "— ऑपरेटर चुनें —"
     }
+  },
+  "detail": {
+    "nozzles": "नोज़ल",
+    "time": "समय"
   }
 }
