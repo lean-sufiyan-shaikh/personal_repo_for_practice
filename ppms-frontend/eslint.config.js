@@ -19,7 +19,7 @@ export default defineConfig([
     ],
     rules: {
       // Checkbox labels wrap the control and put the text a few spans deep.
-      'jsx-a11y/label-has-associated-control': ['error', { depth: 3 }],
+      'jsx-a11y/label-has-associated-control': ['error', { depth: 3, controlComponents: ['NumericInput'] }],
       // Scrollable table regions must take focus so keyboard users can scroll them.
       'jsx-a11y/no-noninteractive-tabindex': ['error', { tags: [], roles: ['tabpanel', 'region'], allowExpressionValues: true }],
     },

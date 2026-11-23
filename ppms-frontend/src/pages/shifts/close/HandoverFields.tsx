@@ -45,12 +45,12 @@ export function HandoverFields({ shift, activeShifts, details, onChange }: Props
           selectedOperatorId={details.incomingOperatorId}
           onSelect={(operatorId) => onChange({ ...details, incomingOperatorId: operatorId })}
         />
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+        <label className="ui-check-row">
           <input type="checkbox" checked={details.physicalCashVerified}
             onChange={(e) => onChange({ ...details, physicalCashVerified: e.target.checked })} />
           Cash counted with the incoming operator
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+        <label className="ui-check-row">
           <input type="checkbox" checked={details.meterReadingsVerified}
             onChange={(e) => onChange({ ...details, meterReadingsVerified: e.target.checked })} />
           Meter readings checked together

@@ -6,6 +6,7 @@ import { SearchableSelect } from '../../components/SearchableSelect'
 import { localDateInputValue } from '../../utils/date'
 import { Reveal } from '../../components/Reveal'
 import { Spinner } from '../../components/Spinner'
+import { NumericInput } from '../../components/NumericInput'
 import { useToastStore } from '../../store/toastStore'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
@@ -102,8 +103,7 @@ export function CashEntryForm({ pumpId, balance }: CashEntryFormProps) {
           <div>
             <label className="block">
               <span className="ui-label">Amount (₹)</span>
-              <input
-                type="number"
+              <NumericInput
                 min="0"
                 step="0.01"
                 value={form.amount || ''}

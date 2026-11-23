@@ -1,4 +1,5 @@
 import { Check, ArrowUp } from 'lucide-react'
+import { NumericInput } from '../../../components/NumericInput'
 
 export function Section({ label, title, optional = false, children }: {
   label: string; title: string; optional?: boolean; children: React.ReactNode
@@ -17,27 +18,16 @@ export function Section({ label, title, optional = false, children }: {
   )
 }
 
-export function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onChange, unitLabel, isInvalid, noChange, onNoChangeToggle }: {
+export function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onChange, unitLabel, isInvalid, noChange, onNoChangeToggle, focusOnOpen = false }: {
   label: string; startValue: number; soldUnits: number; pricePerUnit: number;
   value: string; onChange: (v: string) => void; unitLabel: string; isInvalid?: boolean
-  noChange?: boolean; onNoChangeToggle?: () => void
+  noChange?: boolean; onNoChangeToggle?: () => void; focusOnOpen?: boolean
 }) {
   const saleValue = soldUnits > 0 ? soldUnits * pricePerUnit : null
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-0.5">
-        <span className="ui-label mb-0">{label}</span>
-        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={noChange ?? false}
-            onChange={onNoChangeToggle}
-            className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-          />
-          <span className="text-xs text-slate-500">No change</span>
-        </label>
-      </div>
+      <span className="ui-label mb-0.5">{label}</span>
       <div className="flex flex-col gap-0.5 text-xs text-slate-500 mb-1">
         <span>Start: <span className="font-medium text-slate-500">{startValue}</span></span>
         {noChange ? (
@@ -64,10 +54,12 @@ export function ReadingField({ label, startValue, soldUnits, pricePerUnit, value
           </>
         )}
       </div>
-      <input aria-label={`${label} end reading`} type="number" step="0.001" min="0" required value={value}
+      <NumericInput aria-label={`${label} end reading`} step="0.001" min="0" required value={value}
         disabled={noChange}
+        data-autofocus={focusOnOpen || undefined}
+        unit={unitLabel}
         onChange={(e) => onChange(e.target.value)}
-        className={`text-sm ${
+        className={`${
           noChange
             ? 'border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed'
             : isInvalid
@@ -81,6 +73,10 @@ export function ReadingField({ label, startValue, soldUnits, pricePerUnit, value
           End reading cannot be less than start ({startValue}) unless the meter rolled over from its maximum
         </p>
       )}
+      <label className="ui-check-row mt-2">
+        <input type="checkbox" checked={noChange ?? false} onChange={onNoChangeToggle} />
+        <span>No change</span>
+      </label>
     </div>
   )
 }
@@ -90,10 +86,9 @@ export function PaymentField({ label, value, onChange }: { label: string; value:
     <div>
       <label className="block">
         <span className="ui-label">{label}</span>
-        <input type="number" step="0.01" min="0" value={value}
+        <NumericInput step="0.01" min="0" value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Enter amount"
-          className="text-sm"
         />
       </label>
     </div>

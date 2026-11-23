@@ -12,12 +12,15 @@ import { useAuthStore } from '../../../store/authStore'
 import { canPerformAction } from '../../../permissions/permissions'
 import { IconButton } from '../../../components/IconButton'
 import { focusOnMount } from '../../../utils/focus'
+import { NumericInput } from '../../../components/NumericInput'
+import { useToastStore } from '../../../store/toastStore'
 
 // ── Add Credit Entry Modal (mid-shift) ────────────────────────────────────────
 
 
 export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose: () => void }) {
   const qc = useQueryClient()
+  const { addToast } = useToastStore()
   const role = useAuthStore((state) => state.user?.role)
   const canVoidEntry = canPerformAction('shift:void-credit-entry', role)
   const { data: creditClients = [] } = useQuery({
@@ -48,8 +51,9 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
 
   const mutation = useMutation({
     mutationFn: (entry: CreditEntryInput) => shiftApi.addCreditEntry(shift.pumpId, shift.id, entry),
-    onSuccess: () => {
+    onSuccess: (_shift, entry) => {
       qc.invalidateQueries({ queryKey: ['activeShifts', shift.pumpId] })
+      addToast(`Credit of ₹${entry.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} added for ${entry.clientName}`, 'success')
       onClose()
     },
     onError: (err: unknown) => setError(parseApiError(err, 'Failed to save credit entry. Please try again.')),
@@ -112,7 +116,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
             <div className="ui-card p-0 overflow-hidden">
               <div className="ui-toolbar px-3 py-2">
                 <p className="ui-toolbar-title text-xs">Recorded entries</p>
-                {canVoidEntry && <span className="ui-toolbar-note">Click Void to cancel one</span>}
+                {canVoidEntry && <span className="ui-toolbar-note">Tap Void to cancel one</span>}
               </div>
               <div className="divide-y divide-slate-100 max-h-40 overflow-y-auto">
                 {shift.creditEntries.map((entry) => (
@@ -240,7 +244,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                     onClick={() => { setInputMode('amount'); setLiters('') }}
                     aria-pressed={inputMode === 'amount'}
                     aria-label="Enter amount in rupees"
-                    className={`min-h-6 min-w-8 rounded border border-slate-200 px-2 font-medium transition-colors ${inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+                    className={`min-h-11 min-w-11 rounded border border-slate-200 px-2 font-medium transition-colors ${inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
                     ₹
                   </button>
                   <button type="button"
@@ -253,17 +257,16 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                     disabled={!priceForFuelType(fuelType)}
                     aria-pressed={inputMode === 'liters'}
                     aria-label="Enter litres"
-                    className={`min-h-6 min-w-8 rounded border border-slate-200 px-2 font-medium transition-colors ${inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
+                    className={`min-h-11 min-w-11 rounded border border-slate-200 px-2 font-medium transition-colors ${inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
                     L
                   </button>
                 </div>
               </div>
               {inputMode === 'amount' ? (
                 <>
-                  <input aria-label="Credit amount in rupees" type="number" step="0.01" min="0.01" value={amount}
+                  <NumericInput aria-label="Credit amount in rupees" step="0.01" min="0.01" value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="text-sm" />
+                    placeholder="0.00" />
                   {(() => {
                     const price = priceForFuelType(fuelType)
                     const unit = fuelType === 'CNG' ? 'kg' : 'L'
@@ -277,15 +280,14 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                 </>
               ) : (
                 <>
-                  <input aria-label="Credit quantity" type="number" step="0.001" min="0.001" value={liters}
+                  <NumericInput aria-label="Credit quantity" step="0.001" min="0.001" value={liters}
                     onChange={(e) => {
                       const price = priceForFuelType(fuelType)
                       const amt = price && e.target.value ? (parseFloat(e.target.value) * price).toFixed(2) : ''
                       setLiters(e.target.value)
                       setAmount(amt)
                     }}
-                    placeholder="0.00"
-                    className="text-sm" />
+                    placeholder="0.00" />
                   {liters && amount && (() => {
                     const price = priceForFuelType(fuelType)
                     const unit = fuelType === 'CNG' ? 'kg' : 'L'

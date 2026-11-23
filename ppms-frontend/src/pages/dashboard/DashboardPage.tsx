@@ -61,7 +61,7 @@ export default function DashboardPage() {
   }, [location.pathname])
 
   return (
-    <div className="ui-dashboard-shell h-screen bg-slate-50 flex flex-col overflow-hidden">
+    <div className="ui-dashboard-shell h-dvh bg-slate-50 flex flex-col overflow-hidden">
 
       {/* Skip link — visible only on keyboard focus */}
       <a

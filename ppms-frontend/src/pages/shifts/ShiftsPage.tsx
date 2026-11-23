@@ -157,7 +157,11 @@ export default function ShiftsPage() {
               <div className="px-5 py-4"><SkeletonRows count={3} /></div>
             ) : activeShifts.length === 0 ? (
               <div className="ui-empty p-6">
-                {canOpenShift ? 'No active shifts. Click "+ Open Shift" to start one.' : 'No active shifts.'}
+                {canOpenShift
+                  ? 'No active shifts. Tap Open Shift to start one.'
+                  : seesOnlyOwnShifts
+                  ? 'No open shift. Ask your manager to open your shift.'
+                  : 'No active shifts.'}
               </div>
             ) : (
               <ScrollRegion label="Active shifts" className="overflow-x-auto">

@@ -7,6 +7,7 @@ import type { AncillaryProduct, RecordAncillarySaleRequest, AncillaryPaymentMode
 import { useAuthStore } from '../../store/authStore'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Spinner } from '../../components/Spinner'
+import { NumericInput } from '../../components/NumericInput'
 import { useToastStore } from '../../store/toastStore'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
@@ -188,9 +189,8 @@ export function SellDialog({
                 <div>
                   <label className="block">
                     <span className="ui-label">Quantity (units) *</span>
-                    <input
-                      type="number" min="1" step="1" data-autofocus
-                      className="text-sm"
+                    <NumericInput
+                      min="1" step="1" data-autofocus inputMode="numeric"
                       value={form.quantityUnits}
                       onChange={e => setForm(f => ({ ...f, quantityUnits: parseInt(e.target.value) || 0 }))}
                     />

@@ -11,6 +11,7 @@ import { parseApiError } from '../../utils/apiError'
 import { FUEL_LABELS, FUEL_UNIT } from '../../constants/fuel'
 import { OperatorPicker } from './components/OperatorPicker'
 import { IconButton } from '../../components/IconButton'
+import { useToastStore } from '../../store/toastStore'
 
 /** Stored end times are inclusive (08:59 means the shift runs until 09:00), so the end minute is inside the window. */
 function isTimeInWindow(startTime: string, endTime: string, crossesMidnight: boolean, nowHHMM: string): boolean {
@@ -38,6 +39,7 @@ interface Props {
 
 export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefilledDuId, prefilledNozzleIds }: Props) {
   const queryClient = useQueryClient()
+  const { addToast } = useToastStore()
 
   const [selectedDU, setSelectedDU]                 = useState<DUOption | null>(null)
   const [selectedNozzleIds, setSelectedNozzleIds]   = useState<Set<number>>(new Set())
@@ -61,16 +63,24 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
     queryFn:  () => userApi.getOperators(pumpId),
   })
 
-  // Auto-select DU and nozzles when opened from a just-closed shift
+  // Auto-select the DU and nozzles of a just-closed shift, or the only DU and its free nozzles
   useEffect(() => {
-    if (!prefilledDuId || !dus.length || selectedDU) return
-    const du = dus.find(d => d.id === prefilledDuId && d.status === 'ACTIVE')
-    if (!du) return
-    setSelectedDU(du)
-    const ids = new Set(
-      (prefilledNozzleIds ?? []).filter(id => du.nozzles.some(n => n.id === id) && !busyNozzleIds.has(id))
-    )
-    setSelectedNozzleIds(ids)
+    if (!dus.length || selectedDU) return
+    const activeDus = dus.filter(d => d.status === 'ACTIVE')
+    const prefilledDu = prefilledDuId ? activeDus.find(d => d.id === prefilledDuId) : undefined
+    if (prefilledDu) {
+      setSelectedDU(prefilledDu)
+      setSelectedNozzleIds(new Set(
+        (prefilledNozzleIds ?? []).filter(id => prefilledDu.nozzles.some(n => n.id === id) && !busyNozzleIds.has(id))
+      ))
+      return
+    }
+    if (activeDus.length !== 1) return
+    const onlyDu = activeDus[0]
+    setSelectedDU(onlyDu)
+    setSelectedNozzleIds(new Set(
+      onlyDu.nozzles.filter(n => n.status === 'ACTIVE' && !busyNozzleIds.has(n.id)).map(n => n.id)
+    ))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dus])
 
@@ -87,8 +97,9 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
 
   const openMutation = useMutation({
     mutationFn: (req: OpenShiftRequest) => shiftApi.openShift(pumpId, req),
-    onSuccess: () => {
+    onSuccess: (shift) => {
       queryClient.invalidateQueries({ queryKey: ['activeShifts', pumpId] })
+      addToast(`Shift opened for ${shift.operatorName}`, 'success')
       onClose()
     },
     onError: (err) =>
@@ -147,6 +158,12 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
   const selectedNozzles = selectedDU
     ? selectedDU.nozzles.filter((n) => selectedNozzleIds.has(n.id))
     : []
+
+  const missingStep = !selectedDU ? 'Pick a dispensary unit'
+    : selectedNozzleIds.size === 0 ? 'Select at least one nozzle'
+    : !selectedOperatorId ? 'Pick an operator'
+    : !readingConfirmed ? 'Confirm the meter readings'
+    : null
 
   return (
     <ModalPortal onClose={onClose}>
@@ -309,18 +326,6 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                 If a reading looks incorrect, an Admin must update it in{' '}
                 <span className="font-medium text-slate-700">Setup → Nozzle → Adjust Reading</span> first.
               </p>
-
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={readingConfirmed}
-                  onChange={(e) => { setReadingConfirmed(e.target.checked); setValidationError(null) }}
-                  className="mt-0.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                />
-                <span className="text-xs text-slate-600 leading-relaxed group-hover:text-slate-800 transition-colors">
-                  I confirm the meter readings above are correct and authorise opening this shift.
-                </span>
-              </label>
             </div>
           )}
 
@@ -334,17 +339,32 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
           </div>{/* end ui-modal-body */}
 
           {/* ── Actions ── */}
-          <div className="ui-modal-footer">
+          <div className="ui-modal-footer flex-wrap">
+            {selectedNozzles.length > 0 && (
+              <label className="ui-check-row">
+                <input
+                  type="checkbox"
+                  checked={readingConfirmed}
+                  onChange={(e) => { setReadingConfirmed(e.target.checked); setValidationError(null) }}
+                />
+                <span>I confirm the meter readings above are correct and authorise opening this shift.</span>
+              </label>
+            )}
             <button type="button" onClick={onClose}
               className="ui-btn ui-btn-secondary flex-1">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={!selectedDU || selectedNozzleIds.size === 0 || !selectedOperatorId || !readingConfirmed || openMutation.isPending}
-              className="ui-btn ui-btn-primary flex-1 disabled:bg-blue-300 disabled:cursor-not-allowed">
-              {openMutation.isPending ? 'Opening...' : 'Open Shift'}
-            </button>
+            {missingStep ? (
+              <button type="submit" disabled
+                className="ui-btn flex-1 whitespace-normal bg-slate-100 text-slate-700 border-slate-300 cursor-not-allowed disabled:opacity-100">
+                {missingStep}
+              </button>
+            ) : (
+              <button type="submit" disabled={openMutation.isPending}
+                className="ui-btn ui-btn-primary flex-1 disabled:bg-blue-300 disabled:cursor-not-allowed">
+                {openMutation.isPending ? 'Opening...' : 'Open Shift'}
+              </button>
+            )}
           </div>
         </form>
       </div>

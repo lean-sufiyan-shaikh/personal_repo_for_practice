@@ -9,6 +9,8 @@ import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
 import { FUEL_COLORS } from './inventoryFormat'
 import { IconButton } from '../../components/IconButton'
+import { NumericInput } from '../../components/NumericInput'
+import { useToastStore } from '../../store/toastStore'
 
 const ROLLOVER_START_FRACTION = 0.99
 
@@ -35,6 +37,7 @@ export function DipCheckModal({
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
+  const { addToast } = useToastStore()
   const cols = FUEL_COLORS[tank.fuelType] ?? FUEL_COLORS.PETROL
 
   const [measured,        setMeasured]        = useState('')
@@ -65,6 +68,7 @@ export function DipCheckModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pumpId] })
       queryClient.invalidateQueries({ queryKey: ['dipChecks', pumpId] })
+      addToast(`DIP check saved for ${tank.tankIdentifier}`, 'success')
       onClose()
     },
     onError: (err) => {
@@ -130,15 +134,13 @@ export function DipCheckModal({
                     <span className="ui-label">
                       Nozzle #{n.nozzleNumber}{n.duName ? ` · ${n.duName}` : ''} meter reading
                     </span>
-                    <input
+                    <NumericInput
                       required
-                      type="number"
                       step="0.001"
                       min="0"
                       value={meterReadings[n.nozzleId] ?? ''}
                       onChange={e => setMeterReadings(prev => ({ ...prev, [n.nozzleId]: e.target.value }))}
                       aria-describedby={`opening-reading-${n.nozzleId}`}
-                      className="text-sm"
                     />
                   </label>
                   <p id={`opening-reading-${n.nozzleId}`} className="text-xs text-slate-500 mt-1">
@@ -163,15 +165,13 @@ export function DipCheckModal({
               <span className="ui-label">
               Dipstick Reading (Litres)
             </span>
-              <input
+              <NumericInput
                 required
-                type="number"
                 step="0.001"
                 min="0"
                 value={measured}
                 onChange={e => setMeasured(e.target.value)}
                 placeholder="Physically measured quantity"
-                className="text-sm"
                 data-autofocus
               />
             </label>

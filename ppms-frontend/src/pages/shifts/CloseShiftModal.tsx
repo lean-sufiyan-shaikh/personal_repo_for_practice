@@ -23,6 +23,7 @@ import { useCloseShiftCreditRows } from './close/useCloseShiftCreditRows'
 import { HandoverFields } from './close/HandoverFields'
 import { EMPTY_HANDOVER_DETAILS } from './close/handoverDetails'
 import { IconButton } from '../../components/IconButton'
+import { useToastStore } from '../../store/toastStore'
 
 interface Props {
   shift: Shift
@@ -35,6 +36,7 @@ interface Props {
 export default function CloseShiftModal({ shift, onClose, onShiftClosed, handoverActiveShifts }: Props) {
   const isHandover = handoverActiveShifts !== undefined
   const queryClient = useQueryClient()
+  const { addToast } = useToastStore()
   const [serverError, setServerError] = useState<string | null>(null)
   const [noChangeNozzles, setNoChangeNozzles] = useState<Set<number>>(new Set())
 
@@ -144,6 +146,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed, handove
   const closeMutation = useMutation({
     mutationFn: (req: CloseShiftRequest) => shiftApi.closeShift(shift.pumpId, shift.id, req),
     onSuccess: () => {
+      addToast(`Shift closed for ${shift.operatorName}`, 'success')
       onShiftClosed?.(shift.duId, shift.nozzles.map(n => n.id))
       onSubmitted()
     },
@@ -155,7 +158,10 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed, handove
 
   const handoverMutation = useMutation({
     mutationFn: (req: CreateHandoverRequest) => shiftApi.createHandover(shift.pumpId, req),
-    onSuccess: onSubmitted,
+    onSuccess: () => {
+      addToast(`Shift handed over from ${shift.operatorName}`, 'success')
+      onSubmitted()
+    },
     onError: (err: unknown) => {
       setServerError(parseApiError(err, 'Failed to hand over the shift. Please try again.'))
       reloadShift()
@@ -198,6 +204,9 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed, handove
     }
     setCash(newCashPaise === 0 ? '' : (newCashPaise / 100).toFixed(2))
   }
+
+  const restInCashPaise = Math.max(0,
+    toPaise(totalDue) - toPaise(emptyNum(upi)) - toPaise(emptyNum(card)) - toPaise(emptyNum(fleetCard)) - toPaise(creditTotal))
 
   const { requestClose, isConfirming, discard, keepEditing } = useConfirmDiscard(hasUnsavedChanges, onClose)
 
@@ -257,7 +266,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed, handove
             {/* ── Step 1: End Readings ──────────────────────────────────── */}
             <Section label="1" title="End Meter Readings">
               <div className={`grid gap-3 ${shift.fuelReadings.length > 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                {perFuelSales.map(({ reading, sold, isBelowStart }) => {
+                {perFuelSales.map(({ reading, sold, isBelowStart }, index) => {
                   const isNoChange = noChangeNozzles.has(reading.nozzleId)
                   const endVal = endReadings[reading.nozzleId] ?? ''
                   const isInvalid = isBelowStart
@@ -274,6 +283,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed, handove
                       isInvalid={isInvalid}
                       noChange={isNoChange}
                       onNoChangeToggle={() => toggleNoChange(reading.nozzleId, reading.startReading)}
+                      focusOnOpen={index === 0}
                     />
                   )
                 })}
@@ -348,10 +358,18 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed, handove
             {/* ── Step 3: Payment Collected ────────────────────────────── */}
             <Section label="3" title="Payment Collected">
               <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2 flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <div className="flex-1 min-w-0">
+                    <PaymentField label="Cash (₹)" value={cash} onChange={setCash} />
+                  </div>
+                  <button type="button" onClick={() => setCash((restInCashPaise / 100).toFixed(2))}
+                    className="ui-btn ui-btn-secondary">
+                    Rest in cash · ₹{fmt(restInCashPaise / 100)}
+                  </button>
+                </div>
                 <PaymentField label="UPI (₹)"         value={upi}       onChange={setUpi} />
                 <PaymentField label="Card (₹)"        value={card}      onChange={setCard} />
                 <PaymentField label="Fleet Card (₹)"  value={fleetCard} onChange={setFleetCard} />
-                <PaymentField label="Cash (₹)"        value={cash}      onChange={setCash} />
               </div>
               {creditTotal > 0 && (
                 <div className="flex items-center justify-between bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 mt-2">

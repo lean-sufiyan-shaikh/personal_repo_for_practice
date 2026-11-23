@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { IconButton } from '../../../components/IconButton'
+import { NumericInput } from '../../../components/NumericInput'
 import { onActivateKey } from '../../../utils/keyboard'
 import { FUEL_LABELS, FUEL_UNIT } from '../../../constants/fuel'
 import type { CreditClient } from '../../../api/pumpApi'
@@ -201,7 +202,7 @@ export function CreditEntryForm({
                     onClick={() => onUpdateMulti({ inputMode: 'amount', liters: '' })}
                     aria-pressed={row.inputMode === 'amount'}
                     aria-label="Enter amount in rupees"
-                    className={`min-h-6 min-w-8 rounded border border-slate-200 px-2 font-medium transition-colors ${row.inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+                    className={`min-h-11 min-w-11 rounded border border-slate-200 px-2 font-medium transition-colors ${row.inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
                     ₹
                   </button>
                   <button type="button"
@@ -215,14 +216,14 @@ export function CreditEntryForm({
                     disabled={!priceForFuelType(row.fuelType)}
                     aria-pressed={row.inputMode === 'liters'}
                     aria-label="Enter litres"
-                    className={`min-h-6 min-w-8 rounded border border-slate-200 px-2 font-medium transition-colors ${row.inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
+                    className={`min-h-11 min-w-11 rounded border border-slate-200 px-2 font-medium transition-colors ${row.inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
                     L
                   </button>
                 </div>
               </div>
               {row.inputMode === 'amount' ? (
                 <>
-                  <input aria-label="Credit amount in rupees" type="number" step="0.01" min="0.01" value={row.amount}
+                  <NumericInput aria-label="Credit amount in rupees" step="0.01" min="0.01" value={row.amount}
                     onChange={(e) => onUpdate('amount', e.target.value)}
                     placeholder="0.00"
                     className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
@@ -239,7 +240,7 @@ export function CreditEntryForm({
                 </>
               ) : (
                 <>
-                  <input aria-label="Credit quantity" type="number" step="0.001" min="0.001" value={row.liters}
+                  <NumericInput aria-label="Credit quantity" step="0.001" min="0.001" value={row.liters}
                     onChange={(e) => {
                       const price = priceForFuelType(row.fuelType)
                       const raw = parseFloat(e.target.value)

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -121,12 +122,18 @@ public class ShiftReadModelService {
                                      OffsetDateTime scheduledEndTime) {
 
         List<ShiftResponse.NozzleSummary> nozzleSummaries = nozzles.stream()
+                .sorted(Comparator.comparing(Nozzle::getNozzleNumber, Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(n -> new ShiftResponse.NozzleSummary(n.getId(), n.getNozzleNumber(), n.getFuelType().name()))
                 .toList();
 
         Map<Long, BigDecimal> maxMeterByNozzleId = nozzles.stream()
                 .collect(Collectors.toMap(Nozzle::getId, Nozzle::getMaxMeterValue, (first, second) -> first));
+        Map<Long, Integer> nozzleNumberById = nozzles.stream()
+                .filter(n -> n.getNozzleNumber() != null)
+                .collect(Collectors.toMap(Nozzle::getId, Nozzle::getNozzleNumber, (first, second) -> first));
         List<ShiftResponse.FuelReadingResponse> fuelReadingResponses = readings.stream()
+                .sorted(Comparator.comparing((ShiftFuelReading r) -> nozzleNumberById.get(r.getNozzleId()),
+                        Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(r -> new ShiftResponse.FuelReadingResponse(
                         r.getNozzleId(),
                         r.getFuelType(),

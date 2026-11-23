@@ -582,6 +582,63 @@ a:focus-visible,
   color: #475569;
 }
 
+/* Matches the specificity of the base input rule; 16px text stops iOS zooming into the field */
+input.ui-numeric-input:not([type='checkbox']):not([type='radio']):not([type='range']) {
+  font-size: 1rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-numeric-field {
+  position: relative;
+  width: 100%;
+}
+
+.ui-numeric-field input.ui-numeric-input:not([type='checkbox']):not([type='radio']):not([type='range']) {
+  padding-right: 2.5rem;
+}
+
+.ui-numeric-field__unit {
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ppms-text-muted);
+  pointer-events: none;
+}
+
+.ui-check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 48px;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--ppms-border);
+  border-radius: var(--ppms-radius-sm);
+  background: var(--ppms-surface);
+  color: var(--ppms-text);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ui-check-row:has(input:checked) {
+  border-color: #93c5fd;
+  background: var(--ppms-primary-soft);
+}
+
+.ui-check-row input[type='checkbox'] {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+  accent-color: var(--ppms-primary);
+}
+
 .ui-inline-form {
   padding: 1rem 1.05rem;
   border-radius: 18px;
@@ -702,6 +759,12 @@ a:focus-visible,
   padding: 0.3rem 0.7rem;
   font-size: 0.78rem;
   border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+  .ui-btn.ui-btn-compact {
+    min-height: 44px;
+  }
 }
 
 .ui-btn-warning {
@@ -1116,7 +1179,7 @@ a:focus-visible,
 
 .ui-modal-panel {
   width: min(100%, 640px);
-  max-height: 90vh;
+  max-height: 90dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1227,6 +1290,7 @@ a:focus-visible,
 
 .ui-modal-footer {
   padding: 1rem 1.35rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   border-top: 1px solid #e7edf4;
   display: flex;
   justify-content: flex-end;
@@ -1934,7 +1998,7 @@ a:focus-visible,
   .ui-modal-panel,
   .ui-modal-panel--lg {
     width: 100%;
-    max-height: 90vh;
+    max-height: 90dvh;
   }
 }
 

@@ -26,7 +26,12 @@ export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
         </span>
         {shift.nozzles.map((n) => `#${n.nozzleNumber} ${codeLabel(n.fuelType)}`).join(', ')}
       </td>
-      <td className="px-6 py-3 text-slate-600">{shift.operatorName}</td>
+      <td className="px-6 py-3 text-slate-600">
+        {shift.operatorName}
+        <span className="block md:hidden text-xs text-slate-500">
+          {[shift.shiftWindow, `Started ${startTime}`, prices].filter(Boolean).join(' · ')}
+        </span>
+      </td>
       <td className="px-6 py-3 text-slate-500 hidden md:table-cell">{shift.shiftWindow}</td>
       <td className="px-6 py-3 text-slate-500 hidden md:table-cell">{startTime}</td>
       <td className="px-6 py-3 text-slate-500 text-xs hidden md:table-cell">{prices || '—'}</td>

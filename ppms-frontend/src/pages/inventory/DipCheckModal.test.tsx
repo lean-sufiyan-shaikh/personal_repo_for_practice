@@ -1,9 +1,10 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { inventoryApi } from '../../api/inventoryApi'
 import type { TankStock } from '../../api/inventoryApi'
 import { userApi } from '../../api/userApi'
+import { useToastStore } from '../../store/toastStore'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import { DipCheckModal } from './DipCheckModal'
 
@@ -21,6 +22,7 @@ describe('DipCheckModal', () => {
   beforeEach(() => {
     vi.mocked(userApi.getStaff).mockResolvedValue([])
     vi.mocked(inventoryApi.recordDipCheck).mockResolvedValue({} as never)
+    useToastStore.setState({ toasts: [] })
   })
 
   it('asks for the meter reading of each nozzle on an open shift and takes its sales off the expected stock', async () => {
@@ -42,6 +44,9 @@ describe('DipCheckModal', () => {
       tankId: 1, measuredQuantity: 965, checkedByUserId: undefined, notes: undefined,
       nozzleReadings: [{ nozzleId: 21, meterReading: 1030 }],
     })
+    await waitFor(() => expect(useToastStore.getState().toasts).toEqual([
+      expect.objectContaining({ message: 'DIP check saved for T1', variant: 'success' }),
+    ]))
   })
 
   it('has no date to choose, because a dip check is always for today', async () => {

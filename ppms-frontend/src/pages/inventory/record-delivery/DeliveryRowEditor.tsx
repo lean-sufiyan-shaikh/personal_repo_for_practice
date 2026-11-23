@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 import type { TankStock } from '../../../api/inventoryApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { IconButton } from '../../../components/IconButton'
+import { NumericInput } from '../../../components/NumericInput'
 import { limitDecimals } from '../inventoryFormat'
 import type { DeliveryRow } from './deliveryRows'
 
@@ -113,8 +114,7 @@ export function DeliveryRowEditor({
                 <span className="ui-label">
                 Quantity (Litres) <span className="text-red-500">*</span>
               </span>
-                <input
-                  type="number"
+                <NumericInput
                   step="0.001"
                   min="0.001"
                   value={row.qty}
@@ -130,8 +130,7 @@ export function DeliveryRowEditor({
                   <span className="ui-label">
                   Cost per Litre (₹) <span className="text-red-500">*</span>
                 </span>
-                  <input
-                    type="number"
+                  <NumericInput
                     step="0.01"
                     min="0.01"
                     value={row.costPrice}

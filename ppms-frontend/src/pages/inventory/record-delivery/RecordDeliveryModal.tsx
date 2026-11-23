@@ -9,6 +9,7 @@ import { localDateInputValue } from '../../../utils/date'
 import { ModalPortal } from '../../../components/ModalPortal'
 import { parseApiError } from '../../../utils/apiError'
 import { Spinner } from '../../../components/Spinner'
+import { useToastStore } from '../../../store/toastStore'
 import { limitDecimals } from '../inventoryFormat'
 import { _rowSeq, newRow } from './deliveryRows'
 import type { DeliveryRow, PreparedDeliveryItem } from './deliveryRows'
@@ -16,6 +17,7 @@ import { DeliveryRowEditor } from './DeliveryRowEditor'
 import { DeliveryHeaderFields } from './DeliveryHeaderFields'
 import { DeliveryReviewDialog } from './DeliveryReviewDialog'
 import { IconButton } from '../../../components/IconButton'
+import { NumericInput } from '../../../components/NumericInput'
 
 export function RecordDeliveryModal({
   pumpId,
@@ -31,6 +33,7 @@ export function RecordDeliveryModal({
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
+  const { addToast } = useToastStore()
   const defaultTankId = tanks[0]?.tankId ? String(tanks[0].tankId) : ''
 
   const { data: tankers = [] } = useQuery<Tanker[]>({
@@ -56,6 +59,7 @@ export function RecordDeliveryModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pumpId] })
       queryClient.invalidateQueries({ queryKey: ['deliveries', pumpId] })
+      addToast('Tanker delivery recorded', 'success')
       onClose()
     },
     onError: (err) =>
@@ -288,8 +292,7 @@ export function RecordDeliveryModal({
                 )}
                 <div className="flex items-center gap-2">
                   <label htmlFor="delivery-bill-total" className="text-xs text-blue-600 font-medium shrink-0">Bill Amount (₹)</label>
-                  <input id="delivery-bill-total"
-                    type="number"
+                  <NumericInput id="delivery-bill-total"
                     step="0.01"
                     min="0.01"
                     value={billTotalText}

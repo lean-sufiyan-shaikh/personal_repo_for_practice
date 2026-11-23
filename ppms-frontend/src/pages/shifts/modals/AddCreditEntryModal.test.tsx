@@ -1,10 +1,11 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { pumpApi } from '../../../api/pumpApi'
 import type { CreditClient } from '../../../api/pumpApi'
 import { shiftApi } from '../../../api/shiftApi'
 import { useAuthStore } from '../../../store/authStore'
+import { useToastStore } from '../../../store/toastStore'
 import { renderWithProviders } from '../../../test/renderWithProviders'
 import type { Shift } from '../../../types/shift'
 import { AddCreditEntryModal } from './AddCreditEntryModal'
@@ -38,6 +39,7 @@ describe('AddCreditEntryModal', () => {
     useAuthStore.setState({ user: { userId: 9, fullName: 'Ravi', role: 'OPERATOR', assignedPumpId: 3 }, isAuthenticated: true })
     vi.mocked(pumpApi.getCreditClients).mockResolvedValue([fleetClient])
     vi.mocked(shiftApi.addCreditEntry).mockResolvedValue({} as never)
+    useToastStore.setState({ toasts: [] })
   })
 
   it('cannot save credit for a typed name that is not a client and saves once a client is picked', async () => {
@@ -53,5 +55,8 @@ describe('AddCreditEntryModal', () => {
     await user.click(screen.getByRole('button', { name: 'Save Entry' }))
 
     expect(shiftApi.addCreditEntry).toHaveBeenCalledWith(3, 11, expect.objectContaining({ clientId: 40, clientName: 'Fleet Co', amount: 250 }))
+    await waitFor(() => expect(useToastStore.getState().toasts).toEqual([
+      expect.objectContaining({ message: 'Credit of ₹250.00 added for Fleet Co', variant: 'success' }),
+    ]))
   })
 })

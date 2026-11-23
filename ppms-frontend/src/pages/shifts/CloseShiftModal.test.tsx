@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AxiosError, AxiosHeaders } from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -6,6 +6,7 @@ import { pumpApi } from '../../api/pumpApi'
 import { shiftApi } from '../../api/shiftApi'
 import { userApi } from '../../api/userApi'
 import type { StaffMember } from '../../api/userApi'
+import { useToastStore } from '../../store/toastStore'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import type { Shift } from '../../types/shift'
 import CloseShiftModal from './CloseShiftModal'
@@ -54,6 +55,48 @@ describe('CloseShiftModal', () => {
     vi.mocked(shiftApi.getShift).mockResolvedValue(shift)
     vi.mocked(shiftApi.createHandover).mockResolvedValue({} as never)
     vi.mocked(userApi.getOperators).mockResolvedValue([operator(9, 'Ravi'), operator(12, 'Sita'), operator(13, 'Busy Bala')])
+    useToastStore.setState({ toasts: [] })
+  })
+
+  it('puts the cursor in the first end reading rather than the No change box', () => {
+    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
+    expect(screen.getByPlaceholderText('Enter end reading')).toHaveFocus()
+  })
+
+  it('fills cash with what is still due after UPI, card, fleet card and credit', async () => {
+    const user = userEvent.setup()
+    const recordedCredit = {
+      id: 42, clientId: 3, clientName: 'Fleet Co', billNo: null, amount: 100, fuelType: 'PETROL',
+      description: null, voidStatus: 'ACTIVE' as const, voidReason: null,
+    }
+    vi.mocked(shiftApi.getShift).mockResolvedValue({ ...shift, creditEntries: [recordedCredit] })
+    renderWithProviders(<CloseShiftModal shift={{ ...shift, creditEntries: [recordedCredit] }} onClose={vi.fn()} />)
+
+    await user.type(screen.getByPlaceholderText('Enter end reading'), '1010')
+    await user.type(screen.getByLabelText('UPI (₹)'), '300')
+    await user.type(screen.getByLabelText('Card (₹)'), '50.50')
+    await user.type(screen.getByLabelText('Fleet Card (₹)'), '20')
+    await user.click(screen.getByRole('button', { name: 'Rest in cash · ₹529.50' }))
+
+    expect(screen.getByLabelText('Cash (₹)')).toHaveValue(529.5)
+    expect(within(screen.getByRole('dialog')).getByText('Balanced')).toBeInTheDocument()
+  })
+
+  it('fills cash with zero, never a negative amount, when more than is due came in by UPI', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
+
+    await user.type(screen.getByPlaceholderText('Enter end reading'), '1010')
+    await user.type(screen.getByLabelText('UPI (₹)'), '1200')
+    await user.click(screen.getByRole('button', { name: 'Rest in cash · ₹0.00' }))
+
+    expect(screen.getByLabelText('Cash (₹)')).toHaveValue(0)
+  })
+
+  it('lists cash first among the payments', () => {
+    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
+    const paymentNames = screen.getAllByPlaceholderText('Enter amount').map((input) => input.closest('label')?.textContent)
+    expect(paymentNames).toEqual(['Cash (₹)', 'UPI (₹)', 'Card (₹)', 'Fleet Card (₹)'])
   })
 
   it('hands the shift over by closing it with the entered readings and payments for the chosen operator', async () => {
@@ -89,6 +132,9 @@ describe('CloseShiftModal', () => {
         cashCollected: 1000,
       }),
     })
+    await waitFor(() => expect(useToastStore.getState().toasts).toEqual([
+      expect.objectContaining({ message: 'Shift handed over from Ravi', variant: 'success' }),
+    ]))
   })
 
   it('shows a credit entry added while the modal is open and the reason a close is refused', async () => {
@@ -159,6 +205,9 @@ describe('CloseShiftModal', () => {
       cashCollected: 1000,
       discrepancyReason: undefined,
     }))
+    await waitFor(() => expect(useToastStore.getState().toasts).toEqual([
+      expect.objectContaining({ message: 'Shift closed for Ravi', variant: 'success' }),
+    ]))
   })
 
   it('shows Short and requires a reason, with no round off for a gap of a rupee or more', async () => {

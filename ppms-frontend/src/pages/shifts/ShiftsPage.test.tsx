@@ -62,6 +62,22 @@ describe('ShiftsPage', () => {
     expect(within(dialog).queryByRole('button', { name: 'Void' })).not.toBeInTheDocument()
   })
 
+  it('tells an operator with no open shift to ask their manager to open one', async () => {
+    signIn('OPERATOR')
+    vi.mocked(shiftApi.getActiveShifts).mockResolvedValue([])
+    renderWithProviders(<ShiftsPage />)
+
+    expect(await screen.findByText('No open shift. Ask your manager to open your shift.')).toBeInTheDocument()
+  })
+
+  it('tells a manager with no active shifts to tap Open Shift', async () => {
+    signIn('MANAGER')
+    vi.mocked(shiftApi.getActiveShifts).mockResolvedValue([])
+    renderWithProviders(<ShiftsPage />)
+
+    expect(await screen.findByText('No active shifts. Tap Open Shift to start one.')).toBeInTheDocument()
+  })
+
   it('shows Open Shift and Close to a manager', async () => {
     signIn('MANAGER')
     renderWithProviders(<ShiftsPage />)
