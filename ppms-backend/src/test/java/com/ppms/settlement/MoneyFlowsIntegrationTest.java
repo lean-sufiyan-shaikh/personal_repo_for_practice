@@ -14,11 +14,13 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
@@ -63,6 +65,44 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void settlementLargerThanWhatIsPendingIsRefused() throws Exception {
+        closeShiftWithUpi("600.00");
+        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(), settlementBody("450.00"))
+                .andExpect(status().is2xxSuccessful());
+
+        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
+                settlementWithReference("150.01", "UTR-OVER"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("₹150.00 still pending")));
+        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
+                settlementWithReference("150.00", "UTR-EXACT"))
+                .andExpect(status().is2xxSuccessful());
+
+        assertThat(wallet().get("upiPending").decimalValue()).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void settlementWithABankReferenceAlreadyRecordedAtThePumpIsRefusedUntilTheFirstIsVoided() throws Exception {
+        closeShiftWithUpi("600.00");
+        long firstId = json(perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
+                settlementWithReference("100.00", "utr-123456")).andExpect(status().is2xxSuccessful())).get("id").asLong();
+
+        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
+                settlementWithReference("200.00", "UTR-123456"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("UTR-123456")));
+        assertThat(wallet().get("upiPending").decimalValue()).isEqualByComparingTo("500.00");
+
+        perform(post("/api/pumps/{pumpId}/settlements/{id}/void", setup.pumpId(), firstId), setup.owner(),
+                Map.of("reason", "Wrong amount")).andExpect(status().isOk());
+        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
+                settlementWithReference("200.00", "UTR-123456"))
+                .andExpect(status().is2xxSuccessful())
+                .andExpect(jsonPath("$.bankReference").value("UTR-123456"));
+        assertThat(wallet().get("upiPending").decimalValue()).isEqualByComparingTo("400.00");
+    }
+
+    @Test
     void dailySummaryAllocatesSettlementsAgainstTheDayTheyWereCollected() throws Exception {
         closeShiftWithUpi("600.00");
         perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(), settlementBody("250.00"))
@@ -87,6 +127,7 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
                 Map.of("paymentType", "UPI", "settlementDate", TestDates.today().plusDays(2).toString(), "amountReceived", 10))
                 .andExpect(status().isBadRequest());
 
+        closeShiftWithUpi("100.00");
         long settlementId = json(perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
                 settlementBody("40.00")).andExpect(status().is2xxSuccessful())).get("id").asLong();
         perform(post("/api/pumps/{pumpId}/settlements/{id}/void", setup.pumpId(), settlementId), setup.owner(),
@@ -127,6 +168,23 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
 
         assertThat(small.get("approvalStatus").asText()).isEqualTo("APPROVED");
         assertThat(large.get("approvalStatus").asText()).isEqualTo("PENDING_APPROVAL");
+    }
+
+    @Test
+    void expenseSplitIntoPartsBelowTheThresholdStillNeedsApprovalOnceTheDaysTotalPassesIt() throws Exception {
+        perform(patch("/api/pumps/{pumpId}/settings", setup.pumpId()), setup.owner(),
+                Map.of("expenseApprovalThreshold", new BigDecimal("2000.00"))).andExpect(status().isOk());
+
+        JsonNode firstPart = json(createExpense(setup.manager(), "1500.00", false).andExpect(status().is2xxSuccessful()));
+        JsonNode secondPart = json(createExpense(setup.operator(), "600.00", false).andExpect(status().is2xxSuccessful()));
+        long draftId = json(createExpense(setup.manager(), "100.00", true).andExpect(status().is2xxSuccessful()))
+                .get("id").asLong();
+        JsonNode submittedDraft = json(perform(patch("/api/pumps/{pumpId}/expenses/{id}/submit", setup.pumpId(), draftId),
+                setup.manager()).andExpect(status().isOk()));
+
+        assertThat(firstPart.get("approvalStatus").asText()).isEqualTo("APPROVED");
+        assertThat(secondPart.get("approvalStatus").asText()).isEqualTo("PENDING_APPROVAL");
+        assertThat(submittedDraft.get("approvalStatus").asText()).isEqualTo("PENDING_APPROVAL");
     }
 
     @Test
@@ -241,6 +299,11 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
     private Map<String, Object> settlementBody(String amount) {
         return Map.of("paymentType", "UPI", "settlementDate", TestDates.today().toString(),
                 "amountReceived", new BigDecimal(amount));
+    }
+
+    private Map<String, Object> settlementWithReference(String amount, String bankReference) {
+        return Map.of("paymentType", "UPI", "settlementDate", TestDates.today().toString(),
+                "amountReceived", new BigDecimal(amount), "bankReference", bankReference);
     }
 
     private ResultActions createExpense(User user, String amount, boolean saveDraft) throws Exception {

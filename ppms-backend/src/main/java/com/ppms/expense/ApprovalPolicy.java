@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
  * Decides whether an expense or credit payment needs Owner/Admin approval, using the pump's
@@ -19,9 +20,20 @@ import java.math.BigDecimal;
 public class ApprovalPolicy {
 
     private final PumpLocationRepository pumpLocationRepository;
+    private final PumpExpenseRepository expenseRepository;
 
-    public ExpenseApprovalStatus resolveExpenseStatus(Long pumpId, User submittedBy, BigDecimal amount) {
-        return resolveStatus(pumpId, submittedBy, amount, ExpenseApprovalStatus.PENDING_APPROVAL);
+    /**
+     * An expense is judged together with the pump's other submitted expenses of the same category and day,
+     * so splitting one bill into parts below the threshold still needs approval.
+     */
+    public ExpenseApprovalStatus resolveExpenseStatus(Long pumpId, User submittedBy, BigDecimal amount,
+                                                      ExpenseCategory category, LocalDate expenseDate) {
+        if (canApprove(submittedBy)) {
+            return ExpenseApprovalStatus.APPROVED;
+        }
+        BigDecimal sameDayTotal = expenseRepository.sumSubmittedAmountByPumpIdAndCategoryAndExpenseDate(
+                pumpId, category, expenseDate).add(amount);
+        return resolveStatus(pumpId, submittedBy, sameDayTotal, ExpenseApprovalStatus.PENDING_APPROVAL);
     }
 
     public ExpenseApprovalStatus resolveCreditPaymentStatus(Long pumpId, User submittedBy, BigDecimal amount) {

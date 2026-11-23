@@ -90,6 +90,10 @@ public class CreditLedgerService {
                 .build();
 
         payment = paymentRepository.save(payment);
+        if (approvalStatus == ExpenseApprovalStatus.APPROVED) {
+            interestService.recalculateChargedInterestFrom(clientId, payment.getPaidAt(),
+                    "Recalculated after payment dated " + payment.getPaidAt(), currentUser);
+        }
 
         log.info("Credit payment recorded: pump={}, client={}, amount={}, mode={}, status={}, by={}",
                 pumpId, clientId, payment.getAmount(), payment.getPaymentMode(),
@@ -259,7 +263,12 @@ public class CreditLedgerService {
         payment.setPaymentApprovalStatus(newStatus);
         payment.setApprovedByUserId(currentUser.getId());
         payment.setApprovedAt(businessClock.now());
-        return paymentRepository.save(payment);
+        payment = paymentRepository.save(payment);
+        if (newStatus == ExpenseApprovalStatus.APPROVED) {
+            interestService.recalculateChargedInterestFrom(payment.getClientId(), payment.getPaidAt(),
+                    "Recalculated after approving payment dated " + payment.getPaidAt(), currentUser);
+        }
+        return payment;
     }
 
     /**

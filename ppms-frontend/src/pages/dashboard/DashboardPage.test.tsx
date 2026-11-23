@@ -59,6 +59,24 @@ describe('DashboardPage suspended pump', () => {
     vi.mocked(pumpApi.getMyPumps).mockResolvedValue([])
     usePumpStore.setState({ suspendedPumpId: 4 })
     renderWithProviders(<DashboardPage />)
-    expect(await screen.findByRole('alert')).toHaveTextContent('Please contact the pump owner or PPMS support.')
+    expect(await screen.findByRole('heading', { name: 'Your pump is suspended' })).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('Please contact the pump owner.')
+  })
+
+  it('tells staff their pump is suspended as soon as their pump is missing from the pump list, before any page loads', async () => {
+    signIn('OPERATOR')
+    usePumpStore.setState({ selectedPumpId: null, suspendedPumpId: null })
+    vi.mocked(pumpApi.getMyPumps).mockResolvedValue([])
+    renderWithProviders(<DashboardPage />)
+    expect(await screen.findByRole('heading', { name: 'Your pump is suspended' })).toBeInTheDocument()
+    expect(screen.queryByText('Page content')).not.toBeInTheDocument()
+  })
+
+  it('shows the page to staff whose pump is in the pump list', async () => {
+    signIn('OPERATOR')
+    vi.mocked(pumpApi.getMyPumps).mockResolvedValue([highway])
+    renderWithProviders(<DashboardPage />)
+    expect(await screen.findByText('Page content')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })

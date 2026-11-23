@@ -8,6 +8,7 @@ import { PasswordInput } from '../../../components/PasswordInput'
 import { EMPTY_FORM } from './staffForm'
 import type { StaffCreateForm } from './staffForm'
 import { FormField } from '../../../components/FormField'
+import { PASSWORD_POLICY_MESSAGE, PASSWORD_POLICY_REGEX } from '../../../constants/passwordPolicy'
 
 export function AddStaffForm({ pumpId, canAssignAdmin }: { pumpId: number; canAssignAdmin: boolean }) {
   const queryClient = useQueryClient()
@@ -33,6 +34,10 @@ export function AddStaffForm({ pumpId, canAssignAdmin }: { pumpId: number; canAs
     e.preventDefault(); setError(null)
     if (!form.gender) {
       setError('Gender is required')
+      return
+    }
+    if (!PASSWORD_POLICY_REGEX.test(form.password)) {
+      setError(PASSWORD_POLICY_MESSAGE)
       return
     }
     mutation.mutate({
@@ -79,9 +84,10 @@ export function AddStaffForm({ pumpId, canAssignAdmin }: { pumpId: number; canAs
                 <div>
                   <FormField label="Password">
                     <PasswordInput required value={form.password} onChange={(e) => set('password', e.target.value)}
-                      placeholder="Min 6 characters"
+                      placeholder="Temporary password"
                       className="text-sm" />
                   </FormField>
+                  <p className="ui-help">{PASSWORD_POLICY_MESSAGE}</p>
                   <p className="ui-help">Use a temporary password. The staff member must choose their own at first sign-in.</p>
                 </div>
                 <div>

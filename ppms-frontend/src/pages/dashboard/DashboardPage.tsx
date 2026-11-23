@@ -19,15 +19,20 @@ export default function DashboardPage() {
   const location  = useLocation()
   const { user } = useAuthStore()
 
-  const { data: pumps = [] } = useQuery({ queryKey: ['myPumps'], queryFn: pumpApi.getMyPumps, staleTime: 5 * 60_000 })
+  const { data: pumps = [], isSuccess: pumpsLoaded } = useQuery({ queryKey: ['myPumps'], queryFn: pumpApi.getMyPumps, staleTime: 5 * 60_000 })
   const sortedPumps = useMemo(
     () => [...pumps].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
     [pumps]
   )
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
+  const isStaff = user != null && user.role !== 'OWNER' && user.role !== 'SUPER_ADMIN'
+  // The pump list leaves out suspended pumps, so staff whose pump is missing from it are at a suspended pump.
+  const assignedPumpSuspended = pumpsLoaded && isStaff && user.assignedPumpId != null
+    && !pumps.some(pump => pump.id === user.assignedPumpId)
 
   const { selectedPumpId, suspendedPumpId, setSelectedPumpId } = usePumpStore()
   const selectedPumpSuspended = selectedPumpId !== null && selectedPumpId === suspendedPumpId
+  const showSuspendedNotice = selectedPumpSuspended || assignedPumpSuspended
   const queryClient = useQueryClient()
   const [navOpen, setNavOpen] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
@@ -104,7 +109,7 @@ export default function DashboardPage() {
 
         {/* ── Right: Notification bell + User info + profile menu ── */}
         <div className="ui-dashboard-topbar-right">
-          {selectedPumpId && !selectedPumpSuspended && <NotificationBell pumpId={selectedPumpId} />}
+          {selectedPumpId && !showSuspendedNotice && <NotificationBell pumpId={selectedPumpId} />}
           <UserProfileArea />
         </div>
       </header>
@@ -122,8 +127,10 @@ export default function DashboardPage() {
 
         {/* ── Main content ── */}
         <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 overflow-y-auto focus:outline-none">
-          {selectedPumpSuspended
-            ? <SuspendedPumpNotice canSwitchPump={isOwnerOrAdmin && sortedPumps.some(p => p.id !== selectedPumpId)} />
+          {showSuspendedNotice
+            ? <SuspendedPumpNotice
+                canSwitchPump={isOwnerOrAdmin && sortedPumps.some(p => p.id !== selectedPumpId)}
+                isStaff={isStaff} />
             : <RouteOutlet />}
         </main>
       </div>

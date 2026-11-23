@@ -86,7 +86,7 @@ class StaffDeactivationIntegrationTest extends ApiIntegrationTest {
     }
 
     private ResultActions deactivate(User user) throws Exception {
-        return perform(patch("/api/users/{userId}/status", user.getId()).param("status", "INACTIVE"), setup.owner());
+        return perform(patch("/api/users/{userId}/status", user.getId()), setup.owner(), Map.of("status", "INACTIVE"));
     }
 
     private long openShift(User operator) throws Exception {

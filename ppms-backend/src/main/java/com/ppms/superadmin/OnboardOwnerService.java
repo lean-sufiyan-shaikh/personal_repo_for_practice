@@ -1,10 +1,14 @@
 package com.ppms.superadmin;
 
+import com.ppms.audit.AuditAction;
+import com.ppms.audit.AuditService;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
+import com.ppms.shift.ShiftRepository;
+import com.ppms.shift.ShiftStatus;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
@@ -16,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Handles onboarding of a new pump owner.
@@ -33,10 +38,12 @@ public class OnboardOwnerService {
     private final PumpLocationRepository pumpLocationRepository;
     private final PasswordEncoder passwordEncoder;
     private final OwnerSummaryAssembler ownerSummaryAssembler;
+    private final ShiftRepository shiftRepository;
+    private final AuditService auditService;
     private final BusinessClock businessClock;
 
     @Transactional
-    public OnboardOwnerResponse onboard(OnboardOwnerRequest request) {
+    public OnboardOwnerResponse onboard(OnboardOwnerRequest request, User superAdmin) {
         if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
             throw new BusinessException(
                     "A user with phone number " + request.getPhoneNumber() + " already exists");
@@ -71,6 +78,8 @@ public class OnboardOwnerService {
 
         pump = pumpLocationRepository.save(pump);
         log.info("Created pump: pumpId={}, name={}, ownerId={}", pump.getId(), pump.getName(), owner.getId());
+        auditService.log(pump.getId(), AuditAction.OWNER_ONBOARDED, "User", owner.getId().toString(),
+                "Owner " + owner.getFullName() + " onboarded with pump '" + pump.getName() + "'", superAdmin);
 
         return OnboardOwnerResponse.builder()
                 .ownerId(owner.getId())
@@ -88,7 +97,7 @@ public class OnboardOwnerService {
      * Returns the updated owner summary (with all pumps) so the UI can refresh in one call.
      */
     @Transactional
-    public OwnerSummaryResponse addPump(Long ownerId, AddPumpRequest request) {
+    public OwnerSummaryResponse addPump(Long ownerId, AddPumpRequest request, User superAdmin) {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new BusinessException("Owner not found: " + ownerId));
 
@@ -105,22 +114,54 @@ public class OnboardOwnerService {
 
         pump = pumpLocationRepository.save(pump);
         log.info("Added pump: pumpId={}, name={}, ownerId={}", pump.getId(), pump.getName(), owner.getId());
+        auditService.log(pump.getId(), AuditAction.PUMP_CREATED, "PumpLocation", pump.getId().toString(),
+                "Pump '" + pump.getName() + "' added for owner " + owner.getFullName(), superAdmin);
         return ownerSummaryAssembler.buildOwnerSummary(owner);
     }
 
     /**
      * Updates a pump's name, address, and enabled status.
      * Only SuperAdmin may call this. Returns the updated owner summary so the UI refreshes.
+     * A pump with a shift still open cannot be suspended: its staff could no longer close the shift.
      */
     @Transactional
-    public OwnerSummaryResponse updatePump(Long pumpId, UpdatePumpRequest request) {
-        PumpLocation pump = pumpLocationRepository.findById(pumpId)
+    public OwnerSummaryResponse updatePump(Long pumpId, UpdatePumpRequest request, User superAdmin) {
+        PumpLocation pump = pumpLocationRepository.findByIdForUpdate(pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pump not found: " + pumpId));
+
+        boolean suspending = pump.isEnabled() && !request.getEnabled();
+        boolean enabling = !pump.isEnabled() && request.getEnabled();
+        if (suspending) {
+            long openShifts = shiftRepository.findActiveShiftsByPump(pumpId).stream()
+                    .filter(shift -> shift.getStatus() == ShiftStatus.OPEN || shift.getStatus() == ShiftStatus.OPEN_OVERDUE)
+                    .count();
+            if (openShifts > 0) {
+                throw new BusinessException("Pump '" + pump.getName() + "' has " + openShifts
+                        + " open shift(s). Ask the owner to close them before suspending the pump.");
+            }
+        }
+        boolean detailsChanged = !request.getPumpName().equals(pump.getName())
+                || !Objects.equals(request.getPumpAddress(), pump.getAddress());
+        String previousDetails = pump.getName() + ", " + pump.getAddress();
 
         pump.setName(request.getPumpName());
         pump.setAddress(request.getPumpAddress());
         pump.setEnabled(request.getEnabled());
         pumpLocationRepository.save(pump);
+
+        if (detailsChanged) {
+            auditService.log(pumpId, AuditAction.PUMP_UPDATED, "PumpLocation", pumpId.toString(),
+                    "Pump details changed from '" + previousDetails + "' to '" + pump.getName() + ", " + pump.getAddress() + "'",
+                    superAdmin);
+        }
+        if (suspending) {
+            auditService.log(pumpId, AuditAction.PUMP_SUSPENDED, "PumpLocation", pumpId.toString(),
+                    "Pump '" + pump.getName() + "' suspended", superAdmin);
+        }
+        if (enabling) {
+            auditService.log(pumpId, AuditAction.PUMP_ENABLED, "PumpLocation", pumpId.toString(),
+                    "Pump '" + pump.getName() + "' enabled again", superAdmin);
+        }
 
         log.info("Pump {} updated: name='{}', address='{}', enabled={}",
                 pumpId, pump.getName(), pump.getAddress(), pump.isEnabled());

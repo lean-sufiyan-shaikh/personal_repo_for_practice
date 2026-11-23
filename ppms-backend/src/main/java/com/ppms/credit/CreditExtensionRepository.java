@@ -1,6 +1,8 @@
 package com.ppms.credit;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -11,6 +13,10 @@ import java.util.Optional;
 
 @Repository
 public interface CreditExtensionRepository extends JpaRepository<CreditExtension, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT e FROM CreditExtension e WHERE e.id = :id")
+    Optional<CreditExtension> findByIdForUpdate(Long id);
 
     List<CreditExtension> findByPumpIdAndClientIdOrderByCreatedAtDesc(Long pumpId, Long clientId);
 

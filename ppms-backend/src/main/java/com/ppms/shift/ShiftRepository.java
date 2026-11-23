@@ -109,10 +109,11 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
 
     // ── Overdue shift auto-close job ──────────────────────────────────────────
 
-    /** Ids of all OPEN or OPEN_OVERDUE shifts across all pumps. Used by the auto-close scheduler. */
+    /** Ids of all OPEN or OPEN_OVERDUE shifts on pumps that are not suspended. Used by the auto-close scheduler. */
     @Query("""
             SELECT s.id FROM Shift s
             WHERE s.status IN ('OPEN', 'OPEN_OVERDUE')
+              AND EXISTS (SELECT 1 FROM PumpLocation p WHERE p.id = s.pumpId AND p.enabled = true)
             ORDER BY s.actualStartTime ASC
             """)
     List<Long> findAllOpenShiftIds();

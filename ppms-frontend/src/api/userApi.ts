@@ -53,6 +53,10 @@ export const userApi = {
   updateUserStatus: (userId: number, status: 'ACTIVE' | 'INACTIVE') =>
     client.patch<StaffMember>(`/users/${userId}/status`, { status }).then((r) => r.data),
 
+  // Move a staff member to another pump of the same owner (Owner only); their sessions end
+  moveToPump: (userId: number, pumpId: number) =>
+    client.patch<StaffMember>(`/users/${userId}/assigned-pump`, { pumpId }).then((r) => r.data),
+
   // Update the currently logged-in user's own display name
   updateMyProfile: (fullName: string) =>
     client.patch<StaffMember>('/users/me/profile', { fullName }).then((r) => r.data),

@@ -5,6 +5,7 @@ export type AuditAction =
   | 'USER_CREATED'
   | 'USER_DEACTIVATED'
   | 'USER_STATUS_CHANGED'
+  | 'USER_PUMP_CHANGED'
   // Authentication
   | 'LOGIN'
   | 'LOGIN_FAILED'
@@ -23,6 +24,8 @@ export type AuditAction =
   | 'CREDIT_CLIENT_CREATED'
   | 'CREDIT_CLIENT_DELETED'
   | 'CREDIT_ENTRY_REASSIGNED'
+  | 'CREDIT_EXTENSION_REVOKED'
+  | 'INTEREST_RECALCULATED'
   // Inventory
   | 'DELIVERY_RECORDED'
   | 'DIP_CHECK_RECORDED'
@@ -38,6 +41,10 @@ export type AuditAction =
   | 'PUMP_DELETED'
   | 'NOZZLE_ADDED'
   | 'TANK_ADDED'
+  | 'PUMP_UPDATED'
+  | 'PUMP_SUSPENDED'
+  | 'PUMP_ENABLED'
+  | 'OWNER_ONBOARDED'
   // Ancillary products
   | 'ANCILLARY_SALE_RECORDED'
   | 'ANCILLARY_DELIVERY_RECORDED'

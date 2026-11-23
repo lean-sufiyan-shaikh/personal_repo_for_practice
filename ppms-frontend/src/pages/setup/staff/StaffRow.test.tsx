@@ -45,7 +45,7 @@ describe('StaffRow', () => {
   it('offers an owner every action on an operator', () => {
     renderRow(member, 'OWNER', true)
     const labels = menuLabels().join(' | ')
-    for (const action of ['Edit Details', 'Reset Password', 'Shift Preferences', 'Manage Leave', 'Pay Rates', 'Deactivate Staff']) {
+    for (const action of ['Edit Details', 'Reset Password', 'Shift Preferences', 'Manage Leave', 'Pay Rates', 'Move to Another Pump', 'Deactivate Staff']) {
       expect(labels).toContain(action)
     }
   })
@@ -57,6 +57,7 @@ describe('StaffRow', () => {
       expect(labels).toContain(action)
     }
     expect(labels).not.toContain('Pay Rates')
+    expect(labels).not.toContain('Move to Another Pump')
     expect(labels).not.toContain('Deactivate Staff')
   })
 

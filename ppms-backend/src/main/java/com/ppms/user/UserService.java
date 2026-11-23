@@ -6,9 +6,11 @@ import com.ppms.auth.LoginRateLimiterService;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.shift.ShiftRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -226,18 +229,55 @@ public class UserService {
     }
 
     private void assertCanDeactivate(User user) {
+        assertNoOpenShiftOrDiscrepancy(user, "deactivating");
+    }
+
+    private void assertNoOpenShiftOrDiscrepancy(User user, String action) {
         if (shiftRepository.hasOpenShift(user.getId())) {
             throw new BusinessException(
-                    user.getFullName() + " has an open shift. Close the shift before deactivating (Business Rule 45).");
+                    user.getFullName() + " has an open shift. Close the shift before " + action + " (Business Rule 45).");
         }
         if (shiftRepository.hasDiscrepancyPendingApproval(user.getId())) {
             throw new BusinessException(
-                    user.getFullName() + " has a shift discrepancy waiting for approval. Approve or reject it before deactivating (Business Rule 30).");
+                    user.getFullName() + " has a shift discrepancy waiting for approval. Approve or reject it before " + action + " (Business Rule 30).");
         }
         if (shiftRepository.hasUnresolvedDiscrepancy(user.getId())) {
             throw new BusinessException(
-                    user.getFullName() + " has unresolved shift discrepancies. Resolve all pending discrepancies before deactivating (Business Rule 30).");
+                    user.getFullName() + " has unresolved shift discrepancies. Resolve all pending discrepancies before " + action + " (Business Rule 30).");
         }
+    }
+
+    /**
+     * Moves a staff member between two pumps of the calling owner. Refused while the staff member has an open shift
+     * or an unresolved discrepancy at the current pump. Their sessions end, so the next sign-in loads the new pump.
+     */
+    @Transactional
+    public StaffResponse moveToPump(Long userId, Long targetPumpId, User currentUser) {
+        User user = findUserManagedBy(currentUser, userId);
+        if (!STAFF_ROLES.contains(user.getRole())) {
+            throw new BusinessException("Only staff accounts can be moved to another pump.");
+        }
+        Long fromPumpId = user.getAssignedPumpId();
+        if (targetPumpId.equals(fromPumpId)) {
+            throw new BusinessException(user.getFullName() + " already works at this pump.");
+        }
+        PumpLocation targetPump = pumpLocationRepository.findById(targetPumpId)
+                .filter(pump -> pump.getOwnerId().equals(currentUser.getId()))
+                .orElseThrow(() -> new BusinessException("You can only move staff to another pump you own."));
+        assertNoOpenShiftOrDiscrepancy(user, "moving them to another pump");
+
+        user.setAssignedPumpId(targetPumpId);
+        user.setTokenVersion(user.getTokenVersion() + 1);
+        user = userRepository.save(user);
+
+        String description = user.getFullName() + " (" + user.getRole() + ") moved from pump " + fromPumpId
+                + " to " + targetPump.getName() + " (pump " + targetPumpId + ")";
+        auditService.log(fromPumpId, AuditAction.USER_PUMP_CHANGED, "User", user.getId().toString(), description, currentUser);
+        auditService.log(targetPumpId, AuditAction.USER_PUMP_CHANGED, "User", user.getId().toString(), description, currentUser);
+        log.info("Staff moved to another pump: userId={}, fromPump={}, toPump={}, by={}",
+                user.getId(), fromPumpId, targetPumpId, currentUser.getId());
+
+        return StaffResponse.from(user);
     }
 
     /** Operators are paid hourly (night and standard rate); other staff a flat daily rate. */

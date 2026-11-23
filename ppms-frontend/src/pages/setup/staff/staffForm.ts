@@ -22,4 +22,4 @@ export const EMPTY_FORM: StaffCreateForm = {
   role: 'OPERATOR' as const,
 }
 
-export type StaffPanel = 'preferences' | 'leave' | 'rates' | 'edit'
+export type StaffPanel = 'preferences' | 'leave' | 'rates' | 'edit' | 'move'

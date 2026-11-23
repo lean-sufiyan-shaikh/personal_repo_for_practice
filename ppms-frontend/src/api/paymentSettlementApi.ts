@@ -12,6 +12,7 @@ export interface Settlement {
   settlementDate: string   // YYYY-MM-DD
   amountReceived: number
   notes: string | null
+  bankReference: string | null
   recordedByUserName: string
   createdAt: string
   /** Wallet balance at the time of recording. Null for legacy entries. */
@@ -43,6 +44,7 @@ export interface RecordSettlementRequest {
   settlementDate: string   // YYYY-MM-DD
   amountReceived: number
   notes?: string
+  bankReference?: string
 }
 
 export interface UpdateConfigRequest {

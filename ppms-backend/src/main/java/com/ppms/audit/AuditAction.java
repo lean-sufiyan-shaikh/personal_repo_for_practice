@@ -12,6 +12,7 @@ public enum AuditAction {
     USER_DEACTIVATED,
     USER_STATUS_CHANGED,
     PASSWORD_RESET,
+    USER_PUMP_CHANGED,
 
     // ── Authentication ────────────────────────────────────────────────────────
     LOGIN,
@@ -40,6 +41,8 @@ public enum AuditAction {
     CREDIT_ENTRY_REASSIGNED,
     CREDIT_INVOICE_ISSUED,
     CREDIT_INVOICE_CANCELLED,
+    CREDIT_EXTENSION_REVOKED,
+    INTEREST_RECALCULATED,
 
     // ── Inventory ─────────────────────────────────────────────────────────────
     DELIVERY_RECORDED,
@@ -61,6 +64,10 @@ public enum AuditAction {
     // ── Pump management ───────────────────────────────────────────────────────
     PUMP_CREATED,
     PUMP_DELETED,
+    PUMP_UPDATED,
+    PUMP_SUSPENDED,
+    PUMP_ENABLED,
+    OWNER_ONBOARDED,
     NOZZLE_ADDED,
     TANK_ADDED,
 

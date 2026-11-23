@@ -117,6 +117,7 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'staff:reset-password':          ['OWNER', 'ADMIN'],
   'staff:manage-pay-rates':        ['OWNER'],
   'staff:change-status':           ['OWNER'],
+  'staff:move-pump':               ['OWNER'],
 
   // Balance Sheets & Reports
   'balanceSheet:delete':           ['OWNER', 'ADMIN'],

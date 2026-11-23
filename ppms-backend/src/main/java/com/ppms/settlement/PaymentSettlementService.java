@@ -146,8 +146,15 @@ public class PaymentSettlementService {
         }
 
         BigDecimal amount = req.getAmountReceived().setScale(2, RoundingMode.HALF_UP);
+        String bankReference = req.getBankReference() == null || req.getBankReference().isBlank()
+                ? null
+                : req.getBankReference().trim();
 
         lockPump(pumpId);
+        if (bankReference != null && settlementRepository.existsActiveWithBankReference(pumpId, bankReference)) {
+            throw new BusinessException("A settlement with bank reference " + bankReference
+                    + " is already recorded for this pump. Check the settlement list instead of recording it again.");
+        }
         if (settlementRepository.existsRecentDuplicate(pumpId, type, settlementDate, amount,
                 businessClock.now().minus(DUPLICATE_WINDOW))) {
             throw new BusinessException("An identical " + type.name() + " settlement of ₹" + amount + " for "
@@ -160,6 +167,11 @@ public class PaymentSettlementService {
                              : orZero(shiftRepository.sumFleetCardCollectedByPumpId(pumpId));
         BigDecimal alreadySettled = orZero(settlementRepository.sumAmountByPumpIdAndPaymentType(pumpId, type));
         BigDecimal pendingAtRecordTime = collected.subtract(alreadySettled).setScale(2, RoundingMode.HALF_UP);
+        if (amount.compareTo(pendingAtRecordTime) > 0) {
+            throw new BusinessException("This " + type.name() + " settlement of ₹" + amount + " is more than the ₹"
+                    + pendingAtRecordTime.max(BigDecimal.ZERO) + " still pending for " + type.name()
+                    + ". Check the amount, or close the shifts whose collections it covers first.");
+        }
 
         PaymentSettlement settlement = PaymentSettlement.builder()
                 .pumpId(pumpId)
@@ -167,6 +179,7 @@ public class PaymentSettlementService {
                 .settlementDate(settlementDate)
                 .amountReceived(amount)
                 .notes(req.getNotes())
+                .bankReference(bankReference)
                 .recordedByUserId(currentUser.getId())
                 .pendingAtRecordTime(pendingAtRecordTime)
                 .build();
@@ -175,7 +188,8 @@ public class PaymentSettlementService {
 
         auditService.log(pumpId, AuditAction.SETTLEMENT_RECORDED,
                 "PaymentSettlement", settlement.getId().toString(),
-                "Recorded " + type.name() + " settlement of ₹" + amount + " on " + settlementDate,
+                "Recorded " + type.name() + " settlement of ₹" + amount + " on " + settlementDate
+                        + (bankReference != null ? " (bank reference " + bankReference + ")" : ""),
                 currentUser);
 
         log.info("Settlement recorded: pump={} type={} amount={} date={} by={}",
@@ -369,6 +383,7 @@ public class PaymentSettlementService {
                 .settlementDate(s.getSettlementDate().toString())
                 .amountReceived(s.getAmountReceived())
                 .notes(s.getNotes())
+                .bankReference(s.getBankReference())
                 .recordedByUserName(userNames.getOrDefault(s.getRecordedByUserId(), "Unknown"))
                 .createdAt(s.getCreatedAt() != null ? s.getCreatedAt().toString() : null)
                 .pendingAtRecordTime(s.getPendingAtRecordTime())

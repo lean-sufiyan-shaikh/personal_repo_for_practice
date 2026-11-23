@@ -27,6 +27,7 @@ export function RecordSettlementDialog({ pumpId, wallet, initialType, onClose }:
     settlementDate: localDateInputValue(),
     amountReceived: 0,
     notes:          '',
+    bankReference:  '',
   })
 
   const recordMutation = useMutation({
@@ -48,7 +49,11 @@ export function RecordSettlementDialog({ pumpId, wallet, initialType, onClose }:
     setFormError(null)
     if (!form.settlementDate) { setFormError('Settlement date is required'); return }
     if (form.amountReceived <= 0) { setFormError('Amount must be greater than zero'); return }
-    recordMutation.mutate({ ...form, notes: form.notes || undefined })
+    if (wallet && form.amountReceived > getPending(wallet, form.paymentType)) {
+      setFormError(`Amount is more than the ${fmtAmt(getPending(wallet, form.paymentType))} still pending for ${TYPE_LABELS[form.paymentType]}`)
+      return
+    }
+    recordMutation.mutate({ ...form, notes: form.notes || undefined, bankReference: form.bankReference?.trim() || undefined })
   }
 
   const pendingAfterRecord = wallet
@@ -155,6 +160,21 @@ export function RecordSettlementDialog({ pumpId, wallet, initialType, onClose }:
                   />
                 </div>
               </div>
+            </div>
+
+            <div>
+              <label className="block">
+                <span className="ui-label">Bank Reference / UTR <span className="text-slate-500 font-normal">(optional)</span></span>
+                <input
+                  type="text"
+                  className="ui-input"
+                  maxLength={100}
+                  placeholder="As shown on the bank statement"
+                  value={form.bankReference ?? ''}
+                  onChange={e => setForm(f => ({ ...f, bankReference: e.target.value }))}
+                />
+              </label>
+              <p className="ui-help">A reference already recorded for this pump is refused, so the same credit is not counted twice.</p>
             </div>
 
             {/* Notes */}

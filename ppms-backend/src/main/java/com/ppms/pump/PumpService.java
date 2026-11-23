@@ -11,6 +11,7 @@ import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
+import com.ppms.user.UserStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -169,8 +170,13 @@ public class PumpService {
         if (shiftRepository.existsByPumpId(pumpId)) {
             throw new BusinessException("This pump has shifts on record and cannot be deleted.");
         }
+        if (userRepository.existsByAssignedPumpIdAndStatus(pumpId, UserStatus.ACTIVE)) {
+            throw new BusinessException("This pump still has active staff. Move them to another of your pumps "
+                    + "or deactivate them first.");
+        }
         if (userRepository.existsByAssignedPumpId(pumpId)) {
-            throw new BusinessException("This pump still has staff assigned. Move or remove them first.");
+            throw new BusinessException("This pump still has deactivated staff on record. Move them to another of "
+                    + "your pumps from the Staff page first, so their history stays with an owner who can see it.");
         }
         if (creditClientRepository.existsByPumpId(pumpId) || tankerDeliveryRepository.existsByPumpId(pumpId)) {
             throw new BusinessException(HAS_DATA_MESSAGE);

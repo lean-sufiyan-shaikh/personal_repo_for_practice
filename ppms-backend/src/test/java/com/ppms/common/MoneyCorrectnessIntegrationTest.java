@@ -328,13 +328,16 @@ class MoneyCorrectnessIntegrationTest {
 
     @Test
     void voidedSettlementNoLongerReducesTheWalletAndDuplicatesAreRefused() {
+        Shift collected = saveClosedShift(TestDates.today(), ShiftStatus.CLOSED_BALANCED, null);
+        collected.setUpiCollected(new BigDecimal("79000.00"));
+        shiftRepository.save(collected);
         RecordSettlementRequest request = RecordSettlementRequest.builder()
                 .paymentType(SettlementPaymentType.UPI)
                 .settlementDate(TestDates.today())
                 .amountReceived(new BigDecimal("79000.00"))
                 .build();
         SettlementResponse recorded = settlementService.record(pump.getId(), request, manager);
-        assertThat(settlementService.getWalletSummary(pump.getId()).getUpiPending()).isEqualByComparingTo("-79000.00");
+        assertThat(settlementService.getWalletSummary(pump.getId()).getUpiPending()).isEqualByComparingTo("0.00");
 
         assertThatThrownBy(() -> settlementService.record(pump.getId(), request, manager))
                 .isInstanceOf(BusinessException.class)
@@ -344,7 +347,7 @@ class MoneyCorrectnessIntegrationTest {
                 VoidSettlementRequest.builder().reason("Typed 79000 instead of 7900").build(), owner);
 
         assertThat(voided.getVoidStatus()).isEqualTo("VOIDED");
-        assertThat(settlementService.getWalletSummary(pump.getId()).getUpiPending()).isEqualByComparingTo("0.00");
+        assertThat(settlementService.getWalletSummary(pump.getId()).getUpiPending()).isEqualByComparingTo("79000.00");
     }
 
     @Test

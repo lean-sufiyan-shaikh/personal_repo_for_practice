@@ -285,6 +285,10 @@ public class CreditLedgerController {
             @AuthenticationPrincipal User currentUser) {
 
         ledgerService.reassignCreditEntry(pumpId, entryId, request, currentUser);
+        auditService.log(pumpId, AuditAction.CREDIT_ENTRY_REASSIGNED,
+                "ShiftCreditEntry", entryId.toString(),
+                "Credit entry moved to clientId=" + request.getToClientId() + " reason=" + request.getReason().trim(),
+                currentUser);
         return ResponseEntity.noContent().build();
     }
 

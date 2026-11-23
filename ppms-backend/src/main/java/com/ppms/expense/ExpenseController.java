@@ -104,7 +104,7 @@ public class ExpenseController {
             approvalStatus = ExpenseApprovalStatus.DRAFT;
         } else {
             // Immediate submission — auto-approve or queue for review
-            approvalStatus = approvalPolicy.resolveExpenseStatus(pumpId, currentUser, amount);
+            approvalStatus = approvalPolicy.resolveExpenseStatus(pumpId, currentUser, amount, req.getCategory(), req.getExpenseDate());
             submittedByUserId = currentUser.getId();
             submittedAt = businessClock.now();
         }
@@ -165,7 +165,8 @@ public class ExpenseController {
             throw new BusinessException("Only the expense creator or an Owner/Admin can submit this draft.");
         }
 
-        ExpenseApprovalStatus newStatus = approvalPolicy.resolveExpenseStatus(pumpId, currentUser, expense.getAmount());
+        ExpenseApprovalStatus newStatus = approvalPolicy.resolveExpenseStatus(pumpId, currentUser, expense.getAmount(),
+                expense.getCategory(), expense.getExpenseDate());
         expense.setApprovalStatus(newStatus);
         expense.setSubmittedByUserId(currentUser.getId());
         expense.setSubmittedAt(businessClock.now());

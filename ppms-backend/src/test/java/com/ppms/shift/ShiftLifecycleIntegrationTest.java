@@ -119,7 +119,7 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
                 .param("userId", setup.operator().getId().toString()), setup.owner())
                 .andExpect(status().is2xxSuccessful()));
         assertThat(pendingForPayroll).extracting(node -> node.get("id").asLong()).contains(shiftId);
-        perform(patch("/api/users/{userId}/status", setup.operator().getId()).param("status", "INACTIVE"), setup.owner())
+        perform(patch("/api/users/{userId}/status", setup.operator().getId()), setup.owner(), Map.of("status", "INACTIVE"))
                 .andExpect(status().isBadRequest());
 
         JsonNode resolved = json(perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
@@ -176,7 +176,7 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
                 setup.owner(), Map.of("resolutionAction", "PENDING_INVESTIGATION", "resolutionNote", "Bank deposit check"))
                 .andExpect(status().is2xxSuccessful()));
         assertThat(investigating.get("status").asText()).isEqualTo("CLOSED_DISCREPANCY_PENDING_APPROVAL");
-        perform(patch("/api/users/{userId}/status", setup.operator().getId()).param("status", "INACTIVE"), setup.owner())
+        perform(patch("/api/users/{userId}/status", setup.operator().getId()), setup.owner(), Map.of("status", "INACTIVE"))
                 .andExpect(status().isBadRequest());
 
         perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),

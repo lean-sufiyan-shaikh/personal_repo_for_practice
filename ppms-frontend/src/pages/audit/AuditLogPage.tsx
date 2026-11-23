@@ -55,6 +55,13 @@ const ACTION_STYLES: Partial<Record<AuditAction, string>> = {
   BANK_STATEMENT_IMPORTED:    'bg-indigo-100 text-indigo-700',
   SUPPLIER_PAYMENT_RECORDED:  'bg-teal-100 text-teal-700',
   PUMP_CONFIG_UPDATED:        'bg-purple-100 text-purple-700',
+  USER_PUMP_CHANGED:          'bg-sky-100 text-sky-700',
+  CREDIT_EXTENSION_REVOKED:   'bg-red-100 text-red-700',
+  INTEREST_RECALCULATED:      'bg-orange-100 text-orange-700',
+  PUMP_UPDATED:               'bg-purple-100 text-purple-700',
+  PUMP_SUSPENDED:             'bg-red-100 text-red-700',
+  PUMP_ENABLED:               'bg-emerald-100 text-emerald-700',
+  OWNER_ONBOARDED:            'bg-blue-100 text-blue-700',
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50]

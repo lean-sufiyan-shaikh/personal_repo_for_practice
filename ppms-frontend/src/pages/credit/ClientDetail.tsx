@@ -3,7 +3,7 @@ import { withToggled } from '../../utils/setToggle'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import { creditApi } from '../../api/creditApi'
-import type { CreditTransaction } from '../../api/creditApi'
+import type { CreditExtension, CreditTransaction } from '../../api/creditApi'
 import { Pagination } from '../../components/Pagination'
 import { canPerformAction } from '../../permissions/permissions'
 import { SkeletonRows } from '../../components/Skeleton'
@@ -14,6 +14,7 @@ import { IconButton } from '../../components/IconButton'
 import { ClientActions } from './ClientActions'
 import { ActiveExtensionBanners } from './ActiveExtensionBanners'
 import { GrantExtensionModal } from './modals/GrantExtensionModal'
+import { RevokeExtensionModal } from './modals/RevokeExtensionModal'
 import { buildWeekGroups } from './ledgerGroups'
 import { LedgerWeekGroups } from './LedgerWeekGroups'
 import type { LedgerRowActions } from './LedgerWeekGroups'
@@ -40,6 +41,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showInterestSettingsModal, setShowInterestSettingsModal] = useState(false)
   const [showExtensionModal, setShowExtensionModal] = useState(false)
+  const [revokingExtension, setRevokingExtension] = useState<CreditExtension | null>(null)
   const [applyInterestFeedback, setApplyInterestFeedback] = useState<string | null>(null)
   const [reassignEntryId,         setReassignEntryId]         = useState<number | null>(null)
   // Track which client the entry being reassigned belongs to (may be a child in parent view)
@@ -61,7 +63,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const canManageInterestForRole = canPerformAction('credit:manage-interest', role)
   const canApplyInterestForRole  = canPerformAction('credit:apply-interest', role)
   const canWaiveInterest   = canPerformAction('credit:waive-interest', role)
-  const canGrantExtension  = canPerformAction('credit:grant-extension', role)
+  const canManageExtensions = canPerformAction('credit:grant-extension', role)
   const canIssueInvoices   = canPerformAction('credit:issue-invoice', role)
   const [activeTab, setActiveTab] = useState<'ledger' | 'invoices'>('ledger')
   const [txPage, setTxPage] = useState(0)
@@ -77,6 +79,8 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const isSubAccount = client?.parentClientId != null
   const canManageInterest = canManageInterestForRole && !isSubAccount
   const canApplyInterest = canApplyInterestForRole && !isSubAccount
+  // Limits and billing cycles are checked on the parent, so extensions are granted there too.
+  const canGrantExtension = canManageExtensions && !isSubAccount
 
   const invalidateLedger = () => {
     qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId] })
@@ -193,6 +197,13 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           onClose={() => setShowExtensionModal(false)}
         />
       )}
+      {revokingExtension && canManageExtensions && (
+        <RevokeExtensionModal
+          pumpId={pumpId}
+          extension={revokingExtension}
+          onClose={() => setRevokingExtension(null)}
+        />
+      )}
 
       {/* Header */}
       <div className="p-6 pb-4">
@@ -230,6 +241,12 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
             the combined balance of the whole group.
           </p>
         )}
+        {canManageExtensions && isSubAccount && (
+          <p className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-slate-500">
+            Credit limit and billing cycle are checked on the parent account
+            {client.parentClientName ? ` (${client.parentClientName})` : ''} for the whole group. Grant credit extensions there.
+          </p>
+        )}
         {applyInterestFeedback && (
           <div className="mt-3 ui-alert text-sm bg-purple-50 border-purple-200 text-purple-800 flex items-center justify-between">
             <span>{applyInterestFeedback}</span>
@@ -251,7 +268,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           </div>
         )}
 
-        <ActiveExtensionBanners extensions={activeExtensions} />
+        <ActiveExtensionBanners extensions={activeExtensions} canRevoke={canManageExtensions} onRevoke={setRevokingExtension} />
       </div>
 
       <ClientSummaryCards

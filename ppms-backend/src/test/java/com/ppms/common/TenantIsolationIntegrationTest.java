@@ -89,7 +89,8 @@ class TenantIsolationIntegrationTest {
     @Test
     void ownerCannotDeactivateStaffOfAnotherOwner() throws Exception {
         mockMvc.perform(patch("/api/users/{userId}/status", operatorB.getId())
-                        .param("status", "INACTIVE")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"INACTIVE\"}")
                         .cookie(loginAs(ownerA)))
                 .andExpect(status().isNotFound());
 

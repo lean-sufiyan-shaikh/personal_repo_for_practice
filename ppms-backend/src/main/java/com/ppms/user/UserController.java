@@ -63,9 +63,19 @@ public class UserController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'OWNER')")
     public ResponseEntity<StaffResponse> updateUserStatus(
             @PathVariable Long userId,
-            @RequestParam UserStatus status,
+            @Valid @RequestBody UpdateUserStatusRequest request,
             @AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.ok(userService.updateUserStatus(userId, status, currentUser));
+        return ResponseEntity.ok(userService.updateUserStatus(userId, request.getStatus(), currentUser));
+    }
+
+    /** Moves a staff member to another pump of the same owner; they are signed out so their next session loads it. */
+    @PatchMapping("/{userId}/assigned-pump")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<StaffResponse> moveToPump(
+            @PathVariable Long userId,
+            @Valid @RequestBody MoveToPumpRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(userService.moveToPump(userId, request.getPumpId(), currentUser));
     }
 
     @PostMapping("/{userId}/reset-password")

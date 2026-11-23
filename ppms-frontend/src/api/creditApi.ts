@@ -98,7 +98,7 @@ export interface CreditExtension {
   expiryDate: string  // YYYY-MM-DD
   grantedByUserId: number
   reason: string
-  status: 'ACTIVE' | 'EXPIRED'
+  status: 'ACTIVE' | 'EXPIRED' | 'REVOKED'
   createdAt: string
 }
 
@@ -220,6 +220,11 @@ export const creditApi = {
   // Grants a new credit extension (Admin/Owner only)
   createExtension: (pumpId: number, clientId: number, req: CreateExtensionRequest) =>
     client.post<CreditExtension>(`/pumps/${pumpId}/credit-clients/${clientId}/extensions`, req).then(r => r.data),
+
+  // Withdraws an active extension before it expires, with a reason (Admin/Owner only)
+  revokeExtension: (pumpId: number, clientId: number, extensionId: number, reason: string) =>
+    client.post<CreditExtension>(`/pumps/${pumpId}/credit-clients/${clientId}/extensions/${extensionId}/revoke`, { reason })
+      .then(r => r.data),
 
   // ── Credit invoices ─────────────────────────────────────────────────────────
 

@@ -96,7 +96,7 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
         User operator = saveUser(UserRole.OPERATOR, setup.pumpId());
         var cookie = loginAs(operator);
 
-        perform(patch("/api/users/{userId}/status", operator.getId()).param("status", "INACTIVE"), setup.owner())
+        perform(patch("/api/users/{userId}/status", operator.getId()), setup.owner(), Map.of("status", "INACTIVE"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/pumps/{pumpId}/notifications", setup.pumpId()).cookie(cookie))

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { CircleOff, Settings, CalendarDays, RotateCcw, Pencil, KeyRound } from 'lucide-react'
+import { CircleOff, Settings, CalendarDays, RotateCcw, Pencil, KeyRound, ArrowRightLeft } from 'lucide-react'
 import type { StaffMember } from '../../../api/userApi'
 import type { ShiftDefinition } from '../../../api/shiftDefinitionApi'
 import { RowActionMenu } from '../../../components/RowActionMenu'
@@ -11,6 +11,7 @@ import { EditStaffPanel } from './EditStaffPanel'
 import { PreferencesPanel } from './PreferencesPanel'
 import { PayRatesPanel } from './PayRatesPanel'
 import { LeavePanel } from './LeavePanel'
+import { MoveToPumpPanel } from './MoveToPumpPanel'
 import { codeLabel } from '../../../constants/labels'
 import { ResetPasswordDialog } from '../../../components/ResetPasswordDialog'
 import { canManageStaffMember, canPerformAction } from '../../../permissions/permissions'
@@ -51,6 +52,7 @@ export function StaffRow({
   const canManageLeave = canPerformAction('shiftPlan:manage-leaves', viewerRole)
   const canSetPayRates = managesMember && canPerformAction('staff:manage-pay-rates', viewerRole)
   const canChangeStatus = managesMember && canPerformAction('staff:change-status', viewerRole)
+  const canMoveToPump = managesMember && canPerformAction('staff:move-pump', viewerRole)
 
   const menuItems: RowActionMenuItem[] = [
     ...(canEditDetails ? [{ key: 'edit', label: 'Edit Details', description: 'Update name, phone number, or role', icon: <Pencil size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-violet-50 hover:text-violet-700', onSelect: () => onOpenPanel('edit') }] : []),
@@ -58,6 +60,7 @@ export function StaffRow({
     ...(canSetPreferences ? [{ key: 'preferences', label: 'Shift Preferences', description: 'Set preferred shift and weekly day off', icon: <Settings size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-blue-50 hover:text-blue-700', onSelect: () => onOpenPanel('preferences') }] : []),
     ...(canManageLeave ? [{ key: 'leave', label: 'Manage Leave', description: 'Add or remove leave dates for this staff member', icon: <CalendarDays size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-amber-50 hover:text-amber-700', onSelect: () => onOpenPanel('leave') }] : []),
     ...(canSetPayRates ? [{ key: 'rates', label: payRatesMissing ? 'Pay Rates (not set)' : 'Pay Rates', description: 'Configure hourly or daily pay rates', icon: '₹', className: 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700', onSelect: () => onOpenPanel('rates') }] : []),
+    ...(canMoveToPump ? [{ key: 'move', label: 'Move to Another Pump', description: 'Assign this staff member to another of your pumps', icon: <ArrowRightLeft size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-sky-50 hover:text-sky-700', onSelect: () => onOpenPanel('move') }] : []),
     ...(canChangeStatus ? [{
       key: 'status',
       label: isInactive ? 'Activate Staff' : 'Deactivate Staff',
@@ -144,6 +147,10 @@ export function StaffRow({
       {/* Leave management panel */}
       {isLeaveOpen && (
         <LeavePanel pumpId={pumpId} member={member} onClose={onClosePanel} />
+      )}
+
+      {openPanel === 'move' && (
+        <MoveToPumpPanel pumpId={pumpId} member={member} onClose={onClosePanel} />
       )}
       </div>
 

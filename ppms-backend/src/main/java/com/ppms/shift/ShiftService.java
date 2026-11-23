@@ -6,6 +6,7 @@ import com.ppms.common.time.DateRangeBounds;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
+import com.ppms.credit.CreditInterestService;
 import com.ppms.invoice.InvoicedSaleGuard;
 import com.ppms.pump.CurrentShiftWindow;
 import com.ppms.pump.DispensaryUnit;
@@ -55,6 +56,7 @@ public class ShiftService {
     private final UserRepository userRepository;
     private final ShiftCreditEntryRepository creditEntryRepository;
     private final CreditAccountPolicyService creditAccountPolicyService;
+    private final CreditInterestService creditInterestService;
     private final ShiftLifecycleSupportService lifecycleSupportService;
     private final ShiftReadModelService shiftReadModelService;
     private final com.ppms.planning.ShiftPlanningService shiftPlanningService;
@@ -488,6 +490,10 @@ public class ShiftService {
         entry.setVoidedByUserId(currentUser.getId());
         entry.setVoidedAt(businessClock.now());
         creditEntryRepository.save(entry);
+        if (entry.getClientId() != null) {
+            creditInterestService.recalculateChargedInterestFrom(entry.getClientId(), entry.getSaleDate(),
+                    "Recalculated after voiding a credit sale dated " + entry.getSaleDate(), currentUser);
+        }
 
         log.info("Credit entry {} voided on shift {}: reason='{}', by={}", entryId, shiftId, voidReason, currentUser.getId());
 

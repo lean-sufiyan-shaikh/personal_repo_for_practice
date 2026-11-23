@@ -2,11 +2,14 @@ package com.ppms.credit;
 
 import com.ppms.ancillary.AncillarySale;
 import com.ppms.ancillary.AncillarySaleRepository;
+import com.ppms.audit.AuditAction;
+import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.shift.ShiftCreditEntryRepository;
 import com.ppms.transaction.TransactionPaymentMode;
+import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -51,12 +55,14 @@ public class CreditInterestService {
     private static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
     private static final BigDecimal MINIMUM_CHARGE = new BigDecimal("0.01");
     private static final TransactionPaymentMode CREDIT = TransactionPaymentMode.CREDIT;
+    private static final String RECALCULATED_SOURCE = "RECALCULATED";
 
     private final CreditClientRepository clientRepository;
     private final CreditInterestChargeRepository interestChargeRepository;
     private final CreditPaymentRepository paymentRepository;
     private final ShiftCreditEntryRepository creditEntryRepository;
     private final AncillarySaleRepository ancillarySaleRepository;
+    private final AuditService auditService;
     private final BusinessClock businessClock;
 
     // ── Outstanding balance ───────────────────────────────────────────────────
@@ -274,10 +280,7 @@ public class CreditInterestService {
 
     private Optional<CreditInterestCharge> applyToClientGroup(CreditClient root, LocalDate periodTo, String source,
                                                               Long appliedByUserId) {
-        List<Long> groupClientIds = new ArrayList<>();
-        groupClientIds.add(root.getId());
-        clientRepository.findByParentClientId(root.getId()).forEach(child -> groupClientIds.add(child.getId()));
-        return applyInterest(root, groupClientIds, periodTo, source, appliedByUserId);
+        return applyInterest(root, groupClientIds(root.getId()), periodTo, source, appliedByUserId);
     }
 
     // ── Core calculation ──────────────────────────────────────────────────────
@@ -309,6 +312,19 @@ public class CreditInterestService {
         }
 
         DailyPrincipal principal = loadDailyPrincipal(groupClientIds);
+        Optional<CreditInterestCharge> charge =
+                saveChargeIfDue(root, principal, rate, periodFrom, periodTo, source, appliedByUserId);
+        charge.ifPresent(saved -> log.info(
+                "Interest applied: client={}, groupAccounts={}, amount={}, days={}, rate={}%, period={} to {}, source={}",
+                root.getId(), groupClientIds.size(), saved.getAmount(), saved.getDaysApplied(), rate,
+                periodFrom, periodTo, source));
+        return charge;
+    }
+
+    /** Charges the group for the period, or returns empty when the interest comes to less than one paisa. */
+    private Optional<CreditInterestCharge> saveChargeIfDue(CreditClient root, DailyPrincipal principal, BigDecimal rate,
+                                                           LocalDate periodFrom, LocalDate periodTo, String source,
+                                                           Long appliedByUserId) {
         BigDecimal dailyRate = rate.divide(ONE_HUNDRED, 10, RoundingMode.HALF_UP)
                 .divide(DAYS_IN_MONTH, 10, RoundingMode.HALF_UP);
         BigDecimal interest = BigDecimal.ZERO;
@@ -319,15 +335,14 @@ public class CreditInterestService {
             }
         }
         interest = interest.setScale(2, RoundingMode.HALF_UP);
-        long days = ChronoUnit.DAYS.between(periodFrom, periodTo) + 1;
-        BigDecimal outstanding = principal.on(periodTo).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
-
         if (interest.compareTo(MINIMUM_CHARGE) < 0) {
             log.debug("Client {} interest skipped: calculated amount {} is negligible", root.getId(), interest);
             return Optional.empty();
         }
 
-        CreditInterestCharge charge = CreditInterestCharge.builder()
+        long days = ChronoUnit.DAYS.between(periodFrom, periodTo) + 1;
+        BigDecimal outstanding = principal.on(periodTo).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        return Optional.of(interestChargeRepository.save(CreditInterestCharge.builder()
                 .pumpId(root.getPumpId())
                 .clientId(root.getId())
                 .amount(interest)
@@ -338,14 +353,78 @@ public class CreditInterestService {
                 .periodTo(periodTo)
                 .source(source)
                 .appliedByUserId(appliedByUserId)
-                .build();
+                .build()));
+    }
 
-        charge = interestChargeRepository.save(charge);
+    // ── Recalculation after a backdated change ────────────────────────────────
 
-        log.info("Interest applied: client={}, groupAccounts={}, amount={}, days={}, rate={}%, period={} to {}, source={}",
-                root.getId(), groupClientIds.size(), interest, days, rate, periodFrom, periodTo, source);
+    /**
+     * Re-charges the periods already charged to a client's group when a change dated {@code changeDate}
+     * (a backdated or late-approved payment, a voided credit sale) alters the principal of those periods.
+     * Every live charge of the group ending on or after that date is waived with {@code reason}, and each of
+     * those periods is charged again at the rate it was charged at, so the group owes what it would have
+     * owed had the change been on record before the interest was applied.
+     *
+     * The caller must have written the change already, in the same transaction.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recalculateChargedInterestFrom(Long clientId, LocalDate changeDate, String reason, User actor) {
+        CreditClient client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + clientId));
+        Long rootId = client.getParentClientId() != null ? client.getParentClientId() : client.getId();
+        CreditClient root = lockGroupRoot(rootId);
+        List<Long> groupClientIds = groupClientIds(rootId);
 
-        return Optional.of(charge);
+        List<CreditInterestCharge> affected = interestChargeRepository.findLiveEndingOnOrAfter(groupClientIds, changeDate);
+        if (affected.isEmpty()) {
+            return;
+        }
+
+        OffsetDateTime waivedAt = businessClock.now();
+        BigDecimal waivedTotal = BigDecimal.ZERO;
+        for (CreditInterestCharge charge : affected) {
+            charge.setVoidedAt(waivedAt);
+            charge.setVoidedBy(actor.getId());
+            charge.setVoidReason(reason);
+            waivedTotal = waivedTotal.add(charge.getAmount());
+        }
+        // Waived rows must reach the database before their periods are charged again (unique live period).
+        interestChargeRepository.saveAllAndFlush(affected);
+
+        DailyPrincipal principal = loadDailyPrincipal(groupClientIds);
+        BigDecimal rechargedTotal = BigDecimal.ZERO;
+        LocalDate chargedUntil = null;
+        for (CreditInterestCharge waived : affected) {
+            LocalDate periodFrom = chargedUntil != null && !waived.getPeriodFrom().isAfter(chargedUntil)
+                    ? chargedUntil.plusDays(1)
+                    : waived.getPeriodFrom();
+            if (periodFrom.isAfter(waived.getPeriodTo())) {
+                continue;
+            }
+            chargedUntil = waived.getPeriodTo();
+            rechargedTotal = rechargedTotal.add(saveChargeIfDue(root, principal, waived.getRateApplied(),
+                    periodFrom, waived.getPeriodTo(), RECALCULATED_SOURCE, actor.getId())
+                    .map(CreditInterestCharge::getAmount)
+                    .orElse(BigDecimal.ZERO));
+        }
+
+        LocalDate firstDay = affected.get(0).getPeriodFrom();
+        LocalDate lastDay = affected.stream().map(CreditInterestCharge::getPeriodTo).max(Comparator.naturalOrder()).orElseThrow();
+        auditService.log(root.getPumpId(), AuditAction.INTEREST_RECALCULATED,
+                "CreditClient", root.getId().toString(),
+                "Interest for '" + root.getName() + "' from " + firstDay + " to " + lastDay + " recalculated: ₹"
+                        + waivedTotal.setScale(2, RoundingMode.HALF_UP) + " waived, ₹"
+                        + rechargedTotal.setScale(2, RoundingMode.HALF_UP) + " charged again. " + reason,
+                actor);
+        log.info("Interest recalculated: client={}, period={} to {}, waived={}, recharged={}, by={}",
+                root.getId(), firstDay, lastDay, waivedTotal, rechargedTotal, actor.getId());
+    }
+
+    private List<Long> groupClientIds(Long rootId) {
+        List<Long> groupClientIds = new ArrayList<>();
+        groupClientIds.add(rootId);
+        clientRepository.findByParentClientId(rootId).forEach(child -> groupClientIds.add(child.getId()));
+        return groupClientIds;
     }
 
     private record DailyPrincipal(Map<LocalDate, BigDecimal> changesByDay) {

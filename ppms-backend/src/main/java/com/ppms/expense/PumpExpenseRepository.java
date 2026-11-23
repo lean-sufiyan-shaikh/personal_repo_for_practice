@@ -16,6 +16,16 @@ public interface PumpExpenseRepository extends JpaRepository<PumpExpense, Long> 
     BigDecimal sumAmountByPumpIdAndApprovalStatus(@Param("pumpId") Long pumpId,
                                                   @Param("status") ExpenseApprovalStatus status);
 
+    /** Approved and pending expenses of one category on one day; drafts and rejected expenses are not counted. */
+    @Query("""
+            SELECT COALESCE(SUM(e.amount), 0) FROM PumpExpense e
+            WHERE e.pumpId = :pumpId AND e.category = :category AND e.expenseDate = :expenseDate
+              AND e.approvalStatus IN ('APPROVED', 'PENDING_APPROVAL')
+            """)
+    BigDecimal sumSubmittedAmountByPumpIdAndCategoryAndExpenseDate(@Param("pumpId") Long pumpId,
+                                                                   @Param("category") ExpenseCategory category,
+                                                                   @Param("expenseDate") LocalDate expenseDate);
+
     long countByPumpIdAndApprovalStatus(Long pumpId, ExpenseApprovalStatus approvalStatus);
 
     /** Expenses dated within [from, to], both days included — used by reports and CSV export. */

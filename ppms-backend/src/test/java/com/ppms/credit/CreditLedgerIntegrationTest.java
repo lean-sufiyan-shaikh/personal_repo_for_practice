@@ -527,6 +527,96 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
         assertThat(extensionRepository.findById(lapsed.getId()).orElseThrow().getStatus()).isEqualTo(CreditExtensionStatus.EXPIRED);
     }
 
+    @Test
+    void extensionOnASubAccountIsRefusedAndPointsToTheParentWhereItTakesEffect() throws Exception {
+        long parentId = createClient(null);
+        long childId = createClient(parentId);
+        perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit", setup.pumpId(), parentId),
+                setup.owner(), Map.of("creditLimit", new BigDecimal("500.00")))
+                .andExpect(status().isOk());
+        sellOnCredit(childId, "450.00");
+        Map<String, Object> extension = Map.of("extensionType", "AMOUNT_EXTENSION",
+                "extensionAmount", new BigDecimal("1000.00"),
+                "expiryDate", TestDates.today().plusDays(7).toString(),
+                "reason", "Fleet renewal");
+
+        perform(post("/api/pumps/{pumpId}/credit-clients/{clientId}/extensions", setup.pumpId(), childId),
+                setup.owner(), extension)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("Grant the extension on the parent account")));
+        perform(post("/api/pumps/{pumpId}/credit-clients/{clientId}/extensions", setup.pumpId(), parentId),
+                setup.owner(), extension)
+                .andExpect(status().is2xxSuccessful());
+
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId), setup.operator(),
+                creditEntry(childId, "300.00"))
+                .andExpect(status().is2xxSuccessful());
+        assertThat(outstandingOf(parentId)).isEqualByComparingTo("750.00");
+    }
+
+    @Test
+    void ownerRevokesAnExtensionWithAReasonAfterWhichItNoLongerLetsCreditThrough() throws Exception {
+        long clientId = createClient(null);
+        perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit", setup.pumpId(), clientId),
+                setup.owner(), Map.of("creditLimit", new BigDecimal("500.00")))
+                .andExpect(status().isOk());
+        long extensionId = json(perform(post("/api/pumps/{pumpId}/credit-clients/{clientId}/extensions", setup.pumpId(), clientId),
+                setup.owner(), Map.of("extensionType", "AMOUNT_EXTENSION", "extensionAmount", new BigDecimal("1000.00"),
+                        "expiryDate", TestDates.today().plusDays(7).toString(), "reason", "Festival season"))
+                .andExpect(status().is2xxSuccessful())).get("id").asLong();
+        sellOnCredit(clientId, "900.00");
+
+        perform(post("/api/pumps/{pumpId}/credit-clients/{clientId}/extensions/{id}/revoke", setup.pumpId(), clientId, extensionId),
+                setup.manager(), Map.of("reason", "Missed payment"))
+                .andExpect(status().isForbidden());
+        perform(post("/api/pumps/{pumpId}/credit-clients/{clientId}/extensions/{id}/revoke", setup.pumpId(), clientId, extensionId),
+                setup.owner(), Map.of("reason", " "))
+                .andExpect(status().isBadRequest());
+        perform(post("/api/pumps/{pumpId}/credit-clients/{clientId}/extensions/{id}/revoke", setup.pumpId(), clientId, extensionId),
+                setup.admin(), Map.of("reason", "Missed payment"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REVOKED"));
+        perform(post("/api/pumps/{pumpId}/credit-clients/{clientId}/extensions/{id}/revoke", setup.pumpId(), clientId, extensionId),
+                setup.owner(), Map.of("reason", "Again"))
+                .andExpect(status().isBadRequest());
+
+        CreditExtension revoked = extensionRepository.findById(extensionId).orElseThrow();
+        assertThat(revoked.getRevokedByUserId()).isEqualTo(setup.admin().getId());
+        assertThat(revoked.getRevokeReason()).isEqualTo("Missed payment");
+        perform(get("/api/pumps/{pumpId}/credit-clients/{clientId}/extensions/active", setup.pumpId(), clientId), setup.owner())
+                .andExpect(jsonPath("$.length()").value(0));
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId), setup.operator(),
+                creditEntry(clientId, "50.00"))
+                .andExpect(status().isBadRequest());
+        assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(setup.pumpId()))
+                .filteredOn(log -> log.getAction() == AuditAction.CREDIT_EXTENSION_REVOKED)
+                .singleElement()
+                .satisfies(log -> {
+                    assertThat(log.getActorId()).isEqualTo(setup.admin().getId());
+                    assertThat(log.getDescription()).contains("Missed payment");
+                });
+    }
+
+    @Test
+    void movingACreditEntryToAnotherAccountIsAudited() throws Exception {
+        long parent = createClient(null);
+        long fromClient = createClient(parent);
+        long toClient = createClient(parent);
+        long entryId = sellOnCredit(fromClient, "220.00");
+
+        perform(post("/api/pumps/{pumpId}/credit-ledger/entries/{entryId}/reassign", setup.pumpId(), entryId),
+                setup.manager(), Map.of("toClientId", toClient, "reason", "Billed to wrong vehicle"))
+                .andExpect(status().is2xxSuccessful());
+
+        assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(setup.pumpId()))
+                .filteredOn(log -> log.getAction() == AuditAction.CREDIT_ENTRY_REASSIGNED)
+                .singleElement()
+                .satisfies(log -> {
+                    assertThat(log.getEntityId()).isEqualTo(String.valueOf(entryId));
+                    assertThat(log.getDescription()).contains("clientId=" + toClient).contains("Billed to wrong vehicle");
+                });
+    }
+
     private static String rowKey(JsonNode row) {
         return row.get("type").asText() + ":" + row.get("referenceId").asLong() + ":" + row.get("runningBalance").decimalValue();
     }

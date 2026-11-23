@@ -27,6 +27,15 @@ public interface CreditInterestChargeRepository extends JpaRepository<CreditInte
     @Query("SELECT MAX(c.periodTo) FROM CreditInterestCharge c WHERE c.clientId IN :clientIds AND c.voidedAt IS NULL")
     Optional<LocalDate> findLastPeriodToByClientIds(@Param("clientIds") java.util.Collection<Long> clientIds);
 
+    /** Live charges of the given clients whose period ends on or after {@code date}, oldest period first. */
+    @Query("""
+            SELECT c FROM CreditInterestCharge c
+            WHERE c.clientId IN :clientIds AND c.voidedAt IS NULL AND c.periodTo >= :date
+            ORDER BY c.periodFrom ASC, c.periodTo ASC
+            """)
+    List<CreditInterestCharge> findLiveEndingOnOrAfter(@Param("clientIds") java.util.Collection<Long> clientIds,
+                                                       @Param("date") LocalDate date);
+
     /** Batch sum of live interest charges per client — used for efficient outstanding balance calculation across all clients. */
     @Query("SELECT c.clientId, COALESCE(SUM(c.amount), 0) FROM CreditInterestCharge c WHERE c.clientId IN :clientIds AND c.voidedAt IS NULL GROUP BY c.clientId")
     List<Object[]> sumAmountsByClientIds(@Param("clientIds") java.util.Collection<Long> clientIds);

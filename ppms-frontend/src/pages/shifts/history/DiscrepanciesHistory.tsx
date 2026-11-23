@@ -33,7 +33,7 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
 
   const totalShort = filtered.filter(s => s.discrepancyType === 'SHORT').reduce((sum, s) => sum + (s.discrepancyAmount ?? 0), 0)
   const totalOver  = filtered.filter(s => s.discrepancyType === 'OVER').reduce((sum, s) => sum + (s.discrepancyAmount ?? 0), 0)
-  const resolved   = filtered.filter(s => s.discrepancyResolution && s.discrepancyResolution !== 'PENDING_INVESTIGATION').length
+  const resolved   = filtered.filter(s => s.discrepancyResolution).length
   const cashRecovered = filtered.filter(s => s.discrepancyResolution === 'CASH_RECOVERY').reduce((sum, s) => sum + (s.cashRecoveryAmount ?? 0), 0)
 
   if (isLoading) return <div className="px-5 py-4"><SkeletonRows count={4} /></div>

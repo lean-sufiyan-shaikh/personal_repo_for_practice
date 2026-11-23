@@ -60,7 +60,7 @@ public class CreditInterestCharge {
     @Column(name = "period_to", nullable = false)
     private LocalDate periodTo;
 
-    /** MANUAL = owner triggered via API; MONTHLY_SCHEDULED = automated cron on 1st of month. */
+    /** MANUAL = owner triggered via API; WEEKLY/MONTHLY_SCHEDULED = automated run; RECALCULATED = re-charged after a backdated change. */
     @Column(name = "source", nullable = false)
     private String source;
 

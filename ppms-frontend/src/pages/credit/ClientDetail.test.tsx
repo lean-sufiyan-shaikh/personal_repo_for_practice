@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { creditApi } from '../../api/creditApi'
-import type { CreditClient, CreditPayment, CreditTransaction } from '../../api/creditApi'
+import type { CreditClient, CreditExtension, CreditPayment, CreditTransaction } from '../../api/creditApi'
 import { useAuthStore } from '../../store/authStore'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import type { UserRole } from '../../types/auth'
@@ -17,6 +17,7 @@ vi.mock('../../api/creditApi', () => ({
     approvePayment: vi.fn(),
     applyInterest: vi.fn(),
     waiveInterestCharge: vi.fn(),
+    revokeExtension: vi.fn(),
   },
 }))
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn().mockResolvedValue([]) } }))
@@ -132,6 +133,16 @@ describe('ClientDetail actions by role', () => {
     expect(screen.getByText('Set on parent account')).toBeInTheDocument()
   })
 
+  it('sends an owner to the parent account to grant an extension for a sub-account', async () => {
+    vi.mocked(creditApi.getLedgerSummary).mockResolvedValue([{
+      ...client, parentClientId: 39, parentClientName: 'Acme Group',
+    }])
+    signIn('OWNER', 1)
+    await renderClient()
+    expect(screen.queryByRole('button', { name: 'Grant Extension' })).not.toBeInTheDocument()
+    expect(screen.getByText(/Grant credit extensions there/)).toBeInTheDocument()
+  })
+
   it('lets an owner edit interest settings', async () => {
     signIn('OWNER', 1)
     await renderClient()
@@ -220,5 +231,42 @@ describe('ClientDetail interest waiver', () => {
     signIn('MANAGER', 1)
     await renderClient()
     expect(screen.queryByRole('button', { name: 'Waive this interest charge' })).not.toBeInTheDocument()
+  })
+})
+
+describe('ClientDetail extension revoke', () => {
+  const extension: CreditExtension = {
+    id: 55, pumpId: PUMP_ID, clientId: CLIENT_ID, extensionType: 'AMOUNT_EXTENSION', extensionAmount: 10_000,
+    expiryDate: '2026-12-31', grantedByUserId: 1, reason: 'Festival season', status: 'ACTIVE', createdAt: '2026-11-01T00:00:00Z',
+  }
+
+  beforeEach(() => {
+    vi.mocked(creditApi.getLedgerSummary).mockResolvedValue([client])
+    vi.mocked(creditApi.getActiveExtensions).mockResolvedValue([extension])
+    vi.mocked(creditApi.getAllTransactions).mockResolvedValue([pendingPayment])
+    vi.mocked(creditApi.getPendingPayments).mockResolvedValue([pendingPaymentRecord])
+    vi.mocked(creditApi.revokeExtension).mockResolvedValue({ ...extension, status: 'REVOKED' })
+  })
+
+  it('asks the owner for a reason and sends it with the revocation', async () => {
+    const user = userEvent.setup()
+    signIn('OWNER', 1)
+    await renderClient()
+
+    await user.click(await screen.findByRole('button', { name: 'Revoke' }))
+    await user.click(screen.getByRole('button', { name: 'Revoke Extension' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('A reason is required')
+    expect(creditApi.revokeExtension).not.toHaveBeenCalled()
+
+    await user.type(screen.getByRole('textbox'), 'Missed the promised payment')
+    await user.click(screen.getByRole('button', { name: 'Revoke Extension' }))
+    expect(creditApi.revokeExtension).toHaveBeenCalledWith(PUMP_ID, CLIENT_ID, 55, 'Missed the promised payment')
+  })
+
+  it('does not offer a manager the revoke button', async () => {
+    signIn('MANAGER', 1)
+    await renderClient()
+    expect(await screen.findByText(/credit headroom/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Revoke' })).not.toBeInTheDocument()
   })
 })

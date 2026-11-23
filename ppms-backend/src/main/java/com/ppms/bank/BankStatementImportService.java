@@ -5,7 +5,10 @@ import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditPaymentRepository;
+import com.ppms.pump.PumpLocationRepository;
+import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
@@ -18,15 +21,22 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -46,6 +56,8 @@ public class BankStatementImportService {
     private final ShiftRepository shiftRepository;
     private final AncillarySaleRepository ancillarySaleRepository;
     private final CreditPaymentRepository creditPaymentRepository;
+    private final PumpLocationRepository pumpLocationRepository;
+    private final BusinessClock businessClock;
 
     private record ParsedStatement(List<BankStatementLine> lines, int skippedRows, LocalDate from, LocalDate to) {}
 
@@ -89,6 +101,16 @@ public class BankStatementImportService {
                     "Ensure the CSV format is: Date, Narration, Debit, Credit, Balance, UTR");
         }
 
+        pumpLocationRepository.findByIdForUpdate(pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pump not found: " + pumpId));
+        String fileHash = sha256Hex(file);
+        importRepository.findFirstByPumpIdAndFileHash(pumpId, fileHash).ifPresent(existing -> {
+            throw new BusinessException("This statement file was already imported on "
+                    + existing.getImportedAt().atZoneSameInstant(businessClock.zone()).toLocalDate()
+                    + " (" + existing.getStatementFromDate() + " to " + existing.getStatementToDate() + ").");
+        });
+        refuseAlreadyImportedUtrReferences(pumpId, parsed.lines());
+
         BankStatementImport statementImport = importRepository.save(BankStatementImport.builder()
                 .pumpId(pumpId)
                 .bankName(bankName.trim())
@@ -97,6 +119,7 @@ public class BankStatementImportService {
                 .statementToDate(parsed.to())
                 .totalLines(parsed.lines().size())
                 .matchedLines(0)
+                .fileHash(fileHash)
                 .importedByUserId(currentUser.getId())
                 .build());
 
@@ -118,6 +141,44 @@ public class BankStatementImportService {
         return toImportSummary(statementImport);
     }
 
+    /**
+     * A bank's UTR identifies one transaction, so a line whose UTR is already on an earlier statement means the
+     * statement overlaps one already imported. Lines without a UTR are not compared: two equal amounts on the same
+     * day are common and cannot be told apart from a repeat.
+     */
+    private void refuseAlreadyImportedUtrReferences(Long pumpId, List<BankStatementLine> lines) {
+        Set<String> utrReferences = lines.stream()
+                .map(BankStatementLine::getUtrReference)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (utrReferences.isEmpty()) {
+            return;
+        }
+        List<String> alreadyImported = lineRepository.findImportedUtrReferences(pumpId, utrReferences);
+        if (!alreadyImported.isEmpty()) {
+            throw new BusinessException(alreadyImported.size() + " line(s) of this statement were already imported (UTR "
+                    + alreadyImported.stream().sorted().limit(3).collect(Collectors.joining(", "))
+                    + (alreadyImported.size() > 3 ? ", …" : "")
+                    + "). Export a statement that starts after the last import.");
+        }
+    }
+
+    private String sha256Hex(MultipartFile file) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(file.getBytes()));
+        } catch (IOException ex) {
+            log.warn("CSV read error while hashing statement: {}", ex.getMessage(), ex);
+            throw new BusinessException("Failed to read the uploaded file. Ensure it is a valid CSV with the required columns.");
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available on this JVM", ex);
+        }
+    }
+
+    /**
+     * MATCHED needs exactly one linked shift, sale or credit payment whose amount equals the line's credit amount,
+     * or a note explaining the difference; a credit payment can be matched to one line only. UNMATCHED and IGNORED
+     * lines keep no links.
+     */
     @Transactional
     public StatementLineResponse updateLineMatch(Long pumpId, Long lineId, Map<String, Object> body) {
         BankStatementLine line = lineRepository.findById(lineId)
@@ -137,18 +198,35 @@ public class BankStatementImportService {
             throw new BusinessException("Invalid status. Allowed: MATCHED, IGNORED, UNMATCHED");
         }
 
-        Long matchedShiftId = extractLong(body, "matchedShiftId");
-        Long matchedSaleId = extractLong(body, "matchedSaleId");
-        Long matchedPaymentId = extractLong(body, "matchedPaymentId");
-        requireOnPump(matchedShiftId, id -> shiftRepository.existsByIdAndPumpId(id, pumpId), "Shift");
-        requireOnPump(matchedSaleId, id -> ancillarySaleRepository.existsByIdAndPumpId(id, pumpId), "Sale");
-        requireOnPump(matchedPaymentId, id -> creditPaymentRepository.existsByIdAndPumpId(id, pumpId), "Payment");
+        Long matchedShiftId = null;
+        Long matchedSaleId = null;
+        Long matchedPaymentId = null;
+        String matchNotes = (String) body.get("matchNotes");
+        if (newStatus == BankLineMatchStatus.MATCHED) {
+            matchedShiftId = extractLong(body, "matchedShiftId");
+            matchedSaleId = extractLong(body, "matchedSaleId");
+            matchedPaymentId = extractLong(body, "matchedPaymentId");
+            long linkedCount = Stream.of(matchedShiftId, matchedSaleId, matchedPaymentId).filter(Objects::nonNull).count();
+            if (linkedCount != 1) {
+                throw new BusinessException("A matched line must be linked to exactly one shift, sale or credit payment.");
+            }
+            BigDecimal linkedAmount = linkedAmount(pumpId, matchedShiftId, matchedSaleId, matchedPaymentId);
+            if (matchedPaymentId != null && lineRepository.existsByMatchedPaymentIdAndIdNot(matchedPaymentId, lineId)) {
+                throw new BusinessException("Credit payment #" + matchedPaymentId
+                        + " is already matched to another bank line. Unmatch that line first.");
+            }
+            if (linkedAmount.compareTo(line.getCreditAmount()) != 0 && (matchNotes == null || matchNotes.isBlank())) {
+                throw new BusinessException("The line's credit of ₹" + line.getCreditAmount()
+                        + " does not equal the linked amount of ₹" + linkedAmount
+                        + ". Add a note explaining the difference to match it anyway.");
+            }
+        }
 
         line.setMatchStatus(newStatus);
         line.setMatchedShiftId(matchedShiftId);
         line.setMatchedAncillarySaleId(matchedSaleId);
         line.setMatchedPaymentId(matchedPaymentId);
-        line.setMatchNotes((String) body.get("matchNotes"));
+        line.setMatchNotes(matchNotes);
         lineRepository.save(line);
 
         statementImport.setMatchedLines(lineRepository.countMatchedByImportId(line.getImportId()));
@@ -225,10 +303,29 @@ public class BankStatementImportService {
                 .build());
     }
 
-    private void requireOnPump(Long id, Predicate<Long> belongsToPump, String label) {
-        if (id != null && !belongsToPump.test(id)) {
-            throw new ResourceNotFoundException(label + " not found");
+    /** Digital collections for a shift, the bill total for a sale, the amount for a credit payment. */
+    private BigDecimal linkedAmount(Long pumpId, Long shiftId, Long saleId, Long paymentId) {
+        if (shiftId != null) {
+            Shift shift = shiftRepository.findById(shiftId)
+                    .filter(found -> found.getPumpId().equals(pumpId))
+                    .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
+            return orZero(shift.getUpiCollected()).add(orZero(shift.getCardCollected()))
+                    .add(orZero(shift.getFleetCardCollected())).setScale(2, RoundingMode.HALF_UP);
         }
+        if (saleId != null) {
+            return ancillarySaleRepository.findById(saleId)
+                    .filter(found -> found.getPumpId().equals(pumpId))
+                    .map(sale -> sale.getTotalWithGst().setScale(2, RoundingMode.HALF_UP))
+                    .orElseThrow(() -> new ResourceNotFoundException("Sale not found"));
+        }
+        return creditPaymentRepository.findById(paymentId)
+                .filter(found -> found.getPumpId().equals(pumpId))
+                .map(payment -> payment.getAmount().setScale(2, RoundingMode.HALF_UP))
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+    }
+
+    private static BigDecimal orZero(BigDecimal amount) {
+        return amount != null ? amount : BigDecimal.ZERO;
     }
 
     private LocalDate parseDate(String raw) {

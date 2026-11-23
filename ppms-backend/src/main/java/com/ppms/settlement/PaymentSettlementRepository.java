@@ -92,4 +92,12 @@ public interface PaymentSettlementRepository extends JpaRepository<PaymentSettle
             @Param("createdAfter") OffsetDateTime createdAfter);
 
     Optional<PaymentSettlement> findByIdAndPumpId(Long id, Long pumpId);
+
+    @Query("""
+            SELECT COUNT(ps) > 0 FROM PaymentSettlement ps
+            WHERE ps.pumpId = :pumpId
+              AND UPPER(ps.bankReference) = UPPER(:bankReference)
+              AND ps.voidStatus = 'ACTIVE'
+            """)
+    boolean existsActiveWithBankReference(@Param("pumpId") Long pumpId, @Param("bankReference") String bankReference);
 }
