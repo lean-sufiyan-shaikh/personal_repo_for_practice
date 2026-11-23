@@ -11,8 +11,7 @@ import { useToastStore } from '../../../store/toastStore'
 import { Modal } from '../../../components/Modal'
 import { MoneyText } from '../../../components/AmountText'
 import { parseApiError } from '../../../utils/apiError'
-
-// ─── Record Payment Modal ────────────────────────────────────────────────────
+import { FormGrid } from '../../../components/layout/FormGrid'
 
 interface RecordPaymentModalProps {
   client: CreditClient
@@ -144,60 +143,62 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
         })()}
       </div>
 
-      <div className="ui-inline-form">
-        <span className="ui-label">
-          {t('recordPayment.amount')} <span className="text-bad">*</span>
-        </span>
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 text-sm">₹</span>
-          <input aria-label={t('recordPayment.amount')}
-            type="number"
-            min="0.01"
-            step="0.01"
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
-            placeholder="0.00"
-            data-autofocus
-            className="pl-7 pr-3"
+      <FormGrid>
+        <div className="ui-inline-form">
+          <span className="ui-label">
+            {t('recordPayment.amount')} <span className="text-bad">*</span>
+          </span>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 text-sm">₹</span>
+            <input aria-label={t('recordPayment.amount')}
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              placeholder="0.00"
+              data-autofocus
+              className="pl-7 pr-3"
+            />
+          </div>
+        </div>
+
+        <div className="ui-inline-form">
+          <span className="ui-label">
+            {t('recordPayment.mode')} <span className="text-bad">*</span>
+          </span>
+          <SearchableSelect label={t('recordPayment.mode')}
+            value={paymentMode}
+            onChange={v => setPaymentMode(v as typeof paymentMode)}
+            options={PAYMENT_MODES.map(mode => ({ value: mode, label: t(`common:paymentMethods.${mode}`) }))}
           />
         </div>
-      </div>
 
-      <div className="ui-inline-form">
-        <span className="ui-label">
-          {t('recordPayment.mode')} <span className="text-bad">*</span>
-        </span>
-        <SearchableSelect label={t('recordPayment.mode')}
-          value={paymentMode}
-          onChange={v => setPaymentMode(v as typeof paymentMode)}
-          options={PAYMENT_MODES.map(mode => ({ value: mode, label: t(`common:paymentMethods.${mode}`) }))}
-        />
-      </div>
+        <div className="ui-inline-form">
+          <label className="block">
+            <span className="ui-label">
+            {t('recordPayment.date')} <span className="text-bad">*</span>
+          </span>
+            <input
+              type="date"
+              value={paidAt}
+              onChange={e => setPaidAt(e.target.value)}
+            />
+          </label>
+        </div>
 
-      <div className="ui-inline-form">
-        <label className="block">
-          <span className="ui-label">
-          {t('recordPayment.date')} <span className="text-bad">*</span>
-        </span>
-          <input
-            type="date"
-            value={paidAt}
-            onChange={e => setPaidAt(e.target.value)}
-          />
-        </label>
-      </div>
-
-      <div className="ui-inline-form">
-        <label className="block">
-          <span className="ui-label">{t('common:fields.notes')}</span>
-          <input
-            type="text"
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            placeholder={t('recordPayment.notesPlaceholder')}
-          />
-        </label>
-      </div>
+        <div className="ui-inline-form">
+          <label className="block">
+            <span className="ui-label">{t('common:fields.notes')}</span>
+            <input
+              type="text"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder={t('recordPayment.notesPlaceholder')}
+            />
+          </label>
+        </div>
+      </FormGrid>
 
       {error && (
         <div role="alert" className="ui-alert ui-alert-danger text-sm">

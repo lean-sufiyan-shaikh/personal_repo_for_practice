@@ -13,8 +13,7 @@ import { onActivateKey } from '../../utils/keyboard'
 import { isValidGstin, normaliseGstText } from '../../utils/gst'
 import { EditCreditClientForm } from './EditCreditClientForm'
 import { PortalPinControl } from './PortalPinControl'
-
-// ─── Credit Clients Tab ───────────────────────────────────────────────────────
+import { FormGrid, FormGridFullRow } from '../../components/layout/FormGrid'
 
 interface CreditClientsTabProps {
   pumpId: number
@@ -342,31 +341,25 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
             {clients.length === 0 ? t('clients.addFirst') : t('clients.addAnother')}
           </p>
           <form onSubmit={submitAdd} className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block">
-                  <span className="ui-label">{t('clients.clientName')} <span className="text-bad">*</span></span>
-                  <input required value={name} onChange={e => setName(e.target.value)}
-                    placeholder={t('clients.clientNamePlaceholder')} className="text-sm" />
-                </label>
-              </div>
-              <div>
-                <label className="block">
-                  <span className="ui-label">{t('clientForm.phone')} <span className="text-bad">*</span></span>
-                  <input required value={phoneNumber}
-                    onChange={e => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    placeholder={t('clients.phonePlaceholder')} inputMode="numeric" maxLength={10} className="text-sm" />
-                </label>
-              </div>
-            </div>
-            <div>
+            <FormGrid>
               <label className="block">
-                <span className="ui-label">{t('common:fields.notes')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span></span>
-                <input value={notes} onChange={e => setNotes(e.target.value)}
-                  placeholder={t('clientForm.notesPlaceholder')} className="text-sm" />
+                <span className="ui-label">{t('clients.clientName')} <span className="text-bad">*</span></span>
+                <input required value={name} onChange={e => setName(e.target.value)}
+                  placeholder={t('clients.clientNamePlaceholder')} className="text-sm" />
               </label>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="block">
+                <span className="ui-label">{t('clientForm.phone')} <span className="text-bad">*</span></span>
+                <input required value={phoneNumber}
+                  onChange={e => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder={t('clients.phonePlaceholder')} inputMode="numeric" maxLength={10} className="text-sm" />
+              </label>
+              <FormGridFullRow>
+                <label className="block">
+                  <span className="ui-label">{t('common:fields.notes')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span></span>
+                  <input value={notes} onChange={e => setNotes(e.target.value)}
+                    placeholder={t('clientForm.notesPlaceholder')} className="text-sm" />
+                </label>
+              </FormGridFullRow>
               <label className="block">
                 <span className="ui-label">GSTIN <span className="text-ink-3">{t('clientForm.gstinHint')}</span></span>
                 <input value={gstin} onChange={e => setGstin(e.target.value.toUpperCase())}
@@ -377,7 +370,7 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
                 <input value={billingAddress} onChange={e => setBillingAddress(e.target.value)}
                   maxLength={500} placeholder={t('clientForm.billingAddressPlaceholder')} className="text-sm" />
               </label>
-            </div>
+            </FormGrid>
             {addError && <p role="alert" className="ui-error-text">{addError}</p>}
             <button type="submit" disabled={addMutation.isPending} className="ui-btn ui-btn-primary">
               {addMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('clients.adding')}</span> : t('clients.addClient')}

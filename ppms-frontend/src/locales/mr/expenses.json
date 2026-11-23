@@ -2,16 +2,13 @@
   "page": {
     "title": "खर्च हिशोब",
     "noPump": "कोणताही पंप निवडलेला नाही. वरच्या पट्टीत पंप निवडा, किंवा मालक किंवा ॲडमिनला तुम्हाला पंपावर जोडायला सांगा.",
-    "kicker": "खर्चाचा हिशोब",
     "subtitle": "पंपावरील रोजचे खर्च नोंदवा आणि पाहा",
-    "records": "नोंदी",
-    "pending": "प्रलंबित",
     "approvedTotal": "मंजूर एकूण",
     "totalRecords": "एकूण नोंदी",
-    "pendingApproval": "मंजुरी प्रलंबित"
+    "pendingCount_one": "{{count}} मंजुरी प्रलंबित",
+    "pendingCount_other": "{{count}} मंजुरी प्रलंबित"
   },
   "form": {
-    "kicker": "खर्च नोंद",
     "title": "खर्च नोंदवा",
     "subtitle": "तपासणीपूर्वी वर्ग, रक्कम, तारीख आणि तपशील भरा.",
     "category": "वर्ग",
@@ -45,10 +42,11 @@
     "approvalHint": "मंजूर आणि नाकारण्याची बटणे फक्त <status>मंजुरी प्रलंबित</status> असलेल्या खर्चांवर दिसतात.",
     "emptyTitle": "अजून एकही खर्च नोंदवलेला नाही",
     "emptyAccountant": "दाखवण्यासाठी नोंदी नाहीत.",
-    "emptySubtitle": "पहिला खर्च नोंदवण्यासाठी वरचा फॉर्म भरा.",
+    "emptySubtitle": "पहिला खर्च जोडण्यासाठी \"खर्च नोंदवा\" दाबा.",
     "deleteExpense": "खर्च हटवा",
     "rejectTitle": "खर्च नाकारा",
-    "rejectedWithNotes": "{{label}}: {{notes}}"
+    "rejectedWithNotes": "{{label}}: {{notes}}",
+    "filtersLabel": "खर्चाचे फिल्टर"
   },
   "toast": {
     "submitted": "खर्च मंजुरीसाठी पाठवला",

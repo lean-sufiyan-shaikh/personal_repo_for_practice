@@ -14,8 +14,8 @@ import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { formatIstDate } from '../../utils/date'
 import { CancelInvoiceModal } from './modals/CancelInvoiceModal'
-
-// ─── Client Invoices Tab ─────────────────────────────────────────────────────
+import { InvoiceDetailsPanel } from './InvoiceDetailsPanel'
+import { useUrlParam } from '../../components/layout/useUrlParam'
 
 interface ClientInvoicesTabProps {
   pumpId: number
@@ -30,6 +30,7 @@ export function ClientInvoicesTab({ pumpId, clientId, canIssueInvoices }: Client
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
   const [cancelling, setCancelling] = useState<CreditInvoice | null>(null)
+  const openInvoice = useUrlParam('invoice')
 
   const { data: defaultPeriod } = useQuery({
     queryKey: ['credit-invoice-default-period', pumpId, clientId],
@@ -42,10 +43,20 @@ export function ClientInvoicesTab({ pumpId, clientId, canIssueInvoices }: Client
     queryFn: () => creditApi.listInvoices(pumpId, clientId, page, pageSize),
   })
 
+  const shownInvoice = invoices?.content.find(invoice => String(invoice.id) === openInvoice.value)
+  const startCancel = (invoice: CreditInvoice) => {
+    openInvoice.remove()
+    setCancelling(invoice)
+  }
+
   return (
     <div className="space-y-4">
       {cancelling && (
         <CancelInvoiceModal invoice={cancelling} pumpId={pumpId} onClose={() => setCancelling(null)} />
+      )}
+      {shownInvoice && (
+        <InvoiceDetailsPanel pumpId={pumpId} invoice={shownInvoice} canCancel={canIssueInvoices}
+          onCancel={startCancel} onClose={openInvoice.remove} />
       )}
 
       {canIssueInvoices && defaultPeriod && (
@@ -67,7 +78,11 @@ export function ClientInvoicesTab({ pumpId, clientId, canIssueInvoices }: Client
               <li key={invoice.id} className="ui-card-plain px-4 py-3 flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-ink">{invoice.invoiceNumber}</span>
+                    <button type="button" onClick={() => openInvoice.set(String(invoice.id))}
+                      aria-label={t('invoicePanel.openLabel', { number: invoice.invoiceNumber })}
+                      className="ui-link text-sm font-semibold">
+                      {invoice.invoiceNumber}
+                    </button>
                     <StatusBadge {...invoiceStatusBadge(invoice.status)} />
                   </div>
                   <p className="text-xs text-ink-3 mt-0.5">
@@ -91,7 +106,7 @@ export function ClientInvoicesTab({ pumpId, clientId, canIssueInvoices }: Client
                     {t('invoices.viewPrint')}
                   </a>
                   {canIssueInvoices && invoice.status === 'ISSUED' && (
-                    <button type="button" onClick={() => setCancelling(invoice)}
+                    <button type="button" onClick={() => startCancel(invoice)}
                       className="ui-btn ui-btn-ghost min-h-0 px-3 py-1.5 text-xs text-bad border border-bad/30"
                       aria-label={t('invoices.cancelLabel', { number: invoice.invoiceNumber })}>
                       {t('common:actions.cancel')}

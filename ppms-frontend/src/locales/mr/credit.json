@@ -62,7 +62,8 @@
     "noMatch": "\"{{query}}\" शी जुळणारे ग्राहक नाहीत",
     "noneInView": "या यादीत ग्राहक नाहीत",
     "noMatchHint": "दुसरे नाव किंवा फोन नंबर वापरून पाहा.",
-    "noneInViewHint": "सर्व ग्राहक पाहण्यासाठी \"सर्व\" निवडा."
+    "noneInViewHint": "सर्व ग्राहक पाहण्यासाठी \"सर्व\" निवडा.",
+    "sortBy": "क्रम"
   },
   "portalPin": {
     "removed": "{{name}} यांचा पोर्टल PIN काढला",
@@ -283,7 +284,8 @@
     "moveEntryTitle": "ही नोंद खाते गटातील दुसऱ्या खात्यात हलवा",
     "move": "हलवा",
     "waiveLabel": "हे व्याज शुल्क माफ करा",
-    "waive": "माफ करा"
+    "waive": "माफ करा",
+    "filtersLabel": "लेजरचे फिल्टर"
   },
   "clientForm": {
     "updateFailed": "ग्राहक अपडेट करता आला नाही",
@@ -314,17 +316,18 @@
     "generateButton": "इनव्हॉइस तयार करा"
   },
   "page": {
-    "kickerLedger": "ग्राहकांची थकबाकी",
-    "kickerClients": "क्रेडिट व्यवस्थापन",
     "titleLedger": "क्रेडिट लेजर",
     "titleClients": "क्रेडिट ग्राहक",
     "subtitleLedger": "थकबाकीवर लक्ष ठेवा आणि पेमेंट नोंदवा",
     "subtitleClients": "क्रेडिट ग्राहकांची खाती पाहा",
-    "accounts": "खाती",
     "tabs": {
       "clients": "ग्राहक",
-      "ledger": "लेजर"
-    }
+      "ledger": "लेजर",
+      "aging": "थकबाकी वय तक्ता"
+    },
+    "views": "क्रेडिटचे विभाग",
+    "accountCount_one": "{{count}} खाते",
+    "accountCount_other": "{{count}} खाती"
   },
   "clients": {
     "addFailed": "ग्राहक जोडता आला नाही",
@@ -385,5 +388,34 @@
     "noTransactionsTitle": "अजून व्यवहार नाहीत",
     "noFilterMatchTitle": "या फिल्टरशी जुळणारे व्यवहार नाहीत",
     "noTransactions": "अजून व्यवहार नाहीत."
+  },
+  "list": {
+    "label": "क्रेडिट खाती",
+    "detailLabel": "ग्राहकाचे लेजर",
+    "selectClient": "लेजर, इनव्हॉइस आणि कृती पाहण्यासाठी ग्राहक निवडा.",
+    "daysOverdue_one": "{{count}} दिवस थकीत",
+    "daysOverdue_other": "{{count}} दिवस थकीत"
+  },
+  "choosePayer": {
+    "subtitle": "पेमेंट करणारा ग्राहक निवडा. उप-खाते पुढच्या टप्प्यात निवडले जाते.",
+    "searchLabel": "ग्राहक शोधा",
+    "listLabel": "थकबाकी असलेले ग्राहक",
+    "noneOwing": "कोणत्याही ग्राहकाची थकबाकी नाही."
+  },
+  "invoicePanel": {
+    "openLabel": "इनव्हॉइस {{number}} चा तपशील",
+    "cancelInvoice": "इनव्हॉइस रद्द करा",
+    "seller": "विक्रेता",
+    "sellerGstin": "विक्रेता GSTIN",
+    "buyer": "खरेदीदार",
+    "buyerGstin": "खरेदीदार GSTIN",
+    "unregistered": "नोंदणीकृत नाही",
+    "placeOfSupply": "पुरवठ्याचे ठिकाण (राज्य कोड)",
+    "fuelTotal": "इंधन (GST बाहेर)",
+    "taxableTotal": "करपात्र मूल्य",
+    "cgst": "CGST",
+    "sgst": "SGST",
+    "igst": "IGST",
+    "grandTotal": "एकूण रक्कम"
   }
 }

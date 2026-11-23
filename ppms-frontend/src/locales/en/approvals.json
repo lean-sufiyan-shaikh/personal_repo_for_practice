@@ -1,13 +1,13 @@
 {
   "page": {
-    "kicker": "Owner and Admin",
     "title": "Approvals",
     "subtitle": "Expenses and credit payments that need your decision before they count",
-    "waiting": "Waiting",
-    "amount": "Amount",
     "noPumpSubtitle": "Choose a pump in the top bar.",
     "emptyTitle": "Nothing is waiting for approval",
-    "emptySubtitle": "New expenses and payments above your approval limit will appear here."
+    "emptySubtitle": "New expenses and payments above your approval limit will appear here.",
+    "waitingCount_one": "{{count}} waiting",
+    "waitingCount_other": "{{count}} waiting",
+    "queue": "Waiting for your decision"
   },
   "filters": {
     "label": "Show",

@@ -14,7 +14,11 @@ import { RejectReasonDialog } from '../../components/RejectReasonDialog'
 import { parseApiError, translatedErrorCode } from '../../utils/apiError'
 import { formatCurrency } from '../../utils/format'
 import { withToggled } from '../../utils/setToggle'
-import { MoneyText } from '../../components/AmountText'
+import { StatusBadge } from '../../components/StatusBadge'
+import { Page } from '../../components/layout/Page'
+import { PageHeader } from '../../components/layout/PageHeader'
+import { PageSection } from '../../components/layout/PageSection'
+import { FilterBar } from '../../components/layout/FilterBar'
 import { ApprovalsTable } from './ApprovalsTable'
 import { approvalKey } from './approvalFormat'
 
@@ -102,35 +106,34 @@ export default function ApprovalsPage() {
     setSelectedKeys(everySelected ? new Set() : new Set(selectable.map(approvalKey)))
   }
 
-  return (
-    <div className="ui-page space-y-5">
-      <div className="ui-section-hero">
-        <div>
-          <p className="ui-section-kicker">{t('page.kicker')}</p>
-          <h1 className="ui-title-sm">{t('page.title')}</h1>
-          <p className="ui-subtitle">{t('page.subtitle')}</p>
-        </div>
-        <div className="ui-section-meta">
-          <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">{t('page.waiting')}</span>
-            <span className="ui-section-meta-value">{shown.length}</span>
-          </div>
-          <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">{t('page.amount')}</span>
-            <MoneyText value={shownTotal} className="ui-section-meta-value" />
-          </div>
-        </div>
-      </div>
+  const bulkActions = (
+    <div className="flex flex-wrap items-center gap-2">
+      <p className="text-sm text-ink-2">
+        {selected.length > 0 ? t('selection.summary', { count: selected.length, amount: formatCurrency(selectedTotal) }) : t('selection.hint')}
+      </p>
+      <button type="button" className="ui-btn ui-btn-danger" disabled={selected.length === 0 || decision.isPending}
+        onClick={() => { setRejectError(null); setRejecting(true) }}>
+        {t('selection.reject')}
+      </button>
+      <button type="button" className="ui-btn ui-btn-primary" disabled={selected.length === 0 || decision.isPending}
+        onClick={() => decision.mutate({ action: 'APPROVED' })}>
+        {decision.isPending && !rejecting ? <span className="flex items-center gap-1.5"><Spinner />{t('selection.approving')}</span> : t('selection.approve')}
+      </button>
+    </div>
+  )
 
-      <div role="group" aria-label={t('filters.label')} className="ui-tabbar w-fit">
-        {KIND_FILTERS.map(filter => (
-          <button key={filter} type="button" aria-pressed={kindFilter === filter}
-            onClick={() => setKindFilter(filter)}
-            className={`ui-tabbar__button ${kindFilter === filter ? 'ui-tabbar__button--active' : ''}`}>
-            {t(`filters.${filter}`)}
-          </button>
-        ))}
-      </div>
+  return (
+    <Page>
+      <PageHeader
+        title={t('page.title')}
+        description={t('page.subtitle')}
+        badges={pumpId != null && !isLoading && !isError && (
+          <>
+            <StatusBadge tone={shown.length > 0 ? 'warn' : 'neutral'} label={t('page.waitingCount', { count: shown.length })} />
+            {shown.length > 0 && <StatusBadge tone="neutral" label={formatCurrency(shownTotal)} />}
+          </>
+        )}
+      />
 
       <div role="status" aria-live="polite"
         className={!outcome ? 'sr-only' : `ui-alert text-sm ${outcome.failures.length > 0 ? 'ui-alert-warning' : 'ui-alert-success'}`}>
@@ -148,35 +151,28 @@ export default function ApprovalsPage() {
 
       {pumpId == null ? (
         <div className="ui-card"><EmptyState icon="generic" title={t('common:notices.noPumpTitle')} subtitle={t('page.noPumpSubtitle')} /></div>
-      ) : isLoading ? (
-        <div className="ui-card"><SkeletonTable rows={4} cols={6} /></div>
-      ) : isError ? (
-        <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('errors.loadFailed')}</div>
-      ) : shown.length === 0 ? (
-        <div className="ui-card">
-          <EmptyState icon="generic" title={t('page.emptyTitle')} subtitle={t('page.emptySubtitle')} />
-        </div>
       ) : (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-ink-2">
-              {selected.length > 0 ? t('selection.summary', { count: selected.length, amount: formatCurrency(selectedTotal) }) : t('selection.hint')}
-            </p>
-            <div className="flex gap-2">
-              <button type="button" className="ui-btn ui-btn-danger" disabled={selected.length === 0 || decision.isPending}
-                onClick={() => { setRejectError(null); setRejecting(true) }}>
-                {t('selection.reject')}
+        <PageSection title={t('page.queue')} actions={shown.length > 0 && bulkActions} flush>
+          <FilterBar label={t('filters.label')}>
+            {KIND_FILTERS.map(filter => (
+              <button key={filter} type="button" aria-pressed={kindFilter === filter}
+                onClick={() => setKindFilter(filter)} className="ui-chip">
+                {t(`filters.${filter}`)}
               </button>
-              <button type="button" className="ui-btn ui-btn-primary" disabled={selected.length === 0 || decision.isPending}
-                onClick={() => decision.mutate({ action: 'APPROVED' })}>
-                {decision.isPending && !rejecting ? <span className="flex items-center gap-1.5"><Spinner />{t('selection.approving')}</span> : t('selection.approve')}
-              </button>
-            </div>
-          </div>
-          <ApprovalsTable items={shown} selectedKeys={selectedKeys} now={now}
-            onToggle={item => setSelectedKeys(previous => withToggled(previous, approvalKey(item)))}
-            onToggleAll={toggleAll} />
-        </div>
+            ))}
+          </FilterBar>
+          {isLoading ? (
+            <div className="px-5 py-4"><SkeletonTable rows={4} cols={6} /></div>
+          ) : isError ? (
+            <div role="alert" className="ui-alert ui-alert-danger m-4 text-sm">{t('errors.loadFailed')}</div>
+          ) : shown.length === 0 ? (
+            <EmptyState icon="generic" title={t('page.emptyTitle')} subtitle={t('page.emptySubtitle')} />
+          ) : (
+            <ApprovalsTable items={shown} selectedKeys={selectedKeys} now={now}
+              onToggle={item => setSelectedKeys(previous => withToggled(previous, approvalKey(item)))}
+              onToggleAll={toggleAll} />
+          )}
+        </PageSection>
       )}
 
       {rejecting && (
@@ -189,6 +185,6 @@ export default function ApprovalsPage() {
           onClose={() => setRejecting(false)}
         />
       )}
-    </div>
+    </Page>
   )
 }

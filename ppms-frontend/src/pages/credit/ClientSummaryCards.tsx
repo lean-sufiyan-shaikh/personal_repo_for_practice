@@ -23,7 +23,7 @@ export function ClientSummaryCards({
 }: ClientSummaryCardsProps) {
   const { t } = useTranslation('credit')
   return (
-    <div className="px-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
       <div className="ui-card">
         <p className="text-xs text-ink-3 uppercase tracking-wide mb-1">
           {hasSubAccounts ? t('summaryCards.outstandingCombined') : t('summaryCards.outstanding')}

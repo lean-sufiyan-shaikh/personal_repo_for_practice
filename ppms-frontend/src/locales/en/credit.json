@@ -62,7 +62,8 @@
     "noMatch": "No clients match \"{{query}}\"",
     "noneInView": "No clients in this view",
     "noMatchHint": "Try a different name or phone number.",
-    "noneInViewHint": "Choose All to see every client."
+    "noneInViewHint": "Choose All to see every client.",
+    "sortBy": "Sort by"
   },
   "portalPin": {
     "removed": "Portal PIN removed for {{name}}",
@@ -283,7 +284,8 @@
     "moveEntryTitle": "Move this entry within the account group",
     "move": "Move",
     "waiveLabel": "Waive this interest charge",
-    "waive": "Waive"
+    "waive": "Waive",
+    "filtersLabel": "Ledger filters"
   },
   "clientForm": {
     "updateFailed": "Failed to update client",
@@ -314,17 +316,18 @@
     "generateButton": "Generate Invoice"
   },
   "page": {
-    "kickerLedger": "Client balances",
-    "kickerClients": "Credit management",
     "titleLedger": "Credit Ledger",
     "titleClients": "Credit Clients",
     "subtitleLedger": "Track outstanding balances and record payments",
     "subtitleClients": "View credit client accounts",
-    "accounts": "Accounts",
     "tabs": {
       "clients": "Clients",
-      "ledger": "Ledger"
-    }
+      "ledger": "Ledger",
+      "aging": "Aging table"
+    },
+    "views": "Credit views",
+    "accountCount_one": "{{count}} account",
+    "accountCount_other": "{{count}} accounts"
   },
   "clients": {
     "addFailed": "Failed to add client",
@@ -385,5 +388,34 @@
     "noTransactionsTitle": "No transactions yet",
     "noFilterMatchTitle": "No transactions match this filter",
     "noTransactions": "No transactions yet."
+  },
+  "list": {
+    "label": "Credit accounts",
+    "detailLabel": "Client ledger",
+    "selectClient": "Choose a client to see their ledger, invoices and actions.",
+    "daysOverdue_one": "{{count}} day overdue",
+    "daysOverdue_other": "{{count}} days overdue"
+  },
+  "choosePayer": {
+    "subtitle": "Choose the client who paid. Sub-accounts are chosen on the next step.",
+    "searchLabel": "Find client",
+    "listLabel": "Clients with an outstanding balance",
+    "noneOwing": "No client has an outstanding balance."
+  },
+  "invoicePanel": {
+    "openLabel": "Details of invoice {{number}}",
+    "cancelInvoice": "Cancel invoice",
+    "seller": "Seller",
+    "sellerGstin": "Seller GSTIN",
+    "buyer": "Buyer",
+    "buyerGstin": "Buyer GSTIN",
+    "unregistered": "Not registered",
+    "placeOfSupply": "Place of supply (state code)",
+    "fuelTotal": "Fuel (outside GST)",
+    "taxableTotal": "Taxable value",
+    "cgst": "CGST",
+    "sgst": "SGST",
+    "igst": "IGST",
+    "grandTotal": "Grand total"
   }
 }

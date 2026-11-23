@@ -2,16 +2,13 @@
   "page": {
     "title": "Expense Tracker",
     "noPump": "No pump selected. Use the pump selector in the top navigation bar, or ask the Owner or Admin to assign you to a pump.",
-    "kicker": "Cost tracking",
     "subtitle": "Record and review operational expenses at the pump",
-    "records": "Records",
-    "pending": "Pending",
     "approvedTotal": "Approved Total",
     "totalRecords": "Total Records",
-    "pendingApproval": "Pending Approval"
+    "pendingCount_one": "{{count}} pending approval",
+    "pendingCount_other": "{{count}} pending approval"
   },
   "form": {
-    "kicker": "Expense Intake",
     "title": "Record expense",
     "subtitle": "Capture the category, amount, date, and description before review.",
     "category": "Category",
@@ -45,10 +42,11 @@
     "approvalHint": "Approve and reject actions appear only for expenses in <status>Pending Approval</status>.",
     "emptyTitle": "No expenses recorded yet",
     "emptyAccountant": "No records to display.",
-    "emptySubtitle": "Use the form above to record your first expense.",
+    "emptySubtitle": "Use Record expense to add your first one.",
     "deleteExpense": "Delete expense",
     "rejectTitle": "Reject Expense",
-    "rejectedWithNotes": "{{label}}: {{notes}}"
+    "rejectedWithNotes": "{{label}}: {{notes}}",
+    "filtersLabel": "Expense filters"
   },
   "toast": {
     "submitted": "Expense submitted for approval",

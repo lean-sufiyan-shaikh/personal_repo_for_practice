@@ -97,4 +97,23 @@ describe('ClientInvoicesTab', () => {
     expect(screen.queryByRole('button', { name: /Cancel invoice/ })).not.toBeInTheDocument()
     expect(creditApi.getDefaultInvoicePeriod).not.toHaveBeenCalled()
   })
+
+  it('shows the parties and GST totals of an invoice in a side panel, with print and cancel there too', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ClientInvoicesTab pumpId={PUMP_ID} clientId={CLIENT_ID} canIssueInvoices />)
+
+    await user.click(await screen.findByRole('button', { name: 'Details of invoice PMP3/26-27/0002' }))
+
+    const panel = screen.getByRole('dialog', { name: 'PMP3/26-27/0002' })
+    expect(within(panel).getByText('Lakshmi Fuels')).toBeInTheDocument()
+    expect(within(panel).getByText('Not registered')).toBeInTheDocument()
+    expect(within(panel).getByText('₹1,236.00')).toBeInTheDocument()
+    expect(within(panel).getByRole('link', { name: 'View / Print' }))
+      .toHaveAttribute('href', `/api/pumps/${PUMP_ID}/credit-invoices/7/print`)
+
+    await user.click(within(panel).getByRole('button', { name: 'Cancel invoice' }))
+
+    expect(screen.queryByRole('dialog', { name: 'PMP3/26-27/0002' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Cancel Invoice' })).toBeInTheDocument()
+  })
 })

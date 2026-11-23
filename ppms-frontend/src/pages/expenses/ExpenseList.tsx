@@ -8,7 +8,6 @@ import type { ExpenseCategory, ApproveExpenseRequest, ExpenseApprovalStatus, Pum
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonTable } from '../../components/Skeleton'
-import { Reveal } from '../../components/Reveal'
 import { EmptyState } from '../../components/EmptyState'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
@@ -24,6 +23,8 @@ import { codeLabel } from '../../constants/labels'
 import { CsvExportButton } from '../../components/CsvExportButton'
 import { csvFilename } from '../../utils/csv'
 import type { CsvColumn } from '../../utils/csv'
+import { PageSection } from '../../components/layout/PageSection'
+import { FilterBar } from '../../components/layout/FilterBar'
 
 function csvColumns(t: TFunction<['expenses', 'common']>): CsvColumn<PumpExpense>[] {
   return [
@@ -108,8 +109,10 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const isAccountant   = user?.role === 'ACCOUNTANT'
 
+  const clearFilters = () => { setCategoryFilter(''); setStatusFilter(''); setPage(0) }
+
   return (
-    <Reveal delay={240}>
+    <>
     {rejectingExpense && (
       <RejectReasonDialog
         title={t('list.rejectTitle')}
@@ -122,11 +125,16 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
         onClose={() => setRejectingExpense(null)}
       />
     )}
-    <div className="ui-card p-0 overflow-hidden">
-      <div className="ui-toolbar">
-        <p className="ui-toolbar-title">{t('list.title')}</p>
-        <div className="ui-toolbar-actions">
-          <div className="w-52 max-w-full">
+    <PageSection
+      title={t('list.title')}
+      description={isOwnerOrAdmin && (
+        <Trans t={t} i18nKey="list.approvalHint" components={{ status: <span className="font-semibold text-warn" /> }} />
+      )}
+      actions={<CsvExportButton filename={csvFilename('expenses')} columns={columns} rows={loadAllExpenses} disabled={expenses.length === 0} />}
+      flush
+    >
+      <FilterBar label={t('list.filtersLabel')} onClearFilters={clearFilters} hasActiveFilters={Boolean(categoryFilter || statusFilter)}>
+        <div className="w-52 max-w-full">
           <SearchableSelect label={t('list.filterByCategory')}
             value={categoryFilter}
             onChange={v => { setCategoryFilter(v as ExpenseCategory | ''); setPage(0) }}
@@ -137,8 +145,7 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
             size="sm"
           />
         </div>
-
-          <div className="w-52 max-w-full">
+        <div className="w-52 max-w-full">
           <SearchableSelect label={t('list.filterByStatus')}
             value={statusFilter}
             onChange={v => { setStatusFilter(v as ExpenseApprovalStatus | ''); setPage(0) }}
@@ -152,24 +159,7 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
             size="sm"
           />
         </div>
-
-          {(categoryFilter || statusFilter) && (
-            <button
-              onClick={() => { setCategoryFilter(''); setStatusFilter(''); setPage(0) }}
-              className="ui-btn ui-btn-ghost text-xs"
-            >
-              {t('common:actions.clearFilters')}
-            </button>
-          )}
-          <CsvExportButton filename={csvFilename('expenses')} columns={columns} rows={loadAllExpenses}
-            disabled={expenses.length === 0} />
-        </div>
-      </div>
-      {isOwnerOrAdmin && (
-        <div className="px-5 py-2 text-xs text-ink-3 border-b border-border bg-surface-sunken">
-          <Trans t={t} i18nKey="list.approvalHint" components={{ status: <span className="font-semibold text-warn" /> }} />
-        </div>
-      )}
+      </FilterBar>
 
       {isLoading ? (
         <div className="px-5 py-4"><SkeletonTable rows={4} cols={3} /></div>
@@ -252,7 +242,7 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
         )}
         </>
       )}
-    </div>
-    </Reveal>
+    </PageSection>
+    </>
   )
 }

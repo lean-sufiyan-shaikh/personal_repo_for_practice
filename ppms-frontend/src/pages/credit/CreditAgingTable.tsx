@@ -62,6 +62,7 @@ export function CreditAgingTable({
       rowKey={row => row.clientId}
       sort={{ key: sortKey, direction: sortDirection }}
       onSortChange={key => onSort(key as AgingSortKey)}
+      className="rounded-none border-0"
       renderRow={row => (
         <tr>
           <th scope="row" className="text-left font-medium">

@@ -2,6 +2,7 @@ import { Clock, CheckCircle2, Check, ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { SettlementPaymentType, WalletSummary } from '../../api/paymentSettlementApi'
 import { MoneyText } from '../../components/AmountText'
+import { KpiRow } from '../../components/layout/DashboardGrid'
 import { TYPES, TYPE_ACCENT, TYPE_ICONS, getPending, typeLabel } from './settlementFormat'
 
 interface WalletCardsProps {
@@ -15,7 +16,7 @@ export function WalletCards({ wallet, loadingWallet, canWrite, onRecord }: Walle
   const { t } = useTranslation('settlements')
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+      <KpiRow label={t('wallet.label')} columns={3}>
         {loadingWallet
           ? TYPES.map(type => <div key={type} className="ui-dashboard-stat animate-pulse h-28" />)
           : TYPES.map(type => {
@@ -55,11 +56,11 @@ export function WalletCards({ wallet, loadingWallet, canWrite, onRecord }: Walle
               )
             })
         }
-      </div>
+      </KpiRow>
 
       {/* ── Total in-transit banner ── */}
       {wallet && (
-        <div className={`rounded-card border px-4 py-3 mb-6 flex items-center gap-3 ${
+        <div className={`rounded-card border px-4 py-3 flex items-center gap-3 ${
           wallet.totalPending > 0
             ? 'bg-warn-bg border-warn'
             : 'bg-ok-bg border-ok'

@@ -5,7 +5,9 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { creditApi } from '../../api/creditApi'
 import type { CreditAging, CreditAgingRow } from '../../api/creditApi'
-import { LedgerTab } from './LedgerTab'
+import { AgingTableTab } from './AgingTableTab'
+import { AgingSummary } from './AgingSummary'
+import { useCreditAging } from './useCreditAging'
 
 vi.mock('../../api/creditApi', () => ({ creditApi: { getAging: vi.fn() } }))
 
@@ -34,12 +36,18 @@ const aging: CreditAging = {
   ],
 }
 
+function AgingTableWithSummary() {
+  const view = useCreditAging(3)
+  return (
+    <>
+      {view.aging && <AgingSummary summary={view.aging.summary} />}
+      <AgingTableTab pumpId={3} view={view} clients={[]} canAdjustLimit={false} onOpenClient={vi.fn()} />
+    </>
+  )
+}
+
 function renderLedger(path: string) {
-  const router = createMemoryRouter([{
-    path: '/dashboard/credit',
-    element: <LedgerTab pumpId={3} clients={[]} isLoading={false} hasError={false}
-      canAdjustLimit={false} canIssueInvoices={false} onSelectClient={vi.fn()} />,
-  }], { initialEntries: [path] })
+  const router = createMemoryRouter([{ path: '/dashboard/credit', element: <AgingTableWithSummary /> }], { initialEntries: [path] })
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <RouterProvider router={router} />
@@ -53,7 +61,7 @@ async function clientNames() {
   return within(table).getAllByRole('rowheader').map(header => within(header).getByRole('button').textContent)
 }
 
-describe('LedgerTab credit aging', () => {
+describe('AgingTableTab credit aging', () => {
   beforeEach(() => {
     vi.mocked(creditApi.getAging).mockResolvedValue(aging)
   })

@@ -5,7 +5,6 @@
     "loadFailed": "Could not load payroll records. Check your connection and refresh."
   },
   "generate": {
-    "kicker": "Payroll Draft",
     "title": "Generate payroll",
     "subtitle": "Select a staff member and pay period to calculate a draft salary record.",
     "staffMember": "Staff Member",
@@ -15,7 +14,6 @@
     "notes": "Notes (optional)",
     "notesPlaceholder": "Any notes about this pay period",
     "howCalculated": "Operators: actual hours per closed shift × hourly rate (night/day separately). Managers & Admins: daily rate × (days in period − leave days). Configure rates in Setup → Staff → ₹ Rates.",
-    "calculating": "Calculating…",
     "review": "Review Payroll",
     "generated": "Payroll draft generated",
     "failed": "Failed to generate payroll",
@@ -48,7 +46,7 @@
     "month": "Month",
     "allMonths": "All months",
     "emptyTitle": "No payroll records yet",
-    "emptySubtitle": "Generate your first payroll draft above.",
+    "emptySubtitle": "Use Generate payroll to create your first draft.",
     "emptyMonthTitle": "No records for this month",
     "emptyMonthSubtitle": "Try selecting a different month.",
     "deleted": "Payroll record deleted",
@@ -58,7 +56,10 @@
       "DRAFT": "Status updated to DRAFT",
       "APPROVED": "Status updated to APPROVED",
       "PAID": "Status updated to PAID"
-    }
+    },
+    "filtersLabel": "Payroll filters",
+    "count_one": "{{count}} record",
+    "count_other": "{{count}} records"
   },
   "group": {
     "records_one": "{{count}} record",

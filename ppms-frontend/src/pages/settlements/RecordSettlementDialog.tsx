@@ -7,6 +7,7 @@ import type { PendingSettlementRange, RecordSettlementRequest, SettlementPayment
 import { daysCoveredBy } from './settlementAging'
 import { formatIstDate } from '../../utils/date'
 import { Modal } from '../../components/Modal'
+import { FormGrid } from '../../components/layout/FormGrid'
 import { MoneyText } from '../../components/AmountText'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
@@ -140,8 +141,7 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
               </div>
             )}
 
-            {/* Date + Amount row */}
-            <div className="grid grid-cols-2 gap-4">
+            <FormGrid>
               <div>
                 <span className="ui-label">{t('record.date')}</span>
                 <p className="text-xs text-ink-3 mb-1.5 -mt-1">{t('record.dateHint')}</p>
@@ -171,36 +171,35 @@ export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialT
                   />
                 </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block">
-                <span className="ui-label">{t('record.bankReference')} <span className="text-ink-3 font-normal">{t('common:fields.optionalSuffix')}</span></span>
-                <input
-                  type="text"
-                  className="ui-input"
-                  maxLength={100}
-                  placeholder={t('record.bankReferencePlaceholder')}
-                  value={form.bankReference ?? ''}
-                  onChange={e => setForm(f => ({ ...f, bankReference: e.target.value }))}
-                />
-              </label>
-              <p className="ui-help">{t('record.bankReferenceHelp')}</p>
-            </div>
+              <div>
+                <label className="block">
+                  <span className="ui-label">{t('record.bankReference')} <span className="text-ink-3 font-normal">{t('common:fields.optionalSuffix')}</span></span>
+                  <input
+                    type="text"
+                    className="ui-input"
+                    maxLength={100}
+                    placeholder={t('record.bankReferencePlaceholder')}
+                    value={form.bankReference ?? ''}
+                    onChange={e => setForm(f => ({ ...f, bankReference: e.target.value }))}
+                  />
+                </label>
+                <p className="ui-help">{t('record.bankReferenceHelp')}</p>
+              </div>
 
-            {/* Notes */}
-            <div>
-              <label className="block">
-                <span className="ui-label">{t('common:fields.notes')} <span className="text-ink-3 font-normal">{t('common:fields.optionalSuffix')}</span></span>
-                <input
-                  type="text"
-                  className="ui-input"
-                  placeholder={t('record.notesPlaceholder')}
-                  value={form.notes ?? ''}
-                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                />
-              </label>
-            </div>
+              <div>
+                <label className="block">
+                  <span className="ui-label">{t('common:fields.notes')} <span className="text-ink-3 font-normal">{t('common:fields.optionalSuffix')}</span></span>
+                  <input
+                    type="text"
+                    className="ui-input"
+                    placeholder={t('record.notesPlaceholder')}
+                    value={form.notes ?? ''}
+                    onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                  />
+                </label>
+              </div>
+            </FormGrid>
 
             {coveredDays.length > 0 && (
               <div className="ui-card ui-card-muted px-4 py-3" aria-live="polite">

@@ -62,7 +62,8 @@
     "noMatch": "\"{{query}}\" से कोई ग्राहक नहीं मिला",
     "noneInView": "इस सूची में कोई ग्राहक नहीं",
     "noMatchHint": "कोई दूसरा नाम या फ़ोन नंबर आज़माएँ।",
-    "noneInViewHint": "सभी ग्राहक देखने के लिए \"सभी\" चुनें।"
+    "noneInViewHint": "सभी ग्राहक देखने के लिए \"सभी\" चुनें।",
+    "sortBy": "क्रम"
   },
   "portalPin": {
     "removed": "{{name}} का पोर्टल PIN हटाया गया",
@@ -283,7 +284,8 @@
     "moveEntryTitle": "यह एंट्री खाता समूह के अंदर दूसरे खाते में ले जाएँ",
     "move": "ले जाएँ",
     "waiveLabel": "यह ब्याज शुल्क माफ़ करें",
-    "waive": "माफ़ करें"
+    "waive": "माफ़ करें",
+    "filtersLabel": "लेजर के फ़िल्टर"
   },
   "clientForm": {
     "updateFailed": "ग्राहक अपडेट नहीं हो सका",
@@ -314,17 +316,18 @@
     "generateButton": "इनवॉइस बनाएँ"
   },
   "page": {
-    "kickerLedger": "ग्राहक बैलेंस",
-    "kickerClients": "क्रेडिट प्रबंधन",
     "titleLedger": "क्रेडिट लेजर",
     "titleClients": "क्रेडिट ग्राहक",
     "subtitleLedger": "बकाया पर नज़र रखें और भुगतान दर्ज करें",
     "subtitleClients": "क्रेडिट ग्राहक खाते देखें",
-    "accounts": "खाते",
     "tabs": {
       "clients": "ग्राहक",
-      "ledger": "लेजर"
-    }
+      "ledger": "लेजर",
+      "aging": "बकाया की उम्र तालिका"
+    },
+    "views": "क्रेडिट के हिस्से",
+    "accountCount_one": "{{count}} खाता",
+    "accountCount_other": "{{count}} खाते"
   },
   "clients": {
     "addFailed": "ग्राहक नहीं जुड़ सका",
@@ -385,5 +388,34 @@
     "noTransactionsTitle": "अभी कोई लेन-देन नहीं",
     "noFilterMatchTitle": "इस फ़िल्टर से कोई लेन-देन नहीं मिला",
     "noTransactions": "अभी कोई लेन-देन नहीं।"
+  },
+  "list": {
+    "label": "क्रेडिट खाते",
+    "detailLabel": "ग्राहक का लेजर",
+    "selectClient": "लेजर, इनवॉइस और कार्रवाई देखने के लिए कोई ग्राहक चुनें।",
+    "daysOverdue_one": "{{count}} दिन बकाया",
+    "daysOverdue_other": "{{count}} दिन बकाया"
+  },
+  "choosePayer": {
+    "subtitle": "भुगतान करने वाला ग्राहक चुनें। उप-खाता अगले चरण में चुना जाता है।",
+    "searchLabel": "ग्राहक खोजें",
+    "listLabel": "बकाया वाले ग्राहक",
+    "noneOwing": "किसी ग्राहक का बकाया नहीं है।"
+  },
+  "invoicePanel": {
+    "openLabel": "इनवॉइस {{number}} का विवरण",
+    "cancelInvoice": "इनवॉइस रद्द करें",
+    "seller": "विक्रेता",
+    "sellerGstin": "विक्रेता GSTIN",
+    "buyer": "ख़रीदार",
+    "buyerGstin": "ख़रीदार GSTIN",
+    "unregistered": "पंजीकृत नहीं",
+    "placeOfSupply": "आपूर्ति का स्थान (राज्य कोड)",
+    "fuelTotal": "ईंधन (GST से बाहर)",
+    "taxableTotal": "कर योग्य मूल्य",
+    "cgst": "CGST",
+    "sgst": "SGST",
+    "igst": "IGST",
+    "grandTotal": "कुल योग"
   }
 }

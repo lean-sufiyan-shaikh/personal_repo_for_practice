@@ -7,6 +7,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
 import { typeLabel } from './settlementFormat'
 import { ageLabel, collectionDaysLabel } from './settlementAging'
+import { PageSection } from '../../components/layout/PageSection'
 
 /** Money collected by UPI / Card / Fleet Card that has not reached the bank, oldest first, flagged once past T+2. */
 export function PendingByAgeCard({ ranges, isLoading, error }: {
@@ -17,14 +18,14 @@ export function PendingByAgeCard({ ranges, isLoading, error }: {
   const { t } = useTranslation('settlements')
   const overdueCount = ranges?.filter((range) => range.overdue).length ?? 0
   return (
-    <section className="ui-card p-0 overflow-hidden mb-5" aria-labelledby="pending-by-age-title">
-      <div className="ui-toolbar">
-        <h2 id="pending-by-age-title" className="ui-toolbar-title">{t('pendingByAge.title')}</h2>
-        {overdueCount > 0 && (
-          <StatusBadge tone="warn" icon={AlertTriangle} label={t('pendingByAge.overdueCount', { count: overdueCount })} />
-        )}
-        <p className="ui-toolbar-note basis-full">{t('pendingByAge.note')}</p>
-      </div>
+    <PageSection
+      title={t('pendingByAge.title')}
+      titleMeta={overdueCount > 0 && (
+        <StatusBadge tone="warn" icon={AlertTriangle} label={t('pendingByAge.overdueCount', { count: overdueCount })} />
+      )}
+      description={t('pendingByAge.note')}
+      flush
+    >
       {isLoading ? (
         <div className="px-5 py-4"><SkeletonRows count={2} /></div>
       ) : error ? (
@@ -49,6 +50,6 @@ export function PendingByAgeCard({ ranges, isLoading, error }: {
           ))}
         </ul>
       )}
-    </section>
+    </PageSection>
   )
 }

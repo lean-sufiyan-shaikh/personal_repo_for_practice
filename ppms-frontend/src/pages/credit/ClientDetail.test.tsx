@@ -286,3 +286,36 @@ describe('ClientDetail extension revoke', () => {
     expect(screen.queryByRole('button', { name: 'Revoke' })).not.toBeInTheDocument()
   })
 })
+
+describe('ClientDetail from the address', () => {
+  beforeEach(() => {
+    vi.mocked(creditApi.getLedgerSummary).mockResolvedValue([client])
+    vi.mocked(creditApi.getActiveExtensions).mockResolvedValue([])
+    vi.mocked(creditApi.getAllTransactions).mockResolvedValue([])
+    vi.mocked(creditApi.getPendingPayments).mockResolvedValue([])
+    signIn('MANAGER', 1)
+  })
+
+  it('opens Record Payment from ?action=record-payment', async () => {
+    renderWithProviders(<ClientDetail clientId={CLIENT_ID} pumpId={PUMP_ID} onBack={vi.fn()} />, { route: '/?action=record-payment' })
+
+    const dialog = await screen.findByRole('dialog', { name: /Record Payment/ })
+    expect(within(dialog).getByText('Acme Transport')).toBeInTheDocument()
+  })
+
+  it('does not open Record Payment for a role that cannot record payments', async () => {
+    signIn('ACCOUNTANT', 1)
+    renderWithProviders(<ClientDetail clientId={CLIENT_ID} pumpId={PUMP_ID} onBack={vi.fn()} />, { route: '/?action=record-payment' })
+
+    await screen.findByText('Acme Transport')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('offers the ledger and invoices as tab links kept in the address', async () => {
+    renderWithProviders(<ClientDetail clientId={CLIENT_ID} pumpId={PUMP_ID} onBack={vi.fn()} />)
+
+    const tabs = await screen.findByRole('navigation', { name: 'Client records' })
+    expect(within(tabs).getByRole('link', { name: 'Ledger' })).toHaveAttribute('aria-current', 'page')
+    expect(within(tabs).getByRole('link', { name: 'Invoices' })).toHaveAttribute('href', '/?records=invoices')
+  })
+})

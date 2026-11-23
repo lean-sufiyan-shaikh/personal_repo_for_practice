@@ -6,14 +6,13 @@
     "CLOSING_BALANCE": "Closing Balance"
   },
   "page": {
-    "kicker": "Cash flow",
     "title": "Cash Drawer",
     "subtitle": "Track cash movements in and out of the pump safe",
-    "balance": "Balance",
-    "events": "Events",
     "loadFailed": "Could not load cash events. Check your connection and refresh.",
     "currentBalance": "Current Balance",
-    "balanceHint": "Calculated from all cash-in minus cash-out events"
+    "balanceHint": "Calculated from all cash-in minus cash-out events",
+    "eventCount_one": "{{count}} event",
+    "eventCount_other": "{{count}} events"
   },
   "list": {
     "title": "Cash Events",
@@ -22,10 +21,10 @@
     "emptyRangeTitle": "No events in this date range",
     "emptyRangeSubtitle": "Try adjusting the date filters above.",
     "emptyTitle": "No cash events recorded yet",
-    "emptySubtitle": "Use the form above to record your first cash movement."
+    "emptySubtitle": "Use Record cash movement to add your first one.",
+    "filtersLabel": "Cash event filters"
   },
   "form": {
-    "kicker": "Cash Entry",
     "title": "Record cash movement",
     "subtitle": "Log money entering or leaving the safe with the right event type and date.",
     "eventType": "Event Type",

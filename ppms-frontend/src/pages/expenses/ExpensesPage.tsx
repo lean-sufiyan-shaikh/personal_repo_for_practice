@@ -1,20 +1,27 @@
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { Hourglass, Plus } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { canPerformAction } from '../../permissions/permissions'
 import { expenseApi } from '../../api/expenseApi'
-import { Reveal } from '../../components/Reveal'
 import { MoneyText } from '../../components/AmountText'
-import { ExpenseEntryForm } from './ExpenseEntryForm'
+import { StatusBadge } from '../../components/StatusBadge'
+import { Page } from '../../components/layout/Page'
+import { PageHeader } from '../../components/layout/PageHeader'
+import { useUrlParam } from '../../components/layout/useUrlParam'
+import { ExpenseEntryDialog } from './ExpenseEntryDialog'
 import { ExpenseList } from './ExpenseList'
 import { useExpenseList } from './useExpenseList'
 
+/** Expenses at the pump with their approval status; ?action=add-expense opens the entry form. */
 export default function ExpensesPage() {
   const { t } = useTranslation('expenses')
   const { user } = useAuthStore()
-
   const { selectedPumpId: pumpId } = usePumpStore()
+  const canCreateExpense = canPerformAction('expense:create', user?.role)
+  const entryAction = useUrlParam('action')
+  const showEntry = entryAction.value === 'add-expense' && canCreateExpense && pumpId !== null
 
   const list = useExpenseList(pumpId)
   const { expensesPage, isLoading } = list
@@ -27,47 +34,35 @@ export default function ExpensesPage() {
 
   const totalExpenses = summary?.approvedTotal ?? 0
   const pendingCount = summary?.pendingCount ?? 0
-  const canCreateExpense = canPerformAction('expense:create', user?.role)
 
   if (!pumpId) {
     return (
-      <div className="ui-page ui-page--narrow">
-        <h1 className="sr-only">{t('page.title')}</h1>
+      <Page>
+        <PageHeader title={t('page.title')} />
         <div className="ui-alert ui-alert-warning text-sm" role="status">
           {t('page.noPump')}
         </div>
-      </div>
+      </Page>
     )
   }
 
   return (
-    <div className="ui-page ui-page--narrow space-y-5">
+    <Page>
+      <PageHeader
+        title={t('page.title')}
+        description={t('page.subtitle')}
+        badges={pendingCount > 0 && (
+          <StatusBadge tone="warn" icon={Hourglass} label={t('page.pendingCount', { count: pendingCount })} />
+        )}
+        primaryAction={canCreateExpense && (
+          <button type="button" onClick={() => entryAction.set('add-expense')} className="ui-btn ui-btn-primary inline-flex items-center gap-1.5">
+            <Plus size={14} strokeWidth={2.5} aria-hidden="true" />
+            {t('form.title')}
+          </button>
+        )}
+      />
 
-      {/* ── Header ── */}
-      <Reveal delay={60}>
-      <div className="ui-section-hero">
-        <div>
-          <p className="ui-section-kicker">{t('page.kicker')}</p>
-          <h1 className="ui-title-sm">{t('page.title')}</h1>
-          <p className="ui-subtitle">{t('page.subtitle')}</p>
-        </div>
-        <div className="ui-section-meta">
-          <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">{t('page.records')}</span>
-            <span className="ui-section-meta-value">{expensesPage?.totalElements ?? 0}</span>
-          </div>
-          <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">{t('page.pending')}</span>
-            <span className="ui-section-meta-value">{pendingCount}</span>
-          </div>
-        </div>
-      </div>
-
-      </Reveal>
-
-      {/* ── Summary strip ── */}
       {!isLoading && (
-        <Reveal delay={120}>
         <div className="ui-summary-strip">
           <div className="ui-summary-strip__item">
             <span className="ui-summary-strip__label">{t('page.approvedTotal')}</span>
@@ -77,20 +72,12 @@ export default function ExpensesPage() {
             <span className="ui-summary-strip__label">{t('page.totalRecords')}</span>
             <span className="ui-summary-strip__value">{expensesPage?.totalElements ?? 0}</span>
           </div>
-          {pendingCount > 0 && (
-            <div className="ui-summary-strip__item">
-              <span className="ui-summary-strip__label text-warn">{t('page.pendingApproval')}</span>
-              <span className="ui-summary-strip__value text-warn">{pendingCount}</span>
-            </div>
-          )}
         </div>
-        </Reveal>
       )}
 
-      {canCreateExpense && <ExpenseEntryForm pumpId={pumpId} />}
-
-      {/* ── Expense list ── */}
       <ExpenseList pumpId={pumpId} list={list} />
-    </div>
+
+      {showEntry && <ExpenseEntryDialog pumpId={pumpId} onClose={entryAction.remove} />}
+    </Page>
   )
 }

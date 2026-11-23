@@ -5,14 +5,16 @@
     "noPump": "Select a pump to view settlement records.",
     "record": "Record Settlement",
     "historyTab": "Settlement History",
-    "alertsTab": "Alert Settings"
+    "alertsTab": "Alert Settings",
+    "views": "Settlement views"
   },
   "wallet": {
     "fullySettled": "Fully settled",
     "inTransit": "In transit",
     "record": "Record",
     "totalInTransit": "Total amount still in transit — not yet credited to your bank account",
-    "allSettled": "All payments have been settled — no pending amounts"
+    "allSettled": "All payments have been settled — no pending amounts",
+    "label": "Money in transit by payment type"
   },
   "pendingByAge": {
     "title": "Waiting for the bank",
@@ -39,7 +41,10 @@
     "by": "by {{name}}",
     "expectedReceived": "Expected {{expected}} · received {{received}}",
     "voidReason": "Reason: {{reason}}",
-    "void": "Void"
+    "void": "Void",
+    "filtersLabel": "Settlement history filters",
+    "details": "Details",
+    "detailsOf": "Details of {{type}} settlement of {{amount}}"
   },
   "alerts": {
     "intro": "Set the time when you want to receive a daily reminder to record each payment type's settlement. Alerts arrive as in-app notifications — once per day, after the configured time.",
@@ -80,5 +85,16 @@
     "reasonRequired": "A reason is required",
     "explanation": "The settlement stays on record but no longer counts as received, so the pending balance goes back up.",
     "reasonPlaceholder": "e.g., Recorded twice by mistake"
+  },
+  "details": {
+    "title": "Settlement details",
+    "paymentType": "Payment type",
+    "amountReceived": "Amount received",
+    "recordedBy": "Recorded by",
+    "recordedAt": "Recorded at",
+    "pendingAtRecord": "Pending when recorded",
+    "voidReason": "Reason for voiding",
+    "voidedAt": "Voided at",
+    "counted": "Counted as settled"
   }
 }

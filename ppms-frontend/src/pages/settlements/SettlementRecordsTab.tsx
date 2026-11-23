@@ -12,6 +12,9 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
 import { TYPE_ACCENT, TYPE_ICONS, fmtAmt, fmtDate, typeLabel } from './settlementFormat'
 import type { SettlementHistory } from './useSettlementHistory'
+import { PageSection } from '../../components/layout/PageSection'
+import { FilterBar } from '../../components/layout/FilterBar'
+import { RefreshIndicator } from '../../components/RefreshIndicator'
 
 // The CSV is shared with accountants, so its headings and type names stay English whatever the screen language.
 const CSV_TYPE_NAMES: Record<SettlementPaymentType, string> = { UPI: 'UPI', CARD: 'Card', FLEET_CARD: 'Fleet Card' }
@@ -33,60 +36,63 @@ interface SettlementRecordsTabProps {
   history: SettlementHistory
   canVoid: boolean
   onVoid: (settlement: Settlement) => void
+  onOpenDetails: (settlement: Settlement) => void
 }
 
-export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRecordsTabProps) {
+export function SettlementRecordsTab({ history, canVoid, onVoid, onOpenDetails }: SettlementRecordsTabProps) {
   const { t } = useTranslation(['settlements', 'common'])
   const {
     filterFrom, setFilterFrom, filterTo, setFilterTo, typeFilter, setTypeFilter, setRange, loadAllDays,
-    setSummaryPage, setSummaryPageSize, dailySummaryPage, dailySummary, loadingList,
+    setSummaryPage, setSummaryPageSize, dailySummaryPage, dailySummary, loadingList, fetchingList, listUpdatedAt,
   } = history
 
   return (
-    <div className="ui-card p-0 overflow-hidden">
-      {/* Toolbar: date range + type filter */}
-      <div className="ui-toolbar">
-        <p className="ui-toolbar-title">{t('page.historyTab')}</p>
+    <PageSection
+      title={t('page.historyTab')}
+      titleMeta={<RefreshIndicator isFetching={fetchingList} dataUpdatedAt={listUpdatedAt ?? 0} />}
+      actions={(
+        <CsvExportButton
+          filename={csvFilename('settlements', { from: filterFrom, to: filterTo })}
+          columns={CSV_COLUMNS}
+          rows={loadAllDays}
+          disabled={dailySummary.length === 0}
+        />
+      )}
+      flush
+    >
+      <FilterBar label={t('history.filtersLabel')}>
         <div className="basis-full">
           <DatePresetChips range={{ from: filterFrom, to: filterTo }} onSelect={setRange} />
         </div>
-        <div className="ui-toolbar-actions w-full sm:w-auto">
-          <input aria-label={t('common:fields.fromDate')}
-            type="date"
-            value={filterFrom}
-            max={filterTo}
-            onChange={e => setFilterFrom(e.target.value)}
-            className="flex-1 min-w-36 text-sm sm:w-40 sm:flex-none"
-          />
-          <span className="text-ink-3 text-sm">–</span>
-          <input aria-label={t('common:fields.toDate')}
-            type="date"
-            value={filterTo}
-            min={filterFrom}
-            onChange={e => setFilterTo(e.target.value)}
-            className="flex-1 min-w-36 text-sm sm:w-40 sm:flex-none"
-          />
-          <div className="w-full sm:w-40">
-            <SearchableSelect label={t('history.typeFilter')}
-              value={typeFilter}
-              onChange={v => setTypeFilter(v as SettlementPaymentType | '')}
-              options={[
-                { value: '',           label: t('history.allTypes') },
-                { value: 'UPI',        label: typeLabel('UPI') },
-                { value: 'CARD',       label: typeLabel('CARD') },
-                { value: 'FLEET_CARD', label: typeLabel('FLEET_CARD') },
-              ]}
-              size="sm"
-            />
-          </div>
-          <CsvExportButton
-            filename={csvFilename('settlements', { from: filterFrom, to: filterTo })}
-            columns={CSV_COLUMNS}
-            rows={loadAllDays}
-            disabled={dailySummary.length === 0}
+        <input aria-label={t('common:fields.fromDate')}
+          type="date"
+          value={filterFrom}
+          max={filterTo}
+          onChange={e => setFilterFrom(e.target.value)}
+          className="flex-1 min-w-36 text-sm sm:w-40 sm:flex-none"
+        />
+        <span className="text-ink-3 text-sm">–</span>
+        <input aria-label={t('common:fields.toDate')}
+          type="date"
+          value={filterTo}
+          min={filterFrom}
+          onChange={e => setFilterTo(e.target.value)}
+          className="flex-1 min-w-36 text-sm sm:w-40 sm:flex-none"
+        />
+        <div className="w-full sm:w-40">
+          <SearchableSelect label={t('history.typeFilter')}
+            value={typeFilter}
+            onChange={v => setTypeFilter(v as SettlementPaymentType | '')}
+            options={[
+              { value: '',           label: t('history.allTypes') },
+              { value: 'UPI',        label: typeLabel('UPI') },
+              { value: 'CARD',       label: typeLabel('CARD') },
+              { value: 'FLEET_CARD', label: typeLabel('FLEET_CARD') },
+            ]}
+            size="sm"
           />
         </div>
-      </div>
+      </FilterBar>
 
       {loadingList ? (
         <div className="px-5 py-4"><SkeletonRows count={5} /></div>
@@ -196,6 +202,14 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
                             showSign
                             className={`text-sm font-bold flex-shrink-0 ml-auto sm:ml-0 ${isVoided ? 'text-ink-3 line-through' : 'text-ok'}`}
                           />
+                          <button
+                            type="button"
+                            onClick={() => onOpenDetails(s)}
+                            aria-label={t('history.detailsOf', { type: typeLabel(s.paymentType), amount: fmtAmt(s.amountReceived) })}
+                            className="ui-btn ui-btn-ghost ui-btn-compact flex-shrink-0"
+                          >
+                            {t('history.details')}
+                          </button>
                           {canVoid && !isVoided && (
                             <button
                               type="button"
@@ -225,6 +239,6 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
           />
         </div>
       )}
-    </div>
+    </PageSection>
   )
 }

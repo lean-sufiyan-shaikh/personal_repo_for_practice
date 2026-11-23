@@ -3,13 +3,14 @@ import type { CashEventType } from '../../api/cashApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
-import { Reveal } from '../../components/Reveal'
 import { EmptyState } from '../../components/EmptyState'
 import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
 import { EVENT_BADGES, EVENT_TYPES, fmtDate } from './cashFormat'
 import type { CashEventsState } from './useCashEvents'
 import { codeLabel } from '../../constants/labels'
+import { PageSection } from '../../components/layout/PageSection'
+import { FilterBar } from '../../components/layout/FilterBar'
 
 export function CashEventList({ events }: { events: CashEventsState }) {
   const { t } = useTranslation(['cash', 'common'])
@@ -19,31 +20,36 @@ export function CashEventList({ events }: { events: CashEventsState }) {
     setPage, setPageSize,
   } = events
 
+  const hasActiveFilters = Boolean(fromDate || toDate || eventTypeFilter)
+  const clearFilters = () => {
+    setFromDate('')
+    setToDate('')
+    setEventTypeFilter('')
+    setPage(0)
+  }
+
   return (
-    <Reveal delay={270}>
-    <div className="ui-card p-0 overflow-hidden">
-      <div className="ui-toolbar">
-        <p className="ui-toolbar-title">{t('list.title')}</p>
-        <div className="ui-toolbar-actions">
-          <div className="flex items-center gap-1.5">
-            <label htmlFor="cash-events-from" className="text-xs text-ink-3 whitespace-nowrap">{t('common:fields.from')}</label>
-            <input id="cash-events-from"
-              type="date"
-              value={fromDate}
-              onChange={e => { setFromDate(e.target.value); setPage(0) }}
-              className="text-xs h-7 px-2 rounded-control border border-border"
-            />
-          </div>
-          <div className="flex items-center gap-1.5">
-            <label htmlFor="cash-events-to" className="text-xs text-ink-3 whitespace-nowrap">{t('common:fields.to')}</label>
-            <input id="cash-events-to"
-              type="date"
-              value={toDate}
-              onChange={e => { setToDate(e.target.value); setPage(0) }}
-              className="text-xs h-7 px-2 rounded-control border border-border"
-            />
-          </div>
-          <div className="w-44">
+    <PageSection title={t('list.title')} flush>
+      <FilterBar label={t('list.filtersLabel')} onClearFilters={clearFilters} hasActiveFilters={hasActiveFilters}>
+        <div className="flex items-center gap-1.5">
+          <label htmlFor="cash-events-from" className="text-xs text-ink-3 whitespace-nowrap">{t('common:fields.from')}</label>
+          <input id="cash-events-from"
+            type="date"
+            value={fromDate}
+            onChange={e => { setFromDate(e.target.value); setPage(0) }}
+            className="text-xs"
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <label htmlFor="cash-events-to" className="text-xs text-ink-3 whitespace-nowrap">{t('common:fields.to')}</label>
+          <input id="cash-events-to"
+            type="date"
+            value={toDate}
+            onChange={e => { setToDate(e.target.value); setPage(0) }}
+            className="text-xs"
+          />
+        </div>
+        <div className="w-44">
           <SearchableSelect label={t('list.filterByType')}
             value={eventTypeFilter}
             onChange={v => { setEventTypeFilter(v as CashEventType | ''); setPage(0) }}
@@ -54,8 +60,7 @@ export function CashEventList({ events }: { events: CashEventsState }) {
             size="sm"
           />
         </div>
-        </div>
-      </div>
+      </FilterBar>
 
       {isLoading ? (
         <div className="px-5 py-4"><SkeletonRows count={4} /></div>
@@ -100,7 +105,6 @@ export function CashEventList({ events }: { events: CashEventsState }) {
           )}
         </>
       )}
-    </div>
-    </Reveal>
+    </PageSection>
   )
 }

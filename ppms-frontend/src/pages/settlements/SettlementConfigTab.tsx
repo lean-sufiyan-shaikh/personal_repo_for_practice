@@ -58,9 +58,6 @@ export function SettlementConfigTab({ pumpId, canConfigure }: SettlementConfigTa
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink-3 mb-4">
-        {t('alerts.intro')}
-      </p>
       {loadingConfigs ? (
         <div className="flex items-center gap-2 text-ink-3 text-sm"><Spinner /> {t('common:loading.short')}</div>
       ) : (

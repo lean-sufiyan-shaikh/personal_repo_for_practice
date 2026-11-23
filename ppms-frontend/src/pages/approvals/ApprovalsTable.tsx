@@ -84,6 +84,7 @@ export function ApprovalsTable({ items, selectedKeys, now, onToggle, onToggleAll
       rows={items}
       rowKey={approvalKey}
       rowClassName={item => selectedKeys.has(approvalKey(item)) ? 'bg-info-bg' : undefined}
+      className="rounded-none border-0"
     />
   )
 }

@@ -14,7 +14,7 @@ export const AGING_FILTERS: { value: AgingFilter; labelKey: 'all' | 'overdue' | 
   { value: 'pending-approval', labelKey: 'pendingApproval' },
 ]
 
-const SORT_KEYS: AgingSortKey[] = [
+export const SORT_KEYS: AgingSortKey[] = [
   'name', 'outstanding', 'upTo30Days', 'days31To60', 'days61To90', 'over90Days',
   'oldestUnpaidSaleDate', 'lastPaymentDate', 'daysOverdue',
 ]

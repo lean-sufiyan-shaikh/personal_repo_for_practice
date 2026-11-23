@@ -2,16 +2,13 @@
   "page": {
     "title": "खर्च हिसाब",
     "noPump": "कोई पंप नहीं चुना गया। ऊपर की पट्टी में पंप चुनें, या मालिक या एडमिन से आपको किसी पंप पर जोड़ने को कहें।",
-    "kicker": "खर्च का हिसाब",
     "subtitle": "पंप के रोज़ के खर्च दर्ज करें और देखें",
-    "records": "रिकॉर्ड",
-    "pending": "बाकी",
     "approvedTotal": "मंज़ूर कुल",
     "totalRecords": "कुल रिकॉर्ड",
-    "pendingApproval": "मंज़ूरी बाकी"
+    "pendingCount_one": "{{count}} मंज़ूरी बाकी",
+    "pendingCount_other": "{{count}} मंज़ूरी बाकी"
   },
   "form": {
-    "kicker": "खर्च एंट्री",
     "title": "खर्च दर्ज करें",
     "subtitle": "जाँच से पहले श्रेणी, राशि, तारीख और विवरण भरें।",
     "category": "श्रेणी",
@@ -45,10 +42,11 @@
     "approvalHint": "मंज़ूर और अस्वीकार के बटन सिर्फ़ <status>मंज़ूरी बाकी</status> वाले खर्चों पर दिखते हैं।",
     "emptyTitle": "अभी तक कोई खर्च दर्ज नहीं",
     "emptyAccountant": "दिखाने के लिए कोई रिकॉर्ड नहीं।",
-    "emptySubtitle": "पहला खर्च दर्ज करने के लिए ऊपर का फ़ॉर्म भरें।",
+    "emptySubtitle": "पहला खर्च जोड़ने के लिए \"खर्च दर्ज करें\" दबाएँ।",
     "deleteExpense": "खर्च हटाएँ",
     "rejectTitle": "खर्च अस्वीकार करें",
-    "rejectedWithNotes": "{{label}}: {{notes}}"
+    "rejectedWithNotes": "{{label}}: {{notes}}",
+    "filtersLabel": "खर्च के फ़िल्टर"
   },
   "toast": {
     "submitted": "खर्च मंज़ूरी के लिए भेजा गया",

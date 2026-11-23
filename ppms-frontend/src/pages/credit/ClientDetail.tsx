@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { serverText } from '../../utils/serverText'
-import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { withToggled } from '../../utils/setToggle'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -36,8 +35,11 @@ import { LedgerFilterBar } from './LedgerFilterBar'
 import { ClientSummaryCards } from './ClientSummaryCards'
 import { ClientInvoicesTab } from './ClientInvoicesTab'
 import { formatCurrency } from '../../utils/format'
+import { PageTabs } from '../../components/layout/PageTabs'
+import { useActiveTab } from '../../components/layout/useActiveTab'
+import { useUrlParam } from '../../components/layout/useUrlParam'
 
-// ─── Client Detail (transaction history) ────────────────────────────────────
+const RECORD_TABS = ['ledger', 'invoices'] as const
 
 interface ClientDetailProps {
   clientId: number
@@ -45,9 +47,13 @@ interface ClientDetailProps {
   onBack: () => void
 }
 
+/**
+ * One client's ledger and invoices with their actions. ?records=invoices picks the tab and
+ * ?action=record-payment opens Record payment, so the command palette and links can start there.
+ */
 export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const { t } = useTranslation('credit')
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const paymentAction = useUrlParam('action')
   const [showInterestSettingsModal, setShowInterestSettingsModal] = useState(false)
   const [showExtensionModal, setShowExtensionModal] = useState(false)
   const [showStatementModal, setShowStatementModal] = useState(false)
@@ -77,9 +83,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const canWaiveInterest   = canPerformAction('credit:waive-interest', role)
   const canManageExtensions = canPerformAction('credit:grant-extension', role)
   const canIssueInvoices   = canPerformAction('credit:issue-invoice', role)
-  const [searchParams, setSearchParams] = useSearchParams()
-  const activeTab: 'ledger' | 'invoices' = searchParams.get('tab') === 'invoices' ? 'invoices' : 'ledger'
-  const setActiveTab = (tab: 'ledger' | 'invoices') => setSearchParams({ tab }, { replace: true })
+  const activeTab = useActiveTab(RECORD_TABS, 'ledger', 'records')
   const [txPage, setTxPage] = useState(0)
   const [txPageSize, setTxPageSize] = useState(10)
 
@@ -167,10 +171,12 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
     onWaiveInterest: (charge, sourceClientId) => setWaivingInterest({ charge, sourceClientId }),
   }
 
+  const showPaymentModal = paymentAction.value === 'record-payment' && canRecordPayment
+
   if (!client) {
     if (clientsLoading) return <div className="px-5 py-4"><SkeletonRows count={4} /></div>
     return (
-      <div className="p-6 space-y-4">
+      <div className="space-y-4">
         <p className="ui-alert ui-alert-error text-sm" role="alert">
           {clientsFailed ? t('detail.loadFailed') : t('detail.notFound')}
         </p>
@@ -187,7 +193,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           pumpId={pumpId}
           outstandingBalanceOverride={effectiveOutstandingBalance}
           subClients={allClients.filter(c => c.parentClientId === clientId)}
-          onClose={() => setShowPaymentModal(false)}
+          onClose={paymentAction.remove}
         />
       )}
       {reassignEntryId !== null && canMoveEntries && (
@@ -253,18 +259,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
         />
       )}
 
-      {/* Header */}
-      <div className="p-6 pb-4">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink mb-4"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          {t('detail.back')}
-        </button>
-
+      <div className="pb-4">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
             <h2 className="text-xl font-bold text-ink">{client.name}</h2>
@@ -279,7 +274,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
             onOpenInterestSettings={() => setShowInterestSettingsModal(true)}
             onApplyInterest={() => { setApplyInterestFeedback(null); applyInterestMutation.mutate() }}
             onGrantExtension={() => setShowExtensionModal(true)}
-            onRecordPayment={() => setShowPaymentModal(true)}
+            onRecordPayment={() => paymentAction.set('record-payment')}
             onOpenStatement={() => setShowStatementModal(true)}
           />
         </div>
@@ -334,32 +329,25 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
         onOpenInterestSettings={() => setShowInterestSettingsModal(true)}
       />
 
-      <div className="px-6 mb-4">
-        <div className="ui-tabbar w-fit" role="tablist" aria-label={t('detail.recordsLabel')}>
-          {(['ledger', 'invoices'] as const).map(tab => (
-            <button
-              key={tab}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab}
-              onClick={() => setActiveTab(tab)}
-              className={`ui-tabbar__button ${activeTab === tab ? 'ui-tabbar__button--active' : ''}`}
-            >
-              {t(`detail.tabs.${tab}`)}
-            </button>
-          ))}
-        </div>
+      <div className="mb-4">
+        <PageTabs
+          label={t('detail.recordsLabel')}
+          tabs={RECORD_TABS.map(tab => ({ id: tab, label: t(`detail.tabs.${tab}`) }))}
+          activeTab={activeTab}
+          param="records"
+          resetParams={['invoice']}
+        />
       </div>
 
       {activeTab === 'invoices' && (
-        <div className="px-6 pb-6">
+        <div>
           <ClientInvoicesTab pumpId={pumpId} clientId={clientId} canIssueInvoices={canIssueInvoices} />
         </div>
       )}
 
       {/* Transaction ledger */}
       {activeTab === 'ledger' && (
-      <div className="px-6">
+      <div>
         <LedgerFilterBar filters={ledgerFilters} />
 
         {isLoading ? (
