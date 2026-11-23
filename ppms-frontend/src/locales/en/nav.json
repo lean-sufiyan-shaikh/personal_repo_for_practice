@@ -104,7 +104,14 @@
       "recordDelivery": "Record delivery",
       "recordPayment": "Record payment",
       "addExpense": "Add expense",
-      "cashEntry": "Record cash entry"
+      "cashEntry": "Record cash entry",
+      "dipCheck": "Record dip check",
+      "recordSettlement": "Record settlement",
+      "sellProduct": "Sell a product",
+      "generateSheet": "Generate balance sheet",
+      "generatePayroll": "Generate payroll",
+      "setFuelPrices": "Set fuel prices",
+      "addStaff": "Add staff member"
     }
   }
 }

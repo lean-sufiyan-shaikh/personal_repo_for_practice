@@ -34,9 +34,12 @@ describe('commandItemsFor', () => {
     expect(labels).not.toContain('Record delivery')
   })
 
-  it('offers a manager the shift, delivery, payment, expense and cash tasks', () => {
+  it('offers a manager the forecourt, money and stock tasks they may do', () => {
     const actions = commandItemsFor('MANAGER').filter((item) => item.kind === 'action')
-    expect(actions.map((item) => item.label)).toEqual(['Open shift', 'Record delivery', 'Record payment', 'Add expense', 'Record cash entry'])
+    expect(actions.map((item) => item.label)).toEqual([
+      'Open shift', 'Record delivery', 'Record dip check', 'Record payment', 'Record settlement',
+      'Add expense', 'Record cash entry', 'Sell a product', 'Generate balance sheet', 'Set fuel prices',
+    ])
     expect(actions[0].path).toBe('/dashboard/shifts?action=open-shift')
   })
 

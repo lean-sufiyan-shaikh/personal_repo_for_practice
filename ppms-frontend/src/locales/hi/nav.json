@@ -104,7 +104,14 @@
       "recordDelivery": "डिलीवरी दर्ज करें",
       "recordPayment": "भुगतान दर्ज करें",
       "addExpense": "खर्च जोड़ें",
-      "cashEntry": "नकद एंट्री दर्ज करें"
+      "cashEntry": "नकद एंट्री दर्ज करें",
+      "dipCheck": "डिप जाँच दर्ज करें",
+      "recordSettlement": "सेटलमेंट दर्ज करें",
+      "sellProduct": "उत्पाद बेचें",
+      "generateSheet": "बैलेंस शीट बनाएँ",
+      "generatePayroll": "वेतन बनाएँ",
+      "setFuelPrices": "ईंधन के दाम तय करें",
+      "addStaff": "स्टाफ़ जोड़ें"
     }
   }
 }
