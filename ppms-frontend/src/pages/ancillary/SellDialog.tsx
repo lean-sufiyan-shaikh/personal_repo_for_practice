@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, ChevronLeft } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
@@ -58,6 +59,7 @@ export function SellDialog({
   onClose: () => void
   onSuccess: () => void
 }) {
+  const { t } = useTranslation(['ancillary', 'common'])
   const { addToast } = useToastStore()
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
@@ -101,20 +103,20 @@ export function SellDialog({
         queryClient.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
         queryClient.invalidateQueries({ queryKey: ['credit-transactions', pumpId] })
       }
-      addToast('Sale recorded successfully', 'success')
+      addToast(t('sell.recorded'), 'success')
       onSuccess()
     },
     onError: (err) => {
-      const msg = parseApiError(err, 'Failed to record sale')
+      const msg = parseApiError(err, t('sell.recordFailed'))
       setError(msg)
       addToast(msg, 'error')
     },
   })
 
   const handleProceedToReview = () => {
-    if (!form.quantityUnits || form.quantityUnits < 1) { setError('Quantity must be at least 1'); return }
-    if (!form.sellingPricePerUnit || form.sellingPricePerUnit <= 0) { setError('Enter a valid selling price greater than 0'); return }
-    if (form.paymentMode === 'CREDIT' && !form.clientId) { setError('Please select a client for CREDIT payment'); return }
+    if (!form.quantityUnits || form.quantityUnits < 1) { setError(t('validation.quantityMin')); return }
+    if (!form.sellingPricePerUnit || form.sellingPricePerUnit <= 0) { setError(t('sell.priceInvalid')); return }
+    if (form.paymentMode === 'CREDIT' && !form.clientId) { setError(t('validation.creditClient')); return }
     setError(null)
     setStep('review')
   }
@@ -131,9 +133,9 @@ export function SellDialog({
     ? computeFifoProjectedProfit(form.quantityUnits, sellPrice, product.activeFifoLots)
     : null
   const marginBadge = projectedProfit == null ? null
-    : projectedProfit > 0 ? { label: `Projected profit: +${fmtCurrency(projectedProfit)}`, cls: 'bg-ok-bg text-ok border-ok' }
-    : projectedProfit < 0 ? { label: `Projected loss: ${fmtCurrency(projectedProfit)}`,    cls: 'bg-bad-bg text-bad border-bad' }
-    :                        { label: 'Break-even',                                          cls: 'bg-neutral-bg text-neutral border-border' }
+    : projectedProfit > 0 ? { label: t('sell.projectedProfit', { amount: fmtCurrency(projectedProfit) }), cls: 'bg-ok-bg text-ok border-ok' }
+    : projectedProfit < 0 ? { label: t('sell.projectedLoss', { amount: fmtCurrency(projectedProfit) }), cls: 'bg-bad-bg text-bad border-bad' }
+    :                        { label: t('sell.breakEven'), cls: 'bg-neutral-bg text-neutral border-border' }
   const headerTone: ModalTone = projectedProfit == null || projectedProfit === 0
     ? 'neutral'
     : projectedProfit > 0 ? 'success' : 'danger'
@@ -142,7 +144,7 @@ export function SellDialog({
 
   return (
     <Modal
-      title={step === 'form' ? 'Record Sale' : 'Review & Confirm'}
+      title={step === 'form' ? t('sell.title') : t('sell.reviewTitle')}
       subtitle={<span className="break-words">{product.displayName}{marginBadge ? ` · ${marginBadge.label}` : ''}</span>}
       tone={headerTone}
       onClose={onClose}
@@ -151,13 +153,13 @@ export function SellDialog({
       footer={step === 'form' ? (
         <>
           <button onClick={onClose} className="ui-btn ui-btn-secondary">
-            Cancel
+            {t('common:actions.cancel')}
           </button>
           <button
             onClick={handleProceedToReview}
             className="ui-btn ui-btn-primary"
           >
-            <span className="inline-flex items-center gap-1.5">Review<ArrowRight size={14} strokeWidth={2} aria-hidden="true" /></span>
+            <span className="inline-flex items-center gap-1.5">{t('actions.review')}<ArrowRight size={14} strokeWidth={2} aria-hidden="true" /></span>
           </button>
         </>
       ) : (
@@ -166,7 +168,7 @@ export function SellDialog({
             onClick={() => { setStep('form'); setError(null) }}
             className="ui-btn ui-btn-secondary"
           >
-            <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} aria-hidden="true" />Back</span>
+            <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} aria-hidden="true" />{t('actions.back')}</span>
           </button>
           <button
             onClick={() => saleMutation.mutate(form)}
@@ -174,8 +176,8 @@ export function SellDialog({
             className="ui-btn ui-btn-primary disabled:opacity-50"
           >
             {saleMutation.isPending
-              ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Recording…</span>
-              : 'Confirm Sale'}
+              ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('actions.recording')}</span>
+              : t('sell.confirm')}
           </button>
         </>
       )}
@@ -190,15 +192,15 @@ export function SellDialog({
             {/* Stock + buy price info row */}
             <div className="bg-surface-sunken rounded-control px-4 py-3 flex items-center justify-between text-sm gap-4">
               <div className="flex items-center gap-3">
-                <span className="text-ink-3">Stock</span>
+                <span className="text-ink-3">{t('sell.stock')}</span>
                 <span className={`font-medium ${
                   product.currentStockUnits <= (product.lowStockThreshold ?? Infinity) ? 'text-bad' : 'text-ink'
-                }`}>{product.currentStockUnits} units</span>
+                }`}>{t('sell.stockUnits', { value: product.currentStockUnits })}</span>
               </div>
               {buyPrice != null && (
                 <div className="flex items-center gap-1.5 text-xs text-ink-3">
-                  <span>Buy price</span>
-                  <span className="font-semibold text-ink">{fmtCurrency(buyPrice)}/unit</span>
+                  <span>{t('sell.buyPrice')}</span>
+                  <span className="font-semibold text-ink">{t('fields.perUnit', { price: fmtCurrency(buyPrice) })}</span>
                 </div>
               )}
             </div>
@@ -207,7 +209,7 @@ export function SellDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block">
-                    <span className="ui-label">Quantity (units) *</span>
+                    <span className="ui-label">{t('fields.quantityRequired')}</span>
                     <NumericInput
                       min="1" step="1" data-autofocus inputMode="numeric"
                       value={form.quantityUnits}
@@ -217,19 +219,19 @@ export function SellDialog({
                 </div>
                 <div>
                   <label className="block">
-                    <span className="ui-label">Selling Price (₹/unit) *</span>
+                    <span className="ui-label">{t('sell.sellingPriceRequired')}</span>
                     <input
                       type="number" min="0.01" step="0.01"
                       className="text-sm"
                       value={form.sellingPricePerUnit || ''}
                       onChange={e => setForm(f => ({ ...f, sellingPricePerUnit: parseFloat(e.target.value) || 0 }))}
-                      placeholder={priceLoading ? 'Loading…' : 'MRP'}
+                      placeholder={priceLoading ? t('sell.loadingPrice') : t('sell.mrp')}
                       readOnly={!canOverridePrice}
                       disabled={configuredPrice == null}
                     />
                   </label>
                   {!priceLoading && configuredPrice == null && (
-                    <p className="text-xs text-bad mt-1">No selling price is set for this product. Set a price first.</p>
+                    <p className="text-xs text-bad mt-1">{t('sell.noPrice')}</p>
                   )}
                 </div>
               </div>
@@ -242,8 +244,8 @@ export function SellDialog({
               )}
 
               <div>
-                <span className="ui-label">Payment Mode *</span>
-                <SearchableSelect label="Payment Mode"
+                <span className="ui-label">{t('fields.paymentModeRequired')}</span>
+                <SearchableSelect label={t('fields.paymentMode')}
                   value={form.paymentMode}
                   onChange={v => setForm(f => ({
                     ...f,
@@ -257,14 +259,14 @@ export function SellDialog({
 
               {form.paymentMode === 'CREDIT' && (
                 <div>
-                  <span className="ui-label">Client * (required for credit)</span>
-                  <SearchableSelect label="Client"
+                  <span className="ui-label">{t('fields.clientRequired')}</span>
+                  <SearchableSelect label={t('fields.client')}
                     value={form.clientId ? form.clientId.toString() : ''}
                     onChange={v => {
                       const client = creditClients.find(c => c.id === parseInt(v))
                       setForm(f => ({ ...f, clientId: client?.id, clientName: client?.name }))
                     }}
-                    placeholder="Search client…"
+                    placeholder={t('fields.searchClient')}
                     options={creditClients.map(c => ({
                       value: c.id.toString(),
                       label: c.name + (c.phone ? ` · ${c.phone}` : ''),
@@ -275,12 +277,12 @@ export function SellDialog({
 
               <div>
                 <label className="block">
-                  <span className="ui-label">Bill No</span>
+                  <span className="ui-label">{t('fields.billNo')}</span>
                   <input
                     className="text-sm"
                     value={form.billNo ?? ''}
                     onChange={e => setForm(f => ({ ...f, billNo: e.target.value || undefined }))}
-                    placeholder="Optional"
+                    placeholder={t('fields.optional')}
                   />
                 </label>
               </div>
@@ -289,7 +291,7 @@ export function SellDialog({
             {/* Live total */}
             {totalAmount != null && (
               <div className="bg-info-bg border border-border rounded-control px-4 py-3 flex items-center justify-between">
-                <span className="text-sm text-info">Total</span>
+                <span className="text-sm text-info">{t('fields.total')}</span>
                 <MoneyText value={totalAmount} className="text-sm font-semibold text-info" />
               </div>
             )}
@@ -299,28 +301,28 @@ export function SellDialog({
         {/* Step 2 — Review */}
         {step === 'review' && (
           <>
-            <p className="text-sm text-ink-3">Please review the details before confirming.</p>
+            <p className="text-sm text-ink-3">{t('sell.reviewHint')}</p>
 
             <div className="bg-surface-sunken rounded-card border border-border divide-y divide-border text-sm">
-              <ReviewRow label="Product" value={product.displayName} />
-              <ReviewRow label="Quantity" value={`${form.quantityUnits} unit${form.quantityUnits !== 1 ? 's' : ''}`} />
-              {buyPrice != null && <ReviewRow label="Buy price / unit" value={fmtCurrency(buyPrice)} />}
-              <ReviewRow label="Sell price / unit" value={fmtCurrency(form.sellingPricePerUnit)} />
-              <ReviewRow label="Total" value={fmtCurrency(totalAmount)} highlight />
+              <ReviewRow label={t('fields.product')} value={product.displayName} />
+              <ReviewRow label={t('fields.quantity')} value={t('fields.quantityUnits', { count: form.quantityUnits })} />
+              {buyPrice != null && <ReviewRow label={t('sell.buyPricePerUnit')} value={fmtCurrency(buyPrice)} />}
+              <ReviewRow label={t('sell.sellPricePerUnit')} value={fmtCurrency(form.sellingPricePerUnit)} />
+              <ReviewRow label={t('fields.total')} value={fmtCurrency(totalAmount)} highlight />
               {marginBadge && (
                 <div className={`flex items-center justify-between px-4 py-2.5 rounded-b-card ${marginBadge.cls}`}>
-                  <span className="text-xs">Margin</span>
+                  <span className="text-xs">{t('sell.margin')}</span>
                   <span className="text-xs font-semibold">{marginBadge.label}</span>
                 </div>
               )}
             </div>
 
             <div className="bg-surface-sunken rounded-card border border-border divide-y divide-border text-sm">
-              <ReviewRow label="Payment mode" value={codeLabel(form.paymentMode)} />
+              <ReviewRow label={t('sell.paymentModeRow')} value={codeLabel(form.paymentMode)} />
               {form.paymentMode === 'CREDIT' && selectedClient && (
-                <ReviewRow label="Client" value={selectedClient.name} />
+                <ReviewRow label={t('fields.client')} value={selectedClient.name} />
               )}
-              {form.billNo && <ReviewRow label="Bill No" value={form.billNo} />}
+              {form.billNo && <ReviewRow label={t('fields.billNo')} value={form.billNo} />}
             </div>
 
             {error && (

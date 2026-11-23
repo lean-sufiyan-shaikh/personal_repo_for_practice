@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { TankerDelivery } from '../../api/inventoryApi'
 import { Modal } from '../../components/Modal'
 import { LitresText } from '../../components/AmountText'
@@ -13,31 +14,31 @@ export function DeleteInvoiceModal({ invoice, rows, isPending, error, onConfirm,
   onConfirm: () => void
   onClose: () => void
 }) {
+  const { t } = useTranslation(['inventory', 'common'])
   const totalQty = rows.reduce((s, r) => s + r.quantityDelivered, 0)
   return (
     <Modal
-      title="Delete Invoice?"
+      title={t('deleteInvoice.title')}
       tone="danger"
       onClose={onClose}
       bodyClassName="space-y-4"
       footerClassName="justify-end gap-2"
       footer={<>
         <button onClick={onClose} disabled={isPending} className="ui-btn ui-btn-secondary">
-          Cancel
+          {t('common:actions.cancel')}
         </button>
         <button onClick={onConfirm} disabled={isPending} className="ui-btn ui-btn-danger">
-          {isPending ? 'Deleting…' : 'Delete Invoice'}
+          {isPending ? t('deleteInvoice.deleting') : t('deleteInvoice.confirm')}
         </button>
       </>}
     >
       <p className="text-sm text-ink-2">
-        This will permanently remove the invoice and reverse the fuel added to the tank(s).
-        This action cannot be undone.
+        {t('deleteInvoice.warning')}
       </p>
 
       <div className="bg-surface-sunken border border-border rounded-control p-3 space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-ink-3">Bill No.</span>
+          <span className="text-xs text-ink-3">{t('deliveries.billNo')}</span>
           <span className="font-mono text-xs font-semibold text-info bg-info-bg border border-border px-2 py-0.5 rounded-badge">
             {invoice}
           </span>
@@ -55,7 +56,7 @@ export function DeleteInvoiceModal({ invoice, rows, isPending, error, onConfirm,
           ))}
         </div>
         <div className="flex justify-between pt-1 border-t border-border text-xs font-semibold text-ink">
-          <span>Total removed</span>
+          <span>{t('deleteInvoice.totalRemoved')}</span>
           <LitresText value={totalQty} />
         </div>
       </div>

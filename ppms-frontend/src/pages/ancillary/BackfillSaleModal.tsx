@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { ChevronLeft } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
@@ -34,6 +35,7 @@ export function BackfillSaleModal({
   onClose: () => void
   onSuccess: () => void
 }) {
+  const { t } = useTranslation(['ancillary', 'common'])
   const { addToast } = useToastStore()
   const yesterday = localDateInputValue(-1)
 
@@ -55,11 +57,11 @@ export function BackfillSaleModal({
   const backfillMutation = useMutation({
     mutationFn: (data: BackfillSaleRequest) => ancillaryApi.backfillSale(pumpId, data),
     onSuccess: () => {
-      addToast('Historical sale backfilled successfully', 'success')
+      addToast(t('backfill.backfilled'), 'success')
       onSuccess()
     },
     onError: (err) => {
-      const msg = parseApiError(err, 'Failed to backfill sale')
+      const msg = parseApiError(err, t('backfill.failed'))
       setError(msg)
       addToast(msg, 'error')
     },
@@ -68,14 +70,14 @@ export function BackfillSaleModal({
   const selectedProduct = products.find(p => p.id === form.productId) ?? null
 
   const validate = (): string | null => {
-    if (!form.productId) return 'Select a product'
-    if (!form.saleDate) return 'Sale date is required'
+    if (!form.productId) return t('validation.selectProduct')
+    if (!form.saleDate) return t('backfill.dateMissing')
     if (form.saleDate >= localDateInputValue()) {
-      return 'Sale date must be before today. Use the Sell button on the Products tab for today\'s sales.'
+      return t('backfill.dateNotPast')
     }
-    if (!form.quantityUnits || form.quantityUnits < 1) return 'Quantity must be at least 1'
+    if (!form.quantityUnits || form.quantityUnits < 1) return t('validation.quantityMin')
     if (form.paymentMode === 'CREDIT' && !form.clientId) {
-      return 'Please select a client for CREDIT payment'
+      return t('validation.creditClient')
     }
     return null
   }
@@ -89,10 +91,10 @@ export function BackfillSaleModal({
 
   return (
     <Modal
-      title={step === 'form' ? 'Backfill Sale' : 'Review Backfill Sale'}
+      title={step === 'form' ? t('backfill.title') : t('backfill.reviewTitle')}
       subtitle={step === 'form'
-                ? 'Enter a historical counter sale. Price is resolved from price history.'
-                : 'Review the details before submitting.'}
+                ? t('backfill.subtitle')
+                : t('backfill.reviewSubtitle')}
       tone="info"
       onClose={onClose}
       closeOnBackdropClick
@@ -100,8 +102,8 @@ export function BackfillSaleModal({
       footer={<>
           {step === 'form' ? (
             <>
-              <button onClick={onClose} className="ui-btn ui-btn-secondary">Cancel</button>
-              <button onClick={handleReview} className="ui-btn ui-btn-primary">Review →</button>
+              <button onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
+              <button onClick={handleReview} className="ui-btn ui-btn-primary">{t('actions.reviewNext')}</button>
             </>
           ) : (
             <>
@@ -109,7 +111,7 @@ export function BackfillSaleModal({
                 onClick={() => { setStep('form'); setError(null) }}
                 className="ui-btn ui-btn-secondary"
               >
-                <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} aria-hidden="true" />Back</span>
+                <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} aria-hidden="true" />{t('actions.back')}</span>
               </button>
               <button
                 onClick={() => backfillMutation.mutate(form)}
@@ -117,8 +119,8 @@ export function BackfillSaleModal({
                 className="ui-btn ui-btn-primary disabled:opacity-50"
               >
                 {backfillMutation.isPending
-                  ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Recording…</span>
-                  : 'Confirm Backfill'}
+                  ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('actions.recording')}</span>
+                  : t('backfill.confirm')}
               </button>
             </>
           )}
@@ -134,25 +136,23 @@ export function BackfillSaleModal({
 
             {/* Info banner about price resolution */}
             <div className="bg-warn-bg border border-warn rounded-control px-4 py-3 text-xs text-warn">
-              <strong>Note:</strong> The selling price will be automatically resolved from the product's
-              price history for the selected date. Make sure a price was set on or before that date.
-              Stock must also have been delivered on or before the sale date.
+              <Trans t={t} i18nKey="backfill.note" components={{ strong: <strong /> }} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
-                <span className="ui-label">Product *</span>
-                <SearchableSelect label="Product"
+                <span className="ui-label">{t('fields.productRequired')}</span>
+                <SearchableSelect label={t('fields.product')}
                   value={form.productId ? form.productId.toString() : ''}
                   onChange={v => setForm(f => ({ ...f, productId: v ? parseInt(v) : 0 }))}
-                  placeholder="Select product…"
-                  options={products.map(p => ({ value: p.id.toString(), label: `${p.displayName} (stock: ${p.currentStockUnits})` }))}
+                  placeholder={t('fields.selectProduct')}
+                  options={products.map(p => ({ value: p.id.toString(), label: t('fields.productOption', { name: p.displayName, stock: p.currentStockUnits }) }))}
                 />
               </div>
 
               <div>
                 <label className="block">
-                  <span className="ui-label">Sale Date * (past only)</span>
+                  <span className="ui-label">{t('backfill.saleDatePastOnly')}</span>
                   <input
                     type="date"
                     className="text-sm"
@@ -165,7 +165,7 @@ export function BackfillSaleModal({
 
               <div>
                 <label className="block">
-                  <span className="ui-label">Quantity (units) *</span>
+                  <span className="ui-label">{t('fields.quantityRequired')}</span>
                   <input
                     type="number"
                     min="1"
@@ -178,8 +178,8 @@ export function BackfillSaleModal({
               </div>
 
               <div className="sm:col-span-2">
-                <span className="ui-label">Payment Mode *</span>
-                <SearchableSelect label="Payment Mode"
+                <span className="ui-label">{t('fields.paymentModeRequired')}</span>
+                <SearchableSelect label={t('fields.paymentMode')}
                   value={form.paymentMode}
                   onChange={v => setForm(f => ({
                     ...f,
@@ -193,14 +193,14 @@ export function BackfillSaleModal({
 
               {form.paymentMode === 'CREDIT' && (
                 <div className="sm:col-span-2">
-                  <span className="ui-label">Client * (required for credit)</span>
-                  <SearchableSelect label="Client"
+                  <span className="ui-label">{t('fields.clientRequired')}</span>
+                  <SearchableSelect label={t('fields.client')}
                     value={form.clientId ? form.clientId.toString() : ''}
                     onChange={v => {
                       const client = creditClients.find(c => c.id === parseInt(v))
                       setForm(f => ({ ...f, clientId: client?.id, clientName: client?.name }))
                     }}
-                    placeholder="Search client…"
+                    placeholder={t('fields.searchClient')}
                     options={creditClients.map(c => ({
                       value: c.id.toString(),
                       label: c.name + (c.phone ? ` · ${c.phone}` : ''),
@@ -211,24 +211,24 @@ export function BackfillSaleModal({
 
               <div>
                 <label className="block">
-                  <span className="ui-label">Bill No</span>
+                  <span className="ui-label">{t('fields.billNo')}</span>
                   <input
                     className="text-sm"
                     value={form.billNo ?? ''}
                     onChange={e => setForm(f => ({ ...f, billNo: e.target.value || undefined }))}
-                    placeholder="Optional"
+                    placeholder={t('fields.optional')}
                   />
                 </label>
               </div>
 
               <div>
                 <label className="block">
-                  <span className="ui-label">Notes</span>
+                  <span className="ui-label">{t('fields.notes')}</span>
                   <input
                     className="text-sm"
                     value={form.notes ?? ''}
                     onChange={e => setForm(f => ({ ...f, notes: e.target.value || undefined }))}
-                    placeholder="Optional"
+                    placeholder={t('fields.optional')}
                   />
                 </label>
               </div>
@@ -240,19 +240,18 @@ export function BackfillSaleModal({
         {step === 'review' && (
           <>
             <div className="bg-info-bg border border-info rounded-control px-4 py-2.5 text-xs text-info font-medium">
-              This sale will be recorded as <strong>Backfilled</strong> for {fmtDate(form.saleDate)}.
-              The selling price is resolved from price history.
+              <Trans t={t} i18nKey="backfill.reviewBanner" values={{ date: fmtDate(form.saleDate) }} components={{ strong: <strong /> }} />
             </div>
 
             <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
-              <ReviewRow label="Product" value={selectedProduct?.displayName ?? '—'} />
-              <ReviewRow label="Sale Date" value={fmtDate(form.saleDate)} />
-              <ReviewRow label="Quantity" value={`${form.quantityUnits} unit${form.quantityUnits !== 1 ? 's' : ''}`} />
-              <ReviewRow label="Payment Mode" value={codeLabel(form.paymentMode)} />
-              {form.paymentMode === 'CREDIT' && <ReviewRow label="Client" value={form.clientName ?? '—'} />}
-              {form.billNo && <ReviewRow label="Bill No" value={form.billNo} />}
-              {form.notes && <ReviewRow label="Notes" value={form.notes} />}
-              <ReviewRow label="Price" value="Resolved from price history" />
+              <ReviewRow label={t('fields.product')} value={selectedProduct?.displayName ?? '—'} />
+              <ReviewRow label={t('backfill.saleDate')} value={fmtDate(form.saleDate)} />
+              <ReviewRow label={t('fields.quantity')} value={t('fields.quantityUnits', { count: form.quantityUnits })} />
+              <ReviewRow label={t('fields.paymentMode')} value={codeLabel(form.paymentMode)} />
+              {form.paymentMode === 'CREDIT' && <ReviewRow label={t('fields.client')} value={form.clientName ?? '—'} />}
+              {form.billNo && <ReviewRow label={t('fields.billNo')} value={form.billNo} />}
+              {form.notes && <ReviewRow label={t('fields.notes')} value={form.notes} />}
+              <ReviewRow label={t('backfill.price')} value={t('backfill.priceFromHistory')} />
             </div>
 
             {error && (

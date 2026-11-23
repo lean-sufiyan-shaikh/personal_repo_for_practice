@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Reveal } from '../../components/Reveal'
 import { useShiftPlanning } from './planning/useShiftPlanning'
 import { WeekNavigator } from './planning/WeekNavigator'
@@ -7,6 +8,7 @@ import { PlanningGrid } from './planning/PlanningGrid'
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function ShiftPlanningPage() {
+  const { t } = useTranslation('shifts')
   const form = useShiftPlanning()
   const { isOwnerOrAdmin, pumpId } = form
 
@@ -14,7 +16,7 @@ export default function ShiftPlanningPage() {
     return (
       <div className="ui-page ui-page--narrow">
         <div className="ui-alert ui-alert-warning text-sm">
-          You are not assigned to any pump. Ask the Owner or Admin to assign you.
+          {t('page.notAssigned')}
         </div>
       </div>
     )
@@ -26,11 +28,11 @@ export default function ShiftPlanningPage() {
       {/* Page title */}
       <Reveal delay={60}>
       <div>
-        <h1 className="ui-title-sm">Shift Planning</h1>
+        <h1 className="ui-title-sm">{t('planning.title')}</h1>
         <p className="ui-subtitle">
           {isOwnerOrAdmin
-            ? 'Plan weekly operator schedules. Published plans pre-fill shift opening.'
-            : 'See who is scheduled for each shift this week.'}
+            ? t('planning.subtitleOwner')
+            : t('planning.subtitleStaff')}
         </p>
       </div>
       </Reveal>
@@ -53,13 +55,13 @@ export default function ShiftPlanningPage() {
           <Reveal delay={270}>
           <div className="flex flex-wrap gap-4 text-xs text-ink-3">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-ink-3 inline-block" /> Planned
+              <span className="w-2 h-2 rounded-full bg-ink-3 inline-block" /> {t('planning.legend.planned')}
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-ok inline-block" /> Confirmed (showed up)
+              <span className="w-2 h-2 rounded-full bg-ok inline-block" /> {t('planning.legend.confirmed')}
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-bad inline-block" /> Absent (didn't show)
+              <span className="w-2 h-2 rounded-full bg-bad inline-block" /> {t('planning.legend.absent')}
             </span>
           </div>
           </Reveal>

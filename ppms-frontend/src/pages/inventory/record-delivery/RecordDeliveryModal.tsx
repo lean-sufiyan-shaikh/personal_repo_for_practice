@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useOnValuesChange } from '../../../hooks/useOnValuesChange'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { inventoryApi } from '../../../api/inventoryApi'
@@ -18,6 +19,7 @@ import { DeliveryRowEditor } from './DeliveryRowEditor'
 import { DeliveryHeaderFields } from './DeliveryHeaderFields'
 import { DeliveryReviewDialog } from './DeliveryReviewDialog'
 import { NumericInput } from '../../../components/NumericInput'
+import { formatNumberIn } from '../../../i18n/format'
 
 export function RecordDeliveryModal({
   pumpId,
@@ -32,6 +34,7 @@ export function RecordDeliveryModal({
   canSetBillTotal: boolean
   onClose: () => void
 }) {
+  const { t } = useTranslation(['inventory', 'common'])
   const queryClient = useQueryClient()
   const { addToast } = useToastStore()
   const defaultTankId = tanks[0]?.tankId ? String(tanks[0].tankId) : ''
@@ -59,11 +62,11 @@ export function RecordDeliveryModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pumpId] })
       queryClient.invalidateQueries({ queryKey: ['deliveries', pumpId] })
-      addToast('Tanker delivery recorded', 'success')
+      addToast(t('recordDelivery.recorded'), 'success')
       onClose()
     },
     onError: (err) =>
-      setError(parseApiError(err, 'Failed to record delivery')),
+      setError(parseApiError(err, t('recordDelivery.failed'))),
   })
 
   const updateRow = (id: number, field: keyof Omit<DeliveryRow, 'id'>, value: string) =>
@@ -103,44 +106,48 @@ export function RecordDeliveryModal({
   const tankerMismatch = selectedTanker !== null && Math.abs(totalEnteredQty - selectedTanker.capacityLitres) > 0.01
 
   const anyTankOverflow = rows.some(r => {
-    const t = tanks.find(tk => tk.tankId === Number(r.tankId))
+    const tank = tanks.find(tk => tk.tankId === Number(r.tankId))
     const q = parseFloat(r.qty) || 0
-    return t && t.capacity > 0 && q > 0 && q > (t.capacity - t.currentStock)
+    return tank && tank.capacity > 0 && q > 0 && q > (tank.capacity - tank.currentStock)
   })
 
   const buildPreparedItems = (): { items: PreparedDeliveryItem[] | null; error: string | null } => {
     if (!date || !invoice.trim()) {
-      return { items: null, error: 'Delivery date and invoice number are required.' }
+      return { items: null, error: t('recordDelivery.dateAndInvoiceRequired') }
     }
 
     for (const r of rows) {
-      if (!r.tankId) return { items: null, error: 'Please select a tank for every row.' }
+      if (!r.tankId) return { items: null, error: t('recordDelivery.selectTankEveryRow') }
       const q = parseFloat(r.qty)
-      if (!r.qty || isNaN(q) || q <= 0) return { items: null, error: 'Quantity must be greater than 0 for every row.' }
-      const rowTank = tanks.find(t => t.tankId === Number(r.tankId))
+      if (!r.qty || isNaN(q) || q <= 0) return { items: null, error: t('recordDelivery.quantityEveryRow') }
+      const rowTank = tanks.find(tk => tk.tankId === Number(r.tankId))
       if (rowTank && rowTank.capacity > 0) {
         const availableSpace = rowTank.capacity - rowTank.currentStock
         if (q > availableSpace) {
           return {
             items: null,
-            error: `${rowTank.tankIdentifier}: quantity (${q.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L) exceeds available space (${availableSpace.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L).`,
+            error: t('recordDelivery.exceedsSpace', {
+              tank: rowTank.tankIdentifier,
+              quantity: formatNumberIn(q, { minimumFractionDigits: 1 }),
+              space: formatNumberIn(availableSpace, { minimumFractionDigits: 1 }),
+            }),
           }
         }
       }
       if (isOwnerOrAdmin) {
         const c = parseFloat(r.costPrice)
-        if (!r.costPrice || isNaN(c) || c <= 0) return { items: null, error: 'Cost per litre must be greater than 0 for every row.' }
+        if (!r.costPrice || isNaN(c) || c <= 0) return { items: null, error: t('recordDelivery.costEveryRow') }
       }
     }
 
     const selectedTankIds = rows.map(r => r.tankId)
     const unique = new Set(selectedTankIds)
     if (unique.size !== selectedTankIds.length) {
-      return { items: null, error: 'The same tank is selected more than once. Each tank can only appear once per delivery.' }
+      return { items: null, error: t('recordDelivery.duplicateTank') }
     }
 
     const preparedItems = rows.map((r) => {
-      const tank = tanks.find(t => t.tankId === Number(r.tankId))
+      const tank = tanks.find(tk => tk.tankId === Number(r.tankId))
       if (!tank) {
         throw new Error('Selected tank not found.')
       }
@@ -176,7 +183,7 @@ export function RecordDeliveryModal({
 
       setReviewOpen(true)
     } catch {
-      setError('One of the selected tanks could not be found. Please review the entries.')
+      setError(t('recordDelivery.tankNotFound'))
       return
     }
   }
@@ -201,20 +208,20 @@ export function RecordDeliveryModal({
         })),
       })
     } catch {
-      setError('One of the selected tanks could not be found. Please review the entries.')
+      setError(t('recordDelivery.tankNotFound'))
     }
   }
 
-  const tankOptions = tanks.map(t => ({
-    value: String(t.tankId),
-    label: `${t.tankIdentifier} — ${t.fuelType} (${t.currentStock.toFixed(0)} L remaining)`,
+  const tankOptions = tanks.map(tank => ({
+    value: String(tank.tankId),
+    label: t('recordDelivery.tankOption', { tank: tank.tankIdentifier, fuel: tank.fuelType, stock: tank.currentStock.toFixed(0) }),
   }))
 
   return (
     <>
     <Modal
-      title="Record Tanker Delivery"
-      subtitle="One tanker · one invoice · multiple tanks"
+      title={t('recordDelivery.title')}
+      subtitle={t('recordDelivery.subtitle')}
       tone="info"
       size="lg"
       onClose={onClose}
@@ -229,13 +236,13 @@ export function RecordDeliveryModal({
                 {isOwnerOrAdmin && grandTotal > 0 && (
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-info font-medium">
-                      Calculated Total ({rows.length} tank{rows.length > 1 ? 's' : ''})
+                      {t('recordDelivery.calculatedTotal', { count: rows.length })}
                     </p>
                     <MoneyText value={grandTotal} className="text-sm font-semibold text-info" />
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <label htmlFor="delivery-bill-total" className="text-xs text-info font-medium shrink-0">Bill Amount (₹)</label>
+                  <label htmlFor="delivery-bill-total" className="text-xs text-info font-medium shrink-0">{t('recordDelivery.billAmount')}</label>
                   <NumericInput id="delivery-bill-total"
                     step="0.01"
                     min="0.01"
@@ -243,19 +250,19 @@ export function RecordDeliveryModal({
                     onChange={e => { setBillTotalStr(limitDecimals(e.target.value, 2)); setBillTotalManual(true) }}
                     onBlur={() => { if (!billTotalText.trim()) setBillTotalManual(false) }}
                     className="ui-input text-sm font-semibold text-ink bg-surface flex-1 min-w-0"
-                    placeholder="Enter actual bill amount"
+                    placeholder={t('recordDelivery.billAmountPlaceholder')}
                   />
                 </div>
                 {!isOwnerOrAdmin && (
-                  <p className="text-xs text-ink-3">Enter the total amount shown on the supplier's invoice.</p>
+                  <p className="text-xs text-ink-3">{t('recordDelivery.supplierInvoiceNote')}</p>
                 )}
                 {isOwnerOrAdmin && billTotalManual && otherCharges !== 0 && (
                   <p className="text-xs text-info">
-                    Other charges:{' '}
+                    {t('recordDelivery.otherCharges')}{' '}
                     <span className={`font-medium ${otherCharges > 0 ? 'text-warn' : 'text-ok'}`}>
-                      {otherCharges > 0 ? '+' : ''}₹{Math.abs(otherCharges).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      {otherCharges > 0 ? '+' : ''}₹{formatNumberIn(Math.abs(otherCharges), { minimumFractionDigits: 2 })}
                     </span>
-                    <span className="text-ink-3"> (freight / taxes / other)</span>
+                    <span className="text-ink-3"> {t('recordDelivery.otherChargesHint')}</span>
                   </p>
                 )}
               </div>
@@ -273,19 +280,19 @@ export function RecordDeliveryModal({
                 onClick={onClose}
                 className="ui-btn ui-btn-secondary flex-1"
               >
-                Cancel
+                {t('common:actions.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={mutation.isPending || tankerMismatch || anyTankOverflow}
                 title={
-                  tankerMismatch ? `Total must equal tanker capacity (${selectedTanker?.capacityLitres.toLocaleString('en-IN')} L)`
-                  : anyTankOverflow ? 'One or more tank quantities exceed available capacity'
+                  tankerMismatch ? t('recordDelivery.mustEqualTanker', { capacity: formatNumberIn(selectedTanker?.capacityLitres ?? 0) })
+                  : anyTankOverflow ? t('recordDelivery.tankOverflow')
                   : undefined
                 }
                 className="ui-btn ui-btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />Recording…</span> : 'Review Delivery'}
+                {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('recordDelivery.recording')}</span> : t('recordDelivery.review')}
               </button>
             </div>
       </>}
@@ -330,7 +337,7 @@ export function RecordDeliveryModal({
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
         </svg>
-        Add another tank
+        {t('recordDelivery.addTank')}
       </button>
 
     </Modal>

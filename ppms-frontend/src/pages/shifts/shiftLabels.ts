@@ -2,24 +2,28 @@ import { formatIstDate, formatIstDateTime, localDateInputValue } from '../../uti
 import type { Shift, ShiftStatus } from '../../types/shift'
 import type { UserRole } from '../../types/auth'
 import { canPerformAction } from '../../permissions/permissions'
+import i18n from '../../i18n'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const STATUS_LABELS: Record<ShiftStatus, string> = {
-  OPEN:                                'Open',
-  OPEN_OVERDUE:                        'Overdue',
-  AUTO_CLOSED_OVERDUE:                 'Auto-closed',
-  CLOSED_BALANCED:                     'Balanced',
-  CLOSED_DISCREPANCY_PENDING:          'Discrepancy',
-  CLOSED_DISCREPANCY_PENDING_APPROVAL: 'Needs Approval',
-  CLOSED_DISCREPANCY_RESOLVED:         'Resolved',
-}
+const STATUS_LABEL_KEYS = {
+  OPEN:                                'labels.status.open',
+  OPEN_OVERDUE:                        'labels.status.overdue',
+  AUTO_CLOSED_OVERDUE:                 'labels.status.autoClosed',
+  CLOSED_BALANCED:                     'labels.status.balanced',
+  CLOSED_DISCREPANCY_PENDING:          'labels.status.discrepancy',
+  CLOSED_DISCREPANCY_PENDING_APPROVAL: 'labels.status.needsApproval',
+  CLOSED_DISCREPANCY_RESOLVED:         'labels.status.resolved',
+} as const satisfies Record<ShiftStatus, string>
 
 export function statusLabel(status: ShiftStatus): string {
-  return STATUS_LABELS[status] ?? status
+  const key = STATUS_LABEL_KEYS[status]
+  return key ? i18n.t(key, { ns: 'shifts' }) : status
 }
 
-export const AWAITING_OWNER_APPROVAL = 'Waiting for owner approval'
+export function awaitingOwnerApprovalLabel(): string {
+  return i18n.t('labels.awaitingOwnerApproval', { ns: 'shifts' })
+}
 
 /**
  * What the signed-in user can do about an unresolved discrepancy: a shortage escalated for approval
@@ -44,9 +48,9 @@ export function labelForDate(d: string): string {
   const todayStr     = localDateInputValue()
   const yesterdayStr = localDateInputValue(-1)
   const dayBeforeStr = localDateInputValue(-2)
-  if (d === todayStr)     return 'Today'
-  if (d === yesterdayStr) return 'Yesterday'
-  if (d === dayBeforeStr) return 'Day Before Yesterday'
+  if (d === todayStr)     return i18n.t('labels.today', { ns: 'shifts' })
+  if (d === yesterdayStr) return i18n.t('labels.yesterday', { ns: 'shifts' })
+  if (d === dayBeforeStr) return i18n.t('labels.dayBeforeYesterday', { ns: 'shifts' })
   return formatIstDate(d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
@@ -54,25 +58,37 @@ export { formatCurrencyOrDash as fmtAmt } from '../../utils/format'
 
 // ── Discrepancies History ─────────────────────────────────────────────────────
 
-export const RESOLUTION_LABELS: Record<string, string> = {
-  PENDING_INVESTIGATION: 'Pending Investigation',
-  SALARY_DEDUCTION:      'Salary Deduction',
-  CASH_RECOVERY:         'Cash Recovery',
-  WAIVED:                'Waived',
+const RESOLUTION_LABEL_KEYS = {
+  PENDING_INVESTIGATION: 'labels.resolution.pendingInvestigation',
+  SALARY_DEDUCTION:      'labels.resolution.salaryDeduction',
+  CASH_RECOVERY:         'labels.resolution.cashRecovery',
+  WAIVED:                'labels.resolution.waived',
+} as const
+
+type ResolutionCode = keyof typeof RESOLUTION_LABEL_KEYS
+
+function isResolutionCode(code: string): code is ResolutionCode {
+  return code in RESOLUTION_LABEL_KEYS
+}
+
+/** The resolution's label, or the code itself when it is not a known resolution. */
+export function resolutionLabel(code: string): string {
+  return isResolutionCode(code) ? i18n.t(RESOLUTION_LABEL_KEYS[code], { ns: 'shifts' }) : code
 }
 
 /** "Under investigation by … since …" while a pending discrepancy is being investigated, otherwise null. */
 export function investigationLabel(shift: Shift): string | null {
   const isPending = shift.status === 'CLOSED_DISCREPANCY_PENDING' || shift.status === 'CLOSED_DISCREPANCY_PENDING_APPROVAL'
   if (!isPending || !shift.investigationStartedAt) return null
-  return `Under investigation by ${shift.investigatedByName ?? 'unknown user'} since ${formatIstDateTime(shift.investigationStartedAt)}`
+  return i18n.t('labels.underInvestigation', {
+    ns: 'shifts',
+    name: shift.investigatedByName ?? i18n.t('labels.unknownUser', { ns: 'shifts' }),
+    since: formatIstDateTime(shift.investigationStartedAt),
+  })
 }
 
 // ── Resolve Discrepancy Modal ─────────────────────────────────────────────────
 
-export const RESOLUTION_OPTIONS = [
-  { value: 'PENDING_INVESTIGATION', label: 'Pending Investigation' },
-  { value: 'SALARY_DEDUCTION',      label: 'Salary Deduction' },
-  { value: 'CASH_RECOVERY',         label: 'Cash Recovery' },
-  { value: 'WAIVED',                label: 'Waived' },
-]
+export function resolutionChoices(): { value: ResolutionCode; label: string }[] {
+  return (Object.keys(RESOLUTION_LABEL_KEYS) as ResolutionCode[]).map((value) => ({ value, label: resolutionLabel(value) }))
+}

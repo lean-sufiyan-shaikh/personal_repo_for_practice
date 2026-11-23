@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useMutation } from '@tanstack/react-query'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import type { AncillaryProduct, RecordStockDeliveryRequest } from '../../api/ancillaryApi'
@@ -20,6 +21,7 @@ export function StockInDialog({
   onClose: () => void
   onSuccess: () => void
 }) {
+  const { t } = useTranslation(['ancillary', 'common'])
   const { addToast } = useToastStore()
   const today = localDateInputValue()
   const [step, setStep] = useState<'form' | 'review'>('form')
@@ -36,11 +38,11 @@ export function StockInDialog({
     mutationFn: (data: { productId: number; req: RecordStockDeliveryRequest }) =>
       ancillaryApi.recordDelivery(pumpId, data.productId, data.req),
     onSuccess: () => {
-      addToast('Stock delivery recorded successfully', 'success')
+      addToast(t('stockIn.recorded'), 'success')
       onSuccess()
     },
     onError: (err) => {
-      const msg = parseApiError(err, 'Failed to record delivery')
+      const msg = parseApiError(err, t('stockIn.recordFailed'))
       setError(msg)
       addToast(msg, 'error')
     },
@@ -52,10 +54,10 @@ export function StockInDialog({
     : null
 
   const validate = () => {
-    if (!form.productId) return 'Select a product'
-    if (!form.quantityUnits || form.quantityUnits < 1) return 'Quantity must be at least 1'
-    if (!form.costPricePerUnit || form.costPricePerUnit <= 0) return 'Enter a valid cost price'
-    if (!form.deliveryDate) return 'Delivery date is required'
+    if (!form.productId) return t('validation.selectProduct')
+    if (!form.quantityUnits || form.quantityUnits < 1) return t('validation.quantityMin')
+    if (!form.costPricePerUnit || form.costPricePerUnit <= 0) return t('stockIn.costInvalid')
+    if (!form.deliveryDate) return t('stockIn.dateMissing')
     return null
   }
 
@@ -88,10 +90,10 @@ export function StockInDialog({
 
   return (
     <Modal
-      title={step === 'form' ? 'Record Stock Delivery' : 'Review Stock Delivery'}
+      title={step === 'form' ? t('stockIn.title') : t('stockIn.reviewTitle')}
       subtitle={step === 'form'
-                ? 'Capture incoming stock with cost and bill details.'
-                : 'Review the stock delivery before submitting it.'}
+                ? t('stockIn.subtitle')
+                : t('stockIn.reviewSubtitle')}
       tone="info"
       onClose={onClose}
       closeOnBackdropClick
@@ -100,10 +102,10 @@ export function StockInDialog({
           {step === 'form' ? (
             <>
               <button onClick={onClose} className="ui-btn ui-btn-secondary">
-                Cancel
+                {t('common:actions.cancel')}
               </button>
               <button onClick={handleReview} className="ui-btn ui-btn-primary">
-                Review
+                {t('actions.review')}
               </button>
             </>
           ) : (
@@ -112,14 +114,14 @@ export function StockInDialog({
                 onClick={() => { setStep('form'); setError(null) }}
                 className="ui-btn ui-btn-secondary"
               >
-                Back
+                {t('actions.back')}
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={deliveryMutation.isPending}
                 className="ui-btn ui-btn-primary"
               >
-                {deliveryMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />Recording…</span> : 'Confirm Delivery'}
+                {deliveryMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('actions.recording')}</span> : t('stockIn.confirm')}
               </button>
             </>
           )}
@@ -129,21 +131,21 @@ export function StockInDialog({
         {step === 'form' && (
           <>
             {error && (
-              <div role="alert" className="ui-alert ui-alert-danger text-sm">{error} Go back to modify the data and try again.</div>
+              <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('actions.goBack', { error })}</div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
-                <span className="ui-label">Product *</span>
-                <SearchableSelect label="Product"
+                <span className="ui-label">{t('fields.productRequired')}</span>
+                <SearchableSelect label={t('fields.product')}
                   value={form.productId ? form.productId.toString() : ''}
                   onChange={v => setForm(f => ({ ...f, productId: v ? parseInt(v) : '' }))}
-                  placeholder="Select product…"
-                  options={products.map(p => ({ value: p.id.toString(), label: `${p.displayName} (stock: ${p.currentStockUnits})` }))}
+                  placeholder={t('fields.selectProduct')}
+                  options={products.map(p => ({ value: p.id.toString(), label: t('fields.productOption', { name: p.displayName, stock: p.currentStockUnits }) }))}
                 />
               </div>
               <div>
                 <label className="block">
-                  <span className="ui-label">Quantity (units) *</span>
+                  <span className="ui-label">{t('fields.quantityRequired')}</span>
                   <input
                     type="number"
                     min="1"
@@ -156,7 +158,7 @@ export function StockInDialog({
               </div>
               <div>
                 <label className="block">
-                  <span className="ui-label">Cost Price per Unit (₹) *</span>
+                  <span className="ui-label">{t('stockIn.costPriceRequired')}</span>
                   <input
                     type="number"
                     min="0.01"
@@ -170,7 +172,7 @@ export function StockInDialog({
               </div>
               <div>
                 <label className="block">
-                  <span className="ui-label">Delivery Date *</span>
+                  <span className="ui-label">{t('stockIn.deliveryDateRequired')}</span>
                   <input
                     type="date"
                     className="text-sm"
@@ -181,12 +183,12 @@ export function StockInDialog({
               </div>
               <div>
                 <label className="block">
-                  <span className="ui-label">Invoice Reference</span>
+                  <span className="ui-label">{t('stockIn.invoiceReference')}</span>
                   <input
                     className="text-sm"
                     value={form.invoiceReference ?? ''}
                     onChange={e => setForm(f => ({ ...f, invoiceReference: e.target.value }))}
-                    placeholder="Optional"
+                    placeholder={t('fields.optional')}
                   />
                 </label>
               </div>
@@ -194,7 +196,7 @@ export function StockInDialog({
 
             {totalCost != null && (
               <div className="bg-info-bg border border-border rounded-control px-4 py-3 flex items-center justify-between">
-                <span className="text-sm text-info">Estimated Total</span>
+                <span className="text-sm text-info">{t('stockIn.estimatedTotal')}</span>
                 <MoneyText value={totalCost} className="text-sm font-semibold text-info" />
               </div>
             )}
@@ -204,15 +206,15 @@ export function StockInDialog({
         {step === 'review' && (
           <>
             {error && (
-              <div role="alert" className="ui-alert ui-alert-danger text-sm">{error} Go back to modify the data and try again.</div>
+              <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('actions.goBack', { error })}</div>
             )}
             <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
-              <ReviewRow label="Product" value={selectedProduct?.displayName ?? '—'} />
-              <ReviewRow label="Quantity" value={`${form.quantityUnits} unit${form.quantityUnits !== 1 ? 's' : ''}`} />
-              <ReviewRow label="Cost Price / Unit" value={fmtCurrency(form.costPricePerUnit)} />
-              <ReviewRow label="Delivery Date" value={fmtDate(form.deliveryDate)} />
-              <ReviewRow label="Invoice Reference" value={form.invoiceReference?.trim() || '—'} />
-              <ReviewRow label="Total Cost" value={fmtCurrency(totalCost)} highlight />
+              <ReviewRow label={t('fields.product')} value={selectedProduct?.displayName ?? '—'} />
+              <ReviewRow label={t('fields.quantity')} value={t('fields.quantityUnits', { count: form.quantityUnits })} />
+              <ReviewRow label={t('stockIn.costPricePerUnit')} value={fmtCurrency(form.costPricePerUnit)} />
+              <ReviewRow label={t('stockIn.deliveryDate')} value={fmtDate(form.deliveryDate)} />
+              <ReviewRow label={t('stockIn.invoiceReference')} value={form.invoiceReference?.trim() || '—'} />
+              <ReviewRow label={t('stockIn.totalCost')} value={fmtCurrency(totalCost)} highlight />
             </div>
           </>
         )}

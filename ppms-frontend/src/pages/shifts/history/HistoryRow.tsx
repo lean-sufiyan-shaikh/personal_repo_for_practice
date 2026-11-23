@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { History, Printer } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../../store/authStore'
 import type { Shift } from '../../../types/shift'
 import { IconButton } from '../../../components/IconButton'
 import { CreditEntriesModal } from '../modals/CreditEntriesModal'
 import { HandoverModal } from '../modals/HandoverModal'
 import { ResolveDiscrepancyModal } from '../modals/ResolveDiscrepancyModal'
-import { AWAITING_OWNER_APPROVAL, discrepancyAction, fmtAmt, investigationLabel } from '../shiftLabels'
+import { awaitingOwnerApprovalLabel, discrepancyAction, fmtAmt, investigationLabel } from '../shiftLabels'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { shiftStatusBadge } from '../../../components/statusBadges'
 import { MoneyText } from '../../../components/AmountText'
@@ -17,6 +18,7 @@ import { codeLabel } from '../../../constants/labels'
 // Credit amount is clickable — opens a popup modal listing all client credit entries.
 
 export function HistoryRow({ shift }: { shift: Shift }) {
+  const { t } = useTranslation(['shifts', 'common'])
   const { user } = useAuthStore()
 
   const resolveAction = discrepancyAction(shift, user?.role)
@@ -59,7 +61,7 @@ export function HistoryRow({ shift }: { shift: Shift }) {
         <td className="px-5 py-3">
           <div className="flex flex-wrap items-center gap-1">
             <StatusBadge {...shiftStatusBadge(shift.status)} />
-            {shift.isBackfilled && <StatusBadge tone="neutral" icon={History} label="Backfilled" />}
+            {shift.isBackfilled && <StatusBadge tone="neutral" icon={History} label={t('history.backfilled')} />}
           </div>
         </td>
         <td className="px-5 py-3 hidden md:table-cell">
@@ -67,7 +69,7 @@ export function HistoryRow({ shift }: { shift: Shift }) {
             <span className={`text-xs font-semibold tabular-nums ${
               shift.discrepancyType === 'SHORT' ? 'text-bad' : 'text-warn'
             }`}>
-              {shift.discrepancyType} {fmtAmt(shift.discrepancyAmount)}
+              {shift.discrepancyType === 'SHORT' ? t('common:badges.short') : shift.discrepancyType === 'OVER' ? t('common:badges.over') : shift.discrepancyType} {fmtAmt(shift.discrepancyAmount)}
             </span>
           ) : (
             <span className="text-xs text-ink-3">—</span>
@@ -77,16 +79,16 @@ export function HistoryRow({ shift }: { shift: Shift }) {
           <div className="flex items-center justify-end gap-2">
             {resolveAction === 'resolve' && (
               <button onClick={() => setResolveModalOpen(true)} className="ui-btn ui-btn-danger min-h-0 px-3 py-1.5 text-xs">
-                Resolve
+                {t('history.resolve')}
               </button>
             )}
             {resolveAction === 'approve' && (
               <button onClick={() => setResolveModalOpen(true)} className="ui-btn ui-btn-warning min-h-0 px-3 py-1.5 text-xs">
-                Approve
+                {t('history.approve')}
               </button>
             )}
             {resolveAction === 'awaiting-owner' && (
-              <span className="text-xs text-warn font-medium">{AWAITING_OWNER_APPROVAL}</span>
+              <span className="text-xs text-warn font-medium">{awaitingOwnerApprovalLabel()}</span>
             )}
             {shift.discrepancyResolution && (
               <span className="text-xs text-ink-3">{codeLabel(shift.discrepancyResolution)}</span>
@@ -98,7 +100,7 @@ export function HistoryRow({ shift }: { shift: Shift }) {
               <IconButton
                 onClick={() => setHandoverOpen(true)}
                 className="text-ink-3 hover:text-ink-2 transition-colors"
-                label="Print handover report"
+                label={t('history.printHandover')}
                 icon={<Printer size={14} strokeWidth={2} />}
               />
             )}
@@ -115,23 +117,23 @@ export function HistoryRow({ shift }: { shift: Shift }) {
               {/* Cash */}
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-ok shrink-0" />
-                <span className="text-ink-3">Cash</span>
+                <span className="text-ink-3">{t('history.payment.cash')}</span>
                 <MoneyText value={shift.cashCollected} className="font-semibold text-ink" />
               </div>
 
               {/* UPI + Card */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="w-2 h-2 rounded-full bg-info shrink-0" />
-                <span className="text-ink-3">UPI + Card</span>
+                <span className="text-ink-3">{t('history.payment.upiCard')}</span>
                 <MoneyText value={digitalTotal > 0 ? digitalTotal : null} className="font-semibold text-ink" />
                 {(shift.upiCollected ?? 0) > 0 && (
                   <span className="text-ink-3 bg-info-bg px-1.5 py-0.5 rounded-control tabular-nums">
-                    UPI {fmtAmt(shift.upiCollected)}
+                    {t('history.payment.upiAmount', { amount: fmtAmt(shift.upiCollected) })}
                   </span>
                 )}
                 {(shift.cardCollected ?? 0) > 0 && (
                   <span className="text-ink-3 bg-info-bg px-1.5 py-0.5 rounded-control tabular-nums">
-                    Card {fmtAmt(shift.cardCollected)}
+                    {t('history.payment.cardAmount', { amount: fmtAmt(shift.cardCollected) })}
                   </span>
                 )}
               </div>
@@ -139,18 +141,18 @@ export function HistoryRow({ shift }: { shift: Shift }) {
               {/* Credit — clickable pill that opens the modal */}
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-warn shrink-0" />
-                <span className="text-ink-3">Credit</span>
+                <span className="text-ink-3">{t('history.payment.credit')}</span>
                 {creditAmt > 0 ? (
                   hasCreditEntries ? (
                     <button
                       type="button"
                       onClick={() => setCreditModalOpen(true)}
                       className="flex items-center gap-1.5 font-semibold px-2 py-0.5 rounded-control bg-warn-bg text-warn hover:text-warn-strong transition-colors tabular-nums"
-                      title="Click to view credit details"
+                      title={t('history.payment.viewCredit')}
                     >
                       {fmtAmt(creditAmt)}
                       <span className="text-warn text-xs">
-                        · {shift.creditEntries.length} client{shift.creditEntries.length !== 1 ? 's' : ''} ↗
+                        · {t('history.payment.clientCount', { count: shift.creditEntries.length })} ↗
                       </span>
                     </button>
                   ) : (

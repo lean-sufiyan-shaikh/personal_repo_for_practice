@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Plus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { pumpApi } from '../../api/pumpApi'
 import { usePumpStore } from '../../store/usePumpStore'
 import { inventoryApi } from '../../api/inventoryApi'
@@ -18,6 +19,7 @@ import { DipHistory } from './DipHistory'
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function InventoryPage() {
+  const { t } = useTranslation('inventory')
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const canViewFinancials = isOwnerOrAdmin || user?.role === 'MANAGER'
@@ -80,7 +82,7 @@ export default function InventoryPage() {
     return (
       <div className="p-6">
         <div className="bg-warn-bg border border-warn rounded-card p-4 text-warn text-sm">
-          You are not assigned to any pump. Ask the Owner or Admin to assign you.
+          {t('page.notAssigned')}
         </div>
       </div>
     )
@@ -93,19 +95,19 @@ export default function InventoryPage() {
     <div className="ui-page ui-page--narrow space-y-5">
       <div className="ui-section-hero">
         <div>
-          <p className="ui-section-kicker">Stock control</p>
-          <h1 className="ui-title-sm">Inventory</h1>
+          <p className="ui-section-kicker">{t('page.kicker')}</p>
+          <h1 className="ui-title-sm">{t('page.title')}</h1>
           <p className="ui-subtitle">
-            Tank stock levels, tanker deliveries, and DIP checks.
+            {t('page.subtitle')}
           </p>
         </div>
         <div className="ui-section-meta">
           <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">Low stock</span>
+            <span className="ui-section-meta-label">{t('page.lowStock')}</span>
             <span className="ui-section-meta-value">{lowStockTanks.length}</span>
           </div>
           <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">DIP overdue</span>
+            <span className="ui-section-meta-label">{t('page.dipOverdue')}</span>
             <span className="ui-section-meta-value">{dipOverdueTanks.length}</span>
           </div>
         </div>
@@ -113,7 +115,7 @@ export default function InventoryPage() {
 
       {!pumpId ? (
         <div className="ui-empty">
-          No pump selected. Use the pump selector in the top navigation bar.
+          {t('page.noPump')}
         </div>
       ) : (
         <>
@@ -128,7 +130,7 @@ export default function InventoryPage() {
                 onClick={() => setStockOpen(v => !v)}
                 className="flex items-center gap-2 text-left hover:opacity-70 transition-opacity"
               >
-                <span className="ui-toolbar-title mr-0">Current Stock Levels</span>
+                <span className="ui-toolbar-title mr-0">{t('page.currentStock')}</span>
                 {selectedPump && (
                   <span className="text-xs text-ink-3">{selectedPump.name}</span>
                 )}
@@ -139,17 +141,17 @@ export default function InventoryPage() {
                 className="ui-btn ui-btn-primary shrink-0 ml-auto inline-flex items-center gap-1.5"
               >
                 <Plus size={14} strokeWidth={2.5} />
-                Record Delivery
+                {t('page.recordDelivery')}
               </button>
             </div>
 
             {stockOpen && (
               <div className="ui-accordion-content border-t border-border">
                 {tanksLoading ? (
-                  <div className="p-6 text-sm text-ink-3">Loading stock levels...</div>
+                  <div className="p-6 text-sm text-ink-3">{t('page.loadingStock')}</div>
                 ) : tanks.length === 0 ? (
                   <div className="p-6 text-sm text-ink-3">
-                    No tanks configured. Add nozzles in Setup to auto-create tanks.
+                    {t('page.noTanks')}
                   </div>
                 ) : (
                   <div className="divide-y divide-border">

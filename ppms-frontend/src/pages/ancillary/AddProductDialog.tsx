@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useMutation } from '@tanstack/react-query'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import type { CreateProductRequest, UnitOfMeasure } from '../../api/ancillaryApi'
@@ -18,6 +19,7 @@ export function AddProductDialog({
   onClose: () => void
   onSuccess: () => void
 }) {
+  const { t } = useTranslation(['ancillary', 'common'])
   const { addToast } = useToastStore()
   const [step, setStep] = useState<'form' | 'review'>('form')
   const [form, setForm] = useState<CreateProductRequest>({
@@ -29,11 +31,11 @@ export function AddProductDialog({
   const createMutation = useMutation({
     mutationFn: (data: CreateProductRequest) => ancillaryApi.createProduct(pumpId, data),
     onSuccess: () => {
-      addToast('Product created successfully', 'success')
+      addToast(t('addProduct.created'), 'success')
       onSuccess()
     },
     onError: (err) => {
-      const msg = parseApiError(err, 'Failed to create product')
+      const msg = parseApiError(err, t('addProduct.createFailed'))
       setError(msg)
       addToast(msg, 'error')
     },
@@ -46,9 +48,9 @@ export function AddProductDialog({
   const normalizedHsnCode = form.hsnCode?.trim() || undefined
 
   const validate = () => {
-    if (!normalizedName) return 'Product name is required'
-    if (!form.packageSize || form.packageSize <= 0) return 'Package size must be greater than 0'
-    if (!isValidHsnCode(form.hsnCode ?? '')) return 'HSN code must be 4 to 8 digits'
+    if (!normalizedName) return t('addProduct.nameMissing')
+    if (!form.packageSize || form.packageSize <= 0) return t('addProduct.packageSizePositive')
+    if (!isValidHsnCode(form.hsnCode ?? '')) return t('validation.hsnInvalid')
     return null
   }
 
@@ -81,10 +83,10 @@ export function AddProductDialog({
 
   return (
     <Modal
-      title={step === 'form' ? 'Add Product' : 'Review Product'}
+      title={step === 'form' ? t('addProduct.title') : t('addProduct.reviewTitle')}
       subtitle={step === 'form'
-        ? 'Create a new counter product with stock alert settings.'
-        : 'Review the product details before creating it.'}
+        ? t('addProduct.subtitle')
+        : t('addProduct.reviewSubtitle')}
       tone="info"
       onClose={onClose}
       closeOnBackdropClick
@@ -93,10 +95,10 @@ export function AddProductDialog({
           {step === 'form' ? (
             <>
               <button onClick={onClose} className="ui-btn ui-btn-secondary">
-                Cancel
+                {t('common:actions.cancel')}
               </button>
               <button onClick={handleReview} className="ui-btn ui-btn-primary">
-                Review
+                {t('actions.review')}
               </button>
             </>
           ) : (
@@ -105,7 +107,7 @@ export function AddProductDialog({
                 onClick={() => { setStep('form'); setError(null) }}
                 className="ui-btn ui-btn-secondary"
               >
-                Back
+                {t('actions.back')}
               </button>
               <button
                 onClick={handleCreate}
@@ -113,8 +115,8 @@ export function AddProductDialog({
                 className="ui-btn ui-btn-primary"
               >
                 {createMutation.isPending
-                  ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Creating…</span>
-                  : 'Create Product'}
+                  ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('addProduct.creating')}</span>
+                  : t('addProduct.create')}
               </button>
             </>
           )}
@@ -124,47 +126,47 @@ export function AddProductDialog({
         {step === 'form' && (
           <>
             {error && (
-              <div role="alert" className="ui-alert ui-alert-danger text-sm">{error} Go back to modify the data and try again.</div>
+              <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('actions.goBack', { error })}</div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block">
-                  <span className="ui-label">Product Name *</span>
+                  <span className="ui-label">{t('addProduct.nameRequired')}</span>
                   <input
                     className="text-sm"
                     value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder="e.g. Engine Oil"
+                    placeholder={t('addProduct.namePlaceholder')}
                     data-autofocus
                   />
                 </label>
               </div>
               <div>
                 <label className="block">
-                  <span className="ui-label">Brand</span>
+                  <span className="ui-label">{t('addProduct.brand')}</span>
                   <input
                     className="text-sm"
                     value={form.brand ?? ''}
                     onChange={e => setForm(f => ({ ...f, brand: e.target.value }))}
-                    placeholder="e.g. Castrol"
+                    placeholder={t('addProduct.brandPlaceholder')}
                   />
                 </label>
               </div>
               <div>
                 <label className="block">
-                  <span className="ui-label">Variant</span>
+                  <span className="ui-label">{t('addProduct.variant')}</span>
                   <input
                     className="text-sm"
                     value={form.variant ?? ''}
                     onChange={e => setForm(f => ({ ...f, variant: e.target.value }))}
-                    placeholder="e.g. GTX 10W-40"
+                    placeholder={t('addProduct.variantPlaceholder')}
                   />
                 </label>
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="block">
-                    <span className="ui-label">Package Size *</span>
+                    <span className="ui-label">{t('addProduct.packageSizeRequired')}</span>
                     <input
                       type="number"
                       min="0.01"
@@ -176,37 +178,37 @@ export function AddProductDialog({
                   </label>
                 </div>
                 <div className="w-[132px]">
-                  <span className="ui-label">Unit *</span>
-                  <SearchableSelect label="Unit"
+                  <span className="ui-label">{t('addProduct.unitRequired')}</span>
+                  <SearchableSelect label={t('addProduct.unit')}
                     value={form.unitOfMeasure}
                     onChange={v => setForm(f => ({ ...f, unitOfMeasure: v as UnitOfMeasure }))}
-                    options={UNITS.map(u => ({ value: u, label: u }))}
+                    options={UNITS.map(u => ({ value: u, label: t(`units.${u}`) }))}
                   />
                 </div>
               </div>
               <div>
                 <label className="block">
-                  <span className="ui-label">HSN Code</span>
+                  <span className="ui-label">{t('fields.hsnCode')}</span>
                   <input
                     className="text-sm"
                     inputMode="numeric"
                     maxLength={8}
                     value={form.hsnCode ?? ''}
                     onChange={e => setForm(f => ({ ...f, hsnCode: e.target.value.replace(/\D/g, '') }))}
-                    placeholder="e.g. 27101980 — printed on invoices"
+                    placeholder={t('addProduct.hsnPlaceholder')}
                   />
                 </label>
               </div>
               <div>
                 <label className="block">
-                  <span className="ui-label">Low Stock Alert (units)</span>
+                  <span className="ui-label">{t('addProduct.lowStockUnits')}</span>
                   <input
                     type="number"
                     min="0"
                     className="text-sm"
                     value={form.lowStockThreshold ?? ''}
                     onChange={e => setForm(f => ({ ...f, lowStockThreshold: e.target.value ? parseInt(e.target.value) : undefined }))}
-                    placeholder="Leave blank to disable"
+                    placeholder={t('addProduct.lowStockPlaceholder')}
                   />
                 </label>
               </div>
@@ -220,13 +222,13 @@ export function AddProductDialog({
               <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
             <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
-              <ReviewRow label="Product Name" value={normalizedName} />
-              <ReviewRow label="Brand" value={normalizedBrand ?? '—'} />
-              <ReviewRow label="Variant" value={normalizedVariant ?? '—'} />
-              <ReviewRow label="Package Size" value={String(form.packageSize)} />
-              <ReviewRow label="Unit" value={form.unitOfMeasure} />
-              <ReviewRow label="HSN Code" value={normalizedHsnCode ?? '—'} />
-              <ReviewRow label="Low Stock Alert" value={normalizedThreshold != null ? `${normalizedThreshold} units` : 'Disabled'} />
+              <ReviewRow label={t('addProduct.name')} value={normalizedName} />
+              <ReviewRow label={t('addProduct.brand')} value={normalizedBrand ?? '—'} />
+              <ReviewRow label={t('addProduct.variant')} value={normalizedVariant ?? '—'} />
+              <ReviewRow label={t('addProduct.packageSize')} value={String(form.packageSize)} />
+              <ReviewRow label={t('addProduct.unit')} value={t(`units.${form.unitOfMeasure}`)} />
+              <ReviewRow label={t('fields.hsnCode')} value={normalizedHsnCode ?? '—'} />
+              <ReviewRow label={t('addProduct.lowStock')} value={normalizedThreshold != null ? t('addProduct.lowStockValue', { value: normalizedThreshold }) : t('addProduct.lowStockDisabled')} />
             </div>
           </>
         )}

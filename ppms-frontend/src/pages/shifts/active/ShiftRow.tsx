@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { Shift } from '../../../types/shift'
 import { formatIstDateTime } from '../../../utils/date'
 import { StatusBadge } from '../../../components/StatusBadge'
@@ -10,6 +11,7 @@ import { codeLabel } from '../../../constants/labels'
 export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
   shift: Shift; onClose?: () => void; onHandOver?: () => void; onAddCredit: () => void
 }) {
+  const { t } = useTranslation('shifts')
   const startTime = formatIstDateTime(shift.actualStartTime, { hour: '2-digit', minute: '2-digit' })
   const fuelAbbr: Record<string, string> = {
     PETROL: 'P', SPEED_PETROL: 'SP', DIESEL: 'D', SPEED_DIESEL: 'SD', CNG: 'CNG',
@@ -29,7 +31,7 @@ export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
       <td className="px-6 py-3 text-ink-2">
         {shift.operatorName}
         <span className="block md:hidden text-xs text-ink-3">
-          {[shift.shiftWindow, `Started ${startTime}`, prices].filter(Boolean).join(' · ')}
+          {[shift.shiftWindow, t('active.startedTime', { time: startTime }), prices].filter(Boolean).join(' · ')}
         </span>
       </td>
       <td className="px-6 py-3 text-ink-3 hidden md:table-cell">{shift.shiftWindow}</td>
@@ -45,14 +47,14 @@ export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
             className="ui-btn ui-btn-secondary ui-btn-compact"
           >
             <Plus size={12} strokeWidth={2.5} />
-            <span>Credit</span>
+            <span>{t('active.credit')}</span>
           </button>
           {onHandOver && shift.status === 'OPEN' && (
             <button
               onClick={onHandOver}
               className="ui-btn ui-btn-secondary ui-btn-compact"
             >
-              Hand over
+              {t('active.handOver')}
             </button>
           )}
           {onClose && (
@@ -60,7 +62,7 @@ export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
               onClick={onClose}
               className="ui-btn ui-btn-primary ui-btn-compact"
             >
-              Close
+              {t('active.close')}
             </button>
           )}
         </div>

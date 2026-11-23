@@ -1,1 +1,73 @@
-{}
+{
+  "page": {
+    "kicker": "नियम पालन",
+    "title": "नोज़ल कैलिब्रेशन",
+    "subtitle": "नियमों के लिए समय-समय पर होने वाली कैलिब्रेशन जाँच दर्ज करें",
+    "nozzles": "नोज़ल",
+    "history": "इतिहास",
+    "loadFailed": "कैलिब्रेशन डेटा लोड नहीं हो सका। अपना कनेक्शन जाँचें और पेज रीफ़्रेश करें।"
+  },
+  "nozzleOption": "नोज़ल #{{number}} — {{fuel}}",
+  "form": {
+    "kicker": "कैलिब्रेशन एंट्री",
+    "title": "कैलिब्रेशन दर्ज करें",
+    "subtitle": "रिकॉर्ड के लिए कैलिब्रेशन की तारीख, तकनीशियन, सर्टिफ़िकेट और अगली तारीख डालें।",
+    "nozzle": "नोज़ल",
+    "nozzlePlaceholder": "नोज़ल चुनें…",
+    "calibrationDate": "कैलिब्रेशन की तारीख",
+    "nextDueRequired": "अगला कैलिब्रेशन कब *",
+    "calibratedByRequired": "किसने कैलिब्रेशन किया *",
+    "calibratedByPlaceholder": "तकनीशियन या एजेंसी का नाम",
+    "certificateRequired": "सर्टिफ़िकेट नंबर *",
+    "certificatePlaceholder": "जाँच सर्टिफ़िकेट नंबर",
+    "notesOptional": "नोट (वैकल्पिक)",
+    "notesPlaceholder": "और कोई बात",
+    "saving": "सेव हो रहा है…",
+    "review": "कैलिब्रेशन जाँचें"
+  },
+  "validation": {
+    "selectNozzle": "कृपया नोज़ल चुनें",
+    "calibratedByRequired": "कैलिब्रेशन किसने किया, यह भरें",
+    "dateRequired": "कैलिब्रेशन की तारीख भरें",
+    "nextDueRequired": "अगले कैलिब्रेशन की तारीख भरें",
+    "nextDueAfterDate": "अगले कैलिब्रेशन की तारीख, कैलिब्रेशन की तारीख के बाद होनी चाहिए",
+    "certificateRequired": "सर्टिफ़िकेट नंबर भरें"
+  },
+  "toast": {
+    "recorded": "कैलिब्रेशन दर्ज हो गया",
+    "recordFailed": "कैलिब्रेशन दर्ज नहीं हो सका"
+  },
+  "review": {
+    "title": "कैलिब्रेशन जाँचें",
+    "subtitle": "सेव करने से पहले नोज़ल और कैलिब्रेशन की जानकारी जाँच लें।",
+    "back": "पीछे",
+    "confirm": "कैलिब्रेशन पक्का करें",
+    "goBack": "पीछे जाकर जानकारी ठीक करें और फिर से कोशिश करें।",
+    "nozzle": "नोज़ल",
+    "calibrationDate": "कैलिब्रेशन की तारीख",
+    "nextDue": "अगला कैलिब्रेशन कब",
+    "calibratedBy": "किसने कैलिब्रेशन किया",
+    "certificate": "सर्टिफ़िकेट नंबर",
+    "notes": "नोट"
+  },
+  "history": {
+    "title": "कैलिब्रेशन इतिहास",
+    "allNozzlesSuffix": "— सभी नोज़ल",
+    "nozzleSuffix": "— नोज़ल #{{number}} ({{fuel}})",
+    "from": "से",
+    "to": "तक",
+    "filterLabel": "नोज़ल से छाँटें",
+    "filterPlaceholder": "नोज़ल से छाँटें…",
+    "allNozzles": "सभी नोज़ल",
+    "emptyTitle": "कोई कैलिब्रेशन रिकॉर्ड नहीं",
+    "emptyRange": "चुनी गई तारीखों में कोई रिकॉर्ड नहीं है।",
+    "emptyNozzle": "इस नोज़ल का अभी कोई कैलिब्रेशन रिकॉर्ड नहीं है।",
+    "emptyFirst": "पहला कैलिब्रेशन दर्ज करने के लिए ऊपर का फ़ॉर्म भरें।",
+    "nozzleNumber": "नोज़ल #{{number}}",
+    "nextDue": "अगली तारीख: {{date}}",
+    "by": "किसने: {{name}}",
+    "cert": "सर्टिफ़िकेट: {{reference}}",
+    "loggedBy": "दर्ज करने वाले: {{name}}",
+    "loggedAt": "दर्ज किया: {{time}}"
+  }
+}

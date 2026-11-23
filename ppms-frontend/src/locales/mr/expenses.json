@@ -1,1 +1,77 @@
-{}
+{
+  "page": {
+    "title": "खर्च हिशोब",
+    "noPump": "कोणताही पंप निवडलेला नाही. वरच्या पट्टीत पंप निवडा, किंवा मालक किंवा ॲडमिनला तुम्हाला पंपावर जोडायला सांगा.",
+    "kicker": "खर्चाचा हिशोब",
+    "subtitle": "पंपावरील रोजचे खर्च नोंदवा आणि पाहा",
+    "records": "नोंदी",
+    "pending": "प्रलंबित",
+    "approvedTotal": "मंजूर एकूण",
+    "totalRecords": "एकूण नोंदी",
+    "pendingApproval": "मंजुरी प्रलंबित"
+  },
+  "form": {
+    "kicker": "खर्च नोंद",
+    "title": "खर्च नोंदवा",
+    "subtitle": "तपासणीपूर्वी प्रकार, रक्कम, तारीख आणि तपशील भरा.",
+    "category": "प्रकार",
+    "amountRupees": "रक्कम (₹)",
+    "amount": "रक्कम",
+    "description": "तपशील",
+    "descriptionPlaceholder": "उदा. XYZ कडून पंपाची सर्व्हिसिंग",
+    "expenseDate": "खर्चाची तारीख",
+    "saveDraft": "मसुदा म्हणून सेव्ह करा — मंजुरीसाठी नंतर पाठवा",
+    "saving": "सेव्ह होत आहे…",
+    "review": "खर्च तपासा",
+    "recorded": "खर्च नोंदवला",
+    "recordFailed": "खर्च नोंदवता आला नाही",
+    "descriptionRequired": "तपशील लिहिणे आवश्यक आहे",
+    "amountPositive": "रक्कम शून्यापेक्षा जास्त असावी"
+  },
+  "review": {
+    "title": "खर्च तपासा",
+    "subtitle": "सेव्ह करण्यापूर्वी खर्चाचा तपशील तपासा.",
+    "back": "मागे",
+    "add": "खर्च जोडा",
+    "goBack": "{{error}} मागे जाऊन माहिती दुरुस्त करा आणि पुन्हा प्रयत्न करा."
+  },
+  "list": {
+    "title": "सर्व खर्च",
+    "filterByCategory": "प्रकारानुसार निवडा",
+    "allCategories": "सर्व प्रकार",
+    "filterByStatus": "स्थितीनुसार निवडा",
+    "allStatuses": "सर्व स्थिती",
+    "statusDraft": "मसुदा",
+    "statusPendingApproval": "मंजुरी प्रलंबित",
+    "statusApproved": "मंजूर",
+    "statusRejected": "नाकारले",
+    "clearFilters": "फिल्टर काढा",
+    "approvalHint": "मंजूर आणि नाकारण्याची बटणे फक्त <status>मंजुरी प्रलंबित</status> असलेल्या खर्चांवर दिसतात.",
+    "emptyTitle": "अजून एकही खर्च नोंदवलेला नाही",
+    "emptyAccountant": "दाखवण्यासाठी नोंदी नाहीत.",
+    "emptySubtitle": "पहिला खर्च नोंदवण्यासाठी वरचा फॉर्म भरा.",
+    "submit": "पाठवा",
+    "approve": "मंजूर करा",
+    "reject": "नाकारा",
+    "deleteExpense": "खर्च हटवा",
+    "rejectTitle": "खर्च नाकारा",
+    "rejectedWithNotes": "{{label}}: {{notes}}"
+  },
+  "toast": {
+    "submitted": "खर्च मंजुरीसाठी पाठवला",
+    "submitFailed": "खर्च पाठवता आला नाही",
+    "deleted": "खर्च हटवला",
+    "deleteFailed": "खर्च हटवता आला नाही",
+    "approved": "खर्च मंजूर झाला",
+    "rejected": "खर्च नाकारला",
+    "updateFailed": "खर्च अपडेट करता आला नाही"
+  },
+  "csv": {
+    "date": "तारीख",
+    "category": "प्रकार",
+    "description": "तपशील",
+    "amount": "रक्कम",
+    "status": "स्थिती",
+    "approvalNotes": "मंजुरीची टीप"
+  }
+}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { Shift, CreditEntry } from '../../../types/shift'
 import { Modal } from '../../../components/Modal'
 import { StatusBadge } from '../../../components/StatusBadge'
@@ -16,15 +17,16 @@ export function CreditEntriesModal({
   creditTotal: number
   onClose: () => void
 }) {
+  const { t } = useTranslation('shifts')
   return (
     <tr>
       <td colSpan={8} className="p-0">
         <Modal
-          title="Credit Sales"
-          subtitle={`Shift #${shift.id} · Nozzle ${shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', ')} · ${shift.operatorName} · ${shift.shiftDate}`}
+          title={t('creditEntries.title')}
+          subtitle={t('creditEntries.subtitle', { id: shift.id, nozzles: shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', '), operator: shift.operatorName, date: shift.shiftDate })}
           headerExtra={
             <p className="mt-1 text-xs text-ink-3">
-              {entries.length} {entries.length === 1 ? 'client' : 'clients'} with outstanding credit
+              {t('creditEntries.clients', { count: entries.length })}
             </p>
           }
           tone="warning"
@@ -35,7 +37,7 @@ export function CreditEntriesModal({
           footerClassName="justify-between bg-warn-bg"
           footer={
             <>
-              <span className="text-sm font-semibold text-warn">Total Credit</span>
+              <span className="text-sm font-semibold text-warn">{t('creditEntries.total')}</span>
               <MoneyText value={creditTotal} className="text-base font-bold text-warn" />
             </>
           }
@@ -54,10 +56,10 @@ export function CreditEntriesModal({
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
                   {entry.billNo ? (
                     <span className="text-xs text-ink-3">
-                      Bill: <span className="font-mono bg-surface-sunken px-1 py-0.5 rounded-control text-ink-2">{entry.billNo}</span>
+                      {t('creditEntries.bill')} <span className="font-mono bg-surface-sunken px-1 py-0.5 rounded-control text-ink-2">{entry.billNo}</span>
                     </span>
                   ) : (
-                    <span className="text-xs text-ink-3">No bill</span>
+                    <span className="text-xs text-ink-3">{t('creditEntries.noBill')}</span>
                   )}
                   {entry.description && (
                     <span className="text-xs text-ink-3 italic">"{entry.description}"</span>

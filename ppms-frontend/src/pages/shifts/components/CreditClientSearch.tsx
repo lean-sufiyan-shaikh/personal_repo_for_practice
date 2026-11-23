@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { pumpApi } from '../../../api/pumpApi'
 import type { CreditClientSummary } from '../../../api/pumpApi'
@@ -33,6 +34,7 @@ export function CreditClientSearch({
   search, creditClients, showDropdown, onSearchChange, onShowDropdownChange, onSelect,
   inputClassName, placeholder, showNoClientsHint = false, blockOverdue = true,
 }: Props) {
+  const { t } = useTranslation(['shifts', 'common'])
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const role = user?.role
@@ -54,7 +56,7 @@ export function CreditClientSearch({
 
   const canAddClient = canAccessPage('credit', role) && canPerformAction('credit:manage-client', role)
   const showCallManager = role === 'OPERATOR'
-  const noMatchText = `No match${search.trim() ? ` for "${search.trim()}"` : ''}`
+  const noMatchText = search.trim() ? t('clientSearch.noMatchFor', { search: search.trim() }) : t('clientSearch.noMatch')
   const hasRootClients = creditClients.some((client) => client.parentClientId === null)
 
   const optionFor = useMemo(() => {
@@ -126,8 +128,8 @@ export function CreditClientSearch({
   }
 
   const recentChips = recentOptions.length > 0 && (
-    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Recent clients">
-      <span className="text-xs text-ink-3">Recent</span>
+    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('clientSearch.recentAria')}>
+      <span className="text-xs text-ink-3">{t('clientSearch.recent')}</span>
       {recentOptions.map((option) => (
         <button
           key={option.client.id}
@@ -149,7 +151,7 @@ export function CreditClientSearch({
     !canAddClient ? (
       <div className="px-3 py-2 text-xs" role="status">
         <span className="block truncate text-ink-3">{noMatchText}</span>
-        <span className="block text-ink-2">Ask your manager to add this client.</span>
+        <span className="block text-ink-2">{t('clientSearch.askManager')}</span>
       </div>
     ) : (
       <button
@@ -159,14 +161,14 @@ export function CreditClientSearch({
         className="flex w-full items-center justify-between gap-2 rounded-control px-3 py-2 text-left text-sm hover:bg-surface-sunken"
       >
         <span className="truncate text-xs text-ink-3">{noMatchText}</span>
-        <span className="shrink-0 text-xs font-medium text-primary">+ Add client →</span>
+        <span className="shrink-0 text-xs font-medium text-primary">{t('clientSearch.addClient')}</span>
       </button>
     )
   )
 
   const standingNote = standingFailed && (
     <p className="px-3 py-1 text-xs text-warn" role="status">
-      Could not check which clients are blocked; the sale is still checked when you save.
+      {t('clientSearch.standingFailed')}
     </p>
   )
 
@@ -174,7 +176,7 @@ export function CreditClientSearch({
     <div className="ui-search-shell space-y-1.5">
       {isPhone ? (
         <div>
-          <span className="ui-label">Client <span className="text-bad">*</span></span>
+          <span className="ui-label">{t('clientSearch.client')} <span className="text-bad">*</span></span>
           <button
             type="button"
             aria-haspopup="dialog"
@@ -188,7 +190,7 @@ export function CreditClientSearch({
         <>
           {recentChips}
           <label className="block">
-            <span className="ui-label">Client <span className="text-bad">*</span></span>
+            <span className="ui-label">{t('clientSearch.client')} <span className="text-bad">*</span></span>
             <input
               type="text"
               {...comboboxProps}
@@ -215,12 +217,12 @@ export function CreditClientSearch({
             <div className="ui-sheet-panel">
               <div className="ui-modal-header">
                 <div className="ui-modal-heading">
-                  <h2 className="ui-modal-title">Choose client</h2>
+                  <h2 className="ui-modal-title">{t('clientSearch.chooseClient')}</h2>
                 </div>
-                <IconButton label="Close" icon="×" onClick={closeSheet} className="ui-btn ui-btn-ghost ui-modal-close" />
+                <IconButton label={t('common:actions.close')} icon="×" onClick={closeSheet} className="ui-btn ui-btn-ghost ui-modal-close" />
               </div>
               <div className="space-y-2 px-4 pt-3">
-                <input type="search" aria-label="Search client by name or phone" data-autofocus {...comboboxProps} />
+                <input type="search" aria-label={t('clientSearch.searchAria')} data-autofocus {...comboboxProps} />
                 {recentChips}
                 {standingNote}
               </div>
@@ -237,7 +239,7 @@ export function CreditClientSearch({
 
       {showNoClientsHint && creditClients.length === 0 && (
         <p className="mt-1 text-xs text-warn">
-          No clients added yet — Owner can add them in Setup.
+          {t('clientSearch.noClients')}
         </p>
       )}
     </div>

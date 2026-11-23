@@ -1,9 +1,12 @@
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { IconButton } from '../../../components/IconButton'
 import { NumericInput } from '../../../components/NumericInput'
 import { onActivateKey } from '../../../utils/keyboard'
-import { FUEL_LABELS, FUEL_UNIT } from '../../../constants/fuel'
+import { FUEL_UNIT } from '../../../constants/fuel'
+import { codeLabel } from '../../../constants/labels'
+import { formatCurrency } from '../../../utils/format'
 import type { CreditClientSummary } from '../../../api/pumpApi'
 import { CreditClientSearch } from './CreditClientSearch'
 import { emptyNum } from './creditRow'
@@ -28,6 +31,7 @@ export function CreditEntryForm({
   row, rowNumber, isExpanded, onExpandedChange, creditClients, availableFuelTypes, priceForFuelType,
   onUpdate, onUpdateMulti, onSelectClient, onRemove,
 }: Props) {
+  const { t } = useTranslation(['shifts', 'common'])
   const isFilled = row.clientName.trim() !== '' && emptyNum(row.amount) > 0
   // Only root (parent/standalone) accounts in the main search
   const selectedParent = creditClients.find(c => c.id === row.clientId)
@@ -46,7 +50,7 @@ export function CreditEntryForm({
               className="flex flex-1 items-center gap-3 min-w-0 cursor-pointer"
               role="button"
               tabIndex={0}
-              aria-label={`Edit credit entry ${rowNumber}`}
+              aria-label={t('creditEntry.editAria', { number: rowNumber })}
               onClick={() => onExpandedChange(row.id)}
               onKeyDown={onActivateKey(() => onExpandedChange(row.id))}
             >
@@ -54,20 +58,20 @@ export function CreditEntryForm({
             {isFilled ? (
               <>
                 <span className="text-sm font-medium text-ink truncate">{row.clientName}</span>
-                <span className="text-xs text-ink-3 shrink-0">{FUEL_LABELS[row.fuelType] ?? row.fuelType}</span>
+                <span className="text-xs text-ink-3 shrink-0">{codeLabel(row.fuelType)}</span>
                 <MoneyText value={emptyNum(row.amount)} className="text-sm font-semibold text-ok shrink-0" />
                 {row.billNo && <span className="text-xs text-ink-3 shrink-0">· {row.billNo}</span>}
               </>
             ) : (
-              <span className="text-xs text-ink-3 italic">Incomplete — tap to edit</span>
+              <span className="text-xs text-ink-3 italic">{t('creditEntry.incomplete')}</span>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-2">
-            <span className="text-xs text-warn group-hover:text-warn transition-colors">Edit</span>
+            <span className="text-xs text-warn group-hover:text-warn transition-colors">{t('creditEntry.edit')}</span>
             <IconButton
               onClick={(e) => { e.stopPropagation(); onRemove() }}
               className="ui-btn-icon text-bad hover:text-bad transition-colors"
-              label="Delete entry"
+              label={t('creditEntry.deleteEntry')}
               icon={<X size={13} strokeWidth={2} />}
             />
           </div>
@@ -85,11 +89,11 @@ export function CreditEntryForm({
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
-              Entry {rowNumber}
+              {t('creditEntry.entryNumber', { number: rowNumber })}
             </button>
             <button type="button" onClick={() => onRemove()}
               className="inline-flex items-center gap-1 text-bad hover:text-bad text-xs transition-colors">
-              <X size={12} strokeWidth={2} />Delete
+              <X size={12} strokeWidth={2} />{t('common:actions.delete')}
             </button>
           </div>
 
@@ -102,7 +106,7 @@ export function CreditEntryForm({
             onShowDropdownChange={(show) => onUpdate('showDropdown', show)}
             onSelect={(c) => onSelectClient(c.id, c.name)}
             inputClassName="ui-search-shell__input text-sm"
-            placeholder="Search client name..."
+            placeholder={t('creditEntry.searchClientShort')}
             showNoClientsHint
             blockOverdue={false}
           />
@@ -111,9 +115,9 @@ export function CreditEntryForm({
           {subAccounts.length > 0 && (
             <div>
               <span className="ui-label">
-                Sub-account <span className="text-ink-3">(optional)</span>
+                {t('creditEntry.subAccount')} <span className="text-ink-3">{t('creditEntry.optional')}</span>
               </span>
-              <div role="group" aria-label="Sub-account" className="ui-card p-0 overflow-hidden divide-y divide-border shadow-none border-border">
+              <div role="group" aria-label={t('creditEntry.subAccount')} className="ui-card p-0 overflow-hidden divide-y divide-border shadow-none border-border">
                 {/* "Bill to parent" option */}
                 <button
                   type="button"
@@ -128,7 +132,7 @@ export function CreditEntryForm({
                     {row.clientName.charAt(0).toUpperCase()}
                   </div>
                   <span className={`flex-1 font-medium text-xs ${row.subAccountId === null ? 'text-warn' : 'text-ink-3'}`}>
-                    Bill to parent ({row.clientName})
+                    {t('creditEntry.billToParent', { name: row.clientName })}
                   </span>
                   {row.subAccountId === null && (
                     <svg className="w-3.5 h-3.5 text-warn shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -175,35 +179,35 @@ export function CreditEntryForm({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <span className="ui-label">
-                Fuel Type <span className="text-bad">*</span>
+                {t('creditEntry.fuelType')} <span className="text-bad">*</span>
               </span>
-              <SearchableSelect label="Fuel Type"
+              <SearchableSelect label={t('creditEntry.fuelType')}
                 value={row.fuelType}
                 onChange={v => onUpdateMulti({
                   fuelType: v,
                   amount: row.inputMode === 'liters' ? '' : row.amount,
                   liters: '',
                 })}
-                placeholder="Select…"
+                placeholder={t('common:select.placeholder')}
                 accentColor="orange"
                 size="sm"
                 options={availableFuelTypes.map(ft => ({
                   value: ft,
-                  label: FUEL_LABELS[ft] ?? ft,
+                  label: codeLabel(ft),
                 }))}
               />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="ui-label mb-0">
-                  {row.inputMode === 'amount' ? 'Amount (₹)' : 'Liters'}{' '}
+                  {row.inputMode === 'amount' ? t('creditEntry.amount') : t('creditEntry.liters')}{' '}
                   <span className="text-bad">*</span>
                 </span>
                 <div className="flex gap-1 text-xs">
                   <button type="button"
                     onClick={() => onUpdateMulti({ inputMode: 'amount', liters: '' })}
                     aria-pressed={row.inputMode === 'amount'}
-                    aria-label="Enter amount in rupees"
+                    aria-label={t('creditEntry.amountModeAria')}
                     className={`min-h-11 min-w-11 rounded-control border border-control px-2 font-medium transition-colors ${row.inputMode === 'amount' ? 'bg-warn text-on-primary' : 'bg-surface text-ink-3 hover:bg-bg'}`}>
                     ₹
                   </button>
@@ -217,7 +221,7 @@ export function CreditEntryForm({
                     }}
                     disabled={!priceForFuelType(row.fuelType)}
                     aria-pressed={row.inputMode === 'liters'}
-                    aria-label="Enter litres"
+                    aria-label={t('creditEntry.litresModeAria')}
                     className={`min-h-11 min-w-11 rounded-control border border-control px-2 font-medium transition-colors ${row.inputMode === 'liters' ? 'bg-warn text-on-primary' : 'bg-surface text-ink-3 hover:bg-bg'} disabled:opacity-40 disabled:cursor-not-allowed`}>
                     L
                   </button>
@@ -225,7 +229,7 @@ export function CreditEntryForm({
               </div>
               {row.inputMode === 'amount' ? (
                 <>
-                  <NumericInput aria-label="Credit amount in rupees" step="0.01" min="0.01" value={row.amount}
+                  <NumericInput aria-label={t('creditEntry.amountAria')} step="0.01" min="0.01" value={row.amount}
                     onChange={(e) => onUpdate('amount', e.target.value)}
                     placeholder="0.00"
                     className="ui-input-compact" />
@@ -235,14 +239,14 @@ export function CreditEntryForm({
                     const litersCalc = price && row.amount ? (parseFloat(row.amount) / price) : null
                     return litersCalc ? (
                       <p className="text-xs text-ink-3 mt-1">
-                        {litersCalc.toFixed(2)} {unit} × ₹{price} = ₹{parseFloat(row.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {litersCalc.toFixed(2)} {unit} × ₹{price} = {formatCurrency(parseFloat(row.amount))}
                       </p>
                     ) : null
                   })()}
                 </>
               ) : (
                 <>
-                  <NumericInput aria-label="Credit quantity" step="0.001" min="0.001" value={row.liters}
+                  <NumericInput aria-label={t('creditEntry.quantityAria')} step="0.001" min="0.001" value={row.liters}
                     onChange={(e) => {
                       const price = priceForFuelType(row.fuelType)
                       const raw = parseFloat(e.target.value)
@@ -258,7 +262,7 @@ export function CreditEntryForm({
                     const unit = FUEL_UNIT[row.fuelType] ?? 'L'
                     return price ? (
                       <p className="text-xs text-ok mt-1 font-medium">
-                        {parseFloat(row.liters).toFixed(2)} {unit} × ₹{price} = ₹{parseFloat(row.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {parseFloat(row.liters).toFixed(2)} {unit} × ₹{price} = {formatCurrency(parseFloat(row.amount))}
                       </p>
                     ) : null
                   })()}
@@ -271,19 +275,19 @@ export function CreditEntryForm({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block">
-                <span className="ui-label">Bill No</span>
+                <span className="ui-label">{t('creditEntry.billNo')}</span>
                 <input type="text" value={row.billNo}
                   onChange={(e) => onUpdate('billNo', e.target.value)}
-                  placeholder="e.g. B-101"
+                  placeholder={t('creditEntry.billNoPlaceholder')}
                   className="ui-input-compact" />
               </label>
             </div>
             <div>
               <label className="block">
-                <span className="ui-label">Description</span>
+                <span className="ui-label">{t('creditEntry.description')}</span>
                 <input type="text" value={row.description}
                   onChange={(e) => onUpdate('description', e.target.value)}
-                  placeholder="e.g. given to driver"
+                  placeholder={t('creditEntry.descriptionPlaceholder')}
                   className="ui-input-compact" />
               </label>
             </div>
@@ -296,7 +300,7 @@ export function CreditEntryForm({
               onClick={() => onRemove()}
               className="ui-btn ui-btn-ghost text-xs px-3 py-1.5 min-h-0"
             >
-              Cancel
+              {t('common:actions.cancel')}
             </button>
             <button
               type="button"
@@ -307,7 +311,7 @@ export function CreditEntryForm({
               disabled={!row.clientId || emptyNum(row.amount) <= 0}
               className="ui-btn ui-btn-warning text-xs px-3 py-1.5 min-h-0 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Add
+              {t('creditEntry.add')}
             </button>
           </div>
         </div>

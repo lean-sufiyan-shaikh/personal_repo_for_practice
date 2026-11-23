@@ -2,12 +2,13 @@ import { Banknote, CircleDot, CreditCard, HandCoins, Smartphone, Truck } from 'l
 import type { AncillaryPaymentMode, UnitOfMeasure } from '../../api/ancillaryApi'
 import type { StatusBadgeSpec } from '../../components/statusBadges'
 import { codeLabel } from '../../constants/labels'
+import { formatCurrency } from '../../utils/format'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 export function fmtCurrency(n: number | null | undefined) {
   if (n == null) return '—'
-  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return formatCurrency(n)
 }
 
 export { formatIstDate as fmtDate } from '../../utils/date'

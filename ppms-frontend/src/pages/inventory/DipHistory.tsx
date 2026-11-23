@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { withToggled } from '../../utils/setToggle'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, Check, ChevronDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { inventoryApi } from '../../api/inventoryApi'
 import type { TankStock, DipCheck } from '../../api/inventoryApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
@@ -11,6 +12,7 @@ import { DipItem } from './DipItem'
 import { fmtDate } from './inventoryFormat'
 
 export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: number; tanks: TankStock[]; canViewFinancials: boolean }) {
+  const { t } = useTranslation('inventory')
   const [dipHistOpen,       setDipHistOpen]       = useState(false)
   const [dipPage,           setDipPage]           = useState(0)
   const [dipPageSize,       setDipPageSize]       = useState(10)
@@ -40,34 +42,34 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
           onClick={() => setDipHistOpen(v => !v)}
           className="ui-accordion-trigger"
         >
-          <span className="ui-accordion-title">DIP Check History</span>
+          <span className="ui-accordion-title">{t('dipHistory.title')}</span>
           <span className={`ui-accordion-arrow ${dipHistOpen ? 'ui-accordion-arrow--open' : ''}`}><ChevronDown size={14} strokeWidth={2} /></span>
         </button>
         {dipHistOpen && (
           <div className="ui-accordion-content border-t border-border">
             <div className="ui-toolbar">
-              <p className="ui-toolbar-title">Filter DIP Checks</p>
+              <p className="ui-toolbar-title">{t('dipHistory.filterTitle')}</p>
               <div className="ui-toolbar-actions">
                 <div className="w-44">
-                <SearchableSelect label="Filter DIP checks by tank"
+                <SearchableSelect label={t('dipHistory.filterByTank')}
                   value={dipTankFilter}
                   onChange={v => setDipTankFilter(v)}
                   options={[
-                    { value: '', label: 'All Tanks' },
-                    ...tanks.map(t => ({ value: t.tankIdentifier, label: t.tankIdentifier })),
+                    { value: '', label: t('filters.allTanks') },
+                    ...tanks.map(tank => ({ value: tank.tankIdentifier, label: tank.tankIdentifier })),
                   ]}
-                  placeholder="Filter by tank"
+                  placeholder={t('filters.byTank')}
                 />
               </div>
                 <div className="w-44">
-                <SearchableSelect label="Filter DIP checks by fuel type"
+                <SearchableSelect label={t('dipHistory.filterByFuel')}
                   value={dipFuelFilter}
                   onChange={v => setDipFuelFilter(v)}
                   options={[
-                    { value: '', label: 'All Fuel Types' },
-                    ...Array.from(new Set(tanks.map(t => t.fuelType))).map(ft => ({ value: ft, label: ft })),
+                    { value: '', label: t('filters.allFuelTypes') },
+                    ...Array.from(new Set(tanks.map(tank => tank.fuelType))).map(ft => ({ value: ft, label: ft })),
                   ]}
-                  placeholder="Filter by fuel type"
+                  placeholder={t('filters.byFuelType')}
                 />
               </div>
                 {(dipTankFilter || dipFuelFilter) && (
@@ -75,14 +77,14 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
                     onClick={() => { setDipTankFilter(''); setDipFuelFilter('') }}
                     className="ui-btn ui-btn-ghost text-xs"
                   >
-                    Clear filters
+                    {t('filters.clear')}
                   </button>
                 )}
               </div>
             </div>
 
             {dipLoading ? (
-              <div className="p-5 text-sm text-ink-3">Loading...</div>
+              <div className="p-5 text-sm text-ink-3">{t('filters.loading')}</div>
             ) : (() => {
               // Apply client-side filters on the current page's data
               const filtered = dipChecks.filter(d =>
@@ -94,8 +96,8 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
                 return (
                   <div className="p-5 text-sm text-ink-3">
                     {dipChecks.length === 0
-                      ? 'No DIP checks recorded yet.'
-                      : 'No DIP checks match the selected filters on this page.'}
+                      ? t('dipHistory.empty')
+                      : t('dipHistory.noMatch')}
                   </div>
                 )
               }
@@ -127,13 +129,13 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
                             {fmtDate(dateKey)}
                           </span>
                           <span className="text-xs text-ink-3">
-                            {rows.length} tank{rows.length !== 1 ? 's' : ''} checked
+                            {t('dipHistory.tanksChecked', { count: rows.length })}
                           </span>
                           {allBalanced && (
-                            <StatusBadge tone="ok" icon={Check} label="All Balanced" className="ml-auto" />
+                            <StatusBadge tone="ok" icon={Check} label={t('dipHistory.allBalanced')} className="ml-auto" />
                           )}
                           {!allBalanced && (
-                            <StatusBadge tone="warn" icon={AlertTriangle} label="Variance Detected" className="ml-auto" />
+                            <StatusBadge tone="warn" icon={AlertTriangle} label={t('dipHistory.varianceDetected')} className="ml-auto" />
                           )}
                           <span className={`ui-accordion-arrow ml-1 ${!isCollapsed ? 'ui-accordion-arrow--open' : ''}`}><ChevronDown size={14} strokeWidth={2} /></span>
                         </button>

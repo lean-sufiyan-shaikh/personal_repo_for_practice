@@ -1,14 +1,16 @@
-import { FUEL_LABELS } from '../../../constants/fuel'
+import { useTranslation } from 'react-i18next'
+import { codeLabel } from '../../../constants/labels'
 import { SectionLabel } from './SectionLabel'
 import type { BackfillForm } from './useBackfillForm'
 
 export function FuelRatesSection({ form }: { form: BackfillForm }) {
+  const { t } = useTranslation('shifts')
   const { shiftDate, selectedNozzleIds, fuelRateInputs, setFuelRateInputs, dbPriceMap, selectedFuelTypes } = form
   return (
     <>
       {selectedNozzleIds.size > 0 && (
         <div className="rounded-card border border-border bg-info-bg p-4 space-y-2.5">
-          <SectionLabel>Fuel Rates on {shiftDate}</SectionLabel>
+          <SectionLabel>{t('backfill.rates.title', { date: shiftDate })}</SectionLabel>
 
           {[...selectedFuelTypes].map((fuelType) => {
             const dbPrice  = dbPriceMap[fuelType]
@@ -17,7 +19,7 @@ export function FuelRatesSection({ form }: { form: BackfillForm }) {
             return (
               <div key={fuelType} className="flex items-center gap-3 rounded-card px-2.5 py-1.5">
                 <span className="text-xs font-semibold text-ink w-28 shrink-0">
-                  {FUEL_LABELS[fuelType] ?? fuelType}
+                  {codeLabel(fuelType)}
                 </span>
 
                 {hasPrice ? (
@@ -27,7 +29,7 @@ export function FuelRatesSection({ form }: { form: BackfillForm }) {
                       ₹{dbPrice!.toFixed(2)}/L
                     </span>
                     <span className="text-xs text-ink-3">
-                      from price history · to change it, correct the price history first
+                      {t('backfill.rates.fromHistory')}
                     </span>
                   </div>
                 ) : (
@@ -35,7 +37,7 @@ export function FuelRatesSection({ form }: { form: BackfillForm }) {
                   <div className="flex items-center gap-2 flex-1">
                     <div className="relative flex-1 max-w-[140px]">
                       <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-3 pointer-events-none">₹</span>
-                      <input aria-label={`${FUEL_LABELS[fuelType] ?? fuelType} rate per litre`}
+                      <input aria-label={t('backfill.rates.inputLabel', { fuel: codeLabel(fuelType) })}
                         type="number"
                         min="0.01"
                         step="0.01"
@@ -47,7 +49,7 @@ export function FuelRatesSection({ form }: { form: BackfillForm }) {
                     </div>
                     <span className="text-xs text-ink-3">/L</span>
                     <span className="text-xs text-warn font-medium">
-                      No price on record — enter manually
+                      {t('backfill.rates.noPrice')}
                     </span>
                   </div>
                 )}

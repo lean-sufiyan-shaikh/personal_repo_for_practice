@@ -1,4 +1,6 @@
 import { AlertTriangle, Clock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { formatNumberIn } from '../../i18n/format'
 import type { TankStock } from '../../api/inventoryApi'
 import { FUEL_COLORS } from './inventoryFormat'
 import { codeLabel } from '../../constants/labels'
@@ -22,6 +24,7 @@ export function TankStockBar({
   onDipCheck?: () => void
   onViewLots: () => void
 }) {
+  const { t } = useTranslation('inventory')
   const pct  = Math.min(100, Math.max(0, tank.stockPercentage))
   const cols = FUEL_COLORS[tank.fuelType] ?? FUEL_COLORS.PETROL
   const isLow = tank.lowStock
@@ -30,8 +33,8 @@ export function TankStockBar({
   function timeSinceDip(d: Date) {
     const diffMs = now - d.getTime()
     const h = Math.floor(diffMs / (1000 * 60 * 60))
-    if (h < 24) return `${h} h ago`
-    return `${Math.floor(h / 24)} d ago`
+    if (h < 24) return t('tank.hoursAgo', { value: h })
+    return t('tank.daysAgo', { value: Math.floor(h / 24) })
   }
 
   return (
@@ -43,13 +46,13 @@ export function TankStockBar({
           </span>
           <span className="text-sm font-semibold text-ink">{tank.tankIdentifier}</span>
           {isLow && (
-            <StatusBadge tone="bad" icon={AlertTriangle} label="LOW STOCK" className="animate-pulse" />
+            <StatusBadge tone="bad" icon={AlertTriangle} label={t('tank.lowStock')} className="animate-pulse" />
           )}
           {dipOverdue && (
             <StatusBadge
               tone="bad"
               icon={Clock}
-              label={`DIP OVERDUE ${lastDipAt ? `· last ${timeSinceDip(lastDipAt)}` : '· never checked'}`}
+              label={lastDipAt ? t('tank.dipOverdueLast', { ago: timeSinceDip(lastDipAt) }) : t('tank.dipOverdueNever')}
             />
           )}
         </div>
@@ -61,14 +64,14 @@ export function TankStockBar({
             onClick={onViewLots}
             className="ui-btn ui-btn-secondary ui-btn-compact"
           >
-            View Lots
+            {t('tank.viewLots')}
           </button>
           {onDipCheck && (
             <button
               onClick={onDipCheck}
               className="ui-btn ui-btn-secondary ui-btn-compact"
             >
-              DIP Check
+              {t('tank.dipCheck')}
             </button>
           )}
         </div>
@@ -87,9 +90,9 @@ export function TankStockBar({
       <div className="flex items-center justify-between mt-1.5 text-xs text-ink-3">
         <span>
           <LitresText value={tank.currentStock} className={`font-semibold ${isLow ? 'text-bad' : 'text-ink'}`} />
-          {' '}remaining
+          {' '}{t('tank.remaining')}
         </span>
-        <span>Capacity: {tank.capacity.toLocaleString('en-IN', { minimumFractionDigits: 0 })} L</span>
+        <span>{t('tank.capacity', { value: formatNumberIn(tank.capacity, { minimumFractionDigits: 0 }) })}</span>
       </div>
     </div>
   )

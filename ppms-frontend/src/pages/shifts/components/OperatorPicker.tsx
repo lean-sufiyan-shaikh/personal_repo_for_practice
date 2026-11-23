@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { StaffMember } from '../../../api/userApi'
 import { IconButton } from '../../../components/IconButton'
 
@@ -17,16 +18,17 @@ export function OperatorPicker({
   title, showStepNumber, operatorsLoading, noneAvailable, filteredOperators, operatorSearch, onSearchChange,
   selectedOperatorId, onSelect,
 }: Props) {
+  const { t } = useTranslation('shifts')
   return (
     <div>
       <span className="ui-label mb-2">
-        {showStepNumber ? 'Step 3 — ' : ''}{title}
+        {showStepNumber ? t('components.operatorPicker.stepTitle', { title }) : title}
       </span>
       {operatorsLoading ? (
-        <p className="ui-empty">Loading operators...</p>
+        <p className="ui-empty">{t('components.operatorPicker.loading')}</p>
       ) : noneAvailable ? (
         <div className="ui-alert ui-alert-warning text-xs">
-          No operators available — all are on active shifts or none are assigned to this pump.
+          {t('components.operatorPicker.noneAvailable')}
         </div>
       ) : (
         <div className="ui-card p-0 overflow-hidden">
@@ -38,19 +40,19 @@ export function OperatorPicker({
             </svg>
             <input aria-label={title} type="text" value={operatorSearch}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search by name..."
+              placeholder={t('components.operatorPicker.searchPlaceholder')}
               className="ui-search-shell__input flex-1 text-sm" />
             {operatorSearch && (
               <IconButton onClick={() => onSearchChange('')}
                 className="ui-search-shell__clear text-lg leading-none"
-                label="Clear search"
+                label={t('components.operatorPicker.clearSearch')}
                 icon={'×'}
               />
             )}
           </div>
           <div className="max-h-44 overflow-y-auto divide-y divide-border">
             {filteredOperators.length === 0 ? (
-              <p className="ui-empty p-3">No operators match "{operatorSearch}"</p>
+              <p className="ui-empty p-3">{t('components.operatorPicker.noMatch', { search: operatorSearch })}</p>
             ) : (
               filteredOperators.map((o) => {
                 const isSelected = selectedOperatorId === o.id

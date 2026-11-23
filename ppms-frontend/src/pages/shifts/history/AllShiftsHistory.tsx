@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { shiftApi } from '../../../api/shiftApi'
 import { SkeletonRows } from '../../../components/Skeleton'
 import { localDateInputValue } from '../../../utils/date'
 import { parseApiError } from '../../../utils/apiError'
 import { HistoryRow } from './HistoryRow'
-import { HISTORY_COLUMNS } from './historyColumns'
+import { historyColumns } from './historyColumns'
 import { PAGE_SIZE } from '../shiftLabels'
 import { DataTable } from '../../../components/DataTable'
 import { codeLabel } from '../../../constants/labels'
@@ -20,6 +21,7 @@ export function AllShiftsHistory({ pumpId, initialFrom, initialTo, fuelType, onC
   fuelType?: string
   onClearFuel?: () => void
 }) {
+  const { t } = useTranslation('shifts')
   const [page,     setPage]     = useState(0)
   const [fromDate, setFromDate] = useState(() => initialFrom ?? localDateInputValue(-1))
   const [toDate,   setToDate]   = useState(() => initialTo ?? localDateInputValue())
@@ -41,16 +43,16 @@ export function AllShiftsHistory({ pumpId, initialFrom, initialTo, fuelType, onC
     <div>
       {/* Date range filter bar */}
       <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-border bg-surface-sunken">
-        <span className="text-xs font-medium text-ink-3">Filter by date:</span>
+        <span className="text-xs font-medium text-ink-3">{t('history.filterByDate')}</span>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <input aria-label="From date"
+          <input aria-label={t('history.fromDate')}
             type="date"
             value={fromDate}
             onChange={(e) => { setFromDate(e.target.value); setPage(0) }}
             className="flex-1 min-w-[8.5rem] border border-control rounded-control px-2.5 py-1.5 text-xs"
           />
-          <span className="text-ink-3 text-xs">to</span>
-          <input aria-label="To date"
+          <span className="text-ink-3 text-xs">{t('history.to')}</span>
+          <input aria-label={t('history.toDate')}
             type="date"
             value={toDate}
             onChange={(e) => { setToDate(e.target.value); setPage(0) }}
@@ -59,8 +61,8 @@ export function AllShiftsHistory({ pumpId, initialFrom, initialTo, fuelType, onC
         </div>
         {fuelType && onClearFuel && (
           <button type="button" onClick={onClearFuel} className="ui-chip" aria-pressed="true"
-            aria-label={`Showing ${codeLabel(fuelType)} shifts only. Show all fuels`}>
-            {codeLabel(fuelType)} only ×
+            aria-label={t('history.fuelOnlyLabel', { fuel: codeLabel(fuelType) })}>
+            {t('history.fuelOnly', { fuel: codeLabel(fuelType) })}
           </button>
         )}
         {(fromDate || toDate) && (
@@ -68,12 +70,12 @@ export function AllShiftsHistory({ pumpId, initialFrom, initialTo, fuelType, onC
             onClick={clearFilter}
             className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-ink-3 hover:text-ink underline"
           >
-            Clear
+            {t('history.clear')}
           </button>
         )}
         <span className="ml-auto text-xs text-ink-3">
-          {totalElements} shift{totalElements !== 1 ? 's' : ''}
-          {(fromDate || toDate || fuelType) ? ' (filtered)' : ''}
+          {t('history.shiftCount', { count: totalElements })}
+          {(fromDate || toDate || fuelType) ? t('history.filtered') : ''}
         </span>
       </div>
 
@@ -81,17 +83,17 @@ export function AllShiftsHistory({ pumpId, initialFrom, initialTo, fuelType, onC
         <div className="px-5 py-4 border-t border-border"><SkeletonRows count={4} /></div>
       ) : error ? (
         <div className="px-6 py-4 border-t border-border">
-          <p role="alert" className="ui-alert ui-alert-error text-sm">{parseApiError(error, 'Failed to load shift history')}</p>
+          <p role="alert" className="ui-alert ui-alert-error text-sm">{parseApiError(error, t('history.loadFailed'))}</p>
         </div>
       ) : (
         <DataTable
-          caption="All shifts"
+          caption={t('history.allShiftsCaption')}
           captionHidden
-          columns={HISTORY_COLUMNS}
+          columns={historyColumns(t)}
           rows={paged}
           rowKey={(shift) => shift.id}
           renderRow={(shift) => <HistoryRow shift={shift} />}
-          empty={<p className="ui-empty px-6 py-6">No shifts match the selected date range.</p>}
+          empty={<p className="ui-empty px-6 py-6">{t('history.allEmpty')}</p>}
           className="rounded-none border-x-0 border-b-0"
         />
       )}
@@ -100,13 +102,13 @@ export function AllShiftsHistory({ pumpId, initialFrom, initialTo, fuelType, onC
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-surface-sunken">
           <span className="text-xs text-ink-3">
-            Page {safePage + 1} of {totalPages}
+            {t('history.pageOf', { page: safePage + 1, total: totalPages })}
             <span className="ml-2 text-ink-3">
-              (showing {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, totalElements)} of {totalElements})
+              {t('history.showingRange', { from: safePage * PAGE_SIZE + 1, to: Math.min((safePage + 1) * PAGE_SIZE, totalElements), total: totalElements })}
             </span>
           </span>
           <div className="flex gap-1">
-            <button aria-label="First page"
+            <button aria-label={t('history.firstPage')}
               onClick={() => setPage(0)}
               disabled={safePage === 0}
               className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30"
@@ -118,7 +120,7 @@ export function AllShiftsHistory({ pumpId, initialFrom, initialTo, fuelType, onC
               disabled={safePage === 0}
               className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30"
             >
-              Prev
+              {t('history.prev')}
             </button>
             {/* Page number pills — show window of 5 */}
             {Array.from({ length: totalPages }, (_, i) => i)
@@ -141,9 +143,9 @@ export function AllShiftsHistory({ pumpId, initialFrom, initialTo, fuelType, onC
               disabled={safePage === totalPages - 1}
               className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30"
             >
-              Next
+              {t('history.next')}
             </button>
-            <button aria-label="Last page"
+            <button aria-label={t('history.lastPage')}
               onClick={() => setPage(totalPages - 1)}
               disabled={safePage === totalPages - 1}
               className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30"

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { shiftApi } from '../../api/shiftApi'
 import { pumpApi } from '../../api/pumpApi'
 import { userApi } from '../../api/userApi'
@@ -16,7 +17,8 @@ import { DraftRestoredNotice } from '../../components/DraftRestoredNotice'
 import { toPaise } from '../../utils/money'
 import { attemptFor } from '../../utils/idempotencyKey'
 import type { SubmitAttempt } from '../../utils/idempotencyKey'
-import { FUEL_LABELS, FUEL_UNIT } from '../../constants/fuel'
+import { FUEL_UNIT } from '../../constants/fuel'
+import { codeLabel } from '../../constants/labels'
 import { CreditEntryForm } from './components/CreditEntryForm'
 import { emptyNum, fmt } from './components/creditRow'
 import { PreRecordedCreditList } from './close/PreRecordedCreditList'
@@ -63,6 +65,7 @@ const emptyEndReadings = (shift: Shift): Record<number, string> =>
   Object.fromEntries(shift.fuelReadings.map((r) => [r.nozzleId, '']))
 
 export default function CloseShiftModal({ shift, onClose, onOpenNextShift, handoverActiveShifts }: Props) {
+  const { t } = useTranslation('shifts')
   const isHandover = handoverActiveShifts !== undefined
   const queryClient = useQueryClient()
   const draftName = closeShiftDraftName(shift.id, isHandover)
@@ -236,7 +239,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
       shiftApi.closeShift(shift.pumpId, shift.id, request, idempotencyKey),
     onSuccess: (closedShift) =>
       finishClosing({ closedShift, status: closedShift?.status, incomingOperatorName: null }),
-    onError: showSubmitError('Failed to close shift. Please try again.'),
+    onError: showSubmitError(t('close.errors.closeFailed')),
   })
 
   const handoverMutation = useMutation({
@@ -247,14 +250,14 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
       status: handover?.outgoingShiftStatus,
       incomingOperatorName: handover?.incomingOperatorName ?? incomingOperatorName,
     }),
-    onError: showSubmitError('Failed to hand over the shift. Please try again.'),
+    onError: showSubmitError(t('close.errors.handoverFailed')),
   })
   const isSubmitting = closeMutation.isPending || handoverMutation.isPending
 
   const printMutation = useMutation({
     mutationFn: () => shiftApi.getShift(shift.pumpId, shift.id),
     onSuccess: setPrintedShift,
-    onError: (err: unknown) => setPrintError(parseApiError(err, 'Could not load the shift report. Please try again.')),
+    onError: (err: unknown) => setPrintError(parseApiError(err, t('close.errors.reportLoadFailed'))),
   })
 
   const handleReview = (e: React.FormEvent) => {
@@ -315,7 +318,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   const handleRoundOff = () => {
     const newCashPaise = toPaise(emptyNum(cash)) - diffPaise
     if (newCashPaise < 0) {
-      setServerError('Round off not possible: cash amount would become negative.')
+      setServerError(t('close.errors.roundOffNegative'))
       return
     }
     setCash(newCashPaise === 0 ? '' : (newCashPaise / 100).toFixed(2))
@@ -341,10 +344,10 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
     : 'neutral'
 
   const title = step === 'review'
-    ? isHandover ? 'Check before handing over' : 'Check before closing'
+    ? isHandover ? t('close.title.reviewHandover') : t('close.title.reviewClose')
     : step === 'done'
-    ? isHandover ? 'Shift handed over' : 'Shift closed'
-    : isHandover ? 'Hand Over Shift' : 'Close Shift'
+    ? isHandover ? t('close.title.handedOver') : t('close.title.closed')
+    : isHandover ? t('close.title.handover') : t('close.title.close')
 
   const dismiss = step === 'done' ? onClose : step === 'review' ? backToForm : requestClose
 
@@ -379,7 +382,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
     <>
     <Modal
       title={title}
-      subtitle={`Nozzle ${shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', ')} · ${shift.operatorName} · ${shift.shiftWindow}`}
+      subtitle={t('close.subtitle', { nozzles: shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', '), operator: shift.operatorName, window: shift.shiftWindow })}
       tone={headerTone}
       size="lg"
       onClose={dismiss}
@@ -391,7 +394,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
           {shift.fuelReadings.map((r) => (
             <span key={r.nozzleId}
               className="bg-surface-sunken text-ink-2 text-xs font-medium px-2.5 py-1 rounded-badge">
-              {FUEL_LABELS[r.fuelType] ?? r.fuelType} ₹{r.priceSnapshot}/{FUEL_UNIT[r.fuelType] ?? 'L'}
+              {codeLabel(r.fuelType)} ₹{r.priceSnapshot}/{FUEL_UNIT[r.fuelType] ?? 'L'}
             </span>
           ))}
         </div>
@@ -409,7 +412,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
             incomingOperatorName={incomingOperatorName}
             lines={perFuelSales.map(({ reading, sold, value }) => ({
               nozzleId: reading.nozzleId,
-              label: `Nozzle #${nozzleNumberById[reading.nozzleId] ?? '?'} · ${FUEL_LABELS[reading.fuelType] ?? reading.fuelType}`,
+              label: t('close.nozzleLine', { number: nozzleNumberById[reading.nozzleId] ?? '?', fuel: codeLabel(reading.fuelType) }),
               units: sold,
               unit: FUEL_UNIT[reading.fuelType] ?? 'L',
               amount: value,
@@ -459,7 +462,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
             )}
 
             {/* ── Step 1: End Readings ──────────────────────────────────── */}
-            <Section label="1" title="End Meter Readings">
+            <Section label="1" title={t('close.sections.endReadings')}>
               <div className={`grid gap-3 ${shift.fuelReadings.length > 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 {perFuelSales.map(({ reading, sold, isBelowStart }, index) => {
                   const isNoChange = noChangeNozzles.has(reading.nozzleId)
@@ -468,7 +471,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
                   return (
                     <ReadingField
                       key={reading.nozzleId}
-                      label={`Nozzle #${nozzleNumberById[reading.nozzleId] ?? '?'} · ${FUEL_LABELS[reading.fuelType] ?? reading.fuelType} end (${FUEL_UNIT[reading.fuelType] ?? 'L'})`}
+                      label={t('close.endReadingLabel', { number: nozzleNumberById[reading.nozzleId] ?? '?', fuel: codeLabel(reading.fuelType), unit: FUEL_UNIT[reading.fuelType] ?? 'L' })}
                       startValue={reading.startReading}
                       soldUnits={sold}
                       pricePerUnit={reading.priceSnapshot}
@@ -488,14 +491,14 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
             {/* ── Total due card ─────────────────────────────────────────── */}
             <div className="bg-info-bg border border-info rounded-card p-4 flex items-center justify-between">
               <div>
-                <p className="text-xs text-info font-medium uppercase tracking-wide">Total Due</p>
-                <p className="text-xs text-ink-2 mt-0.5">meter reading × locked price</p>
+                <p className="text-xs text-info font-medium uppercase tracking-wide">{t('close.totalDue')}</p>
+                <p className="text-xs text-ink-2 mt-0.5">{t('close.totalDueHint')}</p>
               </div>
               <p className="text-2xl font-bold text-info"><MoneyText value={totalDue} /></p>
             </div>
 
             {/* ── Step 2: Credit Sales ─────────────────────────────────── */}
-            <Section label="2" title="Credit Sales" optional>
+            <Section label="2" title={t('close.sections.creditSales')} optional>
               <div className="border border-border rounded-card overflow-visible">
 
                 {/* Pre-recorded entries (saved mid-shift) — with edit / delete */}
@@ -513,17 +516,17 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
                   <div>
                     {creditRows.length > 0 ? (
                       <span className="text-xs text-warn font-medium">
-                        {creditRows.length} new {creditRows.length === 1 ? 'entry' : 'entries'} · ₹{fmt(newCreditTotal)}
+                        {t('close.newEntries', { count: creditRows.length, amount: fmt(newCreditTotal) })}
                       </span>
                     ) : (
                       <span className="text-xs text-ink-3">
-                        {preRecordedEntries.length > 0 ? 'Add more entries below' : 'No credit this shift'}
+                        {preRecordedEntries.length > 0 ? t('close.addMoreBelow') : t('close.noCredit')}
                       </span>
                     )}
                   </div>
                   <button type="button" onClick={addCreditRow}
                     className="ui-btn ui-btn-warning min-h-0 px-3 py-1.5 text-xs">
-                    + Add Entry
+                    {t('close.addEntry')}
                   </button>
                 </div>
 
@@ -551,24 +554,24 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
             </Section>
 
             {/* ── Step 3: Payment Collected ────────────────────────────── */}
-            <Section label="3" title="Payment Collected">
+            <Section label="3" title={t('close.sections.payment')}>
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2 flex flex-col gap-2 sm:flex-row sm:items-end">
                   <div className="flex-1 min-w-0">
-                    <PaymentField label="Cash (₹)" value={cash} onChange={setCash} />
+                    <PaymentField label={t('close.payment.cash')} value={cash} onChange={setCash} />
                   </div>
                   <button type="button" onClick={() => setCash((restInCashPaise / 100).toFixed(2))}
                     className="ui-btn ui-btn-secondary">
-                    Rest in cash · ₹{fmt(restInCashPaise / 100)}
+                    {t('close.payment.restInCash', { amount: fmt(restInCashPaise / 100) })}
                   </button>
                 </div>
-                <PaymentField label="UPI (₹)"         value={upi}       onChange={setUpi} />
-                <PaymentField label="Card (₹)"        value={card}      onChange={setCard} />
-                <PaymentField label="Fleet Card (₹)"  value={fleetCard} onChange={setFleetCard} />
+                <PaymentField label={t('close.payment.upi')} value={upi}       onChange={setUpi} />
+                <PaymentField label={t('close.payment.card')} value={card}      onChange={setCard} />
+                <PaymentField label={t('close.payment.fleetCard')} value={fleetCard} onChange={setFleetCard} />
               </div>
               {creditTotal > 0 && (
                 <div className="flex items-center justify-between bg-warn-bg border border-warn rounded-control px-3 py-2 mt-2">
-                  <span className="text-xs font-medium text-warn">Credit Sales Total</span>
+                  <span className="text-xs font-medium text-warn">{t('close.payment.creditTotal')}</span>
                   <span className="text-sm font-bold text-warn-strong"><MoneyText value={creditTotal} /></span>
                 </div>
               )}

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { canPerformAction } from '../../permissions/permissions'
@@ -10,6 +11,7 @@ import { ExpenseList } from './ExpenseList'
 import { useExpenseList } from './useExpenseList'
 
 export default function ExpensesPage() {
+  const { t } = useTranslation('expenses')
   const { user } = useAuthStore()
 
   const { selectedPumpId: pumpId } = usePumpStore()
@@ -30,9 +32,9 @@ export default function ExpensesPage() {
   if (!pumpId) {
     return (
       <div className="ui-page ui-page--narrow">
-        <h1 className="sr-only">Expense Tracker</h1>
+        <h1 className="sr-only">{t('page.title')}</h1>
         <div className="ui-alert ui-alert-warning text-sm" role="status">
-          No pump selected. Use the pump selector in the top navigation bar, or ask the Owner or Admin to assign you to a pump.
+          {t('page.noPump')}
         </div>
       </div>
     )
@@ -45,17 +47,17 @@ export default function ExpensesPage() {
       <Reveal delay={60}>
       <div className="ui-section-hero">
         <div>
-          <p className="ui-section-kicker">Cost tracking</p>
-          <h1 className="ui-title-sm">Expense Tracker</h1>
-          <p className="ui-subtitle">Record and review operational expenses at the pump</p>
+          <p className="ui-section-kicker">{t('page.kicker')}</p>
+          <h1 className="ui-title-sm">{t('page.title')}</h1>
+          <p className="ui-subtitle">{t('page.subtitle')}</p>
         </div>
         <div className="ui-section-meta">
           <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">Records</span>
+            <span className="ui-section-meta-label">{t('page.records')}</span>
             <span className="ui-section-meta-value">{expensesPage?.totalElements ?? 0}</span>
           </div>
           <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">Pending</span>
+            <span className="ui-section-meta-label">{t('page.pending')}</span>
             <span className="ui-section-meta-value">{pendingCount}</span>
           </div>
         </div>
@@ -68,16 +70,16 @@ export default function ExpensesPage() {
         <Reveal delay={120}>
         <div className="ui-summary-strip">
           <div className="ui-summary-strip__item">
-            <span className="ui-summary-strip__label">Approved Total</span>
+            <span className="ui-summary-strip__label">{t('page.approvedTotal')}</span>
             <MoneyText value={totalExpenses} className="ui-summary-strip__value" />
           </div>
           <div className="ui-summary-strip__item">
-            <span className="ui-summary-strip__label">Total Records</span>
+            <span className="ui-summary-strip__label">{t('page.totalRecords')}</span>
             <span className="ui-summary-strip__value">{expensesPage?.totalElements ?? 0}</span>
           </div>
           {pendingCount > 0 && (
             <div className="ui-summary-strip__item">
-              <span className="ui-summary-strip__label text-warn">Pending Approval</span>
+              <span className="ui-summary-strip__label text-warn">{t('page.pendingApproval')}</span>
               <span className="ui-summary-strip__value text-warn">{pendingCount}</span>
             </div>
           )}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { inventoryApi } from '../../api/inventoryApi'
 import { userApi } from '../../api/userApi'
 import type { OpenShiftNozzle, TankStock } from '../../api/inventoryApi'
@@ -10,6 +11,8 @@ import { parseApiError } from '../../utils/apiError'
 import { FUEL_COLORS } from './inventoryFormat'
 import { NumericInput } from '../../components/NumericInput'
 import { useToastStore } from '../../store/toastStore'
+import { formatNumberIn } from '../../i18n/format'
+import { codeLabel } from '../../constants/labels'
 
 const ROLLOVER_START_FRACTION = 0.99
 
@@ -35,6 +38,7 @@ export function DipCheckModal({
   tank: TankStock
   onClose: () => void
 }) {
+  const { t } = useTranslation(['inventory', 'common'])
   const queryClient = useQueryClient()
   const { addToast } = useToastStore()
   const cols = FUEL_COLORS[tank.fuelType] ?? FUEL_COLORS.PETROL
@@ -67,11 +71,11 @@ export function DipCheckModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pumpId] })
       queryClient.invalidateQueries({ queryKey: ['dipChecks', pumpId] })
-      addToast(`DIP check saved for ${tank.tankIdentifier}`, 'success')
+      addToast(t('dipCheck.saved', { tank: tank.tankIdentifier }), 'success')
       onClose()
     },
     onError: (err) => {
-      setError(parseApiError(err, 'Failed to record DIP check'))
+      setError(parseApiError(err, t('dipCheck.failed')))
       queryClient.invalidateQueries({ queryKey: ['openShiftNozzles', pumpId, tank.tankId] })
     },
   })
@@ -85,9 +89,9 @@ export function DipCheckModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!measured) { setError('Measured quantity is required.'); return }
+    if (!measured) { setError(t('dipCheck.measuredRequired')); return }
     if (openShiftNozzles.some(n => (meterReadings[n.nozzleId] ?? '') === '')) {
-      setError('Enter the current meter reading of every nozzle on an open shift.')
+      setError(t('dipCheck.meterReadingsRequired'))
       return
     }
     mutation.mutate()
@@ -95,7 +99,7 @@ export function DipCheckModal({
 
   return (
     <Modal
-      title="DIP Check"
+      title={t('dipCheck.title')}
       subtitle={<>{tank.tankIdentifier} — <span className={cols.text}>{tank.fuelType}</span></>}
       tone="neutral"
       size="sm"
@@ -109,41 +113,42 @@ export function DipCheckModal({
           onClick={onClose}
           className="ui-btn ui-btn-secondary flex-1"
         >
-          Cancel
+          {t('common:actions.cancel')}
         </button>
         <button
           type="submit"
           disabled={mutation.isPending || openShiftNozzlesLoading}
           className="ui-btn ui-btn-primary flex-1"
         >
-          {mutation.isPending ? 'Saving...' : 'Save DIP Check'}
+          {mutation.isPending ? t('dipCheck.saving') : t('dipCheck.save')}
         </button>
       </>}
     >
           {/* Current system stock */}
           <div className="bg-surface-sunken rounded-control px-4 py-3 text-xs text-ink-3">
-            System stock right now:{' '}
+            {t('dipCheck.systemStock')}{' '}
             <span className="font-bold text-ink tabular-nums">
-              {tank.currentStock.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
+              {formatNumberIn(tank.currentStock, { minimumFractionDigits: 1 })} L
             </span>
-            <span className="block mt-1">Recorded for today — a DIP check cannot be back-dated.</span>
+            <span className="block mt-1">{t('dipCheck.noBackdate')}</span>
           </div>
 
           {/* Meter readings of nozzles on open shifts */}
           {openShiftNozzlesLoading ? (
-            <p className="text-xs text-ink-3">Checking for open shifts on this tank…</p>
+            <p className="text-xs text-ink-3">{t('dipCheck.checkingShifts')}</p>
           ) : openShiftNozzles.length > 0 && (
             <fieldset className="space-y-3">
-              <legend className="ui-label">Current meter readings</legend>
+              <legend className="ui-label">{t('dipCheck.meterReadings')}</legend>
               <p className="text-xs text-ink-3">
-                A shift is still open on this tank. Fuel it has sold since opening has not left stock yet,
-                so enter each nozzle&apos;s meter reading now.
+                {t('dipCheck.openShiftNote')}
               </p>
               {openShiftNozzles.map(n => (
                 <div key={n.nozzleId}>
                   <label className="block">
                     <span className="ui-label">
-                      Nozzle #{n.nozzleNumber}{n.duName ? ` · ${n.duName}` : ''} meter reading
+                      {n.duName
+                        ? t('dipCheck.nozzleReadingWithDu', { number: n.nozzleNumber, du: n.duName })
+                        : t('dipCheck.nozzleReading', { number: n.nozzleNumber })}
                     </span>
                     <NumericInput
                       required
@@ -155,15 +160,15 @@ export function DipCheckModal({
                     />
                   </label>
                   <p id={`opening-reading-${n.nozzleId}`} className="text-xs text-ink-3 mt-1">
-                    Opened at {n.openingReading.toLocaleString('en-IN', { minimumFractionDigits: 3 })}
+                    {t('dipCheck.openedAt', { reading: formatNumberIn(n.openingReading, { minimumFractionDigits: 3 }) })}
                   </p>
                 </div>
               ))}
               {soldKnown && (
                 <p className="text-xs text-ink-3">
-                  Expected in tank after sales so far:{' '}
+                  {t('dipCheck.expectedStock')}{' '}
                   <span className="font-bold text-ink tabular-nums">
-                    {expectedStock.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
+                    {formatNumberIn(expectedStock, { minimumFractionDigits: 1 })} L
                   </span>
                 </p>
               )}
@@ -174,7 +179,7 @@ export function DipCheckModal({
           <div>
             <label className="block">
               <span className="ui-label">
-              Dipstick Reading (Litres)
+              {t('dipCheck.dipstickReading')}
             </span>
               <NumericInput
                 required
@@ -182,7 +187,7 @@ export function DipCheckModal({
                 min="0"
                 value={measured}
                 onChange={e => setMeasured(e.target.value)}
-                placeholder="Physically measured quantity"
+                placeholder={t('dipCheck.dipstickPlaceholder')}
                 data-autofocus
               />
             </label>
@@ -199,13 +204,13 @@ export function DipCheckModal({
             }`}>
               <span>
                 {Math.abs(variance) < tank.dipTolerance
-                  ? <span className="inline-flex items-center gap-1">Within tolerance<Check size={12} strokeWidth={2.5} /></span>
+                  ? <span className="inline-flex items-center gap-1">{t('dipCheck.withinTolerance')}<Check size={12} strokeWidth={2.5} /></span>
                   : variance > 0
-                    ? 'Surplus detected'
-                    : 'Shortage detected'}
+                    ? t('dipCheck.surplus')
+                    : t('dipCheck.shortage')}
               </span>
               <span className="font-bold tabular-nums">
-                {variance > 0 ? '+' : ''}{variance.toFixed(1)} L variance
+                {t('dipCheck.variance', { value: `${variance > 0 ? '+' : ''}${variance.toFixed(1)}` })}
               </span>
             </div>
           )}
@@ -213,15 +218,15 @@ export function DipCheckModal({
           {/* Operator */}
           <div>
             <span className="ui-label">
-              Checked By <span className="text-ink-3">(optional)</span>
+              {t('dipCheck.checkedBy')} <span className="text-ink-3">{t('dipCheck.optional')}</span>
             </span>
-            <SearchableSelect label="Checked By"
+            <SearchableSelect label={t('dipCheck.checkedBy')}
               value={checkedByUserId}
               onChange={v => setCheckedByUserId(v)}
-              placeholder="— Select operator —"
+              placeholder={t('dipCheck.selectOperator')}
               options={staff.map(s => ({
                 value: String(s.id),
-                label: `${s.fullName} (${s.role.charAt(0) + s.role.slice(1).toLowerCase()})`,
+                label: t('dipCheck.staffOption', { name: s.fullName, role: codeLabel(s.role) }),
               }))}
             />
           </div>
@@ -230,13 +235,13 @@ export function DipCheckModal({
           <div>
             <label className="block">
               <span className="ui-label">
-              Notes <span className="text-ink-3">(optional)</span>
+              {t('dipCheck.notes')} <span className="text-ink-3">{t('dipCheck.optional')}</span>
             </span>
               <input
                 type="text"
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                placeholder="e.g. Reading taken at 6pm"
+                placeholder={t('dipCheck.notesPlaceholder')}
                 className="text-sm"
               />
             </label>

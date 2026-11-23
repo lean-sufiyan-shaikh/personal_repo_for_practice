@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { usePumpStore } from '../../store/usePumpStore'
 import { ancillaryApi } from '../../api/ancillaryApi'
@@ -13,6 +14,7 @@ type Tab = 'products' | 'stockin' | 'sales'
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function AncillaryProductsPage() {
+  const { t } = useTranslation('ancillary')
   const { user } = useAuthStore()
   const qc = useQueryClient()
 
@@ -35,7 +37,7 @@ export default function AncillaryProductsPage() {
     return (
       <div className="ui-page ui-page--narrow">
         <div className="ui-alert ui-alert-warning text-sm">
-          You are not assigned to any pump. Ask the Owner or Admin to assign you.
+          {t('page.notAssigned')}
         </div>
       </div>
     )
@@ -48,15 +50,15 @@ export default function AncillaryProductsPage() {
       <Reveal delay={60}>
       <div className="ui-section-hero">
         <div>
-        <p className="ui-section-kicker">Counter inventory</p>
-        <h1 className="ui-title-sm">Products</h1>
+        <p className="ui-section-kicker">{t('page.kicker')}</p>
+        <h1 className="ui-title-sm">{t('page.title')}</h1>
         <p className="ui-subtitle">
-          Manage lubricants, accessories, and other counter products. Track stock and sales.
+          {t('page.subtitle')}
         </p>
         </div>
         <div className="ui-section-meta">
           <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">Products</span>
+            <span className="ui-section-meta-label">{t('page.productsCount')}</span>
             <span className="ui-section-meta-value">{products.length}</span>
           </div>
         </div>
@@ -65,7 +67,7 @@ export default function AncillaryProductsPage() {
 
       {!pumpId ? (
         <div className="ui-empty">
-          No pump selected. Use the pump selector in the top navigation bar.
+          {t('page.noPump')}
         </div>
       ) : (
         <>
@@ -78,7 +80,7 @@ export default function AncillaryProductsPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`ui-tabbar__button ${activeTab === tab ? 'ui-tabbar__button--active' : ''}`}
               >
-                {tab === 'products' ? 'Products' : tab === 'stockin' ? 'Stock In' : 'Sales History'}
+                {tab === 'products' ? t('tabs.products') : tab === 'stockin' ? t('tabs.stockIn') : t('tabs.sales')}
               </button>
             ))}
           </div>

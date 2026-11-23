@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { History } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
@@ -22,6 +23,7 @@ export function StockInTab({
   isManagerOrAbove: boolean
   onRefresh: () => void
 }) {
+  const { t } = useTranslation('ancillary')
   const qc = useQueryClient()
   const [deliveryPage, setDeliveryPage] = useState(0)
   const [deliveryPageSize, setDeliveryPageSize] = useState(10)
@@ -35,18 +37,18 @@ export function StockInTab({
   const deliveries = deliveriesPage?.content ?? []
 
   const columns: DataTableColumn<AncillaryStockDelivery>[] = [
-    { key: 'date', header: 'Date', className: 'px-5 text-ink-2', cell: (d) => fmtDate(d.deliveryDate) },
-    { key: 'product', header: 'Product', className: 'px-5', cell: (d) => (
+    { key: 'date', header: t('fields.date'), className: 'px-5 text-ink-2', cell: (d) => fmtDate(d.deliveryDate) },
+    { key: 'product', header: t('fields.product'), className: 'px-5', cell: (d) => (
       <div className="flex flex-col">
-        <span className="font-medium text-ink">{productMap.get(d.productId)?.displayName ?? `Product #${d.productId}`}</span>
+        <span className="font-medium text-ink">{productMap.get(d.productId)?.displayName ?? t('stockInTab.productFallback', { id: d.productId })}</span>
         <span className="text-xs text-ink-3">#{d.productId}</span>
       </div>
     ) },
-    { key: 'qty', header: 'Qty', numeric: true, className: 'px-5 font-medium', cell: (d) => d.quantityUnits },
-    { key: 'costPerUnit', header: 'Cost/Unit', numeric: true, className: 'px-5', cell: (d) => <MoneyText value={d.costPricePerUnit} /> },
-    { key: 'totalCost', header: 'Total Cost', numeric: true, className: 'px-5 font-medium', cell: (d) => <MoneyText value={d.costPricePerUnit * d.quantityUnits} /> },
-    { key: 'invoice', header: 'Invoice', className: 'px-5 text-ink-3', cell: (d) => d.invoiceReference ?? '—' },
-    { key: 'type', header: 'Type', className: 'px-5', cell: (d) => d.isBackfilled && <StatusBadge tone="info" icon={History} label="Backfilled" /> },
+    { key: 'qty', header: t('fields.qty'), numeric: true, className: 'px-5 font-medium', cell: (d) => d.quantityUnits },
+    { key: 'costPerUnit', header: t('stockInTab.costPerUnit'), numeric: true, className: 'px-5', cell: (d) => <MoneyText value={d.costPricePerUnit} /> },
+    { key: 'totalCost', header: t('stockInTab.totalCost'), numeric: true, className: 'px-5 font-medium', cell: (d) => <MoneyText value={d.costPricePerUnit * d.quantityUnits} /> },
+    { key: 'invoice', header: t('stockInTab.invoice'), className: 'px-5 text-ink-3', cell: (d) => d.invoiceReference ?? '—' },
+    { key: 'type', header: t('fields.type'), className: 'px-5', cell: (d) => d.isBackfilled && <StatusBadge tone="info" icon={History} label={t('fields.backfilled')} /> },
   ]
 
   return (
@@ -58,12 +60,12 @@ export function StockInTab({
             onClick={() => setStockInOpen(true)}
             className="ui-btn ui-btn-primary"
           >
-            Record Stock Delivery
+            {t('stockInTab.record')}
           </button>
         </div>
       ) : (
         <div className="ui-alert ui-alert-warning text-sm">
-          Only Managers, Admins, and Owners can record deliveries.
+          {t('stockInTab.onlyManagers')}
         </div>
       )}
 
@@ -84,14 +86,14 @@ export function StockInTab({
       {/* Delivery history */}
       <div className="ui-card p-0">
         <div className="px-5 py-4 border-b border-border">
-          <h3 className="text-sm font-semibold text-ink">Recent Deliveries</h3>
+          <h3 className="text-sm font-semibold text-ink">{t('stockInTab.recent')}</h3>
         </div>
         {deliveries.length === 0 ? (
-          <EmptyState icon="generic" title="No deliveries recorded yet" subtitle="Record stock deliveries using the button above." />
+          <EmptyState icon="generic" title={t('stockInTab.emptyTitle')} subtitle={t('stockInTab.emptySubtitle')} />
         ) : (
           <>
           <DataTable
-            caption="Stock-in history"
+            caption={t('stockInTab.caption')}
             captionHidden
             columns={columns}
             rows={deliveries}

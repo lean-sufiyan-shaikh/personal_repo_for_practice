@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useMutation } from '@tanstack/react-query'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import type { AncillaryProduct } from '../../api/ancillaryApi'
@@ -16,6 +17,7 @@ export function EditHsnDialog({
   onClose: () => void
   onSuccess: () => void
 }) {
+  const { t } = useTranslation(['ancillary', 'common'])
   const { addToast } = useToastStore()
   const [hsnCode, setHsnCode] = useState(product.hsnCode ?? '')
   const [error, setError] = useState<string | null>(null)
@@ -23,22 +25,22 @@ export function EditHsnDialog({
   const mutation = useMutation({
     mutationFn: () => ancillaryApi.updateProduct(pumpId, product.id, { hsnCode: hsnCode.trim() }),
     onSuccess: () => {
-      addToast('HSN code saved', 'success')
+      addToast(t('editHsn.saved'), 'success')
       onSuccess()
     },
-    onError: (err) => setError(parseApiError(err, 'Failed to save HSN code')),
+    onError: (err) => setError(parseApiError(err, t('editHsn.saveFailed'))),
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isValidHsnCode(hsnCode)) { setError('HSN code must be 4 to 8 digits'); return }
+    if (!isValidHsnCode(hsnCode)) { setError(t('validation.hsnInvalid')); return }
     setError(null)
     mutation.mutate()
   }
 
   return (
     <Modal
-      title="HSN Code"
+      title={t('fields.hsnCode')}
       subtitle={product.displayName}
       tone="info"
       size="sm"
@@ -48,25 +50,25 @@ export function EditHsnDialog({
       onSubmit={handleSubmit}
       bodyClassName="space-y-3"
       footer={<>
-        <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">Cancel</button>
+        <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
         <button type="submit" disabled={mutation.isPending} className="ui-btn ui-btn-primary">
-          {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Saving…</span> : 'Save'}
+          {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('actions.saving')}</span> : t('actions.save')}
         </button>
       </>}
     >
       <label className="block">
-        <span className="ui-label">HSN Code</span>
+        <span className="ui-label">{t('fields.hsnCode')}</span>
         <input
           className="text-sm"
           inputMode="numeric"
           maxLength={8}
           value={hsnCode}
           onChange={e => setHsnCode(e.target.value.replace(/\D/g, ''))}
-          placeholder="e.g. 27101980 — leave blank to remove"
+          placeholder={t('editHsn.placeholder')}
           data-autofocus
         />
       </label>
-      <p className="text-xs text-ink-3">Printed on tax invoices for credit sales of this product.</p>
+      <p className="text-xs text-ink-3">{t('editHsn.hint')}</p>
       {error && <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>}
     </Modal>
   )

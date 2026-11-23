@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { inventoryApi } from '../../api/inventoryApi'
 import type { DipCheck } from '../../api/inventoryApi'
 import { AlertTriangle, Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { StatusBadge } from '../../components/StatusBadge'
 import { LitresText } from '../../components/AmountText'
 import { FUEL_COLORS, fmtQty } from './inventoryFormat'
@@ -13,6 +14,7 @@ export function DipItem({ check, pumpId, canReview }: {
   pumpId: number
   canReview: boolean
 }) {
+  const { t } = useTranslation(['inventory', 'common'])
   const qc = useQueryClient()
   const cols = FUEL_COLORS[check.fuelType] ?? FUEL_COLORS.PETROL
   const over = check.variance > 0
@@ -25,13 +27,13 @@ export function DipItem({ check, pumpId, canReview }: {
   const statusBadge = () => {
     if (check.status === 'WITHIN_TOLERANCE') return null
     if (check.status === 'PENDING_REVIEW') {
-      return <StatusBadge tone="bad" icon={AlertTriangle} label="Needs Review" className="shrink-0" />
+      return <StatusBadge tone="bad" icon={AlertTriangle} label={t('dipItem.needsReview')} className="shrink-0" />
     }
     return (
       <StatusBadge
         tone="neutral"
         icon={Check}
-        label={`Reviewed${check.reviewedByUserName ? ` · ${check.reviewedByUserName}` : ''}`}
+        label={check.reviewedByUserName ? t('dipItem.reviewedBy', { name: check.reviewedByUserName }) : t('dipItem.reviewed')}
         className="shrink-0"
       />
     )
@@ -46,12 +48,12 @@ export function DipItem({ check, pumpId, canReview }: {
       </span>
       <span className="text-xs font-semibold text-ink w-14 shrink-0">{check.tankIdentifier}</span>
       <span className="text-xs text-ink-3 shrink-0">
-        Measured: <span className="font-medium text-ink">{fmtQty(check.measuredQuantity)}</span>
+        {t('dipItem.measured')} <span className="font-medium text-ink">{fmtQty(check.measuredQuantity)}</span>
       </span>
-      <span className="text-xs text-ink-3 shrink-0">System: {fmtQty(check.systemStock)}</span>
+      <span className="text-xs text-ink-3 shrink-0">{t('dipItem.system', { quantity: fmtQty(check.systemStock) })}</span>
       <span className="shrink-0">
         {check.variance === 0 ? (
-          <span className="text-xs text-ok font-medium">Balanced</span>
+          <span className="text-xs text-ok font-medium">{t('common:badges.balanced')}</span>
         ) : (
           <LitresText value={check.variance} showSign tone={over ? 'warn' : 'bad'} className="text-xs font-semibold" />
         )}
@@ -63,7 +65,7 @@ export function DipItem({ check, pumpId, canReview }: {
           disabled={reviewMutation.isPending}
           className="ui-btn ui-btn-danger min-h-0 px-2.5 py-0.5 text-xs disabled:opacity-50 shrink-0"
         >
-          {reviewMutation.isPending ? '…' : 'Acknowledge'}
+          {reviewMutation.isPending ? '…' : t('dipItem.acknowledge')}
         </button>
       )}
       {check.notes && (

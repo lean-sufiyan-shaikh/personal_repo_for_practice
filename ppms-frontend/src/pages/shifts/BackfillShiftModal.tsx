@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { DiscardChangesDialog } from '../../components/DiscardChangesDialog'
 import { Modal } from '../../components/Modal'
 import type { BackfillShiftModalProps } from './backfill/backfillHelpers'
@@ -11,14 +12,15 @@ import { PaymentSection } from './backfill/PaymentSection'
 import { DiscrepancyReasonSection } from './backfill/DiscrepancyReasonSection'
 
 export default function BackfillShiftModal({ pumpId, onClose }: BackfillShiftModalProps) {
+  const { t } = useTranslation(['shifts', 'common'])
   const form = useBackfillForm({ pumpId, onClose })
   const { error, handleSubmit, isPending, requestClose, isConfirming, discard, keepEditing, canSubmit } = form
 
   return (
     <>
       <Modal
-        title="Backfill Historical Shift"
-        subtitle="Record past shift data (up to 365 days back). Tanker deliveries for the shift date must be logged first — the system will block submission if stock is insufficient."
+        title={t('backfill.title')}
+        subtitle={t('backfill.subtitle')}
         tone="info"
         size="md-wide"
         onClose={requestClose}
@@ -29,14 +31,14 @@ export default function BackfillShiftModal({ pumpId, onClose }: BackfillShiftMod
         footer={
           <>
             <button type="button" onClick={requestClose} disabled={isPending} className="ui-btn ui-btn-ghost">
-              Cancel
+              {t('common:actions.cancel')}
             </button>
             <button
               type="submit"
               disabled={isPending || !canSubmit}
               className="ui-btn ui-btn-primary disabled:opacity-40"
             >
-              {isPending ? 'Saving…' : 'Save Historical Shift'}
+              {isPending ? t('backfill.saving') : t('backfill.save')}
             </button>
           </>
         }

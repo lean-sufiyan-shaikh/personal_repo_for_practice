@@ -1,7 +1,9 @@
 import { AlertTriangle, AlertCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { TankStock } from '../../api/inventoryApi'
 
 export function InventoryAlerts({ lowStockTanks, dipOverdueTanks }: { lowStockTanks: TankStock[]; dipOverdueTanks: TankStock[] }) {
+  const { t } = useTranslation('inventory')
   return (
     <>
     {/* ── Low stock alert banner ── */}
@@ -10,8 +12,8 @@ export function InventoryAlerts({ lowStockTanks, dipOverdueTanks }: { lowStockTa
         <AlertTriangle size={18} strokeWidth={2} className="text-bad shrink-0" />
         <p className="text-sm text-bad font-medium">
           {lowStockTanks.length === 1
-            ? `${lowStockTanks[0].tankIdentifier} (${lowStockTanks[0].fuelType}) is below 20% capacity.`
-            : `${lowStockTanks.length} tanks are below 20% capacity. Schedule a delivery soon.`}
+            ? t('alerts.lowStockOne', { tank: lowStockTanks[0].tankIdentifier, fuel: lowStockTanks[0].fuelType })
+            : t('alerts.lowStockMany', { number: lowStockTanks.length })}
         </p>
       </div>
     )}
@@ -23,11 +25,11 @@ export function InventoryAlerts({ lowStockTanks, dipOverdueTanks }: { lowStockTa
         <div>
           <p className="text-sm text-bad font-medium">
             {dipOverdueTanks.length === 1
-              ? `DIP check overdue on ${dipOverdueTanks[0].tankIdentifier} (${dipOverdueTanks[0].fuelType}).`
-              : `DIP check overdue on ${dipOverdueTanks.length} tanks.`}
+              ? t('alerts.dipOverdueOne', { tank: dipOverdueTanks[0].tankIdentifier, fuel: dipOverdueTanks[0].fuelType })
+              : t('alerts.dipOverdueMany', { number: dipOverdueTanks.length })}
           </p>
           <p className="text-xs text-bad mt-0.5">
-            DIP checks should be done at least once every 24 hours to verify physical stock levels.
+            {t('alerts.dipRule')}
           </p>
         </div>
       </div>

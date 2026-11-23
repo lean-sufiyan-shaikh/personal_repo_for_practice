@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { calibrationApi } from '../../api/calibrationApi'
 import type { LogCalibrationRequest } from '../../api/calibrationApi'
@@ -19,16 +21,17 @@ interface CalibrationFormProps {
   onRecorded: (nozzleId: number) => void
 }
 
-function missingDetailError(form: LogCalibrationRequest): string | null {
-  if (!form.calibratedBy?.trim()) return 'Calibrated By is required'
-  if (!form.calibrationDate) return 'Calibration date is required'
-  if (!form.nextCalibrationDue) return 'Next calibration due date is required'
-  if (form.nextCalibrationDue <= form.calibrationDate) return 'Next calibration due date must be after the calibration date'
-  if (!form.certificateReference?.trim()) return 'Certificate reference is required'
+function missingDetailError(form: LogCalibrationRequest, t: TFunction<'calibration'>): string | null {
+  if (!form.calibratedBy?.trim()) return t('validation.calibratedByRequired')
+  if (!form.calibrationDate) return t('validation.dateRequired')
+  if (!form.nextCalibrationDue) return t('validation.nextDueRequired')
+  if (form.nextCalibrationDue <= form.calibrationDate) return t('validation.nextDueAfterDate')
+  if (!form.certificateReference?.trim()) return t('validation.certificateRequired')
   return null
 }
 
 export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationFormProps) {
+  const { t } = useTranslation('calibration')
   const qc           = useQueryClient()
   const { addToast } = useToastStore()
   const [selectedNozzleId, setSelectedNozzleId] = useState<number>(0)
@@ -51,10 +54,10 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
       setForm({ calibrationDate: localDateInputValue(), nextCalibrationDue: null, calibratedBy: null, certificateReference: null, notes: null })
       setFormError(null)
       setReviewOpen(false)
-      addToast('Calibration recorded successfully', 'success')
+      addToast(t('toast.recorded'), 'success')
     },
     onError: (err) => {
-      const msg = parseApiError(err, 'Failed to record calibration')
+      const msg = parseApiError(err, t('toast.recordFailed'))
       setFormError(msg)
       addToast(msg, 'error')
     },
@@ -62,8 +65,8 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedNozzleId) { setFormError('Please select a nozzle'); return }
-    const detailError = missingDetailError(form)
+    if (!selectedNozzleId) { setFormError(t('validation.selectNozzle')); return }
+    const detailError = missingDetailError(form, t)
     if (detailError) { setFormError(detailError); return }
     setFormError(null)
     setReviewOpen(true)
@@ -73,10 +76,10 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
 
   const submitCalibration = () => {
     if (!selectedNozzleId) {
-      setFormError('Please select a nozzle')
+      setFormError(t('validation.selectNozzle'))
       return
     }
-    const detailError = missingDetailError(form)
+    const detailError = missingDetailError(form, t)
     if (detailError) {
       setFormError(detailError)
       return
@@ -96,29 +99,29 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
       <form onSubmit={handleSubmit} className="ui-card ui-form-shell">
         <div className="ui-form-shell__head">
           <div>
-            <p className="ui-section-kicker mb-2">Calibration Entry</p>
-            <h2 className="ui-title-sm">Record calibration</h2>
-            <p className="ui-subtitle mt-1">Attach the calibration date, technician, certificate and next due date for compliance history.</p>
+            <p className="ui-section-kicker mb-2">{t('form.kicker')}</p>
+            <h2 className="ui-title-sm">{t('form.title')}</h2>
+            <p className="ui-subtitle mt-1">{t('form.subtitle')}</p>
           </div>
         </div>
 
         <div className="ui-form-shell__grid">
           <div>
-            <span className="ui-label">Nozzle</span>
-            <SearchableSelect label="Nozzle"
+            <span className="ui-label">{t('form.nozzle')}</span>
+            <SearchableSelect label={t('form.nozzle')}
               value={selectedNozzleId ? selectedNozzleId.toString() : ''}
               onChange={v => { setSelectedNozzleId(parseInt(v) || 0); setFormError(null) }}
-              placeholder="Select nozzle…"
+              placeholder={t('form.nozzlePlaceholder')}
               options={nozzles.map((n) => ({
                 value: n.id.toString(),
-                label: `Nozzle #${n.nozzleNumber} — ${n.fuelType}`,
+                label: t('nozzleOption', { number: n.nozzleNumber, fuel: n.fuelType }),
               }))}
             />
           </div>
 
           <div>
             <label className="block">
-              <span className="ui-label">Calibration Date</span>
+              <span className="ui-label">{t('form.calibrationDate')}</span>
               <input
                 type="date"
                 value={form.calibrationDate}
@@ -131,7 +134,7 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
 
           <div>
             <label className="block">
-              <span className="ui-label">Next Calibration Due *</span>
+              <span className="ui-label">{t('form.nextDueRequired')}</span>
               <input
                 type="date"
                 value={form.nextCalibrationDue ?? ''}
@@ -144,39 +147,39 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
 
           <div>
             <label className="block">
-              <span className="ui-label">Calibrated By *</span>
+              <span className="ui-label">{t('form.calibratedByRequired')}</span>
               <input
                 type="text"
                 value={form.calibratedBy ?? ''}
                 onChange={e => setForm(f => ({ ...f, calibratedBy: e.target.value || null }))}
                 className="text-sm"
-                placeholder="Technician or agency name"
+                placeholder={t('form.calibratedByPlaceholder')}
               />
             </label>
           </div>
 
           <div>
             <label className="block">
-              <span className="ui-label">Certificate Reference *</span>
+              <span className="ui-label">{t('form.certificateRequired')}</span>
               <input
                 type="text"
                 value={form.certificateReference ?? ''}
                 onChange={e => setForm(f => ({ ...f, certificateReference: e.target.value || null }))}
                 className="text-sm"
-                placeholder="Inspection certificate number"
+                placeholder={t('form.certificatePlaceholder')}
               />
             </label>
           </div>
 
           <div>
             <label className="block">
-              <span className="ui-label">Notes (optional)</span>
+              <span className="ui-label">{t('form.notesOptional')}</span>
               <input
                 type="text"
                 value={form.notes ?? ''}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
                 className="text-sm"
-                placeholder="Additional observations"
+                placeholder={t('form.notesPlaceholder')}
               />
             </label>
           </div>
@@ -190,46 +193,46 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
           className="ui-btn ui-btn-primary"
         >
           {createMutation.isPending
-          ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Saving…</span>
-          : 'Review Calibration'}
+          ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('form.saving')}</span>
+          : t('form.review')}
         </button>
       </form>
       </Reveal>
 
       {reviewOpen && (
         <Modal
-          title="Review Calibration"
-          subtitle="Verify the nozzle and calibration details before saving."
+          title={t('review.title')}
+          subtitle={t('review.subtitle')}
           tone="info"
           onClose={() => setReviewOpen(false)}
           closeOnBackdropClick
           bodyClassName="space-y-4"
           footer={<>
             <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
-              Back
+              {t('review.back')}
             </button>
             <button
               onClick={submitCalibration}
               disabled={createMutation.isPending}
               className="ui-btn ui-btn-primary"
             >
-              {createMutation.isPending ? 'Saving…' : 'Confirm Calibration'}
+              {createMutation.isPending ? t('form.saving') : t('review.confirm')}
             </button>
           </>}
         >
-          {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
+          {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} {t('review.goBack')}</div>}
           <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
             <CalibrationReviewRow
-              label="Nozzle"
+              label={t('review.nozzle')}
               value={selectedNozzle
-                ? `Nozzle #${selectedNozzle.nozzleNumber} — ${selectedNozzle.fuelType}`
+                ? t('nozzleOption', { number: selectedNozzle.nozzleNumber, fuel: selectedNozzle.fuelType })
                 : '—'}
             />
-            <CalibrationReviewRow label="Calibration Date" value={fmtDate(form.calibrationDate)} />
-            <CalibrationReviewRow label="Next Calibration Due" value={form.nextCalibrationDue ? fmtDate(form.nextCalibrationDue) : '—'} />
-            <CalibrationReviewRow label="Calibrated By" value={form.calibratedBy?.trim() || '—'} />
-            <CalibrationReviewRow label="Certificate Reference" value={form.certificateReference?.trim() || '—'} />
-            <CalibrationReviewRow label="Notes" value={form.notes?.trim() || '—'} />
+            <CalibrationReviewRow label={t('review.calibrationDate')} value={fmtDate(form.calibrationDate)} />
+            <CalibrationReviewRow label={t('review.nextDue')} value={form.nextCalibrationDue ? fmtDate(form.nextCalibrationDue) : '—'} />
+            <CalibrationReviewRow label={t('review.calibratedBy')} value={form.calibratedBy?.trim() || '—'} />
+            <CalibrationReviewRow label={t('review.certificate')} value={form.certificateReference?.trim() || '—'} />
+            <CalibrationReviewRow label={t('review.notes')} value={form.notes?.trim() || '—'} />
           </div>
         </Modal>
       )}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Pencil } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { TankerDelivery } from '../../api/inventoryApi'
 import { IconButton } from '../../components/IconButton'
 import { LitresText, MoneyText } from '../../components/AmountText'
@@ -13,6 +14,7 @@ export function DeliveryItem({ delivery, pumpId, isOwnerOrAdmin }: {
   pumpId: number
   isOwnerOrAdmin: boolean
 }) {
+  const { t } = useTranslation('inventory')
   const cols = FUEL_COLORS[delivery.fuelType] ?? FUEL_COLORS.PETROL
   const [editing, setEditing] = useState(false)
   return (
@@ -36,7 +38,7 @@ export function DeliveryItem({ delivery, pumpId, isOwnerOrAdmin }: {
         <IconButton
           onClick={() => setEditing(true)}
           className="text-ink-3 hover:text-primary transition-colors"
-          label="Edit delivery"
+          label={t('deliveries.editDelivery')}
           icon={<Pencil size={13} />}
         />
       </div>

@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import { expenseApi } from '../../api/expenseApi'
@@ -23,18 +25,23 @@ import { CsvExportButton } from '../../components/CsvExportButton'
 import { csvFilename } from '../../utils/csv'
 import type { CsvColumn } from '../../utils/csv'
 
-const CSV_COLUMNS: CsvColumn<PumpExpense>[] = [
-  { header: 'Date', value: (row) => row.expenseDate, kind: 'date' },
-  { header: 'Category', value: (row) => codeLabel(row.category) },
-  { header: 'Description', value: (row) => row.description },
-  { header: 'Amount', value: (row) => row.amount, kind: 'money' },
-  { header: 'Status', value: (row) => codeLabel(row.approvalStatus) },
-  { header: 'Approval notes', value: (row) => row.approvalNotes },
-]
+function csvColumns(t: TFunction<'expenses'>): CsvColumn<PumpExpense>[] {
+  return [
+    { header: t('csv.date'), value: (row) => row.expenseDate, kind: 'date' },
+    { header: t('csv.category'), value: (row) => codeLabel(row.category) },
+    { header: t('csv.description'), value: (row) => row.description },
+    { header: t('csv.amount'), value: (row) => row.amount, kind: 'money' },
+    { header: t('csv.status'), value: (row) => codeLabel(row.approvalStatus) },
+    { header: t('csv.approvalNotes'), value: (row) => row.approvalNotes },
+  ]
+}
 
 function ApprovalBadge({ expense }: { expense: PumpExpense }) {
+  const { t } = useTranslation('expenses')
   const badge = approvalStatusBadge(expense.approvalStatus)
-  const label = expense.approvalStatus === 'REJECTED' && expense.approvalNotes ? `${badge.label}: ${expense.approvalNotes}` : badge.label
+  const label = expense.approvalStatus === 'REJECTED' && expense.approvalNotes
+    ? t('list.rejectedWithNotes', { label: badge.label, notes: expense.approvalNotes })
+    : badge.label
   return <StatusBadge {...badge} label={label} wrap />
 }
 
@@ -44,6 +51,8 @@ interface ExpenseListProps {
 }
 
 export function ExpenseList({ pumpId, list }: ExpenseListProps) {
+  const { t } = useTranslation('expenses')
+  const columns = useMemo(() => csvColumns(t), [t])
   const { user }     = useAuthStore()
   const qc           = useQueryClient()
   const { addToast } = useToastStore()
@@ -57,18 +66,18 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
     mutationFn: (expenseId: number) => expenseApi.submitExpense(pumpId!, expenseId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['expenses', pumpId] })
-      addToast('Expense submitted for approval', 'success')
+      addToast(t('toast.submitted'), 'success')
     },
-    onError: (err) => addToast(parseApiError(err, 'Failed to submit expense'), 'error'),
+    onError: (err) => addToast(parseApiError(err, t('toast.submitFailed')), 'error'),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (expenseId: number) => expenseApi.deleteExpense(pumpId!, expenseId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['expenses', pumpId] })
-      addToast('Expense deleted', 'success')
+      addToast(t('toast.deleted'), 'success')
     },
-    onError: (err) => addToast(parseApiError(err, 'Failed to delete expense'), 'error'),
+    onError: (err) => addToast(parseApiError(err, t('toast.deleteFailed')), 'error'),
   })
 
   const [rejectingExpense, setRejectingExpense] = useState<PumpExpense | null>(null)
@@ -81,10 +90,10 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
       qc.invalidateQueries({ queryKey: ['expenses', pumpId] })
       qc.invalidateQueries({ queryKey: ['approvals', pumpId] })
       setRejectingExpense(null)
-      addToast(`Expense ${data.action === 'APPROVED' ? 'approved' : 'rejected'}`, data.action === 'APPROVED' ? 'success' : 'warning')
+      addToast(data.action === 'APPROVED' ? t('toast.approved') : t('toast.rejected'), data.action === 'APPROVED' ? 'success' : 'warning')
     },
     onError: (err, { data }) => {
-      const message = parseApiError(err, 'Failed to update expense')
+      const message = parseApiError(err, t('toast.updateFailed'))
       if (data.action === 'REJECTED') setRejectError(message)
       else addToast(message, 'error')
     },
@@ -103,7 +112,7 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
     <Reveal delay={240}>
     {rejectingExpense && (
       <RejectReasonDialog
-        title="Reject Expense"
+        title={t('list.rejectTitle')}
         subtitle={`${codeLabel(rejectingExpense.category)} · ${formatCurrency(rejectingExpense.amount)} · ${rejectingExpense.description}`}
         isPending={approveMutation.isPending}
         error={rejectError}
@@ -115,14 +124,14 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
     )}
     <div className="ui-card p-0 overflow-hidden">
       <div className="ui-toolbar">
-        <p className="ui-toolbar-title">All Expenses</p>
+        <p className="ui-toolbar-title">{t('list.title')}</p>
         <div className="ui-toolbar-actions">
           <div className="w-52 max-w-full">
-          <SearchableSelect label="Filter by category"
+          <SearchableSelect label={t('list.filterByCategory')}
             value={categoryFilter}
             onChange={v => { setCategoryFilter(v as ExpenseCategory | ''); setPage(0) }}
             options={[
-              { value: '', label: 'All Categories' },
+              { value: '', label: t('list.allCategories') },
               ...CATEGORIES.map(c => ({ value: c, label: codeLabel(c) })),
             ]}
             size="sm"
@@ -130,15 +139,15 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
         </div>
 
           <div className="w-52 max-w-full">
-          <SearchableSelect label="Filter by status"
+          <SearchableSelect label={t('list.filterByStatus')}
             value={statusFilter}
             onChange={v => { setStatusFilter(v as ExpenseApprovalStatus | ''); setPage(0) }}
             options={[
-              { value: '', label: 'All Statuses' },
-              { value: 'DRAFT',            label: 'Draft' },
-              { value: 'PENDING_APPROVAL', label: 'Pending Approval' },
-              { value: 'APPROVED',         label: 'Approved' },
-              { value: 'REJECTED',         label: 'Rejected' },
+              { value: '', label: t('list.allStatuses') },
+              { value: 'DRAFT',            label: t('list.statusDraft') },
+              { value: 'PENDING_APPROVAL', label: t('list.statusPendingApproval') },
+              { value: 'APPROVED',         label: t('list.statusApproved') },
+              { value: 'REJECTED',         label: t('list.statusRejected') },
             ]}
             size="sm"
           />
@@ -149,16 +158,16 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
               onClick={() => { setCategoryFilter(''); setStatusFilter(''); setPage(0) }}
               className="ui-btn ui-btn-ghost text-xs"
             >
-              Clear filters
+              {t('list.clearFilters')}
             </button>
           )}
-          <CsvExportButton filename={csvFilename('expenses')} columns={CSV_COLUMNS} rows={loadAllExpenses}
+          <CsvExportButton filename={csvFilename('expenses')} columns={columns} rows={loadAllExpenses}
             disabled={expenses.length === 0} />
         </div>
       </div>
       {isOwnerOrAdmin && (
         <div className="px-5 py-2 text-xs text-ink-3 border-b border-border bg-surface-sunken">
-          Approve and reject actions appear only for expenses in <span className="font-semibold text-warn">Pending Approval</span>.
+          <Trans t={t} i18nKey="list.approvalHint" components={{ status: <span className="font-semibold text-warn" /> }} />
         </div>
       )}
 
@@ -167,8 +176,8 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
       ) : expenses.length === 0 ? (
         <EmptyState
           icon="expenses"
-          title="No expenses recorded yet"
-          subtitle={isAccountant ? 'No records to display.' : 'Use the form above to record your first expense.'}
+          title={t('list.emptyTitle')}
+          subtitle={isAccountant ? t('list.emptyAccountant') : t('list.emptySubtitle')}
         />
       ) : (
         <>
@@ -197,7 +206,7 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
                     disabled={submitMutation.isPending}
                     className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
                   >
-                    Submit
+                    {t('list.submit')}
                   </button>
                 )}
                 {/* Approve/Reject — only for Owner/Admin on pending expenses */}
@@ -208,14 +217,14 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
                       disabled={approveMutation.isPending}
                       className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
                     >
-                      Approve
+                      {t('list.approve')}
                     </button>
                     <button
                       onClick={() => openRejectDialog(e)}
                       disabled={approveMutation.isPending}
                       className="ui-btn ui-btn-danger min-h-0 px-3 py-1 text-xs"
                     >
-                      Reject
+                      {t('list.reject')}
                     </button>
                   </>
                 )}
@@ -224,7 +233,7 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
                   <ConfirmButton
                     onConfirm={() => deleteMutation.mutate(e.id)}
                     disabled={deleteMutation.isPending}
-                    triggerAriaLabel="Delete expense"
+                    triggerAriaLabel={t('list.deleteExpense')}
                   />
                 )}
               </div>

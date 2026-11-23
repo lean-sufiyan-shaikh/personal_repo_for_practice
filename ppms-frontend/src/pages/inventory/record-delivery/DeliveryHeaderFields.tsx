@@ -1,4 +1,6 @@
 import { Truck } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { formatNumberIn } from '../../../i18n/format'
 import type { Tanker } from '../../../api/tankerApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 
@@ -17,6 +19,7 @@ interface Props {
 }
 
 export function DeliveryHeaderFields({ date, setDate, invoice, setInvoice, tankers, selectedTanker, selectedTankerId, setSelectedTankerId, tankerMismatch, tankerRemaining, totalEnteredQty }: Props) {
+  const { t } = useTranslation('inventory')
   return (
     <div className="border-b border-border pb-4">
       <div className="ui-inline-form">
@@ -24,7 +27,7 @@ export function DeliveryHeaderFields({ date, setDate, invoice, setInvoice, tanke
         <div>
           <label className="block">
             <span className="ui-label">
-            Delivery Date <span aria-hidden="true" className="text-bad">*</span>
+            {t('header.date')} <span aria-hidden="true" className="text-bad">*</span>
           </span>
             <input
               type="date"
@@ -37,13 +40,13 @@ export function DeliveryHeaderFields({ date, setDate, invoice, setInvoice, tanke
         <div>
           <label className="block">
             <span className="ui-label">
-            Invoice / Bill No. <span aria-hidden="true" className="text-bad">*</span>
+            {t('header.invoice')} <span aria-hidden="true" className="text-bad">*</span>
           </span>
             <input
               type="text"
               value={invoice}
               onChange={e => setInvoice(e.target.value)}
-              placeholder="e.g. INV-2026-0042"
+              placeholder={t('header.invoicePlaceholder')}
               className="shadow-raised"
             />
           </label>
@@ -52,18 +55,18 @@ export function DeliveryHeaderFields({ date, setDate, invoice, setInvoice, tanke
 
       {tankers.length > 0 && (
         <div className="mt-3">
-          <span className="ui-label">Tanker (Truck)</span>
-          <SearchableSelect label="Tanker (Truck)"
+          <span className="ui-label">{t('header.tanker')}</span>
+          <SearchableSelect label={t('header.tanker')}
             value={selectedTankerId !== null ? String(selectedTankerId) : ''}
             onChange={v => setSelectedTankerId(v ? Number(v) : null)}
             options={[
-              { value: '', label: '— No tanker selected —' },
-              ...tankers.map(t => ({
-                value: String(t.id),
-                label: `${t.name} · ${t.capacityLitres.toLocaleString('en-IN')} L${t.defaultTanker ? ' (Default)' : ''}`,
+              { value: '', label: t('header.noTanker') },
+              ...tankers.map(tanker => ({
+                value: String(tanker.id),
+                label: t(tanker.defaultTanker ? 'header.tankerOptionDefault' : 'header.tankerOption', { name: tanker.name, capacity: formatNumberIn(tanker.capacityLitres) }),
               })),
             ]}
-            placeholder="Select tanker…"
+            placeholder={t('header.selectTanker')}
           />
           {selectedTanker && (
             <div className={`mt-2 flex items-center gap-2 rounded-control px-3 py-2 text-xs ${
@@ -73,12 +76,12 @@ export function DeliveryHeaderFields({ date, setDate, invoice, setInvoice, tanke
             }`}>
               <Truck size={12} strokeWidth={2} className="shrink-0" />
               <span>
-                Capacity: <span className="font-semibold">{selectedTanker.capacityLitres.toLocaleString('en-IN')} L</span>
+                {t('header.capacity')} <span className="font-semibold">{formatNumberIn(selectedTanker.capacityLitres)} L</span>
                 {' · '}
-                Entered: <span className="font-semibold">{totalEnteredQty.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L</span>
+                {t('header.entered')} <span className="font-semibold">{formatNumberIn(totalEnteredQty, { minimumFractionDigits: 1 })} L</span>
                 {tankerRemaining !== null && tankerRemaining !== 0 && (
                   <span className="ml-1">
-                    · <span className="font-semibold">{tankerRemaining > 0 ? `${tankerRemaining.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L remaining` : `${Math.abs(tankerRemaining).toLocaleString('en-IN', { minimumFractionDigits: 1 })} L over`}</span>
+                    · <span className="font-semibold">{tankerRemaining > 0 ? t('header.litresRemaining', { value: formatNumberIn(tankerRemaining, { minimumFractionDigits: 1 }) }) : t('header.litresOver', { value: formatNumberIn(Math.abs(tankerRemaining), { minimumFractionDigits: 1 }) })}</span>
                   </span>
                 )}
               </span>

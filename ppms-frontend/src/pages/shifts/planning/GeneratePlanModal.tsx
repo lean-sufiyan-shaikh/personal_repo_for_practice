@@ -1,13 +1,15 @@
+import { useTranslation } from 'react-i18next'
 import { Modal } from '../../../components/Modal'
 import type { ShiftPlanning } from './useShiftPlanning'
 
 export function GeneratePlanModal({ form }: { form: ShiftPlanning }) {
+  const { t } = useTranslation(['shifts', 'common'])
   const { showGenerate, setShowGenerate, genDayOps, setGenDayOps, genNightOps, setGenNightOps, genError, generateMutation } = form
   if (!showGenerate) return null
   return (
     <Modal
-      title="Auto-generate Schedule"
-      subtitle="The system will assign operators based on preferences, leave dates, and fairness."
+      title={t('planning.generate.title')}
+      subtitle={t('planning.generate.subtitle')}
       tone="info"
       size="sm"
       onClose={() => setShowGenerate(false)}
@@ -19,11 +21,11 @@ export function GeneratePlanModal({ form }: { form: ShiftPlanning }) {
             disabled={generateMutation.isPending}
             className="ui-btn ui-btn-primary"
           >
-            {generateMutation.isPending ? 'Generating…' : 'Generate'}
+            {generateMutation.isPending ? t('planning.generate.generating') : t('planning.generate.submit')}
           </button>
           <button onClick={() => setShowGenerate(false)}
             className="ui-btn ui-btn-secondary">
-            Cancel
+            {t('common:actions.cancel')}
           </button>
         </>
       }
@@ -31,7 +33,7 @@ export function GeneratePlanModal({ form }: { form: ShiftPlanning }) {
       <div>
         <label className="block">
           <span className="ui-label">
-            Operators per Morning / Evening shift
+            {t('planning.generate.dayOperators')}
           </span>
           <input type="number" min="1" max="20" value={genDayOps}
             onChange={e => setGenDayOps(e.target.value)}
@@ -42,7 +44,7 @@ export function GeneratePlanModal({ form }: { form: ShiftPlanning }) {
       <div>
         <label className="block">
           <span className="ui-label">
-            Operators per Night shift (12 AM – 8 AM)
+            {t('planning.generate.nightOperators')}
           </span>
           <input type="number" min="1" max="20" value={genNightOps}
             onChange={e => setGenNightOps(e.target.value)}

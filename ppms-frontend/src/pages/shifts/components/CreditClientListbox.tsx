@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { maskPhone } from '../../../utils/maskPhone'
 import { optionElementId } from './creditClientOptions'
 import type { CreditClientOption } from './creditClientOptions'
@@ -12,8 +13,9 @@ interface Props {
 }
 
 export function CreditClientListbox({ id, options, activeClientId, showCallManager, large, onPick }: Props) {
+  const { t } = useTranslation('shifts')
   return (
-    <ul id={id} role="listbox" aria-label="Credit clients" className="m-0 list-none p-0">
+    <ul id={id} role="listbox" aria-label={t('clientSearch.listAria')} className="m-0 list-none p-0">
       {options.map((option) => {
         const { client, blockReason, availableText } = option
         const isActive = client.id === activeClientId
@@ -39,7 +41,7 @@ export function CreditClientListbox({ id, options, activeClientId, showCallManag
                 <span className="block text-xs text-bad">
                   {blockReason}
                   {availableText && ` · ${availableText}`}
-                  {showCallManager && ' · Call manager'}
+                  {showCallManager && ` · ${t('clientSearch.callManager')}`}
                 </span>
               ) : availableText && (
                 <span className="block text-xs text-ink-3">{availableText}</span>
@@ -47,7 +49,7 @@ export function CreditClientListbox({ id, options, activeClientId, showCallManag
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
               {client.isParent && (
-                <span className="rounded-badge bg-info-bg px-1.5 py-0.5 text-xs font-medium text-info">has sub-accounts</span>
+                <span className="rounded-badge bg-info-bg px-1.5 py-0.5 text-xs font-medium text-info">{t('clientSearch.hasSubAccounts')}</span>
               )}
               {client.phone && <span className="text-xs text-ink-3">{maskPhone(client.phone)}</span>}
             </span>

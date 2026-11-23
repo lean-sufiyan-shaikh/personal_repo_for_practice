@@ -1,19 +1,21 @@
 import { Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { SectionLabel } from './SectionLabel'
 import { MoneyText } from '../../../components/AmountText'
 import type { BackfillForm } from './useBackfillForm'
 
 export function PaymentSection({ form }: { form: BackfillForm }) {
+  const { t } = useTranslation('shifts')
   const { selectedNozzleIds, cashCollected, setCashCollected, upiCollected, setUpiCollected, cardCollected, setCardCollected, fleetCardCollected, setFleetCardCollected, allRatesResolved, totalExpected, totalCollected, discrepancyAmt } = form
   return (
     <div className="rounded-card border border-border bg-surface-sunken p-4">
-      <SectionLabel>Payment Collected</SectionLabel>
+      <SectionLabel>{t('backfill.payment.title')}</SectionLabel>
       <div className="grid grid-cols-2 gap-3">
         {[
-          { label: 'UPI (₹)',        value: upiCollected,       set: setUpiCollected },
-          { label: 'Card (₹)',        value: cardCollected,      set: setCardCollected },
-          { label: 'Fleet Card (₹)', value: fleetCardCollected, set: setFleetCardCollected },
-          { label: 'Cash (₹)',        value: cashCollected,      set: setCashCollected },
+          { label: t('backfill.payment.upi'), value: upiCollected,       set: setUpiCollected },
+          { label: t('backfill.payment.card'), value: cardCollected,      set: setCardCollected },
+          { label: t('backfill.payment.fleetCard'), value: fleetCardCollected, set: setFleetCardCollected },
+          { label: t('backfill.payment.cash'), value: cashCollected,      set: setCashCollected },
         ].map(({ label, value, set }) => (
           <div key={label}>
             <label className="block">
@@ -33,11 +35,11 @@ export function PaymentSection({ form }: { form: BackfillForm }) {
       {totalExpected !== null && selectedNozzleIds.size > 0 && allRatesResolved && (
         <div className="mt-3 rounded-card border border-border bg-surface divide-y divide-border">
           <div className="flex items-center justify-between px-3 py-2 text-xs text-ink-2">
-            <span>Expected (metered fuel sales)</span>
+            <span>{t('backfill.payment.expected')}</span>
             <MoneyText value={totalExpected} className="font-semibold text-ink" />
           </div>
           <div className="flex items-center justify-between px-3 py-2 text-xs text-ink-2">
-            <span>Collected (UPI + card + fleet + cash + credit)</span>
+            <span>{t('backfill.payment.collected')}</span>
             <MoneyText value={totalCollected} className="font-semibold text-ink" />
           </div>
           {discrepancyAmt !== null && (
@@ -49,7 +51,7 @@ export function PaymentSection({ form }: { form: BackfillForm }) {
                 : 'text-warn bg-warn-bg'
             }`}>
               <span>
-                {Math.abs(discrepancyAmt) < 0.01 ? <span className="inline-flex items-center gap-1">Balanced<Check size={12} strokeWidth={2.5} aria-hidden="true" /></span> : discrepancyAmt < 0 ? 'Short (under-collected)' : 'Over (excess collected)'}
+                {Math.abs(discrepancyAmt) < 0.01 ? <span className="inline-flex items-center gap-1">{t('backfill.payment.balanced')}<Check size={12} strokeWidth={2.5} aria-hidden="true" /></span> : discrepancyAmt < 0 ? t('backfill.payment.short') : t('backfill.payment.over')}
               </span>
               <MoneyText value={Math.abs(discrepancyAmt) < 0.01 ? 0 : Math.abs(discrepancyAmt)} />
             </div>

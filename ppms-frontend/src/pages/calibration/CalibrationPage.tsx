@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { pumpApi } from '../../api/pumpApi'
 import { usePumpStore } from '../../store/usePumpStore'
 import { Reveal } from '../../components/Reveal'
@@ -7,6 +8,7 @@ import { CalibrationHistory } from './CalibrationHistory'
 import { useCalibrationHistory } from './useCalibrationHistory'
 
 export default function CalibrationPage() {
+  const { t } = useTranslation('calibration')
   const { selectedPumpId: pumpId } = usePumpStore()
 
   const { data: dus = [], error: dusError } = useQuery({
@@ -31,17 +33,17 @@ export default function CalibrationPage() {
       <Reveal delay={60}>
       <div className="ui-section-hero">
         <div>
-          <p className="ui-section-kicker">Compliance</p>
-          <h1 className="ui-title-sm">Nozzle Calibration</h1>
-          <p className="ui-subtitle">Record periodic calibration checks for regulatory compliance</p>
+          <p className="ui-section-kicker">{t('page.kicker')}</p>
+          <h1 className="ui-title-sm">{t('page.title')}</h1>
+          <p className="ui-subtitle">{t('page.subtitle')}</p>
         </div>
         <div className="ui-section-meta">
           <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">Nozzles</span>
+            <span className="ui-section-meta-label">{t('page.nozzles')}</span>
             <span className="ui-section-meta-value">{nozzles.length}</span>
           </div>
           <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">History</span>
+            <span className="ui-section-meta-label">{t('page.history')}</span>
             <span className="ui-section-meta-value">{calibrationsPage?.totalElements ?? calibrations?.length ?? 0}</span>
           </div>
         </div>
@@ -50,7 +52,7 @@ export default function CalibrationPage() {
 
       {(dusError || calibrationsError) && (
         <div className="ui-alert ui-alert-warning text-sm">
-          Could not load calibration data. Check your connection and refresh.
+          {t('page.loadFailed')}
         </div>
       )}
 

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { expenseApi } from '../../api/expenseApi'
 import type { ExpenseCategory, CreateExpenseRequest } from '../../api/expenseApi'
@@ -15,6 +16,7 @@ import { CATEGORIES, fmtDate } from './expenseFormat'
 import { codeLabel } from '../../constants/labels'
 
 export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
+  const { t } = useTranslation('expenses')
   const qc           = useQueryClient()
   const { addToast } = useToastStore()
   const [form, setForm] = useState<CreateExpenseRequest>({
@@ -34,10 +36,10 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
       setForm({ category: 'MAINTENANCE', amount: 0, description: '', expenseDate: localDateInputValue(), saveDraft: false })
       setFormError(null)
       setReviewOpen(false)
-      addToast('Expense recorded successfully', 'success')
+      addToast(t('form.recorded'), 'success')
     },
     onError: (err) => {
-      const msg = parseApiError(err, 'Failed to record expense')
+      const msg = parseApiError(err, t('form.recordFailed'))
       setFormError(msg)
       addToast(msg, 'error')
     },
@@ -45,11 +47,11 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
 
   const validateForm = () => {
     if (!form.description.trim()) {
-      setFormError('Description is required')
+      setFormError(t('form.descriptionRequired'))
       return false
     }
     if (form.amount <= 0) {
-      setFormError('Amount must be greater than zero')
+      setFormError(t('form.amountPositive'))
       return false
     }
     setFormError(null)
@@ -67,15 +69,15 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
       <Reveal delay={180}><form onSubmit={handleSubmit} className="ui-card ui-form-shell">
         <div className="ui-form-shell__head">
           <div>
-            <p className="ui-section-kicker mb-2">Expense Intake</p>
-            <h2 className="ui-title-sm">Record expense</h2>
-            <p className="ui-subtitle mt-1">Capture the category, amount, date, and description before review.</p>
+            <p className="ui-section-kicker mb-2">{t('form.kicker')}</p>
+            <h2 className="ui-title-sm">{t('form.title')}</h2>
+            <p className="ui-subtitle mt-1">{t('form.subtitle')}</p>
           </div>
         </div>
 
         <div className="ui-form-shell__grid">
           <div>
-            <span id="expense-category-label" className="ui-label">Category</span>
+            <span id="expense-category-label" className="ui-label">{t('form.category')}</span>
             <SearchableSelect
               value={form.category}
               onChange={v => setForm(f => ({ ...f, category: v as ExpenseCategory }))}
@@ -85,7 +87,7 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
           </div>
 
           <div>
-            <label htmlFor="expense-amount" className="ui-label">Amount (₹)</label>
+            <label htmlFor="expense-amount" className="ui-label">{t('form.amountRupees')}</label>
             <input
               id="expense-amount"
               type="number"
@@ -100,20 +102,20 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
           </div>
 
           <div>
-            <label htmlFor="expense-description" className="ui-label">Description</label>
+            <label htmlFor="expense-description" className="ui-label">{t('form.description')}</label>
             <input
               id="expense-description"
               type="text"
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               className="text-sm"
-              placeholder="e.g. Pump servicing by XYZ"
+              placeholder={t('form.descriptionPlaceholder')}
               required
             />
           </div>
 
           <div>
-            <label htmlFor="expense-date" className="ui-label">Expense Date</label>
+            <label htmlFor="expense-date" className="ui-label">{t('form.expenseDate')}</label>
             <input
               id="expense-date"
               type="date"
@@ -132,7 +134,7 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
             onChange={e => setForm(f => ({ ...f, saveDraft: e.target.checked }))}
             className="rounded-badge border-control text-primary"
           />
-          Save as draft — submit for approval later
+          {t('form.saveDraft')}
         </label>
 
         {formError && <p role="alert" className="ui-error-text">{formError}</p>}
@@ -143,22 +145,22 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
           className="ui-btn ui-btn-primary"
         >
           {createMutation.isPending
-            ? <span className="flex items-center gap-1.5"><Spinner />Saving…</span>
-            : 'Review Expense'}
+            ? <span className="flex items-center gap-1.5"><Spinner />{t('form.saving')}</span>
+            : t('form.review')}
         </button>
       </form></Reveal>
 
       {reviewOpen && (
         <Modal
-          title="Review Expense"
-          subtitle="Verify the expense details before saving the record."
+          title={t('review.title')}
+          subtitle={t('review.subtitle')}
           tone="warning"
           onClose={() => setReviewOpen(false)}
           closeOnBackdropClick
           bodyClassName="space-y-4"
           footer={<>
               <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
-                Back
+                {t('review.back')}
               </button>
               <button
                 onClick={() => {
@@ -169,27 +171,27 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
                 className="ui-btn ui-btn-primary"
               >
                 {createMutation.isPending
-                  ? <span className="flex items-center gap-1.5"><Spinner />Saving…</span>
-                  : 'Add Expense'}
+                  ? <span className="flex items-center gap-1.5"><Spinner />{t('form.saving')}</span>
+                  : t('review.add')}
               </button>
           </>}
         >
-              {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
+              {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('review.goBack', { error: formError })}</div>}
               <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
                 <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="text-ink-3 text-xs">Category</span>
+                  <span className="text-ink-3 text-xs">{t('form.category')}</span>
                   <StatusBadge tone="neutral" label={codeLabel(form.category)} />
                 </div>
                 <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="text-ink-3 text-xs">Amount</span>
+                  <span className="text-ink-3 text-xs">{t('form.amount')}</span>
                   <MoneyText value={form.amount} className="font-medium text-sm text-ink" />
                 </div>
                 <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <span className="text-ink-3 text-xs">Description</span>
+                  <span className="text-ink-3 text-xs">{t('form.description')}</span>
                   <span className="font-medium text-right text-sm text-ink">{form.description.trim()}</span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="text-ink-3 text-xs">Expense Date</span>
+                  <span className="text-ink-3 text-xs">{t('form.expenseDate')}</span>
                   <span className="font-medium text-sm text-ink">{fmtDate(form.expenseDate)}</span>
                 </div>
               </div>

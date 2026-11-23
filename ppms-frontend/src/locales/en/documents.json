@@ -1,1 +1,46 @@
-{}
+{
+  "page": {
+    "title": "Compliance Documents",
+    "subtitle": "Track licences, permits, and certificates",
+    "addButton": "+ Add Document"
+  },
+  "alert": {
+    "title": "Compliance attention needed",
+    "expired_one": "{{count}} document expired.",
+    "expired_other": "{{count}} documents expired.",
+    "expiringSoon_one": "{{count}} document expiring within 30 days.",
+    "expiringSoon_other": "{{count}} documents expiring within 30 days."
+  },
+  "form": {
+    "kicker": "Document Intake",
+    "editTitle": "Edit document",
+    "addTitle": "Add document",
+    "subtitle": "Store expiry dates, document types, and notes in one place.",
+    "name": "Document Name",
+    "namePlaceholder": "e.g. Petrol Pump Licence",
+    "type": "Document Type",
+    "typePlaceholder": "e.g. Licence, Certificate, Permit",
+    "expiryDate": "Expiry Date (optional)",
+    "notes": "Notes (optional)",
+    "notesPlaceholder": "Any additional notes",
+    "saving": "Saving…",
+    "update": "Update",
+    "add": "Add Document",
+    "required": "Name and document type are required"
+  },
+  "list": {
+    "title": "All Documents ({{count}})",
+    "empty": "No documents added yet. Add your licences and permits to track their expiry.",
+    "expires": "Expires: {{date}}",
+    "noExpiry": "No expiry",
+    "edit": "Edit",
+    "deleteNamed": "Delete {{name}}"
+  },
+  "toast": {
+    "updated": "Document updated.",
+    "added": "Document added.",
+    "saveFailed": "Failed to save document",
+    "deleted": "Document deleted.",
+    "deleteFailed": "Failed to delete document"
+  }
+}

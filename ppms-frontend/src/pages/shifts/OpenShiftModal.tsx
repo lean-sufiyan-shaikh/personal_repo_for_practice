@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Lock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { shiftApi } from '../../api/shiftApi'
 import { pumpApi } from '../../api/pumpApi'
 import { userApi } from '../../api/userApi'
@@ -9,7 +10,9 @@ import type { DUOption, NozzleDetail, OpenShiftRequest, Shift } from '../../type
 import { Modal } from '../../components/Modal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { parseApiError } from '../../utils/apiError'
-import { FUEL_LABELS, FUEL_UNIT } from '../../constants/fuel'
+import { FUEL_UNIT } from '../../constants/fuel'
+import { codeLabel } from '../../constants/labels'
+import { formatDecimal } from '../../utils/format'
 import { OperatorPicker } from './components/OperatorPicker'
 import { useToastStore } from '../../store/toastStore'
 
@@ -38,6 +41,7 @@ interface Props {
 }
 
 export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefilledDuId, prefilledNozzleIds }: Props) {
+  const { t } = useTranslation(['shifts', 'common'])
   const queryClient = useQueryClient()
   const { addToast } = useToastStore()
 
@@ -99,11 +103,11 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
     mutationFn: (req: OpenShiftRequest) => shiftApi.openShift(pumpId, req),
     onSuccess: (shift) => {
       queryClient.invalidateQueries({ queryKey: ['activeShifts', pumpId] })
-      addToast(`Shift opened for ${shift.operatorName}`, 'success')
+      addToast(t('open.opened', { name: shift.operatorName }), 'success')
       onClose()
     },
     onError: (err) =>
-      setServerError(parseApiError(err, 'Failed to open shift. Please try again.')),
+      setServerError(parseApiError(err, t('open.failed'))),
   })
 
   // Only ACTIVE DUs are available for shift open
@@ -142,10 +146,10 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
     setValidationError(null)
     setServerError(null)
 
-    if (!selectedDU)                    { setValidationError('Please select a Dispensary Unit'); return }
-    if (selectedNozzleIds.size === 0)   { setValidationError('Please select at least one nozzle'); return }
-    if (!selectedOperatorId)            { setValidationError('Please select an operator'); return }
-    if (!readingConfirmed)              { setValidationError('Please confirm the meter readings are correct'); return }
+    if (!selectedDU)                    { setValidationError(t('open.validation.selectDu')); return }
+    if (selectedNozzleIds.size === 0)   { setValidationError(t('open.validation.selectNozzle')); return }
+    if (!selectedOperatorId)            { setValidationError(t('open.validation.selectOperator')); return }
+    if (!readingConfirmed)              { setValidationError(t('open.validation.confirmReadings')); return }
 
     const req: OpenShiftRequest = {
       duId:       selectedDU.id,
@@ -159,16 +163,16 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
     ? selectedDU.nozzles.filter((n) => selectedNozzleIds.has(n.id))
     : []
 
-  const missingStep = !selectedDU ? 'Pick a dispensary unit'
-    : selectedNozzleIds.size === 0 ? 'Select at least one nozzle'
-    : !selectedOperatorId ? 'Pick an operator'
-    : !readingConfirmed ? 'Confirm the meter readings'
+  const missingStep = !selectedDU ? t('open.missing.du')
+    : selectedNozzleIds.size === 0 ? t('open.missing.nozzle')
+    : !selectedOperatorId ? t('open.missing.operator')
+    : !readingConfirmed ? t('open.missing.readings')
     : null
 
   return (
     <Modal
-      title="Open New Shift"
-      subtitle="Select a Dispensary Unit and assign an operator"
+      title={t('open.title')}
+      subtitle={t('open.subtitle')}
       tone="info"
       size="md-wide"
       onClose={onClose}
@@ -183,12 +187,12 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                   checked={readingConfirmed}
                   onChange={(e) => { setReadingConfirmed(e.target.checked); setValidationError(null) }}
                 />
-                <span>I confirm the meter readings above are correct and authorise opening this shift.</span>
+                <span>{t('open.confirmReadings')}</span>
               </label>
             )}
             <button type="button" onClick={onClose}
               className="ui-btn ui-btn-secondary flex-1">
-              Cancel
+              {t('common:actions.cancel')}
             </button>
             {missingStep ? (
               <button type="submit" disabled
@@ -198,7 +202,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
             ) : (
               <button type="submit" disabled={openMutation.isPending}
                 className="ui-btn ui-btn-primary flex-1 disabled:opacity-60 disabled:cursor-not-allowed">
-                {openMutation.isPending ? 'Opening...' : 'Open Shift'}
+                {openMutation.isPending ? t('open.opening') : t('open.submit')}
               </button>
             )}
       </>}
@@ -207,18 +211,18 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
           {/* ── Step 1: Select DU ── */}
           <div>
             <span className="ui-label mb-2">
-              Step 1 — Select Dispensary Unit
+              {t('open.step1')}
               {selectedDU && (
                 <span className="ml-2 text-primary font-semibold normal-case">
-                  DU #{selectedDU.duNumber} — {selectedDU.name}
+                  {t('open.selectedDu', { number: selectedDU.duNumber, name: selectedDU.name })}
                 </span>
               )}
             </span>
             {dusLoading ? (
-              <p className="ui-empty">Loading dispensary units...</p>
+              <p className="ui-empty">{t('open.loadingDus')}</p>
             ) : activeDUs.length === 0 ? (
               <div className="ui-alert ui-alert-warning text-xs">
-                No active Dispensary Units found. Add one in Setup first.
+                {t('open.noDus')}
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-2">
@@ -226,7 +230,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                   const isSelected = selectedDU?.id === du.id
                   const fuelTypes = du.nozzles
                     .filter((n) => n.status === 'ACTIVE')
-                    .map((n) => FUEL_LABELS[n.fuelType] ?? n.fuelType)
+                    .map((n) => codeLabel(n.fuelType))
                   return (
                     <button key={du.id} type="button"
                       onClick={() => handleSelectDU(du)}
@@ -237,7 +241,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                       }`}
                     >
                       <span className={`text-xs font-bold ${isSelected ? 'text-primary' : 'text-ink-3'}`}>
-                        DU #{du.duNumber}
+                        {t('open.duNumber', { number: du.duNumber })}
                       </span>
                       <span className={`text-sm font-bold ${isSelected ? 'text-primary' : 'text-ink'}`}>
                         {du.name}
@@ -252,7 +256,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                         ))}
                       </div>
                       {isSelected && (
-                        <span className="inline-flex items-center gap-1 text-xs text-primary font-semibold"><Check size={11} strokeWidth={2.5} />Selected</span>
+                        <span className="inline-flex items-center gap-1 text-xs text-primary font-semibold"><Check size={11} strokeWidth={2.5} />{t('open.selected')}</span>
                       )}
                     </button>
                   )
@@ -265,14 +269,14 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
           {selectedDU && (
             <div>
               <span className="ui-label mb-2">
-                Step 2 — Select Nozzle(s)
+                {t('open.step2')}
                 {selectedNozzleIds.size > 0 && (
                   <span className="ml-2 text-primary font-semibold normal-case">
-                    {selectedNozzleIds.size} selected
+                    {t('open.selectedCount', { count: selectedNozzleIds.size })}
                   </span>
                 )}
               </span>
-              <div role="group" aria-label="Select nozzles" className="grid grid-cols-3 gap-2">
+              <div role="group" aria-label={t('open.selectNozzles')} className="grid grid-cols-3 gap-2">
                 {selectedDU.nozzles.filter((n) => n.status === 'ACTIVE').map((nozzle) => {
                   const isBusy     = busyNozzleIds.has(nozzle.id)
                   const isSelected = selectedNozzleIds.has(nozzle.id)
@@ -294,11 +298,11 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                       <span className={`text-xs px-1.5 py-0.5 rounded-badge font-medium ${
                         isSelected ? 'bg-info-bg text-info' : 'bg-surface-sunken text-ink-3'
                       }`}>
-                        {FUEL_LABELS[nozzle.fuelType] ?? nozzle.fuelType}
+                        {codeLabel(nozzle.fuelType)}
                       </span>
                       {isBusy
-                        ? <span className="text-xs text-ink-3">In use</span>
-                        : isSelected && <span className="inline-flex items-center gap-1 text-xs text-primary font-semibold"><Check size={11} strokeWidth={2.5} />Selected</span>
+                        ? <span className="text-xs text-ink-3">{t('open.inUse')}</span>
+                        : isSelected && <span className="inline-flex items-center gap-1 text-xs text-primary font-semibold"><Check size={11} strokeWidth={2.5} />{t('open.selected')}</span>
                       }
                     </button>
                   )
@@ -309,7 +313,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
 
           {/* ── Step 3: Operator ── */}
           <OperatorPicker
-            title="Assign Operator"
+            title={t('open.assignOperator')}
             showStepNumber={!!selectedDU}
             operatorsLoading={operatorsLoading}
             noneAvailable={availableOperators.length === 0}
@@ -325,26 +329,25 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
             <div className="ui-card-plain ui-card-muted p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-ink-3 uppercase tracking-wide">
-                  Current Meter Readings
+                  {t('open.currentReadings')}
                 </span>
-                <StatusBadge tone="info" icon={Lock} label="Read-only" />
+                <StatusBadge tone="info" icon={Lock} label={t('open.readOnly')} />
               </div>
               <div className={`grid gap-2 ${selectedNozzles.length > 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 {selectedNozzles.map((nozzle) => (
                   <div key={nozzle.id} className="ui-card-plain bg-surface border-border px-3 py-2.5">
                     <p className="text-xs text-ink-3 mb-0.5">
-                      Nozzle #{nozzle.nozzleNumber} — {FUEL_LABELS[nozzle.fuelType] ?? nozzle.fuelType} ({FUEL_UNIT[nozzle.fuelType] ?? 'L'})
+                      {t('open.nozzleReadingLabel', { number: nozzle.nozzleNumber, fuel: codeLabel(nozzle.fuelType), unit: FUEL_UNIT[nozzle.fuelType] ?? 'L' })}
                     </p>
                     <p className="text-base font-semibold text-ink tabular-nums">
-                      {nozzle.lastReading.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatDecimal(nozzle.lastReading)}
                     </p>
                   </div>
                 ))}
               </div>
               <p className="text-xs text-ink-3 leading-relaxed">
-                These readings are set automatically from the last shift close.
-                If a reading looks incorrect, an Admin must update it in{' '}
-                <span className="font-medium text-ink">Setup → Nozzle → Adjust Reading</span> first.
+                {t('open.readingsNote')}{' '}
+                <span className="font-medium text-ink">{t('open.readingsNotePath')}</span>{t('open.readingsNoteEnd')}
               </p>
             </div>
           )}

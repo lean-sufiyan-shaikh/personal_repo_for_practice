@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { shiftApi } from '../../../api/shiftApi'
 import { useAuthStore } from '../../../store/authStore'
 import type { Shift } from '../../../types/shift'
 import { ResolveDiscrepancyModal } from '../modals/ResolveDiscrepancyModal'
 import { SkeletonRows } from '../../../components/Skeleton'
 import { parseApiError } from '../../../utils/apiError'
-import { AWAITING_OWNER_APPROVAL, PAGE_SIZE, RESOLUTION_LABELS, discrepancyAction, investigationLabel } from '../shiftLabels'
+import { PAGE_SIZE, awaitingOwnerApprovalLabel, discrepancyAction, investigationLabel, resolutionLabel } from '../shiftLabels'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { StatusBadge } from '../../../components/StatusBadge'
@@ -30,7 +31,7 @@ function DiscrepancyStatus({ shift }: { shift: Shift }) {
       {shift.discrepancyResolution ? (
         <StatusBadge
           tone={RESOLUTION_TONE[shift.discrepancyResolution] ?? 'warn'}
-          label={RESOLUTION_LABELS[shift.discrepancyResolution] ?? shift.discrepancyResolution}
+          label={resolutionLabel(shift.discrepancyResolution)}
         />
       ) : (
         <StatusBadge {...shiftStatusBadge(shift.status)} />
@@ -45,27 +46,28 @@ function DiscrepancyStatus({ shift }: { shift: Shift }) {
 function DiscrepancyAction({ shift, role, onOpen, className = '' }: {
   shift: Shift; role: UserRole | undefined; onOpen: (shift: Shift) => void; className?: string
 }) {
+  const { t } = useTranslation('shifts')
   const action = discrepancyAction(shift, role)
   if (action === 'resolve') {
     return (
       <button type="button" onClick={() => onOpen(shift)}
-        aria-label={`Resolve discrepancy for shift ${shift.id}`}
+        aria-label={t('history.discrepancies.resolveLabel', { id: shift.id })}
         className={`ui-btn ui-btn-danger ${className}`}>
-        Resolve
+        {t('history.resolve')}
       </button>
     )
   }
   if (action === 'approve') {
     return (
       <button type="button" onClick={() => onOpen(shift)}
-        aria-label={`Approve discrepancy for shift ${shift.id}`}
+        aria-label={t('history.discrepancies.approveLabel', { id: shift.id })}
         className={`ui-btn ui-btn-warning ${className}`}>
-        Approve
+        {t('history.approve')}
       </button>
     )
   }
   if (action === 'awaiting-owner') {
-    return <span className="text-xs text-warn font-medium">{AWAITING_OWNER_APPROVAL}</span>
+    return <span className="text-xs text-warn font-medium">{awaitingOwnerApprovalLabel()}</span>
   }
   return null
 }
@@ -77,6 +79,7 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
   initialTo?: string
   initialType?: 'ALL' | 'SHORT' | 'OVER'
 }) {
+  const { t } = useTranslation(['shifts', 'common'])
   const [page,     setPage]     = useState(0)
   const [fromDate, setFromDate] = useState(initialFrom)
   const [toDate,   setToDate]   = useState(initialTo)
@@ -108,38 +111,38 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
   const cashRecovered = filtered.filter(s => s.discrepancyResolution === 'CASH_RECOVERY').reduce((sum, s) => sum + (s.cashRecoveryAmount ?? 0), 0)
 
   const columns: DataTableColumn<Shift>[] = [
-    { key: 'id', header: 'ID', className: 'px-5 hidden md:table-cell', cell: (shift) => <span className="text-ink-3 text-xs font-mono">{shift.id}</span> },
-    { key: 'date', header: 'Date', className: 'px-5', cell: (shift) => <span className="text-xs text-ink-2">{shift.shiftDate}</span> },
-    { key: 'operator', header: 'Operator', className: 'px-5', cell: (shift) => <span className="text-sm text-ink font-medium">{shift.operatorName}</span> },
-    { key: 'du', header: 'DU', className: 'px-5 hidden md:table-cell', cell: (shift) => <span className="text-xs text-ink-3">{shift.duName ?? `DU #${shift.duNumber}`}</span> },
-    { key: 'type', header: 'Type', className: 'px-5', cell: (shift) => <StatusBadge {...discrepancyBadge(shift.discrepancyType)} /> },
+    { key: 'id', header: t('history.columns.id'), className: 'px-5 hidden md:table-cell', cell: (shift) => <span className="text-ink-3 text-xs font-mono">{shift.id}</span> },
+    { key: 'date', header: t('history.columns.date'), className: 'px-5', cell: (shift) => <span className="text-xs text-ink-2">{shift.shiftDate}</span> },
+    { key: 'operator', header: t('history.columns.operator'), className: 'px-5', cell: (shift) => <span className="text-sm text-ink font-medium">{shift.operatorName}</span> },
+    { key: 'du', header: t('history.discrepancies.columns.du'), className: 'px-5 hidden md:table-cell', cell: (shift) => <span className="text-xs text-ink-3">{shift.duName ?? `DU #${shift.duNumber}`}</span> },
+    { key: 'type', header: t('history.discrepancies.columns.type'), className: 'px-5', cell: (shift) => <StatusBadge {...discrepancyBadge(shift.discrepancyType)} /> },
     {
-      key: 'amount', header: 'Amount', className: 'px-5', cell: (shift) => (
+      key: 'amount', header: t('history.discrepancies.columns.amount'), className: 'px-5', cell: (shift) => (
         <>
           <MoneyText value={shift.discrepancyAmount} tone={shift.discrepancyType === 'SHORT' ? 'bad' : 'warn'} className="text-sm font-semibold" />
           {shift.cashRecoveryAmount != null && shift.cashRecoveryAmount > 0 && (
             <span className="block text-xs text-ok font-normal mt-0.5">
-              Recovered: <MoneyText value={shift.cashRecoveryAmount} />
+              {t('history.discrepancies.recovered')} <MoneyText value={shift.cashRecoveryAmount} />
             </span>
           )}
         </>
       ),
     },
-    { key: 'status', header: 'Status', className: 'px-5', cell: (shift) => <DiscrepancyStatus shift={shift} /> },
+    { key: 'status', header: t('history.columns.status'), className: 'px-5', cell: (shift) => <DiscrepancyStatus shift={shift} /> },
     {
-      key: 'note', header: 'Note', className: 'px-5 hidden md:table-cell max-w-xs truncate text-xs text-ink-3',
+      key: 'note', header: t('history.discrepancies.columns.note'), className: 'px-5 hidden md:table-cell max-w-xs truncate text-xs text-ink-3',
       cell: (shift) => shift.discrepancyResolutionNote ?? shift.investigationNote ?? shift.discrepancyReason ?? '—',
     },
     {
-      key: 'action', header: <span className="sr-only">Action</span>, align: 'right', className: 'px-5',
+      key: 'action', header: <span className="sr-only">{t('history.discrepancies.columns.action')}</span>, align: 'right', className: 'px-5',
       cell: (shift) => <DiscrepancyAction shift={shift} role={role} onOpen={setResolvingShift} className="min-h-0 px-3 py-1.5 text-xs" />,
     },
   ]
 
   if (isLoading) return <div className="px-5 py-4"><SkeletonRows count={4} /></div>
-  if (error) return <p role="alert" className="ui-alert ui-alert-error m-4 text-sm">{parseApiError(error, 'Failed to load discrepancies')}</p>
+  if (error) return <p role="alert" className="ui-alert ui-alert-error m-4 text-sm">{parseApiError(error, t('history.discrepancies.loadFailed'))}</p>
   if (filtered.length === 0 && !hasFilter) {
-    return <div className="ui-empty p-6">No discrepancies recorded yet.</div>
+    return <div className="ui-empty p-6">{t('history.discrepancies.empty')}</div>
   }
 
   return (
@@ -147,20 +150,20 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
       {/* Summary bar */}
       <div className="flex flex-wrap gap-4 px-6 py-3 border-t border-border bg-bad-bg">
         <div className="text-xs">
-          <span className="text-ink-3">SHORT total: </span>
+          <span className="text-ink-3">{t('history.discrepancies.shortTotal')}</span>
           <MoneyText value={totalShort} tone="bad" className="font-semibold" />
         </div>
         <div className="text-xs">
-          <span className="text-ink-3">OVER total: </span>
+          <span className="text-ink-3">{t('history.discrepancies.overTotal')}</span>
           <MoneyText value={totalOver} tone="warn" className="font-semibold" />
         </div>
         <div className="text-xs">
-          <span className="text-ink-3">Resolved: </span>
+          <span className="text-ink-3">{t('history.discrepancies.resolved')}</span>
           <span className="font-semibold text-ink tabular-nums">{resolved} / {filtered.length}</span>
         </div>
         {cashRecovered > 0 && (
           <div className="text-xs">
-            <span className="text-ink-3">Cash recovered: </span>
+            <span className="text-ink-3">{t('history.discrepancies.cashRecovered')}</span>
             <MoneyText value={cashRecovered} tone="ok" className="font-semibold" />
           </div>
         )}
@@ -168,16 +171,16 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
 
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-border bg-surface-sunken">
-        <span className="text-xs font-medium text-ink-3">Filter:</span>
+        <span className="text-xs font-medium text-ink-3">{t('history.discrepancies.filter')}</span>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <input aria-label="From date"
+          <input aria-label={t('history.fromDate')}
             type="date"
             value={fromDate}
             onChange={(e) => { setFromDate(e.target.value); setPage(0) }}
             className="flex-1 min-w-[8.5rem] border border-control rounded-control px-2.5 py-1.5 text-xs"
           />
-          <span className="text-ink-3 text-xs">to</span>
-          <input aria-label="To date"
+          <span className="text-ink-3 text-xs">{t('history.to')}</span>
+          <input aria-label={t('history.toDate')}
             type="date"
             value={toDate}
             onChange={(e) => { setToDate(e.target.value); setPage(0) }}
@@ -185,35 +188,35 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
           />
         </div>
         <div className="flex items-center gap-1">
-          {(['ALL', 'SHORT', 'OVER'] as const).map(t => (
+          {(['ALL', 'SHORT', 'OVER'] as const).map(type => (
             <button
-              key={t}
-              onClick={() => { setTypeFilter(t); setPage(0) }}
-              aria-pressed={typeFilter === t}
+              key={type}
+              onClick={() => { setTypeFilter(type); setPage(0) }}
+              aria-pressed={typeFilter === type}
               className={`px-2.5 py-1 text-xs rounded-badge border transition-colors ${
-                typeFilter === t
-                  ? t === 'SHORT' ? 'bg-bad border-bad text-on-primary'
-                    : t === 'OVER' ? 'bg-warn border-warn text-on-primary'
+                typeFilter === type
+                  ? type === 'SHORT' ? 'bg-bad border-bad text-on-primary'
+                    : type === 'OVER' ? 'bg-warn border-warn text-on-primary'
                     : 'bg-primary border-primary text-on-primary'
                   : 'border-border text-ink-2 hover:bg-surface-sunken'
               }`}
             >
-              {t}
+              {type === 'SHORT' ? t('common:badges.short') : type === 'OVER' ? t('common:badges.over') : t('history.discrepancies.all')}
             </button>
           ))}
         </div>
         {(fromDate || toDate || typeFilter !== 'ALL') && (
           <button onClick={clearFilter} className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-ink-3 hover:text-ink underline">
-            Clear
+            {t('history.clear')}
           </button>
         )}
-        <span className="ml-auto text-xs text-ink-3">{filtered.length} shift{filtered.length !== 1 ? 's' : ''}</span>
+        <span className="ml-auto text-xs text-ink-3">{t('history.shiftCount', { count: filtered.length })}</span>
       </div>
 
       {/* Cards below md */}
-      <ul className="md:hidden divide-y divide-border border-t border-border" aria-label="Discrepancies">
+      <ul className="md:hidden divide-y divide-border border-t border-border" aria-label={t('history.discrepancies.caption')}>
         {paged.length === 0 ? (
-          <li className="ui-empty px-4 py-6">No discrepancies match the selected filters.</li>
+          <li className="ui-empty px-4 py-6">{t('history.discrepancies.noMatch')}</li>
         ) : (
           paged.map((shift) => {
             const note = shift.discrepancyResolutionNote ?? shift.investigationNote ?? shift.discrepancyReason
@@ -228,7 +231,7 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
                 </div>
                 <div><DiscrepancyStatus shift={shift} /></div>
                 {shift.cashRecoveryAmount != null && shift.cashRecoveryAmount > 0 && (
-                  <p className="text-xs text-ok">Recovered: <MoneyText value={shift.cashRecoveryAmount} /></p>
+                  <p className="text-xs text-ok">{t('history.discrepancies.recovered')} <MoneyText value={shift.cashRecoveryAmount} /></p>
                 )}
                 {note && <p className="text-xs text-ink-2">{note}</p>}
                 <DiscrepancyAction shift={shift} role={role} onOpen={setResolvingShift} className="w-full" />
@@ -239,12 +242,12 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
       </ul>
 
       <DataTable
-        caption="Discrepancies"
+        caption={t('history.discrepancies.caption')}
         captionHidden
         columns={columns}
         rows={paged}
         rowKey={(shift) => shift.id}
-        empty={<p className="ui-empty px-6 py-6">No discrepancies match the selected filters.</p>}
+        empty={<p className="ui-empty px-6 py-6">{t('history.discrepancies.noMatch')}</p>}
         className="hidden md:block rounded-none border-x-0 border-b-0"
       />
 
@@ -256,14 +259,14 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-surface-sunken">
           <span className="text-xs text-ink-3">
-            Page {safePage + 1} of {totalPages}
+            {t('history.pageOf', { page: safePage + 1, total: totalPages })}
             <span className="ml-2 text-ink-3">
-              (showing {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, filtered.length)} of {filtered.length})
+              {t('history.showingRange', { from: safePage * PAGE_SIZE + 1, to: Math.min((safePage + 1) * PAGE_SIZE, filtered.length), total: filtered.length })}
             </span>
           </span>
           <div className="flex gap-1">
-            <button aria-label="First page" onClick={() => setPage(0)} disabled={safePage === 0} className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30">«</button>
-            <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0} className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30">Prev</button>
+            <button aria-label={t('history.firstPage')} onClick={() => setPage(0)} disabled={safePage === 0} className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30">«</button>
+            <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0} className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30">{t('history.prev')}</button>
             {Array.from({ length: totalPages }, (_, i) => i)
               .filter((i) => Math.abs(i - safePage) <= 2)
               .map((i) => (
@@ -277,8 +280,8 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
                   {i + 1}
                 </button>
               ))}
-            <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage === totalPages - 1} className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30">Next</button>
-            <button aria-label="Last page" onClick={() => setPage(totalPages - 1)} disabled={safePage === totalPages - 1} className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30">»</button>
+            <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage === totalPages - 1} className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30">{t('history.next')}</button>
+            <button aria-label={t('history.lastPage')} onClick={() => setPage(totalPages - 1)} disabled={safePage === totalPages - 1} className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30">»</button>
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { History } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
@@ -25,6 +26,7 @@ export function SalesTab({
   isOwnerOrAdmin: boolean
   onRefresh: () => void
 }) {
+  const { t } = useTranslation('ancillary')
   const qc = useQueryClient()
   const [salesPage, setSalesPage] = useState(0)
   const [salesPageSize, setSalesPageSize] = useState(10)
@@ -37,14 +39,14 @@ export function SalesTab({
   const sales = salesPageData?.content ?? []
 
   const columns: DataTableColumn<AncillarySale>[] = [
-    { key: 'date', header: 'Date', className: 'px-5 text-ink-2 whitespace-nowrap', cell: (sale) => fmtDate(sale.saleDate) },
-    { key: 'product', header: 'Product', className: 'px-5 text-ink font-medium max-w-[180px] truncate', cell: (sale) => sale.productDisplayName },
-    { key: 'qty', header: 'Qty', numeric: true, className: 'px-5', cell: (sale) => sale.quantityUnits },
-    { key: 'pricePerUnit', header: 'Price/Unit', numeric: true, className: 'px-5 text-ink-3', cell: (sale) => <MoneyText value={sale.sellingPricePerUnit} /> },
-    { key: 'total', header: 'Total', numeric: true, className: 'px-5 font-semibold text-ink', cell: (sale) => <MoneyText value={sale.totalAmount} /> },
-    { key: 'mode', header: 'Mode', className: 'px-5', cell: (sale) => <StatusBadge {...paymentModeBadge(sale.paymentMode)} /> },
-    { key: 'client', header: 'Client', className: 'px-5 text-ink-3', cell: (sale) => sale.clientName ?? '—' },
-    { key: 'type', header: 'Type', className: 'px-5', cell: (sale) => sale.isBackfilled && <StatusBadge tone="info" icon={History} label="Backfilled" /> },
+    { key: 'date', header: t('fields.date'), className: 'px-5 text-ink-2 whitespace-nowrap', cell: (sale) => fmtDate(sale.saleDate) },
+    { key: 'product', header: t('fields.product'), className: 'px-5 text-ink font-medium max-w-[180px] truncate', cell: (sale) => sale.productDisplayName },
+    { key: 'qty', header: t('fields.qty'), numeric: true, className: 'px-5', cell: (sale) => sale.quantityUnits },
+    { key: 'pricePerUnit', header: t('salesTab.pricePerUnit'), numeric: true, className: 'px-5 text-ink-3', cell: (sale) => <MoneyText value={sale.sellingPricePerUnit} /> },
+    { key: 'total', header: t('fields.total'), numeric: true, className: 'px-5 font-semibold text-ink', cell: (sale) => <MoneyText value={sale.totalAmount} /> },
+    { key: 'mode', header: t('salesTab.mode'), className: 'px-5', cell: (sale) => <StatusBadge {...paymentModeBadge(sale.paymentMode)} /> },
+    { key: 'client', header: t('fields.client'), className: 'px-5 text-ink-3', cell: (sale) => sale.clientName ?? '—' },
+    { key: 'type', header: t('fields.type'), className: 'px-5', cell: (sale) => sale.isBackfilled && <StatusBadge tone="info" icon={History} label={t('fields.backfilled')} /> },
   ]
 
   return (
@@ -56,21 +58,21 @@ export function SalesTab({
             onClick={() => setBackfillOpen(true)}
             className="ui-btn ui-btn-secondary"
           >
-            Backfill Sale
+            {t('salesTab.backfillSale')}
           </button>
         </div>
       )}
 
       <div className="ui-card p-0">
         <div className="px-5 py-4 border-b border-border">
-          <h3 className="text-sm font-semibold text-ink">Sales History</h3>
+          <h3 className="text-sm font-semibold text-ink">{t('salesTab.title')}</h3>
         </div>
         {sales.length === 0 ? (
-          <EmptyState icon="transactions" title="No sales recorded yet" subtitle="Sales will appear here after you record them." />
+          <EmptyState icon="transactions" title={t('salesTab.emptyTitle')} subtitle={t('salesTab.emptySubtitle')} />
         ) : (
           <>
             <DataTable
-              caption="Product sales"
+              caption={t('salesTab.caption')}
               captionHidden
               columns={columns}
               rows={sales}

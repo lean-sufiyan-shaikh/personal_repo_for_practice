@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Printer } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { LoadingButton } from '../../../components/LoadingButton'
 import { MoneyText } from '../../../components/AmountText'
 import { DiscrepancyBadge } from '../components/DiscrepancyBadge'
@@ -19,17 +20,18 @@ interface Props {
 export function CloseShiftSummary({
   incomingOperatorName, totalDue, totalCollected, diff, creditEntryCount, isEscalated, printError,
 }: Props) {
+  const { t } = useTranslation('shifts')
   const discrepancyType = discrepancyTypeOf(diff)
   const figures: Array<[string, ReactNode]> = [
-    ['Total due', <MoneyText value={totalDue} />],
-    ['Collected', <MoneyText value={totalCollected} />],
-    ['Credit entries', String(creditEntryCount)],
+    [t('close.summary.totalDue'), <MoneyText value={totalDue} />],
+    [t('close.summary.collected'), <MoneyText value={totalCollected} />],
+    [t('close.summary.creditEntries'), String(creditEntryCount)],
   ]
 
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <span className="font-semibold">Result</span>
+        <span className="font-semibold">{t('close.summary.result')}</span>
         <DiscrepancyBadge type={discrepancyType} amount={Math.abs(diff)} />
       </div>
       <dl className="divide-y divide-border rounded-card border border-border">
@@ -41,13 +43,13 @@ export function CloseShiftSummary({
         ))}
       </dl>
       {incomingOperatorName && (
-        <p className="ui-alert ui-alert-success">A new shift is open for {incomingOperatorName} on the same nozzles.</p>
+        <p className="ui-alert ui-alert-success">{t('close.summary.newShiftOpen', { name: incomingOperatorName })}</p>
       )}
       {discrepancyType && (
         <p className="text-ink-2">
           {isEscalated
-            ? 'The difference is above the approval limit and waits for the owner or admin.'
-            : 'The difference is listed under Discrepancies for a manager to resolve.'}
+            ? t('close.summary.escalated')
+            : t('close.summary.listed')}
         </p>
       )}
       {printError && <p role="alert" className="ui-alert ui-alert-danger">{printError}</p>}
@@ -64,19 +66,20 @@ interface ActionsProps {
 }
 
 export function CloseShiftSummaryActions({ isPreparingPrint, onPrint, onOpenNextShift, onDone }: ActionsProps) {
+  const { t } = useTranslation('shifts')
   return (
     <>
       {onOpenNextShift && (
         <button type="button" onClick={onOpenNextShift} className="ui-btn ui-btn-primary col-span-2">
-          Open next shift
+          {t('close.summary.openNext')}
         </button>
       )}
-      <LoadingButton type="button" onClick={onPrint} isLoading={isPreparingPrint} loadingLabel="Preparing the report"
+      <LoadingButton type="button" onClick={onPrint} isLoading={isPreparingPrint} loadingLabel={t('close.summary.preparing')}
         className="ui-btn-secondary">
-        <Printer size={16} strokeWidth={2} aria-hidden="true" />Print / share
+        <Printer size={16} strokeWidth={2} aria-hidden="true" />{t('close.summary.print')}
       </LoadingButton>
       <button type="button" onClick={onDone} className={`ui-btn ${onOpenNextShift ? 'ui-btn-secondary' : 'ui-btn-primary'}`}>
-        Done
+        {t('close.summary.done')}
       </button>
     </>
   )

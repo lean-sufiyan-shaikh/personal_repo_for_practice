@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import type { AncillaryProduct, AncillaryLotDetail, UpdateLotRequest } from '../../api/ancillaryApi'
@@ -27,6 +28,7 @@ export function StockLotsDialog({
   onClose: () => void
   onUpdated: () => void
 }) {
+  const { t } = useTranslation(['ancillary', 'common'])
   const qc = useQueryClient()
   const { addToast } = useToastStore()
   const [editingLotId, setEditingLotId] = useState<number | null>(null)
@@ -48,11 +50,11 @@ export function StockLotsDialog({
       setEditingLotId(null)
       setEditError(null)
       qc.invalidateQueries({ queryKey: ['ancillaryLots', pumpId, product.id] })
-      addToast('Lot updated successfully', 'success')
+      addToast(t('lots.updated'), 'success')
       onUpdated()
     },
     onError: (err) => {
-      const msg = parseApiError(err, 'Failed to update lot')
+      const msg = parseApiError(err, t('lots.updateFailed'))
       setEditError(msg)
       addToast(msg, 'error')
     },
@@ -70,9 +72,9 @@ export function StockLotsDialog({
   const handleSave = (lot: AncillaryLotDetail) => {
     const newCost = parseFloat(editForm.costPricePerUnit)
     const newQty  = parseInt(editForm.remainingQuantity, 10)
-    if (isNaN(newCost) || newCost <= 0) { setEditError('Cost price must be greater than 0'); return }
-    if (isNaN(newQty)  || newQty  <  0) { setEditError('Remaining quantity cannot be negative'); return }
-    if (newQty > lot.originalQuantity)  { setEditError(`Remaining quantity cannot exceed original (${lot.originalQuantity})`); return }
+    if (isNaN(newCost) || newCost <= 0) { setEditError(t('lots.costPositive')); return }
+    if (isNaN(newQty)  || newQty  <  0) { setEditError(t('lots.remainingNegative')); return }
+    if (newQty > lot.originalQuantity)  { setEditError(t('lots.remainingExceeds', { original: lot.originalQuantity })); return }
 
     const payload: UpdateLotRequest = {}
     if (newCost !== lot.costPricePerUnit)  payload.costPricePerUnit  = newCost
@@ -83,17 +85,17 @@ export function StockLotsDialog({
   }
 
   const columns: DataTableColumn<AncillaryLotDetail>[] = [
-    { key: 'inDate', header: 'In Date' },
-    { key: 'billNo', header: 'Bill No' },
-    { key: 'costPrice', header: 'Cost Price/Unit', numeric: true },
-    { key: 'remaining', header: 'Remaining', numeric: true },
-    { key: 'original', header: 'Original', numeric: true },
-    ...(isOwnerOrAdmin ? [{ key: 'actions', header: 'Actions', align: 'right' as const }] : []),
+    { key: 'inDate', header: t('lots.inDate') },
+    { key: 'billNo', header: t('fields.billNo') },
+    { key: 'costPrice', header: t('lots.costPrice'), numeric: true },
+    { key: 'remaining', header: t('lots.remaining'), numeric: true },
+    { key: 'original', header: t('lots.original'), numeric: true },
+    ...(isOwnerOrAdmin ? [{ key: 'actions', header: t('lots.actions'), align: 'right' as const }] : []),
   ]
 
   return (
     <Modal
-      title="Stock Lots"
+      title={t('lots.title')}
       subtitle={<span className="block truncate max-w-[380px]">{product.displayName}</span>}
       tone="info"
       size="lg"
@@ -101,24 +103,24 @@ export function StockLotsDialog({
       footerClassName="justify-between items-center"
       footer={<>
         <p className="text-xs text-ink-3">
-          Lots shown in FIFO order — oldest consumed first
+          {t('lots.fifoNote')}
         </p>
         <button onClick={onClose} className="ui-btn ui-btn-secondary">
-          Close
+          {t('common:actions.close')}
         </button>
       </>}
     >
           {isLoading ? (
-            <p className="ui-empty py-8">Loading lots…</p>
+            <p className="ui-empty py-8">{t('lots.loading')}</p>
           ) : lots.length === 0 ? (
-            <p className="ui-empty py-8">No active stock lots. Record a stock delivery first.</p>
+            <p className="ui-empty py-8">{t('lots.empty')}</p>
           ) : (
             <>
               {editError && (
                 <div role="alert" className="ui-alert ui-alert-danger mb-3 text-sm">{editError}</div>
               )}
               <DataTable
-                caption="Active stock lots"
+                caption={t('lots.caption')}
                 captionHidden
                 columns={columns}
                 rows={lots}
@@ -130,7 +132,7 @@ export function StockLotsDialog({
                           <td className="text-ink">{fmtDate(lot.deliveryDate)}</td>
                           <td className="text-ink-3">{lot.invoiceReference ?? '—'}</td>
                           <td className="text-right">
-                            <input aria-label="Cost price per unit"
+                            <input aria-label={t('lots.costAria')}
                               type="number"
                               min="0.01"
                               step="0.01"
@@ -140,7 +142,7 @@ export function StockLotsDialog({
                             />
                           </td>
                           <td className="text-right">
-                            <input aria-label="Remaining units"
+                            <input aria-label={t('lots.remainingAria')}
                               type="number"
                               min="0"
                               max={lot.originalQuantity}
@@ -158,13 +160,13 @@ export function StockLotsDialog({
                                 disabled={updateMutation.isPending}
                                 className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs disabled:opacity-50"
                               >
-                                {updateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />Saving…</span> : 'Save'}
+                                {updateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('actions.saving')}</span> : t('actions.save')}
                               </button>
                               <button
                                 onClick={() => { setEditingLotId(null); setEditError(null) }}
                                 className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs"
                               >
-                                Cancel
+                                {t('common:actions.cancel')}
                               </button>
                             </div>
                           </td>
@@ -184,7 +186,7 @@ export function StockLotsDialog({
                                 onClick={() => startEdit(lot)}
                                 className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
                               >
-                                Edit
+                                {t('actions.edit')}
                               </button>
                             </td>
                           )}

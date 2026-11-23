@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { shiftApi } from '../../api/shiftApi'
 import { pumpApi } from '../../api/pumpApi'
 import { usePumpStore } from '../../store/usePumpStore'
@@ -9,6 +10,7 @@ import { MyShiftCard } from './active/MyShiftCard'
 import { AddCreditEntryModal } from './modals/AddCreditEntryModal'
 
 export default function MyShiftPage() {
+  const { t } = useTranslation('shifts')
   const pumpId = usePumpStore((state) => state.selectedPumpId)
   const now = useNow(30_000)
   const [shiftIdForCredit, setShiftIdForCredit] = useState<number | null>(null)
@@ -30,22 +32,22 @@ export default function MyShiftPage() {
 
   return (
     <div className="ui-page ui-page--narrow flex min-h-full flex-col gap-4">
-      <h1 className="ui-title-sm">My shift</h1>
+      <h1 className="ui-title-sm">{t('myShift.title')}</h1>
 
       {!pumpId ? (
         <div className="ui-alert ui-alert-warning text-sm">
-          You are not assigned to any pump. Ask the Owner or Admin to assign you.
+          {t('page.notAssigned')}
         </div>
       ) : isLoading ? (
         <SkeletonRows count={3} />
       ) : isError ? (
         <div role="alert" className="ui-alert ui-alert-warning text-sm">
-          Could not load your shift. Check your connection and refresh.
+          {t('myShift.loadFailed')}
         </div>
       ) : myShifts.length === 0 ? (
         <div role="status" className="ui-card text-center">
-          <p className="font-semibold text-ink">No open shift.</p>
-          <p className="mt-1 text-sm text-ink-3">Ask your manager to open your shift.</p>
+          <p className="font-semibold text-ink">{t('myShift.noOpenShift')}</p>
+          <p className="mt-1 text-sm text-ink-3">{t('myShift.askManager')}</p>
         </div>
       ) : (
         <>
@@ -60,7 +62,7 @@ export default function MyShiftPage() {
                 onClick={() => setShiftIdForCredit(shift.id)}
                 className="ui-btn ui-btn-primary min-h-14 w-full text-base"
               >
-                + Credit sale{myShifts.length > 1 ? ` · ${shift.duName ?? `DU ${shift.duNumber}`}` : ''}
+                {t('myShift.addCreditSale')}{myShifts.length > 1 ? ` · ${shift.duName ?? `DU ${shift.duNumber}`}` : ''}
               </button>
             ))}
           </div>

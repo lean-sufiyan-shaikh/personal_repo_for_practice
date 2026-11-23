@@ -1,4 +1,6 @@
+import { useTranslation } from 'react-i18next'
 import { Modal } from '../../../components/Modal'
+import { formatNumberIn } from '../../../i18n/format'
 import { LitresText, MoneyText } from '../../../components/AmountText'
 import { FUEL_COLORS, fmtDate } from '../inventoryFormat'
 import type { PreparedDeliveryItem } from './deliveryRows'
@@ -22,10 +24,11 @@ export function DeliveryReviewDialog({
   items, date, invoice, error, isOwnerOrAdmin, canSetBillTotal, billTotalManual, billTotalNum, otherCharges,
   isPending, onBack, onConfirm,
 }: Props) {
+  const { t } = useTranslation('inventory')
   return (
     <Modal
-      title="Review Tanker Delivery"
-      subtitle="Please verify the bill and tank-wise received fuel before submitting."
+      title={t('review.title')}
+      subtitle={t('review.subtitle')}
       tone="info"
       size="full"
       onClose={onBack}
@@ -38,7 +41,7 @@ export function DeliveryReviewDialog({
             disabled={isPending}
             className="ui-btn ui-btn-secondary flex-1"
           >
-            Back to Edit
+            {t('review.backToEdit')}
           </button>
           <button
             type="button"
@@ -46,22 +49,22 @@ export function DeliveryReviewDialog({
             disabled={isPending}
             className="ui-btn ui-btn-primary flex-1"
           >
-            {isPending ? 'Recording…' : `Confirm ${items.length > 1 ? 'Deliveries' : 'Delivery'}`}
+            {isPending ? t('review.recording') : t('review.confirm', { count: items.length })}
           </button>
       </>}
     >
           {error && (
             <div role="alert" className="ui-alert ui-alert-danger text-sm">
-              {error} Go back to modify the data and try again.
+              {error} {t('review.goBack')}
             </div>
           )}
           <div className={`grid gap-3 ${(canSetBillTotal && billTotalNum > 0) || isOwnerOrAdmin ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
             <div className="rounded-card border border-border bg-surface-sunken px-4 py-3">
-              <p className="text-xs font-medium text-ink-3">Delivery Date</p>
+              <p className="text-xs font-medium text-ink-3">{t('review.date')}</p>
               <p className="mt-1 text-sm font-semibold text-ink">{fmtDate(date)}</p>
             </div>
             <div className="rounded-card border border-border bg-surface-sunken px-4 py-3">
-              <p className="text-xs font-medium text-ink-3">Invoice / Bill No.</p>
+              <p className="text-xs font-medium text-ink-3">{t('review.invoice')}</p>
               <p className="mt-1 text-sm font-semibold text-ink">{invoice.trim()}</p>
             </div>
             {(canSetBillTotal && billTotalNum > 0) && (() => {
@@ -69,16 +72,16 @@ export function DeliveryReviewDialog({
               const displayTotal = billTotalNum > 0 ? billTotalNum : calcTotal
               return (
                 <div className="rounded-card border border-primary bg-info-bg px-4 py-3 shadow-raised">
-                  <p className="text-xs font-medium text-info">Bill Amount</p>
+                  <p className="text-xs font-medium text-info">{t('review.billAmount')}</p>
                   <p className="mt-1 text-base font-bold text-info">
                     <MoneyText value={displayTotal} />
                   </p>
                   {isOwnerOrAdmin && billTotalManual && otherCharges !== 0 && (
                     <p className="text-xs mt-1 text-info">
-                      Calc. ₹{calcTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      {t('review.calculated', { amount: formatNumberIn(calcTotal, { minimumFractionDigits: 2 }) })}
                       {' · '}
                       <span className={otherCharges > 0 ? 'text-warn' : 'text-ok'}>
-                        {otherCharges > 0 ? '+' : ''}₹{Math.abs(otherCharges).toLocaleString('en-IN', { minimumFractionDigits: 2 })} other charges
+                        {t('review.otherCharges', { amount: `${otherCharges > 0 ? '+' : ''}₹${formatNumberIn(Math.abs(otherCharges), { minimumFractionDigits: 2 })}` })}
                       </span>
                     </p>
                   )}
@@ -93,11 +96,11 @@ export function DeliveryReviewDialog({
                 ? 'grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1fr)]'
                 : 'grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1fr)]'
             }`}>
-              <span>Tank</span>
-              <span>Fuel</span>
-              <span className="text-right">Quantity</span>
-              {isOwnerOrAdmin && <span className="text-right">Rate</span>}
-              {isOwnerOrAdmin && <span className="text-right">Amount</span>}
+              <span>{t('columns.tank')}</span>
+              <span>{t('columns.fuel')}</span>
+              <span className="text-right">{t('columns.quantity')}</span>
+              {isOwnerOrAdmin && <span className="text-right">{t('columns.rate')}</span>}
+              {isOwnerOrAdmin && <span className="text-right">{t('columns.amount')}</span>}
             </div>
             <div className="divide-y divide-border">
               {items.map((item) => (
@@ -123,10 +126,10 @@ export function DeliveryReviewDialog({
                   </div>
                   {item.stockAfter !== null && (
                     <p className="mt-2 text-xs text-ink-3">
-                      Stock after delivery: <span className="font-medium text-ink tabular-nums">
-                        {item.stockAfter.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
+                      {t('review.stockAfterDelivery')} <span className="font-medium text-ink tabular-nums">
+                        {formatNumberIn(item.stockAfter, { minimumFractionDigits: 1 })} L
                       </span>
-                      {item.capacity !== null && ` / ${item.capacity.toLocaleString('en-IN', { minimumFractionDigits: 0 })} L capacity`}
+                      {item.capacity !== null && <>{' '}{t('review.ofCapacity', { capacity: formatNumberIn(item.capacity, { minimumFractionDigits: 0 }) })}</>}
                     </p>
                   )}
                 </div>

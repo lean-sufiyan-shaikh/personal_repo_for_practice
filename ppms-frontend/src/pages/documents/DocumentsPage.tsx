@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Check, Clock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { documentApi } from '../../api/documentApi'
@@ -22,14 +23,10 @@ const STATUS_BADGES: Record<DocumentStatus, Omit<StatusBadgeSpec, 'label'>> = {
   EXPIRED:        { tone: 'bad', icon: AlertTriangle },
 }
 
-function fmtDate(d: string | null) {
-  if (!d) return 'No expiry'
-  return formatIstDate(d)
-}
-
 const EMPTY_FORM: UpsertDocumentRequest = { name: '', docType: '', expiryDate: null, notes: null }
 
 export default function DocumentsPage() {
+  const { t } = useTranslation(['documents', 'common'])
   const { user } = useAuthStore()
   const qc = useQueryClient()
 
@@ -54,23 +51,23 @@ export default function DocumentsPage() {
         : documentApi.createDocument(pumpId!, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['documents', pumpId] })
-      addToast(editId ? 'Document updated.' : 'Document added.', 'success')
+      addToast(editId ? t('toast.updated') : t('toast.added'), 'success')
       setForm(EMPTY_FORM)
       setEditId(null)
       setShowForm(false)
       setFormError(null)
     },
-    onError: (err) => setFormError(parseApiError(err, 'Failed to save document')),
+    onError: (err) => setFormError(parseApiError(err, t('toast.saveFailed'))),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => documentApi.deleteDocument(pumpId!, id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['documents', pumpId] })
-      addToast('Document deleted.', 'success')
+      addToast(t('toast.deleted'), 'success')
     },
     onError: (err) => {
-      addToast(parseApiError(err, 'Failed to delete document'), 'error')
+      addToast(parseApiError(err, t('toast.deleteFailed')), 'error')
     },
   })
 
@@ -83,7 +80,7 @@ export default function DocumentsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name.trim() || !form.docType.trim()) { setFormError('Name and document type are required'); return }
+    if (!form.name.trim() || !form.docType.trim()) { setFormError(t('form.required')); return }
     saveMutation.mutate(form)
   }
 
@@ -98,14 +95,14 @@ export default function DocumentsPage() {
       <Reveal delay={60}>
       <div className="ui-page-header">
         <div>
-          <h1 className="ui-title-sm">Compliance Documents</h1>
-          <p className="ui-subtitle">Track licences, permits, and certificates</p>
+          <h1 className="ui-title-sm">{t('page.title')}</h1>
+          <p className="ui-subtitle">{t('page.subtitle')}</p>
         </div>
         <button
           onClick={() => { setForm(EMPTY_FORM); setEditId(null); setShowForm(s => !s); setFormError(null) }}
           className="ui-btn ui-btn-primary"
         >
-          {showForm ? 'Cancel' : '+ Add Document'}
+          {showForm ? t('common:actions.cancel') : t('page.addButton')}
         </button>
       </div>
       </Reveal>
@@ -114,10 +111,10 @@ export default function DocumentsPage() {
       {(expiredCount > 0 || expiringSoonCount > 0) && (
         <Reveal delay={120}>
         <div className="ui-alert ui-alert-danger">
-          <p className="text-sm font-semibold text-bad">Compliance attention needed</p>
+          <p className="text-sm font-semibold text-bad">{t('alert.title')}</p>
           <p className="text-xs text-bad mt-0.5">
-            {expiredCount > 0 && `${expiredCount} document${expiredCount !== 1 ? 's' : ''} expired. `}
-            {expiringSoonCount > 0 && `${expiringSoonCount} document${expiringSoonCount !== 1 ? 's' : ''} expiring within 30 days.`}
+            {expiredCount > 0 && <>{t('alert.expired', { count: expiredCount })}{' '}</>}
+            {expiringSoonCount > 0 && t('alert.expiringSoon', { count: expiringSoonCount })}
           </p>
         </div>
         </Reveal>
@@ -128,22 +125,22 @@ export default function DocumentsPage() {
         <form onSubmit={handleSubmit} className="ui-card ui-form-shell">
           <div className="ui-form-shell__head">
             <div>
-              <p className="ui-section-kicker mb-2">Document Intake</p>
-              <h2 className="ui-title-sm">{editId ? 'Edit document' : 'Add document'}</h2>
-              <p className="ui-subtitle mt-1">Store expiry dates, document types, and notes in one place.</p>
+              <p className="ui-section-kicker mb-2">{t('form.kicker')}</p>
+              <h2 className="ui-title-sm">{editId ? t('form.editTitle') : t('form.addTitle')}</h2>
+              <p className="ui-subtitle mt-1">{t('form.subtitle')}</p>
             </div>
           </div>
 
           <div className="ui-form-shell__grid">
             <div>
               <label className="block">
-                <span className="ui-label">Document Name</span>
+                <span className="ui-label">{t('form.name')}</span>
                 <input
                   type="text"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   className="text-sm"
-                  placeholder="e.g. Petrol Pump Licence"
+                  placeholder={t('form.namePlaceholder')}
                   required
                 />
               </label>
@@ -151,13 +148,13 @@ export default function DocumentsPage() {
 
             <div>
               <label className="block">
-                <span className="ui-label">Document Type</span>
+                <span className="ui-label">{t('form.type')}</span>
                 <input
                   type="text"
                   value={form.docType}
                   onChange={e => setForm(f => ({ ...f, docType: e.target.value }))}
                   className="text-sm"
-                  placeholder="e.g. Licence, Certificate, Permit"
+                  placeholder={t('form.typePlaceholder')}
                   required
                 />
               </label>
@@ -165,7 +162,7 @@ export default function DocumentsPage() {
 
             <div>
               <label className="block">
-                <span className="ui-label">Expiry Date (optional)</span>
+                <span className="ui-label">{t('form.expiryDate')}</span>
                 <input
                   type="date"
                   value={form.expiryDate ?? ''}
@@ -177,13 +174,13 @@ export default function DocumentsPage() {
 
             <div>
               <label className="block">
-                <span className="ui-label">Notes (optional)</span>
+                <span className="ui-label">{t('form.notes')}</span>
                 <input
                   type="text"
                   value={form.notes ?? ''}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
                   className="text-sm"
-                  placeholder="Any additional notes"
+                  placeholder={t('form.notesPlaceholder')}
                 />
               </label>
             </div>
@@ -197,8 +194,8 @@ export default function DocumentsPage() {
             className="ui-btn ui-btn-primary"
           >
             {saveMutation.isPending
-              ? <span className="flex items-center gap-1.5"><Spinner />Saving…</span>
-              : editId ? 'Update' : 'Add Document'}
+              ? <span className="flex items-center gap-1.5"><Spinner />{t('form.saving')}</span>
+              : editId ? t('form.update') : t('form.add')}
           </button>
         </form>
       )}
@@ -207,13 +204,13 @@ export default function DocumentsPage() {
       <Reveal delay={180}>
       <div className="ui-card p-0 overflow-hidden">
         <div className="ui-toolbar">
-          <p className="ui-toolbar-title">All Documents ({docs.length})</p>
+          <p className="ui-toolbar-title">{t('list.title', { count: docs.length })}</p>
         </div>
 
         {isLoading ? (
           <div className="px-5 py-4"><SkeletonRows count={4} /></div>
         ) : docs.length === 0 ? (
-          <p className="ui-empty px-5 py-6">No documents added yet. Add your licences and permits to track their expiry.</p>
+          <p className="ui-empty px-5 py-6">{t('list.empty')}</p>
         ) : (
           <div className="ui-record-list">
             {docs.map(doc => (
@@ -226,7 +223,7 @@ export default function DocumentsPage() {
                   <div className="ui-record-row__meta">
                     <p className="text-xs text-ink-3">{doc.docType}</p>
                     <span className="text-xs text-ink-3">·</span>
-                    <p className="text-xs text-ink-3">Expires: {fmtDate(doc.expiryDate)}</p>
+                    <p className="text-xs text-ink-3">{t('list.expires', { date: doc.expiryDate ? formatIstDate(doc.expiryDate) : t('list.noExpiry') })}</p>
                     {doc.notes && <><span className="text-xs text-ink-3">·</span><p className="text-xs text-ink-3 truncate">{doc.notes}</p></>}
                   </div>
                 </div>
@@ -235,13 +232,13 @@ export default function DocumentsPage() {
                     onClick={() => startEdit(doc)}
                     className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
                   >
-                    Edit
+                    {t('list.edit')}
                   </button>
                   {isOwner && (
                     <ConfirmButton
                       onConfirm={() => deleteMutation.mutate(doc.id)}
                       disabled={deleteMutation.isPending}
-                      triggerAriaLabel={`Delete ${doc.name}`}
+                      triggerAriaLabel={t('list.deleteNamed', { name: doc.name })}
                     />
                   )}
                 </div>

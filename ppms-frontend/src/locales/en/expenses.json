@@ -1,1 +1,77 @@
-{}
+{
+  "page": {
+    "title": "Expense Tracker",
+    "noPump": "No pump selected. Use the pump selector in the top navigation bar, or ask the Owner or Admin to assign you to a pump.",
+    "kicker": "Cost tracking",
+    "subtitle": "Record and review operational expenses at the pump",
+    "records": "Records",
+    "pending": "Pending",
+    "approvedTotal": "Approved Total",
+    "totalRecords": "Total Records",
+    "pendingApproval": "Pending Approval"
+  },
+  "form": {
+    "kicker": "Expense Intake",
+    "title": "Record expense",
+    "subtitle": "Capture the category, amount, date, and description before review.",
+    "category": "Category",
+    "amountRupees": "Amount (₹)",
+    "amount": "Amount",
+    "description": "Description",
+    "descriptionPlaceholder": "e.g. Pump servicing by XYZ",
+    "expenseDate": "Expense Date",
+    "saveDraft": "Save as draft — submit for approval later",
+    "saving": "Saving…",
+    "review": "Review Expense",
+    "recorded": "Expense recorded successfully",
+    "recordFailed": "Failed to record expense",
+    "descriptionRequired": "Description is required",
+    "amountPositive": "Amount must be greater than zero"
+  },
+  "review": {
+    "title": "Review Expense",
+    "subtitle": "Verify the expense details before saving the record.",
+    "back": "Back",
+    "add": "Add Expense",
+    "goBack": "{{error}} Go back to modify the data and try again."
+  },
+  "list": {
+    "title": "All Expenses",
+    "filterByCategory": "Filter by category",
+    "allCategories": "All Categories",
+    "filterByStatus": "Filter by status",
+    "allStatuses": "All Statuses",
+    "statusDraft": "Draft",
+    "statusPendingApproval": "Pending Approval",
+    "statusApproved": "Approved",
+    "statusRejected": "Rejected",
+    "clearFilters": "Clear filters",
+    "approvalHint": "Approve and reject actions appear only for expenses in <status>Pending Approval</status>.",
+    "emptyTitle": "No expenses recorded yet",
+    "emptyAccountant": "No records to display.",
+    "emptySubtitle": "Use the form above to record your first expense.",
+    "submit": "Submit",
+    "approve": "Approve",
+    "reject": "Reject",
+    "deleteExpense": "Delete expense",
+    "rejectTitle": "Reject Expense",
+    "rejectedWithNotes": "{{label}}: {{notes}}"
+  },
+  "toast": {
+    "submitted": "Expense submitted for approval",
+    "submitFailed": "Failed to submit expense",
+    "deleted": "Expense deleted",
+    "deleteFailed": "Failed to delete expense",
+    "approved": "Expense approved",
+    "rejected": "Expense rejected",
+    "updateFailed": "Failed to update expense"
+  },
+  "csv": {
+    "date": "Date",
+    "category": "Category",
+    "description": "Description",
+    "amount": "Amount",
+    "status": "Status",
+    "approvalNotes": "Approval notes"
+  }
+}

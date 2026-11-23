@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { NumericInput } from '../../../components/NumericInput'
 import { MoneyText } from '../../../components/AmountText'
 import { formatCurrency } from '../../../utils/format'
@@ -7,6 +8,7 @@ import { discrepancyTypeOf } from './closeShiftTotals'
 export function Section({ label, title, optional = false, children }: {
   label: string; title: string; optional?: boolean; children: React.ReactNode
 }) {
+  const { t } = useTranslation('shifts')
   return (
     <div>
       <div className="flex items-center gap-2 mb-2.5">
@@ -14,7 +16,7 @@ export function Section({ label, title, optional = false, children }: {
           {label}
         </span>
         <h3 className="text-sm font-semibold text-ink">{title}</h3>
-        {optional && <span className="text-xs text-ink-3">(optional)</span>}
+        {optional && <span className="text-xs text-ink-3">{t('close.fields.optional')}</span>}
       </div>
       {children}
     </div>
@@ -26,15 +28,16 @@ export function ReadingField({ label, startValue, soldUnits, pricePerUnit, value
   value: string; onChange: (v: string) => void; unitLabel: string; isInvalid?: boolean
   noChange?: boolean; onNoChangeToggle?: () => void; focusOnOpen?: boolean
 }) {
+  const { t } = useTranslation('shifts')
   const saleValue = soldUnits > 0 ? soldUnits * pricePerUnit : null
 
   return (
     <div>
       <span className="ui-label mb-0.5">{label}</span>
       <div className="flex flex-col gap-0.5 text-xs text-ink-3 mb-1">
-        <span>Start: <span className="font-medium text-ink-3">{startValue}</span></span>
+        <span>{t('close.fields.start')} <span className="font-medium text-ink-3">{startValue}</span></span>
         {noChange ? (
-          <span className="text-ink-3 italic">Reading unchanged — 0 {unitLabel} sold this shift</span>
+          <span className="text-ink-3 italic">{t('close.fields.unchanged', { unit: unitLabel })}</span>
         ) : (
           <>
             {value !== '' && !isInvalid && soldUnits > 0 && (
@@ -57,7 +60,7 @@ export function ReadingField({ label, startValue, soldUnits, pricePerUnit, value
           </>
         )}
       </div>
-      <NumericInput aria-label={`${label} end reading`} step="0.001" min="0" required value={value}
+      <NumericInput aria-label={t('close.fields.endReadingAria', { label })} step="0.001" min="0" required value={value}
         disabled={noChange}
         data-autofocus={focusOnOpen || undefined}
         unit={unitLabel}
@@ -70,29 +73,30 @@ export function ReadingField({ label, startValue, soldUnits, pricePerUnit, value
             : 'border-control focus:ring-primary'
 
         }`}
-        placeholder={noChange ? 'Same as opening' : 'Enter end reading'}
+        placeholder={noChange ? t('close.fields.sameAsOpening') : t('close.fields.enterEndReading')}
       />
       {isInvalid && (
         <p role="alert" className="ui-error-text mt-1">
-          End reading cannot be less than start ({startValue}) unless the meter rolled over from its maximum
+          {t('close.fields.belowStart', { start: startValue })}
         </p>
       )}
       <label className="ui-check-row mt-2">
         <input type="checkbox" checked={noChange ?? false} onChange={onNoChangeToggle} />
-        <span>No change</span>
+        <span>{t('close.fields.noChange')}</span>
       </label>
     </div>
   )
 }
 
 export function PaymentField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const { t } = useTranslation('shifts')
   return (
     <div>
       <label className="block">
         <span className="ui-label">{label}</span>
         <NumericInput step="0.01" min="0" value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Enter amount"
+          placeholder={t('close.fields.enterAmount')}
         />
       </label>
     </div>
@@ -100,13 +104,14 @@ export function PaymentField({ label, value, onChange }: { label: string; value:
 }
 
 export function BalanceCard({ totalDue, totalCollected, diff }: { totalDue: number; totalCollected: number; diff: number }) {
+  const { t } = useTranslation('shifts')
   const borderClass = diff === 0 ? 'border-ok' : diff < 0 ? 'border-bad' : 'border-warn'
   return (
     <div className={`rounded-card border-2 overflow-hidden ${borderClass}`}>
       <div className="px-4 py-3 flex items-center justify-between bg-surface">
         <div className="text-xs text-ink-3 flex gap-6">
-          <span>Due: <MoneyText value={totalDue} className="font-semibold text-ink" /></span>
-          <span>Collected: <MoneyText value={totalCollected} className="font-semibold text-ink" /></span>
+          <span>{t('close.fields.due')} <MoneyText value={totalDue} className="font-semibold text-ink" /></span>
+          <span>{t('close.fields.collected')} <MoneyText value={totalCollected} className="font-semibold text-ink" /></span>
         </div>
         <DiscrepancyBadge type={discrepancyTypeOf(diff)} amount={Math.abs(diff)} />
       </div>

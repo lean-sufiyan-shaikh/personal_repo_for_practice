@@ -1,4 +1,5 @@
 import { ArrowUp } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { fmt } from '../components/creditRow'
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function DiscrepancySection({ diff, canRoundOff, onRoundOff, reason, onReasonChange }: Props) {
+  const { t } = useTranslation('shifts')
   return (
     <div className={`border-2 rounded-card overflow-hidden ${diff < 0 ? 'border-bad' : 'border-warn'}`}>
       <div className={`px-4 py-3 flex items-start justify-between gap-3 ${diff < 0 ? 'bg-bad-bg' : 'bg-warn-bg'}`}>
@@ -20,11 +22,11 @@ export function DiscrepancySection({ diff, canRoundOff, onRoundOff, reason, onRe
           </div>
           <div>
             <p className={`text-sm font-semibold ${diff < 0 ? 'text-bad' : 'text-warn'}`}>
-              {diff < 0 ? `Shift is SHORT by ₹${fmt(Math.abs(diff))}` : `Shift has EXCESS of ₹${fmt(diff)}`}
+              {diff < 0 ? t('close.discrepancy.short', { amount: fmt(Math.abs(diff)) }) : t('close.discrepancy.excess', { amount: fmt(diff) })}
             </p>
             <p className="text-xs text-ink-3 mt-0.5">
-              {diff < 0 ? 'The operator collected less than the amount due.' : 'The operator collected more than the amount due.'}
-              {' '}{canRoundOff ? 'Round it off into cash, or add a reason below.' : 'Add a reason below to close this shift.'}
+              {diff < 0 ? t('close.discrepancy.collectedLess') : t('close.discrepancy.collectedMore')}
+              {' '}{canRoundOff ? t('close.discrepancy.roundOffOrReason') : t('close.discrepancy.reasonToClose')}
             </p>
           </div>
         </div>
@@ -33,28 +35,28 @@ export function DiscrepancySection({ diff, canRoundOff, onRoundOff, reason, onRe
             type="button"
             onClick={onRoundOff}
             className="shrink-0 text-xs font-medium px-2.5 py-1.5 rounded-control border border-control bg-surface hover:bg-bg text-ink-2 transition-colors"
-            title={`Adjust cash by ₹${fmt(Math.abs(diff))} so the shift balances`}
+            title={t('close.discrepancy.roundOffTitle', { amount: fmt(Math.abs(diff)) })}
           >
-            Round off ₹{fmt(Math.abs(diff))} into cash
+            {t('close.discrepancy.roundOff', { amount: fmt(Math.abs(diff)) })}
           </button>
         )}
       </div>
       <div className="px-4 py-3 bg-surface">
         <label className="block">
           <span className="block text-xs font-semibold text-ink-2 mb-1.5">
-          Reason <span className="text-bad">*</span>
-          <span className="text-ink-3 font-normal ml-1">(required to close)</span>
+          {t('close.discrepancy.reason')} <span className="text-bad">*</span>
+          <span className="text-ink-3 font-normal ml-1">{t('close.discrepancy.requiredToClose')}</span>
         </span>
           <textarea value={reason} onChange={(e) => onReasonChange(e.target.value)}
             rows={2}
-            placeholder="e.g. Customer paid partial — balance pending, meter error, etc."
+            placeholder={t('close.discrepancy.placeholder')}
             className={`w-full border rounded-control px-3 py-2 text-sm resize-none ${
               reason.trim().length > 0 ? 'border-ok' : 'border-control'
             }`}
           />
         </label>
         {reason.trim().length === 0 && (
-          <p className="inline-flex items-center gap-1 text-xs text-warn mt-1"><ArrowUp size={11} strokeWidth={2} />Enter a reason to enable closing</p>
+          <p className="inline-flex items-center gap-1 text-xs text-warn mt-1"><ArrowUp size={11} strokeWidth={2} />{t('close.discrepancy.enterReason')}</p>
         )}
       </div>
     </div>

@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import { Printer } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import type { FuelReading, Shift } from '../../../types/shift'
 import { formatIstDateTime } from '../../../utils/date'
 import { Modal } from '../../../components/Modal'
@@ -9,22 +11,29 @@ import { LitresText, MoneyText } from '../../../components/AmountText'
 import { formatCurrencyOrDash } from '../../../utils/format'
 import { printWhenFontsReady } from '../../../i18n/fonts'
 
+function discrepancyTypeText(type: Shift['discrepancyType'], t: TFunction<['shifts', 'common']>): string | null {
+  if (type === 'SHORT') return t('common:badges.short')
+  if (type === 'OVER') return t('common:badges.over')
+  return type
+}
+
 // ── Handover Report Modal ─────────────────────────────────────────────────────
 
 export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () => void }) {
+  const { t } = useTranslation(['shifts', 'common'])
   const readingColumns: DataTableColumn<FuelReading>[] = [
     {
       key: 'nozzle',
-      header: 'Nozzle',
+      header: t('handover.report.columns.nozzle'),
       cell: (r) => {
         const nozzle = shift.nozzles.find(n => n.id === r.nozzleId)
         return <span className="font-medium">{nozzle ? `#${nozzle.nozzleNumber} ${r.fuelType}` : r.fuelType}</span>
       },
     },
-    { key: 'opening', header: 'Opening', numeric: true, cell: (r) => r.startReading ?? '—' },
-    { key: 'closing', header: 'Closing', numeric: true, cell: (r) => r.endReading ?? '—' },
-    { key: 'sold', header: 'Litres Sold', numeric: true, cell: (r) => <LitresText value={r.unitsSold} className="font-semibold" /> },
-    { key: 'rate', header: 'Rate', numeric: true, cell: (r) => <MoneyText value={r.priceSnapshot} className="text-ink-3" /> },
+    { key: 'opening', header: t('handover.report.columns.opening'), numeric: true, cell: (r) => r.startReading ?? '—' },
+    { key: 'closing', header: t('handover.report.columns.closing'), numeric: true, cell: (r) => r.endReading ?? '—' },
+    { key: 'sold', header: t('handover.report.columns.litresSold'), numeric: true, cell: (r) => <LitresText value={r.unitsSold} className="font-semibold" /> },
+    { key: 'rate', header: t('handover.report.columns.rate'), numeric: true, cell: (r) => <MoneyText value={r.priceSnapshot} className="text-ink-3" /> },
   ]
 
   // Tag <body> while this modal is open so @media print can isolate it:
@@ -36,21 +45,21 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
 
   return (
     <Modal
-      title="Shift Handover Report"
+      title={t('handover.report.title')}
       subtitle={
         <>
-          Shift #{shift.id} · {shift.operatorName} · {shift.shiftDate}
+          {t('handover.report.subtitle', { id: shift.id, operator: shift.operatorName, date: shift.shiftDate })}
           {' · '}
           {formatIstDateTime(shift.actualStartTime, { hour: '2-digit', minute: '2-digit' })}
           {' → '}
           {shift.actualEndTime
             ? formatIstDateTime(shift.actualEndTime, { hour: '2-digit', minute: '2-digit' })
-            : 'Open'}
+            : t('handover.report.stillOpen')}
         </>
       }
       headerActions={
         <button type="button" onClick={() => void printWhenFontsReady()} className="ui-btn ui-btn-secondary ui-btn-compact inline-flex items-center gap-1.5 text-xs">
-          <Printer size={14} strokeWidth={2} aria-hidden="true" /> Print
+          <Printer size={14} strokeWidth={2} aria-hidden="true" /> {t('handover.report.print')}
         </button>
       }
       tone="info"
@@ -62,16 +71,16 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
     >
           {/* Title for print */}
           <div className="hidden print:block text-center mb-4">
-            <h2 className="text-xl font-bold">Shift Handover Report</h2>
-            <p className="text-ink-3 text-xs mt-1">Shift #{shift.id}</p>
+            <h2 className="text-xl font-bold">{t('handover.report.title')}</h2>
+            <p className="text-ink-3 text-xs mt-1">{t('handover.report.shiftNumber', { id: shift.id })}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: 'Operator',     value: shift.operatorName },
-              { label: 'Date',         value: shift.shiftDate },
-              { label: 'DU',           value: shift.duName ?? `DU #${shift.duNumber}` },
-              { label: 'Shift Window', value: shift.shiftWindow ?? '—' },
+              { label: t('handover.report.operator'),    value: shift.operatorName },
+              { label: t('handover.report.date'),        value: shift.shiftDate },
+              { label: t('handover.report.du'),          value: shift.duName ?? t('handover.report.duFallback', { number: shift.duNumber }) },
+              { label: t('handover.report.shiftWindow'), value: shift.shiftWindow ?? '—' },
             ].map(({ label, value }) => (
               <div key={label}>
                 <p className="text-xs text-ink-3 uppercase tracking-wide mb-0.5">{label}</p>
@@ -82,7 +91,7 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
 
           {shift.fuelReadings && shift.fuelReadings.length > 0 && (
             <DataTable
-              caption="Meter Readings"
+              caption={t('handover.report.meterReadings')}
               columns={readingColumns}
               rows={shift.fuelReadings}
               rowKey={(r) => r.nozzleId}
@@ -91,14 +100,14 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
           )}
 
           <div>
-            <p className="text-xs font-semibold text-ink-3 uppercase tracking-wide mb-2">Collections</p>
+            <p className="text-xs font-semibold text-ink-3 uppercase tracking-wide mb-2">{t('handover.report.collections')}</p>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: 'Cash',       val: shift.cashCollected },
-                { label: 'UPI',        val: shift.upiCollected },
-                { label: 'Card',       val: shift.cardCollected },
-                { label: 'Fleet Card', val: shift.fleetCardCollected },
-                { label: 'Credit',     val: shift.creditTotal },
+                { label: t('handover.report.cash'),      val: shift.cashCollected },
+                { label: t('handover.report.upi'),       val: shift.upiCollected },
+                { label: t('handover.report.card'),      val: shift.cardCollected },
+                { label: t('handover.report.fleetCard'), val: shift.fleetCardCollected },
+                { label: t('handover.report.credit'),    val: shift.creditTotal },
               ].map(({ label, val }) => (
                 <div key={label} className="flex justify-between bg-surface-sunken rounded-control px-3 py-2">
                   <span className="text-ink-3">{label}</span>
@@ -106,7 +115,7 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
                 </div>
               ))}
               <div className="flex justify-between bg-surface-sunken rounded-control px-3 py-2 col-span-2">
-                <span className="font-semibold text-ink">Total Due</span>
+                <span className="font-semibold text-ink">{t('handover.report.totalDue')}</span>
                 <MoneyText value={shift.totalAmountDue} className="font-bold text-ink" />
               </div>
             </div>
@@ -114,12 +123,12 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
 
           {shift.discrepancyAmount != null && (
             <div className={`rounded-card border p-3 ${shift.discrepancyType === 'SHORT' ? 'bg-bad-bg border-bad' : 'bg-warn-bg border-warn'}`}>
-              <p className="text-xs font-semibold uppercase tracking-wide mb-1 text-ink-2">Discrepancy</p>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1 text-ink-2">{t('handover.report.discrepancy')}</p>
               <p className={`font-bold text-sm ${shift.discrepancyType === 'SHORT' ? 'text-bad' : 'text-warn'}`}>
-                {shift.discrepancyType}: {formatCurrencyOrDash(shift.discrepancyAmount)}
+                {discrepancyTypeText(shift.discrepancyType, t)}: {formatCurrencyOrDash(shift.discrepancyAmount)}
               </p>
               {shift.discrepancyReason && (
-                <p className="text-xs text-ink-3 mt-1">Reason: {shift.discrepancyReason}</p>
+                <p className="text-xs text-ink-3 mt-1">{t('handover.report.reason', { reason: shift.discrepancyReason })}</p>
               )}
             </div>
           )}
@@ -127,11 +136,11 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
           <div className="hidden print:grid grid-cols-2 gap-10 pt-8">
             <div>
               <div className="border-b border-control mb-1" />
-              <p className="text-xs text-ink-3">Operator Signature</p>
+              <p className="text-xs text-ink-3">{t('handover.report.operatorSignature')}</p>
             </div>
             <div>
               <div className="border-b border-control mb-1" />
-              <p className="text-xs text-ink-3">Supervisor Signature</p>
+              <p className="text-xs text-ink-3">{t('handover.report.supervisorSignature')}</p>
             </div>
           </div>
     </Modal>

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronDown, Plus, History } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { shiftApi } from '../../api/shiftApi'
 import { pumpApi } from '../../api/pumpApi'
 import { usePumpStore } from '../../store/usePumpStore'
@@ -73,17 +75,20 @@ function useHistoryFilters() {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-const ACTIVE_SHIFT_COLUMNS: DataTableColumn<Shift>[] = [
-  { key: 'nozzle', header: 'Nozzle' },
-  { key: 'operator', header: 'Operator' },
-  { key: 'window', header: 'Window', className: 'hidden md:table-cell' },
-  { key: 'started', header: 'Started', className: 'hidden md:table-cell' },
-  { key: 'prices', header: 'Prices (₹)', className: 'hidden md:table-cell' },
-  { key: 'status', header: 'Status' },
-  { key: 'actions', header: <span className="sr-only">Actions</span> },
-]
+function activeShiftColumns(t: TFunction<'shifts'>): DataTableColumn<Shift>[] {
+  return [
+    { key: 'nozzle', header: t('page.columns.nozzle') },
+    { key: 'operator', header: t('page.columns.operator') },
+    { key: 'window', header: t('page.columns.window'), className: 'hidden md:table-cell' },
+    { key: 'started', header: t('page.columns.started'), className: 'hidden md:table-cell' },
+    { key: 'prices', header: t('page.columns.prices'), className: 'hidden md:table-cell' },
+    { key: 'status', header: t('page.columns.status') },
+    { key: 'actions', header: <span className="sr-only">{t('page.columns.actions')}</span> },
+  ]
+}
 
 export default function ShiftsPage() {
+  const { t } = useTranslation('shifts')
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const canOpenShift  = canPerformAction('shift:open', user?.role)
@@ -134,13 +139,13 @@ export default function ShiftsPage() {
     return (
       <div className="ui-page ui-page--narrow">
         <div className="ui-alert ui-alert-warning p-6 text-center">
-          <p className="text-warn-strong font-medium mb-2">No pumps set up yet</p>
+          <p className="text-warn-strong font-medium mb-2">{t('page.noPumpsTitle')}</p>
           <p className="text-warn text-sm mb-4">
-            Create a pump location first, then add nozzles and set fuel prices.
+            {t('page.noPumpsBody')}
           </p>
           <Link to="/dashboard/setup"
             className="ui-btn ui-btn-primary inline-flex">
-            Go to Setup
+            {t('page.goToSetup')}
           </Link>
         </div>
       </div>
@@ -151,7 +156,7 @@ export default function ShiftsPage() {
     return (
       <div className="ui-page ui-page--narrow">
         <div className="ui-alert ui-alert-warning text-sm">
-          You are not assigned to any pump. Ask the Owner or Admin to assign you.
+          {t('page.notAssigned')}
         </div>
       </div>
     )
@@ -167,13 +172,13 @@ export default function ShiftsPage() {
       <Reveal delay={60}>
       <div className="ui-section-hero">
         <div>
-          <p className="ui-section-kicker">Shift control</p>
-          <h1 className="ui-title-sm">Shifts</h1>
-          <p className="ui-subtitle">Open and close operator shifts, record meter readings and payment collection.</p>
+          <p className="ui-section-kicker">{t('page.kicker')}</p>
+          <h1 className="ui-title-sm">{t('page.title')}</h1>
+          <p className="ui-subtitle">{t('page.subtitle')}</p>
         </div>
         <div className="ui-section-meta">
           <div className="ui-section-meta-pill">
-            <span className="ui-section-meta-label">Open now</span>
+            <span className="ui-section-meta-label">{t('page.openNow')}</span>
             <span className="ui-section-meta-value">{activeLoading ? '…' : activeShifts.length}</span>
           </div>
         </div>
@@ -182,7 +187,7 @@ export default function ShiftsPage() {
 
       {!pumpId ? (
         <div className="ui-card text-center text-sm text-ink-3">
-          No pump selected. Use the pump selector in the top navigation bar.
+          {t('page.noPumpSelected')}
         </div>
       ) : (
         <>
@@ -190,7 +195,7 @@ export default function ShiftsPage() {
           <div className="ui-card overflow-hidden p-0">
             <div className="ui-toolbar">
               <div className="flex items-center gap-2.5">
-                <h2 className="ui-toolbar-title">{seesOnlyOwnShifts ? 'My Active Shifts' : 'Active Shifts'}</h2>
+                <h2 className="ui-toolbar-title">{seesOnlyOwnShifts ? t('page.myActiveShifts') : t('page.activeShifts')}</h2>
                 <RefreshIndicator isFetching={activeFetching} dataUpdatedAt={activeUpdatedAt ?? 0} />
               </div>
               {selectedPump && (
@@ -201,10 +206,10 @@ export default function ShiftsPage() {
                   <button
                     onClick={() => setShowBackfillModal(true)}
                     className="ui-btn ui-btn-secondary inline-flex items-center gap-1.5"
-                    title="Enter historical shift data for past dates"
+                    title={t('page.backfillHint')}
                   >
                     <History size={14} strokeWidth={2} />
-                    Backfill Shift
+                    {t('page.backfillShift')}
                   </button>
                 )}
                 {canOpenShift && (
@@ -213,7 +218,7 @@ export default function ShiftsPage() {
                     className="ui-btn ui-btn-primary inline-flex items-center gap-1.5"
                   >
                     <Plus size={14} strokeWidth={2.5} />
-                    Open Shift
+                    {t('page.openShift')}
                   </button>
                 )}
               </div>
@@ -224,16 +229,16 @@ export default function ShiftsPage() {
             ) : activeShifts.length === 0 ? (
               <div className="ui-empty p-6">
                 {canOpenShift
-                  ? 'No active shifts. Tap Open Shift to start one.'
+                  ? t('page.emptyCanOpen')
                   : seesOnlyOwnShifts
-                  ? 'No open shift. Ask your manager to open your shift.'
-                  : 'No active shifts.'}
+                  ? t('page.emptyOperator')
+                  : t('page.empty')}
               </div>
             ) : (
               <DataTable
-                caption="Active shifts"
+                caption={t('page.activeShiftsCaption')}
                 captionHidden
-                columns={ACTIVE_SHIFT_COLUMNS}
+                columns={activeShiftColumns(t)}
                 rows={activeShifts}
                 rowKey={(shift) => shift.id}
                 cardsOnPhone
@@ -257,7 +262,7 @@ export default function ShiftsPage() {
               onClick={() => setHistoryOpen((v) => !v)}
               className="w-full flex items-center justify-between px-6 py-4 hover:bg-bg transition-colors"
             >
-              <span className="text-base font-semibold text-ink">{seesOnlyOwnShifts ? 'My Shift History' : 'Shift History'}</span>
+              <span className="text-base font-semibold text-ink">{seesOnlyOwnShifts ? t('page.myShiftHistory') : t('page.shiftHistory')}</span>
               <ChevronDown size={14} strokeWidth={2} className={`ui-accordion-arrow ${historyOpen ? 'ui-accordion-arrow--open' : ''}`} />
             </button>
 
@@ -272,7 +277,7 @@ export default function ShiftsPage() {
                       aria-pressed={historyTab === tab}
                       className={`ui-tabbar__button ${historyTab === tab ? 'ui-tabbar__button--active' : ''}`}
                     >
-                      {tab === 'day' ? 'By Day' : tab === 'all' ? 'All Shifts' : 'Discrepancies'}
+                      {tab === 'day' ? t('page.tabs.day') : tab === 'all' ? t('page.tabs.all') : t('page.tabs.discrepancies')}
                     </button>
                   ))}
                 </div>

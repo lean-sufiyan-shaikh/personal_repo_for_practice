@@ -1,4 +1,5 @@
 import { useState, useDeferredValue } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, AlertTriangle, Check, Package, PackageCheck, Pause } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
@@ -33,6 +34,7 @@ export function ProductsTab({
   isManagerOrAbove: boolean
   onRefresh: () => void
 }) {
+  const { t } = useTranslation('ancillary')
   const qc = useQueryClient()
   const { addToast } = useToastStore()
   const canSell = canPerformAction('product:record-sale', useAuthStore((state) => state.user?.role))
@@ -52,19 +54,19 @@ export function ProductsTab({
       ancillaryApi.setProductStatus(pumpId, id, status),
     onSuccess: (_, { status }) => {
       qc.invalidateQueries({ queryKey: ['ancillaryProducts', pumpId] })
-      addToast(status === 'ACTIVE' ? 'Product enabled' : 'Product disabled', 'success')
+      addToast(status === 'ACTIVE' ? t('products.enabled') : t('products.disabled'), 'success')
     },
-    onError: (err) => addToast(parseApiError(err, 'Failed to update product status'), 'error'),
+    onError: (err) => addToast(parseApiError(err, t('products.statusFailed')), 'error'),
   })
 
   const stockBadge = (p: AncillaryProduct) => {
     if (p.lowStockThreshold == null) {
-      return <StatusBadge tone="neutral" icon={Package} label={`${p.currentStockUnits} units`} />
+      return <StatusBadge tone="neutral" icon={Package} label={t('products.stockUnits', { value: p.currentStockUnits })} />
     }
     if (p.currentStockUnits <= p.lowStockThreshold) {
-      return <StatusBadge tone="bad" icon={AlertTriangle} label={`${p.currentStockUnits} units Low`} />
+      return <StatusBadge tone="bad" icon={AlertTriangle} label={t('products.stockLow', { value: p.currentStockUnits })} />
     }
-    return <StatusBadge tone="ok" icon={PackageCheck} label={`${p.currentStockUnits} units`} />
+    return <StatusBadge tone="ok" icon={PackageCheck} label={t('products.stockUnits', { value: p.currentStockUnits })} />
   }
 
   const q = deferredSearch.trim().toLowerCase()
@@ -105,9 +107,9 @@ export function ProductsTab({
           <svg className="ui-search-shell__icon" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
-          <input aria-label="Search products"
+          <input aria-label={t('products.searchLabel')}
             type="text"
-            placeholder="Search products…"
+            placeholder={t('products.searchPlaceholder')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="ui-search-shell__input w-full text-sm leading-5"
@@ -116,7 +118,7 @@ export function ProductsTab({
             <IconButton
               onClick={() => setSearchQuery('')}
               className="ui-search-shell__clear"
-              label="Clear search"
+              label={t('products.clearSearch')}
               icon={<X size={13} strokeWidth={2} />}
             />
           )}
@@ -126,7 +128,7 @@ export function ProductsTab({
             onClick={() => setShowAddForm(true)}
             className="ui-btn ui-btn-primary ml-auto"
           >
-            + Add Product
+            {t('products.add')}
           </button>
         )}
       </div>
@@ -137,8 +139,8 @@ export function ProductsTab({
       ) : sortedProducts.length === 0 ? (
         <EmptyState
           icon="generic"
-          title={deferredSearch ? `No products match "${deferredSearch}"` : 'No products configured yet'}
-          subtitle={deferredSearch ? 'Try a different search term.' : 'Add your first product using the button above.'}
+          title={deferredSearch ? t('products.noMatchTitle', { query: deferredSearch }) : t('products.emptyTitle')}
+          subtitle={deferredSearch ? t('products.noMatchSubtitle') : t('products.emptySubtitle')}
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
@@ -154,7 +156,7 @@ export function ProductsTab({
                 <div>
                   <p className="text-sm font-semibold text-ink leading-tight">{product.displayName}</p>
                   <p className="text-xs text-ink-3 mt-0.5">
-                    {product.unitOfMeasure} · {product.packageSize}{product.hsnCode ? ` · HSN ${product.hsnCode}` : ''}
+                    {t(`units.${product.unitOfMeasure}`)} · {product.packageSize}{product.hsnCode ? ` · ${t('products.hsn', { code: product.hsnCode })}` : ''}
                   </p>
                 </div>
                 <StatusBadge
@@ -173,8 +175,9 @@ export function ProductsTab({
                     <span className="text-xs text-ink-3">·</span>
                     <span className="text-xs text-ink-3">
                       {product.fifoCostPricePerUnit != null
-                        ? <span>Buy: <span className="font-medium text-ink">{fmtCurrency(product.fifoCostPricePerUnit)}/unit</span></span>
-                        : <span className="text-ink-3">No stock lot</span>}
+                        ? <span><Trans t={t} i18nKey="products.buyPrice" values={{ price: fmtCurrency(product.fifoCostPricePerUnit) }}
+                            components={{ price: <span className="font-medium text-ink" /> }} /></span>
+                        : <span className="text-ink-3">{t('products.noStockLot')}</span>}
                     </span>
                   </>
                 )}
@@ -187,7 +190,7 @@ export function ProductsTab({
                     onClick={() => setSellProduct(product)}
                     className="ui-btn ui-btn-primary min-h-0 px-2.5 py-1 text-xs"
                   >
-                    Sell
+                    {t('products.sell')}
                   </button>
                 )}
                 {/* Stock Lots button — visible to everyone, shows ACTIVE FIFO lots */}
@@ -195,14 +198,14 @@ export function ProductsTab({
                   onClick={() => setStockLotsProduct(product)}
                   className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs"
                 >
-                  Inventory
+                  {t('products.inventory')}
                 </button>
                 {isOwnerOrAdmin && (
                   <button
                     type="button"
                     onClick={() => setHsnProduct(product)}
                     className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs"
-                    aria-label={`Edit HSN code of ${product.displayName}`}
+                    aria-label={t('products.editHsnOf', { name: product.displayName })}
                   >
                     HSN
                   </button>
@@ -220,7 +223,7 @@ export function ProductsTab({
                         : 'ui-btn-secondary'
                     }`}
                   >
-                    {product.status === 'ACTIVE' ? 'Disable' : 'Enable'}
+                    {product.status === 'ACTIVE' ? t('products.disable') : t('products.enable')}
                   </button>
                 )}
               </div>

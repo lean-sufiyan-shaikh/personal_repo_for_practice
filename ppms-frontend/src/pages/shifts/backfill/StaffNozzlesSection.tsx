@@ -1,29 +1,31 @@
-import { FUEL_LABELS } from '../../../constants/fuel'
+import { useTranslation } from 'react-i18next'
+import { codeLabel } from '../../../constants/labels'
 import { SectionLabel } from './SectionLabel'
 import type { BackfillForm } from './useBackfillForm'
 
 export function StaffNozzlesSection({ form }: { form: BackfillForm }) {
+  const { t } = useTranslation('shifts')
   const { selectedDU, operatorId, setOperatorId, operatorSearch, setOperatorSearch, selectedNozzleIds, operatorsLoading, filteredOperators, availableNozzles, toggleNozzle, selectedOperator } = form
   return (
     <div className="rounded-card border border-border bg-surface-sunken p-4 space-y-3">
-      <SectionLabel>Staff &amp; Nozzles</SectionLabel>
+      <SectionLabel>{t('backfill.staff.title')}</SectionLabel>
 
       <div>
-        <span className="ui-label">Operator on Duty <span className="text-bad">*</span></span>
+        <span className="ui-label">{t('backfill.staff.operator')} <span className="text-bad">*</span></span>
         {operatorsLoading ? (
-          <div className="ui-input text-ink-3 text-sm">Loading operators…</div>
+          <div className="ui-input text-ink-3 text-sm">{t('backfill.staff.loadingOperators')}</div>
         ) : (
           <>
-            <input aria-label="Operator on Duty"
+            <input aria-label={t('backfill.staff.operator')}
               type="text"
-              placeholder="Search by name or ID…"
+              placeholder={t('backfill.staff.searchPlaceholder')}
               value={operatorSearch}
               onChange={(e) => setOperatorSearch(e.target.value)}
               className="ui-input mb-1.5"
             />
             <div className="max-h-28 overflow-y-auto rounded-card border border-border divide-y divide-border bg-surface">
               {filteredOperators.length === 0 ? (
-                <p className="text-xs text-ink-3 px-3 py-2">No operators found.</p>
+                <p className="text-xs text-ink-3 px-3 py-2">{t('backfill.staff.noOperators')}</p>
               ) : (
                 filteredOperators.map((op) => (
                   <button
@@ -44,7 +46,7 @@ export function StaffNozzlesSection({ form }: { form: BackfillForm }) {
             </div>
             {selectedOperator && (
               <p className="text-xs text-primary mt-1 font-medium">
-                Selected: {selectedOperator.fullName}
+                {t('backfill.staff.selected', { name: selectedOperator.fullName })}
               </p>
             )}
           </>
@@ -53,9 +55,9 @@ export function StaffNozzlesSection({ form }: { form: BackfillForm }) {
 
       {selectedDU && (
         <div>
-          <span className="ui-label">Nozzles <span className="text-bad">*</span></span>
+          <span className="ui-label">{t('backfill.staff.nozzles')} <span className="text-bad">*</span></span>
           {availableNozzles.length === 0 ? (
-            <p className="text-xs text-ink-3">No nozzles configured on this DU.</p>
+            <p className="text-xs text-ink-3">{t('backfill.staff.noNozzles')}</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {availableNozzles.map((nozzle) => {
@@ -71,7 +73,7 @@ export function StaffNozzlesSection({ form }: { form: BackfillForm }) {
                         : 'border-control text-ink-2 bg-surface hover:border-primary hover:text-primary'
                     }`}
                   >
-                    #{nozzle.nozzleNumber} · {FUEL_LABELS[nozzle.fuelType] ?? nozzle.fuelType}
+                    #{nozzle.nozzleNumber} · {codeLabel(nozzle.fuelType)}
                   </button>
                 )
               })}

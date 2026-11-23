@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { CashEventType } from '../../api/cashApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
@@ -11,6 +12,7 @@ import type { CashEventsState } from './useCashEvents'
 import { codeLabel } from '../../constants/labels'
 
 export function CashEventList({ events }: { events: CashEventsState }) {
+  const { t } = useTranslation('cash')
   const {
     cashData, isLoading, filteredEvents,
     eventTypeFilter, setEventTypeFilter, fromDate, setFromDate, toDate, setToDate,
@@ -21,10 +23,10 @@ export function CashEventList({ events }: { events: CashEventsState }) {
     <Reveal delay={270}>
     <div className="ui-card p-0 overflow-hidden">
       <div className="ui-toolbar">
-        <p className="ui-toolbar-title">Cash Events</p>
+        <p className="ui-toolbar-title">{t('list.title')}</p>
         <div className="ui-toolbar-actions">
           <div className="flex items-center gap-1.5">
-            <label htmlFor="cash-events-from" className="text-xs text-ink-3 whitespace-nowrap">From</label>
+            <label htmlFor="cash-events-from" className="text-xs text-ink-3 whitespace-nowrap">{t('list.from')}</label>
             <input id="cash-events-from"
               type="date"
               value={fromDate}
@@ -33,7 +35,7 @@ export function CashEventList({ events }: { events: CashEventsState }) {
             />
           </div>
           <div className="flex items-center gap-1.5">
-            <label htmlFor="cash-events-to" className="text-xs text-ink-3 whitespace-nowrap">To</label>
+            <label htmlFor="cash-events-to" className="text-xs text-ink-3 whitespace-nowrap">{t('list.to')}</label>
             <input id="cash-events-to"
               type="date"
               value={toDate}
@@ -42,12 +44,12 @@ export function CashEventList({ events }: { events: CashEventsState }) {
             />
           </div>
           <div className="w-44">
-          <SearchableSelect label="Filter by event type"
+          <SearchableSelect label={t('list.filterByType')}
             value={eventTypeFilter}
             onChange={v => { setEventTypeFilter(v as CashEventType | ''); setPage(0) }}
             options={[
-              { value: '', label: 'All Types' },
-              ...EVENT_TYPES.map(t => ({ value: t.value, label: t.label })),
+              { value: '', label: t('list.allTypes') },
+              ...EVENT_TYPES.map(type => ({ value: type, label: t(`eventTypes.${type}`) })),
             ]}
             size="sm"
           />
@@ -60,8 +62,8 @@ export function CashEventList({ events }: { events: CashEventsState }) {
       ) : filteredEvents.length === 0 ? (
         <EmptyState
           icon="transactions"
-          title={fromDate || toDate ? 'No events in this date range' : 'No cash events recorded yet'}
-          subtitle={fromDate || toDate ? 'Try adjusting the date filters above.' : 'Use the form above to record your first cash movement.'}
+          title={fromDate || toDate ? t('list.emptyRangeTitle') : t('list.emptyTitle')}
+          subtitle={fromDate || toDate ? t('list.emptyRangeSubtitle') : t('list.emptySubtitle')}
         />
       ) : (
         <>

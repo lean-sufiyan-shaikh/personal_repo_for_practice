@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { withToggled } from '../../../utils/setToggle'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { shiftApi } from '../../../api/shiftApi'
 import type { Shift } from '../../../types/shift'
 import { SkeletonRows } from '../../../components/Skeleton'
 import { formatIstDate, localDateInputValue } from '../../../utils/date'
 import { parseApiError } from '../../../utils/apiError'
 import { HistoryRow } from './HistoryRow'
-import { HISTORY_COLUMNS } from './historyColumns'
+import { historyColumns } from './historyColumns'
 import { labelForDate } from '../shiftLabels'
 import { DataTable } from '../../../components/DataTable'
 import { StatusBadge } from '../../../components/StatusBadge'
@@ -17,6 +18,7 @@ import { MoneyText } from '../../../components/AmountText'
 // ── Day View ──────────────────────────────────────────────────────────────────
 
 export function DayViewHistory({ pumpId }: { pumpId: number }) {
+  const { t } = useTranslation('shifts')
   const todayStr     = localDateInputValue()
   const yesterdayStr = localDateInputValue(-1)
   const dayBeforeStr = localDateInputValue(-2)
@@ -45,9 +47,9 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
     formatIstDate(d, { day: 'numeric', month: 'short', year: 'numeric' })
 
   if (isLoading) return <div className="px-5 py-4"><SkeletonRows count={4} /></div>
-  if (error) return <p role="alert" className="ui-alert ui-alert-error m-4 text-sm">{parseApiError(error, 'Failed to load shift history')}</p>
+  if (error) return <p role="alert" className="ui-alert ui-alert-error m-4 text-sm">{parseApiError(error, t('history.loadFailed'))}</p>
   if (visibleDates.length === 0) {
-    return <p className="ui-empty px-6 py-6">No shift history for the last 3 days.</p>
+    return <p className="ui-empty px-6 py-6">{t('history.dayEmpty')}</p>
   }
 
   return (
@@ -73,7 +75,7 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
                 </span>
                 <span className="text-xs text-ink-3">{fmtShortDate(date)}</span>
                 <span className="text-xs text-ink-3">
-                  · {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''}{openCount > 0 && ` (${openCount} still open)`}
+                  · {t('history.shiftCount', { count: dayShifts.length })}{openCount > 0 && t('history.stillOpen', { count: openCount })}
                 </span>
                 {totalAmt > 0 && (
                   <span className="text-xs font-medium text-ink-2">
@@ -81,7 +83,7 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
                   </span>
                 )}
                 {isToday && (
-                  <StatusBadge tone="info" label="Today" />
+                  <StatusBadge tone="info" label={t('labels.today')} />
                 )}
               </div>
               <ChevronDown size={14} strokeWidth={2} className={`ui-accordion-arrow ${isOpen ? 'ui-accordion-arrow--open' : ''}`} />
@@ -90,10 +92,10 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
             {/* Day shift table */}
             {isOpen && (
               <DataTable
-                caption={`Shifts for ${label}`}
+                caption={t('history.shiftsFor', { label })}
                 captionHidden
-                regionLabel="Shifts for the day"
-                columns={HISTORY_COLUMNS}
+                regionLabel={t('history.shiftsForDay')}
+                columns={historyColumns(t)}
                 rows={dayShifts}
                 rowKey={(shift) => shift.id}
                 renderRow={(shift) => <HistoryRow shift={shift} />}

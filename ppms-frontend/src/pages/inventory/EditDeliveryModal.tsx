@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { inventoryApi } from '../../api/inventoryApi'
 import type { TankerDelivery, UpdateDeliveryRequest } from '../../api/inventoryApi'
 import { Modal } from '../../components/Modal'
@@ -13,6 +14,7 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
   isOwnerOrAdmin: boolean
   onClose: () => void
 }) {
+  const { t } = useTranslation(['inventory', 'common'])
   const qc = useQueryClient()
   const [invoiceReference, setInvoiceReference] = useState(delivery.invoiceReference)
   const [qty,   setQty]   = useState(String(delivery.quantityDelivered))
@@ -29,19 +31,19 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
     },
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setError(msg ?? 'Failed to update delivery.')
+      setError(msg ?? t('editDelivery.failed'))
     },
   })
 
   function handleSave() {
     const q = parseFloat(qty)
-    if (!invoiceReference.trim()) { setError('Invoice reference is required.'); return }
-    if (isNaN(q) || q <= 0) { setError('Quantity must be greater than 0.'); return }
+    if (!invoiceReference.trim()) { setError(t('editDelivery.invoiceRequired')); return }
+    if (isNaN(q) || q <= 0) { setError(t('editDelivery.quantityPositive')); return }
     if (isOwnerOrAdmin) {
       const c = parseFloat(cost)
-      if (isNaN(c) || c <= 0) { setError('Cost price must be greater than 0.'); return }
+      if (isNaN(c) || c <= 0) { setError(t('editDelivery.costPositive')); return }
     }
-    if (!date) { setError('Delivery date is required.'); return }
+    if (!date) { setError(t('editDelivery.dateRequired')); return }
     setError(null)
     mutation.mutate({
       invoiceReference: invoiceReference.trim(),
@@ -53,7 +55,7 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
 
   return (
     <Modal
-      title="Edit Delivery"
+      title={t('editDelivery.title')}
       subtitle={`${delivery.tankIdentifier} · ${delivery.fuelType}`}
       tone="info"
       onClose={onClose}
@@ -61,25 +63,25 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
       bodyClassName="space-y-4"
       footerClassName="justify-end gap-2"
       footer={<>
-        <button onClick={onClose} className="ui-btn ui-btn-secondary">Cancel</button>
+        <button onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
         <button
           onClick={handleSave}
           disabled={mutation.isPending}
           className="ui-btn ui-btn-primary"
         >
-          {mutation.isPending ? 'Saving…' : 'Save Changes'}
+          {mutation.isPending ? t('editDelivery.saving') : t('editDelivery.save')}
         </button>
       </>}
     >
 
       <div className="space-y-1">
         <label className="block">
-          <span className="ui-label">Invoice / Bill No.</span>
+          <span className="ui-label">{t('editDelivery.invoice')}</span>
           <input
             className="ui-input"
             value={invoiceReference}
             onChange={e => setInvoiceReference(e.target.value)}
-            placeholder="e.g. INV-2026-001"
+            placeholder={t('editDelivery.invoicePlaceholder')}
           />
         </label>
       </div>
@@ -87,7 +89,7 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
       <div className={`grid gap-3 ${isOwnerOrAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
         <div className="space-y-1">
           <label className="block">
-            <span className="ui-label">Quantity (L)</span>
+            <span className="ui-label">{t('editDelivery.quantity')}</span>
             <input
               className="ui-input"
               type="number"
@@ -101,7 +103,7 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
         {isOwnerOrAdmin && (
           <div className="space-y-1">
             <label className="block">
-              <span className="ui-label">Cost (₹/L)</span>
+              <span className="ui-label">{t('editDelivery.cost')}</span>
               <input
                 className="ui-input"
                 type="number"
@@ -116,13 +118,13 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
       </div>
       {!isOwnerOrAdmin && (
         <p className="text-xs text-ink-3">
-          Cost price is managed by Owner / Admin and will not be changed.
+          {t('editDelivery.costManaged')}
         </p>
       )}
 
       <div className="space-y-1">
         <label className="block">
-          <span className="ui-label">Delivery Date</span>
+          <span className="ui-label">{t('editDelivery.date')}</span>
           <input
             className="ui-input"
             type="date"

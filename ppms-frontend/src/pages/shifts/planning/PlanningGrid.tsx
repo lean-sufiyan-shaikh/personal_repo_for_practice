@@ -1,4 +1,5 @@
 import { Check, X, Circle, Moon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { SkeletonTable } from '../../../components/Skeleton'
@@ -9,6 +10,7 @@ import type { ShiftPlanning } from './useShiftPlanning'
 import { ScrollRegion } from '../../../components/ScrollRegion'
 
 export function PlanningGrid({ form }: { form: ShiftPlanning }) {
+  const { t } = useTranslation(['shifts', 'common'])
   const { isOwnerOrAdmin, setEditSlot, slotError, setSlotError, addOpId, setAddOpId, operatorStaff, staffById, plan, planLoading, sortedDefs, removeEntryMutation, addEntryMutation, days, today, entryMap, actualMap, isEditingSlot } = form
   return (
              <Reveal delay={200}>
@@ -21,25 +23,25 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                    <div className="ui-card-plain ui-card-muted px-5 py-3 text-sm text-ink-3 text-center">
                      {isOwnerOrAdmin ? (
                        <>
-                         No plan generated for this week yet.{' '}
-                         <span className="text-primary font-medium">Click "Auto-generate" to create a schedule.</span>
+                         {t('planning.grid.noPlanOwner')}{' '}
+                         <span className="text-primary font-medium">{t('planning.grid.noPlanHint')}</span>
                        </>
-                     ) : 'No plan published for this week yet.'}
+                     ) : t('planning.grid.noPlanStaff')}
                    </div>
                  )}
 
-                 <ScrollRegion label="Weekly shift plan" className="ui-card p-0 overflow-x-auto">
+                 <ScrollRegion label={t('planning.grid.regionLabel')} className="ui-card p-0 overflow-x-auto">
                    <table className="w-full text-xs border-collapse min-w-[640px]">
                      <thead>
                        <tr className="border-b border-border">
                          <th scope="col" className="w-28 text-left px-3 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">
-                           Shift
+                           {t('planning.grid.shift')}
                          </th>
                          {days.map(day => (
                            <th scope="col" key={day} className={`px-2 py-3 text-center font-semibold ${day < today ? 'text-ink-3' : 'text-ink-2'}`}>
                              {formatDay(day)}
                              {day < today && (
-                               <div className="text-xs font-normal text-ink-3 mt-0.5">actual</div>
+                               <div className="text-xs font-normal text-ink-3 mt-0.5">{t('planning.grid.actual')}</div>
                              )}
                            </th>
                          ))}
@@ -49,7 +51,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                        {sortedDefs.length === 0 ? (
                          <tr>
                            <td colSpan={8} className="px-3 py-6 text-center text-sm text-ink-3">
-                             No shift definitions configured for this pump. Set them up in Pump Setup first.
+                             {t('planning.grid.noDefinitions')}
                            </td>
                          </tr>
                        ) : sortedDefs.map((def, defIdx) => {
@@ -59,7 +61,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                              <td className={`px-3 py-3 font-semibold ${colors.text} align-top`}>
                                {def.name}
                                {def.isNightShift && (
-                                 <StatusBadge tone="info" icon={Moon} label="Night" className="ml-1" />
+                                 <StatusBadge tone="info" icon={Moon} label={t('planning.grid.night')} className="ml-1" />
                                )}
                                <div className="font-normal text-ink-3 text-xs mt-0.5 leading-tight">
                                  {def.windowLabel}
@@ -85,7 +87,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                                            e => !actualOpIds.includes(e.operatorUserId)
                                          )
                                          if (actualOpIds.length === 0 && absentEntries.length === 0) {
-                                           return <span className="text-ink-3 text-xs italic">No shift</span>
+                                           return <span className="text-ink-3 text-xs italic">{t('planning.grid.noShift')}</span>
                                          }
                                          return (
                                            <>
@@ -128,7 +130,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                                                  onClick={() => removeEntryMutation.mutate({ entryId: entry.id })}
                                                  disabled={removeEntryMutation.isPending}
                                                  className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-ink-3 hover:text-bad transition-all ml-0.5 shrink-0"
-    label="Remove from plan"
+    label={t('planning.grid.removeFromPlan')}
     icon={<X size={11} strokeWidth={2} />}
     />
                                              )}
@@ -141,18 +143,18 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                                              type="button"
                                              onClick={() => { setEditSlot({ date: day, shiftDefinitionId: def.id }); setSlotError(null); setAddOpId('') }}
                                              className="text-ink-3 hover:text-primary transition-colors text-xs"
-                                             title="Add operator"
+                                             title={t('planning.grid.addOperator')}
                                            >
-                                             + Add
+                                             {t('planning.grid.addShort')}
                                            </button>
                                          )}
 
                                          {isEditing && (
                                            <div className="mt-1 space-y-1">
-                                             <SearchableSelect label="Operator to add"
+                                             <SearchableSelect label={t('planning.grid.operatorToAdd')}
                                                value={addOpId}
                                                onChange={v => setAddOpId(v)}
-                                               placeholder="— pick operator —"
+                                               placeholder={t('planning.grid.pickOperator')}
                                                size="sm"
                                                options={availableToAdd.map(s => ({ value: s.id.toString(), label: s.fullName }))}
                                              />
@@ -163,12 +165,12 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                                                  disabled={!addOpId || addEntryMutation.isPending}
                                                  className="ui-btn ui-btn-primary min-h-0 px-2 py-1 text-xs disabled:opacity-60"
                                                >
-                                                 Add
+                                                 {t('planning.grid.add')}
                                                </button>
                                                <IconButton
                                                  onClick={() => { setEditSlot(null); setSlotError(null) }}
                                                  className="ui-btn ui-btn-secondary px-2 py-1 text-xs"
-    label="Cancel"
+    label={t('common:actions.cancel')}
     icon={<X size={12} strokeWidth={2} />}
     />
                                              </div>
