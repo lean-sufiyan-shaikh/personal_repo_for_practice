@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { PumpSummary } from '../../../api/pumpApi'
 import { IconButton } from '../../../components/IconButton'
 import { useEscapeKey } from '../../../hooks/useEscapeKey'
 import { useAuthStore } from '../../../store/authStore'
 import { canAccessPage } from '../../../permissions/permissions'
 import { roleLabel } from '../../../constants/labels'
-import { ALL_NAV_ITEMS, isNavPathActive } from '../navItems'
+import { ALL_NAV_ITEMS, isNavPathActive, navItemLabel } from '../navItems'
 import { PumpSwitcher } from './PumpSwitcher'
 
 export const DASHBOARD_NAV_ID = 'dashboard-navigation'
@@ -22,6 +23,7 @@ interface DashboardSidebarProps {
 }
 
 export function DashboardSidebar({ pumpName, switchablePumps, drawerOpen, onCloseDrawer }: DashboardSidebarProps) {
+  const { t } = useTranslation('nav')
   const location = useLocation()
   const { user } = useAuthStore()
   const navRef = useRef<HTMLElement>(null)
@@ -40,15 +42,15 @@ export function DashboardSidebar({ pumpName, switchablePumps, drawerOpen, onClos
       <nav
         ref={navRef}
         id={DASHBOARD_NAV_ID}
-        aria-label="Main"
+        aria-label={t('sidebar.label')}
         className={`ui-dashboard-sidebar print:hidden ${drawerOpen ? 'ui-dashboard-sidebar--open' : ''}`}
       >
         <div className="ui-dashboard-sidebar-head">
           <div>
-            <p className="ui-dashboard-sidebar-title">Navigation</p>
-            <p className="ui-dashboard-sidebar-subtitle">{roleLabel(user?.role)} workspace</p>
+            <p className="ui-dashboard-sidebar-title">{t('sidebar.title')}</p>
+            <p className="ui-dashboard-sidebar-subtitle">{t('sidebar.workspace', { role: roleLabel(user?.role) })}</p>
           </div>
-          <IconButton label="Close menu" onClick={onCloseDrawer} className="ui-btn ui-btn-ghost ui-dashboard-drawer-close"
+          <IconButton label={t('sidebar.closeMenu')} onClick={onCloseDrawer} className="ui-btn ui-btn-ghost ui-dashboard-drawer-close"
             icon={<X size={18} strokeWidth={2} />} />
         </div>
         <div className="ui-dashboard-sidebar-pumps">
@@ -68,15 +70,15 @@ export function DashboardSidebar({ pumpName, switchablePumps, drawerOpen, onClos
                 <div className={`w-7 h-7 rounded-control flex items-center justify-center flex-shrink-0 ${item.bg}`}>
                   <item.icon size={14} strokeWidth={2} className={item.color} />
                 </div>
-                <span className="truncate">{item.label}</span>
+                <span className="truncate">{navItemLabel(item.page)}</span>
               </Link>
             )
           })}
         </div>
         <div className="ui-dashboard-sidebar-foot">
-          <p className="ui-dashboard-sidebar-foot-label">Current pump</p>
+          <p className="ui-dashboard-sidebar-foot-label">{t('sidebar.currentPump')}</p>
           <p className="ui-dashboard-sidebar-foot-value">
-            {pumpName ?? 'No pump selected'}
+            {pumpName ?? t('sidebar.noPump')}
           </p>
         </div>
       </nav>

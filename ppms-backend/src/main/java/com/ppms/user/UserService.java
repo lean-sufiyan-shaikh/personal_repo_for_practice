@@ -97,6 +97,8 @@ public class UserService {
                 .employeeId(employeeId)
                 .dateOfJoining(request.getDateOfJoining() != null ? request.getDateOfJoining() : businessClock.today())
                 .mustChangePassword(true)
+                .preferredLanguage(request.getPreferredLanguage() != null
+                        ? request.getPreferredLanguage() : UserLanguage.DEFAULT)
                 .build();
 
         user = userRepository.save(user);
@@ -145,6 +147,10 @@ public class UserService {
             user.setGender(request.getGender());
         }
 
+        if (request.getPreferredLanguage() != null) {
+            user.setPreferredLanguage(request.getPreferredLanguage());
+        }
+
         // Only a female operator can hold night-shift consent, judged on the final role and gender.
         if (user.getRole() == UserRole.OPERATOR && user.getGender() == UserGender.FEMALE) {
             user.setNightShiftConsent(Boolean.TRUE.equals(request.getNightShiftConsent()));
@@ -175,6 +181,14 @@ public class UserService {
         User user = userRepository.findByIdForUpdate(currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         user.setFullName(request.getFullName().trim());
+        return StaffResponse.from(userRepository.save(user));
+    }
+
+    @Transactional
+    public StaffResponse updateMyLanguage(String language, User currentUser) {
+        User user = userRepository.findByIdForUpdate(currentUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        user.setPreferredLanguage(language);
         return StaffResponse.from(userRepository.save(user));
     }
 

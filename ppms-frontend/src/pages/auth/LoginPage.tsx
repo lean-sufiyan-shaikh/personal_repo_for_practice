@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Fuel, BarChart2, ShieldCheck, AlertTriangle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { authApi } from '../../api/authApi'
 import { useAuthStore } from '../../store/authStore'
 import type { AuthUser } from '../../types/auth'
@@ -11,15 +13,22 @@ import { PasswordInput } from '../../components/PasswordInput'
 import { loginErrorMessage } from './loginErrorMessage'
 import { CHANGE_PASSWORD_PATH, getDefaultPath } from '../../permissions/permissions'
 import { prefetchLandingPage } from '../../routes/pageLoaders'
+import { LanguagePicker } from '../../components/LanguagePicker'
+import { activeLanguage, changeAppLanguage } from '../../i18n'
+import { storeLanguage } from '../../i18n/detectLanguage'
+import type { AppLanguage } from '../../i18n/languages'
 
-const loginSchema = z.object({
-  phoneNumber: z.string().length(10, 'Phone number must be exactly 10 digits').regex(/^\d+$/, 'Must be digits only'),
-  password: z.string().min(1, 'Password is required'),
-})
+function loginSchema(t: TFunction<'auth'>) {
+  return z.object({
+    phoneNumber: z.string().length(10, t('login.phoneLength')).regex(/^\d+$/, t('login.phoneDigits')),
+    password: z.string().min(1, t('login.passwordRequired')),
+  })
+}
 
-type LoginFormData = z.infer<typeof loginSchema>
+type LoginFormData = z.infer<ReturnType<typeof loginSchema>>
 
 export default function LoginPage() {
+  const { t } = useTranslation('auth')
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
@@ -29,9 +38,15 @@ export default function LoginPage() {
   const [serverError, setServerError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  const schema = useMemo(() => loginSchema(t), [t])
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(schema),
   })
+
+  const chooseLanguage = (language: AppLanguage) => {
+    storeLanguage(language)
+    changeAppLanguage(language).catch((error: unknown) => console.error('Could not switch the screen language', error))
+  }
 
   const onSubmit = async (data: LoginFormData) => {
     setServerError(null)
@@ -44,6 +59,7 @@ export default function LoginPage() {
         role: response.role,
         assignedPumpId: response.assignedPumpId,
         mustChangePassword: response.mustChangePassword,
+        preferredLanguage: response.preferredLanguage,
       }
       setAuth(user)
       if (response.mustChangePassword) {
@@ -66,22 +82,20 @@ export default function LoginPage() {
         <section className="ui-auth-hero">
           <div className="ui-auth-badge">
             <Fuel size={13} strokeWidth={2.2} />
-            <span>Operations Console</span>
+            <span>{t('login.badge')}</span>
           </div>
           <div className="space-y-4">
-            <h1 className="ui-auth-display">Run every pump shift with clarity.</h1>
-            <p className="ui-auth-copy">
-              Track fuel, credit, cash, inventory, payroll, and compliance from one focused workspace built for petrol pump teams.
-            </p>
+            <h1 className="ui-auth-display">{t('login.headline')}</h1>
+            <p className="ui-auth-copy">{t('login.intro')}</p>
           </div>
           <div className="ui-auth-metrics">
             <div className="ui-auth-metric">
-              <span className="ui-auth-metric-value">Live</span>
-              <span className="ui-auth-metric-label">shift and stock visibility</span>
+              <span className="ui-auth-metric-value">{t('login.metricLive')}</span>
+              <span className="ui-auth-metric-label">{t('login.metricLiveLabel')}</span>
             </div>
             <div className="ui-auth-metric">
-              <span className="ui-auth-metric-value">Fast</span>
-              <span className="ui-auth-metric-label">daily close and reconciliations</span>
+              <span className="ui-auth-metric-value">{t('login.metricFast')}</span>
+              <span className="ui-auth-metric-label">{t('login.metricFastLabel')}</span>
             </div>
           </div>
           <div className="ui-auth-points">
@@ -90,8 +104,8 @@ export default function LoginPage() {
                 <BarChart2 size={17} strokeWidth={2} className="text-accent" />
               </span>
               <div>
-                <p className="ui-auth-point-title">Daily control</p>
-                <p className="ui-auth-point-copy">Keep dips, deliveries, and sales aligned across the site.</p>
+                <p className="ui-auth-point-title">{t('login.dailyControlTitle')}</p>
+                <p className="ui-auth-point-copy">{t('login.dailyControlCopy')}</p>
               </div>
             </div>
             <div className="ui-auth-point">
@@ -99,8 +113,8 @@ export default function LoginPage() {
                 <ShieldCheck size={17} strokeWidth={2} className="text-accent" />
               </span>
               <div>
-                <p className="ui-auth-point-title">Secure access</p>
-                <p className="ui-auth-point-copy">Role-based workflows for operators, managers, owners, and admins.</p>
+                <p className="ui-auth-point-title">{t('login.secureAccessTitle')}</p>
+                <p className="ui-auth-point-copy">{t('login.secureAccessCopy')}</p>
               </div>
             </div>
           </div>
@@ -108,17 +122,17 @@ export default function LoginPage() {
 
         <section className="ui-auth-card ui-auth-form-panel">
           <div className="space-y-2">
-            <p className="ui-auth-kicker">Welcome back</p>
-            <h2 className="ui-title">Sign in to PPMS</h2>
-            <p className="ui-subtitle">Use your registered phone number and password to continue.</p>
+            <p className="ui-auth-kicker">{t('login.welcome')}</p>
+            <h2 className="ui-title">{t('login.title')}</h2>
+            <p className="ui-subtitle">{t('login.subtitle')}</p>
           </div>
 
           {sessionExpired && (
             <div className="ui-alert ui-alert-warning flex items-start gap-2.5">
               <AlertTriangle size={16} strokeWidth={2} className="text-warn flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-warn-strong">Session expired</p>
-                <p className="text-xs text-warn mt-0.5">You were signed out because your session timed out. Please sign in again.</p>
+                <p className="text-sm font-medium text-warn-strong">{t('login.sessionExpiredTitle')}</p>
+                <p className="text-xs text-warn mt-0.5">{t('login.sessionExpiredBody')}</p>
               </div>
             </div>
           )}
@@ -132,7 +146,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
               <label htmlFor="phoneNumber" className="ui-label">
-                Phone Number
+                {t('fields.phoneNumber')}
               </label>
               <input
                 id="phoneNumber"
@@ -141,7 +155,7 @@ export default function LoginPage() {
                 inputMode="numeric"
                 autoComplete="tel"
                 maxLength={10}
-                placeholder="e.g. 9999999999"
+                placeholder={t('login.phonePlaceholder')}
                 className="shadow-raised"
               />
               {errors.phoneNumber && (
@@ -151,13 +165,13 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="ui-label">
-                Password
+                {t('fields.password')}
               </label>
               <PasswordInput
                 id="password"
                 {...register('password')}
                 autoComplete="current-password"
-                placeholder="Enter your password"
+                placeholder={t('login.passwordPlaceholder')}
                 className="shadow-raised"
               />
               {errors.password && (
@@ -176,16 +190,23 @@ export default function LoginPage() {
               disabled={loading}
               className="ui-btn ui-btn-primary w-full"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? t('login.signingIn') : t('login.signIn')}
             </button>
 
             <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="text-ink-3">Need help accessing your account?</span>
+              <span className="text-ink-3">{t('login.needHelp')}</span>
               <Link to="/forgot-password" className="ui-link text-sm">
-                Forgot password?
+                {t('login.forgotPassword')}
               </Link>
             </div>
           </form>
+
+          <LanguagePicker
+            value={activeLanguage()}
+            onChange={chooseLanguage}
+            className="max-w-48"
+            selectClassName="shadow-raised"
+          />
         </section>
       </div>
     </div>

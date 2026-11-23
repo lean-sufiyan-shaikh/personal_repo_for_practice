@@ -715,6 +715,13 @@
     white-space: nowrap;
   }
 
+  /* Hindi and Marathi labels run about a third longer than English, so they wrap instead of overflowing. */
+  :lang(hi) .ui-btn,
+  :lang(mr) .ui-btn {
+    white-space: normal;
+    text-align: center;
+  }
+
   .ui-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;

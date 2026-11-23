@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useToastStore } from '../store/toastStore'
 import type { Toast, ToastVariant } from '../store/toastStore'
 import { IconButton } from './IconButton'
@@ -17,6 +18,7 @@ const ICON_COLOR: Record<ToastVariant, string> = {
 }
 
 export function ToastContainer() {
+  const { t: translate } = useTranslation()
   const { toasts, removeToast } = useToastStore()
   const errors = toasts.filter((t) => t.variant === 'error')
   const updates = toasts.filter((t) => t.variant !== 'error')
@@ -27,7 +29,7 @@ export function ToastContainer() {
       <div key={t.id} className={`ui-toast ${border}`}>
         <span aria-hidden="true" className={`ui-toast-icon ${ICON_COLOR[t.variant]}`}>{icon}</span>
         <span className="ui-toast-msg">{t.message}</span>
-        <IconButton label="Dismiss" icon="×" onClick={() => removeToast(t.id)} className="ui-toast-close" />
+        <IconButton label={translate('actions.dismiss')} icon="×" onClick={() => removeToast(t.id)} className="ui-toast-close" />
       </div>
     )
   }

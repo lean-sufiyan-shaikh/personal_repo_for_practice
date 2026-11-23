@@ -1,0 +1,83 @@
+{
+  "items": {
+    "myShift": "My Shift",
+    "overview": "Overview",
+    "approvals": "Approvals",
+    "shifts": "Shifts",
+    "shiftPlanning": "Shift Planning",
+    "inventory": "Inventory",
+    "credit": "Credit",
+    "expenses": "Expenses",
+    "documents": "Documents",
+    "cashDrawer": "Cash Drawer",
+    "calibration": "Calibration",
+    "payroll": "Payroll",
+    "products": "Products",
+    "auditLog": "Audit Log",
+    "settlements": "Settlements",
+    "balanceSheets": "Balance Sheets",
+    "reports": "Reports",
+    "setup": "Setup"
+  },
+  "bottomTabs": {
+    "label": "Quick",
+    "myShift": "My shift",
+    "overview": "Home",
+    "shifts": "Shifts",
+    "shiftPlanning": "Plan",
+    "inventory": "Stock",
+    "credit": "Credit",
+    "expenses": "Expenses",
+    "cashDrawer": "Cash",
+    "reports": "Reports",
+    "more": "More"
+  },
+  "pageTitles": {
+    "notifications": "Notifications",
+    "login": "Sign in",
+    "forgotPassword": "Forgot password",
+    "resetPassword": "Reset password",
+    "changePassword": "Change password",
+    "superAdmin": "Super Admin",
+    "creditBalance": "Credit balance"
+  },
+  "sidebar": {
+    "label": "Main",
+    "title": "Navigation",
+    "workspace": "{{role}} workspace",
+    "closeMenu": "Close menu",
+    "currentPump": "Current pump",
+    "noPump": "No pump selected"
+  },
+  "topbar": {
+    "skipToContent": "Skip to main content",
+    "tagline": "Petrol Pump Management",
+    "motto": "Fuelling efficiency, every shift."
+  },
+  "pumpSwitcher": {
+    "switchTo": "Switch to {{name}}"
+  },
+  "suspended": {
+    "yourPumpTitle": "Your pump is suspended",
+    "yourPumpBody": "Its data cannot be viewed or changed until the pump is reactivated. Please contact the pump owner.",
+    "thisPumpTitle": "This pump is suspended",
+    "thisPumpBody": "Its data cannot be viewed or changed until the pump is reactivated.",
+    "chooseAnotherPump": " Choose another pump at the top of the page, or contact PPMS support to reactivate this one.",
+    "contactOwnerOrSupport": " Please contact the pump owner or PPMS support."
+  },
+  "profile": {
+    "yourName": "Your name",
+    "saveName": "Save name",
+    "save": "Save",
+    "cancelEditing": "Cancel editing",
+    "cancel": "Cancel",
+    "editName": "Edit your name, {{name}}",
+    "editNameHint": "Click to edit your name",
+    "nameBlank": "Name cannot be blank",
+    "saveNameFailed": "Failed to save name",
+    "openMenu": "Open profile menu",
+    "resetPassword": "Reset Password",
+    "logout": "Logout",
+    "loggingOut": "Logging out..."
+  }
+}

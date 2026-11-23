@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Modal } from './Modal'
 import { Spinner } from './Spinner'
 
@@ -13,6 +14,7 @@ interface RejectReasonDialogProps {
 
 /** Asks why something is being rejected; the reason is required and is saved with the rejection. */
 export function RejectReasonDialog({ title, subtitle, isPending, error, onConfirm, onClose }: RejectReasonDialogProps) {
+  const { t } = useTranslation()
   const [reason, setReason] = useState('')
   const [missingReason, setMissingReason] = useState(false)
 
@@ -25,7 +27,7 @@ export function RejectReasonDialog({ title, subtitle, isPending, error, onConfir
     onConfirm(reason.trim())
   }
 
-  const shownError = missingReason ? 'Enter a reason for rejecting.' : error
+  const shownError = missingReason ? t('rejectDialog.missingReason') : error
 
   return (
     <Modal
@@ -37,15 +39,15 @@ export function RejectReasonDialog({ title, subtitle, isPending, error, onConfir
       bodyClassName="space-y-4"
       footer={
         <>
-          <button type="button" onClick={onClose} disabled={isPending} className="ui-btn ui-btn-secondary">Cancel</button>
+          <button type="button" onClick={onClose} disabled={isPending} className="ui-btn ui-btn-secondary">{t('actions.cancel')}</button>
           <button type="button" onClick={confirm} disabled={isPending} className="ui-btn ui-btn-danger">
-            {isPending ? <span className="flex items-center gap-1.5"><Spinner />Rejecting…</span> : 'Reject'}
+            {isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('actions.rejecting')}</span> : t('actions.reject')}
           </button>
         </>
       }
     >
       <label className="block">
-        <span className="ui-label">Reason <span aria-hidden="true" className="text-bad">*</span></span>
+        <span className="ui-label">{t('rejectDialog.reason')} <span aria-hidden="true" className="text-bad">*</span></span>
         <textarea
           value={reason}
           onChange={(event) => setReason(event.target.value)}
@@ -53,7 +55,7 @@ export function RejectReasonDialog({ title, subtitle, isPending, error, onConfir
           maxLength={500}
           required
           aria-invalid={missingReason}
-          placeholder="e.g. No bill attached"
+          placeholder={t('rejectDialog.placeholder')}
           className="resize-none text-sm"
           data-autofocus
         />

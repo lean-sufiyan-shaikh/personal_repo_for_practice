@@ -1,0 +1,20 @@
+{
+  "generic": "Something went wrong. Please try again.",
+  "noConnection": "No connection — check your network and try again.",
+  "noServerResponse": "Server didn't respond — please try again in a moment.",
+  "INVALID_CREDENTIALS": "Invalid phone number or password",
+  "TOO_MANY_LOGIN_ATTEMPTS": "Too many failed login attempts. Please wait {{minutes}} minutes before trying again.",
+  "PASSWORD_POLICY": "Password must be 8 to 72 characters and include 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 symbol.",
+  "PASSWORD_CHANGE_REQUIRED": "You must change your password before continuing.",
+  "CURRENT_PASSWORD_INCORRECT": "Current password is incorrect.",
+  "NEW_PASSWORD_SAME_AS_CURRENT": "New password must be different from your current password.",
+  "NOZZLE_SHIFT_ALREADY_OPEN": "Nozzle #{{nozzleNumber}} already has an open shift (ID {{shiftId}}).",
+  "OPERATOR_SHIFT_ALREADY_OPEN": "{{operatorName}} already has an open shift (ID {{shiftId}}).",
+  "OPERATOR_INACTIVE": "{{operatorName}} is inactive and cannot be assigned a shift.",
+  "CLOSING_READING_BELOW_OPENING": "Closing reading {{closingReading}} is below the opening reading {{openingReading}} for the {{fuelTypeCode}} nozzle. Please verify the meter reading.",
+  "CREDIT_ENTRIES_TOTAL_MISMATCH": "Sum of all credit entries (₹{{entriesTotal}}, of which ₹{{alreadyRecorded}} was already recorded during the shift) does not match the credit total (₹{{creditTotal}}). A credit entry may have been added while you were closing — reload the shift and check the entries.",
+  "CREDIT_CLIENT_DISABLED": "Credit is disabled for '{{clientName}}'. Enable the client on the Credit page before giving it credit.",
+  "CREDIT_LIMIT_EXCEEDED": "Credit limit exceeded for '{{clientName}}'. Outstanding (group): {{outstanding}}, this entry: {{amount}}, limit: {{limit}}.",
+  "CREDIT_BILLING_CYCLE_OVERDUE": "Credit sales blocked for '{{clientName}}': billing cycle overdue. The client must settle their outstanding balance or an Admin/Owner must grant a Credit Extension.",
+  "INSUFFICIENT_FUEL_STOCK": "Insufficient fuel stock: shift recorded {{litresSold}} L sold but only {{litresAvailable}} L is available in inventory. Please verify the meter readings or record a tanker delivery first."
+}

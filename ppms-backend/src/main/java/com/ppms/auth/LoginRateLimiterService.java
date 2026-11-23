@@ -4,12 +4,14 @@ import com.ppms.common.time.BusinessClock;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.ppms.common.exception.TooManyRequestsException;
+import com.ppms.common.exception.ErrorCodes;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -104,7 +106,7 @@ public class LoginRateLimiterService {
     }
 
     private TooManyRequestsException tooManyRequests() {
-        return new TooManyRequestsException(
+        return new TooManyRequestsException(ErrorCodes.TOO_MANY_LOGIN_ATTEMPTS, Map.of("minutes", WINDOW_MINUTES),
                 "Too many failed login attempts. Please wait " + WINDOW_MINUTES + " minutes before trying again.");
     }
 }

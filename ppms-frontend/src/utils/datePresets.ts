@@ -7,13 +7,14 @@ export interface DateRange {
 
 export type DatePresetId = 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'lastMonth' | 'fyToDate'
 
-export const DATE_PRESETS: { id: DatePresetId; label: string }[] = [
-  { id: 'today',     label: 'Today' },
-  { id: 'yesterday', label: 'Yesterday' },
-  { id: 'thisWeek',  label: 'This week' },
-  { id: 'thisMonth', label: 'This month' },
-  { id: 'lastMonth', label: 'Last month' },
-  { id: 'fyToDate',  label: 'FY to date' },
+/** Labels live in common.json under datePresets.<id>. */
+export const DATE_PRESETS: { id: DatePresetId }[] = [
+  { id: 'today' },
+  { id: 'yesterday' },
+  { id: 'thisWeek' },
+  { id: 'thisMonth' },
+  { id: 'lastMonth' },
+  { id: 'fyToDate' },
 ]
 
 function firstOfMonth(isoDate: string): string {

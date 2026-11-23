@@ -59,6 +59,14 @@ public class UserController {
         return ResponseEntity.ok(userService.updateMyProfile(request, currentUser));
     }
 
+    /** Any signed-in user may choose the language their screens are shown in. */
+    @PatchMapping("/me/language")
+    public ResponseEntity<StaffResponse> updateMyLanguage(
+            @Valid @RequestBody UpdateLanguageRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(userService.updateMyLanguage(request.getLanguage(), currentUser));
+    }
+
     @PatchMapping("/{userId}/status")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'OWNER')")
     public ResponseEntity<StaffResponse> updateUserStatus(

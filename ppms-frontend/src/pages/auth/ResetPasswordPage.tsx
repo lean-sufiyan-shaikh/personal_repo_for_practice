@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { authApi } from '../../api/authApi'
 import { PasswordInput } from '../../components/PasswordInput'
 import { parseApiError } from '../../utils/apiError'
-import { PASSWORD_POLICY_MESSAGE, PASSWORD_POLICY_REGEX } from '../../constants/passwordPolicy'
+import { PASSWORD_POLICY_REGEX } from '../../constants/passwordPolicy'
 
 export default function ResetPasswordPage() {
+  const { t } = useTranslation('auth')
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const token = searchParams.get('token') ?? ''
@@ -25,13 +27,10 @@ export default function ResetPasswordPage() {
               <AlertTriangle size={28} strokeWidth={2} className="text-warn" />
             </div>
           </div>
-          <h1 className="ui-title-sm">Invalid Reset Link</h1>
-          <p className="ui-subtitle">
-            This password reset link is invalid or missing a token.
-            Please request a new one from the forgot password page.
-          </p>
+          <h1 className="ui-title-sm">{t('resetPassword.invalidLinkTitle')}</h1>
+          <p className="ui-subtitle">{t('resetPassword.invalidLinkBody')}</p>
           <Link to="/forgot-password" className="ui-link inline-flex justify-center">
-            Request new link
+            {t('resetPassword.requestNewLink')}
           </Link>
         </div>
       </div>
@@ -40,14 +39,14 @@ export default function ResetPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!PASSWORD_POLICY_REGEX.test(newPassword)) { setError(PASSWORD_POLICY_MESSAGE); return }
-    if (newPassword !== confirmPassword) { setError('Passwords do not match'); return }
+    if (!PASSWORD_POLICY_REGEX.test(newPassword)) { setError(t('passwordPolicy')); return }
+    if (newPassword !== confirmPassword) { setError(t('resetPassword.mismatch')); return }
     setLoading(true); setError(null)
     try {
       await authApi.resetPassword(token, newPassword)
-      navigate('/login', { state: { message: 'Password reset successful. Please log in with your new password.' } })
+      navigate('/login', { state: { message: t('resetPassword.success') } })
     } catch (err) {
-      setError(parseApiError(err, 'Failed to reset password. The link may have expired.'))
+      setError(parseApiError(err, t('resetPassword.failed')))
     } finally {
       setLoading(false)
     }
@@ -58,34 +57,34 @@ export default function ResetPasswordPage() {
       <div className="ui-auth-card space-y-6">
 
         <div>
-          <h1 className="ui-title-sm">Set New Password</h1>
-          <p className="ui-subtitle">Enter and confirm your new password below.</p>
+          <h1 className="ui-title-sm">{t('resetPassword.title')}</h1>
+          <p className="ui-subtitle">{t('resetPassword.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="newPassword" className="ui-label">New Password</label>
+            <label htmlFor="newPassword" className="ui-label">{t('fields.newPassword')}</label>
             <PasswordInput
               id="newPassword"
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
               autoComplete="new-password"
-              placeholder="Use a strong password"
+              placeholder={t('resetPassword.newPasswordPlaceholder')}
               className="shadow-raised"
               minLength={8}
               required
             />
-            <p className="ui-help">{PASSWORD_POLICY_MESSAGE}</p>
+            <p className="ui-help">{t('passwordPolicy')}</p>
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="ui-label">Confirm Password</label>
+            <label htmlFor="confirmPassword" className="ui-label">{t('fields.confirmPassword')}</label>
             <PasswordInput
               id="confirmPassword"
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
               autoComplete="new-password"
-              placeholder="Repeat the password"
+              placeholder={t('resetPassword.confirmPlaceholder')}
               className="shadow-raised"
               required
             />
@@ -98,12 +97,12 @@ export default function ResetPasswordPage() {
             disabled={loading}
             className="ui-btn ui-btn-primary w-full"
           >
-            {loading ? 'Resetting…' : 'Reset Password'}
+            {loading ? t('resetPassword.submitting') : t('resetPassword.submit')}
           </button>
         </form>
 
         <Link to="/login" className="ui-link block text-center">
-          Back to login
+          {t('backToLogin')}
         </Link>
       </div>
     </div>

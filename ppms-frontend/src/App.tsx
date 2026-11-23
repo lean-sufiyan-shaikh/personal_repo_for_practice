@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react'
 import type { ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { queryClient } from './queryClient'
 import ProtectedRoute from './components/ProtectedRoute'
 import { OfflineBanner } from './components/OfflineBanner'
@@ -9,6 +10,7 @@ import { DocumentTitle } from './components/DocumentTitle'
 import { SkeletonRows } from './components/Skeleton'
 import { pageLoaders } from './routes/pageLoaders'
 import { CHANGE_PASSWORD_PATH } from './permissions/permissions'
+import { useLanguageFollowsUser } from './i18n/useLanguageFollowsUser'
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
@@ -38,19 +40,21 @@ const NotificationsPage = lazy(pageLoaders.notifications)
 const CreditBalancePortalPage = lazy(() => import('./pages/portal/CreditBalancePortalPage'))
 
 function PageFallback() {
+  const { t } = useTranslation()
   return (
     <div className="ui-auth-shell">
       <div className="ui-auth-card text-center text-sm text-ink-3">
-        Loading...
+        {t('loading.app')}
       </div>
     </div>
   )
 }
 
 function NestedPageFallback() {
+  const { t } = useTranslation()
   return (
     <div className="ui-page ui-page--narrow" role="status" aria-busy="true">
-      <span className="sr-only">Loading page…</span>
+      <span className="sr-only">{t('loading.page')}</span>
       <SkeletonRows count={4} />
     </div>
   )
@@ -65,6 +69,9 @@ function withPageSuspense(element: ReactNode) {
 }
 
 export default function App() {
+  // Subscribing here re-renders the whole tree when the language changes, so every screen picks it up.
+  useTranslation()
+  useLanguageFollowsUser()
   return (
     <QueryClientProvider client={queryClient}>
       <OfflineBanner />

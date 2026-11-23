@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Download } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { downloadCsv } from '../utils/csv'
 import type { CsvColumn } from '../utils/csv'
 
@@ -13,6 +14,7 @@ export function CsvExportButton<Row>({ filename, columns, rows, disabled = false
   rows: Row[] | (() => Promise<Row[]>)
   disabled?: boolean
 }) {
+  const { t } = useTranslation()
   const [status, setStatus] = useState('')
   const [exporting, setExporting] = useState(false)
 
@@ -21,10 +23,10 @@ export function CsvExportButton<Row>({ filename, columns, rows, disabled = false
     try {
       const exported = typeof rows === 'function' ? await rows() : rows
       downloadCsv(filename, columns, exported)
-      setStatus(`Exported ${exported.length} row${exported.length === 1 ? '' : 's'} to ${filename}`)
+      setStatus(t('csvExport.exported', { count: exported.length, filename }))
     } catch (error) {
       console.error(`Could not export ${filename}`, error)
-      setStatus(`Could not export ${filename}. Try again.`)
+      setStatus(t('csvExport.failed', { filename }))
     } finally {
       setExporting(false)
     }
@@ -40,7 +42,7 @@ export function CsvExportButton<Row>({ filename, columns, rows, disabled = false
         className="ui-btn ui-btn-secondary inline-flex items-center gap-1.5 print:hidden"
       >
         <Download size={14} strokeWidth={2} aria-hidden="true" />
-        Export CSV
+        {t('actions.exportCsv')}
       </button>
       <span role="status" className="sr-only">{status}</span>
     </>

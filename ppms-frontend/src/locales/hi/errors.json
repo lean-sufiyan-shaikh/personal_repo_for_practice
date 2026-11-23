@@ -1,0 +1,20 @@
+{
+  "generic": "कुछ गड़बड़ हो गई। कृपया फिर से कोशिश करें।",
+  "noConnection": "इंटरनेट नहीं है — नेटवर्क जाँचें और फिर से कोशिश करें।",
+  "noServerResponse": "सर्वर से जवाब नहीं आया — थोड़ी देर बाद फिर से कोशिश करें।",
+  "INVALID_CREDENTIALS": "फ़ोन नंबर या पासवर्ड ग़लत है",
+  "TOO_MANY_LOGIN_ATTEMPTS": "कई बार ग़लत लॉगिन हुआ। फिर से कोशिश करने से पहले {{minutes}} मिनट रुकें।",
+  "PASSWORD_POLICY": "पासवर्ड 8 से 72 अक्षरों का हो और उसमें 1 बड़ा अक्षर (A-Z), 1 छोटा अक्षर (a-z), 1 अंक और 1 चिह्न हो।",
+  "PASSWORD_CHANGE_REQUIRED": "आगे बढ़ने से पहले अपना पासवर्ड बदलें।",
+  "CURRENT_PASSWORD_INCORRECT": "मौजूदा पासवर्ड ग़लत है।",
+  "NEW_PASSWORD_SAME_AS_CURRENT": "नया पासवर्ड मौजूदा पासवर्ड से अलग होना चाहिए।",
+  "NOZZLE_SHIFT_ALREADY_OPEN": "नोज़ल #{{nozzleNumber}} पर पहले से एक शिफ्ट चालू है (ID {{shiftId}})।",
+  "OPERATOR_SHIFT_ALREADY_OPEN": "{{operatorName}} की एक शिफ्ट पहले से चालू है (ID {{shiftId}})।",
+  "OPERATOR_INACTIVE": "{{operatorName}} निष्क्रिय हैं, इन्हें शिफ्ट नहीं दी जा सकती।",
+  "CLOSING_READING_BELOW_OPENING": "{{fuelTypeCode}} नोज़ल की अंतिम रीडिंग {{closingReading}}, शुरुआती रीडिंग {{openingReading}} से कम है। कृपया मीटर रीडिंग जाँचें।",
+  "CREDIT_ENTRIES_TOTAL_MISMATCH": "सभी क्रेडिट एंट्री का जोड़ (₹{{entriesTotal}}, जिसमें ₹{{alreadyRecorded}} शिफ्ट के दौरान पहले ही दर्ज था) क्रेडिट कुल (₹{{creditTotal}}) से मेल नहीं खाता। हो सकता है शिफ्ट बंद करते समय कोई क्रेडिट एंट्री जुड़ी हो — शिफ्ट दोबारा लोड करें और एंट्री जाँचें।",
+  "CREDIT_CLIENT_DISABLED": "'{{clientName}}' के लिए क्रेडिट बंद है। क्रेडिट देने से पहले क्रेडिट पेज पर इस ग्राहक को चालू करें।",
+  "CREDIT_LIMIT_EXCEEDED": "'{{clientName}}' की क्रेडिट सीमा पार हो गई। बकाया (समूह): {{outstanding}}, यह एंट्री: {{amount}}, सीमा: {{limit}}।",
+  "CREDIT_BILLING_CYCLE_OVERDUE": "'{{clientName}}' की क्रेडिट बिक्री रुकी है: बिलिंग चक्र का भुगतान बकाया है। ग्राहक बकाया चुकाए या एडमिन/मालिक क्रेडिट विस्तार दें।",
+  "INSUFFICIENT_FUEL_STOCK": "ईंधन स्टॉक कम है: शिफ्ट में {{litresSold}} L बिक्री दर्ज है, पर स्टॉक में केवल {{litresAvailable}} L है। कृपया मीटर रीडिंग जाँचें या पहले टैंकर डिलीवरी दर्ज करें।"
+}

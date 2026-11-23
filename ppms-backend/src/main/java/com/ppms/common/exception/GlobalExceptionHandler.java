@@ -1,6 +1,7 @@
 package com.ppms.common.exception;
 
 import com.ppms.auth.InvalidCredentialsException;
+import com.ppms.auth.PasswordPolicy;
 import com.ppms.fuel.PriceDeviationException;
 import com.ppms.fuel.PriceDeviationWarning;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +33,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ErrorResponse.of(HttpStatus.UNAUTHORIZED, ex.getMessage()));
+                .body(ErrorResponse.of(HttpStatus.UNAUTHORIZED, ErrorCodes.INVALID_CREDENTIALS, Map.of(), ex.getMessage()));
     }
 
     /**
@@ -74,7 +75,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponse.of(HttpStatus.BAD_REQUEST, ex.getMessage()));
+                .body(ErrorResponse.of(HttpStatus.BAD_REQUEST, ex.getCode(), ex.getParams(), ex.getMessage()));
     }
 
     @ExceptionHandler(IdempotencyKeyInUseException.class)
@@ -92,7 +93,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TooManyRequestsException.class)
     public ResponseEntity<ErrorResponse> handleTooManyRequests(TooManyRequestsException ex) {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(ErrorResponse.of(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()));
+                .body(ErrorResponse.of(HttpStatus.TOO_MANY_REQUESTS, ex.getCode(), ex.getParams(), ex.getMessage()));
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -110,11 +111,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new HashMap<>();
+        boolean breaksPasswordPolicy = false;
         for (FieldError error : ex.getBindingResult().getFieldErrors()) {
             fieldErrors.put(error.getField(), error.getDefaultMessage());
+            breaksPasswordPolicy |= PasswordPolicy.MESSAGE.equals(error.getDefaultMessage());
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponse.ofValidation(fieldErrors));
+                .body(ErrorResponse.ofValidation(fieldErrors, breaksPasswordPolicy ? ErrorCodes.PASSWORD_POLICY : null));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -158,18 +161,27 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"));
     }
 
+    /** message is always English; code and params, when present, let the screen show the error in the user's language. */
     public record ErrorResponse(
             int status,
             String message,
             Map<String, String> fieldErrors,
-            OffsetDateTime timestamp
+            OffsetDateTime timestamp,
+            String code,
+            Map<String, Object> params
     ) {
         static ErrorResponse of(HttpStatus status, String message) {
-            return new ErrorResponse(status.value(), message, null, OffsetDateTime.now());
+            return of(status, null, null, message);
         }
 
-        static ErrorResponse ofValidation(Map<String, String> fieldErrors) {
-            return new ErrorResponse(400, "Validation failed", fieldErrors, OffsetDateTime.now());
+        static ErrorResponse of(HttpStatus status, String code, Map<String, Object> params, String message) {
+            return new ErrorResponse(status.value(), message, null, OffsetDateTime.now(),
+                    code, code == null ? null : params);
+        }
+
+        static ErrorResponse ofValidation(Map<String, String> fieldErrors, String code) {
+            return new ErrorResponse(400, "Validation failed", fieldErrors, OffsetDateTime.now(),
+                    code, code == null ? null : Map.of());
         }
     }
 }

@@ -20,6 +20,7 @@ export const EMPTY_FORM: StaffCreateForm = {
   gender: '',
   nightShiftConsent: false,
   role: 'OPERATOR' as const,
+  preferredLanguage: 'en',
 }
 
 export type StaffPanel = 'preferences' | 'leave' | 'rates' | 'edit' | 'move'

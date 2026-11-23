@@ -93,6 +93,10 @@ public class User implements UserDetails {
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword;
 
+    @Builder.Default
+    @Column(name = "preferred_language", nullable = false)
+    private String preferredLanguage = UserLanguage.DEFAULT;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Fuel } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { pumpApi } from '../../api/pumpApi'
@@ -16,6 +17,7 @@ import { SuspendedPumpNotice } from './layout/SuspendedPumpNotice'
 import { UserProfileArea } from './layout/UserProfileArea'
 
 export default function DashboardPage() {
+  const { t } = useTranslation('nav')
   const location  = useLocation()
   const { user } = useAuthStore()
 
@@ -68,7 +70,7 @@ export default function DashboardPage() {
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-control focus:bg-surface focus:text-primary focus:font-medium focus:shadow-overlay"
       >
-        Skip to main content
+        {t('topbar.skipToContent')}
       </a>
 
       {/* ── Top header ─────────────────────────────────────────────────────────── */}
@@ -83,11 +85,11 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <span className="text-base font-extrabold text-surface tracking-wide">PPMS</span>
               <span className="text-xs text-on-dark-2 font-medium hidden sm:inline border border-white/25 px-2 py-0.5 rounded-badge">
-                Petrol Pump Management
+                {t('topbar.tagline')}
               </span>
             </div>
             <p className="text-xs text-on-dark-2 italic hidden sm:block mt-0.5">
-              Fuelling efficiency, every shift.
+              {t('topbar.motto')}
             </p>
           </div>
         </div>

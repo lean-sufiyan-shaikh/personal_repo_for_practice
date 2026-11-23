@@ -1,22 +1,22 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { authApi } from '../../api/authApi'
 import { parseApiError } from '../../utils/apiError'
 
 function NoEmailHelp() {
+  const { t } = useTranslation('auth')
   return (
     <div className="ui-alert ui-alert-warning text-sm">
-      <p className="font-medium">No email on your account?</p>
-      <p className="mt-1">
-        Staff: ask your pump owner or admin to reset your password. Pump owners: contact the platform administrator.
-        You will choose your own password the next time you sign in.
-      </p>
+      <p className="font-medium">{t('forgotPassword.noEmailTitle')}</p>
+      <p className="mt-1">{t('forgotPassword.noEmailBody')}</p>
     </div>
   )
 }
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation('auth')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -24,13 +24,13 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!phoneNumber.trim()) { setError('Phone number is required'); return }
+    if (!phoneNumber.trim()) { setError(t('forgotPassword.phoneRequired')); return }
     setLoading(true); setError(null)
     try {
       await authApi.forgotPassword(phoneNumber.trim())
       setSent(true)
     } catch (err) {
-      setError(parseApiError(err, 'Something went wrong. Please try again.'))
+      setError(parseApiError(err))
     } finally {
       setLoading(false)
     }
@@ -43,15 +43,12 @@ export default function ForgotPasswordPage() {
           <div className="w-14 h-14 bg-ok-bg rounded-full flex items-center justify-center mx-auto">
             <Check size={28} strokeWidth={2.5} className="text-ok" />
           </div>
-          <h1 className="ui-title-sm">Check your email</h1>
-          <p className="ui-subtitle">
-            If this phone number is registered and has an email address on file,
-            we have sent a password reset link. Check your inbox.
-          </p>
-          <p className="text-xs text-ink-3">The link expires in 1 hour.</p>
+          <h1 className="ui-title-sm">{t('forgotPassword.sentTitle')}</h1>
+          <p className="ui-subtitle">{t('forgotPassword.sentBody')}</p>
+          <p className="text-xs text-ink-3">{t('forgotPassword.linkExpiry')}</p>
           <NoEmailHelp />
           <Link to="/login" className="ui-link inline-flex justify-center">
-            Back to login
+            {t('backToLogin')}
           </Link>
         </div>
       </div>
@@ -63,17 +60,15 @@ export default function ForgotPasswordPage() {
       <div className="ui-auth-card space-y-6">
 
         <div>
-          <h1 className="ui-title-sm">Forgot Password</h1>
-          <p className="ui-subtitle">
-            If your account has an email address, enter your registered phone number and we'll send a reset link to it.
-          </p>
+          <h1 className="ui-title-sm">{t('forgotPassword.title')}</h1>
+          <p className="ui-subtitle">{t('forgotPassword.subtitle')}</p>
         </div>
 
         <NoEmailHelp />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="phoneNumber" className="ui-label">Phone Number</label>
+            <label htmlFor="phoneNumber" className="ui-label">{t('fields.phoneNumber')}</label>
             <input
               id="phoneNumber"
               type="tel"
@@ -81,7 +76,7 @@ export default function ForgotPasswordPage() {
               autoComplete="tel"
               value={phoneNumber}
               onChange={e => setPhoneNumber(e.target.value)}
-              placeholder="e.g. 9876543210"
+              placeholder={t('forgotPassword.phonePlaceholder')}
               className="shadow-raised"
             />
           </div>
@@ -93,12 +88,12 @@ export default function ForgotPasswordPage() {
             disabled={loading}
             className="ui-btn ui-btn-primary w-full"
           >
-            {loading ? 'Sending…' : 'Send Reset Link'}
+            {loading ? t('forgotPassword.sending') : t('forgotPassword.send')}
           </button>
         </form>
 
         <Link to="/login" className="ui-link block text-center">
-          Back to login
+          {t('backToLogin')}
         </Link>
       </div>
     </div>

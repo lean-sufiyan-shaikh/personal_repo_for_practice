@@ -17,6 +17,7 @@ export interface StaffMember {
   dailyRate: number | null           // MANAGER / ADMIN / ACCOUNTANT
   shift1HourlyRate: number | null    // OPERATOR — night shift
   standardHourlyRate: number | null  // OPERATOR — day shifts
+  preferredLanguage?: string
 }
 
 export interface UpdateStaffDetailsRequest {
@@ -25,6 +26,7 @@ export interface UpdateStaffDetailsRequest {
   role?: 'OPERATOR' | 'MANAGER' | 'ADMIN' | 'ACCOUNTANT'
   gender?: UserGender
   nightShiftConsent?: boolean
+  preferredLanguage?: string
 }
 
 export interface CreateUserRequest {
@@ -37,6 +39,7 @@ export interface CreateUserRequest {
   assignedPumpId: number
   address?: string
   employeeId?: string
+  preferredLanguage?: string
 }
 
 export const userApi = {
@@ -60,6 +63,10 @@ export const userApi = {
   // Update the currently logged-in user's own display name
   updateMyProfile: (fullName: string) =>
     client.patch<StaffMember>('/users/me/profile', { fullName }).then((r) => r.data),
+
+  // The signed-in user's screen language: en, hi or mr
+  updateMyLanguage: (language: string) =>
+    client.patch<StaffMember>('/users/me/language', { language }).then((r) => r.data),
 
   // Update name, phone, or role for a staff member (Owner / Admin)
   updateStaffDetails: (userId: number, req: UpdateStaffDetailsRequest) =>

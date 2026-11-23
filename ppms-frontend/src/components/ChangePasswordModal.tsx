@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { authApi } from '../api/authApi'
 import { useAuthStore } from '../store/authStore'
 import { PasswordInput } from './PasswordInput'
 import { Modal } from './Modal'
 import { parseApiError } from '../utils/apiError'
-import { PASSWORD_POLICY_MESSAGE, PASSWORD_POLICY_REGEX } from '../constants/passwordPolicy'
+import { PASSWORD_POLICY_REGEX } from '../constants/passwordPolicy'
 import { FormField } from './FormField'
 
 interface ChangePasswordModalProps {
@@ -17,6 +18,7 @@ interface ChangePasswordModalProps {
 }
 
 export function ChangePasswordModal({ onClose, successMessage, required = false }: ChangePasswordModalProps) {
+  const { t } = useTranslation(['auth', 'common'])
   const navigate = useNavigate()
   const { clearAuth } = useAuthStore()
   const [currentPassword, setCurrentPassword] = useState('')
@@ -32,7 +34,7 @@ export function ChangePasswordModal({ onClose, successMessage, required = false 
       navigate('/login', { state: { message: successMessage ?? data.message } })
     },
     onError: (err) => {
-      setPasswordError(parseApiError(err, 'Failed to update password.'))
+      setPasswordError(parseApiError(err, t('changePassword.failed')))
     },
   })
 
@@ -40,17 +42,17 @@ export function ChangePasswordModal({ onClose, successMessage, required = false 
     setPasswordError(null)
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError('All password fields are required.')
+      setPasswordError(t('changePassword.allRequired'))
       return
     }
 
     if (!PASSWORD_POLICY_REGEX.test(newPassword)) {
-      setPasswordError(PASSWORD_POLICY_MESSAGE)
+      setPasswordError(t('passwordPolicy'))
       return
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('New password and confirm password must match.')
+      setPasswordError(t('changePassword.mismatch'))
       return
     }
 
@@ -59,10 +61,8 @@ export function ChangePasswordModal({ onClose, successMessage, required = false 
 
   return (
     <Modal
-      title={required ? 'Choose a New Password' : 'Reset Password'}
-      subtitle={required
-        ? 'Your password was set by someone else. Enter it as the current password, choose your own, then sign in again.'
-        : 'Update your password, then sign in again.'}
+      title={required ? t('changePassword.requiredTitle') : t('changePassword.title')}
+      subtitle={required ? t('changePassword.requiredSubtitle') : t('changePassword.subtitle')}
       tone="warning"
       size="lg"
       onClose={onClose}
@@ -75,20 +75,20 @@ export function ChangePasswordModal({ onClose, successMessage, required = false 
             disabled={changePasswordMutation.isPending}
             className="ui-btn ui-btn-secondary"
           >
-            {required ? 'Sign Out' : 'Cancel'}
+            {required ? t('changePassword.signOut') : t('common:actions.cancel')}
           </button>
           <button
             onClick={handleChangePassword}
             disabled={changePasswordMutation.isPending}
             className="ui-btn ui-btn-primary"
           >
-            {changePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
+            {changePasswordMutation.isPending ? t('changePassword.submitting') : t('changePassword.submit')}
           </button>
         </>
       }
     >
       <div>
-        <FormField label="Current Password">
+        <FormField label={t('fields.currentPassword')}>
           <PasswordInput
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -99,7 +99,7 @@ export function ChangePasswordModal({ onClose, successMessage, required = false 
       </div>
 
       <div>
-        <FormField label="New Password">
+        <FormField label={t('fields.newPassword')}>
           <PasswordInput
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
@@ -107,11 +107,11 @@ export function ChangePasswordModal({ onClose, successMessage, required = false 
             className="shadow-sm"
           />
         </FormField>
-        <p className="ui-help">{PASSWORD_POLICY_MESSAGE}</p>
+        <p className="ui-help">{t('passwordPolicy')}</p>
       </div>
 
       <div>
-        <FormField label="Confirm New Password">
+        <FormField label={t('fields.confirmNewPassword')}>
           <PasswordInput
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}

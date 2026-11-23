@@ -4,6 +4,7 @@ import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useNow } from '../hooks/useNow'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Bell } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { notificationApi } from '../api/notificationApi'
 import { useAuthStore } from '../store/authStore'
 import { formatIstDateTime, withReadableDates } from '../utils/date'
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function NotificationBell({ pumpId }: Props) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const role = useAuthStore((state) => state.user?.role)
   const [open, setOpen] = useState(false)
@@ -75,7 +77,7 @@ export default function NotificationBell({ pumpId }: Props) {
       <button
         ref={bellRef}
         onClick={handleOpen}
-        aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+        aria-label={unreadCount > 0 ? t('notifications.bellUnread', { count: unreadCount }) : t('notifications.title')}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         className="ui-notification-bell relative inline-flex h-10 w-10 items-center justify-center rounded-card border border-white/10 bg-white/5 text-on-dark-2 shadow-sm hover:border-white/20 hover:bg-white/10 hover:text-white"
@@ -90,12 +92,12 @@ export default function NotificationBell({ pumpId }: Props) {
 
       {/* Dropdown panel */}
       {open && (
-        <div id={panelId} role="region" aria-label="Notifications" className="ui-notification-panel absolute right-0 top-12 z-50 w-88 max-w-[calc(100vw-2rem)] overflow-hidden rounded-card border border-border bg-surface shadow-2xl">
+        <div id={panelId} role="region" aria-label={t('notifications.title')} className="ui-notification-panel absolute right-0 top-12 z-50 w-88 max-w-[calc(100vw-2rem)] overflow-hidden rounded-card border border-border bg-surface shadow-2xl">
           <div className="ui-notification-panel__head flex items-center justify-between border-b border-border px-4 py-3.5">
             <div>
-              <p className="text-sm font-semibold text-ink">Notifications</p>
+              <p className="text-sm font-semibold text-ink">{t('notifications.title')}</p>
               <p className="mt-0.5 text-xs text-ink-3">
-                {unreadCount} unread{unreadCount > notifications.length ? ` · showing newest ${notifications.length}` : ''}
+                {t('notifications.unreadCount', { count: unreadCount })}{unreadCount > notifications.length ? t('notifications.showingNewest', { count: notifications.length }) : ''}
               </p>
             </div>
             {notifications.length > 0 && (
@@ -104,15 +106,15 @@ export default function NotificationBell({ pumpId }: Props) {
                 disabled={markReadMutation.isPending}
                 className="ui-btn ui-btn-ghost min-h-8 px-2.5 py-1 text-xs"
               >
-                {unreadCount > notifications.length ? 'Mark shown read' : 'Mark all read'}
+                {unreadCount > notifications.length ? t('notifications.markShownRead') : t('notifications.markAllRead')}
               </button>
             )}
           </div>
 
           {notifications.length === 0 ? (
             <div className="px-4 py-8 text-center">
-              <p className="text-sm font-medium text-ink-3">No notifications</p>
-              <p className="mt-1 text-xs text-ink-3">You're all caught up</p>
+              <p className="text-sm font-medium text-ink-3">{t('notifications.empty')}</p>
+              <p className="mt-1 text-xs text-ink-3">{t('notifications.allCaughtUp')}</p>
             </div>
           ) : (
             <ul className="max-h-80 overflow-y-auto divide-y divide-border">
@@ -123,11 +125,11 @@ export default function NotificationBell({ pumpId }: Props) {
                     <NotificationTypeIcon type={n.type} />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-ink">
-                        <span className="sr-only">Unread: </span>{n.title}
+                        <span className="sr-only">{t('notifications.unreadPrefix')}</span>{n.title}
                         {count > 1 && (
                           <span className="ml-1.5 rounded-badge bg-surface-sunken px-1.5 py-0.5 text-xs font-medium text-ink-2">
                             <span aria-hidden="true">×{count}</span>
-                            <span className="sr-only">({count} identical alerts)</span>
+                            <span className="sr-only">{t('notifications.identicalAlerts', { count })}</span>
                           </span>
                         )}
                       </p>
@@ -159,7 +161,7 @@ export default function NotificationBell({ pumpId }: Props) {
           )}
           <div className="border-t border-border px-4 py-2.5 text-center">
             <Link to="/dashboard/notifications" onClick={() => setOpen(false)} className="ui-link text-sm">
-              View all notifications
+              {t('notifications.viewAll')}
             </Link>
           </div>
         </div>

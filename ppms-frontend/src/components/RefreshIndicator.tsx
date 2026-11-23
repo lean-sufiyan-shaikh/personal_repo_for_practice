@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useLastUpdated } from '../hooks/useLastUpdated'
 
 interface RefreshIndicatorProps {
@@ -12,6 +13,7 @@ interface RefreshIndicatorProps {
  * label otherwise. Designed to sit alongside a card/section title.
  */
 export function RefreshIndicator({ isFetching, dataUpdatedAt }: RefreshIndicatorProps) {
+  const { t } = useTranslation()
   const label = useLastUpdated(dataUpdatedAt)
   return (
     <span className="flex items-center gap-1.5 text-xs text-ink-3 select-none">
@@ -20,7 +22,7 @@ export function RefreshIndicator({ isFetching, dataUpdatedAt }: RefreshIndicator
           isFetching ? 'bg-ok animate-pulse' : 'bg-control'
         }`}
       />
-      {isFetching ? 'Refreshing…' : label ? `Updated ${label}` : ''}
+      {isFetching ? t('time.refreshing') : label ? t('time.updated', { ago: label }) : ''}
     </span>
   )
 }

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useId } from 'react'
 import type { KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 
 export interface SelectOption {
   value: string
@@ -31,7 +32,7 @@ export function SearchableSelect({
   value,
   onChange,
   options,
-  placeholder = 'Select…',
+  placeholder: placeholderText,
   searchThreshold = 5,
   accentColor = 'blue',
   size = 'md',
@@ -40,6 +41,8 @@ export function SearchableSelect({
   label,
   'aria-labelledby': ariaLabelledby,
 }: SearchableSelectProps) {
+  const { t } = useTranslation()
+  const placeholder = placeholderText ?? t('select.placeholder')
   const [open, setOpen]       = useState(false)
   const [search, setSearch]   = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
@@ -223,11 +226,11 @@ export function SearchableSelect({
                   aria-controls={listboxId}
                   aria-autocomplete="list"
                   aria-activedescendant={activeDescendant}
-                  aria-label={label ? `Search ${label}` : 'Search options'}
+                  aria-label={label ? t('select.searchLabel', { label }) : t('select.searchOptions')}
                   value={search}
                   onChange={e => { setSearch(e.target.value); setActiveIndex(0) }}
                   onKeyDown={handleListKeyDown}
-                  placeholder="Type to search…"
+                  placeholder={t('select.searchPlaceholder')}
                   className={[
                     'ui-select-search w-full border border-border focus:ring-2 focus:ring-primary bg-surface-sunken',
                     isCompact ? 'min-h-8 pl-7 pr-2.5 py-1.5 text-xs rounded-[10px]' : 'min-h-10 pl-8 pr-3 py-2 text-sm rounded-xl',
@@ -238,7 +241,7 @@ export function SearchableSelect({
           )}
 
           <p className="sr-only" aria-live="polite">
-            {search.trim() === '' ? '' : filtered.length === 0 ? 'No results found' : `${filtered.length} result${filtered.length === 1 ? '' : 's'}`}
+            {search.trim() === '' ? '' : filtered.length === 0 ? t('select.noResults') : t('select.resultCount', { count: filtered.length })}
           </p>
 
           {/* Options list */}
@@ -254,7 +257,7 @@ export function SearchableSelect({
             className="max-h-56 overflow-y-auto focus:outline-none"
           >
             {filtered.length === 0 ? (
-              <div role="presentation" aria-hidden="true" className="ui-empty px-4 py-5">No results found</div>
+              <div role="presentation" aria-hidden="true" className="ui-empty px-4 py-5">{t('select.noResults')}</div>
             ) : (
               filtered.map((opt, index) => {
                 const isSelected = opt.value === value

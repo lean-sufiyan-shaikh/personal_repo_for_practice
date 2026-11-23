@@ -7,6 +7,7 @@ import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { LitresText, MoneyText } from '../../../components/AmountText'
 import { formatCurrencyOrDash } from '../../../utils/format'
+import { printWhenFontsReady } from '../../../i18n/fonts'
 
 // ── Handover Report Modal ─────────────────────────────────────────────────────
 
@@ -48,7 +49,7 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
         </>
       }
       headerActions={
-        <button type="button" onClick={() => window.print()} className="ui-btn ui-btn-secondary ui-btn-compact inline-flex items-center gap-1.5 text-xs">
+        <button type="button" onClick={() => void printWhenFontsReady()} className="ui-btn ui-btn-secondary ui-btn-compact inline-flex items-center gap-1.5 text-xs">
           <Printer size={14} strokeWidth={2} aria-hidden="true" /> Print
         </button>
       }

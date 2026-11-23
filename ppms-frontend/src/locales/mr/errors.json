@@ -1,0 +1,20 @@
+{
+  "generic": "काहीतरी चुकले. कृपया पुन्हा प्रयत्न करा.",
+  "noConnection": "इंटरनेट नाही — नेटवर्क तपासा आणि पुन्हा प्रयत्न करा.",
+  "noServerResponse": "सर्व्हरकडून उत्तर आले नाही — थोड्या वेळाने पुन्हा प्रयत्न करा.",
+  "INVALID_CREDENTIALS": "फोन नंबर किंवा पासवर्ड चुकीचा आहे",
+  "TOO_MANY_LOGIN_ATTEMPTS": "अनेक वेळा चुकीचे लॉगिन झाले. पुन्हा प्रयत्न करण्यापूर्वी {{minutes}} मिनिटे थांबा.",
+  "PASSWORD_POLICY": "पासवर्ड 8 ते 72 अक्षरांचा असावा आणि त्यात 1 मोठे अक्षर (A-Z), 1 लहान अक्षर (a-z), 1 अंक आणि 1 चिन्ह असावे.",
+  "PASSWORD_CHANGE_REQUIRED": "पुढे जाण्यापूर्वी तुमचा पासवर्ड बदला.",
+  "CURRENT_PASSWORD_INCORRECT": "सध्याचा पासवर्ड चुकीचा आहे.",
+  "NEW_PASSWORD_SAME_AS_CURRENT": "नवीन पासवर्ड सध्याच्या पासवर्डपेक्षा वेगळा असावा.",
+  "NOZZLE_SHIFT_ALREADY_OPEN": "नोझल #{{nozzleNumber}} वर आधीच एक शिफ्ट चालू आहे (ID {{shiftId}}).",
+  "OPERATOR_SHIFT_ALREADY_OPEN": "{{operatorName}} यांची एक शिफ्ट आधीच चालू आहे (ID {{shiftId}}).",
+  "OPERATOR_INACTIVE": "{{operatorName}} निष्क्रिय आहेत, त्यांना शिफ्ट देता येणार नाही.",
+  "CLOSING_READING_BELOW_OPENING": "{{fuelTypeCode}} नोझलचे शेवटचे रीडिंग {{closingReading}} हे सुरुवातीच्या रीडिंग {{openingReading}} पेक्षा कमी आहे. कृपया मीटर रीडिंग तपासा.",
+  "CREDIT_ENTRIES_TOTAL_MISMATCH": "सर्व क्रेडिट नोंदींची बेरीज (₹{{entriesTotal}}, त्यापैकी ₹{{alreadyRecorded}} शिफ्टदरम्यान आधीच नोंदवले होते) क्रेडिट एकूणशी (₹{{creditTotal}}) जुळत नाही. शिफ्ट बंद करताना एखादी क्रेडिट नोंद जोडली गेली असेल — शिफ्ट पुन्हा लोड करा आणि नोंदी तपासा.",
+  "CREDIT_CLIENT_DISABLED": "'{{clientName}}' साठी क्रेडिट बंद आहे. क्रेडिट देण्यापूर्वी क्रेडिट पानावर हा ग्राहक चालू करा.",
+  "CREDIT_LIMIT_EXCEEDED": "'{{clientName}}' ची क्रेडिट मर्यादा ओलांडली. थकबाकी (गट): {{outstanding}}, ही नोंद: {{amount}}, मर्यादा: {{limit}}.",
+  "CREDIT_BILLING_CYCLE_OVERDUE": "'{{clientName}}' ची क्रेडिट विक्री थांबवली आहे: बिलिंग चक्राची रक्कम थकीत आहे. ग्राहकाने थकबाकी भरावी किंवा ॲडमिन/मालकाने क्रेडिट वाढ द्यावी.",
+  "INSUFFICIENT_FUEL_STOCK": "इंधन स्टॉक अपुरा आहे: शिफ्टमध्ये {{litresSold}} L विक्री नोंदली आहे, पण स्टॉकमध्ये फक्त {{litresAvailable}} L आहे. कृपया मीटर रीडिंग तपासा किंवा आधी टँकर डिलिव्हरी नोंदवा."
+}

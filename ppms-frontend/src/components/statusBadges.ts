@@ -4,6 +4,7 @@ import type { DiscrepancyType, ShiftStatus } from '../types/shift'
 import type { CreditInvoiceStatus, CreditStanding, CreditTransaction } from '../api/creditApi'
 import type { ExpenseApprovalStatus } from '../api/expenseApi'
 import { codeLabel } from '../constants/labels'
+import i18n from '../i18n'
 import { statusLabel } from '../pages/shifts/shiftLabels'
 import type { StatusTone } from './StatusBadge'
 
@@ -30,9 +31,9 @@ export function shiftStatusBadge(status: ShiftStatus): StatusBadgeSpec {
 
 /** SHORT is money missing (bad), OVER is money extra (warn); null means the shift balanced. */
 export function discrepancyBadge(type: DiscrepancyType | null): StatusBadgeSpec {
-  if (type === 'SHORT') return { tone: 'bad', icon: ArrowDown, label: 'SHORT' }
-  if (type === 'OVER') return { tone: 'warn', icon: ArrowUp, label: 'OVER' }
-  return { tone: 'ok', icon: Check, label: 'Balanced' }
+  if (type === 'SHORT') return { tone: 'bad', icon: ArrowDown, label: i18n.t('badges.short') }
+  if (type === 'OVER') return { tone: 'warn', icon: ArrowUp, label: i18n.t('badges.over') }
+  return { tone: 'ok', icon: Check, label: i18n.t('badges.balanced') }
 }
 
 const APPROVAL_STATUS: Record<ExpenseApprovalStatus, Omit<StatusBadgeSpec, 'label'>> = {
@@ -63,16 +64,18 @@ export function creditStandingBadge(standing: CreditStanding): StatusBadgeSpec {
   return { ...CREDIT_STANDING[standing], label: codeLabel(standing) }
 }
 
-export const SETTLEMENT_OVERDUE_BADGE: StatusBadgeSpec = { tone: 'bad', icon: Clock, label: codeLabel('OVERDUE') }
+export function settlementOverdueBadge(): StatusBadgeSpec {
+  return { tone: 'bad', icon: Clock, label: codeLabel('OVERDUE') }
+}
 
 /** A ledger row's status wins over its type, so a voided sale reads "Voided" rather than "Sale". */
 export function creditTransactionBadge(tx: Pick<CreditTransaction, 'type' | 'status'>): StatusBadgeSpec {
-  if (tx.status === 'PENDING_APPROVAL') return { label: 'Pending approval', tone: 'warn', icon: Hourglass }
-  if (tx.status === 'REJECTED') return { label: 'Rejected', tone: 'neutral', icon: X }
-  if (tx.status === 'VOIDED') return { label: 'Voided', tone: 'neutral', icon: Ban }
-  if (tx.status === 'WAIVED') return { label: 'Waived', tone: 'neutral', icon: Ban }
-  if (tx.type === 'SALE') return { label: 'Sale', tone: 'warn', icon: ArrowUp }
-  if (tx.type === 'COUNTER_SALE') return { label: 'Shop sale', tone: 'warn', icon: ArrowUp }
-  if (tx.type === 'INTEREST') return { label: 'Interest', tone: 'info', icon: Percent }
-  return { label: 'Paid', tone: 'ok', icon: ArrowDown }
+  if (tx.status === 'PENDING_APPROVAL') return { label: i18n.t('badges.pendingApproval'), tone: 'warn', icon: Hourglass }
+  if (tx.status === 'REJECTED') return { label: i18n.t('badges.rejected'), tone: 'neutral', icon: X }
+  if (tx.status === 'VOIDED') return { label: i18n.t('badges.voided'), tone: 'neutral', icon: Ban }
+  if (tx.status === 'WAIVED') return { label: i18n.t('badges.waived'), tone: 'neutral', icon: Ban }
+  if (tx.type === 'SALE') return { label: i18n.t('badges.sale'), tone: 'warn', icon: ArrowUp }
+  if (tx.type === 'COUNTER_SALE') return { label: i18n.t('badges.shopSale'), tone: 'warn', icon: ArrowUp }
+  if (tx.type === 'INTEREST') return { label: i18n.t('badges.interest'), tone: 'info', icon: Percent }
+  return { label: i18n.t('badges.paid'), tone: 'ok', icon: ArrowDown }
 }

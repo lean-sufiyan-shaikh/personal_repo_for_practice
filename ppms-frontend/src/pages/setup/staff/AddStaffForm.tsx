@@ -9,6 +9,8 @@ import { EMPTY_FORM } from './staffForm'
 import type { StaffCreateForm } from './staffForm'
 import { FormField } from '../../../components/FormField'
 import { PASSWORD_POLICY_MESSAGE, PASSWORD_POLICY_REGEX } from '../../../constants/passwordPolicy'
+import { LanguagePicker } from '../../../components/LanguagePicker'
+import { isAppLanguage } from '../../../i18n/languages'
 
 export function AddStaffForm({ pumpId, canAssignAdmin }: { pumpId: number; canAssignAdmin: boolean }) {
   const queryClient = useQueryClient()
@@ -133,6 +135,12 @@ export function AddStaffForm({ pumpId, canAssignAdmin }: { pumpId: number; canAs
                   ]}
                 />
               </div>
+
+              <LanguagePicker
+                value={isAppLanguage(form.preferredLanguage) ? form.preferredLanguage : 'en'}
+                onChange={(language) => set('preferredLanguage', language)}
+                selectClassName="text-sm"
+              />
 
               {form.role === 'OPERATOR' && form.gender === 'FEMALE' ? (
                 <label className="flex items-start gap-3 rounded-card border border-warn bg-warn-bg px-3.5 py-3">

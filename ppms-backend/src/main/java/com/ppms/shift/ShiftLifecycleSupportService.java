@@ -4,6 +4,7 @@ import com.ppms.cash.CashEvent;
 import com.ppms.cash.CashEventRepository;
 import com.ppms.cash.CashEventType;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditAccountPolicyService;
@@ -69,7 +70,8 @@ public class ShiftLifecycleSupportService {
                 .filter(user -> user.getRole() == UserRole.OPERATOR && pumpId.equals(user.getAssignedPumpId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Operator not found"));
         if (operator.getStatus() != UserStatus.ACTIVE) {
-            throw new BusinessException(operator.getFullName() + " is inactive and cannot be assigned a shift.");
+            throw new BusinessException(ErrorCodes.OPERATOR_INACTIVE, Map.of("operatorName", operator.getFullName()),
+                    operator.getFullName() + " is inactive and cannot be assigned a shift.");
         }
         return operator;
     }
@@ -111,7 +113,8 @@ public class ShiftLifecycleSupportService {
             }
 
             shiftRepository.findOpenShiftByNozzle(nozzle.getId()).ifPresent(existing -> {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.NOZZLE_SHIFT_ALREADY_OPEN,
+                        Map.of("nozzleNumber", nozzle.getNozzleNumber(), "shiftId", existing.getId()),
                         "Nozzle #" + nozzle.getNozzleNumber() + " already has an open shift (ID " + existing.getId() + ").");
             });
 
@@ -138,7 +141,8 @@ public class ShiftLifecycleSupportService {
         }
 
         shiftRepository.findOpenShiftByOperator(operator.getId()).ifPresent(existing -> {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.OPERATOR_SHIFT_ALREADY_OPEN,
+                    Map.of("operatorName", operator.getFullName(), "shiftId", existing.getId()),
                     operator.getFullName() + " already has an open shift (ID " + existing.getId() + ").");
         });
 
@@ -222,7 +226,10 @@ public class ShiftLifecycleSupportService {
 
             if (endReading.compareTo(reading.getStartReading()) < 0
                     && !MeterRollover.canRollOverFrom(reading.getStartReading(), maxMeter)) {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.CLOSING_READING_BELOW_OPENING,
+                        Map.of("closingReading", endReading.toPlainString(),
+                                "openingReading", reading.getStartReading().toPlainString(),
+                                "fuelTypeCode", reading.getFuelType().name()),
                         "Closing reading " + endReading.toPlainString() + " is below the opening reading " +
                         reading.getStartReading().toPlainString() + " for the " + reading.getFuelType() +
                         " nozzle. Please verify the meter reading.");
@@ -296,7 +303,10 @@ public class ShiftLifecycleSupportService {
                     "Please add each client's name and amount.");
         }
         if (allCreditSum.compareTo(expectedCreditTotal) != 0) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.CREDIT_ENTRIES_TOTAL_MISMATCH,
+                    Map.of("entriesTotal", allCreditSum.toPlainString(),
+                            "alreadyRecorded", preExistingCreditSum.toPlainString(),
+                            "creditTotal", expectedCreditTotal.toPlainString()),
                     "Sum of all credit entries (₹" + allCreditSum + ", of which ₹" + preExistingCreditSum +
                     " was already recorded during the shift) does not match the credit total (₹" + expectedCreditTotal +
                     "). A credit entry may have been added while you were closing — reload the shift and check the entries.");

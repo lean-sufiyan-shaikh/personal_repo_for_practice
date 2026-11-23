@@ -6,6 +6,9 @@ import { userApi } from '../../../api/userApi'
 import type { StaffMember, UpdateStaffDetailsRequest, UserGender } from '../../../api/userApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { Spinner } from '../../../components/Spinner'
+import { LanguagePicker } from '../../../components/LanguagePicker'
+import { isAppLanguage } from '../../../i18n/languages'
+import type { AppLanguage } from '../../../i18n/languages'
 
 interface Props {
   pumpId: number
@@ -21,6 +24,7 @@ export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Prop
   const [editRole, setEditRole]                       = useState<string>(member.role)
   const [editGender, setEditGender]                   = useState<UserGender | ''>((member.gender as UserGender | null) ?? '')
   const [editNightShiftConsent, setEditNightShiftConsent] = useState(member.nightShiftConsent)
+  const [editLanguage, setEditLanguage]               = useState<AppLanguage>(isAppLanguage(member.preferredLanguage) ? member.preferredLanguage : 'en')
   const [editError, setEditError]                     = useState<string | null>(null)
 
   const detailsMutation = useMutation({
@@ -117,6 +121,8 @@ export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Prop
           </div>
         </div>
 
+        <LanguagePicker value={editLanguage} onChange={setEditLanguage} className="max-w-48" selectClassName="text-sm" />
+
         {/* Night shift consent — only for female operators */}
         {editRole === 'OPERATOR' && editGender === 'FEMALE' && (
           <label className="flex cursor-pointer items-start gap-3 rounded-card border border-warn bg-warn-bg px-3.5 py-3">
@@ -151,6 +157,7 @@ export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Prop
                 nightShiftConsent: editRole === 'OPERATOR' && editGender === 'FEMALE'
                   ? editNightShiftConsent
                   : false,
+                preferredLanguage: editLanguage,
               },
             })}
             className="ui-btn ui-btn-primary min-h-0 px-4 py-2 text-sm"

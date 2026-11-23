@@ -3,7 +3,7 @@ import { Check } from 'lucide-react'
 import { describe, expect, it } from 'vitest'
 import { StatusBadge } from './StatusBadge'
 import {
-  approvalStatusBadge, creditStandingBadge, creditTransactionBadge, discrepancyBadge, invoiceStatusBadge, SETTLEMENT_OVERDUE_BADGE, shiftStatusBadge,
+  approvalStatusBadge, creditStandingBadge, creditTransactionBadge, discrepancyBadge, invoiceStatusBadge, settlementOverdueBadge, shiftStatusBadge,
 } from './statusBadges'
 
 describe('StatusBadge', () => {
@@ -45,7 +45,7 @@ describe('status badge specs', () => {
     expect(invoiceStatusBadge('ISSUED')).toMatchObject({ tone: 'ok', label: 'Issued' })
     expect(creditStandingBadge('OK')).toMatchObject({ tone: 'ok', label: 'OK' })
     expect(creditStandingBadge('OVER_LIMIT')).toMatchObject({ tone: 'warn', label: 'Over limit' })
-    expect(SETTLEMENT_OVERDUE_BADGE).toMatchObject({ tone: 'bad', label: 'Overdue' })
+    expect(settlementOverdueBadge()).toMatchObject({ tone: 'bad', label: 'Overdue' })
   })
 
   it('reads a credit ledger row by its status first, then its type', () => {

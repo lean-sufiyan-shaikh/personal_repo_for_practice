@@ -1,5 +1,10 @@
 package com.ppms.common.exception;
 
+import com.ppms.auth.InvalidCredentialsException;
+import com.ppms.auth.PasswordPolicy;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.http.MediaType;
@@ -80,8 +85,77 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.message").value("You do not have permission to perform this action"));
     }
 
+    @Test
+    void businessErrorWithACodeSendsTheCodeAndParamsBesideTheEnglishMessage() throws Exception {
+        mockMvc.perform(get("/test/credit-limit"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CREDIT_LIMIT_EXCEEDED"))
+                .andExpect(jsonPath("$.params.clientName").value("Sharma Transport"))
+                .andExpect(jsonPath("$.params.limit").value("50000.00"))
+                .andExpect(jsonPath("$.message").value("Credit limit exceeded for 'Sharma Transport'."));
+    }
+
+    @Test
+    void businessErrorWithoutACodeSendsOnlyTheMessage() throws Exception {
+        mockMvc.perform(get("/test/plain-business"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Shift is not open."))
+                .andExpect(jsonPath("$.code").doesNotExist())
+                .andExpect(jsonPath("$.params").doesNotExist());
+    }
+
+    @Test
+    void tooManyLoginAttemptsAndWrongCredentialsCarryTheirCodes() throws Exception {
+        mockMvc.perform(get("/test/too-many"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("TOO_MANY_LOGIN_ATTEMPTS"))
+                .andExpect(jsonPath("$.params.minutes").value(15));
+        mockMvc.perform(get("/test/bad-credentials"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
+                .andExpect(jsonPath("$.message").value("Invalid phone number or password"));
+    }
+
+    @Test
+    void weakPasswordIsReportedWithThePasswordPolicyCode() throws Exception {
+        mockMvc.perform(post("/test/password").contentType(MediaType.APPLICATION_JSON).content("{\"password\":\"simple\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PASSWORD_POLICY"))
+                .andExpect(jsonPath("$.fieldErrors.password").value(PasswordPolicy.MESSAGE));
+        mockMvc.perform(post("/test/password").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").doesNotExist());
+    }
+
     @RestController
     static class FailingController {
+
+        @GetMapping("/test/credit-limit")
+        void creditLimit() {
+            throw new BusinessException(ErrorCodes.CREDIT_LIMIT_EXCEEDED,
+                    Map.of("clientName", "Sharma Transport", "limit", "50000.00"),
+                    "Credit limit exceeded for 'Sharma Transport'.");
+        }
+
+        @GetMapping("/test/plain-business")
+        void plainBusiness() {
+            throw new BusinessException("Shift is not open.");
+        }
+
+        @GetMapping("/test/too-many")
+        void tooMany() {
+            throw new TooManyRequestsException(ErrorCodes.TOO_MANY_LOGIN_ATTEMPTS, Map.of("minutes", 15),
+                    "Too many failed login attempts.");
+        }
+
+        @GetMapping("/test/bad-credentials")
+        void badCredentials() {
+            throw new InvalidCredentialsException("Invalid phone number or password");
+        }
+
+        @PostMapping("/test/password")
+        void password(@Valid @RequestBody PasswordBody body) {
+        }
 
         @GetMapping("/test/lock-timeout")
         void lockTimeout() {
@@ -110,5 +184,9 @@ class GlobalExceptionHandlerTest {
         void forbidden() {
             throw new org.springframework.security.access.AccessDeniedException(SECRET_DETAIL);
         }
+    }
+
+    record PasswordBody(
+            @NotBlank @Pattern(regexp = PasswordPolicy.REGEX, message = PasswordPolicy.MESSAGE) String password) {
     }
 }

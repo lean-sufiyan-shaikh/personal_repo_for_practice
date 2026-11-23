@@ -1,0 +1,113 @@
+{
+  "actions": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "dismiss": "Dismiss",
+    "discard": "Discard",
+    "keepEditing": "Keep editing",
+    "yes": "Yes",
+    "no": "No",
+    "delete": "Delete",
+    "reject": "Reject",
+    "rejecting": "Rejecting…",
+    "exportCsv": "Export CSV"
+  },
+  "language": {
+    "label": "Language",
+    "draftNote": "Translation in review",
+    "saveFailed": "Could not save your language. Please try again."
+  },
+  "loading": {
+    "app": "Loading...",
+    "page": "Loading page…"
+  },
+  "time": {
+    "justNow": "just now",
+    "secondsAgo": "{{value}}s ago",
+    "minutesAgo": "{{value}}m ago",
+    "hoursAgo": "{{value}}h ago",
+    "daysAgo": "{{value}}d ago",
+    "refreshing": "Refreshing…",
+    "updated": "Updated {{ago}}"
+  },
+  "confirm": {
+    "deletePrompt": "Delete?"
+  },
+  "discardDialog": {
+    "title": "Discard what you entered?",
+    "body": "The details you have typed in this form will be lost."
+  },
+  "rejectDialog": {
+    "reason": "Reason",
+    "placeholder": "e.g. No bill attached",
+    "missingReason": "Enter a reason for rejecting."
+  },
+  "pagination": {
+    "showing": "Showing",
+    "ofTotal": "of {{total}}",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "rowsPerPage": "Rows per page"
+  },
+  "select": {
+    "placeholder": "Select…",
+    "searchLabel": "Search {{label}}",
+    "searchOptions": "Search options",
+    "searchPlaceholder": "Type to search…",
+    "noResults": "No results found",
+    "resultCount_one": "{{count}} result",
+    "resultCount_other": "{{count}} results"
+  },
+  "offline": "You're offline. Changes can't be saved until the connection is back.",
+  "notifications": {
+    "title": "Notifications",
+    "bellUnread": "Notifications, {{count}} unread",
+    "unreadCount": "{{count}} unread",
+    "showingNewest": " · showing newest {{count}}",
+    "markShownRead": "Mark shown read",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications",
+    "allCaughtUp": "You're all caught up",
+    "unreadPrefix": "Unread: ",
+    "identicalAlerts": "({{count}} identical alerts)",
+    "viewAll": "View all notifications"
+  },
+  "csvExport": {
+    "exported_one": "Exported {{count}} row to {{filename}}",
+    "exported_other": "Exported {{count}} rows to {{filename}}",
+    "failed": "Could not export {{filename}}. Try again."
+  },
+  "draftRestored": "Resumed your unsaved entries from {{time}}",
+  "periodChange": {
+    "noChange": "No change vs previous period",
+    "upFromZero": "Up from zero vs previous period",
+    "downFromZero": "Down from zero vs previous period",
+    "up": "{{percent}}% up vs previous period",
+    "down": "{{percent}}% down vs previous period"
+  },
+  "datePresets": {
+    "groupLabel": "Quick date ranges",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This week",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "fyToDate": "FY to date"
+  },
+  "badges": {
+    "short": "SHORT",
+    "over": "OVER",
+    "balanced": "Balanced",
+    "pendingApproval": "Pending approval",
+    "rejected": "Rejected",
+    "voided": "Voided",
+    "waived": "Waived",
+    "sale": "Sale",
+    "shopSale": "Shop sale",
+    "interest": "Interest",
+    "paid": "Paid"
+  },
+  "passwordInput": {
+    "show": "Show password"
+  }
+}

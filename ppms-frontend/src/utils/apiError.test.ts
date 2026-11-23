@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { AxiosError, AxiosHeaders } from 'axios'
 import { NO_CONNECTION_MESSAGE, NO_SERVER_RESPONSE_MESSAGE, parseApiError, serverMessage } from './apiError'
+import { changeAppLanguage } from '../i18n'
 
 function axiosError(status: number | undefined, data?: unknown) {
   const response = status === undefined ? undefined : {
@@ -69,5 +70,49 @@ describe('serverMessage', () => {
 
   it('returns undefined for a non-Axios error', () => {
     expect(serverMessage(new Error('x'))).toBeUndefined()
+  })
+})
+
+describe('parseApiError in Hindi and Marathi', () => {
+  const creditLimitError = () => axiosError(400, {
+    message: "Credit limit exceeded for 'Sharma Transport'.",
+    code: 'CREDIT_LIMIT_EXCEEDED',
+    params: { clientName: 'Sharma Transport', outstanding: '48000.00', amount: '5000.00', limit: '50000.00' },
+  })
+
+  afterEach(async () => {
+    await changeAppLanguage('en')
+  })
+
+  it('keeps the server\'s own English message for English users', () => {
+    expect(parseApiError(creditLimitError())).toBe("Credit limit exceeded for 'Sharma Transport'.")
+  })
+
+  it('shows a coded error in the user\'s language with its params filled in', async () => {
+    await changeAppLanguage('hi')
+    expect(parseApiError(creditLimitError()))
+      .toBe("'Sharma Transport' की क्रेडिट सीमा पार हो गई। बकाया (समूह): 48000.00, यह एंट्री: 5000.00, सीमा: 50000.00।")
+  })
+
+  it('translates enum codes passed as params', async () => {
+    await changeAppLanguage('mr')
+    const message = parseApiError(axiosError(400, {
+      message: 'Closing reading 90 is below the opening reading 100 for the DIESEL nozzle.',
+      code: 'CLOSING_READING_BELOW_OPENING',
+      params: { closingReading: '90', openingReading: '100', fuelTypeCode: 'DIESEL' },
+    }))
+    expect(message).toContain('डिझेल नोझलचे शेवटचे रीडिंग 90')
+  })
+
+  it('falls back to the English server message for codes without a translation', async () => {
+    await changeAppLanguage('hi')
+    expect(parseApiError(axiosError(400, { message: 'Tank is inactive', code: 'TANK_INACTIVE' }))).toBe('Tank is inactive')
+    expect(parseApiError(axiosError(400, { message: 'Shift is not open.' }))).toBe('Shift is not open.')
+  })
+
+  it('translates the network and generic fallbacks', async () => {
+    await changeAppLanguage('mr')
+    expect(parseApiError(new AxiosError('Network Error', 'ERR_NETWORK'))).toBe('इंटरनेट नाही — नेटवर्क तपासा आणि पुन्हा प्रयत्न करा.')
+    expect(parseApiError(axiosError(500, { message: 'boom' }))).toBe('काहीतरी चुकले. कृपया पुन्हा प्रयत्न करा.')
   })
 })

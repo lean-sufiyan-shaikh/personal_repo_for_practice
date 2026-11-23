@@ -1,0 +1,113 @@
+{
+  "actions": {
+    "cancel": "रद्द करें",
+    "close": "बंद करें",
+    "dismiss": "हटाएँ",
+    "discard": "छोड़ दें",
+    "keepEditing": "भरना जारी रखें",
+    "yes": "हाँ",
+    "no": "नहीं",
+    "delete": "हटाएँ",
+    "reject": "अस्वीकार करें",
+    "rejecting": "अस्वीकार हो रहा है…",
+    "exportCsv": "CSV डाउनलोड करें"
+  },
+  "language": {
+    "label": "भाषा",
+    "draftNote": "अनुवाद की जाँच चल रही है",
+    "saveFailed": "आपकी भाषा सेव नहीं हो सकी। कृपया फिर से कोशिश करें।"
+  },
+  "loading": {
+    "app": "लोड हो रहा है...",
+    "page": "पेज लोड हो रहा है…"
+  },
+  "time": {
+    "justNow": "अभी-अभी",
+    "secondsAgo": "{{value}} सेकंड पहले",
+    "minutesAgo": "{{value}} मिनट पहले",
+    "hoursAgo": "{{value}} घंटे पहले",
+    "daysAgo": "{{value}} दिन पहले",
+    "refreshing": "ताज़ा हो रहा है…",
+    "updated": "{{ago}} अपडेट हुआ"
+  },
+  "confirm": {
+    "deletePrompt": "हटाएँ?"
+  },
+  "discardDialog": {
+    "title": "भरी हुई जानकारी छोड़ दें?",
+    "body": "इस फ़ॉर्म में भरी गई जानकारी मिट जाएगी।"
+  },
+  "rejectDialog": {
+    "reason": "कारण",
+    "placeholder": "जैसे: बिल नहीं लगा है",
+    "missingReason": "अस्वीकार करने का कारण लिखें।"
+  },
+  "pagination": {
+    "showing": "दिखा रहे हैं",
+    "ofTotal": "कुल {{total}} में से",
+    "previousPage": "पिछला पेज",
+    "nextPage": "अगला पेज",
+    "rowsPerPage": "हर पेज पर पंक्तियाँ"
+  },
+  "select": {
+    "placeholder": "चुनें…",
+    "searchLabel": "{{label}} खोजें",
+    "searchOptions": "विकल्प खोजें",
+    "searchPlaceholder": "खोजने के लिए लिखें…",
+    "noResults": "कुछ नहीं मिला",
+    "resultCount_one": "{{count}} परिणाम",
+    "resultCount_other": "{{count}} परिणाम"
+  },
+  "offline": "आप ऑफ़लाइन हैं। कनेक्शन लौटने तक बदलाव सेव नहीं होंगे।",
+  "notifications": {
+    "title": "सूचनाएँ",
+    "bellUnread": "सूचनाएँ, {{count}} बिना पढ़ी",
+    "unreadCount": "{{count}} बिना पढ़ी",
+    "showingNewest": " · नई {{count}} दिखा रहे हैं",
+    "markShownRead": "दिखाई गई पढ़ी हुई करें",
+    "markAllRead": "सभी पढ़ी हुई करें",
+    "empty": "कोई सूचना नहीं",
+    "allCaughtUp": "सब देख लिया गया है",
+    "unreadPrefix": "बिना पढ़ी: ",
+    "identicalAlerts": "({{count}} एक जैसी सूचनाएँ)",
+    "viewAll": "सभी सूचनाएँ देखें"
+  },
+  "csvExport": {
+    "exported_one": "{{count}} पंक्ति {{filename}} में सेव हुई",
+    "exported_other": "{{count}} पंक्तियाँ {{filename}} में सेव हुईं",
+    "failed": "{{filename}} सेव नहीं हो सकी। फिर से कोशिश करें।"
+  },
+  "draftRestored": "{{time}} की बिना सेव की गई एंट्री वापस भरी गई",
+  "periodChange": {
+    "noChange": "पिछली अवधि से कोई बदलाव नहीं",
+    "upFromZero": "पिछली अवधि में शून्य था, अब बढ़ा",
+    "downFromZero": "पिछली अवधि में शून्य था, अब घटा",
+    "up": "पिछली अवधि से {{percent}}% ज़्यादा",
+    "down": "पिछली अवधि से {{percent}}% कम"
+  },
+  "datePresets": {
+    "groupLabel": "तुरंत तारीख चुनें",
+    "today": "आज",
+    "yesterday": "कल",
+    "thisWeek": "इस हफ़्ते",
+    "thisMonth": "इस महीने",
+    "lastMonth": "पिछले महीने",
+    "fyToDate": "वित्त वर्ष अब तक"
+  },
+  "badges": {
+    "short": "कम",
+    "over": "ज़्यादा",
+    "balanced": "संतुलित",
+    "pendingApproval": "मंज़ूरी बाकी",
+    "rejected": "अस्वीकृत",
+    "voided": "रद्द",
+    "waived": "माफ़",
+    "sale": "बिक्री",
+    "shopSale": "दुकान बिक्री",
+    "interest": "ब्याज",
+    "paid": "भुगतान हुआ"
+  },
+  "passwordInput": {
+    "show": "पासवर्ड दिखाएँ"
+  }
+}

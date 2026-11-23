@@ -1,4 +1,5 @@
 import type { FormEventHandler, ReactNode, Ref, RefObject } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ModalPortal } from './ModalPortal'
 import { IconButton } from './IconButton'
 
@@ -61,6 +62,7 @@ export function Modal({
   headerClassName = '',
   children,
 }: ModalProps) {
+  const { t } = useTranslation()
   const toneClass = tone ? `ui-modal-header--themed ui-modal-header--${tone}` : ''
   const content = (
     <>
@@ -80,7 +82,7 @@ export function Modal({
               {headerExtra}
             </div>
             {headerActions && <div className="flex items-center gap-2">{headerActions}</div>}
-            <IconButton label="Close" icon="×" onClick={onClose} disabled={!canClose} className="ui-btn ui-btn-ghost ui-modal-close" />
+            <IconButton label={t('actions.close')} icon="×" onClick={onClose} disabled={!canClose} className="ui-btn ui-btn-ghost ui-modal-close" />
           </div>
           {onSubmit ? (
             <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">{content}</form>

@@ -2,6 +2,7 @@ package com.ppms.credit;
 
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +59,8 @@ public class CreditAccountPolicyService {
     /** Refuses credit to a disabled client, and to a sub-account whose parent account is disabled. */
     public void requireClientAcceptsCredit(CreditClient client) {
         if (!client.isActive()) {
-            throw new BusinessException("Credit is disabled for '" + client.getName()
+            throw new BusinessException(ErrorCodes.CREDIT_CLIENT_DISABLED, Map.of("clientName", client.getName()),
+                    "Credit is disabled for '" + client.getName()
                     + "'. Enable the client on the Credit page before giving it credit.");
         }
         if (client.getParentClientId() == null) {
@@ -95,7 +97,11 @@ public class CreditAccountPolicyService {
             BigDecimal combinedOutstanding = creditInterestService.computeOutstandingWithChildren(limitHolder.getId());
             BigDecimal projectedOutstanding = combinedOutstanding.add(amount).setScale(2, RoundingMode.HALF_UP);
             if (projectedOutstanding.compareTo(limitHolder.getCreditLimit()) > 0) {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.CREDIT_LIMIT_EXCEEDED,
+                        Map.of("clientName", limitHolder.getName(),
+                                "outstanding", combinedOutstanding.setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                                "amount", amount.setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                                "limit", limitHolder.getCreditLimit().setScale(2, RoundingMode.HALF_UP).toPlainString()),
                         "Credit limit exceeded for '" + limitHolder.getName() + "'. " +
                                 "Current outstanding (group): " + combinedOutstanding.setScale(2, RoundingMode.HALF_UP) +
                                 ", entries in this shift: " + amount.setScale(2, RoundingMode.HALF_UP) +
@@ -170,7 +176,11 @@ public class CreditAccountPolicyService {
             BigDecimal effectiveLimit = effectiveLimit(limitHolder, activeExtensions);
 
             if (projected.compareTo(effectiveLimit) > 0) {
-                throw new BusinessException(
+                throw new BusinessException(ErrorCodes.CREDIT_LIMIT_EXCEEDED,
+                        Map.of("clientName", limitHolder.getName(),
+                                "outstanding", combinedOutstanding.setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                                "amount", amount.setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                                "limit", effectiveLimit.setScale(2, RoundingMode.HALF_UP).toPlainString()),
                         "Credit limit exceeded for '" + limitHolder.getName() + "'. " +
                                 "Outstanding (group): " + combinedOutstanding.setScale(2, RoundingMode.HALF_UP) +
                                 ", this entry: " + amount +
@@ -179,7 +189,7 @@ public class CreditAccountPolicyService {
         }
 
         if (!hasCycleWaiver(activeExtensions) && isBillingCycleOverdue(limitHolder)) {
-            throw new BusinessException(
+            throw new BusinessException(ErrorCodes.CREDIT_BILLING_CYCLE_OVERDUE, Map.of("clientName", limitHolder.getName()),
                     "Credit sales blocked for '" + limitHolder.getName() + "': billing cycle overdue. " +
                             "The client must settle their outstanding balance or an Admin/Owner must grant a Credit Extension.");
         }
