@@ -9,7 +9,6 @@ import { useEscapeKey } from '../../../hooks/useEscapeKey'
 import { useIsPhone } from '../../../hooks/useIsPhone'
 import { useMediaQuery } from '../../../hooks/useMediaQuery'
 import { useAuthStore } from '../../../store/authStore'
-import { roleLabel } from '../../../constants/labels'
 import { isNavPathActive, navGroupsFor, navItemLabel } from '../navItems'
 import type { NavGroupId } from '../navItems'
 import { PumpSwitcher } from './PumpSwitcher'
@@ -69,10 +68,7 @@ export function DashboardSidebar({ pumpName, switchablePumps, drawerOpen, onClos
         className={`ui-dashboard-sidebar print:hidden ${drawerOpen ? 'ui-dashboard-sidebar--open' : ''} ${isRail ? 'ui-dashboard-sidebar--rail' : ''}`}
       >
         <div className="ui-dashboard-sidebar-head">
-          <div>
-            <p className="ui-dashboard-sidebar-title">{t('sidebar.title')}</p>
-            <p className="ui-dashboard-sidebar-subtitle">{t('sidebar.workspace', { role: roleLabel(user?.role) })}</p>
-          </div>
+          <p className="ui-dashboard-sidebar-title">{t('sidebar.title')}</p>
           <IconButton label={t('sidebar.closeMenu')} onClick={onCloseDrawer} className="ui-btn ui-btn-ghost ui-dashboard-drawer-close"
             icon={<X size={18} strokeWidth={2} />} />
         </div>

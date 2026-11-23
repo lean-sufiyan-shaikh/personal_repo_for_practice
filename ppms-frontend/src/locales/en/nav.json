@@ -44,8 +44,7 @@
   },
   "sidebar": {
     "label": "Main",
-    "title": "Navigation",
-    "workspace": "{{role}} workspace",
+    "title": "Menu",
     "closeMenu": "Close menu",
     "currentPump": "Current pump",
     "collapse": "Collapse sidebar"

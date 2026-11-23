@@ -39,7 +39,8 @@ describe('DashboardSidebar as a phone drawer', () => {
     const nav = screen.getByRole('navigation', { name: 'Main' })
     expect(nav).toHaveClass('ui-dashboard-sidebar--open')
     expect(screen.getByRole('link', { name: 'Shifts' })).toBeInTheDocument()
-    expect(screen.getByText('Owner workspace')).toBeInTheDocument()
+    expect(screen.getByText('Menu')).toBeInTheDocument()
+    expect(screen.queryByText('Owner workspace')).not.toBeInTheDocument()
   })
 
   it('moves focus into the drawer when it opens', () => {

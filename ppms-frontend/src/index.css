@@ -1205,10 +1205,11 @@
     white-space: nowrap;
   }
 
+  /* Only the phone drawer needs a title row (with its close button); a permanent sidebar is plainly navigation. */
   .ui-dashboard-sidebar-head {
     padding: 1rem 1rem 0.25rem;
-    display: flex;
-    align-items: flex-start;
+    display: none;
+    align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
   }
@@ -1303,12 +1304,6 @@
     line-height: 1rem;
     font-weight: 500;
     color: var(--color-ink-3);
-  }
-
-  .ui-dashboard-sidebar-subtitle {
-    margin: 0.25rem 0 0;
-    font-size: 0.875rem;
-    color: var(--color-ink-2);
   }
 
   .ui-dashboard-navlink {
@@ -2513,6 +2508,10 @@
 
     .ui-btn.ui-dashboard-drawer-close {
       display: inline-flex;
+    }
+
+    .ui-dashboard-sidebar-head {
+      display: flex;
     }
 
     .ui-dashboard-sidebar {

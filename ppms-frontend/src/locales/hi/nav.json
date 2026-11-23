@@ -45,7 +45,6 @@
   "sidebar": {
     "label": "मुख्य",
     "title": "मेनू",
-    "workspace": "{{role}} कार्यक्षेत्र",
     "closeMenu": "मेनू बंद करें",
     "currentPump": "मौजूदा पंप",
     "collapse": "साइडबार छोटा करें"
