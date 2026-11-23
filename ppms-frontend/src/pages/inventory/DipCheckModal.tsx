@@ -5,10 +5,9 @@ import { inventoryApi } from '../../api/inventoryApi'
 import { userApi } from '../../api/userApi'
 import type { OpenShiftNozzle, TankStock } from '../../api/inventoryApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
-import { ModalPortal } from '../../components/ModalPortal'
+import { Modal } from '../../components/Modal'
 import { parseApiError } from '../../utils/apiError'
 import { FUEL_COLORS } from './inventoryFormat'
-import { IconButton } from '../../components/IconButton'
 import { NumericInput } from '../../components/NumericInput'
 import { useToastStore } from '../../store/toastStore'
 
@@ -95,24 +94,36 @@ export function DipCheckModal({
   }
 
   return (
-    <ModalPortal onClose={onClose} closeOnBackdropClick>
-    <div className="ui-modal-backdrop">
-      <div className="ui-modal-panel w-full max-w-sm overflow-hidden">
-        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--neutral">
-          <div className="ui-modal-heading">
-            <h2 className="ui-modal-title">DIP Check</h2>
-            <p className="ui-modal-subtitle">
-              {tank.tankIdentifier} — <span className={cols.text.replace('text-', 'text-')}>{tank.fuelType}</span>
-            </p>
-          </div>
-          <IconButton label="Close" icon="×" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close" />
-        </div>
-
-        <form onSubmit={handleSubmit} className="ui-modal-body space-y-4">
+    <Modal
+      title="DIP Check"
+      subtitle={<>{tank.tankIdentifier} — <span className={cols.text}>{tank.fuelType}</span></>}
+      tone="neutral"
+      size="sm"
+      onClose={onClose}
+      closeOnBackdropClick
+      onSubmit={handleSubmit}
+      bodyClassName="space-y-4"
+      footer={<>
+        <button
+          type="button"
+          onClick={onClose}
+          className="ui-btn ui-btn-secondary flex-1"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={mutation.isPending || openShiftNozzlesLoading}
+          className="ui-btn ui-btn-primary flex-1"
+        >
+          {mutation.isPending ? 'Saving...' : 'Save DIP Check'}
+        </button>
+      </>}
+    >
           {/* Current system stock */}
-          <div className="bg-slate-50 rounded-lg px-4 py-3 text-xs text-slate-500">
+          <div className="bg-surface-sunken rounded-control px-4 py-3 text-xs text-ink-3">
             System stock right now:{' '}
-            <span className="font-bold text-slate-700">
+            <span className="font-bold text-ink tabular-nums">
               {tank.currentStock.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
             </span>
             <span className="block mt-1">Recorded for today — a DIP check cannot be back-dated.</span>
@@ -120,11 +131,11 @@ export function DipCheckModal({
 
           {/* Meter readings of nozzles on open shifts */}
           {openShiftNozzlesLoading ? (
-            <p className="text-xs text-slate-500">Checking for open shifts on this tank…</p>
+            <p className="text-xs text-ink-3">Checking for open shifts on this tank…</p>
           ) : openShiftNozzles.length > 0 && (
             <fieldset className="space-y-3">
               <legend className="ui-label">Current meter readings</legend>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-ink-3">
                 A shift is still open on this tank. Fuel it has sold since opening has not left stock yet,
                 so enter each nozzle&apos;s meter reading now.
               </p>
@@ -143,15 +154,15 @@ export function DipCheckModal({
                       aria-describedby={`opening-reading-${n.nozzleId}`}
                     />
                   </label>
-                  <p id={`opening-reading-${n.nozzleId}`} className="text-xs text-slate-500 mt-1">
+                  <p id={`opening-reading-${n.nozzleId}`} className="text-xs text-ink-3 mt-1">
                     Opened at {n.openingReading.toLocaleString('en-IN', { minimumFractionDigits: 3 })}
                   </p>
                 </div>
               ))}
               {soldKnown && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-ink-3">
                   Expected in tank after sales so far:{' '}
-                  <span className="font-bold text-slate-700">
+                  <span className="font-bold text-ink tabular-nums">
                     {expectedStock.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
                   </span>
                 </p>
@@ -179,12 +190,12 @@ export function DipCheckModal({
 
           {/* Live variance preview */}
           {variance !== null && (
-            <div className={`rounded-lg px-4 py-2.5 text-xs flex items-center justify-between ${
+            <div className={`rounded-control px-4 py-2.5 text-xs flex items-center justify-between ${
               Math.abs(variance) < tank.dipTolerance
-                ? 'bg-emerald-50 text-emerald-700'
+                ? 'bg-ok-bg text-ok'
                 : variance > 0
-                  ? 'bg-amber-50 text-amber-700'
-                  : 'bg-red-50 text-red-700'
+                  ? 'bg-warn-bg text-warn'
+                  : 'bg-bad-bg text-bad'
             }`}>
               <span>
                 {Math.abs(variance) < tank.dipTolerance
@@ -193,7 +204,7 @@ export function DipCheckModal({
                     ? 'Surplus detected'
                     : 'Shortage detected'}
               </span>
-              <span className="font-bold">
+              <span className="font-bold tabular-nums">
                 {variance > 0 ? '+' : ''}{variance.toFixed(1)} L variance
               </span>
             </div>
@@ -202,7 +213,7 @@ export function DipCheckModal({
           {/* Operator */}
           <div>
             <span className="ui-label">
-              Checked By <span className="text-slate-500">(optional)</span>
+              Checked By <span className="text-ink-3">(optional)</span>
             </span>
             <SearchableSelect label="Checked By"
               value={checkedByUserId}
@@ -219,7 +230,7 @@ export function DipCheckModal({
           <div>
             <label className="block">
               <span className="ui-label">
-              Notes <span className="text-slate-500">(optional)</span>
+              Notes <span className="text-ink-3">(optional)</span>
             </span>
               <input
                 type="text"
@@ -232,26 +243,6 @@ export function DipCheckModal({
           </div>
 
           {error && <p role="alert" className="ui-error-text">{error}</p>}
-
-          <div className="ui-modal-footer -mx-6 -mb-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="ui-btn ui-btn-secondary flex-1"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={mutation.isPending || openShiftNozzlesLoading}
-              className="ui-btn ui-btn-primary flex-1 bg-slate-700 hover:bg-slate-800 disabled:bg-slate-400"
-            >
-              {mutation.isPending ? 'Saving...' : 'Save DIP Check'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-    </ModalPortal>
+    </Modal>
   )
 }

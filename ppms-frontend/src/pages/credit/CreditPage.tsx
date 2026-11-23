@@ -10,7 +10,7 @@ import { Reveal } from '../../components/Reveal'
 import { ClientDetail } from './ClientDetail'
 import { LedgerTab } from './LedgerTab'
 import { CreditClientsTab } from './CreditClientsTab'
-import { formatDecimal } from '../../utils/format'
+import { MoneyText } from '../../components/AmountText'
 
 const CREDIT_PATH = '/dashboard/credit'
 
@@ -111,7 +111,7 @@ export default function CreditPage() {
           {canSeeLedger && (
             <div className="ui-section-meta-pill">
               <span className="ui-section-meta-label">Outstanding</span>
-              <span className="ui-section-meta-value">₹{formatDecimal(totalOutstanding)}</span>
+              <MoneyText value={totalOutstanding} className="ui-section-meta-value" />
             </div>
           )}
         </div>

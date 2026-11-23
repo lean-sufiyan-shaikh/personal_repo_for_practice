@@ -79,7 +79,7 @@ export default function InventoryPage() {
   if (!isOwnerOrAdmin && !pumpId) {
     return (
       <div className="p-6">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700 text-sm">
+        <div className="bg-warn-bg border border-warn rounded-card p-4 text-warn text-sm">
           You are not assigned to any pump. Ask the Owner or Admin to assign you.
         </div>
       </div>
@@ -130,7 +130,7 @@ export default function InventoryPage() {
               >
                 <span className="ui-toolbar-title mr-0">Current Stock Levels</span>
                 {selectedPump && (
-                  <span className="text-xs text-slate-500">{selectedPump.name}</span>
+                  <span className="text-xs text-ink-3">{selectedPump.name}</span>
                 )}
                 <span className={`ui-accordion-arrow ml-1 ${stockOpen ? 'ui-accordion-arrow--open' : ''}`}><ChevronDown size={14} strokeWidth={2} /></span>
               </button>
@@ -144,15 +144,15 @@ export default function InventoryPage() {
             </div>
 
             {stockOpen && (
-              <div className="ui-accordion-content border-t border-slate-100">
+              <div className="ui-accordion-content border-t border-border">
                 {tanksLoading ? (
-                  <div className="p-6 text-sm text-slate-500">Loading stock levels...</div>
+                  <div className="p-6 text-sm text-ink-3">Loading stock levels...</div>
                 ) : tanks.length === 0 ? (
-                  <div className="p-6 text-sm text-slate-500">
+                  <div className="p-6 text-sm text-ink-3">
                     No tanks configured. Add nozzles in Setup to auto-create tanks.
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-border">
                     {tanks.map(tank => {
                       const last = lastDipByTankId.get(tank.tankId)
                       const dipOverdue = !last || now - last.getTime() > TWENTY_FOUR_HOURS

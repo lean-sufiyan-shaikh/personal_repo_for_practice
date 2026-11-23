@@ -8,7 +8,7 @@ import { addDays, localDateInputValue } from '../../utils/date'
 import { Reveal } from '../../components/Reveal'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
-import { ModalPortal } from '../../components/ModalPortal'
+import { Modal } from '../../components/Modal'
 import { parseApiError } from '../../utils/apiError'
 import { CalibrationReviewRow } from './CalibrationReviewRow'
 import { fmtDate } from './calibrationFormat'
@@ -197,47 +197,41 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
       </Reveal>
 
       {reviewOpen && (
-        <ModalPortal onClose={() => setReviewOpen(false)} closeOnBackdropClick>
-        <div className="ui-modal-backdrop">
-          <div className="ui-modal-panel w-full max-w-md">
-            <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
-              <div className="ui-modal-heading">
-                <h2 className="ui-modal-title">Review Calibration</h2>
-                <p className="ui-modal-subtitle">Verify the nozzle and calibration details before saving.</p>
-              </div>
-              <button type="button" aria-label="Close" onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
-            </div>
-            <div className="ui-modal-body space-y-4">
-              {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
-              <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
-                <CalibrationReviewRow
-                  label="Nozzle"
-                  value={selectedNozzle
-                    ? `Nozzle #${selectedNozzle.nozzleNumber} — ${selectedNozzle.fuelType}`
-                    : '—'}
-                />
-                <CalibrationReviewRow label="Calibration Date" value={fmtDate(form.calibrationDate)} />
-                <CalibrationReviewRow label="Next Calibration Due" value={form.nextCalibrationDue ? fmtDate(form.nextCalibrationDue) : '—'} />
-                <CalibrationReviewRow label="Calibrated By" value={form.calibratedBy?.trim() || '—'} />
-                <CalibrationReviewRow label="Certificate Reference" value={form.certificateReference?.trim() || '—'} />
-                <CalibrationReviewRow label="Notes" value={form.notes?.trim() || '—'} />
-              </div>
-            </div>
-            <div className="ui-modal-footer">
-              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
-                Back
-              </button>
-              <button
-                onClick={submitCalibration}
-                disabled={createMutation.isPending}
-                className="ui-btn ui-btn-primary"
-              >
-                {createMutation.isPending ? 'Saving…' : 'Confirm Calibration'}
-              </button>
-            </div>
+        <Modal
+          title="Review Calibration"
+          subtitle="Verify the nozzle and calibration details before saving."
+          tone="info"
+          onClose={() => setReviewOpen(false)}
+          closeOnBackdropClick
+          bodyClassName="space-y-4"
+          footer={<>
+            <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
+              Back
+            </button>
+            <button
+              onClick={submitCalibration}
+              disabled={createMutation.isPending}
+              className="ui-btn ui-btn-primary"
+            >
+              {createMutation.isPending ? 'Saving…' : 'Confirm Calibration'}
+            </button>
+          </>}
+        >
+          {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
+          <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
+            <CalibrationReviewRow
+              label="Nozzle"
+              value={selectedNozzle
+                ? `Nozzle #${selectedNozzle.nozzleNumber} — ${selectedNozzle.fuelType}`
+                : '—'}
+            />
+            <CalibrationReviewRow label="Calibration Date" value={fmtDate(form.calibrationDate)} />
+            <CalibrationReviewRow label="Next Calibration Due" value={form.nextCalibrationDue ? fmtDate(form.nextCalibrationDue) : '—'} />
+            <CalibrationReviewRow label="Calibrated By" value={form.calibratedBy?.trim() || '—'} />
+            <CalibrationReviewRow label="Certificate Reference" value={form.certificateReference?.trim() || '—'} />
+            <CalibrationReviewRow label="Notes" value={form.notes?.trim() || '—'} />
           </div>
-        </div>
-        </ModalPortal>
+        </Modal>
       )}
     </>
   )

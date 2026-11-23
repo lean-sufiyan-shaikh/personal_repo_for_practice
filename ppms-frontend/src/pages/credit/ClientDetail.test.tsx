@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { creditApi } from '../../api/creditApi'
@@ -72,7 +72,23 @@ describe('ClientDetail pending payment approval', () => {
     signIn('OWNER', 1)
     await renderClient()
     await user.click(await screen.findByRole('button', { name: 'Approve' }))
-    expect(creditApi.approvePayment).toHaveBeenCalledWith(PUMP_ID, PAYMENT_ID, 'APPROVED')
+    expect(creditApi.approvePayment).toHaveBeenCalledWith(PUMP_ID, PAYMENT_ID, 'APPROVED', undefined)
+  })
+
+  it('asks for a reason before rejecting the payment and sends it with the rejection', async () => {
+    const user = userEvent.setup()
+    signIn('OWNER', 1)
+    await renderClient()
+    await user.click(await screen.findByRole('button', { name: 'Reject' }))
+
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: 'Reject' }))
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Enter a reason for rejecting.')
+    expect(creditApi.approvePayment).not.toHaveBeenCalled()
+
+    await user.type(within(dialog).getByLabelText(/Reason/), 'Cheque bounced')
+    await user.click(within(dialog).getByRole('button', { name: 'Reject' }))
+    expect(creditApi.approvePayment).toHaveBeenCalledWith(PUMP_ID, PAYMENT_ID, 'REJECTED', 'Cheque bounced')
   })
 
   it('hides Approve and Reject from the user who recorded the payment', async () => {
@@ -169,7 +185,7 @@ describe('ClientDetail pending payment display', () => {
 
   it('labels the payment as pending instead of paid and keeps the outstanding figure the list shows', async () => {
     await renderClient()
-    expect(screen.queryByText('↓ Paid')).not.toBeInTheDocument()
+    expect(screen.queryByText('Paid')).not.toBeInTheDocument()
     expect(screen.queryByText(/PENDING_APPROVAL/)).not.toBeInTheDocument()
     expect(screen.getByText('Not counted in balance')).toBeInTheDocument()
     expect(screen.getAllByText('₹5,000.00').length).toBeGreaterThan(0)

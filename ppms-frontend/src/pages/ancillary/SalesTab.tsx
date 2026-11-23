@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { History } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
-import type { AncillaryProduct } from '../../api/ancillaryApi'
+import type { AncillaryProduct, AncillarySale } from '../../api/ancillaryApi'
 import { Pagination } from '../../components/Pagination'
 import { EmptyState } from '../../components/EmptyState'
 import { BackfillSaleModal } from './BackfillSaleModal'
-import { fmtCurrency, fmtDate } from './ancillaryFormat'
-import { ScrollRegion } from '../../components/ScrollRegion'
-import { codeLabel } from '../../constants/labels'
+import { fmtDate, paymentModeBadge } from './ancillaryFormat'
+import { DataTable } from '../../components/DataTable'
+import type { DataTableColumn } from '../../components/DataTable'
+import { StatusBadge } from '../../components/StatusBadge'
+import { MoneyText } from '../../components/AmountText'
 
 // ── Sales History Tab ─────────────────────────────────────────────────────────
 
@@ -33,13 +36,16 @@ export function SalesTab({
   })
   const sales = salesPageData?.content ?? []
 
-  const modeColor: Record<string, string> = {
-    CASH: 'bg-emerald-100 text-emerald-700',
-    UPI: 'bg-blue-100 text-blue-700',
-    CARD: 'bg-purple-100 text-purple-700',
-    FLEET_CARD: 'bg-amber-100 text-amber-700',
-    CREDIT: 'bg-red-100 text-red-700',
-  }
+  const columns: DataTableColumn<AncillarySale>[] = [
+    { key: 'date', header: 'Date', className: 'px-5 text-ink-2 whitespace-nowrap', cell: (sale) => fmtDate(sale.saleDate) },
+    { key: 'product', header: 'Product', className: 'px-5 text-ink font-medium max-w-[180px] truncate', cell: (sale) => sale.productDisplayName },
+    { key: 'qty', header: 'Qty', numeric: true, className: 'px-5', cell: (sale) => sale.quantityUnits },
+    { key: 'pricePerUnit', header: 'Price/Unit', numeric: true, className: 'px-5 text-ink-3', cell: (sale) => <MoneyText value={sale.sellingPricePerUnit} /> },
+    { key: 'total', header: 'Total', numeric: true, className: 'px-5 font-semibold text-ink', cell: (sale) => <MoneyText value={sale.totalAmount} /> },
+    { key: 'mode', header: 'Mode', className: 'px-5', cell: (sale) => <StatusBadge {...paymentModeBadge(sale.paymentMode)} /> },
+    { key: 'client', header: 'Client', className: 'px-5 text-ink-3', cell: (sale) => sale.clientName ?? '—' },
+    { key: 'type', header: 'Type', className: 'px-5', cell: (sale) => sale.isBackfilled && <StatusBadge tone="info" icon={History} label="Backfilled" /> },
+  ]
 
   return (
     <div className="space-y-4">
@@ -56,53 +62,21 @@ export function SalesTab({
       )}
 
       <div className="ui-card p-0">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-700">Sales History</h3>
+        <div className="px-5 py-4 border-b border-border">
+          <h3 className="text-sm font-semibold text-ink">Sales History</h3>
         </div>
         {sales.length === 0 ? (
           <EmptyState icon="transactions" title="No sales recorded yet" subtitle="Sales will appear here after you record them." />
         ) : (
           <>
-            <ScrollRegion label="Product sales" className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-xs text-slate-500 uppercase border-b border-slate-100">
-                    <th scope="col" className="px-5 py-3 text-left">Date</th>
-                    <th scope="col" className="px-5 py-3 text-left">Product</th>
-                    <th scope="col" className="px-5 py-3 text-right">Qty</th>
-                    <th scope="col" className="px-5 py-3 text-right">Price/Unit</th>
-                    <th scope="col" className="px-5 py-3 text-right">Total</th>
-                    <th scope="col" className="px-5 py-3 text-left">Mode</th>
-                    <th scope="col" className="px-5 py-3 text-left">Client</th>
-                    <th scope="col" className="px-5 py-3 text-left">Type</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sales.map(s => (
-                    <tr key={s.id} className="border-b border-slate-50 hover:bg-slate-50">
-                      <td className="px-5 py-3 text-slate-600 whitespace-nowrap">{fmtDate(s.saleDate)}</td>
-                      <td className="px-5 py-3 text-slate-700 font-medium max-w-[180px] truncate">{s.productDisplayName}</td>
-                      <td className="px-5 py-3 text-right">{s.quantityUnits}</td>
-                      <td className="px-5 py-3 text-right text-slate-500">{fmtCurrency(s.sellingPricePerUnit)}</td>
-                      <td className="px-5 py-3 text-right font-semibold text-slate-800">{fmtCurrency(s.totalAmount)}</td>
-                      <td className="px-5 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${modeColor[s.paymentMode] ?? 'bg-slate-100 text-slate-600'}`}>
-                          {codeLabel(s.paymentMode)}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-slate-500">{s.clientName ?? '—'}</td>
-                      <td className="px-5 py-3">
-                        {s.isBackfilled && (
-                          <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-medium">
-                            Backfilled
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </ScrollRegion>
+            <DataTable
+              caption="Product sales"
+              captionHidden
+              columns={columns}
+              rows={sales}
+              rowKey={(sale) => sale.id}
+              className="rounded-none border-0"
+            />
             {salesPageData && (
               <div className="px-5">
                 <Pagination

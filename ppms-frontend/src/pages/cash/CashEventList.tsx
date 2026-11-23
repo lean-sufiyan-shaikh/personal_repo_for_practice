@@ -4,7 +4,9 @@ import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
 import { Reveal } from '../../components/Reveal'
 import { EmptyState } from '../../components/EmptyState'
-import { EVENT_STYLES, EVENT_TYPES, fmtAmt, fmtDate } from './cashFormat'
+import { StatusBadge } from '../../components/StatusBadge'
+import { MoneyText } from '../../components/AmountText'
+import { EVENT_BADGES, EVENT_TYPES, fmtDate } from './cashFormat'
 import type { CashEventsState } from './useCashEvents'
 import { codeLabel } from '../../constants/labels'
 
@@ -22,21 +24,21 @@ export function CashEventList({ events }: { events: CashEventsState }) {
         <p className="ui-toolbar-title">Cash Events</p>
         <div className="ui-toolbar-actions">
           <div className="flex items-center gap-1.5">
-            <label htmlFor="cash-events-from" className="text-xs text-slate-500 whitespace-nowrap">From</label>
+            <label htmlFor="cash-events-from" className="text-xs text-ink-3 whitespace-nowrap">From</label>
             <input id="cash-events-from"
               type="date"
               value={fromDate}
               onChange={e => { setFromDate(e.target.value); setPage(0) }}
-              className="text-xs h-7 px-2 rounded-lg border border-slate-200"
+              className="text-xs h-7 px-2 rounded-control border border-border"
             />
           </div>
           <div className="flex items-center gap-1.5">
-            <label htmlFor="cash-events-to" className="text-xs text-slate-500 whitespace-nowrap">To</label>
+            <label htmlFor="cash-events-to" className="text-xs text-ink-3 whitespace-nowrap">To</label>
             <input id="cash-events-to"
               type="date"
               value={toDate}
               onChange={e => { setToDate(e.target.value); setPage(0) }}
-              className="text-xs h-7 px-2 rounded-lg border border-slate-200"
+              className="text-xs h-7 px-2 rounded-control border border-border"
             />
           </div>
           <div className="w-44">
@@ -67,21 +69,20 @@ export function CashEventList({ events }: { events: CashEventsState }) {
             {filteredEvents.map(ev => (
               <div key={ev.id} className="ui-record-row">
                 <div className="flex items-center gap-3 min-w-0 ui-record-row__main">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${EVENT_STYLES[ev.eventType]}`}>
-                    {codeLabel(ev.eventType)}
-                  </span>
+                  <StatusBadge {...EVENT_BADGES[ev.eventType]} label={codeLabel(ev.eventType)} className="flex-shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-sm text-slate-700 truncate">{ev.description}</p>
+                    <p className="text-sm text-ink truncate">{ev.description}</p>
                     <div className="ui-record-row__meta mt-0">
                       <span>{fmtDate(ev.eventDate)}</span>
                     </div>
                   </div>
                 </div>
-                <span className={`text-sm font-semibold flex-shrink-0 ${
-                  ev.eventType === 'CASH_OUT' ? 'text-red-600' : 'text-emerald-600'
-                }`}>
-                  {ev.eventType === 'CASH_OUT' ? '−' : '+'}{fmtAmt(ev.amount)}
-                </span>
+                <MoneyText
+                  value={ev.eventType === 'CASH_OUT' ? -ev.amount : ev.amount}
+                  showSign
+                  tone={ev.eventType === 'CASH_OUT' ? 'bad' : 'ok'}
+                  className="text-sm font-semibold flex-shrink-0"
+                />
               </div>
             ))}
           </div>

@@ -1,6 +1,6 @@
 import { usePumpStore } from '../../store/usePumpStore'
 import { Reveal } from '../../components/Reveal'
-import { fmtAmt } from './cashFormat'
+import { MoneyText } from '../../components/AmountText'
 import { CashEntryForm } from './CashEntryForm'
 import { CashEventList } from './CashEventList'
 import { useCashEvents } from './useCashEvents'
@@ -26,7 +26,7 @@ export default function CashDrawerPage() {
         <div className="ui-section-meta">
           <div className="ui-section-meta-pill">
             <span className="ui-section-meta-label">Balance</span>
-            <span className="ui-section-meta-value">{fmtAmt(balance)}</span>
+            <MoneyText value={balance} className="ui-section-meta-value" />
           </div>
           <div className="ui-section-meta-pill">
             <span className="ui-section-meta-label">Events</span>
@@ -44,10 +44,10 @@ export default function CashDrawerPage() {
 
       {/* ── Balance card ── */}
       <Reveal delay={130}>
-      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-3xl px-6 py-5 text-white shadow-xl shadow-emerald-600/20">
-        <p className="text-emerald-200 text-sm">Current Balance</p>
-        <p className="text-3xl font-bold mt-1">{fmtAmt(balance)}</p>
-        <p className="text-emerald-200 text-xs mt-1">Calculated from all cash-in minus cash-out events</p>
+      <div className="ui-card border-l-4 border-l-primary px-6 py-5">
+        <p className="text-sm text-ink-2">Current Balance</p>
+        <MoneyText value={balance} className="mt-1 block text-3xl font-bold text-ink" />
+        <p className="mt-1 text-xs text-ink-3">Calculated from all cash-in minus cash-out events</p>
       </div>
       </Reveal>
 

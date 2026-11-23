@@ -5,7 +5,7 @@ import type { CreditClient, CreateExtensionRequest, CreditExtensionType } from '
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { localDateInputValue } from '../../../utils/date'
 import { Spinner } from '../../../components/Spinner'
-import { ModalPortal } from '../../../components/ModalPortal'
+import { Modal } from '../../../components/Modal'
 import { parseApiError } from '../../../utils/apiError'
 
 // ─── Grant Extension Modal ───────────────────────────────────────────────────
@@ -60,83 +60,14 @@ export function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionM
   }
 
   return (
-    <ModalPortal onClose={onClose}>
-    <div className="ui-modal-backdrop">
-      <div className="ui-modal-panel ui-modal-panel--lg w-full max-w-md">
-        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
-          <div className="ui-modal-heading">
-            <h2 className="ui-modal-title">Grant Credit Extension</h2>
-            <p className="ui-modal-subtitle">{client.name}</p>
-          </div>
-          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
-        </div>
-
-        <div className="ui-modal-body space-y-4">
-          <div className="ui-inline-form">
-            <span className="ui-label">Extension Type</span>
-            <SearchableSelect label="Extension Type"
-              value={extensionType}
-              onChange={(v) => setExtensionType(v as CreditExtensionType)}
-              options={EXTENSION_TYPE_OPTIONS}
-            />
-          </div>
-
-          {extensionType === 'AMOUNT_EXTENSION' && (
-            <div className="ui-inline-form">
-              <label className="block">
-                <span className="ui-label">
-                Additional Credit Amount (₹) <span className="text-red-500">*</span>
-              </span>
-                <input
-                  type="number" min="1" step="0.01"
-                  value={extensionAmount}
-                  onChange={(e) => setExtensionAmount(e.target.value)}
-                  placeholder="e.g. 5000"
-                  className="text-sm"
-                />
-              </label>
-              <p className="text-xs text-slate-500 mt-1">
-                Current limit: {client.creditLimit > 0 ? `₹${client.creditLimit.toLocaleString('en-IN')}` : 'Unlimited'}
-              </p>
-            </div>
-          )}
-
-          <div className="ui-inline-form">
-            <label className="block">
-              <span className="ui-label">
-              Expires On <span className="text-red-500">*</span>
-            </span>
-              <input
-                type="date" min={minDate}
-                value={expiryDate}
-                onChange={(e) => setExpiryDate(e.target.value)}
-                className="text-sm"
-              />
-            </label>
-          </div>
-
-          <div className="ui-inline-form">
-            <label className="block">
-              <span className="ui-label">
-              Reason / Justification <span className="text-red-500">*</span>
-            </span>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={3}
-                placeholder="Why is this extension being granted?"
-                className="resize-none text-sm"
-                data-autofocus
-              />
-            </label>
-          </div>
-
-          {error && (
-            <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
-          )}
-        </div>
-
-        <div className="ui-modal-footer">
+    <Modal
+      title="Grant Credit Extension"
+      subtitle={client.name}
+      tone="warning"
+      onClose={onClose}
+      bodyClassName="space-y-4"
+      footer={
+        <>
           <button onClick={onClose} className="ui-btn ui-btn-secondary">
             Cancel
           </button>
@@ -147,9 +78,71 @@ export function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionM
           >
             {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />Granting…</span> : 'Grant Extension'}
           </button>
-        </div>
+        </>
+      }
+    >
+      <div className="ui-inline-form">
+        <span className="ui-label">Extension Type</span>
+        <SearchableSelect label="Extension Type"
+          value={extensionType}
+          onChange={(v) => setExtensionType(v as CreditExtensionType)}
+          options={EXTENSION_TYPE_OPTIONS}
+        />
       </div>
-    </div>
-    </ModalPortal>
+
+      {extensionType === 'AMOUNT_EXTENSION' && (
+        <div className="ui-inline-form">
+          <label className="block">
+            <span className="ui-label">
+            Additional Credit Amount (₹) <span className="text-bad">*</span>
+          </span>
+            <input
+              type="number" min="1" step="0.01"
+              value={extensionAmount}
+              onChange={(e) => setExtensionAmount(e.target.value)}
+              placeholder="e.g. 5000"
+              className="text-sm"
+            />
+          </label>
+          <p className="text-xs text-ink-3 mt-1">
+            Current limit: {client.creditLimit > 0 ? `₹${client.creditLimit.toLocaleString('en-IN')}` : 'Unlimited'}
+          </p>
+        </div>
+      )}
+
+      <div className="ui-inline-form">
+        <label className="block">
+          <span className="ui-label">
+          Expires On <span className="text-bad">*</span>
+        </span>
+          <input
+            type="date" min={minDate}
+            value={expiryDate}
+            onChange={(e) => setExpiryDate(e.target.value)}
+            className="text-sm"
+          />
+        </label>
+      </div>
+
+      <div className="ui-inline-form">
+        <label className="block">
+          <span className="ui-label">
+          Reason / Justification <span className="text-bad">*</span>
+        </span>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={3}
+            placeholder="Why is this extension being granted?"
+            className="resize-none text-sm"
+            data-autofocus
+          />
+        </label>
+      </div>
+
+      {error && (
+        <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
+      )}
+    </Modal>
   )
 }

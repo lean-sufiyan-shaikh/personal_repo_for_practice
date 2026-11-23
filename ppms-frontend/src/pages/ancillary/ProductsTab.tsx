@@ -1,6 +1,6 @@
 import { useState, useDeferredValue } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, AlertTriangle } from 'lucide-react'
+import { X, AlertTriangle, Check, Package, PackageCheck, Pause } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import { useOnValuesChange } from '../../hooks/useOnValuesChange'
 import type { AncillaryProduct } from '../../api/ancillaryApi'
@@ -11,6 +11,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { IconButton } from '../../components/IconButton'
+import { StatusBadge } from '../../components/StatusBadge'
 import { AddProductDialog } from './AddProductDialog'
 import { SellDialog } from './SellDialog'
 import { StockLotsDialog } from './StockLotsDialog'
@@ -58,12 +59,12 @@ export function ProductsTab({
 
   const stockBadge = (p: AncillaryProduct) => {
     if (p.lowStockThreshold == null) {
-      return <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{p.currentStockUnits} units</span>
+      return <StatusBadge tone="neutral" icon={Package} label={`${p.currentStockUnits} units`} />
     }
     if (p.currentStockUnits <= p.lowStockThreshold) {
-      return <span className="inline-flex items-center gap-1 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium"><AlertTriangle size={11} strokeWidth={2} />{p.currentStockUnits} units Low</span>
+      return <StatusBadge tone="bad" icon={AlertTriangle} label={`${p.currentStockUnits} units Low`} />
     }
-    return <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">{p.currentStockUnits} units</span>
+    return <StatusBadge tone="ok" icon={PackageCheck} label={`${p.currentStockUnits} units`} />
   }
 
   const q = deferredSearch.trim().toLowerCase()
@@ -145,24 +146,23 @@ export function ProductsTab({
             <div
               key={product.id}
               className={`ui-card flex h-full flex-col space-y-3 ${
-                product.status === 'INACTIVE' ? 'border-slate-200 opacity-60' : 'border-slate-200'
+                product.status === 'INACTIVE' ? 'border-border opacity-60' : 'border-border'
               }`}
             >
               {/* Product header */}
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800 leading-tight">{product.displayName}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-sm font-semibold text-ink leading-tight">{product.displayName}</p>
+                  <p className="text-xs text-ink-3 mt-0.5">
                     {product.unitOfMeasure} · {product.packageSize}{product.hsnCode ? ` · HSN ${product.hsnCode}` : ''}
                   </p>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
-                  product.status === 'ACTIVE'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-slate-100 text-slate-500'
-                }`}>
-                  {codeLabel(product.status)}
-                </span>
+                <StatusBadge
+                  tone={product.status === 'ACTIVE' ? 'ok' : 'neutral'}
+                  icon={product.status === 'ACTIVE' ? Check : Pause}
+                  label={codeLabel(product.status)}
+                  className="shrink-0"
+                />
               </div>
 
               {/* Stock + buy price row */}
@@ -170,18 +170,18 @@ export function ProductsTab({
                 {stockBadge(product)}
                 {isManagerOrAbove && (
                   <>
-                    <span className="text-xs text-slate-500">·</span>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-ink-3">·</span>
+                    <span className="text-xs text-ink-3">
                       {product.fifoCostPricePerUnit != null
-                        ? <span>Buy: <span className="font-medium text-slate-700">{fmtCurrency(product.fifoCostPricePerUnit)}/unit</span></span>
-                        : <span className="text-slate-500">No stock lot</span>}
+                        ? <span>Buy: <span className="font-medium text-ink">{fmtCurrency(product.fifoCostPricePerUnit)}/unit</span></span>
+                        : <span className="text-ink-3">No stock lot</span>}
                     </span>
                   </>
                 )}
               </div>
 
               {/* Action buttons */}
-              <div className="mt-auto flex items-center gap-2 pt-3 border-t border-slate-100">
+              <div className="mt-auto flex items-center gap-2 pt-3 border-t border-border">
                 {canSell && product.status === 'ACTIVE' && (
                   <button
                     onClick={() => setSellProduct(product)}

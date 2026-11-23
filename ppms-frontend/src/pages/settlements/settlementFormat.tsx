@@ -19,9 +19,9 @@ export const TYPE_ICONS: Record<SettlementPaymentType, ReactNode> = {
 }
 
 export const TYPE_ACCENT: Record<SettlementPaymentType, { icon: string; badge: string; pill: string; pillActive: string }> = {
-  UPI:        { icon: 'bg-violet-500', badge: 'bg-violet-100 text-violet-700', pill: 'border-violet-200 text-violet-700 hover:bg-violet-50', pillActive: 'bg-violet-600 text-white border-violet-600' },
-  CARD:       { icon: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-700',     pill: 'border-blue-200 text-blue-700 hover:bg-blue-50',     pillActive: 'bg-blue-600 text-white border-blue-600'   },
-  FLEET_CARD: { icon: 'bg-teal-500',   badge: 'bg-teal-100 text-teal-700',     pill: 'border-teal-200 text-teal-700 hover:bg-teal-50',     pillActive: 'bg-teal-600 text-white border-teal-600'   },
+  UPI:        { icon: 'bg-info',    badge: 'bg-info-bg text-info',            pill: 'border-info text-info hover:bg-info-bg',                 pillActive: 'bg-info text-on-primary border-info'       },
+  CARD:       { icon: 'bg-primary', badge: 'bg-surface-sunken text-primary',  pill: 'border-primary text-primary hover:bg-surface-sunken',    pillActive: 'bg-primary text-on-primary border-primary' },
+  FLEET_CARD: { icon: 'bg-neutral', badge: 'bg-neutral-bg text-neutral',      pill: 'border-control text-neutral hover:bg-neutral-bg',        pillActive: 'bg-neutral text-on-primary border-neutral' },
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -118,6 +119,23 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
             assertThat(row.get("type").asText()).isEqualTo("PAYMENT");
             assertThat(row.get("countedInBalance").asBoolean()).isFalse();
         });
+    }
+
+    @Test
+    void rejectingASinglePaymentKeepsTheReasonInTheAudit() throws Exception {
+        setExpenseApprovalThreshold("100.00");
+        long clientId = createClient(null);
+        sellOnCredit(clientId, "1000.00");
+        long paymentId = json(recordPayment(clientId, "500.00")).get("id").asLong();
+
+        perform(patch("/api/pumps/{pumpId}/credit-ledger/payments/{paymentId}/approve", setup.pumpId(), paymentId),
+                setup.owner(), Map.of("status", "REJECTED", "reason", "Cheque bounced"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paymentApprovalStatus").value("REJECTED"));
+
+        assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(setup.pumpId()))
+                .filteredOn(log -> log.getEntityId().equals(String.valueOf(paymentId)))
+                .anySatisfy(log -> assertThat(log.getDescription()).contains("REJECTED").contains("reason=Cheque bounced"));
     }
 
     @Test
@@ -255,6 +273,42 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
 
         assertThat(outstandingOf(parentId)).isEqualByComparingTo("350.00");
         assertThat(outstandingOf(childId)).isEqualByComparingTo("250.00");
+    }
+
+    @Test
+    void parentStatementListsSubAccountRowsByNameWithTheGroupOutstanding() throws Exception {
+        long parentId = createClient(null);
+        long childId = createClient(parentId);
+        String childName = creditClientRepository.findById(childId).orElseThrow().getName();
+        sellOnCredit(parentId, "100.00");
+        sellOnCredit(childId, "250.00");
+
+        String parentStatement = statementOf(parentId);
+        String childStatement = statementOf(childId);
+
+        assertThat(parentStatement)
+                .contains("<th>Account</th>")
+                .contains("<td>" + childName + "</td>")
+                .contains("250.00")
+                .contains("Sub-accounts:</strong> " + childName)
+                .contains("Group Outstanding Balance (incl. sub-accounts): ₹350.00");
+        assertThat(childStatement)
+                .doesNotContain("<th>Account</th>")
+                .doesNotContain("Sub-accounts:")
+                .contains("Outstanding Balance: ₹250.00");
+    }
+
+    @Test
+    void standaloneStatementShowsOnlyItsOwnRowsAndBalance() throws Exception {
+        long clientId = createClient(null);
+        long otherClientId = createClient(null);
+        sellOnCredit(clientId, "120.00");
+        sellOnCredit(otherClientId, "999.00");
+
+        assertThat(statementOf(clientId))
+                .doesNotContain("<th>Account</th>")
+                .doesNotContain("999.00")
+                .contains("Outstanding Balance: ₹120.00");
     }
 
     @Test
@@ -647,6 +701,12 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
         body.put("parentClientId", parentClientId);
         return json(perform(post("/api/pumps/{pumpId}/credit-clients", setup.pumpId()), setup.manager(), body)
                 .andExpect(status().is2xxSuccessful())).get("id").asLong();
+    }
+
+    private String statementOf(long clientId) throws Exception {
+        return perform(get("/api/pumps/{pumpId}/credit-ledger/{clientId}/statement", setup.pumpId(), clientId), setup.owner())
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
     }
 
     private long sellOnCredit(long clientId, String amount) throws Exception {

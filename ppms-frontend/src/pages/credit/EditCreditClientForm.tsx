@@ -44,17 +44,17 @@ export function EditCreditClientForm({ pumpId, client, indent = false, onSaved }
 
   return (
     <form onSubmit={submitEdit}
-      className={`${indent ? 'pl-7 pr-3' : 'px-3'} py-3 border-t border-slate-100 bg-white space-y-2`}>
+      className={`${indent ? 'pl-7 pr-3' : 'px-3'} py-3 border-t border-border bg-surface space-y-2`}>
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="block">
-            <span className="ui-label">Name <span className="text-red-500">*</span></span>
+            <span className="ui-label">Name <span className="text-bad">*</span></span>
             <input required value={editName} onChange={e => setEditName(e.target.value)} className="text-xs min-h-10" />
           </label>
         </div>
         <div>
           <label className="block">
-            <span className="ui-label">Phone <span className="text-red-500">*</span></span>
+            <span className="ui-label">Phone <span className="text-bad">*</span></span>
             <input required value={editPhone}
               onChange={e => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
               inputMode="numeric" maxLength={10} className="text-xs min-h-10" />
@@ -63,19 +63,19 @@ export function EditCreditClientForm({ pumpId, client, indent = false, onSaved }
       </div>
       <div>
         <label className="block">
-          <span className="ui-label">Notes <span className="text-slate-500">(optional)</span></span>
+          <span className="ui-label">Notes <span className="text-ink-3">(optional)</span></span>
           <input value={editNotes} onChange={e => setEditNotes(e.target.value)}
             placeholder="e.g. Fleet manager, lorry owner" className="text-xs min-h-10" />
         </label>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <label className="block">
-          <span className="ui-label">GSTIN <span className="text-slate-500">(blank if unregistered)</span></span>
+          <span className="ui-label">GSTIN <span className="text-ink-3">(blank if unregistered)</span></span>
           <input value={editGstin} onChange={e => setEditGstin(e.target.value.toUpperCase())}
             maxLength={15} autoCapitalize="characters" placeholder="e.g. 27ABCDE1234F1Z5" className="text-xs min-h-10" />
         </label>
         <label className="block">
-          <span className="ui-label">Billing address <span className="text-slate-500">(optional)</span></span>
+          <span className="ui-label">Billing address <span className="text-ink-3">(optional)</span></span>
           <input value={editBillingAddress} onChange={e => setEditBillingAddress(e.target.value)}
             maxLength={500} placeholder="Printed on invoices" className="text-xs min-h-10" />
         </label>

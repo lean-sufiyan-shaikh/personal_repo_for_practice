@@ -18,33 +18,33 @@ interface Props {
 
 export function DeliveryHeaderFields({ date, setDate, invoice, setInvoice, tankers, selectedTanker, selectedTankerId, setSelectedTankerId, tankerMismatch, tankerRemaining, totalEnteredQty }: Props) {
   return (
-    <div className="ui-modal-body border-b border-slate-100 flex-shrink-0">
+    <div className="border-b border-border pb-4">
       <div className="ui-inline-form">
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block">
             <span className="ui-label">
-            Delivery Date <span className="text-red-500">*</span>
+            Delivery Date <span aria-hidden="true" className="text-bad">*</span>
           </span>
             <input
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
-              className="shadow-sm"
+              className="shadow-raised"
             />
           </label>
         </div>
         <div>
           <label className="block">
             <span className="ui-label">
-            Invoice / Bill No. <span className="text-red-500">*</span>
+            Invoice / Bill No. <span aria-hidden="true" className="text-bad">*</span>
           </span>
             <input
               type="text"
               value={invoice}
               onChange={e => setInvoice(e.target.value)}
               placeholder="e.g. INV-2026-0042"
-              className="shadow-sm"
+              className="shadow-raised"
             />
           </label>
         </div>
@@ -66,10 +66,10 @@ export function DeliveryHeaderFields({ date, setDate, invoice, setInvoice, tanke
             placeholder="Select tanker…"
           />
           {selectedTanker && (
-            <div className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${
+            <div className={`mt-2 flex items-center gap-2 rounded-control px-3 py-2 text-xs ${
               tankerMismatch
-                ? 'bg-red-50 border border-red-200 text-red-700'
-                : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                ? 'bg-bad-bg border border-bad text-bad'
+                : 'bg-ok-bg border border-ok text-ok'
             }`}>
               <Truck size={12} strokeWidth={2} className="shrink-0" />
               <span>

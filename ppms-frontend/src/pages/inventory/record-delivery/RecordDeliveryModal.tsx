@@ -6,7 +6,8 @@ import { tankerApi } from '../../../api/tankerApi'
 import type { Tanker } from '../../../api/tankerApi'
 import type { TankStock, RecordBatchDeliveryRequest } from '../../../api/inventoryApi'
 import { localDateInputValue } from '../../../utils/date'
-import { ModalPortal } from '../../../components/ModalPortal'
+import { Modal } from '../../../components/Modal'
+import { MoneyText } from '../../../components/AmountText'
 import { parseApiError } from '../../../utils/apiError'
 import { Spinner } from '../../../components/Spinner'
 import { useToastStore } from '../../../store/toastStore'
@@ -16,7 +17,6 @@ import type { DeliveryRow, PreparedDeliveryItem } from './deliveryRows'
 import { DeliveryRowEditor } from './DeliveryRowEditor'
 import { DeliveryHeaderFields } from './DeliveryHeaderFields'
 import { DeliveryReviewDialog } from './DeliveryReviewDialog'
-import { IconButton } from '../../../components/IconButton'
 import { NumericInput } from '../../../components/NumericInput'
 
 export function RecordDeliveryModal({
@@ -211,107 +211,51 @@ export function RecordDeliveryModal({
   }))
 
   return (
-    <ModalPortal onClose={onClose} closeOnBackdropClick>
-    <div className="ui-modal-backdrop">
-      <div
-        className="ui-modal-panel"
-        style={{ maxHeight: '90vh' }}
-      >
-        {/* Header */}
-        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info flex-shrink-0">
-          <div className="ui-modal-heading">
-            <h2 className="ui-modal-title">Record Tanker Delivery</h2>
-            <p className="ui-modal-subtitle">
-              One tanker · one invoice · multiple tanks
-            </p>
-          </div>
-          <IconButton label="Close" icon="×" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close" />
-        </div>
-
-        <form onSubmit={handleReview} className="flex flex-col flex-1 overflow-hidden">
-          {/* Shared fields — delivery date + invoice + tanker */}
-          <DeliveryHeaderFields
-            date={date}
-            setDate={setDate}
-            invoice={invoice}
-            setInvoice={setInvoice}
-            tankers={tankers}
-            selectedTanker={selectedTanker}
-            selectedTankerId={selectedTankerId}
-            setSelectedTankerId={setSelectedTankerId}
-            tankerMismatch={tankerMismatch}
-            tankerRemaining={tankerRemaining}
-            totalEnteredQty={totalEnteredQty}
-          />
-
-          {/* Scrollable tank rows */}
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
-            {rows.map((row, idx) => (
-              <DeliveryRowEditor
-                key={row.id}
-                row={row}
-                rowNumber={idx + 1}
-                tanks={tanks}
-                tankOptions={tankOptions}
-                isOwnerOrAdmin={isOwnerOrAdmin}
-                isExpanded={expandedRowId === row.id}
-                onExpandedChange={setExpandedRowId}
-                canRemove={rows.length > 1}
-                onRemove={() => removeRow(row.id)}
-                onChange={(field, value) => updateRow(row.id, field, value)}
-              />
-            ))}
-
-            {/* Add another tank button */}
-            <button
-              type="button"
-              onClick={addRow}
-              className="ui-btn ui-btn-secondary w-full border-2 border-dashed"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Add another tank
-            </button>
-          </div>
-
-          {/* Footer — grand total + actions */}
-          <div className="border-t border-slate-100 flex-shrink-0 px-6 py-4 space-y-3">
+    <>
+    <Modal
+      title="Record Tanker Delivery"
+      subtitle="One tanker · one invoice · multiple tanks"
+      tone="info"
+      size="lg"
+      onClose={onClose}
+      closeOnBackdropClick
+      onSubmit={handleReview}
+      bodyClassName="space-y-3"
+      footerClassName="flex-col items-stretch"
+      footer={<>
             {/* Bill total — visible to OWNER/ADMIN (auto-filled from calc) and MANAGER (manual entry) */}
             {canSetBillTotal && (
-              <div className="space-y-2 rounded-xl bg-blue-50 px-4 py-3">
+              <div className="space-y-2 rounded-card bg-info-bg px-4 py-3">
                 {isOwnerOrAdmin && grandTotal > 0 && (
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-blue-600 font-medium">
+                    <p className="text-xs text-info font-medium">
                       Calculated Total ({rows.length} tank{rows.length > 1 ? 's' : ''})
                     </p>
-                    <p className="text-sm font-semibold text-blue-700">
-                      ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </p>
+                    <MoneyText value={grandTotal} className="text-sm font-semibold text-info" />
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <label htmlFor="delivery-bill-total" className="text-xs text-blue-600 font-medium shrink-0">Bill Amount (₹)</label>
+                  <label htmlFor="delivery-bill-total" className="text-xs text-info font-medium shrink-0">Bill Amount (₹)</label>
                   <NumericInput id="delivery-bill-total"
                     step="0.01"
                     min="0.01"
                     value={billTotalText}
                     onChange={e => { setBillTotalStr(limitDecimals(e.target.value, 2)); setBillTotalManual(true) }}
                     onBlur={() => { if (!billTotalText.trim()) setBillTotalManual(false) }}
-                    className="ui-input text-sm font-semibold text-blue-900 bg-white border-blue-200 focus:border-blue-400 flex-1 min-w-0"
+                    className="ui-input text-sm font-semibold text-ink bg-surface flex-1 min-w-0"
                     placeholder="Enter actual bill amount"
                   />
                 </div>
                 {!isOwnerOrAdmin && (
-                  <p className="text-xs text-slate-500">Enter the total amount shown on the supplier's invoice.</p>
+                  <p className="text-xs text-ink-3">Enter the total amount shown on the supplier's invoice.</p>
                 )}
                 {isOwnerOrAdmin && billTotalManual && otherCharges !== 0 && (
-                  <p className="text-xs text-blue-500">
+                  <p className="text-xs text-info">
                     Other charges:{' '}
-                    <span className={`font-medium ${otherCharges > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                    <span className={`font-medium ${otherCharges > 0 ? 'text-warn' : 'text-ok'}`}>
                       {otherCharges > 0 ? '+' : ''}₹{Math.abs(otherCharges).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
-                    <span className="text-slate-500"> (freight / taxes / other)</span>
+                    <span className="text-ink-3"> (freight / taxes / other)</span>
                   </p>
                 )}
               </div>
@@ -344,10 +288,52 @@ export function RecordDeliveryModal({
                 {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />Recording…</span> : 'Review Delivery'}
               </button>
             </div>
-          </div>
-        </form>
-      </div>
+      </>}
+    >
+      {/* Shared fields — delivery date + invoice + tanker */}
+      <DeliveryHeaderFields
+        date={date}
+        setDate={setDate}
+        invoice={invoice}
+        setInvoice={setInvoice}
+        tankers={tankers}
+        selectedTanker={selectedTanker}
+        selectedTankerId={selectedTankerId}
+        setSelectedTankerId={setSelectedTankerId}
+        tankerMismatch={tankerMismatch}
+        tankerRemaining={tankerRemaining}
+        totalEnteredQty={totalEnteredQty}
+      />
 
+      {rows.map((row, idx) => (
+        <DeliveryRowEditor
+          key={row.id}
+          row={row}
+          rowNumber={idx + 1}
+          tanks={tanks}
+          tankOptions={tankOptions}
+          isOwnerOrAdmin={isOwnerOrAdmin}
+          isExpanded={expandedRowId === row.id}
+          onExpandedChange={setExpandedRowId}
+          canRemove={rows.length > 1}
+          onRemove={() => removeRow(row.id)}
+          onChange={(field, value) => updateRow(row.id, field, value)}
+        />
+      ))}
+
+      {/* Add another tank button */}
+      <button
+        type="button"
+        onClick={addRow}
+        className="ui-btn ui-btn-secondary w-full border-2 border-dashed"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        Add another tank
+      </button>
+
+    </Modal>
       {reviewOpen && (() => {
         try {
           const { items } = buildPreparedItems()
@@ -373,7 +359,6 @@ export function RecordDeliveryModal({
           return null
         }
       })()}
-    </div>
-    </ModalPortal>
+    </>
   )
 }

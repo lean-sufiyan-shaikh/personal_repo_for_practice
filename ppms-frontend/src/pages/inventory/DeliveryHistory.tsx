@@ -8,6 +8,7 @@ import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { parseApiError } from '../../utils/apiError'
 import { IconButton } from '../../components/IconButton'
+import { LitresText, MoneyText } from '../../components/AmountText'
 import { DeleteInvoiceModal } from './DeleteInvoiceModal'
 import { DeliveryItem } from './DeliveryItem'
 import { fmtDate } from './inventoryFormat'
@@ -78,7 +79,7 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
           <span className={`ui-accordion-arrow ${deliveryHistOpen ? 'ui-accordion-arrow--open' : ''}`}><ChevronDown size={14} strokeWidth={2} /></span>
         </button>
         {deliveryHistOpen && (
-          <div className="ui-accordion-content border-t border-slate-100">
+          <div className="ui-accordion-content border-t border-border">
             <div className="ui-toolbar">
               <p className="ui-toolbar-title">Filter Deliveries</p>
               <div className="ui-toolbar-actions">
@@ -116,7 +117,7 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
             </div>
 
             {deliveriesLoading ? (
-              <div className="p-5 text-sm text-slate-500">Loading...</div>
+              <div className="p-5 text-sm text-ink-3">Loading...</div>
             ) : (() => {
               // Apply client-side filters on the current page's data
               const filtered = deliveries.filter(d =>
@@ -126,7 +127,7 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
 
               if (filtered.length === 0) {
                 return (
-                  <div className="p-5 text-sm text-slate-500">
+                  <div className="p-5 text-sm text-ink-3">
                     {deliveries.length === 0
                       ? 'No deliveries recorded yet.'
                       : 'No deliveries match the selected filters on this page.'}
@@ -145,7 +146,7 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
 
               return (
                 <>
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-border">
                     {groups.map(([invoice, rows]) => {
                       const totalQty = rows.reduce((s, r) => s + r.quantityDelivered, 0)
                       const totalCost = rows.reduce((s, r) => s + r.totalCost, 0)
@@ -160,41 +161,35 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
                               onClick={toggleDelivery}
                               className="flex-1 flex items-center gap-2 text-left hover:opacity-70 transition-opacity min-w-0"
                             >
-                              <span className="text-xs text-slate-500">Bill No.</span>
-                              <span className="font-mono text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md">
+                              <span className="text-xs text-ink-3">Bill No.</span>
+                              <span className="font-mono text-xs font-semibold text-info bg-info-bg border border-border px-2.5 py-1 rounded-control">
                                 {invoice}
                               </span>
-                              <span className="text-xs text-slate-500">{fmtDate(rows[0].deliveryDate)}</span>
-                              <span className="text-xs text-slate-500">·</span>
-                              <span className="text-xs text-slate-500">{rows.length} tank{rows.length !== 1 ? 's' : ''}</span>
+                              <span className="text-xs text-ink-3">{fmtDate(rows[0].deliveryDate)}</span>
+                              <span className="text-xs text-ink-3">·</span>
+                              <span className="text-xs text-ink-3">{rows.length} tank{rows.length !== 1 ? 's' : ''}</span>
                               {rows[0].tankerName && (
                                 <>
-                                  <span className="text-xs text-slate-500">·</span>
-                                  <span className="inline-flex items-center gap-1 text-xs text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
+                                  <span className="text-xs text-ink-3">·</span>
+                                  <span className="inline-flex items-center gap-1 text-xs text-ink-2 bg-surface-sunken border border-border px-2 py-0.5 rounded-badge">
                                     <Truck size={10} strokeWidth={2} />
                                     {rows[0].tankerName}
                                   </span>
                                 </>
                               )}
                               <div className="ml-auto flex items-center gap-3">
-                                <span className="text-xs text-slate-500">
-                                  {totalQty.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
-                                </span>
+                                <LitresText value={totalQty} className="text-xs text-ink-3" />
                                 {isOwnerOrAdmin && (rows[0].billTotal != null ? (
                                   <div className="flex flex-col items-end leading-tight">
-                                    <span className="text-sm font-bold text-slate-800">
-                                      ₹{Number(rows[0].billTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                    </span>
+                                    <MoneyText value={Number(rows[0].billTotal)} className="text-sm font-bold text-ink" />
                                     {Math.abs(Number(rows[0].billTotal) - totalCost) > 0.005 && (
-                                      <span className="text-[10px] text-slate-500">
+                                      <span className="text-xs text-ink-3">
                                         calc. ₹{totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                       </span>
                                     )}
                                   </div>
                                 ) : (
-                                  <span className="text-sm font-bold text-slate-800">
-                                    ₹{totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                  </span>
+                                  <MoneyText value={totalCost} className="text-sm font-bold text-ink" />
                                 ))}
                                 <span className={`ui-accordion-arrow ml-1 ${!isCollapsed ? 'ui-accordion-arrow--open' : ''}`}><ChevronDown size={14} strokeWidth={2} /></span>
                               </div>
@@ -202,7 +197,7 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
                             {isLatestEnteredInvoice && canDeleteInvoice && (
                               <IconButton
                                 onClick={() => setDeleteInvoice({ invoice, rows: latestInvoiceLines })}
-                                className="shrink-0 ml-2 text-slate-500 hover:text-red-500 transition-colors rounded"
+                                className="shrink-0 ml-2 text-ink-3 hover:text-bad transition-colors rounded-control"
                                 label="Delete this invoice"
                                 icon={<Trash2 size={14} />}
                               />
@@ -212,7 +207,7 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
                           {!isCollapsed && (
                             <div className="ui-accordion-content ui-card p-0 overflow-hidden">
                               <div className="px-4 py-3">
-                                <div className={`grid gap-3 border-b border-slate-100 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 ${
+                                <div className={`grid gap-3 border-b border-border pb-2 text-xs font-semibold uppercase tracking-wide text-ink-3 ${
                                   isOwnerOrAdmin
                                     ? 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'
                                     : 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'

@@ -1,4 +1,6 @@
 import { useMemo } from 'react'
+import { CalendarClock } from 'lucide-react'
+import { StatusBadge } from '../../components/StatusBadge'
 import type { NozzleCalibrationLog } from '../../api/calibrationApi'
 import type { NozzleDetail } from '../../types/shift'
 import { SearchableSelect } from '../../components/SearchableSelect'
@@ -34,9 +36,9 @@ export function CalibrationHistory({ history, nozzles }: CalibrationHistoryProps
         <p className="ui-toolbar-title">
           Calibration History
           {historyNozzleId === 0 ? (
-            <span className="text-slate-500 font-normal ml-1">— All nozzles</span>
+            <span className="text-ink-3 font-normal ml-1">— All nozzles</span>
           ) : historyNozzle ? (
-            <span className="text-slate-500 font-normal ml-1">
+            <span className="text-ink-3 font-normal ml-1">
               — Nozzle #{historyNozzle.nozzleNumber} ({historyNozzle.fuelType})
             </span>
           ) : null}
@@ -44,21 +46,21 @@ export function CalibrationHistory({ history, nozzles }: CalibrationHistoryProps
 
         <div className="ui-toolbar-actions">
           <div className="flex items-center gap-1.5">
-            <label htmlFor="calibration-history-from" className="text-xs text-slate-500 whitespace-nowrap">From</label>
+            <label htmlFor="calibration-history-from" className="text-xs text-ink-3 whitespace-nowrap">From</label>
             <input id="calibration-history-from"
               type="date"
               value={fromDate}
               onChange={e => { setFromDate(e.target.value); setHistoryPage(0) }}
-              className="text-xs h-7 px-2 rounded-lg border border-slate-200"
+              className="text-xs h-7 px-2 rounded-control border border-border"
             />
           </div>
           <div className="flex items-center gap-1.5">
-            <label htmlFor="calibration-history-to" className="text-xs text-slate-500 whitespace-nowrap">To</label>
+            <label htmlFor="calibration-history-to" className="text-xs text-ink-3 whitespace-nowrap">To</label>
             <input id="calibration-history-to"
               type="date"
               value={toDate}
               onChange={e => { setToDate(e.target.value); setHistoryPage(0) }}
-              className="text-xs h-7 px-2 rounded-lg border border-slate-200"
+              className="text-xs h-7 px-2 rounded-control border border-border"
             />
           </div>
           <div className="w-56">
@@ -103,25 +105,23 @@ export function CalibrationHistory({ history, nozzles }: CalibrationHistoryProps
                 <div className="ui-record-row__main">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium text-slate-800">{fmtDate(c.calibrationDate)}</p>
+                    <p className="text-sm font-medium text-ink">{fmtDate(c.calibrationDate)}</p>
                     <div className="ui-record-row__meta mt-0">
                       Nozzle #{nozzle?.nozzleNumber ?? c.nozzleId}
                       {nozzle?.fuelType ? ` · ${nozzle.fuelType}` : ''}
                     </div>
                   </div>
                   {c.nextCalibrationDue && (
-                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                      Next due: {fmtDate(c.nextCalibrationDue)}
-                    </span>
+                    <StatusBadge tone="warn" icon={CalendarClock} label={`Next due: ${fmtDate(c.nextCalibrationDue)}`} />
                   )}
                 </div>
                 <div className="ui-record-row__meta">
                   {c.calibratedBy && <span>By: {c.calibratedBy}</span>}
                   {c.certificateReference && <span>Cert: {c.certificateReference}</span>}
-                  <span className="text-slate-500">Logged by: {c.loggedByName}</span>
-                  <span className="text-slate-500">Logged at: {fmtDateTime(c.createdAt)}</span>
+                  <span className="text-ink-3">Logged by: {c.loggedByName}</span>
+                  <span className="text-ink-3">Logged at: {fmtDateTime(c.createdAt)}</span>
                 </div>
-                {c.notes && <p className="text-xs text-slate-500">{c.notes}</p>}
+                {c.notes && <p className="text-xs text-ink-3">{c.notes}</p>}
                 </div>
               </div>
             )})}

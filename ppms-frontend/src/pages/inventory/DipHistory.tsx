@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { withToggled } from '../../utils/setToggle'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown } from 'lucide-react'
 import { inventoryApi } from '../../api/inventoryApi'
 import type { TankStock, DipCheck } from '../../api/inventoryApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
+import { StatusBadge } from '../../components/StatusBadge'
 import { DipItem } from './DipItem'
 import { fmtDate } from './inventoryFormat'
 
@@ -43,7 +44,7 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
           <span className={`ui-accordion-arrow ${dipHistOpen ? 'ui-accordion-arrow--open' : ''}`}><ChevronDown size={14} strokeWidth={2} /></span>
         </button>
         {dipHistOpen && (
-          <div className="ui-accordion-content border-t border-slate-100">
+          <div className="ui-accordion-content border-t border-border">
             <div className="ui-toolbar">
               <p className="ui-toolbar-title">Filter DIP Checks</p>
               <div className="ui-toolbar-actions">
@@ -81,7 +82,7 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
             </div>
 
             {dipLoading ? (
-              <div className="p-5 text-sm text-slate-500">Loading...</div>
+              <div className="p-5 text-sm text-ink-3">Loading...</div>
             ) : (() => {
               // Apply client-side filters on the current page's data
               const filtered = dipChecks.filter(d =>
@@ -91,7 +92,7 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
 
               if (filtered.length === 0) {
                 return (
-                  <div className="p-5 text-sm text-slate-500">
+                  <div className="p-5 text-sm text-ink-3">
                     {dipChecks.length === 0
                       ? 'No DIP checks recorded yet.'
                       : 'No DIP checks match the selected filters on this page.'}
@@ -110,7 +111,7 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
 
               return (
                 <>
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-border">
                   {groups.map(([dateKey, rows]) => {
                     const allBalanced = rows.every(r => r.variance === 0)
                     const isCollapsed = collapsedDipGroups.has(dateKey)
@@ -122,21 +123,17 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
                           onClick={toggleDip}
                           className="w-full flex items-center gap-2 text-left hover:opacity-70 transition-opacity"
                         >
-                          <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
+                          <span className="text-xs font-semibold text-ink bg-surface-sunken px-2.5 py-1 rounded-control">
                             {fmtDate(dateKey)}
                           </span>
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs text-ink-3">
                             {rows.length} tank{rows.length !== 1 ? 's' : ''} checked
                           </span>
                           {allBalanced && (
-                            <span className="ml-auto text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                              All Balanced
-                            </span>
+                            <StatusBadge tone="ok" icon={Check} label="All Balanced" className="ml-auto" />
                           )}
                           {!allBalanced && (
-                            <span className="ml-auto text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                              Variance Detected
-                            </span>
+                            <StatusBadge tone="warn" icon={AlertTriangle} label="Variance Detected" className="ml-auto" />
                           )}
                           <span className={`ui-accordion-arrow ml-1 ${!isCollapsed ? 'ui-accordion-arrow--open' : ''}`}><ChevronDown size={14} strokeWidth={2} /></span>
                         </button>

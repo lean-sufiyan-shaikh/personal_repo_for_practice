@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, Check, Clock } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { documentApi } from '../../api/documentApi'
@@ -12,11 +13,13 @@ import { formatIstDate } from '../../utils/date'
 import { parseApiError } from '../../utils/apiError'
 import { useToastStore } from '../../store/toastStore'
 import { codeLabel } from '../../constants/labels'
+import { StatusBadge } from '../../components/StatusBadge'
+import type { StatusBadgeSpec } from '../../components/statusBadges'
 
-const STATUS_STYLES: Record<DocumentStatus, string> = {
-  VALID:          'bg-emerald-100 text-emerald-700',
-  EXPIRING_SOON:  'bg-amber-100 text-amber-700',
-  EXPIRED:        'bg-red-100 text-red-700',
+const STATUS_BADGES: Record<DocumentStatus, Omit<StatusBadgeSpec, 'label'>> = {
+  VALID:          { tone: 'ok', icon: Check },
+  EXPIRING_SOON:  { tone: 'warn', icon: Clock },
+  EXPIRED:        { tone: 'bad', icon: AlertTriangle },
 }
 
 function fmtDate(d: string | null) {
@@ -111,8 +114,8 @@ export default function DocumentsPage() {
       {(expiredCount > 0 || expiringSoonCount > 0) && (
         <Reveal delay={120}>
         <div className="ui-alert ui-alert-danger">
-          <p className="text-sm font-semibold text-red-700">Compliance attention needed</p>
-          <p className="text-xs text-red-500 mt-0.5">
+          <p className="text-sm font-semibold text-bad">Compliance attention needed</p>
+          <p className="text-xs text-bad mt-0.5">
             {expiredCount > 0 && `${expiredCount} document${expiredCount !== 1 ? 's' : ''} expired. `}
             {expiringSoonCount > 0 && `${expiringSoonCount} document${expiringSoonCount !== 1 ? 's' : ''} expiring within 30 days.`}
           </p>
@@ -217,22 +220,20 @@ export default function DocumentsPage() {
               <div key={doc.id} className="ui-record-row">
                 <div className="ui-record-row__main">
                   <div className="ui-record-row__title">
-                    <p className="text-sm font-medium text-slate-800">{doc.name}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[doc.status]}`}>
-                      {codeLabel(doc.status)}
-                    </span>
+                    <p className="text-sm font-medium text-ink">{doc.name}</p>
+                    <StatusBadge {...STATUS_BADGES[doc.status]} label={codeLabel(doc.status)} />
                   </div>
                   <div className="ui-record-row__meta">
-                    <p className="text-xs text-slate-500">{doc.docType}</p>
-                    <span className="text-xs text-slate-500">·</span>
-                    <p className="text-xs text-slate-500">Expires: {fmtDate(doc.expiryDate)}</p>
-                    {doc.notes && <><span className="text-xs text-slate-500">·</span><p className="text-xs text-slate-500 truncate">{doc.notes}</p></>}
+                    <p className="text-xs text-ink-3">{doc.docType}</p>
+                    <span className="text-xs text-ink-3">·</span>
+                    <p className="text-xs text-ink-3">Expires: {fmtDate(doc.expiryDate)}</p>
+                    {doc.notes && <><span className="text-xs text-ink-3">·</span><p className="text-xs text-ink-3 truncate">{doc.notes}</p></>}
                   </div>
                 </div>
                 <div className="ui-record-row__actions">
                   <button
                     onClick={() => startEdit(doc)}
-                    className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-500 hover:text-blue-700"
+                    className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
                   >
                     Edit
                   </button>

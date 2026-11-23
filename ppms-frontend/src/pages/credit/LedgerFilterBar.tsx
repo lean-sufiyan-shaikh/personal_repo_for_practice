@@ -28,21 +28,21 @@ export function LedgerFilterBar({ filters }: { filters: LedgerFilters }) {
     <>
     {/* Filter toolbar */}
     <div className="flex flex-wrap items-center gap-3 mb-3">
-      <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Ledger History</h3>
+      <h3 className="text-sm font-semibold text-ink-2 uppercase tracking-wide">Ledger History</h3>
       <CsvExportButton
         filename={csvFilename(filterMode === 'month' && selectedMonth ? `credit-ledger-${selectedMonth}` : 'credit-ledger', exportRange)}
         columns={LEDGER_COLUMNS}
         rows={filtered}
       />
-      <div className="flex items-center gap-1 ml-auto bg-slate-100 rounded-lg p-0.5">
+      <div className="flex items-center gap-1 ml-auto bg-surface-sunken rounded-control p-0.5">
         {(['all', 'month', 'range'] as FilterMode[]).map(m => (
           <button
             key={m}
             onClick={() => setFilterMode(m)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-control text-xs font-medium transition-all ${
               filterMode === m
-                ? 'bg-white text-slate-800 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-surface text-ink shadow-raised'
+                : 'text-ink-3 hover:text-ink'
             }`}
           >
             {m === 'all' ? 'All' : m === 'month' ? 'By Month' : 'Date Range'}
@@ -61,16 +61,16 @@ export function LedgerFilterBar({ filters }: { filters: LedgerFilters }) {
         <button
           key={value}
           onClick={() => setTxTypeFilter(value)}
-          className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+          className={`px-3 py-1 rounded-control text-xs font-medium border transition-all ${
             txTypeFilter === value
               ? color === 'slate'
-                ? 'bg-slate-700 border-slate-700 text-white'
+                ? 'bg-ink border-ink text-surface'
                 : color === 'orange'
-                ? 'bg-orange-100 border-orange-400 text-orange-700'
+                ? 'bg-warn-bg border-warn text-warn'
                 : color === 'green'
-                ? 'bg-green-100 border-green-400 text-green-700'
-                : 'bg-purple-100 border-purple-400 text-purple-700'
-              : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                ? 'bg-ok-bg border-ok text-ok'
+                : 'bg-info-bg border-info text-info'
+              : 'bg-surface border-border text-ink-3 hover:border-control'
           }`}
         >
           {label}
@@ -82,16 +82,16 @@ export function LedgerFilterBar({ filters }: { filters: LedgerFilters }) {
     {filterMode === 'month' && (
       <div className="mb-4 flex flex-wrap gap-2">
         {availableMonths.length === 0 ? (
-          <span className="text-xs text-slate-500">No transactions yet</span>
+          <span className="text-xs text-ink-3">No transactions yet</span>
         ) : (
           availableMonths.map(m => (
             <button
               key={m}
               onClick={() => setSelectedMonth(prev => prev === m ? '' : m)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+              className={`px-3 py-1.5 rounded-control text-xs font-medium border transition-all ${
                 selectedMonth === m
-                  ? 'bg-blue-600 border-blue-600 text-white'
-                  : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300'
+                  ? 'bg-primary border-primary text-on-primary'
+                  : 'bg-surface border-border text-ink-2 hover:border-primary'
               }`}
             >
               {m}
@@ -104,18 +104,18 @@ export function LedgerFilterBar({ filters }: { filters: LedgerFilters }) {
     {filterMode === 'range' && (
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <label htmlFor="credit-ledger-from" className="text-xs text-slate-500 whitespace-nowrap">From</label>
+          <label htmlFor="credit-ledger-from" className="text-xs text-ink-3 whitespace-nowrap">From</label>
           <input id="credit-ledger-from" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
-            className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm" />
+            className="border border-control rounded-control px-3 py-1.5 text-sm" />
         </div>
         <div className="flex items-center gap-2">
-          <label htmlFor="credit-ledger-to" className="text-xs text-slate-500 whitespace-nowrap">To</label>
+          <label htmlFor="credit-ledger-to" className="text-xs text-ink-3 whitespace-nowrap">To</label>
           <input id="credit-ledger-to" type="date" value={toDate} onChange={e => setToDate(e.target.value)}
-            className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm" />
+            className="border border-control rounded-control px-3 py-1.5 text-sm" />
         </div>
         {(fromDate || toDate) && (
           <button onClick={() => { setFromDate(''); setToDate('') }}
-            className="text-xs text-slate-500 hover:text-slate-600">Clear</button>
+            className="text-xs text-ink-3 hover:text-ink-2">Clear</button>
         )}
       </div>
     )}

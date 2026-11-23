@@ -1,4 +1,4 @@
-import { Landmark, Check, AlertTriangle } from 'lucide-react'
+import { Landmark, Check, AlertTriangle, Ban } from 'lucide-react'
 import type { DailySummaryEntry, Settlement, SettlementPaymentType } from '../../api/paymentSettlementApi'
 import { CsvExportButton } from '../../components/CsvExportButton'
 import { DatePresetChips } from '../../components/DatePresetChips'
@@ -7,6 +7,8 @@ import type { CsvColumn } from '../../utils/csv'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
+import { StatusBadge } from '../../components/StatusBadge'
+import { MoneyText } from '../../components/AmountText'
 import { TYPE_ACCENT, TYPE_ICONS, TYPE_LABELS, fmtAmt, fmtDate } from './settlementFormat'
 import type { SettlementHistory } from './useSettlementHistory'
 
@@ -51,7 +53,7 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
             onChange={e => setFilterFrom(e.target.value)}
             className="flex-1 min-w-36 text-sm sm:w-40 sm:flex-none"
           />
-          <span className="text-slate-500 text-sm">–</span>
+          <span className="text-ink-3 text-sm">–</span>
           <input aria-label="To date"
             type="date"
             value={filterTo}
@@ -85,14 +87,14 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
         <div className="px-5 py-4"><SkeletonRows count={5} /></div>
       ) : dailySummary.length === 0 ? (
         <div className="py-16 flex flex-col items-center gap-3 text-center px-6">
-          <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-1"><Landmark size={26} strokeWidth={1.5} className="text-slate-500" /></div>
-          <p className="font-semibold text-slate-700">No activity in this date range</p>
-          <p className="text-sm text-slate-500 max-w-sm">
+          <div className="w-14 h-14 rounded-full bg-surface-sunken flex items-center justify-center mb-1"><Landmark size={26} strokeWidth={1.5} className="text-ink-3" aria-hidden="true" /></div>
+          <p className="font-semibold text-ink">No activity in this date range</p>
+          <p className="text-sm text-ink-3 max-w-sm">
             No shift collections or settlements were found between the selected dates.
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-border">
           {dailySummary.map(entry => {
             const visibleSettlements = typeFilter
               ? entry.settlements.filter(s => s.paymentType === typeFilter)
@@ -109,7 +111,7 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
             return (
               <div key={entry.date} className="px-5 py-4 space-y-3">
                 {/* Date header */}
-                <p className="text-sm font-bold text-slate-700">{fmtDate(entry.date)}</p>
+                <p className="text-sm font-bold text-ink">{fmtDate(entry.date)}</p>
 
                 {/* Collected vs Settled per type */}
                 {collectedByType.length > 0 && (
@@ -119,28 +121,28 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
                       const balance  = collected - settled
                       const balanced = balance <= 0
                       return (
-                        <div key={type} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 flex flex-col gap-1">
+                        <div key={type} className="rounded-control border border-border bg-bg px-3 py-2.5 flex flex-col gap-1">
                           <div className="flex items-center justify-between">
-                            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${accent.badge}`}>
+                            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-badge ${accent.badge}`}>
                               {TYPE_ICONS[type]} {TYPE_LABELS[type]}
                             </span>
                             {balanced
-                              ? <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium"><Check size={11} strokeWidth={2.5} />Settled</span>
-                              : <span className="text-xs text-amber-600 font-medium">In transit</span>
+                              ? <span className="inline-flex items-center gap-1 text-xs text-ok font-medium"><Check size={11} strokeWidth={2.5} aria-hidden="true" />Settled</span>
+                              : <span className="text-xs text-warn font-medium">In transit</span>
                             }
                           </div>
-                          <div className="flex justify-between text-xs text-slate-500 mt-0.5">
+                          <div className="flex justify-between text-xs text-ink-3 mt-0.5">
                             <span>Collected</span>
-                            <span className="font-semibold text-slate-700 tabular-nums">{fmtAmt(collected)}</span>
+                            <MoneyText value={collected} className="font-semibold text-ink" />
                           </div>
-                          <div className="flex justify-between text-xs text-slate-500">
+                          <div className="flex justify-between text-xs text-ink-3">
                             <span>Settled</span>
-                            <span className="font-semibold text-emerald-700 tabular-nums">{fmtAmt(settled)}</span>
+                            <MoneyText value={settled} tone="ok" className="font-semibold" />
                           </div>
                           {!balanced && (
-                            <div className="flex justify-between text-xs border-t border-dashed border-slate-200 pt-1 mt-0.5">
-                              <span className="text-amber-600">Pending</span>
-                              <span className="font-bold text-amber-700 tabular-nums">{fmtAmt(balance)}</span>
+                            <div className="flex justify-between text-xs border-t border-dashed border-border pt-1 mt-0.5">
+                              <span className="text-warn">Pending</span>
+                              <MoneyText value={balance} tone="warn" className="font-bold" />
                             </div>
                           )}
                         </div>
@@ -160,37 +162,35 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
                         : 0
                       return (
                         <div key={s.id} className={`flex flex-wrap items-start gap-x-3 gap-y-1 ${isVoided ? 'opacity-60' : ''}`}>
-                          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${accent.badge}`}>
+                          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-badge flex-shrink-0 mt-0.5 ${accent.badge}`}>
                             {TYPE_ICONS[s.paymentType]} {TYPE_LABELS[s.paymentType]}
                           </span>
                           <div className="order-last basis-full min-w-0 sm:order-none sm:basis-0 sm:flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               {isVoided && (
-                                <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-                                  Voided
-                                </span>
+                                <StatusBadge tone="bad" icon={Ban} label="Voided" />
                               )}
                               {!isVoided && s.isPartial && (
-                                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                                  <AlertTriangle size={11} strokeWidth={2} />Partial · {fmtAmt(shortfall)} short
-                                </span>
+                                <StatusBadge tone="warn" icon={AlertTriangle} label={`Partial · ${fmtAmt(shortfall)} short`} />
                               )}
-                              <span className="text-xs text-slate-500 truncate">
+                              <span className="text-xs text-ink-3 truncate">
                                 {s.notes ? `${s.notes} · ` : ''}by {s.recordedByUserName}
                               </span>
                             </div>
                             {!isVoided && s.isPartial && s.pendingAtRecordTime != null && (
-                              <p className="text-xs text-slate-500 mt-0.5">
+                              <p className="text-xs text-ink-3 mt-0.5">
                                 Expected {fmtAmt(s.pendingAtRecordTime)} · received {fmtAmt(s.amountReceived)}
                               </p>
                             )}
                             {isVoided && s.voidReason && (
-                              <p className="text-xs text-red-600 mt-0.5">Reason: {s.voidReason}</p>
+                              <p className="text-xs text-bad mt-0.5">Reason: {s.voidReason}</p>
                             )}
                           </div>
-                          <span className={`text-sm font-bold tabular-nums flex-shrink-0 ml-auto sm:ml-0 ${isVoided ? 'text-slate-500 line-through' : 'text-emerald-700'}`}>
-                            +{fmtAmt(s.amountReceived)}
-                          </span>
+                          <MoneyText
+                            value={s.amountReceived}
+                            showSign
+                            className={`text-sm font-bold flex-shrink-0 ml-auto sm:ml-0 ${isVoided ? 'text-ink-3 line-through' : 'text-ok'}`}
+                          />
                           {canVoid && !isVoided && (
                             <button
                               type="button"
@@ -211,7 +211,7 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
         </div>
       )}
       {dailySummaryPage && dailySummaryPage.totalElements > 0 && (
-        <div className="px-5 border-t border-slate-100">
+        <div className="px-5 border-t border-border">
           <Pagination
             data={dailySummaryPage}
             onPageChange={p => setSummaryPage(p)}

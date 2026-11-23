@@ -1,6 +1,7 @@
 import { Clock, CheckCircle2, Check, ArrowRight } from 'lucide-react'
 import type { SettlementPaymentType, WalletSummary } from '../../api/paymentSettlementApi'
-import { TYPES, TYPE_ACCENT, TYPE_ICONS, TYPE_LABELS, fmtAmt, getPending } from './settlementFormat'
+import { MoneyText } from '../../components/AmountText'
+import { TYPES, TYPE_ACCENT, TYPE_ICONS, TYPE_LABELS, getPending } from './settlementFormat'
 
 interface WalletCardsProps {
   wallet: WalletSummary | undefined
@@ -22,20 +23,20 @@ export function WalletCards({ wallet, loadingWallet, canWrite, onRecord }: Walle
               return (
                 <div key={type} className="ui-dashboard-stat">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    <span className="text-xs font-semibold text-ink-3 uppercase tracking-wide">
                       {TYPE_LABELS[type]}
                     </span>
-                    <div className={`w-9 h-9 ${accent.icon} rounded-xl flex items-center justify-center text-white shadow-sm`}>
+                    <div className={`w-9 h-9 ${accent.icon} rounded-card flex items-center justify-center text-on-primary shadow-raised`}>
                       {TYPE_ICONS[type]}
                     </div>
                   </div>
-                  <p className={`text-2xl font-bold tabular-nums tracking-tight ${settled ? 'text-emerald-600' : 'text-amber-600'}`}>
-                    {fmtAmt(pending)}
+                  <p className="text-2xl font-bold tracking-tight">
+                    <MoneyText value={pending} tone={settled ? 'ok' : 'warn'} />
                   </p>
                   <div className="flex items-center justify-between mt-2">
-                    <span className={`text-xs font-medium ${settled ? 'text-emerald-500' : 'text-amber-500'}`}>
+                    <span className={`text-xs font-medium ${settled ? 'text-ok' : 'text-warn'}`}>
                       {settled
-                        ? <span className="inline-flex items-center gap-1"><Check size={11} strokeWidth={2.5} />Fully settled</span>
+                        ? <span className="inline-flex items-center gap-1"><Check size={11} strokeWidth={2.5} aria-hidden="true" />Fully settled</span>
                         : 'In transit'
                       }
                     </span>
@@ -56,27 +57,25 @@ export function WalletCards({ wallet, loadingWallet, canWrite, onRecord }: Walle
 
       {/* ── Total in-transit banner ── */}
       {wallet && (
-        <div className={`rounded-xl border px-4 py-3 mb-6 flex items-center gap-3 ${
+        <div className={`rounded-card border px-4 py-3 mb-6 flex items-center gap-3 ${
           wallet.totalPending > 0
-            ? 'bg-amber-50 border-amber-200'
-            : 'bg-emerald-50 border-emerald-200'
+            ? 'bg-warn-bg border-warn'
+            : 'bg-ok-bg border-ok'
         }`}>
           <span className="leading-none">
             {wallet.totalPending > 0
-              ? <Clock size={18} strokeWidth={2} className="text-amber-500" />
-              : <CheckCircle2 size={18} strokeWidth={2} className="text-emerald-500" />
+              ? <Clock size={18} strokeWidth={2} className="text-warn" aria-hidden="true" />
+              : <CheckCircle2 size={18} strokeWidth={2} className="text-ok" aria-hidden="true" />
             }
           </span>
           <div className="flex-1">
-            <span className={`text-sm font-medium ${wallet.totalPending > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
+            <span className={`text-sm font-medium ${wallet.totalPending > 0 ? 'text-warn-strong' : 'text-ok'}`}>
               {wallet.totalPending > 0
                 ? 'Total amount still in transit — not yet credited to your bank account'
                 : 'All payments have been settled — no pending amounts'}
             </span>
           </div>
-          <span className={`text-lg font-bold tabular-nums ${wallet.totalPending > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
-            {fmtAmt(wallet.totalPending)}
-          </span>
+          <MoneyText value={wallet.totalPending} tone={wallet.totalPending > 0 ? 'warn' : 'ok'} className="text-lg font-bold" />
         </div>
       )}
     </>

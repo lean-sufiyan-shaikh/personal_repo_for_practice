@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { X, ArrowRight, ChevronLeft } from 'lucide-react'
+import { ArrowRight, ChevronLeft } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import { pumpApi } from '../../api/pumpApi'
 import type { AncillaryProduct, RecordAncillarySaleRequest, AncillaryPaymentMode } from '../../api/ancillaryApi'
@@ -9,7 +9,9 @@ import { SearchableSelect } from '../../components/SearchableSelect'
 import { Spinner } from '../../components/Spinner'
 import { NumericInput } from '../../components/NumericInput'
 import { useToastStore } from '../../store/toastStore'
-import { ModalPortal } from '../../components/ModalPortal'
+import { Modal } from '../../components/Modal'
+import type { ModalTone } from '../../components/Modal'
+import { MoneyText } from '../../components/AmountText'
 import { parseApiError } from '../../utils/apiError'
 import { PAYMENT_MODES, fmtCurrency } from './ancillaryFormat'
 import { ReviewRow } from './ReviewRow'
@@ -129,57 +131,74 @@ export function SellDialog({
     ? computeFifoProjectedProfit(form.quantityUnits, sellPrice, product.activeFifoLots)
     : null
   const marginBadge = projectedProfit == null ? null
-    : projectedProfit > 0 ? { label: `Projected profit: +${fmtCurrency(projectedProfit)}`, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
-    : projectedProfit < 0 ? { label: `Projected loss: ${fmtCurrency(projectedProfit)}`,    cls: 'bg-red-50 text-red-700 border-red-200' }
-    :                        { label: 'Break-even',                                          cls: 'bg-slate-50 text-slate-600 border-slate-200' }
-  const headerToneClass = projectedProfit == null
-    ? 'ui-modal-header--neutral'
-    : projectedProfit > 0
-      ? 'ui-modal-header--success'
-      : projectedProfit < 0
-        ? 'ui-modal-header--danger'
-        : 'ui-modal-header--neutral'
+    : projectedProfit > 0 ? { label: `Projected profit: +${fmtCurrency(projectedProfit)}`, cls: 'bg-ok-bg text-ok border-ok' }
+    : projectedProfit < 0 ? { label: `Projected loss: ${fmtCurrency(projectedProfit)}`,    cls: 'bg-bad-bg text-bad border-bad' }
+    :                        { label: 'Break-even',                                          cls: 'bg-neutral-bg text-neutral border-border' }
+  const headerTone: ModalTone = projectedProfit == null || projectedProfit === 0
+    ? 'neutral'
+    : projectedProfit > 0 ? 'success' : 'danger'
 
   const selectedClient = creditClients.find(c => c.id === form.clientId)
 
   return (
-    <ModalPortal onClose={onClose}>
-    <div className="ui-modal-backdrop px-4">
-      <div className="ui-modal-panel w-full max-w-md">
-
-        {/* Header */}
-        <div className={`ui-modal-header ui-modal-header--themed ${headerToneClass}`}>
-          <div className="ui-modal-heading">
-            <h3 className="ui-modal-title">
-              {step === 'form' ? 'Record Sale' : 'Review & Confirm'}
-            </h3>
-            <p className="ui-modal-subtitle break-words">
-              {product.displayName}
-              {marginBadge ? ` · ${marginBadge.label}` : ''}
-            </p>
-          </div>
-          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
-        </div>
-
+    <Modal
+      title={step === 'form' ? 'Record Sale' : 'Review & Confirm'}
+      subtitle={<span className="break-words">{product.displayName}{marginBadge ? ` · ${marginBadge.label}` : ''}</span>}
+      tone={headerTone}
+      onClose={onClose}
+      bodyClassName="space-y-4"
+      footerClassName={step === 'review' ? 'justify-between' : ''}
+      footer={step === 'form' ? (
+        <>
+          <button onClick={onClose} className="ui-btn ui-btn-secondary">
+            Cancel
+          </button>
+          <button
+            onClick={handleProceedToReview}
+            className="ui-btn ui-btn-primary"
+          >
+            <span className="inline-flex items-center gap-1.5">Review<ArrowRight size={14} strokeWidth={2} aria-hidden="true" /></span>
+          </button>
+        </>
+      ) : (
+        <>
+          <button
+            onClick={() => { setStep('form'); setError(null) }}
+            className="ui-btn ui-btn-secondary"
+          >
+            <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} aria-hidden="true" />Back</span>
+          </button>
+          <button
+            onClick={() => saleMutation.mutate(form)}
+            disabled={saleMutation.isPending}
+            className="ui-btn ui-btn-primary disabled:opacity-50"
+          >
+            {saleMutation.isPending
+              ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Recording…</span>
+              : 'Confirm Sale'}
+          </button>
+        </>
+      )}
+    >
         {/* Step 1 — Form */}
         {step === 'form' && (
-          <div className="ui-modal-body space-y-4">
+          <>
             {error && (
               <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
 
             {/* Stock + buy price info row */}
-            <div className="bg-slate-50 rounded-lg px-4 py-3 flex items-center justify-between text-sm gap-4">
+            <div className="bg-surface-sunken rounded-control px-4 py-3 flex items-center justify-between text-sm gap-4">
               <div className="flex items-center gap-3">
-                <span className="text-slate-500">Stock</span>
+                <span className="text-ink-3">Stock</span>
                 <span className={`font-medium ${
-                  product.currentStockUnits <= (product.lowStockThreshold ?? Infinity) ? 'text-red-600' : 'text-slate-800'
+                  product.currentStockUnits <= (product.lowStockThreshold ?? Infinity) ? 'text-bad' : 'text-ink'
                 }`}>{product.currentStockUnits} units</span>
               </div>
               {buyPrice != null && (
-                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                <div className="flex items-center gap-1.5 text-xs text-ink-3">
                   <span>Buy price</span>
-                  <span className="font-semibold text-slate-700">{fmtCurrency(buyPrice)}/unit</span>
+                  <span className="font-semibold text-ink">{fmtCurrency(buyPrice)}/unit</span>
                 </div>
               )}
             </div>
@@ -210,14 +229,14 @@ export function SellDialog({
                     />
                   </label>
                   {!priceLoading && configuredPrice == null && (
-                    <p className="text-xs text-red-600 mt-1">No selling price is set for this product. Set a price first.</p>
+                    <p className="text-xs text-bad mt-1">No selling price is set for this product. Set a price first.</p>
                   )}
                 </div>
               </div>
 
               {/* Profit/loss badge — total projected profit across all FIFO batches */}
               {marginBadge && (
-                <div className={`rounded-lg px-4 py-2 border text-xs font-medium ${marginBadge.cls}`}>
+                <div className={`rounded-control px-4 py-2 border text-xs font-medium ${marginBadge.cls}`}>
                   {marginBadge.label}
                 </div>
               )}
@@ -269,46 +288,34 @@ export function SellDialog({
 
             {/* Live total */}
             {totalAmount != null && (
-              <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 flex items-center justify-between">
-                <span className="text-sm text-blue-600">Total</span>
-                <span className="text-sm font-semibold text-blue-700">{fmtCurrency(totalAmount)}</span>
+              <div className="bg-info-bg border border-border rounded-control px-4 py-3 flex items-center justify-between">
+                <span className="text-sm text-info">Total</span>
+                <MoneyText value={totalAmount} className="text-sm font-semibold text-info" />
               </div>
             )}
-
-            <div className="flex justify-end gap-2 pt-1">
-              <button onClick={onClose} className="ui-btn ui-btn-secondary">
-                Cancel
-              </button>
-              <button
-                onClick={handleProceedToReview}
-                className="ui-btn ui-btn-primary"
-              >
-                <span className="inline-flex items-center gap-1.5">Review<ArrowRight size={14} strokeWidth={2} /></span>
-              </button>
-            </div>
-          </div>
+          </>
         )}
 
         {/* Step 2 — Review */}
         {step === 'review' && (
-          <div className="ui-modal-body space-y-4">
-            <p className="text-sm text-slate-500">Please review the details before confirming.</p>
+          <>
+            <p className="text-sm text-ink-3">Please review the details before confirming.</p>
 
-            <div className="bg-slate-50 rounded-xl border border-slate-200 divide-y divide-slate-100 text-sm">
+            <div className="bg-surface-sunken rounded-card border border-border divide-y divide-border text-sm">
               <ReviewRow label="Product" value={product.displayName} />
               <ReviewRow label="Quantity" value={`${form.quantityUnits} unit${form.quantityUnits !== 1 ? 's' : ''}`} />
               {buyPrice != null && <ReviewRow label="Buy price / unit" value={fmtCurrency(buyPrice)} />}
               <ReviewRow label="Sell price / unit" value={fmtCurrency(form.sellingPricePerUnit)} />
               <ReviewRow label="Total" value={fmtCurrency(totalAmount)} highlight />
               {marginBadge && (
-                <div className={`flex items-center justify-between px-4 py-2.5 rounded-b-xl ${marginBadge.cls}`}>
+                <div className={`flex items-center justify-between px-4 py-2.5 rounded-b-card ${marginBadge.cls}`}>
                   <span className="text-xs">Margin</span>
                   <span className="text-xs font-semibold">{marginBadge.label}</span>
                 </div>
               )}
             </div>
 
-            <div className="bg-slate-50 rounded-xl border border-slate-200 divide-y divide-slate-100 text-sm">
+            <div className="bg-surface-sunken rounded-card border border-border divide-y divide-border text-sm">
               <ReviewRow label="Payment mode" value={codeLabel(form.paymentMode)} />
               {form.paymentMode === 'CREDIT' && selectedClient && (
                 <ReviewRow label="Client" value={selectedClient.name} />
@@ -319,28 +326,8 @@ export function SellDialog({
             {error && (
               <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
-
-            <div className="flex justify-between gap-2 pt-1">
-              <button
-                onClick={() => { setStep('form'); setError(null) }}
-                className="ui-btn ui-btn-secondary"
-              >
-                <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} />Back</span>
-              </button>
-              <button
-                onClick={() => saleMutation.mutate(form)}
-                disabled={saleMutation.isPending}
-                className="ui-btn ui-btn-primary disabled:opacity-50"
-              >
-                {saleMutation.isPending
-                  ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Recording…</span>
-                  : 'Confirm Sale'}
-              </button>
-            </div>
-          </div>
+          </>
         )}
-      </div>
-    </div>
-    </ModalPortal>
+    </Modal>
   )
 }

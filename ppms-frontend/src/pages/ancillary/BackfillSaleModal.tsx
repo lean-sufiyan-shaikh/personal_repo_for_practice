@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { X, ChevronLeft } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import { pumpApi } from '../../api/pumpApi'
 import type { AncillaryProduct, BackfillSaleRequest, AncillaryPaymentMode } from '../../api/ancillaryApi'
@@ -8,7 +8,7 @@ import { SearchableSelect } from '../../components/SearchableSelect'
 import { localDateInputValue } from '../../utils/date'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
-import { ModalPortal } from '../../components/ModalPortal'
+import { Modal } from '../../components/Modal'
 import { parseApiError } from '../../utils/apiError'
 import { PAYMENT_MODES, fmtDate } from './ancillaryFormat'
 import { ReviewRow } from './ReviewRow'
@@ -88,34 +88,52 @@ export function BackfillSaleModal({
   }
 
   return (
-    <ModalPortal onClose={onClose} closeOnBackdropClick>
-    <div className="ui-modal-backdrop px-4">
-      <div className="ui-modal-panel w-full max-w-md">
-
-        {/* Header */}
-        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
-          <div className="ui-modal-heading">
-            <h3 className="ui-modal-title">
-              {step === 'form' ? 'Backfill Sale' : 'Review Backfill Sale'}
-            </h3>
-            <p className="ui-modal-subtitle">
-              {step === 'form'
+    <Modal
+      title={step === 'form' ? 'Backfill Sale' : 'Review Backfill Sale'}
+      subtitle={step === 'form'
                 ? 'Enter a historical counter sale. Price is resolved from price history.'
                 : 'Review the details before submitting.'}
-            </p>
-          </div>
-          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
-        </div>
+      tone="info"
+      onClose={onClose}
+      closeOnBackdropClick
+      bodyClassName="space-y-4"
+      footer={<>
+          {step === 'form' ? (
+            <>
+              <button onClick={onClose} className="ui-btn ui-btn-secondary">Cancel</button>
+              <button onClick={handleReview} className="ui-btn ui-btn-primary">Review →</button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => { setStep('form'); setError(null) }}
+                className="ui-btn ui-btn-secondary"
+              >
+                <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} aria-hidden="true" />Back</span>
+              </button>
+              <button
+                onClick={() => backfillMutation.mutate(form)}
+                disabled={backfillMutation.isPending}
+                className="ui-btn ui-btn-primary disabled:opacity-50"
+              >
+                {backfillMutation.isPending
+                  ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Recording…</span>
+                  : 'Confirm Backfill'}
+              </button>
+            </>
+          )}
+      </>}
+    >
 
         {/* Step 1 — Form */}
         {step === 'form' && (
-          <div className="ui-modal-body space-y-4">
+          <>
             {error && (
               <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
 
             {/* Info banner about price resolution */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs text-amber-700">
+            <div className="bg-warn-bg border border-warn rounded-control px-4 py-3 text-xs text-warn">
               <strong>Note:</strong> The selling price will be automatically resolved from the product's
               price history for the selected date. Make sure a price was set on or before that date.
               Stock must also have been delivered on or before the sale date.
@@ -215,18 +233,18 @@ export function BackfillSaleModal({
                 </label>
               </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* Step 2 — Review */}
         {step === 'review' && (
-          <div className="ui-modal-body space-y-4">
-            <div className="bg-violet-50 border border-violet-200 rounded-lg px-4 py-2.5 text-xs text-violet-700 font-medium">
+          <>
+            <div className="bg-info-bg border border-info rounded-control px-4 py-2.5 text-xs text-info font-medium">
               This sale will be recorded as <strong>Backfilled</strong> for {fmtDate(form.saleDate)}.
               The selling price is resolved from price history.
             </div>
 
-            <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
+            <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
               <ReviewRow label="Product" value={selectedProduct?.displayName ?? '—'} />
               <ReviewRow label="Sale Date" value={fmtDate(form.saleDate)} />
               <ReviewRow label="Quantity" value={`${form.quantityUnits} unit${form.quantityUnits !== 1 ? 's' : ''}`} />
@@ -240,38 +258,9 @@ export function BackfillSaleModal({
             {error && (
               <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
-          </div>
+          </>
         )}
 
-        {/* Footer */}
-        <div className="ui-modal-footer">
-          {step === 'form' ? (
-            <>
-              <button onClick={onClose} className="ui-btn ui-btn-secondary">Cancel</button>
-              <button onClick={handleReview} className="ui-btn ui-btn-primary">Review →</button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => { setStep('form'); setError(null) }}
-                className="ui-btn ui-btn-secondary"
-              >
-                <span className="inline-flex items-center gap-1.5"><ChevronLeft size={14} strokeWidth={2} />Back</span>
-              </button>
-              <button
-                onClick={() => backfillMutation.mutate(form)}
-                disabled={backfillMutation.isPending}
-                className="ui-btn ui-btn-primary disabled:opacity-50"
-              >
-                {backfillMutation.isPending
-                  ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Recording…</span>
-                  : 'Confirm Backfill'}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-    </ModalPortal>
+    </Modal>
   )
 }

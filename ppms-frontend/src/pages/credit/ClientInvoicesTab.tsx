@@ -6,10 +6,12 @@ import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
+import { StatusBadge } from '../../components/StatusBadge'
+import { invoiceStatusBadge } from '../../components/statusBadges'
+import { MoneyText } from '../../components/AmountText'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { formatIstDate } from '../../utils/date'
-import { formatCurrency } from '../../utils/format'
 import { CancelInvoiceModal } from './modals/CancelInvoiceModal'
 
 // ─── Client Invoices Tab ─────────────────────────────────────────────────────
@@ -63,22 +65,18 @@ export function ClientInvoicesTab({ pumpId, clientId, canIssueInvoices }: Client
               <li key={invoice.id} className="ui-card-plain px-4 py-3 flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-slate-800">{invoice.invoiceNumber}</span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                      invoice.status === 'CANCELLED' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'
-                    }`}>
-                      {invoice.status === 'CANCELLED' ? 'Cancelled' : 'Issued'}
-                    </span>
+                    <span className="text-sm font-semibold text-ink">{invoice.invoiceNumber}</span>
+                    <StatusBadge {...invoiceStatusBadge(invoice.status)} />
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-ink-3 mt-0.5">
                     {shortDate(invoice.periodFrom)} – {shortDate(invoice.periodTo)} · issued {shortDate(invoice.issuedOn)}
                   </p>
                   {invoice.cancelReason && (
-                    <p className="text-xs text-red-700 mt-0.5">Reason: {invoice.cancelReason}</p>
+                    <p className="text-xs text-bad mt-0.5">Reason: {invoice.cancelReason}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold text-slate-800">{formatCurrency(invoice.grandTotal)}</span>
+                  <MoneyText value={invoice.grandTotal} className="text-sm font-bold text-ink" />
                   <a
                     href={creditApi.invoicePrintUrl(pumpId, invoice.id)}
                     target="_blank"
@@ -90,7 +88,7 @@ export function ClientInvoicesTab({ pumpId, clientId, canIssueInvoices }: Client
                   </a>
                   {canIssueInvoices && invoice.status === 'ISSUED' && (
                     <button type="button" onClick={() => setCancelling(invoice)}
-                      className="ui-btn ui-btn-ghost min-h-0 px-3 py-1.5 text-xs text-red-600 border border-red-200"
+                      className="ui-btn ui-btn-ghost min-h-0 px-3 py-1.5 text-xs text-bad border border-bad/30"
                       aria-label={`Cancel invoice ${invoice.invoiceNumber}`}>
                       Cancel
                     </button>
@@ -145,8 +143,8 @@ function GenerateInvoiceForm({ pumpId, clientId, defaultPeriod, onGenerated }: G
 
   return (
     <form onSubmit={handleSubmit} className="ui-card-plain px-4 py-3 space-y-3" aria-label="Generate invoice">
-      <p className="text-sm font-semibold text-slate-700">Generate invoice</p>
-      <p className="text-xs text-slate-500">
+      <p className="text-sm font-semibold text-ink">Generate invoice</p>
+      <p className="text-xs text-ink-3">
         Bills every credit sale in the period that is not already on an invoice. Interest is not included.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

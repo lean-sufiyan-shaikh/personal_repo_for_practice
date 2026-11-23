@@ -12,6 +12,10 @@ import { EmptyState } from '../../components/EmptyState'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { IconButton } from '../../components/IconButton'
+import { RejectReasonDialog } from '../../components/RejectReasonDialog'
+import { StatusBadge } from '../../components/StatusBadge'
+import { MoneyText } from '../../components/AmountText'
+import { codeLabel } from '../../constants/labels'
 import { ClientActions } from './ClientActions'
 import { ActiveExtensionBanners } from './ActiveExtensionBanners'
 import { GrantExtensionModal } from './modals/GrantExtensionModal'
@@ -29,7 +33,7 @@ import { useLedgerFilters } from './useLedgerFilters'
 import { LedgerFilterBar } from './LedgerFilterBar'
 import { ClientSummaryCards } from './ClientSummaryCards'
 import { ClientInvoicesTab } from './ClientInvoicesTab'
-import { formatDecimal } from '../../utils/format'
+import { formatCurrency } from '../../utils/format'
 
 // ─── Client Detail (transaction history) ────────────────────────────────────
 
@@ -50,6 +54,8 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   // Track which client the entry being reassigned belongs to (may be a child in parent view)
   const [reassignSourceClientId,  setReassignSourceClientId]  = useState<number>(clientId)
   const [reassignType,            setReassignType]            = useState<'SALE' | 'PAYMENT'>('SALE')
+  const [rejectingPayment, setRejectingPayment] = useState<CreditTransaction | null>(null)
+  const [rejectError, setRejectError] = useState<string | null>(null)
   const [waivingInterest, setWaivingInterest] = useState<{ charge: CreditTransaction; sourceClientId: number } | null>(null)
   // Tracks which sections are expanded in the parent ledger view.
   // 'own' (parent's own transactions) starts expanded; sub-account sections start collapsed.
@@ -107,13 +113,18 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   })
 
   const approvePaymentMutation = useMutation({
-    mutationFn: ({ paymentId, status }: { paymentId: number; status: 'APPROVED' | 'REJECTED' }) =>
-      creditApi.approvePayment(pumpId, paymentId, status),
+    mutationFn: ({ paymentId, status, reason }: { paymentId: number; status: 'APPROVED' | 'REJECTED'; reason?: string }) =>
+      creditApi.approvePayment(pumpId, paymentId, status, reason),
     onSuccess: (_payment, { status }) => {
       invalidateLedger()
+      setRejectingPayment(null)
       addToast(status === 'APPROVED' ? 'Payment approved' : 'Payment rejected', 'success')
     },
-    onError: (err) => addToast(parseApiError(err, 'Failed to update payment'), 'error'),
+    onError: (err, { status }) => {
+      const message = parseApiError(err, 'Failed to update payment')
+      if (status === 'REJECTED') setRejectError(message)
+      else addToast(message, 'error')
+    },
   })
 
   const ledgerFilters = useLedgerFilters(transactions, ownTransactions, childTransactionsByIndex, txPage, txPageSize)
@@ -137,7 +148,11 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
     canApprovePayments,
     currentUserId: user?.userId,
     pendingPaymentRecorders,
-    approvePayment: (paymentId, status) => approvePaymentMutation.mutate({ paymentId, status }),
+    approvePayment: (paymentId) => approvePaymentMutation.mutate({ paymentId, status: 'APPROVED' }),
+    onRejectPayment: (payment) => {
+      setRejectError(null)
+      setRejectingPayment(payment)
+    },
     isApproving: approvePaymentMutation.isPending,
     onMove: (entryId, sourceClientId, type) => {
       setReassignEntryId(entryId)
@@ -195,6 +210,18 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           onClose={() => setWaivingInterest(null)}
         />
       )}
+      {rejectingPayment && (
+        <RejectReasonDialog
+          title="Reject Payment"
+          subtitle={`${formatCurrency(rejectingPayment.amount)} · ${rejectingPayment.reference || codeLabel(rejectingPayment.detail)}`}
+          isPending={approvePaymentMutation.isPending}
+          error={rejectError}
+          onConfirm={(reason) => approvePaymentMutation.mutate({
+            paymentId: rejectingPayment.referenceId, status: 'REJECTED', reason,
+          })}
+          onClose={() => setRejectingPayment(null)}
+        />
+      )}
       {showExtensionModal && canGrantExtension && (
         <GrantExtensionModal
           client={client}
@@ -225,7 +252,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
       <div className="p-6 pb-4">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-4"
+          className="flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink mb-4"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -235,8 +262,8 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
 
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
-            <h2 className="text-xl font-bold text-slate-800">{client.name}</h2>
-            <p className="text-sm text-slate-500 mt-0.5">{client.phone}</p>
+            <h2 className="text-xl font-bold text-ink">{client.name}</h2>
+            <p className="text-sm text-ink-3 mt-0.5">{client.phone}</p>
           </div>
           <ClientActions
             canManageInterest={canManageInterest}
@@ -253,32 +280,32 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
         </div>
 
         {canManageInterestForRole && isSubAccount && (
-          <p className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-slate-500">
+          <p className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-ink-3">
             Interest is charged on the parent account{client.parentClientName ? ` (${client.parentClientName})` : ''} for
             the combined balance of the whole group.
           </p>
         )}
         {canManageExtensions && isSubAccount && (
-          <p className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-slate-500">
+          <p className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-ink-3">
             Credit limit and billing cycle are checked on the parent account
             {client.parentClientName ? ` (${client.parentClientName})` : ''} for the whole group. Grant credit extensions there.
           </p>
         )}
         {applyInterestFeedback && (
-          <div className="mt-3 ui-alert text-sm bg-purple-50 border-purple-200 text-purple-800 flex items-center justify-between">
+          <div className="mt-3 ui-alert text-sm bg-info-bg border-info/30 text-info flex items-center justify-between">
             <span>{applyInterestFeedback}</span>
-            <IconButton onClick={() => setApplyInterestFeedback(null)} className="ml-2 text-purple-700 hover:text-purple-800"
+            <IconButton onClick={() => setApplyInterestFeedback(null)} className="ml-2 text-info hover:text-ink"
               label="Dismiss message"
               icon={'×'}
             />
           </div>
         )}
         {canManageInterest && client.monthlyInterestRate === 0 && client.outstandingBalance > 0 && (
-          <div className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-slate-500 flex items-center gap-2">
+          <div className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-ink-3 flex items-center gap-2">
             <span>No interest rate configured.</span>
             <button
               onClick={() => setShowInterestSettingsModal(true)}
-              className="text-purple-600 font-medium hover:text-purple-800 underline-offset-2 hover:underline"
+              className="text-primary font-medium hover:text-primary-strong underline-offset-2 hover:underline"
             >
               Set interest rate
             </button>
@@ -338,22 +365,22 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
               <button
                 type="button"
                 onClick={() => toggleSection('own')}
-                className="w-full flex items-center justify-between mb-3 pb-2 border-b border-slate-100 hover:bg-slate-50/50 rounded px-1 -mx-1 transition-colors"
+                className="w-full flex items-center justify-between mb-3 pb-2 border-b border-border hover:bg-surface-sunken rounded-control px-1 -mx-1 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-full bg-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center">
+                  <span className="w-8 h-8 rounded-full bg-surface-sunken text-ink-2 text-xs font-bold flex items-center justify-center">
                     {client.name.charAt(0).toUpperCase()}
                   </span>
                   <div className="text-left">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-slate-700">{client.name}</span>
-                      <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">own transactions</span>
+                      <span className="text-sm font-semibold text-ink">{client.name}</span>
+                      <StatusBadge tone="neutral" label="own transactions" />
                     </div>
-                    <p className="text-xs text-slate-500">{client.phone}</p>
+                    <p className="text-xs text-ink-3">{client.phone}</p>
                   </div>
                 </div>
                 <svg
-                  className={`w-4 h-4 text-slate-500 transition-transform ${expandedSections.has('own') ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 text-ink-3 transition-transform ${expandedSections.has('own') ? 'rotate-180' : ''}`}
                   fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -385,29 +412,27 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
                   <button
                     type="button"
                     onClick={() => toggleSection(sectionKey)}
-                    className="w-full flex items-center justify-between mb-3 pb-2 border-b border-slate-100 hover:bg-slate-50/50 rounded px-1 -mx-1 transition-colors"
+                    className="w-full flex items-center justify-between mb-3 pb-2 border-b border-border hover:bg-surface-sunken rounded-control px-1 -mx-1 transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center">
+                      <span className="w-8 h-8 rounded-full bg-info-bg text-primary text-xs font-bold flex items-center justify-center">
                         {child.name.charAt(0).toUpperCase()}
                       </span>
                       <div className="text-left">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-slate-700">{child.name}</span>
-                          <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-medium">sub-account</span>
+                          <span className="text-sm font-semibold text-ink">{child.name}</span>
+                          <StatusBadge tone="info" label="sub-account" />
                         </div>
-                        <p className="text-xs text-slate-500">{child.phone}</p>
+                        <p className="text-xs text-ink-3">{child.phone}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <p className="text-xs text-slate-500">Outstanding</p>
-                        <p className={`text-sm font-bold ${childOutstanding > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                          ₹{formatDecimal(childOutstanding)}
-                        </p>
+                        <p className="text-xs text-ink-3">Outstanding</p>
+                        <MoneyText value={childOutstanding} tone={childOutstanding > 0 ? 'warn' : 'ok'} className="block text-sm font-bold" />
                       </div>
                       <svg
-                        className={`w-4 h-4 text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                        className={`w-4 h-4 text-ink-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                         fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />

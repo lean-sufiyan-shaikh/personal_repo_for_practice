@@ -1,4 +1,6 @@
+import { ArrowDown, ArrowUp, Lock, Wallet } from 'lucide-react'
 import type { CashEventType } from '../../api/cashApi'
+import type { StatusBadgeSpec } from '../../components/statusBadges'
 
 export const EVENT_TYPES: { value: CashEventType; label: string }[] = [
   { value: 'OPENING_BALANCE', label: 'Opening Balance' },
@@ -7,11 +9,11 @@ export const EVENT_TYPES: { value: CashEventType; label: string }[] = [
   { value: 'CLOSING_BALANCE', label: 'Closing Balance' },
 ]
 
-export const EVENT_STYLES: Record<CashEventType, string> = {
-  OPENING_BALANCE: 'bg-blue-100 text-blue-700',
-  CASH_IN:         'bg-emerald-100 text-emerald-700',
-  CASH_OUT:        'bg-red-100 text-red-700',
-  CLOSING_BALANCE: 'bg-slate-100 text-slate-700',
+export const EVENT_BADGES: Record<CashEventType, Omit<StatusBadgeSpec, 'label'>> = {
+  OPENING_BALANCE: { tone: 'info', icon: Wallet },
+  CASH_IN:         { tone: 'ok', icon: ArrowDown },
+  CASH_OUT:        { tone: 'bad', icon: ArrowUp },
+  CLOSING_BALANCE: { tone: 'neutral', icon: Lock },
 }
 
 export { formatCurrency as fmtAmt } from '../../utils/format'

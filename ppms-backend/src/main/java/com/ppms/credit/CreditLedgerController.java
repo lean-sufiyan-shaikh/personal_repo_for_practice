@@ -336,7 +336,8 @@ public class CreditLedgerController {
      *   toDate   (ISO date, e.g. 2024-12-31) — filter transactions up to this date
      *
      * The statement includes: pump header, client details, transaction table with running
-     * balance, and the current outstanding balance as a footer summary.
+     * balance, and the current outstanding balance as a footer summary. A parent account's statement
+     * also lists its sub-accounts' transactions, each labelled with the sub-account, and the group outstanding.
      */
     @GetMapping(value = "/{clientId}/statement", produces = MediaType.TEXT_HTML_VALUE)
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")
@@ -351,14 +352,8 @@ public class CreditLedgerController {
         PumpLocation pump = pumpLocationRepository.findById(pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pump not found"));
 
-        BigDecimal outstanding = interestService.computeOutstanding(clientId);
-        String html = statementRenderer.render(
-                pump,
-                client,
-                queryService.getStatementTransactions(clientId, fromDate, toDate),
-                outstanding,
-                fromDate,
-                toDate);
+        String html = statementRenderer.render(pump, client, queryService.getStatement(client, fromDate, toDate),
+                fromDate, toDate);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_HTML)

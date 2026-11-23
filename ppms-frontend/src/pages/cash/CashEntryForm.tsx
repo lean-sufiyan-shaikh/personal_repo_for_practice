@@ -8,9 +8,12 @@ import { Reveal } from '../../components/Reveal'
 import { Spinner } from '../../components/Spinner'
 import { NumericInput } from '../../components/NumericInput'
 import { useToastStore } from '../../store/toastStore'
-import { ModalPortal } from '../../components/ModalPortal'
+import { Modal } from '../../components/Modal'
+import type { ModalTone } from '../../components/Modal'
+import { StatusBadge } from '../../components/StatusBadge'
+import { MoneyText } from '../../components/AmountText'
 import { parseApiError } from '../../utils/apiError'
-import { EVENT_STYLES, EVENT_TYPES, fmtAmt, fmtDate } from './cashFormat'
+import { EVENT_BADGES, EVENT_TYPES, fmtAmt, fmtDate } from './cashFormat'
 
 interface CashEntryFormProps {
   pumpId: number | null
@@ -68,14 +71,14 @@ export function CashEntryForm({ pumpId, balance }: CashEntryFormProps) {
     setReviewOpen(true)
   }
 
-  const reviewHeaderTone =
+  const reviewHeaderTone: ModalTone =
     form.eventType === 'CASH_OUT'
-      ? 'ui-modal-header--danger'
+      ? 'danger'
       : form.eventType === 'CASH_IN'
-        ? 'ui-modal-header--success'
+        ? 'success'
         : form.eventType === 'OPENING_BALANCE'
-          ? 'ui-modal-header--info'
-          : 'ui-modal-header--neutral'
+          ? 'info'
+          : 'neutral'
 
   return (
     <>
@@ -108,13 +111,13 @@ export function CashEntryForm({ pumpId, balance }: CashEntryFormProps) {
                 step="0.01"
                 value={form.amount || ''}
                 onChange={e => setForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
-                className={`text-sm ${form.eventType === 'CASH_OUT' && form.amount > balance ? 'border-red-400 focus:ring-red-300' : ''}`}
+                className={`text-sm ${form.eventType === 'CASH_OUT' && form.amount > balance ? 'border-bad focus:ring-bad' : ''}`}
                 placeholder="0.00"
                 required
               />
             </label>
             {form.eventType === 'CASH_OUT' && (
-              <p className={`mt-1 text-xs ${form.amount > balance ? 'text-red-500 font-medium' : 'text-slate-500'}`}>
+              <p className={`mt-1 text-xs ${form.amount > balance ? 'text-bad font-medium' : 'text-ink-3'}`}>
                 Available balance: {fmtAmt(balance)}
               </p>
             )}
@@ -163,59 +166,54 @@ export function CashEntryForm({ pumpId, balance }: CashEntryFormProps) {
       </Reveal>
 
       {reviewOpen && (
-        <ModalPortal onClose={() => setReviewOpen(false)} closeOnBackdropClick>
-        <div className="ui-modal-backdrop">
-          <div className="ui-modal-panel w-full max-w-md">
-            <div className={`ui-modal-header ui-modal-header--themed ${reviewHeaderTone}`}>
-              <div className="ui-modal-heading">
-                <h2 className="ui-modal-title">Review Cash Event</h2>
-                <p className="ui-modal-subtitle">Check the event details before recording it.</p>
-              </div>
-              <button type="button" aria-label="Close" onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
+        <Modal
+          title="Review Cash Event"
+          subtitle="Check the event details before recording it."
+          tone={reviewHeaderTone}
+          onClose={() => setReviewOpen(false)}
+          closeOnBackdropClick
+          bodyClassName="space-y-4"
+          footer={<>
+            <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
+              Back
+            </button>
+            <button
+              onClick={() => {
+                if (!validateForm()) {
+                  return
+                }
+                createMutation.mutate(form)
+              }}
+              disabled={createMutation.isPending}
+              className="ui-btn ui-btn-primary"
+            >
+              {createMutation.isPending ? 'Saving…' : 'Record Event'}
+            </button>
+          </>}
+        >
+          {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
+          <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-ink-3 text-xs">Event Type</span>
+              <StatusBadge
+                {...EVENT_BADGES[form.eventType]}
+                label={EVENT_TYPES.find((eventType) => eventType.value === form.eventType)?.label ?? form.eventType}
+              />
             </div>
-            <div className="ui-modal-body space-y-4">
-              {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
-              <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
-                <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="text-slate-500 text-xs">Event Type</span>
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${EVENT_STYLES[form.eventType]}`}>
-                    {EVENT_TYPES.find((eventType) => eventType.value === form.eventType)?.label ?? form.eventType}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="text-slate-500 text-xs">Amount</span>
-                  <span className="font-medium text-sm text-slate-800">{fmtAmt(form.amount)}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <span className="text-slate-500 text-xs">Description</span>
-                  <span className="font-medium text-right text-sm text-slate-800">{form.description.trim()}</span>
-                </div>
-                <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="text-slate-500 text-xs">Date</span>
-                  <span className="font-medium text-sm text-slate-800">{fmtDate(form.eventDate)}</span>
-                </div>
-              </div>
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-ink-3 text-xs">Amount</span>
+              <MoneyText value={form.amount} className="font-medium text-sm text-ink" />
             </div>
-            <div className="ui-modal-footer">
-              <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
-                Back
-              </button>
-              <button
-                onClick={() => {
-                  if (!validateForm()) {
-                    return
-                  }
-                  createMutation.mutate(form)
-                }}
-                disabled={createMutation.isPending}
-                className="ui-btn ui-btn-primary"
-              >
-                {createMutation.isPending ? 'Saving…' : 'Record Event'}
-              </button>
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+              <span className="text-ink-3 text-xs">Description</span>
+              <span className="font-medium text-right text-sm text-ink">{form.description.trim()}</span>
+            </div>
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-ink-3 text-xs">Date</span>
+              <span className="font-medium text-sm text-ink">{fmtDate(form.eventDate)}</span>
             </div>
           </div>
-        </div>
-        </ModalPortal>
+        </Modal>
       )}
     </>
   )

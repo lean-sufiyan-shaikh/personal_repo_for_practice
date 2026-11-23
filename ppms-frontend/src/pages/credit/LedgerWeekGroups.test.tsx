@@ -5,7 +5,7 @@ import { LedgerWeekGroups, type LedgerRowActions } from './LedgerWeekGroups'
 
 const actions: LedgerRowActions = {
   canMoveEntries: false, canWaiveInterest: false, canApprovePayments: false, currentUserId: 1,
-  pendingPaymentRecorders: new Map(), approvePayment: vi.fn(), isApproving: false,
+  pendingPaymentRecorders: new Map(), approvePayment: vi.fn(), onRejectPayment: vi.fn(), isApproving: false,
   onMove: vi.fn(), onWaiveInterest: vi.fn(),
 }
 
@@ -30,7 +30,7 @@ describe('LedgerWeekGroups shop sales', () => {
       />,
     )
 
-    expect(screen.getByText('↑ Shop sale')).toBeInTheDocument()
+    expect(screen.getByText('Shop sale')).toBeInTheDocument()
     expect(screen.getByText('Castrol Engine Oil 1 L × 2 (Bill B-42)')).toBeInTheDocument()
     expect(screen.getByText('+₹1,000.00 sales')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Move' })).toHaveLength(1)

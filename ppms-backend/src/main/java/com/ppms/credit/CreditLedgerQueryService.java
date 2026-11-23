@@ -125,8 +125,37 @@ public class CreditLedgerQueryService {
         return transactions;
     }
 
-    public List<CreditTransactionResponse> getStatementTransactions(Long clientId, LocalDate fromDate, LocalDate toDate) {
-        return buildTransactionList(clientId).stream()
+    public CreditStatement getStatement(CreditClient client, LocalDate fromDate, LocalDate toDate) {
+        List<CreditClient> subAccounts = client.getParentClientId() == null
+                ? clientRepository.findByParentClientId(client.getId())
+                : List.of();
+        if (subAccounts.isEmpty()) {
+            return new CreditStatement(filterByDate(buildTransactionList(client.getId()), fromDate, toDate),
+                    interestService.computeOutstanding(client.getId()), List.of());
+        }
+
+        List<CreditClient> group = new ArrayList<>();
+        group.add(client);
+        group.addAll(subAccounts);
+        List<CreditTransactionResponse> transactions = new ArrayList<>();
+        for (CreditClient account : group) {
+            List<CreditTransactionResponse> accountRows = collectTransactions(account.getId());
+            accountRows.forEach(row -> {
+                row.setClientId(account.getId());
+                row.setClientName(account.getName());
+            });
+            transactions.addAll(accountRows);
+        }
+        transactions.sort(OLDEST_FIRST);
+        applyRunningBalance(transactions);
+        return new CreditStatement(filterByDate(transactions, fromDate, toDate),
+                interestService.computeOutstandingWithChildren(client.getId()),
+                subAccounts.stream().map(CreditClient::getName).toList());
+    }
+
+    private static List<CreditTransactionResponse> filterByDate(List<CreditTransactionResponse> transactions,
+                                                                LocalDate fromDate, LocalDate toDate) {
+        return transactions.stream()
                 .filter(tx -> fromDate == null || !tx.getBusinessDate().isBefore(fromDate))
                 .filter(tx -> toDate == null || !tx.getBusinessDate().isAfter(toDate))
                 .toList();
@@ -168,6 +197,13 @@ public class CreditLedgerQueryService {
      * exact same ordering and running-balance rules.
      */
     private List<CreditTransactionResponse> buildTransactionList(Long clientId) {
+        List<CreditTransactionResponse> transactions = collectTransactions(clientId);
+        transactions.sort(OLDEST_FIRST);
+        applyRunningBalance(transactions);
+        return transactions;
+    }
+
+    private List<CreditTransactionResponse> collectTransactions(Long clientId) {
         List<CreditTransactionResponse> transactions = new ArrayList<>();
 
         creditEntryRepository.findByClientIdOrderByCreatedAtDesc(clientId)
@@ -234,9 +270,11 @@ public class CreditLedgerQueryService {
                             .countedInBalance(charge.getVoidedAt() == null)
                             .build());
                 });
+        return transactions;
+    }
 
-        transactions.sort(OLDEST_FIRST);
-
+    /** Expects the rows oldest first; rows not counted in the balance carry the balance before them. */
+    private static void applyRunningBalance(List<CreditTransactionResponse> transactions) {
         BigDecimal runningBalance = BigDecimal.ZERO;
         for (CreditTransactionResponse transaction : transactions) {
             if (!transaction.isCountedInBalance()) {
@@ -250,8 +288,6 @@ public class CreditLedgerQueryService {
             }
             transaction.setRunningBalance(runningBalance.setScale(2, RoundingMode.HALF_UP));
         }
-
-        return transactions;
     }
 
     private static String counterSaleLabel(AncillarySale sale, AncillaryProduct product) {

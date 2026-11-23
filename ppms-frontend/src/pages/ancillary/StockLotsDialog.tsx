@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { X } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import type { AncillaryProduct, AncillaryLotDetail, UpdateLotRequest } from '../../api/ancillaryApi'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
-import { ModalPortal } from '../../components/ModalPortal'
+import { Modal } from '../../components/Modal'
+import { DataTable } from '../../components/DataTable'
+import type { DataTableColumn } from '../../components/DataTable'
+import { MoneyText } from '../../components/AmountText'
 import { parseApiError } from '../../utils/apiError'
-import { fmtCurrency, fmtDate } from './ancillaryFormat'
+import { fmtDate } from './ancillaryFormat'
 
 // ── Stock Lots Dialog ─────────────────────────────────────────────────────────
 /**
@@ -80,22 +82,32 @@ export function StockLotsDialog({
     updateMutation.mutate({ lotId: lot.id, data: payload })
   }
 
+  const columns: DataTableColumn<AncillaryLotDetail>[] = [
+    { key: 'inDate', header: 'In Date' },
+    { key: 'billNo', header: 'Bill No' },
+    { key: 'costPrice', header: 'Cost Price/Unit', numeric: true },
+    { key: 'remaining', header: 'Remaining', numeric: true },
+    { key: 'original', header: 'Original', numeric: true },
+    ...(isOwnerOrAdmin ? [{ key: 'actions', header: 'Actions', align: 'right' as const }] : []),
+  ]
+
   return (
-    <ModalPortal onClose={onClose}>
-    <div className="ui-modal-backdrop">
-      <div className="ui-modal-panel ui-modal-panel--lg w-full max-w-2xl max-h-[85vh] flex flex-col">
-
-        {/* Header */}
-        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info shrink-0">
-          <div className="ui-modal-heading">
-            <h3 className="ui-modal-title">Stock Lots</h3>
-            <p className="ui-modal-subtitle truncate max-w-[380px]">{product.displayName}</p>
-          </div>
-          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
-        </div>
-
-        {/* Body */}
-        <div className="ui-modal-body overflow-auto flex-1">
+    <Modal
+      title="Stock Lots"
+      subtitle={<span className="block truncate max-w-[380px]">{product.displayName}</span>}
+      tone="info"
+      size="lg"
+      onClose={onClose}
+      footerClassName="justify-between items-center"
+      footer={<>
+        <p className="text-xs text-ink-3">
+          Lots shown in FIFO order — oldest consumed first
+        </p>
+        <button onClick={onClose} className="ui-btn ui-btn-secondary">
+          Close
+        </button>
+      </>}
+    >
           {isLoading ? (
             <p className="ui-empty py-8">Loading lots…</p>
           ) : lots.length === 0 ? (
@@ -105,25 +117,19 @@ export function StockLotsDialog({
               {editError && (
                 <div role="alert" className="ui-alert ui-alert-danger mb-3 text-sm">{editError}</div>
               )}
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="text-xs text-slate-500 border-b border-slate-200">
-                    <th scope="col" className="text-left pb-2 pr-4 font-medium">In Date</th>
-                    <th scope="col" className="text-left pb-2 pr-4 font-medium">Bill No</th>
-                    <th scope="col" className="text-right pb-2 pr-4 font-medium">Cost Price/Unit</th>
-                    <th scope="col" className="text-right pb-2 pr-4 font-medium">Remaining</th>
-                    <th scope="col" className="text-right pb-2 pr-4 font-medium">Original</th>
-                    {isOwnerOrAdmin && <th scope="col" className="text-right pb-2 font-medium">Actions</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {lots.map((lot, idx) => (
-                    <tr key={lot.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+              <DataTable
+                caption="Active stock lots"
+                captionHidden
+                columns={columns}
+                rows={lots}
+                rowKey={(lot) => lot.id}
+                renderRow={(lot) => (
+                    <tr>
                       {editingLotId === lot.id ? (
                         <>
-                          <td className="py-2.5 pr-4 text-slate-700">{fmtDate(lot.deliveryDate)}</td>
-                          <td className="py-2.5 pr-4 text-slate-500">{lot.invoiceReference ?? '—'}</td>
-                          <td className="py-2.5 pr-4 text-right">
+                          <td className="text-ink">{fmtDate(lot.deliveryDate)}</td>
+                          <td className="text-ink-3">{lot.invoiceReference ?? '—'}</td>
+                          <td className="text-right">
                             <input aria-label="Cost price per unit"
                               type="number"
                               min="0.01"
@@ -133,7 +139,7 @@ export function StockLotsDialog({
                               className="w-24 text-right text-sm"
                             />
                           </td>
-                          <td className="py-2.5 pr-4 text-right">
+                          <td className="text-right">
                             <input aria-label="Remaining units"
                               type="number"
                               min="0"
@@ -144,13 +150,13 @@ export function StockLotsDialog({
                               className="w-20 text-right text-sm"
                             />
                           </td>
-                          <td className="py-2.5 pr-4 text-right text-slate-500">{lot.originalQuantity}</td>
-                          <td className="py-2.5 text-right">
+                          <td className="text-right text-ink-3">{lot.originalQuantity}</td>
+                          <td className="text-right">
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 onClick={() => handleSave(lot)}
                                 disabled={updateMutation.isPending}
-                              className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs disabled:opacity-50"
+                                className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs disabled:opacity-50"
                               >
                                 {updateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />Saving…</span> : 'Save'}
                               </button>
@@ -165,18 +171,18 @@ export function StockLotsDialog({
                         </>
                       ) : (
                         <>
-                          <td className="py-2.5 pr-4 text-slate-700">{fmtDate(lot.deliveryDate)}</td>
-                          <td className="py-2.5 pr-4 text-slate-500">{lot.invoiceReference ?? '—'}</td>
-                          <td className="py-2.5 pr-4 text-right font-medium text-slate-800">{fmtCurrency(lot.costPricePerUnit)}</td>
-                          <td className="py-2.5 pr-4 text-right">
-                            <span className="font-semibold text-emerald-700">{lot.remainingQuantity}</span>
+                          <td className="text-ink">{fmtDate(lot.deliveryDate)}</td>
+                          <td className="text-ink-3">{lot.invoiceReference ?? '—'}</td>
+                          <td className="text-right"><MoneyText value={lot.costPricePerUnit} className="font-medium text-ink" /></td>
+                          <td className="text-right">
+                            <span className="font-semibold text-ok">{lot.remainingQuantity}</span>
                           </td>
-                          <td className="py-2.5 pr-4 text-right text-slate-500">{lot.originalQuantity}</td>
+                          <td className="text-right text-ink-3">{lot.originalQuantity}</td>
                           {isOwnerOrAdmin && (
-                            <td className="py-2.5 text-right">
+                            <td className="text-right">
                               <button
                                 onClick={() => startEdit(lot)}
-                              className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800"
+                                className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
                               >
                                 Edit
                               </button>
@@ -185,27 +191,10 @@ export function StockLotsDialog({
                         </>
                       )}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                )}
+              />
             </>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="ui-modal-footer shrink-0 justify-between items-center">
-          <p className="text-xs text-slate-500">
-            Lots shown in FIFO order — oldest consumed first
-          </p>
-          <button
-            onClick={onClose}
-            className="ui-btn ui-btn-secondary"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-    </ModalPortal>
+    </Modal>
   )
 }

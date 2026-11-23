@@ -21,7 +21,7 @@ export function ClientActions({
         Statement
       </button>
       {canManageInterest && (
-        <button onClick={onOpenInterestSettings} className="ui-btn ui-btn-secondary text-purple-700 border-purple-200 hover:bg-purple-50">
+        <button onClick={onOpenInterestSettings} className="ui-btn ui-btn-secondary text-info border-info/30 hover:bg-info-bg">
           Interest Settings
         </button>
       )}
@@ -32,7 +32,7 @@ export function ClientActions({
         </button>
       )}
       {canGrantExtension && (
-        <button onClick={onGrantExtension} className="ui-btn ui-btn-secondary text-blue-700 border-blue-200 hover:bg-blue-50">
+        <button onClick={onGrantExtension} className="ui-btn ui-btn-secondary text-info border-info/30 hover:bg-info-bg">
           Grant Extension
         </button>
       )}

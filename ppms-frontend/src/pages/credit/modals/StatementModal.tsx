@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { creditApi } from '../../../api/creditApi'
-import { ModalPortal } from '../../../components/ModalPortal'
+import { Modal } from '../../../components/Modal'
 import { istDateString } from '../../../utils/date'
 import { whatsAppNumber, whatsAppShareUrl } from '../../../utils/whatsApp'
 import { lastCompletedMonth } from '../creditDates'
@@ -45,66 +45,59 @@ export function StatementModal({ pumpId, clientId, clientName, phone, outstandin
     : null
 
   return (
-    <ModalPortal onClose={onClose}>
-      <div className="ui-modal-backdrop">
-        <div className="ui-modal-panel w-full max-w-md">
-          <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
-            <div className="ui-modal-heading">
-              <h2 className="ui-modal-title">Statement</h2>
-              <p className="ui-modal-subtitle">{clientName}</p>
-            </div>
-            <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
-          </div>
-
-          <div className="ui-modal-body space-y-4">
-            <div role="group" aria-label="Statement period" className="ui-tabbar w-fit">
-              {PRESETS.map(option => (
-                <button key={option.value} type="button" aria-pressed={preset === option.value}
-                  onClick={() => choosePreset(option.value)}
-                  className={`ui-tabbar__button ${preset === option.value ? 'ui-tabbar__button--active' : ''}`}>
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="block">
-                <span className="ui-label">From</span>
-                <input type="date" value={period.fromDate} max={period.toDate || undefined}
-                  onChange={e => { setPreset('custom'); setPeriod(current => ({ ...current, fromDate: e.target.value })) }}
-                  className="text-sm" />
-              </label>
-              <label className="block">
-                <span className="ui-label">To</span>
-                <input type="date" value={period.toDate} min={period.fromDate || undefined} max={today}
-                  onChange={e => { setPreset('custom'); setPeriod(current => ({ ...current, toDate: e.target.value })) }}
-                  className="text-sm" />
-              </label>
-            </div>
-            {!periodValid && (
-              <p role="alert" className="text-sm text-bad">Choose a start date on or before the end date.</p>
-            )}
-            {!whatsAppNumber(phone) && (
-              <p className="text-sm text-ink-3">Add a 10-digit mobile number to this client to share the statement on WhatsApp.</p>
-            )}
-          </div>
-
-          <div className="ui-modal-footer">
-            {shareUrl && (
-              <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="ui-btn ui-btn-secondary">
-                Share on WhatsApp
-              </a>
-            )}
-            {periodValid ? (
-              <a href={creditApi.statementUrl(pumpId, clientId, period)} target="_blank" rel="noopener noreferrer"
-                className="ui-btn ui-btn-primary">
-                Open printable statement
-              </a>
-            ) : (
-              <button type="button" disabled className="ui-btn ui-btn-primary">Open printable statement</button>
-            )}
-          </div>
-        </div>
+    <Modal
+      title="Statement"
+      subtitle={clientName}
+      tone="info"
+      onClose={onClose}
+      bodyClassName="space-y-4"
+      footer={
+        <>
+          {shareUrl && (
+            <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="ui-btn ui-btn-secondary">
+              Share on WhatsApp
+            </a>
+          )}
+          {periodValid ? (
+            <a href={creditApi.statementUrl(pumpId, clientId, period)} target="_blank" rel="noopener noreferrer"
+              className="ui-btn ui-btn-primary">
+              Open printable statement
+            </a>
+          ) : (
+            <button type="button" disabled className="ui-btn ui-btn-primary">Open printable statement</button>
+          )}
+        </>
+      }
+    >
+      <div role="group" aria-label="Statement period" className="ui-tabbar w-fit">
+        {PRESETS.map(option => (
+          <button key={option.value} type="button" aria-pressed={preset === option.value}
+            onClick={() => choosePreset(option.value)}
+            className={`ui-tabbar__button ${preset === option.value ? 'ui-tabbar__button--active' : ''}`}>
+            {option.label}
+          </button>
+        ))}
       </div>
-    </ModalPortal>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="block">
+          <span className="ui-label">From</span>
+          <input type="date" value={period.fromDate} max={period.toDate || undefined}
+            onChange={e => { setPreset('custom'); setPeriod(current => ({ ...current, fromDate: e.target.value })) }}
+            className="text-sm" />
+        </label>
+        <label className="block">
+          <span className="ui-label">To</span>
+          <input type="date" value={period.toDate} min={period.fromDate || undefined} max={today}
+            onChange={e => { setPreset('custom'); setPeriod(current => ({ ...current, toDate: e.target.value })) }}
+            className="text-sm" />
+        </label>
+      </div>
+      {!periodValid && (
+        <p role="alert" className="text-sm text-bad">Choose a start date on or before the end date.</p>
+      )}
+      {!whatsAppNumber(phone) && (
+        <p className="text-sm text-ink-3">Add a 10-digit mobile number to this client to share the statement on WhatsApp.</p>
+      )}
+    </Modal>
   )
 }

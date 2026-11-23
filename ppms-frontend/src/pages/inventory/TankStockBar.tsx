@@ -1,6 +1,9 @@
+import { AlertTriangle, Clock } from 'lucide-react'
 import type { TankStock } from '../../api/inventoryApi'
 import { FUEL_COLORS } from './inventoryFormat'
 import { codeLabel } from '../../constants/labels'
+import { StatusBadge } from '../../components/StatusBadge'
+import { LitresText } from '../../components/AmountText'
 
 // ── Tank stock bar ─────────────────────────────────────────────────────────────
 
@@ -32,26 +35,26 @@ export function TankStockBar({
   }
 
   return (
-    <div className={`px-5 py-4 ${dipOverdue ? 'bg-red-50/40' : ''}`}>
+    <div className={`px-5 py-4 ${dipOverdue ? 'bg-bad-bg' : ''}`}>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cols.badge}`}>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-badge ${cols.badge}`}>
             {codeLabel(tank.fuelType)}
           </span>
-          <span className="text-sm font-semibold text-slate-700">{tank.tankIdentifier}</span>
+          <span className="text-sm font-semibold text-ink">{tank.tankIdentifier}</span>
           {isLow && (
-            <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium animate-pulse">
-              LOW STOCK
-            </span>
+            <StatusBadge tone="bad" icon={AlertTriangle} label="LOW STOCK" className="animate-pulse" />
           )}
           {dipOverdue && (
-            <span className="text-xs bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-lg font-medium">
-              DIP OVERDUE {lastDipAt ? `· last ${timeSinceDip(lastDipAt)}` : '· never checked'}
-            </span>
+            <StatusBadge
+              tone="bad"
+              icon={Clock}
+              label={`DIP OVERDUE ${lastDipAt ? `· last ${timeSinceDip(lastDipAt)}` : '· never checked'}`}
+            />
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className={`text-xs font-medium ${isLow ? 'text-red-600' : 'text-slate-500'}`}>
+          <span className={`text-xs font-medium ${isLow ? 'text-bad' : 'text-ink-3'}`}>
             {pct.toFixed(1)}%
           </span>
           <button
@@ -72,20 +75,18 @@ export function TankStockBar({
       </div>
 
       {/* Animated stock bar */}
-      <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden">
+      <div className="w-full h-4 bg-surface-sunken rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-700 ease-out ${
-            isLow ? 'bg-red-500 animate-pulse' : cols.bar
+            isLow ? 'bg-bad animate-pulse' : cols.bar
           }`}
           style={{ width: `${pct}%` }}
         />
       </div>
 
-      <div className="flex items-center justify-between mt-1.5 text-xs text-slate-500">
+      <div className="flex items-center justify-between mt-1.5 text-xs text-ink-3">
         <span>
-          <span className={`font-semibold ${isLow ? 'text-red-600' : 'text-slate-700'}`}>
-            {tank.currentStock.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
-          </span>
+          <LitresText value={tank.currentStock} className={`font-semibold ${isLow ? 'text-bad' : 'text-ink'}`} />
           {' '}remaining
         </span>
         <span>Capacity: {tank.capacity.toLocaleString('en-IN', { minimumFractionDigits: 0 })} L</span>

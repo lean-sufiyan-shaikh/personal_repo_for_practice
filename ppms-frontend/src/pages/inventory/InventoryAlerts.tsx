@@ -7,8 +7,8 @@ export function InventoryAlerts({ lowStockTanks, dipOverdueTanks }: { lowStockTa
     {/* ── Low stock alert banner ── */}
     {lowStockTanks.length > 0 && (
       <div className="ui-alert ui-alert-danger flex items-center gap-3">
-        <AlertTriangle size={18} strokeWidth={2} className="text-red-500 shrink-0" />
-        <p className="text-sm text-red-700 font-medium">
+        <AlertTriangle size={18} strokeWidth={2} className="text-bad shrink-0" />
+        <p className="text-sm text-bad font-medium">
           {lowStockTanks.length === 1
             ? `${lowStockTanks[0].tankIdentifier} (${lowStockTanks[0].fuelType}) is below 20% capacity.`
             : `${lowStockTanks.length} tanks are below 20% capacity. Schedule a delivery soon.`}
@@ -19,14 +19,14 @@ export function InventoryAlerts({ lowStockTanks, dipOverdueTanks }: { lowStockTa
     {/* ── DIP overdue alert banner ── */}
     {dipOverdueTanks.length > 0 && (
       <div className="ui-alert ui-alert-danger flex items-center gap-3">
-        <AlertCircle size={18} strokeWidth={2} className="text-red-500 shrink-0" />
+        <AlertCircle size={18} strokeWidth={2} className="text-bad shrink-0" />
         <div>
-          <p className="text-sm text-red-700 font-medium">
+          <p className="text-sm text-bad font-medium">
             {dipOverdueTanks.length === 1
               ? `DIP check overdue on ${dipOverdueTanks[0].tankIdentifier} (${dipOverdueTanks[0].fuelType}).`
               : `DIP check overdue on ${dipOverdueTanks.length} tanks.`}
           </p>
-          <p className="text-xs text-red-500 mt-0.5">
+          <p className="text-xs text-bad mt-0.5">
             DIP checks should be done at least once every 24 hours to verify physical stock levels.
           </p>
         </div>

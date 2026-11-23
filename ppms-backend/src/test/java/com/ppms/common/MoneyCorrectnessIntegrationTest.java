@@ -136,7 +136,7 @@ class MoneyCorrectnessIntegrationTest {
         savePayment(client, "2000.00", ExpenseApprovalStatus.REJECTED, manager);
         savePayment(client, "100.00", ExpenseApprovalStatus.PENDING_APPROVAL, manager);
 
-        List<CreditTransactionResponse> statement = ledgerQueryService.getStatementTransactions(client.getId(), null, null);
+        List<CreditTransactionResponse> statement = ledgerQueryService.getStatement(client, null, null).transactions();
 
         assertThat(statement).hasSize(5);
         assertThat(statement.get(statement.size() - 1).getRunningBalance())

@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { X } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import type { CreateProductRequest, UnitOfMeasure } from '../../api/ancillaryApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
-import { ModalPortal } from '../../components/ModalPortal'
+import { Modal } from '../../components/Modal'
 import { parseApiError } from '../../utils/apiError'
 import { ReviewRow } from './ReviewRow'
 import { UNITS } from './ancillaryFormat'
@@ -81,23 +80,49 @@ export function AddProductDialog({
   }
 
   return (
-    <ModalPortal onClose={onClose} closeOnBackdropClick>
-    <div className="ui-modal-backdrop px-4">
-      <div className="ui-modal-panel w-full max-w-md">
-        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
-          <div className="ui-modal-heading">
-            <h3 className="ui-modal-title">{step === 'form' ? 'Add Product' : 'Review Product'}</h3>
-            <p className="ui-modal-subtitle">
-              {step === 'form'
-                ? 'Create a new counter product with stock alert settings.'
-                : 'Review the product details before creating it.'}
-            </p>
-          </div>
-          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close"><X size={16} strokeWidth={2} /></button>
-        </div>
+    <Modal
+      title={step === 'form' ? 'Add Product' : 'Review Product'}
+      subtitle={step === 'form'
+        ? 'Create a new counter product with stock alert settings.'
+        : 'Review the product details before creating it.'}
+      tone="info"
+      onClose={onClose}
+      closeOnBackdropClick
+      bodyClassName="space-y-4"
+      footer={<>
+          {step === 'form' ? (
+            <>
+              <button onClick={onClose} className="ui-btn ui-btn-secondary">
+                Cancel
+              </button>
+              <button onClick={handleReview} className="ui-btn ui-btn-primary">
+                Review
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => { setStep('form'); setError(null) }}
+                className="ui-btn ui-btn-secondary"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={createMutation.isPending}
+                className="ui-btn ui-btn-primary"
+              >
+                {createMutation.isPending
+                  ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Creating…</span>
+                  : 'Create Product'}
+              </button>
+            </>
+          )}
+      </>}
+    >
 
         {step === 'form' && (
-          <div className="ui-modal-body space-y-4">
+          <>
             {error && (
               <div role="alert" className="ui-alert ui-alert-danger text-sm">{error} Go back to modify the data and try again.</div>
             )}
@@ -186,15 +211,15 @@ export function AddProductDialog({
                 </label>
               </div>
             </div>
-          </div>
+          </>
         )}
 
         {step === 'review' && (
-          <div className="ui-modal-body space-y-4">
+          <>
             {error && (
               <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
             )}
-            <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
+            <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
               <ReviewRow label="Product Name" value={normalizedName} />
               <ReviewRow label="Brand" value={normalizedBrand ?? '—'} />
               <ReviewRow label="Variant" value={normalizedVariant ?? '—'} />
@@ -203,41 +228,9 @@ export function AddProductDialog({
               <ReviewRow label="HSN Code" value={normalizedHsnCode ?? '—'} />
               <ReviewRow label="Low Stock Alert" value={normalizedThreshold != null ? `${normalizedThreshold} units` : 'Disabled'} />
             </div>
-          </div>
+          </>
         )}
 
-        <div className="ui-modal-footer">
-          {step === 'form' ? (
-            <>
-              <button onClick={onClose} className="ui-btn ui-btn-secondary">
-                Cancel
-              </button>
-              <button onClick={handleReview} className="ui-btn ui-btn-primary">
-                Review
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => { setStep('form'); setError(null) }}
-                className="ui-btn ui-btn-secondary"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={createMutation.isPending}
-                className="ui-btn ui-btn-primary"
-              >
-                {createMutation.isPending
-                  ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Creating…</span>
-                  : 'Create Product'}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-    </ModalPortal>
+    </Modal>
   )
 }

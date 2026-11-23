@@ -77,15 +77,15 @@ export default function PaymentSettlementsPage() {
         <PendingByAgeCard ranges={pendingByAge.data} isLoading={pendingByAge.isLoading} error={pendingByAge.error} />
 
         {/* ── Tabs ── */}
-        <div className="flex gap-0 mb-5 border-b border-slate-200">
+        <div className="flex gap-0 mb-5 border-b border-border">
           {(['records', 'config'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-5 py-2.5 text-sm font-semibold border-b-2 transition-colors -mb-px ${
                 activeTab === tab
-                  ? 'border-blue-600 text-blue-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-ink-3 hover:text-ink'
               }`}
             >
               {tab === 'records' ? 'Settlement History' : 'Alert Settings'}

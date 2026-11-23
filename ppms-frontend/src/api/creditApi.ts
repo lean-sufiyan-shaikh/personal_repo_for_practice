@@ -218,8 +218,8 @@ export const creditApi = {
   getPendingPayments: (pumpId: number) =>
     client.get<CreditPayment[]>(`/pumps/${pumpId}/credit-ledger/payments/pending`).then(r => r.data),
 
-  approvePayment: (pumpId: number, paymentId: number, status: 'APPROVED' | 'REJECTED') =>
-    client.patch<CreditPayment>(`/pumps/${pumpId}/credit-ledger/payments/${paymentId}/approve`, { status }).then(r => r.data),
+  approvePayment: (pumpId: number, paymentId: number, status: 'APPROVED' | 'REJECTED', reason?: string) =>
+    client.patch<CreditPayment>(`/pumps/${pumpId}/credit-ledger/payments/${paymentId}/approve`, { status, reason }).then(r => r.data),
 
   // Records a payment against a client's balance
   recordPayment: (pumpId: number, clientId: number, req: RecordPaymentRequest) =>

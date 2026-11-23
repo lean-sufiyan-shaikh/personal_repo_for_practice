@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { creditApi } from '../../../api/creditApi'
 import type { GenerateAllInvoicesResult } from '../../../api/creditApi'
 import { Spinner } from '../../../components/Spinner'
-import { ModalPortal } from '../../../components/ModalPortal'
+import { Modal } from '../../../components/Modal'
 import { parseApiError } from '../../../utils/apiError'
 import { formatCurrency } from '../../../utils/format'
 import { lastCompletedMonth } from '../creditDates'
@@ -48,74 +48,15 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
   }
 
   return (
-    <ModalPortal onClose={mutation.isPending ? undefined : onClose}>
-    <div className="ui-modal-backdrop">
-      <div className="ui-modal-panel w-full max-w-md">
-        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
-          <div className="ui-modal-heading">
-            <h2 className="ui-modal-title">Generate Invoices</h2>
-            <p className="ui-modal-subtitle">One invoice per client with uninvoiced credit sales</p>
-          </div>
-          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
-        </div>
-
-        <div className="ui-modal-body space-y-4">
-          {result ? (
-            <div role="status" className="ui-alert ui-alert-success text-sm space-y-1">
-              <p><strong>{result.invoicesIssued}</strong> invoice{result.invoicesIssued !== 1 ? 's' : ''} issued.</p>
-              <p>{result.clientsSkipped} client{result.clientsSkipped !== 1 ? 's' : ''} had nothing to bill.</p>
-              {result.clientsFailed > 0 && (
-                <p className="text-bad">{result.clientsFailed} client{result.clientsFailed !== 1 ? 's' : ''} failed — try them one by one from the client screen.</p>
-              )}
-            </div>
-          ) : (
-            <>
-              {gstMissing && (
-                <div role="alert" className="ui-alert ui-alert-danger text-sm">
-                  <p className="font-semibold">Add the pump&apos;s GST details before issuing invoices.</p>
-                  <p>
-                    Invoices need the GSTIN, legal name and invoice prefix.{' '}
-                    <Link to="/dashboard/setup" onClick={onClose} className="ui-link">Open Setup → GST details</Link>
-                  </p>
-                </div>
-              )}
-              <p className="text-sm text-ink-2">
-                Clients with nothing to bill in the period are skipped. Interest is not included.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="block">
-                  <span className="ui-label">From</span>
-                  <input type="date" value={periodFrom} max={periodTo || undefined}
-                    onChange={e => setPeriodFrom(e.target.value)} className="text-sm" data-autofocus />
-                </label>
-                <label className="block">
-                  <span className="ui-label">To</span>
-                  <input type="date" value={periodTo} min={periodFrom || undefined}
-                    onChange={e => setPeriodTo(e.target.value)} className="text-sm" />
-                </label>
-              </div>
-              <div role="status" aria-live="polite" className="ui-card-plain px-4 py-3 text-sm">
-                {!periodValid ? (
-                  <span className="text-ink-3">Choose a period to see what would be invoiced.</span>
-                ) : preview.isLoading ? (
-                  <span className="flex items-center gap-1.5 text-ink-3"><Spinner />Working out what would be invoiced…</span>
-                ) : preview.isError ? (
-                  <span className="text-bad">{parseApiError(preview.error, 'Could not work out what would be invoiced')}</span>
-                ) : preview.data && (
-                  <span className="text-ink">
-                    {nothingToInvoice
-                      ? 'No client has uninvoiced credit sales in this period.'
-                      : <><strong>{preview.data.clientsToInvoice}</strong> client{preview.data.clientsToInvoice !== 1 ? 's' : ''} would
-                        be invoiced for <strong>{formatCurrency(preview.data.totalAmount)}</strong> in total.</>}
-                  </span>
-                )}
-              </div>
-              {error && <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>}
-            </>
-          )}
-        </div>
-
-        <div className="ui-modal-footer">
+    <Modal
+      title="Generate Invoices"
+      subtitle="One invoice per client with uninvoiced credit sales"
+      tone="info"
+      onClose={onClose}
+      canClose={!mutation.isPending}
+      bodyClassName="space-y-4"
+      footer={
+        <>
           {result ? (
             <button onClick={onClose} className="ui-btn ui-btn-primary">Done</button>
           ) : (
@@ -132,9 +73,62 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
               </button>
             </>
           )}
+        </>
+      }
+    >
+      {result ? (
+        <div role="status" className="ui-alert ui-alert-success text-sm space-y-1">
+          <p><strong>{result.invoicesIssued}</strong> invoice{result.invoicesIssued !== 1 ? 's' : ''} issued.</p>
+          <p>{result.clientsSkipped} client{result.clientsSkipped !== 1 ? 's' : ''} had nothing to bill.</p>
+          {result.clientsFailed > 0 && (
+            <p className="text-bad">{result.clientsFailed} client{result.clientsFailed !== 1 ? 's' : ''} failed — try them one by one from the client screen.</p>
+          )}
         </div>
-      </div>
-    </div>
-    </ModalPortal>
+      ) : (
+        <>
+          {gstMissing && (
+            <div role="alert" className="ui-alert ui-alert-danger text-sm">
+              <p className="font-semibold">Add the pump&apos;s GST details before issuing invoices.</p>
+              <p>
+                Invoices need the GSTIN, legal name and invoice prefix.{' '}
+                <Link to="/dashboard/setup" onClick={onClose} className="ui-link">Open Setup → GST details</Link>
+              </p>
+            </div>
+          )}
+          <p className="text-sm text-ink-2">
+            Clients with nothing to bill in the period are skipped. Interest is not included.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="ui-label">From</span>
+              <input type="date" value={periodFrom} max={periodTo || undefined}
+                onChange={e => setPeriodFrom(e.target.value)} className="text-sm" data-autofocus />
+            </label>
+            <label className="block">
+              <span className="ui-label">To</span>
+              <input type="date" value={periodTo} min={periodFrom || undefined}
+                onChange={e => setPeriodTo(e.target.value)} className="text-sm" />
+            </label>
+          </div>
+          <div role="status" aria-live="polite" className="ui-card-plain px-4 py-3 text-sm">
+            {!periodValid ? (
+              <span className="text-ink-3">Choose a period to see what would be invoiced.</span>
+            ) : preview.isLoading ? (
+              <span className="flex items-center gap-1.5 text-ink-3"><Spinner />Working out what would be invoiced…</span>
+            ) : preview.isError ? (
+              <span className="text-bad">{parseApiError(preview.error, 'Could not work out what would be invoiced')}</span>
+            ) : preview.data && (
+              <span className="text-ink">
+                {nothingToInvoice
+                  ? 'No client has uninvoiced credit sales in this period.'
+                  : <><strong>{preview.data.clientsToInvoice}</strong> client{preview.data.clientsToInvoice !== 1 ? 's' : ''} would
+                    be invoiced for <strong>{formatCurrency(preview.data.totalAmount)}</strong> in total.</>}
+              </span>
+            )}
+          </div>
+          {error && <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>}
+        </>
+      )}
+    </Modal>
   )
 }

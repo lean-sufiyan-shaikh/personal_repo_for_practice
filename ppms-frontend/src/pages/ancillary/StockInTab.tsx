@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { History } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
-import type { AncillaryProduct } from '../../api/ancillaryApi'
+import type { AncillaryStockDelivery, AncillaryProduct } from '../../api/ancillaryApi'
 import { Pagination } from '../../components/Pagination'
 import { EmptyState } from '../../components/EmptyState'
 import { StockInDialog } from './StockInDialog'
-import { fmtCurrency, fmtDate } from './ancillaryFormat'
-import { ScrollRegion } from '../../components/ScrollRegion'
+import { fmtDate } from './ancillaryFormat'
+import { DataTable } from '../../components/DataTable'
+import type { DataTableColumn } from '../../components/DataTable'
+import { StatusBadge } from '../../components/StatusBadge'
+import { MoneyText } from '../../components/AmountText'
 
 // ── Stock In Tab ─────────────────────────────────────────────────────────────
 
@@ -29,6 +33,21 @@ export function StockInTab({
     queryFn:  () => ancillaryApi.getDeliveries(pumpId, deliveryPage, deliveryPageSize),
   })
   const deliveries = deliveriesPage?.content ?? []
+
+  const columns: DataTableColumn<AncillaryStockDelivery>[] = [
+    { key: 'date', header: 'Date', className: 'px-5 text-ink-2', cell: (d) => fmtDate(d.deliveryDate) },
+    { key: 'product', header: 'Product', className: 'px-5', cell: (d) => (
+      <div className="flex flex-col">
+        <span className="font-medium text-ink">{productMap.get(d.productId)?.displayName ?? `Product #${d.productId}`}</span>
+        <span className="text-xs text-ink-3">#{d.productId}</span>
+      </div>
+    ) },
+    { key: 'qty', header: 'Qty', numeric: true, className: 'px-5 font-medium', cell: (d) => d.quantityUnits },
+    { key: 'costPerUnit', header: 'Cost/Unit', numeric: true, className: 'px-5', cell: (d) => <MoneyText value={d.costPricePerUnit} /> },
+    { key: 'totalCost', header: 'Total Cost', numeric: true, className: 'px-5 font-medium', cell: (d) => <MoneyText value={d.costPricePerUnit * d.quantityUnits} /> },
+    { key: 'invoice', header: 'Invoice', className: 'px-5 text-ink-3', cell: (d) => d.invoiceReference ?? '—' },
+    { key: 'type', header: 'Type', className: 'px-5', cell: (d) => d.isBackfilled && <StatusBadge tone="info" icon={History} label="Backfilled" /> },
+  ]
 
   return (
     <div className="space-y-5">
@@ -64,56 +83,21 @@ export function StockInTab({
 
       {/* Delivery history */}
       <div className="ui-card p-0">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-700">Recent Deliveries</h3>
+        <div className="px-5 py-4 border-b border-border">
+          <h3 className="text-sm font-semibold text-ink">Recent Deliveries</h3>
         </div>
         {deliveries.length === 0 ? (
           <EmptyState icon="generic" title="No deliveries recorded yet" subtitle="Record stock deliveries using the button above." />
         ) : (
           <>
-          <ScrollRegion label="Stock-in history" className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs text-slate-500 uppercase border-b border-slate-100">
-                  <th scope="col" className="px-5 py-3 text-left">Date</th>
-                  <th scope="col" className="px-5 py-3 text-left">Product</th>
-                  <th scope="col" className="px-5 py-3 text-right">Qty</th>
-                  <th scope="col" className="px-5 py-3 text-right">Cost/Unit</th>
-                  <th scope="col" className="px-5 py-3 text-right">Total Cost</th>
-                  <th scope="col" className="px-5 py-3 text-left">Invoice</th>
-                  <th scope="col" className="px-5 py-3 text-left">Type</th>
-                </tr>
-              </thead>
-              <tbody>
-                {deliveries.map(d => {
-                  const product = productMap.get(d.productId)
-                  return (
-                  <tr key={d.id} className="border-b border-slate-50 hover:bg-slate-50">
-                    <td className="px-5 py-3 text-slate-600">{fmtDate(d.deliveryDate)}</td>
-                    <td className="px-5 py-3 text-slate-600">
-                      <div className="flex flex-col">
-                        <span className="font-medium text-slate-700">{product?.displayName ?? `Product #${d.productId}`}</span>
-                        <span className="text-xs text-slate-500">#{d.productId}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-right font-medium">{d.quantityUnits}</td>
-                    <td className="px-5 py-3 text-right">{fmtCurrency(d.costPricePerUnit)}</td>
-                    <td className="px-5 py-3 text-right font-medium">
-                      {fmtCurrency(d.costPricePerUnit * d.quantityUnits)}
-                    </td>
-                    <td className="px-5 py-3 text-slate-500">{d.invoiceReference ?? '—'}</td>
-                    <td className="px-5 py-3">
-                      {d.isBackfilled && (
-                        <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-medium">
-                          Backfilled
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                )})}
-              </tbody>
-            </table>
-          </ScrollRegion>
+          <DataTable
+            caption="Stock-in history"
+            captionHidden
+            columns={columns}
+            rows={deliveries}
+            rowKey={(d) => d.id}
+            className="rounded-none border-0"
+          />
           {deliveriesPage && (
             <div className="px-5">
               <Pagination
