@@ -75,13 +75,9 @@ public class BalanceSheetService {
         LocalDate reportDate = req.getReportDate();
         boolean isShift = req.getReportType() == BalanceSheetReportType.SHIFT;
 
-        // Live DAY report: reportDate == today → a rolling 24-hour window ending now, so that
-        // cross-midnight shifts (e.g. 11pm→9am) are captured. Every DAY query uses the same period.
-        // SHIFT reports use the calendar day of reportDate for dip and amendment lookups.
-        boolean isLiveDay = !isShift && reportDate.equals(businessClock.today());
-        ReportPeriod period = isLiveDay
-                ? livePeriod(reportDate, businessClock.now())
-                : businessDayPeriod(reportDate);
+        // Every sheet covers its own business day, today's only up to now, so sheets of consecutive days
+        // never share a shift, sale or payment however late in the day they are generated.
+        ReportPeriod period = businessDayPeriod(reportDate, businessClock.now());
 
         PumpShiftDefinition shiftDef = isShift
                 ? shiftDefinitionService.getByIdAndPump(req.getShiftDefinitionId(), pumpId)
@@ -91,7 +87,7 @@ public class BalanceSheetService {
             rejectDuplicateSheet(pumpId, reportDate, shiftDef);
         }
 
-        List<Shift> shifts = findClosedShiftsForReport(pumpId, reportDate, shiftDef, isLiveDay, period);
+        List<Shift> shifts = findClosedShiftsForReport(pumpId, reportDate, shiftDef);
         List<Long> shiftIds = shifts.stream().map(Shift::getId).toList();
 
         FuelSales fuelSales = inputs.sumFuelSales(shiftIds);
@@ -101,8 +97,8 @@ public class BalanceSheetService {
         Deliveries deliveries = isShift ? Deliveries.NONE : inputs.sumDeliveries(pumpId, period);
         Map<FuelType, BigDecimal> creditByFuel = inputs.sumCreditSoldByFuel(shiftIds);
 
-        Recoveries recoveries = isShift ? Recoveries.NONE : sumRecoveries(pumpId, reportDate, isLiveDay, period);
-        StockLevels stock = inputs.stockLevels(pumpId, reportDate, isShift, isLiveDay, period, shifts);
+        Recoveries recoveries = isShift ? Recoveries.NONE : sumRecoveries(pumpId, reportDate);
+        StockLevels stock = inputs.stockLevels(pumpId, reportDate, isShift, period, shifts);
 
         Map<Long, FuelType> tankFuelTypeMap = inputs.tankFuelTypesFor(pumpId);
         List<FuelDipEntry> dipEntries = inputs.dipEntriesFor(pumpId, period);
@@ -137,7 +133,7 @@ public class BalanceSheetService {
         }
 
         BalanceSheet bs = balanceSheetRepository.save(buildSheet(pumpId, req, shiftDef, generatedBy,
-                buildPeriodLabel(req, pumpId, shiftDef, isLiveDay, period.start(), period.end()),
+                buildPeriodLabel(req, pumpId, shiftDef, period),
                 shifts, fuelSales, costOfGoods, deliveries, recoveries.creditRecovered(), recoveries.cashRecovery(),
                 dipLosses, dipNetAmount, productSalesSummary, expenseSummary));
 
@@ -172,13 +168,9 @@ public class BalanceSheetService {
         static final Recoveries NONE = new Recoveries(BigDecimal.ZERO, BigDecimal.ZERO);
     }
 
-    private Recoveries sumRecoveries(Long pumpId, LocalDate reportDate, boolean isLiveDay, ReportPeriod period) {
-        BigDecimal creditRecovered = isLiveDay
-                ? creditPaymentRepository.sumApprovedAmountByPumpIdRecordedBetween(pumpId, period.start(), period.end())
-                : creditPaymentRepository.sumAmountByPumpIdAndDate(pumpId, reportDate);
-        BigDecimal cashRecovery = supportService.orZero(isLiveDay
-                ? shiftRepository.sumCashRecoveriesBetween(pumpId, period.start(), period.end())
-                : shiftRepository.sumCashRecoveriesOnDate(pumpId, reportDate));
+    private Recoveries sumRecoveries(Long pumpId, LocalDate reportDate) {
+        BigDecimal creditRecovered = creditPaymentRepository.sumAmountByPumpIdAndDate(pumpId, reportDate);
+        BigDecimal cashRecovery = supportService.orZero(shiftRepository.sumCashRecoveriesOnDate(pumpId, reportDate));
         return new Recoveries(creditRecovered, cashRecovery);
     }
 
@@ -195,24 +187,15 @@ public class BalanceSheetService {
         }
     }
 
-    /**
-     * Live DAY: shifts that ended in the rolling 24-hour window (captures cross-midnight shifts).
-     * Historical DAY / SHIFT: by business date, or by shift definition.
-     */
-    private List<Shift> findClosedShiftsForReport(Long pumpId, LocalDate reportDate, PumpShiftDefinition shiftDef,
-                                                  boolean isLiveDay, ReportPeriod period) {
+    /** DAY: closed shifts by business date (a night shift belongs to the day it started). SHIFT: by definition. */
+    private List<Shift> findClosedShiftsForReport(Long pumpId, LocalDate reportDate, PumpShiftDefinition shiftDef) {
         List<Shift> shifts = shiftDef != null
                 ? shiftRepository.findClosedShiftsByDefinition(pumpId, reportDate, shiftDef.getId())
-                : isLiveDay
-                        ? shiftRepository.findClosedShiftsByEndTimeWindow(pumpId, period.start(), period.end())
-                        : shiftRepository.findClosedShiftsByDate(pumpId, reportDate);
+                : shiftRepository.findClosedShiftsByDate(pumpId, reportDate);
 
         if (shifts.isEmpty()) {
             String shiftLabel = shiftDef != null ? "\"" + shiftDef.getName() + "\" on " : "";
-            String windowHint = isLiveDay
-                    ? " (window: last 24 hrs ending now — ensure all shifts for this period are closed)"
-                    : "";
-            throw new BusinessException("No closed shifts found for " + shiftLabel + reportDate + windowHint + ". Close all shifts before generating a balance sheet.");
+            throw new BusinessException("No closed shifts found for " + shiftLabel + reportDate + ". Close all shifts before generating a balance sheet.");
         }
         return shifts;
     }
@@ -421,14 +404,9 @@ public class BalanceSheetService {
                 : "System";
 
         // Amendments, dip checks and line items are re-read for the report's period; the totals that
-        // feed net profit come from the values stored at generation. A live DAY report re-derives the
-        // same 24-hour window anchored to generatedAt.
-        LocalDate generatedDate = bs.getGeneratedAt().atZoneSameInstant(businessClock.zone()).toLocalDate();
-        boolean isLiveDayReport = bs.getReportType() == BalanceSheetReportType.DAY
-                && bs.getReportDate().equals(generatedDate);
-        ReportPeriod period = isLiveDayReport
-                ? livePeriod(bs.getReportDate(), bs.getGeneratedAt())
-                : businessDayPeriod(bs.getReportDate());
+        // feed net profit come from the values stored at generation. A sheet generated on its own day
+        // re-derives the same period, cut off at generatedAt.
+        ReportPeriod period = businessDayPeriod(bs.getReportDate(), bs.getGeneratedAt());
         OffsetDateTime from = period.start();
         OffsetDateTime to   = period.end();
 
@@ -474,13 +452,9 @@ public class BalanceSheetService {
     // ── Private helpers ───────────────────────────────────────────────────────
 
 
-    private ReportPeriod livePeriod(LocalDate reportDate, OffsetDateTime end) {
-        return new ReportPeriod(reportDate, end.minusHours(24), end, true);
-    }
-
-    private ReportPeriod businessDayPeriod(LocalDate reportDate) {
-        return new ReportPeriod(reportDate, supportService.startOfBusinessDay(reportDate),
-                supportService.startOfBusinessDay(reportDate.plusDays(1)), false);
+    private ReportPeriod businessDayPeriod(LocalDate reportDate, OffsetDateTime cutOff) {
+        return ReportPeriod.ofBusinessDay(reportDate, supportService.startOfBusinessDay(reportDate),
+                supportService.startOfBusinessDay(reportDate.plusDays(1)), cutOff);
     }
 
 
@@ -496,20 +470,14 @@ public class BalanceSheetService {
     }
 
     private String buildPeriodLabel(GenerateBalanceSheetRequest req, Long pumpId,
-                                     com.ppms.pump.PumpShiftDefinition shiftDef,
-                                     boolean isLiveDay, OffsetDateTime windowStart, OffsetDateTime windowEnd) {
-        String base;
-        if (isLiveDay) {
-            // Show the actual 24-hour window so the label is unambiguous.
-            // Example: "Day End · 21 Apr 15:05 → 22 Apr 15:05"
-            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMM HH:mm");
-            String from = windowStart.atZoneSameInstant(businessClock.zone()).format(fmt);
-            String to   = windowEnd.atZoneSameInstant(businessClock.zone()).format(fmt);
-            base = "Day End · " + from + " → " + to;
-        } else {
-            base = req.getReportType() == BalanceSheetReportType.DAY
-                    ? "Day End · " + req.getReportDate()
-                    : shiftDef.getName() + " · " + req.getReportDate();
+                                     com.ppms.pump.PumpShiftDefinition shiftDef, ReportPeriod period) {
+        String base = req.getReportType() == BalanceSheetReportType.DAY
+                ? "Day End · " + req.getReportDate()
+                : shiftDef.getName() + " · " + req.getReportDate();
+        if (req.getReportType() == BalanceSheetReportType.DAY && period.endsBeforeDayEnd()) {
+            // Example: "Day End · 2026-04-22 (up to 15:05)"
+            base += " (up to " + period.end().atZoneSameInstant(businessClock.zone())
+                    .format(DateTimeFormatter.ofPattern("HH:mm")) + ")";
         }
 
         if (!req.isForceRegenerate()) return base;

@@ -3,7 +3,6 @@ package com.ppms.credit;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
-import com.ppms.shift.ShiftCreditEntryRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,7 +27,6 @@ public class CreditAccountPolicyService {
     private final CreditInterestService creditInterestService;
     private final CreditExtensionRepository creditExtensionRepository;
     private final CreditPaymentRepository creditPaymentRepository;
-    private final ShiftCreditEntryRepository creditEntryRepository;
     private final BusinessClock businessClock;
     private final EntityManager entityManager;
 
@@ -182,8 +180,8 @@ public class CreditAccountPolicyService {
             return lastPayment.get().isBefore(overdueThreshold);
         }
 
-        return creditEntryRepository.findOldestEntryDateByClientId(client.getId())
-                .map(dateTime -> dateTime.atZoneSameInstant(businessClock.zone()).toLocalDate().isBefore(overdueThreshold))
+        return creditInterestService.findOldestCreditSaleDate(List.of(client.getId()))
+                .map(oldestSaleDate -> oldestSaleDate.isBefore(overdueThreshold))
                 .orElse(false);
     }
 }

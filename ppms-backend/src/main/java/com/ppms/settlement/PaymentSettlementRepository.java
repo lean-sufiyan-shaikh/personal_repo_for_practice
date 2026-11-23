@@ -33,18 +33,6 @@ public interface PaymentSettlementRepository extends JpaRepository<PaymentSettle
             @Param("pumpId") Long pumpId,
             @Param("settlementDate") LocalDate settlementDate);
 
-    /** ACTIVE settlements recorded within [from, to) — used by live DAY balance sheets. */
-    @Query("""
-            SELECT ps FROM PaymentSettlement ps
-            WHERE ps.pumpId = :pumpId AND ps.voidStatus = 'ACTIVE'
-              AND ps.createdAt >= :from AND ps.createdAt < :to
-            ORDER BY ps.createdAt DESC
-            """)
-    List<PaymentSettlement> findActiveByPumpIdRecordedBetween(
-            @Param("pumpId") Long pumpId,
-            @Param("from") OffsetDateTime from,
-            @Param("to") OffsetDateTime to);
-
     /** Settlements of every status within a date range, oldest first — voided ones are listed for the record. */
     @Query("""
             SELECT ps FROM PaymentSettlement ps

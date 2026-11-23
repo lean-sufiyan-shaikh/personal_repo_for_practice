@@ -129,7 +129,7 @@ public class ShiftBackfillService {
         shift = shiftRepository.save(shift);
 
         if (request.getCreditEntries() != null && !request.getCreditEntries().isEmpty()) {
-            lifecycleSupportService.persistCloseCreditEntries(shiftId, pumpId, request.getCreditEntries());
+            lifecycleSupportService.persistCloseCreditEntries(shiftId, pumpId, shiftDate, request.getCreditEntries());
         }
 
         autoSettleBackfilledDigitalPayments(pumpId, shiftId, shiftDate, request, currentUser);

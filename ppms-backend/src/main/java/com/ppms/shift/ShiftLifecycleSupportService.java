@@ -30,6 +30,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -312,7 +313,8 @@ public class ShiftLifecycleSupportService {
         creditEntryRepository.saveAll(replaced);
     }
 
-    public void persistCloseCreditEntries(Long shiftId, Long pumpId, List<CloseShiftRequest.CreditEntryRequest> creditEntries) {
+    public void persistCloseCreditEntries(Long shiftId, Long pumpId, LocalDate saleDate,
+                                          List<CloseShiftRequest.CreditEntryRequest> creditEntries) {
         List<ShiftCreditEntry> toSave = new ArrayList<>();
         Map<CreditClient, BigDecimal> amountByClient = new LinkedHashMap<>();
         for (CloseShiftRequest.CreditEntryRequest entry : creditEntries) {
@@ -328,6 +330,7 @@ public class ShiftLifecycleSupportService {
                     .clientName(entry.clientName())
                     .billNo(entry.billNo())
                     .amount(entry.amount())
+                    .saleDate(saleDate)
                     .fuelType(entry.fuelType())
                     .description(entry.description())
                     .vehicleRegistration(entry.vehicleRegistration())

@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { X, ChevronLeft } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
+import { pumpApi } from '../../api/pumpApi'
 import type { AncillaryProduct, BackfillSaleRequest, AncillaryPaymentMode } from '../../api/ancillaryApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { localDateInputValue } from '../../utils/date'
@@ -45,6 +46,12 @@ export function BackfillSaleModal({
   })
   const [error, setError] = useState<string | null>(null)
 
+  const { data: creditClients = [] } = useQuery({
+    queryKey: ['creditClients', pumpId],
+    queryFn: () => pumpApi.getCreditClients(pumpId),
+    enabled: form.paymentMode === 'CREDIT',
+  })
+
   const backfillMutation = useMutation({
     mutationFn: (data: BackfillSaleRequest) => ancillaryApi.backfillSale(pumpId, data),
     onSuccess: () => {
@@ -67,8 +74,8 @@ export function BackfillSaleModal({
       return 'Sale date must be before today. Use the Sell button on the Products tab for today\'s sales.'
     }
     if (!form.quantityUnits || form.quantityUnits < 1) return 'Quantity must be at least 1'
-    if (form.paymentMode === 'CREDIT' && !form.clientName?.trim()) {
-      return 'Client name is required for CREDIT payment mode'
+    if (form.paymentMode === 'CREDIT' && !form.clientId) {
+      return 'Please select a client for CREDIT payment'
     }
     return null
   }
@@ -159,6 +166,7 @@ export function BackfillSaleModal({
                   onChange={v => setForm(f => ({
                     ...f,
                     paymentMode: v as AncillaryPaymentMode,
+                    clientId: v !== 'CREDIT' ? undefined : f.clientId,
                     clientName: v !== 'CREDIT' ? undefined : f.clientName,
                   }))}
                   options={PAYMENT_MODES.map(m => ({ value: m, label: codeLabel(m) }))}
@@ -167,15 +175,19 @@ export function BackfillSaleModal({
 
               {form.paymentMode === 'CREDIT' && (
                 <div className="sm:col-span-2">
-                  <label className="block">
-                    <span className="ui-label">Client Name * (required for credit)</span>
-                    <input
-                      className="text-sm"
-                      value={form.clientName ?? ''}
-                      onChange={e => setForm(f => ({ ...f, clientName: e.target.value || undefined }))}
-                      placeholder="Enter client name"
-                    />
-                  </label>
+                  <span className="ui-label">Client * (required for credit)</span>
+                  <SearchableSelect label="Client"
+                    value={form.clientId ? form.clientId.toString() : ''}
+                    onChange={v => {
+                      const client = creditClients.find(c => c.id === parseInt(v))
+                      setForm(f => ({ ...f, clientId: client?.id, clientName: client?.name }))
+                    }}
+                    placeholder="Search client…"
+                    options={creditClients.map(c => ({
+                      value: c.id.toString(),
+                      label: c.name + (c.phone ? ` · ${c.phone}` : ''),
+                    }))}
+                  />
                 </div>
               )}
 

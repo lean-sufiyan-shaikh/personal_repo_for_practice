@@ -17,6 +17,26 @@ function row(overrides: Partial<CreditTransaction>): CreditTransaction {
   }
 }
 
+describe('LedgerWeekGroups shop sales', () => {
+  it('labels a shop sale on credit, shows what was sold and adds it to the week sales without a Move action', () => {
+    render(
+      <LedgerWeekGroups
+        srcClientId={7}
+        actions={{ ...actions, canMoveEntries: true }}
+        groups={[{ label: 'Week', items: [
+          row({ referenceId: 1, type: 'COUNTER_SALE', reference: 'Castrol Engine Oil 1 L × 2 (Bill B-42)', amount: 800 }),
+          row({ referenceId: 2, detail: 'PETROL', amount: 200 }),
+        ] }]}
+      />,
+    )
+
+    expect(screen.getByText('↑ Shop sale')).toBeInTheDocument()
+    expect(screen.getByText('Castrol Engine Oil 1 L × 2 (Bill B-42)')).toBeInTheDocument()
+    expect(screen.getByText('+₹1,000.00 sales')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Move' })).toHaveLength(1)
+  })
+})
+
 describe('LedgerWeekGroups detail column', () => {
   it('shows the fuel name and payment mode as words, and leaves an interest period as sent', () => {
     render(

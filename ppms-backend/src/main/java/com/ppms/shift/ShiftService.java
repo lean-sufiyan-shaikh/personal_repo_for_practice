@@ -200,7 +200,7 @@ public class ShiftService {
 
         lifecycleSupportService.createCashCollectionEvent(shift, currentUser, nozzles);
         lifecycleSupportService.voidReplacedCreditEntries(request.getReplacedCreditEntryIds(), currentUser);
-        lifecycleSupportService.persistCloseCreditEntries(shift.getId(), shift.getPumpId(), creditEntries);
+        lifecycleSupportService.persistCloseCreditEntries(shift.getId(), shift.getPumpId(), businessClock.today(), creditEntries);
 
         User operator = userRepository.findById(shift.getOperatorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Operator not found"));
@@ -308,6 +308,7 @@ public class ShiftService {
                 .clientName(request.getClientName().trim())
                 .billNo(request.getBillNo() != null ? request.getBillNo().trim() : null)
                 .amount(request.getAmount().setScale(2, RoundingMode.HALF_UP))
+                .saleDate(businessClock.today())
                 .fuelType(request.getFuelType())
                 .description(request.getDescription() != null ? request.getDescription().trim() : null)
                 .vehicleRegistration(request.getVehicleRegistration() != null ? request.getVehicleRegistration().trim() : null)

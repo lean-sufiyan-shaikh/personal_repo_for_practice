@@ -6,6 +6,8 @@ import com.ppms.ancillary.AncillaryProduct;
 import com.ppms.ancillary.AncillaryProductPrice;
 import com.ppms.ancillary.AncillaryProductPriceRepository;
 import com.ppms.ancillary.AncillaryProductRepository;
+import com.ppms.ancillary.AncillarySale;
+import com.ppms.ancillary.AncillarySaleRepository;
 import com.ppms.ancillary.AncillaryProductStatus;
 import com.ppms.ancillary.RecordAncillarySaleRequest;
 import com.ppms.ancillary.RecordStockDeliveryRequest;
@@ -94,6 +96,7 @@ class MoneyCorrectnessIntegrationTest {
     @Autowired private PayrollRepository payrollRepository;
     @Autowired private AncillaryProductRepository ancillaryProductRepository;
     @Autowired private AncillaryProductPriceRepository ancillaryPriceRepository;
+    @Autowired private AncillarySaleRepository ancillarySaleRepository;
 
     private User owner;
     private User manager;
@@ -256,14 +259,12 @@ class MoneyCorrectnessIntegrationTest {
         seedOutstandingInterest(healthyRoot, "1000.00", 40);
         saveCreditSaleOn(healthyRoot, "1000.00", TestDates.today().minusDays(39));
 
-        CreditClient failingRoot = saveClient(new BigDecimal("2.00"));
+        CreditClient failingRoot = saveClient(new BigDecimal("999.99"));
         seedOutstandingInterest(failingRoot, "1000.00", 40);
-        saveCreditSaleOn(failingRoot, "1000.00", TestDates.today().minusDays(39));
-        CreditClient overflowingChild = saveClient(new BigDecimal("999.99"));
-        overflowingChild.setParentClientId(failingRoot.getId());
-        clientRepository.save(overflowingChild);
-        seedOutstandingInterest(overflowingChild, "1.00", 400);
-        saveCreditSaleOn(overflowingChild, "900000000000.00", TestDates.today().minusDays(399));
+        CreditClient child = saveClient(BigDecimal.ZERO);
+        child.setParentClientId(failingRoot.getId());
+        clientRepository.save(child);
+        saveCreditSaleOn(child, "900000000000.00", TestDates.today().minusDays(39));
 
         CreditInterestRunService.InterestRunResult result =
                 interestRunService.applyProRataForAllClients(pump.getId(), owner.getId());
@@ -311,27 +312,7 @@ class MoneyCorrectnessIntegrationTest {
 
     @Test
     void managerCannotSellBelowTheConfiguredPriceButOwnerCan() {
-        AncillaryProduct product = ancillaryProductRepository.save(AncillaryProduct.builder()
-                .pumpId(pump.getId())
-                .name("Engine oil " + shortId())
-                .packageSize(new BigDecimal("1.000"))
-                .unitOfMeasure(UnitOfMeasure.LITRE)
-                .currentStockUnits(0)
-                .gstRatePercent(new BigDecimal("18.00"))
-                .status(AncillaryProductStatus.ACTIVE)
-                .build());
-        RecordStockDeliveryRequest stock = new RecordStockDeliveryRequest();
-        stock.setQuantityUnits(10);
-        stock.setCostPricePerUnit(new BigDecimal("300.00"));
-        stock.setDeliveryDate(TestDates.today());
-        ancillaryWorkflowService.recordDelivery(pump.getId(), product.getId(), stock, manager);
-        ancillaryPriceRepository.save(AncillaryProductPrice.builder()
-                .productId(product.getId())
-                .pumpId(pump.getId())
-                .pricePerUnit(new BigDecimal("400.00"))
-                .effectiveFrom(TestDates.now().minusDays(1))
-                .setByUserId(owner.getId())
-                .build());
+        AncillaryProduct product = saveProductWithStockAndPrice("400.00");
 
         RecordAncillarySaleRequest cheapSale = new RecordAncillarySaleRequest();
         cheapSale.setProductId(product.getId());
@@ -344,6 +325,130 @@ class MoneyCorrectnessIntegrationTest {
                 .hasMessageContaining("Only an Owner or Admin");
         assertThat(ancillaryWorkflowService.recordSale(pump.getId(), cheapSale, owner).getSale().getSellingPricePerUnit())
                 .isEqualByComparingTo("0.01");
+    }
+
+    @Test
+    void creditCounterSaleRaisesTheClientsBalanceAndStoresTheProductsGstRate() {
+        CreditClient client = saveClient(BigDecimal.ZERO);
+        AncillaryProduct product = saveProductWithStockAndPrice("400.00");
+
+        AncillarySale sale = ancillaryWorkflowService.recordSale(pump.getId(), creditSale(product, client, 2), manager).getSale();
+
+        assertThat(interestService.computeOutstanding(client.getId())).isEqualByComparingTo("800.00");
+        assertThat(sale.getGstRatePercent()).isEqualByComparingTo("18.00");
+        assertThat(sale.getClientName()).isEqualTo(client.getName());
+    }
+
+    @Test
+    void creditCounterSaleBeyondTheGroupLimitIsRefusedAndTakesNoStock() {
+        CreditClient parent = saveClient(BigDecimal.ZERO);
+        parent.setCreditLimit(new BigDecimal("1000.00"));
+        clientRepository.save(parent);
+        CreditClient child = saveSubAccount(parent);
+        saveCreditSaleOn(child, "500.00", TestDates.today());
+        AncillaryProduct product = saveProductWithStockAndPrice("400.00");
+
+        assertThatThrownBy(() -> ancillaryWorkflowService.recordSale(pump.getId(), creditSale(product, child, 2), manager))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Credit limit exceeded");
+
+        assertThat(ancillaryProductRepository.findById(product.getId()).orElseThrow().getCurrentStockUnits()).isEqualTo(10);
+        assertThat(interestService.computeOutstandingWithChildren(parent.getId())).isEqualByComparingTo("500.00");
+    }
+
+    @Test
+    void creditCounterSaleWithoutAClientIsRefused() {
+        AncillaryProduct product = saveProductWithStockAndPrice("400.00");
+        RecordAncillarySaleRequest request = creditSale(product, saveClient(BigDecimal.ZERO), 1);
+        request.setClientId(null);
+        request.setClientName("Walk-in");
+
+        assertThatThrownBy(() -> ancillaryWorkflowService.recordSale(pump.getId(), request, manager))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Choose a credit client");
+    }
+
+    @Test
+    void creditCounterSaleIsAddedToTheLedgerWithProductQuantityAndBillNumber() {
+        CreditClient client = saveClient(BigDecimal.ZERO);
+        AncillaryProduct product = saveProductWithStockAndPrice("400.00");
+        RecordAncillarySaleRequest request = creditSale(product, client, 2);
+        request.setBillNo("B-42");
+        ancillaryWorkflowService.recordSale(pump.getId(), request, manager);
+        Shift shift = saveClosedShift(TestDates.today(), ShiftStatus.CLOSED_BALANCED, null);
+        saveCreditSale(shift, client, "100.00", "ACTIVE");
+
+        List<CreditTransactionResponse> rows = ledgerQueryService.getAllTransactions(client, false);
+
+        assertThat(rows).anySatisfy(row -> {
+            assertThat(row.getType()).isEqualTo("COUNTER_SALE");
+            assertThat(row.getReference()).contains(product.getName()).contains("× 2").contains("Bill B-42");
+            assertThat(row.getAmount()).isEqualByComparingTo("800.00");
+        });
+        assertThat(rows.get(0).getRunningBalance()).isEqualByComparingTo("900.00");
+    }
+
+    @Test
+    void parentIsChargedInterestOnTheWholeGroupBalanceAndSubAccountsAreNotCharged() {
+        CreditClient parent = saveClient(new BigDecimal("3.00"));
+        CreditClient child = saveSubAccount(parent);
+        seedChargeEndingOn(parent, "0.00", LocalDate.of(2025, 10, 31));
+        saveCreditSaleOn(parent, "10000.00", LocalDate.of(2025, 11, 1));
+        saveCreditSaleOn(child, "15000.00", LocalDate.of(2025, 11, 1));
+        saveCounterSaleOn(child, "5000.00", LocalDate.of(2025, 11, 1));
+
+        interestService.applyToClientGroupInNewTransaction(parent.getId(), LocalDate.of(2025, 11, 30), "SCHEDULED", null);
+
+        // ₹30,000 combined (fuel and counter sales) × 3% / 30 per day × 30 days of November
+        CreditInterestCharge charge = interestChargeRepository.findByClientIdOrderByCreatedAtDesc(parent.getId()).get(0);
+        assertThat(charge.getAmount()).isEqualByComparingTo("900.00");
+        assertThat(charge.getOutstandingBalance()).isEqualByComparingTo("30000.00");
+        assertThat(interestChargeRepository.findByClientIdOrderByCreatedAtDesc(child.getId())).isEmpty();
+    }
+
+    @Test
+    void groupInterestIsZeroOnceTheParentHasPaidTheWholeGroupBalance() {
+        CreditClient parent = saveClient(new BigDecimal("3.00"));
+        CreditClient child = saveSubAccount(parent);
+        seedChargeEndingOn(parent, "0.00", LocalDate.of(2025, 10, 31));
+        saveCreditSaleOn(child, "30000.00", LocalDate.of(2025, 11, 1));
+        CreditPayment payment = savePayment(parent, "30000.00", ExpenseApprovalStatus.APPROVED, owner);
+        payment.setPaidAt(LocalDate.of(2025, 11, 1));
+        paymentRepository.save(payment);
+
+        int charges = interestService.applyToClientGroupInNewTransaction(
+                parent.getId(), LocalDate.of(2025, 11, 30), "SCHEDULED", null);
+
+        assertThat(charges).isZero();
+        assertThat(interestChargeRepository.findByClientIdOrderByCreatedAtDesc(parent.getId())).hasSize(1);
+        assertThat(interestChargeRepository.findByClientIdOrderByCreatedAtDesc(child.getId())).isEmpty();
+    }
+
+    @Test
+    void groupInterestStartsAfterTheLastDayAlreadyChargedToASubAccount() {
+        CreditClient parent = saveClient(new BigDecimal("3.00"));
+        CreditClient child = saveSubAccount(parent);
+        seedChargeEndingOn(child, "50.00", LocalDate.of(2025, 11, 15));
+        saveCreditSaleOn(child, "30000.00", LocalDate.of(2025, 11, 1));
+
+        interestService.applyToClientGroupInNewTransaction(parent.getId(), LocalDate.of(2025, 11, 30), "SCHEDULED", null);
+
+        CreditInterestCharge charge = interestChargeRepository.findByClientIdOrderByCreatedAtDesc(parent.getId()).get(0);
+        assertThat(charge.getPeriodFrom()).isEqualTo(LocalDate.of(2025, 11, 16));
+        // ₹30,000 × 0.1% per day × 15 days
+        assertThat(charge.getAmount()).isEqualByComparingTo("450.00");
+    }
+
+    @Test
+    void subAccountCannotBeChargedInterestOnItsOwn() {
+        CreditClient parent = saveClient(new BigDecimal("3.00"));
+        CreditClient child = saveSubAccount(parent);
+        saveCreditSaleOn(child, "30000.00", TestDates.today().minusDays(40));
+
+        assertThatThrownBy(() -> interestService.applyProRata(pump.getId(), child.getId(), owner.getId()))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("charged on its parent account '" + parent.getName() + "'");
+        assertThat(interestChargeRepository.findByClientIdOrderByCreatedAtDesc(child.getId())).isEmpty();
     }
 
     @Test
@@ -482,9 +587,73 @@ class MoneyCorrectnessIntegrationTest {
                 .clientName(client.getName())
                 .fuelType(FuelType.PETROL.name())
                 .amount(new BigDecimal(amount))
+                .saleDate(day)
                 .build());
         jdbcTemplate.update("UPDATE shift_credit_entries SET created_at = ? WHERE id = ?",
                 day.atTime(12, 0).atZone(ZoneId.of("Asia/Kolkata")).toOffsetDateTime(), entry.getId());
+    }
+
+    private void saveCounterSaleOn(CreditClient client, String amount, LocalDate day) {
+        AncillaryProduct product = saveProductWithStockAndPrice(amount);
+        ancillarySaleRepository.save(AncillarySale.builder()
+                .pumpId(pump.getId())
+                .productId(product.getId())
+                .quantityUnits(1)
+                .sellingPricePerUnit(new BigDecimal(amount))
+                .totalAmount(new BigDecimal(amount))
+                .gstAmount(BigDecimal.ZERO.setScale(2))
+                .totalWithGst(new BigDecimal(amount))
+                .gstRatePercent(new BigDecimal("18.00"))
+                .paymentMode(TransactionPaymentMode.CREDIT)
+                .clientId(client.getId())
+                .clientName(client.getName())
+                .soldByUserId(manager.getId())
+                .saleDate(day)
+                .build());
+    }
+
+    private AncillaryProduct saveProductWithStockAndPrice(String price) {
+        AncillaryProduct product = ancillaryProductRepository.save(AncillaryProduct.builder()
+                .pumpId(pump.getId())
+                .name("Engine oil " + shortId())
+                .packageSize(new BigDecimal("1.000"))
+                .unitOfMeasure(UnitOfMeasure.LITRE)
+                .currentStockUnits(0)
+                .gstRatePercent(new BigDecimal("18.00"))
+                .status(AncillaryProductStatus.ACTIVE)
+                .build());
+        RecordStockDeliveryRequest stock = new RecordStockDeliveryRequest();
+        stock.setQuantityUnits(10);
+        stock.setCostPricePerUnit(new BigDecimal("300.00"));
+        stock.setDeliveryDate(TestDates.today());
+        ancillaryWorkflowService.recordDelivery(pump.getId(), product.getId(), stock, manager);
+        ancillaryPriceRepository.save(AncillaryProductPrice.builder()
+                .productId(product.getId())
+                .pumpId(pump.getId())
+                .pricePerUnit(new BigDecimal(price))
+                .effectiveFrom(TestDates.now().minusDays(1))
+                .setByUserId(owner.getId())
+                .build());
+        return product;
+    }
+
+    private static RecordAncillarySaleRequest creditSale(AncillaryProduct product, CreditClient client, int quantity) {
+        RecordAncillarySaleRequest request = new RecordAncillarySaleRequest();
+        request.setProductId(product.getId());
+        request.setQuantityUnits(quantity);
+        request.setSellingPricePerUnit(new BigDecimal("400.00"));
+        request.setPaymentMode(TransactionPaymentMode.CREDIT);
+        request.setClientId(client.getId());
+        return request;
+    }
+
+    private CreditClient saveSubAccount(CreditClient parent) {
+        return clientRepository.save(CreditClient.builder()
+                .pumpId(pump.getId())
+                .name("Child " + shortId())
+                .parentClientId(parent.getId())
+                .monthlyInterestRate(BigDecimal.ZERO)
+                .build());
     }
 
     private void seedChargeEndingOn(CreditClient client, String amount, LocalDate periodTo) {
@@ -541,6 +710,7 @@ class MoneyCorrectnessIntegrationTest {
                 .clientName(client.getName())
                 .fuelType(FuelType.PETROL.name())
                 .amount(new BigDecimal(amount))
+                .saleDate(shift.getShiftDate())
                 .voidStatus(voidStatus)
                 .build());
     }

@@ -144,8 +144,7 @@ public class CreditInvoiceService {
         // Locked before reading the sales: a concurrent issue for this pump waits here and then sees our lines.
         InvoiceSequence sequence = lockSequence(pumpId, financialYear);
 
-        List<ShiftCreditEntry> fuelEntries = lineRepository.findUninvoicedFuelEntries(clientId,
-                businessClock.startOfDay(periodFrom), businessClock.startOfDay(periodTo.plusDays(1)));
+        List<ShiftCreditEntry> fuelEntries = lineRepository.findUninvoicedFuelEntries(clientId, periodFrom, periodTo);
         List<AncillarySale> ancillarySales = lineRepository.findUninvoicedAncillarySales(
                 pumpId, clientId, TransactionPaymentMode.CREDIT, periodFrom, periodTo);
         if (fuelEntries.isEmpty() && ancillarySales.isEmpty()) {
@@ -157,7 +156,7 @@ public class CreditInvoiceService {
         String buyerStateCode = client.getGstin() != null ? GstFields.stateCodeOf(client.getGstin()) : sellerStateCode;
 
         List<CreditInvoiceLine> lines = new ArrayList<>(
-                CreditInvoiceLineBuilder.fuelLines(fuelEntries, businessClock.zone()));
+                CreditInvoiceLineBuilder.fuelLines(fuelEntries));
         lines.addAll(CreditInvoiceLineBuilder.ancillaryLines(ancillarySales, productsOf(ancillarySales),
                 sellerStateCode.equals(buyerStateCode)));
 

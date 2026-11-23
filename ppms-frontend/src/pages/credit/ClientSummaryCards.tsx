@@ -61,9 +61,13 @@ export function ClientSummaryCards({
         title={canManageInterest ? 'Click to configure interest rate' : undefined}
       >
         <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Interest Rate</p>
-        <p className={`text-lg font-bold ${client.monthlyInterestRate > 0 ? 'text-purple-700' : 'text-slate-500'}`}>
-          {client.monthlyInterestRate > 0 ? `${client.monthlyInterestRate}%/mo` : '—'}
-        </p>
+        {client.parentClientId != null ? (
+          <p className="text-sm font-medium text-slate-500">Set on parent account</p>
+        ) : (
+          <p className={`text-lg font-bold ${client.monthlyInterestRate > 0 ? 'text-purple-700' : 'text-slate-500'}`}>
+            {client.monthlyInterestRate > 0 ? `${client.monthlyInterestRate}%/mo` : '—'}
+          </p>
+        )}
         {canManageInterest && (
           <p className="text-xs text-purple-400 mt-0.5">{client.monthlyInterestRate > 0 ? `${client.interestGraceDays}d grace` : 'Click to set'}</p>
         )}

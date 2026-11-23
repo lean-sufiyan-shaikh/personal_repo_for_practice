@@ -36,11 +36,14 @@ function detailText(tx: CreditTransaction): string {
   return tx.detail
 }
 
+const isSale = (tx: CreditTransaction) => tx.type === 'SALE' || tx.type === 'COUNTER_SALE'
+
 function rowBadge(tx: CreditTransaction): { label: string; tone: string } {
   if (tx.status === 'PENDING_APPROVAL') return { label: 'Pending approval', tone: 'bg-amber-100 text-amber-800' }
   if (tx.status === 'REJECTED') return { label: 'Rejected', tone: 'bg-slate-100 text-slate-600' }
   if (tx.status === 'VOIDED') return { label: 'Voided', tone: 'bg-slate-100 text-slate-600' }
   if (tx.type === 'SALE') return { label: '↑ Sale', tone: 'bg-orange-100 text-orange-700' }
+  if (tx.type === 'COUNTER_SALE') return { label: '↑ Shop sale', tone: 'bg-orange-100 text-orange-700' }
   if (tx.type === 'INTEREST') return { label: '% Interest', tone: 'bg-purple-100 text-purple-700' }
   return { label: '↓ Paid', tone: 'bg-green-100 text-green-700' }
 }
@@ -52,7 +55,7 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
   } = actions
 
   return groups.map(({ label, items }) => {
-    const weekSales    = items.filter(t => t.countedInBalance && t.type === 'SALE').reduce((s, t) => s + t.amount, 0)
+    const weekSales    = items.filter(t => t.countedInBalance && isSale(t)).reduce((s, t) => s + t.amount, 0)
     const weekPayments = items.filter(t => t.countedInBalance && t.type === 'PAYMENT').reduce((s, t) => s + t.amount, 0)
     const weekInterest = items.filter(t => t.countedInBalance && t.type === 'INTEREST').reduce((s, t) => s + t.amount, 0)
     return (

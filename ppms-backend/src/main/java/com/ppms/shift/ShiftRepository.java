@@ -204,26 +204,6 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
                                        @Param("from") OffsetDateTime from,
                                        @Param("to") OffsetDateTime to);
 
-    /**
-     * All closed shifts whose actualEndTime falls in (windowStart, windowEnd].
-     * Used for live DAY balance sheets — captures every shift that finished in
-     * the last 24 hours regardless of which calendar date they started on.
-     * Open/overdue shifts are excluded so a mid-day report never includes
-     * a shift that is still running.
-     */
-    @Query("""
-            SELECT s FROM Shift s
-            WHERE s.pumpId = :pumpId
-              AND s.actualEndTime > :windowStart
-              AND s.actualEndTime <= :windowEnd
-              AND s.status NOT IN ('OPEN', 'OPEN_OVERDUE', 'AUTO_CLOSED_OVERDUE')
-            ORDER BY s.actualEndTime ASC
-            """)
-    List<Shift> findClosedShiftsByEndTimeWindow(
-            @Param("pumpId") Long pumpId,
-            @Param("windowStart") OffsetDateTime windowStart,
-            @Param("windowEnd") OffsetDateTime windowEnd);
-
     // ── Settlement wallet queries ─────────────────────────────────────────────
 
     /**
@@ -347,20 +327,6 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
               AND DATE(discrepancy_resolved_at AT TIME ZONE 'Asia/Kolkata') = :date
             """, nativeQuery = true)
     BigDecimal sumCashRecoveriesOnDate(@Param("pumpId") Long pumpId, @Param("date") LocalDate date);
-
-    /** Cash recoveries resolved within [from, to) — used by live DAY balance sheets. */
-    @Query(value = """
-            SELECT COALESCE(SUM(cash_recovery_amount), 0)
-            FROM shifts
-            WHERE pump_id = :pumpId
-              AND discrepancy_resolution = 'CASH_RECOVERY'::discrepancy_resolution
-              AND cash_recovery_amount IS NOT NULL
-              AND cash_recovery_amount > 0
-              AND discrepancy_resolved_at >= :from AND discrepancy_resolved_at < :to
-            """, nativeQuery = true)
-    BigDecimal sumCashRecoveriesBetween(@Param("pumpId") Long pumpId,
-                                        @Param("from") OffsetDateTime from,
-                                        @Param("to") OffsetDateTime to);
 
     /**
      * Counts shifts for the given nozzle, business date, and shift definition.

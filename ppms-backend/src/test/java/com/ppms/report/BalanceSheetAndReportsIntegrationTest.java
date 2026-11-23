@@ -103,6 +103,46 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
         assertThat(savedSheetCount()).isEqualTo(2);
     }
 
+    @Test
+    void todaysSheetAndYesterdaysSheetEachCoverOnlyTheirOwnDaysShifts() throws Exception {
+        String yesterday = TestDates.today().minusDays(1).toString();
+        long yesterdaysShiftId = json(perform(post("/api/pumps/{pumpId}/shifts/backfill", setup.pumpId()), setup.owner(),
+                backfillRequest(yesterday)).andExpect(status().is2xxSuccessful())).get("id").asLong();
+
+        JsonNode todaysSheet = generate("DAY", null);
+        JsonNode yesterdaysSheet = generate("DAY", null, yesterday);
+
+        assertThat(shiftIdsOf(todaysSheet)).containsExactly(shiftId);
+        assertThat(todaysSheet.get("totalLitresSold").decimalValue()).isEqualByComparingTo("20");
+        assertThat(todaysSheet.get("periodLabel").asText()).startsWith("Day End · " + today + " (up to ");
+        assertThat(shiftIdsOf(yesterdaysSheet)).containsExactly(yesterdaysShiftId);
+        assertThat(yesterdaysSheet.get("totalLitresSold").decimalValue()).isEqualByComparingTo("10");
+        assertThat(yesterdaysSheet.get("periodLabel").asText()).isEqualTo("Day End · " + yesterday);
+    }
+
+    private static List<Long> shiftIdsOf(JsonNode sheet) {
+        List<Long> ids = new ArrayList<>();
+        sheet.get("shiftLines").forEach(line -> ids.add(line.get("shiftId").asLong()));
+        return ids;
+    }
+
+    private Map<String, Object> backfillRequest(String shiftDate) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("shiftDefinitionId", setup.allDayShift().getId());
+        request.put("shiftDate", shiftDate);
+        request.put("duId", setup.du().getId());
+        request.put("operatorId", setup.operator().getId());
+        request.put("nozzleReadings", List.of(Map.of("nozzleId", setup.nozzle().getId(),
+                "openingReading", new BigDecimal("1000.000"), "closingReading", new BigDecimal("1010.000"))));
+        request.put("cashCollected", new BigDecimal("1000.00"));
+        request.put("upiCollected", BigDecimal.ZERO);
+        request.put("cardCollected", BigDecimal.ZERO);
+        request.put("fleetCardCollected", BigDecimal.ZERO);
+        request.put("creditTotal", BigDecimal.ZERO);
+        request.put("fuelRateOverrides", Map.of("PETROL", new BigDecimal("100.00")));
+        return request;
+    }
+
     private long savedSheetCount() throws Exception {
         return json(perform(get("/api/pumps/{pumpId}/balance-sheets", setup.pumpId()), setup.owner())
                 .andExpect(status().isOk())).get("totalElements").asLong();
@@ -204,9 +244,13 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
     }
 
     private JsonNode generate(String type, Long shiftDefinitionId) throws Exception {
+        return generate(type, shiftDefinitionId, today);
+    }
+
+    private JsonNode generate(String type, Long shiftDefinitionId, String reportDate) throws Exception {
         Map<String, Object> request = new HashMap<>();
         request.put("reportType", type);
-        request.put("reportDate", today);
+        request.put("reportDate", reportDate);
         request.put("shiftDefinitionId", shiftDefinitionId);
         return json(perform(post("/api/pumps/{pumpId}/balance-sheets/generate", setup.pumpId()), setup.manager(), request)
                 .andExpect(status().is2xxSuccessful()));

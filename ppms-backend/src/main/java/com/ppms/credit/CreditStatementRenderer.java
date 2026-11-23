@@ -112,8 +112,7 @@ public class CreditStatementRenderer {
 
         for (CreditTransactionResponse tx : transactions) {
             String typeClass = "type-" + tx.getType();
-            String debit = "SALE".equals(tx.getType()) || "INTEREST".equals(tx.getType())
-                    ? tx.getAmount().toPlainString() : "";
+            String debit = "PAYMENT".equals(tx.getType()) ? "" : tx.getAmount().toPlainString();
             String credit = "PAYMENT".equals(tx.getType()) ? tx.getAmount().toPlainString() : "";
             String desc = tx.getReference() != null ? escapeHtml(tx.getReference()) : "";
             if (tx.getDetail() != null) {

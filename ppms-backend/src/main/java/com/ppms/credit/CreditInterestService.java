@@ -1,8 +1,12 @@
 package com.ppms.credit;
 
+import com.ppms.ancillary.AncillarySale;
+import com.ppms.ancillary.AncillarySaleRepository;
+import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.shift.ShiftCreditEntryRepository;
+import com.ppms.transaction.TransactionPaymentMode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -12,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,19 +25,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Handles all interest calculation and application logic for credit clients.
  *
  * Interest model:
  *   - Simple interest on principal only: earlier interest charges are never charged interest.
- *   - Principal on a day = ACTIVE credit sales up to that day − APPROVED payments up to that day.
+ *   - Principal on a day = ACTIVE fuel credit sales + credit counter sales up to that day
+ *     − APPROVED payments up to that day, each dated by its business date.
  *   - Each day of the period is charged on that day's principal:
  *     amount = Σ principal(day) × (monthly rate / 100) / 30
- *   - Rate is configured on the parent account and inherited by all sub-accounts.
- *   - Interest is applied per entity: each sub-account and the parent itself each get
- *     their own interest charge row based on their own transactions only.
- *   - Applying interest on a parent cascades to all its sub-accounts automatically.
+ *   - A parent with sub-accounts is charged on the combined balance of the whole group, using the
+ *     parent's rate and grace days; the charge is booked on the parent and sub-accounts are never charged.
  *   - Grace period: interest does not start until X days after the first credit sale
  *   - period_from is always the day after the last applied period ended (or first eligible date)
  *   - period_to is today's date (for manual) or end of previous month (for scheduled)
@@ -47,24 +50,27 @@ public class CreditInterestService {
     private static final BigDecimal DAYS_IN_MONTH = new BigDecimal("30");
     private static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
     private static final BigDecimal MINIMUM_CHARGE = new BigDecimal("0.01");
+    private static final TransactionPaymentMode CREDIT = TransactionPaymentMode.CREDIT;
 
     private final CreditClientRepository clientRepository;
     private final CreditInterestChargeRepository interestChargeRepository;
     private final CreditPaymentRepository paymentRepository;
     private final ShiftCreditEntryRepository creditEntryRepository;
+    private final AncillarySaleRepository ancillarySaleRepository;
     private final BusinessClock businessClock;
 
     // ── Outstanding balance ───────────────────────────────────────────────────
 
     /**
      * Computes the true outstanding balance for a client (own transactions only):
-     *   outstanding = sum(credit_sales) + sum(interest_charges) − sum(payments)
+     *   outstanding = sum(fuel credit sales) + sum(credit counter sales) + sum(interest_charges) − sum(payments)
      */
     public BigDecimal computeOutstanding(Long clientId) {
-        BigDecimal sales    = creditEntryRepository.sumAmountByClientId(clientId);
-        BigDecimal interest = interestChargeRepository.sumAmountByClientId(clientId);
-        BigDecimal paid     = paymentRepository.sumAmountByClientId(clientId);
-        return sales.add(interest).subtract(paid).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal fuelSales    = creditEntryRepository.sumAmountByClientId(clientId);
+        BigDecimal counterSales = ancillarySaleRepository.sumAmountByClientIdAndPaymentMode(clientId, CREDIT);
+        BigDecimal interest     = interestChargeRepository.sumAmountByClientId(clientId);
+        BigDecimal paid         = paymentRepository.sumAmountByClientId(clientId);
+        return fuelSales.add(counterSales).add(interest).subtract(paid).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -85,19 +91,21 @@ public class CreditInterestService {
     }
 
     /**
-     * Batch version of computeOutstanding — resolves outstanding balance for all clients in 3 DB
-     * queries total (one per table), instead of 3 queries per client.
+     * Batch version of computeOutstanding — resolves outstanding balance for all clients in 4 DB
+     * queries total (one per table), instead of 4 queries per client.
      */
     public Map<Long, BigDecimal> computeOutstandingBatch(Collection<Long> clientIds) {
         if (clientIds.isEmpty()) return Map.of();
 
-        Map<Long, BigDecimal> salesMap    = toAmountMap(creditEntryRepository.sumAmountsByClientIds(clientIds));
-        Map<Long, BigDecimal> interestMap = toAmountMap(interestChargeRepository.sumAmountsByClientIds(clientIds));
-        Map<Long, BigDecimal> paymentsMap = toAmountMap(paymentRepository.sumAmountsByClientIds(clientIds));
+        Map<Long, BigDecimal> fuelSalesMap    = toAmountMap(creditEntryRepository.sumAmountsByClientIds(clientIds));
+        Map<Long, BigDecimal> counterSalesMap = toAmountMap(ancillarySaleRepository.sumAmountsByClientIdsAndPaymentMode(clientIds, CREDIT));
+        Map<Long, BigDecimal> interestMap     = toAmountMap(interestChargeRepository.sumAmountsByClientIds(clientIds));
+        Map<Long, BigDecimal> paymentsMap     = toAmountMap(paymentRepository.sumAmountsByClientIds(clientIds));
 
         return clientIds.stream().collect(Collectors.toMap(
                 id -> id,
-                id -> salesMap.getOrDefault(id, BigDecimal.ZERO)
+                id -> fuelSalesMap.getOrDefault(id, BigDecimal.ZERO)
+                        .add(counterSalesMap.getOrDefault(id, BigDecimal.ZERO))
                         .add(interestMap.getOrDefault(id, BigDecimal.ZERO))
                         .subtract(paymentsMap.getOrDefault(id, BigDecimal.ZERO))
                         .setScale(2, RoundingMode.HALF_UP)
@@ -212,35 +220,47 @@ public class CreditInterestService {
         return map;
     }
 
+    /** Business date of the oldest active credit sale (fuel or counter) of the given clients. */
+    public Optional<LocalDate> findOldestCreditSaleDate(Collection<Long> clientIds) {
+        Optional<LocalDate> oldestFuelSale = creditEntryRepository.findOldestSaleDateByClientIds(clientIds);
+        Optional<LocalDate> oldestCounterSale = ancillarySaleRepository.findOldestSaleDateByClientIdsAndPaymentMode(clientIds, CREDIT);
+        return Stream.of(oldestFuelSale, oldestCounterSale)
+                .flatMap(Optional::stream)
+                .min(Comparator.naturalOrder());
+    }
+
     // ── Manual application (triggered by owner/admin via API) ──────────────────
 
     /**
-     * Applies pro-rata simple interest for a single client up to today.
-     * If the client is a parent account, interest is also cascaded to all sub-accounts —
-     * each sub-account receives its own interest charge based on its own transactions.
-     * The whole group succeeds or fails together.
-     *
-     * Returns the charge applied to the specified client itself (not sub-accounts).
+     * Applies pro-rata simple interest for a client up to today. For a parent, the charge covers the
+     * combined balance of the parent and its sub-accounts. A sub-account cannot be charged on its own.
      */
     @Transactional
     public Optional<CreditInterestCharge> applyProRata(Long pumpId, Long clientId, Long appliedByUserId) {
         CreditClient client = clientRepository.findById(clientId)
                 .filter(found -> found.getPumpId().equals(pumpId))
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + clientId));
-        lockGroupRoot(client.getParentClientId() != null ? client.getParentClientId() : client.getId());
-        return applyToClientGroup(client, businessClock.today(), "MANUAL", appliedByUserId).rootCharge();
+        if (client.getParentClientId() != null) {
+            String parentName = clientRepository.findById(client.getParentClientId())
+                    .map(CreditClient::getName)
+                    .orElse("the parent account");
+            throw new BusinessException("Interest for sub-account '" + client.getName()
+                    + "' is charged on its parent account '" + parentName + "'. Apply interest on the parent instead.");
+        }
+        CreditClient root = lockGroupRoot(client.getId());
+        return applyToClientGroup(root, businessClock.today(), "MANUAL", appliedByUserId);
     }
 
     /**
-     * Applies interest to one root client and its sub-accounts in a transaction of its own,
+     * Applies interest to one root client's group in a transaction of its own,
      * so a failure here cannot roll back charges already made for other client groups.
      *
-     * @return number of charges created (root plus sub-accounts)
+     * @return number of charges created (0 or 1)
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int applyToClientGroupInNewTransaction(Long rootClientId, LocalDate periodTo, String source, Long appliedByUserId) {
         CreditClient root = lockGroupRoot(rootClientId);
-        return applyToClientGroup(root, periodTo, source, appliedByUserId).chargeCount();
+        return applyToClientGroup(root, periodTo, source, appliedByUserId).isPresent() ? 1 : 0;
     }
 
     /**
@@ -252,17 +272,12 @@ public class CreditInterestService {
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found: " + rootClientId));
     }
 
-    private record GroupCharges(Optional<CreditInterestCharge> rootCharge, int chargeCount) {}
-
-    private GroupCharges applyToClientGroup(CreditClient root, LocalDate periodTo, String source, Long appliedByUserId) {
-        Optional<CreditInterestCharge> rootCharge = applyInterest(root, periodTo, source, appliedByUserId);
-        int count = rootCharge.isPresent() ? 1 : 0;
-        for (CreditClient child : clientRepository.findByParentClientId(root.getId())) {
-            if (applyInterest(child, periodTo, source, appliedByUserId).isPresent()) {
-                count++;
-            }
-        }
-        return new GroupCharges(rootCharge, count);
+    private Optional<CreditInterestCharge> applyToClientGroup(CreditClient root, LocalDate periodTo, String source,
+                                                              Long appliedByUserId) {
+        List<Long> groupClientIds = new ArrayList<>();
+        groupClientIds.add(root.getId());
+        clientRepository.findByParentClientId(root.getId()).forEach(child -> groupClientIds.add(child.getId()));
+        return applyInterest(root, groupClientIds, periodTo, source, appliedByUserId);
     }
 
     // ── Core calculation ──────────────────────────────────────────────────────
@@ -270,30 +285,30 @@ public class CreditInterestService {
     /**
      * Core interest application logic shared by manual and scheduled triggers.
      *
-     * Interest is always calculated on the client's OWN transactions only (not children).
-     * Sub-accounts inherit the parent's interest rate if they do not have their own configured.
+     * The principal is the combined balance of every account in {@code groupClientIds}; the charge is
+     * booked on {@code root} using its rate and grace days.
      *
-     * @param client        the client to charge
-     * @param periodTo      the last date (inclusive) to cover — today for manual, yesterday for scheduled
-     * @param source        "MANUAL" or "MONTHLY_SCHEDULED"
-     * @param appliedByUserId  the user ID triggering the charge (null for scheduled)
-     * @return the saved charge, or empty if the client was not eligible
+     * @param root            the standalone client or group parent that is charged
+     * @param groupClientIds  the root and all of its sub-accounts
+     * @param periodTo        the last date (inclusive) to cover — today for manual, yesterday for scheduled
+     * @param source          "MANUAL" or "MONTHLY_SCHEDULED"
+     * @param appliedByUserId the user ID triggering the charge (null for scheduled)
+     * @return the saved charge, or empty if the group was not eligible
      */
-    private Optional<CreditInterestCharge> applyInterest(
-            CreditClient client, LocalDate periodTo, String source, Long appliedByUserId) {
+    private Optional<CreditInterestCharge> applyInterest(CreditClient root, List<Long> groupClientIds,
+                                                         LocalDate periodTo, String source, Long appliedByUserId) {
 
-        // Resolve effective interest rate — sub-accounts inherit from parent if not set
-        BigDecimal rate = resolveInterestRate(client);
-        if (rate.compareTo(BigDecimal.ZERO) <= 0) {
+        BigDecimal rate = root.getMonthlyInterestRate();
+        if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
             return Optional.empty();
         }
 
-        LocalDate periodFrom = determinePeriodFrom(client);
+        LocalDate periodFrom = determinePeriodFrom(root, groupClientIds);
         if (periodFrom == null || periodFrom.isAfter(periodTo)) {
             return Optional.empty();
         }
 
-        DailyPrincipal principal = loadDailyPrincipal(client.getId());
+        DailyPrincipal principal = loadDailyPrincipal(groupClientIds);
         BigDecimal dailyRate = rate.divide(ONE_HUNDRED, 10, RoundingMode.HALF_UP)
                 .divide(DAYS_IN_MONTH, 10, RoundingMode.HALF_UP);
         BigDecimal interest = BigDecimal.ZERO;
@@ -308,13 +323,13 @@ public class CreditInterestService {
         BigDecimal outstanding = principal.on(periodTo).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
 
         if (interest.compareTo(MINIMUM_CHARGE) < 0) {
-            log.debug("Client {} interest skipped: calculated amount {} is negligible", client.getId(), interest);
+            log.debug("Client {} interest skipped: calculated amount {} is negligible", root.getId(), interest);
             return Optional.empty();
         }
 
         CreditInterestCharge charge = CreditInterestCharge.builder()
-                .pumpId(client.getPumpId())
-                .clientId(client.getId())
+                .pumpId(root.getPumpId())
+                .clientId(root.getId())
                 .amount(interest)
                 .outstandingBalance(outstanding)
                 .rateApplied(rate)
@@ -327,29 +342,10 @@ public class CreditInterestService {
 
         charge = interestChargeRepository.save(charge);
 
-        log.info("Interest applied: client={}, amount={}, days={}, rate={}%, period={} to {}, source={}",
-                client.getId(), interest, days, rate, periodFrom, periodTo, source);
+        log.info("Interest applied: client={}, groupAccounts={}, amount={}, days={}, rate={}%, period={} to {}, source={}",
+                root.getId(), groupClientIds.size(), interest, days, rate, periodFrom, periodTo, source);
 
         return Optional.of(charge);
-    }
-
-    /**
-     * Resolves the effective interest rate for a client.
-     * Sub-accounts without their own rate configured inherit the parent's rate.
-     */
-    private BigDecimal resolveInterestRate(CreditClient client) {
-        BigDecimal rate = client.getMonthlyInterestRate();
-        if (rate != null && rate.compareTo(BigDecimal.ZERO) > 0) {
-            return rate;
-        }
-        // Sub-account with no rate — inherit from parent
-        if (client.getParentClientId() != null) {
-            return clientRepository.findById(client.getParentClientId())
-                    .map(CreditClient::getMonthlyInterestRate)
-                    .filter(r -> r != null && r.compareTo(BigDecimal.ZERO) > 0)
-                    .orElse(BigDecimal.ZERO);
-        }
-        return BigDecimal.ZERO;
     }
 
     private record DailyPrincipal(Map<LocalDate, BigDecimal> changesByDay) {
@@ -361,39 +357,42 @@ public class CreditInterestService {
         }
     }
 
-    private DailyPrincipal loadDailyPrincipal(Long clientId) {
+    private DailyPrincipal loadDailyPrincipal(Collection<Long> clientIds) {
         Map<LocalDate, BigDecimal> changes = new HashMap<>();
-        for (var entry : creditEntryRepository.findActiveByClientId(clientId)) {
-            LocalDate day = entry.getCreatedAt().atZoneSameInstant(businessClock.zone()).toLocalDate();
-            changes.merge(day, entry.getAmount(), BigDecimal::add);
+        for (var entry : creditEntryRepository.findActiveByClientIdIn(clientIds)) {
+            changes.merge(entry.getSaleDate(), entry.getAmount(), BigDecimal::add);
         }
-        for (CreditPayment payment : paymentRepository.findApprovedByClientIdIn(List.of(clientId))) {
+        for (AncillarySale sale : ancillarySaleRepository.findByClientIdsAndPaymentMode(clientIds, CREDIT)) {
+            changes.merge(sale.getSaleDate(), sale.getTotalWithGst(), BigDecimal::add);
+        }
+        for (CreditPayment payment : paymentRepository.findApprovedByClientIdIn(clientIds)) {
             changes.merge(payment.getPaidAt(), payment.getAmount().negate(), BigDecimal::add);
         }
         return new DailyPrincipal(changes);
     }
 
     /**
-     * Calculates the start date of the next chargeable period for a client.
+     * Calculates the start date of the next chargeable period for a client group.
      *
      * Logic:
-     * - If a previous charge exists: period_from = last_charge.period_to + 1 day
-     * - Otherwise: period_from = oldest_credit_entry_date + grace_days
+     * - If any account of the group was charged before: period_from = latest period_to + 1 day,
+     *   so days already charged to a sub-account under the earlier per-account rule are not charged again
+     * - Otherwise: period_from = oldest credit sale date of the group + the root's grace days
      *
-     * Returns null if the client has no credit entries at all.
+     * Returns null if the group has no credit sales at all.
      */
-    private LocalDate determinePeriodFrom(CreditClient client) {
-        Optional<LocalDate> lastPeriodTo = interestChargeRepository.findLastPeriodToByClientId(client.getId());
+    private LocalDate determinePeriodFrom(CreditClient root, Collection<Long> groupClientIds) {
+        Optional<LocalDate> lastPeriodTo = interestChargeRepository.findLastPeriodToByClientIds(groupClientIds);
         if (lastPeriodTo.isPresent()) {
             return lastPeriodTo.get().plusDays(1);
         }
 
-        Optional<OffsetDateTime> oldestEntry = creditEntryRepository.findOldestEntryDateByClientId(client.getId());
-        if (oldestEntry.isEmpty()) {
+        Optional<LocalDate> oldestSale = findOldestCreditSaleDate(groupClientIds);
+        if (oldestSale.isEmpty()) {
             return null;
         }
 
-        int graceDays = client.getInterestGraceDays() != null ? client.getInterestGraceDays() : 1;
-        return oldestEntry.get().atZoneSameInstant(businessClock.zone()).toLocalDate().plusDays(graceDays);
+        int graceDays = root.getInterestGraceDays() != null ? root.getInterestGraceDays() : 1;
+        return oldestSale.get().plusDays(graceDays);
     }
 }

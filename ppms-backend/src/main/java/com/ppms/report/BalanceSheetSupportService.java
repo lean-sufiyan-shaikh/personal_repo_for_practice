@@ -51,10 +51,7 @@ public class BalanceSheetSupportService {
     private final ShiftRepository shiftRepository;
 
     public BalanceSheetDetailResponse.ProductSalesSummary buildProductSalesSummary(Long pumpId, ReportPeriod period) {
-        List<AncillarySale> sales = period.live()
-                ? ancillarySaleRepository.findByPumpIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(
-                        pumpId, period.start(), period.end())
-                : ancillarySaleRepository.findByPumpIdAndDateRange(pumpId, period.reportDate(), period.reportDate());
+        List<AncillarySale> sales = ancillarySaleRepository.findByPumpIdAndDateRange(pumpId, period.reportDate(), period.reportDate());
         if (sales.isEmpty()) {
             return null;
         }
@@ -124,11 +121,8 @@ public class BalanceSheetSupportService {
     }
 
     public BalanceSheetDetailResponse.ExpenseSummary buildExpenseSummary(Long pumpId, ReportPeriod period) {
-        List<PumpExpense> expenses = period.live()
-                ? pumpExpenseRepository.findByPumpIdAndApprovalStatusAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
-                        pumpId, ExpenseApprovalStatus.APPROVED, period.start(), period.end())
-                : pumpExpenseRepository.findByPumpIdAndExpenseDateAndApprovalStatus(
-                        pumpId, period.reportDate(), ExpenseApprovalStatus.APPROVED);
+        List<PumpExpense> expenses = pumpExpenseRepository.findByPumpIdAndExpenseDateAndApprovalStatus(
+                pumpId, period.reportDate(), ExpenseApprovalStatus.APPROVED);
         if (expenses.isEmpty()) {
             return null;
         }
@@ -214,8 +208,7 @@ public class BalanceSheetSupportService {
     /**
      * Builds the settlement summary for a DAY balance sheet.
      *
-     * settlementsOnDate — entries dated on the report date (the date money arrived in bank), or for a
-     *                     live report, entries recorded within its 24-hour window.
+     * settlementsOnDate — entries dated on the report date (the date money arrived in bank).
      * settled amounts   — totals per type for this date.
      * wallet pending    — cumulative (all collections up to reportDate) − (all settlements up to reportDate).
      *
@@ -224,9 +217,7 @@ public class BalanceSheetSupportService {
      */
     public BalanceSheetDetailResponse.SettlementSummary buildSettlementSummary(Long pumpId, ReportPeriod period) {
         LocalDate reportDate = period.reportDate();
-        List<PaymentSettlement> onDate = period.live()
-                ? settlementRepository.findActiveByPumpIdRecordedBetween(pumpId, period.start(), period.end())
-                : settlementRepository.findActiveByPumpIdAndSettlementDate(pumpId, reportDate);
+        List<PaymentSettlement> onDate = settlementRepository.findActiveByPumpIdAndSettlementDate(pumpId, reportDate);
 
         // Batch-load recorder names
         Set<Long> recorderIds = onDate.stream()

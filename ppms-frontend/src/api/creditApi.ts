@@ -27,13 +27,14 @@ export interface CreditClient {
 }
 
 export interface CreditTransaction {
-  type: 'SALE' | 'PAYMENT' | 'INTEREST'
+  /** SALE is fuel on credit; COUNTER_SALE is a shop product sold on credit. */
+  type: 'SALE' | 'COUNTER_SALE' | 'PAYMENT' | 'INTEREST'
   referenceId: number
   reference: string | null
   detail: string | null
   amount: number
   runningBalance: number
-  /** When the row was recorded; the ledger is ordered by this. */
+  /** When the row was recorded; rows of the same business date are ordered by this. */
   occurredAt: string
   /** IST date (YYYY-MM-DD) the row belongs to; for a payment, the date the client paid. */
   businessDate: string

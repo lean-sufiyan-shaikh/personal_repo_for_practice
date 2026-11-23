@@ -56,7 +56,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const role = user?.role
   const canApprovePayments = canPerformAction('credit:approve-payment', role)
   const canMoveEntries     = canPerformAction('credit:reassign', role)
-  const canManageInterest  = canPerformAction('credit:manage-interest', role)
+  const canManageInterestForRole = canPerformAction('credit:manage-interest', role)
   const canGrantExtension  = canPerformAction('credit:grant-extension', role)
   const canIssueInvoices   = canPerformAction('credit:issue-invoice', role)
   const [activeTab, setActiveTab] = useState<'ledger' | 'invoices'>('ledger')
@@ -68,6 +68,10 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
     outstandingInterest, totalInterestRecovered, childTransactionsByIndex,
     pendingPaymentRecorders, transactions,
   } = useClientLedger(pumpId, clientId, canApprovePayments)
+
+  // Interest is charged on the parent for the whole group, so a sub-account has no interest actions of its own.
+  const isSubAccount = client?.parentClientId != null
+  const canManageInterest = canManageInterestForRole && !isSubAccount
 
   const invalidateLedger = () => {
     qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId] })
@@ -214,6 +218,12 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           />
         </div>
 
+        {canManageInterestForRole && isSubAccount && (
+          <p className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-slate-500">
+            Interest is charged on the parent account{client.parentClientName ? ` (${client.parentClientName})` : ''} for
+            the combined balance of the whole group.
+          </p>
+        )}
         {applyInterestFeedback && (
           <div className="mt-3 ui-alert text-sm bg-purple-50 border-purple-200 text-purple-800 flex items-center justify-between">
             <span>{applyInterestFeedback}</span>

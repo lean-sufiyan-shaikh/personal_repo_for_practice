@@ -8,6 +8,8 @@ import com.ppms.cash.CashEventRepository;
 import com.ppms.cash.CashEventType;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.credit.CreditAccountPolicyService;
+import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditClientRepository;
 import com.ppms.invoice.GstFields;
 import com.ppms.transaction.TransactionPaymentMode;
@@ -40,6 +42,7 @@ public class AncillaryInventoryWorkflowService {
     private final CashEventRepository cashEventRepository;
     private final AncillaryProductAccessService accessService;
     private final CreditClientRepository creditClientRepository;
+    private final CreditAccountPolicyService creditAccountPolicyService;
     private final AuditService auditService;
     private final BusinessClock businessClock;
 
@@ -167,10 +170,7 @@ public class AncillaryInventoryWorkflowService {
         if (request.getClientId() != null && !creditClientRepository.existsByIdAndPumpId(request.getClientId(), pumpId)) {
             throw new ResourceNotFoundException("Credit client not found");
         }
-        if (request.getPaymentMode() == TransactionPaymentMode.CREDIT
-                && (request.getClientName() == null || request.getClientName().isBlank())) {
-            throw new BusinessException("Client name is required for CREDIT payment mode.");
-        }
+        CreditClient creditClient = requireCreditClientForCreditSale(pumpId, request.getPaymentMode(), request.getClientId());
         if (product.getCurrentStockUnits() < request.getQuantityUnits()) {
             throw new BusinessException(
                     "Insufficient stock for '" + product.getName() + "'. Available: "
@@ -179,9 +179,11 @@ public class AncillaryInventoryWorkflowService {
 
         BigDecimal sellingPrice = resolveSellingPrice(pumpId, product, request.getSellingPricePerUnit(), currentUser);
         LocalDate today = businessClock.today();
+        validateCreditSale(pumpId, creditClient, sellingPrice, request.getQuantityUnits());
 
         AncillarySale sale = saleRepository.save(newSale(pumpId, product, request.getQuantityUnits(), sellingPrice,
-                request.getPaymentMode(), request.getClientName(), request.getBillNo(), request.getNotes(), currentUser)
+                request.getPaymentMode(), clientNameOf(creditClient, request.getClientName()), request.getBillNo(),
+                request.getNotes(), currentUser)
                 .clientId(request.getClientId())
                 .saleDate(today)
                 .build());
@@ -287,18 +289,21 @@ public class AncillaryInventoryWorkflowService {
                     "Sale date must be strictly in the past. Use the regular Sell button for today's sales.");
         }
 
-        if (request.getPaymentMode() == TransactionPaymentMode.CREDIT
-                && (request.getClientName() == null || request.getClientName().isBlank())) {
-            throw new BusinessException("Client name is required for CREDIT payment mode.");
+        if (request.getClientId() != null && !creditClientRepository.existsByIdAndPumpId(request.getClientId(), pumpId)) {
+            throw new ResourceNotFoundException("Credit client not found");
         }
+        CreditClient creditClient = requireCreditClientForCreditSale(pumpId, request.getPaymentMode(), request.getClientId());
 
         AncillaryProduct product = accessService.requireProductForPumpForUpdate(request.getProductId(), pumpId);
 
         BigDecimal sellingPrice = priceOnDate(product, request.getSaleDate());
         List<AncillaryStockLot> historicalLots = lotsCoveringBackfill(product, request);
+        validateCreditSale(pumpId, creditClient, sellingPrice, request.getQuantityUnits());
 
         AncillarySale sale = saleRepository.save(newSale(pumpId, product, request.getQuantityUnits(), sellingPrice,
-                request.getPaymentMode(), request.getClientName(), request.getBillNo(), request.getNotes(), currentUser)
+                request.getPaymentMode(), clientNameOf(creditClient, request.getClientName()), request.getBillNo(),
+                request.getNotes(), currentUser)
+                .clientId(request.getClientId())
                 .saleDate(request.getSaleDate())
                 .isBackfilled(true)
                 .build());
@@ -354,10 +359,42 @@ public class AncillaryInventoryWorkflowService {
         return historicalLots;
     }
 
+    /** A credit sale must name a client of this pump, so the amount lands on an account that is billed and charged. */
+    private CreditClient requireCreditClientForCreditSale(Long pumpId, TransactionPaymentMode paymentMode, Long clientId) {
+        if (paymentMode != TransactionPaymentMode.CREDIT) {
+            return null;
+        }
+        if (clientId == null) {
+            throw new BusinessException("Choose a credit client for a CREDIT sale.");
+        }
+        return creditClientRepository.findById(clientId)
+                .filter(client -> client.getPumpId().equals(pumpId))
+                .orElseThrow(() -> new ResourceNotFoundException("Credit client not found"));
+    }
+
+    /** Same limit, extension and overdue rules as a fuel credit sale; locks the group's limit holder until commit. */
+    private void validateCreditSale(Long pumpId, CreditClient creditClient, BigDecimal sellingPrice, int quantityUnits) {
+        if (creditClient == null) {
+            return;
+        }
+        creditAccountPolicyService.validateCreditSaleAllowed(pumpId, creditClient, saleTotal(sellingPrice, quantityUnits));
+    }
+
+    private static String clientNameOf(CreditClient creditClient, String requestedName) {
+        if (creditClient != null && (requestedName == null || requestedName.isBlank())) {
+            return creditClient.getName();
+        }
+        return requestedName;
+    }
+
+    private static BigDecimal saleTotal(BigDecimal sellingPrice, int quantityUnits) {
+        return sellingPrice.multiply(new BigDecimal(quantityUnits)).setScale(2, RoundingMode.HALF_UP);
+    }
+
     private AncillarySale.AncillarySaleBuilder newSale(Long pumpId, AncillaryProduct product, int quantityUnits,
                                                        BigDecimal sellingPrice, TransactionPaymentMode paymentMode,
                                                        String clientName, String billNo, String notes, User soldBy) {
-        BigDecimal totalAmount = sellingPrice.multiply(new BigDecimal(quantityUnits)).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalAmount = saleTotal(sellingPrice, quantityUnits);
         return AncillarySale.builder()
                 .pumpId(pumpId)
                 .productId(product.getId())
@@ -366,6 +403,7 @@ public class AncillaryInventoryWorkflowService {
                 .totalAmount(totalAmount)
                 .gstAmount(BigDecimal.ZERO.setScale(2))
                 .totalWithGst(totalAmount)
+                .gstRatePercent(product.getGstRatePercent().setScale(2, RoundingMode.HALF_UP))
                 .paymentMode(paymentMode)
                 .clientName(clientName != null ? clientName.trim() : null)
                 .billNo(billNo != null ? billNo.trim() : null)

@@ -117,6 +117,47 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void saleKeepsTheGstRateItWasSoldAtWhenTheProductRateChangesLater() throws Exception {
+        long saleId = json(sell(1, "450.00").andExpect(status().is2xxSuccessful())).get("id").asLong();
+
+        perform(patch("/api/pumps/{pumpId}/ancillary/products/{id}", setup.pumpId(), productId), setup.owner(),
+                Map.of("gstRatePercent", new BigDecimal("28")))
+                .andExpect(status().isOk());
+
+        assertThat(jdbcTemplate.queryForObject("SELECT gst_rate_percent FROM ancillary_sales WHERE id = ?",
+                BigDecimal.class, saleId)).isEqualByComparingTo("18.00");
+    }
+
+    @Test
+    void backfilledCreditSaleNeedsAClientAndIsAddedToThatClientsBalance() throws Exception {
+        jdbcTemplate.update("UPDATE ancillary_product_prices SET effective_from = effective_from - INTERVAL '5 days' WHERE product_id = ?", productId);
+        long clientId = json(perform(post("/api/pumps/{pumpId}/credit-clients", setup.pumpId()), setup.manager(),
+                Map.of("name", "Client " + shortId(), "phone", "9" + String.format("%09d", System.nanoTime() % 1_000_000_000L)))
+                .andExpect(status().is2xxSuccessful())).get("id").asLong();
+        Map<String, Object> request = new HashMap<>();
+        request.put("productId", productId);
+        request.put("saleDate", TestDates.today().minusDays(1).toString());
+        request.put("quantityUnits", 2);
+        request.put("paymentMode", "CREDIT");
+        request.put("clientName", "Walk-in");
+
+        perform(post("/api/pumps/{pumpId}/ancillary/sales/backfill", setup.pumpId()), setup.owner(), request)
+                .andExpect(status().isBadRequest());
+        assertThat(product().get("currentStockUnits").asInt()).isEqualTo(10);
+
+        request.put("clientId", clientId);
+        perform(post("/api/pumps/{pumpId}/ancillary/sales/backfill", setup.pumpId()), setup.owner(), request)
+                .andExpect(status().is2xxSuccessful());
+
+        JsonNode clients = json(perform(get("/api/pumps/{pumpId}/credit-clients", setup.pumpId()), setup.owner())
+                .andExpect(status().isOk()));
+        assertThat(clients).anySatisfy(client -> {
+            assertThat(client.get("id").asLong()).isEqualTo(clientId);
+            assertThat(client.get("outstandingBalance").decimalValue()).isEqualByComparingTo("900.00");
+        });
+    }
+
+    @Test
     void patchingOnlyTheBrandKeepsTheLowStockThreshold() throws Exception {
         perform(patch("/api/pumps/{pumpId}/ancillary/products/{id}", setup.pumpId(), productId), setup.owner(),
                 Map.of("brand", "Shell"))

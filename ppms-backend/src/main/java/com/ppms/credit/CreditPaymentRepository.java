@@ -7,7 +7,6 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,16 +27,6 @@ public interface CreditPaymentRepository extends JpaRepository<CreditPayment, Lo
     // Total APPROVED credit recovered for a pump on a specific date — used in DAY balance sheet
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM CreditPayment p WHERE p.pumpId = :pumpId AND p.paidAt = :date AND p.paymentApprovalStatus = 'APPROVED'")
     BigDecimal sumAmountByPumpIdAndDate(@Param("pumpId") Long pumpId, @Param("date") LocalDate date);
-
-    // Total APPROVED credit recovered for a pump, recorded within [from, to) — used by live DAY balance sheets
-    @Query("""
-            SELECT COALESCE(SUM(p.amount), 0) FROM CreditPayment p
-            WHERE p.pumpId = :pumpId AND p.paymentApprovalStatus = 'APPROVED'
-              AND p.createdAt >= :from AND p.createdAt < :to
-            """)
-    BigDecimal sumApprovedAmountByPumpIdRecordedBetween(@Param("pumpId") Long pumpId,
-                                                        @Param("from") OffsetDateTime from,
-                                                        @Param("to") OffsetDateTime to);
 
     // Most recent APPROVED payment date for a client — used for billing cycle overdue detection
     @Query("SELECT MAX(p.paidAt) FROM CreditPayment p WHERE p.clientId = :clientId AND p.paymentApprovalStatus = 'APPROVED'")

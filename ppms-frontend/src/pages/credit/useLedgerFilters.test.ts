@@ -52,6 +52,13 @@ describe('useLedgerFilters', () => {
     expect(result.current.childFilteredTxs[0].map(t => t.referenceId)).toEqual([1])
   })
 
+  it('counts a shop sale on credit as a sale', () => {
+    const withShopSale = [...transactions, tx(5, 'COUNTER_SALE', '2026-04-01')]
+    const { result } = renderHook(() => useLedgerFilters(withShopSale, withShopSale, [], 0, 10))
+    act(() => result.current.setTxTypeFilter('SALE'))
+    expect(result.current.filtered.map(t => t.referenceId)).toEqual([1, 4, 5])
+  })
+
   it('filters by the month of the business date', () => {
     const { result } = renderFilters()
     act(() => {
