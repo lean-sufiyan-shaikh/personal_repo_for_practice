@@ -308,10 +308,7 @@
     "SETUP_TANKS_ALL_LINKED_other": "{{count}} tanks, every nozzle linked",
     "SETUP_NOZZLES_NOT_LINKED_one": "{{count}} nozzle not linked to a tank",
     "SETUP_NOZZLES_NOT_LINKED_other": "{{count}} nozzles not linked to a tank",
-    "SETUP_FUEL_PRICES_MISSING": "Set today's fuel prices",
-    "SETUP_FUEL_PRICES_SET_TODAY": "Prices set today",
-    "SETUP_FUEL_PRICES_NOT_TODAY_one": "{{count}} fuel without today's price",
-    "SETUP_FUEL_PRICES_NOT_TODAY_other": "{{count}} fuels without today's price",
+    "SETUP_FUEL_PRICES_MISSING": "Set the fuel prices",
     "SETUP_SHIFT_DEFINITIONS_MISSING": "Define the shifts the pump runs",
     "SETUP_SHIFT_DEFINITIONS_DEFINED_one": "{{count}} shift defined",
     "SETUP_SHIFT_DEFINITIONS_DEFINED_other": "{{count}} shifts defined",
@@ -338,6 +335,9 @@
     "PERIOD_SHIFT": "{{shiftName}} · {{date}}",
     "PERIOD_DAY_END_REVISION": "Day End · {{date}} #{{revision}}",
     "PERIOD_DAY_END_UP_TO_REVISION": "Day End · {{date}} (up to {{time}}) #{{revision}}",
-    "PERIOD_SHIFT_REVISION": "{{shiftName}} · {{date}} #{{revision}}"
+    "PERIOD_SHIFT_REVISION": "{{shiftName}} · {{date}} #{{revision}}",
+    "SETUP_FUEL_PRICES_SET": "Prices set for every fuel sold",
+    "SETUP_FUEL_PRICES_UNPRICED_one": "{{count}} fuel without a price",
+    "SETUP_FUEL_PRICES_UNPRICED_other": "{{count}} fuels without a price"
   }
 }

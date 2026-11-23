@@ -2,25 +2,12 @@
   "page": {
     "title": "Pump Setup",
     "subtitle": "Create pump locations, configure nozzles, set prices, manage staff and credit clients.",
-    "createPumpToggle": "Create a New Pump Location",
-    "noPumps": "No pumps yet. Create one above to get started."
+    "noPumps": "No pump is set up for your account yet. Ask the platform administrator to add one."
   },
   "checklist": {
-    "title": "Setup checklist",
     "doneCount": "{{done}} of {{required}} done",
     "progress": "Setup progress",
-    "toDo": "To do",
-    "setUp": "Set up",
-    "actionLabel": "{{action}} {{step}}",
-    "steps": {
-      "DISPENSERS": "Dispensing units and nozzles",
-      "TANKS": "Tanks, with every nozzle linked",
-      "FUEL_PRICES": "Today's fuel prices",
-      "SHIFT_DEFINITIONS": "Shift definitions",
-      "STAFF": "Staff added",
-      "GST_DETAILS": "GST details",
-      "CREDIT_CLIENTS": "Credit clients"
-    }
+    "toDo": "To do"
   },
   "example": "e.g. {{value}}",
   "sections": {
@@ -28,40 +15,32 @@
     "managerNote": "You can update daily fuel prices below. Other pump settings are managed by your Owner or Admin.",
     "notConfigured": "Not configured",
     "nozzles": {
-      "title": "Dispensary Units",
       "summary": "{{used}} of {{max}} DUs configured"
     },
     "tanks": {
-      "title": "Underground Tanks",
       "tapToConfigure": "Tap to configure capacity",
       "addDuFirst": "Add a DU first"
     },
     "prices": {
-      "title": "Fuel Prices",
       "notSet": "Not set",
       "notUpdatedToday": " · not updated today"
     },
     "staff": {
-      "title": "Staff",
       "members_one": "{{count}} member",
       "members_other": "{{count}} members",
       "noneAdded": "None added"
     },
     "shifts": {
-      "title": "Shift Definitions",
       "schedules_one": "{{count}} schedule",
       "schedules_other": "{{count}} schedules"
     },
     "tankers": {
-      "title": "Tankers (Trucks)",
       "summary": "Configure tanker sizes and set the default"
     },
     "settings": {
-      "title": "Thresholds & Rules",
       "escalation": "Escalation: ₹{{amount}}"
     },
     "gst": {
-      "title": "GST & Invoices",
       "summary": "GSTIN {{gstin}}"
     }
   },
@@ -88,23 +67,12 @@
     "invoicePrefixPlaceholder": "e.g. PMP3",
     "save": "Save GST Details"
   },
-  "createPump": {
-    "created": "Pump \"{{name}}\" created",
-    "failed": "Failed to create pump",
-    "name": "Pump Name",
-    "namePlaceholder": "e.g. Main Road Pump",
-    "maxDus": "Max DUs",
-    "address": "Address",
-    "addressPlaceholder": "e.g. 123, MG Road, Bangalore",
-    "creating": "Creating…",
-    "submit": "Create Pump"
-  },
   "prices": {
     "setFailed": "Failed to set price",
     "enterOne": "Enter at least one price to save.",
     "updated": "Fuel prices updated",
     "confirmedToday": "Prices confirmed for today",
-    "needDu": "Add at least one DU with a nozzle first (Nozzles section above).",
+    "needDu": "Add at least one DU with a nozzle first (Dispensers & nozzles step).",
     "staleTitle": "Fuel prices not updated today",
     "lastUpdatedOn": "Last updated on",
     "staleHint": ". Enter new prices below, or confirm they are unchanged.",
@@ -317,12 +285,12 @@
       "password": "Password",
       "passwordPlaceholder": "Temporary password",
       "passwordHint": "Use a temporary password. The staff member must choose their own at first sign-in.",
-      "rulesTitle": "Role & shift rules",
       "rulesHint": "Choose the staff role first. Extra planning rules appear only when needed.",
       "consentTitle": "Night-shift consent",
       "consentHint": "This appears only for female operators because it affects night-shift assignment in planning.",
       "success": "Staff member added successfully.",
-      "submit": "Add Staff Member"
+      "submit": "Add Staff Member",
+      "open": "Add staff"
     },
     "move": {
       "failed": "Failed to move staff member",
@@ -444,5 +412,32 @@
       "addShift": "+ Add another shift",
       "save": "Save Schedule"
     }
+  },
+  "steps": {
+    "listLabel": "Setup steps",
+    "navigationLabel": "Previous and next step",
+    "position": "Step {{current}} of {{total}}",
+    "previous": "Previous: {{step}}",
+    "next": "Next step: {{step}}",
+    "names": {
+      "nozzles": "Dispensers & nozzles",
+      "tanks": "Tanks & mapping",
+      "prices": "Fuel prices",
+      "shifts": "Shift timings",
+      "staff": "Staff",
+      "gst": "GST details",
+      "credit": "Credit clients",
+      "tankers": "Tankers",
+      "settings": "Pump settings"
+    },
+    "credit": {
+      "body": "Customers who buy fuel on credit are added on the Credit page. Skip this step if you do not sell on credit.",
+      "open": "Open Credit clients"
+    },
+    "complete": "Setup complete",
+    "reviewChecklist": "Review checklist"
+  },
+  "createPump": {
+    "creating": "Creating…"
   }
 }

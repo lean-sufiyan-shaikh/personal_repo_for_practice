@@ -5,6 +5,7 @@ import { authApi } from '../../api/authApi'
 import { useAuthStore } from '../../store/authStore'
 import { ChangePasswordModal } from '../../components/ChangePasswordModal'
 import { getDefaultPath } from '../../permissions/permissions'
+import { AuthScreen } from './AuthCard'
 
 /** The only screen a user whose password was set by someone else can use until they choose their own. */
 export default function ChangePasswordRequiredPage() {
@@ -28,12 +29,12 @@ export default function ChangePasswordRequiredPage() {
   }
 
   return (
-    <div className="ui-auth-shell">
+    <AuthScreen>
       <ChangePasswordModal
         required
         onClose={() => signOutMutation.mutate()}
         successMessage={t('changePassword.requiredSuccess')}
       />
-    </div>
+    </AuthScreen>
   )
 }

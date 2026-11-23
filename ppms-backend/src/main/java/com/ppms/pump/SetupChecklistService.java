@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -26,7 +25,8 @@ import java.util.stream.Collectors;
 
 /**
  * Works out which setup steps a new pump still needs: dispensers and nozzles, tanks with every nozzle linked,
- * today's fuel prices, shift definitions, staff and GST details; credit clients are optional.
+ * a price for every fuel sold, shift definitions, staff and GST details; credit clients are optional.
+ * Prices count once set: keeping them current each day is the stale-price alert's job, not setup's.
  * The state of any number of pumps is read with a fixed number of queries.
  */
 @Service
@@ -111,7 +111,7 @@ public class SetupChecklistService {
                         plural(unlinked, "nozzle") + " not linked to a tank"));
     }
 
-    private Item fuelPricesItem(List<ActiveNozzle> nozzles, List<GlobalFuelPrice> currentPrices) {
+    private static Item fuelPricesItem(List<ActiveNozzle> nozzles, List<GlobalFuelPrice> currentPrices) {
         Map<FuelType, GlobalFuelPrice> priceByFuel = currentPrices.stream()
                 .collect(Collectors.toMap(GlobalFuelPrice::getFuelType, price -> price, (first, second) -> first));
         Set<FuelType> fuelsSold = EnumSet.noneOf(FuelType.class);
@@ -119,17 +119,14 @@ public class SetupChecklistService {
         Set<FuelType> fuelsToPrice = fuelsSold.isEmpty() ? priceByFuel.keySet() : fuelsSold;
         if (fuelsToPrice.isEmpty()) {
             return Item.of(Step.FUEL_PRICES, false, false,
-                    CodedText.of(ServerTextCodes.SETUP_FUEL_PRICES_MISSING, "Set today's fuel prices"));
+                    CodedText.of(ServerTextCodes.SETUP_FUEL_PRICES_MISSING, "Set the fuel prices"));
         }
-        OffsetDateTime startOfToday = businessClock.startOfDay(businessClock.today());
-        long missingOrOld = fuelsToPrice.stream()
-                .filter(fuel -> !priceByFuel.containsKey(fuel)
-                        || priceByFuel.get(fuel).getEffectiveFrom().isBefore(startOfToday))
-                .count();
-        return missingOrOld == 0
-                ? Item.of(Step.FUEL_PRICES, true, false, CodedText.of(ServerTextCodes.SETUP_FUEL_PRICES_SET_TODAY, "Prices set today"))
-                : Item.of(Step.FUEL_PRICES, false, false, CodedText.of(ServerTextCodes.SETUP_FUEL_PRICES_NOT_TODAY, "count",
-                        missingOrOld, plural(missingOrOld, "fuel") + " without today's price"));
+        long unpriced = fuelsToPrice.stream().filter(fuel -> !priceByFuel.containsKey(fuel)).count();
+        return unpriced == 0
+                ? Item.of(Step.FUEL_PRICES, true, false,
+                        CodedText.of(ServerTextCodes.SETUP_FUEL_PRICES_SET, "Prices set for every fuel sold"))
+                : Item.of(Step.FUEL_PRICES, false, false, CodedText.of(ServerTextCodes.SETUP_FUEL_PRICES_UNPRICED, "count",
+                        unpriced, plural(unpriced, "fuel") + " without a price"));
     }
 
     private static Item shiftDefinitionsItem(long count) {

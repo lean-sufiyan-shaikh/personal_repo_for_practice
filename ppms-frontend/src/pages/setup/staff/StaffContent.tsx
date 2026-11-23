@@ -12,7 +12,8 @@ import { StaffRow } from './StaffRow'
 import { AddStaffForm } from './AddStaffForm'
 import { canPerformAction } from '../../../permissions/permissions'
 
-export function StaffContent({ pump }: { pump: PumpSummary }) {
+/** The add form shows while isAddFormOpen, and always while the pump has no staff yet. */
+export function StaffContent({ pump, isAddFormOpen, onCloseAddForm }: { pump: PumpSummary; isAddFormOpen: boolean; onCloseAddForm: () => void }) {
   const { t } = useTranslation('setup')
   const queryClient = useQueryClient()
   const { user: currentUser } = useAuthStore()
@@ -52,8 +53,10 @@ export function StaffContent({ pump }: { pump: PumpSummary }) {
 
   return (
     <div className="space-y-4">
+      {isAddFormOpen && (
+        <AddStaffForm pumpId={pump.id} canAssignAdmin={canPerformAction('staff:create-admin', viewerRole)} onCancel={onCloseAddForm} />
+      )}
 
-      {/* Staff list */}
       {!isLoading && staff.length > 0 && (
         <div className="space-y-2">
           {statusError && <p role="alert" className="ui-error-text">{statusError}</p>}
@@ -76,8 +79,9 @@ export function StaffContent({ pump }: { pump: PumpSummary }) {
         </div>
       )}
 
-      {/* Add staff form */}
-      <AddStaffForm pumpId={pump.id} canAssignAdmin={canPerformAction('staff:create-admin', viewerRole)} />
+      {!isLoading && staff.length === 0 && !isAddFormOpen && (
+        <AddStaffForm pumpId={pump.id} canAssignAdmin={canPerformAction('staff:create-admin', viewerRole)} />
+      )}
     </div>
   )
 }

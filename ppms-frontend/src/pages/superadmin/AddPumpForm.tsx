@@ -47,8 +47,7 @@ export function AddPumpForm({ owner, onDone }: AddPumpFormProps) {
   }
 
   return (
-    <div className="px-5 pb-4 bg-info-bg/50 border-t border-info">
-      <div className="pt-3">
+    <div className="ui-card-plain border-info bg-info-bg/50 p-4">
       <form onSubmit={handleSubmitPump(onAddPumpSubmit)} className="ui-inline-form space-y-3 max-w-md">
         <div>
           <p className="ui-inline-form__title">{t('addPump.title', { name: owner.fullName })}</p>
@@ -91,7 +90,6 @@ export function AddPumpForm({ owner, onDone }: AddPumpFormProps) {
           {addPumpMutation.isPending ? t('addPump.adding') : t('addPump.submit')}
         </button>
       </form>
-      </div>
     </div>
   )
 }

@@ -308,10 +308,7 @@
     "SETUP_TANKS_ALL_LINKED_other": "{{count}} टैंक, हर नोज़ल जुड़ा है",
     "SETUP_NOZZLES_NOT_LINKED_one": "{{count}} नोज़ल किसी टैंक से नहीं जुड़ा",
     "SETUP_NOZZLES_NOT_LINKED_other": "{{count}} नोज़ल किसी टैंक से नहीं जुड़े",
-    "SETUP_FUEL_PRICES_MISSING": "आज की ईंधन कीमत तय करें",
-    "SETUP_FUEL_PRICES_SET_TODAY": "कीमत आज तय हुई",
-    "SETUP_FUEL_PRICES_NOT_TODAY_one": "{{count}} ईंधन की आज की कीमत नहीं है",
-    "SETUP_FUEL_PRICES_NOT_TODAY_other": "{{count}} ईंधनों की आज की कीमत नहीं है",
+    "SETUP_FUEL_PRICES_MISSING": "ईंधन की कीमतें तय करें",
     "SETUP_SHIFT_DEFINITIONS_MISSING": "पंप की शिफ्ट तय करें",
     "SETUP_SHIFT_DEFINITIONS_DEFINED_one": "{{count}} शिफ्ट तय",
     "SETUP_SHIFT_DEFINITIONS_DEFINED_other": "{{count}} शिफ्ट तय",
@@ -338,6 +335,9 @@
     "PERIOD_SHIFT": "{{shiftName}} · {{date}}",
     "PERIOD_DAY_END_REVISION": "दिन का अंत · {{date}} #{{revision}}",
     "PERIOD_DAY_END_UP_TO_REVISION": "दिन का अंत · {{date}} ({{time}} तक) #{{revision}}",
-    "PERIOD_SHIFT_REVISION": "{{shiftName}} · {{date}} #{{revision}}"
+    "PERIOD_SHIFT_REVISION": "{{shiftName}} · {{date}} #{{revision}}",
+    "SETUP_FUEL_PRICES_SET": "बेचे जाने वाले हर ईंधन की कीमत तय है",
+    "SETUP_FUEL_PRICES_UNPRICED_one": "{{count}} ईंधन की कीमत तय नहीं है",
+    "SETUP_FUEL_PRICES_UNPRICED_other": "{{count}} ईंधनों की कीमत तय नहीं है"
   }
 }

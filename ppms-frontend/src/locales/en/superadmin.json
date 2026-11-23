@@ -14,7 +14,9 @@
     "pumpOwners": "Pump Owners",
     "pumps": "Pumps",
     "staffMembers": "Staff Members",
-    "copiedCredentials": "PPMS Login Credentials\nPhone: {{phone}}\nPassword: {{password}}\nPump: {{pump}}"
+    "copiedCredentials": "PPMS Login Credentials\nPhone: {{phone}}\nPassword: {{password}}\nPump: {{pump}}",
+    "description": "Onboard pump owners and look after their pumps and setup.",
+    "totalsLabel": "Platform totals"
   },
   "created": {
     "title": "Owner account created — share these login details",
@@ -49,7 +51,8 @@
     "pumpNamePlaceholder": "e.g. Sharma Petrol Station",
     "creating": "Creating...",
     "submit": "Create Owner & Pump",
-    "failed": "Failed to create owner. Please try again."
+    "failed": "Failed to create owner. Please try again.",
+    "backToOwners": "Back to owners"
   },
   "owners": {
     "title": "Onboarded Owners",
@@ -57,7 +60,7 @@
     "count_one": "{{count}} owner",
     "count_other": "{{count}} owners",
     "empty": "No owners yet.",
-    "emptyHint": "Use the form to onboard your first pump owner.",
+    "emptyHint": "Use Onboard New Owner to add your first pump owner.",
     "statusActive": "active",
     "statusInactive": "inactive",
     "pumpCount_one": "{{count}} pump",
@@ -68,7 +71,13 @@
     "noPumps": "No pumps added yet.",
     "idLabel": "ID:",
     "joined": "Joined {{date}}",
-    "updatePumpFailed": "Failed to update pump. Please try again."
+    "updatePumpFailed": "Failed to update pump. Please try again.",
+    "listLabel": "Owners",
+    "detailLabel": "Owner details",
+    "selectOwner": "Choose an owner to see their pumps and setup progress.",
+    "notFound": "This owner is not in the list.",
+    "pumpsTitle": "Pumps",
+    "setupDone": "{{done}} of {{total}} pumps set up"
   },
   "addPump": {
     "title": "Add a new pump for {{name}}",

@@ -85,21 +85,25 @@ class SetupChecklistIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void fuelSoldWithoutAPriceOrWithAnOldPriceLeavesThePriceStepOpen() throws Exception {
+    void fuelSoldWithoutAPriceLeavesThePriceStepOpenUntilAPriceIsSetOnAnyDay() throws Exception {
         PumpLocation pump = bareOwnerPump();
         DispensaryUnit du = duRepository.save(DispensaryUnit.builder().pumpId(pump.getId()).duNumber(1).name("DU-" + shortId()).build());
         nozzleRepository.save(Nozzle.builder().duId(du.getId()).nozzleNumber(1).fuelType(FuelType.DIESEL)
                 .lastReading(BigDecimal.ZERO).build());
         User owner = userRepository.findById(pump.getOwnerId()).orElseThrow();
 
-        assertThat(step(checklist(pump.getId(), owner), "FUEL_PRICES").get("detail").asText())
-                .isEqualTo("1 fuel without today's price");
+        JsonNode unpriced = step(checklist(pump.getId(), owner), "FUEL_PRICES");
+        assertThat(unpriced.get("done").asBoolean()).isFalse();
+        assertThat(unpriced.get("detail").asText()).isEqualTo("1 fuel without a price");
+        assertThat(unpriced.get("detailCode").asText()).isEqualTo("SETUP_FUEL_PRICES_UNPRICED");
 
         fuelPriceRepository.save(GlobalFuelPrice.builder().pumpId(pump.getId()).fuelType(FuelType.DIESEL)
                 .pricePerUnit(new BigDecimal("90.00")).effectiveFrom(TestDates.now().minusDays(2))
                 .setByUserId(owner.getId()).build());
 
-        assertThat(step(checklist(pump.getId(), owner), "FUEL_PRICES").get("done").asBoolean()).isFalse();
+        JsonNode priced = step(checklist(pump.getId(), owner), "FUEL_PRICES");
+        assertThat(priced.get("done").asBoolean()).isTrue();
+        assertThat(priced.get("detailCode").asText()).isEqualTo("SETUP_FUEL_PRICES_SET");
     }
 
     @Test

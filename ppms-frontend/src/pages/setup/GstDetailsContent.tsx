@@ -5,6 +5,8 @@ import { parseApiError } from '../../utils/apiError'
 import { pumpApi } from '../../api/pumpApi'
 import type { PumpSummary } from '../../api/pumpApi'
 import { useToastStore } from '../../store/toastStore'
+import { FormGrid } from '../../components/layout/FormGrid'
+import { StickyActions } from '../../components/layout/StickyActions'
 import { isValidGstin, isValidInvoicePrefix, normaliseGstText } from '../../utils/gst'
 
 // ── GST details used on credit invoices ──────────────────────────────────────
@@ -42,13 +44,13 @@ export function GstDetailsContent({ pump, onUpdated }: { pump: PumpSummary; onUp
   }
 
   return (
-    <form onSubmit={handleSave} className="space-y-4 pt-2">
+    <form onSubmit={handleSave} className="space-y-4">
       <div className="ui-alert bg-info-bg border border-info rounded-control p-3 text-xs text-info">
         {t('gst.introBefore')}
         {' '}<strong>{(normaliseGstText(invoicePrefix) || 'PMP3')}/26-27/0001</strong> {t('gst.introAfter')}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <FormGrid>
         <label className="block">
           <span className="ui-label">GSTIN</span>
           <input value={gstin} onChange={(e) => setGstin(e.target.value.toUpperCase())}
@@ -69,13 +71,14 @@ export function GstDetailsContent({ pump, onUpdated }: { pump: PumpSummary; onUp
           <input value={invoicePrefix} onChange={(e) => setInvoicePrefix(e.target.value.toUpperCase())}
             maxLength={5} autoCapitalize="characters" placeholder={t('gst.invoicePrefixPlaceholder')} className="text-sm" />
         </label>
-      </div>
+      </FormGrid>
 
-      {error && <p role="alert" className="ui-error-text">{error}</p>}
-
-      <button type="submit" disabled={mutation.isPending} className="ui-btn ui-btn-primary">
-        {mutation.isPending ? t('common:actions.saving') : t('gst.save')}
-      </button>
+      <StickyActions className="items-center bg-surface">
+        {error && <p role="alert" className="ui-error-text mr-auto mt-0">{error}</p>}
+        <button type="submit" disabled={mutation.isPending} className="ui-btn ui-btn-primary">
+          {mutation.isPending ? t('common:actions.saving') : t('gst.save')}
+        </button>
+      </StickyActions>
     </form>
   )
 }

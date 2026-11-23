@@ -13,10 +13,7 @@ import { PasswordInput } from '../../components/PasswordInput'
 import { loginErrorMessage } from './loginErrorMessage'
 import { CHANGE_PASSWORD_PATH, getDefaultPath } from '../../permissions/permissions'
 import { prefetchLandingPage } from '../../routes/pageLoaders'
-import { LanguagePicker } from '../../components/LanguagePicker'
-import { activeLanguage, changeAppLanguage } from '../../i18n'
-import { storeLanguage } from '../../i18n/detectLanguage'
-import type { AppLanguage } from '../../i18n/languages'
+import { AuthCard, AuthScreen } from './AuthCard'
 
 function loginSchema(t: TFunction<'auth'>) {
   return z.object({
@@ -42,11 +39,6 @@ export default function LoginPage() {
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(schema),
   })
-
-  const chooseLanguage = (language: AppLanguage) => {
-    storeLanguage(language)
-    changeAppLanguage(language).catch((error: unknown) => console.error('Could not switch the screen language', error))
-  }
 
   const onSubmit = async (data: LoginFormData) => {
     setServerError(null)
@@ -77,15 +69,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="ui-auth-shell ui-auth-shell--split">
+    <AuthScreen>
       <div className="ui-auth-frame">
-        <section className="ui-auth-hero">
+        <section className="ui-auth-hero max-md:hidden" aria-label={t('login.badge')}>
           <div className="ui-auth-badge">
             <Fuel size={13} strokeWidth={2.2} />
             <span>{t('login.badge')}</span>
           </div>
           <div className="space-y-4">
-            <h1 className="ui-auth-display">{t('login.headline')}</h1>
+            <p className="ui-auth-display">{t('login.headline')}</p>
             <p className="ui-auth-copy">{t('login.intro')}</p>
           </div>
           <div className="ui-auth-metrics">
@@ -120,12 +112,17 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <section className="ui-auth-card ui-auth-form-panel">
-          <div className="space-y-2">
-            <p className="ui-auth-kicker">{t('login.welcome')}</p>
-            <h2 className="ui-title">{t('login.title')}</h2>
-            <p className="ui-subtitle">{t('login.subtitle')}</p>
-          </div>
+        <AuthCard
+          title={t('login.title')}
+          description={t('login.subtitle')}
+          className="ui-auth-form-panel"
+          footer={(
+            <p className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
+              <span className="text-ink-3">{t('login.needHelp')}</span>
+              <Link to="/forgot-password" className="ui-link text-sm">{t('login.forgotPassword')}</Link>
+            </p>
+          )}
+        >
 
           {sessionExpired && (
             <div className="ui-alert ui-alert-warning flex items-start gap-2.5">
@@ -192,23 +189,9 @@ export default function LoginPage() {
             >
               {loading ? t('login.signingIn') : t('login.signIn')}
             </button>
-
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="text-ink-3">{t('login.needHelp')}</span>
-              <Link to="/forgot-password" className="ui-link text-sm">
-                {t('login.forgotPassword')}
-              </Link>
-            </div>
           </form>
-
-          <LanguagePicker
-            value={activeLanguage()}
-            onChange={chooseLanguage}
-            className="max-w-48"
-            selectClassName="shadow-raised"
-          />
-        </section>
+        </AuthCard>
       </div>
-    </div>
+    </AuthScreen>
   )
 }

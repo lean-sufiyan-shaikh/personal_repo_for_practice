@@ -1,5 +1,6 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { notificationApi } from '../../api/notificationApi'
 import type { Notification } from '../../api/notificationApi'
@@ -9,7 +10,7 @@ import { renderWithProviders } from '../../test/renderWithProviders'
 import NotificationsPage from './NotificationsPage'
 
 vi.mock('../../api/notificationApi', () => ({
-  notificationApi: { getHistory: vi.fn(), markRead: vi.fn() },
+  notificationApi: { getHistory: vi.fn(), getNotifications: vi.fn(), markRead: vi.fn() },
 }))
 
 const unread: Notification = {
@@ -18,6 +19,10 @@ const unread: Notification = {
 }
 const read: Notification = { ...unread, id: 2, type: 'LOW_STOCK', title: 'Low Tank Stock', read: true,
   target: { route: '/dashboard/inventory', params: {} } }
+
+function CurrentSearch() {
+  return <output aria-label="Address search">{useLocation().search}</output>
+}
 
 function page(content: Notification[]) {
   return { content, page: 0, pageSize: 20, totalElements: content.length, totalPages: 1, hasNext: false, hasPrevious: false }
@@ -28,6 +33,7 @@ describe('NotificationsPage', () => {
     useAuthStore.setState({ user: { userId: 1, fullName: 'Owner', role: 'OWNER', assignedPumpId: null }, isAuthenticated: true })
     usePumpStore.setState({ selectedPumpId: 4 })
     vi.mocked(notificationApi.getHistory).mockResolvedValue(page([unread, read]))
+    vi.mocked(notificationApi.getNotifications).mockResolvedValue({ notifications: [unread], unreadCount: 1 })
     vi.mocked(notificationApi.markRead).mockResolvedValue(undefined)
   })
 
@@ -35,8 +41,9 @@ describe('NotificationsPage', () => {
     renderWithProviders(<NotificationsPage />)
 
     expect(await screen.findByText('UPI Settlement Reminder')).toBeInTheDocument()
-    expect(screen.getByText('Unread')).toBeInTheDocument()
-    expect(screen.getByText('Read')).toBeInTheDocument()
+    const list = screen.getByRole('list')
+    expect(within(list).getByText('Unread')).toBeInTheDocument()
+    expect(within(list).getByText('Read')).toBeInTheDocument()
     expect(notificationApi.getHistory).toHaveBeenCalledWith(4, 0, 20, undefined)
   })
 
@@ -57,5 +64,28 @@ describe('NotificationsPage', () => {
     await user.click(await screen.findByRole('link', { name: /UPI Settlement Reminder/ }))
 
     await waitFor(() => expect(notificationApi.markRead).toHaveBeenCalledWith(4, [1]))
+  })
+
+  it('shows only unread notifications when the unread filter is on, and keeps it in the address', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<><NotificationsPage /><CurrentSearch /></>)
+    await screen.findByText('Low Tank Stock')
+
+    await user.click(within(screen.getByRole('group', { name: 'Read or unread' })).getByRole('button', { name: 'Unread' }))
+
+    expect(screen.getByRole('button', { name: 'Unread' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('UPI Settlement Reminder')).toBeInTheDocument()
+    expect(screen.queryByText('Low Tank Stock')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Address search')).toHaveTextContent('?status=unread')
+
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+    expect(await screen.findByText('Low Tank Stock')).toBeInTheDocument()
+  })
+
+  it('opens with the type filter named in the address', async () => {
+    renderWithProviders(<NotificationsPage />, { route: '/dashboard/notifications?type=LOW_STOCK' })
+
+    await waitFor(() => expect(notificationApi.getHistory).toHaveBeenCalledWith(4, 0, 20, 'LOW_STOCK'))
+    expect(screen.getByLabelText('Type')).toHaveValue('LOW_STOCK')
   })
 })

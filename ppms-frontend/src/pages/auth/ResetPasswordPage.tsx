@@ -6,6 +6,8 @@ import { authApi } from '../../api/authApi'
 import { PasswordInput } from '../../components/PasswordInput'
 import { parseApiError } from '../../utils/apiError'
 import { PASSWORD_POLICY_REGEX } from '../../constants/passwordPolicy'
+import { AuthCard, AuthScreen } from './AuthCard'
+import { BackToLogin } from './BackToLogin'
 
 export default function ResetPasswordPage() {
   const { t } = useTranslation('auth')
@@ -20,20 +22,22 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="ui-auth-shell">
-        <div className="ui-auth-card text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="w-14 h-14 bg-warn-bg rounded-card flex items-center justify-center">
-              <AlertTriangle size={28} strokeWidth={2} className="text-warn" />
+      <AuthScreen>
+        <AuthCard
+          title={t('resetPassword.invalidLinkTitle')}
+          description={t('resetPassword.invalidLinkBody')}
+          icon={(
+            <div className="flex h-12 w-12 items-center justify-center rounded-card bg-warn-bg">
+              <AlertTriangle size={24} strokeWidth={2} aria-hidden="true" className="text-warn" />
             </div>
-          </div>
-          <h1 className="ui-title-sm">{t('resetPassword.invalidLinkTitle')}</h1>
-          <p className="ui-subtitle">{t('resetPassword.invalidLinkBody')}</p>
-          <Link to="/forgot-password" className="ui-link inline-flex justify-center">
+          )}
+          footer={<BackToLogin />}
+        >
+          <Link to="/forgot-password" className="ui-btn ui-btn-primary w-full">
             {t('resetPassword.requestNewLink')}
           </Link>
-        </div>
-      </div>
+        </AuthCard>
+      </AuthScreen>
     )
   }
 
@@ -53,14 +57,8 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="ui-auth-shell">
-      <div className="ui-auth-card space-y-6">
-
-        <div>
-          <h1 className="ui-title-sm">{t('resetPassword.title')}</h1>
-          <p className="ui-subtitle">{t('resetPassword.subtitle')}</p>
-        </div>
-
+    <AuthScreen>
+      <AuthCard title={t('resetPassword.title')} description={t('resetPassword.subtitle')} footer={<BackToLogin />}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="newPassword" className="ui-label">{t('fields.newPassword')}</label>
@@ -100,11 +98,7 @@ export default function ResetPasswordPage() {
             {loading ? t('resetPassword.submitting') : t('resetPassword.submit')}
           </button>
         </form>
-
-        <Link to="/login" className="ui-link block text-center">
-          {t('backToLogin')}
-        </Link>
-      </div>
-    </div>
+      </AuthCard>
+    </AuthScreen>
   )
 }

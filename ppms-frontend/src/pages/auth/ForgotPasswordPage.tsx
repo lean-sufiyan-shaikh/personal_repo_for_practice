@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { authApi } from '../../api/authApi'
 import { parseApiError } from '../../utils/apiError'
+import { AuthCard, AuthScreen } from './AuthCard'
+import { BackToLogin } from './BackToLogin'
 
 function NoEmailHelp() {
   const { t } = useTranslation('auth')
@@ -38,32 +39,27 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="ui-auth-shell">
-        <div className="ui-auth-card text-center space-y-4">
-          <div className="w-14 h-14 bg-ok-bg rounded-full flex items-center justify-center mx-auto">
-            <Check size={28} strokeWidth={2.5} className="text-ok" />
-          </div>
-          <h1 className="ui-title-sm">{t('forgotPassword.sentTitle')}</h1>
-          <p className="ui-subtitle">{t('forgotPassword.sentBody')}</p>
+      <AuthScreen>
+        <AuthCard
+          title={t('forgotPassword.sentTitle')}
+          description={t('forgotPassword.sentBody')}
+          icon={(
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ok-bg">
+              <Check size={24} strokeWidth={2.5} aria-hidden="true" className="text-ok" />
+            </div>
+          )}
+          footer={<BackToLogin />}
+        >
           <p className="text-xs text-ink-3">{t('forgotPassword.linkExpiry')}</p>
           <NoEmailHelp />
-          <Link to="/login" className="ui-link inline-flex justify-center">
-            {t('backToLogin')}
-          </Link>
-        </div>
-      </div>
+        </AuthCard>
+      </AuthScreen>
     )
   }
 
   return (
-    <div className="ui-auth-shell">
-      <div className="ui-auth-card space-y-6">
-
-        <div>
-          <h1 className="ui-title-sm">{t('forgotPassword.title')}</h1>
-          <p className="ui-subtitle">{t('forgotPassword.subtitle')}</p>
-        </div>
-
+    <AuthScreen>
+      <AuthCard title={t('forgotPassword.title')} description={t('forgotPassword.subtitle')} footer={<BackToLogin />}>
         <NoEmailHelp />
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -91,11 +87,7 @@ export default function ForgotPasswordPage() {
             {loading ? t('forgotPassword.sending') : t('forgotPassword.send')}
           </button>
         </form>
-
-        <Link to="/login" className="ui-link block text-center">
-          {t('backToLogin')}
-        </Link>
-      </div>
-    </div>
+      </AuthCard>
+    </AuthScreen>
   )
 }

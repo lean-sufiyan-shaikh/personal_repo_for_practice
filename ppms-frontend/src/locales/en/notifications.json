@@ -8,7 +8,15 @@
     "allTypes": "All types",
     "loadFailed": "Could not load notifications.",
     "emptyForType": "No notifications of this type.",
-    "empty": "No notifications yet."
+    "empty": "No notifications yet.",
+    "listTitle": "Alerts",
+    "filtersLabel": "Notification filters",
+    "readFilter": "Read or unread",
+    "readFilterAll": "All",
+    "unreadSummary_one": "{{count}} unread notification",
+    "unreadSummary_other": "{{count}} unread notifications",
+    "unreadLimit": "Showing the newest {{count}} unread. Open or read some to see older ones.",
+    "emptyUnread": "No unread notifications."
   },
   "types": {
     "LOW_STOCK": "Low tank stock",

@@ -31,8 +31,8 @@ public final class ServerTextCodes {
     public static final String SETUP_TANKS_ALL_LINKED = "SETUP_TANKS_ALL_LINKED";
     public static final String SETUP_NOZZLES_NOT_LINKED = "SETUP_NOZZLES_NOT_LINKED";
     public static final String SETUP_FUEL_PRICES_MISSING = "SETUP_FUEL_PRICES_MISSING";
-    public static final String SETUP_FUEL_PRICES_SET_TODAY = "SETUP_FUEL_PRICES_SET_TODAY";
-    public static final String SETUP_FUEL_PRICES_NOT_TODAY = "SETUP_FUEL_PRICES_NOT_TODAY";
+    public static final String SETUP_FUEL_PRICES_SET = "SETUP_FUEL_PRICES_SET";
+    public static final String SETUP_FUEL_PRICES_UNPRICED = "SETUP_FUEL_PRICES_UNPRICED";
     public static final String SETUP_SHIFT_DEFINITIONS_MISSING = "SETUP_SHIFT_DEFINITIONS_MISSING";
     public static final String SETUP_SHIFT_DEFINITIONS_DEFINED = "SETUP_SHIFT_DEFINITIONS_DEFINED";
     public static final String SETUP_STAFF_MISSING = "SETUP_STAFF_MISSING";

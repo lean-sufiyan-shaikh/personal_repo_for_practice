@@ -17,7 +17,7 @@ export function CreatedOwnerCard({ createdOwner, revealedPassword, onToggleRevea
   const showPassword = revealedPassword !== null
 
   return (
-    <div className="mb-6 ui-alert ui-alert-success p-5">
+    <div className="ui-alert ui-alert-success p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <Check size={18} strokeWidth={2.5} className="text-ok mt-0.5 shrink-0" />

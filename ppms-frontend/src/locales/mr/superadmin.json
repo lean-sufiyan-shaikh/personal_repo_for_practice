@@ -14,7 +14,9 @@
     "pumpOwners": "पंप मालक",
     "pumps": "पंप",
     "staffMembers": "कर्मचारी",
-    "copiedCredentials": "PPMS लॉग इन माहिती\nफोन: {{phone}}\nपासवर्ड: {{password}}\nपंप: {{pump}}"
+    "copiedCredentials": "PPMS लॉग इन माहिती\nफोन: {{phone}}\nपासवर्ड: {{password}}\nपंप: {{pump}}",
+    "description": "पंप मालक जोडा आणि त्यांचे पंप व सेटअप सांभाळा.",
+    "totalsLabel": "प्लॅटफॉर्मचे एकूण आकडे"
   },
   "created": {
     "title": "मालकाचे खाते तयार झाले — ही लॉग इन माहिती त्यांना द्या",
@@ -49,7 +51,8 @@
     "pumpNamePlaceholder": "उदा. शर्मा पेट्रोल स्टेशन",
     "creating": "तयार होत आहे...",
     "submit": "मालक आणि पंप तयार करा",
-    "failed": "मालक तयार झाला नाही. कृपया पुन्हा प्रयत्न करा."
+    "failed": "मालक तयार झाला नाही. कृपया पुन्हा प्रयत्न करा.",
+    "backToOwners": "मालकांकडे परत"
   },
   "owners": {
     "title": "जोडलेले मालक",
@@ -57,7 +60,7 @@
     "count_one": "{{count}} मालक",
     "count_other": "{{count}} मालक",
     "empty": "अजून कोणताही मालक नाही.",
-    "emptyHint": "पहिला पंप मालक जोडण्यासाठी फॉर्म भरा.",
+    "emptyHint": "पहिला पंप मालक जोडण्यासाठी \"नवीन मालक जोडा\" निवडा.",
     "statusActive": "सक्रिय",
     "statusInactive": "निष्क्रिय",
     "pumpCount_one": "{{count}} पंप",
@@ -68,7 +71,13 @@
     "noPumps": "अजून कोणताही पंप जोडलेला नाही.",
     "idLabel": "ID:",
     "joined": "{{date}} रोजी जोडले",
-    "updatePumpFailed": "पंप बदलता आला नाही. कृपया पुन्हा प्रयत्न करा."
+    "updatePumpFailed": "पंप बदलता आला नाही. कृपया पुन्हा प्रयत्न करा.",
+    "listLabel": "मालक",
+    "detailLabel": "मालकाचा तपशील",
+    "selectOwner": "पंप आणि सेटअपची प्रगती पाहण्यासाठी एक मालक निवडा.",
+    "notFound": "हा मालक यादीत नाही.",
+    "pumpsTitle": "पंप",
+    "setupDone": "{{total}} पैकी {{done}} पंप सेट"
   },
   "addPump": {
     "title": "{{name}} यांच्यासाठी नवीन पंप जोडा",
