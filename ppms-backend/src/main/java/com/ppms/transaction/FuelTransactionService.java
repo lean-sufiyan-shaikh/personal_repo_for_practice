@@ -7,6 +7,7 @@ import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.shift.ShiftStatus;
 import com.ppms.user.User;
+import com.ppms.user.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,7 @@ public class FuelTransactionService {
     @Transactional
     public FuelTransaction recordTransaction(Long pumpId, RecordFuelTransactionRequest request, User currentUser) {
         Shift shift = shiftRepository.findByIdAndPumpIdForUpdate(request.getShiftId(), pumpId)
+                .filter(found -> canSeeShift(currentUser, found))
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
         if (!nozzleRepository.existsOnPump(request.getNozzleId(), pumpId)) {
             throw new ResourceNotFoundException("Nozzle not found");
@@ -70,15 +72,25 @@ public class FuelTransactionService {
     }
 
     @Transactional(readOnly = true)
-    public List<FuelTransaction> getTransactionsForShift(Long pumpId, Long shiftId) {
-        if (!shiftRepository.existsByIdAndPumpId(shiftId, pumpId)) {
+    public List<FuelTransaction> getTransactionsForShift(Long pumpId, Long shiftId, User currentUser) {
+        boolean visible = shiftRepository.findByIdAndPumpId(shiftId, pumpId)
+                .filter(shift -> canSeeShift(currentUser, shift))
+                .isPresent();
+        if (!visible) {
             throw new ResourceNotFoundException("Shift not found");
         }
         return transactionRepository.findByShiftIdOrderByRecordedAtAsc(shiftId);
     }
 
     @Transactional(readOnly = true)
-    public Page<FuelTransaction> getTransactionsForPump(Long pumpId, Pageable pageable) {
+    public Page<FuelTransaction> getTransactionsForPump(Long pumpId, Pageable pageable, User currentUser) {
+        if (currentUser.getRole() == UserRole.OPERATOR) {
+            return transactionRepository.findForOperatorShifts(pumpId, currentUser.getId(), pageable);
+        }
         return transactionRepository.findByPumpIdOrderByRecordedAtDesc(pumpId, pageable);
+    }
+
+    private boolean canSeeShift(User currentUser, Shift shift) {
+        return currentUser.getRole() != UserRole.OPERATOR || currentUser.getId().equals(shift.getOperatorId());
     }
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Fuel, X, Plus } from 'lucide-react'
+import { Fuel, X, Plus, KeyRound } from 'lucide-react'
 import { superAdminApi } from '../../api/superAdminApi'
 import type { OwnerSummary, PumpSummary, UpdatePumpRequest } from '../../api/superAdminApi'
 import { Pagination } from '../../components/Pagination'
@@ -9,6 +9,7 @@ import { formatIstDate } from '../../utils/date'
 import { parseApiError } from '../../utils/apiError'
 import { AddPumpForm } from './AddPumpForm'
 import { PumpCard } from './PumpCard'
+import { ResetPasswordDialog } from '../../components/ResetPasswordDialog'
 
 const ownersPageSize = 10
 
@@ -29,6 +30,8 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
 
   // Owners list pagination
   const [ownersPage, setOwnersPage] = useState(0)
+
+  const [ownerToReset, setOwnerToReset] = useState<OwnerSummary | null>(null)
 
   const editPumpMutation = useMutation({
     mutationFn: ({ pumpId, data }: { pumpId: number; data: UpdatePumpRequest }) =>
@@ -129,6 +132,13 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
             <button
+              type="button"
+              onClick={() => setOwnerToReset(owner)}
+              className="ui-btn min-h-0 px-3 py-1 text-xs border border-slate-200 text-slate-600 transition-colors hover:border-orange-300 hover:text-orange-700 hover:bg-orange-50"
+            >
+              <span className="inline-flex items-center gap-1"><KeyRound size={12} strokeWidth={2} />Reset Password</span>
+            </button>
+            <button
               onClick={() => toggleAddPump(owner.ownerId)}
               className={`ui-btn min-h-0 px-3 py-1 text-xs border transition-colors ${
                 isPumpFormOpen
@@ -198,6 +208,14 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
           )
         })()}
       </div>
+
+      {ownerToReset && (
+        <ResetPasswordDialog
+          userId={ownerToReset.ownerId}
+          userName={ownerToReset.fullName}
+          onClose={() => setOwnerToReset(null)}
+        />
+      )}
     </div>
   )
 }

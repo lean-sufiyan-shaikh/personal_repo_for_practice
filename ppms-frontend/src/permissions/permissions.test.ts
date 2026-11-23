@@ -1,6 +1,26 @@
 import { describe, expect, it } from 'vitest'
 import type { UserRole } from '../types/auth'
-import { ACTION_PERMISSIONS, PAGE_PERMISSIONS, canAccessPage, canPerformAction, getDefaultPath } from './permissions'
+import { ACTION_PERMISSIONS, PAGE_PERMISSIONS, canAccessPage, canManageStaffMember, canPerformAction, getDefaultPath } from './permissions'
+
+describe('canManageStaffMember', () => {
+  it('lets an owner manage every staff role', () => {
+    for (const role of ['ADMIN', 'MANAGER', 'OPERATOR', 'ACCOUNTANT']) {
+      expect(canManageStaffMember('OWNER', role)).toBe(true)
+    }
+  })
+
+  it('lets an admin manage only the roles below admin', () => {
+    expect(canManageStaffMember('ADMIN', 'OPERATOR')).toBe(true)
+    expect(canManageStaffMember('ADMIN', 'ACCOUNTANT')).toBe(true)
+    expect(canManageStaffMember('ADMIN', 'ADMIN')).toBe(false)
+    expect(canManageStaffMember('ADMIN', 'OWNER')).toBe(false)
+  })
+
+  it('lets nobody below admin manage staff', () => {
+    expect(canManageStaffMember('MANAGER', 'OPERATOR')).toBe(false)
+    expect(canManageStaffMember('OPERATOR', 'OPERATOR')).toBe(false)
+  })
+})
 
 describe('getDefaultPath', () => {
   it.each<[UserRole | undefined, string]>([

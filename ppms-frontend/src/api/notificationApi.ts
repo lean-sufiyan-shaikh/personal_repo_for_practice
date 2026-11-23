@@ -19,11 +19,10 @@ export interface Notification {
   title: string
   message: string
   dedupKey: string
-  readAt: string | null
   createdAt: string
 }
 
-/** The newest unread notifications (at most 100) and the total number unread. */
+/** The newest notifications the signed-in user has not read (at most 100), and their total unread count. */
 export interface NotificationList {
   notifications: Notification[]
   unreadCount: number
@@ -33,7 +32,7 @@ export const notificationApi = {
   getNotifications: (pumpId: number): Promise<NotificationList> =>
     client.get(`/pumps/${pumpId}/notifications`).then(r => r.data),
 
-  /** Marks only the given notifications as read, so unread alerts that were not shown stay unread. */
+  /** Marks only the given notifications as read for the signed-in user; other users still see them. */
   markRead: (pumpId: number, ids: number[]): Promise<void> =>
     client.post(`/pumps/${pumpId}/notifications/mark-read`, { ids }).then(r => r.data),
 }

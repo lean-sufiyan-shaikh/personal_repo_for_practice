@@ -12,6 +12,7 @@ import com.ppms.user.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -27,8 +28,10 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
 
     @Autowired private NotificationService notificationService;
     @Autowired private NotificationRepository notificationRepository;
+    @Autowired private NotificationDedupService notificationDedupService;
     @Autowired private OverdueShiftProcessor overdueShiftProcessor;
     @Autowired private ShiftRepository shiftRepository;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     private PumpSetup setup;
 
@@ -56,26 +59,57 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
                 Map.of("ids", lowStockIds))
                 .andExpect(status().is2xxSuccessful());
 
-        JsonNode afterRead = json(perform(get("/api/pumps/{pumpId}/notifications", setup.pumpId()), setup.operator())
-                .andExpect(status().isOk()));
-        assertThat(afterRead.get("notifications").toString()).doesNotContain("\"id\":" + lowStockIds.get(0) + ",");
+        assertThat(notificationIds(setup.operator())).doesNotContain(lowStockIds.get(0));
     }
 
     @Test
-    void readNotificationsOlderThanTheRetentionWindowAreDeleted() throws Exception {
-        notificationService.generateNotificationsForPump(setup.pumpId());
-        List<Notification> created = notificationRepository.findAll().stream()
-                .filter(notification -> notification.getPumpId().equals(setup.pumpId()))
-                .toList();
-        assertThat(created).isNotEmpty();
-        Notification oldRead = created.get(0);
-        oldRead.setReadAt(TestDates.now().minusDays(120));
-        notificationRepository.save(oldRead);
+    void readingANotificationClearsItOnlyForTheReader() throws Exception {
+        long lowStockId = insertNotification(NotificationType.LOW_STOCK);
+
+        perform(post("/api/pumps/{pumpId}/notifications/mark-read", setup.pumpId()), setup.manager(),
+                Map.of("ids", List.of(lowStockId)))
+                .andExpect(status().is2xxSuccessful());
+
+        assertThat(notificationIds(setup.manager())).doesNotContain(lowStockId);
+        assertThat(notificationIds(setup.owner())).contains(lowStockId);
+        assertThat(notificationIds(setup.operator())).contains(lowStockId);
+    }
+
+    @Test
+    void operatorsAndAccountantsDoNotReceiveShiftIntegrityAlertsAndCannotDismissThem() throws Exception {
+        long zeroSaleId = insertNotification(NotificationType.ZERO_SALE_SHIFT);
+        long autoClosedId = insertNotification(NotificationType.AUTO_CLOSED_SHIFT);
+
+        assertThat(notificationIds(setup.operator())).doesNotContain(zeroSaleId, autoClosedId);
+        assertThat(notificationIds(setup.accountant())).doesNotContain(zeroSaleId, autoClosedId);
+        assertThat(notificationIds(setup.manager())).contains(zeroSaleId, autoClosedId);
+
+        JsonNode marked = json(perform(post("/api/pumps/{pumpId}/notifications/mark-read", setup.pumpId()),
+                setup.operator(), Map.of("ids", List.of(zeroSaleId)))
+                .andExpect(status().is2xxSuccessful()));
+        assertThat(marked.get("marked").asInt()).isZero();
+        assertThat(notificationIds(setup.owner())).contains(zeroSaleId);
+    }
+
+    @Test
+    void notificationsFirstReadBeforeTheRetentionWindowAreDeletedAndUnreadOnesKept() throws Exception {
+        long oldRead = insertNotification(NotificationType.LOW_STOCK);
+        long recentRead = insertNotification(NotificationType.LOW_STOCK);
+        long neverRead = insertNotification(NotificationType.LOW_STOCK);
+        perform(post("/api/pumps/{pumpId}/notifications/mark-read", setup.pumpId()), setup.manager(),
+                Map.of("ids", List.of(oldRead, recentRead)))
+                .andExpect(status().is2xxSuccessful());
+        jdbcTemplate.update("UPDATE notification_reads SET read_at = ? WHERE notification_id = ?",
+                TestDates.now().minusDays(120), oldRead);
+        jdbcTemplate.update("UPDATE notifications SET created_at = ? WHERE id = ?",
+                TestDates.now().minusDays(200), neverRead);
 
         int deleted = notificationService.deleteReadBatchOlderThan(90, 100);
 
         assertThat(deleted).isGreaterThanOrEqualTo(1);
-        assertThat(notificationRepository.findById(oldRead.getId())).isEmpty();
+        assertThat(notificationRepository.findById(oldRead)).isEmpty();
+        assertThat(notificationRepository.findById(recentRead)).isPresent();
+        assertThat(notificationRepository.findById(neverRead)).isPresent();
     }
 
     @Test
@@ -141,7 +175,26 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().is2xxSuccessful());
     }
 
+    private long insertNotification(NotificationType type) {
+        String dedupKey = type + ":test:" + shortId();
+        notificationDedupService.maybeInsert(setup.pumpId(), type, dedupKey, "Test alert", "Test message");
+        return notificationRepository.findAll().stream()
+                .filter(notification -> dedupKey.equals(notification.getDedupKey()))
+                .findFirst()
+                .orElseThrow()
+                .getId();
+    }
+
+    private List<Long> notificationIds(User user) throws Exception {
+        JsonNode response = json(perform(get("/api/pumps/{pumpId}/notifications", setup.pumpId()), user)
+                .andExpect(status().isOk()));
+        List<Long> ids = new ArrayList<>();
+        response.get("notifications").forEach(notification -> ids.add(notification.get("id").asLong()));
+        return ids;
+    }
+
     private long openShift(User operator) throws Exception {
+
         return json(perform(post("/api/pumps/{pumpId}/shifts/open", setup.pumpId()), setup.manager(),
                 Map.of("duId", setup.du().getId(), "nozzleIds", List.of(setup.nozzle().getId()),
                         "operatorId", operator.getId()))

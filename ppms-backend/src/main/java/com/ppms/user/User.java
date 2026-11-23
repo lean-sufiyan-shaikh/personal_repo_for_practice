@@ -89,6 +89,10 @@ public class User implements UserDetails {
     @Column(name = "token_version", nullable = false)
     private int tokenVersion;
 
+    // Set when someone else chose the password; the user must replace it before using the app.
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

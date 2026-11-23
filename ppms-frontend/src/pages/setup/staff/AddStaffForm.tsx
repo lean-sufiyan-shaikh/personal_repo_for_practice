@@ -9,7 +9,7 @@ import { EMPTY_FORM } from './staffForm'
 import type { StaffCreateForm } from './staffForm'
 import { FormField } from '../../../components/FormField'
 
-export function AddStaffForm({ pumpId }: { pumpId: number }) {
+export function AddStaffForm({ pumpId, canAssignAdmin }: { pumpId: number; canAssignAdmin: boolean }) {
   const queryClient = useQueryClient()
   const [form, setForm] = useState(EMPTY_FORM)
   const [error, setError] = useState<string | null>(null)
@@ -82,7 +82,7 @@ export function AddStaffForm({ pumpId }: { pumpId: number }) {
                       placeholder="Min 6 characters"
                       className="text-sm" />
                   </FormField>
-                  <p className="ui-help">Use a temporary password the staff member can reset later.</p>
+                  <p className="ui-help">Use a temporary password. The staff member must choose their own at first sign-in.</p>
                 </div>
                 <div>
                   <span className="ui-label">Gender</span>
@@ -122,7 +122,7 @@ export function AddStaffForm({ pumpId }: { pumpId: number }) {
                   options={[
                     { value: 'OPERATOR',   label: 'Operator' },
                     { value: 'MANAGER',    label: 'Manager' },
-                    { value: 'ADMIN',      label: 'Admin' },
+                    ...(canAssignAdmin ? [{ value: 'ADMIN', label: 'Admin' }] : []),
                     { value: 'ACCOUNTANT', label: 'Accountant' },
                   ]}
                 />

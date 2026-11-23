@@ -18,7 +18,8 @@ public class NotificationController {
 
     /**
      * GET /api/pumps/{pumpId}/notifications
-     * Returns the newest 100 unread notifications for the pump and the total unread count.
+     * Returns the newest 100 notifications the signed-in user has not read, of the types their role
+     * receives, and their total unread count.
      *
      * Notifications are generated in the background by NotificationGenerationJob
      * every 5 minutes — this endpoint only reads pre-computed results from the DB.
@@ -30,12 +31,13 @@ public class NotificationController {
     public NotificationListResponse getNotifications(
             @PathVariable Long pumpId,
             @AuthenticationPrincipal User currentUser) {
-        return notificationService.getUnreadNotifications(pumpId);
+        return notificationService.getUnreadNotifications(pumpId, currentUser);
     }
 
     /**
      * POST /api/pumps/{pumpId}/notifications/mark-read
-     * Marks the notifications the user was shown as read; anything beyond the shown page stays unread.
+     * Marks the notifications the user was shown as read for that user only; anything beyond the shown page
+     * stays unread, and other users of the pump are not affected.
      */
     @PostMapping("/{pumpId}/notifications/mark-read")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'OPERATOR', 'ACCOUNTANT')")
@@ -43,7 +45,7 @@ public class NotificationController {
             @PathVariable Long pumpId,
             @Valid @RequestBody MarkNotificationsReadRequest request,
             @AuthenticationPrincipal User currentUser) {
-        int marked = notificationService.markRead(pumpId, request.getIds());
+        int marked = notificationService.markRead(pumpId, request.getIds(), currentUser);
         return Map.of("success", true, "marked", marked);
     }
 }

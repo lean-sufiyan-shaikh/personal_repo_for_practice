@@ -11,6 +11,7 @@ public enum AuditAction {
     USER_UPDATED,
     USER_DEACTIVATED,
     USER_STATUS_CHANGED,
+    PASSWORD_RESET,
 
     // ── Authentication ────────────────────────────────────────────────────────
     LOGIN,

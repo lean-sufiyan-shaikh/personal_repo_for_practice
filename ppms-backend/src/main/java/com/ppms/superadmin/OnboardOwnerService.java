@@ -55,6 +55,7 @@ public class OnboardOwnerService {
                 .status(UserStatus.ACTIVE)
                 .assignedPumpId(null)   // OWNER is not assigned to a pump; they own pumps
                 .dateOfJoining(businessClock.today())
+                .mustChangePassword(true)
                 .build();
 
         owner = userRepository.save(owner);

@@ -6,10 +6,12 @@ import { queryClient } from './queryClient'
 import ProtectedRoute from './components/ProtectedRoute'
 import { SkeletonRows } from './components/Skeleton'
 import { pageLoaders } from './routes/pageLoaders'
+import { CHANGE_PASSWORD_PATH } from './permissions/permissions'
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'))
+const ChangePasswordRequiredPage = lazy(() => import('./pages/auth/ChangePasswordRequiredPage'))
 const DashboardPage = lazy(pageLoaders.dashboard)
 const OverviewPage = lazy(pageLoaders.overview)
 const ShiftsPage = lazy(pageLoaders.shifts)
@@ -65,6 +67,7 @@ export default function App() {
           <Route path="/login" element={withSuspense(<LoginPage />)} />
           <Route path="/forgot-password" element={withSuspense(<ForgotPasswordPage />)} />
           <Route path="/reset-password" element={withSuspense(<ResetPasswordPage />)} />
+          <Route path={CHANGE_PASSWORD_PATH} element={withSuspense(<ChangePasswordRequiredPage />)} />
           <Route
             path="/dashboard"
             element={withSuspense(

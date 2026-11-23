@@ -48,9 +48,6 @@ public class Notification {
     @Column(name = "dedup_key", nullable = false)
     private String dedupKey;
 
-    @Column(name = "read_at")
-    private OffsetDateTime readAt;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

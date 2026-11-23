@@ -68,6 +68,16 @@ public class UserController {
         return ResponseEntity.ok(userService.updateUserStatus(userId, status, currentUser));
     }
 
+    @PostMapping("/{userId}/reset-password")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'OWNER', 'ADMIN')")
+    public ResponseEntity<Void> resetPassword(
+            @PathVariable Long userId,
+            @Valid @RequestBody ResetPasswordRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        userService.resetPassword(userId, request, currentUser);
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/{userId}/pay-rates")
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<StaffResponse> updatePayRates(

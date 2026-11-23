@@ -82,6 +82,7 @@ public class PasswordResetService {
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setTokenVersion(user.getTokenVersion() + 1);
+        user.setMustChangePassword(false);
         userRepository.save(user);
 
         resetToken.setUsedAt(businessClock.now());

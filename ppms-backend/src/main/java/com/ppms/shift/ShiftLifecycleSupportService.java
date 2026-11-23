@@ -22,6 +22,7 @@ import com.ppms.user.User;
 import com.ppms.user.UserGender;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
+import com.ppms.user.UserStatus;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -64,9 +65,13 @@ public class ShiftLifecycleSupportService {
     private final InvoicedSaleGuard invoicedSaleGuard;
 
     public User findOperatorForPump(Long operatorId, Long pumpId) {
-        return userRepository.findById(operatorId)
+        User operator = userRepository.findById(operatorId)
                 .filter(user -> user.getRole() == UserRole.OPERATOR && pumpId.equals(user.getAssignedPumpId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Operator not found"));
+        if (operator.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(operator.getFullName() + " is inactive and cannot be assigned a shift.");
+        }
+        return operator;
     }
 
     /**

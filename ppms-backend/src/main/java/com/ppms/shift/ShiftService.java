@@ -450,16 +450,37 @@ public class ShiftService {
         return shiftReadModelService.toResponseWithLookups(shift);
     }
 
+    /** An operator sees only their own shifts; every other role sees all shifts of the pump. */
     @Transactional(readOnly = true)
-    public List<ShiftResponse> getActiveShifts(Long pumpId) {
-        return shiftReadModelService.toResponsesWithLookups(shiftRepository.findActiveShiftsByPump(pumpId));
+    public List<ShiftResponse> getActiveShifts(Long pumpId, User currentUser) {
+        List<Shift> shifts = shiftRepository.findActiveShiftsByPump(pumpId).stream()
+                .filter(shift -> canSeeShift(currentUser, shift))
+                .toList();
+        return shiftReadModelService.toResponsesWithLookups(shifts);
     }
 
     @Transactional(readOnly = true)
-    public Page<ShiftResponse> getShiftHistory(Long pumpId, ShiftHistoryFilter filter, Pageable pageable) {
-        Page<Shift> shifts = findHistory(pumpId, filter, pageable);
+    public Page<ShiftResponse> getShiftHistory(Long pumpId, ShiftHistoryFilter filter, Pageable pageable, User currentUser) {
+        Page<Shift> shifts = currentUser.getRole() == UserRole.OPERATOR
+                ? findOperatorHistory(pumpId, currentUser.getId(), filter, pageable)
+                : findHistory(pumpId, filter, pageable);
         return new PageImpl<>(shiftReadModelService.toResponsesWithLookups(shifts.getContent()),
                 shifts.getPageable(), shifts.getTotalElements());
+    }
+
+    private Page<Shift> findOperatorHistory(Long pumpId, Long operatorId, ShiftHistoryFilter filter, Pageable pageable) {
+        if (!filter.discrepanciesOnly() && filter.from() == null && filter.to() == null) {
+            return shiftRepository.findByPumpIdAndOperatorIdOrderByActualStartTimeDesc(pumpId, operatorId, pageable);
+        }
+        LocalDate from = DateRangeBounds.startOrEarliest(filter.from());
+        LocalDate to = DateRangeBounds.endOrLatest(filter.to());
+        DateRangeBounds.requireStartNotAfterEnd(from, to);
+        if (filter.discrepanciesOnly()) {
+            return shiftRepository.findByPumpIdAndOperatorIdAndShiftDateBetweenAndDiscrepancyTypeInOrderByActualStartTimeDesc(
+                    pumpId, operatorId, from, to, discrepancyTypesOf(filter), pageable);
+        }
+        return shiftRepository.findByPumpIdAndOperatorIdAndShiftDateBetweenOrderByActualStartTimeDesc(
+                pumpId, operatorId, from, to, pageable);
     }
 
     private Page<Shift> findHistory(Long pumpId, ShiftHistoryFilter filter, Pageable pageable) {
@@ -470,19 +491,27 @@ public class ShiftService {
         LocalDate to = DateRangeBounds.endOrLatest(filter.to());
         DateRangeBounds.requireStartNotAfterEnd(from, to);
         if (filter.discrepanciesOnly()) {
-            List<DiscrepancyType> types = filter.discrepancyType() != null
-                    ? List.of(filter.discrepancyType())
-                    : List.of(DiscrepancyType.values());
             return shiftRepository.findByPumpIdAndShiftDateBetweenAndDiscrepancyTypeInOrderByActualStartTimeDesc(
-                    pumpId, from, to, types, pageable);
+                    pumpId, from, to, discrepancyTypesOf(filter), pageable);
         }
         return shiftRepository.findByPumpIdAndShiftDateBetweenOrderByActualStartTimeDesc(pumpId, from, to, pageable);
     }
 
+    private List<DiscrepancyType> discrepancyTypesOf(ShiftHistoryFilter filter) {
+        return filter.discrepancyType() != null
+                ? List.of(filter.discrepancyType())
+                : List.of(DiscrepancyType.values());
+    }
+
     @Transactional(readOnly = true)
-    public ShiftResponse getShiftById(Long pumpId, Long shiftId) {
+    public ShiftResponse getShiftById(Long pumpId, Long shiftId, User currentUser) {
         Shift shift = shiftRepository.findByIdAndPumpId(shiftId, pumpId)
+                .filter(found -> canSeeShift(currentUser, found))
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
         return shiftReadModelService.toResponseWithLookups(shift);
+    }
+
+    private boolean canSeeShift(User currentUser, Shift shift) {
+        return currentUser.getRole() != UserRole.OPERATOR || currentUser.getId().equals(shift.getOperatorId());
     }
 }

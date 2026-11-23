@@ -1,35 +1,68 @@
 package com.ppms.notification;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    List<Notification> findTop100ByPumpIdAndReadAtIsNullOrderByCreatedAtDesc(Long pumpId);
+    /** Newest notifications of the given types that this user has not read yet. */
+    @Query("""
+            SELECT n FROM Notification n
+            WHERE n.pumpId = :pumpId
+              AND n.type IN :types
+              AND NOT EXISTS (SELECT 1 FROM NotificationRead r WHERE r.notificationId = n.id AND r.userId = :userId)
+            ORDER BY n.createdAt DESC
+            """)
+    List<Notification> findUnreadForUser(@Param("pumpId") Long pumpId,
+                                         @Param("userId") Long userId,
+                                         @Param("types") Collection<NotificationType> types,
+                                         Pageable pageable);
+
+    @Query("""
+            SELECT COUNT(n) FROM Notification n
+            WHERE n.pumpId = :pumpId
+              AND n.type IN :types
+              AND NOT EXISTS (SELECT 1 FROM NotificationRead r WHERE r.notificationId = n.id AND r.userId = :userId)
+            """)
+    long countUnreadForUser(@Param("pumpId") Long pumpId,
+                            @Param("userId") Long userId,
+                            @Param("types") Collection<NotificationType> types);
 
     boolean existsByPumpIdAndDedupKey(Long pumpId, String dedupKey);
 
-    long countByPumpIdAndReadAtIsNull(Long pumpId);
-
+    /** Records a read for this user only, and only for notifications of this pump and of types the user may see. */
     @Modifying
-    @Query("""
-            UPDATE Notification n SET n.readAt = CURRENT_TIMESTAMP
-            WHERE n.pumpId = :pumpId AND n.id IN :ids AND n.readAt IS NULL
-            """)
-    int markReadForPump(@Param("pumpId") Long pumpId, @Param("ids") List<Long> ids);
+    @Query(value = """
+            INSERT INTO notification_reads (notification_id, user_id, read_at)
+            SELECT n.id, :userId, NOW()
+            FROM notifications n
+            WHERE n.pump_id = :pumpId
+              AND n.id IN (:ids)
+              AND CAST(n.type AS TEXT) IN (:types)
+            ON CONFLICT (notification_id, user_id) DO NOTHING
+            """, nativeQuery = true)
+    int markReadForUser(@Param("pumpId") Long pumpId,
+                        @Param("userId") Long userId,
+                        @Param("ids") List<Long> ids,
+                        @Param("types") Collection<String> types);
 
-    /** Deletes up to {@code batchSize} notifications read before {@code readBefore}; uses idx_notifications_read_at. */
+    /**
+     * Deletes up to {@code batchSize} notifications that someone first read before {@code readBefore};
+     * uses idx_notification_reads_read_at. Their read rows go with them (ON DELETE CASCADE).
+     */
     @Modifying
     @Query(value = """
             DELETE FROM notifications
             WHERE id IN (
-                SELECT id FROM notifications
-                WHERE read_at IS NOT NULL AND read_at < :readBefore
+                SELECT DISTINCT r.notification_id FROM notification_reads r
+                WHERE r.read_at < :readBefore
                 LIMIT :batchSize
             )
             """, nativeQuery = true)

@@ -12,9 +12,11 @@ import { FormField } from './FormField'
 interface ChangePasswordModalProps {
   onClose: () => void
   successMessage?: string
+  /** The password was set by someone else: the dialog cannot be dismissed by a stray click, and leaving it signs out. */
+  required?: boolean
 }
 
-export function ChangePasswordModal({ onClose, successMessage }: ChangePasswordModalProps) {
+export function ChangePasswordModal({ onClose, successMessage, required = false }: ChangePasswordModalProps) {
   const navigate = useNavigate()
   const { clearAuth } = useAuthStore()
   const [currentPassword, setCurrentPassword] = useState('')
@@ -26,7 +28,6 @@ export function ChangePasswordModal({ onClose, successMessage }: ChangePasswordM
     mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
       authApi.changePassword(currentPassword, newPassword),
     onSuccess: (data) => {
-      onClose()
       clearAuth()
       navigate('/login', { state: { message: successMessage ?? data.message } })
     },
@@ -57,15 +58,19 @@ export function ChangePasswordModal({ onClose, successMessage }: ChangePasswordM
   }
 
   return (
-    <ModalPortal onClose={onClose} closeOnBackdropClick>
+    <ModalPortal onClose={onClose} closeOnBackdropClick={!required}>
     <div className="ui-modal-backdrop">
       <div
         className="ui-modal-panel"
       >
         <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
           <div className="ui-modal-heading">
-            <h2 className="ui-modal-title">Reset Password</h2>
-            <p className="ui-modal-subtitle">Update your password, then sign in again.</p>
+            <h2 className="ui-modal-title">{required ? 'Choose a New Password' : 'Reset Password'}</h2>
+            <p className="ui-modal-subtitle">
+              {required
+                ? 'Your password was set by someone else. Enter it as the current password, choose your own, then sign in again.'
+                : 'Update your password, then sign in again.'}
+            </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
         </div>
@@ -119,7 +124,7 @@ export function ChangePasswordModal({ onClose, successMessage }: ChangePasswordM
             disabled={changePasswordMutation.isPending}
             className="ui-btn ui-btn-secondary"
           >
-            Cancel
+            {required ? 'Sign Out' : 'Cancel'}
           </button>
           <button
             onClick={handleChangePassword}

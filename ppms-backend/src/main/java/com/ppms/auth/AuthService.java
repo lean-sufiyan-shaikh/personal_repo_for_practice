@@ -76,6 +76,7 @@ public class AuthService {
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setTokenVersion(user.getTokenVersion() + 1);
+        user.setMustChangePassword(false);
         userRepository.save(user);
         resetTokenRepository.markAllUnusedAsUsed(user.getId(), businessClock.now());
     }

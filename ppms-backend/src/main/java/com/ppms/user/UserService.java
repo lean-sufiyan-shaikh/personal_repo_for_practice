@@ -2,6 +2,7 @@ package com.ppms.user;
 
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
+import com.ppms.auth.LoginRateLimiterService;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
@@ -27,6 +28,7 @@ public class UserService {
     private final PumpLocationRepository pumpLocationRepository;
     private final AuditService auditService;
     private final BusinessClock businessClock;
+    private final LoginRateLimiterService loginRateLimiterService;
 
     private static final Set<UserRole> STAFF_ROLES =
             Set.of(UserRole.OPERATOR, UserRole.MANAGER, UserRole.ADMIN, UserRole.ACCOUNTANT);
@@ -89,6 +91,7 @@ public class UserService {
                 .address(request.getAddress())
                 .employeeId(employeeId)
                 .dateOfJoining(request.getDateOfJoining() != null ? request.getDateOfJoining() : businessClock.today())
+                .mustChangePassword(true)
                 .build();
 
         user = userRepository.save(user);
@@ -170,7 +173,31 @@ public class UserService {
         return StaffResponse.from(userRepository.save(user));
     }
 
-    /** Deactivation is refused while the user has unresolved shift discrepancies (Business Rule 30). */
+    /**
+     * The password is temporary: the user must replace it at next sign-in, and every existing session ends
+     * because the token version moves on. A SUPER_ADMIN resets owners; an OWNER or ADMIN resets staff they manage.
+     */
+    @Transactional
+    public void resetPassword(Long userId, ResetPasswordRequest request, User currentUser) {
+        User user = findUserManagedBy(currentUser, userId);
+        assertCanResetPassword(currentUser, user);
+
+        user.setPasswordHash(passwordEncoder.encode(request.getTemporaryPassword()));
+        user.setTokenVersion(user.getTokenVersion() + 1);
+        user.setMustChangePassword(true);
+        userRepository.save(user);
+        loginRateLimiterService.clearFailedLogins(user.getPhoneNumber());
+
+        auditService.log(user.getAssignedPumpId(), AuditAction.PASSWORD_RESET,
+                "User", user.getId().toString(),
+                "Password reset for " + user.getFullName() + " (" + user.getRole() + "); must change it at next sign-in",
+                currentUser);
+    }
+
+    /**
+     * Deactivation is refused while the user has an open shift (Business Rule 45) or a discrepancy that is
+     * unresolved or waiting for approval (Business Rule 30).
+     */
     @Transactional
     public StaffResponse updateUserStatus(Long userId, UserStatus status, User currentUser) {
         User user = findUserManagedBy(currentUser, userId);
@@ -180,10 +207,7 @@ public class UserService {
         }
 
         if (status == UserStatus.INACTIVE) {
-            if (shiftRepository.hasUnresolvedDiscrepancy(userId)) {
-                throw new BusinessException(
-                        user.getFullName() + " has unresolved shift discrepancies. Resolve all pending discrepancies before deactivating (Business Rule 30).");
-            }
+            assertCanDeactivate(user);
         }
 
         if (status == UserStatus.INACTIVE && user.getStatus() != UserStatus.INACTIVE) {
@@ -199,6 +223,21 @@ public class UserService {
                 currentUser);
 
         return StaffResponse.from(user);
+    }
+
+    private void assertCanDeactivate(User user) {
+        if (shiftRepository.hasOpenShift(user.getId())) {
+            throw new BusinessException(
+                    user.getFullName() + " has an open shift. Close the shift before deactivating (Business Rule 45).");
+        }
+        if (shiftRepository.hasUnresolvedDiscrepancy(user.getId())) {
+            throw new BusinessException(
+                    user.getFullName() + " has unresolved shift discrepancies. Resolve all pending discrepancies before deactivating (Business Rule 30).");
+        }
+        if (shiftRepository.hasDiscrepancyPendingApproval(user.getId())) {
+            throw new BusinessException(
+                    user.getFullName() + " has a shift discrepancy waiting for approval. Approve or reject it before deactivating (Business Rule 30).");
+        }
     }
 
     /** Operators are paid hourly (night and standard rate); other staff a flat daily rate. */
@@ -254,7 +293,15 @@ public class UserService {
      * This prevents privilege escalation: an ADMIN cannot create OWNER or SUPER_ADMIN accounts.
      */
     private void assertCanAssignRole(UserRole callerRole, UserRole targetRole) {
-        boolean allowed = switch (callerRole) {
+        if (!canAssignRole(callerRole, targetRole)) {
+            throw new BusinessException(
+                    "You do not have permission to create a user with role " + targetRole + ". " +
+                    "A " + callerRole + " can only create users with a lower role.");
+        }
+    }
+
+    private boolean canAssignRole(UserRole callerRole, UserRole targetRole) {
+        return switch (callerRole) {
             case SUPER_ADMIN -> true;
             case OWNER -> targetRole != UserRole.SUPER_ADMIN && targetRole != UserRole.OWNER;
             case ADMIN -> targetRole == UserRole.MANAGER
@@ -262,10 +309,17 @@ public class UserService {
                     || targetRole == UserRole.ACCOUNTANT;
             default -> false;
         };
+    }
+
+    private void assertCanResetPassword(User currentUser, User target) {
+        if (target.getId().equals(currentUser.getId())) {
+            throw new BusinessException("Use Change Password to change your own password.");
+        }
+        boolean allowed = currentUser.getRole() == UserRole.SUPER_ADMIN
+                ? target.getRole() == UserRole.OWNER
+                : canAssignRole(currentUser.getRole(), target.getRole());
         if (!allowed) {
-            throw new BusinessException(
-                    "You do not have permission to create a user with role " + targetRole + ". " +
-                    "A " + callerRole + " can only create users with a lower role.");
+            throw new AccessDeniedException("You cannot reset the password of this account.");
         }
     }
 

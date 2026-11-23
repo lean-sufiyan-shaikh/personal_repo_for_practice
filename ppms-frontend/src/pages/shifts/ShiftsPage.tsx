@@ -29,6 +29,9 @@ export default function ShiftsPage() {
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const canOpenShift  = canPerformAction('shift:open', user?.role)
   const canCloseShift = canPerformAction('shift:close', user?.role)
+  const canViewDiscrepancies = canPerformAction('shift:view-discrepancies', user?.role)
+  const seesOnlyOwnShifts = user?.role === 'OPERATOR'
+  const historyTabs = canViewDiscrepancies ? (['day', 'all', 'discrepancies'] as const) : (['day', 'all'] as const)
 
   const { selectedPumpId } = usePumpStore()
   const [showOpenModal,     setShowOpenModal]     = useState(false)
@@ -120,7 +123,7 @@ export default function ShiftsPage() {
           <div className="ui-card overflow-hidden p-0">
             <div className="ui-toolbar">
               <div className="flex items-center gap-2.5">
-                <h2 className="ui-toolbar-title">Active Shifts</h2>
+                <h2 className="ui-toolbar-title">{seesOnlyOwnShifts ? 'My Active Shifts' : 'Active Shifts'}</h2>
                 <RefreshIndicator isFetching={activeFetching} dataUpdatedAt={activeUpdatedAt ?? 0} />
               </div>
               {selectedPump && (
@@ -191,7 +194,7 @@ export default function ShiftsPage() {
               onClick={() => setHistoryOpen((v) => !v)}
               className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors"
             >
-              <span className="text-base font-semibold text-slate-800">Shift History</span>
+              <span className="text-base font-semibold text-slate-800">{seesOnlyOwnShifts ? 'My Shift History' : 'Shift History'}</span>
               <ChevronDown size={14} strokeWidth={2} className={`ui-accordion-arrow ${historyOpen ? 'ui-accordion-arrow--open' : ''}`} />
             </button>
 
@@ -199,7 +202,7 @@ export default function ShiftsPage() {
               <div className="ui-accordion-content">
                 {/* Tab row */}
                 <div className="ui-tabbar">
-                  {(['day', 'all', 'discrepancies'] as const).map((tab) => (
+                  {historyTabs.map((tab) => (
                     <button
                       key={tab}
                       onClick={() => setHistoryTab(tab)}
@@ -213,10 +216,10 @@ export default function ShiftsPage() {
                 <div key={historyTab} className="ui-tab-content">
                   {!pumpId ? null : historyTab === 'day' ? (
                     <DayViewHistory pumpId={pumpId} />
-                  ) : historyTab === 'all' ? (
-                    <AllShiftsHistory pumpId={pumpId} />
-                  ) : (
+                  ) : historyTab === 'discrepancies' && canViewDiscrepancies ? (
                     <DiscrepanciesHistory pumpId={pumpId} />
+                  ) : (
+                    <AllShiftsHistory pumpId={pumpId} />
                   )}
                 </div>
               </div>

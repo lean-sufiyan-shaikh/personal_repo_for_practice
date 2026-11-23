@@ -61,6 +61,10 @@ export const userApi = {
   updateStaffDetails: (userId: number, req: UpdateStaffDetailsRequest) =>
     client.patch<StaffMember>(`/users/${userId}/details`, req).then((r) => r.data),
 
+  // Owner / Admin reset staff they manage; Super Admin resets owners. The user must change it at next sign-in.
+  resetPassword: (userId: number, temporaryPassword: string) =>
+    client.post<void>(`/users/${userId}/reset-password`, { temporaryPassword }).then(() => undefined),
+
   // Set pay rates for a staff member (Owner only).
   // Operators: pass shift1HourlyRate + standardHourlyRate.
   // Managers/Admins/Accountants: pass dailyRate.

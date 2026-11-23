@@ -60,6 +60,8 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'shift:add-credit-entry':        ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
   'shift:void-credit-entry':       ['OWNER', 'ADMIN', 'MANAGER'],
   'shift:resolve-discrepancy':     ['OWNER', 'ADMIN', 'MANAGER'],
+  // Operators only see their own shifts, so the pump-wide discrepancy view is not theirs.
+  'shift:view-discrepancies':      ['OWNER', 'ADMIN', 'MANAGER'],
 
   // Shift Planning
   'shiftPlan:write':               ['OWNER', 'ADMIN'],
@@ -109,6 +111,13 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   // Setup
   'setup:manage':                  ['OWNER', 'ADMIN'],
 
+  // Staff — which staff member a caller may act on is decided by canManageStaffMember
+  'staff:create-admin':            ['OWNER'],
+  'staff:edit-details':            ['OWNER', 'ADMIN'],
+  'staff:reset-password':          ['OWNER', 'ADMIN'],
+  'staff:manage-pay-rates':        ['OWNER'],
+  'staff:change-status':           ['OWNER'],
+
   // Balance Sheets & Reports
   'balanceSheet:delete':           ['OWNER', 'ADMIN'],
 
@@ -139,6 +148,20 @@ export function canPerformAction(action: string, role: UserRole | undefined): bo
   if (role === 'SUPER_ADMIN') return true
   return (ACTION_PERMISSIONS[action] ?? []).includes(role)
 }
+
+/**
+ * Mirrors the backend role hierarchy: an Owner manages every staff role, an Admin only the roles below Admin.
+ * Nobody manages their own account or one at or above their own level through the staff screens.
+ */
+export function canManageStaffMember(callerRole: UserRole | undefined, targetRole: string): boolean {
+  if (callerRole === 'SUPER_ADMIN') return true
+  if (callerRole === 'OWNER') return targetRole !== 'OWNER' && targetRole !== 'SUPER_ADMIN'
+  if (callerRole === 'ADMIN') return targetRole === 'MANAGER' || targetRole === 'OPERATOR' || targetRole === 'ACCOUNTANT'
+  return false
+}
+
+/** Where a user whose password was set by someone else must go before using the app. */
+export const CHANGE_PASSWORD_PATH = '/change-password'
 
 /**
  * Returns the default redirect path for a role — the first page they are allowed to access.

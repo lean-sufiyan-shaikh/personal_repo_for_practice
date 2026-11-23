@@ -86,4 +86,23 @@ describe('ShiftsPage', () => {
     await vi.waitFor(() => expect(within(dialog).queryByRole('button', { name: 'Void' })).not.toBeInTheDocument())
     expect(within(dialog).getByText(/VOIDED/)).toBeInTheDocument()
   })
+
+  it('shows an operator their own shifts without the pump-wide Discrepancies tab', async () => {
+    signIn('OPERATOR')
+    renderWithProviders(<ShiftsPage />)
+
+    expect(await screen.findByText('My Active Shifts')).toBeInTheDocument()
+    expect(screen.getByText('My Shift History')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'By Day' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'All Shifts' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Discrepancies' })).not.toBeInTheDocument()
+  })
+
+  it('shows a manager every shift view including Discrepancies', async () => {
+    signIn('MANAGER')
+    renderWithProviders(<ShiftsPage />)
+
+    expect(await screen.findByText('Active Shifts')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Discrepancies' })).toBeInTheDocument()
+  })
 })

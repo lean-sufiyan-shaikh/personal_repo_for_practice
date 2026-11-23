@@ -48,6 +48,7 @@ export const useAuthStore = create<AuthState>()(
               fullName: state.user.fullName,
               role: state.user.role,
               assignedPumpId: state.user.assignedPumpId,
+              mustChangePassword: state.user.mustChangePassword,
             }
           : null,
       }),

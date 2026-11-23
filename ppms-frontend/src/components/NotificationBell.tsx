@@ -42,8 +42,6 @@ export default function NotificationBell({ pumpId }: Props) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const unread = notifications.filter(n => !n.readAt)
-
   useEscapeKey(() => {
     setOpen(false)
     bellRef.current?.focus()
@@ -54,7 +52,7 @@ export default function NotificationBell({ pumpId }: Props) {
   }
 
   const handleMarkShownRead = () => {
-    if (unread.length > 0) markReadMutation.mutate(unread.map(n => n.id))
+    if (notifications.length > 0) markReadMutation.mutate(notifications.map(n => n.id))
   }
 
   function TypeIcon({ type }: { type: string }) {
@@ -102,13 +100,13 @@ export default function NotificationBell({ pumpId }: Props) {
                 {unreadCount} unread{unreadCount > notifications.length ? ` · showing newest ${notifications.length}` : ''}
               </p>
             </div>
-            {unread.length > 0 && (
+            {notifications.length > 0 && (
               <button
                 onClick={handleMarkShownRead}
                 disabled={markReadMutation.isPending}
                 className="ui-btn ui-btn-ghost min-h-8 px-2.5 py-1 text-xs"
               >
-                {unreadCount > unread.length ? 'Mark shown read' : 'Mark all read'}
+                {unreadCount > notifications.length ? 'Mark shown read' : 'Mark all read'}
               </button>
             )}
           </div>
@@ -123,17 +121,15 @@ export default function NotificationBell({ pumpId }: Props) {
               {notifications.map(n => (
                 <div
                   key={n.id}
-                  className={`ui-notification-panel__item px-4 py-3.5 ${n.readAt ? 'opacity-70' : 'bg-blue-50/50'}`}
+                  className="ui-notification-panel__item px-4 py-3.5 bg-blue-50/50"
                 >
                   <div className="flex items-start gap-2">
                     <TypeIcon type={n.type} />
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-800">{!n.readAt && <span className="sr-only">Unread: </span>}{n.title}</p>
+                      <p className="text-sm font-semibold text-slate-800"><span className="sr-only">Unread: </span>{n.title}</p>
                       <p className="mt-1 text-sm leading-relaxed text-slate-500">{withReadableDates(n.message)}</p>
                     </div>
-                    {!n.readAt && (
-                      <span aria-hidden="true" className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1" />
-                    )}
+                    <span aria-hidden="true" className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1" />
                   </div>
                 </div>
               ))}

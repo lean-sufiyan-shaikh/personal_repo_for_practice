@@ -1,6 +1,6 @@
 import { isAxiosError } from 'axios'
 
-export type ApiErrorBody = { message?: unknown }
+export type ApiErrorBody = { message?: unknown; code?: unknown }
 
 /**
  * Extracts a safe, user-facing error message from an Axios error response.

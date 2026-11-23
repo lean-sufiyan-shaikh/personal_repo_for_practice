@@ -1,5 +1,5 @@
-import { useRef } from 'react'
-import { CircleOff, Settings, CalendarDays, RotateCcw, Pencil } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { CircleOff, Settings, CalendarDays, RotateCcw, Pencil, KeyRound } from 'lucide-react'
 import type { StaffMember } from '../../../api/userApi'
 import type { ShiftDefinition } from '../../../api/shiftDefinitionApi'
 import { RowActionMenu } from '../../../components/RowActionMenu'
@@ -12,12 +12,14 @@ import { PreferencesPanel } from './PreferencesPanel'
 import { PayRatesPanel } from './PayRatesPanel'
 import { LeavePanel } from './LeavePanel'
 import { codeLabel } from '../../../constants/labels'
+import { ResetPasswordDialog } from '../../../components/ResetPasswordDialog'
+import { canManageStaffMember, canPerformAction } from '../../../permissions/permissions'
+import type { UserRole } from '../../../types/auth'
 
 interface Props {
   pumpId: number
   member: StaffMember
-  isOwner: boolean
-  isOwnerOrAdmin: boolean
+  viewerRole: UserRole | undefined
   activeShiftDefs: ShiftDefinition[]
   openPanel: StaffPanel | null
   onOpenPanel: (panel: StaffPanel) => void
@@ -29,7 +31,7 @@ interface Props {
 }
 
 export function StaffRow({
-  pumpId, member, isOwner, isOwnerOrAdmin, activeShiftDefs, openPanel, onOpenPanel, onClosePanel,
+  pumpId, member, viewerRole, activeShiftDefs, openPanel, onOpenPanel, onClosePanel,
   menuOpen, onMenuChange, statusPending, onToggleStatus,
 }: Props) {
   const isInactive = member.status === 'INACTIVE'
@@ -40,23 +42,31 @@ export function StaffRow({
   const panelRef = useRef<HTMLDivElement>(null)
   useRowPanelFocus(openPanel, panelRef, menuButtonRef)
   const payRatesMissing = member.role === 'OPERATOR' ? member.shift1HourlyRate == null : member.dailyRate == null
+  const [resetDialogOpen, setResetDialogOpen] = useState(false)
+
+  const managesMember = canManageStaffMember(viewerRole, member.role)
+  const canEditDetails = managesMember && canPerformAction('staff:edit-details', viewerRole)
+  const canResetPassword = managesMember && canPerformAction('staff:reset-password', viewerRole)
+  const canSetPreferences = isOperator && canPerformAction('shiftPlan:manage-preferences', viewerRole)
+  const canManageLeave = canPerformAction('shiftPlan:manage-leaves', viewerRole)
+  const canSetPayRates = managesMember && canPerformAction('staff:manage-pay-rates', viewerRole)
+  const canChangeStatus = managesMember && canPerformAction('staff:change-status', viewerRole)
 
   const menuItems: RowActionMenuItem[] = [
-    { key: 'edit', label: 'Edit Details', description: 'Update name, phone number, or role', icon: <Pencil size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-violet-50 hover:text-violet-700', onSelect: () => onOpenPanel('edit') },
-    ...(isOwner && isOperator ? [{ key: 'preferences', label: 'Shift Preferences', description: 'Set preferred shift and weekly day off', icon: <Settings size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-blue-50 hover:text-blue-700', onSelect: () => onOpenPanel('preferences') }] : []),
-    ...(isOwner ? [
-      { key: 'leave', label: 'Manage Leave', description: 'Add or remove leave dates for this staff member', icon: <CalendarDays size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-amber-50 hover:text-amber-700', onSelect: () => onOpenPanel('leave') },
-      { key: 'rates', label: payRatesMissing ? 'Pay Rates (not set)' : 'Pay Rates', description: 'Configure hourly or daily pay rates', icon: '₹', className: 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700', onSelect: () => onOpenPanel('rates') },
-      {
-        key: 'status',
-        label: isInactive ? 'Activate Staff' : 'Deactivate Staff',
-        description: isInactive ? 'Allow this staff member to work again' : 'Temporarily remove this staff member from active use',
-        icon: isInactive ? <RotateCcw size={14} strokeWidth={2} /> : <CircleOff size={14} strokeWidth={2} />,
-        className: isInactive ? 'text-emerald-700 hover:bg-emerald-50' : 'text-red-700 hover:bg-red-50',
-        onSelect: onToggleStatus,
-        disabled: statusPending,
-      },
-    ] : []),
+    ...(canEditDetails ? [{ key: 'edit', label: 'Edit Details', description: 'Update name, phone number, or role', icon: <Pencil size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-violet-50 hover:text-violet-700', onSelect: () => onOpenPanel('edit') }] : []),
+    ...(canResetPassword ? [{ key: 'reset-password', label: 'Reset Password', description: 'Set a temporary password they must change at next sign-in', icon: <KeyRound size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-orange-50 hover:text-orange-700', onSelect: () => { onMenuChange(null); setResetDialogOpen(true) } }] : []),
+    ...(canSetPreferences ? [{ key: 'preferences', label: 'Shift Preferences', description: 'Set preferred shift and weekly day off', icon: <Settings size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-blue-50 hover:text-blue-700', onSelect: () => onOpenPanel('preferences') }] : []),
+    ...(canManageLeave ? [{ key: 'leave', label: 'Manage Leave', description: 'Add or remove leave dates for this staff member', icon: <CalendarDays size={14} strokeWidth={2} />, className: 'text-slate-700 hover:bg-amber-50 hover:text-amber-700', onSelect: () => onOpenPanel('leave') }] : []),
+    ...(canSetPayRates ? [{ key: 'rates', label: payRatesMissing ? 'Pay Rates (not set)' : 'Pay Rates', description: 'Configure hourly or daily pay rates', icon: '₹', className: 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700', onSelect: () => onOpenPanel('rates') }] : []),
+    ...(canChangeStatus ? [{
+      key: 'status',
+      label: isInactive ? 'Activate Staff' : 'Deactivate Staff',
+      description: isInactive ? 'Allow this staff member to work again' : 'Temporarily remove this staff member from active use',
+      icon: isInactive ? <RotateCcw size={14} strokeWidth={2} /> : <CircleOff size={14} strokeWidth={2} />,
+      className: isInactive ? 'text-emerald-700 hover:bg-emerald-50' : 'text-red-700 hover:bg-red-50',
+      onSelect: onToggleStatus,
+      disabled: statusPending,
+    }] : []),
   ]
 
   return (
@@ -99,7 +109,7 @@ export function StaffRow({
             </div>
           </div>
         </div>
-        {isOwnerOrAdmin && (
+        {menuItems.length > 0 && (
           <div className="md:ml-auto">
             <RowActionMenu
               label="Staff actions"
@@ -117,7 +127,8 @@ export function StaffRow({
       <div ref={panelRef}>
       {/* Edit details panel */}
       {openPanel === 'edit' && (
-        <EditStaffPanel pumpId={pumpId} member={member} isOwner={isOwner} onClose={onClosePanel} />
+        <EditStaffPanel pumpId={pumpId} member={member} canAssignAdmin={canPerformAction('staff:create-admin', viewerRole)} onClose={onClosePanel} />
+
       )}
 
       {/* Preferences panel */}
@@ -135,6 +146,10 @@ export function StaffRow({
         <LeavePanel pumpId={pumpId} member={member} onClose={onClosePanel} />
       )}
       </div>
+
+      {resetDialogOpen && (
+        <ResetPasswordDialog userId={member.id} userName={member.fullName} onClose={() => setResetDialogOpen(false)} />
+      )}
     </div>
   )
 }

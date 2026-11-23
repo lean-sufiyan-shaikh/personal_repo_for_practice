@@ -5,6 +5,7 @@ import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
+import com.ppms.user.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
@@ -50,6 +51,9 @@ public class ShiftHandoverService {
         User incomingOperator = userRepository.findById(request.incomingOperatorId())
                 .filter(user -> user.getRole() == UserRole.OPERATOR && pumpId.equals(user.getAssignedPumpId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Incoming operator not found"));
+        if (incomingOperator.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(incomingOperator.getFullName() + " is inactive and cannot take over a shift.");
+        }
 
         if (outgoingShift.getOperatorId().equals(request.incomingOperatorId())) {
             throw new BusinessException("Incoming and outgoing operators cannot be the same person");

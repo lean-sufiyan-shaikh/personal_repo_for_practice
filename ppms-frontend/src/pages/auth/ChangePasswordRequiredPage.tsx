@@ -1,0 +1,37 @@
+import { Navigate, useNavigate } from 'react-router-dom'
+import { useMutation } from '@tanstack/react-query'
+import { authApi } from '../../api/authApi'
+import { useAuthStore } from '../../store/authStore'
+import { ChangePasswordModal } from '../../components/ChangePasswordModal'
+import { getDefaultPath } from '../../permissions/permissions'
+
+/** The only screen a user whose password was set by someone else can use until they choose their own. */
+export default function ChangePasswordRequiredPage() {
+  const navigate = useNavigate()
+  const { isAuthenticated, user, clearAuth } = useAuthStore()
+
+  const signOutMutation = useMutation({
+    mutationFn: () => authApi.logout(),
+    onSettled: () => {
+      clearAuth()
+      navigate('/login')
+    },
+  })
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+  if (!user?.mustChangePassword) {
+    return <Navigate to={getDefaultPath(user?.role)} replace />
+  }
+
+  return (
+    <div className="ui-auth-shell">
+      <ChangePasswordModal
+        required
+        onClose={() => signOutMutation.mutate()}
+        successMessage="Password changed. Sign in with your new password."
+      />
+    </div>
+  )
+}

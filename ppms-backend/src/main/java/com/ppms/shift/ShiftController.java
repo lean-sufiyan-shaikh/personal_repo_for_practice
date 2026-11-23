@@ -34,17 +34,19 @@ public class ShiftController {
 
     /**
      * GET /api/pumps/{pumpId}/shifts/active
-     * Returns all currently open shifts for a pump (OPEN or OPEN_OVERDUE).
+     * Returns all currently open shifts for a pump (OPEN or OPEN_OVERDUE); an operator gets only their own.
      */
     @GetMapping("/active")
-    public ResponseEntity<List<ShiftResponse>> getActiveShifts(@PathVariable Long pumpId) {
-        return ResponseEntity.ok(shiftService.getActiveShifts(pumpId));
+    public ResponseEntity<List<ShiftResponse>> getActiveShifts(
+            @PathVariable Long pumpId,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(shiftService.getActiveShifts(pumpId, currentUser));
     }
 
     /**
      * GET /api/pumps/{pumpId}/shifts/history?page=0&size=50[&from=&to=][&discrepanciesOnly=true[&discrepancyType=SHORT]]
      * Returns paginated shift history for a pump, newest first. Default page size 50.
-     * from/to filter on the shift's business date (inclusive).
+     * from/to filter on the shift's business date (inclusive). An operator gets only their own shifts.
      */
     @GetMapping("/history")
     public ResponseEntity<Page<ShiftResponse>> getShiftHistory(
@@ -53,20 +55,23 @@ public class ShiftController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(defaultValue = "false") boolean discrepanciesOnly,
             @RequestParam(required = false) DiscrepancyType discrepancyType,
-            @PageableDefault(size = 50) Pageable pageable) {
+            @PageableDefault(size = 50) Pageable pageable,
+            @AuthenticationPrincipal User currentUser) {
         ShiftHistoryFilter filter = new ShiftHistoryFilter(from, to, discrepanciesOnly, discrepancyType);
-        return ResponseEntity.ok(shiftService.getShiftHistory(pumpId, filter, pageable));
+        return ResponseEntity.ok(shiftService.getShiftHistory(pumpId, filter, pageable, currentUser));
     }
 
     /**
      * GET /api/pumps/{pumpId}/shifts/{id}
-     * Returns a single shift by ID. Validates the shift belongs to the requested pump.
+     * Returns a single shift by ID. Validates the shift belongs to the requested pump,
+     * and answers 404 to an operator asking for another operator's shift.
      */
     @GetMapping("/{id}")
     public ResponseEntity<ShiftResponse> getShift(
             @PathVariable Long pumpId,
-            @PathVariable Long id) {
-        return ResponseEntity.ok(shiftService.getShiftById(pumpId, id));
+            @PathVariable Long id,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(shiftService.getShiftById(pumpId, id, currentUser));
     }
 
     /**

@@ -9,12 +9,12 @@ import { shiftDefinitionApi } from '../../../api/shiftDefinitionApi'
 import type { StaffPanel } from './staffForm'
 import { StaffRow } from './StaffRow'
 import { AddStaffForm } from './AddStaffForm'
+import { canPerformAction } from '../../../permissions/permissions'
 
 export function StaffContent({ pump }: { pump: PumpSummary }) {
   const queryClient = useQueryClient()
   const { user: currentUser } = useAuthStore()
-  const isOwner = currentUser?.role === 'OWNER'
-  const isOwnerOrAdmin = isOwner || currentUser?.role === 'ADMIN'
+  const viewerRole = currentUser?.role
 
   const [statusError, setStatusError] = useState<string | null>(null)
 
@@ -60,8 +60,7 @@ export function StaffContent({ pump }: { pump: PumpSummary }) {
               key={member.id}
               pumpId={pump.id}
               member={member}
-              isOwner={isOwner}
-              isOwnerOrAdmin={isOwnerOrAdmin}
+              viewerRole={viewerRole}
               activeShiftDefs={activeShiftDefs}
               openPanel={openStaffPanel?.userId === member.id ? openStaffPanel.panel : null}
               onOpenPanel={(panel) => openPanel(member.id, panel)}
@@ -76,7 +75,7 @@ export function StaffContent({ pump }: { pump: PumpSummary }) {
       )}
 
       {/* Add staff form */}
-      <AddStaffForm pumpId={pump.id} />
+      <AddStaffForm pumpId={pump.id} canAssignAdmin={canPerformAction('staff:create-admin', viewerRole)} />
     </div>
   )
 }

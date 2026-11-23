@@ -31,6 +31,29 @@ describe('apiClient suspended pump handling', () => {
   })
 })
 
+describe('apiClient forced password change', () => {
+  function refuseWithCode(code: string) {
+    return (config: InternalAxiosRequestConfig) =>
+      Promise.reject(new AxiosError('Request failed', 'ERR_BAD_REQUEST', config, null, {
+        status: 403, statusText: '', headers: {}, config, data: { code, message: 'You must change your password before continuing.' },
+      }))
+  }
+
+  beforeEach(() => {
+    useAuthStore.setState({ user: { userId: 3, fullName: 'Asha', role: 'OPERATOR', assignedPumpId: 4 }, isAuthenticated: true })
+  })
+
+  it('flags the signed-in user when the server says they must change their password', async () => {
+    await expect(apiClient.get('/pumps/4/shifts/active', { adapter: refuseWithCode('PASSWORD_CHANGE_REQUIRED') })).rejects.toThrow()
+    expect(useAuthStore.getState().user?.mustChangePassword).toBe(true)
+  })
+
+  it('leaves the user alone on any other forbidden answer', async () => {
+    await expect(apiClient.get('/pumps/4/payroll', { adapter: refuseWith(403, 'Access denied') })).rejects.toThrow()
+    expect(useAuthStore.getState().user?.mustChangePassword).toBeUndefined()
+  })
+})
+
 describe('apiClient session refresh', () => {
   const originalAdapter = apiClient.defaults.adapter
   let refreshCalls: number

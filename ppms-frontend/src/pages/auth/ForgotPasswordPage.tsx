@@ -4,6 +4,18 @@ import { Check } from 'lucide-react'
 import { authApi } from '../../api/authApi'
 import { parseApiError } from '../../utils/apiError'
 
+function NoEmailHelp() {
+  return (
+    <div className="ui-alert ui-alert-warning text-sm">
+      <p className="font-medium">No email on your account?</p>
+      <p className="mt-1">
+        Staff: ask your pump owner or admin to reset your password. Pump owners: contact the platform administrator.
+        You will choose your own password the next time you sign in.
+      </p>
+    </div>
+  )
+}
+
 export default function ForgotPasswordPage() {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [loading, setLoading] = useState(false)
@@ -37,6 +49,7 @@ export default function ForgotPasswordPage() {
             we have sent a password reset link. Check your inbox.
           </p>
           <p className="text-xs text-slate-500">The link expires in 1 hour.</p>
+          <NoEmailHelp />
           <Link to="/login" className="ui-link inline-flex justify-center">
             Back to login
           </Link>
@@ -52,9 +65,11 @@ export default function ForgotPasswordPage() {
         <div>
           <h1 className="ui-title-sm">Forgot Password</h1>
           <p className="ui-subtitle">
-            Enter your registered phone number and we'll send a reset link to your email.
+            If your account has an email address, enter your registered phone number and we'll send a reset link to it.
           </p>
         </div>
+
+        <NoEmailHelp />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

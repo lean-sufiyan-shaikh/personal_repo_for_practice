@@ -92,6 +92,13 @@ public class LoginRateLimiterService {
                 .build());
     }
 
+    /** Lets a user whose password was just reset by an admin sign in at once, even after a lockout. */
+    @Transactional
+    public void clearFailedLogins(String phoneNumber) {
+        int cleared = attemptRepository.deleteFailuresByPhoneNumber(phoneNumber);
+        log.info("Cleared {} failed login attempts for phone={}", cleared, PhoneNumberMasking.mask(phoneNumber));
+    }
+
     private boolean incrementAndCheck(String key, int limit) {
         return resetRequestCounts.get(key, k -> new AtomicInteger()).incrementAndGet() > limit;
     }

@@ -71,6 +71,16 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
     Page<Shift> findByPumpIdAndShiftDateBetweenAndDiscrepancyTypeInOrderByActualStartTimeDesc(
             Long pumpId, LocalDate from, LocalDate to, List<DiscrepancyType> discrepancyTypes, Pageable pageable);
 
+    // Operator-scoped history: an operator only sees their own shifts.
+    Page<Shift> findByPumpIdAndOperatorIdOrderByActualStartTimeDesc(Long pumpId, Long operatorId, Pageable pageable);
+
+    Page<Shift> findByPumpIdAndOperatorIdAndShiftDateBetweenOrderByActualStartTimeDesc(
+            Long pumpId, Long operatorId, LocalDate from, LocalDate to, Pageable pageable);
+
+    Page<Shift> findByPumpIdAndOperatorIdAndShiftDateBetweenAndDiscrepancyTypeInOrderByActualStartTimeDesc(
+            Long pumpId, Long operatorId, LocalDate from, LocalDate to, List<DiscrepancyType> discrepancyTypes,
+            Pageable pageable);
+
     // ── Operator deactivation guards (Business Rules 30, 45) ─────────────────
 
     /** True if operator has any open shift — blocks deactivation (Rule 45). */
@@ -88,6 +98,14 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
               AND s.status IN ('CLOSED_DISCREPANCY_PENDING', 'CLOSED_DISCREPANCY_PENDING_APPROVAL')
             """)
     boolean hasUnresolvedDiscrepancy(Long operatorId);
+
+    /** True if operator has a discrepancy escalated for owner approval — blocks deactivation (Rule 30). */
+    @Query("""
+            SELECT COUNT(s) > 0 FROM Shift s
+            WHERE s.operatorId = :operatorId
+              AND s.status = 'CLOSED_DISCREPANCY_PENDING_APPROVAL'
+            """)
+    boolean hasDiscrepancyPendingApproval(Long operatorId);
 
     // ── Overdue shift auto-close job ──────────────────────────────────────────
 

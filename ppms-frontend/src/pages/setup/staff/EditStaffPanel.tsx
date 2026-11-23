@@ -10,11 +10,11 @@ import { Spinner } from '../../../components/Spinner'
 interface Props {
   pumpId: number
   member: StaffMember
-  isOwner: boolean
+  canAssignAdmin: boolean
   onClose: () => void
 }
 
-export function EditStaffPanel({ pumpId, member, isOwner, onClose }: Props) {
+export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Props) {
   const queryClient = useQueryClient()
   const [editFullName, setEditFullName]               = useState(member.fullName)
   const [editPhone, setEditPhone]                     = useState(member.phoneNumber ?? '')
@@ -93,7 +93,7 @@ export function EditStaffPanel({ pumpId, member, isOwner, onClose }: Props) {
               options={[
                 { value: 'OPERATOR',   label: 'Operator' },
                 { value: 'MANAGER',    label: 'Manager' },
-                ...(isOwner ? [{ value: 'ADMIN', label: 'Admin' }] : []),
+                ...(canAssignAdmin ? [{ value: 'ADMIN', label: 'Admin' }] : []),
                 { value: 'ACCOUNTANT', label: 'Accountant' },
               ]}
             />

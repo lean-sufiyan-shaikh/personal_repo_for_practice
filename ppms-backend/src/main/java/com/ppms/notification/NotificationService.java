@@ -12,8 +12,10 @@ import com.ppms.pump.UndergroundTankRepository;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.shift.ShiftStatus;
+import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Generates in-app notifications for pump alert conditions.
@@ -39,6 +42,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
+
+    private static final int UNREAD_PAGE_SIZE = 100;
 
     private final NotificationRepository notificationRepository;
     private final PumpDocumentRepository documentRepository;
@@ -69,18 +74,23 @@ public class NotificationService {
     }
 
     /**
-     * Returns the newest 100 unread notifications for a pump and the total unread count. Does NOT generate
-     * new ones — generation is handled by NotificationGenerationJob on a background schedule.
+     * Returns the newest 100 notifications this user has not read, limited to the types their role receives
+     * (see NotificationAudience), and their total unread count. Does NOT generate new ones — generation is
+     * handled by NotificationGenerationJob on a background schedule.
      */
-    public NotificationListResponse getUnreadNotifications(Long pumpId) {
+    @Transactional(readOnly = true)
+    public NotificationListResponse getUnreadNotifications(Long pumpId, User currentUser) {
+        Set<NotificationType> types = NotificationAudience.typesVisibleTo(currentUser.getRole());
         return new NotificationListResponse(
-                notificationRepository.findTop100ByPumpIdAndReadAtIsNullOrderByCreatedAtDesc(pumpId),
-                notificationRepository.countByPumpIdAndReadAtIsNull(pumpId));
+                notificationRepository.findUnreadForUser(pumpId, currentUser.getId(), types,
+                        PageRequest.of(0, UNREAD_PAGE_SIZE)),
+                notificationRepository.countUnreadForUser(pumpId, currentUser.getId(), types));
     }
 
     /**
-     * Deletes one batch of notifications read more than {@code days} ago, in its own transaction. A deleted
-     * row frees its dedup key, so a condition that is still true (e.g. a document still expired) alerts once more.
+     * Deletes one batch of notifications that someone first read more than {@code days} ago, in its own
+     * transaction. Notifications nobody has read are kept. A deleted row frees its dedup key, so a condition
+     * that is still true (e.g. a document still expired) alerts once more.
      */
     @Transactional
     public int deleteReadBatchOlderThan(int days, int batchSize) {
@@ -116,10 +126,19 @@ public class NotificationService {
                 .toList();
     }
 
-    /** Marks only the given notifications of this pump as read, so alerts the user has not seen stay unread. */
+    /**
+     * Marks the given notifications as read for this user only; other users keep seeing them as unread.
+     * Types the user's role does not receive are ignored, so they cannot dismiss alerts meant for management.
+     */
     @Transactional
-    public int markRead(Long pumpId, List<Long> ids) {
-        return ids.isEmpty() ? 0 : notificationRepository.markReadForPump(pumpId, ids);
+    public int markRead(Long pumpId, List<Long> ids, User currentUser) {
+        if (ids.isEmpty()) {
+            return 0;
+        }
+        List<String> types = NotificationAudience.typesVisibleTo(currentUser.getRole()).stream()
+                .map(Enum::name)
+                .toList();
+        return notificationRepository.markReadForUser(pumpId, currentUser.getId(), ids, types);
     }
 
     // ── Private generation helpers ────────────────────────────────────────────

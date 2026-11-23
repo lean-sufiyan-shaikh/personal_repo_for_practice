@@ -51,6 +51,16 @@ function recordSuspendedPump(error: unknown): void {
   if (pumpId !== null) usePumpStore.getState().markPumpSuspended(pumpId)
 }
 
+const PASSWORD_CHANGE_REQUIRED_CODE = 'PASSWORD_CHANGE_REQUIRED'
+
+// ProtectedRoute sends a flagged user to the change-password screen, so recording the flag is enough.
+function recordPasswordChangeRequired(error: unknown): void {
+  if (!isAxiosError<ApiErrorBody>(error)) return
+  if (error.response?.status !== 403 || error.response.data?.code !== PASSWORD_CHANGE_REQUIRED_CODE) return
+  if (!useAuthStore.getState().isAuthenticated) return
+  useAuthStore.getState().updateUser({ mustChangePassword: true })
+}
+
 type RetryableRequestConfig = InternalAxiosRequestConfig & {
   retriedAfterRefresh?: boolean
   replayedAfterOtherTabRefresh?: boolean
@@ -131,6 +141,7 @@ apiClient.interceptors.response.use(
     const failedAt = Date.now()
     sanitizeErrorMessage(error)
     recordSuspendedPump(error)
+    recordPasswordChangeRequired(error)
     if (error.response?.status !== 401 || !useAuthStore.getState().isAuthenticated) {
       return Promise.reject(error)
     }

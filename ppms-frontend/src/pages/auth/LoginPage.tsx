@@ -9,7 +9,7 @@ import { useAuthStore } from '../../store/authStore'
 import type { AuthUser } from '../../types/auth'
 import { PasswordInput } from '../../components/PasswordInput'
 import { parseApiError } from '../../utils/apiError'
-import { getDefaultPath } from '../../permissions/permissions'
+import { CHANGE_PASSWORD_PATH, getDefaultPath } from '../../permissions/permissions'
 import { prefetchLandingPage } from '../../routes/pageLoaders'
 
 const loginSchema = z.object({
@@ -43,8 +43,13 @@ export default function LoginPage() {
         fullName: response.fullName,
         role: response.role,
         assignedPumpId: response.assignedPumpId,
+        mustChangePassword: response.mustChangePassword,
       }
       setAuth(user)
+      if (response.mustChangePassword) {
+        navigate(CHANGE_PASSWORD_PATH)
+        return
+      }
       const landingPath = getDefaultPath(response.role)
       prefetchLandingPage(landingPath)
       navigate(landingPath)
