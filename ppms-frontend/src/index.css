@@ -2046,7 +2046,11 @@
   }
 }
 
-/* Unlayered so row utilities such as min-h-0 cannot shrink phone tap targets below 44px. */
+/* Unlayered so row utilities such as min-h-0 cannot shrink click targets below 32px (desktop) or 44px (phones). */
+.ui-btn {
+  min-height: 32px;
+}
+
 @media (max-width: 768px) {
   .ui-btn {
     min-height: 44px;
