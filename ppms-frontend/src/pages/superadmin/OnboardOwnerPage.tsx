@@ -7,6 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { superAdminApi } from '../../api/superAdminApi'
 import type { OnboardOwnerResponse } from '../../api/superAdminApi'
 import { PasswordInput } from '../../components/PasswordInput'
+import { NumericInput } from '../../components/NumericInput'
+import { LoadingButton } from '../../components/LoadingButton'
 import { FormField } from '../../components/FormField'
 import { FormGrid, FormGridFullRow } from '../../components/layout/FormGrid'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -69,19 +71,17 @@ export function OnboardOwnerPage({ ownersPath, onSubmitStart, onCreated }: Onboa
                 {...register('fullName')}
                 type="text"
                 autoComplete="off"
-                placeholder={t('onboard.fullNamePlaceholder')}
                 className="text-sm"
               />
             </FormField>
 
-            <FormField label={t('onboard.phoneNumber')} error={errors.phoneNumber?.message}>
+            <FormField label={t('onboard.phoneNumber')} error={errors.phoneNumber?.message} help={t('onboard.phoneHelp')}>
               <input
                 {...register('phoneNumber')}
                 type="tel"
                 inputMode="numeric"
                 autoComplete="off"
                 maxLength={10}
-                placeholder={t('onboard.phonePlaceholder')}
                 className="text-sm"
               />
             </FormField>
@@ -102,20 +102,12 @@ export function OnboardOwnerPage({ ownersPath, onSubmitStart, onCreated }: Onboa
               <input
                 {...register('pumpName')}
                 type="text"
-                placeholder={t('onboard.pumpNamePlaceholder')}
                 className="text-sm"
               />
             </FormField>
 
-            <FormField label={t('fields.maxDuCount')} error={errors.maxDuCount?.message}>
-              <input
-                {...register('maxDuCount')}
-                type="number"
-                min={1}
-                max={20}
-                placeholder={t('fields.maxDuPlaceholder')}
-                className="text-sm"
-              />
+            <FormField label={t('fields.maxDuCount')} error={errors.maxDuCount?.message} help={t('fields.maxDuHelp')}>
+              <NumericInput {...register('maxDuCount')} inputMode="numeric" min={1} max={20} step={1} />
             </FormField>
 
             <FormGridFullRow>
@@ -123,7 +115,6 @@ export function OnboardOwnerPage({ ownersPath, onSubmitStart, onCreated }: Onboa
                 <input
                   {...register('pumpAddress')}
                   type="text"
-                  placeholder={t('fields.addressPlaceholder')}
                   className="text-sm"
                 />
               </FormField>
@@ -132,16 +123,14 @@ export function OnboardOwnerPage({ ownersPath, onSubmitStart, onCreated }: Onboa
         </PageSection>
 
         {serverError && (
-          <div role="alert" className="ui-alert ui-alert-danger">
-            <p className="text-bad text-sm">{serverError}</p>
-          </div>
+          <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>
         )}
 
         <StickyActions>
           <Link to={ownersPath} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</Link>
-          <button type="submit" disabled={onboardMutation.isPending} className="ui-btn ui-btn-primary">
-            {onboardMutation.isPending ? t('onboard.creating') : t('onboard.submit')}
-          </button>
+          <LoadingButton type="submit" isLoading={onboardMutation.isPending} loadingLabel={t('onboard.creating')} className="ui-btn-primary">
+            {t('onboard.submit')}
+          </LoadingButton>
         </StickyActions>
       </form>
     </>

@@ -41,3 +41,10 @@ export function fmtMonthKey(key: string): string {
 export function todayIso()     { return localDateInputValue() }
 
 export function yesterdayIso() { return localDateInputValue(-1) }
+
+/** Calendar days from one ISO date to another, both included; null when either is missing or the end comes first. */
+export function periodDays(from: string, to: string): number | null {
+  if (!from || !to) return null
+  const days = Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1
+  return Number.isFinite(days) && days > 0 ? days : null
+}

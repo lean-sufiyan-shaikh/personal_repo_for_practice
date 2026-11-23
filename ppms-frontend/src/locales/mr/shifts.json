@@ -122,7 +122,7 @@
       "roundOffTitle": "शिफ्ट जुळण्यासाठी रोख ₹{{amount}} ने बदला",
       "roundOff": "₹{{amount}} रोखीत राउंड ऑफ करा",
       "requiredToClose": "(बंद करण्यासाठी आवश्यक)",
-      "placeholder": "उदा. ग्राहकाने अर्धे पैसे दिले — बाकी थकबाकी, मीटरमध्ये चूक इ.",
+      "placeholder": "उदा. मीटरमध्ये चूक",
       "enterReason": "बंद करण्यासाठी कारण लिहा"
     },
     "lateClose": {
@@ -181,18 +181,18 @@
     "selectClient": "कृपया यादीतून ग्राहक निवडा.",
     "fuelRequired": "इंधनाचा प्रकार आवश्यक आहे",
     "validAmount": "योग्य रक्कम टाका",
-    "title": "क्रेडिट नोंद जोडा",
+    "title": "क्रेडिट विक्री जोडा",
     "subtitle": "नोझल {{nozzles}} · {{operator}}",
     "saving": "क्रेडिट नोंद सेव्ह होत आहे",
-    "save": "नोंद सेव्ह करा",
+    "save": "क्रेडिट विक्री सेव्ह करा",
     "recorded": "नोंदलेल्या नोंदी",
     "tapVoid": "एखादी रद्द करण्यासाठी \"रद्द\" दाबा",
-    "voidedTag": "रद्द",
     "void": "रद्द",
-    "voidReasonAria": "रद्द करण्याचे कारण",
-    "voidReasonPlaceholder": "रद्द करण्याचे कारण (आवश्यक)",
+    "voidReason": "रद्द करण्याचे कारण",
+    "voidHint": "नोंद शिफ्टवर रद्द म्हणून दिसत राहील आणि बेरजेत धरली जाणार नाही.",
+    "voiding": "नोंद रद्द होत आहे",
     "reasonRequired": "कारण आवश्यक आहे",
-    "confirmVoid": "रद्द करणे नक्की करा",
+    "confirmVoid": "नोंद रद्द करा",
     "searchClient": "ग्राहकाचे नाव शोधा…",
     "searchClientShort": "ग्राहकाचे नाव शोधा...",
     "subAccount": "उप-खाते",
@@ -200,12 +200,19 @@
     "billToParent": "मुख्य खात्यावर ({{name}}) बिल करा",
     "fuel": "इंधन",
     "fuelType": "इंधनाचा प्रकार",
-    "amount": "रक्कम (₹)",
-    "liters": "लिटर",
+    "amount": "रक्कम",
+    "quantity": "प्रमाण",
+    "enterIn": "कशात भरायचे",
     "amountModeAria": "रुपयांत रक्कम टाका",
-    "litresModeAria": "लिटर टाका",
-    "amountAria": "रुपयांत क्रेडिट रक्कम",
-    "quantityAria": "क्रेडिट प्रमाण",
+    "litresModeAria": "प्रमाण टाका",
+    "stillNeeded": {
+      "client": "यादीतून ग्राहक",
+      "fuel": "इंधन",
+      "amount": "रक्कम"
+    },
+    "creditLimit": "क्रेडिट मर्यादा",
+    "availableCredit": "उपलब्ध क्रेडिट",
+    "leftAfterSale": "या विक्रीनंतर उरेल",
     "billNo": "बिल क्रमांक",
     "billNoPlaceholder": "उदा. B-101",
     "description": "तपशील",
@@ -223,6 +230,7 @@
     "standingFailed": "कोणते ग्राहक थांबवलेले आहेत हे तपासता आले नाही; सेव्ह करताना विक्री तरीही तपासली जाईल.",
     "client": "ग्राहक",
     "chooseClient": "ग्राहक निवडा",
+    "chooseClientSubtitle": "या क्रेडिट विक्रीसाठी",
     "searchAria": "नाव किंवा फोनने ग्राहक शोधा",
     "recentAria": "अलीकडचे ग्राहक",
     "recent": "अलीकडचे",
@@ -251,16 +259,16 @@
     "waiveReason": "फरक माफ करण्यासाठी लेखी कारण आवश्यक आहे.",
     "describeInvestigation": "कशाची चौकशी होत आहे ते लिहा.",
     "title": "फरक सोडवा",
-    "subtitle": "शिफ्ट #{{id}} · {{operator}} · {{type}} {{amount}}",
-    "reasonAtClose": "बंद करताना दिलेले कारण: {{reason}}",
+    "subtitle": "शिफ्ट #{{id}} · {{operator}}",
+    "difference": "फरक",
+    "reasonAtClose": "बंद करताना दिलेले कारण",
     "startInvestigation": "चौकशी सुरू करा",
-    "confirm": "निर्णय नक्की करा",
+    "confirm": "सोडवा",
     "actionLabel": "सोडवण्याचा मार्ग",
+    "stillNeededAction": "सोडवण्याचा मार्ग",
     "choosePlaceholder": "मार्ग निवडा…",
     "investigationHint": "कमतरता उघडी राहील: ती पगारात दिसत राहील आणि नंतर तिच्यावर अंतिम निर्णय घ्यावा लागेल.",
-    "note": "नोंद",
-    "required": "* आवश्यक",
-    "notePlaceholder": "कारण किंवा नोंद लिहा…"
+    "note": "नोंद"
   },
   "components": {
     "operatorPicker": {
@@ -351,25 +359,24 @@
       "readings": "मीटर रीडिंगची खात्री करा"
     },
     "title": "नवी शिफ्ट उघडा",
-    "subtitle": "DU निवडा आणि ऑपरेटर नेमा",
+    "subtitle": "DU, नोझल आणि ऑपरेटर निवडा",
     "confirmReadings": "वरील मीटर रीडिंग बरोबर आहे याची मी खात्री करतो/करते आणि ही शिफ्ट उघडायला परवानगी देतो/देते.",
-    "opening": "उघडत आहे...",
+    "opening": "शिफ्ट उघडत आहे",
     "submit": "शिफ्ट उघडा",
-    "step1": "पायरी 1 — DU निवडा",
-    "selectedDu": "DU #{{number}} — {{name}}",
+    "duHeading": "DU",
     "loadingDus": "DU लोड होत आहेत...",
     "noDus": "एकही सक्रिय DU सापडला नाही. आधी सेटअपमध्ये जोडा.",
     "duNumber": "DU #{{number}}",
     "selected": "निवडले",
-    "step2": "पायरी 2 — नोझल निवडा",
+    "nozzlesHeading": "नोझल",
     "selectedCount_one": "{{count}} निवडला",
     "selectedCount_other": "{{count}} निवडले",
     "selectNozzles": "नोझल निवडा",
     "inUse": "वापरात",
-    "assignOperator": "ऑपरेटर नेमा",
+    "assignOperator": "ऑपरेटर",
     "currentReadings": "सध्याचे मीटर रीडिंग",
     "readOnly": "फक्त पाहण्यासाठी",
-    "nozzleReadingLabel": "नोझल #{{number}} — {{fuel}} ({{unit}})",
+    "nozzleReadingLabel": "नोझल #{{number}} · {{fuel}}",
     "readingsNote": "हे रीडिंग मागची शिफ्ट बंद झाल्यावर आपोआप येतात. एखादे रीडिंग चुकीचे वाटल्यास ॲडमिनने आधी ते इथे दुरुस्त करावे:",
     "readingsNotePath": "सेटअप → नोझल → रीडिंग बदला",
     "readingsNoteEnd": "."
@@ -388,12 +395,12 @@
   },
   "backfill": {
     "title": "जुनी शिफ्ट भरा",
-    "subtitle": "मागील शिफ्टचा डेटा नोंदवा (365 दिवस मागेपर्यंत). त्या तारखेची टँकर डिलिव्हरी आधी नोंदलेली हवी — स्टॉक कमी असल्यास सिस्टम हे सेव्ह करणार नाही.",
+    "subtitle": "मागील 365 दिवसांतील कोणतीही शिफ्ट, आजची नाही",
+    "deliveriesFirst": "त्या तारखेची टँकर डिलिव्हरी आधी नोंदवा: टाकीत स्टॉक कमी असल्यास शिफ्ट सेव्ह होणार नाही.",
     "save": "जुनी शिफ्ट सेव्ह करा",
     "reason": {
       "label": "फरकाचे कारण",
-      "hint": "(जमा ≠ अपेक्षित असल्यास आवश्यक)",
-      "placeholder": "जमा आणि अपेक्षित रकमेतील फरकाचे कारण लिहा…"
+      "hint": "जमा रक्कम एकूण देयापेक्षा वेगळी असल्यास आवश्यक."
     },
     "details": {
       "title": "शिफ्टची माहिती",
@@ -408,56 +415,53 @@
       "selectWindow": "शिफ्टची वेळ निवडा…"
     },
     "rates": {
-      "title": "{{date}} चे इंधन दर",
-      "fromHistory": "दर इतिहासातून · बदलण्यासाठी आधी दर इतिहास दुरुस्त करा",
-      "inputLabel": "{{fuel}} चा प्रति लिटर दर",
-      "noPrice": "दर नोंदलेला नाही — स्वतः भरा"
+      "title": "{{date}} चा दर",
+      "fromHistory": "दर इतिहासातून. बदलण्यासाठी आधी दर इतिहास दुरुस्त करा.",
+      "inputLabel": "{{fuel}} चा दर",
+      "noPrice": "{{date}} चा दर नोंदलेला नाही"
     },
     "payment": {
-      "title": "जमा झालेले पेमेंट",
+      "title": "पेमेंट",
       "upi": "UPI (₹)",
       "card": "कार्ड (₹)",
       "fleetCard": "फ्लीट कार्ड (₹)",
-      "cash": "रोख (₹)",
-      "expected": "अपेक्षित (मीटरनुसार इंधन विक्री)",
-      "collected": "जमा (UPI + कार्ड + फ्लीट + रोख + क्रेडिट)",
-      "balanced": "जुळले",
-      "short": "कमी (कमी जमा झाले)",
-      "over": "जास्त (जास्त जमा झाले)"
+      "cash": "रोख (₹)"
     },
     "staff": {
-      "title": "कर्मचारी आणि नोझल",
       "operator": "ड्युटीवरील ऑपरेटर",
-      "loadingOperators": "ऑपरेटर लोड होत आहेत…",
-      "searchPlaceholder": "नाव किंवा ID ने शोधा…",
-      "noOperators": "एकही ऑपरेटर सापडला नाही.",
-      "selected": "निवडले: {{name}}",
       "nozzles": "नोझल",
       "noNozzles": "या DU वर नोझल नाहीत."
     },
     "meter": {
-      "title": "मीटर रीडिंग",
+      "title": "नोझल आणि मीटर रीडिंग",
       "nozzle": "नोझल #{{number}} · {{fuel}}",
       "opening": "सुरुवातीचे",
       "closing": "शेवटचे",
-      "soldNoRate": "{{litres}} L विकले — अपेक्षित रक्कम पाहण्यासाठी वर इंधन दर भरा",
-      "closingBelowOpening": "शेवटचे रीडिंग सुरुवातीच्यापेक्षा कमी असू शकत नाही."
+      "openingAria": "{{nozzle}} सुरुवातीचे रीडिंग",
+      "closingAria": "{{nozzle}} शेवटचे रीडिंग",
+      "soldNoRate": "{{sold}} विकले. रक्कम पाहण्यासाठी वर दर भरा.",
+      "closingBelowOpening": "शेवटचे रीडिंग सुरुवातीच्या रीडिंगपेक्षा कमी आहे."
     },
     "credit": {
       "title": "क्रेडिट विक्री",
-      "total": "एकूण क्रेडिट (खालील नोंदींची बेरीज)",
+      "total": "एकूण क्रेडिट",
       "newEntry": "नवी नोंद",
       "removeLabel": "क्रेडिट नोंद हटवा",
       "client": "ग्राहक",
       "selectClient": "ग्राहक निवडा",
-      "amount": "रक्कम (₹)",
+      "amount": "रक्कम",
       "fuelType": "इंधन",
-      "optionalChoice": "— ऐच्छिक —",
+      "optionalChoice": "नमूद नाही",
       "billNo": "बिल क्रमांक",
-      "optional": "ऐच्छिक",
       "description": "वर्णन",
-      "removeEntry": "नोंद हटवा",
-      "add": "+ क्रेडिट नोंद जोडा"
+      "removeEntry": "नोंद हटवा"
+    },
+    "stillNeeded": {
+      "date": "शिफ्टची तारीख",
+      "window": "शिफ्टची वेळ",
+      "operator": "ड्युटीवरील ऑपरेटर",
+      "du": "DU",
+      "nozzle": "किमान एक नोझल"
     },
     "errors": {
       "failed": "जुनी शिफ्ट सेव्ह झाली नाही. पुन्हा प्रयत्न करा.",
@@ -559,7 +563,8 @@
       "title": "वेळापत्रक आपोआप बनवा",
       "subtitle": "सिस्टम आवड, रजेच्या तारखा आणि समान वाटप पाहून ऑपरेटर नेमेल.",
       "dayOperators": "सकाळ / संध्याकाळच्या प्रत्येक शिफ्टसाठी ऑपरेटर",
-      "nightOperators": "रात्रीच्या प्रत्येक शिफ्टसाठी ऑपरेटर (12 AM – 8 AM)"
+      "nightOperators": "रात्रीच्या प्रत्येक शिफ्टसाठी ऑपरेटर (12 AM – 8 AM)",
+      "submit": "प्लॅन बनवा"
     },
     "week": {
       "previous": "मागील आठवडा",

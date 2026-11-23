@@ -12,13 +12,12 @@
     "title": "खर्च दर्ज करें",
     "subtitle": "जाँच से पहले श्रेणी, राशि, तारीख और विवरण भरें।",
     "category": "श्रेणी",
-    "amountRupees": "राशि (₹)",
     "amount": "राशि",
     "description": "विवरण",
-    "descriptionPlaceholder": "जैसे XYZ से पंप की सर्विसिंग",
     "expenseDate": "खर्च की तारीख",
     "saveDraft": "ड्राफ्ट के रूप में सेव करें — मंज़ूरी के लिए बाद में भेजें",
-    "review": "खर्च जाँचें",
+    "needAmount": "राशि",
+    "needDescription": "विवरण",
     "recorded": "खर्च दर्ज हो गया",
     "recordFailed": "खर्च दर्ज नहीं हो सका",
     "descriptionRequired": "विवरण लिखना ज़रूरी है",
@@ -26,8 +25,8 @@
   },
   "review": {
     "title": "खर्च जाँचें",
-    "subtitle": "सेव करने से पहले खर्च का विवरण जाँच लें।",
-    "add": "खर्च जोड़ें"
+    "add": "खर्च सेव करें",
+    "savedAs": "इस रूप में सेव"
   },
   "list": {
     "title": "सभी खर्च",

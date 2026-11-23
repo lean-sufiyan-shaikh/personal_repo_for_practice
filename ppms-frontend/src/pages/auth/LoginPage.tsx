@@ -168,7 +168,6 @@ export default function LoginPage() {
                 id="password"
                 {...register('password')}
                 autoComplete="current-password"
-                placeholder={t('login.passwordPlaceholder')}
                 className="shadow-raised"
               />
               {errors.password && (
@@ -177,9 +176,7 @@ export default function LoginPage() {
             </div>
 
             {serverError && (
-              <div className="ui-alert ui-alert-danger" role="alert">
-                <p className="text-bad text-sm">{serverError}</p>
-              </div>
+              <p className="ui-alert ui-alert-danger" role="alert">{serverError}</p>
             )}
 
             <button

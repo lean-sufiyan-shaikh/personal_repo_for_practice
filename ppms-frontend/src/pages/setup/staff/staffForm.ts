@@ -23,4 +23,4 @@ export const EMPTY_FORM: StaffCreateForm = {
   preferredLanguage: 'en',
 }
 
-export type StaffPanel = 'preferences' | 'leave' | 'rates' | 'edit' | 'move'
+export type StaffPanel = 'preferences' | 'leave' | 'rates' | 'edit' | 'move' | 'deactivate'

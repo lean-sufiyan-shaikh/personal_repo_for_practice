@@ -85,7 +85,7 @@
     "nameBlank": "Name cannot be blank",
     "saveNameFailed": "Failed to save name",
     "openMenu": "Open profile menu",
-    "resetPassword": "Reset Password",
+    "changePassword": "Change password",
     "logout": "Logout",
     "loggingOut": "Logging out...",
     "density": "Density",

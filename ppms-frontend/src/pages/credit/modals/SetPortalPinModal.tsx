@@ -6,7 +6,7 @@ import type { CreditClient as PumpCreditClient } from '../../../api/pumpApi'
 import { FormField } from '../../../components/FormField'
 import { Modal } from '../../../components/Modal'
 import { PasswordInput } from '../../../components/PasswordInput'
-import { Spinner } from '../../../components/Spinner'
+import { LoadingButton } from '../../../components/LoadingButton'
 import { PORTAL_PIN_PATTERN, digitsOnly } from '../../../constants/portalPin'
 import { useToastStore } from '../../../store/toastStore'
 import { parseApiError } from '../../../utils/apiError'
@@ -49,16 +49,17 @@ export function SetPortalPinModal({ pumpId, client, onClose }: SetPortalPinModal
       title={client.hasPortalPin ? t('portalPin.changeTitle') : t('portalPin.setAction')}
       subtitle={client.name}
       tone="info"
-      size="lg"
+      size="md"
+      canClose={!mutation.isPending}
       onClose={onClose}
       onSubmit={submit}
       bodyClassName="space-y-4"
       footer={
         <>
           <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
-          <button type="submit" disabled={mutation.isPending} className="ui-btn ui-btn-primary">
-            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.saving')}</span> : t('portalPin.save')}
-          </button>
+          <LoadingButton type="submit" isLoading={mutation.isPending} loadingLabel={t('common:actions.saving')} className="ui-btn-primary">
+            {t('portalPin.save')}
+          </LoadingButton>
         </>
       }
     >
@@ -74,8 +75,6 @@ export function SetPortalPinModal({ pumpId, client, onClose }: SetPortalPinModal
           inputMode="numeric"
           autoComplete="off"
           maxLength={6}
-          placeholder={t('portalPin.placeholder')}
-          className="text-sm"
           data-autofocus
         />
       </FormField>

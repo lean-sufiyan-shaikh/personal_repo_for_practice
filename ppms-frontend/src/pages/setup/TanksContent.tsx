@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useId, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../utils/apiError'
@@ -11,6 +11,21 @@ import { formatNumberIn } from '../../i18n/format'
 import { ALL_FUEL_TYPES, FUEL_COLOR } from './fuelStyles'
 import { ConfirmButton } from '../../components/ConfirmButton'
 import { StatusBadge } from '../../components/StatusBadge'
+import { FormField } from '../../components/FormField'
+import { FormGrid } from '../../components/layout/FormGrid'
+import { LoadingButton } from '../../components/LoadingButton'
+import { NumericInput } from '../../components/NumericInput'
+import { SearchableSelect } from '../../components/SearchableSelect'
+import { StillNeeded } from '../../components/StillNeeded'
+
+const formatQuantity = (value: number, unit: string) =>
+  `${formatNumberIn(value, { maximumFractionDigits: 2 })} ${unit}`
+
+/** The typed amount as a readable quantity, or nothing until a positive number is typed. */
+function typedQuantity(value: string, unit: string): string | null {
+  const amount = Number(value)
+  return value.trim() !== '' && Number.isFinite(amount) && amount > 0 ? formatQuantity(amount, unit) : null
+}
 
 // ── Tanks content ─────────────────────────────────────────────────────────────
 // Owner manually creates each underground tank (name, fuel type, capacity).
@@ -19,6 +34,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 export function TanksContent({ pump }: { pump: PumpSummary }) {
   const { t } = useTranslation(['setup', 'common'])
   const queryClient = useQueryClient()
+  const stillNeededId = useId()
 
   // Create form state
   const [createIdentifier, setCreateIdentifier] = useState('')
@@ -27,26 +43,12 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
   const [createDipTol, setCreateDipTol]         = useState('')
   const [createError, setCreateError]           = useState<string | null>(null)
 
-  // Fuel type dropdown open/close
-  const [fuelDropdownOpen, setFuelDropdownOpen] = useState(false)
-  const fuelDropdownRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (fuelDropdownRef.current && !fuelDropdownRef.current.contains(e.target as Node)) {
-        setFuelDropdownOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
   // Edit form state
   const [editingId, setEditingId]         = useState<number | null>(null)
   const [editCapacity, setEditCapacity]   = useState('')
   const [editIdentifier, setEditIdentifier] = useState('')
   const [editError, setEditError]         = useState<string | null>(null)
 
-  // Disable confirmation: null = no confirm shown; tankId = confirm dialog for that tank
   const [statusError, setStatusError]           = useState<string | null>(null)
 
   const { data: tanks = [], isLoading } = useQuery({
@@ -90,6 +92,14 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
   const hasSignificantStock = (tank: TankInfo) =>
     tank.capacity > 0 && (tank.currentStock / tank.capacity) > 0.05
 
+  const createUnit = FUEL_UNIT[createFuelType] ?? 'L'
+  const createCapacityText = typedQuantity(createCapacity, createUnit)
+  const createDipTolText = typedQuantity(createDipTol, createUnit)
+  const stillNeeded = [
+    ...(createIdentifier.trim() === '' ? [t('tanks.nameLabel')] : []),
+    ...(createCapacityText === null ? [t('tanks.capacity')] : []),
+  ]
+
   const submitCreate = (e: React.FormEvent) => {
     e.preventDefault(); setCreateError(null)
     if (!createIdentifier.trim()) { setCreateError(t('tanks.nameRequired')); return }
@@ -125,12 +135,11 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
       ) : (
         <div className="space-y-2">
           {statusError && (
-            <div role="alert" className="ui-alert ui-alert-danger text-sm">
-              <p className="text-bad text-xs">{statusError}</p>
-            </div>
+            <p role="alert" className="ui-alert ui-alert-danger text-xs">{statusError}</p>
           )}
           {(tanks as TankInfo[]).map((tank) => {
             const isInactive = tank.status === 'INACTIVE'
+            const unit = FUEL_UNIT[tank.fuelType] ?? 'L'
             return (
               <div key={tank.id} className={`border rounded-control overflow-hidden transition-opacity ${
                 isInactive ? 'border-border bg-bg opacity-70' : 'border-border bg-surface'
@@ -150,7 +159,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                     )}
                     <span className="text-xs text-ink-3">
                       {t('tanks.capacityPrefix')} <span className="text-ink-3 font-medium">
-                        {formatNumberIn(Number(tank.capacity), { minimumFractionDigits: 0 })} {FUEL_UNIT[tank.fuelType] ?? 'L'}
+                        {formatNumberIn(Number(tank.capacity), { minimumFractionDigits: 0 })} {unit}
                       </span>
                       {isInactive && (
                         <span className="ml-1 text-warn">{t('tanks.stockFrozen')}</span>
@@ -162,13 +171,14 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                     {/* Edit is only available for active tanks */}
                     {!isInactive && (
                         <button type="button"
+                          aria-expanded={editingId === tank.id}
                           onClick={() => {
                             if (editingId === tank.id) { setEditingId(null) } else {
                               setEditingId(tank.id); setEditCapacity(String(tank.capacity))
                               setEditIdentifier(tank.tankIdentifier); setEditError(null)
                             }
                           }}
-                          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong">
+                          className="ui-btn ui-btn-ghost ui-btn-compact">
                           {editingId === tank.id ? t('common:actions.cancel') : t('common:actions.edit')}
                         </button>
                     )}
@@ -179,7 +189,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                         type="button"
                         onClick={() => { setStatusError(null); statusMutation.mutate({ tankId: tank.id, status: 'ACTIVE' }) }}
                         disabled={statusMutation.isPending}
-                        className="min-h-6 text-xs font-medium text-ok transition-colors hover:underline disabled:opacity-50">
+                        className="ui-btn ui-btn-secondary ui-btn-compact">
                         {t('common:actions.enable')}
                       </button>
                     ) : (
@@ -191,8 +201,8 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                           : t('tanks.disablePrompt')}
                         onConfirm={() => { setStatusError(null); statusMutation.mutate({ tankId: tank.id, status: 'INACTIVE' }) }}
                         disabled={statusMutation.isPending}
-                        triggerClassName="min-h-6 text-xs font-medium text-warn transition-colors hover:text-warn-strong disabled:opacity-50"
-                        confirmClassName="ui-btn ui-btn-warning min-h-6 px-2 py-1 text-xs"
+                        triggerClassName="ui-btn ui-btn-ghost ui-btn-compact"
+                        confirmClassName="ui-btn ui-btn-danger ui-btn-compact"
                       />
                     )}
                   </div>
@@ -200,34 +210,28 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
 
                 {editingId === tank.id && !isInactive && (
                   <form onSubmit={(e) => submitEdit(e, tank)}
-                    className="px-3 py-3 border-t border-border bg-bg space-y-2">
-                    <div className="flex gap-3 items-end flex-wrap">
-                      <div>
-                        <label className="block">
-                          <span className="ui-label">
-                          {t('tanks.capacityLabel', { unit: FUEL_UNIT[tank.fuelType] ?? 'L' })}
-                        </span>
-                          <input type="number" step="0.01" min="1" value={editCapacity}
-                            onChange={(e) => setEditCapacity(e.target.value)}
-                            className="w-36 text-xs min-h-10"
-                            placeholder={t('example', { value: '25000' })} />
-                        </label>
-                      </div>
-                      <div>
-                        <label className="block">
-                          <span className="ui-label">{t('tanks.nameLabel')}</span>
-                          <input type="text" value={editIdentifier}
-                            onChange={(e) => setEditIdentifier(e.target.value)}
-                            className="w-36 text-xs min-h-10"
-                            placeholder={t('tanks.namePlaceholder')} />
-                        </label>
-                      </div>
-                      <button type="submit" disabled={updateMutation.isPending}
-                        className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs">
-                        {updateMutation.isPending ? t('actions.savingDots') : t('common:actions.save')}
+                    className="px-3 py-3 border-t border-border bg-bg space-y-3">
+                    <FormGrid>
+                      <FormField label={t('tanks.nameLabel')}>
+                        <input type="text" value={editIdentifier}
+                          onChange={(e) => setEditIdentifier(e.target.value)}
+                          className="text-sm" />
+                      </FormField>
+                      <FormField label={t('tanks.capacity')} help={typedQuantity(editCapacity, unit) ?? undefined}
+                        error={editError ?? undefined}>
+                        <NumericInput step="0.01" min="1" unit={unit} value={editCapacity}
+                          onChange={(e) => setEditCapacity(e.target.value)} />
+                      </FormField>
+                    </FormGrid>
+                    <div className="flex gap-2">
+                      <LoadingButton type="submit" isLoading={updateMutation.isPending} loadingLabel={t('common:actions.saving')}
+                        className="ui-btn-primary">
+                        {t('tanks.saveTank')}
+                      </LoadingButton>
+                      <button type="button" onClick={() => setEditingId(null)} className="ui-btn ui-btn-secondary">
+                        {t('common:actions.cancel')}
                       </button>
                     </div>
-                    {editError && <p role="alert" className="ui-error-text">{editError}</p>}
                   </form>
                 )}
               </div>
@@ -237,95 +241,50 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
       )}
 
       {/* Add tank form */}
-      <div className={tanks.length > 0 ? 'border-t border-border pt-4' : ''}>
-        <p className="ui-label mb-3">
+      <section aria-labelledby={`${stillNeededId}-title`} className={tanks.length > 0 ? 'border-t border-border pt-4' : ''}>
+        <h3 id={`${stillNeededId}-title`} className="text-sm font-semibold text-ink mb-3">
           {tanks.length === 0 ? t('tanks.addFirst') : t('tanks.addAnother')}
-        </p>
+        </h3>
         <form onSubmit={submitCreate} className="space-y-3">
-          <div className="flex gap-3 items-end flex-wrap">
+          <FormGrid>
+            <FormField label={t('tanks.nameLabel')}>
+              <input required type="text" value={createIdentifier}
+                onChange={(e) => setCreateIdentifier(e.target.value)}
+                placeholder={t('tanks.namePlaceholder')}
+                className="text-sm" />
+            </FormField>
             <div>
-              <label className="block">
-                <span className="ui-label">{t('tanks.nameLabel')} <span className="text-bad">*</span></span>
-                <input required type="text" value={createIdentifier}
-                  onChange={(e) => setCreateIdentifier(e.target.value)}
-                  placeholder={t('tanks.namePlaceholder')}
-                  className="w-36 text-sm" />
-              </label>
+              <span id={`${stillNeededId}-fuel`} className="ui-label">{t('tanks.fuelType')}</span>
+              <SearchableSelect aria-labelledby={`${stillNeededId}-fuel`}
+                value={createFuelType}
+                onChange={(v) => setCreateFuelType(v as FuelType)}
+                options={ALL_FUEL_TYPES.map((ft) => ({ value: ft, label: codeLabel(ft) }))}
+              />
             </div>
-            <div className="relative" ref={fuelDropdownRef}>
-              <span className="ui-label">{t('tanks.fuelType')} <span className="text-bad">*</span></span>
-              <button
-                type="button"
-                onClick={() => setFuelDropdownOpen(o => !o)}
-                className="ui-btn ui-btn-secondary min-w-37 justify-between bg-surface text-sm"
-              >
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-badge text-xs font-medium border ${FUEL_COLOR[createFuelType]}`}>
-                  {codeLabel(createFuelType)}
-                </span>
-                <svg className={`w-4 h-4 text-ink-3 transition-transform duration-150 ${fuelDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {fuelDropdownOpen && (
-                <div className="absolute z-20 mt-1 ui-card p-1 min-w-40 shadow-overlay">
-                  {ALL_FUEL_TYPES.map((ft) => (
-                    <button
-                      key={ft}
-                      type="button"
-                      onClick={() => { setCreateFuelType(ft); setFuelDropdownOpen(false) }}
-                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-bg transition-colors ${createFuelType === ft ? 'bg-bg' : ''}`}
-                    >
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-badge text-xs font-medium border ${FUEL_COLOR[ft]}`}>
-                        {codeLabel(ft)}
-                      </span>
-                      {createFuelType === ft && (
-                        <svg className="ml-auto w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="block">
-                <span className="ui-label">
-                {t('tanks.capacityLabel', { unit: FUEL_UNIT[createFuelType] })} <span className="text-bad">*</span>
-              </span>
-                <input required type="number" step="0.01" min="1" value={createCapacity}
-                  onChange={(e) => setCreateCapacity(e.target.value)}
-                  placeholder={t('example', { value: '25000' })}
-                  className="w-32 text-sm" />
-              </label>
-            </div>
-            <div>
-              <label className="block">
-                <span className="ui-label">
-                {t('tanks.dipTolerance', { unit: FUEL_UNIT[createFuelType] })} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span>
-              </span>
-                <input type="number" step="0.01" min="0" value={createDipTol}
-                  onChange={(e) => setCreateDipTol(e.target.value)}
-                  placeholder={t('example', { value: '50' })}
-                  className="w-28 text-sm" />
-              </label>
-            </div>
-            <button type="submit" disabled={createMutation.isPending}
-              className="ui-btn ui-btn-primary">
-              {createMutation.isPending ? t('actions.addingDots') : t('tanks.add')}
-            </button>
-          </div>
+            <FormField label={t('tanks.capacity')}
+              help={createCapacityText ? t('tanks.capacityHelp', { amount: createCapacityText }) : undefined}>
+              <NumericInput required step="0.01" min="1" unit={createUnit} value={createCapacity}
+                onChange={(e) => setCreateCapacity(e.target.value)} />
+            </FormField>
+            <FormField
+              label={<>{t('tanks.dipTolerance')} <span className="text-ink-3 font-normal">{t('common:fields.optionalSuffix')}</span></>}
+              help={createDipTolText ? t('tanks.dipToleranceHelp', { amount: createDipTolText }) : t('tanks.dipToleranceHint')}>
+              <NumericInput step="0.01" min="0" unit={createUnit} value={createDipTol}
+                onChange={(e) => setCreateDipTol(e.target.value)} />
+            </FormField>
+          </FormGrid>
           {createError && <p role="alert" className="ui-error-text">{createError}</p>}
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <StillNeeded id={stillNeededId} items={stillNeeded} />
+            <LoadingButton type="submit" isLoading={createMutation.isPending} loadingLabel={t('actions.adding')}
+              disabled={stillNeeded.length > 0}
+              aria-describedby={stillNeeded.length > 0 ? stillNeededId : undefined}
+              className="ui-btn-primary">
+              {t('tanks.add')}
+            </LoadingButton>
+          </div>
         </form>
-      </div>
+      </section>
     </div>
   )
 }
-
-// ── Shift Definitions Content ─────────────────────────────────────────────────
-
-/**
- * Subtracts 1 minute from a "HH:MM" time string.
- * End times are stored as exclusive upper bounds: user sees "09:00", backend stores "08:59".
- * This ensures consecutive shifts (one ending at 09:00, next starting at 09:00) don't overlap.
- */

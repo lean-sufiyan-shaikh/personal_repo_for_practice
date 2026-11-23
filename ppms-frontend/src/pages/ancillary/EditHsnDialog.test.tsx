@@ -39,7 +39,7 @@ describe('editing the HSN code of an existing product', () => {
 
     await user.click(screen.getByRole('button', { name: `Edit HSN code of ${product.displayName}` }))
     const dialog = await screen.findByRole('dialog')
-    const input = within(dialog).getByLabelText('HSN Code')
+    const input = within(dialog).getByLabelText('HSN code')
     expect(input).toHaveValue('2710')
     await user.clear(input)
     await user.type(input, '27101980')
@@ -55,7 +55,7 @@ describe('editing the HSN code of an existing product', () => {
 
     await user.click(screen.getByRole('button', { name: `Edit HSN code of ${product.displayName}` }))
     const dialog = await screen.findByRole('dialog')
-    const input = within(dialog).getByLabelText('HSN Code')
+    const input = within(dialog).getByLabelText('HSN code')
     await user.clear(input)
     await user.type(input, '27')
     await user.click(within(dialog).getByRole('button', { name: 'Save' }))

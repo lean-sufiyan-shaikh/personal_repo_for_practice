@@ -12,22 +12,21 @@
     "title": "Record expense",
     "subtitle": "Capture the category, amount, date, and description before review.",
     "category": "Category",
-    "amountRupees": "Amount (₹)",
     "amount": "Amount",
     "description": "Description",
-    "descriptionPlaceholder": "e.g. Pump servicing by XYZ",
-    "expenseDate": "Expense Date",
+    "expenseDate": "Expense date",
     "saveDraft": "Save as draft — submit for approval later",
-    "review": "Review Expense",
+    "needAmount": "Amount",
+    "needDescription": "Description",
     "recorded": "Expense recorded successfully",
     "recordFailed": "Failed to record expense",
     "descriptionRequired": "Description is required",
     "amountPositive": "Amount must be greater than zero"
   },
   "review": {
-    "title": "Review Expense",
-    "subtitle": "Verify the expense details before saving the record.",
-    "add": "Add Expense"
+    "title": "Review expense",
+    "add": "Save expense",
+    "savedAs": "Saved as"
   },
   "list": {
     "title": "All Expenses",

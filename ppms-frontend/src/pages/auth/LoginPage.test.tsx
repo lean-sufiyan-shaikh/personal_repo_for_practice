@@ -18,12 +18,12 @@ describe('LoginPage', () => {
     vi.mocked(authApi.login).mockRejectedValue(new AxiosError('Network Error', 'ERR_NETWORK'))
     renderWithProviders(<LoginPage />)
 
-    await user.type(screen.getByLabelText('Phone Number'), '9999999999')
+    await user.type(screen.getByLabelText('Phone number'), '9999999999')
     await user.type(screen.getByLabelText('Password'), 'secret')
-    await user.click(screen.getByRole('button', { name: 'Sign In' }))
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
     expect(await screen.findByText(NO_CONNECTION_MESSAGE)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Sign In' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled()
   })
 
   describe('language', () => {
@@ -52,9 +52,9 @@ describe('LoginPage', () => {
       })
       renderWithProviders(<LoginPage />)
 
-      await user.type(screen.getByLabelText('Phone Number'), '9999999999')
+      await user.type(screen.getByLabelText('Phone number'), '9999999999')
       await user.type(screen.getByLabelText('Password'), 'secret')
-      await user.click(screen.getByRole('button', { name: 'Sign In' }))
+      await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
       await vi.waitFor(() => expect(useAuthStore.getState().user?.preferredLanguage).toBe('mr'))
     })

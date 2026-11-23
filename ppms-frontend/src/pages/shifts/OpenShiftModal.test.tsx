@@ -52,13 +52,17 @@ describe('OpenShiftModal', () => {
 
     expect(await screen.findByText('2 selected')).toBeInTheDocument()
     expect(within(nozzleGroup()).getByRole('button', { name: /#3/ })).toHaveTextContent('In use')
-    expect(screen.getByRole('button', { name: 'Pick an operator' })).toBeDisabled()
+    const openButton = screen.getByRole('button', { name: 'Open shift' })
+    expect(openButton).toBeDisabled()
+    expect(openButton).toHaveAccessibleDescription('Still needed Pick an operator Confirm the meter readings')
 
     await user.click(await screen.findByRole('button', { name: /Ravi/ }))
-    expect(screen.getByRole('button', { name: 'Confirm the meter readings' })).toBeDisabled()
+    expect(openButton).toHaveAccessibleDescription('Still needed Confirm the meter readings')
 
     await user.click(screen.getByLabelText(/I confirm the meter readings above are correct/))
-    await user.click(screen.getByRole('button', { name: 'Open Shift' }))
+    expect(openButton).toBeEnabled()
+    expect(openButton).not.toHaveAccessibleDescription()
+    await user.click(openButton)
 
     expect(shiftApi.openShift).toHaveBeenCalledWith(3, { duId: 1, nozzleIds: [21, 22], operatorId: 9 })
     await waitFor(() => expect(useToastStore.getState().toasts).toEqual([
@@ -72,10 +76,13 @@ describe('OpenShiftModal', () => {
     renderWithProviders(<OpenShiftModal pumpId={3} activeShifts={[]} onClose={vi.fn()} />)
 
     const secondDu = await screen.findByRole('button', { name: /DU 2/ })
-    expect(screen.getByRole('button', { name: 'Pick a dispensary unit' })).toBeDisabled()
+    const openButton = screen.getByRole('button', { name: 'Open shift' })
+    expect(openButton).toBeDisabled()
+    expect(openButton).toHaveAccessibleDescription(/^Still needed Pick a dispensary unit/)
     expect(screen.queryByRole('group', { name: 'Select nozzles' })).not.toBeInTheDocument()
 
     await user.click(secondDu)
-    expect(screen.getByRole('button', { name: 'Select at least one nozzle' })).toBeDisabled()
+    expect(secondDu).toHaveAttribute('aria-pressed', 'true')
+    expect(openButton).toHaveAccessibleDescription(/^Still needed Select at least one nozzle/)
   })
 })

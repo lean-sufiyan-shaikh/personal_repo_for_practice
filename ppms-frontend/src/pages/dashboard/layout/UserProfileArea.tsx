@@ -199,7 +199,7 @@ export function UserProfileArea() {
               onClick={openPasswordModal}
               className="ui-btn ui-btn-ghost w-full justify-start rounded-none border-0 px-4 py-3 text-left text-sm font-medium text-ink hover:bg-bg"
             >
-              {t('profile.resetPassword')}
+              {t('profile.changePassword')}
             </button>
             <button
               onClick={handleLogout}

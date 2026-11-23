@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
+import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -9,6 +10,8 @@ import { Modal } from './Modal'
 import { parseApiError } from '../utils/apiError'
 import { PASSWORD_POLICY_REGEX } from '../constants/passwordPolicy'
 import { FormField } from './FormField'
+import { LoadingButton } from './LoadingButton'
+import { StillNeeded } from './StillNeeded'
 
 interface ChangePasswordModalProps {
   onClose: () => void
@@ -21,10 +24,12 @@ export function ChangePasswordModal({ onClose, successMessage, required = false 
   const { t } = useTranslation(['auth', 'common'])
   const navigate = useNavigate()
   const { clearAuth } = useAuthStore()
+  const stillNeededId = useId()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [policyError, setPolicyError] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const changePasswordMutation = useMutation({
     mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
@@ -34,28 +39,29 @@ export function ChangePasswordModal({ onClose, successMessage, required = false 
       navigate('/login', { state: { message: successMessage ?? data.message } })
     },
     onError: (err) => {
-      setPasswordError(parseApiError(err, t('changePassword.failed')))
+      setServerError(parseApiError(err, t('changePassword.failed')))
     },
   })
 
-  const handleChangePassword = () => {
-    setPasswordError(null)
+  const passwordsDiffer = confirmPassword !== '' && newPassword !== confirmPassword
+  // Waits until the confirmation is as long as the new password, so the error does not flash while typing.
+  const showMismatch = passwordsDiffer && confirmPassword.length >= newPassword.length
+  const stillNeeded = [
+    ...(currentPassword ? [] : [t('fields.currentPassword')]),
+    ...(newPassword ? [] : [t('fields.newPassword')]),
+    ...(confirmPassword ? [] : [t('fields.confirmNewPassword')]),
+    ...(passwordsDiffer ? [t('changePassword.passwordsMatch')] : []),
+  ]
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError(t('changePassword.allRequired'))
-      return
-    }
-
+  const handleChangePassword = (event: FormEvent) => {
+    event.preventDefault()
+    setServerError(null)
+    if (stillNeeded.length > 0) return
     if (!PASSWORD_POLICY_REGEX.test(newPassword)) {
-      setPasswordError(t('passwordPolicy'))
+      setPolicyError(true)
       return
     }
-
-    if (newPassword !== confirmPassword) {
-      setPasswordError(t('changePassword.mismatch'))
-      return
-    }
-
+    setPolicyError(false)
     changePasswordMutation.mutate({ currentPassword, newPassword })
   }
 
@@ -63,70 +69,53 @@ export function ChangePasswordModal({ onClose, successMessage, required = false 
     <Modal
       title={required ? t('changePassword.requiredTitle') : t('changePassword.title')}
       subtitle={required ? t('changePassword.requiredSubtitle') : t('changePassword.subtitle')}
-      tone="warning"
-      size="lg"
+      tone="info"
+      size="md"
       onClose={onClose}
+      canClose={!changePasswordMutation.isPending}
       closeOnBackdropClick={!required}
+      onSubmit={handleChangePassword}
       bodyClassName="space-y-4"
       footer={
         <>
-          <button
-            onClick={onClose}
-            disabled={changePasswordMutation.isPending}
-            className="ui-btn ui-btn-secondary"
-          >
+          <StillNeeded id={stillNeededId} items={stillNeeded} />
+          <button type="button" onClick={onClose} disabled={changePasswordMutation.isPending} className="ui-btn ui-btn-secondary">
             {required ? t('changePassword.signOut') : t('common:actions.cancel')}
           </button>
-          <button
-            onClick={handleChangePassword}
-            disabled={changePasswordMutation.isPending}
-            className="ui-btn ui-btn-primary"
-          >
-            {changePasswordMutation.isPending ? t('changePassword.submitting') : t('changePassword.submit')}
-          </button>
+          <LoadingButton type="submit" isLoading={changePasswordMutation.isPending} loadingLabel={t('changePassword.submitting')}
+            disabled={stillNeeded.length > 0} aria-describedby={stillNeeded.length ? stillNeededId : undefined}
+            className="ui-btn-primary">
+            {t('changePassword.submit')}
+          </LoadingButton>
         </>
       }
     >
-      <div>
-        <FormField label={t('fields.currentPassword')}>
-          <PasswordInput
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            autoComplete="current-password"
-            className="shadow-sm"
-          />
-        </FormField>
-      </div>
+      <FormField label={t('fields.currentPassword')}>
+        <PasswordInput
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          autoComplete="current-password"
+          data-autofocus
+        />
+      </FormField>
 
-      <div>
-        <FormField label={t('fields.newPassword')}>
-          <PasswordInput
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            autoComplete="new-password"
-            className="shadow-sm"
-          />
-        </FormField>
-        <p className="ui-help">{t('passwordPolicy')}</p>
-      </div>
+      <FormField label={t('fields.newPassword')} help={t('passwordPolicy')} error={policyError ? t('changePassword.weakPassword') : undefined}>
+        <PasswordInput
+          value={newPassword}
+          onChange={(e) => { setNewPassword(e.target.value); setPolicyError(false) }}
+          autoComplete="new-password"
+        />
+      </FormField>
 
-      <div>
-        <FormField label={t('fields.confirmNewPassword')}>
-          <PasswordInput
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleChangePassword() }}
-            autoComplete="new-password"
-            className="shadow-sm"
-          />
-        </FormField>
-      </div>
+      <FormField label={t('fields.confirmNewPassword')} error={showMismatch ? t('changePassword.mismatch') : undefined}>
+        <PasswordInput
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          autoComplete="new-password"
+        />
+      </FormField>
 
-      {passwordError && (
-        <div className="ui-alert ui-alert-danger" role="alert">
-          <p className="text-sm text-bad">{passwordError}</p>
-        </div>
-      )}
+      {serverError && <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>}
     </Modal>
   )
 }

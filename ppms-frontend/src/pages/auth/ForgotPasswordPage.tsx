@@ -9,7 +9,7 @@ import { BackToLogin } from './BackToLogin'
 function NoEmailHelp() {
   const { t } = useTranslation('auth')
   return (
-    <div className="ui-alert ui-alert-warning text-sm">
+    <div className="ui-alert text-sm">
       <p className="font-medium">{t('forgotPassword.noEmailTitle')}</p>
       <p className="mt-1">{t('forgotPassword.noEmailBody')}</p>
     </div>
@@ -73,11 +73,13 @@ export default function ForgotPasswordPage() {
               value={phoneNumber}
               onChange={e => setPhoneNumber(e.target.value)}
               placeholder={t('forgotPassword.phonePlaceholder')}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? 'forgot-phone-error' : undefined}
               className="shadow-raised"
             />
+            {error && <p id="forgot-phone-error" className="ui-error-text" role="alert">{error}</p>}
           </div>
 
-          {error && <p className="ui-error-text" role="alert">{error}</p>}
 
           <button
             type="submit"

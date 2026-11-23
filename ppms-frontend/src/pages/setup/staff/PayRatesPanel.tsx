@@ -1,10 +1,16 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../../utils/apiError'
 import { userApi } from '../../../api/userApi'
 import type { StaffMember } from '../../../api/userApi'
-import { Spinner } from '../../../components/Spinner'
+import { FormField } from '../../../components/FormField'
+import { NumericInput } from '../../../components/NumericInput'
+import { LiveFigures } from '../../../components/LiveFigures'
+import { MoneyText } from '../../../components/AmountText'
+import { LoadingButton } from '../../../components/LoadingButton'
+import { StillNeeded } from '../../../components/StillNeeded'
+import { RowPanel, RowPanelActions } from './RowPanel'
 
 interface Props {
   pumpId: number
@@ -12,15 +18,28 @@ interface Props {
   onClose: () => void
 }
 
+/** Every shift on the clock (12 AM–8 AM, 8 AM–4 PM, 4 PM–12 AM) is eight hours long. */
+const SHIFT_HOURS = 8
+/** A month with one day off a week, for the example pay under the daily rate. */
+const EXAMPLE_WORKING_DAYS = 26
+
 const rateText = (rate: number | null | undefined) => (rate != null ? String(rate) : '')
+
+/** The rate times a count, or null while the rate is empty or not a number, so the figure reads "—". */
+function payFor(rate: string, count: number): number | null {
+  const value = parseFloat(rate)
+  return rate === '' || Number.isNaN(value) ? null : value * count
+}
 
 export function PayRatesPanel({ pumpId, member, onClose }: Props) {
   const { t } = useTranslation(['setup', 'common'])
   const queryClient = useQueryClient()
+  const stillNeededId = useId()
   const [rateShift1, setRateShift1]       = useState(rateText(member.shift1HourlyRate))
   const [rateStandard, setRateStandard]   = useState(rateText(member.standardHourlyRate))
   const [rateDaily, setRateDaily]         = useState(rateText(member.dailyRate))
   const [rateError, setRateError]         = useState<string | null>(null)
+  const isOperator = member.role === 'OPERATOR'
 
   const rateMutation = useMutation({
     mutationFn: ({ userId, shift1HourlyRate, standardHourlyRate, dailyRate }: { userId: number; shift1HourlyRate?: number; standardHourlyRate?: number; dailyRate?: number }) =>
@@ -33,86 +52,65 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
     onError: (err) => setRateError(parseApiError(err, t('staff.rates.failed'))),
   })
 
+  const stillNeeded = isOperator
+    ? [...(!rateShift1 ? [t('staff.rates.night')] : []), ...(!rateStandard ? [t('staff.rates.day')] : [])]
+    : (!rateDaily ? [t('staff.rates.daily')] : [])
+
+  const save = () => rateMutation.mutate(isOperator
+    ? { userId: member.id, shift1HourlyRate: parseFloat(rateShift1), standardHourlyRate: parseFloat(rateStandard) }
+    : { userId: member.id, dailyRate: parseFloat(rateDaily) })
+
   return (
-    <div className="px-3 py-3 border-t border-border">
-      <div className="max-w-sm space-y-3">
-        {member.role === 'OPERATOR' ? (
-          <>
-            <div>
-              <p className="text-xs font-semibold text-ink">{t('staff.rates.hourlyTitle', { name: member.fullName })}</p>
-              <p className="text-xs text-ink-3 mt-0.5">
-                {t('staff.rates.hourlyHint')}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <span className="ui-label">
-                  {t('staff.rates.night')} <span className="text-bad">*</span>
-                </span>
-                <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-ink-3">₹</span>
-                  <input aria-label={t('staff.rates.night')} type="number" min="1" step="0.01" value={rateShift1}
-                    onChange={e => setRateShift1(e.target.value)} placeholder={t('example', { value: '60' })}
-                    className="w-full pl-5 pr-2 text-xs min-h-10" />
-                </div>
-              </div>
-              <div>
-                <span className="ui-label">
-                  {t('staff.rates.day')} <span className="text-bad">*</span>
-                </span>
-                <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-ink-3">₹</span>
-                  <input aria-label={t('staff.rates.day')} type="number" min="1" step="0.01" value={rateStandard}
-                    onChange={e => setRateStandard(e.target.value)} placeholder={t('example', { value: '45' })}
-                    className="w-full pl-5 pr-2 text-xs min-h-10" />
-                </div>
-              </div>
-            </div>
-            {rateError && <p role="alert" className="ui-error-text">{rateError}</p>}
-            <div className="flex gap-2">
-              <button type="button"
-                disabled={!rateShift1 || !rateStandard || rateMutation.isPending}
-                onClick={() => rateMutation.mutate({ userId: member.id, shift1HourlyRate: parseFloat(rateShift1), standardHourlyRate: parseFloat(rateStandard) })}
-                className="ui-btn ui-btn-primary ui-btn-compact">
-                {rateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('common:actions.saving')}</span> : t('staff.rates.saveRates')}
-              </button>
-              <button type="button" onClick={onClose}
-                className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">{t('common:actions.cancel')}</button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div>
-              <p className="text-xs font-semibold text-ink">{t('staff.rates.dailyTitle', { name: member.fullName })}</p>
-              <p className="text-xs text-ink-3 mt-0.5">
-                {t('staff.rates.dailyHint')}
-              </p>
-            </div>
-            <div>
-              <span className="ui-label">
-                {t('staff.rates.daily')} <span className="text-bad">*</span>
-              </span>
-              <div className="relative max-w-40">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-ink-3">₹</span>
-                <input aria-label={t('staff.rates.daily')} type="number" min="1" step="0.01" value={rateDaily}
-                  onChange={e => setRateDaily(e.target.value)} placeholder={t('example', { value: '800' })}
-                  className="w-full pl-5 pr-2 text-xs min-h-10" />
-              </div>
-            </div>
-            {rateError && <p role="alert" className="ui-error-text">{rateError}</p>}
-            <div className="flex gap-2">
-              <button type="button"
-                disabled={!rateDaily || rateMutation.isPending}
-                onClick={() => rateMutation.mutate({ userId: member.id, dailyRate: parseFloat(rateDaily) })}
-                className="ui-btn ui-btn-primary ui-btn-compact">
-                {rateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('common:actions.saving')}</span> : t('staff.rates.saveRate')}
-              </button>
-              <button type="button" onClick={onClose}
-                className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">{t('common:actions.cancel')}</button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+    <RowPanel
+      title={isOperator ? t('staff.rates.hourlyTitle', { name: member.fullName }) : t('staff.rates.dailyTitle', { name: member.fullName })}
+      hint={isOperator ? t('staff.rates.hourlyHint') : t('staff.rates.dailyHint')}
+    >
+      {isOperator ? (
+        <div className="grid max-w-sm grid-cols-2 gap-3">
+          <FormField label={t('staff.rates.night')}>
+            <NumericInput min="1" step="0.01" unit="₹/hr" value={rateShift1} onChange={e => setRateShift1(e.target.value)} />
+          </FormField>
+          <FormField label={t('staff.rates.day')}>
+            <NumericInput min="1" step="0.01" unit="₹/hr" value={rateStandard} onChange={e => setRateStandard(e.target.value)} />
+          </FormField>
+        </div>
+      ) : (
+        <div className="max-w-44">
+          <FormField label={t('staff.rates.daily')}>
+            <NumericInput min="1" step="0.01" unit="₹/day" value={rateDaily} onChange={e => setRateDaily(e.target.value)} />
+          </FormField>
+        </div>
+      )}
+
+      <LiveFigures
+        label={t('staff.rates.exampleTitle')}
+        className="max-w-sm"
+        figures={isOperator ? [
+          { label: t('staff.rates.nightShiftPay', { hours: SHIFT_HOURS }), value: <MoneyText value={payFor(rateShift1, SHIFT_HOURS)} /> },
+          { label: t('staff.rates.dayShiftPay', { hours: SHIFT_HOURS }), value: <MoneyText value={payFor(rateStandard, SHIFT_HOURS)} /> },
+        ] : [
+          { label: t('staff.rates.monthPay', { days: EXAMPLE_WORKING_DAYS }), value: <MoneyText value={payFor(rateDaily, EXAMPLE_WORKING_DAYS)} /> },
+        ]}
+      />
+
+      {rateError && <p role="alert" className="ui-error-text">{rateError}</p>}
+      <RowPanelActions>
+        <LoadingButton
+          type="button"
+          isLoading={rateMutation.isPending}
+          loadingLabel={t('common:actions.saving')}
+          disabled={stillNeeded.length > 0}
+          aria-describedby={stillNeeded.length > 0 ? stillNeededId : undefined}
+          onClick={save}
+          className="ui-btn-primary ui-btn-compact"
+        >
+          {isOperator ? t('staff.rates.saveRates') : t('staff.rates.saveRate')}
+        </LoadingButton>
+        <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary ui-btn-compact">
+          {t('common:actions.cancel')}
+        </button>
+        <StillNeeded id={stillNeededId} items={stillNeeded} />
+      </RowPanelActions>
+    </RowPanel>
   )
 }

@@ -1,23 +1,21 @@
 {
-  "title": "Credit Balance Portal",
+  "title": "Credit balance portal",
   "subtitle": "Check your outstanding fuel credit balance",
   "form": {
     "pumpId": "Pump ID",
-    "pumpIdPlaceholder": "e.g. 1",
     "pumpIdHelp": "Ask the pump manager for the Pump ID",
-    "phone": "Registered Phone Number",
-    "phonePlaceholder": "10-digit mobile number",
+    "phone": "Registered phone number",
     "pin": "Portal PIN",
-    "pinHelp": "The pump gives you this PIN. Ask them if you don't have one.",
+    "pinHelp": "4 to 6 digits, given by the pump. Ask them if you don't have one.",
     "showPin": "Show PIN",
-    "pinPlaceholder": "4 to 6 digits",
     "checking": "Checking…",
-    "check": "Check Balance"
+    "check": "Check balance",
+    "phoneHelp": "10-digit mobile number"
   },
   "result": {
     "account": "Your credit account",
-    "outstanding": "Outstanding Balance",
-    "creditLimit": "Credit Limit",
+    "outstanding": "Outstanding balance",
+    "creditLimit": "Credit limit",
     "settled": "Your account is fully settled."
   },
   "errors": {

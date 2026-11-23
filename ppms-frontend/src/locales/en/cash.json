@@ -1,9 +1,9 @@
 {
   "eventTypes": {
-    "OPENING_BALANCE": "Opening Balance",
-    "CASH_IN": "Cash In",
-    "CASH_OUT": "Cash Out",
-    "CLOSING_BALANCE": "Closing Balance"
+    "OPENING_BALANCE": "Opening balance",
+    "CASH_IN": "Cash in",
+    "CASH_OUT": "Cash out",
+    "CLOSING_BALANCE": "Closing balance"
   },
   "page": {
     "title": "Cash Drawer",
@@ -27,14 +27,15 @@
   "form": {
     "title": "Record cash movement",
     "subtitle": "Log money entering or leaving the safe with the right event type and date.",
-    "eventType": "Event Type",
-    "amountRupees": "Amount (₹)",
+    "eventType": "Event type",
     "amount": "Amount",
     "availableBalance": "Available balance: {{amount}}",
     "description": "Description",
-    "descriptionPlaceholder": "e.g. Shift 1 cash deposited",
     "date": "Date",
-    "review": "Review Event",
+    "balanceNow": "In the safe now",
+    "balanceAfter": "In the safe after this",
+    "needAmount": "Amount",
+    "needDescription": "Description",
     "recorded": "Cash event recorded successfully",
     "recordFailed": "Failed to record event",
     "descriptionRequired": "Description is required",
@@ -42,8 +43,7 @@
     "exceedsBalance": "Cash-out amount {{amount}} exceeds the current drawer balance of {{balance}}."
   },
   "review": {
-    "title": "Review Cash Event",
-    "subtitle": "Check the event details before recording it.",
-    "record": "Record Event"
+    "title": "Review cash movement",
+    "record": "Record movement"
   }
 }

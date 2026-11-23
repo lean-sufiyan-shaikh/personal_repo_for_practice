@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trans, useTranslation } from 'react-i18next'
@@ -6,11 +6,11 @@ import { creditApi } from '../../../api/creditApi'
 import type { GenerateAllInvoicesResult } from '../../../api/creditApi'
 import { Spinner } from '../../../components/Spinner'
 import { Modal } from '../../../components/Modal'
+import { FormGrid } from '../../../components/layout/FormGrid'
+import { LoadingButton } from '../../../components/LoadingButton'
 import { parseApiError } from '../../../utils/apiError'
 import { formatCurrency } from '../../../utils/format'
 import { lastCompletedMonth } from '../creditDates'
-
-// ─── Generate Invoices For All Clients Modal ─────────────────────────────────
 
 interface GenerateAllInvoicesModalProps {
   pumpId: number
@@ -33,6 +33,9 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
   })
   const gstMissing = preview.data?.gstDetailsComplete === false
   const nothingToInvoice = preview.data?.clientsToInvoice === 0
+  const cannotGenerate = !preview.data || gstMissing || nothingToInvoice
+  const gstMissingId = useId()
+  const previewId = useId()
 
   const mutation = useMutation({
     mutationFn: () => creditApi.generateInvoicesForAllClients(pumpId, { periodFrom, periodTo }),
@@ -43,7 +46,8 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
     onError: (err) => setError(parseApiError(err, t('generateInvoices.failed'))),
   })
 
-  const handleSubmit = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
     if (!periodValid) { setError(t('generateInvoices.invalidPeriod')); return }
     setError(null)
     mutation.mutate()
@@ -54,25 +58,26 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
       title={t('generateInvoices.title')}
       subtitle={t('generateInvoices.subtitle')}
       tone="info"
+      size="md-wide"
       onClose={onClose}
       canClose={!mutation.isPending}
+      onSubmit={result ? undefined : handleSubmit}
       bodyClassName="space-y-4"
       footer={
         <>
           {result ? (
-            <button onClick={onClose} className="ui-btn ui-btn-primary">{t('common:actions.done')}</button>
+            <button type="button" onClick={onClose} className="ui-btn ui-btn-primary">{t('common:actions.done')}</button>
           ) : (
             <>
-              <button onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
-              <button onClick={handleSubmit}
-                disabled={mutation.isPending || !preview.data || gstMissing || nothingToInvoice}
-                className="ui-btn ui-btn-primary">
-                {mutation.isPending
-                  ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.generating')}</span>
-                  : preview.data && !nothingToInvoice
-                    ? t('generateInvoices.generateCount', { count: preview.data.clientsToInvoice })
-                    : t('common:actions.generate')}
-              </button>
+              <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
+              <LoadingButton type="submit" isLoading={mutation.isPending} loadingLabel={t('common:actions.generating')}
+                disabled={cannotGenerate}
+                aria-describedby={cannotGenerate ? (gstMissing ? gstMissingId : previewId) : undefined}
+                className="ui-btn-primary">
+                {preview.data && !nothingToInvoice
+                  ? t('generateInvoices.generateCount', { count: preview.data.clientsToInvoice })
+                  : t('common:actions.generate')}
+              </LoadingButton>
             </>
           )}
         </>
@@ -89,7 +94,7 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
       ) : (
         <>
           {gstMissing && (
-            <div role="alert" className="ui-alert ui-alert-danger text-sm">
+            <div id={gstMissingId} role="alert" className="ui-alert ui-alert-danger">
               <p className="font-semibold">{t('generateInvoices.gstMissing.title')}</p>
               <p>
                 {t('generateInvoices.gstMissing.body')}{' '}
@@ -100,19 +105,19 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
           <p className="text-sm text-ink-2">
             {t('generateInvoices.skipNote')}
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <FormGrid>
             <label className="block">
               <span className="ui-label">{t('common:fields.from')}</span>
               <input type="date" value={periodFrom} max={periodTo || undefined}
-                onChange={e => setPeriodFrom(e.target.value)} className="text-sm" data-autofocus />
+                onChange={e => setPeriodFrom(e.target.value)} data-autofocus />
             </label>
             <label className="block">
               <span className="ui-label">{t('common:fields.to')}</span>
               <input type="date" value={periodTo} min={periodFrom || undefined}
-                onChange={e => setPeriodTo(e.target.value)} className="text-sm" />
+                onChange={e => setPeriodTo(e.target.value)} />
             </label>
-          </div>
-          <div role="status" aria-live="polite" className="ui-card-plain px-4 py-3 text-sm">
+          </FormGrid>
+          <div id={previewId} role="status" aria-live="polite" className="ui-card-plain ui-card-muted px-4 py-3 text-sm">
             {!periodValid ? (
               <span className="text-ink-3">{t('generateInvoices.preview.choosePeriod')}</span>
             ) : preview.isLoading ? (
@@ -128,7 +133,7 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
               </span>
             )}
           </div>
-          {error && <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>}
+          {error && <p role="alert" className="ui-alert ui-alert-danger">{error}</p>}
         </>
       )}
     </Modal>

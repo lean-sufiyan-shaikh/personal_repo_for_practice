@@ -23,30 +23,38 @@
     "sheetCount_other": "{{count}} sheets"
   },
   "generate": {
-    "title": "Generate Balance Sheet",
-    "subtitle": "Create a shift or day-end financial snapshot for this pump.",
-    "submit": "Generate Report",
+    "title": "Generate balance sheet",
+    "subtitle": "A shift or day-end snapshot of sales and cash",
+    "submit": "Generate",
     "success": "Balance sheet generated successfully",
     "failed": "Failed to generate balance sheet",
-    "reportType": "Report Type",
-    "shiftReport": "Shift Report",
-    "dayReport": "Day-End Report",
+    "reportType": "Report type",
+    "shiftReport": "Shift report",
+    "dayReport": "Day-end report",
     "shiftHelp": "Covers one shift. All shifts in that window must be closed first.",
     "dayHelp": "Covers the full business day. All shifts should be closed before generating.",
-    "businessDate": "Business Date",
+    "businessDate": "Business date",
     "shift": "Shift",
     "loadingShifts": "Loading shifts…",
     "noShiftDefinitions": "No shift definitions configured for this pump. Please set them up in pump settings first.",
-    "notesPlaceholder": "Any remarks for this report…",
     "alreadyExists": "A balance sheet already exists for this period.",
     "revisionHelp": "If you can't see it in the list, widen the date filter. Do you want to generate a new revision instead? It will be saved as a separate entry (e.g. Shift 1 · 12 AM – 8 AM #2).",
-    "confirmRevision": "Yes, generate revision"
+    "confirmRevision": "Generate revision",
+    "keepExisting": "Keep existing",
+    "stillNeeded": {
+      "date": "Business date",
+      "shift": "Shift"
+    },
+    "coverage": {
+      "label": "Covers",
+      "day": "Whole day, {{date}}",
+      "shift": "{{shift}} on {{date}}"
+    }
   },
   "delete": {
-    "title": "Delete Balance Sheet?",
-    "subtitle": "This action removes the saved report entry.",
+    "title": "Delete balance sheet?",
     "deleting": "Deleting…",
-    "confirm": "Delete Report",
+    "confirm": "Delete balance sheet",
     "deleted": "Balance sheet deleted",
     "failed": "Failed to delete balance sheet",
     "body": "This will permanently delete the <period>{{period}}</period> report for <date>{{date}}</date>. You can regenerate it afterwards."

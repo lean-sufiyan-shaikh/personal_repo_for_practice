@@ -9,6 +9,8 @@ import { useToastStore } from '../../../store/toastStore'
 import { ConfirmButton } from '../../../components/ConfirmButton'
 import { IconButton } from '../../../components/IconButton'
 import { TankerForm } from './TankerForm'
+import type { TankerFieldErrors } from './TankerForm'
+import { LoadingButton } from '../../../components/LoadingButton'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { codeLabel } from '../../../constants/labels'
 import { formatNumberIn } from '../../../i18n/format'
@@ -32,18 +34,19 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
   const [tankerType, setTankerType] = useState<'OWN' | 'COMPANY'>('COMPANY')
   const [makeDefault, setMakeDefault] = useState(false)
   const [formError,  setFormError]  = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<TankerFieldErrors>({})
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['tankers', pumpId] })
 
   const resetForm = () => {
     setName(''); setCapacity(''); setTankerType('COMPANY'); setMakeDefault(false)
-    setFormError(null); setShowAdd(false); setEditId(null)
+    setFormError(null); setFieldErrors({}); setShowAdd(false); setEditId(null)
   }
 
   const startEdit = (tanker: Tanker) => {
     setEditId(tanker.id); setName(tanker.name)
     setCapacity(String(tanker.capacityLitres)); setTankerType(tanker.tankerType)
-    setMakeDefault(tanker.defaultTanker); setFormError(null); setShowAdd(false)
+    setMakeDefault(tanker.defaultTanker); setFormError(null); setFieldErrors({}); setShowAdd(false)
   }
 
   const createMutation = useMutation({
@@ -69,10 +72,15 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
     onSuccess: () => { invalidate(); addToast(t('tankers.defaultUpdated'), 'success') },
   })
 
-  function handleSubmit() {
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
     const cap = parseFloat(capacity)
-    if (!name.trim()) { setFormError(t('tankers.nameRequired')); return }
-    if (!capacity || isNaN(cap) || cap < 100) { setFormError(t('tankers.capacityMin')); return }
+    const errors: TankerFieldErrors = {
+      name: name.trim() ? undefined : t('tankers.nameRequired'),
+      capacity: !capacity || isNaN(cap) || cap < 100 ? t('tankers.capacityMin') : undefined,
+    }
+    setFieldErrors(errors)
+    if (errors.name || errors.capacity) return
     setFormError(null)
     const req: CreateTankerRequest = {
       name: name.trim(), capacityLitres: cap, tankerType, defaultTanker: makeDefault,
@@ -102,30 +110,31 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
             <div
               key={tanker.id}
               className={`flex items-center gap-3 rounded-card border px-4 py-3 ${
-                editId === tanker.id ? 'border-info bg-info-bg' : 'border-border bg-surface'
+                editId === tanker.id ? 'border-border bg-surface-sunken' : 'border-border bg-surface'
               }`}
             >
               {editId === tanker.id ? (
                 /* Inline edit form */
-                <div className="flex-1 space-y-3">
+                <form onSubmit={handleSubmit} noValidate aria-label={t('tankers.edit')} className="flex-1 space-y-3">
                   <TankerForm
                     name={name} setName={setName}
                     capacity={capacity} setCapacity={setCapacity}
                     tankerType={tankerType} setTankerType={setTankerType}
                     makeDefault={makeDefault} setMakeDefault={setMakeDefault}
+                    fieldErrors={fieldErrors}
                     error={formError}
                   />
                   <div className="flex gap-2">
-                    <button onClick={handleSubmit} disabled={isPending} className="ui-btn ui-btn-primary text-xs py-1.5 px-3 min-h-0">
-                      {isPending ? t('common:actions.saving') : t('common:actions.save')}
-                    </button>
-                    <button onClick={resetForm} className="ui-btn ui-btn-secondary text-xs py-1.5 px-3 min-h-0">{t('common:actions.cancel')}</button>
+                    <LoadingButton type="submit" isLoading={isPending} loadingLabel={t('common:actions.saving')} className="ui-btn-primary">
+                      {t('tankers.save')}
+                    </LoadingButton>
+                    <button type="button" onClick={resetForm} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
                   </div>
-                </div>
+                </form>
               ) : (
                 <>
-                  <div className="w-8 h-8 rounded-control bg-warn-bg flex items-center justify-center shrink-0">
-                    <Truck size={14} strokeWidth={2} className="text-warn" />
+                  <div className="w-8 h-8 rounded-control bg-surface-sunken flex items-center justify-center shrink-0">
+                    <Truck size={14} strokeWidth={2} aria-hidden="true" className="text-ink-3" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -145,8 +154,7 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
                       <button
                         onClick={() => setDefaultMutation.mutate(tanker.id)}
                         disabled={setDefaultMutation.isPending}
-                        className="ui-btn ui-btn-ghost text-xs py-1 px-2 min-h-0 text-ink-3"
-                        title={t('tankers.setAsDefault')}
+                        className="ui-btn ui-btn-ghost ui-btn-compact"
                       >
                         {t('tankers.setDefault')}
                       </button>
@@ -173,22 +181,23 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
       )}
 
       {showAdd ? (
-        <div className="rounded-card border border-info bg-info-bg p-4 space-y-3">
-          <p className="text-xs font-semibold text-info uppercase tracking-wide">{t('tankers.newTanker')}</p>
+        <form onSubmit={handleSubmit} noValidate aria-labelledby="new-tanker-title" className="ui-inline-form space-y-3">
+          <h3 id="new-tanker-title" className="ui-inline-form__title">{t('tankers.newTanker')}</h3>
           <TankerForm
             name={name} setName={setName}
             capacity={capacity} setCapacity={setCapacity}
             tankerType={tankerType} setTankerType={setTankerType}
             makeDefault={makeDefault} setMakeDefault={setMakeDefault}
+            fieldErrors={fieldErrors}
             error={formError}
           />
           <div className="flex gap-2">
-            <button onClick={handleSubmit} disabled={isPending} className="ui-btn ui-btn-primary text-xs py-1.5 px-3 min-h-0">
-              {isPending ? t('actions.adding') : t('tankers.add')}
-            </button>
-            <button onClick={resetForm} className="ui-btn ui-btn-secondary text-xs py-1.5 px-3 min-h-0">{t('common:actions.cancel')}</button>
+            <LoadingButton type="submit" isLoading={isPending} loadingLabel={t('actions.adding')} className="ui-btn-primary">
+              {t('tankers.add')}
+            </LoadingButton>
+            <button type="button" onClick={resetForm} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
           </div>
-        </div>
+        </form>
       ) : editId === null && (
         <button
           onClick={() => { resetForm(); setShowAdd(true) }}

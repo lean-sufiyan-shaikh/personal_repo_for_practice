@@ -58,7 +58,7 @@ describe('BalanceSheetPage', () => {
     await user.click(within(detail).getByRole('button', { name: 'Generate sheet' }))
 
     expect(screen.getByRole('status', { name: 'Address' })).toHaveTextContent('action=generate-sheet')
-    expect(await screen.findByRole('dialog', { name: /Generate Balance Sheet/ })).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: /Generate balance sheet/ })).toBeInTheDocument()
   })
 
   it('opens the chosen sheet beside the list and keeps it in the address', async () => {
@@ -102,7 +102,7 @@ describe('BalanceSheetPage', () => {
     const user = userEvent.setup()
     renderPage('/?action=generate-sheet')
 
-    const dialog = await screen.findByRole('dialog', { name: /Generate Balance Sheet/ })
+    const dialog = await screen.findByRole('dialog', { name: /Generate balance sheet/ })
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()

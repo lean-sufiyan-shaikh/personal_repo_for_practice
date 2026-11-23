@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { StaffMember } from '../../../api/userApi'
 import type { UserRole } from '../../../types/auth'
@@ -45,7 +46,7 @@ describe('StaffRow', () => {
   it('offers an owner every action on an operator', () => {
     renderRow(member, 'OWNER', true)
     const labels = menuLabels().join(' | ')
-    for (const action of ['Edit Details', 'Reset Password', 'Shift Preferences', 'Manage Leave', 'Pay Rates', 'Move to Another Pump', 'Deactivate Staff']) {
+    for (const action of ['Edit details', 'Reset password', 'Shift preferences', 'Manage leave', 'Pay rates', 'Move to another pump', 'Deactivate staff']) {
       expect(labels).toContain(action)
     }
   })
@@ -53,19 +54,50 @@ describe('StaffRow', () => {
   it('offers an admin edit, reset, leave and preferences on an operator, but not pay rates or status', () => {
     renderRow(member, 'ADMIN', true)
     const labels = menuLabels().join(' | ')
-    for (const action of ['Edit Details', 'Reset Password', 'Shift Preferences', 'Manage Leave']) {
+    for (const action of ['Edit details', 'Reset password', 'Shift preferences', 'Manage leave']) {
       expect(labels).toContain(action)
     }
-    expect(labels).not.toContain('Pay Rates')
-    expect(labels).not.toContain('Move to Another Pump')
-    expect(labels).not.toContain('Deactivate Staff')
+    expect(labels).not.toContain('Pay rates')
+    expect(labels).not.toContain('Move to another pump')
+    expect(labels).not.toContain('Deactivate staff')
   })
 
   it('does not let an admin edit or reset another admin', () => {
     renderRow({ ...member, role: 'ADMIN' }, 'ADMIN', true)
     const labels = menuLabels().join(' | ')
-    expect(labels).not.toContain('Edit Details')
-    expect(labels).not.toContain('Reset Password')
-    expect(labels).toContain('Manage Leave')
+    expect(labels).not.toContain('Edit details')
+    expect(labels).not.toContain('Reset password')
+    expect(labels).toContain('Manage leave')
+  })
+
+  it('asks before deactivating, saying what happens, and only then changes the status', async () => {
+    const user = userEvent.setup()
+    const onOpenPanel = vi.fn()
+    const onToggleStatus = vi.fn()
+    const onClosePanel = vi.fn()
+    const { rerender } = renderWithProviders(
+      <StaffRow
+        pumpId={2} member={member} viewerRole="OWNER" activeShiftDefs={[]}
+        openPanel={null} onOpenPanel={onOpenPanel} onClosePanel={onClosePanel}
+        menuOpen onMenuChange={vi.fn()} statusPending={false} onToggleStatus={onToggleStatus}
+      />,
+    )
+    await user.click(screen.getByRole('menuitem', { name: /Deactivate staff/ }))
+    expect(onOpenPanel).toHaveBeenCalledWith('deactivate')
+    expect(onToggleStatus).not.toHaveBeenCalled()
+
+    rerender(
+      <StaffRow
+        pumpId={2} member={member} viewerRole="OWNER" activeShiftDefs={[]}
+        openPanel="deactivate" onOpenPanel={onOpenPanel} onClosePanel={onClosePanel}
+        menuOpen={false} onMenuChange={vi.fn()} statusPending={false} onToggleStatus={onToggleStatus}
+      />,
+    )
+    expect(screen.getByRole('heading', { name: 'Deactivate Ravi Kumar?' })).toBeInTheDocument()
+    expect(screen.getByText(/can't sign in until you activate them again/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Deactivate' }))
+    expect(onToggleStatus).toHaveBeenCalledTimes(1)
+    expect(onClosePanel).toHaveBeenCalled()
   })
 })

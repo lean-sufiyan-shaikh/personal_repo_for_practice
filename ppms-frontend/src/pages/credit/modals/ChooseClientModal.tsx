@@ -25,6 +25,7 @@ export function ChooseClientModal({ clients, isLoading, onChoose, onClose }: Cho
     <Modal
       title={t('clientActions.recordPayment')}
       subtitle={t('choosePayer.subtitle')}
+      tone="info"
       size="md"
       onClose={onClose}
       closeOnBackdropClick

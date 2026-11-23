@@ -15,6 +15,12 @@ import { LanguagePicker } from '../../../components/LanguagePicker'
 import { isAppLanguage } from '../../../i18n/languages'
 import { FormGrid, FormGridFullRow } from '../../../components/layout/FormGrid'
 import { StickyActions } from '../../../components/layout/StickyActions'
+import { NightShiftConsentField } from './NightShiftConsentField'
+
+interface FieldErrors {
+  gender?: string
+  password?: string
+}
 
 /** onCancel shows a Close button, for when the form was opened on request rather than shown for an empty staff list. */
 export function AddStaffForm({ pumpId, canAssignAdmin, onCancel }: { pumpId: number; canAssignAdmin: boolean; onCancel?: () => void }) {
@@ -22,6 +28,7 @@ export function AddStaffForm({ pumpId, canAssignAdmin, onCancel }: { pumpId: num
   const titleId = useId()
   const queryClient = useQueryClient()
   const [form, setForm] = useState(EMPTY_FORM)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
@@ -41,14 +48,11 @@ export function AddStaffForm({ pumpId, canAssignAdmin, onCancel }: { pumpId: num
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault(); setError(null)
-    if (!form.gender) {
-      setError(t('staff.add.genderRequired'))
-      return
-    }
-    if (!PASSWORD_POLICY_REGEX.test(form.password)) {
-      setError(t('auth:passwordPolicy'))
-      return
-    }
+    const nextErrors: FieldErrors = {}
+    if (!form.gender) nextErrors.gender = t('staff.add.genderRequired')
+    if (!PASSWORD_POLICY_REGEX.test(form.password)) nextErrors.password = t('auth:passwordPolicy')
+    setFieldErrors(nextErrors)
+    if (nextErrors.gender || nextErrors.password || !form.gender) return
     mutation.mutate({
       ...form,
       gender: form.gender,
@@ -59,42 +63,33 @@ export function AddStaffForm({ pumpId, canAssignAdmin, onCancel }: { pumpId: num
 
   return (
     <form onSubmit={submit} aria-labelledby={titleId} className="ui-card-plain ui-card-muted p-4 md:p-5">
-      <div className="mb-4 flex flex-col gap-1 border-b border-border pb-3">
-        <h3 id={titleId} className="ui-label mb-0">{t('staff.add.title')}</h3>
+      <div className="mb-4 flex flex-col gap-0.5 border-b border-border pb-3">
+        <h3 id={titleId} className="text-base font-semibold text-ink">{t('staff.add.title')}</h3>
         <p className="text-sm text-ink-3">{t('staff.add.subtitle')}</p>
       </div>
 
       <FormGrid>
-        <label className="block">
-          <span className="ui-label">{t('staff.fullName')}</span>
+        <FormField label={t('staff.fullName')}>
           <input required value={form.fullName} onChange={(e) => set('fullName', e.target.value)}
-            placeholder={t('staff.add.namePlaceholder')}
-            className="text-sm" />
-        </label>
-        <label className="block">
-          <span className="ui-label">{t('staff.phone')}</span>
-          <input required value={form.phoneNumber} onChange={(e) => set('phoneNumber', e.target.value)}
-            placeholder={t('staff.phonePlaceholder')} maxLength={10}
-            className="text-sm" />
-        </label>
-        <div>
-          <FormField label={t('staff.add.password')}>
-            <PasswordInput required value={form.password} onChange={(e) => set('password', e.target.value)}
-              placeholder={t('staff.add.passwordPlaceholder')}
-              className="text-sm" />
-          </FormField>
-          <p className="ui-help">{t('auth:passwordPolicy')}</p>
-          <p className="ui-help">{t('staff.add.passwordHint')}</p>
-        </div>
+            autoComplete="off" className="text-sm" />
+        </FormField>
+        <FormField label={t('staff.phone')} help={t('staff.phoneHelp')}>
+          <input required type="tel" inputMode="numeric" value={form.phoneNumber}
+            onChange={(e) => set('phoneNumber', e.target.value)}
+            maxLength={10} autoComplete="off" className="text-sm" />
+        </FormField>
         <div>
           <span className="ui-label">{t('staff.gender')}</span>
           <SearchableSelect label={t('staff.gender')}
             value={form.gender}
-            onChange={v => setForm(prev => ({
-              ...prev,
-              gender: v as UserGender,
-              nightShiftConsent: prev.role === 'OPERATOR' && v === 'FEMALE' ? prev.nightShiftConsent : false,
-            }))}
+            onChange={v => {
+              setFieldErrors((prev) => ({ ...prev, gender: undefined }))
+              setForm(prev => ({
+                ...prev,
+                gender: v as UserGender,
+                nightShiftConsent: prev.role === 'OPERATOR' && v === 'FEMALE' ? prev.nightShiftConsent : false,
+              }))
+            }}
             placeholder={t('staff.selectGender')}
             options={[
               { value: 'MALE', label: codeLabel('MALE') },
@@ -102,6 +97,7 @@ export function AddStaffForm({ pumpId, canAssignAdmin, onCancel }: { pumpId: num
               { value: 'OTHER', label: codeLabel('OTHER') },
             ]}
           />
+          {fieldErrors.gender && <p role="alert" className="ui-error-text">{fieldErrors.gender}</p>}
         </div>
         <div>
           <span className="ui-label">{t('staff.role')}</span>
@@ -119,38 +115,23 @@ export function AddStaffForm({ pumpId, canAssignAdmin, onCancel }: { pumpId: num
               { value: 'ACCOUNTANT', label: codeLabel('ACCOUNTANT') },
             ]}
           />
-          <p className="ui-help">{t('staff.add.rulesHint')}</p>
         </div>
+        <FormField label={t('staff.add.password')} error={fieldErrors.password}
+          help={`${t('auth:passwordPolicy')} ${t('staff.add.passwordHint')}`}>
+          <PasswordInput required value={form.password} autoComplete="new-password"
+            onChange={(e) => { set('password', e.target.value); setFieldErrors((prev) => ({ ...prev, password: undefined })) }}
+            className="text-sm" />
+        </FormField>
         <LanguagePicker
           value={isAppLanguage(form.preferredLanguage) ? form.preferredLanguage : 'en'}
           onChange={(language) => set('preferredLanguage', language)}
           selectClassName="text-sm"
         />
-        <FormGridFullRow>
-          {form.role === 'OPERATOR' && form.gender === 'FEMALE' ? (
-            <label className="flex items-start gap-3 rounded-card border border-warn bg-warn-bg px-3.5 py-3">
-              <input
-                type="checkbox"
-                checked={!!form.nightShiftConsent}
-                onChange={(e) => set('nightShiftConsent', e.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-warn"
-              />
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold text-warn-strong">{t('staff.nightShiftConsent')}</span>
-                <span className="mt-1 block text-xs leading-5 text-warn-strong">
-                  {t('staff.nightShiftConsentHint')}
-                </span>
-              </span>
-            </label>
-          ) : (
-            <div className="rounded-card border border-border bg-surface px-3.5 py-3">
-              <p className="text-sm font-medium text-ink">{t('staff.add.consentTitle')}</p>
-              <p className="mt-1 text-xs leading-5 text-ink-3">
-                {t('staff.add.consentHint')}
-              </p>
-            </div>
-          )}
-        </FormGridFullRow>
+        {form.role === 'OPERATOR' && form.gender === 'FEMALE' && (
+          <FormGridFullRow>
+            <NightShiftConsentField checked={!!form.nightShiftConsent} onChange={(checked) => set('nightShiftConsent', checked)} />
+          </FormGridFullRow>
+        )}
       </FormGrid>
 
       <StickyActions className="mt-4 items-center bg-surface-sunken">

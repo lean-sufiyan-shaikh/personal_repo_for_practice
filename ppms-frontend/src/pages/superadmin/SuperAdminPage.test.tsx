@@ -96,9 +96,9 @@ describe('SuperAdminPage', () => {
     const user = userEvent.setup()
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: 'Onboard New Owner' }))
+    await user.click(await screen.findByRole('button', { name: 'Onboard new owner' }))
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Onboard New Owner' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Onboard new owner' })).toBeInTheDocument()
     expect(screen.getByLabelText('Address search')).toHaveTextContent('?action=onboard-owner')
     expect(screen.queryByRole('navigation', { name: 'Owners' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Back to owners' })).toHaveAttribute('href', '/super-admin')
@@ -108,7 +108,7 @@ describe('SuperAdminPage', () => {
     const user = userEvent.setup()
     renderPage('/super-admin?action=onboard-owner')
 
-    await user.click(await screen.findByRole('button', { name: 'Create Owner & Pump' }))
+    await user.click(await screen.findByRole('button', { name: 'Onboard owner' }))
 
     expect(await screen.findByText('Full name is required')).toBeInTheDocument()
     expect(screen.getByText('Phone number must be exactly 10 digits')).toBeInTheDocument()
@@ -125,13 +125,13 @@ describe('SuperAdminPage', () => {
     const user = userEvent.setup()
     renderPage('/super-admin?action=onboard-owner')
 
-    await user.type(await screen.findByLabelText('Full Name'), 'Lakshmi Rao')
-    await user.type(screen.getByLabelText('Phone Number'), '9876500012')
-    await user.type(screen.getByLabelText('Initial Password'), 'Start@2026')
-    await user.type(screen.getByLabelText('Pump Name'), 'Rao Fuels')
-    await user.type(screen.getByLabelText('Max DU Count'), '4')
-    await user.type(screen.getByLabelText('Pump Address'), 'Pune')
-    await user.click(screen.getByRole('button', { name: 'Create Owner & Pump' }))
+    await user.type(await screen.findByLabelText('Full name'), 'Lakshmi Rao')
+    await user.type(screen.getByLabelText('Phone number'), '9876500012')
+    await user.type(screen.getByLabelText('Initial password'), 'Start@2026')
+    await user.type(screen.getByLabelText('Pump name'), 'Rao Fuels')
+    await user.type(screen.getByLabelText('Max DU count'), '4')
+    await user.type(screen.getByLabelText('Pump address'), 'Pune')
+    await user.click(screen.getByRole('button', { name: 'Onboard owner' }))
 
     expect(await screen.findByText('Owner account created — share these login details')).toBeInTheDocument()
     expect(vi.mocked(superAdminApi.onboardOwner).mock.calls[0][0]).toEqual({

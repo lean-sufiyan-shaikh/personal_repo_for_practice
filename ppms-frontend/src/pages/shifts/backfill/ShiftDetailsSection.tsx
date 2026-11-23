@@ -1,61 +1,61 @@
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SearchableSelect } from '../../../components/SearchableSelect'
-import { SectionLabel } from './SectionLabel'
+import { FormField } from '../../../components/FormField'
+import { FormGrid } from '../../../components/layout/FormGrid'
+import { OperatorPicker } from '../components/OperatorPicker'
 import { maxDate, minDate } from './backfillHelpers'
 import type { BackfillForm } from './useBackfillForm'
 
 export function ShiftDetailsSection({ form }: { form: BackfillForm }) {
   const { t } = useTranslation(['shifts', 'common'])
-  const { shiftDate, setShiftDate, shiftDefinitionId, setShiftDefinitionId, selectedDU, setFuelRateInputs, defsLoading, definitions, dus, dusLoading, selectDU } = form
+  const windowLabelId = useId()
+  const {
+    shiftDate, setShiftDate, shiftDefinitionId, setShiftDefinitionId, setFuelRateInputs, defsLoading, definitions,
+    operatorId, setOperatorId, operatorSearch, setOperatorSearch, operatorsLoading, filteredOperators,
+  } = form
   return (
-    <div className="rounded-card border border-border bg-surface-sunken p-4 space-y-3">
-      <SectionLabel>{t('backfill.details.title')}</SectionLabel>
+    <div className="space-y-4">
+      <FormGrid>
+        <FormField label={t('backfill.details.shiftDate')} help={t('backfill.details.dateHint')}>
+          <input
+            type="date"
+            value={shiftDate}
+            min={minDate()}
+            max={maxDate()}
+            onChange={(e) => { setShiftDate(e.target.value); setShiftDefinitionId(null); setFuelRateInputs({}) }}
+            data-autofocus
+            required
+          />
+        </FormField>
 
-      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block">
-            <span className="ui-label">{t('backfill.details.shiftDate')} <span className="text-bad">*</span></span>
-            <input
-              type="date"
-              value={shiftDate}
-              min={minDate()}
-              max={maxDate()}
-              onChange={(e) => { setShiftDate(e.target.value); setShiftDefinitionId(null); setFuelRateInputs({}) }}
-              className="ui-input"
-              required
+          <span id={windowLabelId} className="ui-label">{t('backfill.details.window')}</span>
+          {definitions.length === 0 && !defsLoading ? (
+            <p className="ui-alert ui-alert-warning text-sm">{t('backfill.details.noDefinitions')}</p>
+          ) : (
+            <SearchableSelect aria-labelledby={windowLabelId}
+              value={String(shiftDefinitionId ?? '')}
+              onChange={(v) => setShiftDefinitionId(v ? Number(v) : null)}
+              options={definitions.map((def) => ({ value: String(def.id), label: `${def.name} · ${def.windowLabel}` }))}
+              placeholder={defsLoading ? t('backfill.details.loadingWindows') : t('backfill.details.selectWindow')}
+              disabled={defsLoading}
             />
-          </label>
-          <p className="text-xs text-ink-3 mt-0.5">{t('backfill.details.dateHint')}</p>
+          )}
         </div>
+      </FormGrid>
 
-        <div>
-          <span className="ui-label">{t('backfill.details.du')} <span className="text-bad">*</span></span>
-          <SearchableSelect label={t('backfill.details.du')}
-            value={String(selectedDU?.id ?? '')}
-            onChange={(v) => selectDU(dus.find((d) => String(d.id) === v) ?? null)}
-            options={dus.map((du) => ({ value: String(du.id), label: t('backfill.details.duOption', { name: du.name, number: du.duNumber }) }))}
-            placeholder={dusLoading ? t('common:loading.short') : t('backfill.details.selectDu')}
-            disabled={dusLoading}
-          />
-        </div>
-      </div>
-
-      <div>
-        <span className="ui-label">{t('backfill.details.window')} <span className="text-bad">*</span></span>
-        {definitions.length === 0 && !defsLoading ? (
-          <div className="rounded-card border border-border bg-warn-bg px-3 py-2 text-sm text-warn">
-            {t('backfill.details.noDefinitions')}
-          </div>
-        ) : (
-          <SearchableSelect label={t('backfill.details.window')}
-            value={String(shiftDefinitionId ?? '')}
-            onChange={(v) => setShiftDefinitionId(v ? Number(v) : null)}
-            options={definitions.map((def) => ({ value: String(def.id), label: `${def.name} · ${def.windowLabel}` }))}
-            placeholder={defsLoading ? t('backfill.details.loadingWindows') : t('backfill.details.selectWindow')}
-            disabled={defsLoading}
-          />
-        )}
-      </div>
+      <OperatorPicker
+        title={t('backfill.staff.operator')}
+        showStepNumber={false}
+        operatorsLoading={operatorsLoading}
+        noneAvailable={filteredOperators.length === 0 && operatorSearch === ''}
+        filteredOperators={filteredOperators}
+        operatorSearch={operatorSearch}
+        onSearchChange={setOperatorSearch}
+        selectedOperatorId={operatorId}
+        onSelect={(id) => { setOperatorId(id); setOperatorSearch('') }}
+      />
     </div>
   )
 }

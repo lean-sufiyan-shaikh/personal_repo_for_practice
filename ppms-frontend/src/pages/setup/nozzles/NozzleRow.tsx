@@ -71,7 +71,7 @@ export function NozzleRow({
               type="button"
               onClick={() => onEnable()}
               disabled={statusPending}
-              className="text-xs text-ok font-medium border border-ok hover:bg-ok-bg px-2.5 py-1 rounded-control transition-colors disabled:opacity-50"
+              className="ui-btn ui-btn-secondary ui-btn-compact"
             >
               {statusPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('actions.enabling')}</span> : t('common:actions.enable')}
             </button>

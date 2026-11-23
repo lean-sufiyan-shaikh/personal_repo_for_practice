@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../../utils/apiError'
 import { pumpApi } from '../../../api/pumpApi'
 import type { PumpSummary } from '../../../api/pumpApi'
-import { Spinner } from '../../../components/Spinner'
 import { useToastStore } from '../../../store/toastStore'
+import { FormField } from '../../../components/FormField'
+import { LoadingButton } from '../../../components/LoadingButton'
+import { NumericInput } from '../../../components/NumericInput'
 
 export function IncreaseDuLimit({ pump, onUpdated }: { pump: PumpSummary; onUpdated: () => void }) {
   const { t } = useTranslation(['setup', 'common'])
@@ -13,6 +15,11 @@ export function IncreaseDuLimit({ pump, onUpdated }: { pump: PumpSummary; onUpda
   const [showIncreaseMax, setShowIncreaseMax] = useState(false)
   const [newMaxCount, setNewMaxCount] = useState('')
   const [increaseError, setIncreaseError] = useState<string | null>(null)
+  const limitRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (showIncreaseMax) limitRef.current?.focus()
+  }, [showIncreaseMax])
 
   const increaseMaxMutation = useMutation({
     mutationFn: (count: number) => pumpApi.updateMaxDuCount(pump.id, count),
@@ -24,9 +31,12 @@ export function IncreaseDuLimit({ pump, onUpdated }: { pump: PumpSummary; onUpda
     onError: (err) => { const msg = parseApiError(err, t('nozzles.limit.failed')); setIncreaseError(msg); addToast(msg, 'error') },
   })
 
+  const typedMax = Number(newMaxCount)
+  const isRaise = newMaxCount !== '' && Number.isInteger(typedMax) && typedMax > pump.maxDuCount
+
   return (
-    <div className="space-y-2">
-      <p className="ui-alert ui-alert-warning text-xs">
+    <div className="space-y-3">
+      <p className="text-sm text-ink-2">
         {t('nozzles.limit.reached', { max: pump.maxDuCount })}
         {' '}{t('nozzles.limit.increaseHint')}
       </p>
@@ -34,42 +44,51 @@ export function IncreaseDuLimit({ pump, onUpdated }: { pump: PumpSummary; onUpda
         <button
           type="button"
           onClick={() => { setShowIncreaseMax(true); setNewMaxCount(String(pump.maxDuCount + 1)) }}
-          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
+          className="ui-btn ui-btn-secondary"
         >
           {t('nozzles.limit.increaseToggle')}
         </button>
       ) : (
-        <div className="flex items-end gap-3 flex-wrap">
-          <div>
-            <label className="block">
-              <span className="ui-label">{t('nozzles.limit.newMax')}</span>
-              <input
-                type="number"
-                min={pump.maxDuCount + 1}
-                max="20"
-                value={newMaxCount}
-                onChange={(e) => setNewMaxCount(e.target.value)}
-                className="w-24 text-sm"
-              />
-            </label>
+        <form
+          onSubmit={(e) => { e.preventDefault(); if (newMaxCount) increaseMaxMutation.mutate(Number(newMaxCount)) }}
+          className="ui-inline-form space-y-3"
+        >
+          <FormField
+            className="max-w-xs"
+            label={t('nozzles.limit.newMax')}
+            help={isRaise
+              ? t('nozzles.limit.change', { current: pump.maxDuCount, next: typedMax })
+              : t('nozzles.limit.current', { current: pump.maxDuCount })}
+            error={increaseError ?? undefined}
+          >
+            <NumericInput
+              ref={limitRef}
+              inputMode="numeric"
+              min={pump.maxDuCount + 1}
+              max="20"
+              value={newMaxCount}
+              onChange={(e) => setNewMaxCount(e.target.value)}
+            />
+          </FormField>
+          <div className="flex flex-wrap gap-2">
+            <LoadingButton
+              type="submit"
+              isLoading={increaseMaxMutation.isPending}
+              loadingLabel={t('common:actions.saving')}
+              disabled={!newMaxCount}
+              className="ui-btn-primary"
+            >
+              {t('nozzles.limit.submit')}
+            </LoadingButton>
+            <button
+              type="button"
+              onClick={() => { setShowIncreaseMax(false); setIncreaseError(null) }}
+              className="ui-btn ui-btn-secondary"
+            >
+              {t('common:actions.cancel')}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => increaseMaxMutation.mutate(Number(newMaxCount))}
-            disabled={increaseMaxMutation.isPending || !newMaxCount}
-            className="ui-btn ui-btn-primary"
-          >
-            {increaseMaxMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('common:actions.saving')}</span> : t('nozzles.limit.submit')}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setShowIncreaseMax(false); setIncreaseError(null) }}
-            className="ui-btn ui-btn-ghost text-xs"
-          >
-            {t('common:actions.cancel')}
-          </button>
-          {increaseError && <p role="alert" className="ui-error-text w-full">{increaseError}</p>}
-        </div>
+        </form>
       )}
     </div>
   )

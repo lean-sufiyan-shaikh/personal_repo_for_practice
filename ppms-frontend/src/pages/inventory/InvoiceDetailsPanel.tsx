@@ -42,7 +42,7 @@ export function InvoiceDetailsPanel({ invoiceLabel, rows, pumpId, isOwnerOrAdmin
         {isOwnerOrAdmin && <MoneyText value={first.billTotal != null ? Number(first.billTotal) : totalCost} className="text-base font-bold text-ink" />}
       </>}
     >
-      <div className={`grid gap-3 border-b border-border pb-2 text-xs font-semibold uppercase tracking-wide text-ink-3 ${
+      <div className={`grid gap-3 border-b border-border pb-2 text-xs font-semibold text-ink-3 ${
         isOwnerOrAdmin
           ? 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'
           : 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'

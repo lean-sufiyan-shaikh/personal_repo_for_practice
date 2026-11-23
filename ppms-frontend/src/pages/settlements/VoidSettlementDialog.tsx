@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { paymentSettlementApi } from '../../api/paymentSettlementApi'
 import type { Settlement } from '../../api/paymentSettlementApi'
 import { Modal } from '../../components/Modal'
-import { Spinner } from '../../components/Spinner'
+import { FormField } from '../../components/FormField'
+import { MoneyText } from '../../components/AmountText'
+import { LoadingButton } from '../../components/LoadingButton'
+import { StillNeeded } from '../../components/StillNeeded'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { fmtAmt, fmtDate, typeLabel } from './settlementFormat'
@@ -19,8 +22,10 @@ export function VoidSettlementDialog({ pumpId, voidTarget, onClose }: VoidSettle
   const { t } = useTranslation(['settlements', 'common'])
   const qc           = useQueryClient()
   const { addToast } = useToastStore()
+  const stillNeededId = useId()
   const [voidReason, setVoidReason] = useState('')
-  const [voidError, setVoidError]   = useState<string | null>(null)
+  const [reasonError, setReasonError] = useState<string | null>(null)
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const voidMutation = useMutation({
     mutationFn: ({ id, reason }: { id: number; reason: string }) =>
@@ -31,55 +36,65 @@ export function VoidSettlementDialog({ pumpId, voidTarget, onClose }: VoidSettle
       onClose()
       addToast(t('void.voided'), 'success')
     },
-    onError: (err) => setVoidError(parseApiError(err, t('void.failed'))),
+    onError: (err) => setServerError(parseApiError(err, t('void.failed'))),
   })
 
   const handleVoid = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!voidReason.trim()) { setVoidError(t('void.reasonRequired')); return }
+    setServerError(null)
+    if (!voidReason.trim()) { setReasonError(t('void.reasonRequired')); return }
+    setReasonError(null)
     voidMutation.mutate({ id: voidTarget.id, reason: voidReason.trim() })
   }
 
+  const stillNeeded = voidReason.trim() ? [] : [t('void.needReason')]
+  const type = typeLabel(voidTarget.paymentType)
+
   return (
     <Modal
+      tone="warning"
       title={t('void.title')}
-      subtitle={<>{typeLabel(voidTarget.paymentType)} · {fmtDate(voidTarget.settlementDate)} · {fmtAmt(voidTarget.amountReceived)}</>}
-      size="lg"
+      subtitle={`${type} · ${fmtDate(voidTarget.settlementDate)} · ${fmtAmt(voidTarget.amountReceived)}`}
+      size="md-wide"
       onClose={onClose}
+      canClose={!voidMutation.isPending}
       closeOnBackdropClick
       onSubmit={handleVoid}
-      bodyClassName="flex flex-col gap-5"
+      bodyClassName="flex flex-col gap-4"
       footer={<>
-        <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
+        <StillNeeded id={stillNeededId} items={stillNeeded} />
+        <button type="button" onClick={onClose} disabled={voidMutation.isPending} className="ui-btn ui-btn-secondary">
           {t('common:actions.cancel')}
         </button>
-        <button type="submit" disabled={voidMutation.isPending} className="ui-btn ui-btn-danger">
-          {voidMutation.isPending ? <><Spinner /><span>{t('void.voiding')}</span></> : <span>{t('void.title')}</span>}
-        </button>
+        <LoadingButton type="submit" isLoading={voidMutation.isPending} loadingLabel={t('void.voiding')}
+          disabled={stillNeeded.length > 0}
+          aria-describedby={stillNeeded.length > 0 ? stillNeededId : undefined}
+          className="ui-btn-danger">
+          {t('void.title')}
+        </LoadingButton>
       </>}
     >
-      <p className="text-sm text-ink-2">
-        {t('void.explanation')}
-      </p>
-      <div>
-        <label className="block">
-          <span className="ui-label">{t('common:fields.reason')}</span>
-          <input
-            type="text"
-            className="ui-input"
-            placeholder={t('void.reasonPlaceholder')}
-            value={voidReason}
-            onChange={e => setVoidReason(e.target.value)}
-            data-autofocus
-          />
-        </label>
-      </div>
-
-      {voidError && (
-        <div role="alert" className="ui-alert ui-alert-danger text-sm py-2">
-          {voidError}
+      <p className="text-sm text-ink-2">{t('void.explanation')}</p>
+      <dl className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+          <dt className="text-ink-2">{t('details.amountReceived')}</dt>
+          <dd><MoneyText value={voidTarget.amountReceived} className="font-semibold text-ink" /></dd>
         </div>
-      )}
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+          <dt className="text-ink-2">{t('void.pendingRises', { type })}</dt>
+          <dd><MoneyText value={voidTarget.amountReceived} showSign className="font-semibold text-ink" /></dd>
+        </div>
+      </dl>
+      <FormField label={t('common:fields.reason')} error={reasonError ?? undefined}>
+        <input
+          type="text"
+          value={voidReason}
+          onChange={e => setVoidReason(e.target.value)}
+          data-autofocus
+        />
+      </FormField>
+
+      {serverError && <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>}
     </Modal>
   )
 }

@@ -746,6 +746,60 @@
     display: none;
   }
 
+  /* Live results under a money or quantity form: label on the left, figure on the right, result row in bold. */
+  .ui-live-figures {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface-sunken);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .ui-live-figures__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .ui-live-figures__row > dt {
+    color: var(--color-ink-2);
+  }
+
+  .ui-live-figures__row > dd {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink);
+  }
+
+  .ui-live-figures__row--result {
+    padding-top: 0.375rem;
+    border-top: 1px solid var(--color-border);
+    font-weight: 600;
+  }
+
+  .ui-live-figures__row--result > dt {
+    color: var(--color-ink);
+  }
+
+  /* "Still needed" beside a disabled footer action: its own line on phones, left of the buttons from tablet up. */
+  .ui-still-needed {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  @media (min-width: 769px) {
+    .ui-still-needed {
+      flex: 1 1 auto;
+      margin-right: auto;
+      align-self: center;
+    }
+  }
+
   /* Shift planning grid: the shift column keeps one width and stays in view while the week scrolls sideways. */
   .ui-plan-shift-cell {
     position: sticky;

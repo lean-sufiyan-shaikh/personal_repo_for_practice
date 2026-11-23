@@ -15,14 +15,11 @@
     "nozzle": "नोझल",
     "nozzlePlaceholder": "नोझल निवडा…",
     "calibrationDate": "कॅलिब्रेशनची तारीख",
-    "nextDueRequired": "पुढचे कॅलिब्रेशन कधी *",
-    "calibratedByRequired": "कॅलिब्रेशन कोणी केले *",
-    "calibratedByPlaceholder": "तंत्रज्ञ किंवा एजन्सीचे नाव",
-    "certificateRequired": "प्रमाणपत्र क्रमांक *",
-    "certificatePlaceholder": "तपासणी प्रमाणपत्र क्रमांक",
-    "notesOptional": "टीप (ऐच्छिक)",
-    "notesPlaceholder": "इतर निरीक्षणे",
-    "review": "कॅलिब्रेशन तपासा"
+    "review": "कॅलिब्रेशन तपासा",
+    "nextDue": "पुढचे कॅलिब्रेशन कधी",
+    "calibratedBy": "कॅलिब्रेशन करणारे",
+    "calibratedByHelp": "तंत्रज्ञ किंवा एजन्सीचे नाव",
+    "certificate": "सर्टिफिकेट क्रमांक"
   },
   "validation": {
     "selectNozzle": "कृपया नोझल निवडा",
@@ -38,7 +35,6 @@
   },
   "review": {
     "title": "कॅलिब्रेशन तपासा",
-    "subtitle": "सेव्ह करण्यापूर्वी नोझल आणि कॅलिब्रेशनची माहिती तपासा.",
     "confirm": "कॅलिब्रेशन निश्चित करा",
     "nozzle": "नोझल",
     "calibrationDate": "कॅलिब्रेशनची तारीख",

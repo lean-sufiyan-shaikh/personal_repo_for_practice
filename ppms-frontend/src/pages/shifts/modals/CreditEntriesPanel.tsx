@@ -26,17 +26,17 @@ export function CreditEntriesPanel({
           subtitle={t('creditEntries.subtitle', { id: shift.id, nozzles: shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', '), operator: shift.operatorName, date: shift.shiftDate })}
           onClose={onClose}
           bodyClassName="p-0 divide-y divide-border"
-          footerClassName="justify-between bg-warn-bg"
+          footerClassName="justify-between"
           footer={
             <>
-              <span className="text-sm font-semibold text-warn">{t('creditEntries.total')}</span>
-              <MoneyText value={creditTotal} className="text-base font-bold text-warn" />
+              <span className="text-sm font-semibold text-ink">{t('creditEntries.total')}</span>
+              <MoneyText value={creditTotal} className="text-base font-bold text-ink" />
             </>
           }
         >
           {entries.map((entry, idx) => (
             <div key={entry.id} className="flex items-start gap-3 px-5 py-3.5">
-              <div className="w-7 h-7 rounded-full bg-warn-bg text-warn text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-7 h-7 rounded-full bg-surface-sunken text-ink-2 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
                 {idx + 1}
               </div>
 
@@ -59,7 +59,7 @@ export function CreditEntriesPanel({
                 </div>
               </div>
 
-              <MoneyText value={entry.amount} className="text-sm font-bold text-warn shrink-0" />
+              <MoneyText value={entry.amount} className="text-sm font-semibold text-ink shrink-0" />
             </div>
           ))}
         </SidePanel>

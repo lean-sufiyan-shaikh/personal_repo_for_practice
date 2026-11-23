@@ -28,7 +28,7 @@ function renderModal(shift: Shift) {
 }
 
 async function chooseAction(user: ReturnType<typeof userEvent.setup>, label: string) {
-  await user.click(screen.getByRole('button', { name: /^Resolution Action:/ }))
+  await user.click(screen.getByRole('button', { name: /^Resolution action/ }))
   await user.click(screen.getByRole('option', { name: label }))
 }
 
@@ -40,8 +40,18 @@ describe('ResolveDiscrepancyModal', () => {
   it('starts with no action chosen so nothing can be confirmed by accident', () => {
     renderModal(shortShift)
 
-    expect(screen.getByRole('button', { name: 'Resolution Action: Choose an action…' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Confirm Resolution' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Resolution action Choose an action…' })).toBeInTheDocument()
+    const resolve = screen.getByRole('button', { name: 'Resolve' })
+    expect(resolve).toBeDisabled()
+    expect(resolve).toHaveAccessibleDescription('Still needed Resolution action')
+  })
+
+  it('shows the difference as a badge with the reason given at close', () => {
+    renderModal(shortShift)
+
+    expect(screen.getByRole('dialog', { name: 'Resolve discrepancy' })).toHaveTextContent('Shift #11 · Ravi')
+    expect(screen.getByText('SHORT ₹200.00')).toBeInTheDocument()
+    expect(screen.getByText('Reason given at close').nextSibling).toHaveTextContent('Short')
   })
 
   it('needs a note to put the shortage under investigation and then sends it', async () => {
@@ -49,12 +59,13 @@ describe('ResolveDiscrepancyModal', () => {
     renderModal(shortShift)
 
     await chooseAction(user, 'Pending Investigation')
-    await user.click(screen.getByRole('button', { name: 'Start Investigation' }))
+    await user.click(screen.getByRole('button', { name: 'Start investigation' }))
     expect(screen.getByRole('alert')).toHaveTextContent('Describe what is being investigated')
+    expect(screen.getByRole('textbox', { name: 'Note' })).toHaveAccessibleDescription('Describe what is being investigated.')
     expect(shiftApi.resolveDiscrepancy).not.toHaveBeenCalled()
 
-    await user.type(screen.getByRole('textbox'), 'Checking CCTV')
-    await user.click(screen.getByRole('button', { name: 'Start Investigation' }))
+    await user.type(screen.getByRole('textbox', { name: 'Note' }), 'Checking CCTV')
+    await user.click(screen.getByRole('button', { name: 'Start investigation' }))
     expect(shiftApi.resolveDiscrepancy).toHaveBeenCalledWith(3, 11,
       { resolutionAction: 'PENDING_INVESTIGATION', resolutionNote: 'Checking CCTV' })
   })
@@ -63,7 +74,7 @@ describe('ResolveDiscrepancyModal', () => {
     const user = userEvent.setup()
     renderModal({ ...shortShift, discrepancyType: 'OVER' })
 
-    await user.click(screen.getByRole('button', { name: /^Resolution Action:/ }))
+    await user.click(screen.getByRole('button', { name: /^Resolution action/ }))
     expect(screen.queryByRole('option', { name: 'Salary Deduction' })).not.toBeInTheDocument()
     expect(screen.queryByRole('option', { name: 'Cash Recovery' })).not.toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Waived' })).toBeInTheDocument()
@@ -74,7 +85,7 @@ describe('ResolveDiscrepancyModal', () => {
     const user = userEvent.setup()
     renderModal(shortShift)
 
-    await user.click(screen.getByRole('button', { name: /^Resolution Action:/ }))
+    await user.click(screen.getByRole('button', { name: /^Resolution action/ }))
     expect(screen.getByRole('option', { name: 'Salary Deduction' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Cash Recovery' })).toBeInTheDocument()
   })

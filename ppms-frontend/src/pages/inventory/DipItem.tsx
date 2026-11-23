@@ -6,6 +6,7 @@ import { AlertTriangle, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { StatusBadge } from '../../components/StatusBadge'
 import { LitresText } from '../../components/AmountText'
+import { LoadingButton } from '../../components/LoadingButton'
 import { FUEL_COLORS, fmtQty } from './inventoryFormat'
 
 // ── DIP item (compact card inside date group) ──────────────────────────────────
@@ -61,13 +62,15 @@ export function DipItem({ check, pumpId, canReview }: {
       </span>
       {statusBadge()}
       {check.status === 'PENDING_REVIEW' && canReview && (
-        <button
+        <LoadingButton
+          type="button"
           onClick={() => reviewMutation.mutate()}
-          disabled={reviewMutation.isPending}
-          className="ui-btn ui-btn-danger min-h-0 px-2.5 py-0.5 text-xs disabled:opacity-50 shrink-0"
+          isLoading={reviewMutation.isPending}
+          loadingLabel={t('dipItem.acknowledging')}
+          className="ui-btn-secondary ui-btn-compact shrink-0"
         >
-          {reviewMutation.isPending ? '…' : t('dipItem.acknowledge')}
-        </button>
+          {t('dipItem.acknowledge')}
+        </LoadingButton>
       )}
       {check.notes && (
         <span className="text-xs text-ink-3 italic shrink-0">{check.notes}</span>

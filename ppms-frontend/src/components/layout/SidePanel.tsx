@@ -2,12 +2,15 @@ import type { ReactNode, RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ModalPortal } from '../ModalPortal'
 import { IconButton } from '../IconButton'
+import type { ModalTone } from '../Modal'
 
 export type SidePanelSize = 'md' | 'lg'
 
 interface SidePanelProps {
   title: ReactNode
   subtitle?: ReactNode
+  /** Header stripe and icon, as on Modal; read-only views keep the default. */
+  tone?: ModalTone
   size?: SidePanelSize
   onClose: () => void
   /** Buttons shown in the header next to Close, e.g. Print. */
@@ -29,6 +32,7 @@ interface SidePanelProps {
 export function SidePanel({
   title,
   subtitle,
+  tone = 'info',
   size = 'md',
   onClose,
   headerActions,
@@ -44,7 +48,7 @@ export function SidePanel({
     <ModalPortal onClose={onClose} closeOnBackdropClick returnFocusRef={returnFocusRef}>
       <div className="ui-side-panel-backdrop">
         <div className={`ui-side-panel ui-side-panel--${size}`}>
-          <div className={`ui-modal-header ${headerClassName}`}>
+          <div className={`ui-modal-header ui-modal-header--themed ui-modal-header--${tone} ${headerClassName}`}>
             <div className="ui-modal-heading">
               <h2 tabIndex={-1} data-autofocus className="ui-modal-title outline-none">{title}</h2>
               {subtitle && <p className="ui-modal-subtitle">{subtitle}</p>}

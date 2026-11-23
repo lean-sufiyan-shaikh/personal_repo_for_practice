@@ -125,7 +125,7 @@ describe('ShiftsPage', () => {
     await queryClient.invalidateQueries({ queryKey: ['activeShifts', PUMP_ID] })
 
     await vi.waitFor(() => expect(within(dialog).queryByRole('button', { name: 'Void' })).not.toBeInTheDocument())
-    expect(within(dialog).getByText(/VOIDED/)).toBeInTheDocument()
+    expect(within(dialog).getByText('Voided')).toBeInTheDocument()
   })
 
   it('shows an operator their own shifts without the pump-wide Discrepancies tab', async () => {

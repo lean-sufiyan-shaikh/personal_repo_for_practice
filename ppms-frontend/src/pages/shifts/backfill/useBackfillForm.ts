@@ -288,8 +288,6 @@ export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
   const { requestClose, isConfirming, discard, keepEditing } = useConfirmDiscard(hasUnsavedChanges, onClose)
   const canSubmit = !!shiftDate && !!shiftDefinitionId && !!selectedDU && !!operatorId && selectedNozzleIds.size > 0
 
-  const selectedOperator = operators.find((o) => o.id === operatorId)
-
   // ── Render ────────────────────────────────────────────────────────────────
 
   return {
@@ -354,7 +352,6 @@ export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
     discard,
     keepEditing,
     canSubmit,
-    selectedOperator,
   }
 }
 

@@ -7,9 +7,9 @@ import ForgotPasswordPage from './ForgotPasswordPage'
 import ResetPasswordPage from './ResetPasswordPage'
 
 const signedOutScreens: [string, ReactElement, string][] = [
-  ['forgot password', <ForgotPasswordPage />, 'Forgot Password'],
-  ['reset password without a link', <ResetPasswordPage />, 'Invalid Reset Link'],
-  ['credit balance portal', <CreditBalancePortalPage />, 'Credit Balance Portal'],
+  ['forgot password', <ForgotPasswordPage />, 'Forgot password'],
+  ['reset password without a link', <ResetPasswordPage />, 'Invalid reset link'],
+  ['credit balance portal', <CreditBalancePortalPage />, 'Credit balance portal'],
 ]
 
 describe('signed-out screens', () => {

@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Trans, useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
 import type { CreditClient } from '../../../api/creditApi'
-import { Spinner } from '../../../components/Spinner'
 import { Modal } from '../../../components/Modal'
+import { FormField } from '../../../components/FormField'
+import { NumericInput } from '../../../components/NumericInput'
+import { LoadingButton } from '../../../components/LoadingButton'
+import { LiveFigures } from '../../../components/LiveFigures'
+import { MoneyText } from '../../../components/AmountText'
 import { parseApiError } from '../../../utils/apiError'
-
-// ─── Set Credit Limit Modal ──────────────────────────────────────────────────
+import { toPaise } from '../../../utils/money'
 
 interface SetCreditLimitModalProps {
   client: CreditClient
@@ -19,7 +22,8 @@ export function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitM
   const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
   const [limit, setLimit] = useState(client.creditLimit > 0 ? String(client.creditLimit) : '')
-  const [error, setError] = useState<string | null>(null)
+  const [limitError, setLimitError] = useState<string | undefined>()
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: (creditLimit: number) =>
@@ -29,68 +33,69 @@ export function SetCreditLimitModal({ client, pumpId, onClose }: SetCreditLimitM
       onClose()
     },
     onError: (err) => {
-      setError(parseApiError(err, t('creditLimit.failed')))
+      setServerError(parseApiError(err, t('creditLimit.failed')))
     },
   })
 
-  const handleSubmit = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setServerError(null)
     const val = limit.trim() === '' ? 0 : parseFloat(limit)
     if (isNaN(val) || val < 0) {
-      setError(t('creditLimit.invalid'))
+      setLimitError(t('creditLimit.invalid'))
       return
     }
-    setError(null)
+    setLimitError(undefined)
     mutation.mutate(val)
   }
+
+  const noLimit = <span className="text-ink-2">{t('creditLimit.noLimit')}</span>
+  const enteredLimit = limit.trim() === '' ? 0 : parseFloat(limit)
+  const newLimit = isNaN(enteredLimit) || enteredLimit < 0 ? null : enteredLimit
+  const leftAfterPaise = newLimit === null || newLimit === 0 ? null : toPaise(newLimit) - toPaise(client.outstandingBalance)
+  const isOverNewLimit = leftAfterPaise !== null && leftAfterPaise < 0
 
   return (
     <Modal
       title={t('creditLimit.title')}
       subtitle={client.name}
       tone="info"
-      size="lg"
+      size="md"
       onClose={onClose}
+      canClose={!mutation.isPending}
+      onSubmit={handleSubmit}
       bodyClassName="space-y-4"
       footer={
         <>
-          <button onClick={onClose} className="ui-btn ui-btn-secondary">
+          <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
             {t('common:actions.cancel')}
           </button>
-          <button
-            onClick={handleSubmit}
-            disabled={mutation.isPending}
-            className="ui-btn ui-btn-primary"
-          >
-            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.saving')}</span> : t('creditLimit.save')}
-          </button>
+          <LoadingButton type="submit" isLoading={mutation.isPending} loadingLabel={t('common:actions.saving')}
+            className="ui-btn-primary">
+            {t('creditLimit.save')}
+          </LoadingButton>
         </>
       }
     >
-      <div className="ui-inline-form">
-        <p className="ui-inline-form__copy">
-          <Trans t={t} i18nKey="creditLimit.explanation" components={{ strong: <strong /> }} />
-        </p>
-        <span className="ui-label">{t('creditLimit.label')}</span>
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 text-sm">₹</span>
-          <input aria-label={t('creditLimit.label')}
-            type="number"
-            min="0"
-            step="0.01"
-            value={limit}
-            onChange={e => setLimit(e.target.value)}
-            placeholder={t('creditLimit.placeholder')}
-            className="w-full pl-7 pr-3 text-sm"
-            data-autofocus
-          />
-        </div>
-      </div>
+      <FormField label={t('creditLimit.label')} help={t('creditLimit.help')} error={limitError}>
+        <NumericInput unit="₹" min="0" step="0.01" value={limit}
+          onChange={e => { setLimit(e.target.value); setLimitError(undefined) }}
+          data-autofocus />
+      </FormField>
 
-      {error && (
-        <div role="alert" className="ui-alert ui-alert-danger text-sm">
-          {error}
-        </div>
-      )}
+      <LiveFigures
+        label={t('creditLimit.figuresLabel')}
+        figures={[
+          { label: t('creditLimit.outstanding'), value: <MoneyText value={client.outstandingBalance} /> },
+          { label: t('creditLimit.currentLimit'), value: client.creditLimit > 0 ? <MoneyText value={client.creditLimit} /> : noLimit },
+          { label: t('creditLimit.newLimit'), value: newLimit === null ? <MoneyText value={null} /> : newLimit === 0 ? noLimit : <MoneyText value={newLimit} /> },
+          isOverNewLimit
+            ? { label: t('creditLimit.overLimitBy'), value: <MoneyText value={Math.abs(leftAfterPaise) / 100} tone="bad" />, isResult: true }
+            : { label: t('creditLimit.leftAfter'), value: newLimit === 0 ? noLimit : <MoneyText value={leftAfterPaise === null ? null : leftAfterPaise / 100} />, isResult: true },
+        ]}
+      />
+
+      {serverError && <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>}
     </Modal>
   )
 }

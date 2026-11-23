@@ -44,7 +44,7 @@ export function DiscrepancySection({ diff, canRoundOff, onRoundOff, reason, onRe
       <div className="px-4 py-3 bg-surface">
         <label className="block">
           <span className="block text-xs font-semibold text-ink-2 mb-1.5">
-          {t('common:fields.reason')} <span className="text-bad">*</span>
+          {t('common:fields.reason')}
           <span className="text-ink-3 font-normal ml-1">{t('close.discrepancy.requiredToClose')}</span>
         </span>
           <textarea value={reason} onChange={(e) => onReasonChange(e.target.value)}

@@ -1,10 +1,11 @@
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { serverText } from '../../utils/serverText'
 import { Trans, useTranslation } from 'react-i18next'
 import { balanceSheetApi } from '../../api/balanceSheetApi'
 import { parseApiError } from '../../utils/apiError'
 import type { BalanceSheetSummary } from '../../api/balanceSheetApi'
-import { Spinner } from '../../components/Spinner'
+import { LoadingButton } from '../../components/LoadingButton'
 import { useToastStore } from '../../store/toastStore'
 import { Modal } from '../../components/Modal'
 import { fmtDate } from './bsFormat'
@@ -21,6 +22,7 @@ export function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmPro
   const { t } = useTranslation(['balancesheet', 'common'])
   const qc = useQueryClient()
   const { addToast } = useToastStore()
+  const [error, setError] = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: () => balanceSheetApi.delete(pumpId, report.id),
@@ -29,33 +31,31 @@ export function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmPro
       addToast(t('delete.deleted'), 'success')
       onClose()
     },
-    onError: (err) => addToast(parseApiError(err, t('delete.failed')), 'error'),
+    onError: (err) => {
+      const msg = parseApiError(err, t('delete.failed'))
+      setError(msg)
+      addToast(msg, 'error')
+    },
   })
 
   return (
     <Modal
       title={t('delete.title')}
-      subtitle={t('delete.subtitle')}
+      subtitle={`${serverText(report.periodLabelCode, report.periodLabelParams, report.periodLabel)} · ${fmtDate(report.reportDate)}`}
       tone="danger"
       size="sm"
       onClose={onClose}
+      canClose={!mutation.isPending}
       footer={<>
-          <button
-            onClick={onClose}
-            className="ui-btn ui-btn-secondary"
-          >
-            {t('common:actions.cancel')}
-          </button>
-          <button
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending}
-            className="ui-btn ui-btn-danger"
-          >
-            {mutation.isPending
-              ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('delete.deleting')}</span>
-              : t('delete.confirm')}
-          </button>
+        <button type="button" onClick={onClose} disabled={mutation.isPending} className="ui-btn ui-btn-secondary">
+          {t('common:actions.cancel')}
+        </button>
+        <LoadingButton type="button" onClick={() => { setError(null); mutation.mutate() }} isLoading={mutation.isPending}
+          loadingLabel={t('delete.deleting')} className="ui-btn-danger">
+          {t('delete.confirm')}
+        </LoadingButton>
       </>}
+      bodyClassName="space-y-3"
     >
           <p className="text-sm text-ink-2">
             <Trans
@@ -65,6 +65,7 @@ export function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmPro
               components={{ period: <span className="font-medium" />, date: <span className="font-medium" /> }}
             />
           </p>
+          {error && <p role="alert" className="ui-alert ui-alert-danger">{error}</p>}
     </Modal>
   )
 }

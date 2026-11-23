@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { KeyRound, Plus, X } from 'lucide-react'
+import { KeyRound, Plus } from 'lucide-react'
 import { superAdminApi } from '../../api/superAdminApi'
 import type { OwnerSummary, PumpSummary, UpdatePumpRequest } from '../../api/superAdminApi'
 import { ResetPasswordDialog } from '../../components/ResetPasswordDialog'
@@ -18,7 +18,7 @@ export function OwnerDetail({ owner }: { owner: OwnerSummary }) {
   const queryClient = useQueryClient()
   const [isAddPumpOpen, setIsAddPumpOpen] = useState(false)
   const [editingPumpId, setEditingPumpId] = useState<number | null>(null)
-  const [editPumpError, setEditPumpError] = useState<string | null>(null)
+  const [pumpError, setPumpError] = useState<{ pumpId: number; message: string } | null>(null)
   const [isResetOpen, setIsResetOpen] = useState(false)
 
   const editPumpMutation = useMutation({
@@ -26,18 +26,19 @@ export function OwnerDetail({ owner }: { owner: OwnerSummary }) {
       superAdminApi.updatePump(pumpId, data),
     onSuccess: () => {
       setEditingPumpId(null)
-      setEditPumpError(null)
+      setPumpError(null)
       queryClient.invalidateQueries({ queryKey: ['superadmin-owners'] })
     },
-    onError: (err) => setEditPumpError(parseApiError(err, t('owners.updatePumpFailed'))),
+    onError: (err, { pumpId }) => setPumpError({ pumpId, message: parseApiError(err, t('owners.updatePumpFailed')) }),
   })
 
   const toggleEditPump = (pump: PumpSummary) => {
     setEditingPumpId(editingPumpId === pump.pumpId ? null : pump.pumpId)
-    setEditPumpError(null)
+    setPumpError(null)
   }
 
   const togglePumpEnabled = (pump: PumpSummary) => {
+    setPumpError(null)
     editPumpMutation.mutate({
       pumpId: pump.pumpId,
       data: { pumpName: pump.pumpName, pumpAddress: pump.pumpAddress, enabled: !pump.enabled },
@@ -62,23 +63,22 @@ export function OwnerDetail({ owner }: { owner: OwnerSummary }) {
           <button type="button" onClick={() => setIsResetOpen(true)} className="ui-btn ui-btn-secondary ui-btn-compact inline-flex items-center gap-1">
             <KeyRound size={12} strokeWidth={2} aria-hidden="true" />{t('owners.resetPassword')}
           </button>
-          <button
-            type="button"
-            onClick={() => setIsAddPumpOpen((open) => !open)}
-            aria-expanded={isAddPumpOpen}
-            className="ui-btn ui-btn-secondary ui-btn-compact inline-flex items-center gap-1"
-          >
-            {isAddPumpOpen
-              ? <><X size={12} strokeWidth={2} aria-hidden="true" />{t('common:actions.cancel')}</>
-              : <><Plus size={12} strokeWidth={2.5} aria-hidden="true" />{t('owners.addPump')}</>}
-          </button>
+          {!isAddPumpOpen && (
+            <button
+              type="button"
+              onClick={() => setIsAddPumpOpen(true)}
+              className="ui-btn ui-btn-secondary ui-btn-compact inline-flex items-center gap-1"
+            >
+              <Plus size={12} strokeWidth={2.5} aria-hidden="true" />{t('owners.addPump')}
+            </button>
+          )}
         </div>
       </div>
 
       {isAddPumpOpen && <AddPumpForm owner={owner} onDone={() => setIsAddPumpOpen(false)} />}
 
       <div className="space-y-2">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-3">{t('owners.pumpsTitle')}</h4>
+        <h4 className="text-sm font-semibold text-ink">{t('owners.pumpsTitle')}</h4>
         {owner.pumps.length === 0 ? (
           <p className="ui-help">{t('owners.noPumps')}</p>
         ) : (
@@ -90,9 +90,9 @@ export function OwnerDetail({ owner }: { owner: OwnerSummary }) {
               onToggleEdit={() => toggleEditPump(pump)}
               onToggleEnabled={() => togglePumpEnabled(pump)}
               isSaving={editPumpMutation.isPending}
-              editError={editPumpError}
+              error={pumpError?.pumpId === pump.pumpId ? pumpError.message : null}
               onSaveEdit={(data) => {
-                setEditPumpError(null)
+                setPumpError(null)
                 editPumpMutation.mutate({ pumpId: pump.pumpId, data })
               }}
             />

@@ -240,12 +240,13 @@ describe('CloseShiftModal', () => {
     expect(container.querySelector('.bg-warn-bg')).toBeNull()
   })
 
-  it('keeps a neutral header until readings and payment are entered, then turns red for a shortage', async () => {
+  it('keeps the success header until readings and payment are entered, then turns red for a shortage', async () => {
     const user = userEvent.setup()
     renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
     const header = screen.getByRole('heading', { name: 'Close Shift' }).closest('.ui-modal-header')
+    expect(header).toHaveClass('ui-modal-header--success')
     await user.type(endReading(), '1010')
-    expect(header).toHaveClass('ui-modal-header--neutral')
+    expect(header).toHaveClass('ui-modal-header--success')
 
     await user.type(screen.getByLabelText('Cash (₹)'), '900')
     expect(header).toHaveClass('ui-modal-header--danger')
@@ -382,7 +383,7 @@ describe('CloseShiftModal', () => {
     expect(within(summary).getByText('Credit entries').nextSibling).toHaveTextContent('0')
 
     await user.click(within(summary).getByRole('button', { name: 'Print / share' }))
-    const report = await screen.findByRole('dialog', { name: 'Shift Handover Report' })
+    const report = await screen.findByRole('dialog', { name: 'Shift handover report' })
     await user.click(within(report).getByRole('button', { name: 'Close' }))
 
     await user.click(await screen.findByRole('button', { name: 'Open next shift' }))

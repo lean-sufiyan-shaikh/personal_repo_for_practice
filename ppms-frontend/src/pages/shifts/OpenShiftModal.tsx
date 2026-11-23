@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -9,6 +9,8 @@ import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import type { DUOption, NozzleDetail, OpenShiftRequest, Shift } from '../../types/shift'
 import { Modal } from '../../components/Modal'
 import { StatusBadge } from '../../components/StatusBadge'
+import { LoadingButton } from '../../components/LoadingButton'
+import { StillNeeded } from '../../components/StillNeeded'
 import { parseApiError } from '../../utils/apiError'
 import { FUEL_UNIT } from '../../constants/fuel'
 import { codeLabel } from '../../constants/labels'
@@ -30,8 +32,6 @@ const IST_TIME_FORMAT = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
 })
 
-
-
 interface Props {
   pumpId: number
   activeShifts: Shift[]
@@ -52,6 +52,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
   const [readingConfirmed, setReadingConfirmed]     = useState(false)
   const [validationError, setValidationError]       = useState<string | null>(null)
   const [serverError, setServerError]               = useState<string | null>(null)
+  const stillNeededId = useId()
 
   // Nozzle IDs already in an open shift (locked out)
   const busyNozzleIds   = new Set(activeShifts.flatMap((s) => s.nozzles.map((n) => n.id)))
@@ -163,201 +164,151 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
     ? selectedDU.nozzles.filter((n) => selectedNozzleIds.has(n.id))
     : []
 
-  const missingStep = !selectedDU ? t('open.missing.du')
-    : selectedNozzleIds.size === 0 ? t('open.missing.nozzle')
-    : !selectedOperatorId ? t('open.missing.operator')
-    : !readingConfirmed ? t('open.missing.readings')
-    : null
+  const stillNeeded = [
+    !selectedDU && t('open.missing.du'),
+    selectedNozzleIds.size === 0 && t('open.missing.nozzle'),
+    !selectedOperatorId && t('open.missing.operator'),
+    !readingConfirmed && t('open.missing.readings'),
+  ].filter((item): item is string => typeof item === 'string')
+
+  const choiceClass = (isSelected: boolean) => `flex flex-col items-center gap-1 rounded-card border-2 p-3 transition-colors ${
+    isSelected ? 'border-primary bg-info-bg' : 'border-border hover:border-primary hover:bg-bg'
+  }`
 
   return (
     <Modal
       title={t('open.title')}
       subtitle={t('open.subtitle')}
-      tone="info"
+      tone="success"
       size="md-wide"
+      fullScreenOnPhone
       onClose={onClose}
+      canClose={!openMutation.isPending}
       onSubmit={handleSubmit}
       bodyClassName="space-y-5"
-      footerClassName="flex-wrap"
       footer={<>
-            {selectedNozzles.length > 0 && (
-              <label className="ui-check-row">
-                <input
-                  type="checkbox"
-                  checked={readingConfirmed}
-                  onChange={(e) => { setReadingConfirmed(e.target.checked); setValidationError(null) }}
-                />
-                <span>{t('open.confirmReadings')}</span>
-              </label>
-            )}
-            <button type="button" onClick={onClose}
-              className="ui-btn ui-btn-secondary flex-1">
-              {t('common:actions.cancel')}
-            </button>
-            {missingStep ? (
-              <button type="submit" disabled
-                className="ui-btn flex-1 whitespace-normal bg-surface-sunken text-ink border-control cursor-not-allowed disabled:opacity-100">
-                {missingStep}
-              </button>
-            ) : (
-              <button type="submit" disabled={openMutation.isPending}
-                className="ui-btn ui-btn-primary flex-1 disabled:opacity-60 disabled:cursor-not-allowed">
-                {openMutation.isPending ? t('open.opening') : t('open.submit')}
-              </button>
-            )}
+        <StillNeeded id={stillNeededId} items={stillNeeded} />
+        <button type="button" onClick={onClose} disabled={openMutation.isPending} className="ui-btn ui-btn-secondary">
+          {t('common:actions.cancel')}
+        </button>
+        <LoadingButton type="submit" disabled={stillNeeded.length > 0} isLoading={openMutation.isPending}
+          aria-describedby={stillNeeded.length > 0 ? stillNeededId : undefined}
+          loadingLabel={t('open.opening')} className="ui-btn-primary">
+          {t('open.submit')}
+        </LoadingButton>
       </>}
     >
+      <section aria-labelledby={`${stillNeededId}-du`}>
+        <h3 id={`${stillNeededId}-du`} className="ui-label mb-2">{t('open.duHeading')}</h3>
+        {dusLoading ? (
+          <p className="ui-empty">{t('open.loadingDus')}</p>
+        ) : activeDUs.length === 0 ? (
+          <p className="ui-alert ui-alert-warning text-sm">{t('open.noDus')}</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {activeDUs.map((du) => {
+              const isSelected = selectedDU?.id === du.id
+              const fuelTypes = [...new Set(du.nozzles.filter((n) => n.status === 'ACTIVE').map((n) => codeLabel(n.fuelType)))]
+              return (
+                <button key={du.id} type="button" aria-pressed={isSelected}
+                  onClick={() => handleSelectDU(du)} className={choiceClass(isSelected)}>
+                  <span className="text-xs font-medium text-ink-3">{t('open.duNumber', { number: du.duNumber })}</span>
+                  <span className={`text-sm font-semibold ${isSelected ? 'text-primary' : 'text-ink'}`}>{du.name}</span>
+                  <span className="text-xs text-ink-3">{fuelTypes.join(' · ')}</span>
+                  {isSelected && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                      <Check size={12} strokeWidth={2.5} aria-hidden="true" />{t('open.selected')}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </section>
 
-          {/* ── Step 1: Select DU ── */}
-          <div>
-            <span className="ui-label mb-2">
-              {t('open.step1')}
-              {selectedDU && (
-                <span className="ml-2 text-primary font-semibold normal-case">
-                  {t('open.selectedDu', { number: selectedDU.duNumber, name: selectedDU.name })}
-                </span>
-              )}
-            </span>
-            {dusLoading ? (
-              <p className="ui-empty">{t('open.loadingDus')}</p>
-            ) : activeDUs.length === 0 ? (
-              <div className="ui-alert ui-alert-warning text-xs">
-                {t('open.noDus')}
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {activeDUs.map((du) => {
-                  const isSelected = selectedDU?.id === du.id
-                  const fuelTypes = du.nozzles
-                    .filter((n) => n.status === 'ACTIVE')
-                    .map((n) => codeLabel(n.fuelType))
-                  return (
-                    <button key={du.id} type="button"
-                      onClick={() => handleSelectDU(du)}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-card border-2 transition-all ${
-                        isSelected
-                          ? 'border-primary bg-info-bg shadow-raised'
-                          : 'border-border hover:border-primary hover:bg-bg'
-                      }`}
-                    >
-                      <span className={`text-xs font-bold ${isSelected ? 'text-primary' : 'text-ink-3'}`}>
-                        {t('open.duNumber', { number: du.duNumber })}
-                      </span>
-                      <span className={`text-sm font-bold ${isSelected ? 'text-primary' : 'text-ink'}`}>
-                        {du.name}
-                      </span>
-                      <div className="flex flex-wrap gap-0.5 justify-center">
-                        {fuelTypes.map((tag) => (
-                          <span key={tag} className={`text-xs px-1.5 py-0.5 rounded-badge font-medium ${
-                            isSelected ? 'bg-info-bg text-info' : 'bg-surface-sunken text-ink-3'
-                          }`}>
-                            {codeLabel(tag)}
-                          </span>
-                        ))}
-                      </div>
-                      {isSelected && (
-                        <span className="inline-flex items-center gap-1 text-xs text-primary font-semibold"><Check size={11} strokeWidth={2.5} />{t('open.selected')}</span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
+      {selectedDU && (
+        <section aria-labelledby={`${stillNeededId}-nozzles`}>
+          <div className="mb-2 flex items-baseline justify-between gap-3">
+            <h3 id={`${stillNeededId}-nozzles`} className="ui-label mb-0">{t('open.nozzlesHeading')}</h3>
+            {selectedNozzleIds.size > 0 && (
+              <span className="text-xs text-ink-3">{t('open.selectedCount', { count: selectedNozzleIds.size })}</span>
             )}
           </div>
-
-          {/* ── Step 2: Select Nozzles from selected DU ── */}
-          {selectedDU && (
-            <div>
-              <span className="ui-label mb-2">
-                {t('open.step2')}
-                {selectedNozzleIds.size > 0 && (
-                  <span className="ml-2 text-primary font-semibold normal-case">
-                    {t('open.selectedCount', { count: selectedNozzleIds.size })}
-                  </span>
-                )}
-              </span>
-              <div role="group" aria-label={t('open.selectNozzles')} className="grid grid-cols-3 gap-2">
-                {selectedDU.nozzles.filter((n) => n.status === 'ACTIVE').map((nozzle) => {
-                  const isBusy     = busyNozzleIds.has(nozzle.id)
-                  const isSelected = selectedNozzleIds.has(nozzle.id)
-                  return (
-                    <button key={nozzle.id} type="button"
-                      disabled={isBusy}
-                      onClick={() => handleNozzleToggle(nozzle)}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-card border-2 transition-all ${
-                        isBusy
-                          ? 'border-border bg-surface-sunken opacity-50 cursor-not-allowed'
-                          : isSelected
-                          ? 'border-primary bg-info-bg shadow-raised'
-                          : 'border-border hover:border-primary hover:bg-bg'
-                      }`}
-                    >
-                      <span className={`text-xl font-bold ${isSelected ? 'text-primary' : 'text-ink'}`}>
-                        #{nozzle.nozzleNumber}
+          <div role="group" aria-label={t('open.selectNozzles')} className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {selectedDU.nozzles.filter((n) => n.status === 'ACTIVE').map((nozzle) => {
+              const isBusy     = busyNozzleIds.has(nozzle.id)
+              const isSelected = selectedNozzleIds.has(nozzle.id)
+              return (
+                <button key={nozzle.id} type="button" aria-pressed={isSelected}
+                  disabled={isBusy}
+                  onClick={() => handleNozzleToggle(nozzle)}
+                  className={`${choiceClass(isSelected)} disabled:cursor-not-allowed disabled:border-border disabled:bg-surface-sunken disabled:opacity-60`}
+                >
+                  <span className={`text-lg font-semibold ${isSelected ? 'text-primary' : 'text-ink'}`}>#{nozzle.nozzleNumber}</span>
+                  <span className="text-xs text-ink-3">{codeLabel(nozzle.fuelType)}</span>
+                  {isBusy
+                    ? <span className="text-xs text-ink-3">{t('open.inUse')}</span>
+                    : isSelected && (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                        <Check size={12} strokeWidth={2.5} aria-hidden="true" />{t('open.selected')}
                       </span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded-badge font-medium ${
-                        isSelected ? 'bg-info-bg text-info' : 'bg-surface-sunken text-ink-3'
-                      }`}>
-                        {codeLabel(nozzle.fuelType)}
-                      </span>
-                      {isBusy
-                        ? <span className="text-xs text-ink-3">{t('open.inUse')}</span>
-                        : isSelected && <span className="inline-flex items-center gap-1 text-xs text-primary font-semibold"><Check size={11} strokeWidth={2.5} />{t('open.selected')}</span>
-                      }
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+                    )}
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
-          {/* ── Step 3: Operator ── */}
-          <OperatorPicker
-            title={t('open.assignOperator')}
-            showStepNumber={!!selectedDU}
-            operatorsLoading={operatorsLoading}
-            noneAvailable={availableOperators.length === 0}
-            filteredOperators={filteredOperators}
-            operatorSearch={operatorSearch}
-            onSearchChange={setOperatorSearch}
-            selectedOperatorId={selectedOperatorId}
-            onSelect={setSelectedOperatorId}
-          />
+      <OperatorPicker
+        title={t('open.assignOperator')}
+        showStepNumber={false}
+        operatorsLoading={operatorsLoading}
+        noneAvailable={availableOperators.length === 0}
+        filteredOperators={filteredOperators}
+        operatorSearch={operatorSearch}
+        onSearchChange={setOperatorSearch}
+        selectedOperatorId={selectedOperatorId}
+        onSelect={setSelectedOperatorId}
+      />
 
-          {/* ── Current meter readings (acknowledgment) ── */}
-          {selectedNozzles.length > 0 && (
-            <div className="ui-card-plain ui-card-muted p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-ink-3 uppercase tracking-wide">
-                  {t('open.currentReadings')}
-                </span>
-                <StatusBadge tone="info" icon={Lock} label={t('open.readOnly')} />
+      {selectedNozzles.length > 0 && (
+        <section aria-labelledby={`${stillNeededId}-readings`} className="rounded-card border border-border p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 id={`${stillNeededId}-readings`} className="text-sm font-semibold text-ink">{t('open.currentReadings')}</h3>
+            <StatusBadge tone="neutral" icon={Lock} label={t('open.readOnly')} />
+          </div>
+          <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {selectedNozzles.map((nozzle) => (
+              <div key={nozzle.id} className="flex items-baseline justify-between gap-3 rounded-control bg-surface-sunken px-3 py-2">
+                <dt className="text-xs text-ink-2">
+                  {t('open.nozzleReadingLabel', { number: nozzle.nozzleNumber, fuel: codeLabel(nozzle.fuelType) })}
+                </dt>
+                <dd className="text-sm font-semibold text-ink tabular-nums">
+                  {formatDecimal(nozzle.lastReading)} {FUEL_UNIT[nozzle.fuelType] ?? 'L'}
+                </dd>
               </div>
-              <div className={`grid gap-2 ${selectedNozzles.length > 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                {selectedNozzles.map((nozzle) => (
-                  <div key={nozzle.id} className="ui-card-plain bg-surface border-border px-3 py-2.5">
-                    <p className="text-xs text-ink-3 mb-0.5">
-                      {t('open.nozzleReadingLabel', { number: nozzle.nozzleNumber, fuel: codeLabel(nozzle.fuelType), unit: FUEL_UNIT[nozzle.fuelType] ?? 'L' })}
-                    </p>
-                    <p className="text-base font-semibold text-ink tabular-nums">
-                      {formatDecimal(nozzle.lastReading)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-ink-3 leading-relaxed">
-                {t('open.readingsNote')}{' '}
-                <span className="font-medium text-ink">{t('open.readingsNotePath')}</span>{t('open.readingsNoteEnd')}
-              </p>
-            </div>
-          )}
+            ))}
+          </dl>
+          <p className="ui-help mt-0">
+            {t('open.readingsNote')}{' '}
+            <span className="font-medium text-ink-2">{t('open.readingsNotePath')}</span>{t('open.readingsNoteEnd')}
+          </p>
+          <label className="ui-check-row">
+            <input
+              type="checkbox"
+              checked={readingConfirmed}
+              onChange={(e) => { setReadingConfirmed(e.target.checked); setValidationError(null) }}
+            />
+            <span>{t('open.confirmReadings')}</span>
+          </label>
+        </section>
+      )}
 
-          {/* ── Errors ── */}
-          {(validationError || serverError) && (
-            <div role="alert" className="ui-alert ui-alert-danger">
-              <p className="text-bad text-sm">{validationError ?? serverError}</p>
-            </div>
-          )}
+      {(validationError || serverError) && (
+        <p role="alert" className="ui-alert ui-alert-danger">{validationError ?? serverError}</p>
+      )}
     </Modal>
   )
 }

@@ -17,8 +17,8 @@ const SIZE_CLASS: Record<ModalSize, string> = {
 interface ModalProps {
   title: ReactNode
   subtitle?: ReactNode
-  /** Header stripe and icon; leave out for a plain header. */
-  tone?: ModalTone
+  /** Header stripe and icon, chosen by purpose: info enters data, success completes, warning cautions, danger destroys. */
+  tone: ModalTone
   size?: ModalSize
   onClose: () => void
   /** False while the modal must stay open (e.g. a save is in flight): Escape, backdrop and the Close button do nothing. */
@@ -63,7 +63,7 @@ export function Modal({
   children,
 }: ModalProps) {
   const { t } = useTranslation()
-  const toneClass = tone ? `ui-modal-header--themed ui-modal-header--${tone}` : ''
+  const toneClass = `ui-modal-header--themed ui-modal-header--${tone}`
   const content = (
     <>
       <div className={`ui-modal-body ${bodyClassName}`}>{children}</div>

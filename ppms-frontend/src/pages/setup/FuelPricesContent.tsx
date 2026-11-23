@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { isAxiosError } from 'axios'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -9,14 +9,47 @@ import type { PumpSummary, PriceDeviationWarning, FuelPrice } from '../../api/pu
 import type { FuelType } from '../../types/shift'
 import { formatIstDate } from '../../utils/date'
 import { isPriceStale } from '../../utils/fuelPrices'
-import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { Modal } from '../../components/Modal'
 import { MoneyText } from '../../components/AmountText'
 import { IconButton } from '../../components/IconButton'
+import { FormField } from '../../components/FormField'
+import { FormGrid } from '../../components/layout/FormGrid'
+import { LiveFigures } from '../../components/LiveFigures'
+import { LoadingButton } from '../../components/LoadingButton'
+import { NumericInput } from '../../components/NumericInput'
+import { StillNeeded } from '../../components/StillNeeded'
 import { FUEL_UNIT } from '../../constants/fuel'
 import { codeLabel } from '../../constants/labels'
-import { formatDecimal } from '../../utils/format'
+import { formatDecimal, formatWithSign } from '../../utils/format'
+import { priceChange } from './fuelPriceChange'
+
+const formatPercent = (percent: number) => formatWithSign(percent, (n) => `${formatDecimal(n, 1)}%`)
+
+function FuelPriceField({ fuelType, currentPrice, value, onChange }: {
+  fuelType: FuelType; currentPrice: number | undefined; value: string; onChange: (value: string) => void
+}) {
+  const { t } = useTranslation(['setup', 'common'])
+  const unit = FUEL_UNIT[fuelType] ?? 'L'
+  const change = priceChange(currentPrice, value)
+  const help = currentPrice == null ? t('prices.noCurrentPrice') : (
+    <span className="tabular-nums">
+      {t('prices.currentPrice')} <MoneyText value={currentPrice} />/{unit}
+      {change && (
+        <>
+          {' · '}{t('prices.change')}{' '}
+          <MoneyText value={change.amount} showSign className="font-semibold text-ink" />
+          {change.percent !== null && ` (${formatPercent(change.percent)})`}
+        </>
+      )}
+    </span>
+  )
+  return (
+    <FormField label={codeLabel(fuelType)} help={help}>
+      <NumericInput step="0.01" min="0.01" unit={`₹/${unit}`} value={value} onChange={(e) => onChange(e.target.value)} />
+    </FormField>
+  )
+}
 
 // ── Fuel prices content ───────────────────────────────────────────────────────
 
@@ -24,6 +57,7 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
   const { t } = useTranslation(['setup', 'common'])
   const queryClient = useQueryClient()
   const { addToast } = useToastStore()
+  const stillNeededId = useId()
   // Dynamic price inputs keyed by fuel type (only for fuel types actually present on this pump)
   const [prices, setPrices] = useState<Record<string, string>>({})
   const [error, setError]   = useState<string | null>(null)
@@ -59,10 +93,12 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
   const getCurrentPrice = (fuelType: string) =>
     currentPrices.find((p) => p.fuelType === fuelType)?.pricePerUnit
 
+  const pricesToSave = availableFuelTypes.filter((ft) => prices[ft] && Number(prices[ft]) > 0)
+  const stillNeeded = pricesToSave.length === 0 ? [t('prices.stillNeededPrice')] : []
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setError(null); setSuccess(false); setDeviationWarning(null); setOpenShiftsWarning(null)
-    const tasks = availableFuelTypes
-      .filter((ft) => prices[ft] && Number(prices[ft]) > 0)
+    const tasks = pricesToSave
       .map((ft) => mutation.mutateAsync({ pumpId: pump.id, fuelType: ft, pricePerUnit: Number(prices[ft]) }))
     if (tasks.length === 0) { setError(t('prices.enterOne')); return }
     try {
@@ -124,91 +160,67 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
     return <p className="text-xs text-ink-3">{t('prices.needDu')}</p>
   }
 
+  const deviationChange = deviationWarning ? deviationWarning.newPrice - deviationWarning.lastPrice : 0
+  const deviationUnit = deviationWarning ? FUEL_UNIT[deviationWarning.fuelType] ?? 'L' : 'L'
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Stale price alert — shown when no price has been set today */}
       {pricesStale && (() => {
         const lastUpdatedOn = currentPrices.reduce((latest, p) =>
           p.effectiveFrom > latest ? p.effectiveFrom : latest, currentPrices[0].effectiveFrom)
         return (
-          <div className="flex items-start justify-between gap-3 bg-bad-bg border border-bad rounded-control px-4 py-3">
+          <div role="status" className="ui-alert ui-alert-warning flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-2.5">
-              <AlertTriangle size={16} strokeWidth={2} className="text-bad mt-0.5 shrink-0" />
+              <AlertTriangle size={16} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-bad">{t('prices.staleTitle')}</p>
-                <p className="text-xs text-bad mt-0.5">
+                <p className="text-sm font-semibold">{t('prices.staleTitle')}</p>
+                <p className="text-xs mt-0.5">
                   {t('prices.lastUpdatedOn')}{' '}
                   <span className="font-medium">{formatIstDate(lastUpdatedOn)}</span>
                   {t('prices.staleHint')}
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={confirmUnchanged}
-              disabled={confirmingUnchanged || mutation.isPending}
-              className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold bg-surface text-ok border border-ok hover:bg-ok-bg active:bg-ok-bg px-3 py-1.5 rounded-control transition-colors disabled:opacity-60 whitespace-nowrap"
-            >
-              {confirmingUnchanged
-                ? <><Spinner className="w-3.5 h-3.5" /><span>{t('prices.confirming')}</span></>
-                : <><span>{t('prices.samePrices')}</span><Check size={13} strokeWidth={2.5} className="text-ok" /></>
-              }
-            </button>
+            <LoadingButton type="button" onClick={confirmUnchanged}
+              isLoading={confirmingUnchanged} loadingLabel={t('prices.confirming')}
+              disabled={mutation.isPending}
+              className="ui-btn-secondary ui-btn-compact shrink-0 gap-1.5">
+              <Check size={14} strokeWidth={2.5} aria-hidden="true" />{t('prices.samePrices')}
+            </LoadingButton>
           </div>
         )
       })()}
 
-      {/* Current prices summary */}
-      {currentPrices.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          {currentPrices.map((p) => (
-            <div key={p.id} className="flex items-center gap-1.5 bg-ok-bg border border-ok rounded-control px-3 py-1.5">
-              <span className="text-xs font-medium text-ok">{codeLabel(p.fuelType)}</span>
-              <span className="text-sm font-bold text-ok">
-                <MoneyText value={p.pricePerUnit} />/{FUEL_UNIT[p.fuelType] ?? 'L'}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
       <form onSubmit={submit} className="space-y-3">
-        <div className="flex flex-wrap gap-3 items-end">
+        <FormGrid>
           {availableFuelTypes.map((ft) => (
-            <div key={ft}>
-              <label className="block">
-                <span className="ui-label">
-                {codeLabel(ft)} (₹/{FUEL_UNIT[ft]})
-                {getCurrentPrice(ft) != null && (
-                  <span className="text-ink-3 ml-1">{t('prices.current', { price: getCurrentPrice(ft) })}</span>
-                )}
-              </span>
-                <input type="number" step="0.01" min="0.01"
-                  value={prices[ft] ?? ''}
-                  onChange={(e) => setPrices((prev) => ({ ...prev, [ft]: e.target.value }))}
-                  className="w-32 text-sm"
-                  placeholder={t('prices.pricePlaceholder')} />
-              </label>
-            </div>
+            <FuelPriceField key={ft} fuelType={ft} currentPrice={getCurrentPrice(ft)} value={prices[ft] ?? ''}
+              onChange={(value) => setPrices((prev) => ({ ...prev, [ft]: value }))} />
           ))}
-          <button type="submit" disabled={mutation.isPending}
-            className="ui-btn ui-btn-primary">
-            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('common:actions.saving')}</span> : t('prices.save')}
-          </button>
-        </div>
+        </FormGrid>
         {error   && <p role="alert" className="ui-error-text">{error}</p>}
-        {success && <p className="text-ok text-xs">{t('prices.savedSuccess')}</p>}
+        {success && <p role="status" className="text-ok text-xs">{t('prices.savedSuccess')}</p>}
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <StillNeeded id={stillNeededId} items={stillNeeded} />
+          <LoadingButton type="submit" isLoading={mutation.isPending && !confirmingUnchanged} loadingLabel={t('common:actions.saving')}
+            disabled={stillNeeded.length > 0 || mutation.isPending}
+            aria-describedby={stillNeeded.length > 0 ? stillNeededId : undefined}
+            className="ui-btn-primary">
+            {t('prices.save')}
+          </LoadingButton>
+        </div>
       </form>
 
       {/* P2.3 — Open-shifts warning after price change */}
       {openShiftsWarning && (
-        <div className="flex items-start gap-2.5 bg-warn-bg border border-warn rounded-control px-4 py-3">
-          <AlertTriangle size={16} strokeWidth={2} className="text-warn mt-0.5 shrink-0" />
+        <div role="status" className="ui-alert ui-alert-warning flex items-start gap-2.5">
+          <AlertTriangle size={16} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-warn-strong">{t('prices.openShiftsTitle')}</p>
-            <p className="text-xs text-warn mt-0.5">{openShiftsWarning}</p>
+            <p className="text-sm font-semibold">{t('prices.openShiftsTitle')}</p>
+            <p className="text-xs mt-0.5">{openShiftsWarning}</p>
           </div>
-          <IconButton onClick={() => setOpenShiftsWarning(null)} className="text-warn hover:text-warn-strong text-lg leading-none shrink-0"
+          <IconButton onClick={() => setOpenShiftsWarning(null)} className="ui-btn ui-btn-ghost ui-btn-icon shrink-0"
             label={t('prices.dismissWarning')}
             icon={'×'}
           />
@@ -219,39 +231,40 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
       {deviationWarning && (
         <Modal
           title={t('prices.deviation.title')}
-          subtitle={deviationWarning.message}
+          subtitle={deviationWarning.fuelType ? codeLabel(deviationWarning.fuelType) : undefined}
           tone="warning"
-          size="sm"
+          size="md"
           onClose={() => setDeviationWarning(null)}
           bodyClassName="space-y-4"
           footer={
             <>
-              <button type="button" onClick={() => setDeviationWarning(null)} className="ui-btn ui-btn-secondary flex-1">
-                {t('common:actions.cancel')}
+              <button type="button" onClick={() => setDeviationWarning(null)} className="ui-btn ui-btn-secondary">
+                {t('prices.deviation.edit')}
               </button>
-              <button type="button" onClick={confirmDeviation} className="ui-btn ui-btn-warning flex-1">
+              <button type="button" onClick={confirmDeviation} data-autofocus className="ui-btn ui-btn-primary">
                 {t('prices.deviation.confirm')}
               </button>
             </>
           }
         >
-          <div className="bg-warn-bg border border-warn rounded-control px-4 py-3 text-xs space-y-1">
-            <div className="flex justify-between">
-              <span className="text-ink-3">{t('prices.deviation.lastPrice')}</span>
-              <MoneyText value={deviationWarning.lastPrice} className="font-semibold text-ink" />
-            </div>
-            <div className="flex justify-between">
-              <span className="text-ink-3">{t('prices.deviation.newPrice')}</span>
-              <MoneyText value={deviationWarning.newPrice} className="font-semibold text-ink" />
-            </div>
-            <div className="flex justify-between">
-              <span className="text-ink-3">{t('prices.deviation.deviation')}</span>
-              <span className="font-bold text-warn">{formatDecimal(deviationWarning.deviationPercent, 1)}%</span>
-            </div>
-          </div>
-          <p className="text-xs text-ink-3">
-            {t('prices.deviation.body')}
-          </p>
+          {deviationWarning.message && <p className="text-sm text-ink-2">{deviationWarning.message}</p>}
+          <LiveFigures
+            figures={[
+              { label: t('prices.deviation.lastPrice'), value: <><MoneyText value={deviationWarning.lastPrice} />/{deviationUnit}</> },
+              { label: t('prices.deviation.newPrice'), value: <><MoneyText value={deviationWarning.newPrice} />/{deviationUnit}</> },
+              {
+                label: t('prices.deviation.deviation'),
+                value: (
+                  <span className="text-warn">
+                    <MoneyText value={deviationChange} showSign />
+                    {' '}({formatPercent(deviationChange < 0 ? -Math.abs(deviationWarning.deviationPercent) : Math.abs(deviationWarning.deviationPercent))})
+                  </span>
+                ),
+                isResult: true,
+              },
+            ]}
+          />
+          <p className="text-xs text-ink-3">{t('prices.deviation.body')}</p>
         </Modal>
       )}
     </div>

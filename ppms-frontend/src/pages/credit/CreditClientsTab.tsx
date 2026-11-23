@@ -1,4 +1,4 @@
-import { useState, useDeferredValue } from 'react'
+import { useId, useState, useDeferredValue } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { pumpApi } from '../../api/pumpApi'
@@ -7,7 +7,8 @@ import { Pause, Users } from 'lucide-react'
 import { SkeletonRows } from '../../components/Skeleton'
 import { StatusBadge } from '../../components/StatusBadge'
 import { EmptyState } from '../../components/EmptyState'
-import { Spinner } from '../../components/Spinner'
+import { FormField } from '../../components/FormField'
+import { LoadingButton } from '../../components/LoadingButton'
 import { parseApiError } from '../../utils/apiError'
 import { onActivateKey } from '../../utils/keyboard'
 import { isValidGstin, normaliseGstText } from '../../utils/gst'
@@ -31,6 +32,11 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
   const [gstin, setGstin]             = useState('')
   const [billingAddress, setBillingAddress] = useState('')
   const [addError, setAddError]       = useState<string | null>(null)
+  const [addNameError, setAddNameError]   = useState<string | undefined>()
+  const [addPhoneError, setAddPhoneError] = useState<string | undefined>()
+  const [addGstinError, setAddGstinError] = useState<string | undefined>()
+  const addHeadingId = useId()
+  const optional = <span className="font-normal text-ink-3">{t('common:fields.optionalSuffix')}</span>
 
   const [editingId, setEditingId]     = useState<number | null>(null)
 
@@ -77,11 +83,11 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
   const submitAdd = (e: React.FormEvent) => {
     e.preventDefault(); setAddError(null)
     const trimmedName = name.trim(); const trimmedPhone = phoneNumber.trim()
-    if (!/^\d{10}$/.test(trimmedPhone)) { setAddError(t('clients.phoneInvalid')); return }
+    if (!/^\d{10}$/.test(trimmedPhone)) { setAddPhoneError(t('clients.phoneInvalid')); return }
     if (clients.some(c => c.name.toLowerCase() === trimmedName.toLowerCase())) {
-      setAddError(t('clients.duplicateName', { name: trimmedName })); return
+      setAddNameError(t('clients.duplicateName', { name: trimmedName })); return
     }
-    if (!isValidGstin(gstin)) { setAddError(t('common:gst.gstinFormat')); return }
+    if (!isValidGstin(gstin)) { setAddGstinError(t('common:gst.gstinFormat')); return }
     addMutation.mutate({
       name: trimmedName, phone: trimmedPhone, notes: notes.trim() || undefined,
       gstin: normaliseGstText(gstin) || undefined, billingAddress: billingAddress.trim() || undefined,
@@ -288,40 +294,33 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
 
                 {canManageClients && addSubParentId === parent.id && (
                   <form onSubmit={e => submitAddSub(e, parent.id)}
-                    className="border-t border-info/30 bg-info-bg px-3 py-3 space-y-2">
-                    <p className="text-xs font-semibold text-info">{t('clients.addSubAccountUnder', { name: parent.name })}</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block">
-                          <span className="ui-label">{t('clientForm.name')} <span className="text-bad">*</span></span>
-                          <input required value={addSubName} onChange={e => setAddSubName(e.target.value)}
-                            placeholder={t('clients.subNamePlaceholder')} className="text-xs min-h-10" />
-                        </label>
-                      </div>
-                      <div>
-                        <label className="block">
-                          <span className="ui-label">{t('clientForm.phone')} <span className="text-bad">*</span></span>
-                          <input required value={addSubPhone}
-                            onChange={e => setAddSubPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                            inputMode="numeric" maxLength={10} placeholder={t('clients.phonePlaceholder')} className="text-xs min-h-10" />
-                        </label>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block">
-                        <span className="ui-label">{t('common:fields.notes')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span></span>
-                        <input value={addSubNotes} onChange={e => setAddSubNotes(e.target.value)}
-                          placeholder={t('clients.subNotesPlaceholder')} className="text-xs min-h-10" />
-                      </label>
-                    </div>
+                    aria-label={t('clients.addSubAccountUnder', { name: parent.name })}
+                    className="space-y-3 border-t border-border bg-surface-sunken px-3 py-3">
+                    <p className="text-sm font-semibold text-ink">{t('clients.addSubAccountUnder', { name: parent.name })}</p>
+                    <FormGrid>
+                      <FormField label={t('clientForm.name')}>
+                        <input required value={addSubName} onChange={e => setAddSubName(e.target.value)}
+                          placeholder={t('clients.subNamePlaceholder')} />
+                      </FormField>
+                      <FormField label={t('clientForm.phone')}>
+                        <input required value={addSubPhone} type="tel" autoComplete="off"
+                          onChange={e => setAddSubPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                          inputMode="numeric" maxLength={10} placeholder={t('clients.phonePlaceholder')} />
+                      </FormField>
+                      <FormGridFullRow>
+                        <FormField label={<>{t('common:fields.notes')} {optional}</>}>
+                          <input value={addSubNotes} onChange={e => setAddSubNotes(e.target.value)}
+                            placeholder={t('clients.subNotesPlaceholder')} />
+                        </FormField>
+                      </FormGridFullRow>
+                    </FormGrid>
                     {addSubError && <p role="alert" className="ui-error-text">{addSubError}</p>}
-                    <div className="flex gap-2">
-                      <button type="submit" disabled={addMutation.isPending}
-                        className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs">
-                        {addMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('clients.adding')}</span> : t('clients.addSubAccount')}
-                      </button>
-                      <button type="button" onClick={() => setAddSubParentId(null)}
-                        className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
+                    <div className="flex flex-wrap gap-2">
+                      <LoadingButton type="submit" isLoading={addMutation.isPending} loadingLabel={t('clients.adding')}
+                        className="ui-btn-primary">
+                        {t('clients.addSubAccount')}
+                      </LoadingButton>
+                      <button type="button" onClick={() => setAddSubParentId(null)} className="ui-btn ui-btn-secondary">
                         {t('common:actions.cancel')}
                       </button>
                     </div>
@@ -337,44 +336,37 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
 
       {canManageClients && (
         <div className={clients.length > 0 ? 'border-t border-border pt-4' : ''}>
-          <p className="ui-label mb-3">
+          <h3 id={addHeadingId} className="mb-3 text-sm font-semibold text-ink">
             {clients.length === 0 ? t('clients.addFirst') : t('clients.addAnother')}
-          </p>
-          <form onSubmit={submitAdd} className="space-y-3">
+          </h3>
+          <form onSubmit={submitAdd} aria-labelledby={addHeadingId} className="space-y-3">
             <FormGrid>
-              <label className="block">
-                <span className="ui-label">{t('clients.clientName')} <span className="text-bad">*</span></span>
-                <input required value={name} onChange={e => setName(e.target.value)}
-                  placeholder={t('clients.clientNamePlaceholder')} className="text-sm" />
-              </label>
-              <label className="block">
-                <span className="ui-label">{t('clientForm.phone')} <span className="text-bad">*</span></span>
-                <input required value={phoneNumber}
-                  onChange={e => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder={t('clients.phonePlaceholder')} inputMode="numeric" maxLength={10} className="text-sm" />
-              </label>
+              <FormField label={t('clients.clientName')} error={addNameError}>
+                <input required value={name} onChange={e => { setName(e.target.value); setAddNameError(undefined) }}
+                  placeholder={t('clients.clientNamePlaceholder')} />
+              </FormField>
+              <FormField label={t('clientForm.phone')} error={addPhoneError}>
+                <input required value={phoneNumber} type="tel" autoComplete="off"
+                  onChange={e => { setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10)); setAddPhoneError(undefined) }}
+                  placeholder={t('clients.phonePlaceholder')} inputMode="numeric" maxLength={10} />
+              </FormField>
               <FormGridFullRow>
-                <label className="block">
-                  <span className="ui-label">{t('common:fields.notes')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span></span>
-                  <input value={notes} onChange={e => setNotes(e.target.value)}
-                    placeholder={t('clientForm.notesPlaceholder')} className="text-sm" />
-                </label>
+                <FormField label={<>{t('common:fields.notes')} {optional}</>}>
+                  <input value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('clientForm.notesPlaceholder')} />
+                </FormField>
               </FormGridFullRow>
-              <label className="block">
-                <span className="ui-label">GSTIN <span className="text-ink-3">{t('clientForm.gstinHint')}</span></span>
-                <input value={gstin} onChange={e => setGstin(e.target.value.toUpperCase())}
-                  maxLength={15} autoCapitalize="characters" placeholder={t('common:gst.gstinPlaceholder')} className="text-sm" />
-              </label>
-              <label className="block">
-                <span className="ui-label">{t('clientForm.billingAddress')} <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span></span>
-                <input value={billingAddress} onChange={e => setBillingAddress(e.target.value)}
-                  maxLength={500} placeholder={t('clientForm.billingAddressPlaceholder')} className="text-sm" />
-              </label>
+              <FormField label={<>GSTIN {optional}</>} help={t('clientForm.gstinHelp')} error={addGstinError}>
+                <input value={gstin} onChange={e => { setGstin(e.target.value.toUpperCase()); setAddGstinError(undefined) }}
+                  maxLength={15} autoCapitalize="characters" placeholder={t('common:gst.gstinPlaceholder')} />
+              </FormField>
+              <FormField label={<>{t('clientForm.billingAddress')} {optional}</>} help={t('clientForm.billingAddressHelp')}>
+                <input value={billingAddress} onChange={e => setBillingAddress(e.target.value)} maxLength={500} />
+              </FormField>
             </FormGrid>
             {addError && <p role="alert" className="ui-error-text">{addError}</p>}
-            <button type="submit" disabled={addMutation.isPending} className="ui-btn ui-btn-primary">
-              {addMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('clients.adding')}</span> : t('clients.addClient')}
-            </button>
+            <LoadingButton type="submit" isLoading={addMutation.isPending} loadingLabel={t('clients.adding')} className="ui-btn-primary">
+              {t('clients.addClient')}
+            </LoadingButton>
           </form>
         </div>
       )}

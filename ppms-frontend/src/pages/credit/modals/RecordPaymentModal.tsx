@@ -1,17 +1,22 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
 import type { CreditClient, RecordPaymentRequest } from '../../../api/creditApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { localDateInputValue } from '../../../utils/date'
-import { formatNumberIn } from '../../../i18n/format'
-import { Spinner } from '../../../components/Spinner'
+import { formatCurrency } from '../../../utils/format'
 import { useToastStore } from '../../../store/toastStore'
 import { Modal } from '../../../components/Modal'
 import { MoneyText } from '../../../components/AmountText'
 import { parseApiError } from '../../../utils/apiError'
-import { FormGrid } from '../../../components/layout/FormGrid'
+import { FormGrid, FormGridFullRow } from '../../../components/layout/FormGrid'
+import { FormField } from '../../../components/FormField'
+import { NumericInput } from '../../../components/NumericInput'
+import { LoadingButton } from '../../../components/LoadingButton'
+import { LiveFigures } from '../../../components/LiveFigures'
+import { StillNeeded } from '../../../components/StillNeeded'
+import { toPaise } from '../../../utils/money'
 
 interface RecordPaymentModalProps {
   client: CreditClient
@@ -32,8 +37,12 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI' | 'BANK_TRANSFER' | 'OTHER'>('CASH')
   const [paidAt, setPaidAt] = useState(() => localDateInputValue())
   const [notes, setNotes] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [amountError, setAmountError] = useState<string | undefined>()
+  const [serverError, setServerError] = useState<string | null>(null)
   const [targetClientId, setTargetClientId] = useState<number>(client.id)
+  const stillNeededId = useId()
+  const modeLabelId = useId()
+  const recordForLabelId = useId()
 
   const targetClient = targetClientId === client.id
     ? client
@@ -42,6 +51,16 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
   const outstandingBalance = targetClientId === client.id
     ? (outstandingBalanceOverride ?? client.outstandingBalance)
     : (targetClient.outstandingBalance ?? 0)
+
+  const enteredAmount = amount === '' ? null : parseFloat(amount)
+  const paymentShown = enteredAmount !== null && !isNaN(enteredAmount) ? enteredAmount : null
+  const balanceAfterPaise = paymentShown === null ? null : toPaise(outstandingBalance) - toPaise(paymentShown)
+  const isOverpaid = balanceAfterPaise !== null && balanceAfterPaise < 0
+
+  const stillNeeded = [
+    ...(amount === '' ? [t('recordPayment.amount')] : []),
+    ...(paidAt === '' ? [t('recordPayment.date')] : []),
+  ]
 
   const mutation = useMutation({
     mutationFn: (req: RecordPaymentRequest) =>
@@ -57,22 +76,24 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
     },
     onError: (err) => {
       const msg = parseApiError(err, t('recordPayment.failed'))
-      setError(msg)
+      setServerError(msg)
       addToast(msg, 'error')
     },
   })
 
-  const handleSubmit = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setServerError(null)
     const amt = parseFloat(amount)
     if (!amount || isNaN(amt) || amt <= 0) {
-      setError(t('recordPayment.invalidAmount'))
+      setAmountError(t('recordPayment.invalidAmount'))
       return
     }
     if (amt > outstandingBalance) {
-      setError(t('recordPayment.exceedsOutstanding', { amount: `₹${formatNumberIn(outstandingBalance, { minimumFractionDigits: 2 })}` }))
+      setAmountError(t('recordPayment.exceedsOutstanding', { amount: formatCurrency(outstandingBalance) }))
       return
     }
-    setError(null)
+    setAmountError(undefined)
     mutation.mutate({ amount: amt, paymentMode, paidAt, notes: notes.trim() || undefined })
   }
 
@@ -80,130 +101,82 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
     <Modal
       title={t('clientActions.recordPayment')}
       subtitle={client.name}
-      tone="success"
-      size="lg"
+      tone="info"
+      size="md-wide"
       onClose={onClose}
+      canClose={!mutation.isPending}
+      onSubmit={handleSubmit}
       bodyClassName="space-y-4"
       footer={
         <>
-          <button
-            onClick={onClose}
-            className="ui-btn ui-btn-secondary"
-          >
+          <StillNeeded id={stillNeededId} items={stillNeeded} />
+          <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
             {t('common:actions.cancel')}
           </button>
-          <button
-            onClick={handleSubmit}
-            disabled={mutation.isPending}
-            className="ui-btn ui-btn-primary"
-          >
-            {mutation.isPending
-              ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.saving')}</span>
-              : t('clientActions.recordPayment')}
-          </button>
+          <LoadingButton type="submit" isLoading={mutation.isPending} loadingLabel={t('common:actions.saving')}
+            disabled={stillNeeded.length > 0}
+            aria-describedby={stillNeeded.length > 0 ? stillNeededId : undefined}
+            className="ui-btn-primary">
+            {t('clientActions.recordPayment')}
+          </LoadingButton>
         </>
       }
     >
-      {subClients.length > 0 && (
-        <div className="ui-inline-form">
-          <span className="ui-label">{t('recordPayment.recordFor')}</span>
-          <SearchableSelect label={t('recordPayment.recordFor')}
-            value={String(targetClientId)}
-            onChange={v => { setTargetClientId(Number(v)); setAmount(''); setError(null) }}
-            options={[
-              { value: String(client.id), label: t('recordPayment.parentOption', { name: client.name }) },
-              ...subClients.map(c => ({ value: String(c.id), label: c.name })),
-            ]}
-          />
-        </div>
-      )}
-
-      {/* Outstanding + Remaining live feedback */}
-      <div className="ui-card p-0 overflow-hidden border-warn/30">
-        <div className="bg-warn-bg px-4 py-3 flex items-center justify-between">
-          <span className="text-sm text-warn">{t('recordPayment.outstandingBalance')}</span>
-          <MoneyText value={outstandingBalance} tone="warn" className="text-base font-bold" />
-        </div>
-        {amount !== '' && (() => {
-          const amt = parseFloat(amount) || 0
-          const remaining = outstandingBalance - amt
-          return (
-            <div className={`px-4 py-2.5 flex items-center justify-between border-t ${
-              remaining >= 0 ? 'bg-ok-bg border-ok/30' : 'bg-bad-bg border-bad/30'
-            }`}>
-              <span className={`text-sm ${remaining >= 0 ? 'text-ok' : 'text-bad'}`}>
-                {t('recordPayment.remainingAfter')}
-              </span>
-              <span className={`text-sm font-bold ${remaining >= 0 ? 'text-ok' : 'text-bad'}`}>
-                <MoneyText value={Math.abs(remaining)} />
-                {remaining < 0 ? t('recordPayment.overSuffix') : ''}
-              </span>
-            </div>
-          )
-        })()}
-      </div>
-
       <FormGrid>
-        <div className="ui-inline-form">
-          <span className="ui-label">
-            {t('recordPayment.amount')} <span className="text-bad">*</span>
-          </span>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 text-sm">₹</span>
-            <input aria-label={t('recordPayment.amount')}
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              placeholder="0.00"
-              data-autofocus
-              className="pl-7 pr-3"
+        {subClients.length > 0 && (
+          <FormGridFullRow>
+            <span id={recordForLabelId} className="ui-label">{t('recordPayment.recordFor')}</span>
+            <SearchableSelect aria-labelledby={recordForLabelId}
+              value={String(targetClientId)}
+              onChange={v => { setTargetClientId(Number(v)); setAmount(''); setAmountError(undefined) }}
+              options={[
+                { value: String(client.id), label: t('recordPayment.parentOption', { name: client.name }) },
+                ...subClients.map(c => ({ value: String(c.id), label: c.name })),
+              ]}
             />
-          </div>
-        </div>
+          </FormGridFullRow>
+        )}
 
-        <div className="ui-inline-form">
-          <span className="ui-label">
-            {t('recordPayment.mode')} <span className="text-bad">*</span>
-          </span>
-          <SearchableSelect label={t('recordPayment.mode')}
+        <FormField label={t('recordPayment.amount')} error={amountError}>
+          <NumericInput unit="₹" min="0.01" step="0.01" value={amount}
+            onChange={e => { setAmount(e.target.value); setAmountError(undefined) }}
+            data-autofocus />
+        </FormField>
+
+        <div>
+          <span id={modeLabelId} className="ui-label">{t('recordPayment.mode')}</span>
+          <SearchableSelect aria-labelledby={modeLabelId}
             value={paymentMode}
             onChange={v => setPaymentMode(v as typeof paymentMode)}
             options={PAYMENT_MODES.map(mode => ({ value: mode, label: t(`common:paymentMethods.${mode}`) }))}
           />
         </div>
 
-        <div className="ui-inline-form">
-          <label className="block">
-            <span className="ui-label">
-            {t('recordPayment.date')} <span className="text-bad">*</span>
-          </span>
-            <input
-              type="date"
-              value={paidAt}
-              onChange={e => setPaidAt(e.target.value)}
-            />
-          </label>
-        </div>
+        <FormField label={t('recordPayment.date')}>
+          <input type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)} />
+        </FormField>
 
-        <div className="ui-inline-form">
-          <label className="block">
-            <span className="ui-label">{t('common:fields.notes')}</span>
-            <input
-              type="text"
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder={t('recordPayment.notesPlaceholder')}
-            />
-          </label>
-        </div>
+        <FormField
+          label={<>{t('common:fields.notes')} <span className="font-normal text-ink-3">{t('common:fields.optionalSuffix')}</span></>}
+          help={t('recordPayment.notesHelp')}
+        >
+          <input type="text" value={notes} onChange={e => setNotes(e.target.value)} />
+        </FormField>
       </FormGrid>
 
-      {error && (
-        <div role="alert" className="ui-alert ui-alert-danger text-sm">
-          {error}
-        </div>
+      <LiveFigures
+        label={t('recordPayment.figuresLabel')}
+        figures={[
+          { label: t('recordPayment.outstandingBalance'), value: <MoneyText value={outstandingBalance} /> },
+          { label: t('recordPayment.thisPayment'), value: <MoneyText value={paymentShown} /> },
+          isOverpaid
+            ? { label: t('recordPayment.overpaidBy'), value: <MoneyText value={Math.abs(balanceAfterPaise) / 100} tone="bad" />, isResult: true }
+            : { label: t('recordPayment.remainingAfter'), value: <MoneyText value={balanceAfterPaise === null ? null : balanceAfterPaise / 100} />, isResult: true },
+        ]}
+      />
+
+      {serverError && (
+        <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>
       )}
     </Modal>
   )

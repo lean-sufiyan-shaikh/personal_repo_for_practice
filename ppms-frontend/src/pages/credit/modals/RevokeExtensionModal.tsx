@@ -3,8 +3,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
 import type { CreditExtension } from '../../../api/creditApi'
-import { Spinner } from '../../../components/Spinner'
 import { Modal } from '../../../components/Modal'
+import { FormField } from '../../../components/FormField'
+import { LoadingButton } from '../../../components/LoadingButton'
 import { parseApiError } from '../../../utils/apiError'
 import { extensionSummary } from '../extensionSummary'
 
@@ -18,7 +19,8 @@ export function RevokeExtensionModal({ pumpId, extension, onClose }: RevokeExten
   const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
   const [reason, setReason] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [reasonError, setReasonError] = useState<string | undefined>()
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: () => creditApi.revokeExtension(pumpId, extension.clientId, extension.id, reason.trim()),
@@ -26,12 +28,14 @@ export function RevokeExtensionModal({ pumpId, extension, onClose }: RevokeExten
       qc.invalidateQueries({ queryKey: ['active-extensions', pumpId, extension.clientId] })
       onClose()
     },
-    onError: (err) => setError(parseApiError(err, t('revokeExtension.failed'))),
+    onError: (err) => setServerError(parseApiError(err, t('revokeExtension.failed'))),
   })
 
-  const handleSubmit = () => {
-    if (!reason.trim()) { setError(t('revokeExtension.reasonRequired')); return }
-    setError(null)
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setServerError(null)
+    if (!reason.trim()) { setReasonError(t('revokeExtension.reasonRequired')); return }
+    setReasonError(undefined)
     mutation.mutate()
   }
 
@@ -40,36 +44,27 @@ export function RevokeExtensionModal({ pumpId, extension, onClose }: RevokeExten
       title={t('revokeExtension.title')}
       subtitle={t('revokeExtension.subtitle', { summary: extensionSummary(extension), date: extension.expiryDate })}
       tone="warning"
+      size="md"
       onClose={onClose}
       canClose={!mutation.isPending}
+      onSubmit={handleSubmit}
       bodyClassName="space-y-4"
       footer={
         <>
-          <button onClick={onClose} className="ui-btn ui-btn-secondary">{t('revokeExtension.keep')}</button>
-          <button onClick={handleSubmit} disabled={mutation.isPending} className="ui-btn ui-btn-danger">
-            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('revokeExtension.revoking')}</span> : t('revokeExtension.title')}
-          </button>
+          <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">{t('revokeExtension.keep')}</button>
+          <LoadingButton type="submit" isLoading={mutation.isPending} loadingLabel={t('revokeExtension.revoking')}
+            className="ui-btn-danger">
+            {t('revokeExtension.title')}
+          </LoadingButton>
         </>
       }
     >
-      <p className="text-sm text-ink-2">
-        {t('revokeExtension.explanation')}
-      </p>
-      <div className="ui-inline-form">
-        <label className="block">
-          <span className="ui-label">{t('common:fields.reason')} <span aria-hidden="true" className="text-bad">*</span></span>
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={3}
-            maxLength={500}
-            placeholder={t('revokeExtension.reasonPlaceholder')}
-            className="resize-none text-sm"
-            data-autofocus
-          />
-        </label>
-      </div>
-      {error && <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>}
+      <p className="text-sm text-ink-2">{t('revokeExtension.explanation')}</p>
+      <FormField label={t('common:fields.reason')} error={reasonError}>
+        <textarea value={reason} onChange={(e) => { setReason(e.target.value); setReasonError(undefined) }}
+          rows={3} maxLength={500} className="resize-none" data-autofocus />
+      </FormField>
+      {serverError && <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>}
     </Modal>
   )
 }

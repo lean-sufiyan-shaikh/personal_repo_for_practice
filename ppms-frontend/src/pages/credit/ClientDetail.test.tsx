@@ -116,7 +116,7 @@ describe('ClientDetail pending payment approval', () => {
     const user = userEvent.setup()
     signIn('OWNER', 1)
     await renderClient()
-    await user.click(screen.getByRole('button', { name: /Record Payment/ }))
+    await user.click(screen.getByRole('button', { name: /Record payment/ }))
     expect((await screen.findAllByText(/3,000\.00/)).length).toBeGreaterThan(0)
   })
 })
@@ -132,9 +132,9 @@ describe('ClientDetail actions by role', () => {
   it('lets a manager record payments but not edit interest settings or grant extensions', async () => {
     signIn('MANAGER', 1)
     await renderClient()
-    expect(screen.getByRole('button', { name: 'Record Payment' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Interest Settings' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Grant Extension' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Record payment' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Interest settings' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Grant extension' })).not.toBeInTheDocument()
   })
 
   it('offers a sub-account no interest actions and points to the parent that is charged', async () => {
@@ -143,8 +143,8 @@ describe('ClientDetail actions by role', () => {
     }])
     signIn('OWNER', 1)
     await renderClient()
-    expect(screen.queryByRole('button', { name: 'Interest Settings' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Apply Interest' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Interest settings' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Apply interest' })).not.toBeInTheDocument()
     expect(screen.getByText(/charged on the parent account \(Acme Group\)/)).toBeInTheDocument()
     expect(screen.getByText('Set on parent account')).toBeInTheDocument()
   })
@@ -155,21 +155,21 @@ describe('ClientDetail actions by role', () => {
     }])
     signIn('OWNER', 1)
     await renderClient()
-    expect(screen.queryByRole('button', { name: 'Grant Extension' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Grant extension' })).not.toBeInTheDocument()
     expect(screen.getByText(/Grant credit extensions there/)).toBeInTheDocument()
   })
 
   it('lets an owner edit interest settings', async () => {
     signIn('OWNER', 1)
     await renderClient()
-    expect(screen.getByRole('button', { name: 'Interest Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Interest settings' })).toBeInTheDocument()
   })
 
   it('shows an accountant no write actions', async () => {
     signIn('ACCOUNTANT', 1)
     await renderClient()
-    expect(screen.queryByRole('button', { name: 'Record Payment' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Interest Settings' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Record payment' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Interest settings' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Move' })).not.toBeInTheDocument()
   })
 })
@@ -234,12 +234,12 @@ describe('ClientDetail interest waiver', () => {
     await renderClient()
 
     await user.click(screen.getByRole('button', { name: 'Waive this interest charge' }))
-    await user.click(screen.getByRole('button', { name: 'Waive Interest' }))
+    await user.click(screen.getByRole('button', { name: 'Waive interest' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('A reason is required')
     expect(creditApi.waiveInterestCharge).not.toHaveBeenCalled()
 
     await user.type(screen.getByRole('textbox'), 'Charged at the wrong rate')
-    await user.click(screen.getByRole('button', { name: 'Waive Interest' }))
+    await user.click(screen.getByRole('button', { name: 'Waive interest' }))
     expect(creditApi.waiveInterestCharge).toHaveBeenCalledWith(PUMP_ID, CLIENT_ID, 91, 'Charged at the wrong rate')
   })
 
@@ -270,12 +270,12 @@ describe('ClientDetail extension revoke', () => {
     await renderClient()
 
     await user.click(await screen.findByRole('button', { name: 'Revoke' }))
-    await user.click(screen.getByRole('button', { name: 'Revoke Extension' }))
+    await user.click(screen.getByRole('button', { name: 'Revoke extension' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('A reason is required')
     expect(creditApi.revokeExtension).not.toHaveBeenCalled()
 
     await user.type(screen.getByRole('textbox'), 'Missed the promised payment')
-    await user.click(screen.getByRole('button', { name: 'Revoke Extension' }))
+    await user.click(screen.getByRole('button', { name: 'Revoke extension' }))
     expect(creditApi.revokeExtension).toHaveBeenCalledWith(PUMP_ID, CLIENT_ID, 55, 'Missed the promised payment')
   })
 
@@ -296,14 +296,14 @@ describe('ClientDetail from the address', () => {
     signIn('MANAGER', 1)
   })
 
-  it('opens Record Payment from ?action=record-payment', async () => {
+  it('opens Record payment from ?action=record-payment', async () => {
     renderWithProviders(<ClientDetail clientId={CLIENT_ID} pumpId={PUMP_ID} onBack={vi.fn()} />, { route: '/?action=record-payment' })
 
-    const dialog = await screen.findByRole('dialog', { name: /Record Payment/ })
+    const dialog = await screen.findByRole('dialog', { name: /Record payment/ })
     expect(within(dialog).getByText('Acme Transport')).toBeInTheDocument()
   })
 
-  it('does not open Record Payment for a role that cannot record payments', async () => {
+  it('does not open Record payment for a role that cannot record payments', async () => {
     signIn('ACCOUNTANT', 1)
     renderWithProviders(<ClientDetail clientId={CLIENT_ID} pumpId={PUMP_ID} onBack={vi.fn()} />, { route: '/?action=record-payment' })
 

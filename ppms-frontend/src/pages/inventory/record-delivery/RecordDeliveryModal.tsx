@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { codeLabel } from '../../../constants/labels'
 import { useTranslation } from 'react-i18next'
 import { useOnValuesChange } from '../../../hooks/useOnValuesChange'
@@ -9,9 +10,13 @@ import type { Tanker } from '../../../api/tankerApi'
 import type { TankStock, RecordBatchDeliveryRequest } from '../../../api/inventoryApi'
 import { localDateInputValue } from '../../../utils/date'
 import { Modal } from '../../../components/Modal'
-import { MoneyText } from '../../../components/AmountText'
+import { LitresText, MoneyText } from '../../../components/AmountText'
+import { FormField } from '../../../components/FormField'
+import { LiveFigures } from '../../../components/LiveFigures'
+import type { LiveFigure } from '../../../components/LiveFigures'
+import { StillNeeded } from '../../../components/StillNeeded'
+import { FormGrid } from '../../../components/layout/FormGrid'
 import { parseApiError } from '../../../utils/apiError'
-import { Spinner } from '../../../components/Spinner'
 import { useToastStore } from '../../../store/toastStore'
 import { limitDecimals } from '../inventoryFormat'
 import { _rowSeq, newRow } from './deliveryRows'
@@ -39,6 +44,8 @@ export function RecordDeliveryModal({
   const queryClient = useQueryClient()
   const { addToast } = useToastStore()
   const defaultTankId = tanks[0]?.tankId ? String(tanks[0].tankId) : ''
+  const stillNeededId = useId()
+  const totalsHeadingId = useId()
 
   const { data: tankers = [] } = useQuery<Tanker[]>({
     queryKey: ['tankers', pumpId],
@@ -218,6 +225,26 @@ export function RecordDeliveryModal({
     label: t('recordDelivery.tankOption', { tank: tank.tankIdentifier, fuel: codeLabel(tank.fuelType), stock: tank.currentStock.toFixed(0) }),
   }))
 
+
+  const stillNeeded = [
+    ...(tankerMismatch ? [t('recordDelivery.mustEqualTanker', { capacity: formatNumberIn(selectedTanker?.capacityLitres ?? 0) })] : []),
+    ...(anyTankOverflow ? [t('recordDelivery.tankOverflow')] : []),
+  ]
+
+  const totalFigures: LiveFigure[] = [
+    { label: t('recordDelivery.totalQuantity'), value: <LitresText value={totalEnteredQty > 0 ? totalEnteredQty : null} decimals={1} /> },
+    ...(isOwnerOrAdmin ? [{
+      label: t('recordDelivery.calculatedTotal', { count: rows.length }),
+      value: <MoneyText value={grandTotal > 0 ? grandTotal : null} />,
+      isResult: !canSetBillTotal,
+    }] : []),
+    ...(isOwnerOrAdmin && canSetBillTotal && billTotalManual && otherCharges !== 0 ? [{
+      label: t('recordDelivery.otherCharges'),
+      value: <MoneyText value={otherCharges} showSign />,
+      isResult: true,
+    }] : []),
+  ]
+
   return (
     <>
     <Modal
@@ -227,78 +254,26 @@ export function RecordDeliveryModal({
       size="lg"
       onClose={onClose}
       closeOnBackdropClick
+      fullScreenOnPhone
       onSubmit={handleReview}
-      bodyClassName="space-y-3"
-      footerClassName="flex-col items-stretch"
+      bodyClassName="space-y-4"
+      footerClassName="flex-wrap"
       footer={<>
-            {/* Bill total — visible to OWNER/ADMIN (auto-filled from calc) and MANAGER (manual entry) */}
-            {canSetBillTotal && (
-              <div className="space-y-2 rounded-card bg-info-bg px-4 py-3">
-                {isOwnerOrAdmin && grandTotal > 0 && (
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-info font-medium">
-                      {t('recordDelivery.calculatedTotal', { count: rows.length })}
-                    </p>
-                    <MoneyText value={grandTotal} className="text-sm font-semibold text-info" />
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <label htmlFor="delivery-bill-total" className="text-xs text-info font-medium shrink-0">{t('recordDelivery.billAmount')}</label>
-                  <NumericInput id="delivery-bill-total"
-                    step="0.01"
-                    min="0.01"
-                    value={billTotalText}
-                    onChange={e => { setBillTotalStr(limitDecimals(e.target.value, 2)); setBillTotalManual(true) }}
-                    onBlur={() => { if (!billTotalText.trim()) setBillTotalManual(false) }}
-                    className="ui-input text-sm font-semibold text-ink bg-surface flex-1 min-w-0"
-                    placeholder={t('recordDelivery.billAmountPlaceholder')}
-                  />
-                </div>
-                {!isOwnerOrAdmin && (
-                  <p className="text-xs text-ink-3">{t('recordDelivery.supplierInvoiceNote')}</p>
-                )}
-                {isOwnerOrAdmin && billTotalManual && otherCharges !== 0 && (
-                  <p className="text-xs text-info">
-                    {t('recordDelivery.otherCharges')}{' '}
-                    <span className={`font-medium ${otherCharges > 0 ? 'text-warn' : 'text-ok'}`}>
-                      {otherCharges > 0 ? '+' : ''}₹{formatNumberIn(Math.abs(otherCharges), { minimumFractionDigits: 2 })}
-                    </span>
-                    <span className="text-ink-3"> {t('recordDelivery.otherChargesHint')}</span>
-                  </p>
-                )}
-              </div>
-            )}
-
-            {error && (
-              <div role="alert" className="ui-alert ui-alert-danger text-xs">
-                {error}
-              </div>
-            )}
-
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="ui-btn ui-btn-secondary flex-1"
-              >
-                {t('common:actions.cancel')}
-              </button>
-              <button
-                type="submit"
-                disabled={mutation.isPending || tankerMismatch || anyTankOverflow}
-                title={
-                  tankerMismatch ? t('recordDelivery.mustEqualTanker', { capacity: formatNumberIn(selectedTanker?.capacityLitres ?? 0) })
-                  : anyTankOverflow ? t('recordDelivery.tankOverflow')
-                  : undefined
-                }
-                className="ui-btn ui-btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('recordDelivery.recording')}</span> : t('recordDelivery.review')}
-              </button>
-            </div>
+        {error && <p role="alert" className="ui-alert ui-alert-danger basis-full">{error}</p>}
+        <StillNeeded id={stillNeededId} items={stillNeeded} />
+        <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
+          {t('common:actions.cancel')}
+        </button>
+        <button
+          type="submit"
+          disabled={mutation.isPending || stillNeeded.length > 0}
+          aria-describedby={stillNeeded.length > 0 ? stillNeededId : undefined}
+          className="ui-btn ui-btn-primary"
+        >
+          {t('recordDelivery.review')}
+        </button>
       </>}
     >
-      {/* Shared fields — delivery date + invoice + tanker */}
       <DeliveryHeaderFields
         date={date}
         setDate={setDate}
@@ -329,18 +304,32 @@ export function RecordDeliveryModal({
         />
       ))}
 
-      {/* Add another tank button */}
-      <button
-        type="button"
-        onClick={addRow}
-        className="ui-btn ui-btn-secondary w-full border-2 border-dashed"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
+      <button type="button" onClick={addRow} className="ui-btn ui-btn-secondary w-full">
+        <Plus size={16} aria-hidden="true" />
         {t('recordDelivery.addTank')}
       </button>
 
+      <section aria-labelledby={totalsHeadingId} className="space-y-3 border-t border-border pt-4">
+        <h3 id={totalsHeadingId} className="text-sm font-semibold text-ink">{t('recordDelivery.totals')}</h3>
+        {canSetBillTotal && (
+          <FormGrid>
+            <FormField
+              label={t('recordDelivery.billAmount')}
+              help={isOwnerOrAdmin ? t('recordDelivery.billAmountHelp') : t('recordDelivery.supplierInvoiceNote')}
+            >
+              <NumericInput
+                step="0.01"
+                min="0.01"
+                unit="₹"
+                value={billTotalText}
+                onChange={e => { setBillTotalStr(limitDecimals(e.target.value, 2)); setBillTotalManual(true) }}
+                onBlur={() => { if (!billTotalText.trim()) setBillTotalManual(false) }}
+              />
+            </FormField>
+          </FormGrid>
+        )}
+        <LiveFigures label={t('recordDelivery.totals')} figures={totalFigures} />
+      </section>
     </Modal>
       {reviewOpen && (() => {
         try {

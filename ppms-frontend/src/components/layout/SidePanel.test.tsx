@@ -69,6 +69,16 @@ describe('SidePanel', () => {
     expect(opener).toHaveFocus()
   })
 
+  it('has the themed header, info by default and the given tone otherwise', () => {
+    const { unmount } = render(<SidePanel title="Credit Sales" onClose={vi.fn()}><p>Body</p></SidePanel>)
+    expect(screen.getByRole('dialog').querySelector('.ui-modal-header'))
+      .toHaveClass('ui-modal-header--themed', 'ui-modal-header--info')
+    unmount()
+
+    render(<SidePanel title="Lots" tone="warning" onClose={vi.fn()}><p>Body</p></SidePanel>)
+    expect(screen.getByRole('dialog').querySelector('.ui-modal-header')).toHaveClass('ui-modal-header--warning')
+  })
+
   it('is open straight away when the address already names it', () => {
     render(<MemoryRouter initialEntries={['/shifts?panel=credit']}><ShiftWithPanel /></MemoryRouter>)
     expect(screen.getByRole('dialog', { name: 'Credit Sales' })).toBeInTheDocument()

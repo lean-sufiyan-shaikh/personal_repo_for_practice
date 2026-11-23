@@ -37,7 +37,7 @@ describe('ShiftDetail', () => {
     expect(within(detail).getByText('#1 Petrol')).toBeInTheDocument()
     expect(within(detail).getByRole('region', { name: 'Collections' })).toHaveTextContent('₹9,500.00')
     expect(within(detail).getByRole('region', { name: 'Discrepancy' })).toHaveTextContent('Change given twice')
-    expect(within(detail).getByRole('region', { name: 'Credit Sales' })).toHaveTextContent('Acme Transport')
+    expect(within(detail).getByRole('region', { name: 'Credit sales' })).toHaveTextContent('Acme Transport')
     expect(shiftApi.getShift).toHaveBeenCalledWith(4, 77)
   })
 
@@ -49,7 +49,7 @@ describe('ShiftDetail', () => {
     expect(screen.getByRole('dialog', { name: 'Resolve form' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Print handover report' }))
-    const report = screen.getByRole('dialog', { name: 'Shift Handover Report' })
+    const report = screen.getByRole('dialog', { name: 'Shift handover report' })
     expect(report.querySelector('.ui-side-panel')).not.toBeNull()
   })
 

@@ -10,7 +10,7 @@ import { DataTable } from '../../components/DataTable'
 import type { DataTableColumn } from '../../components/DataTable'
 import { StatusBadge } from '../../components/StatusBadge'
 import { LitresText } from '../../components/AmountText'
-import { FUEL_COLORS, fmtDate } from './inventoryFormat'
+import { fmtDate } from './inventoryFormat'
 
 function lotColumns(t: TFunction<['inventory', 'common']>): DataTableColumn<InventoryLotDetail>[] {
   return [
@@ -56,17 +56,10 @@ export function FuelLotsDialog({
     queryFn:  () => inventoryApi.getActiveTankLots(pumpId, tank.tankId),
   })
 
-  const cols = FUEL_COLORS[tank.fuelType] ?? FUEL_COLORS.PETROL
-
   return (
     <SidePanel
       title={t('lots.title', { tank: tank.tankIdentifier })}
-      subtitle={
-        <span className="inline-flex flex-wrap items-center gap-2">
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-badge ${cols.badge}`}>{codeLabel(tank.fuelType)}</span>
-          <span>{t('lots.currentStock')} <LitresText value={tank.currentStock} /></span>
-        </span>
-      }
+      subtitle={<>{codeLabel(tank.fuelType)} · {t('lots.currentStock')} <LitresText value={tank.currentStock} /></>}
       size="lg"
       onClose={onClose}
       bodyClassName="p-0"

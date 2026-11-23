@@ -14,19 +14,16 @@
     "subtitle": "Attach the calibration date, technician, certificate and next due date for compliance history.",
     "nozzle": "Nozzle",
     "nozzlePlaceholder": "Select nozzle…",
-    "calibrationDate": "Calibration Date",
-    "nextDueRequired": "Next Calibration Due *",
-    "calibratedByRequired": "Calibrated By *",
-    "calibratedByPlaceholder": "Technician or agency name",
-    "certificateRequired": "Certificate Reference *",
-    "certificatePlaceholder": "Inspection certificate number",
-    "notesOptional": "Notes (optional)",
-    "notesPlaceholder": "Additional observations",
-    "review": "Review Calibration"
+    "calibrationDate": "Calibration date",
+    "review": "Review",
+    "nextDue": "Next calibration due",
+    "calibratedBy": "Calibrated by",
+    "calibratedByHelp": "Technician or agency name",
+    "certificate": "Certificate reference"
   },
   "validation": {
-    "selectNozzle": "Please select a nozzle",
-    "calibratedByRequired": "Calibrated By is required",
+    "selectNozzle": "Select a nozzle",
+    "calibratedByRequired": "Enter who did the calibration",
     "dateRequired": "Calibration date is required",
     "nextDueRequired": "Next calibration due date is required",
     "nextDueAfterDate": "Next calibration due date must be after the calibration date",
@@ -37,14 +34,13 @@
     "recordFailed": "Failed to record calibration"
   },
   "review": {
-    "title": "Review Calibration",
-    "subtitle": "Verify the nozzle and calibration details before saving.",
-    "confirm": "Confirm Calibration",
+    "title": "Review calibration",
+    "confirm": "Confirm calibration",
     "nozzle": "Nozzle",
-    "calibrationDate": "Calibration Date",
-    "nextDue": "Next Calibration Due",
-    "calibratedBy": "Calibrated By",
-    "certificate": "Certificate Reference"
+    "calibrationDate": "Calibration date",
+    "nextDue": "Next calibration due",
+    "calibratedBy": "Calibrated by",
+    "certificate": "Certificate reference"
   },
   "history": {
     "title": "Calibration History",

@@ -17,10 +17,10 @@ export const TYPE_ICONS: Record<SettlementPaymentType, ReactNode> = {
   FLEET_CARD: <Truck size={16} strokeWidth={2} />,
 }
 
-export const TYPE_ACCENT: Record<SettlementPaymentType, { icon: string; badge: string; pill: string; pillActive: string }> = {
-  UPI:        { icon: 'bg-info',    badge: 'bg-info-bg text-info',            pill: 'border-info text-info hover:bg-info-bg',                 pillActive: 'bg-info text-on-primary border-info'       },
-  CARD:       { icon: 'bg-primary', badge: 'bg-surface-sunken text-primary',  pill: 'border-primary text-primary hover:bg-surface-sunken',    pillActive: 'bg-primary text-on-primary border-primary' },
-  FLEET_CARD: { icon: 'bg-neutral', badge: 'bg-neutral-bg text-neutral',      pill: 'border-control text-neutral hover:bg-neutral-bg',        pillActive: 'bg-neutral text-on-primary border-neutral' },
+export const TYPE_ACCENT: Record<SettlementPaymentType, { icon: string; badge: string }> = {
+  UPI:        { icon: 'bg-info',    badge: 'bg-info-bg text-info' },
+  CARD:       { icon: 'bg-primary', badge: 'bg-surface-sunken text-primary' },
+  FLEET_CARD: { icon: 'bg-neutral', badge: 'bg-neutral-bg text-neutral' },
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

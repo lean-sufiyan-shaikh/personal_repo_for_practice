@@ -38,7 +38,7 @@ describe('DeliveryHistory', () => {
     const deleteButtons = await screen.findAllByRole('button', { name: 'Delete this invoice' })
     expect(deleteButtons).toHaveLength(1)
     await user.click(deleteButtons[0])
-    await user.click(screen.getByRole('button', { name: 'Delete Invoice' }))
+    await user.click(screen.getByRole('button', { name: 'Delete invoice' }))
 
     expect(inventoryApi.deleteLatestDelivery).toHaveBeenCalledWith(6, 'INV-BACKDATED')
   })

@@ -4,6 +4,7 @@ import { AlertTriangle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { authApi } from '../../api/authApi'
 import { PasswordInput } from '../../components/PasswordInput'
+import { FormField } from '../../components/FormField'
 import { parseApiError } from '../../utils/apiError'
 import { PASSWORD_POLICY_REGEX } from '../../constants/passwordPolicy'
 import { AuthCard, AuthScreen } from './AuthCard'
@@ -19,6 +20,8 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [confirmError, setConfirmError] = useState<string | null>(null)
 
   if (!token) {
     return (
@@ -43,9 +46,10 @@ export default function ResetPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!PASSWORD_POLICY_REGEX.test(newPassword)) { setError(t('passwordPolicy')); return }
-    if (newPassword !== confirmPassword) { setError(t('resetPassword.mismatch')); return }
-    setLoading(true); setError(null)
+    setError(null); setPasswordError(null); setConfirmError(null)
+    if (!PASSWORD_POLICY_REGEX.test(newPassword)) { setPasswordError(t('passwordPolicy')); return }
+    if (newPassword !== confirmPassword) { setConfirmError(t('resetPassword.mismatch')); return }
+    setLoading(true)
     try {
       await authApi.resetPassword(token, newPassword)
       navigate('/login', { state: { message: t('resetPassword.success') } })
@@ -60,33 +64,28 @@ export default function ResetPasswordPage() {
     <AuthScreen>
       <AuthCard title={t('resetPassword.title')} description={t('resetPassword.subtitle')} footer={<BackToLogin />}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="newPassword" className="ui-label">{t('fields.newPassword')}</label>
+          <FormField label={t('fields.newPassword')} help={t('passwordPolicy')} error={passwordError ?? undefined}>
             <PasswordInput
               id="newPassword"
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
               autoComplete="new-password"
-              placeholder={t('resetPassword.newPasswordPlaceholder')}
               className="shadow-raised"
               minLength={8}
               required
             />
-            <p className="ui-help">{t('passwordPolicy')}</p>
-          </div>
+          </FormField>
 
-          <div>
-            <label htmlFor="confirmPassword" className="ui-label">{t('fields.confirmPassword')}</label>
+          <FormField label={t('fields.confirmPassword')} error={confirmError ?? undefined}>
             <PasswordInput
               id="confirmPassword"
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
               autoComplete="new-password"
-              placeholder={t('resetPassword.confirmPlaceholder')}
               className="shadow-raised"
               required
             />
-          </div>
+          </FormField>
 
           {error && <p className="ui-error-text" role="alert">{error}</p>}
 

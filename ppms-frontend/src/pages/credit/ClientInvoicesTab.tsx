@@ -6,7 +6,8 @@ import type { CreditInvoice, InvoicePeriod } from '../../api/creditApi'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
-import { Spinner } from '../../components/Spinner'
+import { LoadingButton } from '../../components/LoadingButton'
+import { FormGrid } from '../../components/layout/FormGrid'
 import { StatusBadge } from '../../components/StatusBadge'
 import { invoiceStatusBadge } from '../../components/statusBadges'
 import { MoneyText } from '../../components/AmountText'
@@ -163,26 +164,26 @@ function GenerateInvoiceForm({ pumpId, clientId, defaultPeriod, onGenerated }: G
 
   return (
     <form onSubmit={handleSubmit} className="ui-card-plain px-4 py-3 space-y-3" aria-label={t('invoices.generateHeading')}>
-      <p className="text-sm font-semibold text-ink">{t('invoices.generateHeading')}</p>
+      <h3 className="text-sm font-semibold text-ink">{t('invoices.generateHeading')}</h3>
       <p className="text-xs text-ink-3">
         {t('invoices.generateHelp')}
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <FormGrid>
         <label className="block">
           <span className="ui-label">{t('common:fields.from')}</span>
           <input type="date" value={periodFrom} max={periodTo || undefined}
-            onChange={e => setPeriodFrom(e.target.value)} className="text-sm" />
+            onChange={e => setPeriodFrom(e.target.value)} />
         </label>
         <label className="block">
           <span className="ui-label">{t('common:fields.to')}</span>
           <input type="date" value={periodTo} min={periodFrom || undefined}
-            onChange={e => setPeriodTo(e.target.value)} className="text-sm" />
+            onChange={e => setPeriodTo(e.target.value)} />
         </label>
-      </div>
+      </FormGrid>
       {error && <p role="alert" className="ui-error-text">{error}</p>}
-      <button type="submit" disabled={mutation.isPending} className="ui-btn ui-btn-primary">
-        {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.generating')}</span> : t('invoices.generateButton')}
-      </button>
+      <LoadingButton type="submit" isLoading={mutation.isPending} loadingLabel={t('common:actions.generating')} className="ui-btn-primary">
+        {t('invoices.generateButton')}
+      </LoadingButton>
     </form>
   )
 }

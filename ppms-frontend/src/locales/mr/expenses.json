@@ -12,13 +12,12 @@
     "title": "खर्च नोंदवा",
     "subtitle": "तपासणीपूर्वी वर्ग, रक्कम, तारीख आणि तपशील भरा.",
     "category": "वर्ग",
-    "amountRupees": "रक्कम (₹)",
     "amount": "रक्कम",
     "description": "तपशील",
-    "descriptionPlaceholder": "उदा. XYZ कडून पंपाची सर्व्हिसिंग",
     "expenseDate": "खर्चाची तारीख",
     "saveDraft": "मसुदा म्हणून सेव्ह करा — मंजुरीसाठी नंतर पाठवा",
-    "review": "खर्च तपासा",
+    "needAmount": "रक्कम",
+    "needDescription": "तपशील",
     "recorded": "खर्च नोंदवला",
     "recordFailed": "खर्च नोंदवता आला नाही",
     "descriptionRequired": "तपशील लिहिणे आवश्यक आहे",
@@ -26,8 +25,8 @@
   },
   "review": {
     "title": "खर्च तपासा",
-    "subtitle": "सेव्ह करण्यापूर्वी खर्चाचा तपशील तपासा.",
-    "add": "खर्च जोडा"
+    "add": "खर्च सेव्ह करा",
+    "savedAs": "या स्वरूपात सेव्ह"
   },
   "list": {
     "title": "सर्व खर्च",

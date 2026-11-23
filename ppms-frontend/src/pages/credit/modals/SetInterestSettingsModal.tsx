@@ -3,11 +3,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Trans, useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
 import type { CreditClient, UpdateInterestSettingsRequest } from '../../../api/creditApi'
-import { Spinner } from '../../../components/Spinner'
 import { Modal } from '../../../components/Modal'
+import { FormField } from '../../../components/FormField'
+import { FormGrid } from '../../../components/layout/FormGrid'
+import { NumericInput } from '../../../components/NumericInput'
+import { LoadingButton } from '../../../components/LoadingButton'
+import { LiveFigures } from '../../../components/LiveFigures'
+import { MoneyText } from '../../../components/AmountText'
 import { parseApiError } from '../../../utils/apiError'
-
-// ─── Set Interest Settings Modal ─────────────────────────────────────────────
 
 interface SetInterestSettingsModalProps {
   client: CreditClient
@@ -15,12 +18,19 @@ interface SetInterestSettingsModalProps {
   onClose: () => void
 }
 
+/** The interest a 30-day month adds at this rate, the same simple-interest rule the server applies. */
+function interestFor30Days(outstanding: number, ratePercent: number): number {
+  return Math.round(outstanding * ratePercent) / 100
+}
+
 export function SetInterestSettingsModal({ client, pumpId, onClose }: SetInterestSettingsModalProps) {
   const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
   const [rate, setRate] = useState(client.monthlyInterestRate > 0 ? String(client.monthlyInterestRate) : '')
   const [graceDays, setGraceDays] = useState(String(client.interestGraceDays ?? 1))
-  const [error, setError] = useState<string | null>(null)
+  const [rateError, setRateError] = useState<string | undefined>()
+  const [graceError, setGraceError] = useState<string | undefined>()
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: (req: UpdateInterestSettingsRequest) =>
@@ -29,81 +39,73 @@ export function SetInterestSettingsModal({ client, pumpId, onClose }: SetInteres
       qc.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
       onClose()
     },
-    onError: (err) => setError(parseApiError(err, t('interestSettings.failed'))),
+    onError: (err) => setServerError(parseApiError(err, t('interestSettings.failed'))),
   })
 
-  const handleSubmit = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setServerError(null)
     const r = rate.trim() === '' ? 0 : parseFloat(rate)
     const g = parseInt(graceDays, 10)
-    if (isNaN(r) || r < 0 || r > 100) { setError(t('interestSettings.invalidRate')); return }
-    if (isNaN(g) || g < 0) { setError(t('interestSettings.invalidGraceDays')); return }
-    setError(null)
+    if (isNaN(r) || r < 0 || r > 100) { setRateError(t('interestSettings.invalidRate')); return }
+    setRateError(undefined)
+    if (isNaN(g) || g < 0) { setGraceError(t('interestSettings.invalidGraceDays')); return }
+    setGraceError(undefined)
     mutation.mutate({ monthlyInterestRate: r, interestGraceDays: g })
   }
+
+  const enteredRate = rate.trim() === '' ? null : parseFloat(rate)
+  const exampleInterest = enteredRate === null || isNaN(enteredRate) || enteredRate < 0 || enteredRate > 100
+    ? null
+    : interestFor30Days(client.outstandingBalance, enteredRate)
 
   return (
     <Modal
       title={t('interestSettings.title')}
       subtitle={client.name}
-      tone="warning"
-      size="sm"
+      tone="info"
+      size="md-wide"
       onClose={onClose}
+      canClose={!mutation.isPending}
+      onSubmit={handleSubmit}
       bodyClassName="space-y-4"
       footer={
         <>
-          <button onClick={onClose} className="ui-btn ui-btn-secondary">
+          <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
             {t('common:actions.cancel')}
           </button>
-          <button
-            onClick={handleSubmit}
-            disabled={mutation.isPending}
-            className="ui-btn ui-btn-primary"
-          >
-            {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.saving')}</span> : t('interestSettings.save')}
-          </button>
+          <LoadingButton type="submit" isLoading={mutation.isPending} loadingLabel={t('common:actions.saving')}
+            className="ui-btn-primary">
+            {t('interestSettings.save')}
+          </LoadingButton>
         </>
       }
     >
-      <div className="ui-inline-form">
-        <p className="ui-inline-form__copy">
-          <Trans t={t} i18nKey="interestSettings.explanation" components={{ strong: <strong /> }} />
-        </p>
+      <p className="text-sm text-ink-2">
+        <Trans t={t} i18nKey="interestSettings.explanation" components={{ strong: <strong /> }} />
+      </p>
 
-        <span className="ui-label">{t('interestSettings.rateLabel')}</span>
-        <div className="relative">
-          <input aria-label={t('interestSettings.rateLabel')}
-            type="number" min="0" max="100" step="0.01"
-            value={rate}
-            onChange={e => setRate(e.target.value)}
-            placeholder={t('interestSettings.ratePlaceholder')}
-            className="w-full pr-8 pl-3 text-sm"
-            data-autofocus
-          />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-3 text-sm">%</span>
-        </div>
-        <p className="text-xs text-ink-3 mt-1">
-          {t('interestSettings.rateExample')}
-        </p>
-      </div>
+      <FormGrid>
+        <FormField label={t('interestSettings.rateLabel')} help={t('interestSettings.rateHelp')} error={rateError}>
+          <NumericInput unit="%" min="0" max="100" step="0.01" value={rate}
+            onChange={e => { setRate(e.target.value); setRateError(undefined) }}
+            data-autofocus />
+        </FormField>
+        <FormField label={t('interestSettings.graceLabel')} help={t('interestSettings.graceHelp')} error={graceError}>
+          <NumericInput unit={t('interestSettings.daysUnit')} min="0" step="1" inputMode="numeric" value={graceDays}
+            onChange={e => { setGraceDays(e.target.value); setGraceError(undefined) }} />
+        </FormField>
+      </FormGrid>
 
-      <div className="ui-inline-form">
-        <label className="block">
-          <span className="ui-label">{t('interestSettings.graceLabel')}</span>
-          <input
-            type="number" min="0" step="1"
-            value={graceDays}
-            onChange={e => setGraceDays(e.target.value)}
-            className="text-sm"
-          />
-        </label>
-        <p className="text-xs text-ink-3 mt-1">
-          {t('interestSettings.graceHelp')}
-        </p>
-      </div>
+      <LiveFigures
+        label={t('interestSettings.figuresLabel')}
+        figures={[
+          { label: t('interestSettings.outstanding'), value: <MoneyText value={client.outstandingBalance} /> },
+          { label: t('interestSettings.exampleInterest'), value: <MoneyText value={exampleInterest} />, isResult: true },
+        ]}
+      />
 
-      {error && (
-        <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
-      )}
+      {serverError && <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>}
     </Modal>
   )
 }

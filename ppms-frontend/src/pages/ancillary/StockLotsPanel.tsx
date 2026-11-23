@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import type { AncillaryProduct, AncillaryLotDetail, UpdateLotRequest } from '../../api/ancillaryApi'
-import { Spinner } from '../../components/Spinner'
+import { LoadingButton } from '../../components/LoadingButton'
+import { NumericInput } from '../../components/NumericInput'
 import { useToastStore } from '../../store/toastStore'
 import { SidePanel } from '../../components/layout/SidePanel'
 import { DataTable } from '../../components/DataTable'
@@ -130,39 +131,45 @@ export function StockLotsPanel({
                           <td className="text-ink">{fmtDate(lot.deliveryDate)}</td>
                           <td className="text-ink-3">{lot.invoiceReference ?? '—'}</td>
                           <td className="text-right">
-                            <input aria-label={t('lots.costAria')}
-                              type="number"
-                              min="0.01"
-                              step="0.01"
-                              value={editForm.costPricePerUnit}
-                              onChange={e => setEditForm(f => ({ ...f, costPricePerUnit: e.target.value }))}
-                              className="w-24 text-right text-sm"
-                            />
+                            <div className="ml-auto w-32">
+                              <NumericInput aria-label={t('lots.costAria')}
+                                unit="₹"
+                                min="0.01"
+                                step="0.01"
+                                value={editForm.costPricePerUnit}
+                                onChange={e => setEditForm(f => ({ ...f, costPricePerUnit: e.target.value }))}
+                              />
+                            </div>
                           </td>
                           <td className="text-right">
-                            <input aria-label={t('lots.remainingAria')}
-                              type="number"
-                              min="0"
-                              max={lot.originalQuantity}
-                              step="1"
-                              value={editForm.remainingQuantity}
-                              onChange={e => setEditForm(f => ({ ...f, remainingQuantity: e.target.value }))}
-                              className="w-20 text-right text-sm"
-                            />
+                            <div className="ml-auto w-32">
+                              <NumericInput aria-label={t('lots.remainingAria')}
+                                unit={t('fields.unitsSuffix')}
+                                min="0"
+                                max={lot.originalQuantity}
+                                step="1"
+                                inputMode="numeric"
+                                value={editForm.remainingQuantity}
+                                onChange={e => setEditForm(f => ({ ...f, remainingQuantity: e.target.value }))}
+                              />
+                            </div>
                           </td>
                           <td className="text-right text-ink-3">{lot.originalQuantity}</td>
                           <td className="text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <button
+                              <LoadingButton
+                                type="button"
+                                isLoading={updateMutation.isPending}
+                                loadingLabel={t('common:actions.saving')}
                                 onClick={() => handleSave(lot)}
-                                disabled={updateMutation.isPending}
-                                className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs disabled:opacity-50"
+                                className="ui-btn-primary ui-btn-compact"
                               >
-                                {updateMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('common:actions.saving')}</span> : t('common:actions.save')}
-                              </button>
+                                {t('common:actions.save')}
+                              </LoadingButton>
                               <button
+                                type="button"
                                 onClick={() => { setEditingLotId(null); setEditError(null) }}
-                                className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs"
+                                className="ui-btn ui-btn-ghost ui-btn-compact"
                               >
                                 {t('common:actions.cancel')}
                               </button>
@@ -175,14 +182,15 @@ export function StockLotsPanel({
                           <td className="text-ink-3">{lot.invoiceReference ?? '—'}</td>
                           <td className="text-right"><MoneyText value={lot.costPricePerUnit} className="font-medium text-ink" /></td>
                           <td className="text-right">
-                            <span className="font-semibold text-ok">{lot.remainingQuantity}</span>
+                            <span className="font-semibold text-ink">{lot.remainingQuantity}</span>
                           </td>
                           <td className="text-right text-ink-3">{lot.originalQuantity}</td>
                           {isOwnerOrAdmin && (
                             <td className="text-right">
                               <button
+                                type="button"
                                 onClick={() => startEdit(lot)}
-                                className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
+                                className="ui-btn ui-btn-ghost ui-btn-compact"
                               >
                                 {t('common:actions.edit')}
                               </button>

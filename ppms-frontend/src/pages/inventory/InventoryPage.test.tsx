@@ -60,14 +60,14 @@ describe('InventoryPage', () => {
   it('lets a manager record a dip check, as the backend allows', async () => {
     signIn('MANAGER')
     renderPage()
-    expect(await screen.findAllByRole('button', { name: 'DIP Check' })).toHaveLength(2)
+    expect(await screen.findAllByRole('button', { name: 'Dip check' })).toHaveLength(2)
   })
 
   it('does not offer a dip check to an operator', async () => {
     signIn('OPERATOR')
     renderPage()
     await screen.findByText('T1')
-    expect(screen.queryByRole('button', { name: 'DIP Check' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Dip check' })).not.toBeInTheDocument()
   })
 
   it('counts overdue dip checks in the header and lists each tank as a card', async () => {
@@ -84,7 +84,7 @@ describe('InventoryPage', () => {
     const user = userEvent.setup()
     renderPage('/?action=record-delivery')
 
-    const dialog = await screen.findByRole('dialog', { name: /Record Tanker Delivery/ })
+    const dialog = await screen.findByRole('dialog', { name: /Record tanker delivery/ })
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -95,8 +95,8 @@ describe('InventoryPage', () => {
     signIn('MANAGER')
     renderPage('/?action=dip-check&tank=2')
 
-    const dialog = await screen.findByRole('dialog', { name: /DIP Check/ })
-    expect(within(dialog).getByText(/T2 —/)).toBeInTheDocument()
+    const dialog = await screen.findByRole('dialog', { name: /Dip check/ })
+    expect(within(dialog).getByText('T2 · Diesel', { selector: '.ui-modal-subtitle' })).toBeInTheDocument()
   })
 
   it('starts a dip check without a tank on the first tank and lets the tank be changed', async () => {
@@ -104,13 +104,13 @@ describe('InventoryPage', () => {
     const user = userEvent.setup()
     renderPage('/?action=dip-check')
 
-    const dialog = await screen.findByRole('dialog', { name: /DIP Check/ })
-    expect(within(dialog).getByText(/T1 —/)).toBeInTheDocument()
+    const dialog = await screen.findByRole('dialog', { name: /Dip check/ })
+    expect(within(dialog).getByText('T1 · Petrol', { selector: '.ui-modal-subtitle' })).toBeInTheDocument()
 
     await user.click(within(dialog).getByRole('button', { name: /^Tank:/ }))
     await user.click(screen.getByRole('option', { name: 'T2 · Diesel' }))
 
-    expect(await screen.findByText(/T2 —/)).toBeInTheDocument()
+    expect(await screen.findByText('T2 · Diesel', { selector: '.ui-modal-subtitle' })).toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Address' })).toHaveTextContent('tank=2')
   })
 
@@ -120,10 +120,10 @@ describe('InventoryPage', () => {
     renderPage()
 
     const card = await screen.findByRole('article', { name: 'T2 · Diesel' })
-    await user.click(within(card).getByRole('button', { name: 'DIP Check' }))
+    await user.click(within(card).getByRole('button', { name: 'Dip check' }))
 
     expect(screen.getByRole('status', { name: 'Address' })).toHaveTextContent('action=dip-check&tank=2')
-    expect(await screen.findByRole('dialog', { name: /DIP Check/ })).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: /Dip check/ })).toBeInTheDocument()
   })
 
   it('shows a tank\'s stock lots in a side panel', async () => {
@@ -132,9 +132,9 @@ describe('InventoryPage', () => {
     renderPage()
 
     const card = await screen.findByRole('article', { name: 'T1 · Petrol' })
-    await user.click(within(card).getByRole('button', { name: 'View Lots' }))
+    await user.click(within(card).getByRole('button', { name: 'View lots' }))
 
-    const panel = await screen.findByRole('dialog', { name: 'Stock Lots — T1' })
+    const panel = await screen.findByRole('dialog', { name: 'Stock lots — T1' })
     expect(within(panel).getByText('Lots shown in FIFO order — oldest consumed first')).toBeInTheDocument()
 
     await user.click(within(panel).getByRole('button', { name: 'Close' }))

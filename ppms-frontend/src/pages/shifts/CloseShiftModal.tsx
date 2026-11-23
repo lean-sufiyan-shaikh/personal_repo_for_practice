@@ -366,15 +366,11 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   }
   const { requestClose, isConfirming, discard, keepEditing } = useConfirmDiscard(hasUnsavedChanges, closeAndForget)
 
-  // Stays neutral until readings and payments are in; an empty form is not a shortage.
+  // Closing is a completing action, so the header is success; it changes only once the totals show a real difference.
   const totalsEntered = readingsComplete && paymentTouched
-  const headerTone: ModalTone = !totalsEntered
-    ? 'neutral'
-    : isBalanced
-    ? 'success'
-    : hasDiscrepancy
+  const headerTone: ModalTone = totalsEntered && hasDiscrepancy
     ? diff < 0 ? 'danger' : 'warning'
-    : 'neutral'
+    : 'success'
 
   const title = step === 'review'
     ? isHandover ? t('close.title.reviewHandover') : t('close.title.reviewClose')
@@ -549,7 +545,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
           </div>
         )}
     </Modal>
-    {isConfirming && <DiscardChangesDialog onDiscard={discard} onKeepEditing={keepEditing} />}
+    {isConfirming && <DiscardChangesDialog formName={title} onDiscard={discard} onKeepEditing={keepEditing} />}
     </>
   )
 }

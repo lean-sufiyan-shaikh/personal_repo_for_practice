@@ -2,7 +2,7 @@
   "page": {
     "title": "Compliance Documents",
     "subtitle": "Track licences, permits, and certificates",
-    "addButton": "Add Document",
+    "addButton": "Add document",
     "documentCount_one": "{{count}} document",
     "documentCount_other": "{{count}} documents"
   },
@@ -17,16 +17,14 @@
     "editTitle": "Edit document",
     "addTitle": "Add document",
     "subtitle": "Store expiry dates, document types, and notes in one place.",
-    "name": "Document Name",
-    "namePlaceholder": "e.g. Petrol Pump Licence",
-    "type": "Document Type",
-    "typePlaceholder": "e.g. Licence, Certificate, Permit",
-    "expiryDate": "Expiry Date (optional)",
-    "notes": "Notes (optional)",
-    "notesPlaceholder": "Any additional notes",
-    "update": "Update",
-    "add": "Add Document",
-    "required": "Name and document type are required"
+    "name": "Document name",
+    "type": "Document type",
+    "expiryDate": "Expiry date",
+    "update": "Save document",
+    "add": "Add document",
+    "typeHelp": "For example licence, certificate or permit",
+    "nameRequired": "Enter the document name",
+    "typeRequired": "Enter the document type"
   },
   "list": {
     "title": "All Documents ({{count}})",

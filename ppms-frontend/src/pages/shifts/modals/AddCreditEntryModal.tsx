@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { shiftApi } from '../../../api/shiftApi'
@@ -9,10 +9,17 @@ import { parseApiError } from '../../../utils/apiError'
 import { Modal } from '../../../components/Modal'
 import { codeLabel } from '../../../constants/labels'
 import { CreditClientSearch } from '../components/CreditClientSearch'
+import { CreditAmountField } from '../components/CreditAmountField'
+import { FormField } from '../../../components/FormField'
+import { FormGrid } from '../../../components/layout/FormGrid'
+import { LiveFigures } from '../../../components/LiveFigures'
+import { MoneyText } from '../../../components/AmountText'
+import { StatusBadge } from '../../../components/StatusBadge'
+import { StillNeeded } from '../../../components/StillNeeded'
+import { FUEL_UNIT } from '../../../constants/fuel'
 import { useAuthStore } from '../../../store/authStore'
 import { canPerformAction } from '../../../permissions/permissions'
 import { focusOnMount } from '../../../utils/focus'
-import { NumericInput } from '../../../components/NumericInput'
 import { useToastStore } from '../../../store/toastStore'
 import { readDraft, removeDraft, useSaveDraft, writeDraft } from '../../../hooks/useSaveDraft'
 import { DraftRestoredNotice } from '../../../components/DraftRestoredNotice'
@@ -48,6 +55,13 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
     queryKey: ['creditClients', shift.pumpId],
     queryFn: () => pumpApi.getCreditClients(shift.pumpId),
   })
+  // The client search loads the same standing list, so this reads it from the shared query.
+  const { data: standings = [] } = useQuery({
+    queryKey: ['creditStanding', shift.pumpId],
+    queryFn:  () => pumpApi.getCreditStanding(shift.pumpId),
+    enabled:  creditClients.length > 0,
+  })
+  const stillNeededId = useId()
 
   const draftName = `credit-entry:${shift.id}`
   const defaultFuelType = shift.fuelReadings[0]?.fuelType ?? ''
@@ -151,23 +165,38 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
     mutation.mutate({ entry, idempotencyKey: attempt.key })
   }
 
+  const unit = FUEL_UNIT[fuelType] ?? 'L'
+  const amountValue = parseFloat(amount)
+  const availableCredit = clientId === null
+    ? null
+    : standings.find((standing) => standing.clientId === clientId)?.availableCredit ?? null
+  const leftAfterSale = availableCredit !== null && amountValue > 0 ? availableCredit - amountValue : null
+  const stillNeeded = [
+    clientId === null && t('creditEntry.stillNeeded.client'),
+    fuelType.length === 0 && t('creditEntry.stillNeeded.fuel'),
+    !(amountValue > 0) && t('creditEntry.stillNeeded.amount'),
+  ].filter((item): item is string => typeof item === 'string')
+
   return (
     <Modal
       title={t('creditEntry.title')}
       subtitle={t('creditEntry.subtitle', { nozzles: shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', '), operator: shift.operatorName })}
-      tone="warning"
-      size="md"
+      tone="info"
+      size="md-wide"
+      fullScreenOnPhone
       onClose={onClose}
-      bodyClassName="space-y-3"
+      canClose={!mutation.isPending}
+      bodyClassName="space-y-4"
       footer={
         <>
-          <button onClick={onClose}
-            className="ui-btn ui-btn-secondary flex-1">
+          <StillNeeded id={stillNeededId} items={stillNeeded} />
+          <button type="button" onClick={onClose} disabled={mutation.isPending} className="ui-btn ui-btn-secondary">
             {t('common:actions.cancel')}
           </button>
           <LoadingButton type="button" onClick={handleSubmit} disabled={!canSave} isLoading={mutation.isPending}
+            aria-describedby={stillNeeded.length > 0 ? stillNeededId : undefined}
             loadingLabel={t('creditEntry.saving')}
-            className="ui-btn-primary flex-1">
+            className="ui-btn-primary">
             {t('creditEntry.save')}
           </LoadingButton>
         </>
@@ -175,69 +204,6 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
     >
           {restoredDraft && (
             <DraftRestoredNotice savedAt={restoredDraft.savedAt} onDiscard={discardRestoredEntries} />
-          )}
-
-          {/* Existing credit entries with void option */}
-          {shift.creditEntries.length > 0 && (
-            <div className="ui-card p-0 overflow-hidden">
-              <div className="ui-toolbar px-3 py-2">
-                <p className="ui-toolbar-title text-xs">{t('creditEntry.recorded')}</p>
-                {canVoidEntry && <span className="ui-toolbar-note">{t('creditEntry.tapVoid')}</span>}
-              </div>
-              <div className="divide-y divide-border max-h-40 overflow-y-auto">
-                {shift.creditEntries.map((entry) => (
-                  <div key={entry.id} className={`flex items-center gap-2 px-3 py-2 ${entry.voidStatus === 'VOIDED' ? 'opacity-40' : ''}`}>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-ink truncate">{entry.clientName}</p>
-                      <p className="text-xs text-ink-3">
-                        {formatCurrency(entry.amount)}
-                        {entry.fuelType && ` · ${codeLabel(entry.fuelType)}`}
-                        {entry.voidStatus === 'VOIDED' && ` · ${t('creditEntry.voidedTag')}`}
-                      </p>
-                    </div>
-                    {canVoidEntry && entry.voidStatus !== 'VOIDED' && voidTargetId !== entry.id && (
-                      <button
-                        onClick={() => { setVoidTargetId(entry.id); setVoidReason(''); setVoidError(null) }}
-                        className="ui-btn ui-btn-ghost min-h-0 shrink-0 border border-bad px-2 py-0.5 text-xs text-bad hover:text-bad-strong"
-                      >
-                        {t('creditEntry.void')}
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              {/* Void reason input */}
-              {voidTargetId !== null && (
-                <div className="border-t border-warn bg-warn-bg px-3 py-2">
-                  <div className="ui-inline-form space-y-2 border-warn bg-surface">
-                  <input aria-label={t('creditEntry.voidReasonAria')}
-                    ref={focusOnMount}
-                    type="text"
-                    value={voidReason}
-                    onChange={(e) => setVoidReason(e.target.value)}
-                    placeholder={t('creditEntry.voidReasonPlaceholder')}
-                    className="ui-input-compact text-xs"
-                  />
-                  {voidError && <p role="alert" className="ui-error-text">{voidError}</p>}
-                  <div className="flex gap-2">
-                    <button onClick={() => { setVoidTargetId(null); setVoidReason('') }}
-                      className="ui-btn ui-btn-secondary min-h-0 flex-1 px-3 py-1 text-xs">
-                      {t('common:actions.cancel')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (!voidReason.trim()) { setVoidError(t('creditEntry.reasonRequired')); return }
-                        voidMutation.mutate({ entryId: voidTargetId!, reason: voidReason.trim() })
-                      }}
-                      disabled={voidMutation.isPending}
-                      className="ui-btn ui-btn-danger min-h-0 flex-1 px-3 py-1 text-xs disabled:opacity-50">
-                      {voidMutation.isPending ? '…' : t('creditEntry.confirmVoid')}
-                    </button>
-                  </div>
-                  </div>
-                </div>
-              )}
-            </div>
           )}
 
           {/* Client — root/parent accounts only */}
@@ -267,129 +233,142 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
           {/* Sub-account picker — shown when selected parent has children */}
           {subAccounts.length > 0 && (
             <div>
-              <span className="ui-label">
-                {t('creditEntry.subAccount')} <span className="text-ink-3 font-normal">{t('common:fields.optionalSuffix')}</span>
+              <span id={`${stillNeededId}-sub-account`} className="ui-label">
+                {t('creditEntry.subAccount')} <span className="font-normal text-ink-3">{t('common:fields.optionalSuffix')}</span>
               </span>
-              <SearchableSelect label={t('creditEntry.subAccount')}
+              <SearchableSelect aria-labelledby={`${stillNeededId}-sub-account`}
                 value={subAccountId != null ? subAccountId.toString() : ''}
                 onChange={v => setSubAccountId(v === '' ? null : Number(v))}
                 placeholder={t('creditEntry.billToParentOption', { name: clientName })}
-                accentColor="orange"
                 options={subAccounts.map(s => ({ value: s.id.toString(), label: s.name }))}
               />
             </div>
           )}
 
-          {/* Fuel + Amount/Liters */}
-          <div className="grid grid-cols-2 gap-3">
+          <FormGrid>
             <div>
-              <span className="ui-label">
-                {t('creditEntry.fuel')} <span className="text-bad">*</span>
-              </span>
-              <SearchableSelect label={t('creditEntry.fuel')}
+              <span id={`${stillNeededId}-fuel`} className="ui-label">{t('creditEntry.fuel')}</span>
+              <SearchableSelect aria-labelledby={`${stillNeededId}-fuel`}
                 value={fuelType}
                 onChange={v => {
                   setFuelType(v)
                   if (inputMode === 'liters') { setAmount(''); setLiters('') }
                 }}
-                accentColor="orange"
                 options={shift.fuelReadings.map(r => ({
                   value: r.fuelType,
                   label: codeLabel(r.fuelType),
                 }))}
               />
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="ui-label mb-0">
-                  {inputMode === 'amount' ? t('creditEntry.amount') : t('creditEntry.liters')}{' '}
-                  <span className="text-bad">*</span>
-                </span>
-                <div className="flex gap-1 text-xs">
-                  <button type="button"
-                    onClick={() => { setInputMode('amount'); setLiters('') }}
-                    aria-pressed={inputMode === 'amount'}
-                    aria-label={t('creditEntry.amountModeAria')}
-                    className={`min-h-11 min-w-11 rounded-control border border-border px-2 font-medium transition-colors ${inputMode === 'amount' ? 'bg-warn text-on-primary' : 'bg-surface text-ink-3 hover:bg-bg'}`}>
-                    ₹
-                  </button>
-                  <button type="button"
-                    onClick={() => {
-                      const price = priceForFuelType(fuelType)
-                      const initLiters = price && amount ? (parseFloat(amount) / price).toFixed(2) : ''
-                      setInputMode('liters')
-                      setLiters(initLiters)
-                    }}
-                    disabled={!priceForFuelType(fuelType)}
-                    aria-pressed={inputMode === 'liters'}
-                    aria-label={t('creditEntry.litresModeAria')}
-                    className={`min-h-11 min-w-11 rounded-control border border-border px-2 font-medium transition-colors ${inputMode === 'liters' ? 'bg-warn text-on-primary' : 'bg-surface text-ink-3 hover:bg-bg'} disabled:opacity-40 disabled:cursor-not-allowed`}>
-                    L
-                  </button>
-                </div>
-              </div>
-              {inputMode === 'amount' ? (
-                <>
-                  <NumericInput aria-label={t('creditEntry.amountAria')} step="0.01" min="0.01" value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00" />
-                  {(() => {
-                    const price = priceForFuelType(fuelType)
-                    const unit = fuelType === 'CNG' ? 'kg' : 'L'
-                    const litersCalc = price && amount ? (parseFloat(amount) / price) : null
-                    return litersCalc ? (
-                      <p className="text-xs text-ink-3 mt-1">
-                        {litersCalc.toFixed(2)} {unit} × ₹{price} = {formatCurrency(parseFloat(amount))}
-                      </p>
-                    ) : null
-                  })()}
-                </>
-              ) : (
-                <>
-                  <NumericInput aria-label={t('creditEntry.quantityAria')} step="0.001" min="0.001" value={liters}
-                    onChange={(e) => {
-                      const price = priceForFuelType(fuelType)
-                      const amt = price && e.target.value ? (parseFloat(e.target.value) * price).toFixed(2) : ''
-                      setLiters(e.target.value)
-                      setAmount(amt)
-                    }}
-                    placeholder="0.00" />
-                  {liters && amount && (() => {
-                    const price = priceForFuelType(fuelType)
-                    const unit = fuelType === 'CNG' ? 'kg' : 'L'
-                    return price ? (
-                      <p className="text-xs text-ok mt-1 font-medium">
-                        {parseFloat(liters).toFixed(2)} {unit} × ₹{price} = {formatCurrency(parseFloat(amount))}
-                      </p>
-                    ) : null
-                  })()}
-                </>
-              )}
-            </div>
-          </div>
+            <CreditAmountField
+              mode={inputMode}
+              amount={amount}
+              liters={liters}
+              price={priceForFuelType(fuelType)}
+              unit={unit}
+              onAmountMode={() => { setInputMode('amount'); setLiters('') }}
+              onLitresMode={() => {
+                const price = priceForFuelType(fuelType)
+                const initLiters = price && amount ? (parseFloat(amount) / price).toFixed(2) : ''
+                setInputMode('liters')
+                setLiters(initLiters)
+              }}
+              onAmountChange={setAmount}
+              onLitresChange={(value) => {
+                const price = priceForFuelType(fuelType)
+                const amt = price && value ? (parseFloat(value) * price).toFixed(2) : ''
+                setLiters(value)
+                setAmount(amt)
+              }}
+            />
+            <FormField label={<>{t('creditEntry.billNo')} <span className="font-normal text-ink-3">{t('common:fields.optionalSuffix')}</span></>}>
+              <input type="text" value={billNo} onChange={(e) => setBillNo(e.target.value)}
+                placeholder={t('creditEntry.billNoPlaceholder')} />
+            </FormField>
+            <FormField label={<>{t('creditEntry.description')} <span className="font-normal text-ink-3">{t('common:fields.optionalSuffix')}</span></>}>
+              <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}
+                placeholder={t('creditEntry.descriptionPlaceholder')} />
+            </FormField>
+          </FormGrid>
 
-          {/* Bill No + Description */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block">
-                <span className="ui-label">{t('creditEntry.billNo')}</span>
-                <input type="text" value={billNo} onChange={(e) => setBillNo(e.target.value)}
-                  placeholder={t('creditEntry.billNoPlaceholder')}
-                  className="text-sm" />
-              </label>
-            </div>
-            <div>
-              <label className="block">
-                <span className="ui-label">{t('creditEntry.description')}</span>
-                <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}
-                  placeholder={t('creditEntry.descriptionPlaceholder')}
-                  className="text-sm" />
-              </label>
-            </div>
-          </div>
+          {availableCredit !== null && (
+            <LiveFigures
+              label={t('creditEntry.creditLimit')}
+              figures={[
+                { label: t('creditEntry.availableCredit'), value: <MoneyText value={availableCredit} /> },
+                {
+                  label: t('creditEntry.leftAfterSale'),
+                  value: <MoneyText value={leftAfterSale} tone={leftAfterSale !== null && leftAfterSale < 0 ? 'bad' : undefined} />,
+                  isResult: true,
+                },
+              ]}
+            />
+          )}
 
           {error && (
-            <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
+            <p role="alert" className="ui-alert ui-alert-danger">{error}</p>
+          )}
+
+          {/* Existing credit entries with void option */}
+          {shift.creditEntries.length > 0 && (
+            <section aria-labelledby={`${stillNeededId}-recorded`} className="rounded-card border border-border">
+              <div className="flex items-baseline justify-between gap-3 border-b border-border px-3 py-2">
+                <h3 id={`${stillNeededId}-recorded`} className="text-sm font-semibold text-ink">{t('creditEntry.recorded')}</h3>
+                {canVoidEntry && <span className="text-xs text-ink-3">{t('creditEntry.tapVoid')}</span>}
+              </div>
+              <ul className="divide-y divide-border max-h-48 overflow-y-auto">
+                {shift.creditEntries.map((entry) => (
+                  <li key={entry.id} className="flex items-center gap-2 px-3 py-2">
+                    <div className={`flex-1 min-w-0 ${entry.voidStatus === 'VOIDED' ? 'line-through' : ''}`}>
+                      <p className="text-sm font-medium text-ink truncate">{entry.clientName}</p>
+                      <p className="text-xs text-ink-3">
+                        {formatCurrency(entry.amount)}
+                        {entry.fuelType && ` · ${codeLabel(entry.fuelType)}`}
+                      </p>
+                    </div>
+                    {entry.voidStatus === 'VOIDED' && <StatusBadge tone="neutral" label={t('common:badges.voided')} />}
+                    {canVoidEntry && entry.voidStatus !== 'VOIDED' && voidTargetId !== entry.id && (
+                      <button
+                        type="button"
+                        onClick={() => { setVoidTargetId(entry.id); setVoidReason(''); setVoidError(null) }}
+                        className="ui-btn ui-btn-secondary ui-btn-compact shrink-0"
+                      >
+                        {t('creditEntry.void')}
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {voidTargetId !== null && (
+                <div className="space-y-2 border-t border-border bg-surface-sunken px-3 py-3">
+                  <FormField label={t('creditEntry.voidReason')} error={voidError ?? undefined} help={t('creditEntry.voidHint')}>
+                    <input
+                      ref={focusOnMount}
+                      type="text"
+                      value={voidReason}
+                      onChange={(e) => setVoidReason(e.target.value)}
+                    />
+                  </FormField>
+                  <div className="flex justify-end gap-2">
+                    <button type="button" onClick={() => { setVoidTargetId(null); setVoidReason('') }}
+                      className="ui-btn ui-btn-secondary ui-btn-compact">
+                      {t('common:actions.cancel')}
+                    </button>
+                    <LoadingButton
+                      type="button"
+                      onClick={() => {
+                        if (!voidReason.trim()) { setVoidError(t('creditEntry.reasonRequired')); return }
+                        voidMutation.mutate({ entryId: voidTargetId, reason: voidReason.trim() })
+                      }}
+                      isLoading={voidMutation.isPending}
+                      loadingLabel={t('creditEntry.voiding')}
+                      className="ui-btn-danger ui-btn-compact">
+                      {t('creditEntry.confirmVoid')}
+                    </LoadingButton>
+                  </div>
+                </div>
+              )}
+            </section>
           )}
     </Modal>
   )

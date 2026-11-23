@@ -11,7 +11,7 @@ import { renderWithProviders } from '../../../test/renderWithProviders'
 import type { Shift } from '../../../types/shift'
 import { AddCreditEntryModal } from './AddCreditEntryModal'
 
-vi.mock('../../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn() } }))
+vi.mock('../../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn(), getCreditStanding: vi.fn() } }))
 vi.mock('../../../api/shiftApi', () => ({ shiftApi: { addCreditEntry: vi.fn(), voidCreditEntry: vi.fn() } }))
 
 const shift: Shift = {
@@ -39,6 +39,7 @@ describe('AddCreditEntryModal', () => {
   beforeEach(() => {
     useAuthStore.setState({ user: { userId: 9, fullName: 'Ravi', role: 'OPERATOR', assignedPumpId: 3 }, isAuthenticated: true })
     vi.mocked(pumpApi.getCreditClients).mockResolvedValue([fleetClient])
+    vi.mocked(pumpApi.getCreditStanding).mockResolvedValue([{ clientId: 40, creditStatus: 'OK', availableCredit: 1000 }])
     vi.mocked(shiftApi.addCreditEntry).mockResolvedValue({} as never)
     useToastStore.setState({ toasts: [] })
   })
@@ -49,12 +50,12 @@ describe('AddCreditEntryModal', () => {
 
     const search = screen.getByPlaceholderText('Search client name…')
     await user.type(search, 'Fleet')
-    await user.type(screen.getByLabelText('Credit amount in rupees'), '250')
-    expect(screen.getByRole('button', { name: 'Save Entry' })).toBeDisabled()
+    await user.type(screen.getByLabelText('Amount'), '250')
+    expect(screen.getByRole('button', { name: 'Save credit sale' })).toBeDisabled()
 
     await user.click(search)
     fireEvent.mouseDown(await screen.findByRole('option', { name: /Fleet Co/ }))
-    await user.click(screen.getByRole('button', { name: 'Save Entry' }))
+    await user.click(screen.getByRole('button', { name: 'Save credit sale' }))
 
     expect(shiftApi.addCreditEntry).toHaveBeenCalledWith(3, 11, expect.objectContaining({ clientId: 40, clientName: 'Fleet Co', amount: 250 }), expect.any(String))
     await waitFor(() => expect(useToastStore.getState().toasts).toEqual([
@@ -68,9 +69,9 @@ describe('AddCreditEntryModal', () => {
     renderWithProviders(<AddCreditEntryModal shift={shift} onClose={vi.fn()} />)
     await first.type(screen.getByPlaceholderText('Search client name…'), 'Fleet')
     fireEvent.mouseDown(await screen.findByRole('option', { name: /Fleet Co/ }))
-    await first.type(screen.getByLabelText('Credit amount in rupees'), '250')
-    await first.type(screen.getByLabelText('Bill No'), 'B-9')
-    await first.click(screen.getByRole('button', { name: 'Save Entry' }))
+    await first.type(screen.getByLabelText('Amount'), '250')
+    await first.type(screen.getByLabelText('Bill no. (optional)'), 'B-9')
+    await first.click(screen.getByRole('button', { name: 'Save credit sale' }))
     expect(await screen.findByRole('alert')).toHaveTextContent("Server didn't respond")
     const firstKey = vi.mocked(shiftApi.addCreditEntry).mock.calls[0][3]
 
@@ -79,10 +80,10 @@ describe('AddCreditEntryModal', () => {
     renderWithProviders(<AddCreditEntryModal shift={shift} onClose={vi.fn()} />)
     expect(screen.getByText(/^Resumed your unsaved entries from/)).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Search client name…')).toHaveValue('Fleet Co')
-    expect(screen.getByLabelText('Credit amount in rupees')).toHaveValue(250)
-    expect(screen.getByLabelText('Bill No')).toHaveValue('B-9')
+    expect(screen.getByLabelText('Amount')).toHaveValue(250)
+    expect(screen.getByLabelText('Bill no. (optional)')).toHaveValue('B-9')
 
-    await user.click(screen.getByRole('button', { name: 'Save Entry' }))
+    await user.click(screen.getByRole('button', { name: 'Save credit sale' }))
     await waitFor(() => expect(shiftApi.addCreditEntry).toHaveBeenCalledTimes(2))
     expect(vi.mocked(shiftApi.addCreditEntry).mock.calls[1][3]).toBe(firstKey)
     await waitFor(() => expect(localStorage.getItem('ppms_draft:credit-entry:11')).toBeNull())
@@ -102,8 +103,38 @@ describe('AddCreditEntryModal', () => {
     await user.click(screen.getByRole('button', { name: 'Discard' }))
 
     expect(screen.getByPlaceholderText('Search client name…')).toHaveValue('')
-    expect(screen.getByLabelText('Credit amount in rupees')).toHaveValue(null)
-    expect(screen.getByRole('button', { name: 'Save Entry' })).toBeDisabled()
+    expect(screen.getByLabelText('Amount')).toHaveValue(null)
+    expect(screen.getByRole('button', { name: 'Save credit sale' })).toBeDisabled()
     expect(localStorage.getItem('ppms_draft:credit-entry:11')).toBeNull()
+  })
+
+  it('says what is still needed and works out litres and the credit left as the amount is typed', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<AddCreditEntryModal shift={shift} onClose={vi.fn()} />)
+
+    const save = screen.getByRole('button', { name: 'Save credit sale' })
+    expect(save).toBeDisabled()
+    expect(save).toHaveAccessibleDescription('Still needed Client from the list Amount')
+
+    await user.type(screen.getByPlaceholderText('Search client name…'), 'Fleet')
+    fireEvent.mouseDown(await screen.findByRole('option', { name: /Fleet Co/ }))
+    expect(save).toHaveAccessibleDescription('Still needed Amount')
+
+    await user.type(screen.getByLabelText('Amount'), '250')
+    expect(screen.getByLabelText('Amount')).toHaveAccessibleDescription('2.50 L × ₹100.00 = ₹250.00')
+    expect(await screen.findByText('Credit available')).toBeInTheDocument()
+    expect(screen.getByText('Credit available').nextSibling).toHaveTextContent('₹1,000.00')
+    expect(screen.getByText('Left after this sale').nextSibling).toHaveTextContent('₹750.00')
+    expect(save).toBeEnabled()
+  })
+
+  it('works out the amount from litres at the shift price', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<AddCreditEntryModal shift={shift} onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Enter quantity' }))
+    await user.type(screen.getByLabelText('Quantity'), '3.5')
+
+    expect(screen.getByLabelText('Quantity')).toHaveAccessibleDescription('3.50 L × ₹100.00 = ₹350.00')
   })
 })

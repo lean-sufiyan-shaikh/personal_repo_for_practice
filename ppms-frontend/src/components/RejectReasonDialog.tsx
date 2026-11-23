@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Modal } from './Modal'
-import { Spinner } from './Spinner'
+import { FormField } from './FormField'
+import { LoadingButton } from './LoadingButton'
 
 interface RejectReasonDialogProps {
   title: string
@@ -18,7 +20,8 @@ export function RejectReasonDialog({ title, subtitle, isPending, error, onConfir
   const [reason, setReason] = useState('')
   const [missingReason, setMissingReason] = useState(false)
 
-  const confirm = () => {
+  const confirm = (event: FormEvent) => {
+    event.preventDefault()
     if (!reason.trim()) {
       setMissingReason(true)
       return
@@ -27,40 +30,38 @@ export function RejectReasonDialog({ title, subtitle, isPending, error, onConfir
     onConfirm(reason.trim())
   }
 
-  const shownError = missingReason ? t('rejectDialog.missingReason') : error
-
   return (
     <Modal
       title={title}
       subtitle={subtitle}
-      tone="danger"
+      tone="warning"
+      size="md"
       onClose={onClose}
       canClose={!isPending}
+      onSubmit={confirm}
       bodyClassName="space-y-4"
       footer={
         <>
           <button type="button" onClick={onClose} disabled={isPending} className="ui-btn ui-btn-secondary">{t('actions.cancel')}</button>
-          <button type="button" onClick={confirm} disabled={isPending} className="ui-btn ui-btn-danger">
-            {isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('actions.rejecting')}</span> : t('actions.reject')}
-          </button>
+          <LoadingButton type="submit" isLoading={isPending} loadingLabel={t('actions.rejecting')} className="ui-btn-danger">
+            {t('actions.reject')}
+          </LoadingButton>
         </>
       }
     >
-      <label className="block">
-        <span className="ui-label">{t('rejectDialog.reason')} <span aria-hidden="true" className="text-bad">*</span></span>
+      <FormField label={t('rejectDialog.reason')} help={t('rejectDialog.help')}
+        error={missingReason ? t('rejectDialog.missingReason') : undefined}>
         <textarea
           value={reason}
-          onChange={(event) => setReason(event.target.value)}
+          onChange={(event) => { setReason(event.target.value); if (event.target.value.trim()) setMissingReason(false) }}
           rows={3}
           maxLength={500}
-          required
-          aria-invalid={missingReason}
-          placeholder={t('rejectDialog.placeholder')}
-          className="resize-none text-sm"
+          aria-required="true"
+          className="resize-none"
           data-autofocus
         />
-      </label>
-      {shownError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{shownError}</div>}
+      </FormField>
+      {error && <p role="alert" className="ui-alert ui-alert-danger">{error}</p>}
     </Modal>
   )
 }

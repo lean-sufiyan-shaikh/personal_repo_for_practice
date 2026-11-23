@@ -20,9 +20,9 @@ const tank: TankInfo = {
 
 async function fillDrain(litres: string) {
   const user = userEvent.setup()
-  await user.type(screen.getByLabelText('Litres Removed'), litres)
+  await user.type(screen.getByLabelText('Litres removed'), litres)
   await user.type(screen.getByLabelText(/Reason/), 'Filter cleaning')
-  await user.click(screen.getByRole('button', { name: 'Record Dip' }))
+  await user.click(screen.getByRole('button', { name: 'Record dip' }))
 }
 
 describe('RecordDipPanel', () => {
@@ -59,6 +59,20 @@ describe('RecordDipPanel', () => {
     renderWithProviders(<RecordDipPanel pumpId={6} nozzle={{ ...nozzle, tankId: null }} tank={null} onClose={vi.fn()} />)
 
     expect(screen.getByText(/not mapped to a tank/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Record Dip' })).toBeDisabled()
+    const record = screen.getByRole('button', { name: 'Record dip' })
+    expect(record).toBeDisabled()
+    expect(record).toHaveAccessibleDescription(/not mapped to a tank/)
+  })
+
+  it('shows what is left in the tank as the litres are typed', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<RecordDipPanel pumpId={6} nozzle={nozzle} tank={tank} onClose={vi.fn()} />)
+    const leftInTank = () => screen.getByText('Left in tank', { selector: 'dt' }).nextElementSibling?.textContent
+
+    expect(leftInTank()).toBe('—')
+
+    await user.type(screen.getByLabelText('Litres removed'), '12.5')
+
+    expect(leftInTank()).toBe('487.5 L')
   })
 })

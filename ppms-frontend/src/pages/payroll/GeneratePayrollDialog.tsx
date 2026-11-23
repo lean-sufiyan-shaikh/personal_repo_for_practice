@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { StaffMember } from '../../api/userApi'
@@ -7,10 +7,12 @@ import type { GeneratePayrollRequest } from '../../api/payrollApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Modal } from '../../components/Modal'
 import { FormGrid, FormGridFullRow } from '../../components/layout/FormGrid'
+import { StillNeeded } from '../../components/StillNeeded'
+import { LiveFigures } from '../../components/LiveFigures'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { ReviewModal } from './ReviewModal'
-import { todayIso, yesterdayIso } from './payrollFormat'
+import { fmtDate, periodDays, todayIso, yesterdayIso } from './payrollFormat'
 import { codeLabel } from '../../constants/labels'
 
 interface GeneratePayrollDialogProps {
@@ -25,6 +27,7 @@ export function GeneratePayrollDialog({ pumpId, staff, onGenerated, onClose }: G
   const { t } = useTranslation(['payroll', 'common'])
   const { addToast } = useToastStore()
   const qc = useQueryClient()
+  const fieldId = useId()
   const [form, setForm] = useState<GeneratePayrollRequest>(() => ({
     userId: 0,
     periodFrom: yesterdayIso(),
@@ -48,6 +51,12 @@ export function GeneratePayrollDialog({ pumpId, staff, onGenerated, onClose }: G
       addToast(msg, 'error')
     },
   })
+
+  const stillNeeded = [
+    ...(!form.userId ? [t('generate.stillNeeded.staff')] : []),
+    ...(!form.periodFrom || !form.periodTo ? [t('generate.stillNeeded.period')] : []),
+  ]
+  const days = periodDays(form.periodFrom, form.periodTo)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,24 +83,28 @@ export function GeneratePayrollDialog({ pumpId, staff, onGenerated, onClose }: G
   return (
     <Modal
       title={t('generate.title')}
-      subtitle={t('generate.subtitle')}
-      size="lg"
+      subtitle={staff.find((s) => s.id === form.userId)?.fullName ?? t('generate.subtitle')}
+      tone="info"
+      size="md-wide"
       onClose={onClose}
       onSubmit={handleSubmit}
       bodyClassName="space-y-4"
       footer={<>
+        <StillNeeded id={`${fieldId}-needed`} items={stillNeeded} />
         <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
           {t('common:actions.cancel')}
         </button>
-        <button type="submit" className="ui-btn ui-btn-primary">
+        <button type="submit" disabled={stillNeeded.length > 0}
+          aria-describedby={stillNeeded.length ? `${fieldId}-needed` : undefined}
+          className="ui-btn ui-btn-primary">
           {t('generate.review')}
         </button>
       </>}
     >
       <FormGrid>
         <FormGridFullRow>
-          <span className="ui-label">{t('generate.staffMember')}</span>
-          <SearchableSelect label={t('generate.staffMember')}
+          <span id={`${fieldId}-staff`} className="ui-label">{t('generate.staffMember')}</span>
+          <SearchableSelect aria-labelledby={`${fieldId}-staff`}
             value={form.userId ? form.userId.toString() : ''}
             onChange={v => setForm(f => ({ ...f, userId: parseInt(v) || 0 }))}
             placeholder={t('generate.selectStaff')}
@@ -100,48 +113,35 @@ export function GeneratePayrollDialog({ pumpId, staff, onGenerated, onClose }: G
         </FormGridFullRow>
 
         <div>
-          <label className="block">
-            <span className="ui-label">{t('generate.periodFrom')}</span>
-            <input
-              type="date"
-              value={form.periodFrom}
-              onChange={e => setForm(f => ({ ...f, periodFrom: e.target.value }))}
-              className="text-sm"
-              required
-            />
-          </label>
+          <label htmlFor={`${fieldId}-from`} className="ui-label">{t('generate.periodFrom')}</label>
+          <input id={`${fieldId}-from`} type="date" value={form.periodFrom} required
+            onChange={e => setForm(f => ({ ...f, periodFrom: e.target.value }))} />
         </div>
 
         <div>
-          <label className="block">
-            <span className="ui-label">{t('generate.periodTo')}</span>
-            <input
-              type="date"
-              value={form.periodTo}
-              onChange={e => setForm(f => ({ ...f, periodTo: e.target.value }))}
-              className="text-sm"
-              required
-            />
-          </label>
+          <label htmlFor={`${fieldId}-to`} className="ui-label">{t('generate.periodTo')}</label>
+          <input id={`${fieldId}-to`} type="date" value={form.periodTo} required
+            onChange={e => setForm(f => ({ ...f, periodTo: e.target.value }))} />
         </div>
 
         <FormGridFullRow>
-          <label className="block">
-            <span className="ui-label">{t('generate.notes')}</span>
-            <input
-              type="text"
-              value={form.notes ?? ''}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
-              className="text-sm"
-              placeholder={t('generate.notesPlaceholder')}
-            />
+          <label htmlFor={`${fieldId}-notes`} className="ui-label">
+            {t('common:fields.notes')} <span className="font-normal text-ink-3">{t('common:fields.optionalSuffix')}</span>
           </label>
+          <input id={`${fieldId}-notes`} type="text" value={form.notes ?? ''}
+            onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))} />
         </FormGridFullRow>
       </FormGrid>
 
-      <p className="text-xs text-ink-3">
-        {t('generate.howCalculated')}
-      </p>
+      <LiveFigures
+        label={t('generate.payPeriod')}
+        figures={[{
+          label: t('generate.payPeriod'),
+          value: days === null ? '—' : t('generate.periodDays', { count: days, from: fmtDate(form.periodFrom), to: fmtDate(form.periodTo) }),
+        }]}
+      />
+
+      <p className="ui-help">{t('generate.howCalculated')}</p>
 
       {formError && <p role="alert" className="ui-error-text">{formError}</p>}
     </Modal>

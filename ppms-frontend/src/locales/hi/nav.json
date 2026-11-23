@@ -85,7 +85,7 @@
     "nameBlank": "नाम ख़ाली नहीं हो सकता",
     "saveNameFailed": "नाम सेव नहीं हो सका",
     "openMenu": "प्रोफ़ाइल मेनू खोलें",
-    "resetPassword": "पासवर्ड रीसेट करें",
+    "changePassword": "पासवर्ड बदलें",
     "logout": "लॉग आउट",
     "loggingOut": "लॉग आउट हो रहा है...",
     "density": "घनत्व",

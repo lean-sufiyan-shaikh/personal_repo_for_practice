@@ -75,7 +75,7 @@ describe('AncillaryProductsPage', () => {
     const user = userEvent.setup()
     renderWithProviders(<><AncillaryProductsPage /><CurrentSearch /></>, { route: '/dashboard/ancillary?action=sell-product' })
 
-    const picker = await screen.findByRole('dialog', { name: 'Record Sale' })
+    const picker = await screen.findByRole('dialog', { name: 'Record sale' })
     expect(within(picker).getByRole('button', { name: 'Continue' })).toBeDisabled()
 
     await user.click(within(picker).getByRole('button', { name: /Product:/ }))
@@ -83,7 +83,7 @@ describe('AncillaryProductsPage', () => {
     await user.click(await screen.findByRole('option', { name: /Engine Oil 1L/ }))
     await user.click(within(picker).getByRole('button', { name: 'Continue' }))
 
-    expect(await screen.findByLabelText('Quantity (units) *')).toBeInTheDocument()
+    expect(await screen.findByLabelText('Quantity')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -107,11 +107,11 @@ describe('AncillaryProductsPage', () => {
     const card = (await screen.findByText('Engine Oil 1L')).closest('.ui-card') as HTMLElement
     await user.click(within(card).getByRole('button', { name: 'Inventory' }))
 
-    const panel = await screen.findByRole('dialog', { name: 'Stock Lots' })
+    const panel = await screen.findByRole('dialog', { name: 'Stock lots' })
     expect(within(panel).getByText('Engine Oil 1L')).toBeInTheDocument()
     expect(ancillaryApi.getLots).toHaveBeenCalledWith(PUMP_ID, 1)
 
     await user.keyboard('{Escape}')
-    expect(screen.queryByRole('dialog', { name: 'Stock Lots' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Stock lots' })).not.toBeInTheDocument()
   })
 })

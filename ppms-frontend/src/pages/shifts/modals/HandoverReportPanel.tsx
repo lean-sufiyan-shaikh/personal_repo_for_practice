@@ -2,21 +2,14 @@ import { useEffect } from 'react'
 import { codeLabel } from '../../../constants/labels'
 import { Printer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import type { TFunction } from 'i18next'
 import type { FuelReading, Shift } from '../../../types/shift'
 import { formatIstDateTime } from '../../../utils/date'
 import { SidePanel } from '../../../components/layout/SidePanel'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { LitresText, MoneyText } from '../../../components/AmountText'
-import { formatCurrencyOrDash } from '../../../utils/format'
+import { DiscrepancyBadge } from '../components/DiscrepancyBadge'
 import { printWhenFontsReady } from '../../../i18n/fonts'
-
-function discrepancyTypeText(type: Shift['discrepancyType'], t: TFunction<['shifts', 'common']>): string | null {
-  if (type === 'SHORT') return t('common:badges.short')
-  if (type === 'OVER') return t('common:badges.over')
-  return type
-}
 
 export function HandoverReportPanel({ shift, onClose }: { shift: Shift; onClose: () => void }) {
   const { t } = useTranslation(['shifts', 'common'])
@@ -80,7 +73,7 @@ export function HandoverReportPanel({ shift, onClose }: { shift: Shift; onClose:
               { label: t('handover.report.shiftWindow'), value: shift.shiftWindow ?? '—' },
             ].map(({ label, value }) => (
               <div key={label}>
-                <p className="text-xs text-ink-3 uppercase tracking-wide mb-0.5">{label}</p>
+                <p className="text-xs text-ink-3 mb-0.5">{label}</p>
                 <p className="font-semibold text-ink">{value}</p>
               </div>
             ))}
@@ -97,7 +90,7 @@ export function HandoverReportPanel({ shift, onClose }: { shift: Shift; onClose:
           )}
 
           <div>
-            <p className="text-xs font-semibold text-ink-3 uppercase tracking-wide mb-2">{t('handover.report.collections')}</p>
+            <h3 className="text-sm font-semibold text-ink mb-2">{t('handover.report.collections')}</h3>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { label: t('common:paymentMethods.CASH'),      val: shift.cashCollected },
@@ -119,11 +112,11 @@ export function HandoverReportPanel({ shift, onClose }: { shift: Shift; onClose:
           </div>
 
           {shift.discrepancyAmount != null && (
-            <div className={`rounded-card border p-3 ${shift.discrepancyType === 'SHORT' ? 'bg-bad-bg border-bad' : 'bg-warn-bg border-warn'}`}>
-              <p className="text-xs font-semibold uppercase tracking-wide mb-1 text-ink-2">{t('handover.report.discrepancy')}</p>
-              <p className={`font-bold text-sm ${shift.discrepancyType === 'SHORT' ? 'text-bad' : 'text-warn'}`}>
-                {discrepancyTypeText(shift.discrepancyType, t)}: {formatCurrencyOrDash(shift.discrepancyAmount)}
-              </p>
+            <div className="rounded-card border border-border p-3">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-ink">{t('handover.report.discrepancy')}</h3>
+                <DiscrepancyBadge type={shift.discrepancyType} amount={shift.discrepancyAmount} />
+              </div>
               {shift.discrepancyReason && (
                 <p className="text-xs text-ink-3 mt-1">{t('handover.report.reason', { reason: shift.discrepancyReason })}</p>
               )}

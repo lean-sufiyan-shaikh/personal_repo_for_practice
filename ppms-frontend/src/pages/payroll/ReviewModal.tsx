@@ -1,19 +1,19 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { CircleCheck } from 'lucide-react'
 import { withToggled } from '../../utils/setToggle'
 import { useQuery } from '@tanstack/react-query'
 import type { StaffMember } from '../../api/userApi'
 import { payrollApi } from '../../api/payrollApi'
 import type { GeneratePayrollRequest, PendingDiscrepancy } from '../../api/payrollApi'
-import { Spinner } from '../../components/Spinner'
 import { Modal } from '../../components/Modal'
+import { LoadingButton } from '../../components/LoadingButton'
 import { StatusBadge } from '../../components/StatusBadge'
 import { discrepancyBadge } from '../../components/statusBadges'
 import { MoneyText } from '../../components/AmountText'
-import { fmtAmt, fmtDate } from './payrollFormat'
+import { LiveFigures } from '../../components/LiveFigures'
+import { fmtDate } from './payrollFormat'
 import { roleLabel } from '../../constants/labels'
-
-// ── Review + Discrepancy Modal ────────────────────────────────────────────────
 
 interface ReviewModalProps {
   form: GeneratePayrollRequest
@@ -28,6 +28,7 @@ interface ReviewModalProps {
 export function ReviewModal({ form, selectedStaff, pumpId, formError, isPending, onClose, onGenerate }: ReviewModalProps) {
   const { t } = useTranslation(['payroll', 'common'])
   const [deductSet, setDeductSet] = useState<Set<number>>(new Set())
+  const pendingTitleId = useId()
 
   const { data: pending = [], isLoading: pendingLoading } = useQuery({
     queryKey: ['pending-discrepancies', pumpId, form.userId],
@@ -45,123 +46,102 @@ export function ReviewModal({ form, selectedStaff, pumpId, formError, isPending,
   return (
     <Modal
       title={t('review.title')}
-      subtitle={t('review.subtitle')}
+      subtitle={selectedStaff ? `${selectedStaff.fullName} · ${fmtDate(form.periodFrom)} – ${fmtDate(form.periodTo)}` : `${fmtDate(form.periodFrom)} – ${fmtDate(form.periodTo)}`}
       tone="info"
       size="lg"
       onClose={onClose}
-      closeOnBackdropClick
+      canClose={!isPending}
+      fullScreenOnPhone
       bodyClassName="space-y-4"
+      footerClassName="ui-modal-footer--large"
       footer={<>
-          <button onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.back')}</button>
-          <button
-            onClick={() => onGenerate(Array.from(deductSet))}
-            disabled={isPending}
-            className="ui-btn ui-btn-primary"
-          >
-            {isPending
-              ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.generating')}</span>
-              : t('review.generate')}
-          </button>
+        <button type="button" onClick={onClose} disabled={isPending} className="ui-btn ui-btn-secondary">
+          {t('common:actions.edit')}
+        </button>
+        <LoadingButton type="button" onClick={() => onGenerate(Array.from(deductSet))} isLoading={isPending}
+          loadingLabel={t('common:actions.generating')} className="ui-btn-primary">
+          {t('review.generate')}
+        </LoadingButton>
       </>}
     >
-          {formError && (
-            <div role="alert" className="ui-alert ui-alert-danger text-sm">{t('common:notices.goBackRetry', { error: formError })}</div>
-          )}
+      {formError && (
+        <p role="alert" className="ui-alert ui-alert-danger">{t('common:notices.goBackRetry', { error: formError })}</p>
+      )}
 
-          {/* Summary */}
-          <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
-            <div className="flex items-center justify-between px-4 py-2.5">
-              <span className="text-ink-3 text-xs">{t('review.staffMember')}</span>
-              <span className="font-medium text-ink">{selectedStaff ? `${selectedStaff.fullName} — ${roleLabel(selectedStaff.role)}` : '—'}</span>
-            </div>
-            <div className="flex items-center justify-between px-4 py-2.5">
-              <span className="text-ink-3 text-xs">{t('review.period')}</span>
-              <span className="font-medium text-ink">{fmtDate(form.periodFrom)} – {fmtDate(form.periodTo)}</span>
-            </div>
-            {form.notes?.trim() && (
-              <div className="flex items-center justify-between px-4 py-2.5">
-                <span className="text-ink-3 text-xs">{t('common:fields.notes')}</span>
-                <span className="font-medium text-ink">{form.notes}</span>
-              </div>
-            )}
+      <dl className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+          <dt className="text-ink-3">{t('review.staffMember')}</dt>
+          <dd className="text-right font-medium text-ink">{selectedStaff ? `${selectedStaff.fullName} — ${roleLabel(selectedStaff.role)}` : '—'}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+          <dt className="text-ink-3">{t('review.period')}</dt>
+          <dd className="text-right font-medium text-ink">{fmtDate(form.periodFrom)} – {fmtDate(form.periodTo)}</dd>
+        </div>
+        {form.notes?.trim() && (
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+            <dt className="text-ink-3">{t('common:fields.notes')}</dt>
+            <dd className="text-right font-medium text-ink">{form.notes}</dd>
           </div>
+        )}
+      </dl>
 
-          {/* Pending discrepancies */}
-          {pendingLoading ? (
-            <div className="text-xs text-ink-3 px-1">{t('review.checking')}</div>
-          ) : pending.length > 0 ? (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-ink-2 uppercase tracking-wider">
-                  {t('review.pendingTitle', { count: pending.length })}
-                </p>
-                <p className="text-xs text-ink-3">{t('review.toggleHint')}</p>
-              </div>
-              <div className="divide-y divide-border border border-border rounded-card overflow-hidden">
-                {pending.map((d: PendingDiscrepancy) => {
-                  const isDeduct = deductSet.has(d.id)
-                  return (
-                    <div
-                      key={d.id}
-                      className={`flex items-center gap-3 px-4 py-3 transition-colors ${isDeduct ? 'bg-bad-bg' : 'bg-surface hover:bg-bg'}`}
-                    >
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-mono text-ink-3">#{d.id}</span>
-                          <span className="text-xs text-ink-2">{d.shiftDate}</span>
-                          {(d.duName || d.duNumber != null) && (
-                            <span className="text-xs text-ink-3">{d.duName ?? t('review.duNumber', { number: d.duNumber })}</span>
-                          )}
-                          <StatusBadge {...discrepancyBadge(d.discrepancyType)} />
-                          <MoneyText
-                            value={d.discrepancyAmount}
-                            tone={d.discrepancyType === 'SHORT' ? 'bad' : 'warn'}
-                            className="text-xs font-bold"
-                          />
-                        </div>
-                        {d.discrepancyReason && (
-                          <p className="text-xs text-ink-3 mt-0.5 italic truncate">{d.discrepancyReason}</p>
-                        )}
-                      </div>
-
-                      {/* Toggle — an OVER discrepancy cannot be deducted from salary */}
-                      {d.discrepancyType === 'SHORT' ? (
-                        <button
-                          type="button"
-                          onClick={() => toggleDeduct(d.id)}
-                          className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-control border transition-colors ${
-                            isDeduct
-                              ? 'bg-bad border-bad text-white'
-                              : 'border-control text-ink-2 hover:border-bad hover:text-bad'
-                          }`}
-                        >
-                          {isDeduct ? t('review.deduct') : t('review.skip')}
-                        </button>
-                      ) : (
-                        <span className="shrink-0 text-xs text-ink-3">{t('review.notDeductible')}</span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-
-              {deductSet.size > 0 && (
-                <div className="mt-2 flex items-center justify-between px-1">
-                  <span className="text-xs text-ink-3">{t('review.deductionsSelected', { count: deductSet.size })}</span>
-                  <span className="text-xs font-semibold text-bad">{t('review.fromNetPay', { amount: fmtAmt(totalDeductAmt) })}</span>
+      {pendingLoading ? (
+        <p className="ui-help">{t('review.checking')}</p>
+      ) : pending.length > 0 ? (
+        <section aria-labelledby={pendingTitleId} className="space-y-2">
+          <div>
+            <h3 id={pendingTitleId} className="text-sm font-semibold text-ink">
+              {t('review.pendingTitle', { count: pending.length })}
+            </h3>
+            <p className="ui-help mt-0.5">{t('review.toggleHint')}</p>
+          </div>
+          <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
+            {pending.map((d: PendingDiscrepancy) => (
+              <li key={d.id} className="flex items-center gap-3 bg-surface px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-xs text-ink-3">#{d.id}</span>
+                    <span className="text-xs text-ink-2">{fmtDate(d.shiftDate)}</span>
+                    {(d.duName || d.duNumber != null) && (
+                      <span className="text-xs text-ink-3">{d.duName ?? t('review.duNumber', { number: d.duNumber })}</span>
+                    )}
+                    <StatusBadge {...discrepancyBadge(d.discrepancyType)} />
+                    <MoneyText value={d.discrepancyAmount} className="text-xs font-semibold text-ink" />
+                  </div>
+                  {d.discrepancyReason && (
+                    <p className="mt-0.5 truncate text-xs text-ink-3">{d.discrepancyReason}</p>
+                  )}
                 </div>
-              )}
-              {deductSet.size === 0 && (
-                <p className="text-xs text-ink-3 mt-1 px-1">{t('review.allSkipped')}</p>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-1 text-xs text-ok">
-              <span className="w-4 h-4 rounded-full bg-ok-bg flex items-center justify-center text-ok text-xs font-bold shrink-0">✓</span>
-              {t('review.noDiscrepancies')}
-            </div>
-          )}
+
+                {/* An OVER discrepancy cannot be deducted from salary. */}
+                {d.discrepancyType === 'SHORT' ? (
+                  <label className="ui-inline-check shrink-0 text-sm">
+                    <input type="checkbox" checked={deductSet.has(d.id)} onChange={() => toggleDeduct(d.id)}
+                      aria-label={t('review.deductAria', { id: d.id })} />
+                    <span aria-hidden="true">{t('review.deduct')}</span>
+                  </label>
+                ) : (
+                  <span className="shrink-0 text-xs text-ink-3">{t('review.notDeductible')}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+
+          <LiveFigures
+            label={t('review.deductionsLabel')}
+            figures={[{
+              label: deductSet.size > 0 ? t('review.deductionsSelected', { count: deductSet.size }) : t('review.deductionsLabel'),
+              value: <MoneyText value={deductSet.size > 0 ? -totalDeductAmt : null} showSign className="font-semibold" />,
+            }]}
+          />
+          {deductSet.size === 0 && <p className="ui-help">{t('review.allSkipped')}</p>}
+        </section>
+      ) : (
+        <p className="flex items-center gap-2 text-sm text-ok">
+          <CircleCheck size={16} aria-hidden="true" />
+          {t('review.noDiscrepancies')}
+        </p>
+      )}
     </Modal>
   )
 }

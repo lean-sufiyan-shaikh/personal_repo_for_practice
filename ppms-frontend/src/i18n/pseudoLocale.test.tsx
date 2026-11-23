@@ -75,7 +75,7 @@ describe('pseudo-locale check of shared components', () => {
   it('dialogs take every word from the translation files', () => {
     renderWithProviders(
       <div>
-        <DiscardChangesDialog onDiscard={() => {}} onKeepEditing={() => {}} />
+        <DiscardChangesDialog formName={PSEUDO('Close shift')} onDiscard={() => {}} onKeepEditing={() => {}} />
         <RejectReasonDialog title={PSEUDO('Reject')} subtitle={PSEUDO('Reject')} isPending={false} error={null} onConfirm={() => {}} onClose={() => {}} />
         <ChangePasswordModal onClose={() => {}} />
       </div>,

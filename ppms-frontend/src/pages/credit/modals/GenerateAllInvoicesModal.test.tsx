@@ -43,6 +43,7 @@ describe('GenerateAllInvoicesModal', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent("Add the pump's GST details before issuing invoices.")
     expect(screen.getByRole('link', { name: 'Open Setup → GST details' })).toHaveAttribute('href', '/dashboard/setup')
     expect(screen.getByRole('button', { name: 'Generate 2 invoices' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Generate 2 invoices' })).toHaveAccessibleDescription(/Add the pump's GST details/)
   })
 
   it('cannot generate when nothing would be invoiced', async () => {
@@ -53,5 +54,6 @@ describe('GenerateAllInvoicesModal', () => {
 
     expect(await screen.findByText('No client has uninvoiced credit sales in this period.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAccessibleDescription('No client has uninvoiced credit sales in this period.')
   })
 })

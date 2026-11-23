@@ -9,6 +9,9 @@ import type { StaffMember } from '../../../api/userApi'
 import type { ShiftDefinition } from '../../../api/shiftDefinitionApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { Spinner } from '../../../components/Spinner'
+import { LoadingButton } from '../../../components/LoadingButton'
+import { FormGrid } from '../../../components/layout/FormGrid'
+import { RowPanel, RowPanelActions } from './RowPanel'
 
 interface Props {
   pumpId: number
@@ -25,26 +28,23 @@ export function PreferencesPanel({ pumpId, member, activeShiftDefs, onClose }: P
   })
 
   return (
-    <div className="px-3 py-3 border-t border-border">
-      <div className="max-w-sm space-y-3">
-        <p className="text-xs font-semibold text-ink">{t('staff.preferences.title', { name: member.fullName })}</p>
-        {isLoading ? (
-          <div className="flex items-center gap-2 text-xs text-ink-3" role="status">
-            <Spinner className="w-3 h-3" />{t('staff.preferences.loading')}
-          </div>
-        ) : isError ? (
-          <p className="ui-error-text" role="alert">{t('staff.preferences.loadFailed')}</p>
-        ) : (
-          <PreferencesForm
-            pumpId={pumpId}
-            member={member}
-            activeShiftDefs={activeShiftDefs}
-            savedPreference={savedPreference}
-            onClose={onClose}
-          />
-        )}
-      </div>
-    </div>
+    <RowPanel title={t('staff.preferences.title', { name: member.fullName })}>
+      {isLoading ? (
+        <div className="flex items-center gap-2 text-xs text-ink-3" role="status">
+          <Spinner className="w-3 h-3" />{t('staff.preferences.loading')}
+        </div>
+      ) : isError ? (
+        <p className="ui-error-text" role="alert">{t('staff.preferences.loadFailed')}</p>
+      ) : (
+        <PreferencesForm
+          pumpId={pumpId}
+          member={member}
+          activeShiftDefs={activeShiftDefs}
+          savedPreference={savedPreference}
+          onClose={onClose}
+        />
+      )}
+    </RowPanel>
   )
 }
 
@@ -70,41 +70,42 @@ function PreferencesForm({ pumpId, member, activeShiftDefs, savedPreference, onC
 
   return (
     <>
-      <div>
-        <span className="ui-label">{t('staff.preferences.shift')}</span>
-        <SearchableSelect label={t('staff.preferences.shift')}
-          value={prefShiftDefId !== null ? String(prefShiftDefId) : ''}
-          onChange={v => setPrefShiftDefId(v ? Number(v) : null)}
-          placeholder={t('staff.preferences.anyShift')}
-          size="sm"
-          options={activeShiftDefs.map(d => ({ value: String(d.id), label: `${d.name} · ${d.windowLabel}` }))}
-        />
-      </div>
-      <div>
-        <span className="ui-label">{t('staff.preferences.dayOff')}</span>
-        <SearchableSelect label={t('staff.preferences.dayOff')}
-          value={prefDayOff}
-          onChange={v => setPrefDayOff(v as PreferredDayOff | '')}
-          placeholder={t('staff.preferences.noPreference')}
-          size="sm"
-          options={Object.keys(DAY_LABELS).map((day) => ({ value: day, label: codeLabel(day) }))}
-        />
-      </div>
+      <FormGrid>
+        <div>
+          <span className="ui-label">{t('staff.preferences.shift')}</span>
+          <SearchableSelect label={t('staff.preferences.shift')}
+            value={prefShiftDefId !== null ? String(prefShiftDefId) : ''}
+            onChange={v => setPrefShiftDefId(v ? Number(v) : null)}
+            placeholder={t('staff.preferences.anyShift')}
+            options={activeShiftDefs.map(d => ({ value: String(d.id), label: `${d.name} · ${d.windowLabel}` }))}
+          />
+        </div>
+        <div>
+          <span className="ui-label">{t('staff.preferences.dayOff')}</span>
+          <SearchableSelect label={t('staff.preferences.dayOff')}
+            value={prefDayOff}
+            onChange={v => setPrefDayOff(v as PreferredDayOff | '')}
+            placeholder={t('staff.preferences.noPreference')}
+            options={Object.keys(DAY_LABELS).map((day) => ({ value: day, label: codeLabel(day) }))}
+          />
+        </div>
+      </FormGrid>
       {prefError && <p className="ui-error-text" role="alert">{prefError}</p>}
-      <div className="flex gap-2">
-        <button
+      {prefMutation.isSuccess && <p className="text-xs text-ok" role="status">{t('staff.preferences.saved')}</p>}
+      <RowPanelActions>
+        <LoadingButton
           type="button"
+          isLoading={prefMutation.isPending}
+          loadingLabel={t('common:actions.saving')}
           onClick={() => prefMutation.mutate()}
-          disabled={prefMutation.isPending}
-          className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs"
+          className="ui-btn-primary ui-btn-compact"
         >
-          {prefMutation.isPending ? <span className="flex items-center gap-1"><Spinner className="w-3 h-3" />{t('common:actions.saving')}</span> : t('common:actions.save')}
-        </button>
-        <button type="button" onClick={onClose}
-          className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs">
+          {t('staff.preferences.save')}
+        </LoadingButton>
+        <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary ui-btn-compact">
           {t('common:actions.done')}
         </button>
-      </div>
+      </RowPanelActions>
     </>
   )
 }

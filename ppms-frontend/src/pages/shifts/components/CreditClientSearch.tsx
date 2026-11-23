@@ -176,7 +176,7 @@ export function CreditClientSearch({
     <div className="ui-search-shell space-y-1.5">
       {isPhone ? (
         <div>
-          <span className="ui-label">{t('clientSearch.client')} <span className="text-bad">*</span></span>
+          <span className="ui-label">{t('clientSearch.client')}</span>
           <button
             type="button"
             aria-haspopup="dialog"
@@ -188,26 +188,28 @@ export function CreditClientSearch({
         </div>
       ) : (
         <>
+          <div className="relative">
+            <label className="block">
+              <span className="ui-label">{t('clientSearch.client')}</span>
+              <input
+                type="text"
+                {...comboboxProps}
+                onFocus={() => onShowDropdownChange(true)}
+                onBlur={() => { setActiveClientId(null); onShowDropdownChange(false) }}
+                className={inputClassName}
+              />
+            </label>
+            {listOpen && (
+              <div className="ui-card absolute left-0 right-0 top-full z-50 mt-0.5 max-h-72 overflow-y-auto p-1">
+                {standingNote}
+                {noMatch || (
+                  <CreditClientListbox id={listboxId} options={options} activeClientId={activeClientId}
+                    showCallManager={showCallManager} large={false} onPick={pick} />
+                )}
+              </div>
+            )}
+          </div>
           {recentChips}
-          <label className="block">
-            <span className="ui-label">{t('clientSearch.client')} <span className="text-bad">*</span></span>
-            <input
-              type="text"
-              {...comboboxProps}
-              onFocus={() => onShowDropdownChange(true)}
-              onBlur={() => { setActiveClientId(null); onShowDropdownChange(false) }}
-              className={inputClassName}
-            />
-          </label>
-          {listOpen && (
-            <div className="ui-card absolute left-0 right-0 top-full z-50 mt-0.5 max-h-72 overflow-y-auto p-1">
-              {standingNote}
-              {noMatch || (
-                <CreditClientListbox id={listboxId} options={options} activeClientId={activeClientId}
-                  showCallManager={showCallManager} large={false} onPick={pick} />
-              )}
-            </div>
-          )}
         </>
       )}
 
@@ -215,9 +217,10 @@ export function CreditClientSearch({
         <ModalPortal onClose={closeSheet}>
           <div className="ui-sheet-backdrop">
             <div className="ui-sheet-panel">
-              <div className="ui-modal-header">
+              <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
                 <div className="ui-modal-heading">
                   <h2 className="ui-modal-title">{t('clientSearch.chooseClient')}</h2>
+                  <p className="ui-modal-subtitle">{t('clientSearch.chooseClientSubtitle')}</p>
                 </div>
                 <IconButton label={t('common:actions.close')} icon="×" onClick={closeSheet} className="ui-btn ui-btn-ghost ui-modal-close" />
               </div>

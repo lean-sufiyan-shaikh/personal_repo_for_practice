@@ -13,11 +13,14 @@ import { PreferencesPanel } from './PreferencesPanel'
 import { PayRatesPanel } from './PayRatesPanel'
 import { LeavePanel } from './LeavePanel'
 import { MoveToPumpPanel } from './MoveToPumpPanel'
+import { DeactivateStaffPanel } from './DeactivateStaffPanel'
 import { codeLabel } from '../../../constants/labels'
 import { ResetPasswordDialog } from '../../../components/ResetPasswordDialog'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { canManageStaffMember, canPerformAction } from '../../../permissions/permissions'
 import type { UserRole } from '../../../types/auth'
+
+const MENU_ITEM_CLASS = 'text-ink hover:bg-surface-sunken'
 
 interface Props {
   pumpId: number
@@ -58,19 +61,19 @@ export function StaffRow({
   const canMoveToPump = managesMember && canPerformAction('staff:move-pump', viewerRole)
 
   const menuItems: RowActionMenuItem[] = [
-    ...(canEditDetails ? [{ key: 'edit', label: t('staff.menu.edit'), description: t('staff.menu.editHint'), icon: <Pencil size={14} strokeWidth={2} />, className: 'text-ink hover:bg-info-bg hover:text-info', onSelect: () => onOpenPanel('edit') }] : []),
-    ...(canResetPassword ? [{ key: 'reset-password', label: t('staff.menu.resetPassword'), description: t('staff.menu.resetPasswordHint'), icon: <KeyRound size={14} strokeWidth={2} />, className: 'text-ink hover:bg-warn-bg hover:text-warn', onSelect: () => { onMenuChange(null); setResetDialogOpen(true) } }] : []),
-    ...(canSetPreferences ? [{ key: 'preferences', label: t('staff.menu.preferences'), description: t('staff.menu.preferencesHint'), icon: <Settings size={14} strokeWidth={2} />, className: 'text-ink hover:bg-info-bg hover:text-info', onSelect: () => onOpenPanel('preferences') }] : []),
-    ...(canManageLeave ? [{ key: 'leave', label: t('staff.menu.leave'), description: t('staff.menu.leaveHint'), icon: <CalendarDays size={14} strokeWidth={2} />, className: 'text-ink hover:bg-warn-bg hover:text-warn', onSelect: () => onOpenPanel('leave') }] : []),
-    ...(canSetPayRates ? [{ key: 'rates', label: payRatesMissing ? t('staff.menu.payRatesNotSet') : t('staff.menu.payRates'), description: t('staff.menu.payRatesHint'), icon: '₹', className: 'text-ink hover:bg-ok-bg hover:text-ok', onSelect: () => onOpenPanel('rates') }] : []),
-    ...(canMoveToPump ? [{ key: 'move', label: t('staff.menu.move'), description: t('staff.menu.moveHint'), icon: <ArrowRightLeft size={14} strokeWidth={2} />, className: 'text-ink hover:bg-info-bg hover:text-info', onSelect: () => onOpenPanel('move') }] : []),
+    ...(canEditDetails ? [{ key: 'edit', label: t('staff.menu.edit'), description: t('staff.menu.editHint'), icon: <Pencil size={14} strokeWidth={2} />, className: MENU_ITEM_CLASS, onSelect: () => onOpenPanel('edit') }] : []),
+    ...(canResetPassword ? [{ key: 'reset-password', label: t('staff.menu.resetPassword'), description: t('staff.menu.resetPasswordHint'), icon: <KeyRound size={14} strokeWidth={2} />, className: MENU_ITEM_CLASS, onSelect: () => { onMenuChange(null); setResetDialogOpen(true) } }] : []),
+    ...(canSetPreferences ? [{ key: 'preferences', label: t('staff.menu.preferences'), description: t('staff.menu.preferencesHint'), icon: <Settings size={14} strokeWidth={2} />, className: MENU_ITEM_CLASS, onSelect: () => onOpenPanel('preferences') }] : []),
+    ...(canManageLeave ? [{ key: 'leave', label: t('staff.menu.leave'), description: t('staff.menu.leaveHint'), icon: <CalendarDays size={14} strokeWidth={2} />, className: MENU_ITEM_CLASS, onSelect: () => onOpenPanel('leave') }] : []),
+    ...(canSetPayRates ? [{ key: 'rates', label: payRatesMissing ? t('staff.menu.payRatesNotSet') : t('staff.menu.payRates'), description: t('staff.menu.payRatesHint'), icon: '₹', className: MENU_ITEM_CLASS, onSelect: () => onOpenPanel('rates') }] : []),
+    ...(canMoveToPump ? [{ key: 'move', label: t('staff.menu.move'), description: t('staff.menu.moveHint'), icon: <ArrowRightLeft size={14} strokeWidth={2} />, className: MENU_ITEM_CLASS, onSelect: () => onOpenPanel('move') }] : []),
     ...(canChangeStatus ? [{
       key: 'status',
       label: isInactive ? t('staff.menu.activate') : t('staff.menu.deactivate'),
       description: isInactive ? t('staff.menu.activateHint') : t('staff.menu.deactivateHint'),
       icon: isInactive ? <RotateCcw size={14} strokeWidth={2} /> : <CircleOff size={14} strokeWidth={2} />,
-      className: isInactive ? 'text-ok hover:bg-ok-bg' : 'text-bad hover:bg-bad-bg',
-      onSelect: onToggleStatus,
+      className: isInactive ? MENU_ITEM_CLASS : 'text-bad hover:bg-bad-bg',
+      onSelect: isInactive ? onToggleStatus : () => onOpenPanel('deactivate'),
       disabled: statusPending,
     }] : []),
   ]
@@ -154,6 +157,14 @@ export function StaffRow({
 
       {openPanel === 'move' && (
         <MoveToPumpPanel pumpId={pumpId} member={member} onClose={onClosePanel} />
+      )}
+
+      {openPanel === 'deactivate' && (
+        <DeactivateStaffPanel
+          member={member}
+          onConfirm={() => { onToggleStatus(); onClosePanel() }}
+          onCancel={onClosePanel}
+        />
       )}
       </div>
 

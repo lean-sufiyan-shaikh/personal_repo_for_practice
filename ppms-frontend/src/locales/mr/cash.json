@@ -28,13 +28,14 @@
     "title": "रोख व्यवहार नोंदवा",
     "subtitle": "तिजोरीत आलेले किंवा गेलेले पैसे योग्य प्रकार आणि तारखेसह नोंदवा.",
     "eventType": "नोंदीचा प्रकार",
-    "amountRupees": "रक्कम (₹)",
     "amount": "रक्कम",
     "availableBalance": "उपलब्ध बॅलन्स: {{amount}}",
     "description": "तपशील",
-    "descriptionPlaceholder": "उदा. शिफ्ट 1 ची रोख जमा केली",
     "date": "तारीख",
-    "review": "नोंद तपासा",
+    "balanceNow": "सध्या तिजोरीत",
+    "balanceAfter": "यानंतर तिजोरीत",
+    "needAmount": "रक्कम",
+    "needDescription": "तपशील",
     "recorded": "रोख नोंद झाली",
     "recordFailed": "नोंद करता आली नाही",
     "descriptionRequired": "तपशील लिहिणे आवश्यक आहे",
@@ -43,7 +44,6 @@
   },
   "review": {
     "title": "रोख नोंद तपासा",
-    "subtitle": "नोंद करण्यापूर्वी तपशील तपासा.",
     "record": "नोंद करा"
   }
 }

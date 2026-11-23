@@ -4,8 +4,8 @@
     "tagline": "प्लेटफ़ॉर्म प्रबंधन — नए पंप मालिक जोड़ें",
     "role": "सुपर एडमिन",
     "openProfileMenu": "प्रोफ़ाइल मेन्यू खोलें",
-    "resetPassword": "पासवर्ड रीसेट करें",
-    "loggingOut": "लॉग आउट हो रहा है...",
+    "resetPassword": "पासवर्ड बदलें",
+    "loggingOut": "लॉग आउट हो रहा है…",
     "logout": "लॉग आउट",
     "passwordUpdated": "पासवर्ड बदल गया। कृपया नए पासवर्ड से लॉग इन करें।"
   },
@@ -34,25 +34,22 @@
   "fields": {
     "pumpName": "पंप का नाम",
     "pumpAddress": "पंप का पता",
-    "addressPlaceholder": "पूरा पता",
     "maxDuCount": "अधिकतम DU संख्या",
-    "maxDuPlaceholder": "जैसे 4"
+    "maxDuHelp": "1 से 20"
   },
   "onboard": {
     "title": "नया मालिक जोड़ें",
     "subtitle": "मालिक का खाता और उनका पहला पंप बनाता है।",
     "ownerDetails": "मालिक की जानकारी",
     "fullName": "पूरा नाम",
-    "fullNamePlaceholder": "जैसे रमेश शर्मा",
     "phoneNumber": "फ़ोन नंबर",
-    "phonePlaceholder": "10 अंकों का मोबाइल नंबर",
     "initialPassword": "शुरुआती पासवर्ड",
     "pumpDetails": "पंप की जानकारी",
-    "pumpNamePlaceholder": "जैसे शर्मा पेट्रोल स्टेशन",
-    "creating": "बन रहा है...",
-    "submit": "मालिक और पंप बनाएँ",
+    "creating": "बन रहा है…",
+    "submit": "मालिक जोड़ें",
     "failed": "मालिक नहीं बन सका। कृपया फिर कोशिश करें।",
-    "backToOwners": "मालिकों पर वापस"
+    "backToOwners": "मालिकों पर वापस",
+    "phoneHelp": "10 अंकों का मोबाइल नंबर"
   },
   "owners": {
     "title": "जोड़े गए मालिक",
@@ -81,8 +78,7 @@
   },
   "addPump": {
     "title": "{{name}} के लिए नया पंप जोड़ें",
-    "copy": "मालिकों की सूची छोड़े बिना इस मालिक के तहत एक और जगह जोड़ें।",
-    "pumpNamePlaceholder": "जैसे जतिन पेट्रोल स्टेशन 2",
+    "copy": "इस मालिक के तहत एक और पंप जोड़ता है।",
     "adding": "जोड़ा जा रहा है…",
     "submit": "पंप जोड़ें",
     "failed": "पंप नहीं जुड़ सका। कृपया फिर कोशिश करें।"
@@ -91,7 +87,11 @@
     "disabled": "बंद",
     "staff": "{{value}} स्टाफ़",
     "setup": "सेटअप {{required}} में से {{done}} पूरा",
-    "saveChanges": "बदलाव सेव करें"
+    "saveChanges": "बदलाव सेव करें",
+    "editTitle": "{{name}} बदलें",
+    "disableTitle": "{{name}} बंद करें?",
+    "disableConsequence": "दोबारा चालू करने तक मालिक और स्टाफ़ यह पंप इस्तेमाल नहीं कर पाएँगे। शिफ्ट चालू हो तो यह नहीं हो सकता।",
+    "disableConfirm": "पंप बंद करें"
   },
   "validation": {
     "pumpNameRequired": "पंप का नाम ज़रूरी है",

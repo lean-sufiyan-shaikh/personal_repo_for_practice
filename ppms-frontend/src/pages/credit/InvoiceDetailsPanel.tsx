@@ -55,7 +55,7 @@ export function InvoiceDetailsPanel({ pumpId, invoice, canCancel, onCancel, onCl
     >
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge {...invoiceStatusBadge(invoice.status)} />
-        {invoice.cancelReason && <span className="text-bad">{t('invoices.cancelReason', { reason: invoice.cancelReason })}</span>}
+        {invoice.cancelReason && <span className="text-ink-2">{t('invoices.cancelReason', { reason: invoice.cancelReason })}</span>}
       </div>
       <FigureList rows={[
         [t('invoicePanel.seller'), invoice.sellerLegalName],

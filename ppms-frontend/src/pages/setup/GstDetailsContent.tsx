@@ -5,8 +5,10 @@ import { parseApiError } from '../../utils/apiError'
 import { pumpApi } from '../../api/pumpApi'
 import type { PumpSummary } from '../../api/pumpApi'
 import { useToastStore } from '../../store/toastStore'
+import { FormField } from '../../components/FormField'
 import { FormGrid } from '../../components/layout/FormGrid'
 import { StickyActions } from '../../components/layout/StickyActions'
+import { LoadingButton } from '../../components/LoadingButton'
 import { isValidGstin, isValidInvoicePrefix, normaliseGstText } from '../../utils/gst'
 
 // ── GST details used on credit invoices ──────────────────────────────────────
@@ -18,6 +20,8 @@ export function GstDetailsContent({ pump, onUpdated }: { pump: PumpSummary; onUp
   const [legalName, setLegalName]         = useState(pump.legalName ?? '')
   const [stateName, setStateName]         = useState(pump.stateName ?? '')
   const [invoicePrefix, setInvoicePrefix] = useState(pump.invoicePrefix ?? '')
+  const [gstinError, setGstinError]       = useState<string | null>(null)
+  const [prefixError, setPrefixError]     = useState<string | null>(null)
   const [error, setError]                 = useState<string | null>(null)
 
   const mutation = useMutation({
@@ -37,47 +41,46 @@ export function GstDetailsContent({ pump, onUpdated }: { pump: PumpSummary; onUp
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isValidGstin(gstin)) { setError(t('common:gst.gstinFormat')); return }
-    if (!isValidInvoicePrefix(invoicePrefix)) { setError(t('gst.prefixFormat')); return }
     setError(null)
+    const gstinValid = isValidGstin(gstin)
+    const prefixValid = isValidInvoicePrefix(invoicePrefix)
+    setGstinError(gstinValid ? null : t('common:gst.gstinFormat'))
+    setPrefixError(prefixValid ? null : t('gst.prefixFormat'))
+    if (!gstinValid || !prefixValid) return
     mutation.mutate()
   }
 
   return (
     <form onSubmit={handleSave} className="space-y-4">
-      <div className="ui-alert bg-info-bg border border-info rounded-control p-3 text-xs text-info">
+      <p className="text-xs text-ink-3">
         {t('gst.introBefore')}
-        {' '}<strong>{(normaliseGstText(invoicePrefix) || 'PMP3')}/26-27/0001</strong> {t('gst.introAfter')}
-      </div>
+        {' '}<strong className="text-ink-2">{(normaliseGstText(invoicePrefix) || 'PMP3')}/26-27/0001</strong> {t('gst.introAfter')}
+      </p>
 
       <FormGrid>
-        <label className="block">
-          <span className="ui-label">GSTIN</span>
-          <input value={gstin} onChange={(e) => setGstin(e.target.value.toUpperCase())}
+        <FormField label="GSTIN" error={gstinError ?? undefined}>
+          <input value={gstin} onChange={(e) => { setGstin(e.target.value.toUpperCase()); setGstinError(null) }}
             maxLength={15} autoCapitalize="characters" placeholder={t('common:gst.gstinPlaceholder')} className="text-sm" />
-        </label>
-        <label className="block">
-          <span className="ui-label">{t('gst.legalName')}</span>
+        </FormField>
+        <FormField label={t('gst.legalName')}>
           <input value={legalName} onChange={(e) => setLegalName(e.target.value)}
             maxLength={150} placeholder={t('gst.legalNamePlaceholder')} className="text-sm" />
-        </label>
-        <label className="block">
-          <span className="ui-label">{t('gst.state')}</span>
+        </FormField>
+        <FormField label={t('gst.state')}>
           <input value={stateName} onChange={(e) => setStateName(e.target.value)}
             maxLength={60} placeholder={t('gst.statePlaceholder')} className="text-sm" />
-        </label>
-        <label className="block">
-          <span className="ui-label">{t('gst.invoicePrefix')}</span>
-          <input value={invoicePrefix} onChange={(e) => setInvoicePrefix(e.target.value.toUpperCase())}
+        </FormField>
+        <FormField label={t('gst.invoicePrefix')} help={t('gst.invoicePrefixHelp')} error={prefixError ?? undefined}>
+          <input value={invoicePrefix} onChange={(e) => { setInvoicePrefix(e.target.value.toUpperCase()); setPrefixError(null) }}
             maxLength={5} autoCapitalize="characters" placeholder={t('gst.invoicePrefixPlaceholder')} className="text-sm" />
-        </label>
+        </FormField>
       </FormGrid>
 
       <StickyActions className="items-center bg-surface">
         {error && <p role="alert" className="ui-error-text mr-auto mt-0">{error}</p>}
-        <button type="submit" disabled={mutation.isPending} className="ui-btn ui-btn-primary">
-          {mutation.isPending ? t('common:actions.saving') : t('gst.save')}
-        </button>
+        <LoadingButton type="submit" isLoading={mutation.isPending} loadingLabel={t('common:actions.saving')} className="ui-btn-primary">
+          {t('gst.save')}
+        </LoadingButton>
       </StickyActions>
     </form>
   )

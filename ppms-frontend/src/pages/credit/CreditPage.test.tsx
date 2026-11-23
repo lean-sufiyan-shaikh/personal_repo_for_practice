@@ -188,7 +188,7 @@ describe('CreditPage', () => {
     const user = userEvent.setup()
     const router = renderCreditAt('/dashboard/credit?action=record-payment')
 
-    const dialog = await screen.findByRole('dialog', { name: 'Record Payment' })
+    const dialog = await screen.findByRole('dialog', { name: 'Record payment' })
     await user.type(within(dialog).getByRole('searchbox', { name: 'Find client' }), 'bharat')
     expect(within(dialog).queryByRole('button', { name: /Anand Roadways/ })).not.toBeInTheDocument()
 
@@ -203,9 +203,9 @@ describe('CreditPage', () => {
     const user = userEvent.setup()
     const router = renderCreditAt('/dashboard/credit')
 
-    await user.click(await screen.findByRole('button', { name: 'Record Payment' }))
+    await user.click(await screen.findByRole('button', { name: 'Record payment' }))
 
     expect(router.state.location.search).toBe('?action=record-payment')
-    expect(await screen.findByRole('dialog', { name: 'Record Payment' })).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: 'Record payment' })).toBeInTheDocument()
   })
 })

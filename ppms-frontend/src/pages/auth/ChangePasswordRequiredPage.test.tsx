@@ -41,7 +41,7 @@ describe('forced password change', () => {
     signIn(true)
     renderAt('/dashboard/shifts')
 
-    expect(await screen.findByText('Choose a New Password')).toBeInTheDocument()
+    expect(await screen.findByText('Choose a new password')).toBeInTheDocument()
     expect(screen.queryByText('Shifts screen')).not.toBeInTheDocument()
   })
 
@@ -56,7 +56,7 @@ describe('forced password change', () => {
     signIn(true)
     renderAt('/change-password')
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Sign Out' }))
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Sign out' }))
 
     expect(authApi.logout).toHaveBeenCalled()
     expect(await screen.findByText('Login screen')).toBeInTheDocument()
@@ -69,10 +69,12 @@ describe('forced password change', () => {
     renderAt('/change-password')
     const user = userEvent.setup()
 
-    await user.type(screen.getByLabelText('Current Password'), 'Temp@4321')
-    await user.type(screen.getByLabelText('New Password'), 'Fresh@9876')
-    await user.type(screen.getByLabelText('Confirm New Password'), 'Fresh@9876')
-    await user.click(screen.getByRole('button', { name: 'Update Password' }))
+    const change = screen.getByRole('button', { name: 'Change password' })
+    expect(change).toHaveAccessibleDescription(/Still needed\s*Current password\s*New password\s*Confirm new password/)
+    await user.type(screen.getByLabelText('Current password'), 'Temp@4321')
+    await user.type(screen.getByLabelText('New password'), 'Fresh@9876')
+    await user.type(screen.getByLabelText('Confirm new password'), 'Fresh@9876')
+    await user.click(change)
 
     expect(authApi.changePassword).toHaveBeenCalledWith('Temp@4321', 'Fresh@9876')
     expect(await screen.findByText('Login screen')).toBeInTheDocument()

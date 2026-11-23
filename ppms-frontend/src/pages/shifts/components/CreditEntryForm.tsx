@@ -2,13 +2,14 @@ import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { IconButton } from '../../../components/IconButton'
-import { NumericInput } from '../../../components/NumericInput'
+import { FormField } from '../../../components/FormField'
+import { FormGrid } from '../../../components/layout/FormGrid'
 import { onActivateKey } from '../../../utils/keyboard'
 import { FUEL_UNIT } from '../../../constants/fuel'
 import { codeLabel } from '../../../constants/labels'
-import { formatCurrency } from '../../../utils/format'
 import type { CreditClientSummary } from '../../../api/pumpApi'
 import { CreditClientSearch } from './CreditClientSearch'
+import { CreditAmountField } from './CreditAmountField'
 import { emptyNum } from './creditRow'
 import { MoneyText } from '../../../components/AmountText'
 import type { CreditRow } from './creditRow'
@@ -59,7 +60,7 @@ export function CreditEntryForm({
               <>
                 <span className="text-sm font-medium text-ink truncate">{row.clientName}</span>
                 <span className="text-xs text-ink-3 shrink-0">{codeLabel(row.fuelType)}</span>
-                <MoneyText value={emptyNum(row.amount)} className="text-sm font-semibold text-ok shrink-0" />
+                <MoneyText value={emptyNum(row.amount)} className="text-sm font-semibold text-ink shrink-0" />
                 {row.billNo && <span className="text-xs text-ink-3 shrink-0">· {row.billNo}</span>}
               </>
             ) : (
@@ -70,7 +71,7 @@ export function CreditEntryForm({
             <span className="text-xs text-primary">{t('common:actions.edit')}</span>
             <IconButton
               onClick={(e) => { e.stopPropagation(); onRemove() }}
-              className="ui-btn-icon text-bad hover:text-bad transition-colors"
+              className="ui-btn-icon text-ink-3 hover:text-ink transition-colors"
               label={t('creditEntry.deleteEntry')}
               icon={<X size={13} strokeWidth={2} />}
             />
@@ -78,7 +79,7 @@ export function CreditEntryForm({
         </div>
       ) : (
         /* ── Expanded form ── */
-        <div className="px-4 py-3 space-y-2.5 bg-surface-sunken">
+        <div className="px-4 py-3 space-y-3 bg-surface-sunken">
           {/* Expanded header */}
           <div className="flex items-center justify-between">
             <button
@@ -92,8 +93,8 @@ export function CreditEntryForm({
               {t('creditEntry.entryNumber', { number: rowNumber })}
             </button>
             <button type="button" onClick={() => onRemove()}
-              className="inline-flex items-center gap-1 text-bad hover:text-bad text-xs transition-colors">
-              <X size={12} strokeWidth={2} />{t('common:actions.delete')}
+              className="ui-btn ui-btn-ghost ui-btn-compact gap-1">
+              <X size={12} strokeWidth={2} aria-hidden="true" />{t('common:actions.delete')}
             </button>
           </div>
 
@@ -105,7 +106,7 @@ export function CreditEntryForm({
             onSearchChange={(text) => onUpdateMulti({ clientSearch: text, clientName: text, clientId: null, showDropdown: true })}
             onShowDropdownChange={(show) => onUpdate('showDropdown', show)}
             onSelect={(c) => onSelectClient(c.id, c.name)}
-            inputClassName="ui-search-shell__input text-sm"
+            inputClassName="text-sm"
             placeholder={t('creditEntry.searchClientShort')}
             showNoClientsHint
             blockOverdue={false}
@@ -175,13 +176,10 @@ export function CreditEntryForm({
             </div>
           )}
 
-          {/* Fuel type + Amount/Liters */}
-          <div className="grid grid-cols-2 gap-2">
+          <FormGrid>
             <div>
-              <span className="ui-label">
-                {t('creditEntry.fuelType')} <span className="text-bad">*</span>
-              </span>
-              <SearchableSelect label={t('creditEntry.fuelType')}
+              <span id={`credit-fuel-${row.id}`} className="ui-label">{t('creditEntry.fuelType')}</span>
+              <SearchableSelect aria-labelledby={`credit-fuel-${row.id}`}
                 value={row.fuelType}
                 onChange={v => onUpdateMulti({
                   fuelType: v,
@@ -189,116 +187,54 @@ export function CreditEntryForm({
                   liters: '',
                 })}
                 placeholder={t('common:select.placeholder')}
-                accentColor="orange"
-                size="sm"
                 options={availableFuelTypes.map(ft => ({
                   value: ft,
                   label: codeLabel(ft),
                 }))}
               />
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="ui-label mb-0">
-                  {row.inputMode === 'amount' ? t('creditEntry.amount') : t('creditEntry.liters')}{' '}
-                  <span className="text-bad">*</span>
-                </span>
-                <div className="flex gap-1 text-xs">
-                  <button type="button"
-                    onClick={() => onUpdateMulti({ inputMode: 'amount', liters: '' })}
-                    aria-pressed={row.inputMode === 'amount'}
-                    aria-label={t('creditEntry.amountModeAria')}
-                    className={`min-h-11 min-w-11 rounded-control border border-control px-2 font-medium transition-colors ${row.inputMode === 'amount' ? 'bg-primary text-on-primary' : 'bg-surface text-ink-3 hover:bg-bg'}`}>
-                    ₹
-                  </button>
-                  <button type="button"
-                    onClick={() => {
-                      const price = priceForFuelType(row.fuelType)
-                      const initLiters = price && row.amount
-                        ? (parseFloat(row.amount) / price).toFixed(2)
-                        : ''
-                      onUpdateMulti({ inputMode: 'liters', liters: initLiters })
-                    }}
-                    disabled={!priceForFuelType(row.fuelType)}
-                    aria-pressed={row.inputMode === 'liters'}
-                    aria-label={t('creditEntry.litresModeAria')}
-                    className={`min-h-11 min-w-11 rounded-control border border-control px-2 font-medium transition-colors ${row.inputMode === 'liters' ? 'bg-primary text-on-primary' : 'bg-surface text-ink-3 hover:bg-bg'} disabled:opacity-40 disabled:cursor-not-allowed`}>
-                    L
-                  </button>
-                </div>
-              </div>
-              {row.inputMode === 'amount' ? (
-                <>
-                  <NumericInput aria-label={t('creditEntry.amountAria')} step="0.01" min="0.01" value={row.amount}
-                    onChange={(e) => onUpdate('amount', e.target.value)}
-                    placeholder="0.00"
-                    className="ui-input-compact" />
-                  {(() => {
-                    const price = priceForFuelType(row.fuelType)
-                    const unit = FUEL_UNIT[row.fuelType] ?? 'L'
-                    const litersCalc = price && row.amount ? (parseFloat(row.amount) / price) : null
-                    return litersCalc ? (
-                      <p className="text-xs text-ink-3 mt-1">
-                        {litersCalc.toFixed(2)} {unit} × ₹{price} = {formatCurrency(parseFloat(row.amount))}
-                      </p>
-                    ) : null
-                  })()}
-                </>
-              ) : (
-                <>
-                  <NumericInput aria-label={t('creditEntry.quantityAria')} step="0.001" min="0.001" value={row.liters}
-                    onChange={(e) => {
-                      const price = priceForFuelType(row.fuelType)
-                      const raw = parseFloat(e.target.value)
-                      const amt = price && isFinite(raw) && raw >= 0 && raw <= 99_999
-                        ? (raw * price).toFixed(2)
-                        : ''
-                      onUpdateMulti({ liters: e.target.value, amount: amt })
-                    }}
-                    placeholder="0.00"
-                    className="ui-input-compact" />
-                  {row.liters && row.amount && (() => {
-                    const price = priceForFuelType(row.fuelType)
-                    const unit = FUEL_UNIT[row.fuelType] ?? 'L'
-                    return price ? (
-                      <p className="text-xs text-ok mt-1 font-medium">
-                        {parseFloat(row.liters).toFixed(2)} {unit} × ₹{price} = {formatCurrency(parseFloat(row.amount))}
-                      </p>
-                    ) : null
-                  })()}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Bill No + Description */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block">
-                <span className="ui-label">{t('creditEntry.billNo')}</span>
-                <input type="text" value={row.billNo}
-                  onChange={(e) => onUpdate('billNo', e.target.value)}
-                  placeholder={t('creditEntry.billNoPlaceholder')}
-                  className="ui-input-compact" />
-              </label>
-            </div>
-            <div>
-              <label className="block">
-                <span className="ui-label">{t('creditEntry.description')}</span>
-                <input type="text" value={row.description}
-                  onChange={(e) => onUpdate('description', e.target.value)}
-                  placeholder={t('creditEntry.descriptionPlaceholder')}
-                  className="ui-input-compact" />
-              </label>
-            </div>
-          </div>
+            <CreditAmountField
+              mode={row.inputMode}
+              amount={row.amount}
+              liters={row.liters}
+              price={priceForFuelType(row.fuelType)}
+              unit={FUEL_UNIT[row.fuelType] ?? 'L'}
+              onAmountMode={() => onUpdateMulti({ inputMode: 'amount', liters: '' })}
+              onLitresMode={() => {
+                const price = priceForFuelType(row.fuelType)
+                const initLiters = price && row.amount
+                  ? (parseFloat(row.amount) / price).toFixed(2)
+                  : ''
+                onUpdateMulti({ inputMode: 'liters', liters: initLiters })
+              }}
+              onAmountChange={(value) => onUpdate('amount', value)}
+              onLitresChange={(value) => {
+                const price = priceForFuelType(row.fuelType)
+                const raw = parseFloat(value)
+                const amt = price && isFinite(raw) && raw >= 0 && raw <= 99_999
+                  ? (raw * price).toFixed(2)
+                  : ''
+                onUpdateMulti({ liters: value, amount: amt })
+              }}
+            />
+            <FormField label={<>{t('creditEntry.billNo')} <span className="font-normal text-ink-3">{t('common:fields.optionalSuffix')}</span></>}>
+              <input type="text" value={row.billNo}
+                onChange={(e) => onUpdate('billNo', e.target.value)}
+                placeholder={t('creditEntry.billNoPlaceholder')} />
+            </FormField>
+            <FormField label={<>{t('creditEntry.description')} <span className="font-normal text-ink-3">{t('common:fields.optionalSuffix')}</span></>}>
+              <input type="text" value={row.description}
+                onChange={(e) => onUpdate('description', e.target.value)}
+                placeholder={t('creditEntry.descriptionPlaceholder')} />
+            </FormField>
+          </FormGrid>
 
           {/* Add / Cancel actions */}
           <div className="flex items-center justify-end gap-2 pt-1">
             <button
               type="button"
               onClick={() => onRemove()}
-              className="ui-btn ui-btn-ghost text-xs px-3 py-1.5 min-h-0"
+              className="ui-btn ui-btn-ghost ui-btn-compact"
             >
               {t('common:actions.cancel')}
             </button>
@@ -309,7 +245,7 @@ export function CreditEntryForm({
                 onExpandedChange(null)
               }}
               disabled={!row.clientId || emptyNum(row.amount) <= 0}
-              className="ui-btn ui-btn-primary text-xs px-3 py-1.5 min-h-0 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="ui-btn ui-btn-primary ui-btn-compact"
             >
               {t('common:actions.add')}
             </button>

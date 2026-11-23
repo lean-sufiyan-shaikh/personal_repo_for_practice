@@ -43,7 +43,7 @@ describe('PaymentSettlementsPage', () => {
     const user = userEvent.setup()
     renderWithProviders(<><PaymentSettlementsPage /><CurrentSearch /></>, { route: '/dashboard/settlements?action=record-settlement' })
 
-    const dialog = await screen.findByRole('dialog', { name: 'Record Settlement' })
+    const dialog = await screen.findByRole('dialog', { name: 'Record settlement' })
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()

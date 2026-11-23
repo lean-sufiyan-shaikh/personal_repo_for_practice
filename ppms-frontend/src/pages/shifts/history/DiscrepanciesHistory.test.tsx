@@ -70,8 +70,9 @@ describe('DiscrepanciesHistory', () => {
     await user.click(within(await rowOf(ESCALATED_ID)).getByRole('button', { name: `Approve discrepancy for shift ${ESCALATED_ID}` }))
 
     const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByText(/Shift #11 · Ravi · SHORT/)).toBeInTheDocument()
-    expect(within(dialog).getByText('Reason given at close: Cash bag missing')).toBeInTheDocument()
+    expect(within(dialog).getByText('Shift #11 · Ravi')).toBeInTheDocument()
+    expect(within(dialog).getByText('SHORT ₹2,000.00')).toBeInTheDocument()
+    expect(within(dialog).getByText('Reason given at close').nextSibling).toHaveTextContent('Cash bag missing')
   })
 
   it('shows each discrepancy as a card below md with a full-width action, and keeps the table from md up', async () => {
@@ -93,6 +94,6 @@ describe('DiscrepanciesHistory', () => {
     expect(approve).toHaveClass('ui-btn', 'w-full')
 
     await user.click(approve)
-    expect(await screen.findByRole('dialog')).toHaveTextContent('Shift #11 · Ravi · SHORT')
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Shift #11 · Ravi')
   })
 })

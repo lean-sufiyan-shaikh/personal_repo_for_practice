@@ -1,4 +1,5 @@
-import { AlertTriangle, Check, Fuel, Users, X } from 'lucide-react'
+import { useState } from 'react'
+import { AlertTriangle, Check, Fuel, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { PumpSummary, UpdatePumpRequest } from '../../api/superAdminApi'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -10,22 +11,29 @@ interface PumpCardProps {
   onToggleEdit: () => void
   onToggleEnabled: () => void
   isSaving: boolean
-  editError: string | null
+  /** The last failed save or enable/disable of this pump. */
+  error: string | null
   onSaveEdit: (data: UpdatePumpRequest) => void
 }
 
-export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSaving, editError, onSaveEdit }: PumpCardProps) {
+export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSaving, error, onSaveEdit }: PumpCardProps) {
   const { t } = useTranslation(['superadmin', 'common'])
+  const [isConfirmingDisable, setIsConfirmingDisable] = useState(false)
+  const showActions = !isEditOpen && !isConfirmingDisable
+
+  const confirmDisable = () => {
+    setIsConfirmingDisable(false)
+    onToggleEnabled()
+  }
+
   return (
-    <div className={`rounded-control border p-2.5 ${
-      pump.enabled ? 'border-border bg-bg' : 'border-bad bg-bad-bg opacity-60'
-    }`}>
+    <div className={`rounded-control border p-2.5 ${pump.enabled ? 'border-border bg-bg' : 'border-border bg-surface-sunken'}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2 text-xs min-w-0">
           <Fuel size={12} strokeWidth={1.8} className="text-ink-3 mt-0.5 flex-shrink-0" />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className={`font-semibold ${!pump.enabled ? 'line-through text-ink-3' : 'text-ink'}`}>
+              <span className={`font-semibold ${!pump.enabled ? 'text-ink-3' : 'text-ink'}`}>
                 {pump.pumpName}
               </span>
               {!pump.enabled && (
@@ -33,7 +41,6 @@ export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSa
               )}
             </div>
             <p className="text-ink-3 mt-0.5">{pump.pumpAddress}</p>
-            {/* Staff count badge */}
             <div className="mt-1 flex flex-wrap gap-1.5">
               <StatusBadge tone="neutral" icon={Users} label={t('pump.staff', { value: pump.staffCount })} />
               <StatusBadge
@@ -44,34 +51,42 @@ export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSa
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <button
-            onClick={onToggleEdit}
-            className={`ui-btn min-h-0 px-3 py-1 text-xs border transition-colors ${
-              isEditOpen
-                ? 'border-primary text-info bg-info-bg'
-                : 'border-border text-ink-3 hover:border-info hover:text-primary hover:bg-info-bg'
-            }`}
-          >
-            {isEditOpen ? <X size={12} strokeWidth={2} /> : t('common:actions.edit')}
-          </button>
-          <button
-            onClick={onToggleEnabled}
-            disabled={isSaving}
-            className={`ui-btn min-h-0 px-3 py-1 text-xs border transition-colors disabled:opacity-40 ${
-              pump.enabled
-                ? 'border-bad text-bad hover:bg-bad-bg'
-                : 'border-ok text-ok hover:bg-ok-bg'
-            }`}
-          >
-            {pump.enabled ? t('common:actions.disable') : t('common:actions.enable')}
-          </button>
-        </div>
+        {showActions && (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button type="button" onClick={onToggleEdit} className="ui-btn ui-btn-secondary ui-btn-compact">
+              {t('common:actions.edit')}
+            </button>
+            <button
+              type="button"
+              onClick={pump.enabled ? () => setIsConfirmingDisable(true) : onToggleEnabled}
+              disabled={isSaving}
+              className="ui-btn ui-btn-secondary ui-btn-compact"
+            >
+              {pump.enabled ? t('common:actions.disable') : t('common:actions.enable')}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Inline edit form */}
-      {isEditOpen && (
-        <EditPumpForm pump={pump} isSaving={isSaving} error={editError} onSave={onSaveEdit} />
+      {isConfirmingDisable && (
+        <div className="mt-3 space-y-2 border-t border-border pt-3">
+          <p className="text-sm font-semibold text-ink">{t('pump.disableTitle', { name: pump.pumpName })}</p>
+          <p className="text-xs text-ink-3">{t('pump.disableConsequence')}</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setIsConfirmingDisable(false)} className="ui-btn ui-btn-secondary ui-btn-compact">
+              {t('common:actions.cancel')}
+            </button>
+            <button type="button" onClick={confirmDisable} disabled={isSaving} className="ui-btn ui-btn-danger ui-btn-compact">
+              {t('pump.disableConfirm')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isEditOpen ? (
+        <EditPumpForm pump={pump} isSaving={isSaving} error={error} onSave={onSaveEdit} onCancel={onToggleEdit} />
+      ) : error && (
+        <p role="alert" className="ui-error-text">{error}</p>
       )}
     </div>
   )

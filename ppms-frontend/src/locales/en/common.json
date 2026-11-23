@@ -15,9 +15,7 @@
     "saving": "Saving…",
     "edit": "Edit",
     "add": "Add",
-    "back": "Back",
     "done": "Done",
-    "remove": "Remove",
     "submit": "Submit",
     "approve": "Approve",
     "review": "Review",
@@ -57,7 +55,7 @@
   },
   "rejectDialog": {
     "reason": "Reason",
-    "placeholder": "e.g. No bill attached",
+    "help": "For example: no bill attached. Saved with the rejection.",
     "missingReason": "Enter a reason for rejecting."
   },
   "pagination": {
@@ -176,5 +174,8 @@
   "layout": {
     "breadcrumbs": "Breadcrumb",
     "backToList": "Back to list"
+  },
+  "form": {
+    "stillNeeded": "Still needed"
   }
 }

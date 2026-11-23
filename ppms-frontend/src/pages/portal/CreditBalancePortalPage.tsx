@@ -5,6 +5,8 @@ import { FormField } from '../../components/FormField'
 import { PasswordInput } from '../../components/PasswordInput'
 import { PORTAL_PIN_PATTERN, digitsOnly } from '../../constants/portalPin'
 import { MoneyText } from '../../components/AmountText'
+import { NumericInput } from '../../components/NumericInput'
+import { LoadingButton } from '../../components/LoadingButton'
 import { AuthCard, AuthScreen } from '../auth/AuthCard'
 
 // Uses a plain axios instance — no auth header, no JWT
@@ -62,37 +64,21 @@ export default function CreditBalancePortalPage() {
         footer={<p className="text-xs text-ink-3">{t('footer')}</p>}
       >
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label className="block">
-              <span className="ui-label">{t('form.pumpId')}</span>
-              <input
-                type="number"
-                min="1"
-                value={pumpId}
-                onChange={e => setPumpId(e.target.value)}
-                className="text-sm"
-                placeholder={t('form.pumpIdPlaceholder')}
-                required
-              />
-            </label>
-            <p className="text-xs text-ink-3 mt-0.5">{t('form.pumpIdHelp')}</p>
-          </div>
+          <FormField label={t('form.pumpId')} help={t('form.pumpIdHelp')}>
+            <NumericInput min="1" step="1" inputMode="numeric" value={pumpId}
+              onChange={e => setPumpId(e.target.value)} required />
+          </FormField>
 
-          <div>
-            <label className="block">
-              <span className="ui-label">{t('form.phone')}</span>
-              <input
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                value={phone}
-                onChange={e => setPhone(digitsOnly(e.target.value).slice(0, 10))}
-                className="text-sm"
-                placeholder={t('form.phonePlaceholder')}
-                required
-              />
-            </label>
-          </div>
+          <FormField label={t('form.phone')} help={t('form.phoneHelp')}>
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={phone}
+              onChange={e => setPhone(digitsOnly(e.target.value).slice(0, 10))}
+              required
+            />
+          </FormField>
 
           <FormField label={t('form.pin')} help={t('form.pinHelp')}>
             <PasswordInput
@@ -102,23 +88,17 @@ export default function CreditBalancePortalPage() {
               inputMode="numeric"
               autoComplete="off"
               maxLength={6}
-              className="text-sm"
-              placeholder={t('form.pinPlaceholder')}
               required
             />
           </FormField>
 
           {error && (
-            <div role="alert" className="ui-alert ui-alert-danger text-sm">{t(`errors.${error}`)}</div>
+            <p role="alert" className="ui-alert ui-alert-danger">{t(`errors.${error}`)}</p>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="ui-btn ui-btn-primary w-full disabled:opacity-50"
-          >
-            {loading ? t('form.checking') : t('form.check')}
-          </button>
+          <LoadingButton type="submit" isLoading={loading} loadingLabel={t('form.checking')} className="ui-btn-primary w-full">
+            {t('form.check')}
+          </LoadingButton>
         </form>
 
         {result && (
@@ -128,7 +108,7 @@ export default function CreditBalancePortalPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-ink-3">{t('result.outstanding')}</span>
-                <MoneyText value={result.outstandingAmount} tone={result.outstandingAmount > 0 ? 'bad' : 'ok'} className="text-sm font-bold" />
+                <MoneyText value={result.outstandingAmount} className="text-sm font-bold text-ink" />
               </div>
               {result.creditLimit > 0 && (
                 <div className="flex items-center justify-between">

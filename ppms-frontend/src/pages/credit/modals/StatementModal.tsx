@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
 import { Modal } from '../../../components/Modal'
+import { FormGrid } from '../../../components/layout/FormGrid'
 import { istDateString } from '../../../utils/date'
 import { whatsAppNumber, whatsAppShareUrl } from '../../../utils/whatsApp'
 import { lastCompletedMonth } from '../creditDates'
@@ -36,6 +37,7 @@ export function StatementModal({ pumpId, clientId, clientName, phone, outstandin
   const today = istDateString()
   const [preset, setPreset] = useState<PeriodPreset>('last-month')
   const [period, setPeriod] = useState(() => presetPeriod('last-month', today))
+  const periodErrorId = useId()
 
   const choosePreset = (value: PeriodPreset) => {
     setPreset(value)
@@ -67,7 +69,9 @@ export function StatementModal({ pumpId, clientId, clientName, phone, outstandin
               {t('statement.openPrintable')}
             </a>
           ) : (
-            <button type="button" disabled className="ui-btn ui-btn-primary">{t('statement.openPrintable')}</button>
+            <button type="button" disabled aria-describedby={periodErrorId} className="ui-btn ui-btn-primary">
+              {t('statement.openPrintable')}
+            </button>
           )}
         </>
       }
@@ -81,22 +85,21 @@ export function StatementModal({ pumpId, clientId, clientName, phone, outstandin
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <FormGrid>
         <label className="block">
           <span className="ui-label">{t('common:fields.from')}</span>
           <input type="date" value={period.fromDate} max={period.toDate || undefined}
-            onChange={e => { setPreset('custom'); setPeriod(current => ({ ...current, fromDate: e.target.value })) }}
-            className="text-sm" />
+            onChange={e => { setPreset('custom'); setPeriod(current => ({ ...current, fromDate: e.target.value })) }} />
         </label>
         <label className="block">
           <span className="ui-label">{t('common:fields.to')}</span>
           <input type="date" value={period.toDate} min={period.fromDate || undefined} max={today}
             onChange={e => { setPreset('custom'); setPeriod(current => ({ ...current, toDate: e.target.value })) }}
-            className="text-sm" />
+          />
         </label>
-      </div>
+      </FormGrid>
       {!periodValid && (
-        <p role="alert" className="text-sm text-bad">{t('statement.invalidPeriod')}</p>
+        <p id={periodErrorId} role="alert" className="ui-error-text">{t('statement.invalidPeriod')}</p>
       )}
       {!whatsAppNumber(phone) && (
         <p className="text-sm text-ink-3">{t('statement.addMobileToShare')}</p>

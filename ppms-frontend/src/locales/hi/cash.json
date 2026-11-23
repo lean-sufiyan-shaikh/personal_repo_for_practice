@@ -28,13 +28,14 @@
     "title": "नकद लेन-देन दर्ज करें",
     "subtitle": "तिजोरी में आए या गए पैसे को सही प्रकार और तारीख के साथ दर्ज करें।",
     "eventType": "एंट्री का प्रकार",
-    "amountRupees": "राशि (₹)",
     "amount": "राशि",
     "availableBalance": "उपलब्ध बैलेंस: {{amount}}",
     "description": "विवरण",
-    "descriptionPlaceholder": "जैसे शिफ्ट 1 का नकद जमा किया",
     "date": "तारीख",
-    "review": "एंट्री जाँचें",
+    "balanceNow": "अभी तिजोरी में",
+    "balanceAfter": "इसके बाद तिजोरी में",
+    "needAmount": "राशि",
+    "needDescription": "विवरण",
     "recorded": "नकद एंट्री दर्ज हो गई",
     "recordFailed": "एंट्री दर्ज नहीं हो सकी",
     "descriptionRequired": "विवरण लिखना ज़रूरी है",
@@ -43,7 +44,6 @@
   },
   "review": {
     "title": "नकद एंट्री जाँचें",
-    "subtitle": "दर्ज करने से पहले विवरण जाँच लें।",
     "record": "एंट्री दर्ज करें"
   }
 }

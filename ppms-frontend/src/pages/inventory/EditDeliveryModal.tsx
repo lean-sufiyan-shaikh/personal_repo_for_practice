@@ -5,9 +5,16 @@ import { useTranslation } from 'react-i18next'
 import { inventoryApi } from '../../api/inventoryApi'
 import type { TankerDelivery, UpdateDeliveryRequest } from '../../api/inventoryApi'
 import { Modal } from '../../components/Modal'
+import { FormField } from '../../components/FormField'
+import { NumericInput } from '../../components/NumericInput'
+import { LoadingButton } from '../../components/LoadingButton'
+import { LiveFigures } from '../../components/LiveFigures'
+import { MoneyText } from '../../components/AmountText'
+import { FormGrid, FormGridFullRow } from '../../components/layout/FormGrid'
+import { parseApiError } from '../../utils/apiError'
 import { limitDecimals } from './inventoryFormat'
 
-// ── Edit Delivery Modal ────────────────────────────────────────────────────────
+type Field = 'invoice' | 'quantity' | 'cost' | 'date'
 
 export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }: {
   delivery: TankerDelivery
@@ -21,7 +28,8 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
   const [qty,   setQty]   = useState(String(delivery.quantityDelivered))
   const [cost,  setCost]  = useState(String(delivery.costPricePerUnit))
   const [date,  setDate]  = useState(delivery.deliveryDate.slice(0, 10))
-  const [error, setError] = useState<string | null>(null)
+  const [fieldError, setFieldError] = useState<{ field: Field; message: string } | null>(null)
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: (req: UpdateDeliveryRequest) => inventoryApi.updateDelivery(pumpId, delivery.id, req),
@@ -30,22 +38,21 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
       qc.invalidateQueries({ queryKey: ['tankStocks', pumpId] })
       onClose()
     },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setError(msg ?? t('editDelivery.failed'))
-    },
+    onError: (err: unknown) => setServerError(parseApiError(err, t('editDelivery.failed'))),
   })
 
-  function handleSave() {
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault()
+    setServerError(null)
     const q = parseFloat(qty)
-    if (!invoiceReference.trim()) { setError(t('editDelivery.invoiceRequired')); return }
-    if (isNaN(q) || q <= 0) { setError(t('editDelivery.quantityPositive')); return }
+    if (!invoiceReference.trim()) { setFieldError({ field: 'invoice', message: t('editDelivery.invoiceRequired') }); return }
+    if (isNaN(q) || q <= 0) { setFieldError({ field: 'quantity', message: t('editDelivery.quantityPositive') }); return }
     if (isOwnerOrAdmin) {
       const c = parseFloat(cost)
-      if (isNaN(c) || c <= 0) { setError(t('editDelivery.costPositive')); return }
+      if (isNaN(c) || c <= 0) { setFieldError({ field: 'cost', message: t('editDelivery.costPositive') }); return }
     }
-    if (!date) { setError(t('editDelivery.dateRequired')); return }
-    setError(null)
+    if (!date) { setFieldError({ field: 'date', message: t('editDelivery.dateRequired') }); return }
+    setFieldError(null)
     mutation.mutate({
       invoiceReference: invoiceReference.trim(),
       quantityDelivered: q,
@@ -54,88 +61,61 @@ export function EditDeliveryModal({ delivery, pumpId, isOwnerOrAdmin, onClose }:
     })
   }
 
+  const errorFor = (field: Field) => fieldError?.field === field ? fieldError.message : undefined
+  const newQty = parseFloat(qty)
+  const newCost = parseFloat(cost)
+  const newAmount = newQty > 0 && newCost > 0 ? newQty * newCost : null
+
   return (
     <Modal
       title={t('editDelivery.title')}
       subtitle={`${delivery.tankIdentifier} · ${codeLabel(delivery.fuelType)}`}
       tone="info"
       onClose={onClose}
+      canClose={!mutation.isPending}
       closeOnBackdropClick
+      onSubmit={handleSave}
       bodyClassName="space-y-4"
-      footerClassName="justify-end gap-2"
       footer={<>
-        <button onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
-        <button
-          onClick={handleSave}
-          disabled={mutation.isPending}
-          className="ui-btn ui-btn-primary"
-        >
-          {mutation.isPending ? t('common:actions.saving') : t('editDelivery.save')}
-        </button>
+        <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
+        <LoadingButton type="submit" isLoading={mutation.isPending} loadingLabel={t('common:actions.saving')} className="ui-btn-primary">
+          {t('editDelivery.save')}
+        </LoadingButton>
       </>}
     >
-
-      <div className="space-y-1">
-        <label className="block">
-          <span className="ui-label">{t('editDelivery.invoice')}</span>
-          <input
-            className="ui-input"
-            value={invoiceReference}
-            onChange={e => setInvoiceReference(e.target.value)}
-            placeholder={t('editDelivery.invoicePlaceholder')}
-          />
-        </label>
-      </div>
-
-      <div className={`grid gap-3 ${isOwnerOrAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        <div className="space-y-1">
-          <label className="block">
-            <span className="ui-label">{t('editDelivery.quantity')}</span>
-            <input
-              className="ui-input"
-              type="number"
-              min="0.001"
-              step="0.001"
-              value={qty}
-              onChange={e => setQty(limitDecimals(e.target.value, 3))}
-            />
-          </label>
-        </div>
-        {isOwnerOrAdmin && (
-          <div className="space-y-1">
-            <label className="block">
-              <span className="ui-label">{t('editDelivery.cost')}</span>
-              <input
-                className="ui-input"
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={cost}
-                onChange={e => setCost(limitDecimals(e.target.value, 2))}
-              />
-            </label>
-          </div>
+      <FormGrid>
+        <FormField label={t('editDelivery.invoice')} error={errorFor('invoice')}>
+          <input value={invoiceReference} onChange={e => setInvoiceReference(e.target.value)} data-autofocus />
+        </FormField>
+        <FormField label={t('editDelivery.date')} error={errorFor('date')}>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+        </FormField>
+        <FormField label={t('editDelivery.quantity')} error={errorFor('quantity')}
+          className={isOwnerOrAdmin ? undefined : 'ui-form-grid__full'}>
+          <NumericInput min="0.001" step="0.001" unit="L" value={qty}
+            onChange={e => setQty(limitDecimals(e.target.value, 3))} />
+        </FormField>
+        {isOwnerOrAdmin ? (
+          <FormField label={t('editDelivery.cost')} error={errorFor('cost')}>
+            <NumericInput min="0.01" step="0.01" unit="₹/L" value={cost}
+              onChange={e => setCost(limitDecimals(e.target.value, 2))} />
+          </FormField>
+        ) : (
+          <FormGridFullRow><p className="ui-help mt-0">{t('editDelivery.costManaged')}</p></FormGridFullRow>
         )}
-      </div>
-      {!isOwnerOrAdmin && (
-        <p className="text-xs text-ink-3">
-          {t('editDelivery.costManaged')}
-        </p>
+      </FormGrid>
+
+      {isOwnerOrAdmin && (
+        <LiveFigures
+          label={t('editDelivery.amountLabel')}
+          figures={[
+            { label: t('editDelivery.amountBefore'), value: <MoneyText value={delivery.totalCost} /> },
+            { label: t('editDelivery.amountAfter'), value: <MoneyText value={newAmount} />, isResult: true },
+          ]}
+        />
       )}
 
-      <div className="space-y-1">
-        <label className="block">
-          <span className="ui-label">{t('editDelivery.date')}</span>
-          <input
-            className="ui-input"
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-          />
-        </label>
-      </div>
-
-      {error && <p role="alert" className="ui-error-text">{error}</p>}
+      {serverError && <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>}
     </Modal>
   )
 }

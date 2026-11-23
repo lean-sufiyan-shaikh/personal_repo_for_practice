@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { useMutation } from '@tanstack/react-query'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import type { AncillaryProduct } from '../../api/ancillaryApi'
-import { Spinner } from '../../components/Spinner'
 import { Modal } from '../../components/Modal'
+import { FormField } from '../../components/FormField'
+import { LoadingButton } from '../../components/LoadingButton'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { isValidHsnCode } from '../../utils/gst'
@@ -20,7 +21,8 @@ export function EditHsnDialog({
   const { t } = useTranslation(['ancillary', 'common'])
   const { addToast } = useToastStore()
   const [hsnCode, setHsnCode] = useState(product.hsnCode ?? '')
-  const [error, setError] = useState<string | null>(null)
+  const [fieldError, setFieldError] = useState<string | null>(null)
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: () => ancillaryApi.updateProduct(pumpId, product.id, { hsnCode: hsnCode.trim() }),
@@ -28,21 +30,22 @@ export function EditHsnDialog({
       addToast(t('editHsn.saved'), 'success')
       onSuccess()
     },
-    onError: (err) => setError(parseApiError(err, t('editHsn.saveFailed'))),
+    onError: (err) => setServerError(parseApiError(err, t('editHsn.saveFailed'))),
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isValidHsnCode(hsnCode)) { setError(t('validation.hsnInvalid')); return }
-    setError(null)
+    setServerError(null)
+    if (!isValidHsnCode(hsnCode)) { setFieldError(t('validation.hsnInvalid')); return }
+    setFieldError(null)
     mutation.mutate()
   }
 
   return (
     <Modal
-      title={t('fields.hsnCode')}
-      subtitle={product.displayName}
       tone="info"
+      title={t('editHsn.title')}
+      subtitle={product.displayName}
       size="sm"
       onClose={onClose}
       canClose={!mutation.isPending}
@@ -50,26 +53,22 @@ export function EditHsnDialog({
       onSubmit={handleSubmit}
       bodyClassName="space-y-3"
       footer={<>
-        <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
-        <button type="submit" disabled={mutation.isPending} className="ui-btn ui-btn-primary">
-          {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('common:actions.saving')}</span> : t('common:actions.save')}
-        </button>
+        <button type="button" onClick={onClose} disabled={mutation.isPending} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
+        <LoadingButton type="submit" isLoading={mutation.isPending} loadingLabel={t('common:actions.saving')} className="ui-btn-primary">
+          {t('common:actions.save')}
+        </LoadingButton>
       </>}
     >
-      <label className="block">
-        <span className="ui-label">{t('fields.hsnCode')}</span>
+      <FormField label={t('fields.hsnCode')} error={fieldError ?? undefined} help={t('editHsn.help')}>
         <input
-          className="text-sm"
           inputMode="numeric"
           maxLength={8}
           value={hsnCode}
           onChange={e => setHsnCode(e.target.value.replace(/\D/g, ''))}
-          placeholder={t('editHsn.placeholder')}
           data-autofocus
         />
-      </label>
-      <p className="text-xs text-ink-3">{t('editHsn.hint')}</p>
-      {error && <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>}
+      </FormField>
+      {serverError && <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>}
     </Modal>
   )
 }

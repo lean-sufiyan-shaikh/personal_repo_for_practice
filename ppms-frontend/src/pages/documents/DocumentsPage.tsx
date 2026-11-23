@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Check, Clock, FileText, Plus } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
@@ -8,7 +8,8 @@ import { usePumpStore } from '../../store/usePumpStore'
 import { documentApi } from '../../api/documentApi'
 import type { PumpDocument, UpsertDocumentRequest, DocumentStatus } from '../../api/documentApi'
 import { SkeletonRows } from '../../components/Skeleton'
-import { Spinner } from '../../components/Spinner'
+import { LoadingButton } from '../../components/LoadingButton'
+import { FormField } from '../../components/FormField'
 import { ConfirmButton } from '../../components/ConfirmButton'
 import { Page } from '../../components/layout/Page'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -32,6 +33,11 @@ const DOCUMENT_STATUSES: DocumentStatus[] = ['EXPIRED', 'EXPIRING_SOON', 'VALID'
 
 const EMPTY_FORM: UpsertDocumentRequest = { name: '', docType: '', expiryDate: null, notes: null }
 
+interface FieldErrors {
+  name?: string
+  docType?: string
+}
+
 export default function DocumentsPage() {
   const { t } = useTranslation(['documents', 'common'])
   const { user } = useAuthStore()
@@ -49,7 +55,9 @@ export default function DocumentsPage() {
   const [form, setForm] = useState<UpsertDocumentRequest>(EMPTY_FORM)
   const [editId, setEditId] = useState<number | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [showForm, setShowForm] = useState(false)
+  const nameInputRef = useRef<HTMLInputElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const statusParam = searchParams.get('status')
   const statusFilter = DOCUMENT_STATUSES.find(status => status === statusParam) ?? null
@@ -66,6 +74,7 @@ export default function DocumentsPage() {
       setEditId(null)
       setShowForm(false)
       setFormError(null)
+      setFieldErrors({})
     },
     onError: (err) => setFormError(parseApiError(err, t('toast.saveFailed'))),
   })
@@ -86,14 +95,26 @@ export default function DocumentsPage() {
     setEditId(doc.id)
     setShowForm(true)
     setFormError(null)
+    setFieldErrors({})
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name.trim() || !form.docType.trim()) { setFormError(t('form.required')); return }
+    setFormError(null)
+    const errors: FieldErrors = {
+      name: form.name.trim() ? undefined : t('form.nameRequired'),
+      docType: form.docType.trim() ? undefined : t('form.typeRequired'),
+    }
+    setFieldErrors(errors)
+    if (errors.name || errors.docType) return
     saveMutation.mutate(form)
   }
 
+  useEffect(() => {
+    if (showForm) nameInputRef.current?.focus()
+  }, [showForm, editId])
+
+  const optional = <span className="text-ink-3">{t('common:fields.optionalSuffix')}</span>
   const expiredCount     = docs.filter(d => d.status === 'EXPIRED').length
   const expiringSoonCount = docs.filter(d => d.status === 'EXPIRING_SOON').length
   const isOwner = user?.role === 'OWNER'
@@ -111,6 +132,7 @@ export default function DocumentsPage() {
     setEditId(null)
     setShowForm(true)
     setFormError(null)
+    setFieldErrors({})
   }
 
   const closeForm = () => {
@@ -118,6 +140,7 @@ export default function DocumentsPage() {
     setEditId(null)
     setShowForm(false)
     setFormError(null)
+    setFieldErrors({})
   }
 
   return (
@@ -150,67 +173,52 @@ export default function DocumentsPage() {
         <PageSection title={editId ? t('form.editTitle') : t('form.addTitle')} description={t('form.subtitle')}>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <FormGrid>
-              <label className="block">
-                <span className="ui-label">{t('form.name')}</span>
+              <FormField label={t('form.name')} error={fieldErrors.name}>
                 <input
+                  ref={nameInputRef}
                   type="text"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="text-sm"
-                  placeholder={t('form.namePlaceholder')}
                   required
                 />
-              </label>
+              </FormField>
 
-              <label className="block">
-                <span className="ui-label">{t('form.type')}</span>
+              <FormField label={t('form.type')} help={t('form.typeHelp')} error={fieldErrors.docType}>
                 <input
                   type="text"
                   value={form.docType}
                   onChange={e => setForm(f => ({ ...f, docType: e.target.value }))}
-                  className="text-sm"
-                  placeholder={t('form.typePlaceholder')}
                   required
                 />
-              </label>
+              </FormField>
 
-              <label className="block">
-                <span className="ui-label">{t('form.expiryDate')}</span>
+              <FormField label={<>{t('form.expiryDate')} {optional}</>}>
                 <input
                   type="date"
                   value={form.expiryDate ?? ''}
                   onChange={e => setForm(f => ({ ...f, expiryDate: e.target.value || null }))}
-                  className="text-sm"
                 />
-              </label>
+              </FormField>
 
-              <label className="block">
-                <span className="ui-label">{t('form.notes')}</span>
+              <FormField label={<>{t('common:fields.notes')} {optional}</>}>
                 <input
                   type="text"
                   value={form.notes ?? ''}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))}
-                  className="text-sm"
-                  placeholder={t('form.notesPlaceholder')}
                 />
-              </label>
+              </FormField>
             </FormGrid>
 
-            {formError && <p role="alert" className="ui-error-text">{formError}</p>}
+            {formError && <p role="alert" className="ui-alert ui-alert-danger">{formError}</p>}
 
             <div className="flex flex-wrap justify-end gap-2">
               <button type="button" onClick={closeForm} className="ui-btn ui-btn-secondary">
                 {t('common:actions.cancel')}
               </button>
-              <button
-                type="submit"
-                disabled={saveMutation.isPending}
-                className="ui-btn ui-btn-primary"
-              >
-                {saveMutation.isPending
-                  ? <span className="flex items-center gap-1.5"><Spinner />{t('common:actions.saving')}</span>
-                  : editId ? t('form.update') : t('form.add')}
-              </button>
+              <LoadingButton type="submit" isLoading={saveMutation.isPending} loadingLabel={t('common:actions.saving')}
+                className="ui-btn-primary">
+                {editId ? t('form.update') : t('form.add')}
+              </LoadingButton>
             </div>
           </form>
         </PageSection>

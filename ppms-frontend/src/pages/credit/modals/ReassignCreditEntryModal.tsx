@@ -1,13 +1,13 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { pumpApi } from '../../../api/pumpApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
-import { Spinner } from '../../../components/Spinner'
 import { Modal } from '../../../components/Modal'
+import { FormField } from '../../../components/FormField'
+import { LoadingButton } from '../../../components/LoadingButton'
+import { StillNeeded } from '../../../components/StillNeeded'
 import { parseApiError } from '../../../utils/apiError'
-
-// ─── Reassign Credit Entry Modal ─────────────────────────────────────────────
 
 interface ReassignModalProps {
   entryId: number
@@ -23,6 +23,8 @@ export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, tra
   const [toClientId, setToClientId] = useState<string>('')
   const [reason, setReason]         = useState('')
   const [error, setError]           = useState<string | null>(null)
+  const moveToLabelId = useId()
+  const stillNeededId = useId()
   const isPayment = transactionType === 'PAYMENT'
 
   const { data: allClients = [] } = useQuery({
@@ -53,6 +55,11 @@ export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, tra
     noTargetsReason = t('reassign.standalone')
   }
 
+  const stillNeeded = [
+    ...(toClientId === '' ? [t('reassign.moveTo')] : []),
+    ...(reason.trim() === '' ? [t('common:fields.reason')] : []),
+  ]
+
   const mutation = useMutation({
     mutationFn: ({ toId, rsn }: { toId: number; rsn: string }) =>
       isPayment
@@ -66,7 +73,8 @@ export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, tra
     onError: (err) => setError(parseApiError(err, isPayment ? t('reassign.failedPayment') : t('reassign.failedEntry'))),
   })
 
-  const handleSubmit = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
     if (!toClientId)        { setError(t('reassign.selectTarget')); return }
     if (!reason.trim())     { setError(t('reassign.reasonRequired')); return }
     setError(null)
@@ -78,35 +86,33 @@ export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, tra
       title={t('reassign.title')}
       subtitle={isPayment ? t('reassign.subtitlePayment') : t('reassign.subtitleSale')}
       tone="info"
-      size="sm"
+      size="md"
       onClose={onClose}
+      canClose={!mutation.isPending}
+      onSubmit={noTargetsReason ? undefined : handleSubmit}
       bodyClassName="space-y-4"
-      footer={
-        <>
-          <button onClick={onClose}
-            className="ui-btn ui-btn-secondary flex-1">
-            {noTargetsReason ? t('common:actions.close') : t('common:actions.cancel')}
-          </button>
-          {!noTargetsReason && (
-            <button onClick={handleSubmit} disabled={mutation.isPending}
-              className="ui-btn ui-btn-primary flex-1">
-              {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />{t('reassign.moving')}</span> : t('reassign.submit')}
-            </button>
-          )}
-        </>
-      }
-    >
-      {noTargetsReason ? (
-        <div className="ui-alert ui-alert-warning">
-          <p className="text-sm text-warn">{noTargetsReason}</p>
-        </div>
+      footer={noTargetsReason ? (
+        <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.close')}</button>
       ) : (
         <>
-          <div className="ui-inline-form">
-            <span className="ui-label">
-              {t('reassign.moveTo')} <span className="text-bad">*</span>
-            </span>
-            <SearchableSelect label={t('reassign.moveTo')}
+          <StillNeeded id={stillNeededId} items={stillNeeded} />
+          <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">{t('common:actions.cancel')}</button>
+          <LoadingButton type="submit" isLoading={mutation.isPending} loadingLabel={t('reassign.moving')}
+            disabled={stillNeeded.length > 0}
+            aria-describedby={stillNeeded.length > 0 ? stillNeededId : undefined}
+            className="ui-btn-primary">
+            {t('reassign.submit')}
+          </LoadingButton>
+        </>
+      )}
+    >
+      {noTargetsReason ? (
+        <p className="text-sm text-ink-2">{noTargetsReason}</p>
+      ) : (
+        <>
+          <div>
+            <span id={moveToLabelId} className="ui-label">{t('reassign.moveTo')}</span>
+            <SearchableSelect aria-labelledby={moveToLabelId}
               value={toClientId}
               onChange={setToClientId}
               placeholder={t('reassign.targetPlaceholder')}
@@ -117,21 +123,10 @@ export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, tra
               }))}
             />
           </div>
-          <div className="ui-inline-form">
-            <label className="block">
-              <span className="ui-label">
-              {t('common:fields.reason')} <span className="text-bad">*</span>
-            </span>
-              <textarea
-                value={reason}
-                onChange={e => setReason(e.target.value)}
-                rows={2}
-                placeholder={isPayment ? t('reassign.reasonPlaceholderPayment') : t('reassign.reasonPlaceholderSale')}
-                className="resize-none text-sm"
-              />
-            </label>
-          </div>
-          {error && <p role="alert" className="ui-error-text text-sm">{error}</p>}
+          <FormField label={t('common:fields.reason')}>
+            <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} className="resize-none" />
+          </FormField>
+          {error && <p role="alert" className="ui-alert ui-alert-danger">{error}</p>}
         </>
       )}
     </Modal>

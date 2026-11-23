@@ -28,10 +28,14 @@ describe('ReviewModal', () => {
     )
 
     expect(await screen.findByText('Not deductible')).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: 'Skip' })).toHaveLength(1)
+    expect(screen.getAllByRole('checkbox')).toHaveLength(1)
+    expect(screen.getByLabelText('Deducted from net pay')).toHaveTextContent('—')
 
-    await user.click(screen.getByRole('button', { name: 'Skip' }))
-    await user.click(screen.getByRole('button', { name: 'Generate Payroll' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Deduct #31 from salary' }))
+    expect(screen.getByText('1 deduction selected')).toBeInTheDocument()
+    expect(screen.getByLabelText('Deducted from net pay')).toHaveTextContent('−₹50.00')
+
+    await user.click(screen.getByRole('button', { name: 'Generate payroll' }))
     expect(onGenerate).toHaveBeenCalledWith([31])
   })
 })
