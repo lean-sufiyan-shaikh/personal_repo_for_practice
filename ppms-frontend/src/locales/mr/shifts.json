@@ -10,7 +10,6 @@
     },
     "subtitle": "नोझल {{nozzles}} · {{operator}} · {{window}}",
     "nozzleLine": "नोझल #{{number}} · {{fuel}}",
-    "endReadingLabel": "नोझल #{{number}} · {{fuel}} शेवटचे ({{unit}})",
     "errors": {
       "closeFailed": "शिफ्ट बंद करता आली नाही. कृपया पुन्हा प्रयत्न करा.",
       "handoverFailed": "शिफ्ट हँडओव्हर करता आली नाही. कृपया पुन्हा प्रयत्न करा.",
@@ -18,24 +17,21 @@
       "roundOffNegative": "राउंड ऑफ करता येत नाही: रोख रक्कम उणे होईल."
     },
     "sections": {
-      "endReadings": "शेवटचे मीटर रीडिंग",
+      "endReadings": "मीटर रीडिंग",
       "creditSales": "क्रेडिट विक्री",
-      "payment": "मिळालेले पेमेंट"
+      "payment": "पेमेंट"
     },
-    "totalDue": "एकूण देय",
-    "totalDueHint": "मीटर रीडिंग × ठरलेला दर",
     "newEntries_one": "{{count}} नवीन नोंद · ₹{{amount}}",
     "newEntries_other": "{{count}} नवीन नोंदी · ₹{{amount}}",
-    "addMoreBelow": "खाली आणखी नोंदी जोडा",
-    "noCredit": "या शिफ्टमध्ये क्रेडिट नाही",
-    "addEntry": "+ नोंद जोडा",
+    "noCredit": "क्रेडिट विक्री नाही",
+    "addEntry": "क्रेडिट विक्री जोडा",
     "payment": {
       "cash": "रोख (₹)",
       "upi": "UPI (₹)",
       "card": "कार्ड (₹)",
       "fleetCard": "फ्लीट कार्ड (₹)",
-      "restInCash": "उरलेले रोखीत · ₹{{amount}}",
-      "creditTotal": "क्रेडिट विक्री एकूण"
+      "creditTotal": "क्रेडिट विक्री एकूण",
+      "fillRest": "उरलेले भरा · ₹{{amount}}"
     },
     "validation": {
       "readingBelowStart": "शेवटचे रीडिंग सुरुवातीच्या रीडिंगपेक्षा कमी असू शकत नाही. कृपया लाल खुणेचे रकाने दुरुस्त करा.",
@@ -47,25 +43,38 @@
       "paymentInvalid": "{{field}} रकमेत चुकीचे मूल्य आहे."
     },
     "fields": {
-      "start": "सुरुवात:",
-      "unchanged": "रीडिंग बदलले नाही — या शिफ्टमध्ये 0 {{unit}} विकले",
+      "unchanged": "बदल नाही · 0 {{unit}} विकले",
       "endReadingAria": "{{label}} शेवटचे रीडिंग",
-      "sameAsOpening": "सुरुवातीच्या रीडिंगइतकेच",
-      "enterEndReading": "शेवटचे रीडिंग टाका",
       "belowStart": "मीटर कमाल मर्यादेनंतर पुन्हा शून्यापासून सुरू झाले नसेल, तर शेवटचे रीडिंग सुरुवातीपेक्षा ({{start}}) कमी असू शकत नाही",
       "noChange": "बदल नाही",
-      "enterAmount": "रक्कम टाका",
-      "due": "देय:",
-      "collected": "मिळाले:"
+      "startReading": "सुरुवात {{reading}}"
     },
     "footer": {
-      "chooseIncoming": "पुढे जाण्यासाठी येणारा ऑपरेटर निवडा",
-      "fillReadings": "पुढे जाण्यासाठी रीडिंग आणि पेमेंट भरा",
-      "reviewHandoverBalanced": "हँडओव्हर तपासा — जुळले",
-      "reviewCloseBalanced": "बंद करणे तपासा — जुळले",
-      "reviewHandoverDiscrepancy": "फरकासह हँडओव्हर तपासा",
-      "reviewCloseDiscrepancy": "फरकासह बंद करणे तपासा",
-      "addReason": "बंद करण्यासाठी वर कारण लिहा"
+      "reviewClose": "बंद करणे तपासा",
+      "reviewHandover": "हँडओव्हर तपासा"
+    },
+    "liveSummary": {
+      "title": "सारांश",
+      "sold": "विकले",
+      "totalDue": "एकूण देय",
+      "due": "देय",
+      "collected": "मिळाले",
+      "credit": "क्रेडिट",
+      "difference": "फरक",
+      "showDetails": "तपशील",
+      "hideDetails": "लपवा"
+    },
+    "stillNeeded": {
+      "title": "अजून बाकी",
+      "ready": "तपासण्यासाठी तयार",
+      "incomingOperator": "येणारा ऑपरेटर निवडा",
+      "endReadings_one": "{{count}} नोझलचे शेवटचे रीडिंग",
+      "endReadings_other": "{{count}} नोझलचे शेवटचे रीडिंग",
+      "readingsBelowStart": "सुरुवातीपेक्षा कमी शेवटचे रीडिंग दुरुस्त करा",
+      "payments": "मिळालेले पेमेंट",
+      "creditEntries_one": "{{count}} क्रेडिट नोंद पूर्ण करा",
+      "creditEntries_other": "{{count}} क्रेडिट नोंदी पूर्ण करा",
+      "reason": "फरकाचे कारण"
     },
     "review": {
       "introHandover": "हँडओव्हर केल्यावर ते परत बदलता येत नाही. हे आकडे ऑपरेटरसोबत तपासा.",
@@ -572,7 +581,8 @@
       "shift": "शिफ्ट",
       "actual": "प्रत्यक्ष",
       "noDefinitions": "या पंपासाठी शिफ्टच्या वेळा तयार नाहीत. आधी पंप सेटअपमध्ये तयार करा.",
-      "night": "रात्र",
+      "nightShift": "रात्रीची शिफ्ट",
+      "nextDay": "+1 दिवस",
       "noShift": "शिफ्ट नाही",
       "removeFromPlan": "नियोजनातून हटवा",
       "addOperator": "ऑपरेटर जोडा",

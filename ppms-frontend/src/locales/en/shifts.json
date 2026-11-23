@@ -10,7 +10,6 @@
     },
     "subtitle": "Nozzle {{nozzles}} · {{operator}} · {{window}}",
     "nozzleLine": "Nozzle #{{number}} · {{fuel}}",
-    "endReadingLabel": "Nozzle #{{number}} · {{fuel}} end ({{unit}})",
     "errors": {
       "closeFailed": "Failed to close shift. Please try again.",
       "handoverFailed": "Failed to hand over the shift. Please try again.",
@@ -18,24 +17,21 @@
       "roundOffNegative": "Round off not possible: cash amount would become negative."
     },
     "sections": {
-      "endReadings": "End Meter Readings",
-      "creditSales": "Credit Sales",
-      "payment": "Payment Collected"
+      "endReadings": "Meter readings",
+      "creditSales": "Credit sales",
+      "payment": "Payments"
     },
-    "totalDue": "Total Due",
-    "totalDueHint": "meter reading × locked price",
     "newEntries_one": "{{count}} new entry · ₹{{amount}}",
     "newEntries_other": "{{count}} new entries · ₹{{amount}}",
-    "addMoreBelow": "Add more entries below",
-    "noCredit": "No credit this shift",
-    "addEntry": "+ Add Entry",
+    "noCredit": "No credit sales",
+    "addEntry": "Add credit sale",
     "payment": {
       "cash": "Cash (₹)",
       "upi": "UPI (₹)",
       "card": "Card (₹)",
-      "fleetCard": "Fleet Card (₹)",
-      "restInCash": "Rest in cash · ₹{{amount}}",
-      "creditTotal": "Credit Sales Total"
+      "fleetCard": "Fleet card (₹)",
+      "creditTotal": "Credit sales total",
+      "fillRest": "Fill rest · ₹{{amount}}"
     },
     "validation": {
       "readingBelowStart": "End reading cannot be less than the start reading. Please correct the highlighted fields.",
@@ -47,25 +43,38 @@
       "paymentInvalid": "{{field}} amount contains an invalid value."
     },
     "fields": {
-      "start": "Start:",
-      "unchanged": "Reading unchanged — 0 {{unit}} sold this shift",
+      "unchanged": "No change · 0 {{unit}} sold",
       "endReadingAria": "{{label}} end reading",
-      "sameAsOpening": "Same as opening",
-      "enterEndReading": "Enter end reading",
       "belowStart": "End reading cannot be less than start ({{start}}) unless the meter rolled over from its maximum",
       "noChange": "No change",
-      "enterAmount": "Enter amount",
-      "due": "Due:",
-      "collected": "Collected:"
+      "startReading": "Start {{reading}}"
     },
     "footer": {
-      "chooseIncoming": "Choose the incoming operator to continue",
-      "fillReadings": "Fill in readings & payment to continue",
-      "reviewHandoverBalanced": "Review handover — Balanced",
-      "reviewCloseBalanced": "Review close — Balanced",
-      "reviewHandoverDiscrepancy": "Review handover with discrepancy",
-      "reviewCloseDiscrepancy": "Review close with discrepancy",
-      "addReason": "Add a reason above to close"
+      "reviewClose": "Review close",
+      "reviewHandover": "Review handover"
+    },
+    "liveSummary": {
+      "title": "Summary",
+      "sold": "Sold",
+      "totalDue": "Total due",
+      "due": "Due",
+      "collected": "Collected",
+      "credit": "Credit",
+      "difference": "Difference",
+      "showDetails": "Details",
+      "hideDetails": "Hide"
+    },
+    "stillNeeded": {
+      "title": "Still needed",
+      "ready": "Ready to review",
+      "incomingOperator": "Choose the incoming operator",
+      "endReadings_one": "End reading for {{count}} nozzle",
+      "endReadings_other": "End readings for {{count}} nozzles",
+      "readingsBelowStart": "Fix end readings below the start",
+      "payments": "Payments collected",
+      "creditEntries_one": "Finish {{count}} credit entry",
+      "creditEntries_other": "Finish {{count}} credit entries",
+      "reason": "Reason for the difference"
     },
     "review": {
       "introHandover": "Handing over can't be undone. Check these figures with the operator.",
@@ -572,7 +581,8 @@
       "shift": "Shift",
       "actual": "actual",
       "noDefinitions": "No shift definitions configured for this pump. Set them up in Pump Setup first.",
-      "night": "Night",
+      "nightShift": "Night shift",
+      "nextDay": "+1 day",
       "noShift": "No shift",
       "removeFromPlan": "Remove from plan",
       "addOperator": "Add operator",

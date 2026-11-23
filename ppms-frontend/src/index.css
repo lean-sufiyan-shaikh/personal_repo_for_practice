@@ -582,18 +582,34 @@
   }
 
   .ui-numeric-input {
+    height: 2.5rem;
     font-size: 1rem;
     text-align: right;
     font-variant-numeric: tabular-nums;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  .ui-numeric-input::-webkit-inner-spin-button,
+  .ui-numeric-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+  }
+
+  .ui-numeric-input::placeholder {
+    text-align: right;
   }
 
   .ui-numeric-field {
+    --ui-numeric-unit-chars: 1;
     position: relative;
     width: 100%;
   }
 
+  /* Room for the unit plus a gap, so digits stop short of it. */
   .ui-numeric-field .ui-numeric-input {
-    padding-right: 2.5rem;
+    padding-right: calc(1.25rem + var(--ui-numeric-unit-chars) * 1ch);
   }
 
   .ui-numeric-field__unit {
@@ -602,9 +618,14 @@
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.875rem;
+    line-height: 1;
     font-weight: 500;
-    color: var(--color-ink-2);
+    color: var(--color-ink-3);
     pointer-events: none;
+  }
+
+  .ui-numeric-input:disabled + .ui-numeric-field__unit {
+    opacity: 0.6;
   }
 
   .ui-check-row {
@@ -635,6 +656,172 @@
     height: 1.25rem;
     cursor: pointer;
     accent-color: var(--color-primary);
+  }
+
+  /* A light checkbox beside a field: no box around it, the label text is the touch target. */
+  .ui-inline-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--color-ink-2);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .ui-inline-check input[type='checkbox'] {
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--color-primary);
+  }
+
+  /* A small text button; the pseudo-element widens its touch area without moving the layout. */
+  .ui-text-action {
+    position: relative;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-primary);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .ui-text-action::after {
+    content: '';
+    position: absolute;
+    inset: -0.5rem -0.375rem;
+  }
+
+  .ui-text-action:hover {
+    color: var(--color-primary-strong);
+    text-decoration: underline;
+  }
+
+  /* Close shift: the form on the left, the live summary on the right and kept in view while the form scrolls. */
+  .ui-close-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 17.5rem;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .ui-close-summary {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: var(--density-card-pad);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface-sunken);
+  }
+
+  .ui-close-summary-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .ui-close-summary-bar__details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 40dvh;
+    overflow-y: auto;
+  }
+
+  .ui-close-summary-bar__details[hidden] {
+    display: none;
+  }
+
+  /* Shift planning grid: the shift column keeps one width and stays in view while the week scrolls sideways. */
+  .ui-plan-shift-cell {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    width: 11rem;
+    min-width: 11rem;
+    padding: var(--density-row-y) 0.75rem var(--density-row-y) 1rem;
+    vertical-align: top;
+    background: var(--color-surface);
+    box-shadow: inset 3px 0 0 var(--plan-accent, transparent), inset -1px 0 0 var(--color-border);
+  }
+
+  .ui-plan-day-cell {
+    padding: var(--density-row-y) 0.5rem;
+    vertical-align: top;
+  }
+
+  .ui-plan-accent--1 { --plan-accent: var(--color-primary); }
+  .ui-plan-accent--2 { --plan-accent: var(--color-accent); }
+  .ui-plan-accent--3 { --plan-accent: var(--color-ok); }
+  .ui-plan-accent--4 { --plan-accent: var(--color-ink-3); }
+
+  .ui-close-readings {
+    container-type: inline-size;
+    border-top: 1px solid var(--color-border);
+  }
+
+  /* One nozzle: name and start on top, then the end reading with No change, then the live sale line. */
+  .ui-reading-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name name"
+      "input check"
+      "result result";
+    column-gap: 0.75rem;
+    row-gap: 0.375rem;
+    align-items: center;
+    padding: var(--density-row-y) 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .ui-reading-row__name { grid-area: name; min-width: 0; }
+  .ui-reading-row__input { grid-area: input; min-width: 0; }
+  .ui-reading-row__check { grid-area: check; }
+
+  .ui-reading-row__result {
+    grid-area: result;
+    margin: 0;
+    min-height: 1rem;
+    line-height: 1rem;
+  }
+
+  @container (min-width: 30rem) {
+    .ui-reading-row {
+      grid-template-columns: minmax(0, 1fr) minmax(9rem, 13rem) auto;
+      grid-template-areas:
+        "name input check"
+        "name result result";
+    }
+
+    .ui-reading-row__name {
+      align-self: start;
+      padding-top: 0.25rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .ui-inline-check {
+      min-height: 44px;
+    }
+
+    .ui-text-action::after {
+      inset: -0.875rem -0.5rem;
+    }
   }
 
   .ui-inline-form {

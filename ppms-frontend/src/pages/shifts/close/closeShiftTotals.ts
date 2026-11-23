@@ -1,5 +1,6 @@
 import type { FuelReading } from '../../../types/shift'
 import { roundToPaise, toPaise, unitsSold } from '../../../utils/money'
+import { formatDecimal } from '../../../utils/format'
 import { emptyNum } from '../components/creditRow'
 
 interface TotalsInput {
@@ -75,4 +76,9 @@ export function discrepancyTypeOf(diff: number): 'SHORT' | 'OVER' | null {
 /** Whether a gap of this size goes to the owner for approval, mirroring the server's escalation rule. */
 export function needsOwnerApproval(diff: number, escalationThreshold: number | null): boolean {
   return escalationThreshold !== null && escalationThreshold > 0 && Math.abs(diff) > escalationThreshold
+}
+
+/** "12.50 L" or "3.00 kg": the fuel's own unit, which the litre formatter would always print as L. */
+export function formatUnits(amount: number, unit: string, decimals = 2): string {
+  return `${formatDecimal(amount, decimals)} ${unit}`
 }

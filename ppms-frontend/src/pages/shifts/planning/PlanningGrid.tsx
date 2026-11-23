@@ -1,11 +1,10 @@
 import { Check, X, Circle, Moon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { StatusBadge } from '../../../components/StatusBadge'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { SkeletonTable } from '../../../components/Skeleton'
 import { Reveal } from '../../../components/Reveal'
 import { IconButton } from '../../../components/IconButton'
-import { SHIFT_ROW_COLORS, STATUS_BADGE, formatDay } from './planningHelpers'
+import { SHIFT_ROW_ACCENTS, STATUS_BADGE, formatDay, formatShiftWindow } from './planningHelpers'
 import type { ShiftPlanning } from './useShiftPlanning'
 import { ScrollRegion } from '../../../components/ScrollRegion'
 
@@ -34,7 +33,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                    <table className="w-full text-xs border-collapse min-w-[640px]">
                      <thead>
                        <tr className="border-b border-border">
-                         <th scope="col" className="w-28 text-left px-3 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">
+                         <th scope="col" className="ui-plan-shift-cell text-left text-xs font-semibold text-ink-2">
                            {t('planning.grid.shift')}
                          </th>
                          {days.map(day => (
@@ -55,18 +54,25 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                            </td>
                          </tr>
                        ) : sortedDefs.map((def, defIdx) => {
-                         const colors = SHIFT_ROW_COLORS[defIdx % SHIFT_ROW_COLORS.length]
+                         const accent = SHIFT_ROW_ACCENTS[defIdx % SHIFT_ROW_ACCENTS.length]
                          return (
-                           <tr key={def.id} className={`border-b border-border ${colors.bg}`}>
-                             <td className={`px-3 py-3 font-semibold ${colors.text} align-top`}>
-                               {def.name}
-                               {def.isNightShift && (
-                                 <StatusBadge tone="info" icon={Moon} label={t('planning.grid.night')} className="ml-1" />
-                               )}
-                               <div className="font-normal text-ink-3 text-xs mt-0.5 leading-tight">
-                                 {def.windowLabel}
-                               </div>
-                             </td>
+                           <tr key={def.id} className="border-b border-border">
+                             <th scope="row" className={`ui-plan-shift-cell text-left font-normal ${accent}`}>
+                               <span className="flex items-center gap-1.5 text-sm font-semibold leading-5 text-ink">
+                                 {def.name}
+                                 {def.isNightShift && (
+                                   <span role="img" aria-label={t('planning.grid.nightShift')} title={t('planning.grid.nightShift')} className="inline-flex text-ink-3">
+                                     <Moon size={14} strokeWidth={2} aria-hidden="true" />
+                                   </span>
+                                 )}
+                               </span>
+                               <span className="mt-0.5 block whitespace-nowrap text-xs text-ink-3 tabular-nums">
+                                 {formatShiftWindow(def)}
+                                 {def.crossesMidnight && (
+                                   <span className="ml-1 font-medium text-ink-2">{t('planning.grid.nextDay')}</span>
+                                 )}
+                               </span>
+                             </th>
                              {days.map(day => {
                                const slotEntries = entryMap[day]?.[def.id] ?? []
                                const actualOpIds = actualMap[day]?.[def.id] ?? []
@@ -78,7 +84,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                                )
 
                                return (
-                                 <td key={day} className={`px-2 py-2 align-top ${isPast ? 'opacity-80' : ''}`}>
+                                 <td key={day} className={`ui-plan-day-cell ${isPast ? 'opacity-80' : ''}`}>
                                    <div className="space-y-1">
                                      {isPast ? (
                                        // Past date: show confirmed (actually worked) + absent (planned but didn't show)
@@ -92,7 +98,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                                          return (
                                            <>
                                              {actualOpIds.map(opId => (
-                                               <div key={opId} className="flex items-center gap-1">
+                                               <div key={opId} className="flex min-h-5 items-center gap-1">
                                                  <span className="truncate text-ink-2 font-medium">
                                                    {staffById[opId]?.fullName ?? `#${opId}`}
                                                  </span>
@@ -102,7 +108,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                                                </div>
                                              ))}
                                              {absentEntries.map(entry => (
-                                               <div key={`absent-${entry.id}`} className="flex items-center gap-1">
+                                               <div key={`absent-${entry.id}`} className="flex min-h-5 items-center gap-1">
                                                  <span className="truncate text-ink-3 font-medium">
                                                    {staffById[entry.operatorUserId]?.fullName ?? `#${entry.operatorUserId}`}
                                                  </span>
@@ -118,7 +124,7 @@ export function PlanningGrid({ form }: { form: ShiftPlanning }) {
                                        // Future / today: show plan entries
                                        <>
                                          {slotEntries.map(entry => (
-                                           <div key={entry.id} className="flex items-center gap-1 group">
+                                           <div key={entry.id} className="flex min-h-5 items-center gap-1 group">
                                              <span className="truncate text-ink font-medium">
                                                {staffById[entry.operatorUserId]?.fullName ?? `#${entry.operatorUserId}`}
                                              </span>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { shiftApi } from '../../api/shiftApi'
@@ -8,7 +8,6 @@ import type { CloseShiftRequest, CreateHandoverRequest, HandoverResponse, Shift,
 import { formatIstDateTime } from '../../utils/date'
 import { Modal } from '../../components/Modal'
 import type { ModalTone } from '../../components/Modal'
-import { MoneyText } from '../../components/AmountText'
 import { parseApiError } from '../../utils/apiError'
 import { useConfirmDiscard } from '../../hooks/useConfirmDiscard'
 import { readDraft, removeDraft, useSaveDraft, writeDraft } from '../../hooks/useSaveDraft'
@@ -19,14 +18,18 @@ import { attemptFor } from '../../utils/idempotencyKey'
 import type { SubmitAttempt } from '../../utils/idempotencyKey'
 import { FUEL_UNIT } from '../../constants/fuel'
 import { codeLabel } from '../../constants/labels'
-import { CreditEntryForm } from './components/CreditEntryForm'
-import { emptyNum, fmt } from './components/creditRow'
-import { PreRecordedCreditList } from './close/PreRecordedCreditList'
-import { Section, ReadingField, PaymentField, BalanceCard } from './close/CloseShiftFields'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { emptyNum } from './components/creditRow'
+import { Section, ReadingField } from './close/CloseShiftFields'
+import { CreditSalesSection } from './close/CreditSalesSection'
+import { PaymentSection } from './close/PaymentSection'
 import { DiscrepancySection } from './close/DiscrepancySection'
 import { CloseShiftFooter } from './close/CloseShiftFooter'
 import { LateCloseNotice } from './close/LateCloseNotice'
-import { computeCloseShiftTotals } from './close/closeShiftTotals'
+import { computeCloseShiftTotals, needsOwnerApproval } from './close/closeShiftTotals'
+import { stillNeededItems, stillNeededLabel } from './close/closeShiftChecklist'
+import { CloseShiftSummaryBar, CloseShiftSummaryPanel } from './close/CloseShiftLiveSummary'
+import type { LiveSummaryFigures, SoldUnits } from './close/CloseShiftLiveSummary'
 import { buildCloseShiftRequest } from './close/closeShiftRequest'
 import { useCloseShiftCreditRows } from './close/useCloseShiftCreditRows'
 import { HandoverFields } from './close/HandoverFields'
@@ -36,7 +39,6 @@ import type { CloseShiftDraft } from './close/closeShiftDraft'
 import { CloseShiftReview, CloseShiftReviewActions } from './close/CloseShiftReview'
 import { CloseShiftSummary, CloseShiftSummaryActions } from './close/CloseShiftSummary'
 import { HandoverReportPanel } from './modals/HandoverReportPanel'
-import { FormGrid, FormGridFullRow } from '../../components/layout/FormGrid'
 
 interface Props {
   shift: Shift
@@ -48,6 +50,9 @@ interface Props {
 }
 
 type Step = 'form' | 'review' | 'done'
+
+/** From this width the live summary sits beside the form; below it, it is a bar above the buttons. */
+const SIDE_SUMMARY_QUERY = '(min-width: 900px)'
 
 interface ClosingFigures {
   totalDue: number
@@ -66,7 +71,7 @@ const emptyEndReadings = (shift: Shift): Record<number, string> =>
   Object.fromEntries(shift.fuelReadings.map((r) => [r.nozzleId, '']))
 
 export default function CloseShiftModal({ shift, onClose, onOpenNextShift, handoverActiveShifts }: Props) {
-  const { t } = useTranslation('shifts')
+  const { t } = useTranslation(['shifts', 'common'])
   const isHandover = handoverActiveShifts !== undefined
   const queryClient = useQueryClient()
   const draftName = closeShiftDraftName(shift.id, isHandover)
@@ -92,6 +97,8 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   const [printedShift,      setPrintedShift]      = useState<Shift | null>(null)
   const [printError,        setPrintError]        = useState<string | null>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
+  const stillNeededId = useId()
+  const summaryBesideForm = useMediaQuery(SIDE_SUMMARY_QUERY)
   const previousStep = useRef<Step>(step)
 
   useEffect(() => {
@@ -174,7 +181,12 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   })
   const reasonFilled     = discrepancyReason.trim().length > 0
   const incomingChosen   = !isHandover || handoverDetails.incomingOperatorId !== null
-  const canClose         = incomingChosen && (isBalanced || (hasDiscrepancy && reasonFilled))
+  const missingReadingCount = shift.fuelReadings.filter((r) => (endReadings[r.nozzleId] ?? '') === '').length
+  const stillNeeded = stillNeededItems({
+    isHandover, incomingChosen, missingReadingCount, readingsBelowStart, paymentTouched,
+    creditRows, hasDiscrepancy, reasonFilled,
+  }).map((item) => stillNeededLabel(item, t))
+  const canClose = stillNeeded.length === 0
   const hasUnsavedChanges = Object.values(endReadings).some(v => v !== '')
     || cash !== '' || upi !== '' || card !== '' || fleetCard !== ''
     || creditRows.length > 0 || discrepancyReason.trim() !== ''
@@ -328,6 +340,26 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   const restInCashPaise = Math.max(0,
     toPaise(totalDue) - toPaise(emptyNum(upi)) - toPaise(emptyNum(card)) - toPaise(emptyNum(fleetCard)) - toPaise(creditTotal))
 
+  const soldByUnit = perFuelSales
+    .filter(({ reading }) => (endReadings[reading.nozzleId] ?? '') !== '')
+    .reduce<SoldUnits[]>((totals, { reading, sold }) => {
+      const unit = FUEL_UNIT[reading.fuelType] ?? 'L'
+      const existing = totals.find((total) => total.unit === unit)
+      return existing
+        ? totals.map((total) => (total === existing ? { unit, amount: total.amount + sold } : total))
+        : [...totals, { unit, amount: sold }]
+    }, [])
+  const summaryFigures: LiveSummaryFigures = {
+    sold: soldByUnit,
+    totalDue: soldByUnit.length > 0 ? totalDue : null,
+    payments: paymentTouched
+      ? { cash: emptyNum(cash), upi: emptyNum(upi), card: emptyNum(card), fleetCard: emptyNum(fleetCard), credit: creditTotal }
+      : null,
+    totalCollected: paymentTouched ? totalCollected : null,
+    diff: isBalanced || hasDiscrepancy ? diff : null,
+    approvalLimit: hasDiscrepancy && needsOwnerApproval(diff, escalationThreshold) ? escalationThreshold : null,
+  }
+
   const closeAndForget = () => {
     removeDraft(draftName)
     onClose()
@@ -357,15 +389,12 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   }
 
   const footer = step === 'form' ? (
-    <CloseShiftFooter
-      readingsComplete={readingsComplete}
-      paymentTouched={paymentTouched}
-      isBalanced={isBalanced}
-      reasonFilled={reasonFilled}
-      isHandover={isHandover}
-      incomingChosen={incomingChosen}
-      onCancel={requestClose}
-    />
+    <>
+      {!summaryBesideForm && (
+        <CloseShiftSummaryBar figures={summaryFigures} stillNeeded={stillNeeded} stillNeededId={stillNeededId} />
+      )}
+      <CloseShiftFooter canReview={canClose} isHandover={isHandover} stillNeededId={stillNeededId} onCancel={requestClose} />
+    </>
   ) : step === 'review' && reviewedFigures ? (
     <CloseShiftReviewActions isHandover={isHandover} isSubmitting={isSubmitting} onConfirm={confirmClose} onEdit={backToForm} />
   ) : step === 'done' && reviewedFigures && closedResult ? (
@@ -385,26 +414,16 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
       title={title}
       subtitle={t('close.subtitle', { nozzles: shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', '), operator: shift.operatorName, window: shift.shiftWindow })}
       tone={headerTone}
-      size="lg"
+      size={step === 'form' ? 'full' : 'lg'}
       onClose={dismiss}
       canClose={!isSubmitting}
       titleRef={titleRef}
       fullScreenOnPhone={step !== 'form'}
-      headerExtra={step === 'form' && (
-        <div className="flex flex-wrap gap-2 mt-3">
-          {shift.fuelReadings.map((r) => (
-            <span key={r.nozzleId}
-              className="bg-surface-sunken text-ink-2 text-xs font-medium px-2.5 py-1 rounded-badge">
-              {codeLabel(r.fuelType)} ₹{r.priceSnapshot}/{FUEL_UNIT[r.fuelType] ?? 'L'}
-            </span>
-          ))}
-        </div>
-      )}
       onSubmit={step === 'form' ? handleReview : undefined}
-      bodyClassName={step === 'form' ? 'space-y-5' : step === 'review' ? 'space-y-5 text-sm text-ink' : 'space-y-4 text-sm text-ink'}
+      bodyClassName={step === 'form' ? '' : step === 'review' ? 'space-y-5 text-sm text-ink' : 'space-y-4 text-sm text-ink'}
       footer={footer}
       footerClassName={step === 'form'
-        ? 'flex-col-reverse sm:flex-row bg-surface-sunken'
+        ? 'flex-col items-stretch'
         : step === 'review' ? 'ui-modal-footer--large' : 'ui-modal-footer--large grid grid-cols-2'}
     >
         {step === 'review' && reviewedFigures && (
@@ -442,165 +461,92 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
         )}
 
         {step === 'form' && (
-          <>
+          <div className={summaryBesideForm ? 'ui-close-layout' : undefined}>
+            <div className="min-w-0 space-y-5">
+              {restoredDraft && (
+                <DraftRestoredNotice savedAt={restoredDraft.savedAt} onDiscard={discardRestoredEntries} />
+              )}
 
-            {restoredDraft && (
-              <DraftRestoredNotice savedAt={restoredDraft.savedAt} onDiscard={discardRestoredEntries} />
-            )}
+              {isLateClose && scheduledEndDisplay && (
+                <LateCloseNotice scheduledEndDisplay={scheduledEndDisplay} />
+              )}
 
-            {/* ── Late-close notice ─────────────────────────────────────── */}
-            {isLateClose && scheduledEndDisplay && (
-              <LateCloseNotice scheduledEndDisplay={scheduledEndDisplay} />
-            )}
+              {isHandover && handoverActiveShifts && (
+                <HandoverFields
+                  shift={shift}
+                  activeShifts={handoverActiveShifts}
+                  details={handoverDetails}
+                  onChange={setHandoverDetails}
+                />
+              )}
 
-            {isHandover && handoverActiveShifts && (
-              <HandoverFields
-                shift={shift}
-                activeShifts={handoverActiveShifts}
-                details={handoverDetails}
-                onChange={setHandoverDetails}
-              />
-            )}
-
-            {/* ── Step 1: End Readings ──────────────────────────────────── */}
-            <Section label="1" title={t('close.sections.endReadings')}>
-              <FormGrid>
-                {perFuelSales.map(({ reading, sold, isBelowStart }, index) => {
-                  const isNoChange = noChangeNozzles.has(reading.nozzleId)
-                  const endVal = endReadings[reading.nozzleId] ?? ''
-                  const isInvalid = isBelowStart
-                  return (
+              <Section label="1" title={t('close.sections.endReadings')}>
+                <div className="ui-close-readings">
+                  {perFuelSales.map(({ reading, sold, isBelowStart }, index) => (
                     <ReadingField
                       key={reading.nozzleId}
-                      label={t('close.endReadingLabel', { number: nozzleNumberById[reading.nozzleId] ?? '?', fuel: codeLabel(reading.fuelType), unit: FUEL_UNIT[reading.fuelType] ?? 'L' })}
+                      label={t('close.nozzleLine', { number: nozzleNumberById[reading.nozzleId] ?? '?', fuel: codeLabel(reading.fuelType) })}
                       startValue={reading.startReading}
                       soldUnits={sold}
                       pricePerUnit={reading.priceSnapshot}
-                      value={endVal}
+                      value={endReadings[reading.nozzleId] ?? ''}
                       onChange={(v) => setEndReadings((prev) => ({ ...prev, [reading.nozzleId]: v }))}
                       unitLabel={FUEL_UNIT[reading.fuelType] ?? 'L'}
-                      isInvalid={isInvalid}
-                      noChange={isNoChange}
+                      isInvalid={isBelowStart}
+                      noChange={noChangeNozzles.has(reading.nozzleId)}
                       onNoChangeToggle={() => toggleNoChange(reading.nozzleId, reading.startReading)}
                       focusOnOpen={index === 0}
                     />
-                  )
-                })}
-              </FormGrid>
-            </Section>
+                  ))}
+                </div>
+              </Section>
 
-            {/* ── Total due card ─────────────────────────────────────────── */}
-            <div className="bg-info-bg border border-info rounded-card p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs text-info font-medium uppercase tracking-wide">{t('close.totalDue')}</p>
-                <p className="text-xs text-ink-2 mt-0.5">{t('close.totalDueHint')}</p>
-              </div>
-              <p className="text-2xl font-bold text-info"><MoneyText value={totalDue} /></p>
+              <CreditSalesSection
+                shift={shift}
+                preRecordedEntries={preRecordedEntries}
+                preRecordedTotal={preRecordedTotal}
+                onEditRecorded={editRecordedEntry}
+                onVoidedRecorded={(entryId) => setLocalVoidedIds(prev => new Set([...prev, entryId]))}
+                creditRows={creditRows}
+                newCreditTotal={newCreditTotal}
+                expandedRowId={expandedRowId}
+                onExpandedChange={setExpandedRowId}
+                creditClients={creditClients}
+                availableFuelTypes={availableFuelTypes}
+                priceForFuelType={priceForFuelType}
+                onAddRow={addCreditRow}
+                onUpdateRow={updateRow}
+                onUpdateRowMulti={updateRowMulti}
+                onSelectClient={selectClient}
+                onRemoveRow={removeCreditRow}
+              />
+
+              <PaymentSection
+                cash={cash} upi={upi} card={card} fleetCard={fleetCard}
+                onCashChange={setCash} onUpiChange={setUpi} onCardChange={setCard} onFleetCardChange={setFleetCard}
+                restInCashPaise={restInCashPaise}
+                creditTotal={creditTotal}
+              />
+
+              {hasDiscrepancy && (
+                <DiscrepancySection
+                  diff={diff}
+                  canRoundOff={canRoundOff}
+                  onRoundOff={handleRoundOff}
+                  reason={discrepancyReason}
+                  onReasonChange={setDiscrepancyReason}
+                />
+              )}
+
+              {serverError && (
+                <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>
+              )}
             </div>
 
-            {/* ── Step 2: Credit Sales ─────────────────────────────────── */}
-            <Section label="2" title={t('close.sections.creditSales')} optional>
-              <div className="border border-border rounded-card overflow-visible">
-
-                {/* Pre-recorded entries (saved mid-shift) — with edit / delete */}
-                {preRecordedEntries.length > 0 && (
-                  <PreRecordedCreditList
-                    shift={shift}
-                    entries={preRecordedEntries}
-                    total={preRecordedTotal}
-                    onEdit={editRecordedEntry}
-                    onVoided={(entryId) => setLocalVoidedIds(prev => new Set([...prev, entryId]))}
-                  />
-                )}
-
-                <div className="flex items-center justify-between px-4 py-2.5 bg-warn-bg">
-                  <div>
-                    {creditRows.length > 0 ? (
-                      <span className="text-xs text-warn font-medium">
-                        {t('close.newEntries', { count: creditRows.length, amount: fmt(newCreditTotal) })}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-ink-3">
-                        {preRecordedEntries.length > 0 ? t('close.addMoreBelow') : t('close.noCredit')}
-                      </span>
-                    )}
-                  </div>
-                  <button type="button" onClick={addCreditRow}
-                    className="ui-btn ui-btn-warning min-h-0 px-3 py-1.5 text-xs">
-                    {t('close.addEntry')}
-                  </button>
-                </div>
-
-                {creditRows.length > 0 && (
-                  <div className="divide-y divide-border">
-                    {creditRows.map((row, idx) => (
-                      <CreditEntryForm
-                        key={row.id}
-                        row={row}
-                        rowNumber={idx + 1}
-                        isExpanded={expandedRowId === row.id}
-                        onExpandedChange={setExpandedRowId}
-                        creditClients={creditClients}
-                        availableFuelTypes={availableFuelTypes}
-                        priceForFuelType={priceForFuelType}
-                        onUpdate={(field, value) => updateRow(row.id, field, value)}
-                        onUpdateMulti={(updates) => updateRowMulti(row.id, updates)}
-                        onSelectClient={(clientId, clientName) => selectClient(row.id, clientId, clientName)}
-                        onRemove={() => removeCreditRow(row.id)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Section>
-
-            {/* ── Step 3: Payment Collected ────────────────────────────── */}
-            <Section label="3" title={t('close.sections.payment')}>
-              <FormGrid>
-                <FormGridFullRow className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                  <div className="flex-1 min-w-0">
-                    <PaymentField label={t('close.payment.cash')} value={cash} onChange={setCash} />
-                  </div>
-                  <button type="button" onClick={() => setCash((restInCashPaise / 100).toFixed(2))}
-                    className="ui-btn ui-btn-secondary">
-                    {t('close.payment.restInCash', { amount: fmt(restInCashPaise / 100) })}
-                  </button>
-                </FormGridFullRow>
-                <PaymentField label={t('close.payment.upi')} value={upi}       onChange={setUpi} />
-                <PaymentField label={t('close.payment.card')} value={card}      onChange={setCard} />
-                <PaymentField label={t('close.payment.fleetCard')} value={fleetCard} onChange={setFleetCard} />
-              </FormGrid>
-              {creditTotal > 0 && (
-                <div className="flex items-center justify-between bg-warn-bg border border-warn rounded-control px-3 py-2 mt-2">
-                  <span className="text-xs font-medium text-warn">{t('close.payment.creditTotal')}</span>
-                  <span className="text-sm font-bold text-warn-strong"><MoneyText value={creditTotal} /></span>
-                </div>
-              )}
-            </Section>
-
-            {/* ── Balance status card ───────────────────────────────────── */}
-            {paymentTouched && readingsComplete && (
-              <BalanceCard totalDue={totalDue} totalCollected={totalCollected} diff={diff} />
+            {summaryBesideForm && (
+              <CloseShiftSummaryPanel figures={summaryFigures} stillNeeded={stillNeeded} stillNeededId={stillNeededId} />
             )}
-
-            {/* ── Discrepancy reason ────────────────────────────────────── */}
-            {hasDiscrepancy && (
-              <DiscrepancySection
-                diff={diff}
-                canRoundOff={canRoundOff}
-                onRoundOff={handleRoundOff}
-                reason={discrepancyReason}
-                onReasonChange={setDiscrepancyReason}
-              />
-            )}
-
-            {serverError && (
-              <div className="bg-bad-bg border border-bad rounded-card p-3">
-                <p role="alert" className="text-bad text-sm">{serverError}</p>
-
-              </div>
-            )}
-          </>
+          </div>
         )}
     </Modal>
     {isConfirming && <DiscardChangesDialog onDiscard={discard} onKeepEditing={keepEditing} />}

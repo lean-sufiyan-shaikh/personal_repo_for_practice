@@ -48,8 +48,8 @@ export function PreRecordedCreditList({ shift, entries, total, onEdit, onVoided 
     ft ? (shift.fuelReadings.find(r => r.fuelType === ft)?.priceSnapshot ?? null) : null
 
   return (
-    <div className="px-4 py-2.5 bg-warn-bg border-b border-border">
-      <p className="text-xs font-semibold text-warn mb-2">
+    <div className="px-3 py-2.5 border-b border-border">
+      <p className="text-xs font-semibold text-ink-2 mb-2">
         {t('close.preRecorded.heading', { count: entries.length })}
       </p>
       <div className="space-y-2">
@@ -67,7 +67,7 @@ export function PreRecordedCreditList({ shift, entries, total, onEdit, onVoided 
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-semibold text-ink">{e.clientName}</span>
                     {e.fuelType && (
-                      <span className="text-xs text-ink-3 uppercase tracking-wide">{codeLabel(e.fuelType)}</span>
+                      <span className="text-xs text-ink-3">{codeLabel(e.fuelType)}</span>
                     )}
                     {e.billNo && (
                       <span className="text-xs text-ink-3">#{e.billNo}</span>
@@ -153,8 +153,8 @@ export function PreRecordedCreditList({ shift, entries, total, onEdit, onVoided 
         })}
       </div>
       <div className="flex justify-between mt-2 pt-1.5 border-t border-border">
-        <span className="text-xs text-warn">{t('close.preRecorded.subtotal')}</span>
-        <MoneyText value={total} className="text-xs font-bold text-warn" />
+        <span className="text-xs text-ink-2">{t('close.preRecorded.subtotal')}</span>
+        <MoneyText value={total} className="text-xs font-semibold text-ink" />
       </div>
     </div>
   )

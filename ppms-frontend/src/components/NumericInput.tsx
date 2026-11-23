@@ -1,5 +1,5 @@
 import { forwardRef } from 'react'
-import type { InputHTMLAttributes, KeyboardEvent } from 'react'
+import type { CSSProperties, InputHTMLAttributes, KeyboardEvent } from 'react'
 
 const TEXT_ENTRY_FIELDS = [
   'input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="button"]):not([type="submit"])',
@@ -20,7 +20,10 @@ function nextTextEntryField(current: HTMLInputElement): HTMLElement | null {
   return index === -1 ? null : fields[index + 1] ?? null
 }
 
-/** Number field for phone entry: decimal keypad, 16px text so iOS does not zoom, and Enter moves to the next field. */
+/**
+ * Number field for phone entry: decimal keypad, no spinner arrows, 16px right-aligned digits so iOS does not zoom,
+ * and Enter moves to the next field. Leave the placeholder out, or pass a short one such as "0".
+ */
 export const NumericInput = forwardRef<HTMLInputElement, NumericInputProps>(
   ({ unit, className, onKeyDown, type = 'number', inputMode = 'decimal', enterKeyHint = 'next', ...props }, ref) => {
     const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -45,8 +48,10 @@ export const NumericInput = forwardRef<HTMLInputElement, NumericInputProps>(
     )
 
     if (!unit) return input
+    // The field keeps room on the right for the unit, so typed digits never run under it.
+    const unitWidth = { '--ui-numeric-unit-chars': unit.length } as CSSProperties
     return (
-      <div className="ui-numeric-field">
+      <div className="ui-numeric-field" style={unitWidth}>
         {input}
         <span aria-hidden="true" className="ui-numeric-field__unit">{unit}</span>
       </div>
