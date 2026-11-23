@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { superAdminApi } from '../../api/superAdminApi'
@@ -15,15 +16,17 @@ interface AddPumpFormProps {
 }
 
 export function AddPumpForm({ owner, onDone }: AddPumpFormProps) {
+  const { t } = useTranslation('superadmin')
   const queryClient = useQueryClient()
   const [addPumpError, setAddPumpError] = useState<string | null>(null)
+  const schema = useMemo(() => addPumpSchema(t), [t])
 
   const {
     register: registerPump,
     handleSubmit: handleSubmitPump,
     formState: { errors: pumpErrors },
   } = useForm<AddPumpFormInput, unknown, AddPumpFormData>({
-    resolver: zodResolver(addPumpSchema),
+    resolver: zodResolver(schema),
   })
 
   const addPumpMutation = useMutation({
@@ -35,7 +38,7 @@ export function AddPumpForm({ owner, onDone }: AddPumpFormProps) {
       queryClient.invalidateQueries({ queryKey: ['superadmin-analytics'] })
     },
     onError: (err) =>
-      setAddPumpError(parseApiError(err, 'Failed to add pump. Please try again.')),
+      setAddPumpError(parseApiError(err, t('addPump.failed'))),
   })
 
   const onAddPumpSubmit = (data: AddPumpFormData) => {
@@ -48,32 +51,32 @@ export function AddPumpForm({ owner, onDone }: AddPumpFormProps) {
       <div className="pt-3">
       <form onSubmit={handleSubmitPump(onAddPumpSubmit)} className="ui-inline-form space-y-3 max-w-md">
         <div>
-          <p className="ui-inline-form__title">Add a new pump for {owner.fullName}</p>
-          <p className="ui-inline-form__copy">Create another managed location under this owner without leaving the owner list.</p>
+          <p className="ui-inline-form__title">{t('addPump.title', { name: owner.fullName })}</p>
+          <p className="ui-inline-form__copy">{t('addPump.copy')}</p>
         </div>
-        <FormField label="Pump Name" error={pumpErrors.pumpName?.message}>
+        <FormField label={t('fields.pumpName')} error={pumpErrors.pumpName?.message}>
           <input
             {...registerPump('pumpName')}
             type="text"
-            placeholder="e.g. Jatin Petrol Station 2"
+            placeholder={t('addPump.pumpNamePlaceholder')}
             className="text-sm"
           />
         </FormField>
-        <FormField label="Pump Address" error={pumpErrors.pumpAddress?.message}>
+        <FormField label={t('fields.pumpAddress')} error={pumpErrors.pumpAddress?.message}>
           <input
             {...registerPump('pumpAddress')}
             type="text"
-            placeholder="Full address"
+            placeholder={t('fields.addressPlaceholder')}
             className="text-sm"
           />
         </FormField>
-        <FormField label="Max DU Count" error={pumpErrors.maxDuCount?.message}>
+        <FormField label={t('fields.maxDuCount')} error={pumpErrors.maxDuCount?.message}>
           <input
             {...registerPump('maxDuCount')}
             type="number"
             min={1}
             max={20}
-            placeholder="e.g. 4"
+            placeholder={t('fields.maxDuPlaceholder')}
             className="text-sm"
           />
         </FormField>
@@ -85,7 +88,7 @@ export function AddPumpForm({ owner, onDone }: AddPumpFormProps) {
           disabled={addPumpMutation.isPending}
           className="ui-btn ui-btn-primary"
         >
-          {addPumpMutation.isPending ? 'Adding…' : 'Add Pump'}
+          {addPumpMutation.isPending ? t('addPump.adding') : t('addPump.submit')}
         </button>
       </form>
       </div>

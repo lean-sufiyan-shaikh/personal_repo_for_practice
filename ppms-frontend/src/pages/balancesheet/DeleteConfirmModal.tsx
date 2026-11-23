@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Trans, useTranslation } from 'react-i18next'
 import { balanceSheetApi } from '../../api/balanceSheetApi'
 import { parseApiError } from '../../utils/apiError'
 import type { BalanceSheetSummary } from '../../api/balanceSheetApi'
@@ -16,6 +17,7 @@ interface DeleteConfirmProps {
 }
 
 export function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmProps) {
+  const { t } = useTranslation('balancesheet')
   const qc = useQueryClient()
   const { addToast } = useToastStore()
 
@@ -23,16 +25,16 @@ export function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmPro
     mutationFn: () => balanceSheetApi.delete(pumpId, report.id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['balance-sheets', pumpId] })
-      addToast('Balance sheet deleted', 'success')
+      addToast(t('delete.deleted'), 'success')
       onClose()
     },
-    onError: (err) => addToast(parseApiError(err, 'Failed to delete balance sheet'), 'error'),
+    onError: (err) => addToast(parseApiError(err, t('delete.failed')), 'error'),
   })
 
   return (
     <Modal
-      title="Delete Balance Sheet?"
-      subtitle="This action removes the saved report entry."
+      title={t('delete.title')}
+      subtitle={t('delete.subtitle')}
       tone="danger"
       size="sm"
       onClose={onClose}
@@ -41,7 +43,7 @@ export function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmPro
             onClick={onClose}
             className="ui-btn ui-btn-secondary"
           >
-            Cancel
+            {t('delete.cancel')}
           </button>
           <button
             onClick={() => mutation.mutate()}
@@ -49,15 +51,18 @@ export function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmPro
             className="ui-btn ui-btn-danger"
           >
             {mutation.isPending
-              ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Deleting…</span>
-              : 'Delete Report'}
+              ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('delete.deleting')}</span>
+              : t('delete.confirm')}
           </button>
       </>}
     >
           <p className="text-sm text-ink-2">
-            This will permanently delete the <span className="font-medium">{report.periodLabel}</span> report
-            for <span className="font-medium">{fmtDate(report.reportDate)}</span>.
-            You can regenerate it afterwards.
+            <Trans
+              t={t}
+              i18nKey="delete.body"
+              values={{ period: report.periodLabel, date: fmtDate(report.reportDate) }}
+              components={{ period: <span className="font-medium" />, date: <span className="font-medium" /> }}
+            />
           </p>
     </Modal>
   )

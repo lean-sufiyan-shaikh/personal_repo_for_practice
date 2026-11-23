@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { serverMessage } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { reportApi } from '../../../api/reportApi'
@@ -11,6 +13,7 @@ import { csvFilename } from '../../../utils/csv'
 import type { CsvColumn } from '../../../utils/csv'
 import { presetRange, previousPeriod } from '../../../utils/datePresets'
 import type { DateRange } from '../../../utils/datePresets'
+import { printWhenFontsReady } from '../../../i18n/fonts'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, SummaryCard } from '../shared'
 import { DataTable } from '../../../components/DataTable'
@@ -35,18 +38,21 @@ function approvedTotal(rows: ExpenseReportLine[]): number {
 
 // ── Expenses Tab ──────────────────────────────────────────────────────────────
 
-const COLUMNS: DataTableColumn<ExpenseReportLine>[] = [
-  { key: 'date', header: 'Date', cell: (e) => <span className="text-ink-2">{e.expenseDate}</span> },
-  { key: 'category', header: 'Category', cell: (e) => <span className="text-ink-3 text-xs">{codeLabel(e.category)}</span> },
-  { key: 'description', header: 'Description', cell: (e) => <span className="text-ink">{e.description}</span> },
-  { key: 'amount', header: 'Amount', numeric: true, cell: (e) => <MoneyText value={e.amount} tone="bad" className="font-medium" /> },
-  {
-    key: 'status', header: 'Status',
-    cell: (e) => e.approvalStatus ? <StatusBadge {...approvalStatusBadge(e.approvalStatus as ExpenseApprovalStatus)} /> : '—',
-  },
-]
+function expenseColumns(t: TFunction<'reports'>): DataTableColumn<ExpenseReportLine>[] {
+  return [
+    { key: 'date', header: t('columns.date'), cell: (e) => <span className="text-ink-2">{e.expenseDate}</span> },
+    { key: 'category', header: t('columns.category'), cell: (e) => <span className="text-ink-3 text-xs">{codeLabel(e.category)}</span> },
+    { key: 'description', header: t('columns.description'), cell: (e) => <span className="text-ink">{e.description}</span> },
+    { key: 'amount', header: t('columns.amount'), numeric: true, cell: (e) => <MoneyText value={e.amount} tone="bad" className="font-medium" /> },
+    {
+      key: 'status', header: t('columns.status'),
+      cell: (e) => e.approvalStatus ? <StatusBadge {...approvalStatusBadge(e.approvalStatus as ExpenseApprovalStatus)} /> : '—',
+    },
+  ]
+}
 
 export function ExpensesTab({ pumpId }: { pumpId: number }) {
+  const { t } = useTranslation('reports')
   const [query, setQuery, isDefaultRange] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
@@ -61,6 +67,7 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
   const rows  = data ?? []
   const paged = data ? pageSlice(rows, page, pageSize) : null
   const total = approvedTotal(rows)
+  const columns = expenseColumns(t)
 
   const previousRange = previousPeriod(query)
   const { data: previous } = useQuery<ExpenseReportLine[]>({
@@ -89,37 +96,37 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
           disabled={isFetching}
           className="ui-btn ui-btn-primary"
         >
-          {isFetching ? 'Loading…' : 'Generate'}
+          {isFetching ? t('controls.loading') : t('controls.generate')}
         </button>
         <button
-          onClick={() => window.print()}
+          onClick={() => { void printWhenFontsReady() }}
           disabled={rows.length === 0}
           className="ui-btn ui-btn-secondary"
         >
-          Print PDF
+          {t('controls.printPdf')}
         </button>
         <CsvExportButton filename={csvFilename('expenses', query)} columns={CSV_COLUMNS} rows={rows} />
         </div>
       </div>
 
-      {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
+      {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
 
       {/* Screen: paginated data */}
       {data && paged && (
         rows.length === 0 ? (
           isDefaultRange
-            ? <div className="print:hidden"><EmptyRangeSuggestion what="expenses" onShowLastMonth={() => applyRange(presetRange('lastMonth'))} /></div>
-            : <p className="ui-empty py-4 print:hidden">No expenses in this date range.</p>
+            ? <div className="print:hidden"><EmptyRangeSuggestion message={t('emptyRange.noExpenses')} onShowLastMonth={() => applyRange(presetRange('lastMonth'))} /></div>
+            : <p className="ui-empty py-4 print:hidden">{t('expenses.none')}</p>
         ) : (
           <div className="space-y-3 print:hidden">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SummaryCard label="Approved Expenses" value={<MoneyText value={total} />} color="text-bad"
+              <SummaryCard label={t('expenses.approved')} value={<MoneyText value={total} />} color="text-bad"
                 note={previous && <PeriodChangeNote current={total} previous={approvedTotal(previous)} higherIsBetter={false} />} />
-              <SummaryCard label="Pending Approval" value={<MoneyText value={pendingTotal} />} color="text-warn" />
+              <SummaryCard label={t('expenses.pending')} value={<MoneyText value={pendingTotal} />} color="text-warn" />
             </div>
-            <DataTable caption="Expenses" captionHidden columns={COLUMNS} rows={paged.content} rowKey={(e) => e.id} scroll />
+            <DataTable caption={t('expenses.caption')} captionHidden columns={columns} rows={paged.content} rowKey={(e) => e.id} scroll />
             <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
-            <p className="text-xs text-ink-3">{rows.length} expense{rows.length !== 1 ? 's' : ''} in range.</p>
+            <p className="text-xs text-ink-3">{t('expenses.inRange', { count: rows.length })}</p>
           </div>
         )
       )}
@@ -127,11 +134,11 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
       {/* Print: full dataset */}
       {data && rows.length > 0 && (
         <div className="hidden print:block space-y-4">
-          <PrintHeader title="Expenses Report" from={query.from} to={query.to} />
-          <SummaryCard label="Approved Expenses" value={<MoneyText value={total} />} color="text-bad" />
-          <SummaryCard label="Pending Approval" value={<MoneyText value={pendingTotal} />} color="text-warn" />
-          <DataTable caption="Expenses report" captionHidden columns={COLUMNS} rows={rows} rowKey={(e) => e.id} />
-          <p className="text-xs text-ink-3">{rows.length} expense{rows.length !== 1 ? 's' : ''} in range.</p>
+          <PrintHeader title={t('expenses.printTitle')} from={query.from} to={query.to} />
+          <SummaryCard label={t('expenses.approved')} value={<MoneyText value={total} />} color="text-bad" />
+          <SummaryCard label={t('expenses.pending')} value={<MoneyText value={pendingTotal} />} color="text-warn" />
+          <DataTable caption={t('expenses.printCaption')} captionHidden columns={columns} rows={rows} rowKey={(e) => e.id} />
+          <p className="text-xs text-ink-3">{t('expenses.inRange', { count: rows.length })}</p>
         </div>
       )}
     </div>

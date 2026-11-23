@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import type { ExpenseSummary } from '../../../api/balanceSheetApi'
 import { Td } from '../bsTableCells'
 import { bsColumn } from '../bsFormat'
@@ -9,29 +11,32 @@ import { codeLabel } from '../../../constants/labels'
 
 type ExpenseLine = ExpenseSummary['lines'][number]
 
-const COLUMNS: DataTableColumn<ExpenseLine>[] = [
-  bsColumn('category', 'Category'),
-  bsColumn('description', 'Description'),
-  bsColumn('recordedBy', 'Recorded By'),
-  bsColumn('amount', 'Amount', true),
-]
+function expenseColumns(t: TFunction<'balancesheet'>): DataTableColumn<ExpenseLine>[] {
+  return [
+    bsColumn('category', t('columns.category')),
+    bsColumn('description', t('columns.description')),
+    bsColumn('recordedBy', t('columns.recordedBy')),
+    bsColumn('amount', t('columns.amount'), true),
+  ]
+}
 
 // ── Approved expenses section (DAY reports only) ────────────────────────────────
 
 export function ExpensesSection({ expenses }: { expenses: ExpenseSummary }) {
+  const { t } = useTranslation('balancesheet')
   return (
     <section>
       <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-wider mb-3">
-        Approved Expenses
+        {t('expenses.title')}
         <span className="ml-2 text-ink-3 normal-case font-normal">
-          ({expenses.lines.length} expense{expenses.lines.length !== 1 ? 's' : ''})
+          {t('expenses.count', { count: expenses.lines.length })}
         </span>
       </h3>
       <DataTable
-        caption="Approved expenses"
+        caption={t('expenses.caption')}
         captionHidden
-        regionLabel="Expenses"
-        columns={COLUMNS}
+        regionLabel={t('expenses.region')}
+        columns={expenseColumns(t)}
         rows={expenses.lines}
         rowKey={(line) => line.id}
         renderRow={(line) => (
@@ -44,7 +49,7 @@ export function ExpensesSection({ expenses }: { expenses: ExpenseSummary }) {
         )}
         footer={
           <tr className="bg-surface-sunken">
-            <Td colSpan={3}>Total Expenses</Td>
+            <Td colSpan={3}>{t('expenses.total')}</Td>
             <Td right><MoneyText value={expenses.totalAmount} tone="bad" /></Td>
           </tr>
         }

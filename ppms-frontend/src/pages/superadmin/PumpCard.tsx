@@ -1,4 +1,5 @@
 import { AlertTriangle, Check, Fuel, Users, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { PumpSummary, UpdatePumpRequest } from '../../api/superAdminApi'
 import { StatusBadge } from '../../components/StatusBadge'
 import { EditPumpForm } from './EditPumpForm'
@@ -14,6 +15,7 @@ interface PumpCardProps {
 }
 
 export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSaving, editError, onSaveEdit }: PumpCardProps) {
+  const { t } = useTranslation('superadmin')
   return (
     <div className={`rounded-control border p-2.5 ${
       pump.enabled ? 'border-border bg-bg' : 'border-bad bg-bad-bg opacity-60'
@@ -27,17 +29,17 @@ export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSa
                 {pump.pumpName}
               </span>
               {!pump.enabled && (
-                <StatusBadge tone="bad" label="disabled" />
+                <StatusBadge tone="bad" label={t('pump.disabled')} />
               )}
             </div>
             <p className="text-ink-3 mt-0.5">{pump.pumpAddress}</p>
             {/* Staff count badge */}
             <div className="mt-1 flex flex-wrap gap-1.5">
-              <StatusBadge tone="neutral" icon={Users} label={`${pump.staffCount} staff`} />
+              <StatusBadge tone="neutral" icon={Users} label={t('pump.staff', { value: pump.staffCount })} />
               <StatusBadge
                 tone={pump.setupDoneCount === pump.setupRequiredCount ? 'ok' : 'warn'}
                 icon={pump.setupDoneCount === pump.setupRequiredCount ? Check : AlertTriangle}
-                label={`Setup ${pump.setupDoneCount} of ${pump.setupRequiredCount} done`}
+                label={t('pump.setup', { done: pump.setupDoneCount, required: pump.setupRequiredCount })}
               />
             </div>
           </div>
@@ -51,7 +53,7 @@ export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSa
                 : 'border-border text-ink-3 hover:border-info hover:text-primary hover:bg-info-bg'
             }`}
           >
-            {isEditOpen ? <X size={12} strokeWidth={2} /> : 'Edit'}
+            {isEditOpen ? <X size={12} strokeWidth={2} /> : t('pump.edit')}
           </button>
           <button
             onClick={onToggleEnabled}
@@ -62,7 +64,7 @@ export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSa
                 : 'border-ok text-ok hover:bg-ok-bg'
             }`}
           >
-            {pump.enabled ? 'Disable' : 'Enable'}
+            {pump.enabled ? t('pump.disable') : t('pump.enable')}
           </button>
         </div>
       </div>

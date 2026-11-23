@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { Fuel } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
 import { authApi } from '../../api/authApi'
 import { ChangePasswordModal } from '../../components/ChangePasswordModal'
 
 export function SuperAdminHeader() {
+  const { t } = useTranslation('superadmin')
   const navigate = useNavigate()
   const { user, clearAuth } = useAuthStore()
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
@@ -55,11 +57,11 @@ export function SuperAdminHeader() {
           <div className="flex items-center gap-2">
             <span className="text-base font-extrabold text-surface tracking-wide">PPMS</span>
             <span className="text-xs text-on-dark-2 font-medium border border-white/25 px-2 py-0.5 rounded-badge">
-              Super Admin Portal
+              {t('header.portal')}
             </span>
           </div>
           <p className="text-xs text-on-dark-2 italic mt-0.5 hidden sm:block">
-            Platform management — onboard new pump owners
+            {t('header.tagline')}
           </p>
         </div>
       </div>
@@ -67,13 +69,13 @@ export function SuperAdminHeader() {
       <div className="flex items-center gap-3">
         <div className="text-right hidden sm:block">
           <p className="text-xs font-semibold text-surface leading-tight">{user?.fullName}</p>
-          <p className="text-xs text-on-dark-2 leading-tight">Super Admin</p>
+          <p className="text-xs text-on-dark-2 leading-tight">{t('header.role')}</p>
         </div>
         <div className="relative" ref={profileMenuRef}>
           <button
             onClick={() => setProfileMenuOpen((open) => !open)}
             className="w-9 h-9 bg-white/10 border border-white/25 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
-            title="Open profile menu"
+            title={t('header.openProfileMenu')}
           >
             <span className="text-sm font-bold text-surface">
               {user?.fullName?.charAt(0).toUpperCase()}
@@ -86,14 +88,14 @@ export function SuperAdminHeader() {
                 onClick={openPasswordModal}
                 className="ui-btn ui-btn-ghost w-full justify-start rounded-none border-0 px-4 py-3 text-left text-sm font-medium text-ink hover:bg-bg"
               >
-                Reset Password
+                {t('header.resetPassword')}
               </button>
               <button
                 onClick={handleLogout}
                 disabled={logoutMutation.isPending}
                 className="ui-btn ui-btn-ghost w-full justify-start rounded-none border-0 px-4 py-3 text-left text-sm font-medium text-bad hover:bg-bad-bg disabled:opacity-50"
               >
-                {logoutMutation.isPending ? 'Logging out...' : 'Logout'}
+                {logoutMutation.isPending ? t('header.loggingOut') : t('header.logout')}
               </button>
             </div>
           )}
@@ -103,7 +105,7 @@ export function SuperAdminHeader() {
       {passwordModalOpen && (
         <ChangePasswordModal
           onClose={() => setPasswordModalOpen(false)}
-          successMessage="Password updated successfully. Please log in with your new password."
+          successMessage={t('header.passwordUpdated')}
         />
       )}
     </>

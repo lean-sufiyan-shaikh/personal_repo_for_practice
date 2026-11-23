@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { Fuel, X, Plus, KeyRound } from 'lucide-react'
 import { superAdminApi } from '../../api/superAdminApi'
 import type { OwnerSummary, PumpSummary, UpdatePumpRequest } from '../../api/superAdminApi'
@@ -11,6 +12,7 @@ import { AddPumpForm } from './AddPumpForm'
 import { PumpCard } from './PumpCard'
 import { ResetPasswordDialog } from '../../components/ResetPasswordDialog'
 import { StatusBadge } from '../../components/StatusBadge'
+import type { TFunction } from 'i18next'
 
 const ownersPageSize = 10
 
@@ -19,7 +21,14 @@ interface OwnersListProps {
   ownersLoading: boolean
 }
 
+function ownerStatusLabel(t: TFunction<'superadmin'>, status: string): string {
+  if (status === 'ACTIVE') return t('owners.statusActive')
+  if (status === 'INACTIVE') return t('owners.statusInactive')
+  return status.toLowerCase()
+}
+
 export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
+  const { t } = useTranslation('superadmin')
   const queryClient = useQueryClient()
 
   // Which owner's "Add Pump" form is currently open (null = none)
@@ -43,7 +52,7 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
       queryClient.invalidateQueries({ queryKey: ['superadmin-owners'] })
     },
     onError: (err) =>
-      setEditPumpError(parseApiError(err, 'Failed to update pump. Please try again.')),
+      setEditPumpError(parseApiError(err, t('owners.updatePumpFailed'))),
   })
 
   function toggleAddPump(ownerId: number) {
@@ -67,18 +76,18 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
       <div className="ui-card p-0">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-ink">Onboarded Owners</h2>
-            <p className="text-xs text-ink-3 mt-0.5">All pump owners currently on the platform.</p>
+            <h2 className="text-sm font-semibold text-ink">{t('owners.title')}</h2>
+            <p className="text-xs text-ink-3 mt-0.5">{t('owners.subtitle')}</p>
           </div>
-          <StatusBadge tone="info" label={`${owners.length} owner${owners.length !== 1 ? 's' : ''}`} />
+          <StatusBadge tone="info" label={t('owners.count', { count: owners.length })} />
         </div>
 
         {ownersLoading ? (
           <div className="px-5 py-4"><SkeletonRows count={5} /></div>
         ) : owners.length === 0 ? (
           <div className="ui-empty px-5 py-8">
-            <p className="ui-subtitle">No owners yet.</p>
-            <p className="text-xs text-ink-3 mt-1">Use the form to onboard your first pump owner.</p>
+            <p className="ui-subtitle">{t('owners.empty')}</p>
+            <p className="text-xs text-ink-3 mt-1">{t('owners.emptyHint')}</p>
           </div>
         ) : (() => {
           const totalPages = Math.max(1, Math.ceil(owners.length / ownersPageSize))
@@ -109,15 +118,15 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-semibold text-ink">{owner.fullName}</p>
-                                <StatusBadge tone={owner.status === 'ACTIVE' ? 'ok' : 'neutral'} label={owner.status.toLowerCase()} />
+                                <StatusBadge tone={owner.status === 'ACTIVE' ? 'ok' : 'neutral'} label={ownerStatusLabel(t, owner.status)} />
                               </div>
                               <p className="text-xs text-ink-3 font-mono mt-0.5">{owner.phoneNumber}</p>
                               {/* Pump count summary */}
                               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                                 <span className="inline-flex items-center gap-1 text-xs text-ink-2 bg-neutral-bg px-2 py-0.5 rounded-badge">
-                                  <Fuel size={12} strokeWidth={2} aria-hidden="true" />{owner.pumps.length} pump{owner.pumps.length !== 1 ? 's' : ''}
+                                  <Fuel size={12} strokeWidth={2} aria-hidden="true" />{t('owners.pumpCount', { count: owner.pumps.length })}
                                   {owner.pumps.length > enabledPumps && (
-                                    <span className="text-bad">· {owner.pumps.length - enabledPumps} disabled</span>
+                                    <span className="text-bad">{t('owners.disabledCount', { value: owner.pumps.length - enabledPumps })}</span>
                                   )}
                                 </span>
                               </div>
@@ -129,7 +138,7 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
               onClick={() => setOwnerToReset(owner)}
               className="ui-btn min-h-0 px-3 py-1 text-xs border border-border text-ink-2 transition-colors hover:border-warn hover:text-warn hover:bg-warn-bg"
             >
-              <span className="inline-flex items-center gap-1"><KeyRound size={12} strokeWidth={2} />Reset Password</span>
+              <span className="inline-flex items-center gap-1"><KeyRound size={12} strokeWidth={2} />{t('owners.resetPassword')}</span>
             </button>
             <button
               onClick={() => toggleAddPump(owner.ownerId)}
@@ -139,7 +148,7 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
                   : 'border-border text-ink-2 hover:border-info hover:text-info hover:bg-info-bg'
               }`}
             >
-                              {isPumpFormOpen ? <span className="inline-flex items-center gap-1"><X size={12} strokeWidth={2} />Cancel</span> : <span className="inline-flex items-center gap-1"><Plus size={12} strokeWidth={2.5} />Add Pump</span>}
+                              {isPumpFormOpen ? <span className="inline-flex items-center gap-1"><X size={12} strokeWidth={2} />{t('owners.cancel')}</span> : <span className="inline-flex items-center gap-1"><Plus size={12} strokeWidth={2.5} />{t('owners.addPump')}</span>}
                             </button>
                           </div>
                         </div>
@@ -169,13 +178,13 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
                         )}
 
                         {owner.pumps.length === 0 && (
-                          <p className="ml-12 mt-2 ui-help italic">No pumps added yet.</p>
+                          <p className="ml-12 mt-2 ui-help italic">{t('owners.noPumps')}</p>
                         )}
 
                         <div className="mt-2 ml-12 flex items-center gap-3 ui-help">
-                          <span>ID: <span className="font-mono text-ink-3">{owner.employeeId}</span></span>
+                          <span>{t('owners.idLabel')} <span className="font-mono text-ink-3">{owner.employeeId}</span></span>
                           <span>·</span>
-                          <span>Joined {formatIstDate(owner.createdAt)}</span>
+                          <span>{t('owners.joined', { date: formatIstDate(owner.createdAt) })}</span>
                         </div>
                       </div>
 

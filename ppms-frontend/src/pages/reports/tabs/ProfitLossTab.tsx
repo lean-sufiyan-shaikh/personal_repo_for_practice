@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { withToggled } from '../../../utils/setToggle'
 import { serverMessage } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
@@ -14,6 +16,7 @@ import { presetRange, previousPeriod } from '../../../utils/datePresets'
 import type { DateRange } from '../../../utils/datePresets'
 import { shiftsForFuelUrl } from '../../../utils/drillDown'
 import { formatIstDate } from '../../../utils/date'
+import { printWhenFontsReady } from '../../../i18n/fonts'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, SummaryCard } from '../shared'
 import { fmtShortDate } from '../reportFormat'
@@ -23,6 +26,7 @@ import type { DataTableColumn } from '../../../components/DataTable'
 import { LitresText, MoneyText } from '../../../components/AmountText'
 import { codeLabel } from '../../../constants/labels'
 
+// CSV headers stay in English: the files are shared with accountants.
 const FUEL_COLUMNS: CsvColumn<ProfitLossFuelLine>[] = [
   { header: 'Fuel type', value: (row) => codeLabel(row.fuelType) },
   { header: 'Revenue', value: (row) => row.revenue, kind: 'money' },
@@ -38,48 +42,59 @@ const DAY_COLUMNS: CsvColumn<ProfitLossDayLine>[] = [
   { header: 'Gross profit', value: (row) => row.grossProfit, kind: 'money' },
 ]
 
-function rangeLabel(range: DateRange): string {
-  return `${formatIstDate(range.from)} to ${formatIstDate(range.to)}`
+type ReportsT = TFunction<'reports'>
+
+function rangeLabel(t: ReportsT, range: DateRange): string {
+  return t('controls.rangeLabel', { from: formatIstDate(range.from), to: formatIstDate(range.to) })
 }
 
-const DAY_TABLE_COLUMNS: DataTableColumn<ProfitLossDayLine>[] = [
-  { key: 'date', header: 'Date', cell: (day) => fmtShortDate(day.date) },
-  { key: 'revenue', header: 'Revenue', numeric: true, cell: (day) => <MoneyText value={day.revenue} /> },
-  { key: 'cogs', header: 'Cost of goods', numeric: true, cell: (day) => <MoneyText value={day.cogs} /> },
-  {
-    key: 'profit', header: 'Gross profit', numeric: true,
-    cell: (day) => <MoneyText value={day.grossProfit} tone={day.grossProfit >= 0 ? 'ok' : 'bad'} className="font-medium" />,
-  },
-]
+function dayTableColumns(t: ReportsT): DataTableColumn<ProfitLossDayLine>[] {
+  return [
+    { key: 'date', header: t('columns.date'), cell: (day) => fmtShortDate(day.date) },
+    { key: 'revenue', header: t('columns.revenue'), numeric: true, cell: (day) => <MoneyText value={day.revenue} /> },
+    { key: 'cogs', header: t('columns.costOfGoods'), numeric: true, cell: (day) => <MoneyText value={day.cogs} /> },
+    {
+      key: 'profit', header: t('columns.grossProfit'), numeric: true,
+      cell: (day) => <MoneyText value={day.grossProfit} tone={day.grossProfit >= 0 ? 'ok' : 'bad'} className="font-medium" />,
+    },
+  ]
+}
 
-const PRINT_FUEL_TABLE_COLUMNS: DataTableColumn<ProfitLossFuelLine>[] = [
-  { key: 'fuel', header: 'Fuel Type' },
-  { key: 'revenue', header: 'Revenue', numeric: true },
-  { key: 'cogs', header: 'COGS', numeric: true },
-  { key: 'profit', header: 'Gross Profit', numeric: true },
-  { key: 'margin', header: '₹/L Margin', numeric: true },
-]
+function printFuelTableColumns(t: ReportsT): DataTableColumn<ProfitLossFuelLine>[] {
+  return [
+    { key: 'fuel', header: t('columns.fuelType') },
+    { key: 'revenue', header: t('columns.revenue'), numeric: true },
+    { key: 'cogs', header: t('columns.cogs'), numeric: true },
+    { key: 'profit', header: t('columns.grossProfitTitle'), numeric: true },
+    { key: 'margin', header: t('columns.marginPerLitre'), numeric: true },
+  ]
+}
 
-const FUEL_TABLE_COLUMNS: DataTableColumn<ProfitLossFuelLine>[] = [
-  { key: 'expand', header: <span className="sr-only">Details</span>, className: 'w-6 px-2' },
-  ...PRINT_FUEL_TABLE_COLUMNS,
-  { key: 'shifts', header: <span className="sr-only">Shifts</span>, align: 'right' },
-]
+function fuelTableColumns(t: ReportsT): DataTableColumn<ProfitLossFuelLine>[] {
+  return [
+    { key: 'expand', header: <span className="sr-only">{t('columns.details')}</span>, className: 'w-6 px-2' },
+    ...printFuelTableColumns(t),
+    { key: 'shifts', header: <span className="sr-only">{t('columns.shifts')}</span>, align: 'right' },
+  ]
+}
 
-const LOT_COST_COLUMNS: DataTableColumn<LotCostLine>[] = [
-  { key: 'reference', header: 'Lot Ref', cell: (lot) => <span className="text-ink-2">{lot.tankerReference}</span> },
-  { key: 'delivered', header: 'Delivery Date', cell: (lot) => <span className="text-ink-3">{fmtShortDate(lot.deliveryDate)}</span> },
-  { key: 'cost', header: 'Cost/L', numeric: true, cell: (lot) => <MoneyText value={lot.costPricePerUnit} className="text-ink-2" /> },
-  { key: 'units', header: 'Units Consumed', numeric: true, cell: (lot) => <LitresText value={lot.quantityConsumed} decimals={2} className="text-ink-2" /> },
-  { key: 'total', header: 'Cost', numeric: true, cell: (lot) => <MoneyText value={lot.lotCost} className="font-medium text-ink" /> },
-]
+function lotCostColumns(t: ReportsT): DataTableColumn<LotCostLine>[] {
+  return [
+    { key: 'reference', header: t('columns.lotRef'), cell: (lot) => <span className="text-ink-2">{lot.tankerReference}</span> },
+    { key: 'delivered', header: t('columns.deliveryDate'), cell: (lot) => <span className="text-ink-3">{fmtShortDate(lot.deliveryDate)}</span> },
+    { key: 'cost', header: t('columns.costPerLitre'), numeric: true, cell: (lot) => <MoneyText value={lot.costPricePerUnit} className="text-ink-2" /> },
+    { key: 'units', header: t('columns.unitsConsumed'), numeric: true, cell: (lot) => <LitresText value={lot.quantityConsumed} decimals={2} className="text-ink-2" /> },
+    { key: 'total', header: t('columns.cost'), numeric: true, cell: (lot) => <MoneyText value={lot.lotCost} className="font-medium text-ink" /> },
+  ]
+}
 
 function LotCostTable({ fuelType, lines }: { fuelType: string; lines: LotCostLine[] }) {
+  const { t } = useTranslation('reports')
   return (
     <DataTable
-      caption={`Fuel lots used for ${codeLabel(fuelType)}`}
+      caption={t('pl.lotsUsedFor', { fuel: codeLabel(fuelType) })}
       captionHidden
-      columns={LOT_COST_COLUMNS}
+      columns={lotCostColumns(t)}
       rows={lines}
       rowKey={(lot) => `${lot.lotId}-${lot.costPricePerUnit}`}
       tableClassName="text-xs"
@@ -102,16 +117,17 @@ function FuelFigureCells({ row }: { row: ProfitLossFuelLine }) {
 }
 
 function RevenueBreakdown({ report, className }: { report: ProfitLossReport; className: string }) {
+  const { t } = useTranslation('reports')
   const figures = [
-    { label: 'Cash', value: report.totalCashRevenue, tone: undefined },
-    { label: 'UPI', value: report.totalUpiRevenue, tone: undefined },
-    { label: 'Card', value: report.totalCardRevenue, tone: undefined },
-    { label: 'Credit Sales', value: report.totalCreditRevenue, tone: 'warn' as const },
+    { key: 'cash', label: t('columns.cash'), value: report.totalCashRevenue, tone: undefined },
+    { key: 'upi', label: t('columns.upi'), value: report.totalUpiRevenue, tone: undefined },
+    { key: 'card', label: t('columns.card'), value: report.totalCardRevenue, tone: undefined },
+    { key: 'credit', label: t('pl.creditSales'), value: report.totalCreditRevenue, tone: 'warn' as const },
   ]
   return (
     <div className={`grid grid-cols-4 gap-3 ${className}`}>
       {figures.map((figure) => (
-        <div key={figure.label}>
+        <div key={figure.key}>
           <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">{figure.label}</p>
           <MoneyText value={figure.value} tone={figure.tone} className={`mt-0.5 block text-sm font-semibold ${figure.tone ? '' : 'text-ink'}`} />
         </div>
@@ -123,6 +139,7 @@ function RevenueBreakdown({ report, className }: { report: ProfitLossReport; cla
 // ── P&L Tab ───────────────────────────────────────────────────────────────────
 
 export function ProfitLossTab({ pumpId }: { pumpId: number }) {
+  const { t } = useTranslation('reports')
   const [query, setQuery, isDefaultRange] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
@@ -164,14 +181,14 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
             disabled={isFetching}
             className="ui-btn ui-btn-primary"
           >
-            {isFetching ? 'Loading…' : 'Generate'}
+            {isFetching ? t('controls.loading') : t('controls.generate')}
           </button>
           <button
-            onClick={() => window.print()}
+            onClick={() => { void printWhenFontsReady() }}
             disabled={!data || data.byFuelType.length === 0}
             className="ui-btn ui-btn-secondary"
           >
-            Print PDF
+            {t('controls.printPdf')}
           </button>
           <CsvExportButton
             filename={csvFilename('pl', query)}
@@ -181,11 +198,11 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
         </div>
       </div>
 
-      {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
+      {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
 
       {showEmptySuggestion && (
         <div className="print:hidden">
-          <EmptyRangeSuggestion what="closed shifts" onShowLastMonth={() => applyRange(presetRange('lastMonth'))} />
+          <EmptyRangeSuggestion message={t('emptyRange.noClosedShifts')} onShowLastMonth={() => applyRange(presetRange('lastMonth'))} />
         </div>
       )}
 
@@ -193,30 +210,30 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
       {data && !showEmptySuggestion && (
         <div className="space-y-4 print:hidden">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <SummaryCard label="Total Revenue" value={<MoneyText value={data.totalRevenue} />} color="text-ink"
+            <SummaryCard label={t('pl.totalRevenue')} value={<MoneyText value={data.totalRevenue} />} color="text-ink"
               note={previous && <PeriodChangeNote current={data.totalRevenue} previous={previous.totalRevenue} />} />
-            <SummaryCard label="Cost of Goods" value={<MoneyText value={data.totalCogs} />}    color="text-bad"
+            <SummaryCard label={t('pl.costOfGoods')} value={<MoneyText value={data.totalCogs} />}    color="text-bad"
               note={previous && <PeriodChangeNote current={data.totalCogs} previous={previous.totalCogs} higherIsBetter={false} />} />
-            <SummaryCard label="Gross Profit"  value={<MoneyText value={data.grossProfit} />}  color={data.grossProfit >= 0 ? 'text-ok' : 'text-bad'}
+            <SummaryCard label={t('pl.grossProfit')}  value={<MoneyText value={data.grossProfit} />}  color={data.grossProfit >= 0 ? 'text-ok' : 'text-bad'}
               note={previous && <PeriodChangeNote current={data.grossProfit} previous={previous.grossProfit} />} />
           </div>
           {previous && (
-            <p className="text-xs text-ink-3">Compared with {rangeLabel(previousRange)}.</p>
+            <p className="text-xs text-ink-3">{t('controls.comparedWith', { range: rangeLabel(t, previousRange) })}</p>
           )}
 
           {data.byDay.length > 0 && (
             <>
               <ProfitLossDailyChart days={data.byDay} />
               <details className="ui-card ui-card-muted p-3">
-                <summary className="cursor-pointer text-sm font-medium text-ink">Daily figures table</summary>
+                <summary className="cursor-pointer text-sm font-medium text-ink">{t('pl.dailyTable')}</summary>
                 <div className="mt-3 flex justify-end">
                   <CsvExportButton filename={csvFilename('pl-daily', query)} columns={DAY_COLUMNS} rows={data.byDay} />
                 </div>
                 <DataTable
-                  caption="Revenue, cost of goods and gross profit by day"
+                  caption={t('pl.dailyCaption')}
                   captionHidden
-                  regionLabel="Daily figures"
-                  columns={DAY_TABLE_COLUMNS}
+                  regionLabel={t('pl.dailyRegion')}
+                  columns={dayTableColumns(t)}
                   rows={data.byDay}
                   rowKey={(day) => day.date}
                   scroll
@@ -235,16 +252,16 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
               {showRevBreakdown
                 ? <ChevronUp size={14} strokeWidth={2} />
                 : <ChevronDown size={14} strokeWidth={2} />}
-              Revenue breakdown (Cash / UPI / Card / Credit)
+              {t('pl.revenueBreakdown')}
             </button>
             {showRevBreakdown && <RevenueBreakdown report={data} className="mt-3" />}
           </div>
 
           {/* Per-fuel table with drilldown */}
           <DataTable
-            caption="Profit and loss by fuel"
+            caption={t('pl.byFuelCaption')}
             captionHidden
-            columns={FUEL_TABLE_COLUMNS}
+            columns={fuelTableColumns(t)}
             rows={data.byFuelType}
             rowKey={(row) => row.fuelType}
             renderRow={(row) => (
@@ -254,7 +271,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                     <button
                       type="button"
                       aria-expanded={expandedFuelRows.has(row.fuelType)}
-                      aria-label={`Show shift details for ${codeLabel(row.fuelType)}`}
+                      aria-label={t('pl.showShiftDetails', { fuel: codeLabel(row.fuelType) })}
                       onClick={(e) => { e.stopPropagation(); toggleFuelRow(row.fuelType) }}
                       className="inline-flex h-8 w-8 items-center justify-center rounded-control"
                     >
@@ -269,9 +286,9 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                       to={shiftsForFuelUrl(query, row.fuelType)}
                       className="ui-link"
                       onClick={(e) => e.stopPropagation()}
-                      aria-label={`View ${codeLabel(row.fuelType)} shifts from ${rangeLabel(query)}`}
+                      aria-label={t('pl.viewFuelShifts', { fuel: codeLabel(row.fuelType), range: rangeLabel(t, query) })}
                     >
-                      View shifts
+                      {t('pl.viewShifts')}
                     </Link>
                   </td>
                 </tr>
@@ -287,27 +304,27 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
             )}
           />
           <p className="text-xs text-ink-3 mt-1">
-            Gross Profit reflects fuel sales only. Operating expenses (salaries, maintenance) are excluded.
+            {t('pl.fuelOnlyNote')}
           </p>
-          <p className="text-xs text-ink-3">{data.totalShifts} closed shift{data.totalShifts !== 1 ? 's' : ''} in range.</p>
+          <p className="text-xs text-ink-3">{t('pl.closedShiftsInRange', { count: data.totalShifts })}</p>
         </div>
       )}
 
       {/* Print: full dataset */}
       {data && data.byFuelType.length > 0 && (
         <div className="hidden print:block space-y-4">
-          <PrintHeader title="Profit & Loss Report" from={query.from} to={query.to} />
+          <PrintHeader title={t('pl.printTitle')} from={query.from} to={query.to} />
           <div className="grid grid-cols-3 gap-4">
-            <SummaryCard label="Total Revenue" value={<MoneyText value={data.totalRevenue} />} color="text-ink" />
-            <SummaryCard label="Cost of Goods" value={<MoneyText value={data.totalCogs} />}    color="text-bad" />
-            <SummaryCard label="Gross Profit"  value={<MoneyText value={data.grossProfit} />}  color={data.grossProfit >= 0 ? 'text-ok' : 'text-bad'} />
+            <SummaryCard label={t('pl.totalRevenue')} value={<MoneyText value={data.totalRevenue} />} color="text-ink" />
+            <SummaryCard label={t('pl.costOfGoods')} value={<MoneyText value={data.totalCogs} />}    color="text-bad" />
+            <SummaryCard label={t('pl.grossProfit')}  value={<MoneyText value={data.grossProfit} />}  color={data.grossProfit >= 0 ? 'text-ok' : 'text-bad'} />
           </div>
           {/* Revenue breakdown — always expanded in print */}
           <RevenueBreakdown report={data} className="mb-2" />
           <DataTable
-            caption="Profit and loss by fuel, printed"
+            caption={t('pl.byFuelPrintCaption')}
             captionHidden
-            columns={PRINT_FUEL_TABLE_COLUMNS}
+            columns={printFuelTableColumns(t)}
             rows={data.byFuelType}
             rowKey={(row) => row.fuelType}
             renderRow={(row) => (
@@ -326,9 +343,9 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
             )}
           />
           <p className="text-xs text-ink-3 mt-1">
-            Gross Profit reflects fuel sales only. Operating expenses (salaries, maintenance) are excluded.
+            {t('pl.fuelOnlyNote')}
           </p>
-          <p className="text-xs text-ink-3">{data.totalShifts} closed shift{data.totalShifts !== 1 ? 's' : ''} in range.</p>
+          <p className="text-xs text-ink-3">{t('pl.closedShiftsInRange', { count: data.totalShifts })}</p>
         </div>
       )}
     </div>

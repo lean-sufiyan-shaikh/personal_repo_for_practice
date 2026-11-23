@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { X, BarChart2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { balanceSheetApi } from '../../api/balanceSheetApi'
@@ -23,6 +24,7 @@ import { ReportListItem } from './ReportListItem'
 // ── Main page ───────────────────────────────────────────────────────────────────
 
 export default function BalanceSheetPage() {
+  const { t } = useTranslation('balancesheet')
   const { user } = useAuthStore()
   const canManage = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const canView   = canManage || user?.role === 'MANAGER'
@@ -74,7 +76,7 @@ export default function BalanceSheetPage() {
     return (
       <div className="ui-page ui-page--narrow">
         <div className="ui-alert ui-alert-warning text-sm">
-          You do not have permission to view balance sheets.
+          {t('list.noPermission')}
         </div>
       </div>
     )
@@ -88,7 +90,7 @@ export default function BalanceSheetPage() {
         <div className="px-5 py-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-semibold text-ink">Balance Sheets</h1>
+              <h1 className="text-base font-semibold text-ink">{t('list.title')}</h1>
               <RefreshIndicator isFetching={fetchingReports} dataUpdatedAt={reportsUpdatedAt ?? 0} />
             </div>
             <button
@@ -97,7 +99,7 @@ export default function BalanceSheetPage() {
               className="ui-btn ui-btn-primary gap-1.5 px-3 py-1.5 text-sm disabled:opacity-40"
             >
               <span className="text-base leading-none">+</span>
-              Generate
+              {t('list.generate')}
             </button>
           </div>
 
@@ -106,26 +108,26 @@ export default function BalanceSheetPage() {
             <DatePresetChips range={filterRange} onSelect={setFilterRange} />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <input aria-label="From date"
+            <input aria-label={t('list.fromDate')}
               type="date"
               value={filterFrom}
               onChange={e => setFilterFrom(e.target.value)}
               className="flex-1 min-w-[8.5rem] text-xs text-ink"
-              placeholder="From"
+              placeholder={t('list.fromPlaceholder')}
             />
-            <span className="text-ink-3 text-xs">to</span>
-            <input aria-label="To date"
+            <span className="text-ink-3 text-xs">{t('list.to')}</span>
+            <input aria-label={t('list.toDate')}
               type="date"
               value={filterTo}
               onChange={e => setFilterTo(e.target.value)}
               className="flex-1 min-w-[8.5rem] text-xs text-ink"
-              placeholder="To"
+              placeholder={t('list.toPlaceholder')}
             />
             {(filterFrom || filterTo) && (
               <IconButton
                 onClick={() => { setFilterRange({ from: '', to: '' }); setBsPage(0) }}
                 className="ui-btn ui-btn-ghost text-ink-3 hover:text-ink-2"
-                label="Clear date filter"
+                label={t('list.clearDateFilter')}
                 icon={<X size={14} strokeWidth={2} />}
               />
             )}
@@ -141,8 +143,8 @@ export default function BalanceSheetPage() {
           {!isLoading && pumpId && reports.length === 0 && (
             <EmptyState
               icon="generic"
-              title="No balance sheets found"
-              subtitle="Generate a report after closing all shifts for a period."
+              title={t('list.emptyTitle')}
+              subtitle={t('list.emptySubtitle')}
             />
           )}
 
@@ -187,7 +189,7 @@ export default function BalanceSheetPage() {
         <div className="flex-1 hidden sm:flex items-center justify-center bg-surface-sunken">
           <div className="ui-empty">
             <div className="flex justify-center mb-3"><BarChart2 size={40} strokeWidth={1.5} className="text-ink-3" /></div>
-            <p className="ui-subtitle">Select a report to view details</p>
+            <p className="ui-subtitle">{t('list.selectReport')}</p>
           </div>
         </div>
       )}

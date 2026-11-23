@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { Trans, useTranslation } from 'react-i18next'
 import { auditApi } from '../../api/auditApi'
 import type { AuditAction, AuditLog } from '../../api/auditApi'
 import { usePumpStore } from '../../store/usePumpStore'
@@ -14,22 +15,19 @@ import { formatIstDateTime, localDateInputValue } from '../../utils/date'
 import { csvFilename } from '../../utils/csv'
 import type { CsvColumn } from '../../utils/csv'
 import { auditEntityLabel, auditEntityUrl } from '../../utils/drillDown'
-import { codeLabel } from '../../constants/labels'
 import { StatusBadge } from '../../components/StatusBadge'
-import { AUDIT_ACTION_LABELS, AUDIT_ACTION_TONES } from './auditActions'
+import { AUDIT_ACTION_TONES, auditActionLabel } from './auditActions'
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50]
 const EXPORT_PAGE_SIZE = 200
 const EXPORT_MAX_PAGES = 25
 
-const ACTION_OPTIONS = (Object.entries(AUDIT_ACTION_LABELS) as [AuditAction, string][])
-  .sort(([, a], [, b]) => a.localeCompare(b))
-
+// CSV headers stay in English: the files are shared with accountants.
 const CSV_COLUMNS: CsvColumn<AuditLog>[] = [
   { header: 'When', value: (log) => formatIstDateTime(log.createdAt, {
     year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
   }) },
-  { header: 'Action', value: (log) => AUDIT_ACTION_LABELS[log.action] ?? codeLabel(log.action) },
+  { header: 'Action', value: (log) => auditActionLabel(log.action) },
   { header: 'By', value: (log) => log.actorName },
   { header: 'Description', value: (log) => log.description },
   { header: 'Entity', value: (log) => log.entityType },
@@ -43,7 +41,14 @@ function fmtDateTime(d: string) {
   })
 }
 
+function actionOptions(): [AuditAction, string][] {
+  return (Object.keys(AUDIT_ACTION_TONES) as AuditAction[])
+    .map((action): [AuditAction, string] => [action, auditActionLabel(action)])
+    .sort(([, a], [, b]) => a.localeCompare(b))
+}
+
 export default function AuditLogPage() {
+  const { t } = useTranslation('audit')
   const [range, setRange] = useDateRangeParams(() => ({ from: localDateInputValue(-1), to: localDateInputValue() }))
   const { from, to } = range
   const [action, setAction]       = useState<AuditAction | ''>('')
@@ -117,9 +122,9 @@ export default function AuditLogPage() {
       <Reveal delay={60}>
       <div className="ui-page-header">
         <div>
-        <h1 className="ui-title-sm">Audit Log</h1>
+        <h1 className="ui-title-sm">{t('page.title')}</h1>
         <p className="ui-subtitle">
-          Full history of all sensitive operations — who did what and when
+          {t('page.subtitle')}
         </p>
         </div>
       </div>
@@ -131,7 +136,7 @@ export default function AuditLogPage() {
         <DatePresetChips range={range} onSelect={applyRange} />
         <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block">
-            <span className="ui-label mb-0">From</span>
+            <span className="ui-label mb-0">{t('page.from')}</span>
             <input
               type="date"
               value={from}
@@ -141,7 +146,7 @@ export default function AuditLogPage() {
             />
           </label>
           <label className="block">
-            <span className="ui-label mb-0">To</span>
+            <span className="ui-label mb-0">{t('page.to')}</span>
             <input
               type="date"
               value={to}
@@ -151,26 +156,26 @@ export default function AuditLogPage() {
             />
           </label>
           <label className="block">
-            <span className="ui-label mb-0">Action</span>
+            <span className="ui-label mb-0">{t('page.action')}</span>
             <select
               value={action}
               onChange={e => { setAction(e.target.value as AuditAction | ''); setPage(0) }}
               className="text-sm"
             >
-              <option value="">All actions</option>
-              {ACTION_OPTIONS.map(([value, label]) => (
+              <option value="">{t('page.allActions')}</option>
+              {actionOptions().map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
           </label>
           <label className="block">
-            <span className="ui-label mb-0">User</span>
+            <span className="ui-label mb-0">{t('page.user')}</span>
             <select
               value={actorId ?? ''}
               onChange={e => { setActorId(e.target.value ? Number(e.target.value) : null); setPage(0) }}
               className="text-sm"
             >
-              <option value="">Everyone</option>
+              <option value="">{t('page.everyone')}</option>
               {actors.map(actor => (
                 <option key={actor.actorId} value={actor.actorId}>{actor.actorName}</option>
               ))}
@@ -184,11 +189,11 @@ export default function AuditLogPage() {
               checked={showSignIns}
               onChange={e => { setShowSignIns(e.target.checked); setPage(0) }}
             />
-            Show sign-in events
+            {t('page.showSignIns')}
           </label>
           {hasFilters && (
             <button type="button" onClick={clearFilters} className="ui-btn ui-btn-ghost text-xs">
-              Clear filters
+              {t('page.clearFilters')}
             </button>
           )}
           <div className="ml-auto">
@@ -208,11 +213,11 @@ export default function AuditLogPage() {
       <div className="ui-card p-0 overflow-hidden">
         <div className="ui-toolbar">
           <p className="ui-toolbar-title">
-            {hasFilters ? 'Filtered Events' : 'All Events'} ({isLoading ? '…' : totalEvents})
+            {hasFilters ? t('page.filteredEvents') : t('page.allEvents')} ({isLoading ? '…' : totalEvents})
           </p>
           {!isLoading && totalPages > 0 && (
             <p className="ui-toolbar-note">
-              Page {currentPage + 1} of {totalPages}
+              {t('page.pageOf', { page: currentPage + 1, total: totalPages })}
             </p>
           )}
         </div>
@@ -221,7 +226,7 @@ export default function AuditLogPage() {
           <div className="px-5 py-4"><SkeletonRows count={5} /></div>
         ) : logs.length === 0 ? (
           <p className="ui-empty px-5 py-6">
-            No audit events found{hasFilters ? ' for the selected filters' : ''}.
+            {hasFilters ? t('page.noEventsForFilters') : t('page.noEvents')}
           </p>
         ) : (
           <div className="divide-y divide-border">
@@ -233,9 +238,11 @@ export default function AuditLogPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <StatusBadge
                         tone={AUDIT_ACTION_TONES[log.action] ?? 'neutral'}
-                        label={AUDIT_ACTION_LABELS[log.action] ?? codeLabel(log.action)}
+                        label={auditActionLabel(log.action)}
                       />
-                      <span className="text-xs text-ink-3">by <span className="font-medium text-ink">{log.actorName}</span></span>
+                      <span className="text-xs text-ink-3">
+                        <Trans t={t} i18nKey="page.by" values={{ name: log.actorName }} components={{ name: <span className="font-medium text-ink" /> }} />
+                      </span>
                     </div>
                     <p className="text-xs text-ink-3 flex-shrink-0">{fmtDateTime(log.createdAt)}</p>
                   </div>
@@ -272,7 +279,7 @@ export default function AuditLogPage() {
             />
             <div className="pt-2 text-center">
               <span className="text-xs text-ink-3">
-                Showing {rangeStart}–{rangeEnd} of {totalEvents} events
+                {t('page.showing', { from: rangeStart, to: rangeEnd, total: totalEvents })}
               </span>
             </div>
           </div>

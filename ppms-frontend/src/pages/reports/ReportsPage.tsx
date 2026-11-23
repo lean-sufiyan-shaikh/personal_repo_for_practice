@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Reveal } from '../../components/Reveal'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
@@ -21,6 +22,7 @@ type Tab = 'pl' | 'duty' | 'discrepancy' | 'inventory' | 'dip' | 'shifts' | 'exp
 const MANAGER_TABS: Tab[] = ['duty', 'discrepancy', 'shifts']
 
 export default function ReportsPage() {
+  const { t } = useTranslation('reports')
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const isManager = user?.role === 'MANAGER'
@@ -47,27 +49,27 @@ export default function ReportsPage() {
   const userName = user?.fullName ?? ''
 
   const ALL_TABS: { id: Tab; label: string }[] = [
-    { id: 'pl',          label: 'Profit & Loss' },
-    { id: 'duty',        label: 'Operator Duty' },
-    { id: 'discrepancy', label: 'Short / Over' },
-    { id: 'inventory',   label: 'Inventory Lots' },
-    { id: 'dip',         label: 'Dip P/L' },
-    { id: 'shifts',      label: 'Shifts' },
-    { id: 'expenses',    label: 'Expenses' },
-    { id: 'interest',    label: 'Interest Accrual' },
+    { id: 'pl',          label: t('page.tabs.pl') },
+    { id: 'duty',        label: t('page.tabs.duty') },
+    { id: 'discrepancy', label: t('page.tabs.discrepancy') },
+    { id: 'inventory',   label: t('page.tabs.inventory') },
+    { id: 'dip',         label: t('page.tabs.dip') },
+    { id: 'shifts',      label: t('page.tabs.shifts') },
+    { id: 'expenses',    label: t('page.tabs.expenses') },
+    { id: 'interest',    label: t('page.tabs.interest') },
   ]
 
   const TABS = isManager
-    ? ALL_TABS.filter(t => MANAGER_TABS.includes(t.id))
+    ? ALL_TABS.filter(item => MANAGER_TABS.includes(item.id))
     : ALL_TABS
 
-  const activeTab = TABS.find(t => t.id === tab)?.id ?? TABS[0]?.id ?? 'duty'
+  const activeTab = TABS.find(item => item.id === tab)?.id ?? TABS[0]?.id ?? 'duty'
 
   if (!pumpId && !isOwnerOrAdmin && !isManager) {
     return (
       <div className="ui-page ui-page--narrow">
         <div className="ui-alert ui-alert-warning text-sm">
-          You are not assigned to any pump. Ask the Owner or Admin to assign you.
+          {t('page.notAssigned')}
         </div>
       </div>
     )
@@ -78,12 +80,12 @@ export default function ReportsPage() {
       <Reveal delay={60}>
       <div className="ui-section-hero">
         <div>
-          <p className="ui-section-kicker">Analysis</p>
-          <h1 className="ui-title-sm">Reports</h1>
-          <p className="ui-subtitle print:hidden">Operational and financial reports for your pump.</p>
+          <p className="ui-section-kicker">{t('page.kicker')}</p>
+          <h1 className="ui-title-sm">{t('page.title')}</h1>
+          <p className="ui-subtitle print:hidden">{t('page.subtitle')}</p>
           <p className="hidden print:block text-xs text-ink-3 mt-0.5">
             {pumpName && <><span className="font-medium">{pumpName}</span> · </>}
-            {userName && <>Printed by: <span className="font-medium">{userName}</span> · </>}
+            {userName && <>{t('page.printedBy')} <span className="font-medium">{userName}</span> · </>}
             <span className="text-ink-3">{fmtDateTime(new Date().toISOString())}</span>
           </p>
         </div>
@@ -92,24 +94,24 @@ export default function ReportsPage() {
 
       {!pumpId ? (
         <div className="ui-empty">
-          No pump selected. Use the pump selector in the top navigation bar.
+          {t('page.noPump')}
         </div>
       ) : (
         <div className="ui-card p-0 overflow-hidden">
           {/* Tabs — hidden when printing */}
           <div className="ui-tabbar print:hidden">
-            {TABS.map((t) => (
+            {TABS.map((item) => (
               <button
-                key={t.id}
-                aria-pressed={activeTab === t.id}
-                onClick={() => setTab(t.id)}
+                key={item.id}
+                aria-pressed={activeTab === item.id}
+                onClick={() => setTab(item.id)}
                 className={`ui-tabbar__button ${
-                  activeTab === t.id
+                  activeTab === item.id
                     ? 'ui-tabbar__button--active'
                     : ''
                 }`}
               >
-                {t.label}
+                {item.label}
               </button>
             ))}
           </div>

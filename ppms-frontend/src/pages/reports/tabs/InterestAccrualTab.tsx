@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { printWhenFontsReady } from '../../../i18n/fonts'
 import { serverMessage } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { reportApi } from '../../../api/reportApi'
@@ -28,6 +30,7 @@ const CSV_COLUMNS: CsvColumn<InterestCsvRow>[] = [
 // ── Interest Accrual Tab ───────────────────────────────────────────────────────
 
 export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
+  const { t } = useTranslation('reports')
   const [query, setQuery] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
@@ -57,32 +60,32 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
             disabled={isFetching}
             className="ui-btn ui-btn-primary"
           >
-            {isFetching ? 'Loading…' : 'Generate'}
+            {isFetching ? t('controls.loading') : t('controls.generate')}
           </button>
           <button
-            onClick={() => window.print()}
+            onClick={() => { void printWhenFontsReady() }}
             disabled={!data || data.clients.length === 0}
             className="ui-btn ui-btn-secondary"
           >
-            Print PDF
+            {t('controls.printPdf')}
           </button>
           <CsvExportButton filename={csvFilename('interest-accrual', query)} columns={CSV_COLUMNS} rows={csvRows} />
         </div>
       </div>
 
-      {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
+      {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
 
       {data && (
         <div className="space-y-4">
           {/* Summary */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <SummaryCard label="Total Charges"  value={String(data.totalCharges)}  color="text-ink" />
-            <SummaryCard label="Total Interest" value={<MoneyText value={data.totalInterest} />} color="text-bad" />
-            <SummaryCard label="Clients"        value={String(data.clients.length)} color="text-ink" />
+            <SummaryCard label={t('interest.totalCharges')}  value={String(data.totalCharges)}  color="text-ink" />
+            <SummaryCard label={t('interest.totalInterest')} value={<MoneyText value={data.totalInterest} />} color="text-bad" />
+            <SummaryCard label={t('interest.clients')}        value={String(data.clients.length)} color="text-ink" />
           </div>
 
           {data.clients.length === 0 ? (
-            <p className="ui-empty py-8">No interest charges found for this period.</p>
+            <p className="ui-empty py-8">{t('interest.none')}</p>
           ) : (
             data.clients.map(client => (
               <div key={client.clientId} className="ui-card p-0 overflow-hidden">
@@ -90,7 +93,7 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-sunken">
                   <div>
                     <p className="text-sm font-semibold text-ink">{client.clientName}</p>
-                    <p className="text-xs text-ink-3">{client.chargeCount} charge{client.chargeCount !== 1 ? 's' : ''}</p>
+                    <p className="text-xs text-ink-3">{t('interest.chargeCount', { count: client.chargeCount })}</p>
                   </div>
                   <MoneyText value={client.totalInterest} tone="bad" className="text-sm font-bold" />
                 </div>
@@ -100,8 +103,8 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
                   {client.charges.map(c => (
                     <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                       <div className="text-ink-3 space-y-0.5">
-                        <p>{fmtShortDate(c.periodFrom)} – {fmtShortDate(c.periodTo)} ({c.daysApplied} days)</p>
-                        <p>Balance {fmtAmt(c.outstandingBalance)} @ {c.rateApplied}%/month · {c.source}</p>
+                        <p>{t('interest.period', { from: fmtShortDate(c.periodFrom), to: fmtShortDate(c.periodTo), days: c.daysApplied })}</p>
+                        <p>{t('interest.balanceAtRate', { balance: fmtAmt(c.outstandingBalance), rate: c.rateApplied, source: c.source })}</p>
                       </div>
                       <MoneyText value={c.amount} className="font-medium text-ink flex-shrink-0" />
                     </div>

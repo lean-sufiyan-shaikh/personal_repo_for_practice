@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { superAdminApi } from '../../api/superAdminApi'
 import type { OnboardOwnerResponse } from '../../api/superAdminApi'
 import { Reveal } from '../../components/Reveal'
@@ -13,6 +14,7 @@ import { SuperAdminHeader } from './SuperAdminHeader'
 // ── Page component ────────────────────────────────────────────────────────────
 
 export default function SuperAdminPage() {
+  const { t } = useTranslation('superadmin')
   const [createdOwner, setCreatedOwner] = useState<OnboardOwnerResponse | null>(null)
   // Password is stored in a ref — not in React state — so it never appears in
   // React DevTools. It is wiped immediately after the super admin copies it.
@@ -57,7 +59,7 @@ export default function SuperAdminPage() {
 
   const handleCopyCredentials = () => {
     if (!createdOwner || !createdPasswordRef.current) return
-    const text = `PPMS Login Credentials\nPhone: ${createdOwner.phoneNumber}\nPassword: ${createdPasswordRef.current}\nPump: ${createdOwner.pumpName}`
+    const text = t('page.copiedCredentials', { phone: createdOwner.phoneNumber, password: createdPasswordRef.current, pump: createdOwner.pumpName })
     navigator.clipboard.writeText(text)
     // Wipe the password from memory immediately after copying — one-time copy only
     dismissCreatedOwner()
@@ -73,22 +75,22 @@ export default function SuperAdminPage() {
       {/* ── Main content ───────────────────────────────────────────────────── */}
       <main id="main-content" tabIndex={-1} className="flex-1 p-6 overflow-y-auto focus:outline-none">
         <div className="max-w-6xl mx-auto">
-          <h1 className="sr-only">Platform administration</h1>
+          <h1 className="sr-only">{t('page.title')}</h1>
 
           {/* ── Platform analytics strip ───────────────────────────────────── */}
           {analytics && (
             <Reveal delay={60}>
             <div className="mb-6 ui-summary-strip">
               <div className="ui-summary-strip__item">
-                <span className="ui-summary-strip__label">Pump Owners</span>
+                <span className="ui-summary-strip__label">{t('page.pumpOwners')}</span>
                 <span className="ui-summary-strip__value"><AnimatedCount value={analytics.totalOwners} /></span>
               </div>
               <div className="ui-summary-strip__item">
-                <span className="ui-summary-strip__label">Pumps</span>
+                <span className="ui-summary-strip__label">{t('page.pumps')}</span>
                 <span className="ui-summary-strip__value"><AnimatedCount value={analytics.totalPumps} /></span>
               </div>
               <div className="ui-summary-strip__item">
-                <span className="ui-summary-strip__label">Staff Members</span>
+                <span className="ui-summary-strip__label">{t('page.staffMembers')}</span>
                 <span className="ui-summary-strip__value"><AnimatedCount value={analytics.totalStaff} /></span>
               </div>
             </div>

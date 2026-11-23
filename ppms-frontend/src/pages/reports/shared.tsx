@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DatePresetChips } from '../../components/DatePresetChips'
 import type { DateRange } from '../../utils/datePresets'
 
@@ -6,10 +7,11 @@ import type { DateRange } from '../../utils/datePresets'
 // ── Shared small components ───────────────────────────────────────────────────
 
 export function PrintHeader({ title, from, to }: { title: string; from?: string; to?: string }) {
+  const { t } = useTranslation('reports')
   return (
     <div className="mb-4 border-b border-border pb-3">
       <h2 className="ui-title-sm">{title}</h2>
-      {(from || to) && <p className="ui-help">Period: {from ?? '—'} to {to ?? '—'}</p>}
+      {(from || to) && <p className="ui-help">{t('controls.period', { from: from ?? '—', to: to ?? '—' })}</p>}
     </div>
   )
 }
@@ -24,19 +26,20 @@ export function DateRangeInputs({
   /** When given, quick-range chips are shown and a chosen range is applied straight away. */
   onPreset?: (range: DateRange) => void
 }) {
+  const { t } = useTranslation('reports')
   return (
     <div className="ui-filter-group">
       {onPreset && <div className="basis-full"><DatePresetChips range={{ from, to }} onSelect={onPreset} /></div>}
       <div>
         <label className="block">
-          <span className="ui-label">From</span>
+          <span className="ui-label">{t('controls.from')}</span>
           <input type="date" value={from} onChange={(e) => onFromChange(e.target.value)}
             className="min-w-40 shadow-sm" />
         </label>
       </div>
       <div>
         <label className="block">
-          <span className="ui-label">To</span>
+          <span className="ui-label">{t('controls.to')}</span>
           <input type="date" value={to} onChange={(e) => onToChange(e.target.value)}
             className="min-w-40 shadow-sm" />
         </label>
@@ -56,12 +59,13 @@ export function SummaryCard({ label, value, color, note }: { label: string; valu
 }
 
 /** Shown instead of ₹0.00 cards when the default range has nothing in it, pointing at a range that likely does. */
-export function EmptyRangeSuggestion({ what, onShowLastMonth }: { what: string; onShowLastMonth: () => void }) {
+export function EmptyRangeSuggestion({ message, onShowLastMonth }: { message: string; onShowLastMonth: () => void }) {
+  const { t } = useTranslation('reports')
   return (
     <div className="ui-card ui-card-muted flex flex-col items-center gap-3 p-6 text-center" role="status">
-      <p className="text-sm font-medium text-ink">No {what} for yesterday or today yet.</p>
-      <p className="text-xs text-ink-3">Closed shifts from earlier days may still be worth a look.</p>
-      <button type="button" className="ui-btn ui-btn-secondary" onClick={onShowLastMonth}>Show last month</button>
+      <p className="text-sm font-medium text-ink">{message}</p>
+      <p className="text-xs text-ink-3">{t('emptyRange.earlierDays')}</p>
+      <button type="button" className="ui-btn ui-btn-secondary" onClick={onShowLastMonth}>{t('emptyRange.showLastMonth')}</button>
     </div>
   )
 }

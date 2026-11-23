@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { serverMessage } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { userApi } from '../../../api/userApi'
@@ -22,6 +24,8 @@ import type { CsvColumn } from '../../../utils/csv'
 import type { DateRange } from '../../../utils/datePresets'
 import { shiftUrl } from '../../../utils/drillDown'
 import { codeLabel } from '../../../constants/labels'
+import { printWhenFontsReady } from '../../../i18n/fonts'
+import { discrepancyTypeLabel } from '../reportFormat'
 
 const CSV_COLUMNS: CsvColumn<OperatorDutyShiftLine>[] = [
   { header: 'Shift', value: (row) => row.shiftId, kind: 'number' },
@@ -37,27 +41,30 @@ const CSV_COLUMNS: CsvColumn<OperatorDutyShiftLine>[] = [
   { header: 'Status', value: (row) => codeLabel(row.status) },
 ]
 
-const DUTY_COLUMNS: DataTableColumn<OperatorDutyShiftLine>[] = [
-  { key: 'shift', header: 'Shift', cell: (s) => <Link to={shiftUrl(s.shiftId)} className="ui-link">Shift #{s.shiftId}</Link> },
-  { key: 'date', header: 'Date', cell: (s) => <span className="text-ink-2">{s.shiftDate}</span> },
-  { key: 'window', header: 'Window', cell: (s) => <span className="text-ink-3">{s.shiftWindow}</span> },
-  { key: 'due', header: 'Amount Due', numeric: true, cell: (s) => <MoneyText value={s.totalAmountDue} className="font-medium text-ink" /> },
-  { key: 'cash', header: 'Cash', numeric: true, cell: (s) => <MoneyText value={s.cashCollected} className="text-ink-2" /> },
-  { key: 'credit', header: 'Credit', numeric: true, cell: (s) => <MoneyText value={s.creditTotal} tone="warn" /> },
-  {
-    key: 'discrepancy', header: 'Discrepancy', numeric: true,
-    cell: (s) => s.discrepancyAmount > 0 ? (
-      <span className={`text-xs font-semibold ${s.discrepancyType === 'SHORT' ? 'text-bad' : 'text-warn'}`}>
-        {s.discrepancyType} <MoneyText value={s.discrepancyAmount} />
-      </span>
-    ) : <span className="text-ink-3">—</span>,
-  },
-  { key: 'status', header: 'Status', cell: (s) => <StatusBadge {...shiftStatusBadge(s.status as ShiftStatus)} /> },
-]
+function dutyColumns(t: TFunction<'reports'>): DataTableColumn<OperatorDutyShiftLine>[] {
+  return [
+    { key: 'shift', header: t('columns.shift'), cell: (s) => <Link to={shiftUrl(s.shiftId)} className="ui-link">{t('controls.shiftLink', { id: s.shiftId })}</Link> },
+    { key: 'date', header: t('columns.date'), cell: (s) => <span className="text-ink-2">{s.shiftDate}</span> },
+    { key: 'window', header: t('columns.window'), cell: (s) => <span className="text-ink-3">{s.shiftWindow}</span> },
+    { key: 'due', header: t('columns.amountDue'), numeric: true, cell: (s) => <MoneyText value={s.totalAmountDue} className="font-medium text-ink" /> },
+    { key: 'cash', header: t('columns.cash'), numeric: true, cell: (s) => <MoneyText value={s.cashCollected} className="text-ink-2" /> },
+    { key: 'credit', header: t('columns.credit'), numeric: true, cell: (s) => <MoneyText value={s.creditTotal} tone="warn" /> },
+    {
+      key: 'discrepancy', header: t('columns.discrepancy'), numeric: true,
+      cell: (s) => s.discrepancyAmount > 0 ? (
+        <span className={`text-xs font-semibold ${s.discrepancyType === 'SHORT' ? 'text-bad' : 'text-warn'}`}>
+          {discrepancyTypeLabel(s.discrepancyType)} <MoneyText value={s.discrepancyAmount} />
+        </span>
+      ) : <span className="text-ink-3">—</span>,
+    },
+    { key: 'status', header: t('columns.status'), cell: (s) => <StatusBadge {...shiftStatusBadge(s.status as ShiftStatus)} /> },
+  ]
+}
 
 // ── Operator Duty Tab ─────────────────────────────────────────────────────────
 
 export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
+  const { t } = useTranslation('reports')
   const [query, setQuery] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
@@ -78,6 +85,7 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
   })
 
   const paged = data ? pageSlice(data.shifts, page, pageSize) : null
+  const columns = dutyColumns(t)
 
   const applyRange = (range: DateRange) => {
     setFrom(range.from)
@@ -93,12 +101,12 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
       <div className="ui-card ui-card-muted p-4 print:hidden">
         <div className="ui-filter-group">
         <div className="w-56">
-          <span className="ui-label">Operator</span>
-          <SearchableSelect label="Operator"
+          <span className="ui-label">{t('duty.operator')}</span>
+          <SearchableSelect label={t('duty.operator')}
             value={operatorId ? String(operatorId) : ''}
             onChange={(v) => setOperatorId(v ? Number(v) : null)}
             options={staffList.filter(s => s.role === 'OPERATOR').map(s => ({ value: String(s.id), label: s.fullName }))}
-            placeholder="Select operator…"
+            placeholder={t('duty.selectOperator')}
           />
         </div>
         <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} onPreset={applyRange} />
@@ -107,14 +115,14 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
           disabled={!operatorId || isFetching}
           className="ui-btn ui-btn-primary"
         >
-          {isFetching ? 'Loading…' : 'Generate'}
+          {isFetching ? t('controls.loading') : t('controls.generate')}
         </button>
         <button
-          onClick={() => window.print()}
+          onClick={() => { void printWhenFontsReady() }}
           disabled={!data || data.shifts.length === 0}
           className="ui-btn ui-btn-secondary"
         >
-          Print PDF
+          {t('controls.printPdf')}
         </button>
         <CsvExportButton
           filename={csvFilename(`operator-duty-${data?.operatorName.toLowerCase().replace(/[^a-z0-9]+/g, '-') ?? 'operator'}`, query)}
@@ -124,17 +132,17 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
         </div>
       </div>
 
-      {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
+      {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
 
       {/* Screen: paginated data */}
       {data && paged && (
         <div className="space-y-4 print:hidden">
           <div className="grid grid-cols-3 gap-4">
-            <SummaryCard label="Total Shifts"      value={String(data.totalShifts)}      color="text-ink" />
-            <SummaryCard label="Total Amount Due"  value={<MoneyText value={data.totalAmountDue} />} color="text-ink" />
-            <SummaryCard label="Total Discrepancy" value={<MoneyText value={data.totalDiscrepancy} />} color={data.totalDiscrepancy > 0 ? 'text-bad' : 'text-ok'} />
+            <SummaryCard label={t('duty.totalShifts')}      value={String(data.totalShifts)}      color="text-ink" />
+            <SummaryCard label={t('duty.totalAmountDue')}  value={<MoneyText value={data.totalAmountDue} />} color="text-ink" />
+            <SummaryCard label={t('duty.totalDiscrepancy')} value={<MoneyText value={data.totalDiscrepancy} />} color={data.totalDiscrepancy > 0 ? 'text-bad' : 'text-ok'} />
           </div>
-          <DataTable caption="Operator duty" captionHidden columns={DUTY_COLUMNS} rows={paged.content} rowKey={(s) => s.shiftId} scroll />
+          <DataTable caption={t('duty.caption')} captionHidden columns={columns} rows={paged.content} rowKey={(s) => s.shiftId} scroll />
           <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
         </div>
       )}
@@ -142,13 +150,13 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
       {/* Print: full dataset */}
       {data && data.shifts.length > 0 && (
         <div className="hidden print:block space-y-4">
-          <PrintHeader title={`Operator Duty Report — ${data.operatorName}`} from={query.from} to={query.to} />
+          <PrintHeader title={t('duty.printTitle', { name: data.operatorName })} from={query.from} to={query.to} />
           <div className="grid grid-cols-3 gap-4">
-            <SummaryCard label="Total Shifts"      value={String(data.totalShifts)}      color="text-ink" />
-            <SummaryCard label="Total Amount Due"  value={<MoneyText value={data.totalAmountDue} />} color="text-ink" />
-            <SummaryCard label="Total Discrepancy" value={<MoneyText value={data.totalDiscrepancy} />} color={data.totalDiscrepancy > 0 ? 'text-bad' : 'text-ok'} />
+            <SummaryCard label={t('duty.totalShifts')}      value={String(data.totalShifts)}      color="text-ink" />
+            <SummaryCard label={t('duty.totalAmountDue')}  value={<MoneyText value={data.totalAmountDue} />} color="text-ink" />
+            <SummaryCard label={t('duty.totalDiscrepancy')} value={<MoneyText value={data.totalDiscrepancy} />} color={data.totalDiscrepancy > 0 ? 'text-bad' : 'text-ok'} />
           </div>
-          <DataTable caption="Operator duty" captionHidden columns={DUTY_COLUMNS} rows={data.shifts} rowKey={(s) => s.shiftId} />
+          <DataTable caption={t('duty.caption')} captionHidden columns={columns} rows={data.shifts} rowKey={(s) => s.shiftId} />
         </div>
       )}
     </div>

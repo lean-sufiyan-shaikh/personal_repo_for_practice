@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { serverMessage } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
@@ -14,6 +16,7 @@ import type { CsvColumn } from '../../../utils/csv'
 import { presetRange, previousPeriod } from '../../../utils/datePresets'
 import type { DateRange } from '../../../utils/datePresets'
 import { discrepanciesUrl, shiftUrl } from '../../../utils/drillDown'
+import { printWhenFontsReady } from '../../../i18n/fonts'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, SummaryCard } from '../shared'
 import { DataTable } from '../../../components/DataTable'
@@ -25,18 +28,22 @@ import type { DiscrepancyType, ShiftStatus } from '../../../types/shift'
 import { codeLabel } from '../../../constants/labels'
 import { ShortOverChart } from '../charts/ShortOverChart'
 
-const PRINT_COLUMNS: DataTableColumn<DiscrepancyLine>[] = [
-  { key: 'date', header: 'Date', cell: (s) => <span className="text-ink-2">{s.shiftDate}</span> },
-  { key: 'type', header: 'Type', cell: (s) => <StatusBadge {...discrepancyBadge(s.discrepancyType as DiscrepancyType)} /> },
-  { key: 'amount', header: 'Amount', numeric: true, cell: (s) => <MoneyText value={s.discrepancyAmount} className="font-semibold text-ink" /> },
-  { key: 'status', header: 'Status', cell: (s) => <StatusBadge {...shiftStatusBadge(s.status as ShiftStatus)} /> },
-  { key: 'resolution', header: 'Resolution', cell: (s) => <span className="text-ink-3">{codeLabel(s.resolution)}</span> },
-]
+function printColumns(t: TFunction<'reports'>): DataTableColumn<DiscrepancyLine>[] {
+  return [
+    { key: 'date', header: t('columns.date'), cell: (s) => <span className="text-ink-2">{s.shiftDate}</span> },
+    { key: 'type', header: t('columns.type'), cell: (s) => <StatusBadge {...discrepancyBadge(s.discrepancyType as DiscrepancyType)} /> },
+    { key: 'amount', header: t('columns.amount'), numeric: true, cell: (s) => <MoneyText value={s.discrepancyAmount} className="font-semibold text-ink" /> },
+    { key: 'status', header: t('columns.status'), cell: (s) => <StatusBadge {...shiftStatusBadge(s.status as ShiftStatus)} /> },
+    { key: 'resolution', header: t('columns.resolution'), cell: (s) => <span className="text-ink-3">{codeLabel(s.resolution)}</span> },
+  ]
+}
 
-const COLUMNS: DataTableColumn<DiscrepancyLine>[] = [
-  { key: 'shift', header: 'Shift', cell: (s) => <Link to={shiftUrl(s.shiftId)} className="ui-link">Shift #{s.shiftId}</Link> },
-  ...PRINT_COLUMNS,
-]
+function screenColumns(t: TFunction<'reports'>): DataTableColumn<DiscrepancyLine>[] {
+  return [
+    { key: 'shift', header: t('columns.shift'), cell: (s) => <Link to={shiftUrl(s.shiftId)} className="ui-link">{t('controls.shiftLink', { id: s.shiftId })}</Link> },
+    ...printColumns(t),
+  ]
+}
 
 type DiscrepancyCsvRow = DiscrepancyLine & { operatorName: string }
 
@@ -61,6 +68,7 @@ function totals(report: OperatorDiscrepancyReport) {
 // ── Short / Over Discrepancy Tab ──────────────────────────────────────────────
 
 export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
+  const { t } = useTranslation('reports')
   const [query, setQuery, isDefaultRange] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
@@ -107,24 +115,24 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
           disabled={isFetching}
           className="ui-btn ui-btn-primary"
         >
-          {isFetching ? 'Loading…' : 'Generate'}
+          {isFetching ? t('controls.loading') : t('controls.generate')}
         </button>
         <button
-          onClick={() => window.print()}
+          onClick={() => { void printWhenFontsReady() }}
           disabled={!data || data.operators.length === 0}
           className="ui-btn ui-btn-secondary"
         >
-          Print PDF
+          {t('controls.printPdf')}
         </button>
         <CsvExportButton filename={csvFilename('short-over', query)} columns={CSV_COLUMNS} rows={csvRows} />
         </div>
       </div>
 
-      {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
+      {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
 
       {showEmptySuggestion && (
         <div className="print:hidden">
-          <EmptyRangeSuggestion what="short or over shifts" onShowLastMonth={() => applyRange(presetRange('lastMonth'))} />
+          <EmptyRangeSuggestion message={t('emptyRange.noShortOver')} onShowLastMonth={() => applyRange(presetRange('lastMonth'))} />
         </div>
       )}
 
@@ -132,30 +140,30 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
         <div className="space-y-3 print:hidden">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <SummaryCard
-              label="Total short"
+              label={t('discrepancy.totalShort')}
               value={<MoneyText value={current.short} />}
               color="text-bad"
               note={<>
                 {before && <PeriodChangeNote current={current.short} previous={before.short} higherIsBetter={false} />}
-                <Link to={discrepanciesUrl(query, 'SHORT')} className="ui-link mt-1 inline-block text-xs">View short shifts</Link>
+                <Link to={discrepanciesUrl(query, 'SHORT')} className="ui-link mt-1 inline-block text-xs">{t('discrepancy.viewShortShifts')}</Link>
               </>}
             />
             <SummaryCard
-              label="Total over"
+              label={t('discrepancy.totalOver')}
               value={<MoneyText value={current.over} />}
               color="text-warn"
               note={<>
                 {before && <PeriodChangeNote current={current.over} previous={before.over} higherIsBetter={false} />}
-                <Link to={discrepanciesUrl(query, 'OVER')} className="ui-link mt-1 inline-block text-xs">View over shifts</Link>
+                <Link to={discrepanciesUrl(query, 'OVER')} className="ui-link mt-1 inline-block text-xs">{t('discrepancy.viewOverShifts')}</Link>
               </>}
             />
           </div>
           {data.operators.length > 0 && <ShortOverChart operators={data.operators} />}
           <p className="text-xs text-ink-3">
-            {data.totalDiscrepancyShifts} discrepancy shift{data.totalDiscrepancyShifts !== 1 ? 's' : ''} in range.
+            {t('discrepancy.shiftsInRange', { count: data.totalDiscrepancyShifts })}
           </p>
           {paged.content.length === 0 ? (
-            <div className="ui-empty py-6">No discrepancies in this date range.</div>
+            <div className="ui-empty py-6">{t('discrepancy.none')}</div>
           ) : (
             paged.content.map((op) => (
               <div key={op.operatorId} className="ui-card p-0 overflow-hidden">
@@ -165,17 +173,17 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-ink">{op.operatorName}</span>
-                    <span className="text-xs text-ink-3">{op.discrepancyShiftCount} shifts</span>
+                    <span className="text-xs text-ink-3">{t('discrepancy.shiftCount', { value: op.discrepancyShiftCount })}</span>
                     {op.unresolvedCount > 0 && (
-                      <StatusBadge tone="bad" icon={AlertTriangle} label={`${op.unresolvedCount} unresolved`} />
+                      <StatusBadge tone="bad" icon={AlertTriangle} label={t('discrepancy.unresolved', { value: op.unresolvedCount })} />
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-xs">
                     {op.totalShortAmount > 0 && (
-                      <span className="text-bad font-semibold">Short <MoneyText value={op.totalShortAmount} /></span>
+                      <span className="text-bad font-semibold">{t('discrepancy.short')} <MoneyText value={op.totalShortAmount} /></span>
                     )}
                     {op.totalOverAmount > 0 && (
-                      <span className="text-warn font-semibold">Over <MoneyText value={op.totalOverAmount} /></span>
+                      <span className="text-warn font-semibold">{t('discrepancy.over')} <MoneyText value={op.totalOverAmount} /></span>
                     )}
                     {expandedOp === op.operatorId
                       ? <ChevronUp size={14} strokeWidth={2} className="text-ink-3" />
@@ -185,9 +193,9 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
                 </button>
                 {expandedOp === op.operatorId && (
                   <DataTable
-                    caption={`Short and over shifts for ${op.operatorName}`}
+                    caption={t('discrepancy.operatorCaption', { name: op.operatorName })}
                     captionHidden
-                    columns={COLUMNS}
+                    columns={screenColumns(t)}
                     rows={op.shifts}
                     rowKey={(s) => s.shiftId}
                     className="rounded-none border-x-0 border-b-0"
@@ -204,19 +212,19 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
       {/* Print: full dataset */}
       {data && data.operators.length > 0 && (
         <div className="hidden print:block space-y-4">
-          <PrintHeader title="Short / Over Discrepancy Report" from={query.from} to={query.to} />
+          <PrintHeader title={t('discrepancy.printTitle')} from={query.from} to={query.to} />
           <p className="text-xs text-ink-3 mb-2">
-            {data.totalDiscrepancyShifts} discrepancy shift{data.totalDiscrepancyShifts !== 1 ? 's' : ''} in range.
+            {t('discrepancy.shiftsInRange', { count: data.totalDiscrepancyShifts })}
           </p>
           {data.operators.map((op) => (
             <div key={op.operatorId} className="mb-4">
               <div className="flex items-center gap-3 mb-1 pb-1 border-b border-border">
                 <span className="text-sm font-semibold text-ink">{op.operatorName}</span>
-                <span className="text-xs text-ink-3">{op.discrepancyShiftCount} shifts</span>
-                {op.totalShortAmount > 0 && <span className="text-xs text-bad font-semibold">Short <MoneyText value={op.totalShortAmount} /></span>}
-                {op.totalOverAmount > 0  && <span className="text-xs text-warn font-semibold">Over <MoneyText value={op.totalOverAmount} /></span>}
+                <span className="text-xs text-ink-3">{t('discrepancy.shiftCount', { value: op.discrepancyShiftCount })}</span>
+                {op.totalShortAmount > 0 && <span className="text-xs text-bad font-semibold">{t('discrepancy.short')} <MoneyText value={op.totalShortAmount} /></span>}
+                {op.totalOverAmount > 0  && <span className="text-xs text-warn font-semibold">{t('discrepancy.over')} <MoneyText value={op.totalOverAmount} /></span>}
               </div>
-              <DataTable caption={`Short and over shifts for ${op.operatorName}`} captionHidden columns={PRINT_COLUMNS} rows={op.shifts} rowKey={(s) => s.shiftId} />
+              <DataTable caption={t('discrepancy.operatorCaption', { name: op.operatorName })} captionHidden columns={printColumns(t)} rows={op.shifts} rowKey={(s) => s.shiftId} />
             </div>
           ))}
         </div>

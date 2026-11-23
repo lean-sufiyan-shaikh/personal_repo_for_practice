@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import type { BalanceSheetDetail, DipPlLine } from '../../../api/balanceSheetApi'
 import { Td } from '../bsTableCells'
-import { FUEL_BADGE, IST_TIME_FORMATTER, bsColumn } from '../bsFormat'
+import { FUEL_BADGE, bsColumn, fmtIstTime } from '../bsFormat'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { StatusBadge } from '../../../components/StatusBadge'
@@ -8,33 +10,36 @@ import { MoneyText } from '../../../components/AmountText'
 import type { StatusTone } from '../../../components/StatusBadge'
 import { codeLabel } from '../../../constants/labels'
 
-const COLUMNS: DataTableColumn<DipPlLine>[] = [
-  bsColumn('type', 'Type'),
-  bsColumn('fuel', 'Fuel'),
-  bsColumn('litres', 'Litres', true),
-  bsColumn('pl', 'P/L', true),
-  bsColumn('time', 'Time'),
-  bsColumn('notes', 'Notes'),
-]
+function dipColumns(t: TFunction<'balancesheet'>): DataTableColumn<DipPlLine>[] {
+  return [
+    bsColumn('type', t('columns.type')),
+    bsColumn('fuel', t('columns.fuel')),
+    bsColumn('litres', t('columns.litres'), true),
+    bsColumn('pl', t('columns.profitLoss'), true),
+    bsColumn('time', t('columns.time')),
+    bsColumn('notes', t('columns.notes')),
+  ]
+}
 
 function signTone(value: number): StatusTone {
   return value > 0 ? 'ok' : value < 0 ? 'bad' : 'neutral'
 }
 
 export function DipPlSection({ detail }: { detail: BalanceSheetDetail }) {
+  const { t } = useTranslation('balancesheet')
   return (
     <section>
       <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-wider mb-3">
-        Dip P/L
+        {t('dip.title')}
         <span className="ml-2 text-ink-3 normal-case font-normal">
-          ({detail.dipPlEntries.length} entr{detail.dipPlEntries.length !== 1 ? 'ies' : 'y'})
+          {t('dip.count', { count: detail.dipPlEntries.length })}
         </span>
       </h3>
       <DataTable
-        caption="Dip P/L"
+        caption={t('dip.title')}
         captionHidden
-        regionLabel="Dip profit and loss"
-        columns={COLUMNS}
+        regionLabel={t('dip.region')}
+        columns={dipColumns(t)}
         rows={detail.dipPlEntries}
         rowKey={(entry) => `${entry.type}-${entry.fuelType}-${entry.recordedAt}`}
         renderRow={(entry) => {
@@ -46,8 +51,8 @@ export function DipPlSection({ detail }: { detail: BalanceSheetDetail }) {
             <tr>
               <Td>
                 {entry.type === 'DIP_CHECK'
-                  ? <StatusBadge tone="info" label="Dip Check" />
-                  : <StatusBadge tone="warn" label="Maintenance" />}
+                  ? <StatusBadge tone="info" label={t('dip.dipCheck')} />
+                  : <StatusBadge tone="warn" label={t('dip.maintenance')} />}
               </Td>
               <Td>
                 <span className={`inline-block px-2 py-0.5 rounded-badge text-xs font-medium ${badge}`}>
@@ -64,7 +69,7 @@ export function DipPlSection({ detail }: { detail: BalanceSheetDetail }) {
               </Td>
               <Td>
                 <span className="text-xs text-ink-3">
-                  {IST_TIME_FORMATTER.format(new Date(entry.recordedAt))}
+                  {fmtIstTime(entry.recordedAt)}
                 </span>
               </Td>
               <Td>
@@ -77,7 +82,7 @@ export function DipPlSection({ detail }: { detail: BalanceSheetDetail }) {
         }}
         footer={
           <tr className="bg-surface-sunken">
-            <Td colSpan={3}>Net Dip P/L</Td>
+            <Td colSpan={3}>{t('dip.net')}</Td>
             <Td right>
               <MoneyText value={detail.totalDipNetAmount} showSign tone={signTone(detail.totalDipNetAmount)} />
             </Td>

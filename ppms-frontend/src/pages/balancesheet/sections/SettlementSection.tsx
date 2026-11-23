@@ -1,4 +1,6 @@
 import { Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import type { SettlementSummary } from '../../../api/balanceSheetApi'
 import { Td } from '../bsTableCells'
 import { bsColumn } from '../bsFormat'
@@ -6,7 +8,14 @@ import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { MoneyText } from '../../../components/AmountText'
 
-const TYPE_LABELS: Record<string, string> = { UPI: 'UPI', CARD: 'Card', FLEET_CARD: 'Fleet Card' }
+type BalanceSheetT = TFunction<'balancesheet'>
+
+function paymentTypeLabel(t: BalanceSheetT, type: string): string {
+  if (type === 'UPI') return t('settlements.upi')
+  if (type === 'CARD') return t('settlements.card')
+  if (type === 'FLEET_CARD') return t('settlements.fleetCard')
+  return type
+}
 
 interface SettlementRow {
   type: string
@@ -14,15 +23,18 @@ interface SettlementRow {
   pending: number
 }
 
-const COLUMNS: DataTableColumn<SettlementRow>[] = [
-  bsColumn('type', 'Payment Type'),
-  bsColumn('settled', 'Settled on this Date', true),
-  bsColumn('pending', 'Cumulative Wallet Pending', true),
-]
+function settlementColumns(t: BalanceSheetT): DataTableColumn<SettlementRow>[] {
+  return [
+    bsColumn('type', t('columns.paymentType')),
+    bsColumn('settled', t('columns.settledOnDate'), true),
+    bsColumn('pending', t('columns.walletPending'), true),
+  ]
+}
 
 // ── Payment settlement section (DAY reports only) ──────────────────────────────
 
 export function SettlementSection({ summary }: { summary: SettlementSummary }) {
+  const { t } = useTranslation('balancesheet')
   const rows: SettlementRow[] = [
     { type: 'UPI',        settled: summary.upiSettledOnDate,        pending: summary.walletUpiPending },
     { type: 'CARD',       settled: summary.cardSettledOnDate,        pending: summary.walletCardPending },
@@ -35,17 +47,17 @@ export function SettlementSection({ summary }: { summary: SettlementSummary }) {
   return (
     <section className="mt-6 space-y-3">
       <h3 className="text-sm font-semibold text-ink-2 uppercase tracking-wide">
-        Digital Payment Settlements
+        {t('settlements.title')}
       </h3>
       <DataTable
-        caption="Digital payment settlements"
+        caption={t('settlements.caption')}
         captionHidden
-        columns={COLUMNS}
+        columns={settlementColumns(t)}
         rows={rows}
         rowKey={(r) => r.type}
         renderRow={(r) => (
           <tr>
-            <Td>{TYPE_LABELS[r.type]}</Td>
+            <Td>{paymentTypeLabel(t, r.type)}</Td>
             <Td right>
               {r.settled > 0
                 ? <MoneyText value={r.settled} tone="ok" className="font-medium" />
@@ -55,14 +67,14 @@ export function SettlementSection({ summary }: { summary: SettlementSummary }) {
             <Td right>
               {r.pending !== 0
                 ? <MoneyText value={r.pending} tone={r.pending > 0 ? 'warn' : 'ok'} className={r.pending > 0 ? 'font-medium' : ''} />
-                : <span className="inline-flex items-center gap-1 text-ink-3">Settled<Check size={11} strokeWidth={2.5} /></span>
+                : <span className="inline-flex items-center gap-1 text-ink-3">{t('settlements.settled')}<Check size={11} strokeWidth={2.5} /></span>
               }
             </Td>
           </tr>
         )}
         footer={
           <tr className="bg-surface-sunken">
-            <Td>Total</Td>
+            <Td>{t('settlements.total')}</Td>
             <Td right>{totalSettled > 0 ? <MoneyText value={totalSettled} /> : '—'}</Td>
             <Td right><MoneyText value={totalPending} tone={totalPending > 0 ? 'warn' : 'ok'} /></Td>
           </tr>
@@ -70,14 +82,14 @@ export function SettlementSection({ summary }: { summary: SettlementSummary }) {
       />
       {summary.settlementsOnDate.length > 0 && (
         <div className="ui-card-plain ui-card-muted p-3 text-sm">
-          <p className="text-xs font-medium text-ink-3 mb-2 uppercase tracking-wide">Recorded on this date</p>
+          <p className="text-xs font-medium text-ink-3 mb-2 uppercase tracking-wide">{t('settlements.recordedOnDate')}</p>
           <div className="space-y-1">
             {summary.settlementsOnDate.map(s => (
               <div key={s.id} className="flex items-center gap-3 text-xs text-ink-2">
-                <span className="font-medium">{TYPE_LABELS[s.paymentType]}</span>
+                <span className="font-medium">{paymentTypeLabel(t, s.paymentType)}</span>
                 <MoneyText value={s.amountReceived} tone="ok" className="font-semibold" />
                 {s.notes && <span className="text-ink-3">· {s.notes}</span>}
-                <span className="text-ink-3 ml-auto">by {s.recordedByUserName}</span>
+                <span className="text-ink-3 ml-auto">{t('settlements.recordedBy', { name: s.recordedByUserName })}</span>
               </div>
             ))}
           </div>

@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { useAuthStore } from '../../../store/authStore'
 import type { ProductSalesSummary } from '../../../api/balanceSheetApi'
 import { Td } from '../bsTableCells'
@@ -8,33 +10,34 @@ import { MoneyText } from '../../../components/AmountText'
 
 type ProductLine = ProductSalesSummary['productLines'][number]
 
-function productColumns(isOwnerOrAdmin: boolean): DataTableColumn<ProductLine>[] {
+function productColumns(t: TFunction<'balancesheet'>, isOwnerOrAdmin: boolean): DataTableColumn<ProductLine>[] {
   return [
-    bsColumn('product', 'Product'),
-    bsColumn('units', 'Units Sold', true),
-    bsColumn('revenue', 'Revenue', true),
-    ...(isOwnerOrAdmin ? [bsColumn<ProductLine>('cogs', 'COGS', true), bsColumn<ProductLine>('profit', 'Gross Profit', true)] : []),
+    bsColumn('product', t('columns.product')),
+    bsColumn('units', t('columns.unitsSold'), true),
+    bsColumn('revenue', t('columns.revenue'), true),
+    ...(isOwnerOrAdmin ? [bsColumn<ProductLine>('cogs', t('columns.cogs'), true), bsColumn<ProductLine>('profit', t('columns.grossProfit'), true)] : []),
   ]
 }
 
 // ── Ancillary product sales section (DAY reports only) ─────────────────────────
 
 export function ProductSalesSection({ productSales }: { productSales: ProductSalesSummary }) {
+  const { t } = useTranslation('balancesheet')
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   return (
     <section>
       <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-wider mb-3">
-        Ancillary Product Sales
+        {t('products.title')}
         <span className="ml-2 text-ink-3 normal-case font-normal">
-          ({productSales.productLines.length} product{productSales.productLines.length !== 1 ? 's' : ''})
+          {t('products.count', { count: productSales.productLines.length })}
         </span>
       </h3>
       <DataTable
-        caption="Ancillary product sales"
+        caption={t('products.caption')}
         captionHidden
-        regionLabel="Product sales"
-        columns={productColumns(isOwnerOrAdmin)}
+        regionLabel={t('products.region')}
+        columns={productColumns(t, isOwnerOrAdmin)}
         rows={productSales.productLines}
         rowKey={(line) => line.productId}
         renderRow={(line) => {
@@ -53,7 +56,7 @@ export function ProductSalesSection({ productSales }: { productSales: ProductSal
         }}
         footer={
           <tr className="bg-surface-sunken">
-            <Td>Total</Td>
+            <Td>{t('products.total')}</Td>
             <Td right>—</Td>
             <Td right><MoneyText value={productSales.totalRevenue} /></Td>
             {isOwnerOrAdmin && <Td right><MoneyText value={productSales.totalCogs} /></Td>}

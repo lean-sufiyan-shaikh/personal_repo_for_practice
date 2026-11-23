@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { balanceSheetApi } from '../../api/balanceSheetApi'
 import { parseApiError } from '../../utils/apiError'
 import type { GenerateBalanceSheetRequest } from '../../api/balanceSheetApi'
@@ -18,6 +19,7 @@ interface GenerateModalProps {
 }
 
 export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
+  const { t } = useTranslation('balancesheet')
   const qc = useQueryClient()
   const { addToast } = useToastStore()
 
@@ -43,11 +45,11 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
     mutationFn: (req: GenerateBalanceSheetRequest) => balanceSheetApi.generate(pumpId, req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['balance-sheets', pumpId] })
-      addToast('Balance sheet generated successfully', 'success')
+      addToast(t('generate.success'), 'success')
       onClose()
     },
     onError: (err) => {
-      const msg: string = parseApiError(err, 'Failed to generate balance sheet')
+      const msg: string = parseApiError(err, t('generate.failed'))
       // Backend returns "already exists" — offer the user a re-generate option
       if (msg.includes('already exists')) {
         setConfirmRegenerate(true)
@@ -86,8 +88,8 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
 
   return (
     <Modal
-      title="Generate Balance Sheet"
-      subtitle="Create a shift or day-end financial snapshot for this pump."
+      title={t('generate.title')}
+      subtitle={t('generate.subtitle')}
       tone="info"
       size="lg"
       onClose={onClose}
@@ -97,7 +99,7 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
             onClick={onClose}
             className="ui-btn ui-btn-secondary"
           >
-            Cancel
+            {t('generate.cancel')}
           </button>
           <button
             onClick={handleSubmit}
@@ -105,40 +107,40 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
             className="ui-btn ui-btn-primary"
           >
             {mutation.isPending
-              ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Generating…</span>
-              : 'Generate Report'}
+              ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('generate.generating')}</span>
+              : t('generate.submit')}
           </button>
       </>}
     >
           {/* Report type toggle */}
           <div>
-            <span className="ui-label">Report Type</span>
-            <div role="group" aria-label="Report Type" className="ui-card-plain flex gap-1 p-1">
-              {(['SHIFT', 'DAY'] as const).map(t => (
+            <span className="ui-label">{t('generate.reportType')}</span>
+            <div role="group" aria-label={t('generate.reportType')} className="ui-card-plain flex gap-1 p-1">
+              {(['SHIFT', 'DAY'] as const).map(type => (
                 <button
-                  key={t}
-                  onClick={() => { setReportType(t); if (t === 'DAY') setShiftDefinitionId(null) }}
+                  key={type}
+                  onClick={() => { setReportType(type); if (type === 'DAY') setShiftDefinitionId(null) }}
                   className={`ui-btn min-h-0 flex-1 px-3 py-2 text-sm font-medium ${
-                    reportType === t
+                    reportType === type
                       ? 'bg-primary text-on-primary'
                       : 'bg-surface text-ink-2 hover:bg-bg'
                   }`}
                 >
-                  {t === 'SHIFT' ? 'Shift Report' : 'Day-End Report'}
+                  {type === 'SHIFT' ? t('generate.shiftReport') : t('generate.dayReport')}
                 </button>
               ))}
             </div>
             <p className="mt-1.5 text-xs text-ink-3">
               {reportType === 'SHIFT'
-                ? 'Covers one shift. All shifts in that window must be closed first.'
-                : 'Covers the full business day. All shifts should be closed before generating.'}
+                ? t('generate.shiftHelp')
+                : t('generate.dayHelp')}
             </p>
           </div>
 
           {/* Date */}
           <div>
             <label className="block">
-              <span className="ui-label">Business Date</span>
+              <span className="ui-label">{t('generate.businessDate')}</span>
               <input
                 type="date"
                 value={reportDate}
@@ -151,13 +153,13 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
           {/* Shift (only for SHIFT reports) */}
           {reportType === 'SHIFT' && (
             <div>
-              <span className="ui-label">Shift</span>
+              <span className="ui-label">{t('generate.shift')}</span>
               {defsLoading ? (
-                <p className="ui-help">Loading shifts…</p>
+                <p className="ui-help">{t('generate.loadingShifts')}</p>
               ) : shiftDefinitions.length === 0 ? (
-                <p className="text-xs text-bad">No shift definitions configured for this pump. Please set them up in pump settings first.</p>
+                <p className="text-xs text-bad">{t('generate.noShiftDefinitions')}</p>
               ) : (
-                <SearchableSelect label="Shift"
+                <SearchableSelect label={t('generate.shift')}
                   value={selectedShiftDefinitionId !== null ? String(selectedShiftDefinitionId) : ''}
                   onChange={v => setShiftDefinitionId(Number(v))}
                   options={shiftDefinitions.map(d => ({ value: String(d.id), label: `${d.name} · ${d.windowLabel}` }))}
@@ -169,12 +171,12 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
           {/* Notes */}
           <div>
             <label className="block">
-              <span className="ui-label">Notes <span className="text-ink-3">(optional)</span></span>
+              <span className="ui-label">{t('generate.notes')} <span className="text-ink-3">{t('generate.optional')}</span></span>
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 rows={2}
-                placeholder="Any remarks for this report…"
+                placeholder={t('generate.notesPlaceholder')}
                 className="resize-none shadow-sm"
               />
             </label>
@@ -183,13 +185,13 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
           {confirmRegenerate && (
             <div className="ui-alert ui-alert-warning px-4 py-3 space-y-3">
               <p className="text-sm text-warn-strong font-medium">
-                A balance sheet already exists for this period.
+                {t('generate.alreadyExists')}
               </p>
               {existingBsMsg && (
                 <p className="text-xs text-warn">{existingBsMsg}</p>
               )}
               <p className="text-xs text-warn">
-                If you can't see it in the list, widen the date filter. Do you want to generate a new revision instead? It will be saved as a separate entry (e.g. Shift 1 · 12 AM – 8 AM #2).
+                {t('generate.revisionHelp')}
               </p>
               <div className="flex gap-2">
                 <button
@@ -198,14 +200,14 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
                   className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-warn hover:bg-warn-strong text-white disabled:opacity-50"
                 >
                   {mutation.isPending
-                    ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Generating…</span>
-                    : 'Yes, generate revision'}
+                    ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />{t('generate.generating')}</span>
+                    : t('generate.confirmRevision')}
                 </button>
                 <button
                   onClick={() => setConfirmRegenerate(false)}
                   className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs text-warn border-warn hover:bg-warn-bg"
                 >
-                  Cancel
+                  {t('generate.cancel')}
                 </button>
               </div>
             </div>

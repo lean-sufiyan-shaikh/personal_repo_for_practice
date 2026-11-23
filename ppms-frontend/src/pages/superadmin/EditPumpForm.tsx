@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { PumpSummary, UpdatePumpRequest } from '../../api/superAdminApi'
 import { FormField } from '../../components/FormField'
@@ -13,12 +15,14 @@ interface EditPumpFormProps {
 }
 
 export function EditPumpForm({ pump, isSaving, error, onSave }: EditPumpFormProps) {
+  const { t } = useTranslation('superadmin')
+  const schema = useMemo(() => editPumpSchema(t), [t])
   const {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     formState: { errors: editErrors },
   } = useForm<EditPumpFormInput, unknown, EditPumpFormData>({
-    resolver: zodResolver(editPumpSchema),
+    resolver: zodResolver(schema),
     defaultValues: { pumpName: pump.pumpName, pumpAddress: pump.pumpAddress },
   })
 
@@ -31,14 +35,14 @@ export function EditPumpForm({ pump, isSaving, error, onSave }: EditPumpFormProp
       onSubmit={handleSubmitEdit(onEditPumpSubmit)}
       className="mt-2 ui-card-plain bg-surface border-info p-3 space-y-2"
     >
-      <FormField label="Pump Name" error={editErrors.pumpName?.message}>
+      <FormField label={t('fields.pumpName')} error={editErrors.pumpName?.message}>
         <input
           {...registerEdit('pumpName')}
           type="text"
           className="text-xs min-h-10"
         />
       </FormField>
-      <FormField label="Pump Address" error={editErrors.pumpAddress?.message}>
+      <FormField label={t('fields.pumpAddress')} error={editErrors.pumpAddress?.message}>
         <input
           {...registerEdit('pumpAddress')}
           type="text"
@@ -53,7 +57,7 @@ export function EditPumpForm({ pump, isSaving, error, onSave }: EditPumpFormProp
         disabled={isSaving}
         className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs"
       >
-        {isSaving ? 'Saving…' : 'Save Changes'}
+        {isSaving ? t('pump.saving') : t('pump.saveChanges')}
       </button>
     </form>
   )

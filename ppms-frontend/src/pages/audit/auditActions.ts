@@ -1,82 +1,11 @@
 import type { AuditAction } from '../../api/auditApi'
 import type { StatusTone } from '../../components/StatusBadge'
+import { codeLabel } from '../../constants/labels'
+import { translateKey } from '../../i18n'
 
-export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
-  // User management
-  USER_CREATED:                       'Staff added',
-  USER_UPDATED:                       'Staff updated',
-  USER_DEACTIVATED:                   'Staff deactivated',
-  USER_STATUS_CHANGED:                'Staff status changed',
-  PASSWORD_RESET:                     'Password reset',
-  USER_PUMP_CHANGED:                  'Staff moved to another pump',
-  // Authentication
-  LOGIN:                              'Signed in',
-  LOGIN_FAILED:                       'Sign-in failed',
-  TOKEN_REVOKED:                      'Session ended',
-  // Fuel pricing
-  FUEL_PRICE_UPDATED:                 'Fuel price updated',
-  // Shift lifecycle
-  SHIFT_OPENED:                       'Shift opened',
-  SHIFT_CLOSED:                       'Shift closed',
-  SHIFT_BACKFILLED:                   'Past shift entered',
-  DISCREPANCY_RESOLVED:               'Discrepancy resolved',
-  DISCREPANCY_INVESTIGATION_STARTED:  'Discrepancy investigation started',
-  // Credit management
-  CREDIT_ENTRY_VOIDED:                'Credit entry voided',
-  CREDIT_LIMIT_CHANGED:               'Credit limit changed',
-  CREDIT_PAYMENT_RECEIVED:            'Credit payment received',
-  INTEREST_APPLIED:                   'Interest applied',
-  INTEREST_CHARGE_WAIVED:             'Interest waived',
-  INTEREST_SETTINGS_CHANGED:          'Interest settings changed',
-  CREDIT_CLIENT_CREATED:              'Credit customer added',
-  CREDIT_CLIENT_DELETED:              'Credit customer deleted',
-  CREDIT_ENTRY_REASSIGNED:            'Credit entry reassigned',
-  CREDIT_INVOICE_ISSUED:              'Tax invoice issued',
-  CREDIT_INVOICE_CANCELLED:           'Tax invoice cancelled',
-  CREDIT_EXTENSION_GRANTED:           'Credit extension granted',
-  CREDIT_EXTENSION_REVOKED:           'Credit extension revoked',
-  INTEREST_RECALCULATED:              'Interest recalculated',
-  // Inventory
-  DELIVERY_RECORDED:                  'Fuel delivery recorded',
-  DELIVERY_UPDATED:                   'Fuel delivery updated',
-  DELIVERY_DELETED:                   'Fuel delivery deleted',
-  LOT_COST_CORRECTED:                 'Fuel cost corrected',
-  DIP_CHECK_RECORDED:                 'Dip check recorded',
-  // Documents
-  DOCUMENT_ADDED:                     'Document added',
-  // Expenses
-  EXPENSE_RECORDED:                   'Expense recorded',
-  EXPENSE_APPROVED:                   'Expense approved',
-  EXPENSE_REJECTED:                   'Expense rejected',
-  // Payroll
-  PAYROLL_APPROVED:                   'Payroll approved',
-  PAYROLL_DELETED:                    'Payroll deleted',
-  // Pump management
-  PUMP_CREATED:                       'Pump created',
-  PUMP_DELETED:                       'Pump deleted',
-  PUMP_UPDATED:                       'Pump updated',
-  PUMP_SUSPENDED:                     'Pump suspended',
-  PUMP_ENABLED:                       'Pump enabled',
-  OWNER_ONBOARDED:                    'Owner onboarded',
-  NOZZLE_ADDED:                       'Nozzle added',
-  CALIBRATION_LOGGED:                 'Nozzle calibration logged',
-  TANK_ADDED:                         'Tank added',
-  // Ancillary products
-  ANCILLARY_SALE_RECORDED:            'Product sale recorded',
-  ANCILLARY_PRICE_OVERRIDDEN:         'Product price overridden',
-  ANCILLARY_SALE_BACKFILLED:          'Past product sale entered',
-  ANCILLARY_DELIVERY_RECORDED:        'Product delivery recorded',
-  ANCILLARY_DELIVERY_BACKFILLED:      'Past product delivery entered',
-  // Operations
-  HANDOVER_COMPLETED:                 'Shift handed over',
-  PUMP_CLOSURE_ADDED:                 'Pump closure added',
-  BANK_STATEMENT_IMPORTED:            'Bank statement imported',
-  SUPPLIER_PAYMENT_RECORDED:          'Supplier payment recorded',
-  PUMP_CONFIG_UPDATED:                'Pump settings updated',
-  // Payment settlements
-  SETTLEMENT_RECORDED:                'Settlement recorded',
-  SETTLEMENT_VOIDED:                  'Settlement voided',
-  SETTLEMENT_CONFIG_UPDATED:          'Settlement alerts updated',
+/** The action in the user's language; an action the frontend does not know yet falls back to its code in words. */
+export function auditActionLabel(action: string): string {
+  return translateKey(`audit:actions.${action}`, { defaultValue: codeLabel(action) })
 }
 
 export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {

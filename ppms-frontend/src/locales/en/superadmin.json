@@ -1,1 +1,109 @@
-{}
+{
+  "header": {
+    "portal": "Super Admin Portal",
+    "tagline": "Platform management — onboard new pump owners",
+    "role": "Super Admin",
+    "openProfileMenu": "Open profile menu",
+    "resetPassword": "Reset Password",
+    "loggingOut": "Logging out...",
+    "logout": "Logout",
+    "passwordUpdated": "Password updated successfully. Please log in with your new password."
+  },
+  "page": {
+    "title": "Platform administration",
+    "pumpOwners": "Pump Owners",
+    "pumps": "Pumps",
+    "staffMembers": "Staff Members",
+    "copiedCredentials": "PPMS Login Credentials\nPhone: {{phone}}\nPassword: {{password}}\nPump: {{pump}}"
+  },
+  "created": {
+    "title": "Owner account created — share these login details",
+    "body": "{{name}} can now log in and set up their pump.",
+    "phone": "Phone",
+    "password": "Password",
+    "hidePassword": "Hide password",
+    "revealPassword": "Reveal password",
+    "hide": "Hide",
+    "show": "Show",
+    "pump": "Pump",
+    "employeeId": "Employee ID",
+    "copy": "Copy",
+    "dismiss": "Dismiss"
+  },
+  "fields": {
+    "pumpName": "Pump Name",
+    "pumpAddress": "Pump Address",
+    "addressPlaceholder": "Full address",
+    "maxDuCount": "Max DU Count",
+    "maxDuPlaceholder": "e.g. 4"
+  },
+  "onboard": {
+    "title": "Onboard New Owner",
+    "subtitle": "Creates the owner account and their first pump.",
+    "ownerDetails": "Owner Details",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "e.g. Ramesh Sharma",
+    "phoneNumber": "Phone Number",
+    "phonePlaceholder": "10-digit mobile number",
+    "initialPassword": "Initial Password",
+    "passwordPlaceholder": "Min. 6 characters",
+    "pumpDetails": "Pump Details",
+    "pumpNamePlaceholder": "e.g. Sharma Petrol Station",
+    "creating": "Creating...",
+    "submit": "Create Owner & Pump",
+    "failed": "Failed to create owner. Please try again."
+  },
+  "owners": {
+    "title": "Onboarded Owners",
+    "subtitle": "All pump owners currently on the platform.",
+    "count_one": "{{count}} owner",
+    "count_other": "{{count}} owners",
+    "empty": "No owners yet.",
+    "emptyHint": "Use the form to onboard your first pump owner.",
+    "statusActive": "active",
+    "statusInactive": "inactive",
+    "pumpCount_one": "{{count}} pump",
+    "pumpCount_other": "{{count}} pumps",
+    "disabledCount": "· {{value}} disabled",
+    "resetPassword": "Reset Password",
+    "cancel": "Cancel",
+    "addPump": "Add Pump",
+    "noPumps": "No pumps added yet.",
+    "idLabel": "ID:",
+    "joined": "Joined {{date}}",
+    "updatePumpFailed": "Failed to update pump. Please try again."
+  },
+  "addPump": {
+    "title": "Add a new pump for {{name}}",
+    "copy": "Create another managed location under this owner without leaving the owner list.",
+    "pumpNamePlaceholder": "e.g. Jatin Petrol Station 2",
+    "adding": "Adding…",
+    "submit": "Add Pump",
+    "failed": "Failed to add pump. Please try again."
+  },
+  "pump": {
+    "disabled": "disabled",
+    "staff": "{{value}} staff",
+    "setup": "Setup {{done}} of {{required}} done",
+    "edit": "Edit",
+    "disable": "Disable",
+    "enable": "Enable",
+    "saving": "Saving…",
+    "saveChanges": "Save Changes"
+  },
+  "validation": {
+    "pumpNameRequired": "Pump name is required",
+    "pumpAddressRequired": "Pump address is required",
+    "atLeastOne": "Must be at least 1",
+    "atMostTwenty": "Cannot exceed 20",
+    "fullNameRequired": "Full name is required",
+    "phoneLength": "Phone number must be exactly 10 digits",
+    "digitsOnly": "Must be digits only",
+    "passwordLength": "Password must be at least 8 characters",
+    "passwordUppercase": "Must contain at least one uppercase letter",
+    "passwordLowercase": "Must contain at least one lowercase letter",
+    "passwordDigit": "Must contain at least one digit",
+    "atLeastOneDu": "Must be at least 1 DU",
+    "atMostTwentyDus": "Cannot exceed 20 DUs"
+  }
+}

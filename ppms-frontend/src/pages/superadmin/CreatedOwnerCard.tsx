@@ -1,4 +1,5 @@
 import { Check, X, Eye, EyeOff } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { OnboardOwnerResponse } from '../../api/superAdminApi'
 import { IconButton } from '../../components/IconButton'
 import { CredentialField } from './CredentialField'
@@ -12,6 +13,7 @@ interface CreatedOwnerCardProps {
 }
 
 export function CreatedOwnerCard({ createdOwner, revealedPassword, onToggleReveal, onCopy, onDismiss }: CreatedOwnerCardProps) {
+  const { t } = useTranslation('superadmin')
   const showPassword = revealedPassword !== null
 
   return (
@@ -21,30 +23,30 @@ export function CreatedOwnerCard({ createdOwner, revealedPassword, onToggleRevea
           <Check size={18} strokeWidth={2.5} className="text-ok mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-ok mb-1">
-              Owner account created — share these login details
+              {t('created.title')}
             </p>
             <p className="text-xs text-ok mb-3">
-              {createdOwner.fullName} can now log in and set up their pump.
+              {t('created.body', { name: createdOwner.fullName })}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <CredentialField label="Phone" value={createdOwner.phoneNumber} />
+              <CredentialField label={t('created.phone')} value={createdOwner.phoneNumber} />
               <div className="ui-card-plain bg-surface border-ok px-3 py-2">
                 <div className="flex items-center justify-between mb-0.5">
-                  <p className="text-xs text-ok">Password</p>
+                  <p className="text-xs text-ok">{t('created.password')}</p>
                   <button
                     onClick={onToggleReveal}
                     className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-ok hover:underline"
-                    title={showPassword ? 'Hide password' : 'Reveal password'}
+                    title={showPassword ? t('created.hidePassword') : t('created.revealPassword')}
                   >
-                    {showPassword ? <span className="inline-flex items-center gap-1"><EyeOff size={12} strokeWidth={2} />Hide</span> : <span className="inline-flex items-center gap-1"><Eye size={12} strokeWidth={2} />Show</span>}
+                    {showPassword ? <span className="inline-flex items-center gap-1"><EyeOff size={12} strokeWidth={2} />{t('created.hide')}</span> : <span className="inline-flex items-center gap-1"><Eye size={12} strokeWidth={2} />{t('created.show')}</span>}
                   </button>
                 </div>
                 <p className="text-sm font-semibold text-ink font-mono break-all">
                   {revealedPassword ?? '••••••••'}
                 </p>
               </div>
-              <CredentialField label="Pump" value={createdOwner.pumpName} />
-              <CredentialField label="Employee ID" value={createdOwner.employeeId} />
+              <CredentialField label={t('created.pump')} value={createdOwner.pumpName} />
+              <CredentialField label={t('created.employeeId')} value={createdOwner.employeeId} />
             </div>
           </div>
         </div>
@@ -53,12 +55,12 @@ export function CreatedOwnerCard({ createdOwner, revealedPassword, onToggleRevea
             onClick={onCopy}
             className="ui-btn ui-btn-secondary text-xs border-ok text-ok hover:bg-ok-bg"
           >
-            Copy
+            {t('created.copy')}
           </button>
           <IconButton
             onClick={onDismiss}
             className="ui-btn ui-btn-ghost"
-            label="Dismiss"
+            label={t('created.dismiss')}
             icon={<X size={14} strokeWidth={2} />}
           />
         </div>
