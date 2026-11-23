@@ -230,13 +230,13 @@ public class UserService {
             throw new BusinessException(
                     user.getFullName() + " has an open shift. Close the shift before deactivating (Business Rule 45).");
         }
-        if (shiftRepository.hasUnresolvedDiscrepancy(user.getId())) {
-            throw new BusinessException(
-                    user.getFullName() + " has unresolved shift discrepancies. Resolve all pending discrepancies before deactivating (Business Rule 30).");
-        }
         if (shiftRepository.hasDiscrepancyPendingApproval(user.getId())) {
             throw new BusinessException(
                     user.getFullName() + " has a shift discrepancy waiting for approval. Approve or reject it before deactivating (Business Rule 30).");
+        }
+        if (shiftRepository.hasUnresolvedDiscrepancy(user.getId())) {
+            throw new BusinessException(
+                    user.getFullName() + " has unresolved shift discrepancies. Resolve all pending discrepancies before deactivating (Business Rule 30).");
         }
     }
 
