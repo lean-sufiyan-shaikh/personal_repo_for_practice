@@ -41,6 +41,16 @@ export function removeDraft(name: string): void {
   }
 }
 
+/** Pump phones are shared, so drafts must not outlive the session that typed them. */
+export function removeAllDrafts(): void {
+  try {
+    const draftKeys = Object.keys(localStorage).filter((key) => key.startsWith(DRAFT_PREFIX))
+    draftKeys.forEach((key) => localStorage.removeItem(key))
+  } catch (error) {
+    console.warn('Could not remove saved drafts at sign-out.', error)
+  }
+}
+
 /** Saves a form's entries shortly after each change; when `shouldSave` is false (empty form, or already submitted) the draft is removed. */
 export function useSaveDraft<T>(name: string, values: T, shouldSave: boolean) {
   const serializedValues = JSON.stringify(values)

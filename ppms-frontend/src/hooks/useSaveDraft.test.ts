@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { readDraft, removeDraft, useSaveDraft, writeDraft } from './useSaveDraft'
+import { readDraft, removeAllDrafts, removeDraft, useSaveDraft, writeDraft } from './useSaveDraft'
 
 describe('draft storage', () => {
   it('reads back what was written, with the time it was saved', () => {
@@ -31,6 +31,19 @@ describe('draft storage', () => {
     writeDraft('form:1', { cash: '500' })
     removeDraft('form:1')
     expect(readDraft('form:1')).toBeNull()
+  })
+
+  it('removes every draft but leaves other saved settings alone', () => {
+    writeDraft('close-shift:1', { cash: '500' })
+    writeDraft('credit-entry:2', { amount: '90' })
+    localStorage.setItem('ppms_selected_pump', '1')
+
+    removeAllDrafts()
+
+    expect(readDraft('close-shift:1')).toBeNull()
+    expect(readDraft('credit-entry:2')).toBeNull()
+    expect(localStorage.getItem('ppms_selected_pump')).toBe('1')
+    localStorage.removeItem('ppms_selected_pump')
   })
 })
 
