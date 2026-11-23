@@ -51,7 +51,19 @@
   },
   "topbar": {
     "skipToContent": "मुख्य सामग्री पर जाएँ",
-    "currentTime": "अभी का समय: {{value}}"
+    "currentTime": "अभी का समय: {{value}}",
+    "shift": {
+      "name": "{{name}} शिफ्ट",
+      "endsIn": "{{value}} में खत्म",
+      "hours": "{{hours}} घं",
+      "minutes": "{{minutes}} मि",
+      "hoursMinutes": "{{hours}} घं {{minutes}} मि",
+      "open_one": "{{count}} चालू",
+      "open_other": "{{count}} चालू",
+      "summary": "अभी की शिफ्ट: {{name}}, {{value}} में खत्म होगी। शिफ्ट देखें।",
+      "openSummary_one": "{{count}} शिफ्ट चालू है।",
+      "openSummary_other": "{{count}} शिफ्ट चालू हैं।"
+    }
   },
   "pumpSwitcher": {
     "switchTo": "{{name}} पर जाएँ"

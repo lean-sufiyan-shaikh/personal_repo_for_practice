@@ -91,3 +91,54 @@ describe('NotificationBell', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/dashboard/notifications'))
   })
 })
+
+describe('NotificationBell motion', () => {
+  beforeEach(() => {
+    useAuthStore.setState({ user: { userId: 1, fullName: 'Owner', role: 'OWNER', assignedPumpId: null }, isAuthenticated: true })
+  })
+
+  function renderBellWithClient() {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const router = createMemoryRouter([{ path: '/', element: <NotificationBell pumpId={4} /> }])
+    const { container } = render(
+      <QueryClientProvider client={queryClient}><RouterProvider router={router} /></QueryClientProvider>,
+    )
+    const refetch = () => queryClient.refetchQueries({ queryKey: ['notifications', 4] })
+    return { container, refetch }
+  }
+
+  function unread(count: number) {
+    return { notifications: [notification({ id: count })], unreadCount: count }
+  }
+
+  it('rings the bell and pops the badge only when the unread count rises, not on first load', async () => {
+    vi.mocked(notificationApi.getNotifications).mockResolvedValueOnce(unread(2))
+    const { container, refetch } = renderBellWithClient()
+    await screen.findByRole('button', { name: 'Notifications, 2 unread' })
+    expect(container.querySelector('.ui-notification-bell__icon--ring')).not.toBeInTheDocument()
+    expect(container.querySelector('.ui-notification-bell__badge--pop')).not.toBeInTheDocument()
+
+    vi.mocked(notificationApi.getNotifications).mockResolvedValueOnce(unread(2))
+    await refetch()
+    expect(container.querySelector('.ui-notification-bell__icon--ring')).not.toBeInTheDocument()
+
+    vi.mocked(notificationApi.getNotifications).mockResolvedValueOnce(unread(3))
+    await refetch()
+    await screen.findByRole('button', { name: 'Notifications, 3 unread' })
+    expect(container.querySelector('.ui-notification-bell__icon--ring')).toBeInTheDocument()
+    expect(container.querySelector('.ui-notification-bell__badge--pop')).toHaveTextContent('3')
+  })
+
+  it('stays still when the unread count falls', async () => {
+    vi.mocked(notificationApi.getNotifications).mockResolvedValueOnce(unread(3))
+    const { container, refetch } = renderBellWithClient()
+    await screen.findByRole('button', { name: 'Notifications, 3 unread' })
+
+    vi.mocked(notificationApi.getNotifications).mockResolvedValueOnce(unread(1))
+    await refetch()
+    await screen.findByRole('button', { name: 'Notifications, 1 unread' })
+
+    expect(container.querySelector('.ui-notification-bell__icon--ring')).not.toBeInTheDocument()
+    expect(container.querySelector('.ui-notification-bell__badge--pop')).not.toBeInTheDocument()
+  })
+})

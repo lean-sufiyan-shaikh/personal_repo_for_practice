@@ -14,6 +14,7 @@ vi.mock('../../components/NotificationBell', () => ({ default: () => <span>Notif
 vi.mock('../../components/Toast', () => ({ ToastContainer: () => null }))
 vi.mock('./layout/DashboardSidebar', () => ({ DashboardSidebar: () => <nav aria-label="Main" />, DASHBOARD_NAV_ID: 'dashboard-navigation' }))
 vi.mock('./layout/UserProfileArea', () => ({ UserProfileArea: () => null }))
+vi.mock('./layout/TopBarShiftChip', () => ({ TopBarShiftChip: () => null }))
 vi.mock('./layout/RouteOutlet', () => ({ RouteOutlet: () => <p>Page content</p> }))
 
 const highway = { id: 4, name: 'Highway Pump', createdAt: '2026-01-01T00:00:00Z' } as PumpSummary

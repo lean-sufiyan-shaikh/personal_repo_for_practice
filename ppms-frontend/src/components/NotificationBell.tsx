@@ -36,6 +36,14 @@ export default function NotificationBell({ pumpId }: Props) {
   const unreadCount   = data?.unreadCount ?? 0
   const groups        = groupIdenticalNotifications(notifications)
 
+  // Each rise in the unread count (not the first load, nor a pump switch) remounts the icon and badge to replay their animation.
+  const [lastSeenUnread, setLastSeenUnread] = useState<{ pumpId: number; count: number } | null>(null)
+  const [ringCount, setRingCount] = useState(0)
+  if (data && (lastSeenUnread?.pumpId !== pumpId || lastSeenUnread.count !== unreadCount)) {
+    if (lastSeenUnread?.pumpId === pumpId && unreadCount > lastSeenUnread.count) setRingCount(ringCount + 1)
+    setLastSeenUnread({ pumpId, count: unreadCount })
+  }
+
   const markReadMutation = useMutation({
     mutationFn: (ids: number[]) => notificationApi.markRead(pumpId, ids),
     onSuccess:  () => {
@@ -82,9 +90,11 @@ export default function NotificationBell({ pumpId }: Props) {
         aria-controls={open ? panelId : undefined}
         className="ui-notification-bell relative inline-flex h-10 w-10 items-center justify-center rounded-card border border-white/10 bg-white/5 text-on-dark-2 shadow-sm hover:border-white/20 hover:bg-white/10 hover:text-white"
       >
-        <Bell size={18} strokeWidth={1.75} />
+        <span key={`icon-${ringCount}`} className={`inline-flex ${ringCount > 0 ? 'ui-notification-bell__icon--ring' : ''}`}>
+          <Bell size={18} strokeWidth={1.75} />
+        </span>
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-bad text-white text-xs font-bold rounded-full flex items-center justify-center leading-none">
+          <span key={`badge-${ringCount}`} className={`absolute -top-0.5 -right-0.5 w-4 h-4 bg-bad text-white text-xs font-bold rounded-full flex items-center justify-center leading-none ${ringCount > 0 ? 'ui-notification-bell__badge--pop' : ''}`}>
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}

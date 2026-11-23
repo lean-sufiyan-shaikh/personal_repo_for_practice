@@ -51,7 +51,19 @@
   },
   "topbar": {
     "skipToContent": "Skip to main content",
-    "currentTime": "Current time: {{value}}"
+    "currentTime": "Current time: {{value}}",
+    "shift": {
+      "name": "{{name}} shift",
+      "endsIn": "ends in {{value}}",
+      "hours": "{{hours}}h",
+      "minutes": "{{minutes}}m",
+      "hoursMinutes": "{{hours}}h {{minutes}}m",
+      "open_one": "{{count}} open",
+      "open_other": "{{count}} open",
+      "summary": "Current shift: {{name}}, ends in {{value}}. View shifts.",
+      "openSummary_one": "{{count}} shift open.",
+      "openSummary_other": "{{count}} shifts open."
+    }
   },
   "pumpSwitcher": {
     "switchTo": "Switch to {{name}}"
