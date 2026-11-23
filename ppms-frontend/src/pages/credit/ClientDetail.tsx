@@ -21,6 +21,7 @@ import { LedgerWeekGroups } from './LedgerWeekGroups'
 import type { LedgerRowActions } from './LedgerWeekGroups'
 import { ReassignCreditEntryModal } from './modals/ReassignCreditEntryModal'
 import { RecordPaymentModal } from './modals/RecordPaymentModal'
+import { StatementModal } from './modals/StatementModal'
 import { SetInterestSettingsModal } from './modals/SetInterestSettingsModal'
 import { WaiveInterestModal } from './modals/WaiveInterestModal'
 import { useClientLedger } from './useClientLedger'
@@ -42,6 +43,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showInterestSettingsModal, setShowInterestSettingsModal] = useState(false)
   const [showExtensionModal, setShowExtensionModal] = useState(false)
+  const [showStatementModal, setShowStatementModal] = useState(false)
   const [revokingExtension, setRevokingExtension] = useState<CreditExtension | null>(null)
   const [applyInterestFeedback, setApplyInterestFeedback] = useState<string | null>(null)
   const [reassignEntryId,         setReassignEntryId]         = useState<number | null>(null)
@@ -208,6 +210,17 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
         />
       )}
 
+      {showStatementModal && (
+        <StatementModal
+          pumpId={pumpId}
+          clientId={client.id}
+          clientName={client.name}
+          phone={client.phone}
+          outstanding={effectiveOutstandingBalance}
+          onClose={() => setShowStatementModal(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="p-6 pb-4">
         <button
@@ -235,6 +248,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
             onApplyInterest={() => { setApplyInterestFeedback(null); applyInterestMutation.mutate() }}
             onGrantExtension={() => setShowExtensionModal(true)}
             onRecordPayment={() => setShowPaymentModal(true)}
+            onOpenStatement={() => setShowStatementModal(true)}
           />
         </div>
 

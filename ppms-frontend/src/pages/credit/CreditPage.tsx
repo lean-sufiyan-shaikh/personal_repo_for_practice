@@ -34,7 +34,7 @@ export default function CreditPage() {
     searchParams.get('tab') === 'clients' || !canSeeLedger ? 'clients' : 'ledger'
   const setActiveTab = (tab: 'ledger' | 'clients') => setSearchParams({ tab }, { replace: true })
 
-  const openClient = (client: CreditClient) =>
+  const openClient = (client: Pick<CreditClient, 'id'>) =>
     navigate(`${CREDIT_PATH}/${client.id}`, { state: { fromCreditList: true } })
 
   const backToList = () => {
@@ -57,7 +57,7 @@ export default function CreditPage() {
   // The ledger endpoint may not populate parentClientId, so we use this for grouping.
   const { data: allCreditClients = [] } = useQuery({
     queryKey: ['creditClients', pumpId],
-    queryFn:  () => pumpApi.getCreditClients(pumpId!),
+    queryFn:  () => pumpApi.getCreditClientAccounts(pumpId!),
     enabled:  !!pumpId,
   })
 
@@ -140,7 +140,6 @@ export default function CreditPage() {
         <LedgerTab
           pumpId={pumpId}
           clients={clients}
-          allCreditClients={allCreditClients}
           isLoading={isLoading}
           hasError={!!error}
           canAdjustLimit={canAdjustLimit}

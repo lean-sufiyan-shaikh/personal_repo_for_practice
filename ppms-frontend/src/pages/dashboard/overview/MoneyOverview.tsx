@@ -6,7 +6,7 @@ import { creditApi } from '../../../api/creditApi'
 import { expenseApi } from '../../../api/expenseApi'
 import { paymentSettlementApi } from '../../../api/paymentSettlementApi'
 import { Reveal } from '../../../components/Reveal'
-import { canPerformAction } from '../../../permissions/permissions'
+import { canAccessPage, canPerformAction } from '../../../permissions/permissions'
 import { useAuthStore } from '../../../store/authStore'
 import { formatCurrency } from '../../../utils/format'
 
@@ -69,7 +69,8 @@ export function MoneyOverview({ pumpId }: { pumpId: number }) {
           value={cash ? formatCurrency(cash.currentBalance) : undefined} note="Current drawer balance" />
         <MoneyTile to="/dashboard/credit" icon={CreditCard} label="Credit outstanding"
           value={creditOutstanding != null ? formatCurrency(creditOutstanding) : undefined} note="Owed by credit clients" />
-        <MoneyTile to="/dashboard/expenses" icon={ClipboardCheck} label="Waiting for approval"
+        <MoneyTile to={canAccessPage('approvals', role) ? '/dashboard/approvals' : '/dashboard/expenses'}
+          icon={ClipboardCheck} label="Waiting for approval"
           value={waitingCount != null ? String(waitingCount) : undefined}
           note={canApprovePayments ? 'Expenses and credit payments' : 'Expenses'} />
         <MoneyTile to="/dashboard/settlements" icon={Landmark} label="Not yet settled"

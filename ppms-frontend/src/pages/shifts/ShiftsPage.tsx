@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronDown, Plus, History } from 'lucide-react'
 import { shiftApi } from '../../api/shiftApi'
 import { pumpApi } from '../../api/pumpApi'
@@ -23,6 +23,8 @@ import { ScrollRegion } from '../../components/ScrollRegion'
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
+type HistoryTab = 'day' | 'all' | 'discrepancies'
+
 export default function ShiftsPage() {
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
@@ -39,7 +41,10 @@ export default function ShiftsPage() {
   const [shiftToHandOver,   setShiftToHandOver]   = useState<Shift | null>(null)
   const [shiftIdForCredit,  setShiftIdForCredit]  = useState<number | null>(null)
   const [historyOpen,    setHistoryOpen]    = useState(true)
-  const [historyTab,     setHistoryTab]     = useState<'day' | 'all' | 'discrepancies'>('day')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const historyTab: HistoryTab = historyTabs.find(tab => tab === searchParams.get('history')) ?? 'day'
+  const setHistoryTab = (tab: HistoryTab) =>
+    setSearchParams(tab === 'day' ? {} : { history: tab }, { replace: true })
   const [closedShiftPrefill, setClosedShiftPrefill] = useState<{ duId: number; nozzleIds: number[] } | null>(null)
 
   const { data: rawPumps = [], isLoading: pumpsLoading } = useQuery({

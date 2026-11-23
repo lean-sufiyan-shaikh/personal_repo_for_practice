@@ -161,6 +161,27 @@ class CreditClientStandingIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void operatorReadsOnlyWhatTheClientPickerNeedsFromTheClientList() throws Exception {
+        long parentId = createClient(null);
+        long childId = createClient(parentId);
+        setCreditLimit(parentId, "1000.00");
+        sellOnCredit(childId, "250.00");
+
+        JsonNode operatorView = clientOf(childId, setup.operator());
+        JsonNode managerView = clientOf(childId, setup.manager());
+
+        assertThat(operatorView.fieldNames()).toIterable().containsExactlyInAnyOrder(
+                "id", "pumpId", "name", "phone", "parentClientId", "parentClientName", "isParent", "isActive");
+        assertThat(operatorView.get("parentClientId").asLong()).isEqualTo(parentId);
+        assertThat(operatorView.get("isActive").asBoolean()).isTrue();
+        assertThat(clientOf(parentId, setup.operator()).get("isParent").asBoolean()).isTrue();
+        assertThat(managerView.get("outstandingBalance").decimalValue()).isEqualByComparingTo("250.00");
+        assertThat(managerView.has("creditLimit")).isTrue();
+        assertThat(managerView.has("gstin")).isTrue();
+        assertThat(clientOf(childId, setup.accountant()).has("outstandingBalance")).isTrue();
+    }
+
+    @Test
     void ownerOfAnotherPumpCannotReadTheStanding() throws Exception {
         PumpSetup otherPump = createPumpWithStock("0");
 
@@ -177,6 +198,17 @@ class CreditClientStandingIntegrationTest extends ApiIntegrationTest {
             }
         }
         throw new AssertionError("Client " + clientId + " missing from the credit standing");
+    }
+
+    private JsonNode clientOf(long clientId, User reader) throws Exception {
+        JsonNode clients = json(perform(get("/api/pumps/{pumpId}/credit-clients", setup.pumpId()), reader)
+                .andExpect(status().isOk()));
+        for (JsonNode client : clients) {
+            if (client.get("id").asLong() == clientId) {
+                return client;
+            }
+        }
+        throw new AssertionError("Client " + clientId + " missing from the client list");
     }
 
     private long createClient(Long parentClientId) throws Exception {

@@ -244,8 +244,8 @@ describe('CloseShiftModal', () => {
   it('corrects a pre-recorded credit entry by closing, without voiding it first', async () => {
     const user = userEvent.setup()
     vi.mocked(pumpApi.getCreditClients).mockResolvedValue([{
-      id: 3, pumpId: 3, name: 'Acme', phone: null, notes: null, createdAt: '2026-01-01T00:00:00Z',
-      parentClientId: null, parentClientName: null, isParent: false, isActive: true, hasPortalPin: false,
+      id: 3, pumpId: 3, name: 'Acme', phone: null,
+      parentClientId: null, parentClientName: null, isParent: false, isActive: true,
     }])
     const recordedEntry = {
       id: 41, clientId: 3, clientName: 'Acme', billNo: null, amount: 200, fuelType: 'PETROL',

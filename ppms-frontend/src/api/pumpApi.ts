@@ -67,13 +67,12 @@ export interface UpdateTankRequest {
   tankIdentifier?: string
 }
 
-export interface CreditClient {
+/** What every role can read about a client, and all an operator gets: enough to pick one for a credit sale. */
+export interface CreditClientSummary {
   id: number
   pumpId: number
   name: string
   phone: string | null
-  notes: string | null
-  createdAt: string
   /** Null for root/parent accounts. Non-null when this is a sub-account. */
   parentClientId: number | null
   /** Human-readable parent name. Null for root accounts. */
@@ -82,6 +81,12 @@ export interface CreditClient {
   isParent: boolean
   /** False when the client has been soft-disabled. */
   isActive: boolean
+}
+
+/** The full account, for roles that can open the Credit page. */
+export interface CreditClient extends CreditClientSummary {
+  notes: string | null
+  createdAt: string
   /** True when the client can check their balance on the public portal. The PIN itself is never returned. */
   hasPortalPin: boolean
   /** Null for an unregistered (B2C) client. */
@@ -242,7 +247,12 @@ export const pumpApi = {
 
   // ── Credit clients ─────────────────────────────────────────────────────────
 
+  // Operators get only the summary, so pickers that operators use read this
   getCreditClients: (pumpId: number) =>
+    client.get<CreditClientSummary[]>(`/pumps/${pumpId}/credit-clients`).then((r) => r.data),
+
+  // Same list with every account detail; only for roles that can open the Credit page
+  getCreditClientAccounts: (pumpId: number) =>
     client.get<CreditClient[]>(`/pumps/${pumpId}/credit-clients`).then((r) => r.data),
 
   getCreditStanding: (pumpId: number) =>

@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import { expenseApi } from '../../api/expenseApi'
-import type { ExpenseCategory, ApproveExpenseRequest, ExpenseApprovalStatus } from '../../api/expenseApi'
+import type { ExpenseCategory, ApproveExpenseRequest, ExpenseApprovalStatus, PumpExpense } from '../../api/expenseApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonTable } from '../../components/Skeleton'
@@ -11,6 +12,7 @@ import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { formatCurrency } from '../../utils/format'
 import { ConfirmButton } from '../../components/ConfirmButton'
+import { RejectReasonDialog } from '../../components/RejectReasonDialog'
 import { CATEGORIES, CATEGORY_COLORS, fmtDate } from './expenseFormat'
 import type { ExpenseListState } from './useExpenseList'
 import { codeLabel } from '../../constants/labels'
@@ -48,15 +50,29 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
     onError: (err) => addToast(parseApiError(err, 'Failed to delete expense'), 'error'),
   })
 
+  const [rejectingExpense, setRejectingExpense] = useState<PumpExpense | null>(null)
+  const [rejectError, setRejectError] = useState<string | null>(null)
+
   const approveMutation = useMutation({
     mutationFn: ({ expenseId, data }: { expenseId: number; data: ApproveExpenseRequest }) =>
       expenseApi.approveExpense(pumpId!, expenseId, data),
     onSuccess: (_, { data }) => {
       qc.invalidateQueries({ queryKey: ['expenses', pumpId] })
+      qc.invalidateQueries({ queryKey: ['approvals', pumpId] })
+      setRejectingExpense(null)
       addToast(`Expense ${data.action === 'APPROVED' ? 'approved' : 'rejected'}`, data.action === 'APPROVED' ? 'success' : 'warning')
     },
-    onError: (err) => addToast(parseApiError(err, 'Failed to update expense'), 'error'),
+    onError: (err, { data }) => {
+      const message = parseApiError(err, 'Failed to update expense')
+      if (data.action === 'REJECTED') setRejectError(message)
+      else addToast(message, 'error')
+    },
   })
+
+  const openRejectDialog = (expense: PumpExpense) => {
+    setRejectError(null)
+    setRejectingExpense(expense)
+  }
 
   const isOwner        = user?.role === 'OWNER'
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
@@ -64,6 +80,18 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
 
   return (
     <Reveal delay={240}>
+    {rejectingExpense && (
+      <RejectReasonDialog
+        title="Reject Expense"
+        subtitle={`${codeLabel(rejectingExpense.category)} · ${formatCurrency(rejectingExpense.amount)} · ${rejectingExpense.description}`}
+        isPending={approveMutation.isPending}
+        error={rejectError}
+        onConfirm={(reason) => approveMutation.mutate({
+          expenseId: rejectingExpense.id, data: { action: 'REJECTED', notes: reason },
+        })}
+        onClose={() => setRejectingExpense(null)}
+      />
+    )}
     <div className="ui-card p-0 overflow-hidden">
       <div className="ui-toolbar">
         <p className="ui-toolbar-title">All Expenses</p>
@@ -180,7 +208,7 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
                       Approve
                     </button>
                     <button
-                      onClick={() => approveMutation.mutate({ expenseId: e.id, data: { action: 'REJECTED' } })}
+                      onClick={() => openRejectDialog(e)}
                       disabled={approveMutation.isPending}
                       className="ui-btn ui-btn-danger min-h-0 px-3 py-1 text-xs"
                     >

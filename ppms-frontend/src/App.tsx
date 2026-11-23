@@ -15,6 +15,7 @@ const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'))
 const ChangePasswordRequiredPage = lazy(() => import('./pages/auth/ChangePasswordRequiredPage'))
 const DashboardPage = lazy(pageLoaders.dashboard)
 const OverviewPage = lazy(pageLoaders.overview)
+const ApprovalsPage = lazy(pageLoaders.approvals)
 const ShiftsPage = lazy(pageLoaders.shifts)
 const MyShiftPage = lazy(pageLoaders.myShift)
 const ShiftPlanningPage = lazy(pageLoaders.shiftPlanning)
@@ -84,6 +85,14 @@ export default function App() {
               element={withPageSuspense(
                 <ProtectedRoute page="overview">
                   <OverviewPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="approvals"
+              element={withPageSuspense(
+                <ProtectedRoute page="approvals">
+                  <ApprovalsPage />
                 </ProtectedRoute>
               )}
             />

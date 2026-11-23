@@ -24,7 +24,7 @@ export function ReassignCreditEntryModal({ entryId, currentClientId, pumpId, tra
 
   const { data: allClients = [] } = useQuery({
     queryKey: ['creditClients', pumpId],
-    queryFn:  () => pumpApi.getCreditClients(pumpId),
+    queryFn:  () => pumpApi.getCreditClientAccounts(pumpId),
   })
 
   // Restrict targets to within the same parent/child group only:

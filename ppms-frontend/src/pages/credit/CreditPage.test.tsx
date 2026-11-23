@@ -9,7 +9,7 @@ import { usePumpStore } from '../../store/usePumpStore'
 import CreditPage from './CreditPage'
 
 vi.mock('../../api/creditApi', () => ({ creditApi: { getLedgerSummary: vi.fn().mockResolvedValue([]) } }))
-vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn().mockResolvedValue([]) } }))
+vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClientAccounts: vi.fn().mockResolvedValue([]) } }))
 vi.mock('./LedgerTab', () => ({
   LedgerTab: ({ onSelectClient }: { onSelectClient: (client: CreditClient) => void }) => (
     <button type="button" onClick={() => onSelectClient({ id: 40 } as CreditClient)}>Open Acme</button>

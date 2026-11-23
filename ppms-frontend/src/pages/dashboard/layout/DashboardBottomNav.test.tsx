@@ -27,7 +27,7 @@ describe('DashboardBottomNav', () => {
     ['MANAGER', ['Home', 'Shifts', 'Stock', 'Cash']],
     ['OWNER', ['Home', 'Shifts', 'Credit', 'Reports']],
     ['ADMIN', ['Home', 'Shifts', 'Credit', 'Reports']],
-    ['ACCOUNTANT', ['Credit', 'Expenses']],
+    ['ACCOUNTANT', ['Home', 'Credit', 'Expenses']],
   ])('gives %s the tabs %j plus More', (role, tabs) => {
     renderBottomNav(role)
     expect(tabNames()).toEqual(tabs)

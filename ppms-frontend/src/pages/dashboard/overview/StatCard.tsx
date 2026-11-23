@@ -1,10 +1,11 @@
+import { Link } from 'react-router-dom'
 import { type LucideIcon } from 'lucide-react'
 import { useCountUp } from '../../../hooks/useCountUp'
 
 // ── Stat card ──────────────────────────────────────────────────────────────────
 
 export function StatCard({
-  label, value, sub, color, icon: Icon, alert, format,
+  label, value, sub, color, icon: Icon, alert, format, to,
 }: {
   label: string
   value: number
@@ -13,12 +14,15 @@ export function StatCard({
   icon: LucideIcon
   alert?: boolean
   format?: (n: number) => string
+  /** Page with the records behind the figure; the whole card becomes a link to it. */
+  to?: string
 }) {
   const animated = useCountUp(value)
   const displayed = format ? format(animated) : String(animated)
+  const className = `ui-dashboard-stat ${alert ? 'ui-dashboard-stat--alert' : ''} ${to ? 'block transition-shadow hover:shadow-md' : ''}`
 
-  return (
-    <div className={`ui-dashboard-stat ${alert ? 'ui-dashboard-stat--alert' : ''}`}>
+  const content = (
+    <>
       <div className="flex items-center justify-between mb-4">
         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</span>
         <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center text-white shadow-sm`}>
@@ -29,6 +33,10 @@ export function StatCard({
         {displayed}
       </p>
       <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">{sub}</p>
-    </div>
+    </>
   )
+
+  return to
+    ? <Link to={to} className={className}>{content}</Link>
+    : <div className={className}>{content}</div>
 }

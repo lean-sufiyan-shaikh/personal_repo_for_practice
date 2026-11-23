@@ -39,6 +39,8 @@ public class CreditLedgerController {
     private final CreditInterestService interestService;
     private final CreditInterestRunService interestRunService;
     private final CreditLedgerService ledgerService;
+    private final CreditPaymentApprovalService paymentApprovalService;
+    private final CreditAgingService agingService;
     private final CreditLedgerQueryService queryService;
     private final CreditStatementRenderer statementRenderer;
     private final PumpLocationRepository pumpLocationRepository;
@@ -52,6 +54,16 @@ public class CreditLedgerController {
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")
     public ResponseEntity<List<CreditClientResponse>> getLedgerSummary(@PathVariable Long pumpId) {
         return ResponseEntity.ok(queryService.getLedgerSummary(pumpId));
+    }
+
+    /**
+     * GET /api/pumps/{pumpId}/credit-ledger/aging
+     * Each account's balance split by age (0–30, 31–60, 61–90, 90+ days), with days overdue and credit status.
+     */
+    @GetMapping("/aging")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")
+    public ResponseEntity<CreditAgingResponse> getAging(@PathVariable Long pumpId) {
+        return ResponseEntity.ok(agingService.agingOfPump(pumpId));
     }
 
     /**
@@ -391,15 +403,7 @@ public class CreditLedgerController {
             default -> throw new BusinessException("Invalid status. Allowed: APPROVED, REJECTED");
         };
 
-        CreditPayment saved = ledgerService.approvePayment(pumpId, paymentId, newStatus, currentUser);
-
-        log.info("Credit payment {}: paymentId={} pump={} amount={} by={}",
-                newStatus, paymentId, pumpId, saved.getAmount(), currentUser.getId());
-
-        auditService.log(pumpId, AuditAction.CREDIT_PAYMENT_RECEIVED,
-                "CreditPayment", paymentId.toString(),
-                "Payment " + newStatus + ": ₹" + saved.getAmount() + " for clientId=" + saved.getClientId(),
-                currentUser);
+        CreditPayment saved = paymentApprovalService.review(pumpId, paymentId, newStatus, body.get("reason"), currentUser);
         String recordedByName = ledgerService.resolveRecordedByName(saved.getRecordedById());
         return ResponseEntity.ok(queryService.toPaymentResponse(saved, recordedByName));
     }

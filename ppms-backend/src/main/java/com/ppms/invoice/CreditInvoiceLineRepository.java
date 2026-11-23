@@ -47,6 +47,29 @@ public interface CreditInvoiceLineRepository extends JpaRepository<CreditInvoice
                                                      @Param("from") LocalDate from,
                                                      @Param("to") LocalDate to);
 
+    /** {@link #findUninvoicedFuelEntries} for every client of the pump at once, without locking — for a preview. */
+    @Query("SELECT e FROM ShiftCreditEntry e, CreditClient c WHERE c.id = e.clientId AND c.pumpId = :pumpId "
+            + "AND e.voidStatus = 'ACTIVE' AND e.saleDate BETWEEN :from AND :to "
+            + "AND NOT EXISTS (SELECT l.id FROM CreditInvoiceLine l "
+            + "WHERE l.lineType = com.ppms.invoice.InvoiceLineType.FUEL AND l.sourceId = e.id AND l.isActive = true) "
+            + "ORDER BY e.saleDate ASC, e.id ASC")
+    List<ShiftCreditEntry> findUninvoicedFuelEntriesOfPump(@Param("pumpId") Long pumpId,
+                                                           @Param("from") LocalDate from,
+                                                           @Param("to") LocalDate to);
+
+    /** {@link #findUninvoicedAncillarySales} for every client of the pump at once — for a preview. */
+    @Query("SELECT s FROM AncillarySale s WHERE s.pumpId = :pumpId "
+            + "AND s.clientId IN (SELECT c.id FROM CreditClient c WHERE c.pumpId = :pumpId) "
+            + "AND s.paymentMode = :paymentMode "
+            + "AND s.saleDate BETWEEN :from AND :to "
+            + "AND NOT EXISTS (SELECT l.id FROM CreditInvoiceLine l "
+            + "WHERE l.lineType = com.ppms.invoice.InvoiceLineType.ANCILLARY AND l.sourceId = s.id AND l.isActive = true) "
+            + "ORDER BY s.saleDate ASC, s.id ASC")
+    List<AncillarySale> findUninvoicedAncillarySalesOfPump(@Param("pumpId") Long pumpId,
+                                                           @Param("paymentMode") TransactionPaymentMode paymentMode,
+                                                           @Param("from") LocalDate from,
+                                                           @Param("to") LocalDate to);
+
     @Query("SELECT i.invoiceNumber FROM CreditInvoiceLine l, CreditInvoice i WHERE i.id = l.invoiceId "
             + "AND l.isActive = true AND l.lineType = :lineType AND l.sourceId IN :sourceIds ORDER BY i.invoiceNumber")
     List<String> findActiveInvoiceNumbersOfSources(@Param("lineType") InvoiceLineType lineType,

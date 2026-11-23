@@ -15,7 +15,7 @@ vi.mock('../../api/creditApi', () => ({
     getPendingPayments: vi.fn(),
   },
 }))
-vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn() } }))
+vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClientAccounts: vi.fn() } }))
 
 const PUMP_ID = 3
 const PARENT_ID = 10
@@ -48,7 +48,7 @@ describe('useClientLedger', () => {
     const parent = clientRow(PARENT_ID, 'Acme', { isParent: true })
     const child = clientRow(CHILD_ID, 'Acme Truck 7', { parentClientId: PARENT_ID })
     vi.mocked(creditApi.getLedgerSummary).mockResolvedValue([parent])
-    vi.mocked(pumpApi.getCreditClients).mockResolvedValue([parent, child] as never)
+    vi.mocked(pumpApi.getCreditClientAccounts).mockResolvedValue([parent, child] as never)
     vi.mocked(creditApi.getAllTransactions).mockResolvedValue([row(1, PARENT_ID, 'Acme'), row(2, CHILD_ID, 'Acme Truck 7')])
 
     const { result } = renderHook(() => useClientLedger(PUMP_ID, PARENT_ID, false), { wrapper })

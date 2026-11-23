@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -284,14 +285,18 @@ public class CreditAccountPolicyService {
     /** A group with a balance is overdue when its last payment, or else its oldest sale, is older than one cycle. */
     private boolean isBillingCycleOverdue(BillingCycle billingCycle, BigDecimal groupOutstanding,
                                           LocalDate lastPaymentDate, LocalDate oldestSaleDate) {
-        if (groupOutstanding.compareTo(BigDecimal.ZERO) <= 0) {
-            return false;
+        return daysOverdue(billingCycle, groupOutstanding, lastPaymentDate, oldestSaleDate, businessClock.today()) > 0;
+    }
+
+    /** Days a group with a balance is past one billing cycle since its last payment, or else its oldest sale; 0 when current. */
+    static long daysOverdue(BillingCycle billingCycle, BigDecimal groupOutstanding,
+                            LocalDate lastPaymentDate, LocalDate oldestSaleDate, LocalDate today) {
+        LocalDate countedFrom = lastPaymentDate != null ? lastPaymentDate : oldestSaleDate;
+        if (groupOutstanding.compareTo(BigDecimal.ZERO) <= 0 || countedFrom == null) {
+            return 0;
         }
-        LocalDate overdueThreshold = businessClock.today().minusDays(billingCycle == BillingCycle.WEEKLY ? 7 : 30);
-        if (lastPaymentDate != null) {
-            return lastPaymentDate.isBefore(overdueThreshold);
-        }
-        return oldestSaleDate != null && oldestSaleDate.isBefore(overdueThreshold);
+        long cycleDays = billingCycle == BillingCycle.WEEKLY ? 7 : 30;
+        return Math.max(0, ChronoUnit.DAYS.between(countedFrom, today) - cycleDays);
     }
 
     private static LocalDate latestDate(List<Long> clientIds, Map<Long, LocalDate> dateById) {

@@ -45,6 +45,8 @@ export type AuditAction =
   | 'DOCUMENT_ADDED'
   // Expenses
   | 'EXPENSE_RECORDED'
+  | 'EXPENSE_APPROVED'
+  | 'EXPENSE_REJECTED'
   // Payroll
   | 'PAYROLL_APPROVED'
   | 'PAYROLL_DELETED'

@@ -1,8 +1,8 @@
-import type { CreditClient, CreditClientStanding } from '../../../api/pumpApi'
+import type { CreditClientSummary, CreditClientStanding } from '../../../api/pumpApi'
 import { formatCurrency } from '../../../utils/format'
 
 export interface CreditClientOption {
-  client: CreditClient
+  client: CreditClientSummary
   /** Why a credit sale for this client would be refused; null when it can be picked. */
   blockReason: string | null
   availableText: string | null
@@ -15,7 +15,7 @@ export function optionElementId(listboxId: string, clientId: number) {
 }
 
 /** Root accounts whose name contains the search text or whose phone contains the typed digits. */
-export function matchingRootClients(clients: CreditClient[], search: string): CreditClient[] {
+export function matchingRootClients(clients: CreditClientSummary[], search: string): CreditClientSummary[] {
   const text = search.trim().toLowerCase()
   const digits = search.replace(/\D/g, '')
   return clients.filter((client) => client.parentClientId === null && (
@@ -29,7 +29,7 @@ export function matchingRootClients(clients: CreditClient[], search: string): Cr
  * so blockOverdue is false there; a mid-shift sale is also refused for an overdue cycle.
  */
 export function toClientOption(
-  client: CreditClient,
+  client: CreditClientSummary,
   standing: CreditClientStanding | undefined,
   blockOverdue: boolean,
 ): CreditClientOption {

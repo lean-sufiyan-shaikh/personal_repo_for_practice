@@ -28,6 +28,9 @@ public interface PumpExpenseRepository extends JpaRepository<PumpExpense, Long> 
 
     long countByPumpIdAndApprovalStatus(Long pumpId, ExpenseApprovalStatus approvalStatus);
 
+    /** Oldest first — the approval queue. */
+    List<PumpExpense> findByPumpIdAndApprovalStatusOrderByCreatedAtAsc(Long pumpId, ExpenseApprovalStatus approvalStatus);
+
     /** Expenses dated within [from, to], both days included — used by reports and CSV export. */
     List<PumpExpense> findByPumpIdAndExpenseDateBetweenOrderByExpenseDateDescCreatedAtDesc(
             Long pumpId, LocalDate from, LocalDate to);

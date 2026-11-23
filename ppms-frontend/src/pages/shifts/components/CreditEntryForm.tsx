@@ -4,7 +4,7 @@ import { IconButton } from '../../../components/IconButton'
 import { NumericInput } from '../../../components/NumericInput'
 import { onActivateKey } from '../../../utils/keyboard'
 import { FUEL_LABELS, FUEL_UNIT } from '../../../constants/fuel'
-import type { CreditClient } from '../../../api/pumpApi'
+import type { CreditClientSummary } from '../../../api/pumpApi'
 import { CreditClientSearch } from './CreditClientSearch'
 import { emptyNum, fmt } from './creditRow'
 import type { CreditRow } from './creditRow'
@@ -14,7 +14,7 @@ interface Props {
   rowNumber: number
   isExpanded: boolean
   onExpandedChange: (rowId: number | null) => void
-  creditClients: CreditClient[]
+  creditClients: CreditClientSummary[]
   availableFuelTypes: string[]
   priceForFuelType: (fuelType: string) => number | null
   onUpdate: <K extends keyof CreditRow>(field: K, value: CreditRow[K]) => void

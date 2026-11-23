@@ -27,9 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -109,6 +111,38 @@ public class CreditInvoiceService {
         return lineRepository.findByInvoiceIdOrderByLineTypeAscSaleDateAscIdAsc(invoice.getId());
     }
 
+    /**
+     * The clients and total a pump-wide run would invoice for the period: the same uninvoiced sales and the same
+     * line totals as {@link #issueInNewTransaction}, read for the whole pump at once and without writing anything.
+     */
+    @Transactional(readOnly = true)
+    public InvoiceRunPreview previewForAllClients(Long pumpId, LocalDate periodFrom, LocalDate periodTo) {
+        PumpLocation pump = pumpLocationRepository.findById(pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pump not found"));
+        validatePeriod(periodFrom, periodTo);
+
+        Map<Long, List<ShiftCreditEntry>> fuelByClient = lineRepository
+                .findUninvoicedFuelEntriesOfPump(pumpId, periodFrom, periodTo).stream()
+                .collect(Collectors.groupingBy(ShiftCreditEntry::getClientId));
+        List<AncillarySale> ancillarySales = lineRepository.findUninvoicedAncillarySalesOfPump(
+                pumpId, TransactionPaymentMode.CREDIT, periodFrom, periodTo);
+        Map<Long, List<AncillarySale>> ancillaryByClient = ancillarySales.stream()
+                .collect(Collectors.groupingBy(AncillarySale::getClientId));
+        Map<Long, AncillaryProduct> productsById = productsOf(ancillarySales);
+
+        Set<Long> clientIds = new HashSet<>(fuelByClient.keySet());
+        clientIds.addAll(ancillaryByClient.keySet());
+        BigDecimal total = BigDecimal.ZERO.setScale(2);
+        for (Long clientId : clientIds) {
+            List<CreditInvoiceLine> lines = new ArrayList<>(
+                    CreditInvoiceLineBuilder.fuelLines(fuelByClient.getOrDefault(clientId, List.of())));
+            lines.addAll(CreditInvoiceLineBuilder.ancillaryLines(
+                    ancillaryByClient.getOrDefault(clientId, List.of()), productsById, true));
+            total = total.add(withTotals(CreditInvoice.builder(), lines).build().getGrandTotal());
+        }
+        return new InvoiceRunPreview(clientIds.size(), total, hasGstDetails(pump));
+    }
+
     public InvoicePeriod defaultPeriod(Long pumpId, Long clientId) {
         CreditClient client = clientAccessService.requireClientForPump(pumpId, clientId);
         return InvoicePeriod.lastCompletedCycle(client.getBillingCycle(), businessClock.today());
@@ -118,10 +152,14 @@ public class CreditInvoiceService {
     public PumpLocation requirePumpWithGstDetails(Long pumpId) {
         PumpLocation pump = pumpLocationRepository.findById(pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pump not found"));
-        if (pump.getGstin() == null || pump.getLegalName() == null || pump.getInvoicePrefix() == null) {
+        if (!hasGstDetails(pump)) {
             throw new BusinessException(MISSING_GST_DETAILS_MESSAGE);
         }
         return pump;
+    }
+
+    public static boolean hasGstDetails(PumpLocation pump) {
+        return pump.getGstin() != null && pump.getLegalName() != null && pump.getInvoicePrefix() != null;
     }
 
     public void validatePeriod(LocalDate periodFrom, LocalDate periodTo) {

@@ -808,93 +808,6 @@
     justify-content: center;
   }
 
-  .ui-dashboard-hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(240px, 320px);
-    gap: 1rem;
-    padding: 1.5rem;
-    border-radius: var(--radius-card);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    color: var(--color-ink);
-  }
-
-  .ui-dashboard-hero-copy {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .ui-dashboard-chip {
-    width: fit-content;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-badge);
-    background: var(--color-surface-sunken);
-    font-size: 0.75rem;
-    line-height: 1rem;
-    font-weight: 500;
-    color: var(--color-ink-2);
-  }
-
-  .ui-dashboard-hero-kicker {
-    margin: 0;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-ink-2);
-  }
-
-  .ui-dashboard-hero-title {
-    margin: 0.25rem 0 0;
-    font-size: 2rem;
-    line-height: 2.5rem;
-    font-weight: 600;
-  }
-
-  .ui-dashboard-hero-subtitle {
-    margin: 0.5rem 0 0;
-    font-size: 0.875rem;
-    color: var(--color-ink-2);
-  }
-
-  .ui-dashboard-hero-meta {
-    display: grid;
-    gap: 0.75rem;
-  }
-
-  .ui-dashboard-meta-card {
-    padding: 1rem;
-    border-radius: var(--radius-card);
-    background: var(--color-surface-sunken);
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .ui-dashboard-meta-label {
-    font-size: 0.75rem;
-    line-height: 1rem;
-    font-weight: 500;
-    color: var(--color-ink-3);
-  }
-
-  .ui-dashboard-meta-value {
-    font-size: 1.25rem;
-    line-height: 1.75rem;
-    font-weight: 600;
-    color: var(--color-ink);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .ui-dashboard-meta-help {
-    font-size: 0.75rem;
-    line-height: 1rem;
-    color: var(--color-ink-2);
-  }
-
   .ui-dashboard-stat {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
@@ -1926,16 +1839,6 @@
 
     .ui-auth-card {
       padding: 1.5rem;
-    }
-
-    .ui-dashboard-hero {
-      grid-template-columns: 1fr;
-      padding: 1rem;
-    }
-
-    .ui-dashboard-hero-title {
-      font-size: 1.5rem;
-      line-height: 2rem;
     }
 
     .ui-auth-frame {

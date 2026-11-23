@@ -5,6 +5,7 @@ import { pumpApi } from '../../api/pumpApi'
 import type { PumpSummary } from '../../api/pumpApi'
 import { shiftApi } from '../../api/shiftApi'
 import { inventoryApi } from '../../api/inventoryApi'
+import { attentionApi } from '../../api/attentionApi'
 import type { TankStock } from '../../api/inventoryApi'
 import type { Shift } from '../../types/shift'
 import type { UserRole } from '../../types/auth'
@@ -16,6 +17,7 @@ import OverviewPage from './OverviewPage'
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getMyPumps: vi.fn(), getCurrentPrices: vi.fn() } }))
 vi.mock('../../api/shiftApi', () => ({ shiftApi: { getActiveShifts: vi.fn(), getShiftHistory: vi.fn() } }))
 vi.mock('../../api/inventoryApi', () => ({ inventoryApi: { getTankStocks: vi.fn() } }))
+vi.mock('../../api/attentionApi', () => ({ attentionApi: { getForPump: vi.fn(), getForMyPumps: vi.fn() } }))
 vi.mock('./overview/MoneyOverview', () => ({ MoneyOverview: () => null }))
 vi.mock('./overview/RevenueTrendChart', () => ({ RevenueTrendChart: () => null }))
 vi.mock('./overview/TankStockOverview', () => ({ TankStockOverview: () => null }))
@@ -51,6 +53,7 @@ describe('OverviewPage manager home', () => {
     vi.mocked(shiftApi.getActiveShifts).mockResolvedValue([rajuShift])
     vi.mocked(shiftApi.getShiftHistory).mockResolvedValue([])
     vi.mocked(inventoryApi.getTankStocks).mockResolvedValue([tank])
+    vi.mocked(attentionApi.getForPump).mockResolvedValue([])
   })
 
   it('shows a compact header, the four quick actions and a live row per open shift', async () => {
@@ -86,12 +89,52 @@ describe('OverviewPage manager home', () => {
     expect(options.refetchIntervalInBackground).toBe(false)
   })
 
-  it('keeps the greeting and the one-minute refresh for an owner', async () => {
+  it('does not ask the manager home for the attention inbox', async () => {
+    renderOverview('MANAGER')
+
+    await screen.findByRole('heading', { level: 1, name: 'Highway Pump' })
+    expect(screen.queryByRole('heading', { name: 'Needs attention today' })).not.toBeInTheDocument()
+    expect(attentionApi.getForPump).not.toHaveBeenCalled()
+  })
+})
+
+describe('OverviewPage owner and accountant home', () => {
+  beforeEach(() => {
+    usePumpStore.setState({ selectedPumpId: 4, suspendedPumpId: null })
+    vi.mocked(pumpApi.getMyPumps).mockResolvedValue([highway])
+    vi.mocked(pumpApi.getCurrentPrices).mockResolvedValue([])
+    vi.mocked(shiftApi.getActiveShifts).mockReset().mockResolvedValue([rajuShift])
+    vi.mocked(shiftApi.getShiftHistory).mockResolvedValue([])
+    vi.mocked(inventoryApi.getTankStocks).mockResolvedValue([tank])
+    vi.mocked(attentionApi.getForPump).mockResolvedValue([])
+  })
+
+  it('replaces the greeting with a compact header and the inbox, keeping the one-minute refresh', async () => {
     const { queryClient } = renderOverview('OWNER')
 
-    expect(await screen.findByText('Live operations snapshot')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Highway Pump' })).toBeInTheDocument()
+    expect(screen.queryByText('Live operations snapshot')).not.toBeInTheDocument()
+    expect(await screen.findByText('All clear for today')).toBeInTheDocument()
+    expect(attentionApi.getForPump).toHaveBeenCalledWith(4)
     expect(screen.queryByRole('button', { name: 'Open shift' })).not.toBeInTheDocument()
     const options = queryClient.getQueryCache().find({ queryKey: ['activeShifts', 4] })!.observers[0].options
     expect(options.refetchInterval).toBe(60_000)
+  })
+
+  it('links the three stat cards to the shifts, shift history and inventory pages', async () => {
+    renderOverview('ADMIN')
+
+    expect(await screen.findByRole('link', { name: /Active Shifts/ })).toHaveAttribute('href', '/dashboard/shifts')
+    expect(screen.getByRole('link', { name: /Today's Revenue/ })).toHaveAttribute('href', '/dashboard/shifts?history=all')
+    expect(screen.getByRole('link', { name: /Low Stock Tanks/ })).toHaveAttribute('href', '/dashboard/inventory')
+  })
+
+  it('shows an accountant only the header and the inbox', async () => {
+    renderOverview('ACCOUNTANT')
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Highway Pump' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Needs attention today' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Active Shifts/ })).not.toBeInTheDocument()
+    expect(shiftApi.getActiveShifts).not.toHaveBeenCalled()
   })
 })

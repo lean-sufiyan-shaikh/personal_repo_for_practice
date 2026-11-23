@@ -57,6 +57,8 @@ public enum AuditAction {
 
     // ── Expenses ──────────────────────────────────────────────────────────────
     EXPENSE_RECORDED,
+    EXPENSE_APPROVED,
+    EXPENSE_REJECTED,
 
     // ── Payroll ───────────────────────────────────────────────────────────────
     PAYROLL_APPROVED,

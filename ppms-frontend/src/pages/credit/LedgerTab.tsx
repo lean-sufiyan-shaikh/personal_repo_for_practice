@@ -1,44 +1,85 @@
 import { useState, useDeferredValue } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { creditApi } from '../../api/creditApi'
 import type { CreditClient } from '../../api/creditApi'
-import type { CreditClient as CreditClientRecord } from '../../api/pumpApi'
 import { SkeletonRows } from '../../components/Skeleton'
 import { Reveal } from '../../components/Reveal'
 import { EmptyState } from '../../components/EmptyState'
 import { IconButton } from '../../components/IconButton'
-import { onActivateKey } from '../../utils/keyboard'
 import { SetCreditLimitModal } from './modals/SetCreditLimitModal'
 import { GenerateAllInvoicesModal } from './modals/GenerateAllInvoicesModal'
-import { formatDecimal } from '../../utils/format'
+import { formatCurrency } from '../../utils/format'
+import { CreditAgingTable } from './CreditAgingTable'
+import {
+  AGING_FILTERS, DEFAULT_SORT, agingFilterOf, agingSortOf, matchesAgingFilter, sortAgingRows,
+} from './creditAging'
+import type { AgingFilter, AgingSortKey } from './creditAging'
 
 interface LedgerTabProps {
   pumpId: number | null
   clients: CreditClient[]
-  allCreditClients: CreditClientRecord[]
   isLoading: boolean
   hasError: boolean
   canAdjustLimit: boolean
   canIssueInvoices: boolean
-  onSelectClient: (client: CreditClient) => void
+  onSelectClient: (client: Pick<CreditClient, 'id'>) => void
 }
 
-export function LedgerTab({ pumpId, clients, allCreditClients, isLoading, hasError, canAdjustLimit, canIssueInvoices, onSelectClient }: LedgerTabProps) {
-  const [showLimitModal, setShowLimitModal] = useState<CreditClient | null>(null)
+function SummaryFigure({ label, value, tone }: { label: string; value: string; tone?: string }) {
+  return (
+    <div className="ui-dashboard-module px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">{label}</p>
+      <p className={`mt-1 text-lg font-bold tabular-nums ${tone ?? 'text-ink'}`}>{value}</p>
+    </div>
+  )
+}
+
+export function LedgerTab({ pumpId, clients, isLoading, hasError, canAdjustLimit, canIssueInvoices, onSelectClient }: LedgerTabProps) {
+  const [limitClientId, setLimitClientId] = useState<number | null>(null)
   const [showGenerateAllModal, setShowGenerateAllModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const deferredSearch = useDeferredValue(searchQuery)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filter = agingFilterOf(searchParams.get('filter'))
+  const sort = agingSortOf(searchParams.get('sort'), searchParams.get('dir'))
 
-  const [expandedParentId, setExpandedParentId] = useState<number | null>(null)
-  const toggleParent = (id: number) =>
-    setExpandedParentId(prev => prev === id ? null : id)
+  const { data: aging, isLoading: agingLoading, isError: agingFailed } = useQuery({
+    queryKey: ['credit-ledger', pumpId, 'aging'],
+    queryFn: () => creditApi.getAging(pumpId!),
+    enabled: pumpId != null,
+  })
+
+  const updateParams = (changes: Record<string, string | null>) => {
+    const next = new URLSearchParams(searchParams)
+    Object.entries(changes).forEach(([key, value]) => (value === null ? next.delete(key) : next.set(key, value)))
+    setSearchParams(next, { replace: true })
+  }
+  const setFilter = (value: AgingFilter) => updateParams({ filter: value === 'all' ? null : value })
+  const setSort = (key: AgingSortKey) => {
+    const direction = key === sort.key ? (sort.direction === 'desc' ? 'asc' : 'desc') : (key === 'name' ? 'asc' : 'desc')
+    const isDefault = key === DEFAULT_SORT.key && direction === DEFAULT_SORT.direction
+    updateParams({ sort: isDefault ? null : key, dir: isDefault ? null : direction })
+  }
+
+  const query = deferredSearch.trim().toLowerCase()
+  const allRows = aging?.clients ?? []
+  const rows = sortAgingRows(
+    allRows.filter(row => matchesAgingFilter(row, filter)
+      && (!query || row.name.toLowerCase().includes(query) || (row.phone ?? '').includes(query))),
+    sort.key, sort.direction)
+  const countByFilter: Record<AgingFilter, number> = {
+    'all': allRows.length,
+    'overdue': aging?.summary.overdueCount ?? 0,
+    'over-limit': aging?.summary.overLimitCount ?? 0,
+    'pending-approval': aging?.summary.pendingApprovalCount ?? 0,
+  }
+  const limitClient = clients.find(client => client.id === limitClientId)
 
   return (
     <>
-      {showLimitModal && pumpId && (
-        <SetCreditLimitModal
-          client={showLimitModal}
-          pumpId={pumpId}
-          onClose={() => setShowLimitModal(null)}
-        />
+      {limitClient && pumpId && (
+        <SetCreditLimitModal client={limitClient} pumpId={pumpId} onClose={() => setLimitClientId(null)} />
       )}
       {showGenerateAllModal && pumpId && (
         <GenerateAllInvoicesModal pumpId={pumpId} onClose={() => setShowGenerateAllModal(false)} />
@@ -50,235 +91,90 @@ export function LedgerTab({ pumpId, clients, allCreditClients, isLoading, hasErr
           </button>
         </div>
       )}
-      <Reveal delay={120}>
-      <div className="ui-search-shell">
-        <svg className="ui-search-shell__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-        </svg>
-        <input aria-label="Search clients by name or phone"
-          type="text"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Search by client name or phone…"
-          className="ui-search-shell__input text-sm leading-5"
-        />
-        {searchQuery && (
-          <IconButton
-            onClick={() => setSearchQuery('')}
-            className="ui-search-shell__clear"
-            label="Clear search"
-            icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>}
-          />
-        )}
-      </div>
-      </Reveal>
 
-      {isLoading && (
-        <Reveal delay={150}>
-        <div className="ui-card px-5 py-4">
-          <SkeletonRows count={5} />
-        </div>
+      {aging && allRows.length > 0 && (
+        <Reveal delay={110}>
+          <section aria-label="Credit aging summary" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <SummaryFigure label="Total outstanding" value={formatCurrency(aging.summary.totalOutstanding)} />
+            <SummaryFigure label="Overdue" value={formatCurrency(aging.summary.overdueAmount)}
+              tone={aging.summary.overdueAmount > 0 ? 'text-bad' : undefined} />
+            <SummaryFigure label="Older than 60 days" value={formatCurrency(aging.summary.overSixtyAmount)}
+              tone={aging.summary.overSixtyAmount > 0 ? 'text-warn' : undefined} />
+          </section>
         </Reveal>
       )}
 
-      {hasError && (
+      <Reveal delay={120}>
+      <div className="flex flex-wrap items-center gap-3">
+        <div role="group" aria-label="Show clients" className="ui-tabbar w-fit">
+          {AGING_FILTERS.map(option => (
+            <button key={option.value} type="button" aria-pressed={filter === option.value}
+              onClick={() => setFilter(option.value)}
+              className={`ui-tabbar__button ${filter === option.value ? 'ui-tabbar__button--active' : ''}`}>
+              {option.label}{aging ? ` (${countByFilter[option.value]})` : ''}
+            </button>
+          ))}
+        </div>
+        <div className="ui-search-shell min-w-60 flex-1">
+          <svg className="ui-search-shell__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+          </svg>
+          <input aria-label="Search clients by name or phone"
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search by client name or phone…"
+            className="ui-search-shell__input text-sm leading-5"
+          />
+          {searchQuery && (
+            <IconButton
+              onClick={() => setSearchQuery('')}
+              className="ui-search-shell__clear"
+              label="Clear search"
+              icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>}
+            />
+          )}
+        </div>
+      </div>
+      </Reveal>
+
+      {(isLoading || agingLoading) && (
+        <div className="ui-card px-5 py-4">
+          <SkeletonRows count={5} />
+        </div>
+      )}
+
+      {(hasError || agingFailed) && (
         <div role="alert" className="ui-alert ui-alert-danger text-sm">
           Failed to load credit data. Please try again.
         </div>
       )}
 
-      {!isLoading && clients.length === 0 && (
-        <Reveal delay={150}>
-        <div className="ui-card">
-          <EmptyState
-            icon="transactions"
-            title="No credit clients yet"
-            subtitle="Go to the Clients tab to add credit clients."
-          />
-        </div>
-        </Reveal>
-      )}
-
-      {!isLoading && clients.length > 0 && (() => {
-        // Use allCreditClients (full list) for reliable parentClientId / isParent structure.
-        // clients (ledger) has balances; allCreditClients has the hierarchy.
-        const structureMap = new Map(allCreditClients.map(c => [c.id, c]))
-
-        // A client is a child if allCreditClients says so — never rely on ledger's parentClientId
-        const isChildId = (id: number) => !!structureMap.get(id)?.parentClientId
-
-        // Build a map: parentId → ledger entries for each child
-        const childMap = new Map<number, typeof clients>()
-        allCreditClients.forEach(sc => {
-          if (!sc.parentClientId) return
-          const ledgerEntry = clients.find(c => c.id === sc.id)
-          if (ledgerEntry) {
-            const arr = childMap.get(sc.parentClientId) ?? []
-            arr.push(ledgerEntry)
-            childMap.set(sc.parentClientId, arr)
-          }
-        })
-
-        // Root clients = those that are NOT children in the full structure, filtered by search.
-        // A parent matches if its own name/phone matches OR any of its sub-accounts match.
-        const q = deferredSearch.trim().toLowerCase()
-        const rootClients = clients
-          .filter(c => {
-            if (isChildId(c.id)) return false
-            if (!q) return true
-            const matchesSelf = c.name.toLowerCase().includes(q) || (c.phone ?? '').includes(q)
-            const children = childMap.get(c.id) ?? []
-            const matchesChild = children.some(ch => ch.name.toLowerCase().includes(q) || (ch.phone ?? '').includes(q))
-            return matchesSelf || matchesChild
-          })
-
-        const renderClientCard = (client: typeof clients[0], isChild = false) => {
-          const isActualChild = isChild || isChildId(client.id)
-          const limitPct = client.creditLimit > 0
-            ? Math.min(100, (client.outstandingBalance / client.creditLimit) * 100)
-            : null
-          const isNearLimit  = limitPct !== null && limitPct >= 80
-          const children     = childMap.get(client.id) ?? []
-          const hasChildren  = !isActualChild && children.length > 0
-          const isExpanded   = expandedParentId === client.id
-
-          return (
-            <div
-              key={client.id}
-              className={`ui-card px-4 py-4 sm:px-5 flex flex-wrap items-center gap-x-4 gap-y-3 transition-all ${
-                isActualChild ? 'ml-8 border-l-4 border-l-blue-200 hover:border-blue-300 hover:shadow-sm' :
-                hasChildren   ? 'cursor-pointer hover:border-blue-400 hover:shadow-sm select-none' :
-                                'hover:border-blue-300 hover:shadow-sm'
-              }`}
-            >
-              <div className={`w-10 h-10 rounded-full font-bold flex items-center justify-center flex-shrink-0 text-sm ${
-                isActualChild ? 'bg-blue-50 text-blue-500' : 'bg-blue-100 text-blue-700'
-              }`}>
-                {client.name.charAt(0).toUpperCase()}
-              </div>
-
-              <div
-                  className="flex-1 min-w-[9rem]"
-                  role={hasChildren ? 'button' : undefined}
-                  tabIndex={hasChildren ? 0 : undefined}
-                  aria-expanded={hasChildren ? isExpanded : undefined}
-                  onClick={hasChildren ? () => toggleParent(client.id) : undefined}
-                  onKeyDown={hasChildren ? onActivateKey(() => toggleParent(client.id)) : undefined}
-                >
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-semibold text-slate-800 truncate">{client.name}</p>
-                  {isActualChild && (
-                    <span className="text-xs bg-blue-50 text-blue-500 border border-blue-200 px-1.5 py-0.5 rounded font-medium">
-                      sub-account
-                    </span>
-                  )}
-                  {hasChildren && (
-                    <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">
-                      {children.length} sub-account{children.length !== 1 ? 's' : ''}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-500">{client.phone}</p>
-                {!isActualChild && client.creditLimit > 0 && (
-                  <div className="mt-1.5">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${isNearLimit ? 'bg-red-500' : 'bg-blue-400'}`}
-                          style={{ width: `${limitPct}%` }}
-                        />
-                      </div>
-                      <span className={`text-xs ${isNearLimit ? 'text-red-600 font-medium' : 'text-slate-500'}`}>
-                        {limitPct?.toFixed(0)}% of limit
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="text-right flex-shrink-0 hidden sm:block space-y-0.5">
-                <div>
-                  <p className="text-xs text-slate-500 mb-0.5">Credit Limit</p>
-                  {isActualChild ? (
-                    <p className="text-sm font-medium text-blue-500">Shared with parent</p>
-                  ) : (
-                    <p className="text-sm font-medium text-slate-600">
-                      {client.creditLimit > 0 ? `₹${formatDecimal(client.creditLimit)}` : 'Unlimited'}
-                    </p>
-                  )}
-                </div>
-                {client.monthlyInterestRate > 0 && (
-                  <p className="text-xs text-purple-600 font-medium">{client.monthlyInterestRate}%/mo interest</p>
-                )}
-              </div>
-
-              <div className="flex-shrink-0 sm:text-right sm:w-28">
-                <p className="text-xs text-slate-500 mb-0.5">Outstanding</p>
-                <p className={`text-base font-bold ${client.outstandingBalance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                  ₹{formatDecimal(client.outstandingBalance)}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
-                {canAdjustLimit && !isActualChild && (
-                  <IconButton
-                    onClick={() => setShowLimitModal(client)}
-                    className="text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    label="Set credit limit"
-                    icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>}
-                  />
-                )}
-                <button
-                  onClick={() => onSelectClient(client)}
-                  className="ui-btn ui-btn-secondary ui-btn-compact"
-                >
-                  View Ledger
-                </button>
-              </div>
-
-              {hasChildren && (
-                <svg
-                  className={`w-4 h-4 text-slate-500 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              )}
-            </div>
-          )
-        }
-
-        if (rootClients.length === 0 && q) {
-          return (
-            <div className="ui-card">
-              <EmptyState
-                icon="generic"
-                title={`No clients match "${deferredSearch.trim()}"`}
-                subtitle="Try a different name or phone number."
-              />
-            </div>
-          )
-        }
-
-        return (
-          <div className="space-y-3">
-            {rootClients.map(root => {
-              const children   = childMap.get(root.id) ?? []
-              const isExpanded = expandedParentId === root.id
-              return (
-                <div key={root.id} className="space-y-2">
-                  {renderClientCard(root)}
-                  {children.length > 0 && isExpanded && children.map(child => renderClientCard(child, true))}
-                </div>
-              )
-            })}
+      {!isLoading && !agingLoading && aging && (
+        allRows.length === 0 ? (
+          <div className="ui-card">
+            <EmptyState icon="transactions" title="No credit clients yet" subtitle="Go to the Clients tab to add credit clients." />
           </div>
+        ) : rows.length === 0 ? (
+          <div className="ui-card">
+            <EmptyState icon="generic"
+              title={query ? `No clients match "${deferredSearch.trim()}"` : 'No clients in this view'}
+              subtitle={query ? 'Try a different name or phone number.' : 'Choose All to see every client.'} />
+          </div>
+        ) : (
+          <CreditAgingTable
+            rows={rows}
+            sortKey={sort.key}
+            sortDirection={sort.direction}
+            canAdjustLimit={canAdjustLimit}
+            onSort={setSort}
+            onOpenClient={clientId => onSelectClient({ id: clientId })}
+            onSetLimit={setLimitClientId}
+          />
         )
-      })()}
+      )}
     </>
   )
 }

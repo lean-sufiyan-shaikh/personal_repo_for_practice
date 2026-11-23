@@ -46,7 +46,7 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['creditClients', pumpId],
-    queryFn:  () => pumpApi.getCreditClients(pumpId),
+    queryFn:  () => pumpApi.getCreditClientAccounts(pumpId),
   })
 
   const addMutation = useMutation({

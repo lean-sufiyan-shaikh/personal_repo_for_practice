@@ -20,7 +20,7 @@ vi.mock('../../api/creditApi', () => ({
     revokeExtension: vi.fn(),
   },
 }))
-vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn().mockResolvedValue([]) } }))
+vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClientAccounts: vi.fn().mockResolvedValue([]) } }))
 
 const PUMP_ID = 3
 const CLIENT_ID = 40

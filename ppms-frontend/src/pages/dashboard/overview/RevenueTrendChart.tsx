@@ -48,8 +48,6 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
   const hasChartData = revenueChartData.some(d => (d.revenue as number) > 0)
 
   return (
-    <>
-    {historyShifts.length > 0 && (
       <Reveal delay={230}>
       <div className="ui-card p-0 overflow-hidden">
         <div className="ui-toolbar">
@@ -169,11 +167,11 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
           </div>
           </>
         ) : (
-          <p className="ui-empty py-10 text-xs">No closed shift revenue in the last {chartDays} days.</p>
+          <p role="status" className="ui-empty py-10 text-xs">
+            No closed shift revenue in the last {chartDays} days. The chart fills in as shifts are closed.
+          </p>
         )}
       </div>
       </Reveal>
-    )}
-    </>
   )
 }

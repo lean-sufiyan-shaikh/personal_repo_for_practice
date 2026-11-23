@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { pumpApi } from '../../../api/pumpApi'
-import type { CreditClient, CreditClientStanding } from '../../../api/pumpApi'
+import type { CreditClientSummary, CreditClientStanding } from '../../../api/pumpApi'
 import { useAuthStore } from '../../../store/authStore'
 import { usePumpStore } from '../../../store/usePumpStore'
 import { renderWithProviders } from '../../../test/renderWithProviders'
@@ -13,8 +13,8 @@ import { rememberRecentClient } from './recentCreditClients'
 
 vi.mock('../../../api/pumpApi', () => ({ pumpApi: { getCreditStanding: vi.fn() } }))
 
-function creditClient(id: number, name: string, phone: string | null, extra: Partial<CreditClient> = {}): CreditClient {
-  return { id, pumpId: 3, name, phone, parentClientId: null, isParent: false, isActive: true, ...extra } as CreditClient
+function creditClient(id: number, name: string, phone: string | null, extra: Partial<CreditClientSummary> = {}): CreditClientSummary {
+  return { id, pumpId: 3, name, phone, parentClientId: null, isParent: false, isActive: true, ...extra } as CreditClientSummary
 }
 
 const acme = creditClient(2, 'Acme', null)
@@ -33,7 +33,7 @@ function signIn(role: UserRole) {
   useAuthStore.setState({ user: { userId: 1, fullName: 'User', role, assignedPumpId: 3 }, isAuthenticated: true })
 }
 
-function Picker({ clients, onSelect, blockOverdue }: { clients: CreditClient[]; onSelect: (client: CreditClient) => void; blockOverdue?: boolean }) {
+function Picker({ clients, onSelect, blockOverdue }: { clients: CreditClientSummary[]; onSelect: (client: CreditClientSummary) => void; blockOverdue?: boolean }) {
   const [search, setSearch] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
   return (

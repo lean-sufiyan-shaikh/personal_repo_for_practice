@@ -3,7 +3,7 @@ import type { ChangeEvent, KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { pumpApi } from '../../../api/pumpApi'
-import type { CreditClient } from '../../../api/pumpApi'
+import type { CreditClientSummary } from '../../../api/pumpApi'
 import { useAuthStore } from '../../../store/authStore'
 import { usePumpStore } from '../../../store/usePumpStore'
 import { canAccessPage, canPerformAction } from '../../../permissions/permissions'
@@ -17,11 +17,11 @@ import { readRecentClientIds, rememberRecentClient } from './recentCreditClients
 
 interface Props {
   search: string
-  creditClients: CreditClient[]
+  creditClients: CreditClientSummary[]
   showDropdown: boolean
   onSearchChange: (text: string) => void
   onShowDropdownChange: (show: boolean) => void
-  onSelect: (client: CreditClient) => void
+  onSelect: (client: CreditClientSummary) => void
   inputClassName: string
   placeholder: string
   showNoClientsHint?: boolean
@@ -59,13 +59,13 @@ export function CreditClientSearch({
 
   const optionFor = useMemo(() => {
     const standingById = new Map((standings ?? []).map((standing) => [standing.clientId, standing]))
-    return (client: CreditClient) => toClientOption(client, standingById.get(client.id), blockOverdue)
+    return (client: CreditClientSummary) => toClientOption(client, standingById.get(client.id), blockOverdue)
   }, [standings, blockOverdue])
 
   const options = matchingRootClients(creditClients, search).map(optionFor)
   const recentOptions = recentIds
     .map((id) => creditClients.find((client) => client.id === id && client.parentClientId === null))
-    .filter((client): client is CreditClient => client !== undefined)
+    .filter((client): client is CreditClientSummary => client !== undefined)
     .map(optionFor)
   const activeOption = options.find((option) => option.client.id === activeClientId) ?? null
 

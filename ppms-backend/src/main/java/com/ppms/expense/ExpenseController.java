@@ -28,6 +28,7 @@ public class ExpenseController {
 
     private final PumpExpenseRepository  expenseRepository;
     private final ApprovalPolicy         approvalPolicy;
+    private final ExpenseApprovalService expenseApprovalService;
     private final AuditService           auditService;
     private final BusinessClock businessClock;
 
@@ -189,29 +190,7 @@ public class ExpenseController {
             @PathVariable Long expenseId,
             @RequestBody ApproveExpenseRequest req,
             @AuthenticationPrincipal User currentUser) {
-
-        PumpExpense expense = expenseRepository.findById(expenseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
-
-        if (!expense.getPumpId().equals(pumpId)) {
-            throw new ResourceNotFoundException("Expense not found");
-        }
-
-        if (expense.getApprovalStatus() != ExpenseApprovalStatus.PENDING_APPROVAL) {
-            throw new BusinessException(
-                    "Expense is not pending approval (current status: " + expense.getApprovalStatus() + ")");
-        }
-
-        if (req.getAction() != ExpenseApprovalStatus.APPROVED && req.getAction() != ExpenseApprovalStatus.REJECTED) {
-            throw new BusinessException("Action must be APPROVED or REJECTED");
-        }
-
-        expense.setApprovalStatus(req.getAction());
-        expense.setApprovedByUserId(currentUser.getId());
-        expense.setApprovedAt(businessClock.now());
-        expense.setApprovalNotes(req.getNotes() != null ? req.getNotes().trim() : null);
-
-        return expenseRepository.save(expense);
+        return expenseApprovalService.review(pumpId, expenseId, req.getAction(), req.getNotes(), currentUser);
     }
 
     /**

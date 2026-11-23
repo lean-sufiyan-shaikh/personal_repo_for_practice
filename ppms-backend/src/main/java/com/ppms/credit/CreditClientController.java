@@ -2,11 +2,14 @@ package com.ppms.credit;
 
 import com.ppms.common.exception.BusinessException;
 import com.ppms.invoice.GstFields;
+import com.ppms.user.User;
+import com.ppms.user.UserRole;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -32,10 +35,11 @@ public class CreditClientController {
      * GET /api/pumps/{pumpId}/credit-clients
      * Returns all credit clients for a pump, sorted by name (parents first, then sub-accounts).
      * Each response includes hierarchy metadata: parentClientId, parentClientName, isParent.
-     * All authenticated users can read — operators need the list to select from when closing a shift.
+     * All authenticated users can read — operators need the list to select from when closing a shift, so they get
+     * only what the picker shows (see {@link CreditClientPickerResponse}); other roles get the full account.
      */
     @GetMapping
-    public ResponseEntity<List<CreditClientResponse>> getClients(@PathVariable Long pumpId) {
+    public ResponseEntity<List<?>> getClients(@PathVariable Long pumpId, @AuthenticationPrincipal User currentUser) {
         List<CreditClient> allClients = creditClientRepository.findByPumpIdOrderByNameAsc(pumpId);
 
         // Build a name-by-ID map for resolving parent names without N+1 queries
@@ -47,6 +51,17 @@ public class CreditClientController {
                 .filter(c -> c.getParentClientId() != null)
                 .map(CreditClient::getParentClientId)
                 .collect(Collectors.toSet());
+
+        if (currentUser.getRole() == UserRole.OPERATOR) {
+            return ResponseEntity.ok(allClients.stream()
+                    .sorted(Comparator
+                            .comparing((CreditClient c) -> c.isActive() ? 0 : 1)
+                            .thenComparing(CreditClient::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                            .thenComparing(CreditClient::getName, String.CASE_INSENSITIVE_ORDER))
+                    .map(c -> CreditClientPickerResponse.from(c, nameById,
+                            c.getParentClientId() == null && idsWithChildren.contains(c.getId())))
+                    .toList());
+        }
 
         // Sub-accounts always share their parent's pump, so every child is in allClients.
         Map<Long, BigDecimal> ownOutstandingById = interestService.computeOutstandingBatch(

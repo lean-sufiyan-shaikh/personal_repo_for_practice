@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { Fuel, AlertTriangle, Zap, IndianRupee, Gauge } from 'lucide-react'
+import { AlertTriangle, Zap, IndianRupee, Gauge } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { pumpApi } from '../../api/pumpApi'
 import { shiftApi } from '../../api/shiftApi'
@@ -19,7 +19,9 @@ import { ShiftStatusRow } from './overview/ShiftStatusRow'
 import { StatCard } from './overview/StatCard'
 import { AllPumpsOverview, OverviewScopeToggle } from './overview/AllPumpsOverview'
 import { ManagerHeader, ManagerQuickActions, OpenShiftsLive } from './overview/ManagerHome'
-import { codeLabel, roleLabel } from '../../constants/labels'
+import { AttentionInbox } from './overview/AttentionInbox'
+import { OverviewHeader } from './overview/OverviewHeader'
+import { codeLabel } from '../../constants/labels'
 
 const RevenueTrendChart = lazy(() => import('./overview/RevenueTrendChart').then((module) => ({ default: module.RevenueTrendChart })))
 
@@ -29,6 +31,8 @@ export default function OverviewPage() {
   const { user } = useAuthStore()
   const { selectedPumpId } = usePumpStore()
   const isManager = user?.role === 'MANAGER'
+  // An accountant's home is the inbox alone; shift, tank and cash figures are not theirs to open
+  const isAccountant = user?.role === 'ACCOUNTANT'
 
   const { data: pumps = [] } = useQuery({
     queryKey: ['myPumps'],
@@ -41,7 +45,7 @@ export default function OverviewPage() {
   const allPumpsView = showAllPumps && pumps.length >= 2
 
   const pumpId = allPumpsView ? null : selectedPumpId
-  const pumpIds: number[] = pumpId ? [pumpId] : []
+  const pumpIds: number[] = pumpId && !isAccountant ? [pumpId] : []
   const selectedPump = pumps.find(p => p.id === selectedPumpId)
   const focusName = allPumpsView ? 'All pumps' : selectedPump?.name
 
@@ -79,7 +83,7 @@ export default function OverviewPage() {
   const { data: historyShifts = [] } = useQuery({
     queryKey: ['shiftHistory', pumpId, 'overview', chartFrom],
     queryFn:  () => shiftApi.getShiftHistory(pumpId!, { from: chartFrom }),
-    enabled:  !!pumpId,
+    enabled:  !!pumpId && !isAccountant,
   })
 
   // ── Derived stats ────────────────────────────────────────────────────────────
@@ -110,8 +114,6 @@ export default function OverviewPage() {
     (max, q) => Math.max(max, q.dataUpdatedAt ?? 0), 0
   )
 
-  const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const closedShiftCountToday = historyShifts.filter(s => s.shiftDate === todayStr).length
 
   return (
@@ -136,48 +138,25 @@ export default function OverviewPage() {
           )}
         </>
       ) : (
-      <div className="ui-dashboard-hero">
-        <div className="ui-dashboard-hero-copy">
-          <div className="ui-dashboard-chip">
-            <Fuel size={11} strokeWidth={2.2} />
-            <span>Live operations snapshot</span>
-          </div>
-          <div>
-            <p className="ui-dashboard-hero-kicker">{greeting}</p>
-            <h1 className="ui-dashboard-hero-title">{user?.fullName}</h1>
-            <p className="ui-dashboard-hero-subtitle">
-              {roleLabel(user?.role)} · {focusName ?? 'No pump selected'}
-            </p>
-          </div>
-        </div>
-        <div className="ui-dashboard-hero-meta">
-          <div className="ui-dashboard-meta-card">
-            <span className="ui-dashboard-meta-label">Pump Focus</span>
-            <span className="ui-dashboard-meta-value">{focusName ?? 'Select a pump'}</span>
-            {!allPumpsView && (
-              <span className="ui-dashboard-meta-help">
-                {activeCount > 0
-                  ? `${activeCount} active shift${activeCount !== 1 ? 's' : ''} in progress`
-                  : 'No active shift at the moment'}
-              </span>
-            )}
-          </div>
-          <OverviewScopeToggle
-            pumpCount={pumps.length}
-            selectedPumpName={selectedPump?.name}
-            showAllPumps={allPumpsView}
-            onShowAllPumpsChange={setShowAllPumps}
-          />
-        </div>
-      </div>
+        <>
+          <OverviewHeader focusName={focusName}>
+            <OverviewScopeToggle
+              pumpCount={pumps.length}
+              selectedPumpName={selectedPump?.name}
+              showAllPumps={allPumpsView}
+              onShowAllPumpsChange={setShowAllPumps}
+            />
+          </OverviewHeader>
+          <AttentionInbox pumpId={pumpId} allPumps={allPumpsView} />
+        </>
       )}
 
-      {allPumpsView ? (
+      {isAccountant ? null : allPumpsView ? (
         <AllPumpsOverview onPumpSelected={() => setShowAllPumps(false)} />
       ) : (
         <>
           {/* ── Stale fuel price alert ── */}
-          {priceIsStale && selectedPump && (
+          {isManager && priceIsStale && selectedPump && (
             <Link to="/dashboard/setup" className="block">
             <div className="ui-alert ui-alert-danger flex items-center gap-3 hover:bg-red-100 transition-colors">
                 <AlertTriangle size={18} className="text-red-500 flex-shrink-0" strokeWidth={2} />
@@ -209,6 +188,7 @@ export default function OverviewPage() {
                   sub={activeCount === 0 ? 'No open shifts' : `at ${selectedPump?.name ?? 'selected pump'}`}
                   color="bg-emerald-500"
                   icon={Zap}
+                  to="/dashboard/shifts"
                 />
                 <StatCard
                   label="Today's Revenue"
@@ -217,6 +197,7 @@ export default function OverviewPage() {
                   sub={`${closedShiftCountToday} closed shift${closedShiftCountToday !== 1 ? 's' : ''} today`}
                   color="bg-blue-500"
                   icon={IndianRupee}
+                  to="/dashboard/shifts?history=all"
                 />
                 <StatCard
                   label="Low Stock Tanks"
@@ -225,6 +206,7 @@ export default function OverviewPage() {
                   color={lowStockTanks.length > 0 ? 'bg-red-500' : 'bg-slate-400'}
                   icon={Gauge}
                   alert={lowStockTanks.length > 0}
+                  to="/dashboard/inventory"
                 />
               </>
             )}

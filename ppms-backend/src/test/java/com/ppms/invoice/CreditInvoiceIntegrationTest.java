@@ -284,6 +284,52 @@ class CreditInvoiceIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void previewForAllClientsEqualsWhatGeneratingForAllClientsIssues() throws Exception {
+        long firstClientId = createClient(null);
+        long secondClientId = createClient(OTHER_STATE_GSTIN);
+        long subAccountId = createSubAccount(firstClientId);
+        createClient(null);
+        sellFuelOnCredit(firstClientId, "100.00");
+        sellFuelOnCredit(subAccountId, "50.00");
+        sellFuelOnCredit(secondClientId, "200.00");
+        sellProductOnCredit(secondClientId, "236.00", 2);
+
+        JsonNode preview = json(preview(setup.admin()).andExpect(status().isOk()));
+
+        JsonNode result = json(perform(post("/api/pumps/{pumpId}/credit-invoices/generate-all", setup.pumpId()),
+                setup.admin(), Map.of("periodFrom", TODAY.toString(), "periodTo", TODAY.toString()))
+                .andExpect(status().isOk()));
+        JsonNode invoices = json(perform(get("/api/pumps/{pumpId}/credit-invoices", setup.pumpId()), setup.owner())
+                .andExpect(status().isOk())).get("content");
+        BigDecimal issuedTotal = BigDecimal.ZERO;
+        for (JsonNode invoice : invoices) {
+            issuedTotal = issuedTotal.add(invoice.get("grandTotal").decimalValue());
+        }
+
+        assertThat(preview.get("clientsToInvoice").asInt()).isEqualTo(3).isEqualTo(result.get("invoicesIssued").asInt());
+        assertThat(preview.get("totalAmount").decimalValue()).isEqualByComparingTo("586.00").isEqualByComparingTo(issuedTotal);
+        assertThat(preview.get("gstDetailsComplete").asBoolean()).isTrue();
+        JsonNode afterRun = json(preview(setup.admin()).andExpect(status().isOk()));
+        assertThat(afterRun.get("clientsToInvoice").asInt()).isZero();
+        assertThat(afterRun.get("totalAmount").decimalValue()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void previewReportsMissingGstDetailsAndIsOnlyForOwnerAndAdmin() throws Exception {
+        long clientId = createClient(null);
+        sellFuelOnCredit(clientId, "100.00");
+        perform(patch("/api/pumps/{pumpId}/settings", setup.pumpId()), setup.owner(), Map.of("gstin", ""))
+                .andExpect(status().isOk());
+
+        JsonNode preview = json(preview(setup.owner()).andExpect(status().isOk()));
+
+        assertThat(preview.get("gstDetailsComplete").asBoolean()).isFalse();
+        assertThat(preview.get("clientsToInvoice").asInt()).isEqualTo(1);
+        preview(setup.manager()).andExpect(status().isForbidden());
+        preview(setup.accountant()).andExpect(status().isForbidden());
+    }
+
+    @Test
     void pumpWithoutGstDetailsCannotIssueInvoices() throws Exception {
         long clientId = createClient(null);
         sellFuelOnCredit(clientId, "100.00");
@@ -532,6 +578,12 @@ class CreditInvoiceIntegrationTest extends ApiIntegrationTest {
 
     private ResultActions generate(long clientId) throws Exception {
         return generate(clientId, setup.owner());
+    }
+
+    private ResultActions preview(User user) throws Exception {
+        return perform(get("/api/pumps/{pumpId}/credit-invoices/generate-all/preview", setup.pumpId())
+                .param("periodFrom", TODAY.toString())
+                .param("periodTo", TODAY.toString()), user);
     }
 
     private ResultActions generate(long clientId, User user) throws Exception {

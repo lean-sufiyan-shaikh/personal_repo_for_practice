@@ -8,14 +8,18 @@ interface ClientActionsProps {
   onApplyInterest: () => void
   onGrantExtension: () => void
   onRecordPayment: () => void
+  onOpenStatement: () => void
 }
 
 export function ClientActions({
   canManageInterest, canApplyInterest, isApplyingInterest, canGrantExtension, canRecordPayment,
-  onOpenInterestSettings, onApplyInterest, onGrantExtension, onRecordPayment,
+  onOpenInterestSettings, onApplyInterest, onGrantExtension, onRecordPayment, onOpenStatement,
 }: ClientActionsProps) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
+      <button type="button" onClick={onOpenStatement} className="ui-btn ui-btn-secondary">
+        Statement
+      </button>
       {canManageInterest && (
         <button onClick={onOpenInterestSettings} className="ui-btn ui-btn-secondary text-purple-700 border-purple-200 hover:bg-purple-50">
           Interest Settings

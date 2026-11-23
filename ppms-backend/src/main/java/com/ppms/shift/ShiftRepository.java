@@ -99,6 +99,15 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
             """)
     boolean hasUnresolvedDiscrepancy(Long operatorId);
 
+    /** Unresolved SHORT discrepancies of the pump, escalated ones included. */
+    @Query("""
+            SELECT s FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.status IN ('CLOSED_DISCREPANCY_PENDING', 'CLOSED_DISCREPANCY_PENDING_APPROVAL')
+              AND s.discrepancyType = 'SHORT'
+            """)
+    List<Shift> findUnresolvedShortagesByPumpId(@Param("pumpId") Long pumpId);
+
     /** True if operator has a discrepancy escalated for owner approval — blocks deactivation (Rule 30). */
     @Query("""
             SELECT COUNT(s) > 0 FROM Shift s

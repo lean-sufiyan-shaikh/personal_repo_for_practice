@@ -1,10 +1,11 @@
-import { Clock, LayoutDashboard, Zap, CalendarDays, Database, CreditCard, ReceiptText, FileText, Wallet, Wrench, HardHat, Package, ClipboardList, Landmark, BarChart2, TrendingUp, Settings, type LucideIcon } from 'lucide-react'
+import { Clock, LayoutDashboard, ClipboardCheck, Zap, CalendarDays, Database, CreditCard, ReceiptText, FileText, Wallet, Wrench, HardHat, Package, ClipboardList, Landmark, BarChart2, TrendingUp, Settings, type LucideIcon } from 'lucide-react'
 import type { UserRole } from '../../types/auth'
 import { canAccessPage } from '../../permissions/permissions'
 
 export const ALL_NAV_ITEMS: { label: string; path: string; icon: LucideIcon; page: string; bg: string; color: string }[] = [
   { label: 'My Shift',       path: '/dashboard/my-shift',       icon: Clock,           page: 'myShift',       bg: 'bg-emerald-100', color: 'text-emerald-600' },
   { label: 'Overview',       path: '/dashboard',                icon: LayoutDashboard, page: 'overview',      bg: 'bg-blue-100',    color: 'text-blue-600'    },
+  { label: 'Approvals',      path: '/dashboard/approvals',      icon: ClipboardCheck,  page: 'approvals',     bg: 'bg-warn-bg',     color: 'text-warn'        },
   { label: 'Shifts',         path: '/dashboard/shifts',         icon: Zap,             page: 'shifts',        bg: 'bg-emerald-100', color: 'text-emerald-600' },
   { label: 'Shift Planning', path: '/dashboard/shift-planning', icon: CalendarDays,    page: 'shiftPlanning', bg: 'bg-violet-100',  color: 'text-violet-600'  },
   { label: 'Inventory',      path: '/dashboard/inventory',      icon: Database,        page: 'inventory',     bg: 'bg-amber-100',   color: 'text-amber-600'   },
@@ -39,7 +40,7 @@ const BOTTOM_TAB_PAGES_BY_ROLE: Partial<Record<UserRole, string[]>> = {
   MANAGER:    ['overview', 'shifts', 'inventory', 'cashDrawer'],
   OWNER:      ['overview', 'shifts', 'credit', 'reports'],
   ADMIN:      ['overview', 'shifts', 'credit', 'reports'],
-  ACCOUNTANT: ['credit', 'expenses'],
+  ACCOUNTANT: ['overview', 'credit', 'expenses'],
 }
 
 export interface BottomTab {

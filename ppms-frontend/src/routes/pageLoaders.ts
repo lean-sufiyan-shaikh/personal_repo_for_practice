@@ -1,6 +1,7 @@
 export const pageLoaders = {
   dashboard:      () => import('../pages/dashboard/DashboardPage'),
   overview:       () => import('../pages/dashboard/OverviewPage'),
+  approvals:      () => import('../pages/approvals/ApprovalsPage'),
   myShift:        () => import('../pages/shifts/MyShiftPage'),
   shifts:         () => import('../pages/shifts/ShiftsPage'),
   shiftPlanning:  () => import('../pages/shifts/ShiftPlanningPage'),
@@ -22,6 +23,7 @@ export const pageLoaders = {
 
 const PAGE_BY_PATH: Record<string, keyof typeof pageLoaders> = {
   '/dashboard':                'overview',
+  '/dashboard/approvals':      'approvals',
   '/dashboard/my-shift':       'myShift',
   '/dashboard/shifts':         'shifts',
   '/dashboard/shift-planning': 'shiftPlanning',

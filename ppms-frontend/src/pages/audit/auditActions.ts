@@ -45,6 +45,8 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   DOCUMENT_ADDED:                     'Document added',
   // Expenses
   EXPENSE_RECORDED:                   'Expense recorded',
+  EXPENSE_APPROVED:                   'Expense approved',
+  EXPENSE_REJECTED:                   'Expense rejected',
   // Payroll
   PAYROLL_APPROVED:                   'Payroll approved',
   PAYROLL_DELETED:                    'Payroll deleted',
@@ -121,6 +123,8 @@ export const AUDIT_ACTION_STYLES: Record<AuditAction, string> = {
   DOCUMENT_ADDED:                     'bg-slate-100 text-slate-700',
   // Expenses
   EXPENSE_RECORDED:                   'bg-rose-100 text-rose-700',
+  EXPENSE_APPROVED:                   'bg-ok-bg text-ok',
+  EXPENSE_REJECTED:                   'bg-bad-bg text-bad',
   // Payroll
   PAYROLL_APPROVED:                   'bg-emerald-100 text-emerald-700',
   PAYROLL_DELETED:                    'bg-red-100 text-red-700',

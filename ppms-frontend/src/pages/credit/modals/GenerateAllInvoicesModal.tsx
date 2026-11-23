@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { creditApi } from '../../../api/creditApi'
 import type { GenerateAllInvoicesResult } from '../../../api/creditApi'
 import { Spinner } from '../../../components/Spinner'
 import { ModalPortal } from '../../../components/ModalPortal'
 import { parseApiError } from '../../../utils/apiError'
+import { formatCurrency } from '../../../utils/format'
 import { lastCompletedMonth } from '../creditDates'
 
 // ─── Generate Invoices For All Clients Modal ─────────────────────────────────
@@ -20,6 +22,15 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
   const [periodTo, setPeriodTo] = useState(() => lastCompletedMonth().periodTo)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<GenerateAllInvoicesResult | null>(null)
+  const periodValid = periodFrom !== '' && periodTo !== '' && periodFrom <= periodTo
+
+  const preview = useQuery({
+    queryKey: ['credit-invoices', pumpId, 'preview', periodFrom, periodTo],
+    queryFn: () => creditApi.previewInvoicesForAllClients(pumpId, { periodFrom, periodTo }),
+    enabled: periodValid && result === null,
+  })
+  const gstMissing = preview.data?.gstDetailsComplete === false
+  const nothingToInvoice = preview.data?.clientsToInvoice === 0
 
   const mutation = useMutation({
     mutationFn: () => creditApi.generateInvoicesForAllClients(pumpId, { periodFrom, periodTo }),
@@ -31,8 +42,7 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
   })
 
   const handleSubmit = () => {
-    if (!periodFrom || !periodTo) { setError('Choose both dates of the period.'); return }
-    if (periodFrom > periodTo) { setError('The period start must be on or before its end.'); return }
+    if (!periodValid) { setError('Choose a period whose start is on or before its end.'); return }
     setError(null)
     mutation.mutate()
   }
@@ -51,16 +61,25 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
 
         <div className="ui-modal-body space-y-4">
           {result ? (
-            <div role="status" className="ui-alert text-sm bg-emerald-50 border-emerald-200 text-emerald-800 space-y-1">
+            <div role="status" className="ui-alert ui-alert-success text-sm space-y-1">
               <p><strong>{result.invoicesIssued}</strong> invoice{result.invoicesIssued !== 1 ? 's' : ''} issued.</p>
               <p>{result.clientsSkipped} client{result.clientsSkipped !== 1 ? 's' : ''} had nothing to bill.</p>
               {result.clientsFailed > 0 && (
-                <p className="text-red-700">{result.clientsFailed} client{result.clientsFailed !== 1 ? 's' : ''} failed — try them one by one from the client screen.</p>
+                <p className="text-bad">{result.clientsFailed} client{result.clientsFailed !== 1 ? 's' : ''} failed — try them one by one from the client screen.</p>
               )}
             </div>
           ) : (
             <>
-              <p className="text-sm text-slate-600">
+              {gstMissing && (
+                <div role="alert" className="ui-alert ui-alert-danger text-sm">
+                  <p className="font-semibold">Add the pump&apos;s GST details before issuing invoices.</p>
+                  <p>
+                    Invoices need the GSTIN, legal name and invoice prefix.{' '}
+                    <Link to="/dashboard/setup" onClick={onClose} className="ui-link">Open Setup → GST details</Link>
+                  </p>
+                </div>
+              )}
+              <p className="text-sm text-ink-2">
                 Clients with nothing to bill in the period are skipped. Interest is not included.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -75,6 +94,22 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
                     onChange={e => setPeriodTo(e.target.value)} className="text-sm" />
                 </label>
               </div>
+              <div role="status" aria-live="polite" className="ui-card-plain px-4 py-3 text-sm">
+                {!periodValid ? (
+                  <span className="text-ink-3">Choose a period to see what would be invoiced.</span>
+                ) : preview.isLoading ? (
+                  <span className="flex items-center gap-1.5 text-ink-3"><Spinner />Working out what would be invoiced…</span>
+                ) : preview.isError ? (
+                  <span className="text-bad">{parseApiError(preview.error, 'Could not work out what would be invoiced')}</span>
+                ) : preview.data && (
+                  <span className="text-ink">
+                    {nothingToInvoice
+                      ? 'No client has uninvoiced credit sales in this period.'
+                      : <><strong>{preview.data.clientsToInvoice}</strong> client{preview.data.clientsToInvoice !== 1 ? 's' : ''} would
+                        be invoiced for <strong>{formatCurrency(preview.data.totalAmount)}</strong> in total.</>}
+                  </span>
+                )}
+              </div>
               {error && <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>}
             </>
           )}
@@ -86,8 +121,14 @@ export function GenerateAllInvoicesModal({ pumpId, onClose }: GenerateAllInvoice
           ) : (
             <>
               <button onClick={onClose} className="ui-btn ui-btn-secondary">Cancel</button>
-              <button onClick={handleSubmit} disabled={mutation.isPending} className="ui-btn ui-btn-primary">
-                {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner />Generating…</span> : 'Generate'}
+              <button onClick={handleSubmit}
+                disabled={mutation.isPending || !preview.data || gstMissing || nothingToInvoice}
+                className="ui-btn ui-btn-primary">
+                {mutation.isPending
+                  ? <span className="flex items-center gap-1.5"><Spinner />Generating…</span>
+                  : preview.data && !nothingToInvoice
+                    ? `Generate ${preview.data.clientsToInvoice} invoice${preview.data.clientsToInvoice !== 1 ? 's' : ''}`
+                    : 'Generate'}
               </button>
             </>
           )}

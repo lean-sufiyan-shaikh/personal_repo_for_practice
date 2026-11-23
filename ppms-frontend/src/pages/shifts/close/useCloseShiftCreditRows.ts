@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import type { CreditClient } from '../../../api/pumpApi'
+import type { CreditClientSummary } from '../../../api/pumpApi'
 import type { CreditEntry } from '../../../types/shift'
 import type { CreditRow } from '../components/creditRow'
 
@@ -16,7 +16,7 @@ function emptyRow(id: number, fuelType: string): CreditRow {
 }
 
 /** Credit entries added while closing a shift, including edited copies of entries recorded mid-shift. */
-export function useCloseShiftCreditRows(availableFuelTypes: string[], creditClients: CreditClient[], initialRows: CreditRow[] = []) {
+export function useCloseShiftCreditRows(availableFuelTypes: string[], creditClients: CreditClientSummary[], initialRows: CreditRow[] = []) {
   const nextRowId = useRef(initialRows.reduce((max, row) => Math.max(max, row.id), 0) + 1)
   const [creditRows, setCreditRows] = useState<CreditRow[]>(initialRows)
   const [expandedRowId, setExpandedRowId] = useState<number | null>(null)

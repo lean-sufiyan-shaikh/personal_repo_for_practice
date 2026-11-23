@@ -30,7 +30,7 @@ describe('getDefaultPath', () => {
     ['ADMIN', '/dashboard'],
     ['MANAGER', '/dashboard'],
     ['OPERATOR', '/dashboard/my-shift'],
-    ['ACCOUNTANT', '/dashboard/credit'],
+    ['ACCOUNTANT', '/dashboard'],
   ])('sends %s to %s', (role, path) => {
     expect(getDefaultPath(role)).toBe(path)
   })
@@ -56,9 +56,16 @@ describe('canAccessPage', () => {
     expect(canAccessPage('payroll', 'ADMIN')).toBe(false)
   })
 
-  it('keeps ACCOUNTANT to credit and expenses', () => {
+  it('keeps ACCOUNTANT to the overview, credit and expenses', () => {
     const allowed = Object.keys(PAGE_PERMISSIONS).filter(page => canAccessPage(page, 'ACCOUNTANT'))
-    expect(allowed.sort()).toEqual(['credit', 'expenses'])
+    expect(allowed.sort()).toEqual(['credit', 'expenses', 'overview'])
+  })
+
+  it('limits the approval queue to OWNER and ADMIN', () => {
+    expect(canAccessPage('approvals', 'OWNER')).toBe(true)
+    expect(canAccessPage('approvals', 'ADMIN')).toBe(true)
+    expect(canAccessPage('approvals', 'MANAGER')).toBe(false)
+    expect(canAccessPage('approvals', 'ACCOUNTANT')).toBe(false)
   })
 
   it('denies an unknown page', () => {
