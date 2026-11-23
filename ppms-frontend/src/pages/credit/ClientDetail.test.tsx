@@ -16,7 +16,7 @@ vi.mock('../../api/creditApi', () => ({
     getPendingPayments: vi.fn(),
     approvePayment: vi.fn(),
     applyInterest: vi.fn(),
-    deleteInterestCharge: vi.fn(),
+    waiveInterestCharge: vi.fn(),
   },
 }))
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn().mockResolvedValue([]) } }))
@@ -112,11 +112,11 @@ describe('ClientDetail actions by role', () => {
     vi.mocked(creditApi.getPendingPayments).mockResolvedValue([pendingPaymentRecord])
   })
 
-  it('lets a manager record payments and edit interest settings but not grant extensions', async () => {
+  it('lets a manager record payments but not edit interest settings or grant extensions', async () => {
     signIn('MANAGER', 1)
     await renderClient()
     expect(screen.getByRole('button', { name: 'Record Payment' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Interest Settings' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Interest Settings' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Grant Extension' })).not.toBeInTheDocument()
   })
 
@@ -130,6 +130,12 @@ describe('ClientDetail actions by role', () => {
     expect(screen.queryByRole('button', { name: 'Apply Interest' })).not.toBeInTheDocument()
     expect(screen.getByText(/charged on the parent account \(Acme Group\)/)).toBeInTheDocument()
     expect(screen.getByText('Set on parent account')).toBeInTheDocument()
+  })
+
+  it('lets an owner edit interest settings', async () => {
+    signIn('OWNER', 1)
+    await renderClient()
+    expect(screen.getByRole('button', { name: 'Interest Settings' })).toBeInTheDocument()
   })
 
   it('shows an accountant no write actions', async () => {
@@ -178,5 +184,41 @@ describe('ClientDetail when the client cannot be shown', () => {
     vi.mocked(creditApi.getLedgerSummary).mockRejectedValue(new Error('boom'))
     renderWithProviders(<ClientDetail clientId={CLIENT_ID} pumpId={PUMP_ID} onBack={vi.fn()} />)
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load this client')
+  })
+})
+
+describe('ClientDetail interest waiver', () => {
+  const interestCharge: CreditTransaction = {
+    type: 'INTEREST', referenceId: 91, reference: '30 days @ 2.00%/month', detail: '2026-02-01 – 2026-03-02', amount: 100,
+    runningBalance: 5_000, occurredAt: '2026-03-02T06:00:00Z', businessDate: '2026-03-02', status: 'ACTIVE', countedInBalance: true,
+  }
+
+  beforeEach(() => {
+    vi.mocked(creditApi.getLedgerSummary).mockResolvedValue([client])
+    vi.mocked(creditApi.getActiveExtensions).mockResolvedValue([])
+    vi.mocked(creditApi.getAllTransactions).mockResolvedValue([pendingPayment, interestCharge])
+    vi.mocked(creditApi.getPendingPayments).mockResolvedValue([pendingPaymentRecord])
+    vi.mocked(creditApi.waiveInterestCharge).mockResolvedValue({} as never)
+  })
+
+  it('asks the owner for a reason and sends it with the waiver', async () => {
+    const user = userEvent.setup()
+    signIn('OWNER', 1)
+    await renderClient()
+
+    await user.click(screen.getByRole('button', { name: 'Waive this interest charge' }))
+    await user.click(screen.getByRole('button', { name: 'Waive Interest' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('A reason is required')
+    expect(creditApi.waiveInterestCharge).not.toHaveBeenCalled()
+
+    await user.type(screen.getByRole('textbox'), 'Charged at the wrong rate')
+    await user.click(screen.getByRole('button', { name: 'Waive Interest' }))
+    expect(creditApi.waiveInterestCharge).toHaveBeenCalledWith(PUMP_ID, CLIENT_ID, 91, 'Charged at the wrong rate')
+  })
+
+  it('does not offer a manager the waiver', async () => {
+    signIn('MANAGER', 1)
+    await renderClient()
+    expect(screen.queryByRole('button', { name: 'Waive this interest charge' })).not.toBeInTheDocument()
   })
 })

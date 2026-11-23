@@ -71,18 +71,18 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
     : []
 
   const canSave =
-    clientName.trim().length > 0 &&
+    clientId !== null &&
     fuelType.length > 0 &&
     parseFloat(amount) > 0
 
   const handleSubmit = () => {
     const amt = parseFloat(amount)
-    if (!clientName.trim()) { setError('Client name is required'); return }
+    if (!clientId)           { setError('Please select a client from the list.'); return }
     if (!fuelType)           { setError('Fuel type is required'); return }
     if (!amount || isNaN(amt) || amt <= 0) { setError('Enter a valid amount'); return }
     setError(null)
     mutation.mutate({
-      clientId:    subAccountId ?? clientId ?? undefined,
+      clientId:    subAccountId ?? clientId,
       clientName: clientName.trim(),
       fuelType,
       amount: amt,

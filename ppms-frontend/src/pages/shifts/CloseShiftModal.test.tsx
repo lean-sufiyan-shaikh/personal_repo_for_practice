@@ -22,7 +22,8 @@ const shift: Shift = {
   }],
   totalAmountDue: null, cashCollected: null, upiCollected: null, cardCollected: null, fleetCardCollected: null,
   creditTotal: null, discrepancyAmount: null, discrepancyType: null, discrepancyReason: null,
-  discrepancyResolution: null, discrepancyResolutionNote: null, cashRecoveryAmount: null,
+  discrepancyResolution: null, discrepancyResolutionNote: null,
+  investigationNote: null, investigatedByName: null, investigationStartedAt: null, cashRecoveryAmount: null,
   status: 'OPEN', isBackfilled: false, creditEntries: [],
 }
 

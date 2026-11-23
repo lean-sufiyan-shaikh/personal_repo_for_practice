@@ -1,7 +1,6 @@
 import type { CreditTransaction } from '../../api/creditApi'
 import { formatIstDate } from '../../utils/date'
 import { formatDecimal } from '../../utils/format'
-import { ConfirmButton } from '../../components/ConfirmButton'
 import { ScrollRegion } from '../../components/ScrollRegion'
 import { codeLabel } from '../../constants/labels'
 import { FUEL_LABELS } from '../../constants/fuel'
@@ -11,15 +10,14 @@ const formatDate = (iso: string) =>
 
 export interface LedgerRowActions {
   canMoveEntries: boolean
-  canDeleteInterest: boolean
+  canWaiveInterest: boolean
   canApprovePayments: boolean
   currentUserId: number | undefined
   pendingPaymentRecorders: Map<number, number>
   approvePayment: (paymentId: number, status: 'APPROVED' | 'REJECTED') => void
   isApproving: boolean
   onMove: (entryId: number, sourceClientId: number, type: 'SALE' | 'PAYMENT') => void
-  deleteInterest: (chargeId: number, sourceClientId: number) => void
-  isDeletingInterest: boolean
+  onWaiveInterest: (charge: CreditTransaction, sourceClientId: number) => void
 }
 
 interface LedgerWeekGroupsProps {
@@ -42,6 +40,7 @@ function rowBadge(tx: CreditTransaction): { label: string; tone: string } {
   if (tx.status === 'PENDING_APPROVAL') return { label: 'Pending approval', tone: 'bg-amber-100 text-amber-800' }
   if (tx.status === 'REJECTED') return { label: 'Rejected', tone: 'bg-slate-100 text-slate-600' }
   if (tx.status === 'VOIDED') return { label: 'Voided', tone: 'bg-slate-100 text-slate-600' }
+  if (tx.status === 'WAIVED') return { label: 'Waived', tone: 'bg-slate-100 text-slate-600' }
   if (tx.type === 'SALE') return { label: '↑ Sale', tone: 'bg-orange-100 text-orange-700' }
   if (tx.type === 'COUNTER_SALE') return { label: '↑ Shop sale', tone: 'bg-orange-100 text-orange-700' }
   if (tx.type === 'INTEREST') return { label: '% Interest', tone: 'bg-purple-100 text-purple-700' }
@@ -50,8 +49,8 @@ function rowBadge(tx: CreditTransaction): { label: string; tone: string } {
 
 export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGroupsProps) {
   const {
-    canMoveEntries, canDeleteInterest, canApprovePayments, currentUserId, pendingPaymentRecorders,
-    approvePayment, isApproving, onMove, deleteInterest, isDeletingInterest,
+    canMoveEntries, canWaiveInterest, canApprovePayments, currentUserId, pendingPaymentRecorders,
+    approvePayment, isApproving, onMove, onWaiveInterest,
   } = actions
 
   return groups.map(({ label, items }) => {
@@ -129,15 +128,15 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
                       Move
                     </button>
                   )}
-                  {canDeleteInterest && tx.type === 'INTEREST' && (
-                    <ConfirmButton
-                      onConfirm={() => deleteInterest(tx.referenceId, srcClientId)}
-                      disabled={isDeletingInterest}
-                      triggerLabel="Remove"
-                      triggerAriaLabel="Remove this interest charge"
-                      prompt="Remove interest?"
-                      triggerClassName="ui-btn ui-btn-ghost min-h-6 px-1 text-xs text-red-700 hover:text-red-800"
-                    />
+                  {canWaiveInterest && tx.type === 'INTEREST' && tx.status !== 'WAIVED' && (
+                    <button
+                      type="button"
+                      onClick={() => onWaiveInterest(tx, srcClientId)}
+                      aria-label="Waive this interest charge"
+                      className="ui-btn ui-btn-ghost min-h-6 px-1 text-xs text-red-700 hover:text-red-800"
+                    >
+                      Waive
+                    </button>
                   )}
                 </td>
               </tr>

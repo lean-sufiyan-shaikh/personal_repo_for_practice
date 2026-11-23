@@ -43,10 +43,6 @@ export interface CreateDURequest {
   }>
 }
 
-export interface UpdateNozzleReadingRequest {
-  reading: number
-}
-
 export interface TankInfo {
   id: number
   pumpId: number
@@ -202,9 +198,6 @@ export const pumpApi = {
 
   mapNozzleToTank: (pumpId: number, duId: number, nozzleId: number, tankId: number | null) =>
     client.patch<NozzleDetail>(`/pumps/${pumpId}/dus/${duId}/nozzles/${nozzleId}/tank`, { tankId }).then((r) => r.data),
-
-  updateNozzleReading: (pumpId: number, duId: number, nozzleId: number, req: UpdateNozzleReadingRequest) =>
-    client.put<NozzleDetail>(`/pumps/${pumpId}/dus/${duId}/nozzles/${nozzleId}/reading`, req).then((r) => r.data),
 
   /** Increases the maximum number of DUs allowed on a pump. */
   updateMaxDuCount: (pumpId: number, maxDuCount: number) =>

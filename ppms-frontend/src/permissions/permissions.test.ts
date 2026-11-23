@@ -62,6 +62,11 @@ describe('canPerformAction', () => {
     ['payroll:generate', 'ADMIN', false],
     ['settlement:void', 'MANAGER', false],
     ['setup:manage', 'MANAGER', false],
+    ['credit:manage-interest', 'MANAGER', false],
+    ['credit:manage-interest', 'ADMIN', true],
+    ['credit:apply-interest', 'MANAGER', true],
+    ['credit:waive-interest', 'OWNER', true],
+    ['credit:waive-interest', 'MANAGER', false],
   ])('%s for %s is %s', (action, role, expected) => {
     expect(canPerformAction(action, role)).toBe(expected)
   })

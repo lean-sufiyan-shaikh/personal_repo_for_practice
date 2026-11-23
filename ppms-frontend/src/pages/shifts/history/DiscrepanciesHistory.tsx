@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { shiftApi } from '../../../api/shiftApi'
 import { SkeletonRows } from '../../../components/Skeleton'
 import { parseApiError } from '../../../utils/apiError'
-import { PAGE_SIZE, fmtAmt, RESOLUTION_LABELS } from '../shiftLabels'
+import { PAGE_SIZE, fmtAmt, RESOLUTION_LABELS, investigationLabel } from '../shiftLabels'
 import { ScrollRegion } from '../../../components/ScrollRegion'
 import { FULL_HISTORY_QUERY_OPTIONS } from '../../../queryClient'
 
@@ -166,11 +166,11 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
                         {RESOLUTION_LABELS[shift.discrepancyResolution] ?? shift.discrepancyResolution}
                       </span>
                     ) : (
-                      <span className="text-xs text-orange-600 font-medium">Pending</span>
+                      <span className="text-xs text-orange-600 font-medium">{investigationLabel(shift) ?? 'Pending'}</span>
                     )}
                   </td>
                   <td className="px-5 py-3 text-xs text-slate-500 hidden md:table-cell max-w-xs truncate">
-                    {shift.discrepancyResolutionNote ?? shift.discrepancyReason ?? '—'}
+                    {shift.discrepancyResolutionNote ?? shift.investigationNote ?? shift.discrepancyReason ?? '—'}
                   </td>
                 </tr>
               ))

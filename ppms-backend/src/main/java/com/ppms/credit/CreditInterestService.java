@@ -138,7 +138,7 @@ public class CreditInterestService {
     public Map<Long, InterestBreakdown> computeInterestBreakdownBatch(Collection<Long> clientIds) {
         if (clientIds.isEmpty()) return Map.of();
 
-        List<CreditInterestCharge> allCharges = interestChargeRepository.findByClientIdIn(clientIds);
+        List<CreditInterestCharge> allCharges = interestChargeRepository.findByClientIdInAndVoidedAtIsNull(clientIds);
         Map<Long, List<CreditInterestCharge>> chargesByClient = allCharges.stream()
                 .collect(Collectors.groupingBy(CreditInterestCharge::getClientId));
         List<CreditPayment> allPayments = chargesByClient.isEmpty()

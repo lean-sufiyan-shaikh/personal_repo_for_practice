@@ -18,10 +18,12 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
@@ -50,6 +52,67 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
         JsonNode tanks = json(perform(get("/api/inventory/{pumpId}/tanks", setup.pumpId()), setup.manager())
                 .andExpect(status().isOk()));
         assertThat(tanks.get(0).get("currentStock").decimalValue()).isEqualByComparingTo("1500");
+    }
+
+    @Test
+    void managerCannotSendAFuelCostAndADeliveryWithoutOneUsesTheTanksLastCost() throws Exception {
+        Map<String, Object> withCost = new HashMap<>(managerDelivery(setup.tank().getId(), "200"));
+        withCost.put("costPricePerUnit", new BigDecimal("10.00"));
+        perform(post("/api/inventory/{pumpId}/deliveries", setup.pumpId()), setup.manager(), withCost)
+                .andExpect(status().isForbidden());
+        perform(post("/api/inventory/{pumpId}/deliveries/batch", setup.pumpId()), setup.manager(),
+                batchRequest(List.of(Map.of("tankId", setup.tank().getId(), "quantityDelivered", new BigDecimal("100"),
+                        "costPricePerUnit", new BigDecimal("10.00")))))
+                .andExpect(status().isForbidden());
+        assertThat(currentStock()).isEqualByComparingTo("1000");
+
+        JsonNode single = json(perform(post("/api/inventory/{pumpId}/deliveries", setup.pumpId()), setup.manager(),
+                managerDelivery(setup.tank().getId(), "200"))
+                .andExpect(status().is2xxSuccessful()));
+        JsonNode batch = json(perform(post("/api/inventory/{pumpId}/deliveries/batch", setup.pumpId()), setup.manager(),
+                batchRequest(List.of(Map.of("tankId", setup.tank().getId(), "quantityDelivered", new BigDecimal("100")))))
+                .andExpect(status().is2xxSuccessful()));
+
+        assertThat(single.get("costPricePerUnit").decimalValue()).isEqualByComparingTo("90.00");
+        assertThat(batch.get(0).get("costPricePerUnit").decimalValue()).isEqualByComparingTo("90.00");
+        assertThat(currentStock()).isEqualByComparingTo("1300");
+    }
+
+    @Test
+    void managerDeliveryToATankWithNoEarlierDeliveryIsRefused() throws Exception {
+        UndergroundTank dieselTank = saveDieselTank();
+
+        perform(post("/api/inventory/{pumpId}/deliveries", setup.pumpId()), setup.manager(),
+                managerDelivery(dieselTank.getId(), "200"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("an owner or admin must enter the first cost")));
+
+        assertThat(tankRepository.findById(dieselTank.getId()).orElseThrow().getCurrentStock()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void ownerMustStillEnterACostForASingleDelivery() throws Exception {
+        perform(post("/api/inventory/{pumpId}/deliveries", setup.pumpId()), setup.owner(),
+                managerDelivery(setup.tank().getId(), "200"))
+                .andExpect(status().isBadRequest());
+        assertThat(currentStock()).isEqualByComparingTo("1000");
+    }
+
+    @Test
+    void managerCanCorrectADeliveryButNotItsCost() throws Exception {
+        long deliveryId = recordDelivery(setup, "400", "90.00", TestDates.today()).get("id").asLong();
+
+        perform(patch("/api/inventory/{pumpId}/deliveries/{deliveryId}", setup.pumpId(), deliveryId), setup.manager(),
+                Map.of("quantityDelivered", new BigDecimal("450"), "costPricePerUnit", new BigDecimal("50.00"),
+                        "deliveryDate", TestDates.today().toString(), "invoiceReference", "INV-FIXED"))
+                .andExpect(status().isForbidden());
+        JsonNode corrected = json(perform(patch("/api/inventory/{pumpId}/deliveries/{deliveryId}", setup.pumpId(), deliveryId),
+                setup.manager(), Map.of("quantityDelivered", new BigDecimal("450"),
+                        "deliveryDate", TestDates.today().toString(), "invoiceReference", "INV-FIXED"))
+                .andExpect(status().isOk()));
+
+        assertThat(corrected.get("costPricePerUnit").decimalValue()).isEqualByComparingTo("90.00");
+        assertThat(currentStock()).isEqualByComparingTo("1450");
     }
 
     @Test
@@ -159,6 +222,11 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
         perform(post("/api/inventory/{pumpId}/deliveries/batch", setup.pumpId()), setup.owner(), request)
                 .andExpect(status().isBadRequest());
         assertThat(currentStock()).isEqualByComparingTo("1000");
+    }
+
+    private Map<String, Object> managerDelivery(Long tankId, String litres) {
+        return Map.of("tankId", tankId, "quantityDelivered", new BigDecimal(litres),
+                "deliveryDate", TestDates.today().toString(), "invoiceReference", "INV-" + shortId());
     }
 
     private Map<String, Object> batchRequest(List<Map<String, Object>> items) {

@@ -108,6 +108,10 @@ export interface Shift {
   discrepancyReason: string | null
   discrepancyResolution: string | null
   discrepancyResolutionNote: string | null
+  /** Set while (and after) a discrepancy was put under investigation; the shift stays pending until a final action. */
+  investigationNote: string | null
+  investigatedByName: string | null
+  investigationStartedAt: string | null
   /** Non-null when discrepancyResolution = CASH_RECOVERY on a SHORT shift. */
   cashRecoveryAmount: number | null
   status: ShiftStatus

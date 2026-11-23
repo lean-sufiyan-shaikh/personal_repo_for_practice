@@ -317,15 +317,13 @@ public class ShiftLifecycleSupportService {
         List<ShiftCreditEntry> toSave = new ArrayList<>();
         Map<CreditClient, BigDecimal> amountByClient = new LinkedHashMap<>();
         for (CloseShiftRequest.CreditEntryRequest entry : creditEntries) {
-            CreditClient matchedClient = creditAccountPolicyService.resolveClientForPump(
+            CreditClient matchedClient = creditAccountPolicyService.requireClientForCreditEntry(
                     pumpId, entry.clientId(), entry.clientName());
-            if (matchedClient != null) {
-                amountByClient.merge(matchedClient, entry.amount(), BigDecimal::add);
-            }
+            amountByClient.merge(matchedClient, entry.amount(), BigDecimal::add);
 
             toSave.add(ShiftCreditEntry.builder()
                     .shiftId(shiftId)
-                    .clientId(matchedClient != null ? matchedClient.getId() : null)
+                    .clientId(matchedClient.getId())
                     .clientName(entry.clientName())
                     .billNo(entry.billNo())
                     .amount(entry.amount())

@@ -1,4 +1,5 @@
-import { formatIstDate, localDateInputValue } from '../../utils/date'
+import { formatIstDate, formatIstDateTime, localDateInputValue } from '../../utils/date'
+import type { Shift } from '../../types/shift'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,13 @@ export const RESOLUTION_LABELS: Record<string, string> = {
   SALARY_DEDUCTION:      'Salary Deduction',
   CASH_RECOVERY:         'Cash Recovery',
   WAIVED:                'Waived',
+}
+
+/** "Under investigation by … since …" while a pending discrepancy is being investigated, otherwise null. */
+export function investigationLabel(shift: Shift): string | null {
+  const isPending = shift.status === 'CLOSED_DISCREPANCY_PENDING' || shift.status === 'CLOSED_DISCREPANCY_PENDING_APPROVAL'
+  if (!isPending || !shift.investigationStartedAt) return null
+  return `Under investigation by ${shift.investigatedByName ?? 'unknown user'} since ${formatIstDateTime(shift.investigationStartedAt)}`
 }
 
 // ── Resolve Discrepancy Modal ─────────────────────────────────────────────────

@@ -81,11 +81,11 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
             """)
     boolean hasOpenShift(Long operatorId);
 
-    /** True if operator has any unresolved discrepancy — blocks deactivation (Rule 30). */
+    /** True if operator has any unresolved discrepancy, escalated ones included — blocks deactivation (Rule 30). */
     @Query("""
             SELECT COUNT(s) > 0 FROM Shift s
             WHERE s.operatorId = :operatorId
-              AND s.status = 'CLOSED_DISCREPANCY_PENDING'
+              AND s.status IN ('CLOSED_DISCREPANCY_PENDING', 'CLOSED_DISCREPANCY_PENDING_APPROVAL')
             """)
     boolean hasUnresolvedDiscrepancy(Long operatorId);
 

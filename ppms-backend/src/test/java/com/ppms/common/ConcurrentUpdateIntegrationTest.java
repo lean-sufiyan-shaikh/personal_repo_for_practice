@@ -91,6 +91,7 @@ class ConcurrentUpdateIntegrationTest {
     @Autowired private AncillaryStockLotRepository ancillaryLotRepository;
     @Autowired private AncillaryProductPriceRepository ancillaryPriceRepository;
 
+    private User owner;
     private User manager;
     private User operator;
     private PumpLocation pump;
@@ -101,7 +102,7 @@ class ConcurrentUpdateIntegrationTest {
 
     @BeforeEach
     void createPumpWithStockedTank() {
-        User owner = saveUser(UserRole.OWNER, null);
+        owner = saveUser(UserRole.OWNER, null);
         pump = pumpLocationRepository.save(PumpLocation.builder()
                 .ownerId(owner.getId())
                 .name("Pump " + shortId())
@@ -173,7 +174,7 @@ class ConcurrentUpdateIntegrationTest {
         CompetitorResult<?> deliveryResult = runWhileRowIsLocked(
                 () -> tankRepository.findByIdForUpdate(tank.getId()).orElseThrow(),
                 () -> shiftService.closeShift(pump.getId(), shift.getId(), closeRequestSelling("10.000"), manager),
-                () -> inventoryWorkflowService.recordDelivery(pump.getId(), delivery, manager));
+                () -> inventoryWorkflowService.recordDelivery(pump.getId(), delivery, owner));
 
         assertThat(deliveryResult.failure()).isNull();
         assertThat(tankRepository.findById(tank.getId()).orElseThrow().getCurrentStock()).isEqualByComparingTo("5990.000");

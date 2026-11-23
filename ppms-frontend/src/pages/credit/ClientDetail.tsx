@@ -20,6 +20,7 @@ import type { LedgerRowActions } from './LedgerWeekGroups'
 import { ReassignCreditEntryModal } from './modals/ReassignCreditEntryModal'
 import { RecordPaymentModal } from './modals/RecordPaymentModal'
 import { SetInterestSettingsModal } from './modals/SetInterestSettingsModal'
+import { WaiveInterestModal } from './modals/WaiveInterestModal'
 import { useClientLedger } from './useClientLedger'
 import { useLedgerFilters } from './useLedgerFilters'
 import { LedgerFilterBar } from './LedgerFilterBar'
@@ -44,6 +45,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   // Track which client the entry being reassigned belongs to (may be a child in parent view)
   const [reassignSourceClientId,  setReassignSourceClientId]  = useState<number>(clientId)
   const [reassignType,            setReassignType]            = useState<'SALE' | 'PAYMENT'>('SALE')
+  const [waivingInterest, setWaivingInterest] = useState<{ charge: CreditTransaction; sourceClientId: number } | null>(null)
   // Tracks which sections are expanded in the parent ledger view.
   // 'own' (parent's own transactions) starts expanded; sub-account sections start collapsed.
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['own']))
@@ -57,6 +59,8 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const canApprovePayments = canPerformAction('credit:approve-payment', role)
   const canMoveEntries     = canPerformAction('credit:reassign', role)
   const canManageInterestForRole = canPerformAction('credit:manage-interest', role)
+  const canApplyInterestForRole  = canPerformAction('credit:apply-interest', role)
+  const canWaiveInterest   = canPerformAction('credit:waive-interest', role)
   const canGrantExtension  = canPerformAction('credit:grant-extension', role)
   const canIssueInvoices   = canPerformAction('credit:issue-invoice', role)
   const [activeTab, setActiveTab] = useState<'ledger' | 'invoices'>('ledger')
@@ -72,6 +76,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   // Interest is charged on the parent for the whole group, so a sub-account has no interest actions of its own.
   const isSubAccount = client?.parentClientId != null
   const canManageInterest = canManageInterestForRole && !isSubAccount
+  const canApplyInterest = canApplyInterestForRole && !isSubAccount
 
   const invalidateLedger = () => {
     qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId] })
@@ -90,13 +95,6 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
       }
     },
     onError: (err) => setApplyInterestFeedback(parseApiError(err, 'Failed to apply interest')),
-  })
-
-  const deleteInterestMutation = useMutation({
-    mutationFn: ({ chargeId, sourceClientId }: { chargeId: number; sourceClientId: number }) =>
-      creditApi.deleteInterestCharge(pumpId, sourceClientId, chargeId),
-    onSuccess: () => invalidateLedger(),
-    onError: (err) => addToast(parseApiError(err, 'Failed to remove interest charge'), 'error'),
   })
 
   const approvePaymentMutation = useMutation({
@@ -126,7 +124,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
 
   const rowActions: LedgerRowActions = {
     canMoveEntries,
-    canDeleteInterest: canPerformAction('credit:delete-interest', role),
+    canWaiveInterest,
     canApprovePayments,
     currentUserId: user?.userId,
     pendingPaymentRecorders,
@@ -137,8 +135,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
       setReassignSourceClientId(sourceClientId)
       setReassignType(type)
     },
-    deleteInterest: (chargeId, sourceClientId) => deleteInterestMutation.mutate({ chargeId, sourceClientId }),
-    isDeletingInterest: deleteInterestMutation.isPending,
+    onWaiveInterest: (charge, sourceClientId) => setWaivingInterest({ charge, sourceClientId }),
   }
 
   if (!client) {
@@ -180,6 +177,15 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           onClose={() => setShowInterestSettingsModal(false)}
         />
       )}
+      {waivingInterest && canWaiveInterest && (
+        <WaiveInterestModal
+          pumpId={pumpId}
+          clientId={waivingInterest.sourceClientId}
+          charge={waivingInterest.charge}
+          onWaived={() => { invalidateLedger(); addToast('Interest waived', 'success') }}
+          onClose={() => setWaivingInterest(null)}
+        />
+      )}
       {showExtensionModal && canGrantExtension && (
         <GrantExtensionModal
           client={client}
@@ -207,7 +213,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           </div>
           <ClientActions
             canManageInterest={canManageInterest}
-            canApplyInterest={canManageInterest && client.monthlyInterestRate > 0 && client.outstandingBalance > 0}
+            canApplyInterest={canApplyInterest && client.monthlyInterestRate > 0 && client.outstandingBalance > 0}
             isApplyingInterest={applyInterestMutation.isPending}
             canGrantExtension={canGrantExtension}
             canRecordPayment={canRecordPayment}

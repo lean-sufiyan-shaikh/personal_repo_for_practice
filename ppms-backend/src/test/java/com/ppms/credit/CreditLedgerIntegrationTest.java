@@ -1,5 +1,7 @@
 package com.ppms.credit;
 
+import com.ppms.audit.AuditAction;
+import com.ppms.audit.AuditLogRepository;
 import com.ppms.support.TestDates;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ppms.scheduler.CreditExtensionExpiryJob;
@@ -8,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
@@ -34,6 +37,9 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
     @Autowired private CreditClientRepository creditClientRepository;
     @Autowired private CreditExtensionRepository extensionRepository;
     @Autowired private CreditExtensionExpiryJob extensionExpiryJob;
+    @Autowired private CreditInterestChargeRepository interestChargeRepository;
+    @Autowired private AuditLogRepository auditLogRepository;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     private PumpSetup setup;
     private long shiftId;
@@ -127,6 +133,117 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isBadRequest());
 
         assertThat(outstandingOf(clientId)).isEqualByComparingTo("400.00");
+    }
+
+    @Test
+    void creditForASubAccountOfADisabledParentIsRefused() throws Exception {
+        long parentId = createClient(null);
+        long childId = createClient(parentId);
+        perform(patch("/api/pumps/{pumpId}/credit-clients/{clientId}/status", setup.pumpId(), parentId),
+                setup.manager(), Map.of("isActive", false))
+                .andExpect(status().isOk());
+
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId), setup.operator(),
+                creditEntry(childId, "100.00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("disabled")));
+
+        assertThat(outstandingOf(childId)).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void overdueBillingCycleBlocksAGroupWhoseOldSalesAreOnlyOnASubAccount() throws Exception {
+        long parentId = createClient(null);
+        long childId = createClient(parentId);
+        long oldEntryId = sellOnCredit(childId, "300.00");
+        backdateCreditEntry(oldEntryId, 40);
+
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId), setup.operator(),
+                creditEntry(parentId, "100.00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("billing cycle overdue")));
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId), setup.operator(),
+                creditEntry(childId, "100.00"))
+                .andExpect(status().isBadRequest());
+
+        assertThat(outstandingOf(parentId)).isEqualByComparingTo("300.00");
+    }
+
+    @Test
+    void recentPaymentOnASubAccountKeepsTheWholeGroupOutOfTheOverdueBlock() throws Exception {
+        long parentId = createClient(null);
+        long childId = createClient(parentId);
+        long oldEntryId = sellOnCredit(parentId, "500.00");
+        sellOnCredit(childId, "200.00");
+        backdateCreditEntry(oldEntryId, 40);
+        recordPayment(childId, "150.00").andExpect(status().is2xxSuccessful());
+
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId), setup.operator(),
+                creditEntry(parentId, "100.00"))
+                .andExpect(status().is2xxSuccessful());
+
+        assertThat(outstandingOf(parentId)).isEqualByComparingTo("650.00");
+    }
+
+    @Test
+    void onlyOwnerOrAdminCanChangeInterestSettingsAndTheChangeIsAudited() throws Exception {
+        long clientId = createClient(null);
+        Map<String, Object> settings = Map.of("monthlyInterestRate", new BigDecimal("2.50"), "interestGraceDays", 5);
+
+        perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/interest-settings", setup.pumpId(), clientId),
+                setup.manager(), settings)
+                .andExpect(status().isForbidden());
+        perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/interest-settings", setup.pumpId(), clientId),
+                setup.owner(), settings)
+                .andExpect(status().isOk());
+
+        assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(setup.pumpId()))
+                .filteredOn(log -> log.getAction() == AuditAction.INTEREST_SETTINGS_CHANGED)
+                .singleElement()
+                .satisfies(log -> assertThat(log.getDescription()).contains("0.00% → 2.50%").contains("1 → 5"));
+    }
+
+    @Test
+    void onlyOwnerOrAdminCanWaiveInterestAndTheWaiverNeedsAReasonAndIsAudited() throws Exception {
+        long clientId = createClient(null);
+        sellOnCredit(clientId, "1000.00");
+        CreditInterestCharge charge = interestChargeRepository.save(CreditInterestCharge.builder()
+                .pumpId(setup.pumpId())
+                .clientId(clientId)
+                .amount(new BigDecimal("40.00"))
+                .outstandingBalance(new BigDecimal("1000.00"))
+                .rateApplied(new BigDecimal("2.00"))
+                .daysApplied(30)
+                .periodFrom(TestDates.today().minusDays(30))
+                .periodTo(TestDates.today().minusDays(1))
+                .source("MANUAL")
+                .build());
+        assertThat(outstandingOf(clientId)).isEqualByComparingTo("1040.00");
+
+        perform(patch("/api/pumps/{pumpId}/credit-ledger/{clientId}/interest/{chargeId}/waive", setup.pumpId(), clientId, charge.getId()),
+                setup.manager(), Map.of("reason", "Goodwill"))
+                .andExpect(status().isForbidden());
+        perform(patch("/api/pumps/{pumpId}/credit-ledger/{clientId}/interest/{chargeId}/waive", setup.pumpId(), clientId, charge.getId()),
+                setup.owner(), Map.of("reason", " "))
+                .andExpect(status().isBadRequest());
+        perform(delete("/api/pumps/{pumpId}/credit-ledger/{clientId}/interest/{chargeId}", setup.pumpId(), clientId, charge.getId()),
+                setup.owner())
+                .andExpect(result -> assertThat(result.getResponse().getStatus()).isIn(404, 405));
+        assertThat(outstandingOf(clientId)).isEqualByComparingTo("1040.00");
+
+        perform(patch("/api/pumps/{pumpId}/credit-ledger/{clientId}/interest/{chargeId}/waive", setup.pumpId(), clientId, charge.getId()),
+                setup.owner(), Map.of("reason", "Goodwill"))
+                .andExpect(status().isNoContent());
+
+        assertThat(outstandingOf(clientId)).isEqualByComparingTo("1000.00");
+        assertThat(interestChargeRepository.findById(charge.getId()).orElseThrow().getVoidReason()).isEqualTo("Goodwill");
+        assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(setup.pumpId()))
+                .filteredOn(log -> log.getAction() == AuditAction.INTEREST_CHARGE_WAIVED)
+                .singleElement()
+                .satisfies(log -> assertThat(log.getDescription()).contains("40.00").contains("Goodwill"));
+        perform(get("/api/pumps/{pumpId}/credit-ledger/{clientId}/statement", setup.pumpId(), clientId), setup.owner())
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("WAIVED")));
     }
 
     @Test
@@ -448,6 +565,11 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
 
     private Map<String, Object> creditEntry(long clientId, String amount) {
         return Map.of("clientName", "Client", "clientId", clientId, "amount", new BigDecimal(amount), "fuelType", "PETROL");
+    }
+
+    private void backdateCreditEntry(long entryId, int daysAgo) {
+        jdbcTemplate.update("UPDATE shift_credit_entries SET created_at = ?, sale_date = ? WHERE id = ?",
+                TestDates.now().minusDays(daysAgo), TestDates.today().minusDays(daysAgo), entryId);
     }
 
     private ResultActions recordPayment(long clientId, String amount) throws Exception {

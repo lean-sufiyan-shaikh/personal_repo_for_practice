@@ -298,13 +298,13 @@ public class ShiftService {
             throw new BusinessException("Operators can only add credit entries to their own active shift.");
         }
 
-        CreditClient matchedClient = creditAccountPolicyService.resolveClientForPump(
+        CreditClient matchedClient = creditAccountPolicyService.requireClientForCreditEntry(
                 shift.getPumpId(), request.getClientId(), request.getClientName());
         creditAccountPolicyService.validateCreditSaleAllowed(shift.getPumpId(), matchedClient, request.getAmount());
 
         creditEntryRepository.save(ShiftCreditEntry.builder()
                 .shiftId(shiftId)
-                .clientId(matchedClient != null ? matchedClient.getId() : null)
+                .clientId(matchedClient.getId())
                 .clientName(request.getClientName().trim())
                 .billNo(request.getBillNo() != null ? request.getBillNo().trim() : null)
                 .amount(request.getAmount().setScale(2, RoundingMode.HALF_UP))
@@ -322,7 +322,7 @@ public class ShiftService {
     }
 
     /**
-     * Updates the discrepancy resolution for a CLOSED_DISCREPANCY_PENDING shift.
+     * Resolves a pending discrepancy, or with PENDING_INVESTIGATION only marks it as under investigation.
      */
     @Transactional
     public ShiftResponse resolveDiscrepancy(Long pumpId, Long shiftId, ResolveDiscrepancyRequest request, User currentUser) {
@@ -342,6 +342,10 @@ public class ShiftService {
                         "This discrepancy exceeds the escalation threshold and requires Owner or Admin approval. " +
                         "Managers cannot resolve escalated discrepancies.");
             }
+        }
+
+        if (request.resolutionAction() == DiscrepancyResolution.PENDING_INVESTIGATION) {
+            return startInvestigation(shift, request.resolutionNote(), currentUser);
         }
 
         if (request.resolutionAction() == DiscrepancyResolution.WAIVED
@@ -382,6 +386,23 @@ public class ShiftService {
 
         log.info("Discrepancy resolved: shiftId={}, action={}, resolvedBy={}",
                 shiftId, request.resolutionAction(), currentUser.getId());
+
+        return shiftReadModelService.toResponseWithLookups(shift);
+    }
+
+    /** Records who is investigating and why; the shift stays pending until a final action is taken. */
+    private ShiftResponse startInvestigation(Shift shift, String note, User currentUser) {
+        if (note == null || note.isBlank()) {
+            throw new BusinessException(
+                    "A note is required when putting a discrepancy under investigation.");
+        }
+        shift.setInvestigationNote(note.trim());
+        shift.setInvestigationStartedById(currentUser.getId());
+        shift.setInvestigationStartedAt(businessClock.now());
+        shift = shiftRepository.save(shift);
+
+        log.info("Discrepancy put under investigation: shiftId={}, status={}, by={}",
+                shift.getId(), shift.getStatus(), currentUser.getId());
 
         return shiftReadModelService.toResponseWithLookups(shift);
     }

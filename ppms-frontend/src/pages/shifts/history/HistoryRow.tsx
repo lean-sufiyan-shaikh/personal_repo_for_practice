@@ -6,7 +6,7 @@ import { IconButton } from '../../../components/IconButton'
 import { CreditEntriesModal } from '../modals/CreditEntriesModal'
 import { HandoverModal } from '../modals/HandoverModal'
 import { ResolveDiscrepancyModal } from '../modals/ResolveDiscrepancyModal'
-import { STATUS_LABELS, fmtAmt } from '../shiftLabels'
+import { STATUS_LABELS, fmtAmt, investigationLabel } from '../shiftLabels'
 import { codeLabel } from '../../../constants/labels'
 
 // ── History row ───────────────────────────────────────────────────────────────
@@ -32,6 +32,7 @@ export function HistoryRow({ shift }: { shift: Shift }) {
   const digitalTotal     = (shift.upiCollected ?? 0) + (shift.cardCollected ?? 0)
   const hasCreditEntries = (shift.creditEntries?.length ?? 0) > 0
   const creditAmt        = shift.creditTotal ?? 0
+  const investigation    = investigationLabel(shift)
 
   return (
     <>
@@ -100,6 +101,9 @@ export function HistoryRow({ shift }: { shift: Shift }) {
             )}
             {shift.discrepancyResolution && (
               <span className="text-xs text-slate-500">{codeLabel(shift.discrepancyResolution)}</span>
+            )}
+            {investigation && (
+              <span className="text-xs text-orange-700" title={shift.investigationNote ?? undefined}>{investigation}</span>
             )}
             {isClosed && (
               <IconButton

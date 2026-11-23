@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 public class CreditLedgerQueryService {
 
     private static final String ACTIVE = "ACTIVE";
+    private static final String WAIVED = "WAIVED";
     private static final String COUNTER_SALE = "COUNTER_SALE";
     private static final Comparator<CreditTransactionResponse> OLDEST_FIRST =
             Comparator.comparing(CreditTransactionResponse::getBusinessDate)
@@ -229,8 +230,8 @@ public class CreditLedgerQueryService {
                             .amount(charge.getAmount().setScale(2, RoundingMode.HALF_UP))
                             .occurredAt(charge.getCreatedAt())
                             .businessDate(businessDateOf(charge.getCreatedAt()))
-                            .status(ACTIVE)
-                            .countedInBalance(true)
+                            .status(charge.getVoidedAt() == null ? ACTIVE : WAIVED)
+                            .countedInBalance(charge.getVoidedAt() == null)
                             .build());
                 });
 

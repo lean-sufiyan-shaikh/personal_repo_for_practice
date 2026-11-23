@@ -194,18 +194,6 @@ public class DispensaryUnitService {
         return toDUResponse(du);
     }
 
-    /** Manually corrects a nozzle's last reading, used when a meter is replaced or reset. */
-    @Transactional
-    public DUResponse updateNozzleReading(Long pumpId, Long duId, Long nozzleId, BigDecimal reading) {
-        DispensaryUnit du = findDuForPump(pumpId, duId);
-        Nozzle nozzle = findNozzleOnDu(duId, nozzleId);
-        if (reading != null) {
-            nozzle.setLastReading(reading);
-            nozzleRepository.save(nozzle);
-        }
-        return toDUResponse(du);
-    }
-
     private DispensaryUnit findDuForPump(Long pumpId, Long duId) {
         return duRepository.findByIdAndPumpId(duId, pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Dispensary Unit not found"));

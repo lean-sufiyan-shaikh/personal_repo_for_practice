@@ -155,23 +155,33 @@ public class CreditLedgerController {
 
     /**
      * PATCH /api/pumps/{pumpId}/credit-ledger/clients/{clientId}/interest-settings
-     * Updates monthly interest rate and grace days for a client. Owner/Admin/Manager.
+     * Updates monthly interest rate and grace days for a client. Owner/Admin.
      */
     @PatchMapping("/clients/{clientId}/interest-settings")
-    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     public ResponseEntity<CreditClientResponse> updateInterestSettings(
             @PathVariable Long pumpId,
             @PathVariable Long clientId,
-            @Valid @RequestBody UpdateInterestSettingsRequest request) {
+            @Valid @RequestBody UpdateInterestSettingsRequest request,
+            @AuthenticationPrincipal User currentUser) {
 
         CreditClient client = clientAccessService.requireClientForPump(pumpId, clientId);
 
+        BigDecimal oldRate = client.getMonthlyInterestRate();
+        Integer oldGraceDays = client.getInterestGraceDays();
         client.setMonthlyInterestRate(request.monthlyInterestRate().setScale(2, RoundingMode.HALF_UP));
         client.setInterestGraceDays(request.interestGraceDays());
         client = ledgerService.saveClient(client);
 
         log.info("Interest settings updated: pump={}, client={}, rate={}%, graceDays={}",
                 pumpId, clientId, client.getMonthlyInterestRate(), client.getInterestGraceDays());
+
+        auditService.log(pumpId, AuditAction.INTEREST_SETTINGS_CHANGED,
+                "CreditClient", clientId.toString(),
+                "Interest settings for " + client.getName() + " changed: rate " + oldRate + "% → "
+                        + client.getMonthlyInterestRate() + "%/month, grace days " + oldGraceDays + " → "
+                        + client.getInterestGraceDays(),
+                currentUser);
 
         return ResponseEntity.ok(queryService.toClientResponse(client));
     }
@@ -240,18 +250,25 @@ public class CreditLedgerController {
     }
 
     /**
-     * DELETE /api/pumps/{pumpId}/credit-ledger/{clientId}/interest/{chargeId}
-     * Permanently removes an interest charge from the ledger. Owner/Admin/Manager.
+     * PATCH /api/pumps/{pumpId}/credit-ledger/{clientId}/interest/{chargeId}/waive
+     * Waives an interest charge with a reason; the charge stays on the ledger but is no longer owed. Owner/Admin.
      */
-    @DeleteMapping("/{clientId}/interest/{chargeId}")
-    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
-    public ResponseEntity<Void> deleteInterestCharge(
+    @PatchMapping("/{clientId}/interest/{chargeId}/waive")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    public ResponseEntity<Void> waiveInterestCharge(
             @PathVariable Long pumpId,
             @PathVariable Long clientId,
             @PathVariable Long chargeId,
+            @Valid @RequestBody WaiveInterestChargeRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        ledgerService.deleteInterestCharge(pumpId, clientId, chargeId, currentUser);
+        CreditInterestCharge charge = ledgerService.waiveInterestCharge(
+                pumpId, clientId, chargeId, request.reason(), currentUser);
+        auditService.log(pumpId, AuditAction.INTEREST_CHARGE_WAIVED,
+                "CreditInterestCharge", chargeId.toString(),
+                "Interest ₹" + charge.getAmount() + " for " + charge.getPeriodFrom() + " to " + charge.getPeriodTo()
+                        + " waived for clientId=" + clientId + ", reason=" + charge.getVoidReason(),
+                currentUser);
         return ResponseEntity.noContent().build();
     }
 

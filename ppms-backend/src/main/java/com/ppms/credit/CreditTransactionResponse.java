@@ -37,10 +37,10 @@ public class CreditTransactionResponse {
     // Business (IST) date the transaction belongs to; for payments the date the client paid
     private LocalDate businessDate;
 
-    // ACTIVE / VOIDED for sales, APPROVED / PENDING_APPROVAL / REJECTED for payments, ACTIVE for interest
+    // ACTIVE / VOIDED for sales, APPROVED / PENDING_APPROVAL / REJECTED for payments, ACTIVE / WAIVED for interest
     private String status;
 
-    // False for voided sales and non-approved payments; such rows are listed but leave the running balance unchanged
+    // False for voided sales, non-approved payments and waived interest; such rows are listed but leave the running balance unchanged
     private boolean countedInBalance;
 
     // Set only by the full-history endpoint, which can return a parent's rows together with its sub-accounts'

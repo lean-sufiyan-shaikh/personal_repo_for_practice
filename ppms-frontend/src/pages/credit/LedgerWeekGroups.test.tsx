@@ -4,9 +4,9 @@ import type { CreditTransaction } from '../../api/creditApi'
 import { LedgerWeekGroups, type LedgerRowActions } from './LedgerWeekGroups'
 
 const actions: LedgerRowActions = {
-  canMoveEntries: false, canDeleteInterest: false, canApprovePayments: false, currentUserId: 1,
+  canMoveEntries: false, canWaiveInterest: false, canApprovePayments: false, currentUserId: 1,
   pendingPaymentRecorders: new Map(), approvePayment: vi.fn(), isApproving: false,
-  onMove: vi.fn(), deleteInterest: vi.fn(), isDeletingInterest: false,
+  onMove: vi.fn(), onWaiveInterest: vi.fn(),
 }
 
 function row(overrides: Partial<CreditTransaction>): CreditTransaction {
@@ -55,5 +55,35 @@ describe('LedgerWeekGroups detail column', () => {
     expect(screen.queryByText('SPEED_PETROL')).not.toBeInTheDocument()
     expect(screen.getByText('Bank transfer')).toBeInTheDocument()
     expect(screen.getByText('2026-11-01 – 2026-11-07')).toBeInTheDocument()
+  })
+})
+
+describe('LedgerWeekGroups interest waiver', () => {
+  it('offers Waive only on interest that is still owed and marks a waived charge', () => {
+    render(
+      <LedgerWeekGroups
+        srcClientId={7}
+        actions={{ ...actions, canWaiveInterest: true }}
+        groups={[{ label: 'Week', items: [
+          row({ referenceId: 3, type: 'INTEREST', detail: 'October' }),
+          row({ referenceId: 4, type: 'INTEREST', detail: 'September', status: 'WAIVED', countedInBalance: false }),
+        ] }]}
+      />,
+    )
+
+    expect(screen.getAllByRole('button', { name: 'Waive this interest charge' })).toHaveLength(1)
+    expect(screen.getByText('Waived')).toBeInTheDocument()
+  })
+
+  it('hides Waive from someone who may not waive interest', () => {
+    render(
+      <LedgerWeekGroups
+        srcClientId={7}
+        actions={actions}
+        groups={[{ label: 'Week', items: [row({ referenceId: 3, type: 'INTEREST', detail: 'October' })] }]}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: 'Waive this interest charge' })).not.toBeInTheDocument()
   })
 })

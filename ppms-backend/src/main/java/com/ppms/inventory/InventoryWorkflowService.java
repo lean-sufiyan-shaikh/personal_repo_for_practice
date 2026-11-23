@@ -12,8 +12,10 @@ import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
+import com.ppms.user.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,10 +68,14 @@ public class InventoryWorkflowService {
         if (invoiceRef != null && !invoiceRef.isBlank()) {
             assertInvoiceNotRecorded(pumpId, invoiceRef, tank);
         }
-        validateCostPriceAgainstSellingPrice(pumpId, tank, request.getCostPricePerUnit());
+        if (currentUser.getRole() != UserRole.MANAGER && request.getCostPricePerUnit() == null) {
+            throw new BusinessException("Cost price per unit is required");
+        }
+        BigDecimal costPrice = costPriceForDelivery(tank, request.getCostPricePerUnit(), currentUser);
+        validateCostPriceAgainstSellingPrice(pumpId, tank, costPrice);
 
         TankerDelivery delivery = createDeliveryWithLot(pumpId, tank, request.getQuantityDelivered(),
-                request.getCostPricePerUnit(), startOfBusinessDay(request.getDeliveryDate()), invoiceRef,
+                costPrice, startOfBusinessDay(request.getDeliveryDate()), invoiceRef,
                 request.getBillTotal(), null, currentUser);
 
         log.info("Tanker delivery recorded: pump={}, tank={}, fuel={}, qty={}L, invoice={}, by={}",
@@ -79,7 +85,7 @@ public class InventoryWorkflowService {
         auditService.log(pumpId, AuditAction.DELIVERY_RECORDED,
                 "TankerDelivery", delivery.getId().toString(),
                 "Delivery: " + tank.getFuelType() + " " + request.getQuantityDelivered() + "L to tank " +
-                tank.getTankIdentifier() + " at ₹" + request.getCostPricePerUnit() + "/L, invoice=" +
+                tank.getTankIdentifier() + " at ₹" + costPrice + "/L, invoice=" +
                 request.getInvoiceReference(),
                 currentUser);
 
@@ -88,7 +94,7 @@ public class InventoryWorkflowService {
 
     /**
      * Records every line of one tanker trip atomically, so a failing line leaves no tank partly updated.
-     * Without a cost price, a line reuses the tank's last delivery cost.
+     * Without a cost price, a line reuses the tank's last delivery cost; a manager can never send one.
      */
     @Transactional
     public List<TankerDeliveryResponse> recordBatchDelivery(Long pumpId, RecordBatchDeliveryRequest request, User currentUser) {
@@ -119,13 +125,7 @@ public class InventoryWorkflowService {
             assertCapacity(tank, item.getQuantityDelivered());
             assertInvoiceNotRecorded(pumpId, invoiceRef, tank);
 
-            BigDecimal costPrice = item.getCostPricePerUnit() != null
-                    ? item.getCostPricePerUnit()
-                    : tankerDeliveryRepository.findTopByTankIdOrderByDeliveryDateDescCreatedAtDesc(tank.getId())
-                            .map(TankerDelivery::getCostPricePerUnit)
-                            .orElseThrow(() -> new BusinessException(
-                                    "No previous delivery found for tank '" + tank.getTankIdentifier() +
-                                    "' — cost price is required for the first entry. Please ask an Owner or Admin to record it."));
+            BigDecimal costPrice = costPriceForDelivery(tank, item.getCostPricePerUnit(), currentUser);
             validateCostPriceAgainstSellingPrice(pumpId, tank, costPrice);
 
             TankerDelivery delivery = createDeliveryWithLot(pumpId, tank, item.getQuantityDelivered(), costPrice,
@@ -178,7 +178,9 @@ public class InventoryWorkflowService {
 
         OffsetDateTime newDeliveryDateTime = startOfBusinessDay(request.getDeliveryDate());
         assertDeliveryNotAfterFirstUse(lot, newDeliveryDateTime);
-        // A manager edit sends no cost price, so the recorded one is kept.
+        if (currentUser.getRole() == UserRole.MANAGER && request.getCostPricePerUnit() != null) {
+            throw new AccessDeniedException("Only an owner or admin can change the fuel purchase cost.");
+        }
         BigDecimal costPrice = request.getCostPricePerUnit() != null
                 ? request.getCostPricePerUnit()
                 : delivery.getCostPricePerUnit();
@@ -541,6 +543,24 @@ public class InventoryWorkflowService {
             line.setDeliveryDate(deliveryDateTime);
             tankerDeliveryRepository.save(line);
         }
+    }
+
+    /**
+     * Purchase cost drives stock valuation and profit, so only an owner or admin may enter it;
+     * a delivery without a cost reuses the tank's last delivery cost.
+     */
+    private BigDecimal costPriceForDelivery(UndergroundTank tank, BigDecimal requestedCost, User currentUser) {
+        if (currentUser.getRole() == UserRole.MANAGER && requestedCost != null) {
+            throw new AccessDeniedException("Only an owner or admin can set the fuel purchase cost.");
+        }
+        if (requestedCost != null) {
+            return requestedCost;
+        }
+        return tankerDeliveryRepository.findTopByTankIdOrderByDeliveryDateDescCreatedAtDesc(tank.getId())
+                .map(TankerDelivery::getCostPricePerUnit)
+                .orElseThrow(() -> new BusinessException(
+                        "No earlier delivery found for tank '" + tank.getTankIdentifier() +
+                        "' — an owner or admin must enter the first cost price."));
     }
 
     /** Same invoice + tank is a double entry; the DB unique index is the final safety net. */

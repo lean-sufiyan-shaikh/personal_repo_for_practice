@@ -103,31 +103,42 @@ public class CreditLedgerService {
     }
 
     /**
-     * Permanently removes an interest charge from the ledger.
-     * Outstanding balance recalculates automatically on the next fetch since
-     * computeOutstanding() sums directly from the DB.
+     * Waives an interest charge: the row stays on the ledger with who waived it and why, but no longer
+     * counts as owed. Waiving the latest charge lets its period be charged again by the next interest run.
      */
     @Transactional
-    public void deleteInterestCharge(Long pumpId, Long clientId, Long chargeId, User currentUser) {
+    public CreditInterestCharge waiveInterestCharge(Long pumpId, Long clientId, Long chargeId,
+                                                    String reason, User currentUser) {
+        if (reason == null || reason.isBlank()) {
+            throw new BusinessException("A reason is required to waive an interest charge.");
+        }
 
         CreditInterestCharge charge = interestChargeRepository.findById(chargeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Interest charge not found"));
-
-        if (!charge.getClientId().equals(clientId)) {
-            throw new BusinessException("Interest charge does not belong to this client");
-        }
 
         if (!charge.getPumpId().equals(pumpId)) {
             throw new ResourceNotFoundException("Interest charge not found");
         }
 
+        if (!charge.getClientId().equals(clientId)) {
+            throw new BusinessException("Interest charge does not belong to this client");
+        }
+
         creditAccountPolicyService.lockLimitHolderOfClient(clientId);
 
-        interestChargeRepository.deleteById(chargeId);
+        if (charge.getVoidedAt() != null) {
+            throw new BusinessException("This interest charge has already been waived.");
+        }
 
-        log.info("Interest charge deleted: pump={}, client={}, chargeId={}, amount={}, period={}/{}, deletedBy={}",
+        charge.setVoidedAt(businessClock.now());
+        charge.setVoidedBy(currentUser.getId());
+        charge.setVoidReason(reason.trim());
+        charge = interestChargeRepository.save(charge);
+
+        log.info("Interest charge waived: pump={}, client={}, chargeId={}, amount={}, period={}/{}, waivedBy={}",
                 pumpId, clientId, chargeId, charge.getAmount(),
                 charge.getPeriodFrom(), charge.getPeriodTo(), currentUser.getId());
+        return charge;
     }
 
     /**
@@ -159,7 +170,12 @@ public class CreditLedgerService {
 
         Long fromClientId = entry.getClientId(); // null when entry was never linked to a client
         validateGroupMove(pumpId, fromClientId, request.getToClientId());
-        creditAccountPolicyService.lockLimitHolder(toClient);
+        if (fromClientId == null && "ACTIVE".equals(entry.getVoidStatus())) {
+            // Linking an old free-text entry adds debt to the client, so it must pass the same checks as a new sale.
+            creditAccountPolicyService.validateCreditSaleAllowed(pumpId, toClient, entry.getAmount());
+        } else {
+            creditAccountPolicyService.lockLimitHolder(toClient);
+        }
 
         // A first assignment has no previous client, and from_client_id cannot be null, so only moves are recorded.
         if (fromClientId != null) {

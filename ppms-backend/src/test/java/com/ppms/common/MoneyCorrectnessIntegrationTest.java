@@ -348,6 +348,38 @@ class MoneyCorrectnessIntegrationTest {
     }
 
     @Test
+    void counterSaleOnCreditToASubAccountOfADisabledParentIsRefused() {
+        AncillaryProduct product = saveProductWithStockAndPrice("400.00");
+        CreditClient parent = saveClient(BigDecimal.ZERO);
+        CreditClient subAccount = saveSubAccount(parent);
+        parent.setActive(false);
+        clientRepository.save(parent);
+
+        assertThatThrownBy(() -> ancillaryWorkflowService.recordSale(pump.getId(), creditSale(product, subAccount, 1), manager))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("parent account");
+    }
+
+    @Test
+    void linkingAnUnlinkedCreditEntryForTheFirstTimeChecksTheClientsLimit() {
+        CreditClient client = saveClient(BigDecimal.ZERO);
+        client.setCreditLimit(new BigDecimal("500.00"));
+        clientRepository.save(client);
+        saveCreditSaleOn(client, "400.00", TestDates.today());
+        Shift shift = saveClosedShift(TestDates.today(), ShiftStatus.CLOSED_BALANCED, null);
+        ShiftCreditEntry tooLarge = saveUnlinkedCreditEntry(shift, "150.00");
+        ShiftCreditEntry fits = saveUnlinkedCreditEntry(shift, "100.00");
+
+        assertThatThrownBy(() -> ledgerService.reassignCreditEntry(pump.getId(), tooLarge.getId(), reassignTo(client), manager))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Credit limit exceeded");
+        ledgerService.reassignCreditEntry(pump.getId(), fits.getId(), reassignTo(client), manager);
+
+        assertThat(creditEntryRepository.findById(tooLarge.getId()).orElseThrow().getClientId()).isNull();
+        assertThat(interestService.computeOutstanding(client.getId())).isEqualByComparingTo("500.00");
+    }
+
+    @Test
     void managerCannotSellBelowTheConfiguredPriceButOwnerCan() {
         AncillaryProduct product = saveProductWithStockAndPrice("400.00");
 
@@ -550,31 +582,82 @@ class MoneyCorrectnessIntegrationTest {
     }
 
     @Test
-    void deletingAnInterestChargeTakesItsAmountOffTheOutstandingBalance() {
+    void waivingAnInterestChargeKeepsTheRowButTakesItsAmountOffTheOutstandingBalance() {
         CreditClient client = saveClient(new BigDecimal("2.00"));
         saveCreditSaleOn(client, "1000.00", TestDates.today().minusDays(5));
         seedChargeEndingOn(client, "40.00", TestDates.today().minusDays(1));
         CreditInterestCharge charge = interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).get(0);
         assertThat(interestService.computeOutstanding(client.getId())).isEqualByComparingTo("1040.00");
 
-        ledgerService.deleteInterestCharge(pump.getId(), client.getId(), charge.getId(), owner);
+        ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), "Agreed with the client", owner);
 
         assertThat(interestService.computeOutstanding(client.getId())).isEqualByComparingTo("1000.00");
-        assertThat(interestChargeRepository.findById(charge.getId())).isEmpty();
+        CreditInterestCharge waived = interestChargeRepository.findById(charge.getId()).orElseThrow();
+        assertThat(waived.getVoidedAt()).isNotNull();
+        assertThat(waived.getVoidedBy()).isEqualTo(owner.getId());
+        assertThat(waived.getVoidReason()).isEqualTo("Agreed with the client");
+        assertThat(interestService.computeInterestBreakdownBatch(List.of(client.getId())).get(client.getId())
+                .outstandingInterest()).isEqualByComparingTo("0");
+        assertThat(ledgerQueryService.getAllTransactions(client, false))
+                .filteredOn(row -> "INTEREST".equals(row.getType()))
+                .singleElement()
+                .satisfies(row -> {
+                    assertThat(row.getStatus()).isEqualTo("WAIVED");
+                    assertThat(row.isCountedInBalance()).isFalse();
+                });
     }
 
     @Test
-    void interestChargeOfAnotherClientCannotBeDeletedThroughThisClient() {
+    void waivingAnInterestChargeNeedsAReasonAndCannotBeDoneTwice() {
+        CreditClient client = saveClient(new BigDecimal("2.00"));
+        seedChargeEndingOn(client, "40.00", TestDates.today().minusDays(1));
+        CreditInterestCharge charge = interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).get(0);
+
+        assertThatThrownBy(() -> ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), " ", owner))
+                .isInstanceOf(BusinessException.class);
+        ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), "Wrong rate", owner);
+        assertThatThrownBy(() -> ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), "Again", owner))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("already been waived");
+    }
+
+    @Test
+    void periodOfAWaivedLatestChargeCanBeChargedAgain() {
+        CreditClient client = saveClient(new BigDecimal("3.00"));
+        seedChargeEndingOn(client, "10.00", LocalDate.of(2025, 10, 31));
+        saveCreditSaleOn(client, "30000.00", LocalDate.of(2025, 11, 1));
+        LocalDate periodTo = LocalDate.of(2025, 11, 30);
+        interestService.applyToClientGroupInNewTransaction(client.getId(), periodTo, "SCHEDULED", null);
+        CreditInterestCharge novemberCharge =
+                interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).get(0);
+        assertThat(novemberCharge.getPeriodFrom()).isEqualTo(LocalDate.of(2025, 11, 1));
+
+        ledgerService.waiveInterestCharge(pump.getId(), client.getId(), novemberCharge.getId(), "Rate was wrong", owner);
+        int chargedAgain = interestService.applyToClientGroupInNewTransaction(client.getId(), periodTo, "SCHEDULED", null);
+
+        assertThat(chargedAgain).isEqualTo(1);
+        CreditInterestCharge recharged = interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).get(0);
+        assertThat(recharged.getId()).isNotEqualTo(novemberCharge.getId());
+        assertThat(recharged.getPeriodFrom()).isEqualTo(LocalDate.of(2025, 11, 1));
+        assertThat(recharged.getPeriodTo()).isEqualTo(periodTo);
+        assertThat(recharged.getAmount()).isEqualByComparingTo("900.00");
+        // ₹30,000 of sales + ₹10 seeded charge + ₹900 recharged November; the waived ₹900 is not owed
+        assertThat(interestService.computeOutstanding(client.getId())).isEqualByComparingTo("30910.00");
+    }
+
+    @Test
+    void interestChargeOfAnotherClientCannotBeWaivedThroughThisClient() {
         CreditClient client = saveClient(new BigDecimal("2.00"));
         CreditClient otherClient = saveClient(new BigDecimal("2.00"));
         seedChargeEndingOn(otherClient, "40.00", TestDates.today().minusDays(1));
         CreditInterestCharge othersCharge =
                 interestChargeRepository.findByClientIdOrderByCreatedAtDesc(otherClient.getId()).get(0);
 
-        assertThatThrownBy(() -> ledgerService.deleteInterestCharge(pump.getId(), client.getId(), othersCharge.getId(), owner))
+        assertThatThrownBy(() -> ledgerService.waiveInterestCharge(
+                pump.getId(), client.getId(), othersCharge.getId(), "Not owed", owner))
                 .isInstanceOf(BusinessException.class);
 
-        assertThat(interestChargeRepository.findById(othersCharge.getId())).isPresent();
+        assertThat(interestChargeRepository.findById(othersCharge.getId()).orElseThrow().getVoidedAt()).isNull();
     }
 
     @Test
@@ -690,6 +773,16 @@ class MoneyCorrectnessIntegrationTest {
                 .name("Child " + shortId())
                 .parentClientId(parent.getId())
                 .monthlyInterestRate(BigDecimal.ZERO)
+                .build());
+    }
+
+    private ShiftCreditEntry saveUnlinkedCreditEntry(Shift shift, String amount) {
+        return creditEntryRepository.save(ShiftCreditEntry.builder()
+                .shiftId(shift.getId())
+                .clientName("Free text " + shortId())
+                .fuelType(FuelType.PETROL.name())
+                .amount(new BigDecimal(amount))
+                .saleDate(shift.getShiftDate())
                 .build());
     }
 

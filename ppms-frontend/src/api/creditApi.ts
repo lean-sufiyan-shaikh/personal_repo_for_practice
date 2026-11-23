@@ -198,9 +198,9 @@ export const creditApi = {
       failedClientIds: number[]
     }>(`/pumps/${pumpId}/credit-ledger/interest/apply-all`).then(r => r.data),
 
-  // Permanently deletes an interest charge row from the ledger (Owner/Admin only)
-  deleteInterestCharge: (pumpId: number, clientId: number, chargeId: number) =>
-    client.delete(`/pumps/${pumpId}/credit-ledger/${clientId}/interest/${chargeId}`),
+  // Waives an interest charge with a reason; the row stays on the ledger but is no longer owed (Owner/Admin only)
+  waiveInterestCharge: (pumpId: number, clientId: number, chargeId: number, reason: string) =>
+    client.patch(`/pumps/${pumpId}/credit-ledger/${clientId}/interest/${chargeId}/waive`, { reason }),
 
   // Total interest ever recovered for a client (parent = includes all sub-accounts)
   getTotalInterestRecovered: (pumpId: number, clientId: number): Promise<number> =>

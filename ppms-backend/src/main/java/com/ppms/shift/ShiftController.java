@@ -163,6 +163,13 @@ public class ShiftController {
             @Valid @RequestBody ResolveDiscrepancyRequest request,
             @AuthenticationPrincipal User currentUser) {
         ShiftResponse response = shiftService.resolveDiscrepancy(pumpId, id, request, currentUser);
+        if (request.resolutionAction() == DiscrepancyResolution.PENDING_INVESTIGATION) {
+            auditService.log(response.getPumpId(), AuditAction.DISCREPANCY_INVESTIGATION_STARTED,
+                    "Shift", response.getId().toString(),
+                    "Discrepancy under investigation: note=" + response.getInvestigationNote(),
+                    currentUser);
+            return ResponseEntity.ok(response);
+        }
         auditService.log(response.getPumpId(), AuditAction.DISCREPANCY_RESOLVED,
                 "Shift", response.getId().toString(),
                 "Discrepancy resolved: resolution=" + request.resolutionAction()

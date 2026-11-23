@@ -30,7 +30,8 @@ function openShift(entryStatus: 'ACTIVE' | 'VOIDED'): Shift {
     actualStartTime: '2026-11-20T03:30:00Z', actualEndTime: null, scheduledEndTime: null,
     fuelReadings: [{ fuelType: 'PETROL', priceSnapshot: 100 }], totalAmountDue: null, cashCollected: null, upiCollected: null,
     cardCollected: null, fleetCardCollected: null, creditTotal: null, discrepancyAmount: null, discrepancyType: null,
-    discrepancyReason: null, discrepancyResolution: null, discrepancyResolutionNote: null, cashRecoveryAmount: null,
+    discrepancyReason: null, discrepancyResolution: null, discrepancyResolutionNote: null,
+    investigationNote: null, investigatedByName: null, investigationStartedAt: null, cashRecoveryAmount: null,
     status: 'OPEN', isBackfilled: false,
     creditEntries: [{ id: 501, clientId: 2, clientName: 'Acme', billNo: null, amount: 500, fuelType: 'PETROL', description: null, voidStatus: entryStatus, voidReason: null }],
   } as unknown as Shift

@@ -46,7 +46,10 @@ public class ShiftReadModelService {
                 .orElse(null);
         List<ShiftFuelReading> readings = fuelReadingRepository.findByShiftId(shift.getId());
         List<ShiftCreditEntry> entries = creditEntryRepository.findByShiftId(shift.getId());
-        return toResponse(shift, du, nozzles, operator, openedByName, readings, entries);
+        String investigatedByName = shift.getInvestigationStartedById() == null ? null
+                : userRepository.findById(shift.getInvestigationStartedById()).map(User::getFullName).orElse(null);
+        return toResponse(shift, du, nozzles, operator, openedByName, investigatedByName, readings, entries,
+                computeScheduledEndTime(shift));
     }
 
     /** List-page variant of {@link #toResponseWithLookups}: loads every related row for all shifts in one query per table. */
@@ -67,6 +70,7 @@ public class ShiftReadModelService {
         shifts.forEach(shift -> {
             userIds.add(shift.getOperatorId());
             userIds.add(shift.getOpenedByUserId());
+            userIds.add(shift.getInvestigationStartedById());
         });
         userIds.remove(null);
         Map<Long, User> userById = findAllByIdAsMap(userRepository, userIds, User::getId);
@@ -85,9 +89,11 @@ public class ShiftReadModelService {
                             .filter(Objects::nonNull)
                             .toList();
                     User openedBy = userById.get(shift.getOpenedByUserId());
+                    User investigatedBy = userById.get(shift.getInvestigationStartedById());
                     PumpShiftDefinition definition = definitionById.get(shift.getShiftDefinitionId());
                     return toResponse(shift, duById.get(shift.getDuId()), nozzles, userById.get(shift.getOperatorId()),
                             openedBy != null ? openedBy.getFullName() : null,
+                            investigatedBy != null ? investigatedBy.getFullName() : null,
                             readingsByShiftId.getOrDefault(shift.getId(), List.of()),
                             entriesByShiftId.getOrDefault(shift.getId(), List.of()),
                             definition != null ? definition.scheduledEnd(shift.getShiftDate(), businessClock.zone()) : null);
@@ -98,7 +104,7 @@ public class ShiftReadModelService {
     public ShiftResponse toResponse(Shift shift, DispensaryUnit du, List<Nozzle> nozzles,
                                     User operator, String openedByName,
                                     List<ShiftFuelReading> readings, List<ShiftCreditEntry> entries) {
-        return toResponse(shift, du, nozzles, operator, openedByName, readings, entries, computeScheduledEndTime(shift));
+        return toResponse(shift, du, nozzles, operator, openedByName, null, readings, entries, computeScheduledEndTime(shift));
     }
 
     private static <T> Map<Long, T> findAllByIdAsMap(JpaRepository<T, Long> repository, Set<Long> ids,
@@ -110,7 +116,7 @@ public class ShiftReadModelService {
     }
 
     private ShiftResponse toResponse(Shift shift, DispensaryUnit du, List<Nozzle> nozzles,
-                                     User operator, String openedByName,
+                                     User operator, String openedByName, String investigatedByName,
                                      List<ShiftFuelReading> readings, List<ShiftCreditEntry> entries,
                                      OffsetDateTime scheduledEndTime) {
 
@@ -173,6 +179,9 @@ public class ShiftReadModelService {
                 .discrepancyReason(shift.getDiscrepancyReason())
                 .discrepancyResolution(shift.getDiscrepancyResolution() != null ? shift.getDiscrepancyResolution().name() : null)
                 .discrepancyResolutionNote(shift.getDiscrepancyResolutionNote())
+                .investigationNote(shift.getInvestigationNote())
+                .investigatedByName(investigatedByName)
+                .investigationStartedAt(shift.getInvestigationStartedAt())
                 .cashRecoveryAmount(shift.getCashRecoveryAmount())
                 .status(shift.getStatus().name())
                 .isBackfilled(shift.isBackfilled())

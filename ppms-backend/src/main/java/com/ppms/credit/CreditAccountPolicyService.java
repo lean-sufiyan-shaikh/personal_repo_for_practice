@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -30,16 +31,41 @@ public class CreditAccountPolicyService {
     private final BusinessClock businessClock;
     private final EntityManager entityManager;
 
-    public CreditClient resolveClientForPump(Long pumpId, Long clientId, String clientName) {
+    /**
+     * Finds the client a credit entry is for, by id or else by exact name. Every credit entry must
+     * belong to an existing client of the pump, so an unknown client is refused.
+     */
+    public CreditClient requireClientForCreditEntry(Long pumpId, Long clientId, String clientName) {
         if (clientId != null) {
             return creditClientRepository.findById(clientId)
                     .filter(client -> client.getPumpId().equals(pumpId))
-                    .orElse(null);
+                    .orElseThrow(() -> new BusinessException(
+                            "Credit client #" + clientId + " does not exist at this pump. Pick a client from the list."));
         }
         if (clientName == null || clientName.isBlank()) {
-            return null;
+            throw new BusinessException("Pick a credit client for every credit entry.");
         }
-        return creditClientRepository.findByPumpIdAndName(pumpId, clientName.trim()).orElse(null);
+        return creditClientRepository.findByPumpIdAndName(pumpId, clientName.trim())
+                .orElseThrow(() -> new BusinessException(
+                        "No credit client named '" + clientName.trim() + "' exists at this pump. "
+                                + "Add the client on the Credit page first, then pick it from the list."));
+    }
+
+    /** Refuses credit to a disabled client, and to a sub-account whose parent account is disabled. */
+    public void requireClientAcceptsCredit(CreditClient client) {
+        if (!client.isActive()) {
+            throw new BusinessException("Credit is disabled for '" + client.getName()
+                    + "'. Enable the client on the Credit page before giving it credit.");
+        }
+        if (client.getParentClientId() == null) {
+            return;
+        }
+        CreditClient parent = creditClientRepository.findById(client.getParentClientId())
+                .orElseThrow(() -> new ResourceNotFoundException("Credit client not found: " + client.getParentClientId()));
+        if (!parent.isActive()) {
+            throw new BusinessException("Credit is disabled for '" + client.getName() + "' because its parent account '"
+                    + parent.getName() + "' is disabled.");
+        }
     }
 
     /**
@@ -48,6 +74,7 @@ public class CreditAccountPolicyService {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void validateCreditLimits(Map<CreditClient, BigDecimal> amountByClient) {
+        amountByClient.keySet().forEach(this::requireClientAcceptsCredit);
         Map<Long, BigDecimal> amountByHolderId = new HashMap<>();
         amountByClient.forEach((client, amount) ->
                 amountByHolderId.merge(limitHolderId(client), amount, BigDecimal::add));
@@ -128,10 +155,7 @@ public class CreditAccountPolicyService {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void validateCreditSaleAllowed(Long pumpId, CreditClient client, BigDecimal amount) {
-        if (client == null) {
-            return;
-        }
-
+        requireClientAcceptsCredit(client);
         CreditClient limitHolder = lockLimitHolder(client);
         List<CreditExtension> activeExtensions = creditExtensionRepository
                 .findInEffect(pumpId, limitHolder.getId(), businessClock.today());
@@ -166,21 +190,30 @@ public class CreditAccountPolicyService {
         }
     }
 
-    private boolean isBillingCycleOverdue(CreditClient client) {
-        BigDecimal outstanding = creditInterestService.computeOutstanding(client.getId());
-        if (outstanding.compareTo(BigDecimal.ZERO) <= 0) {
+    /**
+     * The whole group counts: sub-account sales make the group owe, and a payment on any account of
+     * the group keeps it current.
+     */
+    private boolean isBillingCycleOverdue(CreditClient limitHolder) {
+        BigDecimal groupOutstanding = creditInterestService.computeOutstandingWithChildren(limitHolder.getId());
+        if (groupOutstanding.compareTo(BigDecimal.ZERO) <= 0) {
             return false;
         }
 
-        int cycleDays = client.getBillingCycle() == BillingCycle.WEEKLY ? 7 : 30;
+        int cycleDays = limitHolder.getBillingCycle() == BillingCycle.WEEKLY ? 7 : 30;
         LocalDate overdueThreshold = businessClock.today().minusDays(cycleDays);
 
-        Optional<LocalDate> lastPayment = creditPaymentRepository.findLastPaymentDateByClientId(client.getId());
+        List<Long> groupClientIds = new ArrayList<>();
+        groupClientIds.add(limitHolder.getId());
+        creditClientRepository.findByParentClientId(limitHolder.getId())
+                .forEach(child -> groupClientIds.add(child.getId()));
+
+        Optional<LocalDate> lastPayment = creditPaymentRepository.findLastPaymentDateByClientIds(groupClientIds);
         if (lastPayment.isPresent()) {
             return lastPayment.get().isBefore(overdueThreshold);
         }
 
-        return creditInterestService.findOldestCreditSaleDate(List.of(client.getId()))
+        return creditInterestService.findOldestCreditSaleDate(groupClientIds)
                 .map(oldestSaleDate -> oldestSaleDate.isBefore(overdueThreshold))
                 .orElse(false);
     }
