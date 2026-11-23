@@ -16,6 +16,8 @@ export interface ShiftHistoryFilter {
   to?: string
   discrepanciesOnly?: boolean
   discrepancyType?: 'SHORT' | 'OVER'
+  /** Keeps shifts that sold this fuel; the server refuses it together with discrepanciesOnly. */
+  fuelType?: string
 }
 
 const HISTORY_PAGE_SIZE = 200
@@ -38,6 +40,7 @@ export const shiftApi = {
         ...(filter.to && { to: filter.to }),
         ...(filter.discrepanciesOnly && { discrepanciesOnly: true }),
         ...(filter.discrepancyType && { discrepancyType: filter.discrepancyType }),
+        ...(filter.fuelType && { fuelType: filter.fuelType }),
       },
     }).then((r) => r.data),
 

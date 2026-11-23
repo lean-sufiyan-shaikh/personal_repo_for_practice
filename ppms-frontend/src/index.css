@@ -1409,6 +1409,44 @@
     align-items: end;
   }
 
+  .ui-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .ui-chip {
+    min-height: 2rem;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-badge);
+    background: var(--color-surface);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 500;
+    color: var(--color-ink-2);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .ui-chip:hover {
+    background: var(--color-surface-sunken);
+    color: var(--color-ink);
+  }
+
+  .ui-chip[aria-pressed='true'] {
+    background: var(--color-info-bg);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  /* Long tables scroll inside the card so the sticky header row stays in view. */
+  .ui-table-wrap--scroll {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
   .ui-accordion-trigger {
     width: 100%;
     display: flex;
@@ -2212,6 +2250,10 @@
 
   .ui-table-wrap th {
     position: static !important;
+  }
+
+  .ui-table-wrap--scroll {
+    max-height: none !important;
   }
 
   .grid {

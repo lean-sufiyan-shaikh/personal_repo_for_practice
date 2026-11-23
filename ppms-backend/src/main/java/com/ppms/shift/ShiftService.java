@@ -519,6 +519,11 @@ public class ShiftService {
     }
 
     private Page<Shift> findOperatorHistory(Long pumpId, Long operatorId, ShiftHistoryFilter filter, Pageable pageable) {
+        if (filter.fuelType() != null) {
+            DateRange range = fuelFilterRange(filter);
+            return shiftRepository.findOperatorHistoryForFuel(pumpId, operatorId, range.from(), range.to(),
+                    filter.fuelType(), pageable);
+        }
         if (!filter.discrepanciesOnly() && filter.from() == null && filter.to() == null) {
             return shiftRepository.findByPumpIdAndOperatorIdOrderByActualStartTimeDesc(pumpId, operatorId, pageable);
         }
@@ -534,6 +539,10 @@ public class ShiftService {
     }
 
     private Page<Shift> findHistory(Long pumpId, ShiftHistoryFilter filter, Pageable pageable) {
+        if (filter.fuelType() != null) {
+            DateRange range = fuelFilterRange(filter);
+            return shiftRepository.findHistoryForFuel(pumpId, range.from(), range.to(), filter.fuelType(), pageable);
+        }
         if (!filter.discrepanciesOnly() && filter.from() == null && filter.to() == null) {
             return shiftRepository.findByPumpIdOrderByActualStartTimeDesc(pumpId, pageable);
         }
@@ -545,6 +554,19 @@ public class ShiftService {
                     pumpId, from, to, discrepancyTypesOf(filter), pageable);
         }
         return shiftRepository.findByPumpIdAndShiftDateBetweenOrderByActualStartTimeDesc(pumpId, from, to, pageable);
+    }
+
+    private DateRange fuelFilterRange(ShiftHistoryFilter filter) {
+        if (filter.discrepanciesOnly()) {
+            throw new BusinessException("Filter shift history by fuel or by discrepancies, not both.");
+        }
+        LocalDate from = DateRangeBounds.startOrEarliest(filter.from());
+        LocalDate to = DateRangeBounds.endOrLatest(filter.to());
+        DateRangeBounds.requireStartNotAfterEnd(from, to);
+        return new DateRange(from, to);
+    }
+
+    private record DateRange(LocalDate from, LocalDate to) {
     }
 
     private List<DiscrepancyType> discrepancyTypesOf(ShiftHistoryFilter filter) {

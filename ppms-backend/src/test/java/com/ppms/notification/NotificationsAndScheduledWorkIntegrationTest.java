@@ -17,6 +17,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -110,6 +111,44 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
         assertThat(notificationIds(setup.manager())).doesNotContain(lowStockId);
         assertThat(notificationIds(setup.owner())).contains(lowStockId);
         assertThat(notificationIds(setup.operator())).contains(lowStockId);
+    }
+
+    @Test
+    void historyListsReadAndUnreadNotificationsWithTheReadersOwnReadState() throws Exception {
+        long readId = insertNotification(NotificationType.LOW_STOCK);
+        long unreadId = insertNotification(NotificationType.LOW_STOCK);
+        perform(post("/api/pumps/{pumpId}/notifications/mark-read", setup.pumpId()), setup.manager(),
+                Map.of("ids", List.of(readId)))
+                .andExpect(status().is2xxSuccessful());
+
+        JsonNode managerHistory = history(setup.manager(), null);
+        assertThat(readStateById(managerHistory)).containsEntry(readId, true).containsEntry(unreadId, false);
+        assertThat(readStateById(history(setup.owner(), null))).containsEntry(readId, false);
+        assertThat(managerHistory.get("totalElements").asLong()).isGreaterThanOrEqualTo(2);
+    }
+
+    @Test
+    void notificationsCarryThePageTheyOpen() throws Exception {
+        notificationDedupService.maybeInsert(setup.pumpId(), NotificationType.ZERO_SALE_SHIFT,
+                "ZERO_SALE_SHIFT:shift:4242", "Zero-Sale Shift Detected", "Shift #4242 recorded nothing");
+
+        JsonNode unread = json(perform(get("/api/pumps/{pumpId}/notifications", setup.pumpId()), setup.manager())
+                .andExpect(status().isOk()));
+        JsonNode zeroSale = findByType(unread.get("notifications"), "ZERO_SALE_SHIFT");
+        assertThat(zeroSale.get("target").get("route").asText()).isEqualTo("/dashboard/shifts");
+        assertThat(zeroSale.get("target").get("params").get("shift").asText()).isEqualTo("4242");
+        assertThat(zeroSale.get("read").asBoolean()).isFalse();
+        assertThat(zeroSale.has("createdAt")).isTrue();
+    }
+
+    @Test
+    void historyCanBeNarrowedToOneTypeAndOnlyShowsTypesTheRoleReceives() throws Exception {
+        long lowStockId = insertNotification(NotificationType.LOW_STOCK);
+        long zeroSaleId = insertNotification(NotificationType.ZERO_SALE_SHIFT);
+
+        assertThat(readStateById(history(setup.manager(), "LOW_STOCK"))).containsKey(lowStockId).doesNotContainKey(zeroSaleId);
+        assertThat(readStateById(history(setup.operator(), null))).containsKey(lowStockId).doesNotContainKey(zeroSaleId);
+        assertThat(history(setup.operator(), "ZERO_SALE_SHIFT").get("content")).isEmpty();
     }
 
     @Test
@@ -227,6 +266,30 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
                 .findFirst()
                 .orElseThrow()
                 .getId();
+    }
+
+    private JsonNode history(User user, String type) throws Exception {
+        var request = get("/api/pumps/{pumpId}/notifications/history", setup.pumpId()).param("size", "200");
+        if (type != null) {
+            request.param("type", type);
+        }
+        return json(perform(request, user).andExpect(status().isOk()));
+    }
+
+    private static Map<Long, Boolean> readStateById(JsonNode page) {
+        Map<Long, Boolean> readState = new HashMap<>();
+        page.get("content").forEach(notification ->
+                readState.put(notification.get("id").asLong(), notification.get("read").asBoolean()));
+        return readState;
+    }
+
+    private static JsonNode findByType(JsonNode notifications, String type) {
+        for (JsonNode notification : notifications) {
+            if (type.equals(notification.get("type").asText())) {
+                return notification;
+            }
+        }
+        throw new AssertionError("No " + type + " notification in " + notifications);
     }
 
     private List<Long> notificationIds(User user) throws Exception {

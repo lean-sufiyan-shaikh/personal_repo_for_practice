@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { Gauge, Database, IndianRupee, Users, Clock, Settings, Truck, Receipt } from 'lucide-react'
 import { pumpApi } from '../../api/pumpApi'
 import { userApi } from '../../api/userApi'
 import { useAuthStore } from '../../store/authStore'
-import type { PumpSummary } from '../../api/pumpApi'
+import type { PumpSummary, SetupChecklist, SetupStep } from '../../api/pumpApi'
 import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import { AccordionSection } from './AccordionSection'
 import { FuelPricesContent } from './FuelPricesContent'
@@ -20,17 +21,35 @@ import { isPriceStale } from '../../utils/fuelPrices'
 
 const COMPLETE_BADGE = 'bg-emerald-50 text-emerald-700'
 const NEEDS_ATTENTION_BADGE = 'bg-amber-50 text-amber-700'
+const NEUTRAL_BADGE = 'bg-slate-100 text-slate-600'
 
+const SECTION_KEYS: SectionKey[] = ['nozzles', 'tanks', 'prices', 'staff', 'shifts', 'tankers', 'settings', 'gst']
+
+function stepBadge(checklist: SetupChecklist | undefined, step: SetupStep): string {
+  const item = checklist?.items.find((entry) => entry.step === step)
+  if (!item) return NEUTRAL_BADGE
+  return item.done ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE
+}
+
+/** checklist is passed for owners and admins; it colours each section's badge by whether that step is done. */
 export function PumpManagementPanel({
   pump,
   onPumpUpdated,
+  checklist,
 }: {
   pump: PumpSummary
   onPumpUpdated: () => void
+  checklist?: SetupChecklist
 }) {
   const { user } = useAuthStore()
   const isManager = user?.role === 'MANAGER'
-  const [openSection, setOpenSection] = useState<SectionKey | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const sectionParam = searchParams.get('section')
+  const openSection = SECTION_KEYS.find((key) => key === sectionParam) ?? null
+
+  useEffect(() => {
+    if (openSection) document.getElementById(`setup-section-${openSection}`)?.scrollIntoView?.({ block: 'start' })
+  }, [openSection])
 
   // Load summary data for accordion headers
   const { data: currentPrices = [] } = useQuery({
@@ -47,7 +66,12 @@ export function PumpManagementPanel({
   })
 
   const toggle = (key: SectionKey) =>
-    setOpenSection((prev) => (prev === key ? null : key))
+    setSearchParams((params) => {
+      const updated = new URLSearchParams(params)
+      if (openSection === key) updated.delete('section')
+      else updated.set('section', key)
+      return updated
+    }, { replace: true })
 
   const pricesStale = isPriceStale(currentPrices)
   const priceSummary = currentPrices.length === 0
@@ -97,7 +121,7 @@ export function PumpManagementPanel({
             icon={<div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0"><Gauge size={14} strokeWidth={2} className="text-slate-600" /></div>}
             title="Dispensary Units"
             summary={`${pump.dus.length} of ${pump.maxDuCount} DUs configured`}
-            badgeColor="bg-slate-100 text-slate-600"
+            badgeColor={stepBadge(checklist, 'DISPENSERS')}
           >
             <NozzleContent pump={pump} onAdded={onPumpUpdated} />
           </AccordionSection>
@@ -111,8 +135,9 @@ export function PumpManagementPanel({
             onToggle={() => toggle('tanks')}
             icon={<div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center shrink-0"><Database size={14} strokeWidth={2} className="text-blue-600" /></div>}
             title="Underground Tanks"
-            summary={pump.dus.length > 0 ? 'Tap to configure capacity' : 'Add a DU first'}
-            badgeColor="bg-blue-50 text-blue-700"
+            summary={checklist?.items.find((item) => item.step === 'TANKS')?.detail
+              ?? (pump.dus.length > 0 ? 'Tap to configure capacity' : 'Add a DU first')}
+            badgeColor={stepBadge(checklist, 'TANKS')}
           >
             <TanksContent pump={pump} />
           </AccordionSection>
@@ -140,7 +165,7 @@ export function PumpManagementPanel({
             icon={<div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0"><Users size={14} strokeWidth={2} className="text-indigo-600" /></div>}
             title="Staff"
             summary={staff.length > 0 ? `${staff.length} member${staff.length !== 1 ? 's' : ''}` : 'None added'}
-            badgeColor="bg-blue-50 text-blue-700"
+            badgeColor={staff.length > 0 ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE}
           >
             <StaffContent pump={pump} />
           </AccordionSection>
@@ -158,7 +183,7 @@ export function PumpManagementPanel({
               const groupCount = new Set(shiftDefs.map(d => `${d.effectiveFrom}|${d.effectiveTo ?? 'open'}`)).size
               return groupCount > 0 ? `${groupCount} schedule${groupCount !== 1 ? 's' : ''}` : 'Not configured'
             })()}
-            badgeColor="bg-violet-50 text-violet-700"
+            badgeColor={shiftDefs.length > 0 ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE}
           >
             <ShiftDefinitionsContent pumpId={pump.id} />
           </AccordionSection>
@@ -173,7 +198,7 @@ export function PumpManagementPanel({
             icon={<div className="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center shrink-0"><Truck size={14} strokeWidth={2} className="text-orange-600" /></div>}
             title="Tankers (Trucks)"
             summary="Configure tanker sizes and set the default"
-            badgeColor="bg-orange-50 text-orange-700"
+            badgeColor={NEUTRAL_BADGE}
           >
             <TankersContent pumpId={pump.id} />
           </AccordionSection>
@@ -188,7 +213,7 @@ export function PumpManagementPanel({
             icon={<div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center shrink-0"><Settings size={14} strokeWidth={2} className="text-amber-600" /></div>}
             title="Thresholds & Rules"
             summary={pump.discrepancyEscalationThreshold ? `Escalation: ₹${pump.discrepancyEscalationThreshold}` : 'Not configured'}
-            badgeColor="bg-amber-50 text-amber-700"
+            badgeColor={pump.discrepancyEscalationThreshold ? COMPLETE_BADGE : NEUTRAL_BADGE}
           >
             <PumpSettingsContent pump={pump} onUpdated={onPumpUpdated} />
           </AccordionSection>

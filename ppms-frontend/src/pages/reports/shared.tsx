@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react'
+import { DatePresetChips } from '../../components/DatePresetChips'
+import type { DateRange } from '../../utils/datePresets'
 
 
 // ── Shared small components ───────────────────────────────────────────────────
@@ -12,10 +15,18 @@ export function PrintHeader({ title, from, to }: { title: string; from?: string;
 }
 
 export function DateRangeInputs({
-  from, to, onFromChange, onToChange,
-}: { from: string; to: string; onFromChange: (v: string) => void; onToChange: (v: string) => void }) {
+  from, to, onFromChange, onToChange, onPreset,
+}: {
+  from: string
+  to: string
+  onFromChange: (v: string) => void
+  onToChange: (v: string) => void
+  /** When given, quick-range chips are shown and a chosen range is applied straight away. */
+  onPreset?: (range: DateRange) => void
+}) {
   return (
     <div className="ui-filter-group">
+      {onPreset && <div className="basis-full"><DatePresetChips range={{ from, to }} onSelect={onPreset} /></div>}
       <div>
         <label className="block">
           <span className="ui-label">From</span>
@@ -34,11 +45,23 @@ export function DateRangeInputs({
   )
 }
 
-export function SummaryCard({ label, value, color }: { label: string; value: string; color: string }) {
+export function SummaryCard({ label, value, color, note }: { label: string; value: string; color: string; note?: ReactNode }) {
   return (
     <div className="ui-card ui-card-muted p-4">
       <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">{label}</p>
       <p className={`text-lg font-bold ${color}`}>{value}</p>
+      {note}
+    </div>
+  )
+}
+
+/** Shown instead of ₹0.00 cards when the default range has nothing in it, pointing at a range that likely does. */
+export function EmptyRangeSuggestion({ what, onShowLastMonth }: { what: string; onShowLastMonth: () => void }) {
+  return (
+    <div className="ui-card ui-card-muted flex flex-col items-center gap-3 p-6 text-center" role="status">
+      <p className="text-sm font-medium text-ink">No {what} for yesterday or today yet.</p>
+      <p className="text-xs text-ink-3">Closed shifts from earlier days may still be worth a look.</p>
+      <button type="button" className="ui-btn ui-btn-secondary" onClick={onShowLastMonth}>Show last month</button>
     </div>
   )
 }

@@ -12,6 +12,26 @@ import { fmtAmt } from '../reportFormat'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { ScrollRegion } from '../../../components/ScrollRegion'
 import { codeLabel } from '../../../constants/labels'
+import { Link } from 'react-router-dom'
+import { CsvExportButton } from '../../../components/CsvExportButton'
+import { csvFilename } from '../../../utils/csv'
+import type { CsvColumn } from '../../../utils/csv'
+import type { DateRange } from '../../../utils/datePresets'
+import { shiftUrl } from '../../../utils/drillDown'
+
+const CSV_COLUMNS: CsvColumn<OperatorDutyShiftLine>[] = [
+  { header: 'Shift', value: (row) => row.shiftId, kind: 'number' },
+  { header: 'Date', value: (row) => row.shiftDate, kind: 'date' },
+  { header: 'Window', value: (row) => row.shiftWindow },
+  { header: 'Amount due', value: (row) => row.totalAmountDue, kind: 'money' },
+  { header: 'Cash', value: (row) => row.cashCollected, kind: 'money' },
+  { header: 'UPI', value: (row) => row.upiCollected, kind: 'money' },
+  { header: 'Card', value: (row) => row.cardCollected, kind: 'money' },
+  { header: 'Credit', value: (row) => row.creditTotal, kind: 'money' },
+  { header: 'Discrepancy type', value: (row) => row.discrepancyType },
+  { header: 'Discrepancy amount', value: (row) => row.discrepancyAmount, kind: 'money' },
+  { header: 'Status', value: (row) => codeLabel(row.status) },
+]
 
 // ── Operator Duty Tab ─────────────────────────────────────────────────────────
 
@@ -37,8 +57,17 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
 
   const paged = data ? pageSlice(data.shifts, page, pageSize) : null
 
+  const applyRange = (range: DateRange) => {
+    setFrom(range.from)
+    setTo(range.to)
+    setQuery(range)
+    if (operatorId) setReportOperatorId(operatorId)
+    setPage(0)
+  }
+
   const dutyTableHead = (
     <tr className="bg-slate-50 text-xs text-slate-500">
+      <th scope="col" className="text-left px-4 py-2.5 font-medium">Shift</th>
       <th scope="col" className="text-left px-4 py-2.5 font-medium">Date</th>
       <th scope="col" className="text-left px-4 py-2.5 font-medium">Window</th>
       <th scope="col" className="text-right px-4 py-2.5 font-medium">Amount Due</th>
@@ -50,6 +79,7 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
   )
   const dutyRow = (s: OperatorDutyShiftLine) => (
     <tr key={s.shiftId} className="border-t border-slate-100">
+      <td className="px-4 py-2.5"><Link to={shiftUrl(s.shiftId)} className="ui-link">Shift #{s.shiftId}</Link></td>
       <td className="px-4 py-2.5 text-slate-600">{s.shiftDate}</td>
       <td className="px-4 py-2.5 text-slate-500">{s.shiftWindow}</td>
       <td className="px-4 py-2.5 text-right font-medium text-slate-700 tabular-nums">{fmtAmt(s.totalAmountDue)}</td>
@@ -76,7 +106,7 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
             placeholder="Select operator…"
           />
         </div>
-        <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />
+        <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} onPreset={applyRange} />
         <button
           onClick={() => { if (operatorId) { setReportOperatorId(operatorId); setQuery({ from, to }) } setPage(0) }}
           disabled={!operatorId || isFetching}
@@ -91,6 +121,11 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
         >
           Print PDF
         </button>
+        <CsvExportButton
+          filename={csvFilename(`operator-duty-${data?.operatorName.toLowerCase().replace(/[^a-z0-9]+/g, '-') ?? 'operator'}`, query)}
+          columns={CSV_COLUMNS}
+          rows={data?.shifts ?? []}
+        />
         </div>
       </div>
 
@@ -104,7 +139,7 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
             <SummaryCard label="Total Amount Due"  value={fmtAmt(data.totalAmountDue)}   color="text-slate-800" />
             <SummaryCard label="Total Discrepancy" value={fmtAmt(data.totalDiscrepancy)} color={data.totalDiscrepancy > 0 ? 'text-red-700' : 'text-green-700'} />
           </div>
-          <div className="ui-table-wrap">
+          <div className="ui-table-wrap ui-table-wrap--scroll">
             <table className="w-full text-sm">
               <thead>{dutyTableHead}</thead>
               <tbody>{paged.content.map(dutyRow)}</tbody>

@@ -6,6 +6,7 @@ import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.common.time.DateRangeBounds;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
@@ -254,6 +255,24 @@ public class PaymentSettlementService {
                 .fleetCardPending(fleetPending)
                 .totalPending(upiPending.add(cardPending).add(fleetPending).setScale(2, RoundingMode.HALF_UP))
                 .build();
+    }
+
+    // ── Unsettled collections by age ──────────────────────────────────────────
+
+    /**
+     * Collections that have not reached the bank yet, as runs of consecutive collection days per payment type,
+     * oldest first. Everything settled so far clears the oldest days first, the same FIFO rule the daily summary uses.
+     */
+    @Transactional(readOnly = true)
+    public List<PendingSettlementRange> getPendingByAge(Long pumpId) {
+        LocalDate today = businessClock.today();
+        Map<LocalDate, Map<SettlementPaymentType, BigDecimal>> collected =
+                collectionsByDate(pumpId, DateRangeBounds.startOrEarliest(null), today);
+        Map<SettlementPaymentType, BigDecimal> totalSettled = new EnumMap<>(SettlementPaymentType.class);
+        for (SettlementPaymentType type : SettlementPaymentType.values()) {
+            totalSettled.put(type, orZero(settlementRepository.sumAmountByPumpIdAndPaymentType(pumpId, type)));
+        }
+        return PendingSettlementAging.unsettledRanges(collected, totalSettled, today);
     }
 
     // ── Daily summary ─────────────────────────────────────────────────────────

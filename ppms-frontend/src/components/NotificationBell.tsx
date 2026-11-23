@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect, useId } from 'react'
+import { Link } from 'react-router-dom'
 import { useEscapeKey } from '../hooks/useEscapeKey'
+import { useNow } from '../hooks/useNow'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  Bell, Droplets, AlertTriangle, FileText, Wrench,
-  Clock, TrendingDown, IndianRupee, Package, Lock, Info,
-} from 'lucide-react'
-import type { LucideProps } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { notificationApi } from '../api/notificationApi'
-import { withReadableDates } from '../utils/date'
+import { useAuthStore } from '../store/authStore'
+import { formatIstDateTime, withReadableDates } from '../utils/date'
+import { relativeTime } from '../utils/relativeTime'
 import { groupIdenticalNotifications } from './notificationGroups'
+import { openableHref } from './notificationLinks'
+import { NotificationTypeIcon } from './NotificationTypeIcon'
 
 interface Props {
   pumpId: number
@@ -16,10 +18,12 @@ interface Props {
 
 export default function NotificationBell({ pumpId }: Props) {
   const qc = useQueryClient()
+  const role = useAuthStore((state) => state.user?.role)
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const bellRef = useRef<HTMLButtonElement>(null)
   const panelId = useId()
+  const now = useNow(60_000)
 
   const { data } = useQuery({
     queryKey:        ['notifications', pumpId],
@@ -32,7 +36,10 @@ export default function NotificationBell({ pumpId }: Props) {
 
   const markReadMutation = useMutation({
     mutationFn: (ids: number[]) => notificationApi.markRead(pumpId, ids),
-    onSuccess:  () => qc.invalidateQueries({ queryKey: ['notifications', pumpId] }),
+    onSuccess:  () => {
+      qc.invalidateQueries({ queryKey: ['notifications', pumpId] })
+      qc.invalidateQueries({ queryKey: ['notification-history', pumpId] })
+    },
   })
 
   // Close dropdown when clicking outside
@@ -57,21 +64,9 @@ export default function NotificationBell({ pumpId }: Props) {
     if (notifications.length > 0) markReadMutation.mutate(notifications.map(n => n.id))
   }
 
-  function TypeIcon({ type }: { type: string }) {
-    const base: LucideProps = { size: 15, strokeWidth: 1.75 }
-    switch (type) {
-      case 'LOW_STOCK':               return <Droplets      {...base} className="text-orange-400 flex-shrink-0 mt-0.5" />
-      case 'PRICE_STALE':             return <AlertTriangle {...base} className="text-amber-400  flex-shrink-0 mt-0.5" />
-      case 'DOCUMENT_EXPIRING':       return <FileText      {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
-      case 'CALIBRATION_DUE':         return <Wrench        {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
-      case 'CALIBRATION_DUE_SOON':    return <Wrench        {...base} className="text-amber-400  flex-shrink-0 mt-0.5" />
-      case 'SHIFT_OVERDUE':           return <Clock         {...base} className="text-red-400    flex-shrink-0 mt-0.5" />
-      case 'ZERO_SALE_SHIFT':         return <TrendingDown  {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
-      case 'PRICE_CHANGE_OPEN_SHIFT': return <IndianRupee   {...base} className="text-blue-400   flex-shrink-0 mt-0.5" />
-      case 'ANCILLARY_LOW_STOCK':     return <Package       {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
-      case 'AUTO_CLOSED_SHIFT':       return <Lock          {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
-      default:                        return <Info          {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
-    }
+  const openNotification = (ids: number[]) => {
+    markReadMutation.mutate(ids)
+    setOpen(false)
   }
 
   return (
@@ -120,15 +115,13 @@ export default function NotificationBell({ pumpId }: Props) {
               <p className="mt-1 text-xs text-slate-500">You're all caught up</p>
             </div>
           ) : (
-            <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-              {groups.map(({ latest: n, count }) => (
-                <div
-                  key={n.id}
-                  className="ui-notification-panel__item px-4 py-3.5 bg-blue-50/50"
-                >
+            <ul className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+              {groups.map(({ latest: n, count, ids }) => {
+                const href = openableHref(n.target, role)
+                const body = (
                   <div className="flex items-start gap-2">
-                    <TypeIcon type={n.type} />
-                    <div className="min-w-0">
+                    <NotificationTypeIcon type={n.type} />
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-800">
                         <span className="sr-only">Unread: </span>{n.title}
                         {count > 1 && (
@@ -139,13 +132,36 @@ export default function NotificationBell({ pumpId }: Props) {
                         )}
                       </p>
                       <p className="mt-1 text-sm leading-relaxed text-slate-500">{withReadableDates(n.message)}</p>
+                      <time dateTime={n.createdAt} title={formatIstDateTime(n.createdAt)} className="mt-1 block text-xs text-ink-3">
+                        {relativeTime(n.createdAt, new Date(now))}
+                      </time>
                     </div>
                     <span aria-hidden="true" className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1" />
                   </div>
-                </div>
-              ))}
-            </div>
+                )
+                return (
+                  <li key={n.id}>
+                    {href ? (
+                      <Link
+                        to={href}
+                        onClick={() => openNotification(ids)}
+                        className="ui-notification-panel__item block px-4 py-3.5 bg-blue-50/50"
+                      >
+                        {body}
+                      </Link>
+                    ) : (
+                      <div className="ui-notification-panel__item px-4 py-3.5 bg-blue-50/50">{body}</div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
           )}
+          <div className="border-t border-slate-100 px-4 py-2.5 text-center">
+            <Link to="/dashboard/notifications" onClick={() => setOpen(false)} className="ui-link text-sm">
+              View all notifications
+            </Link>
+          </div>
         </div>
       )}
     </div>

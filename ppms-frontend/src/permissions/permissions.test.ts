@@ -56,9 +56,9 @@ describe('canAccessPage', () => {
     expect(canAccessPage('payroll', 'ADMIN')).toBe(false)
   })
 
-  it('keeps ACCOUNTANT to the overview, credit and expenses', () => {
+  it('keeps ACCOUNTANT to the overview, credit, expenses and their own notifications', () => {
     const allowed = Object.keys(PAGE_PERMISSIONS).filter(page => canAccessPage(page, 'ACCOUNTANT'))
-    expect(allowed.sort()).toEqual(['credit', 'expenses', 'overview'])
+    expect(allowed.sort()).toEqual(['credit', 'expenses', 'notifications', 'overview'])
   })
 
   it('limits the approval queue to OWNER and ADMIN', () => {

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -60,13 +61,16 @@ public class ProfitLossReportService {
                 ? List.of()
                 : lotConsumptionRepository.findByShiftIdIn(shiftIds);
 
+        Map<Long, LocalDate> dateByShiftId = shifts.stream().collect(Collectors.toMap(Shift::getId, Shift::getShiftDate));
         Map<FuelType, BigDecimal> revenueByFuel = new EnumMap<>(FuelType.class);
         Map<FuelType, BigDecimal> unitsSoldByFuel = new EnumMap<>(FuelType.class);
+        Map<LocalDate, BigDecimal> revenueByDay = new TreeMap<>();
         for (ShiftFuelReading reading : readings) {
             if (reading.getUnitsSold() == null) continue;
             BigDecimal revenue = reading.getUnitsSold().multiply(reading.getPriceSnapshot()).setScale(2, RoundingMode.HALF_UP);
             revenueByFuel.merge(reading.getFuelType(), revenue, BigDecimal::add);
             unitsSoldByFuel.merge(reading.getFuelType(), reading.getUnitsSold(), BigDecimal::add);
+            revenueByDay.merge(dateByShiftId.get(reading.getShiftId()), revenue, BigDecimal::add);
         }
 
         List<ProfitLossReport.FuelLine> lines = fuelLines(revenueByFuel, unitsSoldByFuel, costOfGoods(consumptions));
@@ -79,7 +83,31 @@ public class ProfitLossReportService {
                 totalRevenue.subtract(totalCogs).setScale(2, RoundingMode.HALF_UP),
                 total(shifts, Shift::getCashCollected), total(shifts, Shift::getUpiCollected),
                 total(shifts, Shift::getCardCollected), total(shifts, Shift::getCreditTotal),
-                lines);
+                lines, dayLines(revenueByDay, cogsByDay(consumptions, dateByShiftId)));
+    }
+
+    private Map<LocalDate, BigDecimal> cogsByDay(List<LotConsumption> consumptions, Map<Long, LocalDate> dateByShiftId) {
+        Map<LocalDate, BigDecimal> cogsByDay = new TreeMap<>();
+        for (LotConsumption consumption : consumptions) {
+            LocalDate day = dateByShiftId.get(consumption.getShiftId());
+            if (day == null) continue;
+            cogsByDay.merge(day, consumption.getQuantityConsumed().multiply(consumption.getCostPricePerUnit())
+                    .setScale(2, RoundingMode.HALF_UP), BigDecimal::add);
+        }
+        return cogsByDay;
+    }
+
+    private static List<ProfitLossReport.DayLine> dayLines(Map<LocalDate, BigDecimal> revenueByDay,
+                                                           Map<LocalDate, BigDecimal> cogsByDay) {
+        TreeMap<LocalDate, BigDecimal> days = new TreeMap<>(revenueByDay);
+        cogsByDay.keySet().forEach(day -> days.putIfAbsent(day, BigDecimal.ZERO));
+        return days.entrySet().stream()
+                .map(day -> {
+                    BigDecimal revenue = day.getValue().setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal cogs = cogsByDay.getOrDefault(day.getKey(), BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+                    return new ProfitLossReport.DayLine(day.getKey(), revenue, cogs, revenue.subtract(cogs));
+                })
+                .toList();
     }
 
     private BigDecimal total(List<Shift> shifts, Function<Shift, BigDecimal> amount) {

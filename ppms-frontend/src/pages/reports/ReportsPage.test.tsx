@@ -8,6 +8,7 @@ import type { ProfitLossReport } from '../../api/reportApi'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import ReportsPage from './ReportsPage'
+import { presetRange } from '../../utils/datePresets'
 
 vi.mock('../../api/reportApi', () => ({
   reportApi: { getProfitLoss: vi.fn(), getExpensesReport: vi.fn().mockResolvedValue([]) },
@@ -27,6 +28,7 @@ const reportWithOneLotAtTwoPrices: ProfitLossReport = {
       { lotId: 9, tankerReference: 'INV-9', deliveryDate: '2026-01-02', costPricePerUnit: 91, quantityConsumed: 10, lotCost: 910 },
     ],
   }],
+  byDay: [{ date: '2026-01-10', revenue: 3000, cogs: 2700, grossProfit: 300 }],
 }
 
 function renderReportsAt(path: string) {
@@ -70,6 +72,44 @@ describe('ReportsPage', () => {
     await waitFor(() => expect(reportApi.getExpensesReport).toHaveBeenCalledWith(PUMP_ID, '2026-02-01', '2026-02-10'))
     expect(screen.getByLabelText('From')).toHaveValue('2026-02-01')
     expect(router.state.location.search).toBe('?tab=expenses&from=2026-02-01&to=2026-02-10')
+  })
+
+  it('applies a quick range to the address straight away', async () => {
+    const user = userEvent.setup()
+    const router = renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
+
+    await user.click(await screen.findByRole('button', { name: 'Last month' }))
+
+    const lastMonth = presetRange('lastMonth')
+    await waitFor(() => expect(router.state.location.search).toBe(`?tab=pl&from=${lastMonth.from}&to=${lastMonth.to}`))
+    expect(screen.getByRole('button', { name: 'Last month' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('From')).toHaveValue(lastMonth.from)
+  })
+
+  it('compares the totals with the same-length period before', async () => {
+    vi.mocked(reportApi.getProfitLoss).mockImplementation((_pumpId, from) =>
+      Promise.resolve(from === '2026-01-01' ? reportWithOneLotAtTwoPrices : { ...reportWithOneLotAtTwoPrices, totalRevenue: 2500 }))
+    renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
+
+    expect(await screen.findByText('20% up vs previous period')).toBeInTheDocument()
+    expect(reportApi.getProfitLoss).toHaveBeenCalledWith(PUMP_ID, '2025-12-01', '2025-12-31')
+  })
+
+  it('links each fuel to its shifts over the report range', async () => {
+    renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
+
+    expect(await screen.findByRole('link', { name: /View Petrol shifts from/ }))
+      .toHaveAttribute('href', '/dashboard/shifts?history=all&from=2026-01-01&to=2026-01-31&fuel=PETROL')
+  })
+
+  it('suggests last month instead of empty totals when the default range has no shifts', async () => {
+    const user = userEvent.setup()
+    vi.mocked(reportApi.getProfitLoss).mockResolvedValue({ ...reportWithOneLotAtTwoPrices, totalShifts: 0, byFuelType: [], byDay: [] })
+    const router = renderReportsAt('/dashboard/reports?tab=pl')
+
+    await user.click(await screen.findByRole('button', { name: 'Show last month' }))
+
+    expect(router.state.location.search).toContain(`from=${presetRange('lastMonth').from}`)
   })
 
   it('lists every lot cost line, even when one lot was drawn at two prices', async () => {

@@ -1,5 +1,6 @@
 package com.ppms.notification;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -9,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
@@ -34,6 +36,25 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     long countUnreadForUser(@Param("pumpId") Long pumpId,
                             @Param("userId") Long userId,
                             @Param("types") Collection<NotificationType> types);
+
+    /** Every notification of the given types for a pump, read or not, newest first. */
+    @Query("""
+            SELECT n FROM Notification n
+            WHERE n.pumpId = :pumpId
+              AND n.type IN :types
+            ORDER BY n.createdAt DESC, n.id DESC
+            """)
+    Page<Notification> findHistory(@Param("pumpId") Long pumpId,
+                                   @Param("types") Collection<NotificationType> types,
+                                   Pageable pageable);
+
+    /** Which of the given notifications this user has read. */
+    @Query("""
+            SELECT r.notificationId FROM NotificationRead r
+            WHERE r.userId = :userId AND r.notificationId IN :notificationIds
+            """)
+    Set<Long> findReadIdsForUser(@Param("userId") Long userId,
+                                 @Param("notificationIds") Collection<Long> notificationIds);
 
     boolean existsByPumpIdAndDedupKey(Long pumpId, String dedupKey);
 

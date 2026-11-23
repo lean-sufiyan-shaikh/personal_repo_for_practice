@@ -119,6 +119,36 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void pendingByAgeListsWhatIsStillUnsettledForTheCollectionDay() throws Exception {
+        closeShiftWithUpi("600.00");
+        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(), settlementBody("250.00"))
+                .andExpect(status().is2xxSuccessful());
+
+        JsonNode ranges = json(perform(get("/api/pumps/{pumpId}/settlements/pending-by-age", setup.pumpId()),
+                setup.manager()).andExpect(status().isOk()));
+
+        assertThat(ranges).hasSize(1);
+        JsonNode upi = ranges.get(0);
+        assertThat(upi.get("paymentType").asText()).isEqualTo("UPI");
+        assertThat(upi.get("fromDate").asText()).isEqualTo(TestDates.today().toString());
+        assertThat(upi.get("amount").decimalValue()).isEqualByComparingTo("350.00");
+        assertThat(upi.get("ageDays").asLong()).isZero();
+        assertThat(upi.get("overdue").asBoolean()).isFalse();
+        assertThat(upi.get("days").get(0).get("amount").decimalValue()).isEqualByComparingTo("350.00");
+    }
+
+    @Test
+    void pendingByAgeIsEmptyOnceEverythingIsSettled() throws Exception {
+        closeShiftWithUpi("600.00");
+        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(), settlementBody("600.00"))
+                .andExpect(status().is2xxSuccessful());
+
+        JsonNode ranges = json(perform(get("/api/pumps/{pumpId}/settlements/pending-by-age", setup.pumpId()),
+                setup.owner()).andExpect(status().isOk()));
+        assertThat(ranges).isEmpty();
+    }
+
+    @Test
     void settlementWithAnUnknownTypeAFutureDateOrNoVoidReasonIsRejected() throws Exception {
         perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
                 Map.of("paymentType", "CHEQUE", "settlementDate", TestDates.today().toString(), "amountReceived", 10))

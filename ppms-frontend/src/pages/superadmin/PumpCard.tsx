@@ -1,4 +1,4 @@
-import { Fuel, Users, X } from 'lucide-react'
+import { AlertTriangle, Check, Fuel, Users, X } from 'lucide-react'
 import type { PumpSummary, UpdatePumpRequest } from '../../api/superAdminApi'
 import { EditPumpForm } from './EditPumpForm'
 
@@ -33,9 +33,19 @@ export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSa
             </div>
             <p className="text-slate-500 mt-0.5">{pump.pumpAddress}</p>
             {/* Staff count badge */}
-            <span className="inline-flex items-center gap-1 mt-1 text-xs text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
-              <Users size={11} strokeWidth={2} />{pump.staffCount} staff
-            </span>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              <span className="inline-flex items-center gap-1 text-xs text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
+                <Users size={11} strokeWidth={2} />{pump.staffCount} staff
+              </span>
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                pump.setupDoneCount === pump.setupRequiredCount ? 'bg-ok-bg text-ok' : 'bg-warn-bg text-warn'
+              }`}>
+                {pump.setupDoneCount === pump.setupRequiredCount
+                  ? <Check size={11} strokeWidth={2.5} aria-hidden="true" />
+                  : <AlertTriangle size={11} strokeWidth={2} aria-hidden="true" />}
+                Setup {pump.setupDoneCount} of {pump.setupRequiredCount} done
+              </span>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">

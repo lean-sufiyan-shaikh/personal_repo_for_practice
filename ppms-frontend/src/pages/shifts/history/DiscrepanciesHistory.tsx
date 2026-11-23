@@ -64,11 +64,17 @@ function DiscrepancyAction({ shift, role, onOpen, className = '' }: {
   return null
 }
 
-export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
+/** The initial filters come from the address, e.g. a "View short shifts" link on the Short / Over report. */
+export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '', initialType = 'ALL' }: {
+  pumpId: number
+  initialFrom?: string
+  initialTo?: string
+  initialType?: 'ALL' | 'SHORT' | 'OVER'
+}) {
   const [page,     setPage]     = useState(0)
-  const [fromDate, setFromDate] = useState('')
-  const [toDate,   setToDate]   = useState('')
-  const [typeFilter, setTypeFilter] = useState<'ALL' | 'SHORT' | 'OVER'>('ALL')
+  const [fromDate, setFromDate] = useState(initialFrom)
+  const [toDate,   setToDate]   = useState(initialTo)
+  const [typeFilter, setTypeFilter] = useState<'ALL' | 'SHORT' | 'OVER'>(initialType)
   const [resolvingShift, setResolvingShift] = useState<Shift | null>(null)
   const role = useAuthStore((state) => state.user?.role)
 

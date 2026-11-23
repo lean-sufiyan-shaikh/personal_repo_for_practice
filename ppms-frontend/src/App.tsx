@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './queryClient'
 import ProtectedRoute from './components/ProtectedRoute'
 import { OfflineBanner } from './components/OfflineBanner'
+import { DocumentTitle } from './components/DocumentTitle'
 import { SkeletonRows } from './components/Skeleton'
 import { pageLoaders } from './routes/pageLoaders'
 import { CHANGE_PASSWORD_PATH } from './permissions/permissions'
@@ -33,6 +34,7 @@ const AuditLogPage = lazy(pageLoaders.audit)
 const PayrollPage = lazy(pageLoaders.payroll)
 const AncillaryProductsPage = lazy(pageLoaders.ancillary)
 const PaymentSettlementsPage = lazy(pageLoaders.settlements)
+const NotificationsPage = lazy(pageLoaders.notifications)
 const CreditBalancePortalPage = lazy(() => import('./pages/portal/CreditBalancePortalPage'))
 
 function PageFallback() {
@@ -67,6 +69,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <OfflineBanner />
       <BrowserRouter>
+        <DocumentTitle />
         <Routes>
           <Route path="/login" element={withSuspense(<LoginPage />)} />
           <Route path="/forgot-password" element={withSuspense(<ForgotPasswordPage />)} />
@@ -205,6 +208,14 @@ export default function App() {
               element={withPageSuspense(
                 <ProtectedRoute page="settlements">
                   <PaymentSettlementsPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="notifications"
+              element={withPageSuspense(
+                <ProtectedRoute page="notifications">
+                  <NotificationsPage />
                 </ProtectedRoute>
               )}
             />

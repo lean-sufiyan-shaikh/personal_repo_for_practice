@@ -1,16 +1,39 @@
 import type { FilterMode, LedgerFilters, TxTypeFilter } from './useLedgerFilters'
+import type { MergedTx } from './ledgerGroups'
+import { CsvExportButton } from '../../components/CsvExportButton'
+import { csvFilename } from '../../utils/csv'
+import type { CsvColumn } from '../../utils/csv'
+import { codeLabel } from '../../constants/labels'
+
+const LEDGER_COLUMNS: CsvColumn<MergedTx>[] = [
+  { header: 'Date', value: (row) => row.businessDate, kind: 'date' },
+  { header: 'Account', value: (row) => row.subAccountName ?? row.clientName },
+  { header: 'Type', value: (row) => codeLabel(row.type) },
+  { header: 'Reference', value: (row) => row.reference },
+  { header: 'Detail', value: (row) => row.detail },
+  { header: 'Amount', value: (row) => row.amount, kind: 'money' },
+  { header: 'Running balance', value: (row) => row.runningBalance, kind: 'money' },
+  { header: 'Status', value: (row) => codeLabel(row.status) },
+  { header: 'Counted in balance', value: (row) => (row.countedInBalance ? 'Yes' : 'No') },
+]
 
 export function LedgerFilterBar({ filters }: { filters: LedgerFilters }) {
   const {
     filterMode, setFilterMode, txTypeFilter, setTxTypeFilter, availableMonths,
-    selectedMonth, setSelectedMonth, fromDate, setFromDate, toDate, setToDate,
+    selectedMonth, setSelectedMonth, fromDate, setFromDate, toDate, setToDate, filtered,
   } = filters
+  const exportRange = filterMode === 'range' ? { from: fromDate, to: toDate } : undefined
 
   return (
     <>
     {/* Filter toolbar */}
     <div className="flex flex-wrap items-center gap-3 mb-3">
       <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Ledger History</h3>
+      <CsvExportButton
+        filename={csvFilename(filterMode === 'month' && selectedMonth ? `credit-ledger-${selectedMonth}` : 'credit-ledger', exportRange)}
+        columns={LEDGER_COLUMNS}
+        rows={filtered}
+      />
       <div className="flex items-center gap-1 ml-auto bg-slate-100 rounded-lg p-0.5">
         {(['all', 'month', 'range'] as FilterMode[]).map(m => (
           <button

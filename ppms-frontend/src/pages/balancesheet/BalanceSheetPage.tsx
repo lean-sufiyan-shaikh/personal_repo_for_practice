@@ -9,6 +9,8 @@ import { useOnValuesChange } from '../../hooks/useOnValuesChange'
 import type { BalanceSheetSummary } from '../../api/balanceSheetApi'
 import { Pagination } from '../../components/Pagination'
 import { localDateInputValue } from '../../utils/date'
+import { useDateRangeParams } from '../../hooks/useDateRangeParams'
+import { DatePresetChips } from '../../components/DatePresetChips'
 import { SkeletonRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { RefreshIndicator } from '../../components/RefreshIndicator'
@@ -30,9 +32,11 @@ export default function BalanceSheetPage() {
   const [selectedReportId, setSelectedReportId] = useState<number | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<BalanceSheetSummary | null>(null)
 
-  // Date range filter — defaults to last 7 days → today (computed fresh on mount, not at module load)
-  const [filterFrom, setFilterFrom] = useState(() => localDateInputValue(-7))
-  const [filterTo, setFilterTo]     = useState(() => localDateInputValue(0))
+  // Date range filter in the address — defaults to last 7 days → today
+  const [filterRange, setFilterRange] = useDateRangeParams(() => ({ from: localDateInputValue(-7), to: localDateInputValue(0) }))
+  const { from: filterFrom, to: filterTo } = filterRange
+  const setFilterFrom = (from: string) => setFilterRange({ from, to: filterTo })
+  const setFilterTo = (to: string) => setFilterRange({ from: filterFrom, to })
 
   const [bsPage, setBsPage]         = useState(0)
   const [bsPageSize, setBsPageSize] = useState(10)
@@ -98,6 +102,9 @@ export default function BalanceSheetPage() {
           </div>
 
           {/* Date range filter */}
+          <div className="mb-2">
+            <DatePresetChips range={filterRange} onSelect={setFilterRange} />
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <input aria-label="From date"
               type="date"
@@ -116,7 +123,7 @@ export default function BalanceSheetPage() {
             />
             {(filterFrom || filterTo) && (
               <IconButton
-                onClick={() => { setFilterFrom(''); setFilterTo(''); setBsPage(0) }}
+                onClick={() => { setFilterRange({ from: '', to: '' }); setBsPage(0) }}
                 className="ui-btn ui-btn-ghost text-slate-500 hover:text-slate-600"
                 label="Clear date filter"
                 icon={<X size={14} strokeWidth={2} />}

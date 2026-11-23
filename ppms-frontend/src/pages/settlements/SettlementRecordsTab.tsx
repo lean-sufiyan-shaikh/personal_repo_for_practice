@@ -1,10 +1,27 @@
 import { Landmark, Check, AlertTriangle } from 'lucide-react'
-import type { Settlement, SettlementPaymentType } from '../../api/paymentSettlementApi'
+import type { DailySummaryEntry, Settlement, SettlementPaymentType } from '../../api/paymentSettlementApi'
+import { CsvExportButton } from '../../components/CsvExportButton'
+import { DatePresetChips } from '../../components/DatePresetChips'
+import { csvFilename } from '../../utils/csv'
+import type { CsvColumn } from '../../utils/csv'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
 import { TYPE_ACCENT, TYPE_ICONS, TYPE_LABELS, fmtAmt, fmtDate } from './settlementFormat'
 import type { SettlementHistory } from './useSettlementHistory'
+
+const CSV_COLUMNS: CsvColumn<DailySummaryEntry>[] = [
+  { header: 'Date', value: (row) => row.date, kind: 'date' },
+  { header: 'UPI collected', value: (row) => row.upiCollected, kind: 'money' },
+  { header: 'UPI settled', value: (row) => row.upiSettled, kind: 'money' },
+  { header: 'Card collected', value: (row) => row.cardCollected, kind: 'money' },
+  { header: 'Card settled', value: (row) => row.cardSettled, kind: 'money' },
+  { header: 'Fleet card collected', value: (row) => row.fleetCardCollected, kind: 'money' },
+  { header: 'Fleet card settled', value: (row) => row.fleetCardSettled, kind: 'money' },
+  { header: 'Settlements recorded', value: (row) => row.settlements
+    .map((s) => `${TYPE_LABELS[s.paymentType]} ${s.amountReceived.toFixed(2)}${s.voidStatus === 'VOIDED' ? ' (voided)' : ''}${s.bankReference ? ` ref ${s.bankReference}` : ''}`)
+    .join('; ') },
+]
 
 interface SettlementRecordsTabProps {
   history: SettlementHistory
@@ -14,7 +31,7 @@ interface SettlementRecordsTabProps {
 
 export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRecordsTabProps) {
   const {
-    filterFrom, setFilterFrom, filterTo, setFilterTo, typeFilter, setTypeFilter,
+    filterFrom, setFilterFrom, filterTo, setFilterTo, typeFilter, setTypeFilter, setRange, loadAllDays,
     setSummaryPage, setSummaryPageSize, dailySummaryPage, dailySummary, loadingList,
   } = history
 
@@ -23,25 +40,26 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
       {/* Toolbar: date range + type filter */}
       <div className="ui-toolbar">
         <p className="ui-toolbar-title">Settlement History</p>
-        <div className="ui-toolbar-actions">
+        <div className="basis-full">
+          <DatePresetChips range={{ from: filterFrom, to: filterTo }} onSelect={setRange} />
+        </div>
+        <div className="ui-toolbar-actions w-full sm:w-auto">
           <input aria-label="From date"
             type="date"
             value={filterFrom}
             max={filterTo}
-            onChange={e => { setFilterFrom(e.target.value); setSummaryPage(0) }}
-            style={{ width: '155px', minHeight: '36px' }}
-            className="text-sm"
+            onChange={e => setFilterFrom(e.target.value)}
+            className="flex-1 min-w-36 text-sm sm:w-40 sm:flex-none"
           />
           <span className="text-slate-500 text-sm">–</span>
           <input aria-label="To date"
             type="date"
             value={filterTo}
             min={filterFrom}
-            onChange={e => { setFilterTo(e.target.value); setSummaryPage(0) }}
-            style={{ width: '155px', minHeight: '36px' }}
-            className="text-sm"
+            onChange={e => setFilterTo(e.target.value)}
+            className="flex-1 min-w-36 text-sm sm:w-40 sm:flex-none"
           />
-          <div style={{ width: '160px' }}>
+          <div className="w-full sm:w-40">
             <SearchableSelect label="Filter by payment type"
               value={typeFilter}
               onChange={v => setTypeFilter(v as SettlementPaymentType | '')}
@@ -54,6 +72,12 @@ export function SettlementRecordsTab({ history, canVoid, onVoid }: SettlementRec
               size="sm"
             />
           </div>
+          <CsvExportButton
+            filename={csvFilename('settlements', { from: filterFrom, to: filterTo })}
+            columns={CSV_COLUMNS}
+            rows={loadAllDays}
+            disabled={dailySummary.length === 0}
+          />
         </div>
       </div>
 

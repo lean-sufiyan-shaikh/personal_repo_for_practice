@@ -8,6 +8,8 @@ import type { PumpSummary } from '../../api/pumpApi'
 import { Reveal } from '../../components/Reveal'
 import { CreatePumpForm } from './CreatePumpForm'
 import { PumpManagementPanel } from './PumpManagementPanel'
+import { SetupChecklistCard } from './SetupChecklistCard'
+import { canPerformAction } from '../../permissions/permissions'
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -22,9 +24,16 @@ export default function SetupPage() {
   })
 
   const isSuperAdmin = user?.role === 'SUPER_ADMIN'
+  const canManageSetup = canPerformAction('setup:manage', user?.role)
 
   const [createOpen, setCreateOpen] = useState(true)
   const selectedPump = pumps.find((p) => p.id === selectedPumpId) ?? null
+
+  const { data: checklist } = useQuery({
+    queryKey: ['setup-checklist', selectedPump?.id],
+    queryFn: () => pumpApi.getSetupChecklist(selectedPump!.id),
+    enabled: !!selectedPump && canManageSetup && !isSuperAdmin,
+  })
 
   const handlePumpCreated = (pump: PumpSummary) => {
     queryClient.invalidateQueries({ queryKey: ['myPumps'] })
@@ -71,11 +80,18 @@ export default function SetupPage() {
         </Reveal>
       )}
 
+      {checklist && (
+        <Reveal delay={130}>
+          <SetupChecklistCard checklist={checklist} />
+        </Reveal>
+      )}
+
       {/* ── Pump management accordion ── */}
       {selectedPump && (
         <Reveal delay={200}>
         <PumpManagementPanel
           pump={selectedPump}
+          checklist={checklist}
           onPumpUpdated={() => queryClient.invalidateQueries({ queryKey: ['myPumps'] })}
         />
         </Reveal>

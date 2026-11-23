@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { reportApi } from '../../../api/reportApi'
 import { pumpApi } from '../../../api/pumpApi'
-import type { InventoryLotsReport, AllTanksInventoryReport } from '../../../api/reportApi'
+import type { InventoryLotsReport, AllTanksInventoryReport, InventoryLotLine } from '../../../api/reportApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
@@ -13,8 +13,25 @@ import { localDateInputValue } from '../../../utils/date'
 import { useReportRange } from '../useReportRange'
 import { fmtAmt, fmtQty, fmtShortDate, fmtShortDayMonth } from '../reportFormat'
 import { codeLabel } from '../../../constants/labels'
+import { CsvExportButton } from '../../../components/CsvExportButton'
+import { csvFilename } from '../../../utils/csv'
+import type { CsvColumn } from '../../../utils/csv'
+import type { DateRange } from '../../../utils/datePresets'
 
 const ALL_TANKS_DEFAULT_DAYS = 90
+
+const CSV_COLUMNS: CsvColumn<InventoryLotLine>[] = [
+  { header: 'Lot', value: (row) => row.lotId, kind: 'number' },
+  { header: 'Reference', value: (row) => row.tankerReference },
+  { header: 'Fuel', value: (row) => codeLabel(row.fuelType) },
+  { header: 'Delivery date', value: (row) => row.deliveryDate, kind: 'date' },
+  { header: 'Original litres', value: (row) => row.originalQuantity.toFixed(2), kind: 'number' },
+  { header: 'Consumed litres', value: (row) => row.totalConsumed.toFixed(2), kind: 'number' },
+  { header: 'Remaining litres', value: (row) => row.remainingQuantity.toFixed(2), kind: 'number' },
+  { header: 'Cost per litre', value: (row) => row.costPricePerUnit, kind: 'money' },
+  { header: 'Cost of goods consumed', value: (row) => row.totalCogsConsumed, kind: 'money' },
+  { header: 'Status', value: (row) => codeLabel(row.status) },
+]
 
 function allTanksDefaultRange() {
   return { from: localDateInputValue(-(ALL_TANKS_DEFAULT_DAYS - 1)), to: localDateInputValue() }
@@ -56,6 +73,15 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
   const error      = singleError ?? allError
   const data       = singleTankData
   const paged      = data ? pageSlice(data.lots, page, pageSize) : null
+  const csvRows    = query === '' ? (allTanksData?.tanks.flatMap((tank) => tank.lots) ?? []) : (data?.lots ?? [])
+
+  const applyRange = (next: DateRange) => {
+    setFrom(next.from)
+    setTo(next.to)
+    setQuery('')
+    setRange(next)
+    setPage(0)
+  }
 
   return (
     <div className="space-y-4">
@@ -73,7 +99,7 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
               placeholder="Select tank…"
             />
           </div>
-          {tankId === '' && <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />}
+          {tankId === '' && <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} onPreset={applyRange} />}
           <button
             onClick={() => { setQuery(tankId); setRange({ from, to }); setPage(0) }}
             disabled={isFetching}
@@ -88,6 +114,11 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
           >
             Print PDF
           </button>
+          <CsvExportButton
+            filename={csvFilename(query === '' ? 'inventory-lots' : `inventory-lots-tank-${query}`, query === '' ? range : undefined)}
+            columns={CSV_COLUMNS}
+            rows={csvRows}
+          />
         </div>
       </div>
 

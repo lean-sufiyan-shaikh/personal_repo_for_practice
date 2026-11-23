@@ -177,9 +177,23 @@ export interface PumpsOverview {
   }
 }
 
+export type SetupStep =
+  | 'DISPENSERS' | 'TANKS' | 'FUEL_PRICES' | 'SHIFT_DEFINITIONS' | 'STAFF' | 'GST_DETAILS' | 'CREDIT_CLIENTS'
+
+/** How far a pump's setup has got; optional steps are not counted in doneCount / requiredCount. */
+export interface SetupChecklist {
+  pumpId: number
+  doneCount: number
+  requiredCount: number
+  items: { step: SetupStep; done: boolean; optional: boolean; detail: string }[]
+}
+
 export const pumpApi = {
   getMyPumps: () =>
     client.get<PumpSummary[]>('/pumps').then((r) => r.data),
+
+  getSetupChecklist: (pumpId: number) =>
+    client.get<SetupChecklist>(`/pumps/${pumpId}/setup-checklist`).then((r) => r.data),
 
   getPumpsOverview: () =>
     client.get<PumpsOverview>('/pumps/overview').then((r) => r.data),

@@ -52,6 +52,17 @@ export interface UpdateConfigRequest {
   enabled: boolean
 }
 
+/** Consecutive collection days of one type whose money has not reached the bank; overdue once past T+2. */
+export interface PendingSettlementRange {
+  paymentType: SettlementPaymentType
+  fromDate: string
+  toDate: string
+  amount: number
+  ageDays: number
+  overdue: boolean
+  days: { date: string; amount: number }[]
+}
+
 export interface DailySummaryEntry {
   date: string                  // YYYY-MM-DD
   upiCollected: number          // from closed shifts
@@ -92,6 +103,10 @@ export const paymentSettlementApi = {
   /** Create or update alert config for one payment type. */
   upsertConfig: (pumpId: number, paymentType: SettlementPaymentType, data: UpdateConfigRequest): Promise<SettlementConfig> =>
     client.put(`/pumps/${pumpId}/settlement-configs/${paymentType}`, data).then(r => r.data),
+
+  /** Unsettled collections as runs of consecutive days per payment type, oldest first. */
+  getPendingByAge: (pumpId: number): Promise<PendingSettlementRange[]> =>
+    client.get(`/pumps/${pumpId}/settlements/pending-by-age`).then(r => r.data),
 
   /** Per-date summary combining shift collections and recorded settlements, newest first. */
   getDailySummary: (pumpId: number, from: string, to: string, page = 0, size = 10): Promise<PagedResponse<DailySummaryEntry>> =>

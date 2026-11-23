@@ -2,10 +2,27 @@ import { useState } from 'react'
 import { serverMessage } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { reportApi } from '../../../api/reportApi'
-import type { InterestAccrualReport } from '../../../api/reportApi'
+import type { InterestAccrualReport, InterestChargeLine } from '../../../api/reportApi'
+import { CsvExportButton } from '../../../components/CsvExportButton'
+import { csvFilename } from '../../../utils/csv'
+import type { CsvColumn } from '../../../utils/csv'
+import type { DateRange } from '../../../utils/datePresets'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, ErrorBox, SummaryCard } from '../shared'
 import { fmtAmt, fmtShortDate } from '../reportFormat'
+
+type InterestCsvRow = InterestChargeLine & { clientName: string }
+
+const CSV_COLUMNS: CsvColumn<InterestCsvRow>[] = [
+  { header: 'Client', value: (row) => row.clientName },
+  { header: 'Period from', value: (row) => row.periodFrom, kind: 'date' },
+  { header: 'Period to', value: (row) => row.periodTo, kind: 'date' },
+  { header: 'Days', value: (row) => row.daysApplied, kind: 'number' },
+  { header: 'Outstanding balance', value: (row) => row.outstandingBalance, kind: 'money' },
+  { header: 'Monthly rate %', value: (row) => row.rateApplied, kind: 'number' },
+  { header: 'Interest', value: (row) => row.amount, kind: 'money' },
+  { header: 'Source', value: (row) => row.source },
+]
 
 // ── Interest Accrual Tab ───────────────────────────────────────────────────────
 
@@ -19,11 +36,21 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
     queryFn:  () => reportApi.getInterestAccrual(pumpId, query.from, query.to),
   })
 
+  const applyRange = (range: DateRange) => {
+    setFrom(range.from)
+    setTo(range.to)
+    setQuery(range)
+  }
+
+  const csvRows: InterestCsvRow[] = data
+    ? data.clients.flatMap((client) => client.charges.map((charge) => ({ ...charge, clientName: client.clientName })))
+    : []
+
   return (
     <div className="space-y-4">
       <div className="ui-card ui-card-muted p-4 print:hidden">
         <div className="ui-filter-group">
-          <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />
+          <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} onPreset={applyRange} />
           <button
             onClick={() => setQuery({ from, to })}
             disabled={isFetching}
@@ -38,6 +65,7 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
           >
             Print PDF
           </button>
+          <CsvExportButton filename={csvFilename('interest-accrual', query)} columns={CSV_COLUMNS} rows={csvRows} />
         </div>
       </div>
 

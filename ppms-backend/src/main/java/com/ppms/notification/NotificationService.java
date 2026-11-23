@@ -2,6 +2,7 @@ package com.ppms.notification;
 
 import com.ppms.ancillary.AncillaryProductRepository;
 import com.ppms.ancillary.AncillaryProductStatus;
+import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.document.PumpDocumentRepository;
 import com.ppms.fuel.GlobalFuelPriceRepository;
@@ -18,7 +19,9 @@ import com.ppms.shift.ShiftStatus;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,8 +95,31 @@ public class NotificationService {
         Set<NotificationType> types = NotificationAudience.typesVisibleTo(currentUser.getRole());
         return new NotificationListResponse(
                 notificationRepository.findUnreadForUser(pumpId, currentUser.getId(), types,
-                        PageRequest.of(0, UNREAD_PAGE_SIZE)),
+                        PageRequest.of(0, UNREAD_PAGE_SIZE)).stream()
+                        .map(notification -> NotificationResponse.of(notification, false))
+                        .toList(),
                 notificationRepository.countUnreadForUser(pumpId, currentUser.getId(), types));
+    }
+
+    /**
+     * One page of every notification this user's role receives, read or not, newest first, each marked with
+     * whether this user has read it. {@code type} narrows it to one type; a type the role does not receive
+     * gives an empty page.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<NotificationResponse> getHistory(Long pumpId, NotificationType type, Pageable pageable,
+                                                          User currentUser) {
+        Set<NotificationType> visibleTypes = NotificationAudience.typesVisibleTo(currentUser.getRole());
+        Set<NotificationType> types = type == null ? visibleTypes
+                : visibleTypes.contains(type) ? Set.of(type) : Set.of();
+        if (types.isEmpty()) {
+            return PagedResponse.of(Page.<NotificationResponse>empty(pageable));
+        }
+        Page<Notification> page = notificationRepository.findHistory(pumpId, types, pageable);
+        List<Long> ids = page.getContent().stream().map(Notification::getId).toList();
+        Set<Long> readIds = ids.isEmpty() ? Set.of() : notificationRepository.findReadIdsForUser(currentUser.getId(), ids);
+        return PagedResponse.of(page.map(notification ->
+                NotificationResponse.of(notification, readIds.contains(notification.getId()))));
     }
 
     /**

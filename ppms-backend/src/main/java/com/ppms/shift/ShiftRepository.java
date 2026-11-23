@@ -1,5 +1,6 @@
 package com.ppms.shift;
 
+import com.ppms.fuel.FuelType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import jakarta.persistence.LockModeType;
@@ -70,6 +71,36 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
 
     Page<Shift> findByPumpIdAndShiftDateBetweenAndDiscrepancyTypeInOrderByActualStartTimeDesc(
             Long pumpId, LocalDate from, LocalDate to, List<DiscrepancyType> discrepancyTypes, Pageable pageable);
+
+    /** Shifts in the date range that sold the given fuel, newest first. */
+    @Query("""
+            SELECT s FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.shiftDate BETWEEN :from AND :to
+              AND EXISTS (SELECT 1 FROM ShiftFuelReading r WHERE r.shiftId = s.id AND r.fuelType = :fuelType)
+            ORDER BY s.actualStartTime DESC
+            """)
+    Page<Shift> findHistoryForFuel(@Param("pumpId") Long pumpId,
+                                   @Param("from") LocalDate from,
+                                   @Param("to") LocalDate to,
+                                   @Param("fuelType") FuelType fuelType,
+                                   Pageable pageable);
+
+    /** One operator's shifts in the date range that sold the given fuel, newest first. */
+    @Query("""
+            SELECT s FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.operatorId = :operatorId
+              AND s.shiftDate BETWEEN :from AND :to
+              AND EXISTS (SELECT 1 FROM ShiftFuelReading r WHERE r.shiftId = s.id AND r.fuelType = :fuelType)
+            ORDER BY s.actualStartTime DESC
+            """)
+    Page<Shift> findOperatorHistoryForFuel(@Param("pumpId") Long pumpId,
+                                           @Param("operatorId") Long operatorId,
+                                           @Param("from") LocalDate from,
+                                           @Param("to") LocalDate to,
+                                           @Param("fuelType") FuelType fuelType,
+                                           Pageable pageable);
 
     // Operator-scoped history: an operator only sees their own shifts.
     Page<Shift> findByPumpIdAndOperatorIdOrderByActualStartTimeDesc(Long pumpId, Long operatorId, Pageable pageable);

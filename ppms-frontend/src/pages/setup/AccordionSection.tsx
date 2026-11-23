@@ -4,6 +4,7 @@ import type { SectionKey } from './sectionKey'
 // ── Accordion section wrapper ─────────────────────────────────────────────────
 
 export function AccordionSection({
+  sectionKey,
   open,
   onToggle,
   icon,
@@ -22,10 +23,11 @@ export function AccordionSection({
   children: React.ReactNode
 }) {
   return (
-    <div>
+    <div id={`setup-section-${sectionKey}`} className="scroll-mt-4">
       <button
         type="button"
         onClick={onToggle}
+        aria-expanded={open}
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors text-left"
       >
         <div className="flex items-center gap-3">

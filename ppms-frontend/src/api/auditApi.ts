@@ -106,11 +106,28 @@ export interface AuditLogsParams {
   size: number
   from?: string        // yyyy-MM-dd
   to?: string          // yyyy-MM-dd
+  action?: AuditAction
+  actorId?: number
+  /** Leaves out "Signed in" events. */
+  hideSignIns?: boolean
+}
+
+export interface AuditActor {
+  actorId: number
+  actorName: string
 }
 
 export const auditApi = {
-  getAuditLogs: ({ pumpId, page, size, from, to }: AuditLogsParams): Promise<AuditPage> =>
+  getAuditLogs: ({ pumpId, page, size, from, to, action, actorId, hideSignIns }: AuditLogsParams): Promise<AuditPage> =>
     client.get(`/pumps/${pumpId}/audit-logs`, {
-      params: { page, size, sort: 'createdAt,desc', ...(from && { from }), ...(to && { to }) },
+      params: {
+        page, size, sort: 'createdAt,desc',
+        ...(from && { from }), ...(to && { to }), ...(action && { action }), ...(actorId && { actorId }),
+        ...(hideSignIns && { hideSignIns: true }),
+      },
     }).then(r => r.data),
+
+  /** Everyone with an audit event at the pump, for the "by user" filter. */
+  getActors: (pumpId: number): Promise<AuditActor[]> =>
+    client.get(`/pumps/${pumpId}/audit-logs/actors`).then(r => r.data),
 }

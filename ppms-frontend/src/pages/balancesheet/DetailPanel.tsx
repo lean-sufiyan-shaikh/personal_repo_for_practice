@@ -14,6 +14,44 @@ import { SettlementSection } from './sections/SettlementSection'
 import { DipPlSection } from './sections/DipPlSection'
 import { MeterAmendmentsSection } from './sections/MeterAmendmentsSection'
 import { ScrollRegion } from '../../components/ScrollRegion'
+import { Link } from 'react-router-dom'
+import { CsvExportButton } from '../../components/CsvExportButton'
+import { csvFilename } from '../../utils/csv'
+import type { CsvColumn } from '../../utils/csv'
+import { discrepanciesUrl, shiftsForFuelUrl } from '../../utils/drillDown'
+
+const FUEL_COLUMNS: CsvColumn<BsFuelLine>[] = [
+  { header: 'Fuel', value: (row) => row.fuelType },
+  { header: 'Opening stock litres', value: (row) => row.openingStock.toFixed(2), kind: 'number' },
+  { header: 'Delivered litres', value: (row) => row.deliveredLitres.toFixed(2), kind: 'number' },
+  { header: 'Sold litres', value: (row) => row.soldLitres.toFixed(2), kind: 'number' },
+  { header: 'Closing stock litres', value: (row) => row.closingStock.toFixed(2), kind: 'number' },
+  { header: 'Selling price', value: (row) => row.sellingPrice, kind: 'money' },
+  { header: 'Revenue', value: (row) => row.expectedRevenue, kind: 'money' },
+  { header: 'Stock variance litres', value: (row) => row.stockVariance.toFixed(2), kind: 'number' },
+  { header: 'Credit sold', value: (row) => row.creditSoldAmount, kind: 'money' },
+]
+
+const FUEL_PROFIT_COLUMNS: CsvColumn<BsFuelLine>[] = [
+  { header: 'Cost of goods', value: (row) => row.costOfGoods, kind: 'money' },
+  { header: 'Gross profit', value: (row) => row.grossProfit, kind: 'money' },
+  { header: 'Dip loss', value: (row) => row.dipLossAmount, kind: 'money' },
+]
+
+const SHIFT_COLUMNS: CsvColumn<BsShiftLine>[] = [
+  { header: 'Shift', value: (row) => row.shiftId, kind: 'number' },
+  { header: 'Operator', value: (row) => row.operatorName },
+  { header: 'DU', value: (row) => row.duNumber, kind: 'number' },
+  { header: 'Fuels', value: (row) => row.fuelTypesSummary },
+  { header: 'Litres', value: (row) => row.litresSold.toFixed(2), kind: 'number' },
+  { header: 'Expected', value: (row) => row.expectedRevenue, kind: 'money' },
+  { header: 'Cash', value: (row) => row.cashCollected, kind: 'money' },
+  { header: 'UPI', value: (row) => row.upiCollected, kind: 'money' },
+  { header: 'Card', value: (row) => row.cardCollected, kind: 'money' },
+  { header: 'Fleet card', value: (row) => row.fleetCardCollected ?? 0, kind: 'money' },
+  { header: 'Credit', value: (row) => row.creditAmount, kind: 'money' },
+  { header: 'Discrepancy', value: (row) => row.discrepancy, kind: 'money' },
+]
 
 // ── Detail Panel ────────────────────────────────────────────────────────────────
 
@@ -65,6 +103,9 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
       </div>
     )
   }
+
+  const sheetRange = { from: detail.reportDate, to: detail.reportDate }
+  const fuelColumns = isOwnerOrAdmin ? [...FUEL_COLUMNS, ...FUEL_PROFIT_COLUMNS] : FUEL_COLUMNS
 
   return (
     <div className="flex-1 overflow-y-auto print:overflow-visible">
@@ -180,6 +221,13 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
               sublabel={detail.cashDiscrepancy > 0 ? 'Over' : detail.cashDiscrepancy < 0 ? 'Short' : 'Balanced'}
               accent={detail.cashDiscrepancy === 0 ? 'green' : detail.cashDiscrepancy < 0 ? 'red' : 'amber'}
             />
+            {detail.cashDiscrepancy !== 0 && (
+              <p className="col-span-full -mt-1 text-xs print:hidden">
+                <Link to={discrepanciesUrl(sheetRange)} className="ui-link">
+                  View the short and over shifts for {fmtDate(detail.reportDate)}
+                </Link>
+              </p>
+            )}
             <SummaryTile label="Total Litres Sold" value={fmtLitres(detail.totalLitresSold)} />
             {detail.reportType === 'DAY' && (
               <SummaryTile label="Litres Delivered" value={fmtLitres(detail.totalLitresDelivered)} />
@@ -236,7 +284,14 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
 
         {/* Fuel lines */}
         <section>
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Fuel Breakdown</h3>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Fuel Breakdown</h3>
+            <CsvExportButton
+              filename={csvFilename(`balance-sheet-${reportId}-fuel`, sheetRange)}
+              columns={fuelColumns}
+              rows={detail.fuelLines}
+            />
+          </div>
           <ScrollRegion label="Fuel summary" className="ui-table-wrap overflow-x-auto print:overflow-visible">
             <table className="w-full min-w-[900px] text-sm print:min-w-0 print:text-[8pt]">
               <thead>
@@ -257,7 +312,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
               </thead>
               <tbody>
                 {detail.fuelLines.map((line: BsFuelLine) => (
-                  <FuelLineRow key={line.fuelType} line={line} />
+                  <FuelLineRow key={line.fuelType} line={line} shiftsHref={shiftsForFuelUrl(sheetRange, line.fuelType)} />
                 ))}
               </tbody>
             </table>
@@ -266,10 +321,17 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
 
         {/* Shift lines */}
         <section>
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-            Shift Breakdown <span className="text-slate-500 normal-case font-normal">({detail.shiftLines.length} shift{detail.shiftLines.length !== 1 ? 's' : ''})</span>
-          </h3>
-          <ScrollRegion label="Shift summary" className="ui-table-wrap overflow-x-auto print:overflow-visible">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Shift Breakdown <span className="text-slate-500 normal-case font-normal">({detail.shiftLines.length} shift{detail.shiftLines.length !== 1 ? 's' : ''})</span>
+            </h3>
+            <CsvExportButton
+              filename={csvFilename(`balance-sheet-${reportId}-shifts`, sheetRange)}
+              columns={SHIFT_COLUMNS}
+              rows={detail.shiftLines}
+            />
+          </div>
+          <ScrollRegion label="Shift summary" className="ui-table-wrap ui-table-wrap--scroll overflow-x-auto print:overflow-visible">
             <table className="w-full min-w-[960px] text-xs print:min-w-0 print:text-[7pt]">
               <thead>
                 <tr className="bg-slate-50 text-left">

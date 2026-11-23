@@ -7,17 +7,25 @@ import { parseApiError } from '../../../utils/apiError'
 import { HistoryRow } from './HistoryRow'
 import { PAGE_SIZE } from '../shiftLabels'
 import { ScrollRegion } from '../../../components/ScrollRegion'
+import { codeLabel } from '../../../constants/labels'
 
 // ── All Shifts (paginated + date range filter) ────────────────────────────────
 
-export function AllShiftsHistory({ pumpId }: { pumpId: number }) {
+/** initialFrom/initialTo/fuelType come from the address, e.g. a "View shifts" link on the P&L report. */
+export function AllShiftsHistory({ pumpId, initialFrom, initialTo, fuelType, onClearFuel }: {
+  pumpId: number
+  initialFrom?: string
+  initialTo?: string
+  fuelType?: string
+  onClearFuel?: () => void
+}) {
   const [page,     setPage]     = useState(0)
-  const [fromDate, setFromDate] = useState(() => localDateInputValue(-1))
-  const [toDate,   setToDate]   = useState(() => localDateInputValue())
+  const [fromDate, setFromDate] = useState(() => initialFrom ?? localDateInputValue(-1))
+  const [toDate,   setToDate]   = useState(() => initialTo ?? localDateInputValue())
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['shiftHistory', pumpId, 'all', fromDate, toDate, page],
-    queryFn:  () => shiftApi.getShiftHistoryPage(pumpId, { from: fromDate || undefined, to: toDate || undefined }, page, PAGE_SIZE),
+    queryKey: ['shiftHistory', pumpId, 'all', fromDate, toDate, fuelType, page],
+    queryFn:  () => shiftApi.getShiftHistoryPage(pumpId, { from: fromDate || undefined, to: toDate || undefined, fuelType }, page, PAGE_SIZE),
     placeholderData: keepPreviousData,
   })
 
@@ -48,6 +56,12 @@ export function AllShiftsHistory({ pumpId }: { pumpId: number }) {
             className="flex-1 min-w-[8.5rem] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs"
           />
         </div>
+        {fuelType && onClearFuel && (
+          <button type="button" onClick={onClearFuel} className="ui-chip" aria-pressed="true"
+            aria-label={`Showing ${codeLabel(fuelType)} shifts only. Show all fuels`}>
+            {codeLabel(fuelType)} only ×
+          </button>
+        )}
         {(fromDate || toDate) && (
           <button
             onClick={clearFilter}
@@ -58,7 +72,7 @@ export function AllShiftsHistory({ pumpId }: { pumpId: number }) {
         )}
         <span className="ml-auto text-xs text-slate-500">
           {totalElements} shift{totalElements !== 1 ? 's' : ''}
-          {(fromDate || toDate) ? ' (filtered)' : ''}
+          {(fromDate || toDate || fuelType) ? ' (filtered)' : ''}
         </span>
       </div>
 

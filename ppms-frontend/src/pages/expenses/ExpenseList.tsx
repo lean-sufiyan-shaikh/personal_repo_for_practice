@@ -16,6 +16,19 @@ import { RejectReasonDialog } from '../../components/RejectReasonDialog'
 import { CATEGORIES, CATEGORY_COLORS, fmtDate } from './expenseFormat'
 import type { ExpenseListState } from './useExpenseList'
 import { codeLabel } from '../../constants/labels'
+import { CsvExportButton } from '../../components/CsvExportButton'
+import { csvFilename } from '../../utils/csv'
+import type { CsvColumn } from '../../utils/csv'
+import type { PumpExpense } from '../../api/expenseApi'
+
+const CSV_COLUMNS: CsvColumn<PumpExpense>[] = [
+  { header: 'Date', value: (row) => row.expenseDate, kind: 'date' },
+  { header: 'Category', value: (row) => codeLabel(row.category) },
+  { header: 'Description', value: (row) => row.description },
+  { header: 'Amount', value: (row) => row.amount, kind: 'money' },
+  { header: 'Status', value: (row) => codeLabel(row.approvalStatus) },
+  { header: 'Approval notes', value: (row) => row.approvalNotes },
+]
 
 interface ExpenseListProps {
   pumpId: number | null
@@ -29,7 +42,7 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
   const {
     expensesPage, expenses, isLoading,
     categoryFilter, setCategoryFilter, statusFilter, setStatusFilter,
-    setPage, setPageSize,
+    setPage, setPageSize, loadAllExpenses,
   } = list
 
   const submitMutation = useMutation({
@@ -131,6 +144,8 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
               Clear filters
             </button>
           )}
+          <CsvExportButton filename={csvFilename('expenses')} columns={CSV_COLUMNS} rows={loadAllExpenses}
+            disabled={expenses.length === 0} />
         </div>
       </div>
       {isOwnerOrAdmin && (

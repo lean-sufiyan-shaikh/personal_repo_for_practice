@@ -10,6 +10,19 @@ import { fmtAmt, fmtDateTime, fmtQty } from '../reportFormat'
 import { FUEL_BADGE } from '../../../constants/fuel'
 import { ScrollRegion } from '../../../components/ScrollRegion'
 import { codeLabel } from '../../../constants/labels'
+import { CsvExportButton } from '../../../components/CsvExportButton'
+import { csvFilename } from '../../../utils/csv'
+import type { CsvColumn } from '../../../utils/csv'
+import type { DateRange } from '../../../utils/datePresets'
+
+const CSV_COLUMNS: CsvColumn<DipPlEntry>[] = [
+  { header: 'Recorded on', value: (row) => row.recordedAt, kind: 'date' },
+  { header: 'Type', value: (row) => (row.type === 'DIP_CHECK' ? 'Dip check' : 'Maintenance') },
+  { header: 'Fuel', value: (row) => codeLabel(row.fuelType) },
+  { header: 'Litres', value: (row) => row.litres.toFixed(2), kind: 'number' },
+  { header: 'Profit or loss', value: (row) => row.monetaryAmount, kind: 'money' },
+  { header: 'Notes', value: (row) => row.notes },
+]
 
 // ── Dip P/L Tab ───────────────────────────────────────────────────────────────
 
@@ -33,11 +46,18 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
   const isNetGain = netPl > 0
   const isNetLoss = netPl < 0
 
+  const applyRange = (range: DateRange) => {
+    setFrom(range.from)
+    setTo(range.to)
+    setQuery(range)
+    setPage(0)
+  }
+
   return (
     <div className="space-y-4">
       <div className="ui-card ui-card-muted p-4 print:hidden">
         <div className="ui-filter-group">
-        <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />
+        <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} onPreset={applyRange} />
         <button
           onClick={() => { setQuery({ from, to }); setPage(0) }}
           disabled={isFetching}
@@ -53,6 +73,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
         >
           Print PDF
         </button>
+        <CsvExportButton filename={csvFilename('dip-pl', query)} columns={CSV_COLUMNS} rows={entries} />
         </div>
       </div>
 
@@ -78,7 +99,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
             <div className="ui-empty py-6">No dip P/L entries found for this date range.</div>
           ) : (
             <>
-              <ScrollRegion label="Dip profit and loss entries" className="ui-table-wrap overflow-x-auto">
+              <ScrollRegion label="Dip profit and loss entries" className="ui-table-wrap ui-table-wrap--scroll overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50 text-left">

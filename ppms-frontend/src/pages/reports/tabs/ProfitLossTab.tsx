@@ -1,26 +1,51 @@
 import { Fragment, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { withToggled } from '../../../utils/setToggle'
 import { serverMessage } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { reportApi } from '../../../api/reportApi'
-import type { ProfitLossReport } from '../../../api/reportApi'
-import { Pagination } from '../../../components/Pagination'
-import { pageSlice } from '../../../utils/pageSlice'
+import type { ProfitLossDayLine, ProfitLossFuelLine, ProfitLossReport } from '../../../api/reportApi'
+import { CsvExportButton } from '../../../components/CsvExportButton'
+import { PeriodChangeNote } from '../../../components/PeriodChangeNote'
+import { csvFilename } from '../../../utils/csv'
+import type { CsvColumn } from '../../../utils/csv'
+import { presetRange, previousPeriod } from '../../../utils/datePresets'
+import type { DateRange } from '../../../utils/datePresets'
+import { shiftsForFuelUrl } from '../../../utils/drillDown'
+import { formatIstDate } from '../../../utils/date'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
-import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
+import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, SummaryCard } from '../shared'
 import { fmtAmt, fmtQty, fmtShortDate } from '../reportFormat'
+import { ProfitLossDailyChart } from '../charts/ProfitLossDailyChart'
 import { ScrollRegion } from '../../../components/ScrollRegion'
 import { codeLabel } from '../../../constants/labels'
+
+const FUEL_COLUMNS: CsvColumn<ProfitLossFuelLine>[] = [
+  { header: 'Fuel type', value: (row) => codeLabel(row.fuelType) },
+  { header: 'Revenue', value: (row) => row.revenue, kind: 'money' },
+  { header: 'Cost of goods', value: (row) => row.cogs, kind: 'money' },
+  { header: 'Gross profit', value: (row) => row.grossProfit, kind: 'money' },
+  { header: 'Margin per litre', value: (row) => row.grossMarginPerLitre, kind: 'money' },
+]
+
+const DAY_COLUMNS: CsvColumn<ProfitLossDayLine>[] = [
+  { header: 'Date', value: (row) => row.date, kind: 'date' },
+  { header: 'Revenue', value: (row) => row.revenue, kind: 'money' },
+  { header: 'Cost of goods', value: (row) => row.cogs, kind: 'money' },
+  { header: 'Gross profit', value: (row) => row.grossProfit, kind: 'money' },
+]
+
+function rangeLabel(range: DateRange): string {
+  return `${formatIstDate(range.from)} to ${formatIstDate(range.to)}`
+}
 
 // ── P&L Tab ───────────────────────────────────────────────────────────────────
 
 export function ProfitLossTab({ pumpId }: { pumpId: number }) {
-  const [query, setQuery] = useReportRange(yesterdayToTodayRange)
+  const [query, setQuery, isDefaultRange] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
-  const [page, setPage]   = useState(0)
-  const [pageSize, setPageSize] = useState(10)
   const [showRevBreakdown, setShowRevBreakdown] = useState(false)
   const [expandedFuelRows, setExpandedFuelRows] = useState<Set<string>>(new Set())
 
@@ -33,16 +58,29 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
     queryFn: () => reportApi.getProfitLoss(pumpId, query.from, query.to),
   })
 
-  const paged = data ? pageSlice(data.byFuelType, page, pageSize) : null
+  const previousRange = previousPeriod(query)
+  const { data: previous } = useQuery<ProfitLossReport>({
+    queryKey: ['report-pl', pumpId, previousRange.from, previousRange.to],
+    queryFn: () => reportApi.getProfitLoss(pumpId, previousRange.from, previousRange.to),
+    enabled: !!data,
+  })
+
+  const applyRange = (range: DateRange) => {
+    setFrom(range.from)
+    setTo(range.to)
+    setQuery(range)
+  }
+
+  const showEmptySuggestion = !!data && isDefaultRange && data.totalShifts === 0
 
   return (
     <div className="space-y-4">
       {/* Screen: controls */}
       <div className="ui-card ui-card-muted p-4 print:hidden">
         <div className="ui-filter-group">
-          <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />
+          <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} onPreset={applyRange} />
           <button
-            onClick={() => { setQuery({ from, to }); setPage(0) }}
+            onClick={() => setQuery({ from, to })}
             disabled={isFetching}
             className="ui-btn ui-btn-primary"
           >
@@ -55,19 +93,71 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
           >
             Print PDF
           </button>
+          <CsvExportButton
+            filename={csvFilename('pl', query)}
+            columns={FUEL_COLUMNS}
+            rows={data?.byFuelType ?? []}
+          />
         </div>
       </div>
 
       {error && <ErrorBox message={serverMessage(error) ?? 'Failed to load report'} />}
 
-      {/* Screen: paginated data */}
-      {data && paged && (
+      {showEmptySuggestion && (
+        <div className="print:hidden">
+          <EmptyRangeSuggestion what="closed shifts" onShowLastMonth={() => applyRange(presetRange('lastMonth'))} />
+        </div>
+      )}
+
+      {/* Screen: data */}
+      {data && !showEmptySuggestion && (
         <div className="space-y-4 print:hidden">
-          <div className="grid grid-cols-3 gap-4">
-            <SummaryCard label="Total Revenue" value={fmtAmt(data.totalRevenue)} color="text-slate-800" />
-            <SummaryCard label="Cost of Goods" value={fmtAmt(data.totalCogs)}    color="text-red-600" />
-            <SummaryCard label="Gross Profit"  value={fmtAmt(data.grossProfit)}  color={data.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <SummaryCard label="Total Revenue" value={fmtAmt(data.totalRevenue)} color="text-slate-800"
+              note={previous && <PeriodChangeNote current={data.totalRevenue} previous={previous.totalRevenue} />} />
+            <SummaryCard label="Cost of Goods" value={fmtAmt(data.totalCogs)}    color="text-red-600"
+              note={previous && <PeriodChangeNote current={data.totalCogs} previous={previous.totalCogs} higherIsBetter={false} />} />
+            <SummaryCard label="Gross Profit"  value={fmtAmt(data.grossProfit)}  color={data.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}
+              note={previous && <PeriodChangeNote current={data.grossProfit} previous={previous.grossProfit} />} />
           </div>
+          {previous && (
+            <p className="text-xs text-ink-3">Compared with {rangeLabel(previousRange)}.</p>
+          )}
+
+          {data.byDay.length > 0 && (
+            <>
+              <ProfitLossDailyChart days={data.byDay} />
+              <details className="ui-card ui-card-muted p-3">
+                <summary className="cursor-pointer text-sm font-medium text-ink">Daily figures table</summary>
+                <div className="mt-3 flex justify-end">
+                  <CsvExportButton filename={csvFilename('pl-daily', query)} columns={DAY_COLUMNS} rows={data.byDay} />
+                </div>
+                <div className="ui-table-wrap ui-table-wrap--scroll mt-3">
+                  <table className="w-full text-sm">
+                    <caption className="sr-only">Revenue, cost of goods and gross profit by day</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col" className="text-left">Date</th>
+                        <th scope="col" className="text-right">Revenue</th>
+                        <th scope="col" className="text-right">Cost of goods</th>
+                        <th scope="col" className="text-right">Gross profit</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.byDay.map((day) => (
+                        <tr key={day.date}>
+                          <td>{fmtShortDate(day.date)}</td>
+                          <td className="text-right">{fmtAmt(day.revenue)}</td>
+                          <td className="text-right">{fmtAmt(day.cogs)}</td>
+                          <td className={`text-right font-medium ${day.grossProfit >= 0 ? 'text-ok' : 'text-bad'}`}>{fmtAmt(day.grossProfit)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </>
+          )}
 
           {/* Revenue breakdown toggle */}
           <div className="ui-card ui-card-muted p-3">
@@ -113,10 +203,11 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                   <th scope="col" className="text-right px-4 py-2.5 font-medium">COGS</th>
                   <th scope="col" className="text-right px-4 py-2.5 font-medium">Gross Profit</th>
                   <th scope="col" className="text-right px-4 py-2.5 font-medium">₹/L Margin</th>
+                  <th scope="col" className="text-right px-4 py-2.5 font-medium"><span className="sr-only">Shifts</span></th>
                 </tr>
               </thead>
               <tbody>
-                {paged.content.map((row) => (
+                {data.byFuelType.map((row) => (
                   <Fragment key={row.fuelType}>
                     <tr
                       className="border-t border-slate-100 cursor-pointer hover:bg-slate-50/60"
@@ -144,11 +235,21 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                       <td className="px-4 py-2.5 text-right text-slate-500 text-xs tabular-nums">
                         {row.grossMarginPerLitre != null ? `₹${row.grossMarginPerLitre.toFixed(2)}/L` : '—'}
                       </td>
+                      <td className="px-4 py-2.5 text-right text-xs">
+                        <Link
+                          to={shiftsForFuelUrl(query, row.fuelType)}
+                          className="ui-link"
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`View ${codeLabel(row.fuelType)} shifts from ${rangeLabel(query)}`}
+                        >
+                          View shifts
+                        </Link>
+                      </td>
                     </tr>
                     {expandedFuelRows.has(row.fuelType) && row.lotCostLines.length > 0 && (
                       <tr key={`${row.fuelType}-lots`} className="bg-blue-50/40">
                         <td />
-                        <td colSpan={5} className="px-4 pb-3 pt-1">
+                        <td colSpan={6} className="px-4 pb-3 pt-1">
                           <table className="w-full text-xs border-collapse">
                             <thead>
                               <tr className="text-slate-500 font-semibold">
@@ -182,7 +283,6 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
           <p className="text-xs text-slate-500 mt-1">
             Gross Profit reflects fuel sales only. Operating expenses (salaries, maintenance) are excluded.
           </p>
-          <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
           <p className="text-xs text-slate-500">{data.totalShifts} closed shift{data.totalShifts !== 1 ? 's' : ''} in range.</p>
         </div>
       )}

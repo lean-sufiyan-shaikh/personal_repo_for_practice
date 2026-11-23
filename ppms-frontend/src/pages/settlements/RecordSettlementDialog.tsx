@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Landmark, Check } from 'lucide-react'
 import { paymentSettlementApi } from '../../api/paymentSettlementApi'
-import type { RecordSettlementRequest, SettlementPaymentType, WalletSummary } from '../../api/paymentSettlementApi'
+import type { PendingSettlementRange, RecordSettlementRequest, SettlementPaymentType, WalletSummary } from '../../api/paymentSettlementApi'
+import { daysCoveredBy } from './settlementAging'
+import { formatIstDate } from '../../utils/date'
 import { ModalPortal } from '../../components/ModalPortal'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
@@ -14,11 +16,13 @@ import { IconButton } from '../../components/IconButton'
 interface RecordSettlementDialogProps {
   pumpId: number
   wallet: WalletSummary | undefined
+  /** Unsettled collection days, so the dialog can say which days this settlement clears. */
+  pendingRanges: PendingSettlementRange[]
   initialType: SettlementPaymentType
   onClose: () => void
 }
 
-export function RecordSettlementDialog({ pumpId, wallet, initialType, onClose }: RecordSettlementDialogProps) {
+export function RecordSettlementDialog({ pumpId, wallet, pendingRanges, initialType, onClose }: RecordSettlementDialogProps) {
   const qc           = useQueryClient()
   const { addToast } = useToastStore()
   const [formError, setFormError] = useState<string | null>(null)
@@ -35,6 +39,7 @@ export function RecordSettlementDialog({ pumpId, wallet, initialType, onClose }:
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['settlements-daily', pumpId] })
       qc.invalidateQueries({ queryKey: ['settlements-wallet', pumpId] })
+      qc.invalidateQueries({ queryKey: ['settlements-pending-age', pumpId] })
       onClose()
       addToast('Settlement recorded successfully', 'success')
     },
@@ -55,6 +60,8 @@ export function RecordSettlementDialog({ pumpId, wallet, initialType, onClose }:
     }
     recordMutation.mutate({ ...form, notes: form.notes || undefined, bankReference: form.bankReference?.trim() || undefined })
   }
+
+  const coveredDays = daysCoveredBy(pendingRanges, form.paymentType, form.amountReceived)
 
   const pendingAfterRecord = wallet
     ? Math.max(0, getPending(wallet, form.paymentType) - form.amountReceived)
@@ -190,6 +197,24 @@ export function RecordSettlementDialog({ pumpId, wallet, initialType, onClose }:
                 />
               </label>
             </div>
+
+            {coveredDays.length > 0 && (
+              <div className="ui-card ui-card-muted px-4 py-3" aria-live="polite">
+                <p className="text-xs font-semibold text-ink-2">This settlement clears {TYPE_LABELS[form.paymentType]} collected on</p>
+                <ul className="mt-1 space-y-0.5 text-xs text-ink-2">
+                  {coveredDays.map((day) => (
+                    <li key={day.date} className="flex justify-between gap-3">
+                      <span>{formatIstDate(day.date, { day: 'numeric', month: 'short' })}</span>
+                      <span className="tabular-nums">
+                        {day.covered < day.unsettled
+                          ? `${fmtAmt(day.covered)} of ${fmtAmt(day.unsettled)} (part)`
+                          : fmtAmt(day.covered)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Error */}
             {formError && (

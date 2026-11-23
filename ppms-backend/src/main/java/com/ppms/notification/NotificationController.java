@@ -1,5 +1,7 @@
 package com.ppms.notification;
 
+import com.ppms.common.dto.PageRequests;
+import com.ppms.common.dto.PagedResponse;
 import com.ppms.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,22 @@ public class NotificationController {
             @PathVariable Long pumpId,
             @AuthenticationPrincipal User currentUser) {
         return notificationService.getUnreadNotifications(pumpId, currentUser);
+    }
+
+    /**
+     * GET /api/pumps/{pumpId}/notifications/history?page=0&size=20[&type=LOW_STOCK]
+     * Every notification of the types the user's role receives, read and unread, newest first, each with this
+     * user's read state and the page it opens.
+     */
+    @GetMapping("/{pumpId}/notifications/history")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'OPERATOR', 'ACCOUNTANT')")
+    public PagedResponse<NotificationResponse> getHistory(
+            @PathVariable Long pumpId,
+            @RequestParam(required = false) NotificationType type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User currentUser) {
+        return notificationService.getHistory(pumpId, type, PageRequests.of(page, size), currentUser);
     }
 
     /**

@@ -15,6 +15,7 @@ import { SettlementRecordsTab } from './SettlementRecordsTab'
 import { SettlementConfigTab } from './SettlementConfigTab'
 import { RecordSettlementDialog } from './RecordSettlementDialog'
 import { VoidSettlementDialog } from './VoidSettlementDialog'
+import { PendingByAgeCard } from './PendingByAgeCard'
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
@@ -34,6 +35,12 @@ export default function PaymentSettlementsPage() {
   const { data: wallet, isLoading: loadingWallet } = useQuery({
     queryKey: ['settlements-wallet', pumpId],
     queryFn:  () => paymentSettlementApi.getWallet(pumpId!),
+    enabled:  !!pumpId,
+  })
+
+  const pendingByAge = useQuery({
+    queryKey: ['settlements-pending-age', pumpId],
+    queryFn:  () => paymentSettlementApi.getPendingByAge(pumpId!),
     enabled:  !!pumpId,
   })
 
@@ -67,6 +74,8 @@ export default function PaymentSettlementsPage() {
 
         <WalletCards wallet={wallet} loadingWallet={loadingWallet} canWrite={canWrite} onRecord={setRecordType} />
 
+        <PendingByAgeCard ranges={pendingByAge.data} isLoading={pendingByAge.isLoading} error={pendingByAge.error} />
+
         {/* ── Tabs ── */}
         <div className="flex gap-0 mb-5 border-b border-slate-200">
           {(['records', 'config'] as const).map(tab => (
@@ -97,6 +106,7 @@ export default function PaymentSettlementsPage() {
         <RecordSettlementDialog
           pumpId={pumpId}
           wallet={wallet}
+          pendingRanges={pendingByAge.data ?? []}
           initialType={recordType}
           onClose={() => setRecordType(null)}
         />

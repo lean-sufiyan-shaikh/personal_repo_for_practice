@@ -20,6 +20,14 @@ export interface ProfitLossFuelLine {
   lotCostLines: LotCostLine[]
 }
 
+/** One day with closed shifts: revenue and cost of goods of that day's shifts. */
+export interface ProfitLossDayLine {
+  date: string
+  revenue: number
+  cogs: number
+  grossProfit: number
+}
+
 export interface ProfitLossReport {
   pumpId: number
   from: string
@@ -33,6 +41,7 @@ export interface ProfitLossReport {
   totalCardRevenue: number
   totalCreditRevenue: number
   byFuelType: ProfitLossFuelLine[]
+  byDay: ProfitLossDayLine[]
 }
 
 // ── Operator Duty Report ──────────────────────────────────────────────────────

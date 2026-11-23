@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronDown, Plus, History } from 'lucide-react'
@@ -18,8 +18,57 @@ import { ShiftRow } from './active/ShiftRow'
 import { AllShiftsHistory } from './history/AllShiftsHistory'
 import { DayViewHistory } from './history/DayViewHistory'
 import { DiscrepanciesHistory } from './history/DiscrepanciesHistory'
+import { SingleShiftHistory } from './history/SingleShiftHistory'
 import { AddCreditEntryModal } from './modals/AddCreditEntryModal'
 import { ScrollRegion } from '../../components/ScrollRegion'
+
+type HistoryTab = 'day' | 'all' | 'discrepancies'
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+
+function dateParam(value: string | null): string | undefined {
+  return value && ISO_DATE.test(value) ? value : undefined
+}
+
+/**
+ * Shift history filters kept in the address so other pages can link straight to them:
+ * ?shift=123, ?history=all&from=&to=&fuel=PETROL, ?history=discrepancies&from=&to=&type=SHORT.
+ */
+function useHistoryFilters() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const shiftText = searchParams.get('shift')
+  const shiftId = shiftText && /^\d+$/.test(shiftText) ? Number(shiftText) : null
+  const historyText = searchParams.get('history')
+  const tab: HistoryTab = shiftId !== null ? 'all'
+    : historyText === 'all' || historyText === 'discrepancies' ? historyText : 'day'
+  const typeText = searchParams.get('type')
+  const fuelText = searchParams.get('fuel')
+
+  const showTab = (next: HistoryTab) => setSearchParams((params) => {
+    const updated = new URLSearchParams(params)
+    for (const name of ['shift', 'from', 'to', 'fuel', 'type']) updated.delete(name)
+    updated.set('history', next)
+    return updated
+  }, { replace: true })
+
+  const clearFuel = () => setSearchParams((params) => {
+    const updated = new URLSearchParams(params)
+    updated.delete('fuel')
+    return updated
+  }, { replace: true })
+
+  return {
+    shiftId,
+    tab,
+    from: dateParam(searchParams.get('from')),
+    to: dateParam(searchParams.get('to')),
+    fuelType: fuelText && /^[A-Z_]+$/.test(fuelText) ? fuelText : undefined,
+    discrepancyType: typeText === 'SHORT' || typeText === 'OVER' ? typeText as 'SHORT' | 'OVER' : undefined,
+    linkedFromElsewhere: shiftId !== null || historyText !== null,
+    showTab,
+    clearFuel,
+  }
+}
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -41,10 +90,14 @@ export default function ShiftsPage() {
   const [shiftToHandOver,   setShiftToHandOver]   = useState<Shift | null>(null)
   const [shiftIdForCredit,  setShiftIdForCredit]  = useState<number | null>(null)
   const [historyOpen,    setHistoryOpen]    = useState(true)
-  const [searchParams, setSearchParams] = useSearchParams()
-  const historyTab: HistoryTab = historyTabs.find(tab => tab === searchParams.get('history')) ?? 'day'
-  const setHistoryTab = (tab: HistoryTab) =>
-    setSearchParams(tab === 'day' ? {} : { history: tab }, { replace: true })
+  const historyFilters = useHistoryFilters()
+  const historyTab = historyFilters.tab === 'discrepancies' && !canViewDiscrepancies ? 'day' : historyFilters.tab
+  const historyRef = useRef<HTMLDivElement>(null)
+  const { linkedFromElsewhere, shiftId: linkedShiftId } = historyFilters
+
+  useEffect(() => {
+    if (linkedFromElsewhere) historyRef.current?.scrollIntoView?.({ block: 'start' })
+  }, [linkedFromElsewhere, linkedShiftId])
   const [closedShiftPrefill, setClosedShiftPrefill] = useState<{ duId: number; nozzleIds: number[] } | null>(null)
 
   const { data: rawPumps = [], isLoading: pumpsLoading } = useQuery({
@@ -198,7 +251,7 @@ export default function ShiftsPage() {
           </div>
 
           {/* ── Shift History ──────────────────────────────────────────────── */}
-          <div className="ui-card overflow-hidden p-0">
+          <div ref={historyRef} className="ui-card overflow-hidden p-0">
             {/* Header / toggle */}
             <button
               onClick={() => setHistoryOpen((v) => !v)}
@@ -215,7 +268,8 @@ export default function ShiftsPage() {
                   {historyTabs.map((tab) => (
                     <button
                       key={tab}
-                      onClick={() => setHistoryTab(tab)}
+                      onClick={() => historyFilters.showTab(tab)}
+                      aria-pressed={historyTab === tab}
                       className={`ui-tabbar__button ${historyTab === tab ? 'ui-tabbar__button--active' : ''}`}
                     >
                       {tab === 'day' ? 'By Day' : tab === 'all' ? 'All Shifts' : 'Discrepancies'}
@@ -224,12 +278,31 @@ export default function ShiftsPage() {
                 </div>
 
                 <div key={historyTab} className="ui-tab-content">
-                  {!pumpId ? null : historyTab === 'day' ? (
+                  {!pumpId ? null : historyFilters.shiftId !== null ? (
+                    <SingleShiftHistory
+                      pumpId={pumpId}
+                      shiftId={historyFilters.shiftId}
+                      onShowAll={() => historyFilters.showTab('all')}
+                    />
+                  ) : historyTab === 'day' ? (
                     <DayViewHistory pumpId={pumpId} />
-                  ) : historyTab === 'discrepancies' && canViewDiscrepancies ? (
-                    <DiscrepanciesHistory pumpId={pumpId} />
+                  ) : historyTab === 'discrepancies' ? (
+                    <DiscrepanciesHistory
+                      key={`${historyFilters.from}|${historyFilters.to}|${historyFilters.discrepancyType}`}
+                      pumpId={pumpId}
+                      initialFrom={historyFilters.from}
+                      initialTo={historyFilters.to}
+                      initialType={historyFilters.discrepancyType}
+                    />
                   ) : (
-                    <AllShiftsHistory pumpId={pumpId} />
+                    <AllShiftsHistory
+                      key={`${historyFilters.from}|${historyFilters.to}|${historyFilters.fuelType}`}
+                      pumpId={pumpId}
+                      initialFrom={historyFilters.from}
+                      initialTo={historyFilters.to}
+                      fuelType={historyFilters.fuelType}
+                      onClearFuel={historyFilters.clearFuel}
+                    />
                   )}
                 </div>
               </div>

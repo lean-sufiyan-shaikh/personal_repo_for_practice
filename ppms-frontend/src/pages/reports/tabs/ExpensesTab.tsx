@@ -3,17 +3,35 @@ import { serverMessage } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { reportApi } from '../../../api/reportApi'
 import type { ExpenseReportLine } from '../../../api/reportApi'
+import { CsvExportButton } from '../../../components/CsvExportButton'
 import { Pagination } from '../../../components/Pagination'
+import { PeriodChangeNote } from '../../../components/PeriodChangeNote'
 import { pageSlice } from '../../../utils/pageSlice'
+import { csvFilename } from '../../../utils/csv'
+import type { CsvColumn } from '../../../utils/csv'
+import { presetRange, previousPeriod } from '../../../utils/datePresets'
+import type { DateRange } from '../../../utils/datePresets'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
-import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
+import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, SummaryCard } from '../shared'
 import { fmtAmt } from '../reportFormat'
 import { codeLabel } from '../../../constants/labels'
+
+const CSV_COLUMNS: CsvColumn<ExpenseReportLine>[] = [
+  { header: 'Date', value: (row) => row.expenseDate, kind: 'date' },
+  { header: 'Category', value: (row) => codeLabel(row.category) },
+  { header: 'Description', value: (row) => row.description },
+  { header: 'Amount', value: (row) => row.amount, kind: 'money' },
+  { header: 'Status', value: (row) => codeLabel(row.approvalStatus) },
+]
+
+function approvedTotal(rows: ExpenseReportLine[]): number {
+  return rows.filter(e => e.approvalStatus === 'APPROVED').reduce((sum, e) => sum + e.amount, 0)
+}
 
 // ── Expenses Tab ──────────────────────────────────────────────────────────────
 
 export function ExpensesTab({ pumpId }: { pumpId: number }) {
-  const [query, setQuery] = useReportRange(yesterdayToTodayRange)
+  const [query, setQuery, isDefaultRange] = useReportRange(yesterdayToTodayRange)
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
   const [page, setPage]   = useState(0)
@@ -26,9 +44,21 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
 
   const rows  = data ?? []
   const paged = data ? pageSlice(rows, page, pageSize) : null
-  const total = rows
-    .filter(e => e.approvalStatus === 'APPROVED')
-    .reduce((sum, e) => sum + e.amount, 0)
+  const total = approvedTotal(rows)
+
+  const previousRange = previousPeriod(query)
+  const { data: previous } = useQuery<ExpenseReportLine[]>({
+    queryKey: ['report-expenses', pumpId, previousRange.from, previousRange.to],
+    queryFn:  () => reportApi.getExpensesReport(pumpId, previousRange.from, previousRange.to),
+    enabled: !!data,
+  })
+
+  const applyRange = (range: DateRange) => {
+    setFrom(range.from)
+    setTo(range.to)
+    setQuery(range)
+    setPage(0)
+  }
   const pendingTotal = rows
     .filter(e => e.approvalStatus === 'PENDING_APPROVAL')
     .reduce((sum, e) => sum + e.amount, 0)
@@ -37,7 +67,7 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
     <div className="space-y-4">
       <div className="ui-card ui-card-muted p-4 print:hidden">
         <div className="ui-filter-group">
-        <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />
+        <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} onPreset={applyRange} />
         <button
           onClick={() => { setQuery({ from, to }); setPage(0) }}
           disabled={isFetching}
@@ -52,6 +82,7 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
         >
           Print PDF
         </button>
+        <CsvExportButton filename={csvFilename('expenses', query)} columns={CSV_COLUMNS} rows={rows} />
         </div>
       </div>
 
@@ -60,14 +91,17 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
       {/* Screen: paginated data */}
       {data && paged && (
         rows.length === 0 ? (
-          <p className="ui-empty py-4 print:hidden">No expenses in this date range.</p>
+          isDefaultRange
+            ? <div className="print:hidden"><EmptyRangeSuggestion what="expenses" onShowLastMonth={() => applyRange(presetRange('lastMonth'))} /></div>
+            : <p className="ui-empty py-4 print:hidden">No expenses in this date range.</p>
         ) : (
           <div className="space-y-3 print:hidden">
-            <div className="grid grid-cols-2 gap-3">
-              <SummaryCard label="Approved Expenses" value={fmtAmt(total)} color="text-red-600" />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <SummaryCard label="Approved Expenses" value={fmtAmt(total)} color="text-red-600"
+                note={previous && <PeriodChangeNote current={total} previous={approvedTotal(previous)} higherIsBetter={false} />} />
               <SummaryCard label="Pending Approval" value={fmtAmt(pendingTotal)} color="text-amber-600" />
             </div>
-            <div className="ui-table-wrap">
+            <div className="ui-table-wrap ui-table-wrap--scroll">
               <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-xs text-slate-500">

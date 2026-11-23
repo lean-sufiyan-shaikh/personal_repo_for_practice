@@ -32,6 +32,7 @@ export const PAGE_PERMISSIONS: Record<string, UserRole[]> = {
   reports:         ['OWNER', 'ADMIN', 'MANAGER'],
   setup:           ['OWNER', 'ADMIN', 'MANAGER'],
   settlements:     ['OWNER', 'ADMIN', 'MANAGER'],
+  notifications:   ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR', 'ACCOUNTANT'],
 }
 
 const PAGE_PATHS: Record<string, string> = {
@@ -53,6 +54,7 @@ const PAGE_PATHS: Record<string, string> = {
   reports:       '/dashboard/reports',
   setup:         '/dashboard/setup',
   settlements:   '/dashboard/settlements',
+  notifications: '/dashboard/notifications',
 }
 
 // ─── Action-Level Permissions ───────────────────────────────────────────────
@@ -142,6 +144,12 @@ export function canAccessPage(page: string, role: UserRole | undefined): boolean
   if (!role) return false
   if (role === 'SUPER_ADMIN') return true
   return (PAGE_PERMISSIONS[page] ?? []).includes(role)
+}
+
+/** True when the role may open the page at this path, e.g. a notification's target route. */
+export function canAccessPath(path: string, role: UserRole | undefined): boolean {
+  const page = Object.keys(PAGE_PATHS).find(name => PAGE_PATHS[name] === path)
+  return page !== undefined && canAccessPage(page, role)
 }
 
 /**

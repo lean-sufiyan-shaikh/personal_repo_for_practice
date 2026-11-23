@@ -172,6 +172,25 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void profitAndLossSplitsRevenueAndCostOfGoodsByShiftDay() throws Exception {
+        String yesterday = TestDates.today().minusDays(1).toString();
+        perform(post("/api/pumps/{pumpId}/shifts/backfill", setup.pumpId()), setup.owner(), backfillRequest(yesterday))
+                .andExpect(status().is2xxSuccessful());
+
+        JsonNode report = json(perform(get("/api/pumps/{pumpId}/reports/profit-loss", setup.pumpId())
+                .param("from", yesterday).param("to", today), setup.manager()).andExpect(status().isOk()));
+
+        JsonNode days = report.get("byDay");
+        assertThat(days).hasSize(2);
+        assertThat(days.get(0).get("date").asText()).isEqualTo(yesterday);
+        assertThat(days.get(1).get("date").asText()).isEqualTo(today);
+        BigDecimal revenue = days.get(0).get("revenue").decimalValue().add(days.get(1).get("revenue").decimalValue());
+        BigDecimal profit = days.get(0).get("grossProfit").decimalValue().add(days.get(1).get("grossProfit").decimalValue());
+        assertThat(revenue).isEqualByComparingTo(report.get("totalRevenue").decimalValue());
+        assertThat(profit).isEqualByComparingTo(report.get("grossProfit").decimalValue());
+    }
+
+    @Test
     void discrepancyAndDutyReportsListTheShortShift() throws Exception {
         JsonNode discrepancy = json(perform(get("/api/pumps/{pumpId}/reports/operator-discrepancy", setup.pumpId())
                 .param("from", today).param("to", today), setup.owner()).andExpect(status().isOk()));

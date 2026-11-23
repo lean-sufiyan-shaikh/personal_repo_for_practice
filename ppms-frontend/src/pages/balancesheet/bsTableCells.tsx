@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import type { BsFuelLine, BsShiftLine, NozzleReadingLine } from '../../api/balanceSheetApi'
 import { FUEL_BADGE, fmtLitres, fmtMoney } from './bsFormat'
 import { codeLabel } from '../../constants/labels'
+import { shiftUrl } from '../../utils/drillDown'
 
 // ── Table sub-components ────────────────────────────────────────────────────────
 
@@ -32,7 +34,8 @@ export function DiscrepancyTd({ value }: { value: number }) {
   )
 }
 
-export function FuelLineRow({ line }: { line: BsFuelLine }) {
+/** shiftsHref opens shift history for this fuel over the sheet's period. */
+export function FuelLineRow({ line, shiftsHref }: { line: BsFuelLine; shiftsHref?: string }) {
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const badge = FUEL_BADGE[line.fuelType] ?? 'bg-slate-100 text-slate-600'
@@ -44,6 +47,11 @@ export function FuelLineRow({ line }: { line: BsFuelLine }) {
         <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${badge}`}>
           {codeLabel(line.fuelType)}
         </span>
+        {shiftsHref && (
+          <Link to={shiftsHref} className="ui-link ml-2 text-xs print:hidden" aria-label={`View ${codeLabel(line.fuelType)} shifts`}>
+            Shifts
+          </Link>
+        )}
       </Td>
       <Td right>{fmtLitres(line.openingStock)}</Td>
       <Td right>{line.deliveredLitres > 0 ? fmtLitres(line.deliveredLitres) : <span className="text-slate-500">—</span>}</Td>
@@ -78,7 +86,11 @@ export function ShiftLineRow({ line }: { line: BsShiftLine }) {
     <>
       {/* Shift summary row — shows operator, DU, and all payment totals */}
       <tr className="border-t border-slate-200 hover:bg-slate-50 transition-colors">
-        <Td>{line.operatorName}</Td>
+        <Td>
+          <Link to={shiftUrl(line.shiftId)} className="ui-link" aria-label={`Open shift ${line.shiftId} by ${line.operatorName}`}>
+            {line.operatorName}
+          </Link>
+        </Td>
         <Td>
           <span className="font-medium text-slate-700">DU #{line.duNumber}</span>
           {line.duName && <span className="text-xs text-slate-500 ml-1">· {line.duName}</span>}

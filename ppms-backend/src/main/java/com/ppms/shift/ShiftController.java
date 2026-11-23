@@ -1,5 +1,6 @@
 package com.ppms.shift;
 
+import com.ppms.fuel.FuelType;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.idempotency.IdempotencyService;
@@ -48,9 +49,10 @@ public class ShiftController {
     }
 
     /**
-     * GET /api/pumps/{pumpId}/shifts/history?page=0&size=50[&from=&to=][&discrepanciesOnly=true[&discrepancyType=SHORT]]
+     * GET /api/pumps/{pumpId}/shifts/history?page=0&size=50[&from=&to=][&discrepanciesOnly=true[&discrepancyType=SHORT]][&fuelType=PETROL]
      * Returns paginated shift history for a pump, newest first. Default page size 50.
-     * from/to filter on the shift's business date (inclusive). An operator gets only their own shifts.
+     * from/to filter on the shift's business date (inclusive); fuelType keeps shifts that sold that fuel and
+     * cannot be combined with discrepanciesOnly. An operator gets only their own shifts.
      */
     @GetMapping("/history")
     public ResponseEntity<Page<ShiftResponse>> getShiftHistory(
@@ -59,9 +61,10 @@ public class ShiftController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(defaultValue = "false") boolean discrepanciesOnly,
             @RequestParam(required = false) DiscrepancyType discrepancyType,
+            @RequestParam(required = false) FuelType fuelType,
             @PageableDefault(size = 50) Pageable pageable,
             @AuthenticationPrincipal User currentUser) {
-        ShiftHistoryFilter filter = new ShiftHistoryFilter(from, to, discrepanciesOnly, discrepancyType);
+        ShiftHistoryFilter filter = new ShiftHistoryFilter(from, to, discrepanciesOnly, discrepancyType, fuelType);
         return ResponseEntity.ok(shiftService.getShiftHistory(pumpId, filter, pageable, currentUser));
     }
 
