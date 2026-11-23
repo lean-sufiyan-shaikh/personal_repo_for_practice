@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { shiftApi } from '../../../api/shiftApi'
 import { useAuthStore } from '../../../store/authStore'
@@ -9,6 +9,60 @@ import { parseApiError } from '../../../utils/apiError'
 import { AWAITING_OWNER_APPROVAL, PAGE_SIZE, fmtAmt, RESOLUTION_LABELS, discrepancyAction, investigationLabel, statusBadge } from '../shiftLabels'
 import { ScrollRegion } from '../../../components/ScrollRegion'
 import { FULL_HISTORY_QUERY_OPTIONS } from '../../../queryClient'
+import type { UserRole } from '../../../types/auth'
+import { DiscrepancyBadge } from '../components/DiscrepancyBadge'
+
+function DiscrepancyStatus({ shift }: { shift: Shift }) {
+  const badge = statusBadge(shift.status)
+  const investigation = investigationLabel(shift)
+  return (
+    <>
+      {shift.discrepancyResolution ? (
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+          shift.discrepancyResolution === 'CASH_RECOVERY'   ? 'bg-green-100 text-green-700' :
+          shift.discrepancyResolution === 'SALARY_DEDUCTION'? 'bg-blue-100 text-blue-700' :
+          shift.discrepancyResolution === 'WAIVED'          ? 'bg-slate-100 text-slate-600' :
+                                                              'bg-orange-100 text-orange-700'
+        }`}>
+          {RESOLUTION_LABELS[shift.discrepancyResolution] ?? shift.discrepancyResolution}
+        </span>
+      ) : (
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badge.color}`}>{badge.label}</span>
+      )}
+      {investigation && (
+        <span className="block text-xs text-orange-600 font-medium mt-1">{investigation}</span>
+      )}
+    </>
+  )
+}
+
+function DiscrepancyAction({ shift, role, onOpen, className = '' }: {
+  shift: Shift; role: UserRole | undefined; onOpen: (shift: Shift) => void; className?: string
+}) {
+  const action = discrepancyAction(shift, role)
+  if (action === 'resolve') {
+    return (
+      <button type="button" onClick={() => onOpen(shift)}
+        aria-label={`Resolve discrepancy for shift ${shift.id}`}
+        className={`ui-btn ui-btn-danger ${className}`}>
+        Resolve
+      </button>
+    )
+  }
+  if (action === 'approve') {
+    return (
+      <button type="button" onClick={() => onOpen(shift)}
+        aria-label={`Approve discrepancy for shift ${shift.id}`}
+        className={`ui-btn ui-btn-warning ${className}`}>
+        Approve
+      </button>
+    )
+  }
+  if (action === 'awaiting-owner') {
+    return <span className="text-xs text-orange-600 font-medium">{AWAITING_OWNER_APPROVAL}</span>
+  }
+  return null
+}
 
 export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
   const [page,     setPage]     = useState(0)
@@ -114,8 +168,36 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
         <span className="ml-auto text-xs text-slate-500">{filtered.length} shift{filtered.length !== 1 ? 's' : ''}</span>
       </div>
 
-      {/* Table */}
-      <ScrollRegion label="Discrepancies" className="overflow-x-auto border-t border-slate-100">
+      {/* Cards below md */}
+      <ul className="md:hidden divide-y divide-border border-t border-border" aria-label="Discrepancies">
+        {paged.length === 0 ? (
+          <li className="ui-empty px-4 py-6">No discrepancies match the selected filters.</li>
+        ) : (
+          paged.map((shift) => {
+            const note = shift.discrepancyResolutionNote ?? shift.investigationNote ?? shift.discrepancyReason
+            return (
+              <li key={shift.id} data-testid="discrepancy-card" className="space-y-2 bg-surface px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-ink">{shift.operatorName}</p>
+                    <p className="text-xs text-ink-3">{shift.shiftDate} · {shift.shiftWindow}</p>
+                  </div>
+                  <DiscrepancyBadge type={shift.discrepancyType} amount={shift.discrepancyAmount ?? 0} />
+                </div>
+                <div><DiscrepancyStatus shift={shift} /></div>
+                {shift.cashRecoveryAmount != null && shift.cashRecoveryAmount > 0 && (
+                  <p className="text-xs text-ok">Recovered: {fmtAmt(shift.cashRecoveryAmount)}</p>
+                )}
+                {note && <p className="text-xs text-ink-2">{note}</p>}
+                <DiscrepancyAction shift={shift} role={role} onOpen={setResolvingShift} className="w-full" />
+              </li>
+            )
+          })
+        )}
+      </ul>
+
+      {/* Table from md up */}
+      <ScrollRegion label="Discrepancies" className="hidden md:block overflow-x-auto border-t border-slate-100">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 text-xs text-slate-500">
@@ -136,13 +218,8 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
                 <td colSpan={9} className="ui-empty px-6 py-6">No discrepancies match the selected filters.</td>
               </tr>
             ) : (
-              paged.map((shift) => {
-                const action = discrepancyAction(shift, role)
-                const investigation = investigationLabel(shift)
-                const badge = statusBadge(shift.status)
-                return (
-                <Fragment key={shift.id}>
-                <tr className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
+              paged.map((shift) => (
+                <tr key={shift.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
                   <td className="px-5 py-3 text-slate-500 text-xs font-mono hidden md:table-cell">{shift.id}</td>
                   <td className="px-5 py-3 text-xs text-slate-600">{shift.shiftDate}</td>
                   <td className="px-5 py-3 text-sm text-slate-700 font-medium">{shift.operatorName}</td>
@@ -167,55 +244,25 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
                     )}
                   </td>
                   <td className="px-5 py-3">
-                    {shift.discrepancyResolution ? (
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        shift.discrepancyResolution === 'CASH_RECOVERY'   ? 'bg-green-100 text-green-700' :
-                        shift.discrepancyResolution === 'SALARY_DEDUCTION'? 'bg-blue-100 text-blue-700' :
-                        shift.discrepancyResolution === 'WAIVED'          ? 'bg-slate-100 text-slate-600' :
-                                                                            'bg-orange-100 text-orange-700'
-                      }`}>
-                        {RESOLUTION_LABELS[shift.discrepancyResolution] ?? shift.discrepancyResolution}
-                      </span>
-                    ) : (
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badge.color}`}>{badge.label}</span>
-                    )}
-                    {investigation && (
-                      <span className="block text-xs text-orange-600 font-medium mt-1">{investigation}</span>
-                    )}
+                    <DiscrepancyStatus shift={shift} />
                   </td>
                   <td className="px-5 py-3 text-xs text-slate-500 hidden md:table-cell max-w-xs truncate">
                     {shift.discrepancyResolutionNote ?? shift.investigationNote ?? shift.discrepancyReason ?? '—'}
                   </td>
                   <td className="px-5 py-3 text-right">
-                    {action === 'resolve' && (
-                      <button type="button" onClick={() => setResolvingShift(shift)}
-                        aria-label={`Resolve discrepancy for shift ${shift.id}`}
-                        className="ui-btn ui-btn-danger min-h-0 px-3 py-1.5 text-xs">
-                        Resolve
-                      </button>
-                    )}
-                    {action === 'approve' && (
-                      <button type="button" onClick={() => setResolvingShift(shift)}
-                        aria-label={`Approve discrepancy for shift ${shift.id}`}
-                        className="ui-btn ui-btn-warning min-h-0 px-3 py-1.5 text-xs">
-                        Approve
-                      </button>
-                    )}
-                    {action === 'awaiting-owner' && (
-                      <span className="text-xs text-orange-600 font-medium">{AWAITING_OWNER_APPROVAL}</span>
-                    )}
+                    <DiscrepancyAction shift={shift} role={role} onOpen={setResolvingShift}
+                      className="min-h-0 px-3 py-1.5 text-xs" />
                   </td>
                 </tr>
-                {resolvingShift?.id === shift.id && (
-                  <ResolveDiscrepancyModal shift={shift} onClose={() => setResolvingShift(null)} />
-                )}
-                </Fragment>
-                )
-              })
+              ))
             )}
           </tbody>
         </table>
       </ScrollRegion>
+
+      {resolvingShift && (
+        <ResolveDiscrepancyModal shift={resolvingShift} onClose={() => setResolvingShift(null)} />
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (

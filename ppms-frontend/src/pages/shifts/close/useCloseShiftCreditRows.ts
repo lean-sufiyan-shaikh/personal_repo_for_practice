@@ -16,9 +16,9 @@ function emptyRow(id: number, fuelType: string): CreditRow {
 }
 
 /** Credit entries added while closing a shift, including edited copies of entries recorded mid-shift. */
-export function useCloseShiftCreditRows(availableFuelTypes: string[], creditClients: CreditClient[]) {
-  const nextRowId = useRef(1)
-  const [creditRows, setCreditRows] = useState<CreditRow[]>([])
+export function useCloseShiftCreditRows(availableFuelTypes: string[], creditClients: CreditClient[], initialRows: CreditRow[] = []) {
+  const nextRowId = useRef(initialRows.reduce((max, row) => Math.max(max, row.id), 0) + 1)
+  const [creditRows, setCreditRows] = useState<CreditRow[]>(initialRows)
   const [expandedRowId, setExpandedRowId] = useState<number | null>(null)
 
   const addCreditRow = () => {
@@ -69,8 +69,13 @@ export function useCloseShiftCreditRows(availableFuelTypes: string[], creditClie
     setExpandedRowId(newId)
   }
 
+  const clearCreditRows = () => {
+    setCreditRows([])
+    setExpandedRowId(null)
+  }
+
   return {
-    creditRows, expandedRowId, setExpandedRowId,
+    creditRows, expandedRowId, setExpandedRowId, clearCreditRows,
     addCreditRow, updateRow, updateRowMulti, selectClient, removeCreditRow, editRecordedEntry,
   }
 }

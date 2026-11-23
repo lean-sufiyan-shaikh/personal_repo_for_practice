@@ -2,7 +2,10 @@ package com.ppms.shift;
 
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
+import com.ppms.common.idempotency.IdempotencyService;
+import com.ppms.common.idempotency.IdempotentRequest;
 import com.ppms.user.User;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +34,7 @@ public class ShiftController {
     private final ShiftService shiftService;
     private final ShiftBackfillService shiftBackfillService;
     private final AuditService auditService;
+    private final IdempotencyService idempotencyService;
 
     /**
      * GET /api/pumps/{pumpId}/shifts/active
@@ -123,35 +127,47 @@ public class ShiftController {
      * Adds a credit entry to an open shift mid-shift.
      * Operators can record credit sales as they happen rather than at shift close.
      * Service layer enforces that OPERATOR role can only add entries to their own active shift.
+     * An Idempotency-Key header makes a resend after a timeout return the first result instead of adding twice.
      */
     @PostMapping("/{id}/credit-entries")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'OPERATOR')")
-    public ResponseEntity<ShiftResponse> addCreditEntry(
+    public ResponseEntity<?> addCreditEntry(
             @PathVariable Long pumpId,
             @PathVariable Long id,
             @Valid @RequestBody AddCreditEntryRequest request,
+            @RequestHeader(value = IdempotencyService.HEADER, required = false) String idempotencyKey,
+            HttpServletRequest httpRequest,
             @AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(shiftService.addCreditEntry(pumpId, id, request, currentUser));
+        return idempotencyService.runOnce(
+                IdempotentRequest.of(currentUser.getId(), idempotencyKey, httpRequest, request),
+                () -> ResponseEntity.status(HttpStatus.CREATED)
+                        .body(shiftService.addCreditEntry(pumpId, id, request, currentUser)));
     }
 
     /**
      * POST /api/pumps/{pumpId}/shifts/{id}/close
      * Closes a shift. Triggers FIFO inventory deduction and discrepancy calculation.
+     * An Idempotency-Key header makes a resend after a timeout return the first result.
      */
     @PostMapping("/{id}/close")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
-    public ResponseEntity<ShiftResponse> closeShift(
+    public ResponseEntity<?> closeShift(
             @PathVariable Long pumpId,
             @PathVariable Long id,
             @Valid @RequestBody CloseShiftRequest request,
+            @RequestHeader(value = IdempotencyService.HEADER, required = false) String idempotencyKey,
+            HttpServletRequest httpRequest,
             @AuthenticationPrincipal User currentUser) {
-        ShiftResponse response = shiftService.closeShift(pumpId, id, request, currentUser);
-        auditService.log(response.getPumpId(), AuditAction.SHIFT_CLOSED,
-                "Shift", response.getId().toString(),
-                "Shift closed: status=" + response.getStatus() + " totalAmountDue=₹" + response.getTotalAmountDue(),
-                currentUser);
-        return ResponseEntity.ok(response);
+        return idempotencyService.runOnce(
+                IdempotentRequest.of(currentUser.getId(), idempotencyKey, httpRequest, request),
+                () -> {
+                    ShiftResponse response = shiftService.closeShift(pumpId, id, request, currentUser);
+                    auditService.log(response.getPumpId(), AuditAction.SHIFT_CLOSED,
+                            "Shift", response.getId().toString(),
+                            "Shift closed: status=" + response.getStatus() + " totalAmountDue=₹" + response.getTotalAmountDue(),
+                            currentUser);
+                    return ResponseEntity.ok(response);
+                });
     }
 
     /**

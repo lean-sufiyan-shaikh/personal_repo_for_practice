@@ -65,3 +65,14 @@ export function computeCloseShiftTotals({
     canRoundOff: hasDiscrepancy && Math.abs(diffPaise) < 100,
   }
 }
+
+export function discrepancyTypeOf(diff: number): 'SHORT' | 'OVER' | null {
+  if (diff < 0) return 'SHORT'
+  if (diff > 0) return 'OVER'
+  return null
+}
+
+/** Whether a gap of this size goes to the owner for approval, mirroring the server's escalation rule. */
+export function needsOwnerApproval(diff: number, escalationThreshold: number | null): boolean {
+  return escalationThreshold !== null && escalationThreshold > 0 && Math.abs(diff) > escalationThreshold
+}

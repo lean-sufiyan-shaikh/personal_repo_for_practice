@@ -4,8 +4,11 @@ import com.ppms.common.dto.PageRequests;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
+import com.ppms.common.idempotency.IdempotencyService;
+import com.ppms.common.idempotency.IdempotentRequest;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +50,7 @@ public class ShiftHandoverController {
     private final ShiftRepository shiftRepository;
     private final UserRepository userRepository;
     private final AuditService auditService;
+    private final IdempotencyService idempotencyService;
 
     /**
      * GET /api/pumps/{pumpId}/handovers?page=0&size=50
@@ -82,15 +86,23 @@ public class ShiftHandoverController {
      * Hands an OPEN shift to another operator: the outgoing shift is closed with the readings and payments in
      * {@code closing} (same rules as a normal close), and a new shift opens for the incoming operator on the same
      * nozzles and shift window from those readings. Closing takes manager rights, so operators cannot hand over.
+     * An Idempotency-Key header makes a resend after a timeout return the first result instead of handing over twice.
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
-    public ResponseEntity<HandoverResponse> createHandover(
+    public ResponseEntity<?> createHandover(
             @PathVariable Long pumpId,
             @Valid @RequestBody CreateHandoverRequest request,
+            @RequestHeader(value = IdempotencyService.HEADER, required = false) String idempotencyKey,
+            HttpServletRequest httpRequest,
             @AuthenticationPrincipal User currentUser) {
+        return idempotencyService.runOnce(
+                IdempotentRequest.of(currentUser.getId(), idempotencyKey, httpRequest, request),
+                () -> handOver(pumpId, request, currentUser));
+    }
 
+    private ResponseEntity<HandoverResponse> handOver(Long pumpId, CreateHandoverRequest request, User currentUser) {
         ShiftHandoverService.HandoverResult result = handoverService.createHandover(pumpId, request, currentUser);
         ShiftHandover saved = result.handover();
         ShiftResponse closedShift = result.closedShift();

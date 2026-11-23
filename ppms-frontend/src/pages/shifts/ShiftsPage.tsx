@@ -14,7 +14,6 @@ import BackfillShiftModal from './BackfillShiftModal'
 import { SkeletonRows } from '../../components/Skeleton'
 import { Reveal } from '../../components/Reveal'
 import { RefreshIndicator } from '../../components/RefreshIndicator'
-import { OpenNewShiftPrompt } from './active/OpenNewShiftPrompt'
 import { ShiftRow } from './active/ShiftRow'
 import { AllShiftsHistory } from './history/AllShiftsHistory'
 import { DayViewHistory } from './history/DayViewHistory'
@@ -253,7 +252,11 @@ export default function ShiftsPage() {
         <CloseShiftModal
           shift={shiftToClose}
           onClose={() => setShiftToClose(null)}
-          onShiftClosed={(duId, nozzleIds) => setClosedShiftPrefill({ duId, nozzleIds })}
+          onOpenNextShift={canOpenShift ? (duId, nozzleIds) => {
+            setShiftToClose(null)
+            setClosedShiftPrefill({ duId, nozzleIds })
+            setShowOpenModal(true)
+          } : undefined}
         />
       )}
       {shiftToHandOver && (
@@ -261,12 +264,6 @@ export default function ShiftsPage() {
           shift={shiftToHandOver}
           onClose={() => setShiftToHandOver(null)}
           handoverActiveShifts={activeShifts}
-        />
-      )}
-      {closedShiftPrefill && !showOpenModal && (
-        <OpenNewShiftPrompt
-          onConfirm={() => setShowOpenModal(true)}
-          onDismiss={() => setClosedShiftPrefill(null)}
         />
       )}
       {shiftForCredit && (

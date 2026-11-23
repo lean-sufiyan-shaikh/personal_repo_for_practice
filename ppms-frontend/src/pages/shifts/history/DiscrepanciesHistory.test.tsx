@@ -67,10 +67,32 @@ describe('DiscrepanciesHistory', () => {
     signIn('OWNER')
     renderWithProviders(<DiscrepanciesHistory pumpId={3} />)
 
-    await user.click(await screen.findByRole('button', { name: `Approve discrepancy for shift ${ESCALATED_ID}` }))
+    await user.click(within(await rowOf(ESCALATED_ID)).getByRole('button', { name: `Approve discrepancy for shift ${ESCALATED_ID}` }))
 
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText(/Shift #11 · Ravi · SHORT/)).toBeInTheDocument()
     expect(within(dialog).getByText('Reason given at close: Cash bag missing')).toBeInTheDocument()
+  })
+
+  it('shows each discrepancy as a card below md with a full-width action, and keeps the table from md up', async () => {
+    const user = userEvent.setup()
+    signIn('OWNER')
+    renderWithProviders(<DiscrepanciesHistory pumpId={3} />)
+
+    const cards = await screen.findAllByTestId('discrepancy-card')
+    expect(cards[0].closest('ul')).toHaveClass('md:hidden')
+    expect(screen.getByRole('region', { name: 'Discrepancies' })).toHaveClass('hidden', 'md:block')
+
+    const escalated = cards[0]
+    expect(within(escalated).getByText('Ravi')).toBeInTheDocument()
+    expect(within(escalated).getByText('2026-03-15 · MORNING')).toBeInTheDocument()
+    expect(within(escalated).getByText('SHORT ₹2,000.00')).toBeInTheDocument()
+    expect(within(escalated).getByText('Needs Approval')).toBeInTheDocument()
+    expect(within(escalated).getByText('Cash bag missing')).toBeInTheDocument()
+    const approve = within(escalated).getByRole('button', { name: `Approve discrepancy for shift ${ESCALATED_ID}` })
+    expect(approve).toHaveClass('ui-btn', 'w-full')
+
+    await user.click(approve)
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Shift #11 · Ravi · SHORT')
   })
 })

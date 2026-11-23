@@ -14,6 +14,25 @@ import { IconButton } from '../../../components/IconButton'
 import { focusOnMount } from '../../../utils/focus'
 import { NumericInput } from '../../../components/NumericInput'
 import { useToastStore } from '../../../store/toastStore'
+import { readDraft, removeDraft, useSaveDraft, writeDraft } from '../../../hooks/useSaveDraft'
+import { DraftRestoredNotice } from '../../../components/DraftRestoredNotice'
+import { LoadingButton } from '../../../components/LoadingButton'
+import { attemptFor } from '../../../utils/idempotencyKey'
+import type { SubmitAttempt } from '../../../utils/idempotencyKey'
+
+interface CreditEntryDraft {
+  clientSearch: string
+  clientName: string
+  clientId: number | null
+  subAccountId: number | null
+  fuelType: string
+  amount: string
+  liters: string
+  inputMode: 'amount' | 'liters'
+  billNo: string
+  description: string
+  submitAttempt: SubmitAttempt | null
+}
 
 // ── Add Credit Entry Modal (mid-shift) ────────────────────────────────────────
 
@@ -28,18 +47,46 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
     queryFn: () => pumpApi.getCreditClients(shift.pumpId),
   })
 
-  const [clientSearch,   setClientSearch]   = useState('')
-  const [clientName,     setClientName]     = useState('')
-  const [clientId,       setClientId]       = useState<number | null>(null)
-  const [subAccountId,   setSubAccountId]   = useState<number | null>(null)
+  const draftName = `credit-entry:${shift.id}`
+  const defaultFuelType = shift.fuelReadings[0]?.fuelType ?? ''
+  const [restoredDraft, setRestoredDraft] = useState(() => readDraft<CreditEntryDraft>(draftName))
+  const draft = restoredDraft?.values
+  const [clientSearch,   setClientSearch]   = useState(() => draft?.clientSearch ?? '')
+  const [clientName,     setClientName]     = useState(() => draft?.clientName ?? '')
+  const [clientId,       setClientId]       = useState<number | null>(() => draft?.clientId ?? null)
+  const [subAccountId,   setSubAccountId]   = useState<number | null>(() => draft?.subAccountId ?? null)
   const [showDropdown,   setShowDropdown]   = useState(false)
-  const [fuelType,       setFuelType]       = useState<string>(shift.fuelReadings[0]?.fuelType ?? '')
-  const [amount,         setAmount]         = useState('')
-  const [liters,         setLiters]         = useState('')
-  const [inputMode,      setInputMode]      = useState<'amount' | 'liters'>('amount')
-  const [billNo,         setBillNo]         = useState('')
-  const [description,    setDescription]    = useState('')
+  const [fuelType,       setFuelType]       = useState<string>(() => draft?.fuelType ?? defaultFuelType)
+  const [amount,         setAmount]         = useState(() => draft?.amount ?? '')
+  const [liters,         setLiters]         = useState(() => draft?.liters ?? '')
+  const [inputMode,      setInputMode]      = useState<'amount' | 'liters'>(() => draft?.inputMode ?? 'amount')
+  const [billNo,         setBillNo]         = useState(() => draft?.billNo ?? '')
+  const [description,    setDescription]    = useState(() => draft?.description ?? '')
+  const [submitAttempt,  setSubmitAttempt]  = useState<SubmitAttempt | null>(() => draft?.submitAttempt ?? null)
   const [error,          setError]          = useState<string | null>(null)
+
+  const draftValues: CreditEntryDraft = {
+    clientSearch, clientName, clientId, subAccountId, fuelType, amount, liters, inputMode, billNo, description, submitAttempt,
+  }
+  const hasEntries = clientSearch.trim() !== '' || amount !== '' || liters !== '' || billNo.trim() !== '' || description.trim() !== ''
+  useSaveDraft(draftName, draftValues, hasEntries)
+
+  const discardRestoredEntries = () => {
+    removeDraft(draftName)
+    setRestoredDraft(null)
+    setClientSearch('')
+    setClientName('')
+    setClientId(null)
+    setSubAccountId(null)
+    setFuelType(defaultFuelType)
+    setAmount('')
+    setLiters('')
+    setInputMode('amount')
+    setBillNo('')
+    setDescription('')
+    setSubmitAttempt(null)
+    setError(null)
+  }
 
   const priceForFuelType = (ft: string): number | null =>
     shift.fuelReadings.find((r) => r.fuelType === ft)?.priceSnapshot ?? null
@@ -50,8 +97,10 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
   const [voidError,     setVoidError]      = useState<string | null>(null)
 
   const mutation = useMutation({
-    mutationFn: (entry: CreditEntryInput) => shiftApi.addCreditEntry(shift.pumpId, shift.id, entry),
-    onSuccess: (_shift, entry) => {
+    mutationFn: ({ entry, idempotencyKey }: { entry: CreditEntryInput; idempotencyKey: string }) =>
+      shiftApi.addCreditEntry(shift.pumpId, shift.id, entry, idempotencyKey),
+    onSuccess: (_shift, { entry }) => {
+      removeDraft(draftName)
       qc.invalidateQueries({ queryKey: ['activeShifts', shift.pumpId] })
       addToast(`Credit of ₹${entry.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} added for ${entry.clientName}`, 'success')
       onClose()
@@ -85,14 +134,19 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
     if (!fuelType)           { setError('Fuel type is required'); return }
     if (!amount || isNaN(amt) || amt <= 0) { setError('Enter a valid amount'); return }
     setError(null)
-    mutation.mutate({
+    const entry: CreditEntryInput = {
       clientId:    subAccountId ?? clientId,
       clientName: clientName.trim(),
       fuelType,
       amount: amt,
       billNo:      billNo.trim() || undefined,
       description: description.trim() || undefined,
-    })
+    }
+    // Saved before sending, so a resend after a timeout (even after a reload) reuses the key.
+    const attempt = attemptFor(submitAttempt, entry)
+    setSubmitAttempt(attempt)
+    writeDraft(draftName, { ...draftValues, submitAttempt: attempt })
+    mutation.mutate({ entry, idempotencyKey: attempt.key })
   }
 
   return (
@@ -110,6 +164,9 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
         </div>
 
         <div className="ui-modal-body space-y-3">
+          {restoredDraft && (
+            <DraftRestoredNotice savedAt={restoredDraft.savedAt} onDiscard={discardRestoredEntries} />
+          )}
 
           {/* Existing credit entries with void option */}
           {shift.creditEntries.length > 0 && (
@@ -332,10 +389,11 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
             className="ui-btn ui-btn-secondary flex-1">
             Cancel
           </button>
-          <button onClick={handleSubmit} disabled={!canSave || mutation.isPending}
-            className="ui-btn ui-btn-primary flex-1 disabled:bg-slate-300 disabled:text-slate-400 disabled:cursor-not-allowed">
-            {mutation.isPending ? 'Saving…' : 'Save Entry'}
-          </button>
+          <LoadingButton type="button" onClick={handleSubmit} disabled={!canSave} isLoading={mutation.isPending}
+            loadingLabel="Saving the credit entry"
+            className="ui-btn-primary flex-1">
+            Save Entry
+          </LoadingButton>
         </div>
       </div>
     </div>

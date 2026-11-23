@@ -1,4 +1,5 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
+import { AxiosError } from 'axios'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { pumpApi } from '../../../api/pumpApi'
@@ -54,9 +55,54 @@ describe('AddCreditEntryModal', () => {
     fireEvent.mouseDown(await screen.findByRole('button', { name: /Fleet Co/ }))
     await user.click(screen.getByRole('button', { name: 'Save Entry' }))
 
-    expect(shiftApi.addCreditEntry).toHaveBeenCalledWith(3, 11, expect.objectContaining({ clientId: 40, clientName: 'Fleet Co', amount: 250 }))
+    expect(shiftApi.addCreditEntry).toHaveBeenCalledWith(3, 11, expect.objectContaining({ clientId: 40, clientName: 'Fleet Co', amount: 250 }), expect.any(String))
     await waitFor(() => expect(useToastStore.getState().toasts).toEqual([
       expect.objectContaining({ message: 'Credit of ₹250.00 added for Fleet Co', variant: 'success' }),
     ]))
+  })
+
+  it('keeps the entry on this device, restores it on reopen and resends with the same key after a timeout', async () => {
+    vi.mocked(shiftApi.addCreditEntry).mockRejectedValueOnce(new AxiosError('timeout', 'ECONNABORTED'))
+    const first = userEvent.setup()
+    renderWithProviders(<AddCreditEntryModal shift={shift} onClose={vi.fn()} />)
+    await first.type(screen.getByPlaceholderText('Search client name…'), 'Fleet')
+    fireEvent.mouseDown(await screen.findByRole('button', { name: /Fleet Co/ }))
+    await first.type(screen.getByLabelText('Credit amount in rupees'), '250')
+    await first.type(screen.getByLabelText('Bill No'), 'B-9')
+    await first.click(screen.getByRole('button', { name: 'Save Entry' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent("Server didn't respond")
+    const firstKey = vi.mocked(shiftApi.addCreditEntry).mock.calls[0][3]
+
+    cleanup()
+    const user = userEvent.setup()
+    renderWithProviders(<AddCreditEntryModal shift={shift} onClose={vi.fn()} />)
+    expect(screen.getByText(/^Resumed your unsaved entries from/)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Search client name…')).toHaveValue('Fleet Co')
+    expect(screen.getByLabelText('Credit amount in rupees')).toHaveValue(250)
+    expect(screen.getByLabelText('Bill No')).toHaveValue('B-9')
+
+    await user.click(screen.getByRole('button', { name: 'Save Entry' }))
+    await waitFor(() => expect(shiftApi.addCreditEntry).toHaveBeenCalledTimes(2))
+    expect(vi.mocked(shiftApi.addCreditEntry).mock.calls[1][3]).toBe(firstKey)
+    await waitFor(() => expect(localStorage.getItem('ppms_draft:credit-entry:11')).toBeNull())
+  })
+
+  it('discards restored entries back to an empty form', async () => {
+    localStorage.setItem('ppms_draft:credit-entry:11', JSON.stringify({
+      savedAt: Date.now(),
+      values: {
+        clientSearch: 'Fleet Co', clientName: 'Fleet Co', clientId: 40, subAccountId: null, fuelType: 'PETROL',
+        amount: '300', liters: '', inputMode: 'amount', billNo: '', description: '', submitAttempt: null,
+      },
+    }))
+    const user = userEvent.setup()
+    renderWithProviders(<AddCreditEntryModal shift={shift} onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Discard' }))
+
+    expect(screen.getByPlaceholderText('Search client name…')).toHaveValue('')
+    expect(screen.getByLabelText('Credit amount in rupees')).toHaveValue(null)
+    expect(screen.getByRole('button', { name: 'Save Entry' })).toBeDisabled()
+    expect(localStorage.getItem('ppms_draft:credit-entry:11')).toBeNull()
   })
 })

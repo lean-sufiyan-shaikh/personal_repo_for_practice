@@ -5,16 +5,14 @@ interface Props {
   paymentTouched: boolean
   isBalanced: boolean
   reasonFilled: boolean
-  isPending: boolean
   isHandover?: boolean
   incomingChosen?: boolean
   onCancel: () => void
 }
 
 export function CloseShiftFooter({
-  readingsComplete, paymentTouched, isBalanced, reasonFilled, isPending, isHandover = false, incomingChosen = true, onCancel,
+  readingsComplete, paymentTouched, isBalanced, reasonFilled, isHandover = false, incomingChosen = true, onCancel,
 }: Props) {
-  const pendingLabel = isHandover ? 'Handing over...' : 'Closing...'
   return (
     <div className="ui-modal-footer flex-col-reverse sm:flex-row bg-slate-50/80">
       <button type="button" onClick={onCancel}
@@ -33,14 +31,14 @@ export function CloseShiftFooter({
             Fill in readings &amp; payment to continue
           </button>
         ) : isBalanced ? (
-          <button type="submit" disabled={isPending}
-            className="ui-btn w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white">
-            {isPending ? pendingLabel : <span className="inline-flex items-center gap-1.5"><Check size={14} strokeWidth={2.5} />{isHandover ? 'Close & Hand Over — Balanced' : 'Close Shift — Balanced'}</span>}
+          <button type="submit"
+            className="ui-btn w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+            <span className="inline-flex items-center gap-1.5"><Check size={14} strokeWidth={2.5} />{isHandover ? 'Review handover — Balanced' : 'Review close — Balanced'}</span>
           </button>
         ) : reasonFilled ? (
-          <button type="submit" disabled={isPending}
-            className="ui-btn w-full bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white">
-            {isPending ? pendingLabel : <span className="inline-flex items-center gap-1.5"><AlertTriangle size={14} strokeWidth={2} />{isHandover ? 'Close & Hand Over with Discrepancy' : 'Close with Discrepancy'}</span>}
+          <button type="submit"
+            className="ui-btn w-full bg-amber-500 hover:bg-amber-600 text-white">
+            <span className="inline-flex items-center gap-1.5"><AlertTriangle size={14} strokeWidth={2} />{isHandover ? 'Review handover with discrepancy' : 'Review close with discrepancy'}</span>
           </button>
         ) : (
           <button type="submit" disabled
