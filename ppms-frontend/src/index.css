@@ -1213,7 +1213,8 @@
     gap: 0.5rem;
   }
 
-  .ui-dashboard-drawer-close,
+  /* Two classes so it outranks .ui-btn.ui-btn-icon; the drawer close button is phone-only. */
+  .ui-btn.ui-dashboard-drawer-close,
   .ui-dashboard-sidebar-pumps,
   .ui-dashboard-nav-backdrop,
   .ui-bottom-nav {
