@@ -2,67 +2,12 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { auditApi } from '../../api/auditApi'
 import { usePumpStore } from '../../store/usePumpStore'
-import type { AuditAction } from '../../api/auditApi'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
 import { Reveal } from '../../components/Reveal'
 import { formatIstDateTime, localDateInputValue } from '../../utils/date'
 import { codeLabel } from '../../constants/labels'
-
-const ACTION_STYLES: Partial<Record<AuditAction, string>> = {
-  // User management
-  USER_CREATED:               'bg-blue-100 text-blue-700',
-  USER_DEACTIVATED:           'bg-red-100 text-red-700',
-  USER_STATUS_CHANGED:        'bg-amber-100 text-amber-700',
-  // Authentication
-  LOGIN:                      'bg-slate-100 text-slate-600',
-  LOGIN_FAILED:               'bg-red-100 text-red-700',
-  TOKEN_REVOKED:              'bg-slate-100 text-slate-600',
-  // Fuel pricing
-  FUEL_PRICE_UPDATED:         'bg-purple-100 text-purple-700',
-  // Shift lifecycle
-  SHIFT_OPENED:               'bg-sky-100 text-sky-700',
-  SHIFT_CLOSED:               'bg-emerald-100 text-emerald-700',
-  DISCREPANCY_RESOLVED:       'bg-amber-100 text-amber-700',
-  // Credit
-  CREDIT_ENTRY_VOIDED:        'bg-red-100 text-red-700',
-  CREDIT_LIMIT_CHANGED:       'bg-orange-100 text-orange-700',
-  CREDIT_PAYMENT_RECEIVED:    'bg-teal-100 text-teal-700',
-  INTEREST_APPLIED:           'bg-orange-100 text-orange-700',
-  CREDIT_CLIENT_CREATED:      'bg-blue-100 text-blue-700',
-  CREDIT_CLIENT_DELETED:      'bg-red-100 text-red-700',
-  CREDIT_ENTRY_REASSIGNED:    'bg-amber-100 text-amber-700',
-  // Inventory
-  DELIVERY_RECORDED:          'bg-indigo-100 text-indigo-700',
-  DIP_CHECK_RECORDED:         'bg-indigo-100 text-indigo-700',
-  LOT_COST_CORRECTED:         'bg-amber-100 text-amber-700',
-  // Documents / Expenses
-  DOCUMENT_ADDED:             'bg-slate-100 text-slate-700',
-  EXPENSE_RECORDED:           'bg-rose-100 text-rose-700',
-  // Payroll
-  PAYROLL_APPROVED:           'bg-emerald-100 text-emerald-700',
-  // Pump management
-  PUMP_CREATED:               'bg-blue-100 text-blue-700',
-  PUMP_DELETED:               'bg-red-100 text-red-700',
-  NOZZLE_ADDED:               'bg-blue-100 text-blue-700',
-  TANK_ADDED:                 'bg-blue-100 text-blue-700',
-  // Ancillary
-  ANCILLARY_SALE_RECORDED:    'bg-teal-100 text-teal-700',
-  ANCILLARY_DELIVERY_RECORDED:'bg-indigo-100 text-indigo-700',
-  // Operations
-  HANDOVER_COMPLETED:         'bg-emerald-100 text-emerald-700',
-  PUMP_CLOSURE_ADDED:         'bg-slate-100 text-slate-700',
-  BANK_STATEMENT_IMPORTED:    'bg-indigo-100 text-indigo-700',
-  SUPPLIER_PAYMENT_RECORDED:  'bg-teal-100 text-teal-700',
-  PUMP_CONFIG_UPDATED:        'bg-purple-100 text-purple-700',
-  USER_PUMP_CHANGED:          'bg-sky-100 text-sky-700',
-  CREDIT_EXTENSION_REVOKED:   'bg-red-100 text-red-700',
-  INTEREST_RECALCULATED:      'bg-orange-100 text-orange-700',
-  PUMP_UPDATED:               'bg-purple-100 text-purple-700',
-  PUMP_SUSPENDED:             'bg-red-100 text-red-700',
-  PUMP_ENABLED:               'bg-emerald-100 text-emerald-700',
-  OWNER_ONBOARDED:            'bg-blue-100 text-blue-700',
-}
+import { AUDIT_ACTION_LABELS, AUDIT_ACTION_STYLES } from './auditActions'
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50]
 
@@ -213,8 +158,8 @@ export default function AuditLogPage() {
               <div key={log.id} className="px-5 py-3">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ACTION_STYLES[log.action] ?? 'bg-slate-100 text-slate-600'}`}>
-                      {codeLabel(log.action)}
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${AUDIT_ACTION_STYLES[log.action] ?? 'bg-slate-100 text-slate-600'}`}>
+                      {AUDIT_ACTION_LABELS[log.action] ?? codeLabel(log.action)}
                     </span>
                     <span className="text-xs text-slate-500">by <span className="font-medium text-slate-700">{log.actorName}</span></span>
                   </div>

@@ -2,6 +2,7 @@ import type { StaffMember } from '../../../api/userApi'
 import { IconButton } from '../../../components/IconButton'
 
 interface Props {
+  title: string
   showStepNumber: boolean
   operatorsLoading: boolean
   noneAvailable: boolean
@@ -13,13 +14,13 @@ interface Props {
 }
 
 export function OperatorPicker({
-  showStepNumber, operatorsLoading, noneAvailable, filteredOperators, operatorSearch, onSearchChange,
+  title, showStepNumber, operatorsLoading, noneAvailable, filteredOperators, operatorSearch, onSearchChange,
   selectedOperatorId, onSelect,
 }: Props) {
   return (
     <div>
       <span className="ui-label uppercase tracking-wide mb-2">
-        {showStepNumber ? 'Step 3 — ' : ''}Assign Operator
+        {showStepNumber ? 'Step 3 — ' : ''}{title}
       </span>
       {operatorsLoading ? (
         <p className="ui-empty">Loading operators...</p>
@@ -35,7 +36,7 @@ export function OperatorPicker({
               <path strokeLinecap="round" strokeLinejoin="round"
                 d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
             </svg>
-            <input aria-label="Assign Operator" type="text" value={operatorSearch}
+            <input aria-label={title} type="text" value={operatorSearch}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search by name..."
               className="ui-search-shell__input flex-1 min-h-0 border-0 bg-transparent p-0 text-sm text-slate-700 shadow-none focus:outline-none focus:ring-0 placeholder-slate-400" />

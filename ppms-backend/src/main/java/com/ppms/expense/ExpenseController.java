@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -87,6 +88,7 @@ public class ExpenseController {
      * - MANAGER/OPERATOR: PENDING_APPROVAL if amount > threshold (or threshold is not set)
      */
     @PostMapping("/{pumpId}/expenses")
+    @Transactional
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'OPERATOR')")
     @ResponseStatus(HttpStatus.CREATED)
     public PumpExpense createExpense(
@@ -139,6 +141,7 @@ public class ExpenseController {
      * Only the person who created the expense or an OWNER/ADMIN can submit it.
      */
     @PatchMapping("/{pumpId}/expenses/{expenseId}/submit")
+    @Transactional
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'OPERATOR')")
     public PumpExpense submitExpense(
             @PathVariable Long pumpId,

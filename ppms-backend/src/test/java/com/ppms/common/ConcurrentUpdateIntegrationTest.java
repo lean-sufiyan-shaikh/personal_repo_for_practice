@@ -12,6 +12,12 @@ import com.ppms.ancillary.RecordAncillarySaleRequest;
 import com.ppms.ancillary.RecordStockDeliveryRequest;
 import com.ppms.ancillary.UnitOfMeasure;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.expense.CreateExpenseRequest;
+import com.ppms.expense.ExpenseApprovalStatus;
+import com.ppms.expense.ExpenseCategory;
+import com.ppms.expense.ExpenseController;
+import com.ppms.expense.PumpExpense;
+import com.ppms.expense.PumpExpenseRepository;
 import com.ppms.fuel.FuelType;
 import com.ppms.inventory.InventoryWorkflowService;
 import com.ppms.inventory.InventoryLot;
@@ -50,6 +56,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -63,6 +71,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -90,6 +99,8 @@ class ConcurrentUpdateIntegrationTest {
     @Autowired private AncillaryProductRepository ancillaryProductRepository;
     @Autowired private AncillaryStockLotRepository ancillaryLotRepository;
     @Autowired private AncillaryProductPriceRepository ancillaryPriceRepository;
+    @Autowired private ExpenseController expenseController;
+    @Autowired private PumpExpenseRepository expenseRepository;
 
     private User owner;
     private User manager;
@@ -241,6 +252,36 @@ class ConcurrentUpdateIntegrationTest {
         Shift reloaded = shiftRepository.findById(shift.getId()).orElseThrow();
         assertThat(reloaded.getStatus()).isEqualTo(ShiftStatus.CLOSED_BALANCED);
         assertThat(reloaded.getCashCollected()).isEqualByComparingTo("1000.00");
+    }
+
+    @Test
+    void secondExpenseOfTheDayWaitsForTheFirstAndIsHeldWhenTheTotalPassesTheThreshold() throws Exception {
+        pump.setExpenseApprovalThreshold(new BigDecimal("1000.00"));
+        pumpLocationRepository.save(pump);
+        CreateExpenseRequest expense = new CreateExpenseRequest();
+        expense.setCategory(ExpenseCategory.MAINTENANCE);
+        expense.setAmount(new BigDecimal("600.00"));
+        expense.setDescription("Nozzle repair");
+        expense.setExpenseDate(TestDates.today());
+
+        CompetitorResult<PumpExpense> second = runWhileRowIsLocked(
+                () -> pumpLocationRepository.findByIdForUpdate(pump.getId()).orElseThrow(),
+                () -> actingAs(manager, () -> expenseController.createExpense(pump.getId(), expense, manager)),
+                () -> actingAs(manager, () -> expenseController.createExpense(pump.getId(), expense, manager)));
+
+        assertThat(second.failure()).isNull();
+        assertThat(second.value().getApprovalStatus()).isEqualTo(ExpenseApprovalStatus.PENDING_APPROVAL);
+        assertThat(expenseRepository.countByPumpIdAndApprovalStatus(pump.getId(), ExpenseApprovalStatus.APPROVED)).isEqualTo(1);
+    }
+
+    private <T> T actingAs(User user, Supplier<T> action) {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
+        try {
+            return action.get();
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 
     private Shift saveOpenShift(ShiftStatus status) {

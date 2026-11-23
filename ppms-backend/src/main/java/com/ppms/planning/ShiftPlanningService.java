@@ -11,6 +11,7 @@ import com.ppms.user.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -256,6 +257,22 @@ public class ShiftPlanningService {
         ShiftPlan plan = loadPlan(planId, pumpId);
         ShiftPlanEntry entry = loadEntry(entryId, planId);
         entryRepository.delete(entry);
+    }
+
+    /**
+     * Clears a person's planning at a pump they are leaving from the given day on: their planned shifts in draft
+     * and published plans (those slots become unassigned), their leave and their preference. Earlier days stay.
+     *
+     * @return the number of planned shifts removed
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public int removeStaffFromPumpFrom(Long userId, Long pumpId, LocalDate from) {
+        int removedShifts = entryRepository.deleteForOperatorAtPumpFrom(userId, pumpId, from);
+        int removedLeave = leaveRepository.deleteForUserAtPumpFrom(userId, pumpId, from);
+        int removedPreferences = preferenceRepository.deleteForUserAtPump(userId, pumpId);
+        log.info("Shift planning cleared for staff leaving pump: userId={}, pumpId={}, from={}, shifts={}, leave={}, preferences={}",
+                userId, pumpId, from, removedShifts, removedLeave, removedPreferences);
+        return removedShifts;
     }
 
     // ── Publish ────────────────────────────────────────────────────────────────

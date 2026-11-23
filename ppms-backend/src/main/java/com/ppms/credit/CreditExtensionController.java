@@ -118,6 +118,12 @@ public class CreditExtensionController {
 
         extension = extensionRepository.save(extension);
 
+        auditService.log(pumpId, AuditAction.CREDIT_EXTENSION_GRANTED,
+                "CreditExtension", extension.getId().toString(),
+                request.extensionType() + " for clientId=" + clientId
+                        + (extension.getExtensionAmount() != null ? " of ₹" + extension.getExtensionAmount() : "")
+                        + " granted until " + extension.getExpiryDate() + ", reason=" + extension.getReason(),
+                currentUser);
         log.info("Credit extension granted: pumpId={}, clientId={}, type={}, expiry={}, by={}",
                 pumpId, clientId, request.extensionType(), request.expiryDate(), currentUser.getId());
 

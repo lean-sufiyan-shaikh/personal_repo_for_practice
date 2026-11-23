@@ -6,6 +6,7 @@ import com.ppms.auth.LoginRateLimiterService;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.planning.ShiftPlanningService;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.shift.ShiftRepository;
@@ -32,6 +33,7 @@ public class UserService {
     private final AuditService auditService;
     private final BusinessClock businessClock;
     private final LoginRateLimiterService loginRateLimiterService;
+    private final ShiftPlanningService shiftPlanningService;
 
     private static final Set<UserRole> STAFF_ROLES =
             Set.of(UserRole.OPERATOR, UserRole.MANAGER, UserRole.ADMIN, UserRole.ACCOUNTANT);
@@ -269,9 +271,14 @@ public class UserService {
         user.setAssignedPumpId(targetPumpId);
         user.setTokenVersion(user.getTokenVersion() + 1);
         user = userRepository.save(user);
+        int removedPlannedShifts = fromPumpId == null ? 0
+                : shiftPlanningService.removeStaffFromPumpFrom(user.getId(), fromPumpId, businessClock.today());
 
         String description = user.getFullName() + " (" + user.getRole() + ") moved from pump " + fromPumpId
-                + " to " + targetPump.getName() + " (pump " + targetPumpId + ")";
+                + " to " + targetPump.getName() + " (pump " + targetPumpId + ")"
+                + (removedPlannedShifts > 0
+                        ? "; " + removedPlannedShifts + " upcoming planned shift(s) at the old pump left unassigned"
+                        : "");
         auditService.log(fromPumpId, AuditAction.USER_PUMP_CHANGED, "User", user.getId().toString(), description, currentUser);
         auditService.log(targetPumpId, AuditAction.USER_PUMP_CHANGED, "User", user.getId().toString(), description, currentUser);
         log.info("Staff moved to another pump: userId={}, fromPump={}, toPump={}, by={}",

@@ -2,14 +2,27 @@ package com.ppms.user;
 
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditLogRepository;
+import com.ppms.planning.PreferredDayOff;
+import com.ppms.planning.ShiftPlan;
+import com.ppms.planning.ShiftPlanEntry;
+import com.ppms.planning.ShiftPlanEntryRepository;
+import com.ppms.planning.ShiftPlanEntryStatus;
+import com.ppms.planning.ShiftPlanRepository;
+import com.ppms.planning.ShiftPlanStatus;
+import com.ppms.planning.StaffLeave;
+import com.ppms.planning.StaffLeaveRepository;
+import com.ppms.planning.StaffPreference;
+import com.ppms.planning.StaffPreferenceRepository;
 import com.ppms.pump.PumpLocation;
 import com.ppms.support.ApiIntegrationTest;
+import com.ppms.support.TestDates;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +40,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class StaffStatusAndPumpMoveIntegrationTest extends ApiIntegrationTest {
 
     @Autowired private AuditLogRepository auditLogRepository;
+    @Autowired private ShiftPlanRepository planRepository;
+    @Autowired private ShiftPlanEntryRepository entryRepository;
+    @Autowired private StaffLeaveRepository leaveRepository;
+    @Autowired private StaffPreferenceRepository preferenceRepository;
 
     private PumpSetup setup;
     private PumpLocation secondPump;
@@ -66,6 +83,40 @@ class StaffStatusAndPumpMoveIntegrationTest extends ApiIntegrationTest {
                 .anySatisfy(log -> assertThat(log.getAction()).isEqualTo(AuditAction.USER_PUMP_CHANGED));
         assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(secondPump.getId()))
                 .anySatisfy(log -> assertThat(log.getAction()).isEqualTo(AuditAction.USER_PUMP_CHANGED));
+    }
+
+    @Test
+    void movedOperatorLosesUpcomingPlannedShiftsLeaveAndPreferenceAtTheOldPumpButKeepsPastOnes() throws Exception {
+        User operator = saveUser(UserRole.OPERATOR, setup.pumpId());
+        User colleague = saveUser(UserRole.OPERATOR, setup.pumpId());
+        LocalDate today = TestDates.today();
+        ShiftPlan publishedPlan = planRepository.save(ShiftPlan.builder()
+                .pumpId(setup.pumpId()).weekStart(today.minusDays(3)).status(ShiftPlanStatus.PUBLISHED)
+                .operatorsPerDayShift(1).operatorsPerNightShift(1).build());
+        ShiftPlanEntry yesterdaysShift = savePlanEntry(publishedPlan, operator, today.minusDays(1));
+        savePlanEntry(publishedPlan, operator, today);
+        savePlanEntry(publishedPlan, operator, today.plusDays(2));
+        ShiftPlanEntry colleaguesShift = savePlanEntry(publishedPlan, colleague, today.plusDays(2));
+        StaffLeave pastLeave = leaveRepository.save(StaffLeave.builder()
+                .userId(operator.getId()).pumpId(setup.pumpId()).leaveDate(today.minusDays(2)).build());
+        leaveRepository.save(StaffLeave.builder()
+                .userId(operator.getId()).pumpId(setup.pumpId()).leaveDate(today.plusDays(1)).build());
+        preferenceRepository.save(StaffPreference.builder()
+                .userId(operator.getId()).pumpId(setup.pumpId()).preferredDayOff(PreferredDayOff.SUNDAY).build());
+
+        moveToPump(operator, secondPump.getId(), setup.owner()).andExpect(status().isOk());
+
+        assertThat(entryRepository.findByShiftPlanId(publishedPlan.getId()))
+                .extracting(ShiftPlanEntry::getId)
+                .containsExactlyInAnyOrder(yesterdaysShift.getId(), colleaguesShift.getId());
+        assertThat(leaveRepository.findByUserIdOrderByLeaveDateDesc(operator.getId()))
+                .extracting(StaffLeave::getId)
+                .containsExactly(pastLeave.getId());
+        assertThat(preferenceRepository.findByUserId(operator.getId())).isEmpty();
+        assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(setup.pumpId()))
+                .filteredOn(log -> log.getAction() == AuditAction.USER_PUMP_CHANGED)
+                .singleElement()
+                .satisfies(log -> assertThat(log.getDescription()).contains("2 upcoming planned shift(s)"));
     }
 
     @Test
@@ -109,6 +160,12 @@ class StaffStatusAndPumpMoveIntegrationTest extends ApiIntegrationTest {
 
         moveToPump(formerOperator, setup.pumpId(), setup.owner()).andExpect(status().isOk());
         perform(delete("/api/pumps/{pumpId}", secondPump.getId()), setup.owner()).andExpect(status().isNoContent());
+    }
+
+    private ShiftPlanEntry savePlanEntry(ShiftPlan plan, User operator, LocalDate shiftDate) {
+        return entryRepository.save(ShiftPlanEntry.builder()
+                .shiftPlanId(plan.getId()).shiftDate(shiftDate).shiftDefinitionId(setup.allDayShift().getId())
+                .operatorUserId(operator.getId()).status(ShiftPlanEntryStatus.PLANNED).build());
     }
 
     private ResultActions changeStatus(User user, String status) throws Exception {

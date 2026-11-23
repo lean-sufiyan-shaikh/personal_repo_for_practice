@@ -270,6 +270,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
 
           {/* ── Step 3: Operator ── */}
           <OperatorPicker
+            title="Assign Operator"
             showStepNumber={!!selectedDU}
             operatorsLoading={operatorsLoading}
             noneAvailable={availableOperators.length === 0}

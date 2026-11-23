@@ -21,7 +21,7 @@ describe('ResetPasswordDialog', () => {
   it('refuses a temporary password that breaks the password policy without calling the server', async () => {
     await submitPasswords('simple', 'simple')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/at least 8 characters/)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/8 to 72 characters/)
     expect(resetPassword).not.toHaveBeenCalled()
   })
 

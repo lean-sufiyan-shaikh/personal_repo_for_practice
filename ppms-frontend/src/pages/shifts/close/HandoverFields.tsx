@@ -35,6 +35,7 @@ export function HandoverFields({ shift, activeShifts, details, onChange }: Props
           for the incoming operator on the same nozzles from these closing readings.
         </p>
         <OperatorPicker
+          title="Choose Incoming Operator"
           showStepNumber={false}
           operatorsLoading={operatorsLoading}
           noneAvailable={availableOperators.length === 0}

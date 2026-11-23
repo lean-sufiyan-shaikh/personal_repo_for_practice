@@ -6,13 +6,17 @@ import com.ppms.user.User;
 import com.ppms.user.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ApprovalPolicyTest {
@@ -115,9 +119,23 @@ class ApprovalPolicyTest {
                 .isEqualTo(ExpenseApprovalStatus.APPROVED);
     }
 
+    @Test
+    void expenseByAManagerLocksThePumpBeforeAddingUpTheDaysTotal() {
+        givenThreshold(new BigDecimal("1000"));
+
+        approvalPolicy.resolveExpenseStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("400.00"),
+                ExpenseCategory.MAINTENANCE, DAY);
+
+        InOrder order = inOrder(pumpLocationRepository, expenseRepository);
+        order.verify(pumpLocationRepository).findByIdForUpdate(1L);
+        order.verify(expenseRepository).sumSubmittedAmountByPumpIdAndCategoryAndExpenseDate(1L, ExpenseCategory.MAINTENANCE, DAY);
+        verify(pumpLocationRepository, never()).findById(1L);
+    }
+
     private void givenThreshold(BigDecimal threshold) {
         PumpLocation pump = PumpLocation.builder().id(1L).expenseApprovalThreshold(threshold).build();
         when(pumpLocationRepository.findById(1L)).thenReturn(Optional.of(pump));
+        when(pumpLocationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(pump));
     }
 
     private void givenSameDayTotal(BigDecimal total) {

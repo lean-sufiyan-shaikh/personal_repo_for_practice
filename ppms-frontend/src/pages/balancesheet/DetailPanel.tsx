@@ -50,7 +50,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
   if (error) {
     return (
       <div className="flex-1 px-6 py-6 space-y-3">
-        <div className="ui-alert ui-alert-error text-sm" role="alert">
+        <div className="ui-alert ui-alert-danger text-sm" role="alert">
           {parseApiError(error, 'Failed to load this balance sheet. Please try again.')}
         </div>
         <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">Back to list</button>

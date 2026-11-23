@@ -260,14 +260,19 @@ public class NotificationService {
      * Dedup key includes the due date, so each missed calibration cycle alerts once.
      */
     private void generateCalibrationDueAlerts(Long pumpId) {
-        calibrationLogRepository.findOverdueCalibrations(pumpId, businessClock.today())
-                .forEach(log -> {
-                    String dedupKey = "CALIBRATION_DUE:nozzle:" + log.getNozzleId() + ":" + log.getNextCalibrationDue();
-                    String message = "Nozzle #" + log.getNozzleId() + " calibration was due on "
-                            + log.getNextCalibrationDue() + ". Please schedule a calibration to remain compliant.";
-                    dedupService.maybeInsert(pumpId, NotificationType.CALIBRATION_DUE, dedupKey,
-                            "Nozzle Calibration Overdue", message);
-                });
+        List<NozzleCalibrationLog> overdue = calibrationLogRepository.findOverdueCalibrations(pumpId, businessClock.today());
+        if (overdue.isEmpty()) {
+            return;
+        }
+        Map<Long, Integer> nozzleNumberById = nozzleNumbersFor(overdue);
+        for (NozzleCalibrationLog calibration : overdue) {
+            String dedupKey = "CALIBRATION_DUE:nozzle:" + calibration.getNozzleId() + ":" + calibration.getNextCalibrationDue();
+            String message = "Nozzle #" + nozzleNumberById.getOrDefault(calibration.getNozzleId(), 0)
+                    + " calibration was due on " + calibration.getNextCalibrationDue()
+                    + ". Please schedule a calibration to remain compliant.";
+            dedupService.maybeInsert(pumpId, NotificationType.CALIBRATION_DUE, dedupKey,
+                    "Nozzle Calibration Overdue", message);
+        }
     }
 
     /**
@@ -282,9 +287,7 @@ public class NotificationService {
         if (dueSoon.isEmpty()) {
             return;
         }
-        Map<Long, Integer> nozzleNumberById = nozzleRepository
-                .findAllById(dueSoon.stream().map(NozzleCalibrationLog::getNozzleId).collect(Collectors.toSet())).stream()
-                .collect(Collectors.toMap(Nozzle::getId, Nozzle::getNozzleNumber));
+        Map<Long, Integer> nozzleNumberById = nozzleNumbersFor(dueSoon);
         for (NozzleCalibrationLog calibration : dueSoon) {
             LocalDate due = calibration.getNextCalibrationDue();
             String dedupKey = "CALIBRATION_DUE_SOON:nozzle:" + calibration.getNozzleId() + ":" + due;
@@ -294,6 +297,12 @@ public class NotificationService {
             dedupService.maybeInsert(pumpId, NotificationType.CALIBRATION_DUE_SOON, dedupKey,
                     "Nozzle Calibration Due Soon", message);
         }
+    }
+
+    private Map<Long, Integer> nozzleNumbersFor(List<NozzleCalibrationLog> calibrations) {
+        return nozzleRepository
+                .findAllById(calibrations.stream().map(NozzleCalibrationLog::getNozzleId).collect(Collectors.toSet())).stream()
+                .collect(Collectors.toMap(Nozzle::getId, Nozzle::getNozzleNumber));
     }
 
     /**

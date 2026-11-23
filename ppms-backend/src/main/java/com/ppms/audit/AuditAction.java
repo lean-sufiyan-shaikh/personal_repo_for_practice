@@ -41,6 +41,7 @@ public enum AuditAction {
     CREDIT_ENTRY_REASSIGNED,
     CREDIT_INVOICE_ISSUED,
     CREDIT_INVOICE_CANCELLED,
+    CREDIT_EXTENSION_GRANTED,
     CREDIT_EXTENSION_REVOKED,
     INTEREST_RECALCULATED,
 
@@ -69,6 +70,7 @@ public enum AuditAction {
     PUMP_ENABLED,
     OWNER_ONBOARDED,
     NOZZLE_ADDED,
+    CALIBRATION_LOGGED,
     TANK_ADDED,
 
     // ── Ancillary products ────────────────────────────────────────────────────

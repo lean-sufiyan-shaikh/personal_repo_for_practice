@@ -113,7 +113,7 @@ public class NozzleCalibrationController {
                 pumpId, nozzleId, request.calibrationDate(), request.nextCalibrationDue(),
                 request.certificateReference(), currentUser.getId());
 
-        auditService.log(pumpId, AuditAction.NOZZLE_ADDED,
+        auditService.log(pumpId, AuditAction.CALIBRATION_LOGGED,
                 "NozzleCalibrationLog", saved.getId().toString(),
                 "Calibration logged for nozzle #" + nozzle.getNozzleNumber() +
                 " on " + request.calibrationDate() + ", next due: " + request.nextCalibrationDue(),

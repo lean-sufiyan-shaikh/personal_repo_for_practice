@@ -98,6 +98,21 @@ class NotificationServiceTest {
         assertThat(message.getValue()).contains("Nozzle #2", "2026-03-13", "7 day(s) left");
     }
 
+    @Test
+    void overdueCalibrationAlertNamesTheNozzleNumberNotItsId() {
+        LocalDate due = today.minusDays(2);
+        when(calibrationLogRepository.findOverdueCalibrations(PUMP_ID, today))
+                .thenReturn(List.of(NozzleCalibrationLog.builder().nozzleId(40L).nextCalibrationDue(due).build()));
+        when(nozzleRepository.findAllById(any())).thenReturn(List.of(Nozzle.builder().id(40L).nozzleNumber(2).build()));
+
+        notificationService.generateNotificationsForPump(PUMP_ID);
+
+        ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
+        verify(dedupService).maybeInsert(eq(PUMP_ID), eq(NotificationType.CALIBRATION_DUE),
+                eq("CALIBRATION_DUE:nozzle:40:2026-03-04"), eq("Nozzle Calibration Overdue"), message.capture());
+        assertThat(message.getValue()).contains("Nozzle #2", "2026-03-04").doesNotContain("#40");
+    }
+
     private List<String> keysSentFor(NotificationType type) {
         ArgumentCaptor<String> keys = ArgumentCaptor.forClass(String.class);
         verify(dedupService, atLeastOnce()).maybeInsert(eq(PUMP_ID), eq(type), keys.capture(), anyString(), anyString());

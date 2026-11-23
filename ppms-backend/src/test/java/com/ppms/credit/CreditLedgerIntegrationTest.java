@@ -332,7 +332,7 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void onlyOwnerOrAdminCanGrantACreditExtension() throws Exception {
+    void onlyOwnerOrAdminCanGrantACreditExtensionAndTheGrantIsAudited() throws Exception {
         long clientId = createClient(null);
         Map<String, Object> extension = Map.of("extensionType", "AMOUNT_EXTENSION",
                 "extensionAmount", new BigDecimal("1000.00"),
@@ -349,6 +349,10 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
         JsonNode active = json(perform(get("/api/pumps/{pumpId}/credit-clients/{clientId}/extensions/active", setup.pumpId(), clientId),
                 setup.manager()).andExpect(status().isOk()));
         assertThat(active.toString()).contains("AMOUNT_EXTENSION");
+        assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(setup.pumpId()))
+                .filteredOn(log -> log.getAction() == AuditAction.CREDIT_EXTENSION_GRANTED)
+                .singleElement()
+                .satisfies(log -> assertThat(log.getDescription()).contains("AMOUNT_EXTENSION", "1000.00", "Festival season"));
     }
 
     @Test

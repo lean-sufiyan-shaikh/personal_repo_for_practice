@@ -65,6 +65,8 @@ describe('CloseShiftModal', () => {
     expect(await screen.findByRole('button', { name: /Sita/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Ravi/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Busy Bala/ })).not.toBeInTheDocument()
+    expect(screen.getByText('Choose Incoming Operator')).toBeInTheDocument()
+    expect(screen.queryByText('Assign Operator')).not.toBeInTheDocument()
 
     await user.type(screen.getByPlaceholderText('Enter end reading'), '1010')
     await user.type(screen.getByLabelText('Cash (₹)'), '1000')
