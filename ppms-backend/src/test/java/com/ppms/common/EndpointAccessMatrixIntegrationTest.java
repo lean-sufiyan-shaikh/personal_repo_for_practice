@@ -41,6 +41,7 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
         return Stream.of(
                 Arguments.of("/api/pumps/{pumpId}/credit-ledger", "ACCOUNTANT", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/credit-clients", "MANAGER", null),
+                Arguments.of("/api/pumps/{pumpId}/credit-clients/credit-standing", "OPERATOR", null),
                 Arguments.of("/api/pumps/{pumpId}/credit-ledger/payments/pending", "MANAGER", "ACCOUNTANT"),
                 Arguments.of("/api/pumps/{pumpId}/credit-invoices", "ACCOUNTANT", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/fuel-prices/current", "OPERATOR", null),

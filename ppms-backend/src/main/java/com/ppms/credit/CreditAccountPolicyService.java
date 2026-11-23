@@ -14,11 +14,14 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.TreeSet;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -163,13 +166,7 @@ public class CreditAccountPolicyService {
         if (limitHolder.getCreditLimit().compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal combinedOutstanding = creditInterestService.computeOutstandingWithChildren(limitHolder.getId());
             BigDecimal projected = combinedOutstanding.add(amount).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal extensionHeadroom = activeExtensions.stream()
-                    .filter(extension -> extension.getExtensionType() == CreditExtensionType.AMOUNT_EXTENSION
-                            && extension.getExtensionAmount() != null)
-                    .map(CreditExtension::getExtensionAmount)
-                    .findFirst()
-                    .orElse(BigDecimal.ZERO);
-            BigDecimal effectiveLimit = limitHolder.getCreditLimit().add(extensionHeadroom);
+            BigDecimal effectiveLimit = effectiveLimit(limitHolder, activeExtensions);
 
             if (projected.compareTo(effectiveLimit) > 0) {
                 throw new BusinessException(
@@ -180,10 +177,7 @@ public class CreditAccountPolicyService {
             }
         }
 
-        boolean hasCycleWaiver = activeExtensions.stream().anyMatch(extension ->
-                extension.getExtensionType() == CreditExtensionType.BILLING_CYCLE_EXTENSION
-                        || extension.getExtensionType() == CreditExtensionType.OVERDUE_BLOCK_WAIVER);
-        if (!hasCycleWaiver && isBillingCycleOverdue(limitHolder)) {
+        if (!hasCycleWaiver(activeExtensions) && isBillingCycleOverdue(limitHolder)) {
             throw new BusinessException(
                     "Credit sales blocked for '" + limitHolder.getName() + "': billing cycle overdue. " +
                             "The client must settle their outstanding balance or an Admin/Owner must grant a Credit Extension.");
@@ -200,21 +194,119 @@ public class CreditAccountPolicyService {
             return false;
         }
 
-        int cycleDays = limitHolder.getBillingCycle() == BillingCycle.WEEKLY ? 7 : 30;
-        LocalDate overdueThreshold = businessClock.today().minusDays(cycleDays);
-
         List<Long> groupClientIds = new ArrayList<>();
         groupClientIds.add(limitHolder.getId());
         creditClientRepository.findByParentClientId(limitHolder.getId())
                 .forEach(child -> groupClientIds.add(child.getId()));
 
-        Optional<LocalDate> lastPayment = creditPaymentRepository.findLastPaymentDateByClientIds(groupClientIds);
-        if (lastPayment.isPresent()) {
-            return lastPayment.get().isBefore(overdueThreshold);
-        }
+        return isBillingCycleOverdue(limitHolder.getBillingCycle(), groupOutstanding,
+                creditPaymentRepository.findLastPaymentDateByClientIds(groupClientIds).orElse(null),
+                creditInterestService.findOldestCreditSaleDate(groupClientIds).orElse(null));
+    }
 
-        return creditInterestService.findOldestCreditSaleDate(groupClientIds)
-                .map(oldestSaleDate -> oldestSaleDate.isBefore(overdueThreshold))
-                .orElse(false);
+    /**
+     * Whether each client of the pump could take a credit sale now, by the rules of validateCreditSaleAllowed:
+     * a disabled client or parent first, then the group limit with any amount extension, then the overdue
+     * billing cycle unless an extension waives it. Loads the whole pump in a fixed number of queries.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, CreditClientStandingResponse> creditStandingOfPumpClients(Long pumpId) {
+        List<CreditClient> clients = creditClientRepository.findByPumpIdOrderByNameAsc(pumpId);
+        if (clients.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> clientIds = clients.stream().map(CreditClient::getId).toList();
+        Map<Long, CreditClient> clientById = clients.stream()
+                .collect(Collectors.toMap(CreditClient::getId, Function.identity()));
+        Map<Long, List<Long>> groupIdsByHolderId = clients.stream()
+                .collect(Collectors.groupingBy(this::limitHolderId,
+                        Collectors.mapping(CreditClient::getId, Collectors.toList())));
+
+        Map<Long, BigDecimal> outstandingById = creditInterestService.computeOutstandingBatch(clientIds);
+        Map<Long, LocalDate> lastPaymentById = toDateMap(creditPaymentRepository.findLastPaymentDatesByClientIds(clientIds));
+        Map<Long, LocalDate> oldestSaleById = creditInterestService.findOldestCreditSaleDates(clientIds);
+        Map<Long, List<CreditExtension>> extensionsByClientId = creditExtensionRepository
+                .findInEffectAtPump(pumpId, businessClock.today()).stream()
+                .collect(Collectors.groupingBy(CreditExtension::getClientId));
+
+        Map<Long, CreditClientStandingResponse> groupStandingByHolderId = new HashMap<>();
+        groupIdsByHolderId.forEach((holderId, groupIds) -> {
+            CreditClient holder = clientById.get(holderId);
+            List<CreditExtension> extensions = extensionsByClientId.getOrDefault(holderId, List.of());
+            BigDecimal groupOutstanding = groupIds.stream()
+                    .map(id -> outstandingById.getOrDefault(id, BigDecimal.ZERO))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .setScale(2, RoundingMode.HALF_UP);
+            BigDecimal availableCredit = null;
+            CreditStatus status = CreditStatus.OK;
+            if (holder.getCreditLimit().compareTo(BigDecimal.ZERO) > 0) {
+                availableCredit = effectiveLimit(holder, extensions).subtract(groupOutstanding).setScale(2, RoundingMode.HALF_UP);
+                if (availableCredit.compareTo(BigDecimal.ZERO) <= 0) {
+                    status = CreditStatus.OVER_LIMIT;
+                    availableCredit = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+                }
+            }
+            if (status == CreditStatus.OK && !hasCycleWaiver(extensions)
+                    && isBillingCycleOverdue(holder.getBillingCycle(), groupOutstanding,
+                    latestDate(groupIds, lastPaymentById), earliestDate(groupIds, oldestSaleById))) {
+                status = CreditStatus.OVERDUE;
+            }
+            groupStandingByHolderId.put(holderId, new CreditClientStandingResponse(holderId, status, availableCredit));
+        });
+
+        Map<Long, CreditClientStandingResponse> standingById = new HashMap<>();
+        for (CreditClient client : clients) {
+            CreditClientStandingResponse group = groupStandingByHolderId.get(limitHolderId(client));
+            CreditClient parent = client.getParentClientId() != null ? clientById.get(client.getParentClientId()) : null;
+            boolean disabled = !client.isActive() || (parent != null && !parent.isActive());
+            standingById.put(client.getId(), new CreditClientStandingResponse(client.getId(),
+                    disabled ? CreditStatus.INACTIVE : group.creditStatus(), group.availableCredit()));
+        }
+        return standingById;
+    }
+
+    private static BigDecimal effectiveLimit(CreditClient limitHolder, List<CreditExtension> activeExtensions) {
+        BigDecimal extensionHeadroom = activeExtensions.stream()
+                .filter(extension -> extension.getExtensionType() == CreditExtensionType.AMOUNT_EXTENSION
+                        && extension.getExtensionAmount() != null)
+                .map(CreditExtension::getExtensionAmount)
+                .findFirst()
+                .orElse(BigDecimal.ZERO);
+        return limitHolder.getCreditLimit().add(extensionHeadroom);
+    }
+
+    private static boolean hasCycleWaiver(List<CreditExtension> activeExtensions) {
+        return activeExtensions.stream().anyMatch(extension ->
+                extension.getExtensionType() == CreditExtensionType.BILLING_CYCLE_EXTENSION
+                        || extension.getExtensionType() == CreditExtensionType.OVERDUE_BLOCK_WAIVER);
+    }
+
+    /** A group with a balance is overdue when its last payment, or else its oldest sale, is older than one cycle. */
+    private boolean isBillingCycleOverdue(BillingCycle billingCycle, BigDecimal groupOutstanding,
+                                          LocalDate lastPaymentDate, LocalDate oldestSaleDate) {
+        if (groupOutstanding.compareTo(BigDecimal.ZERO) <= 0) {
+            return false;
+        }
+        LocalDate overdueThreshold = businessClock.today().minusDays(billingCycle == BillingCycle.WEEKLY ? 7 : 30);
+        if (lastPaymentDate != null) {
+            return lastPaymentDate.isBefore(overdueThreshold);
+        }
+        return oldestSaleDate != null && oldestSaleDate.isBefore(overdueThreshold);
+    }
+
+    private static LocalDate latestDate(List<Long> clientIds, Map<Long, LocalDate> dateById) {
+        return clientIds.stream().map(dateById::get).filter(Objects::nonNull).max(Comparator.naturalOrder()).orElse(null);
+    }
+
+    private static LocalDate earliestDate(List<Long> clientIds, Map<Long, LocalDate> dateById) {
+        return clientIds.stream().map(dateById::get).filter(Objects::nonNull).min(Comparator.naturalOrder()).orElse(null);
+    }
+
+    private static Map<Long, LocalDate> toDateMap(List<Object[]> rows) {
+        Map<Long, LocalDate> dateById = new HashMap<>();
+        for (Object[] row : rows) {
+            dateById.put((Long) row[0], (LocalDate) row[1]);
+        }
+        return dateById;
     }
 }

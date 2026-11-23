@@ -89,6 +89,16 @@ export interface CreditClient {
   billingAddress?: string | null
 }
 
+/** Whether a client could take a credit sale now, by the rules the sale itself is checked against. */
+export type CreditStatus = 'OK' | 'OVERDUE' | 'OVER_LIMIT' | 'INACTIVE'
+
+export interface CreditClientStanding {
+  clientId: number
+  creditStatus: CreditStatus
+  /** What the client's group can still take; null when the group has no credit limit. */
+  availableCredit: number | null
+}
+
 export interface CreateCreditClientRequest {
   name: string
   phone?: string
@@ -234,6 +244,9 @@ export const pumpApi = {
 
   getCreditClients: (pumpId: number) =>
     client.get<CreditClient[]>(`/pumps/${pumpId}/credit-clients`).then((r) => r.data),
+
+  getCreditStanding: (pumpId: number) =>
+    client.get<CreditClientStanding[]>(`/pumps/${pumpId}/credit-clients/credit-standing`).then((r) => r.data),
 
   createCreditClient: (pumpId: number, req: CreateCreditClientRequest) =>
     client.post<CreditClient>(`/pumps/${pumpId}/credit-clients`, req).then((r) => r.data),

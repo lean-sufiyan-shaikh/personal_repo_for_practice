@@ -7,7 +7,7 @@ import { useEscapeKey } from '../../../hooks/useEscapeKey'
 import { useAuthStore } from '../../../store/authStore'
 import { canAccessPage } from '../../../permissions/permissions'
 import { roleLabel } from '../../../constants/labels'
-import { ALL_NAV_ITEMS } from '../navItems'
+import { ALL_NAV_ITEMS, isNavPathActive } from '../navItems'
 import { PumpSwitcher } from './PumpSwitcher'
 
 export const DASHBOARD_NAV_ID = 'dashboard-navigation'
@@ -56,9 +56,7 @@ export function DashboardSidebar({ pumpName, switchablePumps, drawerOpen, onClos
         </div>
         <div className="px-3 py-3 flex-1">
           {navItems.map((item) => {
-            const isActive =
-              location.pathname === item.path ||
-              (item.path !== '/dashboard' && location.pathname.startsWith(item.path))
+            const isActive = isNavPathActive(item.path, location.pathname)
             return (
               <Link
                 key={item.path}

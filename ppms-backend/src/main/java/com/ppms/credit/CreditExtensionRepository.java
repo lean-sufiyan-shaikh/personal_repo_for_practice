@@ -30,6 +30,12 @@ public interface CreditExtensionRepository extends JpaRepository<CreditExtension
 
     @Query("""
             SELECT e FROM CreditExtension e
+            WHERE e.pumpId = :pumpId AND e.status = 'ACTIVE' AND e.expiryDate >= :today
+            """)
+    List<CreditExtension> findInEffectAtPump(Long pumpId, LocalDate today);
+
+    @Query("""
+            SELECT e FROM CreditExtension e
             WHERE e.pumpId = :pumpId AND e.clientId = :clientId AND e.extensionType = :type
               AND e.status = 'ACTIVE' AND e.expiryDate >= :today
             """)

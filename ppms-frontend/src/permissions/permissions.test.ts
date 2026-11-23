@@ -29,7 +29,7 @@ describe('getDefaultPath', () => {
     ['OWNER', '/dashboard'],
     ['ADMIN', '/dashboard'],
     ['MANAGER', '/dashboard'],
-    ['OPERATOR', '/dashboard/shifts'],
+    ['OPERATOR', '/dashboard/my-shift'],
     ['ACCOUNTANT', '/dashboard/credit'],
   ])('sends %s to %s', (role, path) => {
     expect(getDefaultPath(role)).toBe(path)

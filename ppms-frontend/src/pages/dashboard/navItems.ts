@@ -1,6 +1,9 @@
-import { LayoutDashboard, Zap, CalendarDays, Database, CreditCard, ReceiptText, FileText, Wallet, Wrench, HardHat, Package, ClipboardList, Landmark, BarChart2, TrendingUp, Settings, type LucideIcon } from 'lucide-react'
+import { Clock, LayoutDashboard, Zap, CalendarDays, Database, CreditCard, ReceiptText, FileText, Wallet, Wrench, HardHat, Package, ClipboardList, Landmark, BarChart2, TrendingUp, Settings, type LucideIcon } from 'lucide-react'
+import type { UserRole } from '../../types/auth'
+import { canAccessPage } from '../../permissions/permissions'
 
 export const ALL_NAV_ITEMS: { label: string; path: string; icon: LucideIcon; page: string; bg: string; color: string }[] = [
+  { label: 'My Shift',       path: '/dashboard/my-shift',       icon: Clock,           page: 'myShift',       bg: 'bg-emerald-100', color: 'text-emerald-600' },
   { label: 'Overview',       path: '/dashboard',                icon: LayoutDashboard, page: 'overview',      bg: 'bg-blue-100',    color: 'text-blue-600'    },
   { label: 'Shifts',         path: '/dashboard/shifts',         icon: Zap,             page: 'shifts',        bg: 'bg-emerald-100', color: 'text-emerald-600' },
   { label: 'Shift Planning', path: '/dashboard/shift-planning', icon: CalendarDays,    page: 'shiftPlanning', bg: 'bg-violet-100',  color: 'text-violet-600'  },
@@ -18,3 +21,44 @@ export const ALL_NAV_ITEMS: { label: string; path: string; icon: LucideIcon; pag
   { label: 'Reports',        path: '/dashboard/reports',        icon: TrendingUp,      page: 'reports',       bg: 'bg-green-100',   color: 'text-green-700'   },
   { label: 'Setup',          path: '/dashboard/setup',          icon: Settings,        page: 'setup',         bg: 'bg-gray-100',    color: 'text-gray-600'    },
 ]
+
+const BOTTOM_TAB_LABELS: Record<string, string> = {
+  myShift:       'My shift',
+  overview:      'Home',
+  shifts:        'Shifts',
+  shiftPlanning: 'Plan',
+  inventory:     'Stock',
+  credit:        'Credit',
+  expenses:      'Expenses',
+  cashDrawer:    'Cash',
+  reports:       'Reports',
+}
+
+const BOTTOM_TAB_PAGES_BY_ROLE: Partial<Record<UserRole, string[]>> = {
+  OPERATOR:   ['myShift', 'expenses', 'shiftPlanning'],
+  MANAGER:    ['overview', 'shifts', 'inventory', 'cashDrawer'],
+  OWNER:      ['overview', 'shifts', 'credit', 'reports'],
+  ADMIN:      ['overview', 'shifts', 'credit', 'reports'],
+  ACCOUNTANT: ['credit', 'expenses'],
+}
+
+export interface BottomTab {
+  label: string
+  path: string
+  icon: LucideIcon
+}
+
+/** The phone tab bar for a role, limited to pages the role can open; "More" is added by the bar itself. */
+export function bottomTabsFor(role: UserRole | undefined): BottomTab[] {
+  const pages = role ? BOTTOM_TAB_PAGES_BY_ROLE[role] ?? [] : []
+  return pages
+    .filter(page => canAccessPage(page, role))
+    .flatMap(page => {
+      const item = ALL_NAV_ITEMS.find(navItem => navItem.page === page)
+      return item ? [{ label: BOTTOM_TAB_LABELS[page], path: item.path, icon: item.icon }] : []
+    })
+}
+
+export function isNavPathActive(itemPath: string, pathname: string): boolean {
+  return pathname === itemPath || (itemPath !== '/dashboard' && pathname.startsWith(itemPath))
+}

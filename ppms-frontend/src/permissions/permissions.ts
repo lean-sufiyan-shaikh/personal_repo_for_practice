@@ -14,6 +14,7 @@ import type { UserRole } from '../types/auth'
 // ─── Page / Route Permissions ──────────────────────────────────────────────
 
 export const PAGE_PERMISSIONS: Record<string, UserRole[]> = {
+  myShift:         ['OPERATOR'],
   overview:        ['OWNER', 'ADMIN', 'MANAGER'],
   shifts:          ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
   shiftPlanning:   ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
@@ -33,6 +34,7 @@ export const PAGE_PERMISSIONS: Record<string, UserRole[]> = {
 }
 
 const PAGE_PATHS: Record<string, string> = {
+  myShift:       '/dashboard/my-shift',
   overview:      '/dashboard',
   shifts:        '/dashboard/shifts',
   shiftPlanning: '/dashboard/shift-planning',

@@ -32,6 +32,10 @@ public interface CreditPaymentRepository extends JpaRepository<CreditPayment, Lo
     @Query("SELECT MAX(p.paidAt) FROM CreditPayment p WHERE p.clientId IN :clientIds AND p.paymentApprovalStatus = 'APPROVED'")
     Optional<LocalDate> findLastPaymentDateByClientIds(@Param("clientIds") java.util.Collection<Long> clientIds);
 
+    /** Rows of [clientId, latest APPROVED payment date]. */
+    @Query("SELECT p.clientId, MAX(p.paidAt) FROM CreditPayment p WHERE p.clientId IN :clientIds AND p.paymentApprovalStatus = 'APPROVED' GROUP BY p.clientId")
+    List<Object[]> findLastPaymentDatesByClientIds(@Param("clientIds") java.util.Collection<Long> clientIds);
+
     /**
      * Batch sum of APPROVED payments per client.
      * Used for efficient outstanding balance calculation across all clients.

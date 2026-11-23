@@ -103,6 +103,7 @@ export function CreditEntryForm({
             inputClassName="ui-search-shell__input text-sm"
             placeholder="Search client name..."
             showNoClientsHint
+            blockOverdue={false}
           />
 
           {/* Sub-account picker — only shown when the selected parent has children */}

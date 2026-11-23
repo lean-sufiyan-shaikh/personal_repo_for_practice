@@ -52,7 +52,8 @@ describe('AddCreditEntryModal', () => {
     await user.type(screen.getByLabelText('Credit amount in rupees'), '250')
     expect(screen.getByRole('button', { name: 'Save Entry' })).toBeDisabled()
 
-    fireEvent.mouseDown(await screen.findByRole('button', { name: /Fleet Co/ }))
+    await user.click(search)
+    fireEvent.mouseDown(await screen.findByRole('option', { name: /Fleet Co/ }))
     await user.click(screen.getByRole('button', { name: 'Save Entry' }))
 
     expect(shiftApi.addCreditEntry).toHaveBeenCalledWith(3, 11, expect.objectContaining({ clientId: 40, clientName: 'Fleet Co', amount: 250 }), expect.any(String))

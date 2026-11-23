@@ -18,6 +18,7 @@ import { TankStockOverview } from './overview/TankStockOverview'
 import { ShiftStatusRow } from './overview/ShiftStatusRow'
 import { StatCard } from './overview/StatCard'
 import { AllPumpsOverview, OverviewScopeToggle } from './overview/AllPumpsOverview'
+import { ManagerHeader, ManagerQuickActions, OpenShiftsLive } from './overview/ManagerHome'
 import { codeLabel, roleLabel } from '../../constants/labels'
 
 const RevenueTrendChart = lazy(() => import('./overview/RevenueTrendChart').then((module) => ({ default: module.RevenueTrendChart })))
@@ -27,6 +28,7 @@ const RevenueTrendChart = lazy(() => import('./overview/RevenueTrendChart').then
 export default function OverviewPage() {
   const { user } = useAuthStore()
   const { selectedPumpId } = usePumpStore()
+  const isManager = user?.role === 'MANAGER'
 
   const { data: pumps = [] } = useQuery({
     queryKey: ['myPumps'],
@@ -49,7 +51,8 @@ export default function OverviewPage() {
       queryKey:        ['activeShifts', id] as const,
       queryFn:         () => shiftApi.getActiveShifts(id),
       enabled:         !!id,
-      refetchInterval: 60_000,
+      refetchInterval: isManager ? 15_000 : 60_000,
+      refetchIntervalInBackground: false,
     })),
   })
 
@@ -124,7 +127,15 @@ export default function OverviewPage() {
         </div>
       )}
 
-      {/* ── Welcome header (above the fold, so not faded in) ── */}
+      {isManager ? (
+        <>
+          <ManagerHeader pumpName={selectedPump?.name} />
+          {pumpId && <ManagerQuickActions pumpId={pumpId} activeShifts={allActiveShifts} tanks={allTanks} />}
+          {!statsLoading && (
+            <OpenShiftsLive shifts={allActiveShifts} isFetching={activeShiftsFetching} dataUpdatedAt={activeShiftsUpdatedAt} />
+          )}
+        </>
+      ) : (
       <div className="ui-dashboard-hero">
         <div className="ui-dashboard-hero-copy">
           <div className="ui-dashboard-chip">
@@ -159,6 +170,7 @@ export default function OverviewPage() {
           />
         </div>
       </div>
+      )}
 
       {allPumpsView ? (
         <AllPumpsOverview onPumpSelected={() => setShowAllPumps(false)} />
@@ -237,7 +249,7 @@ export default function OverviewPage() {
           )}
 
           {/* ── Live shift board ── */}
-          {!statsLoading && allActiveShifts.length > 0 && (
+          {!isManager && !statsLoading && allActiveShifts.length > 0 && (
             <Reveal delay={195}>
             <div className="ui-card p-0 overflow-hidden">
               <div className="ui-toolbar">

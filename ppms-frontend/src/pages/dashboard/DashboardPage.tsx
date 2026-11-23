@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Fuel, Menu } from 'lucide-react'
+import { Fuel } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { pumpApi } from '../../api/pumpApi'
 import NotificationBell from '../../components/NotificationBell'
 import { ToastContainer } from '../../components/Toast'
-import { IconButton } from '../../components/IconButton'
-import { DashboardSidebar, DASHBOARD_NAV_ID } from './layout/DashboardSidebar'
+import { DashboardSidebar } from './layout/DashboardSidebar'
+import { DashboardBottomNav } from './layout/DashboardBottomNav'
 import { PumpSwitcher } from './layout/PumpSwitcher'
 import { LiveClock } from './layout/LiveClock'
 import { RouteOutlet } from './layout/RouteOutlet'
@@ -35,10 +35,10 @@ export default function DashboardPage() {
   const showSuspendedNotice = selectedPumpSuspended || assignedPumpSuspended
   const queryClient = useQueryClient()
   const [navOpen, setNavOpen] = useState(false)
-  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const moreButtonRef = useRef<HTMLButtonElement>(null)
   const closeNav = useCallback(() => {
     setNavOpen(false)
-    menuButtonRef.current?.focus()
+    moreButtonRef.current?.focus()
   }, [])
 
   // Initialise / validate the stored pump whenever the pump list loads.
@@ -76,15 +76,6 @@ export default function DashboardPage() {
 
         {/* ── Left: Logo + tagline ── */}
         <div className="ui-dashboard-topbar-left">
-          <IconButton
-            ref={menuButtonRef}
-            label="Menu"
-            className="ui-dashboard-menu-button"
-            aria-expanded={navOpen}
-            aria-controls={DASHBOARD_NAV_ID}
-            onClick={() => setNavOpen(true)}
-            icon={<Menu size={20} strokeWidth={2} />}
-          />
           <div className="ui-dashboard-brandmark">
             <Fuel size={20} className="text-ink" strokeWidth={1.8} />
           </div>
@@ -134,6 +125,8 @@ export default function DashboardPage() {
             : <RouteOutlet />}
         </main>
       </div>
+
+      <DashboardBottomNav drawerOpen={navOpen} onOpenDrawer={() => setNavOpen(true)} moreButtonRef={moreButtonRef} />
 
       <ToastContainer />
 

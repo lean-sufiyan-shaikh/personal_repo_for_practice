@@ -8,8 +8,8 @@ export function fmtAmt(n: number) {
 
 // ── Live shift board row ───────────────────────────────────────────────────────
 
-export function timeOpen(startTime: string): string {
-  const mins = Math.floor((Date.now() - new Date(startTime).getTime()) / 60_000)
+export function timeOpen(startTime: string, now: number = Date.now()): string {
+  const mins = Math.max(0, Math.floor((now - new Date(startTime).getTime()) / 60_000))
   if (mins < 60) return `${mins}m`
   return `${Math.floor(mins / 60)}h ${mins % 60}m`
 }

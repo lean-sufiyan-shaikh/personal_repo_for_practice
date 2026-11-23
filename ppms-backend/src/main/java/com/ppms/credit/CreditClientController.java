@@ -26,6 +26,7 @@ public class CreditClientController {
     private final CreditInterestService interestService;
     private final CreditClientService creditClientService;
     private final CreditClientAccessService clientAccessService;
+    private final CreditAccountPolicyService creditAccountPolicyService;
 
     /**
      * GET /api/pumps/{pumpId}/credit-clients
@@ -73,6 +74,16 @@ public class CreditClientController {
                 .toList();
 
         return ResponseEntity.ok(clients);
+    }
+
+    /**
+     * GET /api/pumps/{pumpId}/credit-clients/credit-standing
+     * Whether each client could take a credit sale now, and how much credit its group has left.
+     * All authenticated users can read — operators pick clients for credit sales.
+     */
+    @GetMapping("/credit-standing")
+    public ResponseEntity<List<CreditClientStandingResponse>> getCreditStanding(@PathVariable Long pumpId) {
+        return ResponseEntity.ok(List.copyOf(creditAccountPolicyService.creditStandingOfPumpClients(pumpId).values()));
     }
 
     /**
