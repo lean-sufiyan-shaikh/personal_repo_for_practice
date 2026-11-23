@@ -8,14 +8,14 @@ import { SkeletonRows } from '../../components/Skeleton'
 import { IconButton } from '../../components/IconButton'
 import { DiscrepancyTd, FuelLineRow, ShiftLineRow, SummaryTile, Td } from './bsTableCells'
 import { ExpensesSection } from './sections/ExpensesSection'
-import { bsColumn, fmtDate, fmtDateTime, fmtLitres } from './bsFormat'
+import { bsColumn, fmtDate, fmtDateTime } from './bsFormat'
 import { ProductSalesSection } from './sections/ProductSalesSection'
 import { SettlementSection } from './sections/SettlementSection'
 import { DipPlSection } from './sections/DipPlSection'
 import { MeterAmendmentsSection } from './sections/MeterAmendmentsSection'
 import { DataTable } from '../../components/DataTable'
 import type { DataTableColumn } from '../../components/DataTable'
-import { MoneyText } from '../../components/AmountText'
+import { LitresText, MoneyText } from '../../components/AmountText'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Link } from 'react-router-dom'
 import { CsvExportButton } from '../../components/CsvExportButton'
@@ -258,9 +258,9 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
                 </Link>
               </p>
             )}
-            <SummaryTile label="Total Litres Sold" value={fmtLitres(detail.totalLitresSold)} />
+            <SummaryTile label="Total Litres Sold" value={<LitresText value={detail.totalLitresSold} decimals={1} />} />
             {detail.reportType === 'DAY' && (
-              <SummaryTile label="Litres Delivered" value={fmtLitres(detail.totalLitresDelivered)} />
+              <SummaryTile label="Litres Delivered" value={<LitresText value={detail.totalLitresDelivered} decimals={1} />} />
             )}
             {isOwnerOrAdmin && <SummaryTile label="Cost of Goods" value={<MoneyText value={detail.totalCostOfGoods} />} />}
             {isOwnerOrAdmin && (
@@ -361,7 +361,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
             footer={detail.shiftLines.length > 1 && (
               <tr className="bg-surface-sunken text-ink">
                 <Td colSpan={3}>Total</Td>
-                <Td right>{fmtLitres(detail.shiftLines.reduce((s, l) => s + l.litresSold, 0))}</Td>
+                <Td right><LitresText value={detail.shiftLines.reduce((s, l) => s + l.litresSold, 0)} decimals={1} /></Td>
                 <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.expectedRevenue, 0)} /></Td>
                 <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.cashCollected + l.upiCollected + l.cardCollected + (l.fleetCardCollected ?? 0), 0)} /></Td>
                 <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.cashCollected, 0)} /></Td>

@@ -19,6 +19,7 @@ export const CHART_TOOLTIP_STYLE = {
   borderRadius: '8px',
   border: `1px solid ${CHART_COLORS.grid}`,
   padding: '0.5rem 0.75rem',
+  boxShadow: 'var(--shadow-overlay)',
 }
 
 export function compactRupees(value: number): string {

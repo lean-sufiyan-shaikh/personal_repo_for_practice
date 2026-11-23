@@ -1,7 +1,7 @@
-import { AlertTriangle, ArrowDown, ArrowUp, Ban, Check, CircleDot, Clock, FileCheck, Gauge, Hourglass, Pause, X } from 'lucide-react'
+import { AlertTriangle, ArrowDown, ArrowUp, Ban, Check, CircleDot, Clock, FileCheck, Gauge, Hourglass, Pause, Percent, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { DiscrepancyType, ShiftStatus } from '../types/shift'
-import type { CreditInvoiceStatus, CreditStanding } from '../api/creditApi'
+import type { CreditInvoiceStatus, CreditStanding, CreditTransaction } from '../api/creditApi'
 import type { ExpenseApprovalStatus } from '../api/expenseApi'
 import { codeLabel } from '../constants/labels'
 import { statusLabel } from '../pages/shifts/shiftLabels'
@@ -64,3 +64,15 @@ export function creditStandingBadge(standing: CreditStanding): StatusBadgeSpec {
 }
 
 export const SETTLEMENT_OVERDUE_BADGE: StatusBadgeSpec = { tone: 'bad', icon: Clock, label: codeLabel('OVERDUE') }
+
+/** A ledger row's status wins over its type, so a voided sale reads "Voided" rather than "Sale". */
+export function creditTransactionBadge(tx: Pick<CreditTransaction, 'type' | 'status'>): StatusBadgeSpec {
+  if (tx.status === 'PENDING_APPROVAL') return { label: 'Pending approval', tone: 'warn', icon: Hourglass }
+  if (tx.status === 'REJECTED') return { label: 'Rejected', tone: 'neutral', icon: X }
+  if (tx.status === 'VOIDED') return { label: 'Voided', tone: 'neutral', icon: Ban }
+  if (tx.status === 'WAIVED') return { label: 'Waived', tone: 'neutral', icon: Ban }
+  if (tx.type === 'SALE') return { label: 'Sale', tone: 'warn', icon: ArrowUp }
+  if (tx.type === 'COUNTER_SALE') return { label: 'Shop sale', tone: 'warn', icon: ArrowUp }
+  if (tx.type === 'INTEREST') return { label: 'Interest', tone: 'info', icon: Percent }
+  return { label: 'Paid', tone: 'ok', icon: ArrowDown }
+}

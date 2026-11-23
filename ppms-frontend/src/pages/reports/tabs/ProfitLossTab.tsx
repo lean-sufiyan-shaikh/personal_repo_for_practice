@@ -16,11 +16,11 @@ import { shiftsForFuelUrl } from '../../../utils/drillDown'
 import { formatIstDate } from '../../../utils/date'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, SummaryCard } from '../shared'
-import { fmtQty, fmtShortDate } from '../reportFormat'
+import { fmtShortDate } from '../reportFormat'
 import { ProfitLossDailyChart } from '../charts/ProfitLossDailyChart'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
-import { MoneyText } from '../../../components/AmountText'
+import { LitresText, MoneyText } from '../../../components/AmountText'
 import { codeLabel } from '../../../constants/labels'
 
 const FUEL_COLUMNS: CsvColumn<ProfitLossFuelLine>[] = [
@@ -70,7 +70,7 @@ const LOT_COST_COLUMNS: DataTableColumn<LotCostLine>[] = [
   { key: 'reference', header: 'Lot Ref', cell: (lot) => <span className="text-ink-2">{lot.tankerReference}</span> },
   { key: 'delivered', header: 'Delivery Date', cell: (lot) => <span className="text-ink-3">{fmtShortDate(lot.deliveryDate)}</span> },
   { key: 'cost', header: 'Cost/L', numeric: true, cell: (lot) => <MoneyText value={lot.costPricePerUnit} className="text-ink-2" /> },
-  { key: 'units', header: 'Units Consumed', numeric: true, cell: (lot) => <span className="text-ink-2">{fmtQty(lot.quantityConsumed)}</span> },
+  { key: 'units', header: 'Units Consumed', numeric: true, cell: (lot) => <LitresText value={lot.quantityConsumed} decimals={2} className="text-ink-2" /> },
   { key: 'total', header: 'Cost', numeric: true, cell: (lot) => <MoneyText value={lot.lotCost} className="font-medium text-ink" /> },
 ]
 

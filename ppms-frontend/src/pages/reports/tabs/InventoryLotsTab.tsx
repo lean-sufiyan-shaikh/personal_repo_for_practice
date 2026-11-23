@@ -15,7 +15,7 @@ import { fmtQty, fmtShortDate, fmtShortDayMonth } from '../reportFormat'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { StatusBadge } from '../../../components/StatusBadge'
-import { MoneyText } from '../../../components/AmountText'
+import { LitresText, MoneyText } from '../../../components/AmountText'
 import { codeLabel } from '../../../constants/labels'
 import { CsvExportButton } from '../../../components/CsvExportButton'
 import { csvFilename } from '../../../utils/csv'
@@ -52,14 +52,14 @@ const TANK_LOT_COLUMNS: DataTableColumn<InventoryLotLine>[] = [
   { key: 'reference', header: 'Tanker Ref', cell: (lot) => <span className="text-ink-2">{lot.tankerReference}</span> },
   { key: 'delivered', header: 'Delivery Date', cell: (lot) => <span className="text-ink-3">{fmtShortDate(lot.deliveryDate)}</span> },
   { key: 'cost', header: 'Cost/L', numeric: true, cell: (lot) => <MoneyText value={lot.costPricePerUnit} className="text-ink-2" /> },
-  { key: 'original', header: 'Original', numeric: true, cell: (lot) => <span className="text-ink-3">{fmtQty(lot.originalQuantity)}</span> },
-  { key: 'remaining', header: 'Remaining', numeric: true, cell: (lot) => <span className="font-medium text-ink">{fmtQty(lot.remainingQuantity)}</span> },
+  { key: 'original', header: 'Original', numeric: true, cell: (lot) => <LitresText value={lot.originalQuantity} decimals={2} className="text-ink-3" /> },
+  { key: 'remaining', header: 'Remaining', numeric: true, cell: (lot) => <LitresText value={lot.remainingQuantity} decimals={2} className="font-medium text-ink" /> },
   { key: 'status', header: 'Status', cell: (lot) => <LotBadges lot={lot} dipLabel="DIP" /> },
 ]
 
 const CROSS_TANK_COLUMNS: DataTableColumn<CrossTankSummaryLine>[] = [
   { key: 'fuel', header: 'Fuel Type', cell: (row) => <span className="font-medium text-ink">{codeLabel(row.fuelType)}</span> },
-  { key: 'remaining', header: 'Total Remaining', numeric: true, cell: (row) => <span className="text-ink-2">{fmtQty(row.totalRemaining)}</span> },
+  { key: 'remaining', header: 'Total Remaining', numeric: true, cell: (row) => <LitresText value={row.totalRemaining} decimals={2} className="text-ink-2" /> },
   {
     key: 'avgCost', header: 'Weighted Avg Cost', numeric: true,
     cell: (row) => <span className="text-ink-2">{row.weightedAvgCostPerUnit != null ? `₹${row.weightedAvgCostPerUnit.toFixed(2)}/L` : '—'}</span>,
@@ -185,7 +185,7 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
             <div className="grid grid-cols-3 gap-3">
               <div className="ui-card ui-card-muted p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">Total Remaining</p>
-                <p className="text-sm font-semibold text-ink mt-0.5">{fmtQty(data.totalRemaining)}</p>
+                <p className="text-sm font-semibold text-ink mt-0.5"><LitresText value={data.totalRemaining} decimals={2} /></p>
               </div>
               <div className="ui-card ui-card-muted p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">Avg Cost</p>

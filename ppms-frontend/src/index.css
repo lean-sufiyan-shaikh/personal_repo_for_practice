@@ -53,11 +53,6 @@
 
   --shadow-raised: 0 1px 2px rgb(20 24 31 / 0.08);
   --shadow-overlay: 0 8px 24px rgb(20 24 31 / 0.16);
-
-  /* Intentionally darker than stock Tailwind so text in these shades passes 4.5:1 on white, until stage 3 replaces the raw palette classes. */
-  --color-emerald-600: #00805a;
-  --color-amber-600: #b25a00;
-  --color-orange-600: #c84400;
 }
 
 @layer base {
@@ -1233,8 +1228,7 @@
     font-weight: 600;
   }
 
-  .ui-modal-header--info,
-  .ui-modal-header--primary {
+  .ui-modal-header--info {
     --modal-tone: var(--color-info);
     --modal-icon: "i";
   }
@@ -1628,13 +1622,6 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
-  }
-
-  .ui-dip-editor__loss {
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--color-warn);
   }
 
   /* Edge shadows that appear only while content is scrolled out of view on that side */
@@ -2250,6 +2237,11 @@
 
   .ui-table-wrap th {
     position: static !important;
+  }
+
+  .ui-scroll-region {
+    background: none !important;
+    box-shadow: none !important;
   }
 
   .ui-table-wrap--scroll {

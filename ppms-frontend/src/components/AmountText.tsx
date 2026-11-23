@@ -30,7 +30,7 @@ export function MoneyText(props: AmountTextProps) {
   return <AmountText {...props} format={formatCurrency} />
 }
 
-/** Litres with 3 decimals and the unit: 1,234.567 L. */
-export function LitresText(props: AmountTextProps) {
-  return <AmountText {...props} format={formatLitres} />
+/** Litres with the unit, 3 decimals unless told otherwise: 1,234.567 L. */
+export function LitresText({ decimals = 3, ...props }: AmountTextProps & { decimals?: number }) {
+  return <AmountText {...props} format={(n) => formatLitres(n, decimals)} />
 }

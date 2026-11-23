@@ -20,7 +20,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: BackfillShiftMod
         title="Backfill Historical Shift"
         subtitle="Record past shift data (up to 365 days back). Tanker deliveries for the shift date must be logged first — the system will block submission if stock is insufficient."
         tone="info"
-        size="lg"
+        size="md-wide"
         onClose={requestClose}
         canClose={!isPending}
         closeOnBackdropClick

@@ -25,4 +25,10 @@ describe('LitresText', () => {
     render(<LitresText value={1234.5} />)
     expect(screen.getByText('1,234.500 L')).toBeInTheDocument()
   })
+
+  it('uses the given number of decimals', () => {
+    render(<><LitresText value={1234.56} decimals={1} /><LitresText value={1500} decimals={2} /></>)
+    expect(screen.getByText('1,234.6 L')).toBeInTheDocument()
+    expect(screen.getByText('1,500.00 L')).toBeInTheDocument()
+  })
 })

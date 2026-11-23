@@ -1,4 +1,3 @@
-import { ArrowDown, ArrowUp, Ban, Hourglass, Percent, X } from 'lucide-react'
 import type { CreditTransaction } from '../../api/creditApi'
 import { formatIstDate } from '../../utils/date'
 import { formatDecimal } from '../../utils/format'
@@ -6,7 +5,7 @@ import { DataTable } from '../../components/DataTable'
 import type { DataTableColumn } from '../../components/DataTable'
 import { MoneyText } from '../../components/AmountText'
 import { StatusBadge } from '../../components/StatusBadge'
-import type { StatusBadgeSpec } from '../../components/statusBadges'
+import { creditTransactionBadge } from '../../components/statusBadges'
 import { codeLabel } from '../../constants/labels'
 import { FUEL_LABELS } from '../../constants/fuel'
 
@@ -42,24 +41,13 @@ function detailText(tx: CreditTransaction): string {
 
 const isSale = (tx: CreditTransaction) => tx.type === 'SALE' || tx.type === 'COUNTER_SALE'
 
-function rowBadge(tx: CreditTransaction): StatusBadgeSpec {
-  if (tx.status === 'PENDING_APPROVAL') return { label: 'Pending approval', tone: 'warn', icon: Hourglass }
-  if (tx.status === 'REJECTED') return { label: 'Rejected', tone: 'neutral', icon: X }
-  if (tx.status === 'VOIDED') return { label: 'Voided', tone: 'neutral', icon: Ban }
-  if (tx.status === 'WAIVED') return { label: 'Waived', tone: 'neutral', icon: Ban }
-  if (tx.type === 'SALE') return { label: 'Sale', tone: 'warn', icon: ArrowUp }
-  if (tx.type === 'COUNTER_SALE') return { label: 'Shop sale', tone: 'warn', icon: ArrowUp }
-  if (tx.type === 'INTEREST') return { label: 'Interest', tone: 'info', icon: Percent }
-  return { label: 'Paid', tone: 'ok', icon: ArrowDown }
-}
-
 const COLUMNS: DataTableColumn<CreditTransaction>[] = [
-  { key: 'date', header: 'Date', className: 'px-4' },
-  { key: 'type', header: 'Type', className: 'px-2' },
+  { key: 'date', header: 'Date', className: 'px-4 w-20' },
+  { key: 'type', header: 'Type', className: 'px-2 w-40' },
   { key: 'detail', header: 'Detail', className: 'px-2' },
-  { key: 'amount', header: 'Amount', numeric: true, className: 'px-2' },
-  { key: 'balance', header: 'Balance', numeric: true, className: 'px-4' },
-  { key: 'actions', header: <span className="sr-only">Actions</span>, align: 'right', className: 'px-3' },
+  { key: 'amount', header: 'Amount', numeric: true, className: 'px-2 w-28' },
+  { key: 'balance', header: 'Balance', numeric: true, className: 'px-4 w-32' },
+  { key: 'actions', header: <span className="sr-only">Actions</span>, align: 'right', className: 'px-3 w-52' },
 ]
 
 export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGroupsProps) {
@@ -68,7 +56,7 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
     approvePayment, onRejectPayment, isApproving, onMove, onWaiveInterest,
   } = actions
 
-  return groups.map(({ label, items }) => {
+  return groups.map(({ label, items }, index) => {
     const weekSales    = items.filter(t => t.countedInBalance && isSale(t)).reduce((s, t) => s + t.amount, 0)
     const weekPayments = items.filter(t => t.countedInBalance && t.type === 'PAYMENT').reduce((s, t) => s + t.amount, 0)
     const weekInterest = items.filter(t => t.countedInBalance && t.type === 'INTEREST').reduce((s, t) => s + t.amount, 0)
@@ -85,35 +73,37 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
         <DataTable
           caption={`Transactions, ${label}`}
           captionHidden
+          headerHidden={index > 0}
           columns={COLUMNS}
           rows={items}
           rowKey={tx => `${tx.type}-${tx.referenceId}-${items.indexOf(tx)}`}
           className="rounded-none border-0"
+          tableClassName="table-fixed min-w-208"
           renderRow={tx => (
             <tr>
               <td className="px-4 py-2.5 text-ink-3 text-xs whitespace-nowrap w-20">
                 {formatDate(tx.businessDate)}
               </td>
-              <td className="px-2 py-2.5 w-24">
-                <StatusBadge {...rowBadge(tx)} />
+              <td className="px-2 py-2.5 w-40">
+                <StatusBadge {...creditTransactionBadge(tx)} />
               </td>
-              <td className="px-2 py-2.5 text-xs max-w-[160px]">
+              <td className="px-2 py-2.5 text-xs">
                 <span className="text-ink-3 truncate block">{tx.reference || detailText(tx)}</span>
                 {!tx.countedInBalance && (
                   <span className="text-xs font-medium text-ink-2">Not counted in balance</span>
                 )}
               </td>
-              <td className={`px-2 py-2.5 text-right text-xs font-semibold ${
+              <td className={`px-2 py-2.5 w-28 text-right text-xs font-semibold ${
                 tx.type === 'PAYMENT' ? 'text-ok' : tx.type === 'INTEREST' ? 'text-info' : 'text-warn'
               }`}>
                 <MoneyText value={tx.type === 'PAYMENT' ? -tx.amount : tx.amount} showSign />
               </td>
-              <td className={`px-4 py-2.5 text-right text-xs font-bold w-28 ${
+              <td className={`px-4 py-2.5 text-right text-xs font-bold w-32 ${
                 tx.runningBalance > 0 ? 'text-ink' : 'text-ok'
               }`}>
                 <MoneyText value={tx.runningBalance} />
               </td>
-              <td className="px-3 py-2.5 w-28 text-right">
+              <td className="px-3 py-2.5 w-52 text-right">
                 {canApprovePayments && tx.type === 'PAYMENT' && tx.status === 'PENDING_APPROVAL'
                   && pendingPaymentRecorders.has(tx.referenceId)
                   && pendingPaymentRecorders.get(tx.referenceId) !== currentUserId && (

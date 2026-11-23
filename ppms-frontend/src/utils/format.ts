@@ -6,10 +6,10 @@ export function formatCurrency(n: number): string {
 }
 
 /**
- * Formats a litre value to 3 decimal places: 1,234.567 L
+ * Formats a litre value, 3 decimal places by default: 1,234.567 L
  */
-export function formatLitres(n: number): string {
-  return `${n.toLocaleString('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} L`
+export function formatLitres(n: number, decimals = 3): string {
+  return `${n.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })} L`
 }
 
 /**

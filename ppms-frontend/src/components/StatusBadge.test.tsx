@@ -3,7 +3,7 @@ import { Check } from 'lucide-react'
 import { describe, expect, it } from 'vitest'
 import { StatusBadge } from './StatusBadge'
 import {
-  approvalStatusBadge, creditStandingBadge, discrepancyBadge, invoiceStatusBadge, SETTLEMENT_OVERDUE_BADGE, shiftStatusBadge,
+  approvalStatusBadge, creditStandingBadge, creditTransactionBadge, discrepancyBadge, invoiceStatusBadge, SETTLEMENT_OVERDUE_BADGE, shiftStatusBadge,
 } from './statusBadges'
 
 describe('StatusBadge', () => {
@@ -17,6 +17,12 @@ describe('StatusBadge', () => {
     const { container } = render(<StatusBadge tone="neutral" label="Backfilled" />)
     expect(screen.getByText('Backfilled')).toHaveClass('bg-neutral-bg', 'text-neutral')
     expect(container.querySelector('svg')).toBeNull()
+  })
+
+  it('stays on one line unless asked to wrap', () => {
+    render(<><StatusBadge tone="ok" label="Approved" /><StatusBadge tone="bad" label="Rejected: wrong bill" wrap /></>)
+    expect(screen.getByText('Approved')).toHaveClass('whitespace-nowrap')
+    expect(screen.getByText('Rejected: wrong bill')).not.toHaveClass('whitespace-nowrap')
   })
 })
 
@@ -40,5 +46,13 @@ describe('status badge specs', () => {
     expect(creditStandingBadge('OK')).toMatchObject({ tone: 'ok', label: 'OK' })
     expect(creditStandingBadge('OVER_LIMIT')).toMatchObject({ tone: 'warn', label: 'Over limit' })
     expect(SETTLEMENT_OVERDUE_BADGE).toMatchObject({ tone: 'bad', label: 'Overdue' })
+  })
+
+  it('reads a credit ledger row by its status first, then its type', () => {
+    expect(creditTransactionBadge({ type: 'SALE', status: 'VOIDED' })).toMatchObject({ tone: 'neutral', label: 'Voided' })
+    expect(creditTransactionBadge({ type: 'PAYMENT', status: 'PENDING_APPROVAL' })).toMatchObject({ tone: 'warn', label: 'Pending approval' })
+    expect(creditTransactionBadge({ type: 'COUNTER_SALE', status: 'ACTIVE' })).toMatchObject({ tone: 'warn', label: 'Shop sale' })
+    expect(creditTransactionBadge({ type: 'INTEREST', status: 'ACTIVE' })).toMatchObject({ tone: 'info', label: 'Interest' })
+    expect(creditTransactionBadge({ type: 'PAYMENT', status: 'APPROVED' })).toMatchObject({ tone: 'ok', label: 'Paid' })
   })
 })

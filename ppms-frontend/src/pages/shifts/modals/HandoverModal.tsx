@@ -53,7 +53,7 @@ export function HandoverModal({ shift, onClose }: { shift: Shift; onClose: () =>
         </button>
       }
       tone="info"
-      size="lg"
+      size="md-wide"
       onClose={onClose}
       closeOnBackdropClick
       headerClassName="print:hidden"

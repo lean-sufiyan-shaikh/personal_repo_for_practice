@@ -58,4 +58,9 @@ describe('Modal', () => {
     expect(panel).toHaveClass('ui-modal-panel--lg')
     expect(panel?.parentElement).toHaveClass('ui-modal-backdrop--fullscreen')
   })
+
+  it('offers a width between the medium and large panels', () => {
+    render(<Modal title="Open New Shift" size="md-wide" onClose={() => {}}><p>Body</p></Modal>)
+    expect(screen.getByRole('dialog').querySelector('.ui-modal-panel')).toHaveClass('w-full', 'max-w-140')
+  })
 })

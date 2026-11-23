@@ -63,4 +63,20 @@ describe('DataTable', () => {
     expect(screen.getByRole('region')).toHaveClass('ui-table-wrap--scroll')
     expect(within(table.querySelector('tfoot')!).getByRole('rowheader', { name: 'Total' })).toBeInTheDocument()
   })
+
+  it('adds the row class to default rows and the column class to their cells', () => {
+    const styledColumns: DataTableColumn<Sale>[] = [{ ...columns[0], className: 'font-medium' }, columns[1]]
+    render(
+      <DataTable caption="Sales" columns={styledColumns} rows={rows} rowKey={(row) => row.id}
+        rowClassName={(row) => row.id === 2 ? 'bg-info-bg' : undefined} />,
+    )
+    expect(screen.getByRole('row', { name: /#2 Diesel/ })).toHaveClass('bg-info-bg')
+    expect(screen.getByRole('row', { name: /#1 Petrol/ })).not.toHaveClass('bg-info-bg')
+    expect(screen.getByRole('cell', { name: '#1 Petrol' })).toHaveClass('font-medium')
+  })
+
+  it('keeps a hidden header row available to screen readers', () => {
+    render(<DataTable caption="Sales" headerHidden columns={columns} rows={rows} rowKey={(row) => row.id} />)
+    expect(screen.getByRole('columnheader', { name: 'Nozzle' }).closest('thead')).toHaveClass('sr-only')
+  })
 })

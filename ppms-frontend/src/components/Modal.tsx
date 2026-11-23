@@ -3,11 +3,12 @@ import { ModalPortal } from './ModalPortal'
 import { IconButton } from './IconButton'
 
 export type ModalTone = 'info' | 'warning' | 'danger' | 'success' | 'neutral'
-export type ModalSize = 'sm' | 'md' | 'lg' | 'full'
+export type ModalSize = 'sm' | 'md' | 'md-wide' | 'lg' | 'full'
 
 const SIZE_CLASS: Record<ModalSize, string> = {
   sm: 'w-full max-w-sm',
   md: 'w-full max-w-md',
+  'md-wide': 'w-full max-w-140',
   lg: '',
   full: 'ui-modal-panel--lg',
 }

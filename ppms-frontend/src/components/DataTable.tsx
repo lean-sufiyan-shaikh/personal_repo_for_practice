@@ -26,6 +26,8 @@ interface DataTableProps<Row> {
   /** Names the table for screen readers; shown above it unless captionHidden. */
   caption: string
   captionHidden?: boolean
+  /** The header row stays for screen readers but is not shown, for tables stacked under one visible header. */
+  headerHidden?: boolean
   /** Name of the scrollable region; defaults to the caption. */
   regionLabel?: string
   columns: DataTableColumn<Row>[]
@@ -33,6 +35,8 @@ interface DataTableProps<Row> {
   rowKey: (row: Row) => Key
   /** Replaces the default one-row-per-item rendering, for rows that need extra rows or custom markup. */
   renderRow?: (row: Row) => ReactNode
+  /** Added to a default row, e.g. to highlight the selected one. */
+  rowClassName?: (row: Row) => string | undefined
   sort?: DataTableSort
   onSortChange?: (key: string) => void
   /** Cells of a totals row, rendered in tfoot. */
@@ -63,11 +67,13 @@ function SortIcon({ direction }: { direction: SortDirection | undefined }) {
 export function DataTable<Row>({
   caption,
   captionHidden = false,
+  headerHidden = false,
   regionLabel,
   columns,
   rows,
   rowKey,
   renderRow,
+  rowClassName,
   sort,
   onSortChange,
   footer,
@@ -81,7 +87,7 @@ export function DataTable<Row>({
     <ScrollRegion label={regionLabel ?? caption} className={`ui-table-wrap ${scroll ? 'ui-table-wrap--scroll' : ''} ${className}`}>
       <table className={`text-sm ${cardsOnPhone ? 'ui-table-cards' : ''} ${tableClassName}`}>
         <caption className={captionHidden ? 'sr-only' : 'px-4 py-2 text-left text-sm font-semibold text-ink'}>{caption}</caption>
-        <thead>
+        <thead className={headerHidden ? 'sr-only' : undefined}>
           <tr>
             {columns.map((column) => {
               const direction = sort?.key === column.key ? sort.direction : undefined
@@ -116,7 +122,7 @@ export function DataTable<Row>({
           ) : rows.map((row) => renderRow ? (
             <Fragment key={rowKey(row)}>{renderRow(row)}</Fragment>
           ) : (
-            <tr key={rowKey(row)}>
+            <tr key={rowKey(row)} className={rowClassName?.(row)}>
               {columns.map((column) => (
                 <td key={column.key} className={alignClass(column)}>{column.cell?.(row)}</td>
               ))}

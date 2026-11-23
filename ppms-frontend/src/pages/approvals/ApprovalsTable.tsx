@@ -15,6 +15,10 @@ interface ApprovalsTableProps {
   onToggleAll: () => void
 }
 
+function itemName(item: ApprovalItem) {
+  return item.kind === 'EXPENSE' ? codeLabel(item.category ?? '') : (item.clientName ?? `Client #${item.clientId}`)
+}
+
 export function ApprovalsTable({ items, selectedKeys, now, onToggle, onToggleAll }: ApprovalsTableProps) {
   const selectable = items.filter(item => item.blockedReason === null)
   const allSelected = selectable.length > 0 && selectable.every(item => selectedKeys.has(approvalKey(item)))
@@ -34,14 +38,33 @@ export function ApprovalsTable({ items, selectedKeys, now, onToggle, onToggleAll
           onChange={onToggleAll}
         />
       ),
+      cell: item => (
+        <input
+          type="checkbox"
+          aria-label={`Select ${item.kind === 'EXPENSE' ? 'expense' : 'credit payment'} ${itemName(item)} ${formatCurrency(item.amount)}`}
+          checked={selectedKeys.has(approvalKey(item))}
+          disabled={item.blockedReason !== null}
+          title={item.blockedReason ?? undefined}
+          onChange={() => onToggle(item)}
+        />
+      ),
     },
-    { key: 'type', header: 'Type' },
-    { key: 'what', header: 'Category or client' },
-    { key: 'amount', header: 'Amount', numeric: true },
-    { key: 'submittedBy', header: 'Submitted by' },
-    { key: 'waiting', header: 'Waiting' },
-    { key: 'date', header: 'Date' },
-    { key: 'note', header: 'Note' },
+    { key: 'type', header: 'Type', className: 'whitespace-nowrap', cell: item => <span className="text-ink-2">{item.kind === 'EXPENSE' ? 'Expense' : 'Credit payment'}</span> },
+    {
+      key: 'what',
+      header: 'Category or client',
+      cell: item => (
+        <span className="font-medium text-ink">
+          {itemName(item)}
+          {item.blockedReason && <span className="block text-xs font-normal text-warn">{item.blockedReason}</span>}
+        </span>
+      ),
+    },
+    { key: 'amount', header: 'Amount', numeric: true, cell: item => <MoneyText value={item.amount} className="font-semibold text-ink" /> },
+    { key: 'submittedBy', header: 'Submitted by', cell: item => <span className="text-ink-2">{item.submittedByName ?? '—'}</span> },
+    { key: 'waiting', header: 'Waiting', className: 'whitespace-nowrap', cell: item => <span className="text-ink-2">{waitingFor(item.submittedAt, now)}</span> },
+    { key: 'date', header: 'Date', className: 'whitespace-nowrap', cell: item => <span className="text-ink-3">{formatIstDate(item.itemDate)}</span> },
+    { key: 'note', header: 'Note', className: 'max-w-xs', cell: item => <span className="text-ink-3">{item.note || '—'}</span> },
   ]
 
   return (
@@ -52,34 +75,7 @@ export function ApprovalsTable({ items, selectedKeys, now, onToggle, onToggleAll
       columns={columns}
       rows={items}
       rowKey={approvalKey}
-      renderRow={item => {
-        const key = approvalKey(item)
-        const what = item.kind === 'EXPENSE' ? codeLabel(item.category ?? '') : (item.clientName ?? `Client #${item.clientId}`)
-        return (
-          <tr className={selectedKeys.has(key) ? 'bg-info-bg' : undefined}>
-            <td>
-              <input
-                type="checkbox"
-                aria-label={`Select ${item.kind === 'EXPENSE' ? 'expense' : 'credit payment'} ${what} ${formatCurrency(item.amount)}`}
-                checked={selectedKeys.has(key)}
-                disabled={item.blockedReason !== null}
-                title={item.blockedReason ?? undefined}
-                onChange={() => onToggle(item)}
-              />
-            </td>
-            <td className="whitespace-nowrap text-ink-2">{item.kind === 'EXPENSE' ? 'Expense' : 'Credit payment'}</td>
-            <td className="font-medium text-ink">
-              {what}
-              {item.blockedReason && <span className="block text-xs font-normal text-warn">{item.blockedReason}</span>}
-            </td>
-            <td className="text-right"><MoneyText value={item.amount} className="font-semibold text-ink" /></td>
-            <td className="text-ink-2">{item.submittedByName ?? '—'}</td>
-            <td className="whitespace-nowrap text-ink-2">{waitingFor(item.submittedAt, now)}</td>
-            <td className="whitespace-nowrap text-ink-3">{formatIstDate(item.itemDate)}</td>
-            <td className="max-w-xs text-ink-3">{item.note || '—'}</td>
-          </tr>
-        )
-      }}
+      rowClassName={item => selectedKeys.has(approvalKey(item)) ? 'bg-info-bg' : undefined}
     />
   )
 }

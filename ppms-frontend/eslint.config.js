@@ -12,12 +12,10 @@ const HEX_CLASS = '-\\[#[0-9a-fA-F]{3,8}\\]'
 
 const rawStyleMessage = 'Use the design tokens (text-ink, bg-surface, ok/warn/bad/info/neutral, text-xs…) instead of raw palette colours, pixel font sizes or hex values.'
 
-function rawStyleRule(severity) {
-  return [severity, ...[PALETTE_CLASS, PIXEL_TEXT_CLASS, HEX_CLASS].flatMap((pattern) => [
-    { selector: `Literal[value=/${pattern}/]`, message: rawStyleMessage },
-    { selector: `TemplateElement[value.raw=/${pattern}/]`, message: rawStyleMessage },
-  ])]
-}
+const rawStyleRule = ['error', ...[PALETTE_CLASS, PIXEL_TEXT_CLASS, HEX_CLASS].flatMap((pattern) => [
+  { selector: `Literal[value=/${pattern}/]`, message: rawStyleMessage },
+  { selector: `TemplateElement[value.raw=/${pattern}/]`, message: rawStyleMessage },
+])]
 
 export default defineConfig([
   globalIgnores(['dist', 'coverage']),
@@ -35,17 +33,11 @@ export default defineConfig([
       'jsx-a11y/label-has-associated-control': ['error', { depth: 3, controlComponents: ['NumericInput'] }],
       // Scrollable table regions must take focus so keyboard users can scroll them.
       'jsx-a11y/no-noninteractive-tabindex': ['error', { tags: [], roles: ['tabpanel', 'region'], allowExpressionValues: true }],
-      'no-restricted-syntax': rawStyleRule('warn'),
+      'no-restricted-syntax': rawStyleRule,
     },
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
-    },
-  },
-  {
-    files: ['src/components/**/*.{ts,tsx}', 'src/pages/shifts/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-syntax': rawStyleRule('error'),
     },
   },
 ])

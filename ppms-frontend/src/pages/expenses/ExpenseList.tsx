@@ -35,7 +35,7 @@ const CSV_COLUMNS: CsvColumn<PumpExpense>[] = [
 function ApprovalBadge({ expense }: { expense: PumpExpense }) {
   const badge = approvalStatusBadge(expense.approvalStatus)
   const label = expense.approvalStatus === 'REJECTED' && expense.approvalNotes ? `${badge.label}: ${expense.approvalNotes}` : badge.label
-  return <StatusBadge {...badge} label={label} className="whitespace-normal!" />
+  return <StatusBadge {...badge} label={label} wrap />
 }
 
 interface ExpenseListProps {

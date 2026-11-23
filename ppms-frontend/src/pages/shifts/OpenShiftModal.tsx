@@ -170,7 +170,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
       title="Open New Shift"
       subtitle="Select a Dispensary Unit and assign an operator"
       tone="info"
-      size="lg"
+      size="md-wide"
       onClose={onClose}
       onSubmit={handleSubmit}
       bodyClassName="space-y-5"
