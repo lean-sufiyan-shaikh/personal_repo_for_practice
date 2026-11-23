@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { shiftApi } from '../../../api/shiftApi'
+import { useAuthStore } from '../../../store/authStore'
+import type { Shift } from '../../../types/shift'
+import { ResolveDiscrepancyModal } from '../modals/ResolveDiscrepancyModal'
 import { SkeletonRows } from '../../../components/Skeleton'
 import { parseApiError } from '../../../utils/apiError'
-import { PAGE_SIZE, fmtAmt, RESOLUTION_LABELS, investigationLabel } from '../shiftLabels'
+import { AWAITING_OWNER_APPROVAL, PAGE_SIZE, fmtAmt, RESOLUTION_LABELS, discrepancyAction, investigationLabel, statusBadge } from '../shiftLabels'
 import { ScrollRegion } from '../../../components/ScrollRegion'
 import { FULL_HISTORY_QUERY_OPTIONS } from '../../../queryClient'
 
@@ -12,6 +15,8 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
   const [fromDate, setFromDate] = useState('')
   const [toDate,   setToDate]   = useState('')
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'SHORT' | 'OVER'>('ALL')
+  const [resolvingShift, setResolvingShift] = useState<Shift | null>(null)
+  const role = useAuthStore((state) => state.user?.role)
 
   const { data: filtered = [], isLoading, error } = useQuery({
     queryKey: ['shiftHistory', pumpId, 'discrepancies', fromDate, toDate, typeFilter],
@@ -69,19 +74,19 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-slate-100 bg-slate-50/60">
         <span className="text-xs font-medium text-slate-500">Filter:</span>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <input aria-label="From date"
             type="date"
             value={fromDate}
             onChange={(e) => { setFromDate(e.target.value); setPage(0) }}
-            className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 min-w-[8.5rem] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <span className="text-slate-500 text-xs">to</span>
           <input aria-label="To date"
             type="date"
             value={toDate}
             onChange={(e) => { setToDate(e.target.value); setPage(0) }}
-            className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 min-w-[8.5rem] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div className="flex items-center gap-1">
@@ -120,18 +125,24 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
               <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">DU</th>
               <th scope="col" className="text-left px-5 py-3 font-medium">Type</th>
               <th scope="col" className="text-left px-5 py-3 font-medium">Amount</th>
-              <th scope="col" className="text-left px-5 py-3 font-medium">Resolution</th>
+              <th scope="col" className="text-left px-5 py-3 font-medium">Status</th>
               <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">Note</th>
+              <th scope="col" className="text-right px-5 py-3 font-medium"><span className="sr-only">Action</span></th>
             </tr>
           </thead>
           <tbody>
             {paged.length === 0 ? (
               <tr>
-                <td colSpan={8} className="ui-empty px-6 py-6">No discrepancies match the selected filters.</td>
+                <td colSpan={9} className="ui-empty px-6 py-6">No discrepancies match the selected filters.</td>
               </tr>
             ) : (
-              paged.map((shift) => (
-                <tr key={shift.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
+              paged.map((shift) => {
+                const action = discrepancyAction(shift, role)
+                const investigation = investigationLabel(shift)
+                const badge = statusBadge(shift.status)
+                return (
+                <Fragment key={shift.id}>
+                <tr className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
                   <td className="px-5 py-3 text-slate-500 text-xs font-mono hidden md:table-cell">{shift.id}</td>
                   <td className="px-5 py-3 text-xs text-slate-600">{shift.shiftDate}</td>
                   <td className="px-5 py-3 text-sm text-slate-700 font-medium">{shift.operatorName}</td>
@@ -166,14 +177,41 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
                         {RESOLUTION_LABELS[shift.discrepancyResolution] ?? shift.discrepancyResolution}
                       </span>
                     ) : (
-                      <span className="text-xs text-orange-600 font-medium">{investigationLabel(shift) ?? 'Pending'}</span>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badge.color}`}>{badge.label}</span>
+                    )}
+                    {investigation && (
+                      <span className="block text-xs text-orange-600 font-medium mt-1">{investigation}</span>
                     )}
                   </td>
                   <td className="px-5 py-3 text-xs text-slate-500 hidden md:table-cell max-w-xs truncate">
                     {shift.discrepancyResolutionNote ?? shift.investigationNote ?? shift.discrepancyReason ?? '—'}
                   </td>
+                  <td className="px-5 py-3 text-right">
+                    {action === 'resolve' && (
+                      <button type="button" onClick={() => setResolvingShift(shift)}
+                        aria-label={`Resolve discrepancy for shift ${shift.id}`}
+                        className="ui-btn ui-btn-danger min-h-0 px-3 py-1.5 text-xs">
+                        Resolve
+                      </button>
+                    )}
+                    {action === 'approve' && (
+                      <button type="button" onClick={() => setResolvingShift(shift)}
+                        aria-label={`Approve discrepancy for shift ${shift.id}`}
+                        className="ui-btn ui-btn-warning min-h-0 px-3 py-1.5 text-xs">
+                        Approve
+                      </button>
+                    )}
+                    {action === 'awaiting-owner' && (
+                      <span className="text-xs text-orange-600 font-medium">{AWAITING_OWNER_APPROVAL}</span>
+                    )}
+                  </td>
                 </tr>
-              ))
+                {resolvingShift?.id === shift.id && (
+                  <ResolveDiscrepancyModal shift={shift} onClose={() => setResolvingShift(null)} />
+                )}
+                </Fragment>
+                )
+              })
             )}
           </tbody>
         </table>

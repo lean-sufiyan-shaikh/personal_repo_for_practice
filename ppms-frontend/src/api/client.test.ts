@@ -12,6 +12,12 @@ function refuseWith(status: number, message: string) {
     }))
 }
 
+describe('apiClient timeout', () => {
+  it('gives up on a request the server does not answer in 20 seconds', () => {
+    expect(apiClient.defaults.timeout).toBe(20_000)
+  })
+})
+
 describe('apiClient suspended pump handling', () => {
   beforeEach(() => usePumpStore.setState({ selectedPumpId: 4, suspendedPumpId: null }))
 

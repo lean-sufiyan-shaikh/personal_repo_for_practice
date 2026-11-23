@@ -8,17 +8,19 @@ import { SearchableSelect } from '../../../components/SearchableSelect'
 import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
 import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
-import { fmtAmt, todayIso, yesterdayIso } from '../reportFormat'
+import { fmtAmt } from '../reportFormat'
+import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { ScrollRegion } from '../../../components/ScrollRegion'
 import { codeLabel } from '../../../constants/labels'
 
 // ── Operator Duty Tab ─────────────────────────────────────────────────────────
 
 export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
-  const [from, setFrom] = useState(yesterdayIso)
-  const [to,   setTo]   = useState(todayIso)
+  const [query, setQuery] = useReportRange(yesterdayToTodayRange)
+  const [from, setFrom] = useState(query.from)
+  const [to,   setTo]   = useState(query.to)
   const [operatorId, setOperatorId] = useState<number | null>(null)
-  const [query, setQuery] = useState<{ from: string; to: string; operatorId: number } | null>(null)
+  const [reportOperatorId, setReportOperatorId] = useState<number | null>(null)
   const [page, setPage]   = useState(0)
   const [pageSize, setPageSize] = useState(10)
 
@@ -28,9 +30,9 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
   })
 
   const { data, isFetching, error } = useQuery<OperatorDutyReport>({
-    queryKey: ['report-duty', pumpId, query?.operatorId, query?.from, query?.to],
-    queryFn: () => reportApi.getOperatorDuty(pumpId, query!.operatorId, query!.from, query!.to),
-    enabled: !!query,
+    queryKey: ['report-duty', pumpId, reportOperatorId, query.from, query.to],
+    queryFn: () => reportApi.getOperatorDuty(pumpId, reportOperatorId!, query.from, query.to),
+    enabled: reportOperatorId !== null,
   })
 
   const paged = data ? pageSlice(data.shifts, page, pageSize) : null
@@ -76,7 +78,7 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
         </div>
         <DateRangeInputs from={from} to={to} onFromChange={setFrom} onToChange={setTo} />
         <button
-          onClick={() => { if (operatorId) setQuery({ from, to, operatorId }); setPage(0) }}
+          onClick={() => { if (operatorId) { setReportOperatorId(operatorId); setQuery({ from, to }) } setPage(0) }}
           disabled={!operatorId || isFetching}
           className="ui-btn ui-btn-primary"
         >
@@ -115,7 +117,7 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
       {/* Print: full dataset */}
       {data && data.shifts.length > 0 && (
         <div className="hidden print:block space-y-4">
-          <PrintHeader title={`Operator Duty Report — ${data.operatorName}`} from={query?.from} to={query?.to} />
+          <PrintHeader title={`Operator Duty Report — ${data.operatorName}`} from={query.from} to={query.to} />
           <div className="grid grid-cols-3 gap-4">
             <SummaryCard label="Total Shifts"      value={String(data.totalShifts)}      color="text-slate-800" />
             <SummaryCard label="Total Amount Due"  value={fmtAmt(data.totalAmountDue)}   color="text-slate-800" />

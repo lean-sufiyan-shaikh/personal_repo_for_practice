@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import { canAccessPage, canPerformAction } from '../../permissions/permissions'
@@ -13,6 +12,8 @@ import { LedgerTab } from './LedgerTab'
 import { CreditClientsTab } from './CreditClientsTab'
 import { formatDecimal } from '../../utils/format'
 
+const CREDIT_PATH = '/dashboard/credit'
+
 // ─── Main Credit Page ────────────────────────────────────────────────────────
 
 export default function CreditPage() {
@@ -23,14 +24,26 @@ export default function CreditPage() {
   const canManageClients  = canPerformAction('credit:manage-client', user?.role)
 
   const { selectedPumpId } = usePumpStore()
-  const [selectedClient, setSelectedClient] = useState<CreditClient | null>(null)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { clientId: clientIdParam } = useParams()
+  const selectedClientId = clientIdParam && /^\d+$/.test(clientIdParam) ? Number(clientIdParam) : null
 
-  const [searchParams] = useSearchParams()
-  const [activeTab, setActiveTab] = useState<'ledger' | 'clients'>(() => {
-    const tabParam = searchParams.get('tab')
-    if (tabParam === 'clients') return 'clients'
-    return canSeeLedger ? 'ledger' : 'clients'
-  })
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab: 'ledger' | 'clients' =
+    searchParams.get('tab') === 'clients' || !canSeeLedger ? 'clients' : 'ledger'
+  const setActiveTab = (tab: 'ledger' | 'clients') => setSearchParams({ tab }, { replace: true })
+
+  const openClient = (client: CreditClient) =>
+    navigate(`${CREDIT_PATH}/${client.id}`, { state: { fromCreditList: true } })
+
+  const backToList = () => {
+    if ((location.state as { fromCreditList?: boolean } | null)?.fromCreditList) {
+      navigate(-1)
+    } else {
+      navigate(`${CREDIT_PATH}?tab=ledger`, { replace: true })
+    }
+  }
 
   const pumpId = selectedPumpId
 
@@ -58,13 +71,13 @@ export default function CreditPage() {
     )
   }
 
-  if (selectedClient && pumpId) {
+  if (selectedClientId !== null && pumpId) {
     return (
       <div className="ui-page ui-page--narrow space-y-5">
         <ClientDetail
-          clientId={selectedClient.id}
+          clientId={selectedClientId}
           pumpId={pumpId}
-          onBack={() => setSelectedClient(null)}
+          onBack={backToList}
         />
       </div>
     )
@@ -132,7 +145,7 @@ export default function CreditPage() {
           hasError={!!error}
           canAdjustLimit={canAdjustLimit}
           canIssueInvoices={canPerformAction('credit:issue-invoice', user?.role)}
-          onSelectClient={setSelectedClient}
+          onSelectClient={openClient}
         />
       )}
 

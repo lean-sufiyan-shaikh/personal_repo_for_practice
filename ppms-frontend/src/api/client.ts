@@ -12,7 +12,10 @@ const apiClient = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
+  timeout: 20_000,
 })
+
+export const REPORT_TIMEOUT_MS = 60_000
 
 // Patterns that indicate a raw Java exception or SQL error leaked through.
 // Any message matching these is replaced with a generic string before it reaches

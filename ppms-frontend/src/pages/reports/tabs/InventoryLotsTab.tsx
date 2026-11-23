@@ -10,19 +10,24 @@ import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
 import { DateRangeInputs, ErrorBox, PrintHeader } from '../shared'
 import { localDateInputValue } from '../../../utils/date'
+import { useReportRange } from '../useReportRange'
 import { fmtAmt, fmtQty, fmtShortDate, fmtShortDayMonth } from '../reportFormat'
 import { codeLabel } from '../../../constants/labels'
 
 const ALL_TANKS_DEFAULT_DAYS = 90
+
+function allTanksDefaultRange() {
+  return { from: localDateInputValue(-(ALL_TANKS_DEFAULT_DAYS - 1)), to: localDateInputValue() }
+}
 
 // ── Inventory Lots Tab ────────────────────────────────────────────────────────
 
 export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
   const [tankId, setTankId] = useState<string>('')    // '' = All Tanks, '123' = specific tank id
   const [query,  setQuery]  = useState<string>('')    // mirrors tankId on Load click
-  const [from, setFrom] = useState(() => localDateInputValue(-(ALL_TANKS_DEFAULT_DAYS - 1)))
-  const [to,   setTo]   = useState(() => localDateInputValue())
-  const [range, setRange] = useState({ from, to })    // mirrors from/to on Load click
+  const [range, setRange] = useReportRange(allTanksDefaultRange)
+  const [from, setFrom] = useState(range.from)
+  const [to,   setTo]   = useState(range.to)
   const [expandedLot, setExpandedLot] = useState<number | null>(null)
 
   const { data: tanks = [] } = useQuery({

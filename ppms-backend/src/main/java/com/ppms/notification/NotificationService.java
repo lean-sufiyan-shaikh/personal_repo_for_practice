@@ -156,8 +156,8 @@ public class NotificationService {
         tanks.stream()
                 .filter(TankStockResponse::isLowStock)
                 .forEach(tank -> {
-                    String dedupKey = "LOW_STOCK:tank:" + tank.getTankId() + ":" + businessClock.today();
-                    dedupService.maybeInsert(pumpId, NotificationType.LOW_STOCK, dedupKey,
+                    dedupService.insertDaily(pumpId, NotificationType.LOW_STOCK,
+                            "LOW_STOCK:tank:" + tank.getTankId(), businessClock.today(),
                             "Low Tank Stock",
                             tank.getTankIdentifier() + " (" + tank.getFuelType() + ") is at "
                                     + String.format("%.1f", tank.getStockPercentage().doubleValue()) + "% — delivery needed.");
@@ -172,10 +172,8 @@ public class NotificationService {
         // for any pump that had already set prices, creating spam notifications.
         var currentPrices = fuelPriceRepository.findCurrentPricesForPump(pumpId);
         if (currentPrices.isEmpty()) {
-            LocalDate today = businessClock.today();
-            // Daily dedup key — re-alerts each day until at least one price is configured.
-            String dedupKey = "PRICE_STALE:" + today;
-            dedupService.maybeInsert(pumpId, NotificationType.PRICE_STALE, dedupKey,
+            // Re-alerts each day until at least one price is configured.
+            dedupService.insertDaily(pumpId, NotificationType.PRICE_STALE, "PRICE_STALE", businessClock.today(),
                     "Fuel Prices Not Configured",
                     "No fuel prices have been set for this pump yet. Go to Setup → Fuel Prices to configure them.");
         }
@@ -317,9 +315,9 @@ public class NotificationService {
                 .filter(p -> p.getLowStockThreshold() != null
                         && p.getCurrentStockUnits() <= p.getLowStockThreshold())
                 .forEach(p -> {
-                    String dedupKey = "ANCILLARY_LOW_STOCK:product:" + p.getId() + ":" + businessClock.today();
                     String displayName = (p.getBrand() != null ? p.getBrand() + " " : "") + p.getName();
-                    dedupService.maybeInsert(pumpId, NotificationType.ANCILLARY_LOW_STOCK, dedupKey,
+                    dedupService.insertDaily(pumpId, NotificationType.ANCILLARY_LOW_STOCK,
+                            "ANCILLARY_LOW_STOCK:product:" + p.getId(), businessClock.today(),
                             "Low Product Stock",
                             displayName + " has only " + p.getCurrentStockUnits()
                             + " unit(s) remaining (threshold: " + p.getLowStockThreshold() + "). Restock soon.");

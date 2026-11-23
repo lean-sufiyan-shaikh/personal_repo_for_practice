@@ -6,7 +6,8 @@ import { parseApiError } from '../../utils/apiError'
 import { pumpApi } from '../../api/pumpApi'
 import type { PumpSummary, PriceDeviationWarning, FuelPrice } from '../../api/pumpApi'
 import type { FuelType } from '../../types/shift'
-import { formatIstDate, localDateInputValue } from '../../utils/date'
+import { formatIstDate } from '../../utils/date'
+import { isPriceStale } from '../../utils/fuelPrices'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
 import { ModalPortal } from '../../components/ModalPortal'
@@ -112,11 +113,7 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
     }
   }
 
-  const todayStr = localDateInputValue()
-  // Parse effectiveFrom as IST date to avoid UTC-vs-IST date boundary mismatch (e.g. midnight shifts)
-  const istDateOf = (effectiveFrom: string) =>
-    new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(effectiveFrom))
-  const pricesStale = !pricesConfirmedToday && currentPrices.length > 0 && currentPrices.some((p) => istDateOf(p.effectiveFrom) < todayStr)
+  const pricesStale = !pricesConfirmedToday && currentPrices.length > 0 && isPriceStale(currentPrices)
 
   if (pump.dus.length === 0) {
     return <p className="text-xs text-slate-500">Add at least one DU with a nozzle first (Nozzles section above).</p>

@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,6 +42,8 @@ public class ProfitLossReportService {
 
     private record CostOfGoods(Map<FuelType, BigDecimal> totalByFuel,
                                Map<FuelType, List<ProfitLossReport.LotCostLine>> lotLinesByFuel) {}
+
+    private record LotPrice(Long lotId, BigDecimal costPricePerUnit) {}
 
     /**
      * Revenue is units sold × price snapshot from closed shift readings; cost of goods is quantity
@@ -102,7 +105,7 @@ public class ProfitLossReportService {
                         .collect(Collectors.toMap(TankerDelivery::getId, d -> d));
 
         Map<FuelType, BigDecimal> totalByFuel = new EnumMap<>(FuelType.class);
-        Map<FuelType, List<ProfitLossReport.LotCostLine>> lotLinesByFuel = new EnumMap<>(FuelType.class);
+        Map<FuelType, Map<LotPrice, ProfitLossReport.LotCostLine>> lotLinesByFuel = new EnumMap<>(FuelType.class);
         for (LotConsumption consumption : consumptions) {
             InventoryLot lot = lotById.get(consumption.getLotId());
             if (lot == null) continue;
@@ -122,12 +125,22 @@ public class ProfitLossReportService {
                 deliveryDate = businessDateOf(delivery != null ? delivery.getDeliveryDate() : lot.getDeliveryDate());
             }
 
-            lotLinesByFuel.computeIfAbsent(lot.getFuelType(), k -> new ArrayList<>())
-                    .add(new ProfitLossReport.LotCostLine(
-                            lot.getId(), tankerRef, deliveryDate,
-                            consumption.getCostPricePerUnit(), consumption.getQuantityConsumed(), cogs));
+            lotLinesByFuel.computeIfAbsent(lot.getFuelType(), k -> new LinkedHashMap<>())
+                    .merge(new LotPrice(lot.getId(), consumption.getCostPricePerUnit()),
+                            new ProfitLossReport.LotCostLine(lot.getId(), tankerRef, deliveryDate,
+                                    consumption.getCostPricePerUnit(), consumption.getQuantityConsumed(), cogs),
+                            ProfitLossReportService::combine);
         }
-        return new CostOfGoods(totalByFuel, lotLinesByFuel);
+        Map<FuelType, List<ProfitLossReport.LotCostLine>> linesByFuel = new EnumMap<>(FuelType.class);
+        lotLinesByFuel.forEach((fuelType, lines) -> linesByFuel.put(fuelType, List.copyOf(lines.values())));
+        return new CostOfGoods(totalByFuel, linesByFuel);
+    }
+
+    private static ProfitLossReport.LotCostLine combine(ProfitLossReport.LotCostLine first,
+                                                        ProfitLossReport.LotCostLine second) {
+        return new ProfitLossReport.LotCostLine(first.lotId(), first.tankerReference(), first.deliveryDate(),
+                first.costPricePerUnit(), first.quantityConsumed().add(second.quantityConsumed()),
+                first.lotCost().add(second.lotCost()));
     }
 
     private List<ProfitLossReport.FuelLine> fuelLines(Map<FuelType, BigDecimal> revenueByFuel,

@@ -6,7 +6,7 @@ import { IconButton } from '../../../components/IconButton'
 import { CreditEntriesModal } from '../modals/CreditEntriesModal'
 import { HandoverModal } from '../modals/HandoverModal'
 import { ResolveDiscrepancyModal } from '../modals/ResolveDiscrepancyModal'
-import { STATUS_LABELS, fmtAmt, investigationLabel } from '../shiftLabels'
+import { AWAITING_OWNER_APPROVAL, discrepancyAction, fmtAmt, investigationLabel, statusBadge } from '../shiftLabels'
 import { codeLabel } from '../../../constants/labels'
 
 // ── History row ───────────────────────────────────────────────────────────────
@@ -16,18 +16,13 @@ import { codeLabel } from '../../../constants/labels'
 export function HistoryRow({ shift }: { shift: Shift }) {
   const { user } = useAuthStore()
 
-  const isOwnerOrAdmin      = user?.role === 'OWNER' || user?.role === 'ADMIN'
-  const isManagerOrAbove    = isOwnerOrAdmin || user?.role === 'MANAGER'
-  const isPendingResolution = shift.status === 'CLOSED_DISCREPANCY_PENDING'
-  const isPendingApproval   = shift.status === 'CLOSED_DISCREPANCY_PENDING_APPROVAL'
-  const canResolve          = isPendingResolution && isManagerOrAbove
-  const canResolveApproval  = isPendingApproval && isOwnerOrAdmin
+  const resolveAction = discrepancyAction(shift, user?.role)
 
   const [creditModalOpen,    setCreditModalOpen]    = useState(false)
   const [resolveModalOpen,   setResolveModalOpen]   = useState(false)
   const [handoverOpen,       setHandoverOpen]       = useState(false)
 
-  const badge            = STATUS_LABELS[shift.status] ?? { label: shift.status, color: 'bg-slate-100 text-slate-600' }
+  const badge            = statusBadge(shift.status)
   const isClosed         = shift.totalAmountDue != null
   const digitalTotal     = (shift.upiCollected ?? 0) + (shift.cardCollected ?? 0)
   const hasCreditEntries = (shift.creditEntries?.length ?? 0) > 0
@@ -86,18 +81,18 @@ export function HistoryRow({ shift }: { shift: Shift }) {
         </td>
         <td className="px-4 py-3 text-right">
           <div className="flex items-center justify-end gap-2">
-            {canResolve && (
+            {resolveAction === 'resolve' && (
               <button onClick={() => setResolveModalOpen(true)} className="ui-btn ui-btn-danger min-h-0 px-3 py-1.5 text-xs">
                 Resolve
               </button>
             )}
-            {canResolveApproval && (
+            {resolveAction === 'approve' && (
               <button onClick={() => setResolveModalOpen(true)} className="ui-btn ui-btn-warning min-h-0 px-3 py-1.5 text-xs">
                 Approve
               </button>
             )}
-            {isPendingApproval && !isOwnerOrAdmin && (
-              <span className="text-xs text-orange-600 font-medium">Owner approval needed</span>
+            {resolveAction === 'awaiting-owner' && (
+              <span className="text-xs text-orange-600 font-medium">{AWAITING_OWNER_APPROVAL}</span>
             )}
             {shift.discrepancyResolution && (
               <span className="text-xs text-slate-500">{codeLabel(shift.discrepancyResolution)}</span>

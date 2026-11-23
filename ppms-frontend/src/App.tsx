@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './queryClient'
 import ProtectedRoute from './components/ProtectedRoute'
+import { OfflineBanner } from './components/OfflineBanner'
 import { SkeletonRows } from './components/Skeleton'
 import { pageLoaders } from './routes/pageLoaders'
 import { CHANGE_PASSWORD_PATH } from './permissions/permissions'
@@ -62,6 +63,7 @@ function withPageSuspense(element: ReactNode) {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <OfflineBanner />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={withSuspense(<LoginPage />)} />
@@ -110,6 +112,14 @@ export default function App() {
             />
             <Route
               path="credit"
+              element={withPageSuspense(
+                <ProtectedRoute page="credit">
+                  <CreditPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="credit/:clientId"
               element={withPageSuspense(
                 <ProtectedRoute page="credit">
                   <CreditPage />

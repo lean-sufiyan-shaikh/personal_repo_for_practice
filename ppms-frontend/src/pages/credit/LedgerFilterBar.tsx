@@ -79,7 +79,7 @@ export function LedgerFilterBar({ filters }: { filters: LedgerFilters }) {
     )}
 
     {filterMode === 'range' && (
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <label htmlFor="credit-ledger-from" className="text-xs text-slate-500 whitespace-nowrap">From</label>
           <input id="credit-ledger-from" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}

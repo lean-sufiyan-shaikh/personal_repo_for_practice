@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,8 +61,10 @@ class NotificationServiceTest {
         today = today.plusDays(1);
         notificationService.generateNotificationsForPump(PUMP_ID);
 
-        assertThat(keysSentFor(NotificationType.LOW_STOCK))
-                .containsExactly("LOW_STOCK:tank:21:2026-03-06", "LOW_STOCK:tank:21:2026-03-07");
+        ArgumentCaptor<LocalDate> days = ArgumentCaptor.forClass(LocalDate.class);
+        verify(dedupService, times(2)).insertDaily(eq(PUMP_ID), eq(NotificationType.LOW_STOCK),
+                eq("LOW_STOCK:tank:21"), days.capture(), eq("Low Tank Stock"), anyString());
+        assertThat(days.getAllValues()).containsExactly(LocalDate.of(2026, 3, 6), LocalDate.of(2026, 3, 7));
     }
 
     @Test

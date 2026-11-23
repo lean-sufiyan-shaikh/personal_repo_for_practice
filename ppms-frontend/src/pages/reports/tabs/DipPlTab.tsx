@@ -4,8 +4,9 @@ import { reportApi } from '../../../api/reportApi'
 import type { DipPlEntry } from '../../../api/reportApi'
 import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
+import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
-import { fmtAmt, fmtDateTime, fmtQty, todayIso, yesterdayIso } from '../reportFormat'
+import { fmtAmt, fmtDateTime, fmtQty } from '../reportFormat'
 import { FUEL_BADGE } from '../../../constants/fuel'
 import { ScrollRegion } from '../../../components/ScrollRegion'
 import { codeLabel } from '../../../constants/labels'
@@ -13,16 +14,15 @@ import { codeLabel } from '../../../constants/labels'
 // ── Dip P/L Tab ───────────────────────────────────────────────────────────────
 
 export function DipPlTab({ pumpId }: { pumpId: number }) {
-  const [from, setFrom] = useState(yesterdayIso)
-  const [to,   setTo]   = useState(todayIso)
-  const [query, setQuery] = useState<{ from: string; to: string } | null>(() => ({ from: yesterdayIso(), to: todayIso() }))
+  const [query, setQuery] = useReportRange(yesterdayToTodayRange)
+  const [from, setFrom] = useState(query.from)
+  const [to,   setTo]   = useState(query.to)
   const [page, setPage]   = useState(0)
   const [pageSize, setPageSize] = useState(10)
 
   const { data, isFetching, error } = useQuery<DipPlEntry[]>({
-    queryKey: ['report-dip-pl', pumpId, query?.from, query?.to],
-    queryFn: () => reportApi.getDipPl(pumpId, query!.from, query!.to),
-    enabled: query !== null,
+    queryKey: ['report-dip-pl', pumpId, query.from, query.to],
+    queryFn: () => reportApi.getDipPl(pumpId, query.from, query.to),
   })
 
   const entries = data ?? []
@@ -150,7 +150,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
       {/* Print: full dataset */}
       {data && entries.length > 0 && (
         <div className="hidden print:block space-y-4">
-          <PrintHeader title="Dip P/L Report" from={query?.from} to={query?.to} />
+          <PrintHeader title="Dip P/L Report" from={query.from} to={query.to} />
           <div className="grid grid-cols-3 gap-3">
             <SummaryCard label="Total Entries"  value={String(entries.length)}  color="text-slate-700" />
             <SummaryCard

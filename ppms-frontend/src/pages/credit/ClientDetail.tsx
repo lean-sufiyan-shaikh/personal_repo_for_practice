@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { withToggled } from '../../utils/setToggle'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
@@ -65,7 +66,9 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const canWaiveInterest   = canPerformAction('credit:waive-interest', role)
   const canManageExtensions = canPerformAction('credit:grant-extension', role)
   const canIssueInvoices   = canPerformAction('credit:issue-invoice', role)
-  const [activeTab, setActiveTab] = useState<'ledger' | 'invoices'>('ledger')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab: 'ledger' | 'invoices' = searchParams.get('tab') === 'invoices' ? 'invoices' : 'ledger'
+  const setActiveTab = (tab: 'ledger' | 'invoices') => setSearchParams({ tab }, { replace: true })
   const [txPage, setTxPage] = useState(0)
   const [txPageSize, setTxPageSize] = useState(10)
 

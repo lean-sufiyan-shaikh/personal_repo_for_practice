@@ -16,6 +16,10 @@ import type { SectionKey } from './sectionKey'
 import { ShiftDefinitionsContent } from './shiftDefinitions/ShiftDefinitionsContent'
 import { StaffContent } from './staff/StaffContent'
 import { TankersContent } from './tankers/TankersContent'
+import { isPriceStale } from '../../utils/fuelPrices'
+
+const COMPLETE_BADGE = 'bg-emerald-50 text-emerald-700'
+const NEEDS_ATTENTION_BADGE = 'bg-amber-50 text-amber-700'
 
 export function PumpManagementPanel({
   pump,
@@ -45,9 +49,11 @@ export function PumpManagementPanel({
   const toggle = (key: SectionKey) =>
     setOpenSection((prev) => (prev === key ? null : key))
 
-  const priceSummary = currentPrices.length > 0
-    ? currentPrices.map((p) => `${p.fuelType.charAt(0)}: ₹${p.pricePerUnit}`).join(' · ')
-    : 'Not set'
+  const pricesStale = isPriceStale(currentPrices)
+  const priceSummary = currentPrices.length === 0
+    ? 'Not set'
+    : currentPrices.map((p) => `${p.fuelType.charAt(0)}: ₹${p.pricePerUnit}`).join(' · ')
+      + (pricesStale ? ' · not updated today' : '')
 
   return (
     <div className="ui-card p-0">
@@ -120,7 +126,7 @@ export function PumpManagementPanel({
           icon={<div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0"><IndianRupee size={14} strokeWidth={2} className="text-emerald-600" /></div>}
           title="Fuel Prices"
           summary={priceSummary}
-          badgeColor="bg-emerald-50 text-emerald-700"
+          badgeColor={pricesStale ? NEEDS_ATTENTION_BADGE : COMPLETE_BADGE}
         >
           <FuelPricesContent pump={pump} currentPrices={currentPrices} />
         </AccordionSection>
@@ -197,7 +203,7 @@ export function PumpManagementPanel({
             icon={<div className="w-7 h-7 rounded-lg bg-sky-100 flex items-center justify-center shrink-0"><Receipt size={14} strokeWidth={2} className="text-sky-600" /></div>}
             title="GST & Invoices"
             summary={pump.gstin ? `GSTIN ${pump.gstin}` : 'Not configured'}
-            badgeColor="bg-sky-50 text-sky-700"
+            badgeColor={pump.gstin ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE}
           >
             <GstDetailsContent pump={pump} onUpdated={onPumpUpdated} />
           </AccordionSection>

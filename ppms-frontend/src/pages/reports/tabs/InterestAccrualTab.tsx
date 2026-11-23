@@ -3,20 +3,20 @@ import { serverMessage } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { reportApi } from '../../../api/reportApi'
 import type { InterestAccrualReport } from '../../../api/reportApi'
+import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, ErrorBox, SummaryCard } from '../shared'
-import { fmtAmt, fmtShortDate, todayIso, yesterdayIso } from '../reportFormat'
+import { fmtAmt, fmtShortDate } from '../reportFormat'
 
 // ── Interest Accrual Tab ───────────────────────────────────────────────────────
 
 export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
-  const [from, setFrom] = useState(yesterdayIso)
-  const [to,   setTo]   = useState(todayIso)
-  const [query, setQuery] = useState<{ from: string; to: string } | null>(() => ({ from: yesterdayIso(), to: todayIso() }))
+  const [query, setQuery] = useReportRange(yesterdayToTodayRange)
+  const [from, setFrom] = useState(query.from)
+  const [to,   setTo]   = useState(query.to)
 
   const { data, isFetching, error } = useQuery<InterestAccrualReport>({
-    queryKey: ['report-interest', pumpId, query?.from, query?.to],
-    queryFn:  () => reportApi.getInterestAccrual(pumpId, query!.from, query!.to),
-    enabled:  !!query,
+    queryKey: ['report-interest', pumpId, query.from, query.to],
+    queryFn:  () => reportApi.getInterestAccrual(pumpId, query.from, query.to),
   })
 
   return (

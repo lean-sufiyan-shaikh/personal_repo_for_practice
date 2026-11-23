@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { Reveal } from '../../components/Reveal'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
@@ -25,7 +25,15 @@ export default function ReportsPage() {
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const isManager = user?.role === 'MANAGER'
 
-  const [tab, setTab] = useState<Tab>(isManager ? 'duty' : 'pl')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = searchParams.get('tab')
+  const setTab = (next: Tab) => {
+    setSearchParams((params) => {
+      const updated = new URLSearchParams(params)
+      updated.set('tab', next)
+      return updated
+    }, { replace: true })
+  }
   const { selectedPumpId } = usePumpStore()
 
   const pumpId = selectedPumpId
@@ -53,8 +61,7 @@ export default function ReportsPage() {
     ? ALL_TABS.filter(t => MANAGER_TABS.includes(t.id))
     : ALL_TABS
 
-  // If the current tab is not visible to this role, reset to the first allowed tab
-  const activeTab = TABS.some(t => t.id === tab) ? tab : TABS[0]?.id ?? 'duty'
+  const activeTab = TABS.find(t => t.id === tab)?.id ?? TABS[0]?.id ?? 'duty'
 
   if (!pumpId && !isOwnerOrAdmin && !isManager) {
     return (
@@ -94,6 +101,7 @@ export default function ReportsPage() {
             {TABS.map((t) => (
               <button
                 key={t.id}
+                aria-pressed={activeTab === t.id}
                 onClick={() => setTab(t.id)}
                 className={`ui-tabbar__button ${
                   activeTab === t.id

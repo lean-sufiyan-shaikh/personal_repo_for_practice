@@ -37,17 +37,17 @@ class SettlementReminderJobTest {
 
         jobRunningAt("17:59").fireReminders();
 
-        verify(dedupService, never()).maybeInsert(any(), any(), anyString(), anyString(), anyString());
+        verify(dedupService, never()).insertDaily(any(), any(), anyString(), any(), anyString(), anyString());
     }
 
     @Test
-    void reminderIsRaisedFromTheAlertTimeOnwardsUnderOneKeyPerPumpTypeAndDay() {
+    void reminderIsRaisedFromTheAlertTimeOnwardsAsADailyAlertPerPumpAndType() {
         givenUpiAlertAt("18:00");
 
         jobRunningAt("18:00").fireReminders();
 
-        verify(dedupService).maybeInsert(eq(PUMP_ID), eq(NotificationType.SETTLEMENT_REMINDER),
-                eq("SETTLEMENT_REMINDER:UPI:" + PUMP_ID + ":" + TODAY), eq("UPI Settlement Reminder"), anyString());
+        verify(dedupService).insertDaily(eq(PUMP_ID), eq(NotificationType.SETTLEMENT_REMINDER),
+                eq("SETTLEMENT_REMINDER:UPI:" + PUMP_ID), eq(TODAY), eq("UPI Settlement Reminder"), anyString());
     }
 
     @Test
@@ -59,8 +59,8 @@ class SettlementReminderJobTest {
         new SettlementReminderJob(configRepository, dedupService, new FixedBusinessClock(sixPmIstSeenFromUtc))
                 .fireReminders();
 
-        verify(dedupService).maybeInsert(eq(PUMP_ID), eq(NotificationType.SETTLEMENT_REMINDER),
-                eq("SETTLEMENT_REMINDER:UPI:" + PUMP_ID + ":" + TODAY), anyString(), anyString());
+        verify(dedupService).insertDaily(eq(PUMP_ID), eq(NotificationType.SETTLEMENT_REMINDER),
+                eq("SETTLEMENT_REMINDER:UPI:" + PUMP_ID), eq(TODAY), anyString(), anyString());
     }
 
     private void givenUpiAlertAt(String alertTime) {

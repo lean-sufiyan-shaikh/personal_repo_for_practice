@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { AxiosError, AxiosHeaders } from 'axios'
-import { parseApiError, serverMessage } from './apiError'
+import { NO_CONNECTION_MESSAGE, NO_SERVER_RESPONSE_MESSAGE, parseApiError, serverMessage } from './apiError'
 
 function axiosError(status: number | undefined, data?: unknown) {
   const response = status === undefined ? undefined : {
@@ -39,6 +39,15 @@ describe('parseApiError', () => {
 
   it('uses the fallback for a network error with no response', () => {
     expect(parseApiError(axiosError(undefined), 'Offline')).toBe('Offline')
+  })
+
+  it('says the connection is down when the request never reached the server', () => {
+    expect(parseApiError(new AxiosError('Network Error', 'ERR_NETWORK'), 'Failed to save')).toBe(NO_CONNECTION_MESSAGE)
+  })
+
+  it('says the server did not respond when the request timed out', () => {
+    expect(parseApiError(new AxiosError('timeout of 20000ms exceeded', 'ECONNABORTED'), 'Failed to save'))
+      .toBe(NO_SERVER_RESPONSE_MESSAGE)
   })
 
   it('uses the fallback for a non-Axios error', () => {

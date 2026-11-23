@@ -8,6 +8,7 @@ import {
 import type { LucideProps } from 'lucide-react'
 import { notificationApi } from '../api/notificationApi'
 import { withReadableDates } from '../utils/date'
+import { groupIdenticalNotifications } from './notificationGroups'
 
 interface Props {
   pumpId: number
@@ -27,6 +28,7 @@ export default function NotificationBell({ pumpId }: Props) {
   })
   const notifications = data?.notifications ?? []
   const unreadCount   = data?.unreadCount ?? 0
+  const groups        = groupIdenticalNotifications(notifications)
 
   const markReadMutation = useMutation({
     mutationFn: (ids: number[]) => notificationApi.markRead(pumpId, ids),
@@ -119,7 +121,7 @@ export default function NotificationBell({ pumpId }: Props) {
             </div>
           ) : (
             <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-              {notifications.map(n => (
+              {groups.map(({ latest: n, count }) => (
                 <div
                   key={n.id}
                   className="ui-notification-panel__item px-4 py-3.5 bg-blue-50/50"
@@ -127,7 +129,15 @@ export default function NotificationBell({ pumpId }: Props) {
                   <div className="flex items-start gap-2">
                     <TypeIcon type={n.type} />
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-800"><span className="sr-only">Unread: </span>{n.title}</p>
+                      <p className="text-sm font-semibold text-slate-800">
+                        <span className="sr-only">Unread: </span>{n.title}
+                        {count > 1 && (
+                          <span className="ml-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600">
+                            <span aria-hidden="true">×{count}</span>
+                            <span className="sr-only">({count} identical alerts)</span>
+                          </span>
+                        )}
+                      </p>
                       <p className="mt-1 text-sm leading-relaxed text-slate-500">{withReadableDates(n.message)}</p>
                     </div>
                     <span aria-hidden="true" className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1" />

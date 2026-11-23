@@ -33,19 +33,19 @@ export function AllShiftsHistory({ pumpId }: { pumpId: number }) {
       {/* Date range filter bar */}
       <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-slate-100 bg-slate-50/60">
         <span className="text-xs font-medium text-slate-500">Filter by date:</span>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <input aria-label="From date"
             type="date"
             value={fromDate}
             onChange={(e) => { setFromDate(e.target.value); setPage(0) }}
-            className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 min-w-[8.5rem] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <span className="text-slate-500 text-xs">to</span>
           <input aria-label="To date"
             type="date"
             value={toDate}
             onChange={(e) => { setToDate(e.target.value); setPage(0) }}
-            className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 min-w-[8.5rem] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         {(fromDate || toDate) && (

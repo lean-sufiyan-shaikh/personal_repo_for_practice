@@ -7,17 +7,18 @@ import { reportApi } from '../../../api/reportApi'
 import type { ProfitLossReport } from '../../../api/reportApi'
 import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
+import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
-import { fmtAmt, fmtQty, fmtShortDate, todayIso, yesterdayIso } from '../reportFormat'
+import { fmtAmt, fmtQty, fmtShortDate } from '../reportFormat'
 import { ScrollRegion } from '../../../components/ScrollRegion'
 import { codeLabel } from '../../../constants/labels'
 
 // ── P&L Tab ───────────────────────────────────────────────────────────────────
 
 export function ProfitLossTab({ pumpId }: { pumpId: number }) {
-  const [from, setFrom] = useState(yesterdayIso)
-  const [to,   setTo]   = useState(todayIso)
-  const [query, setQuery] = useState<{ from: string; to: string } | null>(() => ({ from: yesterdayIso(), to: todayIso() }))
+  const [query, setQuery] = useReportRange(yesterdayToTodayRange)
+  const [from, setFrom] = useState(query.from)
+  const [to,   setTo]   = useState(query.to)
   const [page, setPage]   = useState(0)
   const [pageSize, setPageSize] = useState(10)
   const [showRevBreakdown, setShowRevBreakdown] = useState(false)
@@ -28,9 +29,8 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
   }
 
   const { data, isFetching, error } = useQuery<ProfitLossReport>({
-    queryKey: ['report-pl', pumpId, query?.from, query?.to],
-    queryFn: () => reportApi.getProfitLoss(pumpId, query!.from, query!.to),
-    enabled: !!query,
+    queryKey: ['report-pl', pumpId, query.from, query.to],
+    queryFn: () => reportApi.getProfitLoss(pumpId, query.from, query.to),
   })
 
   const paged = data ? pageSlice(data.byFuelType, page, pageSize) : null
@@ -161,7 +161,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                             </thead>
                             <tbody>
                               {row.lotCostLines.map((lot) => (
-                                <tr key={lot.lotId} className="border-t border-blue-100">
+                                <tr key={`${lot.lotId}-${lot.costPricePerUnit}`} className="border-t border-blue-100">
                                   <td className="py-1.5 pr-3 text-slate-600">{lot.tankerReference}</td>
                                   <td className="py-1.5 pr-3 text-slate-500">{fmtShortDate(lot.deliveryDate)}</td>
                                   <td className="py-1.5 pr-3 text-right text-slate-600">₹{lot.costPricePerUnit.toFixed(2)}</td>
@@ -190,7 +190,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
       {/* Print: full dataset */}
       {data && data.byFuelType.length > 0 && (
         <div className="hidden print:block space-y-4">
-          <PrintHeader title="Profit & Loss Report" from={query?.from} to={query?.to} />
+          <PrintHeader title="Profit & Loss Report" from={query.from} to={query.to} />
           <div className="grid grid-cols-3 gap-4">
             <SummaryCard label="Total Revenue" value={fmtAmt(data.totalRevenue)} color="text-slate-800" />
             <SummaryCard label="Cost of Goods" value={fmtAmt(data.totalCogs)}    color="text-red-600" />
@@ -253,7 +253,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                             </thead>
                             <tbody>
                               {row.lotCostLines.map((lot) => (
-                                <tr key={lot.lotId} className="border-t border-slate-100">
+                                <tr key={`${lot.lotId}-${lot.costPricePerUnit}`} className="border-t border-slate-100">
                                   <td className="py-1 pr-3 text-slate-600">{lot.tankerReference}</td>
                                   <td className="py-1 pr-3 text-slate-500">{fmtShortDate(lot.deliveryDate)}</td>
                                   <td className="py-1 pr-3 text-right text-slate-600">₹{lot.costPricePerUnit.toFixed(2)}</td>

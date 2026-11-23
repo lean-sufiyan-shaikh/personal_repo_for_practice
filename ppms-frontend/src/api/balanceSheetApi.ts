@@ -1,4 +1,4 @@
-import client from './client'
+import client, { REPORT_TIMEOUT_MS } from './client'
 import type { PagedResponse } from '../types/paged'
 
 // ── Request ────────────────────────────────────────────────────────────────────
@@ -202,7 +202,7 @@ export interface BalanceSheetDetail {
 
 export const balanceSheetApi = {
   generate: (pumpId: number, req: GenerateBalanceSheetRequest) =>
-    client.post<BalanceSheetDetail>(`/pumps/${pumpId}/balance-sheets/generate`, req).then(r => r.data),
+    client.post<BalanceSheetDetail>(`/pumps/${pumpId}/balance-sheets/generate`, req, { timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
 
   list: (pumpId: number, from?: string, to?: string, page = 0, size = 10) => {
     const params: Record<string, string | number> = { page, size }
@@ -216,7 +216,7 @@ export const balanceSheetApi = {
 
   /** Replaces the sheet with a freshly generated one for the same period; the response carries the new id. */
   regenerate: (pumpId: number, id: number) =>
-    client.post<BalanceSheetDetail>(`/pumps/${pumpId}/balance-sheets/${id}/regenerate`).then(r => r.data),
+    client.post<BalanceSheetDetail>(`/pumps/${pumpId}/balance-sheets/${id}/regenerate`, undefined, { timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
 
   delete: (pumpId: number, id: number) =>
     client.delete(`/pumps/${pumpId}/balance-sheets/${id}`).then(r => r.data),

@@ -1,4 +1,4 @@
-import client from './client'
+import client, { REPORT_TIMEOUT_MS } from './client'
 
 // ── P&L Report ────────────────────────────────────────────────────────────────
 
@@ -234,30 +234,30 @@ export interface InterestAccrualReport {
 
 export const reportApi = {
   getProfitLoss: (pumpId: number, from: string, to: string) =>
-    client.get<ProfitLossReport>(`/pumps/${pumpId}/reports/profit-loss`, { params: { from, to } }).then(r => r.data),
+    client.get<ProfitLossReport>(`/pumps/${pumpId}/reports/profit-loss`, { params: { from, to }, timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
 
   getOperatorDuty: (pumpId: number, operatorId: number, from: string, to: string) =>
-    client.get<OperatorDutyReport>(`/pumps/${pumpId}/reports/operator-duty`, { params: { operatorId, from, to } }).then(r => r.data),
+    client.get<OperatorDutyReport>(`/pumps/${pumpId}/reports/operator-duty`, { params: { operatorId, from, to }, timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
 
   getOperatorDiscrepancy: (pumpId: number, from: string, to: string) =>
-    client.get<OperatorDiscrepancyReport>(`/pumps/${pumpId}/reports/operator-discrepancy`, { params: { from, to } }).then(r => r.data),
+    client.get<OperatorDiscrepancyReport>(`/pumps/${pumpId}/reports/operator-discrepancy`, { params: { from, to }, timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
 
   getInventoryLots: (pumpId: number, tankId: number) =>
-    client.get<InventoryLotsReport>(`/pumps/${pumpId}/reports/inventory-lots`, { params: { tankId } }).then(r => r.data),
+    client.get<InventoryLotsReport>(`/pumps/${pumpId}/reports/inventory-lots`, { params: { tankId }, timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
 
   // Every active lot plus the lots delivered between from and to
   getAllTanksInventoryLots: (pumpId: number, from: string, to: string) =>
-    client.get<AllTanksInventoryReport>(`/pumps/${pumpId}/reports/inventory-lots/all`, { params: { from, to } }).then(r => r.data),
+    client.get<AllTanksInventoryReport>(`/pumps/${pumpId}/reports/inventory-lots/all`, { params: { from, to }, timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
 
   getDipPl: (pumpId: number, from: string, to: string) =>
-    client.get<DipPlEntry[]>(`/pumps/${pumpId}/reports/dip-pl`, { params: { from, to } }).then(r => r.data),
+    client.get<DipPlEntry[]>(`/pumps/${pumpId}/reports/dip-pl`, { params: { from, to }, timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
 
   getShiftsReport: (pumpId: number, from: string, to: string) =>
-    client.get<ShiftReportLine[]>(`/pumps/${pumpId}/reports/shifts`, { params: { from, to } }).then(r => r.data),
+    client.get<ShiftReportLine[]>(`/pumps/${pumpId}/reports/shifts`, { params: { from, to }, timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
 
   getExpensesReport: (pumpId: number, from: string, to: string) =>
-    client.get<ExpenseReportLine[]>(`/pumps/${pumpId}/reports/expenses`, { params: { from, to } }).then(r => r.data),
+    client.get<ExpenseReportLine[]>(`/pumps/${pumpId}/reports/expenses`, { params: { from, to }, timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
 
   getInterestAccrual: (pumpId: number, from: string, to: string) =>
-    client.get<InterestAccrualReport>(`/pumps/${pumpId}/reports/interest-accrual`, { params: { from, to } }).then(r => r.data),
+    client.get<InterestAccrualReport>(`/pumps/${pumpId}/reports/interest-accrual`, { params: { from, to }, timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
 }

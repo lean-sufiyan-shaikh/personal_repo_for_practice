@@ -34,4 +34,13 @@ describe('AllShiftsHistory', () => {
     await waitFor(() => expect(shiftApi.getShiftHistoryPage).toHaveBeenLastCalledWith(5, expect.anything(), 1, 10))
     expect(screen.getByText(/Page 2 of 3/)).toBeInTheDocument()
   })
+
+  it('lets the two date inputs wrap onto separate lines on a narrow phone', async () => {
+    renderWithProviders(<AllShiftsHistory pumpId={5} />)
+
+    const fromDate = await screen.findByLabelText('From date')
+    expect(fromDate.parentElement).toHaveClass('flex-wrap', 'w-full')
+    expect(fromDate).toHaveClass('min-w-[8.5rem]')
+    expect(screen.getByLabelText('To date')).toHaveClass('min-w-[8.5rem]')
+  })
 })

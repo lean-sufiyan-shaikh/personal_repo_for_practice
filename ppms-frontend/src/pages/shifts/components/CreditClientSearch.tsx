@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import type { CreditClient } from '../../../api/pumpApi'
 import { maskPhone } from '../../../utils/maskPhone'
+import { useAuthStore } from '../../../store/authStore'
+import { canAccessPage, canPerformAction } from '../../../permissions/permissions'
 
 interface Props {
   search: string
@@ -19,6 +21,9 @@ export function CreditClientSearch({
   inputClassName, placeholder, showNoClientsHint = false,
 }: Props) {
   const navigate = useNavigate()
+  const role = useAuthStore((state) => state.user?.role)
+  const canAddClient = canAccessPage('credit', role) && canPerformAction('credit:manage-client', role)
+  const noMatchText = `No match${search.trim() ? ` for "${search.trim()}"` : ''}`
   // Only root (parent/standalone) accounts in the main search
   const rootClients = creditClients.filter(c => c.parentClientId === null)
   const filtered = rootClients.filter((c) =>
@@ -43,15 +48,18 @@ export function CreditClientSearch({
       </label>
       {showDropdown && rootClients.length > 0 && (
         <div className="ui-card absolute top-full left-0 right-0 z-50 mt-0.5 max-h-36 overflow-y-auto p-1">
-          {filtered.length === 0 ? (
+          {filtered.length === 0 && !canAddClient ? (
+            <div className="px-3 py-2 text-xs" role="status">
+              <span className="block text-slate-500 truncate">{noMatchText}</span>
+              <span className="block text-slate-600">Ask your manager to add this client.</span>
+            </div>
+          ) : filtered.length === 0 ? (
             <button
               type="button"
               onMouseDown={() => navigate('/dashboard/credit?tab=clients')}
               className="w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-blue-50 flex items-center justify-between gap-2"
             >
-              <span className="text-slate-500 text-xs truncate">
-                No match{search.trim() ? ` for "${search.trim()}"` : ''}
-              </span>
+              <span className="text-slate-500 text-xs truncate">{noMatchText}</span>
               <span className="text-xs text-blue-600 font-medium shrink-0">+ Add client →</span>
             </button>
           ) : (

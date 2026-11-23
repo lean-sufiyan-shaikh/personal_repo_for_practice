@@ -6,25 +6,25 @@ import { reportApi } from '../../../api/reportApi'
 import type { OperatorDiscrepancyReport } from '../../../api/reportApi'
 import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
+import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, ErrorBox, PrintHeader } from '../shared'
-import { fmtAmt, todayIso, yesterdayIso } from '../reportFormat'
+import { fmtAmt } from '../reportFormat'
 import { codeLabel } from '../../../constants/labels'
 
 // ── Short / Over Discrepancy Tab ──────────────────────────────────────────────
 
 export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
-  const [from, setFrom] = useState(yesterdayIso)
-  const [to,   setTo]   = useState(todayIso)
-  const [query, setQuery] = useState<{ from: string; to: string } | null>(() => ({ from: yesterdayIso(), to: todayIso() }))
+  const [query, setQuery] = useReportRange(yesterdayToTodayRange)
+  const [from, setFrom] = useState(query.from)
+  const [to,   setTo]   = useState(query.to)
   const [expandedOp, setExpandedOp] = useState<number | null>(null)
 
   const [page, setPage]   = useState(0)
   const [pageSize, setPageSize] = useState(10)
 
   const { data, isFetching, error } = useQuery<OperatorDiscrepancyReport>({
-    queryKey: ['report-discrepancy', pumpId, query?.from, query?.to],
-    queryFn: () => reportApi.getOperatorDiscrepancy(pumpId, query!.from, query!.to),
-    enabled: !!query,
+    queryKey: ['report-discrepancy', pumpId, query.from, query.to],
+    queryFn: () => reportApi.getOperatorDiscrepancy(pumpId, query.from, query.to),
   })
 
   const paged = data ? pageSlice(data.operators, page, pageSize) : null
@@ -125,7 +125,7 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
       {/* Print: full dataset */}
       {data && data.operators.length > 0 && (
         <div className="hidden print:block space-y-4">
-          <PrintHeader title="Short / Over Discrepancy Report" from={query?.from} to={query?.to} />
+          <PrintHeader title="Short / Over Discrepancy Report" from={query.from} to={query.to} />
           <p className="text-xs text-slate-500 mb-2">
             {data.totalDiscrepancyShifts} discrepancy shift{data.totalDiscrepancyShifts !== 1 ? 's' : ''} in range.
           </p>

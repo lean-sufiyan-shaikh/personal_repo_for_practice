@@ -83,11 +83,23 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             VALUES (:pumpId, CAST(:type AS notification_type), :title, :message, :dedupKey, NOW())
             ON CONFLICT (pump_id, dedup_key) DO NOTHING
             """, nativeQuery = true)
-    void insertIfNotExists(
+    int insertIfNotExists(
             @Param("pumpId") Long pumpId,
             @Param("type") String type,
             @Param("title") String title,
             @Param("message") String message,
             @Param("dedupKey") String dedupKey
     );
+
+    /** Deletes this pump's notifications whose dedup key starts with {@code seriesPrefix}, except {@code keptKey}. */
+    @Modifying
+    @Query(value = """
+            DELETE FROM notifications
+            WHERE pump_id = :pumpId
+              AND LEFT(dedup_key, LENGTH(:seriesPrefix)) = :seriesPrefix
+              AND dedup_key <> :keptKey
+            """, nativeQuery = true)
+    int deleteSeriesExcept(@Param("pumpId") Long pumpId,
+                           @Param("seriesPrefix") String seriesPrefix,
+                           @Param("keptKey") String keptKey);
 }

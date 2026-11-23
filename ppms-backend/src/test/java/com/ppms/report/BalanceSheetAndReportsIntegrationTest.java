@@ -157,6 +157,21 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void profitAndLossShowsOneLotLineWhenSeveralShiftsDrawFromTheSameLot() throws Exception {
+        String yesterday = TestDates.today().minusDays(1).toString();
+        perform(post("/api/pumps/{pumpId}/shifts/backfill", setup.pumpId()), setup.owner(), backfillRequest(yesterday))
+                .andExpect(status().is2xxSuccessful());
+
+        JsonNode report = json(perform(get("/api/pumps/{pumpId}/reports/profit-loss", setup.pumpId())
+                .param("from", yesterday).param("to", today), setup.manager()).andExpect(status().isOk()));
+
+        JsonNode lotLines = report.get("byFuelType").get(0).get("lotCostLines");
+        assertThat(lotLines).hasSize(1);
+        assertThat(lotLines.get(0).get("quantityConsumed").decimalValue()).isEqualByComparingTo("30");
+        assertThat(lotLines.get(0).get("lotCost").decimalValue()).isEqualByComparingTo("2700.00");
+    }
+
+    @Test
     void discrepancyAndDutyReportsListTheShortShift() throws Exception {
         JsonNode discrepancy = json(perform(get("/api/pumps/{pumpId}/reports/operator-discrepancy", setup.pumpId())
                 .param("from", today).param("to", today), setup.owner()).andExpect(status().isOk()));

@@ -8,7 +8,7 @@ import { authApi } from '../../api/authApi'
 import { useAuthStore } from '../../store/authStore'
 import type { AuthUser } from '../../types/auth'
 import { PasswordInput } from '../../components/PasswordInput'
-import { parseApiError } from '../../utils/apiError'
+import { loginErrorMessage } from './loginErrorMessage'
 import { CHANGE_PASSWORD_PATH, getDefaultPath } from '../../permissions/permissions'
 import { prefetchLandingPage } from '../../routes/pageLoaders'
 
@@ -54,8 +54,7 @@ export default function LoginPage() {
       prefetchLandingPage(landingPath)
       navigate(landingPath)
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } }
-      setServerError(parseApiError(error, 'Login failed. Please try again.'))
+      setServerError(loginErrorMessage(err))
     } finally {
       setLoading(false)
     }

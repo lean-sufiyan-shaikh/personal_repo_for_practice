@@ -1,5 +1,7 @@
 import { formatIstDate, formatIstDateTime, localDateInputValue } from '../../utils/date'
 import type { Shift } from '../../types/shift'
+import type { UserRole } from '../../types/auth'
+import { canPerformAction } from '../../permissions/permissions'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -11,6 +13,26 @@ export const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   CLOSED_DISCREPANCY_PENDING:              { label: 'Discrepancy',      color: 'bg-red-100 text-red-700' },
   CLOSED_DISCREPANCY_PENDING_APPROVAL:     { label: 'Needs Approval',   color: 'bg-orange-100 text-orange-700' },
   CLOSED_DISCREPANCY_RESOLVED:             { label: 'Resolved',         color: 'bg-slate-100 text-slate-600' },
+}
+
+export function statusBadge(status: string): { label: string; color: string } {
+  return STATUS_LABELS[status] ?? { label: status, color: 'bg-slate-100 text-slate-600' }
+}
+
+export const AWAITING_OWNER_APPROVAL = 'Waiting for owner approval'
+
+/**
+ * What the signed-in user can do about an unresolved discrepancy: a shortage escalated for approval
+ * is only for OWNER/ADMIN, everything else pending is for whoever may resolve discrepancies.
+ */
+export function discrepancyAction(shift: Shift, role: UserRole | undefined): 'resolve' | 'approve' | 'awaiting-owner' | null {
+  if (shift.status === 'CLOSED_DISCREPANCY_PENDING_APPROVAL') {
+    return role === 'OWNER' || role === 'ADMIN' ? 'approve' : 'awaiting-owner'
+  }
+  if (shift.status === 'CLOSED_DISCREPANCY_PENDING' && canPerformAction('shift:resolve-discrepancy', role)) {
+    return 'resolve'
+  }
+  return null
 }
 
 export const PAGE_SIZE = 10

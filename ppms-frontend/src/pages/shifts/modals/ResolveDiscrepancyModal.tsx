@@ -63,8 +63,11 @@ export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onCl
               <div className="ui-modal-heading">
                 <h2 className="ui-modal-title">Resolve Discrepancy</h2>
                 <p className="ui-modal-subtitle">
-                  Shift #{shift.id} · {discType} ₹{discAmt?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  Shift #{shift.id} · {shift.operatorName} · {discType} ₹{discAmt?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </p>
+                {shift.discrepancyReason && (
+                  <p className="ui-modal-subtitle">Reason given at close: {shift.discrepancyReason}</p>
+                )}
               </div>
               <IconButton label="Close" icon="×" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close" />
             </div>

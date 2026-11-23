@@ -5,24 +5,24 @@ import { reportApi } from '../../../api/reportApi'
 import type { ShiftReportLine } from '../../../api/reportApi'
 import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
+import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, ErrorBox, PrintHeader } from '../shared'
-import { fmtAmt, todayIso, yesterdayIso } from '../reportFormat'
+import { fmtAmt } from '../reportFormat'
 import { ScrollRegion } from '../../../components/ScrollRegion'
 import { codeLabel } from '../../../constants/labels'
 
 // ── Shifts Tab ────────────────────────────────────────────────────────────────
 
 export function ShiftsTab({ pumpId }: { pumpId: number }) {
-  const [from, setFrom] = useState(yesterdayIso)
-  const [to, setTo]     = useState(todayIso)
-  const [query, setQuery] = useState<{ from: string; to: string } | null>(() => ({ from: yesterdayIso(), to: todayIso() }))
+  const [query, setQuery] = useReportRange(yesterdayToTodayRange)
+  const [from, setFrom] = useState(query.from)
+  const [to,   setTo]   = useState(query.to)
   const [page, setPage]   = useState(0)
   const [pageSize, setPageSize] = useState(10)
 
   const { data, isFetching, error } = useQuery<ShiftReportLine[]>({
-    queryKey: ['report-shifts', pumpId, query?.from, query?.to],
-    queryFn:  () => reportApi.getShiftsReport(pumpId, query!.from, query!.to),
-    enabled:  !!query,
+    queryKey: ['report-shifts', pumpId, query.from, query.to],
+    queryFn:  () => reportApi.getShiftsReport(pumpId, query.from, query.to),
   })
 
   const rows  = data ?? []
@@ -107,7 +107,7 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
       {/* Print: full dataset */}
       {data && rows.length > 0 && (
         <div className="hidden print:block space-y-4">
-          <PrintHeader title="Shifts Report" from={query?.from} to={query?.to} />
+          <PrintHeader title="Shifts Report" from={query.from} to={query.to} />
           <table className="w-full text-sm border border-slate-100">
             <thead>
               <tr className="bg-slate-50 text-xs text-slate-500">
