@@ -508,6 +508,7 @@
     "firstPage": "पहिले पान",
     "lastPage": "शेवटचे पान",
     "backfilled": "नंतर भरलेली",
+    "duName": "DU {{name}}",
     "resolve": "सोडवा",
     "printHandover": "हँडओव्हर रिपोर्ट प्रिंट करा",
     "payment": {

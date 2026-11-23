@@ -508,6 +508,7 @@
     "firstPage": "पहला पेज",
     "lastPage": "आखिरी पेज",
     "backfilled": "बाद में भरी गई",
+    "duName": "DU {{name}}",
     "resolve": "सुलझाएँ",
     "printHandover": "हैंडओवर रिपोर्ट प्रिंट करें",
     "payment": {

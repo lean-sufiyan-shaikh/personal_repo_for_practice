@@ -8,17 +8,19 @@ import type { Shift } from '../../../types/shift'
 import { SkeletonRows } from '../../../components/Skeleton'
 import { formatIstDate, localDateInputValue } from '../../../utils/date'
 import { parseApiError } from '../../../utils/apiError'
-import { HistoryRow } from './HistoryRow'
+import { HistoryCard, HistoryRow } from './HistoryRow'
 import { historyColumns } from './historyColumns'
 import { labelForDate } from '../shiftLabels'
 import { DataTable } from '../../../components/DataTable'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { MoneyText } from '../../../components/AmountText'
+import { useIsPhone } from '../../../hooks/useIsPhone'
 
 // ── Day View ──────────────────────────────────────────────────────────────────
 
 export function DayViewHistory({ pumpId }: { pumpId: number }) {
   const { t } = useTranslation(['shifts', 'common'])
+  const isPhone = useIsPhone()
   const todayStr     = localDateInputValue()
   const yesterdayStr = localDateInputValue(-1)
   const dayBeforeStr = localDateInputValue(-2)
@@ -61,47 +63,56 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
         const totalAmt  = dayShifts.reduce((s, sh) => s + (sh.totalAmountDue ?? 0), 0)
         const label     = labelForDate(date)
         const isToday   = date === todayStr
+        const panelId   = `shift-history-day-${date}`
 
         return (
           <div key={date}>
             {/* Day accordion header */}
             <button
+              type="button"
               onClick={() => toggle(date)}
-              className="w-full flex items-center justify-between px-6 py-3 hover:bg-bg transition-colors text-left"
+              aria-expanded={isOpen}
+              aria-controls={panelId}
+              className="flex w-full items-center gap-3 px-4 py-(--density-row-y) text-left transition-colors hover:bg-bg sm:px-6"
             >
-              <div className="flex items-center gap-3">
+              <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
                 <span className={`text-sm font-semibold ${isToday ? 'text-primary' : 'text-ink'}`}>
                   {label}
                 </span>
                 <span className="text-xs text-ink-3">{fmtShortDate(date)}</span>
                 <span className="text-xs text-ink-3">
-                  · {t('history.shiftCount', { count: dayShifts.length })}{openCount > 0 && t('history.stillOpen', { count: openCount })}
+                  {t('history.shiftCount', { count: dayShifts.length })}{openCount > 0 && t('history.stillOpen', { count: openCount })}
                 </span>
-                {totalAmt > 0 && (
-                  <span className="text-xs font-medium text-ink-2">
-                    · <MoneyText value={totalAmt} />
-                  </span>
-                )}
                 {isToday && (
                   <StatusBadge tone="info" label={t('common:datePresets.today')} />
                 )}
-              </div>
-              <ChevronDown size={14} strokeWidth={2} className={`ui-accordion-arrow ${isOpen ? 'ui-accordion-arrow--open' : ''}`} />
+              </span>
+              <span className="ml-auto flex shrink-0 items-center gap-2">
+                {totalAmt > 0 && (
+                  <MoneyText value={totalAmt} className="text-sm font-semibold text-ink" />
+                )}
+                <ChevronDown size={14} strokeWidth={2} aria-hidden="true" className={`ui-accordion-arrow ${isOpen ? 'ui-accordion-arrow--open' : ''}`} />
+              </span>
             </button>
 
-            {/* Day shift table */}
-            {isOpen && (
-              <DataTable
-                caption={t('history.shiftsFor', { label })}
-                captionHidden
-                regionLabel={t('history.shiftsForDay')}
-                columns={historyColumns(t)}
-                rows={dayShifts}
-                rowKey={(shift) => shift.id}
-                renderRow={(shift) => <HistoryRow shift={shift} />}
-                className="ui-accordion-content rounded-none border-x-0 border-b-0"
-              />
-            )}
+            <div id={panelId} hidden={!isOpen}>
+              {isOpen && (isPhone ? (
+                <ul aria-label={t('history.shiftsFor', { label })} className="ui-accordion-content divide-y divide-border border-t border-border">
+                  {dayShifts.map((shift) => <HistoryCard key={shift.id} shift={shift} />)}
+                </ul>
+              ) : (
+                <DataTable
+                  caption={t('history.shiftsFor', { label })}
+                  captionHidden
+                  regionLabel={t('history.shiftsForDay')}
+                  columns={historyColumns(t)}
+                  rows={dayShifts}
+                  rowKey={(shift) => shift.id}
+                  renderRow={(shift) => <HistoryRow shift={shift} />}
+                  className="ui-accordion-content @container rounded-none border-x-0 border-b-0"
+                />
+              ))}
+            </div>
           </div>
         )
       })}

@@ -10,9 +10,9 @@ export function historyColumns(t: TFunction<'shifts'>): DataTableColumn<Shift>[]
     { key: 'window', header: t('history.columns.shift'), className: 'px-5 hidden md:table-cell' },
     { key: 'operator', header: t('history.columns.operator'), className: 'px-5' },
     { key: 'date', header: t('history.columns.date'), className: 'px-5' },
-    { key: 'amountDue', header: t('history.columns.amountDue'), className: 'px-5' },
+    { key: 'amountDue', header: t('history.columns.amountDue'), numeric: true, className: 'px-5' },
     { key: 'status', header: t('history.columns.status'), className: 'px-5' },
-    { key: 'discrepancy', header: t('history.columns.discrepancy'), className: 'px-5 hidden md:table-cell' },
-    { key: 'actions', header: <span className="sr-only">{t('history.columns.actions')}</span>, className: 'px-4' },
+    { key: 'discrepancy', header: t('history.columns.discrepancy'), align: 'right', className: 'px-5 hidden md:table-cell' },
+    { key: 'actions', header: <span className="sr-only">{t('history.columns.actions')}</span>, align: 'right', className: 'px-4' },
   ]
 }

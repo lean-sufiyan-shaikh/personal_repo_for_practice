@@ -508,6 +508,7 @@
     "firstPage": "First page",
     "lastPage": "Last page",
     "backfilled": "Backfilled",
+    "duName": "DU {{name}}",
     "resolve": "Resolve",
     "printHandover": "Print handover report",
     "payment": {
