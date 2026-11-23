@@ -1,11 +1,11 @@
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { withToggled } from '../../../utils/setToggle'
 import { serverMessage } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { reportApi } from '../../../api/reportApi'
-import type { ProfitLossDayLine, ProfitLossFuelLine, ProfitLossReport } from '../../../api/reportApi'
+import type { LotCostLine, ProfitLossDayLine, ProfitLossFuelLine, ProfitLossReport } from '../../../api/reportApi'
 import { CsvExportButton } from '../../../components/CsvExportButton'
 import { PeriodChangeNote } from '../../../components/PeriodChangeNote'
 import { csvFilename } from '../../../utils/csv'
@@ -16,9 +16,11 @@ import { shiftsForFuelUrl } from '../../../utils/drillDown'
 import { formatIstDate } from '../../../utils/date'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, SummaryCard } from '../shared'
-import { fmtAmt, fmtQty, fmtShortDate } from '../reportFormat'
+import { fmtQty, fmtShortDate } from '../reportFormat'
 import { ProfitLossDailyChart } from '../charts/ProfitLossDailyChart'
-import { ScrollRegion } from '../../../components/ScrollRegion'
+import { DataTable } from '../../../components/DataTable'
+import type { DataTableColumn } from '../../../components/DataTable'
+import { MoneyText } from '../../../components/AmountText'
 import { codeLabel } from '../../../constants/labels'
 
 const FUEL_COLUMNS: CsvColumn<ProfitLossFuelLine>[] = [
@@ -38,6 +40,84 @@ const DAY_COLUMNS: CsvColumn<ProfitLossDayLine>[] = [
 
 function rangeLabel(range: DateRange): string {
   return `${formatIstDate(range.from)} to ${formatIstDate(range.to)}`
+}
+
+const DAY_TABLE_COLUMNS: DataTableColumn<ProfitLossDayLine>[] = [
+  { key: 'date', header: 'Date', cell: (day) => fmtShortDate(day.date) },
+  { key: 'revenue', header: 'Revenue', numeric: true, cell: (day) => <MoneyText value={day.revenue} /> },
+  { key: 'cogs', header: 'Cost of goods', numeric: true, cell: (day) => <MoneyText value={day.cogs} /> },
+  {
+    key: 'profit', header: 'Gross profit', numeric: true,
+    cell: (day) => <MoneyText value={day.grossProfit} tone={day.grossProfit >= 0 ? 'ok' : 'bad'} className="font-medium" />,
+  },
+]
+
+const PRINT_FUEL_TABLE_COLUMNS: DataTableColumn<ProfitLossFuelLine>[] = [
+  { key: 'fuel', header: 'Fuel Type' },
+  { key: 'revenue', header: 'Revenue', numeric: true },
+  { key: 'cogs', header: 'COGS', numeric: true },
+  { key: 'profit', header: 'Gross Profit', numeric: true },
+  { key: 'margin', header: '₹/L Margin', numeric: true },
+]
+
+const FUEL_TABLE_COLUMNS: DataTableColumn<ProfitLossFuelLine>[] = [
+  { key: 'expand', header: <span className="sr-only">Details</span>, className: 'w-6 px-2' },
+  ...PRINT_FUEL_TABLE_COLUMNS,
+  { key: 'shifts', header: <span className="sr-only">Shifts</span>, align: 'right' },
+]
+
+const LOT_COST_COLUMNS: DataTableColumn<LotCostLine>[] = [
+  { key: 'reference', header: 'Lot Ref', cell: (lot) => <span className="text-ink-2">{lot.tankerReference}</span> },
+  { key: 'delivered', header: 'Delivery Date', cell: (lot) => <span className="text-ink-3">{fmtShortDate(lot.deliveryDate)}</span> },
+  { key: 'cost', header: 'Cost/L', numeric: true, cell: (lot) => <MoneyText value={lot.costPricePerUnit} className="text-ink-2" /> },
+  { key: 'units', header: 'Units Consumed', numeric: true, cell: (lot) => <span className="text-ink-2">{fmtQty(lot.quantityConsumed)}</span> },
+  { key: 'total', header: 'Cost', numeric: true, cell: (lot) => <MoneyText value={lot.lotCost} className="font-medium text-ink" /> },
+]
+
+function LotCostTable({ fuelType, lines }: { fuelType: string; lines: LotCostLine[] }) {
+  return (
+    <DataTable
+      caption={`Fuel lots used for ${codeLabel(fuelType)}`}
+      captionHidden
+      columns={LOT_COST_COLUMNS}
+      rows={lines}
+      rowKey={(lot) => `${lot.lotId}-${lot.costPricePerUnit}`}
+      tableClassName="text-xs"
+    />
+  )
+}
+
+function FuelFigureCells({ row }: { row: ProfitLossFuelLine }) {
+  return (
+    <>
+      <td className="font-medium text-ink">{codeLabel(row.fuelType)}</td>
+      <td className="text-right"><MoneyText value={row.revenue} className="text-ink" /></td>
+      <td className="text-right"><MoneyText value={row.cogs} tone="bad" /></td>
+      <td className="text-right"><MoneyText value={row.grossProfit} tone={row.grossProfit >= 0 ? 'ok' : 'bad'} className="font-semibold" /></td>
+      <td className="text-right text-ink-3 text-xs">
+        {row.grossMarginPerLitre != null ? `₹${row.grossMarginPerLitre.toFixed(2)}/L` : '—'}
+      </td>
+    </>
+  )
+}
+
+function RevenueBreakdown({ report, className }: { report: ProfitLossReport; className: string }) {
+  const figures = [
+    { label: 'Cash', value: report.totalCashRevenue, tone: undefined },
+    { label: 'UPI', value: report.totalUpiRevenue, tone: undefined },
+    { label: 'Card', value: report.totalCardRevenue, tone: undefined },
+    { label: 'Credit Sales', value: report.totalCreditRevenue, tone: 'warn' as const },
+  ]
+  return (
+    <div className={`grid grid-cols-4 gap-3 ${className}`}>
+      {figures.map((figure) => (
+        <div key={figure.label}>
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">{figure.label}</p>
+          <MoneyText value={figure.value} tone={figure.tone} className={`mt-0.5 block text-sm font-semibold ${figure.tone ? '' : 'text-ink'}`} />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 // ── P&L Tab ───────────────────────────────────────────────────────────────────
@@ -113,11 +193,11 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
       {data && !showEmptySuggestion && (
         <div className="space-y-4 print:hidden">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <SummaryCard label="Total Revenue" value={fmtAmt(data.totalRevenue)} color="text-slate-800"
+            <SummaryCard label="Total Revenue" value={<MoneyText value={data.totalRevenue} />} color="text-ink"
               note={previous && <PeriodChangeNote current={data.totalRevenue} previous={previous.totalRevenue} />} />
-            <SummaryCard label="Cost of Goods" value={fmtAmt(data.totalCogs)}    color="text-red-600"
+            <SummaryCard label="Cost of Goods" value={<MoneyText value={data.totalCogs} />}    color="text-bad"
               note={previous && <PeriodChangeNote current={data.totalCogs} previous={previous.totalCogs} higherIsBetter={false} />} />
-            <SummaryCard label="Gross Profit"  value={fmtAmt(data.grossProfit)}  color={data.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}
+            <SummaryCard label="Gross Profit"  value={<MoneyText value={data.grossProfit} />}  color={data.grossProfit >= 0 ? 'text-ok' : 'text-bad'}
               note={previous && <PeriodChangeNote current={data.grossProfit} previous={previous.grossProfit} />} />
           </div>
           {previous && (
@@ -132,29 +212,16 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                 <div className="mt-3 flex justify-end">
                   <CsvExportButton filename={csvFilename('pl-daily', query)} columns={DAY_COLUMNS} rows={data.byDay} />
                 </div>
-                <div className="ui-table-wrap ui-table-wrap--scroll mt-3">
-                  <table className="w-full text-sm">
-                    <caption className="sr-only">Revenue, cost of goods and gross profit by day</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col" className="text-left">Date</th>
-                        <th scope="col" className="text-right">Revenue</th>
-                        <th scope="col" className="text-right">Cost of goods</th>
-                        <th scope="col" className="text-right">Gross profit</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.byDay.map((day) => (
-                        <tr key={day.date}>
-                          <td>{fmtShortDate(day.date)}</td>
-                          <td className="text-right">{fmtAmt(day.revenue)}</td>
-                          <td className="text-right">{fmtAmt(day.cogs)}</td>
-                          <td className={`text-right font-medium ${day.grossProfit >= 0 ? 'text-ok' : 'text-bad'}`}>{fmtAmt(day.grossProfit)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <DataTable
+                  caption="Revenue, cost of goods and gross profit by day"
+                  captionHidden
+                  regionLabel="Daily figures"
+                  columns={DAY_TABLE_COLUMNS}
+                  rows={data.byDay}
+                  rowKey={(day) => day.date}
+                  scroll
+                  className="mt-3"
+                />
               </details>
             </>
           )}
@@ -163,127 +230,66 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
           <div className="ui-card ui-card-muted p-3">
             <button
               onClick={() => setShowRevBreakdown(v => !v)}
-              className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+              className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-strong"
             >
               {showRevBreakdown
                 ? <ChevronUp size={14} strokeWidth={2} />
                 : <ChevronDown size={14} strokeWidth={2} />}
               Revenue breakdown (Cash / UPI / Card / Credit)
             </button>
-            {showRevBreakdown && (
-              <div className="grid grid-cols-4 gap-3 mt-3">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Cash</p>
-                  <p className="text-sm font-semibold text-slate-700 mt-0.5">{fmtAmt(data.totalCashRevenue)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">UPI</p>
-                  <p className="text-sm font-semibold text-slate-700 mt-0.5">{fmtAmt(data.totalUpiRevenue)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Card</p>
-                  <p className="text-sm font-semibold text-slate-700 mt-0.5">{fmtAmt(data.totalCardRevenue)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Credit Sales</p>
-                  <p className="text-sm font-semibold text-orange-600 mt-0.5">{fmtAmt(data.totalCreditRevenue)}</p>
-                </div>
-              </div>
-            )}
+            {showRevBreakdown && <RevenueBreakdown report={data} className="mt-3" />}
           </div>
 
           {/* Per-fuel table with drilldown */}
-          <div className="ui-table-wrap">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 text-xs text-slate-500">
-                  <th scope="col" className="w-6 px-2 py-2.5" />
-                  <th scope="col" className="text-left px-4 py-2.5 font-medium">Fuel Type</th>
-                  <th scope="col" className="text-right px-4 py-2.5 font-medium">Revenue</th>
-                  <th scope="col" className="text-right px-4 py-2.5 font-medium">COGS</th>
-                  <th scope="col" className="text-right px-4 py-2.5 font-medium">Gross Profit</th>
-                  <th scope="col" className="text-right px-4 py-2.5 font-medium">₹/L Margin</th>
-                  <th scope="col" className="text-right px-4 py-2.5 font-medium"><span className="sr-only">Shifts</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.byFuelType.map((row) => (
-                  <Fragment key={row.fuelType}>
-                    <tr
-                      className="border-t border-slate-100 cursor-pointer hover:bg-slate-50/60"
-                      onClick={() => toggleFuelRow(row.fuelType)}
+          <DataTable
+            caption="Profit and loss by fuel"
+            captionHidden
+            columns={FUEL_TABLE_COLUMNS}
+            rows={data.byFuelType}
+            rowKey={(row) => row.fuelType}
+            renderRow={(row) => (
+              <>
+                <tr className="cursor-pointer" onClick={() => toggleFuelRow(row.fuelType)}>
+                  <td className="px-2 text-ink-3">
+                    <button
+                      type="button"
+                      aria-expanded={expandedFuelRows.has(row.fuelType)}
+                      aria-label={`Show shift details for ${codeLabel(row.fuelType)}`}
+                      onClick={(e) => { e.stopPropagation(); toggleFuelRow(row.fuelType) }}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-control"
                     >
-                      <td className="px-2 py-2.5 text-slate-500">
-                        <button
-                          type="button"
-                          aria-expanded={expandedFuelRows.has(row.fuelType)}
-                          aria-label={`Show shift details for ${codeLabel(row.fuelType)}`}
-                          onClick={(e) => { e.stopPropagation(); toggleFuelRow(row.fuelType) }}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md"
-                        >
-                          {expandedFuelRows.has(row.fuelType)
-                            ? <ChevronUp size={13} strokeWidth={2} aria-hidden="true" />
-                            : <ChevronDown size={13} strokeWidth={2} aria-hidden="true" />}
-                        </button>
-                      </td>
-                      <td className="px-4 py-2.5 font-medium text-slate-700">{codeLabel(row.fuelType)}</td>
-                      <td className="px-4 py-2.5 text-right text-slate-700 tabular-nums">{fmtAmt(row.revenue)}</td>
-                      <td className="px-4 py-2.5 text-right text-red-600 tabular-nums">{fmtAmt(row.cogs)}</td>
-                      <td className={`px-4 py-2.5 text-right font-semibold tabular-nums ${row.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                        {fmtAmt(row.grossProfit)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-slate-500 text-xs tabular-nums">
-                        {row.grossMarginPerLitre != null ? `₹${row.grossMarginPerLitre.toFixed(2)}/L` : '—'}
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-xs">
-                        <Link
-                          to={shiftsForFuelUrl(query, row.fuelType)}
-                          className="ui-link"
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`View ${codeLabel(row.fuelType)} shifts from ${rangeLabel(query)}`}
-                        >
-                          View shifts
-                        </Link>
-                      </td>
-                    </tr>
-                    {expandedFuelRows.has(row.fuelType) && row.lotCostLines.length > 0 && (
-                      <tr key={`${row.fuelType}-lots`} className="bg-blue-50/40">
-                        <td />
-                        <td colSpan={6} className="px-4 pb-3 pt-1">
-                          <table className="w-full text-xs border-collapse">
-                            <thead>
-                              <tr className="text-slate-500 font-semibold">
-                                <th scope="col" className="text-left py-1.5 pr-3">Lot Ref</th>
-                                <th scope="col" className="text-left py-1.5 pr-3">Delivery Date</th>
-                                <th scope="col" className="text-right py-1.5 pr-3">Cost/L</th>
-                                <th scope="col" className="text-right py-1.5 pr-3">Units Consumed</th>
-                                <th scope="col" className="text-right py-1.5">Cost</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {row.lotCostLines.map((lot) => (
-                                <tr key={`${lot.lotId}-${lot.costPricePerUnit}`} className="border-t border-blue-100">
-                                  <td className="py-1.5 pr-3 text-slate-600">{lot.tankerReference}</td>
-                                  <td className="py-1.5 pr-3 text-slate-500">{fmtShortDate(lot.deliveryDate)}</td>
-                                  <td className="py-1.5 pr-3 text-right text-slate-600">₹{lot.costPricePerUnit.toFixed(2)}</td>
-                                  <td className="py-1.5 pr-3 text-right text-slate-600">{fmtQty(lot.quantityConsumed)}</td>
-                                  <td className="py-1.5 text-right font-medium text-slate-700">{fmtAmt(lot.lotCost)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
+                      {expandedFuelRows.has(row.fuelType)
+                        ? <ChevronUp size={13} strokeWidth={2} aria-hidden="true" />
+                        : <ChevronDown size={13} strokeWidth={2} aria-hidden="true" />}
+                    </button>
+                  </td>
+                  <FuelFigureCells row={row} />
+                  <td className="text-right text-xs">
+                    <Link
+                      to={shiftsForFuelUrl(query, row.fuelType)}
+                      className="ui-link"
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={`View ${codeLabel(row.fuelType)} shifts from ${rangeLabel(query)}`}
+                    >
+                      View shifts
+                    </Link>
+                  </td>
+                </tr>
+                {expandedFuelRows.has(row.fuelType) && row.lotCostLines.length > 0 && (
+                  <tr className="bg-info-bg">
+                    <td />
+                    <td colSpan={6} className="pt-1">
+                      <LotCostTable fuelType={row.fuelType} lines={row.lotCostLines} />
+                    </td>
+                  </tr>
+                )}
+              </>
+            )}
+          />
+          <p className="text-xs text-ink-3 mt-1">
             Gross Profit reflects fuel sales only. Operating expenses (salaries, maintenance) are excluded.
           </p>
-          <p className="text-xs text-slate-500">{data.totalShifts} closed shift{data.totalShifts !== 1 ? 's' : ''} in range.</p>
+          <p className="text-xs text-ink-3">{data.totalShifts} closed shift{data.totalShifts !== 1 ? 's' : ''} in range.</p>
         </div>
       )}
 
@@ -292,89 +298,37 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
         <div className="hidden print:block space-y-4">
           <PrintHeader title="Profit & Loss Report" from={query.from} to={query.to} />
           <div className="grid grid-cols-3 gap-4">
-            <SummaryCard label="Total Revenue" value={fmtAmt(data.totalRevenue)} color="text-slate-800" />
-            <SummaryCard label="Cost of Goods" value={fmtAmt(data.totalCogs)}    color="text-red-600" />
-            <SummaryCard label="Gross Profit"  value={fmtAmt(data.grossProfit)}  color={data.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'} />
+            <SummaryCard label="Total Revenue" value={<MoneyText value={data.totalRevenue} />} color="text-ink" />
+            <SummaryCard label="Cost of Goods" value={<MoneyText value={data.totalCogs} />}    color="text-bad" />
+            <SummaryCard label="Gross Profit"  value={<MoneyText value={data.grossProfit} />}  color={data.grossProfit >= 0 ? 'text-ok' : 'text-bad'} />
           </div>
           {/* Revenue breakdown — always expanded in print */}
-          <div className="grid grid-cols-4 gap-3 mb-2">
-            <div>
-              <p className="text-[10px] text-slate-500 uppercase font-semibold">Cash</p>
-              <p className="text-sm font-semibold text-slate-700">{fmtAmt(data.totalCashRevenue)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-500 uppercase font-semibold">UPI</p>
-              <p className="text-sm font-semibold text-slate-700">{fmtAmt(data.totalUpiRevenue)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-500 uppercase font-semibold">Card</p>
-              <p className="text-sm font-semibold text-slate-700">{fmtAmt(data.totalCardRevenue)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-500 uppercase font-semibold">Credit Sales</p>
-              <p className="text-sm font-semibold text-orange-600">{fmtAmt(data.totalCreditRevenue)}</p>
-            </div>
-          </div>
-          <ScrollRegion label="Profit and loss by fuel" className="ui-card p-0 overflow-hidden overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 text-xs text-slate-500">
-                  <th scope="col" className="text-left px-4 py-2.5 font-medium">Fuel Type</th>
-                  <th scope="col" className="text-right px-4 py-2.5 font-medium">Revenue</th>
-                  <th scope="col" className="text-right px-4 py-2.5 font-medium">COGS</th>
-                  <th scope="col" className="text-right px-4 py-2.5 font-medium">Gross Profit</th>
-                  <th scope="col" className="text-right px-4 py-2.5 font-medium">₹/L Margin</th>
+          <RevenueBreakdown report={data} className="mb-2" />
+          <DataTable
+            caption="Profit and loss by fuel, printed"
+            captionHidden
+            columns={PRINT_FUEL_TABLE_COLUMNS}
+            rows={data.byFuelType}
+            rowKey={(row) => row.fuelType}
+            renderRow={(row) => (
+              <>
+                <tr>
+                  <FuelFigureCells row={row} />
                 </tr>
-              </thead>
-              <tbody>
-                {data.byFuelType.map((row) => (
-                  <Fragment key={row.fuelType}>
-                    <tr className="border-t border-slate-100">
-                      <td className="px-4 py-2.5 font-medium text-slate-700">{codeLabel(row.fuelType)}</td>
-                      <td className="px-4 py-2.5 text-right text-slate-700 tabular-nums">{fmtAmt(row.revenue)}</td>
-                      <td className="px-4 py-2.5 text-right text-red-600 tabular-nums">{fmtAmt(row.cogs)}</td>
-                      <td className={`px-4 py-2.5 text-right font-semibold tabular-nums ${row.grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{fmtAmt(row.grossProfit)}</td>
-                      <td className="px-4 py-2.5 text-right text-slate-500 text-xs tabular-nums">
-                        {row.grossMarginPerLitre != null ? `₹${row.grossMarginPerLitre.toFixed(2)}/L` : '—'}
-                      </td>
-                    </tr>
-                    {row.lotCostLines.length > 0 && (
-                      <tr key={`${row.fuelType}-lots`}>
-                        <td colSpan={5} className="px-6 pb-2">
-                          <table className="w-full text-xs border-collapse">
-                            <thead>
-                              <tr className="text-slate-500 font-semibold">
-                                <th scope="col" className="text-left py-1 pr-3">Lot Ref</th>
-                                <th scope="col" className="text-left py-1 pr-3">Delivery Date</th>
-                                <th scope="col" className="text-right py-1 pr-3">Cost/L</th>
-                                <th scope="col" className="text-right py-1 pr-3">Units</th>
-                                <th scope="col" className="text-right py-1">Cost</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {row.lotCostLines.map((lot) => (
-                                <tr key={`${lot.lotId}-${lot.costPricePerUnit}`} className="border-t border-slate-100">
-                                  <td className="py-1 pr-3 text-slate-600">{lot.tankerReference}</td>
-                                  <td className="py-1 pr-3 text-slate-500">{fmtShortDate(lot.deliveryDate)}</td>
-                                  <td className="py-1 pr-3 text-right text-slate-600">₹{lot.costPricePerUnit.toFixed(2)}</td>
-                                  <td className="py-1 pr-3 text-right text-slate-600">{fmtQty(lot.quantityConsumed)}</td>
-                                  <td className="py-1 text-right font-medium text-slate-700">{fmtAmt(lot.lotCost)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                ))}
-              </tbody>
-            </table>
-          </ScrollRegion>
-          <p className="text-xs text-slate-500 mt-1">
+                {row.lotCostLines.length > 0 && (
+                  <tr>
+                    <td colSpan={5} className="pb-2">
+                      <LotCostTable fuelType={row.fuelType} lines={row.lotCostLines} />
+                    </td>
+                  </tr>
+                )}
+              </>
+            )}
+          />
+          <p className="text-xs text-ink-3 mt-1">
             Gross Profit reflects fuel sales only. Operating expenses (salaries, maintenance) are excluded.
           </p>
-          <p className="text-xs text-slate-500">{data.totalShifts} closed shift{data.totalShifts !== 1 ? 's' : ''} in range.</p>
+          <p className="text-xs text-ink-3">{data.totalShifts} closed shift{data.totalShifts !== 1 ? 's' : ''} in range.</p>
         </div>
       )}
     </div>

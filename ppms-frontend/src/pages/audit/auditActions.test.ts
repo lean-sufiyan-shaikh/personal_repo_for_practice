@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import backendAuditActionSource from '../../../../ppms-backend/src/main/java/com/ppms/audit/AuditAction.java?raw'
-import { AUDIT_ACTION_LABELS, AUDIT_ACTION_STYLES } from './auditActions'
+import { AUDIT_ACTION_LABELS, AUDIT_ACTION_TONES } from './auditActions'
 
 function backendAuditActions(): string[] {
   const enumBody = backendAuditActionSource.slice(backendAuditActionSource.indexOf('{') + 1)
@@ -12,12 +12,12 @@ describe('audit actions', () => {
     expect(backendAuditActions()).toEqual(expect.arrayContaining(['USER_CREATED', 'DELIVERY_DELETED', 'SETTLEMENT_CONFIG_UPDATED']))
   })
 
-  it('has a readable label and a style for every backend action', () => {
+  it('has a readable label and a tone for every backend action', () => {
     const labels: Record<string, string> = AUDIT_ACTION_LABELS
-    const styles: Record<string, string> = AUDIT_ACTION_STYLES
+    const tones: Record<string, string> = AUDIT_ACTION_TONES
     for (const action of backendAuditActions()) {
       expect(labels[action], `label for ${action}`).toMatch(/^[A-Z][a-z]/)
-      expect(styles[action], `style for ${action}`).toBeTruthy()
+      expect(tones[action], `tone for ${action}`).toBeTruthy()
     }
   })
 

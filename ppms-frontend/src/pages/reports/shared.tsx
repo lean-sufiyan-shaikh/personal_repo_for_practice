@@ -7,7 +7,7 @@ import type { DateRange } from '../../utils/datePresets'
 
 export function PrintHeader({ title, from, to }: { title: string; from?: string; to?: string }) {
   return (
-    <div className="mb-4 border-b border-slate-200 pb-3">
+    <div className="mb-4 border-b border-border pb-3">
       <h2 className="ui-title-sm">{title}</h2>
       {(from || to) && <p className="ui-help">Period: {from ?? '—'} to {to ?? '—'}</p>}
     </div>
@@ -45,10 +45,10 @@ export function DateRangeInputs({
   )
 }
 
-export function SummaryCard({ label, value, color, note }: { label: string; value: string; color: string; note?: ReactNode }) {
+export function SummaryCard({ label, value, color, note }: { label: string; value: ReactNode; color: string; note?: ReactNode }) {
   return (
     <div className="ui-card ui-card-muted p-4">
-      <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">{label}</p>
+      <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-ink-3">{label}</p>
       <p className={`text-lg font-bold ${color}`}>{value}</p>
       {note}
     </div>

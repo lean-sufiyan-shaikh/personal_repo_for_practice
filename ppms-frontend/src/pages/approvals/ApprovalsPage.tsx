@@ -12,6 +12,7 @@ import { RejectReasonDialog } from '../../components/RejectReasonDialog'
 import { parseApiError } from '../../utils/apiError'
 import { formatCurrency } from '../../utils/format'
 import { withToggled } from '../../utils/setToggle'
+import { MoneyText } from '../../components/AmountText'
 import { ApprovalsTable } from './ApprovalsTable'
 import { approvalKey } from './approvalFormat'
 
@@ -113,7 +114,7 @@ export default function ApprovalsPage() {
           </div>
           <div className="ui-section-meta-pill">
             <span className="ui-section-meta-label">Amount</span>
-            <span className="ui-section-meta-value">{formatCurrency(shownTotal)}</span>
+            <MoneyText value={shownTotal} className="ui-section-meta-value" />
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { serverMessage } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
 import { reportApi } from '../../../api/reportApi'
 import type { DiscrepancyLine, OperatorDiscrepancyReport } from '../../../api/reportApi'
 import { CsvExportButton } from '../../../components/CsvExportButton'
@@ -16,9 +16,27 @@ import type { DateRange } from '../../../utils/datePresets'
 import { discrepanciesUrl, shiftUrl } from '../../../utils/drillDown'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, SummaryCard } from '../shared'
-import { fmtAmt } from '../reportFormat'
+import { DataTable } from '../../../components/DataTable'
+import type { DataTableColumn } from '../../../components/DataTable'
+import { StatusBadge } from '../../../components/StatusBadge'
+import { discrepancyBadge, shiftStatusBadge } from '../../../components/statusBadges'
+import { MoneyText } from '../../../components/AmountText'
+import type { DiscrepancyType, ShiftStatus } from '../../../types/shift'
 import { codeLabel } from '../../../constants/labels'
 import { ShortOverChart } from '../charts/ShortOverChart'
+
+const PRINT_COLUMNS: DataTableColumn<DiscrepancyLine>[] = [
+  { key: 'date', header: 'Date', cell: (s) => <span className="text-ink-2">{s.shiftDate}</span> },
+  { key: 'type', header: 'Type', cell: (s) => <StatusBadge {...discrepancyBadge(s.discrepancyType as DiscrepancyType)} /> },
+  { key: 'amount', header: 'Amount', numeric: true, cell: (s) => <MoneyText value={s.discrepancyAmount} className="font-semibold text-ink" /> },
+  { key: 'status', header: 'Status', cell: (s) => <StatusBadge {...shiftStatusBadge(s.status as ShiftStatus)} /> },
+  { key: 'resolution', header: 'Resolution', cell: (s) => <span className="text-ink-3">{codeLabel(s.resolution)}</span> },
+]
+
+const COLUMNS: DataTableColumn<DiscrepancyLine>[] = [
+  { key: 'shift', header: 'Shift', cell: (s) => <Link to={shiftUrl(s.shiftId)} className="ui-link">Shift #{s.shiftId}</Link> },
+  ...PRINT_COLUMNS,
+]
 
 type DiscrepancyCsvRow = DiscrepancyLine & { operatorName: string }
 
@@ -115,7 +133,7 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <SummaryCard
               label="Total short"
-              value={fmtAmt(current.short)}
+              value={<MoneyText value={current.short} />}
               color="text-bad"
               note={<>
                 {before && <PeriodChangeNote current={current.short} previous={before.short} higherIsBetter={false} />}
@@ -124,7 +142,7 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
             />
             <SummaryCard
               label="Total over"
-              value={fmtAmt(current.over)}
+              value={<MoneyText value={current.over} />}
               color="text-warn"
               note={<>
                 {before && <PeriodChangeNote current={current.over} previous={before.over} higherIsBetter={false} />}
@@ -133,7 +151,7 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
             />
           </div>
           {data.operators.length > 0 && <ShortOverChart operators={data.operators} />}
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-ink-3">
             {data.totalDiscrepancyShifts} discrepancy shift{data.totalDiscrepancyShifts !== 1 ? 's' : ''} in range.
           </p>
           {paged.content.length === 0 ? (
@@ -146,56 +164,35 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
                   onClick={() => setExpandedOp(expandedOp === op.operatorId ? null : op.operatorId)}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-slate-700">{op.operatorName}</span>
-                    <span className="text-xs text-slate-500">{op.discrepancyShiftCount} shifts</span>
+                    <span className="text-sm font-semibold text-ink">{op.operatorName}</span>
+                    <span className="text-xs text-ink-3">{op.discrepancyShiftCount} shifts</span>
                     {op.unresolvedCount > 0 && (
-                      <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
-                        {op.unresolvedCount} unresolved
-                      </span>
+                      <StatusBadge tone="bad" icon={AlertTriangle} label={`${op.unresolvedCount} unresolved`} />
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-xs">
                     {op.totalShortAmount > 0 && (
-                      <span className="text-red-600 font-semibold">Short {fmtAmt(op.totalShortAmount)}</span>
+                      <span className="text-bad font-semibold">Short <MoneyText value={op.totalShortAmount} /></span>
                     )}
                     {op.totalOverAmount > 0 && (
-                      <span className="text-amber-600 font-semibold">Over {fmtAmt(op.totalOverAmount)}</span>
+                      <span className="text-warn font-semibold">Over <MoneyText value={op.totalOverAmount} /></span>
                     )}
                     {expandedOp === op.operatorId
-                      ? <ChevronUp size={14} strokeWidth={2} className="text-slate-500" />
-                      : <ChevronDown size={14} strokeWidth={2} className="text-slate-500" />
+                      ? <ChevronUp size={14} strokeWidth={2} className="text-ink-3" />
+                      : <ChevronDown size={14} strokeWidth={2} className="text-ink-3" />
                     }
                   </div>
                 </button>
                 {expandedOp === op.operatorId && (
-                  <table className="w-full text-xs border-t border-slate-100">
-                    <thead>
-                      <tr className="bg-slate-50 text-slate-500">
-                        <th scope="col" className="text-left px-4 py-2 font-medium">Shift</th>
-                        <th scope="col" className="text-left px-4 py-2 font-medium">Date</th>
-                        <th scope="col" className="text-left px-4 py-2 font-medium">Type</th>
-                        <th scope="col" className="text-right px-4 py-2 font-medium">Amount</th>
-                        <th scope="col" className="text-left px-4 py-2 font-medium">Status</th>
-                        <th scope="col" className="text-left px-4 py-2 font-medium">Resolution</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {op.shifts.map((s) => (
-                        <tr key={s.shiftId} className="border-t border-slate-100">
-                          <td className="px-4 py-2">
-                            <Link to={shiftUrl(s.shiftId)} className="ui-link">Shift #{s.shiftId}</Link>
-                          </td>
-                          <td className="px-4 py-2 text-slate-600">{s.shiftDate}</td>
-                          <td className={`px-4 py-2 font-semibold ${s.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600'}`}>
-                            {s.discrepancyType}
-                          </td>
-                          <td className="px-4 py-2 text-right font-semibold text-slate-700">{fmtAmt(s.discrepancyAmount)}</td>
-                          <td className="px-4 py-2 text-slate-500">{codeLabel(s.status)}</td>
-                          <td className="px-4 py-2 text-slate-500">{codeLabel(s.resolution)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <DataTable
+                    caption={`Short and over shifts for ${op.operatorName}`}
+                    captionHidden
+                    columns={COLUMNS}
+                    rows={op.shifts}
+                    rowKey={(s) => s.shiftId}
+                    className="rounded-none border-x-0 border-b-0"
+                    tableClassName="text-xs"
+                  />
                 )}
               </div>
             ))
@@ -208,39 +205,18 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
       {data && data.operators.length > 0 && (
         <div className="hidden print:block space-y-4">
           <PrintHeader title="Short / Over Discrepancy Report" from={query.from} to={query.to} />
-          <p className="text-xs text-slate-500 mb-2">
+          <p className="text-xs text-ink-3 mb-2">
             {data.totalDiscrepancyShifts} discrepancy shift{data.totalDiscrepancyShifts !== 1 ? 's' : ''} in range.
           </p>
           {data.operators.map((op) => (
             <div key={op.operatorId} className="mb-4">
-              <div className="flex items-center gap-3 mb-1 pb-1 border-b border-slate-200">
-                <span className="text-sm font-semibold text-slate-700">{op.operatorName}</span>
-                <span className="text-xs text-slate-500">{op.discrepancyShiftCount} shifts</span>
-                {op.totalShortAmount > 0 && <span className="text-xs text-red-600 font-semibold">Short {fmtAmt(op.totalShortAmount)}</span>}
-                {op.totalOverAmount > 0  && <span className="text-xs text-amber-600 font-semibold">Over {fmtAmt(op.totalOverAmount)}</span>}
+              <div className="flex items-center gap-3 mb-1 pb-1 border-b border-border">
+                <span className="text-sm font-semibold text-ink">{op.operatorName}</span>
+                <span className="text-xs text-ink-3">{op.discrepancyShiftCount} shifts</span>
+                {op.totalShortAmount > 0 && <span className="text-xs text-bad font-semibold">Short <MoneyText value={op.totalShortAmount} /></span>}
+                {op.totalOverAmount > 0  && <span className="text-xs text-warn font-semibold">Over <MoneyText value={op.totalOverAmount} /></span>}
               </div>
-              <table className="w-full text-xs border border-slate-100">
-                <thead>
-                  <tr className="bg-slate-50 text-slate-500">
-                    <th scope="col" className="text-left px-3 py-2 font-medium">Date</th>
-                    <th scope="col" className="text-left px-3 py-2 font-medium">Type</th>
-                    <th scope="col" className="text-right px-3 py-2 font-medium">Amount</th>
-                    <th scope="col" className="text-left px-3 py-2 font-medium">Status</th>
-                    <th scope="col" className="text-left px-3 py-2 font-medium">Resolution</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {op.shifts.map((s) => (
-                    <tr key={s.shiftId} className="border-t border-slate-100">
-                      <td className="px-3 py-1.5 text-slate-600">{s.shiftDate}</td>
-                      <td className={`px-3 py-1.5 font-semibold ${s.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600'}`}>{s.discrepancyType}</td>
-                      <td className="px-3 py-1.5 text-right font-semibold text-slate-700">{fmtAmt(s.discrepancyAmount)}</td>
-                      <td className="px-3 py-1.5 text-slate-500">{codeLabel(s.status)}</td>
-                      <td className="px-3 py-1.5 text-slate-500">{codeLabel(s.resolution)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <DataTable caption={`Short and over shifts for ${op.operatorName}`} captionHidden columns={PRINT_COLUMNS} rows={op.shifts} rowKey={(s) => s.shiftId} />
             </div>
           ))}
         </div>

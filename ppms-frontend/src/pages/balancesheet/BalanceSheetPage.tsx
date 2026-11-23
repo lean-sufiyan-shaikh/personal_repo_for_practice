@@ -83,12 +83,12 @@ export default function BalanceSheetPage() {
   return (
     <div className="flex h-[calc(100vh-56px)] overflow-hidden print:h-auto print:overflow-visible">
       {/* ── Left panel: list ────────────────────────────────────────────────── */}
-      <div className={`flex flex-col ${selectedReportId ? 'hidden 2xl:flex w-[22rem] flex-shrink-0' : 'flex-1'} border-r border-slate-200 bg-white overflow-hidden print:hidden`}>
+      <div className={`flex flex-col ${selectedReportId ? 'hidden 2xl:flex w-[22rem] flex-shrink-0' : 'flex-1'} border-r border-border bg-surface overflow-hidden print:hidden`}>
         {/* Page header */}
-        <div className="px-5 py-4 border-b border-slate-200">
+        <div className="px-5 py-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-semibold text-slate-800">Balance Sheets</h1>
+              <h1 className="text-base font-semibold text-ink">Balance Sheets</h1>
               <RefreshIndicator isFetching={fetchingReports} dataUpdatedAt={reportsUpdatedAt ?? 0} />
             </div>
             <button
@@ -110,21 +110,21 @@ export default function BalanceSheetPage() {
               type="date"
               value={filterFrom}
               onChange={e => setFilterFrom(e.target.value)}
-              className="flex-1 min-w-[8.5rem] text-xs text-slate-700"
+              className="flex-1 min-w-[8.5rem] text-xs text-ink"
               placeholder="From"
             />
-            <span className="text-slate-500 text-xs">to</span>
+            <span className="text-ink-3 text-xs">to</span>
             <input aria-label="To date"
               type="date"
               value={filterTo}
               onChange={e => setFilterTo(e.target.value)}
-              className="flex-1 min-w-[8.5rem] text-xs text-slate-700"
+              className="flex-1 min-w-[8.5rem] text-xs text-ink"
               placeholder="To"
             />
             {(filterFrom || filterTo) && (
               <IconButton
                 onClick={() => { setFilterRange({ from: '', to: '' }); setBsPage(0) }}
-                className="ui-btn ui-btn-ghost text-slate-500 hover:text-slate-600"
+                className="ui-btn ui-btn-ghost text-ink-3 hover:text-ink-2"
                 label="Clear date filter"
                 icon={<X size={14} strokeWidth={2} />}
               />
@@ -156,7 +156,7 @@ export default function BalanceSheetPage() {
           ))}
 
           {reportsPage && (
-            <div className="px-3 border-t border-slate-100">
+            <div className="px-3 border-t border-border">
               <Pagination
                 data={reportsPage}
                 onPageChange={p => setBsPage(p)}
@@ -184,9 +184,9 @@ export default function BalanceSheetPage() {
 
       {/* Empty detail state */}
       {!selectedReportId && (
-        <div className="flex-1 hidden sm:flex items-center justify-center bg-slate-50/70">
+        <div className="flex-1 hidden sm:flex items-center justify-center bg-surface-sunken">
           <div className="ui-empty">
-            <div className="flex justify-center mb-3"><BarChart2 size={40} strokeWidth={1.5} className="text-slate-500" /></div>
+            <div className="flex justify-center mb-3"><BarChart2 size={40} strokeWidth={1.5} className="text-ink-3" /></div>
             <p className="ui-subtitle">Select a report to view details</p>
           </div>
         </div>

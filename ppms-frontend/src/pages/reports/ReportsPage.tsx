@@ -81,10 +81,10 @@ export default function ReportsPage() {
           <p className="ui-section-kicker">Analysis</p>
           <h1 className="ui-title-sm">Reports</h1>
           <p className="ui-subtitle print:hidden">Operational and financial reports for your pump.</p>
-          <p className="hidden print:block text-xs text-slate-500 mt-0.5">
+          <p className="hidden print:block text-xs text-ink-3 mt-0.5">
             {pumpName && <><span className="font-medium">{pumpName}</span> · </>}
             {userName && <>Printed by: <span className="font-medium">{userName}</span> · </>}
-            <span className="text-slate-500">{fmtDateTime(new Date().toISOString())}</span>
+            <span className="text-ink-3">{fmtDateTime(new Date().toISOString())}</span>
           </p>
         </div>
       </div>

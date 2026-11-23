@@ -8,7 +8,7 @@ import { SearchableSelect } from '../../components/SearchableSelect'
 import { localDateInputValue } from '../../utils/date'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
-import { ModalPortal } from '../../components/ModalPortal'
+import { Modal } from '../../components/Modal'
 
 // ── Generate Modal ──────────────────────────────────────────────────────────────
 
@@ -85,20 +85,31 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
   }
 
   return (
-    <ModalPortal onClose={onClose}>
-    <div className="ui-modal-backdrop">
-      <div className="ui-modal-panel">
-        {/* Header */}
-        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
-          <div className="ui-modal-heading">
-            <h2 className="ui-modal-title">Generate Balance Sheet</h2>
-            <p className="ui-modal-subtitle">Create a shift or day-end financial snapshot for this pump.</p>
-          </div>
-          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
-        </div>
-
-        {/* Body */}
-        <div className="ui-modal-body space-y-4">
+    <Modal
+      title="Generate Balance Sheet"
+      subtitle="Create a shift or day-end financial snapshot for this pump."
+      tone="info"
+      size="lg"
+      onClose={onClose}
+      bodyClassName="space-y-4"
+      footer={<>
+          <button
+            onClick={onClose}
+            className="ui-btn ui-btn-secondary"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={mutation.isPending}
+            className="ui-btn ui-btn-primary"
+          >
+            {mutation.isPending
+              ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Generating…</span>
+              : 'Generate Report'}
+          </button>
+      </>}
+    >
           {/* Report type toggle */}
           <div>
             <span className="ui-label">Report Type</span>
@@ -109,15 +120,15 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
                   onClick={() => { setReportType(t); if (t === 'DAY') setShiftDefinitionId(null) }}
                   className={`ui-btn min-h-0 flex-1 px-3 py-2 text-sm font-medium ${
                     reportType === t
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white text-slate-600 hover:bg-slate-50'
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-surface text-ink-2 hover:bg-bg'
                   }`}
                 >
                   {t === 'SHIFT' ? 'Shift Report' : 'Day-End Report'}
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-xs text-slate-500">
+            <p className="mt-1.5 text-xs text-ink-3">
               {reportType === 'SHIFT'
                 ? 'Covers one shift. All shifts in that window must be closed first.'
                 : 'Covers the full business day. All shifts should be closed before generating.'}
@@ -144,7 +155,7 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
               {defsLoading ? (
                 <p className="ui-help">Loading shifts…</p>
               ) : shiftDefinitions.length === 0 ? (
-                <p className="text-xs text-red-500">No shift definitions configured for this pump. Please set them up in pump settings first.</p>
+                <p className="text-xs text-bad">No shift definitions configured for this pump. Please set them up in pump settings first.</p>
               ) : (
                 <SearchableSelect label="Shift"
                   value={selectedShiftDefinitionId !== null ? String(selectedShiftDefinitionId) : ''}
@@ -158,7 +169,7 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
           {/* Notes */}
           <div>
             <label className="block">
-              <span className="ui-label">Notes <span className="text-slate-500">(optional)</span></span>
+              <span className="ui-label">Notes <span className="text-ink-3">(optional)</span></span>
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
@@ -171,20 +182,20 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
 
           {confirmRegenerate && (
             <div className="ui-alert ui-alert-warning px-4 py-3 space-y-3">
-              <p className="text-sm text-amber-800 font-medium">
+              <p className="text-sm text-warn-strong font-medium">
                 A balance sheet already exists for this period.
               </p>
               {existingBsMsg && (
-                <p className="text-xs text-amber-700">{existingBsMsg}</p>
+                <p className="text-xs text-warn">{existingBsMsg}</p>
               )}
-              <p className="text-xs text-amber-700">
+              <p className="text-xs text-warn">
                 If you can't see it in the list, widen the date filter. Do you want to generate a new revision instead? It will be saved as a separate entry (e.g. Shift 1 · 12 AM – 8 AM #2).
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={handleForceRegenerate}
                   disabled={mutation.isPending}
-                  className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+                  className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-warn hover:bg-warn-strong text-white disabled:opacity-50"
                 >
                   {mutation.isPending
                     ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Generating…</span>
@@ -192,7 +203,7 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
                 </button>
                 <button
                   onClick={() => setConfirmRegenerate(false)}
-                  className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs text-amber-700 border-amber-300 hover:bg-amber-100"
+                  className="ui-btn ui-btn-secondary min-h-0 px-3 py-1.5 text-xs text-warn border-warn hover:bg-warn-bg"
                 >
                   Cancel
                 </button>
@@ -204,28 +215,6 @@ export function GenerateModal({ pumpId, onClose }: GenerateModalProps) {
               {error}
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="ui-modal-footer">
-          <button
-            onClick={onClose}
-            className="ui-btn ui-btn-secondary"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={mutation.isPending}
-            className="ui-btn ui-btn-primary"
-          >
-            {mutation.isPending
-              ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Generating…</span>
-              : 'Generate Report'}
-          </button>
-        </div>
-      </div>
-    </div>
-    </ModalPortal>
+    </Modal>
   )
 }

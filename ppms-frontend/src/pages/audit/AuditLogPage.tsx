@@ -15,7 +15,8 @@ import { csvFilename } from '../../utils/csv'
 import type { CsvColumn } from '../../utils/csv'
 import { auditEntityLabel, auditEntityUrl } from '../../utils/drillDown'
 import { codeLabel } from '../../constants/labels'
-import { AUDIT_ACTION_LABELS, AUDIT_ACTION_STYLES } from './auditActions'
+import { StatusBadge } from '../../components/StatusBadge'
+import { AUDIT_ACTION_LABELS, AUDIT_ACTION_TONES } from './auditActions'
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50]
 const EXPORT_PAGE_SIZE = 200
@@ -223,23 +224,24 @@ export default function AuditLogPage() {
             No audit events found{hasFilters ? ' for the selected filters' : ''}.
           </p>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-border">
             {logs.map(log => {
               const entityUrl = auditEntityUrl(log.entityType, log.entityId)
               return (
                 <div key={log.id} className="px-5 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${AUDIT_ACTION_STYLES[log.action] ?? 'bg-slate-100 text-slate-600'}`}>
-                        {AUDIT_ACTION_LABELS[log.action] ?? codeLabel(log.action)}
-                      </span>
-                      <span className="text-xs text-slate-500">by <span className="font-medium text-slate-700">{log.actorName}</span></span>
+                      <StatusBadge
+                        tone={AUDIT_ACTION_TONES[log.action] ?? 'neutral'}
+                        label={AUDIT_ACTION_LABELS[log.action] ?? codeLabel(log.action)}
+                      />
+                      <span className="text-xs text-ink-3">by <span className="font-medium text-ink">{log.actorName}</span></span>
                     </div>
-                    <p className="text-xs text-slate-500 flex-shrink-0">{fmtDateTime(log.createdAt)}</p>
+                    <p className="text-xs text-ink-3 flex-shrink-0">{fmtDateTime(log.createdAt)}</p>
                   </div>
-                  <p className="text-sm text-slate-700">{log.description}</p>
+                  <p className="text-sm text-ink">{log.description}</p>
                   {log.entityId && (
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-ink-3 mt-0.5">
                       {entityUrl
                         ? <Link to={entityUrl} className="ui-link">{auditEntityLabel(log.entityType, log.entityId)}</Link>
                         : auditEntityLabel(log.entityType, log.entityId)}
@@ -269,7 +271,7 @@ export default function AuditLogPage() {
               pageSizeOptions={PAGE_SIZE_OPTIONS}
             />
             <div className="pt-2 text-center">
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-ink-3">
                 Showing {rangeStart}–{rangeEnd} of {totalEvents} events
               </span>
             </div>

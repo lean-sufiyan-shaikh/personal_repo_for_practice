@@ -7,10 +7,11 @@ import { localDateInputValue } from '../../utils/date'
 import { Reveal } from '../../components/Reveal'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
-import { ModalPortal } from '../../components/ModalPortal'
+import { Modal } from '../../components/Modal'
 import { parseApiError } from '../../utils/apiError'
-import { formatCurrency } from '../../utils/format'
-import { CATEGORIES, CATEGORY_COLORS, fmtDate } from './expenseFormat'
+import { StatusBadge } from '../../components/StatusBadge'
+import { MoneyText } from '../../components/AmountText'
+import { CATEGORIES, fmtDate } from './expenseFormat'
 import { codeLabel } from '../../constants/labels'
 
 export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
@@ -124,12 +125,12 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer w-fit">
+        <label className="flex items-center gap-2 text-sm text-ink-2 cursor-pointer w-fit">
           <input
             type="checkbox"
             checked={!!form.saveDraft}
             onChange={e => setForm(f => ({ ...f, saveDraft: e.target.checked }))}
-            className="rounded border-slate-300 text-blue-600"
+            className="rounded-badge border-control text-primary"
           />
           Save as draft — submit for approval later
         </label>
@@ -148,40 +149,14 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
       </form></Reveal>
 
       {reviewOpen && (
-        <ModalPortal onClose={() => setReviewOpen(false)} closeOnBackdropClick>
-        <div className="ui-modal-backdrop">
-          <div className="ui-modal-panel w-full max-w-md">
-            <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
-              <div className="ui-modal-heading">
-                <h2 className="ui-modal-title">Review Expense</h2>
-                <p className="ui-modal-subtitle">Verify the expense details before saving the record.</p>
-              </div>
-              <button type="button" aria-label="Close" onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
-            </div>
-            <div className="ui-modal-body space-y-4">
-              {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
-              <div className="ui-card-plain ui-card-muted divide-y divide-slate-100 overflow-hidden text-sm">
-                <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="text-slate-500 text-xs">Category</span>
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${CATEGORY_COLORS[form.category]}`}>
-                    {codeLabel(form.category)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="text-slate-500 text-xs">Amount</span>
-                  <span className="font-medium text-sm text-slate-800">{formatCurrency(form.amount)}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <span className="text-slate-500 text-xs">Description</span>
-                  <span className="font-medium text-right text-sm text-slate-800">{form.description.trim()}</span>
-                </div>
-                <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="text-slate-500 text-xs">Expense Date</span>
-                  <span className="font-medium text-sm text-slate-800">{fmtDate(form.expenseDate)}</span>
-                </div>
-              </div>
-            </div>
-            <div className="ui-modal-footer">
+        <Modal
+          title="Review Expense"
+          subtitle="Verify the expense details before saving the record."
+          tone="warning"
+          onClose={() => setReviewOpen(false)}
+          closeOnBackdropClick
+          bodyClassName="space-y-4"
+          footer={<>
               <button onClick={() => setReviewOpen(false)} className="ui-btn ui-btn-secondary">
                 Back
               </button>
@@ -197,10 +172,28 @@ export function ExpenseEntryForm({ pumpId }: { pumpId: number | null }) {
                   ? <span className="flex items-center gap-1.5"><Spinner />Saving…</span>
                   : 'Add Expense'}
               </button>
-            </div>
-          </div>
-        </div>
-        </ModalPortal>
+          </>}
+        >
+              {formError && <div role="alert" className="ui-alert ui-alert-danger text-sm">{formError} Go back to modify the data and try again.</div>}
+              <div className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-ink-3 text-xs">Category</span>
+                  <StatusBadge tone="neutral" label={codeLabel(form.category)} />
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-ink-3 text-xs">Amount</span>
+                  <MoneyText value={form.amount} className="font-medium text-sm text-ink" />
+                </div>
+                <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+                  <span className="text-ink-3 text-xs">Description</span>
+                  <span className="font-medium text-right text-sm text-ink">{form.description.trim()}</span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-ink-3 text-xs">Expense Date</span>
+                  <span className="font-medium text-sm text-ink">{fmtDate(form.expenseDate)}</span>
+                </div>
+              </div>
+        </Modal>
       )}
     </>
   )

@@ -13,7 +13,12 @@ import { presetRange, previousPeriod } from '../../../utils/datePresets'
 import type { DateRange } from '../../../utils/datePresets'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, SummaryCard } from '../shared'
-import { fmtAmt } from '../reportFormat'
+import { DataTable } from '../../../components/DataTable'
+import type { DataTableColumn } from '../../../components/DataTable'
+import { StatusBadge } from '../../../components/StatusBadge'
+import { approvalStatusBadge } from '../../../components/statusBadges'
+import { MoneyText } from '../../../components/AmountText'
+import type { ExpenseApprovalStatus } from '../../../api/expenseApi'
 import { codeLabel } from '../../../constants/labels'
 
 const CSV_COLUMNS: CsvColumn<ExpenseReportLine>[] = [
@@ -29,6 +34,17 @@ function approvedTotal(rows: ExpenseReportLine[]): number {
 }
 
 // ── Expenses Tab ──────────────────────────────────────────────────────────────
+
+const COLUMNS: DataTableColumn<ExpenseReportLine>[] = [
+  { key: 'date', header: 'Date', cell: (e) => <span className="text-ink-2">{e.expenseDate}</span> },
+  { key: 'category', header: 'Category', cell: (e) => <span className="text-ink-3 text-xs">{codeLabel(e.category)}</span> },
+  { key: 'description', header: 'Description', cell: (e) => <span className="text-ink">{e.description}</span> },
+  { key: 'amount', header: 'Amount', numeric: true, cell: (e) => <MoneyText value={e.amount} tone="bad" className="font-medium" /> },
+  {
+    key: 'status', header: 'Status',
+    cell: (e) => e.approvalStatus ? <StatusBadge {...approvalStatusBadge(e.approvalStatus as ExpenseApprovalStatus)} /> : '—',
+  },
+]
 
 export function ExpensesTab({ pumpId }: { pumpId: number }) {
   const [query, setQuery, isDefaultRange] = useReportRange(yesterdayToTodayRange)
@@ -97,36 +113,13 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
         ) : (
           <div className="space-y-3 print:hidden">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SummaryCard label="Approved Expenses" value={fmtAmt(total)} color="text-red-600"
+              <SummaryCard label="Approved Expenses" value={<MoneyText value={total} />} color="text-bad"
                 note={previous && <PeriodChangeNote current={total} previous={approvedTotal(previous)} higherIsBetter={false} />} />
-              <SummaryCard label="Pending Approval" value={fmtAmt(pendingTotal)} color="text-amber-600" />
+              <SummaryCard label="Pending Approval" value={<MoneyText value={pendingTotal} />} color="text-warn" />
             </div>
-            <div className="ui-table-wrap ui-table-wrap--scroll">
-              <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 text-xs text-slate-500">
-                  <th scope="col" className="text-left px-4 py-2.5 font-medium">Date</th>
-                  <th scope="col" className="text-left px-4 py-2.5 font-medium">Category</th>
-                  <th scope="col" className="text-left px-4 py-2.5 font-medium">Description</th>
-                  <th scope="col" className="text-right px-4 py-2.5 font-medium">Amount</th>
-                  <th scope="col" className="text-left px-4 py-2.5 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paged.content.map(e => (
-                  <tr key={e.id} className="border-t border-slate-100 hover:bg-slate-50/50">
-                    <td className="px-4 py-2.5 text-slate-600">{e.expenseDate}</td>
-                    <td className="px-4 py-2.5 text-slate-500 text-xs">{codeLabel(e.category)}</td>
-                    <td className="px-4 py-2.5 text-slate-700">{e.description}</td>
-                    <td className="px-4 py-2.5 text-right font-medium text-red-600">{fmtAmt(e.amount)}</td>
-                    <td className="px-4 py-2.5 text-xs text-slate-500">{codeLabel(e.approvalStatus)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
+            <DataTable caption="Expenses" captionHidden columns={COLUMNS} rows={paged.content} rowKey={(e) => e.id} scroll />
             <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
-            <p className="text-xs text-slate-500">{rows.length} expense{rows.length !== 1 ? 's' : ''} in range.</p>
+            <p className="text-xs text-ink-3">{rows.length} expense{rows.length !== 1 ? 's' : ''} in range.</p>
           </div>
         )
       )}
@@ -135,31 +128,10 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
       {data && rows.length > 0 && (
         <div className="hidden print:block space-y-4">
           <PrintHeader title="Expenses Report" from={query.from} to={query.to} />
-          <SummaryCard label="Approved Expenses" value={fmtAmt(total)} color="text-red-600" />
-          <SummaryCard label="Pending Approval" value={fmtAmt(pendingTotal)} color="text-amber-600" />
-          <table className="w-full text-sm border border-slate-100">
-            <thead>
-              <tr className="bg-slate-50 text-xs text-slate-500">
-                <th scope="col" className="text-left px-4 py-2.5 font-medium">Date</th>
-                <th scope="col" className="text-left px-4 py-2.5 font-medium">Category</th>
-                <th scope="col" className="text-left px-4 py-2.5 font-medium">Description</th>
-                <th scope="col" className="text-right px-4 py-2.5 font-medium">Amount</th>
-                <th scope="col" className="text-left px-4 py-2.5 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(e => (
-                <tr key={e.id} className="border-t border-slate-100">
-                  <td className="px-4 py-2 text-slate-600">{e.expenseDate}</td>
-                  <td className="px-4 py-2 text-slate-500 text-xs">{codeLabel(e.category)}</td>
-                  <td className="px-4 py-2 text-slate-700">{e.description}</td>
-                  <td className="px-4 py-2 text-right font-medium text-red-600">{fmtAmt(e.amount)}</td>
-                  <td className="px-4 py-2 text-xs text-slate-500">{codeLabel(e.approvalStatus)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="text-xs text-slate-500">{rows.length} expense{rows.length !== 1 ? 's' : ''} in range.</p>
+          <SummaryCard label="Approved Expenses" value={<MoneyText value={total} />} color="text-bad" />
+          <SummaryCard label="Pending Approval" value={<MoneyText value={pendingTotal} />} color="text-warn" />
+          <DataTable caption="Expenses report" captionHidden columns={COLUMNS} rows={rows} rowKey={(e) => e.id} />
+          <p className="text-xs text-ink-3">{rows.length} expense{rows.length !== 1 ? 's' : ''} in range.</p>
         </div>
       )}
     </div>

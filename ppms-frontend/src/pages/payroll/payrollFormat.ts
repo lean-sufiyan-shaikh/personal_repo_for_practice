@@ -1,10 +1,13 @@
+import { Check, Hourglass, Wallet } from 'lucide-react'
 import type { PayrollStatus } from '../../api/payrollApi'
+import type { StatusBadgeSpec } from '../../components/statusBadges'
+import { codeLabel } from '../../constants/labels'
 import { localDateInputValue } from '../../utils/date'
 
-export const STATUS_STYLES: Record<PayrollStatus, string> = {
-  DRAFT:    'bg-amber-100 text-amber-700',
-  APPROVED: 'bg-blue-100 text-blue-700',
-  PAID:     'bg-emerald-100 text-emerald-700',
+export const STATUS_BADGES: Record<PayrollStatus, StatusBadgeSpec> = {
+  DRAFT:    { tone: 'warn', icon: Hourglass, label: codeLabel('DRAFT') },
+  APPROVED: { tone: 'info', icon: Check, label: codeLabel('APPROVED') },
+  PAID:     { tone: 'ok', icon: Wallet, label: codeLabel('PAID') },
 }
 
 // Order in which status groups are displayed

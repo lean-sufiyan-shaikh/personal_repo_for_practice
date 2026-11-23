@@ -14,8 +14,12 @@ import type { DateRange } from '../../../utils/datePresets'
 import { shiftUrl } from '../../../utils/drillDown'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader } from '../shared'
-import { fmtAmt } from '../reportFormat'
-import { ScrollRegion } from '../../../components/ScrollRegion'
+import { DataTable } from '../../../components/DataTable'
+import type { DataTableColumn } from '../../../components/DataTable'
+import { StatusBadge } from '../../../components/StatusBadge'
+import { shiftStatusBadge } from '../../../components/statusBadges'
+import { MoneyText } from '../../../components/AmountText'
+import type { ShiftStatus } from '../../../types/shift'
 import { codeLabel } from '../../../constants/labels'
 
 const CSV_COLUMNS: CsvColumn<ShiftReportLine>[] = [
@@ -30,6 +34,32 @@ const CSV_COLUMNS: CsvColumn<ShiftReportLine>[] = [
   { header: 'Credit', value: (row) => row.creditTotal, kind: 'money' },
   { header: 'Discrepancy type', value: (row) => row.discrepancyType },
   { header: 'Discrepancy amount', value: (row) => row.discrepancyAmount, kind: 'money' },
+]
+
+function discrepancyCell(s: ShiftReportLine) {
+  if (!s.discrepancyAmount || s.discrepancyAmount <= 0) return <span className="text-ink-3">—</span>
+  return (
+    <span className={`text-xs font-semibold ${s.discrepancyType === 'SHORT' ? 'text-bad' : 'text-warn'}`}>
+      {s.discrepancyType} <MoneyText value={s.discrepancyAmount} />
+    </span>
+  )
+}
+
+const PRINT_COLUMNS: DataTableColumn<ShiftReportLine>[] = [
+  { key: 'date', header: 'Date', cell: (s) => <span className="text-ink-2">{s.shiftDate}</span> },
+  { key: 'window', header: 'Window', cell: (s) => <span className="text-ink-3">{s.shiftName ?? '—'}</span> },
+  { key: 'status', header: 'Status', cell: (s) => s.status ? <StatusBadge {...shiftStatusBadge(s.status as ShiftStatus)} /> : '—' },
+  { key: 'due', header: 'Amount Due', numeric: true, cell: (s) => <MoneyText value={s.totalAmountDue} className="font-medium text-ink" /> },
+  { key: 'cash', header: 'Cash', numeric: true, cell: (s) => <MoneyText value={s.cashCollected} className="text-ink-2" /> },
+  { key: 'upi', header: 'UPI', numeric: true, cell: (s) => <MoneyText value={s.upiCollected} className="text-ink-2" /> },
+  { key: 'card', header: 'Card', numeric: true, cell: (s) => <MoneyText value={s.cardCollected} className="text-ink-2" /> },
+  { key: 'credit', header: 'Credit', numeric: true, cell: (s) => <MoneyText value={s.creditTotal} tone="warn" /> },
+  { key: 'discrepancy', header: 'Discrepancy', numeric: true, cell: discrepancyCell },
+]
+
+const COLUMNS: DataTableColumn<ShiftReportLine>[] = [
+  { key: 'shift', header: 'Shift', cell: (s) => <Link to={shiftUrl(s.id)} className="ui-link">Shift #{s.id}</Link> },
+  ...PRINT_COLUMNS,
 ]
 
 // ── Shifts Tab ────────────────────────────────────────────────────────────────
@@ -89,50 +119,16 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
             : <p className="ui-empty py-4 print:hidden">No closed shifts in this date range.</p>
         ) : (
           <div className="space-y-2 print:hidden">
-            <ScrollRegion label="Shifts" className="ui-table-wrap ui-table-wrap--scroll overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50 text-xs text-slate-500">
-                    <th scope="col" className="text-left px-4 py-2.5 font-medium">Shift</th>
-                    <th scope="col" className="text-left px-4 py-2.5 font-medium">Date</th>
-                    <th scope="col" className="text-left px-4 py-2.5 font-medium">Window</th>
-                    <th scope="col" className="text-left px-4 py-2.5 font-medium">Status</th>
-                    <th scope="col" className="text-right px-4 py-2.5 font-medium">Amount Due</th>
-                    <th scope="col" className="text-right px-4 py-2.5 font-medium">Cash</th>
-                    <th scope="col" className="text-right px-4 py-2.5 font-medium">UPI</th>
-                    <th scope="col" className="text-right px-4 py-2.5 font-medium">Card</th>
-                    <th scope="col" className="text-right px-4 py-2.5 font-medium">Credit</th>
-                    <th scope="col" className="text-right px-4 py-2.5 font-medium">Discrepancy</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paged.content.map(s => (
-                    <tr key={s.id} className="border-t border-slate-100 hover:bg-slate-50/50">
-                      <td className="px-4 py-2.5"><Link to={shiftUrl(s.id)} className="ui-link">Shift #{s.id}</Link></td>
-                      <td className="px-4 py-2.5 text-slate-600">{s.shiftDate}</td>
-                      <td className="px-4 py-2.5 text-slate-500">{s.shiftName ?? '—'}</td>
-                      <td className="px-4 py-2.5 text-slate-500 text-xs">{codeLabel(s.status)}</td>
-                      <td className="px-4 py-2.5 text-right font-medium text-slate-700">{fmtAmt(s.totalAmountDue)}</td>
-                      <td className="px-4 py-2.5 text-right text-slate-600">{fmtAmt(s.cashCollected)}</td>
-                      <td className="px-4 py-2.5 text-right text-slate-600">{fmtAmt(s.upiCollected)}</td>
-                      <td className="px-4 py-2.5 text-right text-slate-600">{fmtAmt(s.cardCollected)}</td>
-                      <td className="px-4 py-2.5 text-right text-orange-600">{fmtAmt(s.creditTotal)}</td>
-                      <td className={`px-4 py-2.5 text-right text-xs font-semibold ${
-                        s.discrepancyAmount && s.discrepancyAmount > 0
-                          ? (s.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600')
-                          : 'text-slate-500'
-                      }`}>
-                        {s.discrepancyAmount && s.discrepancyAmount > 0
-                          ? `${s.discrepancyType} ${fmtAmt(s.discrepancyAmount)}`
-                          : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </ScrollRegion>
+            <DataTable
+              caption="Shifts"
+              captionHidden
+              columns={COLUMNS}
+              rows={paged.content}
+              rowKey={(s) => s.id}
+              scroll
+            />
             <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
-            <p className="text-xs text-slate-500">{rows.length} shift{rows.length !== 1 ? 's' : ''} in range.</p>
+            <p className="text-xs text-ink-3">{rows.length} shift{rows.length !== 1 ? 's' : ''} in range.</p>
           </div>
         )
       )}
@@ -141,45 +137,14 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
       {data && rows.length > 0 && (
         <div className="hidden print:block space-y-4">
           <PrintHeader title="Shifts Report" from={query.from} to={query.to} />
-          <table className="w-full text-sm border border-slate-100">
-            <thead>
-              <tr className="bg-slate-50 text-xs text-slate-500">
-                <th scope="col" className="text-left px-4 py-2.5 font-medium">Date</th>
-                <th scope="col" className="text-left px-4 py-2.5 font-medium">Window</th>
-                <th scope="col" className="text-left px-4 py-2.5 font-medium">Status</th>
-                <th scope="col" className="text-right px-4 py-2.5 font-medium">Amount Due</th>
-                <th scope="col" className="text-right px-4 py-2.5 font-medium">Cash</th>
-                <th scope="col" className="text-right px-4 py-2.5 font-medium">UPI</th>
-                <th scope="col" className="text-right px-4 py-2.5 font-medium">Card</th>
-                <th scope="col" className="text-right px-4 py-2.5 font-medium">Credit</th>
-                <th scope="col" className="text-right px-4 py-2.5 font-medium">Discrepancy</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(s => (
-                <tr key={s.id} className="border-t border-slate-100">
-                  <td className="px-4 py-2 text-slate-600">{s.shiftDate}</td>
-                  <td className="px-4 py-2 text-slate-500">{s.shiftName ?? '—'}</td>
-                  <td className="px-4 py-2 text-slate-500 text-xs">{codeLabel(s.status)}</td>
-                  <td className="px-4 py-2 text-right font-medium text-slate-700">{fmtAmt(s.totalAmountDue)}</td>
-                  <td className="px-4 py-2 text-right text-slate-600">{fmtAmt(s.cashCollected)}</td>
-                  <td className="px-4 py-2 text-right text-slate-600">{fmtAmt(s.upiCollected)}</td>
-                  <td className="px-4 py-2 text-right text-slate-600">{fmtAmt(s.cardCollected)}</td>
-                  <td className="px-4 py-2 text-right text-orange-600">{fmtAmt(s.creditTotal)}</td>
-                  <td className={`px-4 py-2 text-right text-xs font-semibold ${
-                    s.discrepancyAmount && s.discrepancyAmount > 0
-                      ? (s.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600')
-                      : 'text-slate-500'
-                  }`}>
-                    {s.discrepancyAmount && s.discrepancyAmount > 0
-                      ? `${s.discrepancyType} ${fmtAmt(s.discrepancyAmount)}`
-                      : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="text-xs text-slate-500">{rows.length} shift{rows.length !== 1 ? 's' : ''} in range.</p>
+          <DataTable
+            caption="Shifts report"
+            captionHidden
+            columns={PRINT_COLUMNS}
+            rows={rows}
+            rowKey={(s) => s.id}
+          />
+          <p className="text-xs text-ink-3">{rows.length} shift{rows.length !== 1 ? 's' : ''} in range.</p>
         </div>
       )}
     </div>

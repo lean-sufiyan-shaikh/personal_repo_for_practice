@@ -10,6 +10,7 @@ import type { DateRange } from '../../../utils/datePresets'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, ErrorBox, SummaryCard } from '../shared'
 import { fmtAmt, fmtShortDate } from '../reportFormat'
+import { MoneyText } from '../../../components/AmountText'
 
 type InterestCsvRow = InterestChargeLine & { clientName: string }
 
@@ -75,9 +76,9 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
         <div className="space-y-4">
           {/* Summary */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <SummaryCard label="Total Charges"  value={String(data.totalCharges)}  color="text-slate-800" />
-            <SummaryCard label="Total Interest" value={fmtAmt(data.totalInterest)} color="text-red-600" />
-            <SummaryCard label="Clients"        value={String(data.clients.length)} color="text-slate-800" />
+            <SummaryCard label="Total Charges"  value={String(data.totalCharges)}  color="text-ink" />
+            <SummaryCard label="Total Interest" value={<MoneyText value={data.totalInterest} />} color="text-bad" />
+            <SummaryCard label="Clients"        value={String(data.clients.length)} color="text-ink" />
           </div>
 
           {data.clients.length === 0 ? (
@@ -86,23 +87,23 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
             data.clients.map(client => (
               <div key={client.clientId} className="ui-card p-0 overflow-hidden">
                 {/* Client header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/60">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-sunken">
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">{client.clientName}</p>
-                    <p className="text-xs text-slate-500">{client.chargeCount} charge{client.chargeCount !== 1 ? 's' : ''}</p>
+                    <p className="text-sm font-semibold text-ink">{client.clientName}</p>
+                    <p className="text-xs text-ink-3">{client.chargeCount} charge{client.chargeCount !== 1 ? 's' : ''}</p>
                   </div>
-                  <span className="text-sm font-bold text-red-600">{fmtAmt(client.totalInterest)}</span>
+                  <MoneyText value={client.totalInterest} tone="bad" className="text-sm font-bold" />
                 </div>
 
                 {/* Charge lines */}
-                <div className="divide-y divide-slate-100 text-xs">
+                <div className="divide-y divide-border text-xs">
                   {client.charges.map(c => (
                     <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                      <div className="text-slate-500 space-y-0.5">
+                      <div className="text-ink-3 space-y-0.5">
                         <p>{fmtShortDate(c.periodFrom)} – {fmtShortDate(c.periodTo)} ({c.daysApplied} days)</p>
                         <p>Balance {fmtAmt(c.outstandingBalance)} @ {c.rateApplied}%/month · {c.source}</p>
                       </div>
-                      <span className="font-medium text-slate-700 flex-shrink-0">{fmtAmt(c.amount)}</span>
+                      <MoneyText value={c.amount} className="font-medium text-ink flex-shrink-0" />
                     </div>
                   ))}
                 </div>

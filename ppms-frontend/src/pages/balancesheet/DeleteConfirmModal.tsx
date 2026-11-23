@@ -4,7 +4,7 @@ import { parseApiError } from '../../utils/apiError'
 import type { BalanceSheetSummary } from '../../api/balanceSheetApi'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
-import { ModalPortal } from '../../components/ModalPortal'
+import { Modal } from '../../components/Modal'
 import { fmtDate } from './bsFormat'
 
 // ── Delete Confirm Modal ────────────────────────────────────────────────────────
@@ -30,24 +30,13 @@ export function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmPro
   })
 
   return (
-    <ModalPortal onClose={onClose}>
-    <div className="ui-modal-backdrop">
-      <div className="ui-modal-panel w-full max-w-sm">
-        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--danger">
-          <div className="ui-modal-heading">
-            <h3 className="ui-modal-title">Delete Balance Sheet?</h3>
-            <p className="ui-modal-subtitle">This action removes the saved report entry.</p>
-          </div>
-          <button type="button" aria-label="Close" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
-        </div>
-        <div className="ui-modal-body">
-          <p className="text-sm text-slate-600">
-            This will permanently delete the <span className="font-medium">{report.periodLabel}</span> report
-            for <span className="font-medium">{fmtDate(report.reportDate)}</span>.
-            You can regenerate it afterwards.
-          </p>
-        </div>
-        <div className="ui-modal-footer">
+    <Modal
+      title="Delete Balance Sheet?"
+      subtitle="This action removes the saved report entry."
+      tone="danger"
+      size="sm"
+      onClose={onClose}
+      footer={<>
           <button
             onClick={onClose}
             className="ui-btn ui-btn-secondary"
@@ -63,9 +52,13 @@ export function DeleteConfirmModal({ report, pumpId, onClose }: DeleteConfirmPro
               ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Deleting…</span>
               : 'Delete Report'}
           </button>
-        </div>
-      </div>
-    </div>
-    </ModalPortal>
+      </>}
+    >
+          <p className="text-sm text-ink-2">
+            This will permanently delete the <span className="font-medium">{report.periodLabel}</span> report
+            for <span className="font-medium">{fmtDate(report.reportDate)}</span>.
+            You can regenerate it afterwards.
+          </p>
+    </Modal>
   )
 }

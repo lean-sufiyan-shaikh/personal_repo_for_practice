@@ -4,7 +4,7 @@ import { usePumpStore } from '../../store/usePumpStore'
 import { canPerformAction } from '../../permissions/permissions'
 import { expenseApi } from '../../api/expenseApi'
 import { Reveal } from '../../components/Reveal'
-import { formatCurrency } from '../../utils/format'
+import { MoneyText } from '../../components/AmountText'
 import { ExpenseEntryForm } from './ExpenseEntryForm'
 import { ExpenseList } from './ExpenseList'
 import { useExpenseList } from './useExpenseList'
@@ -69,7 +69,7 @@ export default function ExpensesPage() {
         <div className="ui-summary-strip">
           <div className="ui-summary-strip__item">
             <span className="ui-summary-strip__label">Approved Total</span>
-            <span className="ui-summary-strip__value">{formatCurrency(totalExpenses)}</span>
+            <MoneyText value={totalExpenses} className="ui-summary-strip__value" />
           </div>
           <div className="ui-summary-strip__item">
             <span className="ui-summary-strip__label">Total Records</span>
@@ -77,8 +77,8 @@ export default function ExpensesPage() {
           </div>
           {pendingCount > 0 && (
             <div className="ui-summary-strip__item">
-              <span className="ui-summary-strip__label text-amber-500">Pending Approval</span>
-              <span className="ui-summary-strip__value text-amber-600">{pendingCount}</span>
+              <span className="ui-summary-strip__label text-warn">Pending Approval</span>
+              <span className="ui-summary-strip__value text-warn">{pendingCount}</span>
             </div>
           )}
         </div>

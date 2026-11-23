@@ -6,9 +6,13 @@ import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
-import { fmtAmt, fmtDateTime, fmtQty } from '../reportFormat'
+import { fmtDateTime, fmtQty } from '../reportFormat'
 import { FUEL_BADGE } from '../../../constants/fuel'
-import { ScrollRegion } from '../../../components/ScrollRegion'
+import { DataTable } from '../../../components/DataTable'
+import type { DataTableColumn } from '../../../components/DataTable'
+import { StatusBadge } from '../../../components/StatusBadge'
+import type { StatusTone } from '../../../components/StatusBadge'
+import { MoneyText } from '../../../components/AmountText'
 import { codeLabel } from '../../../constants/labels'
 import { CsvExportButton } from '../../../components/CsvExportButton'
 import { csvFilename } from '../../../utils/csv'
@@ -22,6 +26,48 @@ const CSV_COLUMNS: CsvColumn<DipPlEntry>[] = [
   { header: 'Litres', value: (row) => row.litres.toFixed(2), kind: 'number' },
   { header: 'Profit or loss', value: (row) => row.monetaryAmount, kind: 'money' },
   { header: 'Notes', value: (row) => row.notes },
+]
+
+function signTone(value: number): StatusTone {
+  return value > 0 ? 'ok' : value < 0 ? 'bad' : 'neutral'
+}
+
+function dipEntryKey(e: DipPlEntry) {
+  return `${e.type}-${e.fuelType}-${e.recordedAt}`
+}
+
+const COLUMNS: DataTableColumn<DipPlEntry>[] = [
+  { key: 'recordedAt', header: 'Date & Time', cell: (e) => <span className="text-ink-2 text-xs">{fmtDateTime(e.recordedAt)}</span> },
+  {
+    key: 'type', header: 'Type',
+    cell: (e) => e.type === 'DIP_CHECK' ? <StatusBadge tone="info" label="Dip Check" /> : <StatusBadge tone="warn" label="Maintenance" />,
+  },
+  {
+    key: 'fuel', header: 'Fuel',
+    cell: (e) => (
+      <span className={`inline-block px-2 py-0.5 rounded-badge text-xs font-medium ${FUEL_BADGE[e.fuelType] ?? 'bg-surface-sunken text-ink-2'}`}>
+        {codeLabel(e.fuelType)}
+      </span>
+    ),
+  },
+  {
+    key: 'litres', header: 'Litres', numeric: true,
+    cell: (e) => {
+      const color = e.type === 'DIP_CHECK'
+        ? (e.litres > 0 ? 'text-ok' : e.litres < 0 ? 'text-bad' : 'text-ink-3')
+        : 'text-ink'
+      return (
+        <span className={`font-mono ${color}`}>
+          {e.type === 'DIP_CHECK' && e.litres > 0 ? '+' : ''}{fmtQty(e.litres)}
+        </span>
+      )
+    },
+  },
+  { key: 'pl', header: 'P/L', numeric: true, cell: (e) => <MoneyText value={e.monetaryAmount} showSign tone={signTone(e.monetaryAmount)} className="font-medium" /> },
+  {
+    key: 'notes', header: 'Notes',
+    cell: (e) => <span className="block max-w-52 truncate text-ink-2 text-xs" title={e.notes ?? ''}>{e.notes ?? '—'}</span>,
+  },
 ]
 
 // ── Dip P/L Tab ───────────────────────────────────────────────────────────────
@@ -61,7 +107,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
         <button
           onClick={() => { setQuery({ from, to }); setPage(0) }}
           disabled={isFetching}
-          className="ui-btn ui-btn-primary disabled:bg-blue-300"
+          className="ui-btn ui-btn-primary disabled:opacity-60"
         >
           {isFetching ? 'Loading...' : 'Generate'}
         </button>
@@ -82,16 +128,16 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
       {data && paged && (
         <div className="space-y-4 print:hidden">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <SummaryCard label="Total Entries"  value={String(entries.length)}  color="text-slate-700" />
+            <SummaryCard label="Total Entries"  value={String(entries.length)}  color="text-ink" />
             <SummaryCard
               label="Net P/L"
-              value={(isNetGain ? '+' : '') + fmtAmt(netPl)}
-              color={isNetGain ? 'text-emerald-600' : isNetLoss ? 'text-red-600' : 'text-slate-500'}
+              value={<MoneyText value={netPl} showSign />}
+              color={isNetGain ? 'text-ok' : isNetLoss ? 'text-bad' : 'text-ink-3'}
             />
             <SummaryCard
               label="Dip Checks"
               value={String(entries.filter(e => e.type === 'DIP_CHECK').length)}
-              color="text-blue-600"
+              color="text-primary"
             />
           </div>
 
@@ -99,69 +145,21 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
             <div className="ui-empty py-6">No dip P/L entries found for this date range.</div>
           ) : (
             <>
-              <ScrollRegion label="Dip profit and loss entries" className="ui-table-wrap ui-table-wrap--scroll overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 text-left">
-                      <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Date &amp; Time</th>
-                      <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Type</th>
-                      <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Fuel</th>
-                      <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500 text-right">Litres</th>
-                      <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500 text-right">P/L</th>
-                      <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paged.content.map((e, idx) => {
-                      const isGain = e.monetaryAmount > 0
-                      const isLoss = e.monetaryAmount < 0
-                      const plColor = isGain ? 'text-emerald-600' : isLoss ? 'text-red-600' : 'text-slate-500'
-                      const litresColor = e.type === 'DIP_CHECK'
-                        ? (e.litres > 0 ? 'text-emerald-600' : e.litres < 0 ? 'text-red-600' : 'text-slate-500')
-                        : 'text-slate-700'
-                      return (
-                        <tr key={idx} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
-                          <td className="px-3 py-2.5 text-slate-600 text-xs">
-                            {fmtDateTime(e.recordedAt)}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            {e.type === 'DIP_CHECK' ? (
-                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">Dip Check</span>
-                            ) : (
-                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">Maintenance</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${FUEL_BADGE[e.fuelType] ?? 'bg-slate-100 text-slate-600'}`}>
-                              {codeLabel(e.fuelType)}
-                            </span>
-                          </td>
-                          <td className={`px-3 py-2.5 text-right font-mono ${litresColor}`}>
-                            {e.type === 'DIP_CHECK' && e.litres > 0 ? '+' : ''}{fmtQty(e.litres)}
-                          </td>
-                          <td className={`px-3 py-2.5 text-right font-medium ${plColor}`}>
-                            {isGain ? '+' : ''}{fmtAmt(e.monetaryAmount)}
-                          </td>
-                          <td className="px-3 py-2.5 text-slate-600 text-xs max-w-[200px] truncate" title={e.notes ?? ''}>
-                            {e.notes ?? '—'}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                  {entries.length > 1 && (
-                    <tfoot>
-                      <tr className="bg-slate-50 font-semibold border-t border-slate-200 text-slate-700">
-                        <td colSpan={4} className="px-3 py-2.5">Net P/L</td>
-                        <td className={`px-3 py-2.5 text-right font-medium ${isNetGain ? 'text-emerald-600' : isNetLoss ? 'text-red-600' : 'text-slate-500'}`}>
-                          {isNetGain ? '+' : ''}{fmtAmt(netPl)}
-                        </td>
-                        <td />
-                      </tr>
-                    </tfoot>
-                  )}
-                </table>
-              </ScrollRegion>
+              <DataTable
+                caption="Dip profit and loss entries"
+                captionHidden
+                columns={COLUMNS}
+                rows={paged.content}
+                rowKey={dipEntryKey}
+                scroll
+                footer={entries.length > 1 && (
+                  <tr className="bg-surface-sunken text-ink">
+                    <td colSpan={4}>Net P/L</td>
+                    <td className="text-right"><MoneyText value={netPl} showSign tone={signTone(netPl)} /></td>
+                    <td />
+                  </tr>
+                )}
+              />
               <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
             </>
           )}
@@ -173,77 +171,32 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
         <div className="hidden print:block space-y-4">
           <PrintHeader title="Dip P/L Report" from={query.from} to={query.to} />
           <div className="grid grid-cols-3 gap-3">
-            <SummaryCard label="Total Entries"  value={String(entries.length)}  color="text-slate-700" />
+            <SummaryCard label="Total Entries"  value={String(entries.length)}  color="text-ink" />
             <SummaryCard
               label="Net P/L"
-              value={(isNetGain ? '+' : '') + fmtAmt(netPl)}
-              color={isNetGain ? 'text-emerald-600' : isNetLoss ? 'text-red-600' : 'text-slate-500'}
+              value={<MoneyText value={netPl} showSign />}
+              color={isNetGain ? 'text-ok' : isNetLoss ? 'text-bad' : 'text-ink-3'}
             />
             <SummaryCard
               label="Dip Checks"
               value={String(entries.filter(e => e.type === 'DIP_CHECK').length)}
-              color="text-blue-600"
+              color="text-primary"
             />
           </div>
-          <ScrollRegion label="Dip profit and loss summary" className="overflow-x-auto rounded-xl border border-slate-200">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 text-left">
-                <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Date &amp; Time</th>
-                <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Type</th>
-                <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Fuel</th>
-                <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500 text-right">Litres</th>
-                <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500 text-right">P/L</th>
-                <th scope="col" className="px-3 py-2.5 text-xs font-semibold text-slate-500">Notes</th>
+          <DataTable
+            caption="Dip profit and loss summary"
+            captionHidden
+            columns={COLUMNS}
+            rows={entries}
+            rowKey={dipEntryKey}
+            footer={entries.length > 1 && (
+              <tr className="bg-surface-sunken text-ink">
+                <td colSpan={4}>Net P/L</td>
+                <td className="text-right"><MoneyText value={netPl} showSign tone={signTone(netPl)} /></td>
+                <td />
               </tr>
-            </thead>
-            <tbody>
-              {entries.map((e, idx) => {
-                const isGain = e.monetaryAmount > 0
-                const isLoss = e.monetaryAmount < 0
-                const plColor = isGain ? 'text-emerald-600' : isLoss ? 'text-red-600' : 'text-slate-500'
-                const litresColor = e.type === 'DIP_CHECK'
-                  ? (e.litres > 0 ? 'text-emerald-600' : e.litres < 0 ? 'text-red-600' : 'text-slate-500')
-                  : 'text-slate-700'
-                return (
-                  <tr key={idx} className="border-t border-slate-100">
-                    <td className="px-3 py-2 text-slate-600 text-xs">
-                      {fmtDateTime(e.recordedAt)}
-                    </td>
-                    <td className="px-3 py-2">
-                      {e.type === 'DIP_CHECK'
-                        ? <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">Dip Check</span>
-                        : <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">Maintenance</span>}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${FUEL_BADGE[e.fuelType] ?? 'bg-slate-100 text-slate-600'}`}>
-                        {codeLabel(e.fuelType)}
-                      </span>
-                    </td>
-                    <td className={`px-3 py-2 text-right font-mono ${litresColor}`}>
-                      {e.type === 'DIP_CHECK' && e.litres > 0 ? '+' : ''}{fmtQty(e.litres)}
-                    </td>
-                    <td className={`px-3 py-2 text-right font-medium ${plColor}`}>
-                      {isGain ? '+' : ''}{fmtAmt(e.monetaryAmount)}
-                    </td>
-                    <td className="px-3 py-2 text-slate-600 text-xs">{e.notes ?? '—'}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-            {entries.length > 1 && (
-              <tfoot>
-                <tr className="bg-slate-50 font-semibold border-t border-slate-200 text-slate-700">
-                  <td colSpan={4} className="px-3 py-2.5">Net P/L</td>
-                  <td className={`px-3 py-2.5 text-right font-medium ${isNetGain ? 'text-emerald-600' : isNetLoss ? 'text-red-600' : 'text-slate-500'}`}>
-                    {isNetGain ? '+' : ''}{fmtAmt(netPl)}
-                  </td>
-                  <td />
-                </tr>
-              </tfoot>
             )}
-          </table>
-          </ScrollRegion>
+          />
         </div>
       )}
     </div>

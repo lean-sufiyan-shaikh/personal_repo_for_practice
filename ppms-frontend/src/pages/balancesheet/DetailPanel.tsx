@@ -6,14 +6,17 @@ import { useToastStore } from '../../store/toastStore'
 import type { BalanceSheetSummary, BsFuelLine, BsShiftLine } from '../../api/balanceSheetApi'
 import { SkeletonRows } from '../../components/Skeleton'
 import { IconButton } from '../../components/IconButton'
-import { DiscrepancyTd, FuelLineRow, ShiftLineRow, SummaryTile, Td, Th } from './bsTableCells'
+import { DiscrepancyTd, FuelLineRow, ShiftLineRow, SummaryTile, Td } from './bsTableCells'
 import { ExpensesSection } from './sections/ExpensesSection'
-import { fmtDate, fmtDateTime, fmtLitres, fmtMoney } from './bsFormat'
+import { bsColumn, fmtDate, fmtDateTime, fmtLitres } from './bsFormat'
 import { ProductSalesSection } from './sections/ProductSalesSection'
 import { SettlementSection } from './sections/SettlementSection'
 import { DipPlSection } from './sections/DipPlSection'
 import { MeterAmendmentsSection } from './sections/MeterAmendmentsSection'
-import { ScrollRegion } from '../../components/ScrollRegion'
+import { DataTable } from '../../components/DataTable'
+import type { DataTableColumn } from '../../components/DataTable'
+import { MoneyText } from '../../components/AmountText'
+import { StatusBadge } from '../../components/StatusBadge'
 import { Link } from 'react-router-dom'
 import { CsvExportButton } from '../../components/CsvExportButton'
 import { csvFilename } from '../../utils/csv'
@@ -52,6 +55,37 @@ const SHIFT_COLUMNS: CsvColumn<BsShiftLine>[] = [
   { header: 'Credit', value: (row) => row.creditAmount, kind: 'money' },
   { header: 'Discrepancy', value: (row) => row.discrepancy, kind: 'money' },
 ]
+
+const SHIFT_TABLE_COLUMNS: DataTableColumn<BsShiftLine>[] = [
+  bsColumn('operator', 'Operator'),
+  bsColumn('du', 'DU / Nozzle'),
+  bsColumn('fuels', 'Fuels'),
+  bsColumn('litres', 'Litres', true),
+  bsColumn('expected', 'Expected', true),
+  bsColumn('received', 'Received', true),
+  bsColumn('cash', 'Cash', true),
+  bsColumn('upi', 'UPI', true),
+  bsColumn('card', 'Card', true),
+  bsColumn('fleet', 'Fleet', true),
+  bsColumn('credit', 'Credit', true),
+  bsColumn('discrepancy', 'Discrepancy', true),
+]
+
+function fuelTableColumns(isOwnerOrAdmin: boolean): DataTableColumn<BsFuelLine>[] {
+  return [
+    bsColumn('fuel', 'Fuel'),
+    bsColumn('opening', 'Opening Stock', true),
+    bsColumn('delivered', 'Delivered', true),
+    bsColumn('sold', 'Sold', true),
+    bsColumn('closing', 'Closing Stock', true),
+    bsColumn('price', 'Selling Price', true),
+    bsColumn('revenue', 'Revenue', true),
+    ...(isOwnerOrAdmin ? [bsColumn<BsFuelLine>('cogs', 'COGS', true), bsColumn<BsFuelLine>('profit', 'Profit', true)] : []),
+    bsColumn('variance', 'Stock Variance', true),
+    ...(isOwnerOrAdmin ? [bsColumn<BsFuelLine>('dipLoss', 'Dip Loss', true)] : []),
+    bsColumn('credit', 'Credit Sold', true),
+  ]
+}
 
 // ── Detail Panel ────────────────────────────────────────────────────────────────
 
@@ -110,27 +144,23 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
   return (
     <div className="flex-1 overflow-y-auto print:overflow-visible">
       {/* Detail header */}
-      <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10">
+      <div className="sticky top-0 bg-surface border-b border-border px-6 py-4 flex items-center justify-between z-10">
         <div>
           <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-              detail.reportType === 'DAY' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-            }`}>
-              {detail.reportType === 'DAY' ? 'Day End' : 'Shift'}
-            </span>
-            <h2 className="text-base font-semibold text-slate-800">
+            <StatusBadge tone={detail.reportType === 'DAY' ? 'neutral' : 'info'} label={detail.reportType === 'DAY' ? 'Day End' : 'Shift'} />
+            <h2 className="text-base font-semibold text-ink">
               <span className="hidden print:inline">Balance Sheet — </span>{detail.periodLabel}
             </h2>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-ink-3 mt-0.5">
             {fmtDate(detail.reportDate)} · Generated {fmtDateTime(detail.generatedAt)} by {detail.generatedByUserName}
             {pumpName && <span className="hidden print:inline"> · Pump: <span className="font-medium">{pumpName}</span></span>}
           </p>
           {detail.reportType === 'DAY' && detail.includedShiftNames && detail.includedShiftNames.length > 0 && (
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-ink-3 mt-1">
               Shifts included:{' '}
               {detail.includedShiftNames.map(name => (
-                <span key={name} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 mr-1">
+                <span key={name} className="inline-flex items-center px-1.5 py-0.5 rounded-badge text-xs font-medium bg-surface-sunken text-ink-2 mr-1">
                   {name}
                 </span>
               ))}
@@ -140,27 +170,27 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
         <div className="flex items-center gap-2 print:hidden">
           <button
             onClick={onClose}
-            className="md:hidden text-xs text-blue-600 hover:text-blue-800 font-medium border border-blue-200 hover:border-blue-400 px-3 py-1.5 rounded-lg transition-colors"
+            className="md:hidden text-xs text-primary font-medium border border-info hover:border-primary px-3 py-1.5 rounded-control transition-colors"
           >
             ← Back
           </button>
           {canDelete && (
             <button
               onClick={() => onDelete(summary)}
-              className="text-xs text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 px-3 py-1.5 rounded-lg transition-colors"
+              className="text-xs text-bad hover:text-bad-strong border border-bad hover:bg-bad-bg px-3 py-1.5 rounded-control transition-colors"
             >
               Delete
             </button>
           )}
           <button
             onClick={() => window.print()}
-            className="text-xs text-slate-600 hover:text-slate-800 border border-slate-200 hover:border-slate-400 px-3 py-1.5 rounded-lg transition-colors"
+            className="text-xs text-ink-2 hover:text-ink border border-control hover:border-ink-3 px-3 py-1.5 rounded-control transition-colors"
           >
             Print PDF
           </button>
           <IconButton
             onClick={onClose}
-            className="hidden md:block text-slate-500 hover:text-slate-600 text-xl leading-none"
+            className="hidden md:block text-ink-3 hover:text-ink-2 text-xl leading-none"
             label="Close details"
             icon={'×'}
           />
@@ -195,29 +225,29 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
 
         {/* Notes */}
         {detail.notes && (
-          <div className="ui-card-plain ui-card-muted px-4 py-3 text-sm text-slate-600">
+          <div className="ui-card-plain ui-card-muted px-4 py-3 text-sm text-ink-2">
             {detail.notes}
           </div>
         )}
 
         {/* Cash summary tiles */}
         <section>
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Cash & Revenue Summary</h3>
+          <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-wider mb-3">Cash & Revenue Summary</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <SummaryTile label="Expected Revenue" value={fmtMoney(detail.totalExpectedRevenue)} />
-            <SummaryTile label="Cash Collected" value={fmtMoney(detail.totalCashCollected)} />
-            <SummaryTile label="UPI Collected" value={fmtMoney(detail.totalUpiCollected)} />
-            <SummaryTile label="Card Collected" value={fmtMoney(detail.totalCardCollected)} />
-            <SummaryTile label="Credit Sold" value={fmtMoney(detail.totalCreditSold)} accent="amber" />
+            <SummaryTile label="Expected Revenue" value={<MoneyText value={detail.totalExpectedRevenue} />} />
+            <SummaryTile label="Cash Collected" value={<MoneyText value={detail.totalCashCollected} />} />
+            <SummaryTile label="UPI Collected" value={<MoneyText value={detail.totalUpiCollected} />} />
+            <SummaryTile label="Card Collected" value={<MoneyText value={detail.totalCardCollected} />} />
+            <SummaryTile label="Credit Sold" value={<MoneyText value={detail.totalCreditSold} />} accent="amber" />
             {detail.reportType === 'DAY' && (
-              <SummaryTile label="Credit Recovered" value={fmtMoney(detail.totalCreditRecovered)} accent="green" />
+              <SummaryTile label="Credit Recovered" value={<MoneyText value={detail.totalCreditRecovered} />} accent="green" />
             )}
             {detail.reportType === 'DAY' && (detail.totalCashRecovery ?? 0) > 0 && (
-              <SummaryTile label="Cash Recovery" value={fmtMoney(detail.totalCashRecovery)} accent="green" sublabel="Short discrepancy repaid" />
+              <SummaryTile label="Cash Recovery" value={<MoneyText value={detail.totalCashRecovery} />} accent="green" sublabel="Short discrepancy repaid" />
             )}
             <SummaryTile
               label="Cash Discrepancy"
-              value={fmtMoney(Math.abs(detail.cashDiscrepancy))}
+              value={<MoneyText value={Math.abs(detail.cashDiscrepancy)} />}
               sublabel={detail.cashDiscrepancy > 0 ? 'Over' : detail.cashDiscrepancy < 0 ? 'Short' : 'Balanced'}
               accent={detail.cashDiscrepancy === 0 ? 'green' : detail.cashDiscrepancy < 0 ? 'red' : 'amber'}
             />
@@ -232,50 +262,50 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
             {detail.reportType === 'DAY' && (
               <SummaryTile label="Litres Delivered" value={fmtLitres(detail.totalLitresDelivered)} />
             )}
-            {isOwnerOrAdmin && <SummaryTile label="Cost of Goods" value={fmtMoney(detail.totalCostOfGoods)} />}
+            {isOwnerOrAdmin && <SummaryTile label="Cost of Goods" value={<MoneyText value={detail.totalCostOfGoods} />} />}
             {isOwnerOrAdmin && (
               <SummaryTile
                 label={detail.reportType === 'DAY' ? 'Fuel Gross Profit' : 'Gross Profit'}
-                value={fmtMoney(detail.totalGrossProfit)}
+                value={<MoneyText value={detail.totalGrossProfit} />}
                 accent={detail.totalGrossProfit >= 0 ? 'green' : 'red'}
               />
             )}
             {isOwnerOrAdmin && detail.reportType === 'DAY' && detail.productSales && (
               <SummaryTile
                 label="Product Sales Profit"
-                value={fmtMoney(detail.productSales.grossProfit)}
+                value={<MoneyText value={detail.productSales.grossProfit} />}
                 accent={detail.productSales.grossProfit >= 0 ? 'green' : 'red'}
               />
             )}
             {detail.reportType === 'DAY' && detail.expenses && (
               <SummaryTile
                 label="Expenses"
-                value={'−' + fmtMoney(detail.expenses.totalAmount)}
+                value={<MoneyText value={-detail.expenses.totalAmount} showSign />}
                 accent="red"
               />
             )}
             {isOwnerOrAdmin && detail.dipPlEntries?.length > 0 && (
               <SummaryTile
                 label="Dip P/L"
-                value={(detail.totalDipNetAmount > 0 ? '+' : '') + fmtMoney(detail.totalDipNetAmount)}
+                value={<MoneyText value={detail.totalDipNetAmount} showSign />}
                 accent={detail.totalDipNetAmount > 0 ? 'green' : 'red'}
               />
             )}
             {isOwnerOrAdmin && (detail.reportType === 'DAY' ? (
               <SummaryTile
                 label="Net Profit"
-                value={fmtMoney(detail.totalNetProfit)}
+                value={<MoneyText value={detail.totalNetProfit} />}
                 accent={detail.totalNetProfit >= 0 ? 'green' : 'red'}
               />
             ) : detail.dipPlEntries?.length > 0 && (
               <SummaryTile
                 label="Net Profit"
-                value={fmtMoney(detail.totalNetProfit)}
+                value={<MoneyText value={detail.totalNetProfit} />}
                 accent={detail.totalNetProfit >= 0 ? 'green' : 'red'}
               />
             ))}
           {!isOwnerOrAdmin && (
-            <p className="text-xs text-slate-500 col-span-full mt-1">
+            <p className="text-xs text-ink-3 col-span-full mt-1">
               Financial details (cost, profit, P/L) are visible to Owner and Admin only.
             </p>
           )}
@@ -285,45 +315,31 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
         {/* Fuel lines */}
         <section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Fuel Breakdown</h3>
+            <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-wider">Fuel Breakdown</h3>
             <CsvExportButton
               filename={csvFilename(`balance-sheet-${reportId}-fuel`, sheetRange)}
               columns={fuelColumns}
               rows={detail.fuelLines}
             />
           </div>
-          <ScrollRegion label="Fuel summary" className="ui-table-wrap overflow-x-auto print:overflow-visible">
-            <table className="w-full min-w-[900px] text-sm print:min-w-0 print:text-[8pt]">
-              <thead>
-                <tr className="bg-slate-50 text-left">
-                  <Th>Fuel</Th>
-                  <Th right>Opening Stock</Th>
-                  <Th right>Delivered</Th>
-                  <Th right>Sold</Th>
-                  <Th right>Closing Stock</Th>
-                  <Th right>Selling Price</Th>
-                  <Th right>Revenue</Th>
-                  {isOwnerOrAdmin && <Th right>COGS</Th>}
-                  {isOwnerOrAdmin && <Th right>Profit</Th>}
-                  <Th right>Stock Variance</Th>
-                  {isOwnerOrAdmin && <Th right>Dip Loss</Th>}
-                  <Th right>Credit Sold</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {detail.fuelLines.map((line: BsFuelLine) => (
-                  <FuelLineRow key={line.fuelType} line={line} shiftsHref={shiftsForFuelUrl(sheetRange, line.fuelType)} />
-                ))}
-              </tbody>
-            </table>
-          </ScrollRegion>
+          <DataTable
+            caption="Fuel breakdown"
+            captionHidden
+            regionLabel="Fuel summary"
+            columns={fuelTableColumns(isOwnerOrAdmin)}
+            rows={detail.fuelLines}
+            rowKey={(line) => line.fuelType}
+            renderRow={(line) => <FuelLineRow line={line} shiftsHref={shiftsForFuelUrl(sheetRange, line.fuelType)} />}
+            className="print:overflow-visible"
+            tableClassName="min-w-[900px] print:min-w-0 print:text-[8pt]"
+          />
         </section>
 
         {/* Shift lines */}
         <section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Shift Breakdown <span className="text-slate-500 normal-case font-normal">({detail.shiftLines.length} shift{detail.shiftLines.length !== 1 ? 's' : ''})</span>
+            <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-wider">
+              Shift Breakdown <span className="text-ink-3 normal-case font-normal">({detail.shiftLines.length} shift{detail.shiftLines.length !== 1 ? 's' : ''})</span>
             </h3>
             <CsvExportButton
               filename={csvFilename(`balance-sheet-${reportId}-shifts`, sheetRange)}
@@ -331,47 +347,32 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
               rows={detail.shiftLines}
             />
           </div>
-          <ScrollRegion label="Shift summary" className="ui-table-wrap ui-table-wrap--scroll overflow-x-auto print:overflow-visible">
-            <table className="w-full min-w-[960px] text-xs print:min-w-0 print:text-[7pt]">
-              <thead>
-                <tr className="bg-slate-50 text-left">
-                  <Th>Operator</Th>
-                  <Th>DU / Nozzle</Th>
-                  <Th>Fuels</Th>
-                  <Th right>Litres</Th>
-                  <Th right>Expected</Th>
-                  <Th right>Received</Th>
-                  <Th right>Cash</Th>
-                  <Th right>UPI</Th>
-                  <Th right>Card</Th>
-                  <Th right>Fleet</Th>
-                  <Th right>Credit</Th>
-                  <Th right>Discrepancy</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {detail.shiftLines.map((line: BsShiftLine) => (
-                  <ShiftLineRow key={line.shiftId} line={line} />
-                ))}
-              </tbody>
-              {detail.shiftLines.length > 1 && (
-                <tfoot>
-                  <tr className="bg-slate-50 font-semibold text-slate-700 border-t border-slate-200">
-                    <Td colSpan={3}>Total</Td>
-                    <Td right>{fmtLitres(detail.shiftLines.reduce((s, l) => s + l.litresSold, 0))}</Td>
-                    <Td right>{fmtMoney(detail.shiftLines.reduce((s, l) => s + l.expectedRevenue, 0))}</Td>
-                    <Td right>{fmtMoney(detail.shiftLines.reduce((s, l) => s + l.cashCollected + l.upiCollected + l.cardCollected + (l.fleetCardCollected ?? 0), 0))}</Td>
-                    <Td right>{fmtMoney(detail.shiftLines.reduce((s, l) => s + l.cashCollected, 0))}</Td>
-                    <Td right>{fmtMoney(detail.shiftLines.reduce((s, l) => s + l.upiCollected, 0))}</Td>
-                    <Td right>{fmtMoney(detail.shiftLines.reduce((s, l) => s + l.cardCollected, 0))}</Td>
-                    <Td right>{fmtMoney(detail.shiftLines.reduce((s, l) => s + (l.fleetCardCollected ?? 0), 0))}</Td>
-                    <Td right>{fmtMoney(detail.shiftLines.reduce((s, l) => s + l.creditAmount, 0))}</Td>
-                    <DiscrepancyTd value={detail.shiftLines.reduce((s, l) => s + l.discrepancy, 0)} />
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </ScrollRegion>
+          <DataTable
+            caption="Shift breakdown"
+            captionHidden
+            regionLabel="Shift summary"
+            columns={SHIFT_TABLE_COLUMNS}
+            rows={detail.shiftLines}
+            rowKey={(line) => line.shiftId}
+            renderRow={(line) => <ShiftLineRow line={line} />}
+            scroll
+            className="print:overflow-visible"
+            tableClassName="min-w-[960px] text-xs print:min-w-0 print:text-[7pt]"
+            footer={detail.shiftLines.length > 1 && (
+              <tr className="bg-surface-sunken text-ink">
+                <Td colSpan={3}>Total</Td>
+                <Td right>{fmtLitres(detail.shiftLines.reduce((s, l) => s + l.litresSold, 0))}</Td>
+                <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.expectedRevenue, 0)} /></Td>
+                <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.cashCollected + l.upiCollected + l.cardCollected + (l.fleetCardCollected ?? 0), 0)} /></Td>
+                <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.cashCollected, 0)} /></Td>
+                <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.upiCollected, 0)} /></Td>
+                <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.cardCollected, 0)} /></Td>
+                <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + (l.fleetCardCollected ?? 0), 0)} /></Td>
+                <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.creditAmount, 0)} /></Td>
+                <DiscrepancyTd value={detail.shiftLines.reduce((s, l) => s + l.discrepancy, 0)} />
+              </tr>
+            )}
+          />
         </section>
 
         {/* Meter Reading Amendments — only shown when amendments occurred in this period */}

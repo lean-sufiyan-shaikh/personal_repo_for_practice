@@ -8,16 +8,20 @@ import { SearchableSelect } from '../../../components/SearchableSelect'
 import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
 import { DateRangeInputs, ErrorBox, PrintHeader, SummaryCard } from '../shared'
-import { fmtAmt } from '../reportFormat'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
-import { ScrollRegion } from '../../../components/ScrollRegion'
-import { codeLabel } from '../../../constants/labels'
+import { DataTable } from '../../../components/DataTable'
+import type { DataTableColumn } from '../../../components/DataTable'
+import { StatusBadge } from '../../../components/StatusBadge'
+import { shiftStatusBadge } from '../../../components/statusBadges'
+import { MoneyText } from '../../../components/AmountText'
+import type { ShiftStatus } from '../../../types/shift'
 import { Link } from 'react-router-dom'
 import { CsvExportButton } from '../../../components/CsvExportButton'
 import { csvFilename } from '../../../utils/csv'
 import type { CsvColumn } from '../../../utils/csv'
 import type { DateRange } from '../../../utils/datePresets'
 import { shiftUrl } from '../../../utils/drillDown'
+import { codeLabel } from '../../../constants/labels'
 
 const CSV_COLUMNS: CsvColumn<OperatorDutyShiftLine>[] = [
   { header: 'Shift', value: (row) => row.shiftId, kind: 'number' },
@@ -31,6 +35,24 @@ const CSV_COLUMNS: CsvColumn<OperatorDutyShiftLine>[] = [
   { header: 'Discrepancy type', value: (row) => row.discrepancyType },
   { header: 'Discrepancy amount', value: (row) => row.discrepancyAmount, kind: 'money' },
   { header: 'Status', value: (row) => codeLabel(row.status) },
+]
+
+const DUTY_COLUMNS: DataTableColumn<OperatorDutyShiftLine>[] = [
+  { key: 'shift', header: 'Shift', cell: (s) => <Link to={shiftUrl(s.shiftId)} className="ui-link">Shift #{s.shiftId}</Link> },
+  { key: 'date', header: 'Date', cell: (s) => <span className="text-ink-2">{s.shiftDate}</span> },
+  { key: 'window', header: 'Window', cell: (s) => <span className="text-ink-3">{s.shiftWindow}</span> },
+  { key: 'due', header: 'Amount Due', numeric: true, cell: (s) => <MoneyText value={s.totalAmountDue} className="font-medium text-ink" /> },
+  { key: 'cash', header: 'Cash', numeric: true, cell: (s) => <MoneyText value={s.cashCollected} className="text-ink-2" /> },
+  { key: 'credit', header: 'Credit', numeric: true, cell: (s) => <MoneyText value={s.creditTotal} tone="warn" /> },
+  {
+    key: 'discrepancy', header: 'Discrepancy', numeric: true,
+    cell: (s) => s.discrepancyAmount > 0 ? (
+      <span className={`text-xs font-semibold ${s.discrepancyType === 'SHORT' ? 'text-bad' : 'text-warn'}`}>
+        {s.discrepancyType} <MoneyText value={s.discrepancyAmount} />
+      </span>
+    ) : <span className="text-ink-3">—</span>,
+  },
+  { key: 'status', header: 'Status', cell: (s) => <StatusBadge {...shiftStatusBadge(s.status as ShiftStatus)} /> },
 ]
 
 // ── Operator Duty Tab ─────────────────────────────────────────────────────────
@@ -64,33 +86,6 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
     if (operatorId) setReportOperatorId(operatorId)
     setPage(0)
   }
-
-  const dutyTableHead = (
-    <tr className="bg-slate-50 text-xs text-slate-500">
-      <th scope="col" className="text-left px-4 py-2.5 font-medium">Shift</th>
-      <th scope="col" className="text-left px-4 py-2.5 font-medium">Date</th>
-      <th scope="col" className="text-left px-4 py-2.5 font-medium">Window</th>
-      <th scope="col" className="text-right px-4 py-2.5 font-medium">Amount Due</th>
-      <th scope="col" className="text-right px-4 py-2.5 font-medium">Cash</th>
-      <th scope="col" className="text-right px-4 py-2.5 font-medium">Credit</th>
-      <th scope="col" className="text-right px-4 py-2.5 font-medium">Discrepancy</th>
-      <th scope="col" className="text-left px-4 py-2.5 font-medium">Status</th>
-    </tr>
-  )
-  const dutyRow = (s: OperatorDutyShiftLine) => (
-    <tr key={s.shiftId} className="border-t border-slate-100">
-      <td className="px-4 py-2.5"><Link to={shiftUrl(s.shiftId)} className="ui-link">Shift #{s.shiftId}</Link></td>
-      <td className="px-4 py-2.5 text-slate-600">{s.shiftDate}</td>
-      <td className="px-4 py-2.5 text-slate-500">{s.shiftWindow}</td>
-      <td className="px-4 py-2.5 text-right font-medium text-slate-700 tabular-nums">{fmtAmt(s.totalAmountDue)}</td>
-      <td className="px-4 py-2.5 text-right text-slate-600 tabular-nums">{fmtAmt(s.cashCollected)}</td>
-      <td className="px-4 py-2.5 text-right text-orange-600 tabular-nums">{fmtAmt(s.creditTotal)}</td>
-      <td className={`px-4 py-2.5 text-right text-xs font-semibold tabular-nums ${s.discrepancyAmount > 0 ? (s.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600') : 'text-slate-500'}`}>
-        {s.discrepancyAmount > 0 ? `${s.discrepancyType} ${fmtAmt(s.discrepancyAmount)}` : '—'}
-      </td>
-      <td className="px-4 py-2.5 text-xs text-slate-500">{codeLabel(s.status)}</td>
-    </tr>
-  )
 
   return (
     <div className="space-y-4">
@@ -135,16 +130,11 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
       {data && paged && (
         <div className="space-y-4 print:hidden">
           <div className="grid grid-cols-3 gap-4">
-            <SummaryCard label="Total Shifts"      value={String(data.totalShifts)}      color="text-slate-800" />
-            <SummaryCard label="Total Amount Due"  value={fmtAmt(data.totalAmountDue)}   color="text-slate-800" />
-            <SummaryCard label="Total Discrepancy" value={fmtAmt(data.totalDiscrepancy)} color={data.totalDiscrepancy > 0 ? 'text-red-700' : 'text-green-700'} />
+            <SummaryCard label="Total Shifts"      value={String(data.totalShifts)}      color="text-ink" />
+            <SummaryCard label="Total Amount Due"  value={<MoneyText value={data.totalAmountDue} />} color="text-ink" />
+            <SummaryCard label="Total Discrepancy" value={<MoneyText value={data.totalDiscrepancy} />} color={data.totalDiscrepancy > 0 ? 'text-bad' : 'text-ok'} />
           </div>
-          <div className="ui-table-wrap ui-table-wrap--scroll">
-            <table className="w-full text-sm">
-              <thead>{dutyTableHead}</thead>
-              <tbody>{paged.content.map(dutyRow)}</tbody>
-            </table>
-          </div>
+          <DataTable caption="Operator duty" captionHidden columns={DUTY_COLUMNS} rows={paged.content} rowKey={(s) => s.shiftId} scroll />
           <Pagination data={paged} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(0) }} pageSizeOptions={[10, 20, 50]} />
         </div>
       )}
@@ -154,16 +144,11 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
         <div className="hidden print:block space-y-4">
           <PrintHeader title={`Operator Duty Report — ${data.operatorName}`} from={query.from} to={query.to} />
           <div className="grid grid-cols-3 gap-4">
-            <SummaryCard label="Total Shifts"      value={String(data.totalShifts)}      color="text-slate-800" />
-            <SummaryCard label="Total Amount Due"  value={fmtAmt(data.totalAmountDue)}   color="text-slate-800" />
-            <SummaryCard label="Total Discrepancy" value={fmtAmt(data.totalDiscrepancy)} color={data.totalDiscrepancy > 0 ? 'text-red-700' : 'text-green-700'} />
+            <SummaryCard label="Total Shifts"      value={String(data.totalShifts)}      color="text-ink" />
+            <SummaryCard label="Total Amount Due"  value={<MoneyText value={data.totalAmountDue} />} color="text-ink" />
+            <SummaryCard label="Total Discrepancy" value={<MoneyText value={data.totalDiscrepancy} />} color={data.totalDiscrepancy > 0 ? 'text-bad' : 'text-ok'} />
           </div>
-          <ScrollRegion label="Operator duty" className="ui-card p-0 overflow-hidden overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>{dutyTableHead}</thead>
-              <tbody>{data.shifts.map(dutyRow)}</tbody>
-            </table>
-          </ScrollRegion>
+          <DataTable caption="Operator duty" captionHidden columns={DUTY_COLUMNS} rows={data.shifts} rowKey={(s) => s.shiftId} />
         </div>
       )}
     </div>

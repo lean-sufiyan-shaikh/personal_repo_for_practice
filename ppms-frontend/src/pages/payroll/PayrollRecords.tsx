@@ -80,10 +80,10 @@ export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, o
     <div className="space-y-3">
       {/* Section header + month filter */}
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-slate-700">
+        <p className="text-sm font-semibold text-ink">
           Payroll Records
           {filtered.length > 0 && (
-            <span className="ml-1.5 text-slate-500 font-normal">({filtered.length})</span>
+            <span className="ml-1.5 text-ink-3 font-normal">({filtered.length})</span>
           )}
         </p>
 
@@ -98,18 +98,18 @@ export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, o
             value={nameSearch}
             onChange={e => { setNameSearch(e.target.value); setDraftPage(0); setApprovedPage(0); setPaidPage(0) }}
             placeholder="Search staff…"
-            className="text-sm h-8 px-2.5 rounded-lg border border-slate-200 w-36"
+            className="text-sm h-8 px-2.5 rounded-control border border-control w-36"
           />
           {monthOptions.length > 0 && (
             <div className="flex items-center gap-2">
-              <label htmlFor="payroll-filter" className="text-xs text-slate-500">Month</label>
+              <label htmlFor="payroll-filter" className="text-xs text-ink-3">Month</label>
               <select id="payroll-filter"
                 value={selectedMonth}
                 onChange={e => {
                   setSelectedMonth(e.target.value)
                   setDraftPage(0); setApprovedPage(0); setPaidPage(0)
                 }}
-                className="text-sm bg-white"
+                className="text-sm bg-surface"
               >
                 <option value="">All months</option>
                 {monthOptions.map(key => (

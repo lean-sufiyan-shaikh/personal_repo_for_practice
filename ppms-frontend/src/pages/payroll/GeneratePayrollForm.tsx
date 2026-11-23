@@ -121,7 +121,7 @@ export function GeneratePayrollForm({ pumpId, staff, onGenerated }: GeneratePayr
           </div>
         </div>
 
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-ink-3">
           Operators: actual hours per closed shift × hourly rate (night/day separately).
           Managers &amp; Admins: daily rate × (days in period − leave days).
           Configure rates in Setup → Staff → ₹ Rates.
