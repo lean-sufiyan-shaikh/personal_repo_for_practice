@@ -4,6 +4,7 @@ import type { PumpSummary } from '../../../api/pumpApi'
 import NotificationBell from '../../../components/NotificationBell'
 import { CommandPaletteLauncher } from './CommandPaletteLauncher'
 import { PumpSwitcher } from './PumpSwitcher'
+import { TopBarClock } from './TopBarClock'
 import { UserProfileArea } from './UserProfileArea'
 
 interface DashboardTopBarProps {
@@ -37,6 +38,7 @@ export function DashboardTopBar({ switchablePumps, pumpName, notificationPumpId 
       </div>
 
       <div className="ui-dashboard-topbar-right">
+        <TopBarClock />
         <CommandPaletteLauncher />
         {notificationPumpId !== null && <NotificationBell pumpId={notificationPumpId} />}
         <UserProfileArea />

@@ -50,7 +50,8 @@
     "collapse": "Collapse sidebar"
   },
   "topbar": {
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "currentTime": "Current time: {{value}}"
   },
   "pumpSwitcher": {
     "switchTo": "Switch to {{name}}"

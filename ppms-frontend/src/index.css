@@ -905,6 +905,46 @@
     margin-left: auto;
   }
 
+  .ui-topbar-clock {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-right: 0.5rem;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .ui-topbar-clock__time {
+    display: inline-flex;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-surface);
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+  }
+
+  .ui-topbar-clock__digit {
+    display: inline-block;
+    animation: ppms-digit-roll 260ms ease-out;
+  }
+
+  .ui-topbar-clock__colon {
+    display: inline-block;
+    color: var(--color-accent);
+    animation: ppms-colon-pulse 1s ease-in-out infinite;
+  }
+
+  .ui-topbar-clock__date {
+    font-size: 0.75rem;
+    color: var(--color-on-dark-2);
+  }
+
+  @media (max-width: 768px) {
+    .ui-topbar-clock {
+      display: none;
+    }
+  }
+
   .ui-dashboard-topbar-center {
     flex: 1 1 auto;
     min-width: 0;
@@ -3010,8 +3050,20 @@
    Entrance animations and decorative motion are disabled; functional
    transitions (hover colour changes) are kept so state changes are still clear.
    ─────────────────────────────────────────────────────────────────────────── */
+@keyframes ppms-digit-roll {
+  from { transform: translateY(-60%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes ppms-colon-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .ui-skeleton {
+  .ui-skeleton,
+  .ui-topbar-clock__digit,
+  .ui-topbar-clock__colon {
     animation: none;
   }
 

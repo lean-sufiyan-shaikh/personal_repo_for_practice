@@ -50,7 +50,8 @@
     "collapse": "साइडबार लहान करा"
   },
   "topbar": {
-    "skipToContent": "मुख्य मजकुराकडे जा"
+    "skipToContent": "मुख्य मजकुराकडे जा",
+    "currentTime": "सध्याची वेळ: {{value}}"
   },
   "pumpSwitcher": {
     "switchTo": "{{name}} वर जा"
