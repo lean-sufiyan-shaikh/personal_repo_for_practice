@@ -51,15 +51,15 @@ export default function ShiftPlanningPage() {
 
           {/* Legend */}
           <Reveal delay={270}>
-          <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+          <div className="flex flex-wrap gap-4 text-xs text-ink-3">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-slate-400 inline-block" /> Planned
+              <span className="w-2 h-2 rounded-full bg-ink-3 inline-block" /> Planned
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Confirmed (showed up)
+              <span className="w-2 h-2 rounded-full bg-ok inline-block" /> Confirmed (showed up)
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-red-400 inline-block" /> Absent (didn't show)
+              <span className="w-2 h-2 rounded-full bg-bad inline-block" /> Absent (didn't show)
             </span>
           </div>
           </Reveal>

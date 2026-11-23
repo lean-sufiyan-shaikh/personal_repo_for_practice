@@ -5,7 +5,9 @@ import { pumpApi } from '../../api/pumpApi'
 import { userApi } from '../../api/userApi'
 import type { CloseShiftRequest, CreateHandoverRequest, HandoverResponse, Shift, ShiftStatus } from '../../types/shift'
 import { formatIstDateTime } from '../../utils/date'
-import { ModalPortal } from '../../components/ModalPortal'
+import { Modal } from '../../components/Modal'
+import type { ModalTone } from '../../components/Modal'
+import { MoneyText } from '../../components/AmountText'
 import { parseApiError } from '../../utils/apiError'
 import { useConfirmDiscard } from '../../hooks/useConfirmDiscard'
 import { readDraft, removeDraft, useSaveDraft, writeDraft } from '../../hooks/useSaveDraft'
@@ -29,10 +31,9 @@ import { HandoverFields } from './close/HandoverFields'
 import { EMPTY_HANDOVER_DETAILS } from './close/handoverDetails'
 import { closeShiftDraftName, restoredCreditRows } from './close/closeShiftDraft'
 import type { CloseShiftDraft } from './close/closeShiftDraft'
-import { CloseShiftReview } from './close/CloseShiftReview'
-import { CloseShiftSummary } from './close/CloseShiftSummary'
+import { CloseShiftReview, CloseShiftReviewActions } from './close/CloseShiftReview'
+import { CloseShiftSummary, CloseShiftSummaryActions } from './close/CloseShiftSummary'
 import { HandoverModal } from './modals/HandoverModal'
-import { IconButton } from '../../components/IconButton'
 
 interface Props {
   shift: Shift
@@ -331,13 +332,13 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
 
   // Stays neutral until readings and payments are in; an empty form is not a shortage.
   const totalsEntered = readingsComplete && paymentTouched
-  const headerToneClass = !totalsEntered
-    ? 'ui-modal-header--neutral'
+  const headerTone: ModalTone = !totalsEntered
+    ? 'neutral'
     : isBalanced
-    ? 'ui-modal-header--success'
+    ? 'success'
     : hasDiscrepancy
-    ? diff < 0 ? 'ui-modal-header--danger' : 'ui-modal-header--warning'
-    : 'ui-modal-header--neutral'
+    ? diff < 0 ? 'danger' : 'warning'
+    : 'neutral'
 
   const title = step === 'review'
     ? isHandover ? 'Check before handing over' : 'Check before closing'
@@ -345,41 +346,63 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
     ? isHandover ? 'Shift handed over' : 'Shift closed'
     : isHandover ? 'Hand Over Shift' : 'Close Shift'
 
-  const dismiss = step === 'done' ? onClose : isSubmitting ? undefined : step === 'review' ? backToForm : requestClose
+  const dismiss = step === 'done' ? onClose : step === 'review' ? backToForm : requestClose
 
   if (printedShift) {
     return <HandoverModal shift={printedShift} onClose={() => setPrintedShift(null)} />
   }
 
+  const footer = step === 'form' ? (
+    <CloseShiftFooter
+      readingsComplete={readingsComplete}
+      paymentTouched={paymentTouched}
+      isBalanced={isBalanced}
+      reasonFilled={reasonFilled}
+      isHandover={isHandover}
+      incomingChosen={incomingChosen}
+      onCancel={requestClose}
+    />
+  ) : step === 'review' && reviewedFigures ? (
+    <CloseShiftReviewActions isHandover={isHandover} isSubmitting={isSubmitting} onConfirm={confirmClose} onEdit={backToForm} />
+  ) : step === 'done' && reviewedFigures && closedResult ? (
+    <CloseShiftSummaryActions
+      isPreparingPrint={printMutation.isPending}
+      onPrint={printReport}
+      onOpenNextShift={onOpenNextShift && !isHandover
+        ? () => onOpenNextShift(shift.duId, shift.nozzles.map((n) => n.id))
+        : undefined}
+      onDone={onClose}
+    />
+  ) : null
+
   return (
-    <ModalPortal onClose={dismiss}>
-    <div className={`ui-modal-backdrop ${step === 'form' ? '' : 'ui-modal-backdrop--fullscreen'}`}>
-      <div className="ui-modal-panel">
-
-        {/* ── Header ──────────────────────────────────────────────────────── */}
-        <div className={`ui-modal-header ui-modal-header--themed ${headerToneClass} relative`}>
-          <div className="ui-modal-heading pr-10">
-            <h2 ref={titleRef} tabIndex={-1} className="ui-modal-title outline-none">{title}</h2>
-            <p className="ui-modal-subtitle">
-              Nozzle {shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', ')} · {shift.operatorName} · {shift.shiftWindow}
-            </p>
-          </div>
-          <IconButton label="Close" icon="×" onClick={step === 'done' ? onClose : requestClose} disabled={isSubmitting}
-            className="ui-btn ui-btn-ghost ui-modal-close absolute top-3 right-3" />
-
-          {/* Locked price pills */}
-          {step === 'form' && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              {shift.fuelReadings.map((r) => (
-                <span key={r.nozzleId}
-                  className="bg-white/20 text-white text-xs px-2.5 py-1 rounded-full">
-                  {FUEL_LABELS[r.fuelType] ?? r.fuelType} ₹{r.priceSnapshot}/{FUEL_UNIT[r.fuelType] ?? 'L'}
-                </span>
-              ))}
-            </div>
-          )}
+    <>
+    <Modal
+      title={title}
+      subtitle={`Nozzle ${shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', ')} · ${shift.operatorName} · ${shift.shiftWindow}`}
+      tone={headerTone}
+      size="lg"
+      onClose={dismiss}
+      canClose={!isSubmitting}
+      titleRef={titleRef}
+      fullScreenOnPhone={step !== 'form'}
+      headerExtra={step === 'form' && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {shift.fuelReadings.map((r) => (
+            <span key={r.nozzleId}
+              className="bg-surface-sunken text-ink-2 text-xs font-medium px-2.5 py-1 rounded-badge">
+              {FUEL_LABELS[r.fuelType] ?? r.fuelType} ₹{r.priceSnapshot}/{FUEL_UNIT[r.fuelType] ?? 'L'}
+            </span>
+          ))}
         </div>
-
+      )}
+      onSubmit={step === 'form' ? handleReview : undefined}
+      bodyClassName={step === 'form' ? 'space-y-5' : step === 'review' ? 'space-y-5 text-sm text-ink' : 'space-y-4 text-sm text-ink'}
+      footer={footer}
+      footerClassName={step === 'form'
+        ? 'flex-col-reverse sm:flex-row bg-surface-sunken'
+        : step === 'review' ? 'ui-modal-footer--large' : 'ui-modal-footer--large grid grid-cols-2'}
+    >
         {step === 'review' && reviewedFigures && (
           <CloseShiftReview
             isHandover={isHandover}
@@ -399,9 +422,6 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
             discrepancyReason={discrepancyReason}
             escalationThreshold={escalationThreshold}
             serverError={serverError}
-            isSubmitting={isSubmitting}
-            onConfirm={confirmClose}
-            onEdit={backToForm}
           />
         )}
 
@@ -413,19 +433,12 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
             diff={reviewedFigures.diff}
             creditEntryCount={reviewedFigures.creditEntryCount}
             isEscalated={closedResult.status === 'CLOSED_DISCREPANCY_PENDING_APPROVAL'}
-            isPreparingPrint={printMutation.isPending}
             printError={printError}
-            onPrint={printReport}
-            onOpenNextShift={onOpenNextShift && !isHandover
-              ? () => onOpenNextShift(shift.duId, shift.nozzles.map((n) => n.id))
-              : undefined}
-            onDone={onClose}
           />
         )}
 
         {step === 'form' && (
-        <form onSubmit={handleReview} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="ui-modal-body space-y-5">
+          <>
 
             {restoredDraft && (
               <DraftRestoredNotice savedAt={restoredDraft.savedAt} onDiscard={discardRestoredEntries} />
@@ -473,17 +486,17 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
             </Section>
 
             {/* ── Total due card ─────────────────────────────────────────── */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
+            <div className="bg-info-bg border border-info rounded-card p-4 flex items-center justify-between">
               <div>
-                <p className="text-xs text-blue-500 font-medium uppercase tracking-wide">Total Due</p>
-                <p className="text-xs text-blue-400 mt-0.5">meter reading × locked price</p>
+                <p className="text-xs text-info font-medium uppercase tracking-wide">Total Due</p>
+                <p className="text-xs text-ink-2 mt-0.5">meter reading × locked price</p>
               </div>
-              <p className="text-2xl font-bold text-blue-700">₹{fmt(totalDue)}</p>
+              <p className="text-2xl font-bold text-info"><MoneyText value={totalDue} /></p>
             </div>
 
             {/* ── Step 2: Credit Sales ─────────────────────────────────── */}
             <Section label="2" title="Credit Sales" optional>
-              <div className="border border-orange-200 rounded-xl overflow-visible">
+              <div className="border border-border rounded-card overflow-visible">
 
                 {/* Pre-recorded entries (saved mid-shift) — with edit / delete */}
                 {preRecordedEntries.length > 0 && (
@@ -496,14 +509,14 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
                   />
                 )}
 
-                <div className="flex items-center justify-between px-4 py-2.5 bg-orange-50">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-warn-bg">
                   <div>
                     {creditRows.length > 0 ? (
-                      <span className="text-xs text-orange-600 font-medium">
+                      <span className="text-xs text-warn font-medium">
                         {creditRows.length} new {creditRows.length === 1 ? 'entry' : 'entries'} · ₹{fmt(newCreditTotal)}
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-ink-3">
                         {preRecordedEntries.length > 0 ? 'Add more entries below' : 'No credit this shift'}
                       </span>
                     )}
@@ -515,7 +528,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
                 </div>
 
                 {creditRows.length > 0 && (
-                  <div className="divide-y divide-orange-100">
+                  <div className="divide-y divide-border">
                     {creditRows.map((row, idx) => (
                       <CreditEntryForm
                         key={row.id}
@@ -554,16 +567,16 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
                 <PaymentField label="Fleet Card (₹)"  value={fleetCard} onChange={setFleetCard} />
               </div>
               {creditTotal > 0 && (
-                <div className="flex items-center justify-between bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 mt-2">
-                  <span className="text-xs font-medium text-orange-700">Credit Sales Total</span>
-                  <span className="text-sm font-bold text-orange-800">₹{fmt(creditTotal)}</span>
+                <div className="flex items-center justify-between bg-warn-bg border border-warn rounded-control px-3 py-2 mt-2">
+                  <span className="text-xs font-medium text-warn">Credit Sales Total</span>
+                  <span className="text-sm font-bold text-warn-strong"><MoneyText value={creditTotal} /></span>
                 </div>
               )}
             </Section>
 
             {/* ── Balance status card ───────────────────────────────────── */}
             {paymentTouched && readingsComplete && (
-              <BalanceCard totalDue={totalDue} totalCollected={totalCollected} diff={diff} fmt={fmt} />
+              <BalanceCard totalDue={totalDue} totalCollected={totalCollected} diff={diff} />
             )}
 
             {/* ── Discrepancy reason ────────────────────────────────────── */}
@@ -578,27 +591,15 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
             )}
 
             {serverError && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                <p role="alert" className="text-red-600 text-sm">{serverError}</p>
+              <div className="bg-bad-bg border border-bad rounded-card p-3">
+                <p role="alert" className="text-bad text-sm">{serverError}</p>
+
               </div>
             )}
-          </div>
-
-          {/* ── Footer ──────────────────────────────────────────────────── */}
-          <CloseShiftFooter
-            readingsComplete={readingsComplete}
-            paymentTouched={paymentTouched}
-            isBalanced={isBalanced}
-            reasonFilled={reasonFilled}
-            isHandover={isHandover}
-            incomingChosen={incomingChosen}
-            onCancel={requestClose}
-          />
-        </form>
+          </>
         )}
-      </div>
-    </div>
+    </Modal>
     {isConfirming && <DiscardChangesDialog onDiscard={discard} onKeepEditing={keepEditing} />}
-    </ModalPortal>
+    </>
   )
 }

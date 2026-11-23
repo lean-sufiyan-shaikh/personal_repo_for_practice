@@ -62,7 +62,7 @@ export function ConfirmButton({
   if (confirming) {
     return (
       <span role="group" aria-label={prompt} className="flex items-center gap-1">
-        <span className="text-xs text-red-600 font-medium">{prompt}</span>
+        <span className="text-xs text-bad font-medium">{prompt}</span>
         <button
           type="button"
           onClick={() => { onConfirm(); close() }}
@@ -93,7 +93,7 @@ export function ConfirmButton({
         onClick={() => setConfirming(true)}
         disabled={disabled}
         aria-label={triggerAriaLabel}
-        className={triggerClassName ?? 'ui-btn ui-btn-ghost min-h-0 px-2 py-1 text-xs text-red-500 hover:text-red-700'}
+        className={triggerClassName ?? 'ui-btn ui-btn-ghost min-h-0 px-2 py-1 text-xs text-bad hover:text-bad-strong'}
       >
         {triggerLabel}
       </button>
@@ -107,7 +107,7 @@ export function ConfirmButton({
       icon={<X size={14} strokeWidth={2} />}
       onClick={() => setConfirming(true)}
       disabled={disabled}
-      className={triggerClassName ?? 'ui-btn ui-btn-ghost text-red-500 hover:text-red-700'}
+      className={triggerClassName ?? 'ui-btn ui-btn-ghost text-bad hover:text-bad-strong'}
     />
   )
 }

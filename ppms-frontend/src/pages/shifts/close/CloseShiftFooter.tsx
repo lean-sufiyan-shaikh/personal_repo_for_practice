@@ -10,43 +10,43 @@ interface Props {
   onCancel: () => void
 }
 
+const WAITING_BUTTON = 'ui-btn w-full whitespace-normal bg-surface-sunken text-ink border-control cursor-not-allowed disabled:opacity-100'
+
 export function CloseShiftFooter({
   readingsComplete, paymentTouched, isBalanced, reasonFilled, isHandover = false, incomingChosen = true, onCancel,
 }: Props) {
   return (
-    <div className="ui-modal-footer flex-col-reverse sm:flex-row bg-slate-50/80">
+    <>
       <button type="button" onClick={onCancel}
         className="ui-btn ui-btn-secondary sm:flex-none">
         Cancel
       </button>
       <div className="sm:flex-1 min-w-0">
         {!incomingChosen ? (
-          <button type="submit" disabled
-            className="ui-btn w-full whitespace-normal bg-slate-100 text-slate-700 border-slate-300 cursor-not-allowed disabled:opacity-100">
+          <button type="submit" disabled className={WAITING_BUTTON}>
             Choose the incoming operator to continue
           </button>
         ) : !readingsComplete || !paymentTouched ? (
-          <button type="submit" disabled
-            className="ui-btn w-full whitespace-normal bg-slate-100 text-slate-700 border-slate-300 cursor-not-allowed disabled:opacity-100">
+          <button type="submit" disabled className={WAITING_BUTTON}>
             Fill in readings &amp; payment to continue
           </button>
         ) : isBalanced ? (
           <button type="submit"
-            className="ui-btn w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+            className="ui-btn w-full bg-ok hover:opacity-90 text-on-primary">
             <span className="inline-flex items-center gap-1.5"><Check size={14} strokeWidth={2.5} />{isHandover ? 'Review handover — Balanced' : 'Review close — Balanced'}</span>
           </button>
         ) : reasonFilled ? (
           <button type="submit"
-            className="ui-btn w-full bg-amber-500 hover:bg-amber-600 text-white">
+            className="ui-btn w-full bg-warn hover:bg-warn-strong text-on-primary">
             <span className="inline-flex items-center gap-1.5"><AlertTriangle size={14} strokeWidth={2} />{isHandover ? 'Review handover with discrepancy' : 'Review close with discrepancy'}</span>
           </button>
         ) : (
           <button type="submit" disabled
-            className="ui-btn w-full whitespace-normal bg-amber-50 text-amber-900 cursor-not-allowed border-2 border-amber-400 border-dashed disabled:opacity-100">
+            className="ui-btn w-full whitespace-normal bg-warn-bg text-warn-strong cursor-not-allowed border-2 border-warn border-dashed disabled:opacity-100">
             Add a reason above to close
           </button>
         )}
       </div>
-    </div>
+    </>
   )
 }

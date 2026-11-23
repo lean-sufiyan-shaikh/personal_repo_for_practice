@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { shiftApi } from '../../../api/shiftApi'
-import { ScrollRegion } from '../../../components/ScrollRegion'
+import { DataTable } from '../../../components/DataTable'
 import { SkeletonRows } from '../../../components/Skeleton'
 import { parseApiError } from '../../../utils/apiError'
 import { HistoryRow } from './HistoryRow'
+import { HISTORY_COLUMNS } from './historyColumns'
 
 /** One shift opened from a link elsewhere (a notification, a report row, the audit log). */
 export function SingleShiftHistory({ pumpId, shiftId, onShowAll }: { pumpId: number; shiftId: number; onShowAll: () => void }) {
@@ -14,7 +15,7 @@ export function SingleShiftHistory({ pumpId, shiftId, onShowAll }: { pumpId: num
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-slate-100 bg-slate-50/60">
+      <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-border bg-surface-sunken">
         <span className="text-sm font-semibold text-ink">Shift #{shiftId}</span>
         <button type="button" onClick={onShowAll} className="ui-btn ui-btn-ghost ml-auto text-xs">Show all shifts</button>
       </div>
@@ -25,26 +26,16 @@ export function SingleShiftHistory({ pumpId, shiftId, onShowAll }: { pumpId: num
           {parseApiError(error, `Shift #${shiftId} could not be found at this pump.`)}
         </p>
       ) : (
-        <ScrollRegion label={`Shift ${shiftId}`} className="overflow-x-auto border-t border-slate-100">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 text-xs text-slate-500">
-                <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">ID</th>
-                <th scope="col" className="text-left px-5 py-3 font-medium">Nozzle</th>
-                <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">Shift</th>
-                <th scope="col" className="text-left px-5 py-3 font-medium">Operator</th>
-                <th scope="col" className="text-left px-5 py-3 font-medium">Date</th>
-                <th scope="col" className="text-left px-5 py-3 font-medium">Amount Due</th>
-                <th scope="col" className="text-left px-5 py-3 font-medium">Status</th>
-                <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">Discrepancy</th>
-                <th scope="col" className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              <HistoryRow shift={shift} />
-            </tbody>
-          </table>
-        </ScrollRegion>
+        <DataTable
+          caption={`Shift #${shiftId}`}
+          captionHidden
+          regionLabel={`Shift ${shiftId}`}
+          columns={HISTORY_COLUMNS}
+          rows={[shift]}
+          rowKey={(row) => row.id}
+          renderRow={(row) => <HistoryRow shift={row} />}
+          className="rounded-none border-x-0 border-b-0"
+        />
       )}
     </div>
   )

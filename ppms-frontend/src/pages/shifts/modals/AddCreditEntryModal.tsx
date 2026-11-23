@@ -5,12 +5,11 @@ import { pumpApi } from '../../../api/pumpApi'
 import type { Shift, CreditEntryInput } from '../../../types/shift'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { parseApiError } from '../../../utils/apiError'
-import { ModalPortal } from '../../../components/ModalPortal'
+import { Modal } from '../../../components/Modal'
 import { FUEL_LABELS } from '../../../constants/fuel'
 import { CreditClientSearch } from '../components/CreditClientSearch'
 import { useAuthStore } from '../../../store/authStore'
 import { canPerformAction } from '../../../permissions/permissions'
-import { IconButton } from '../../../components/IconButton'
 import { focusOnMount } from '../../../utils/focus'
 import { NumericInput } from '../../../components/NumericInput'
 import { useToastStore } from '../../../store/toastStore'
@@ -18,6 +17,7 @@ import { readDraft, removeDraft, useSaveDraft, writeDraft } from '../../../hooks
 import { DraftRestoredNotice } from '../../../components/DraftRestoredNotice'
 import { LoadingButton } from '../../../components/LoadingButton'
 import { attemptFor } from '../../../utils/idempotencyKey'
+import { formatCurrency } from '../../../utils/format'
 import type { SubmitAttempt } from '../../../utils/idempotencyKey'
 
 interface CreditEntryDraft {
@@ -150,20 +150,27 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
   }
 
   return (
-    <ModalPortal onClose={onClose}>
-    <div className="ui-modal-backdrop">
-      <div className="ui-modal-panel w-full max-w-md overflow-hidden">
-        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
-          <div className="ui-modal-heading">
-            <h2 className="ui-modal-title">Add Credit Entry</h2>
-            <p className="ui-modal-subtitle">
-              Nozzle {shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', ')} · {shift.operatorName}
-            </p>
-          </div>
-          <IconButton label="Close" icon="×" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close" />
-        </div>
-
-        <div className="ui-modal-body space-y-3">
+    <Modal
+      title="Add Credit Entry"
+      subtitle={`Nozzle ${shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', ')} · ${shift.operatorName}`}
+      tone="warning"
+      size="md"
+      onClose={onClose}
+      bodyClassName="space-y-3"
+      footer={
+        <>
+          <button onClick={onClose}
+            className="ui-btn ui-btn-secondary flex-1">
+            Cancel
+          </button>
+          <LoadingButton type="button" onClick={handleSubmit} disabled={!canSave} isLoading={mutation.isPending}
+            loadingLabel="Saving the credit entry"
+            className="ui-btn-primary flex-1">
+            Save Entry
+          </LoadingButton>
+        </>
+      }
+    >
           {restoredDraft && (
             <DraftRestoredNotice savedAt={restoredDraft.savedAt} onDiscard={discardRestoredEntries} />
           )}
@@ -175,13 +182,13 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                 <p className="ui-toolbar-title text-xs">Recorded entries</p>
                 {canVoidEntry && <span className="ui-toolbar-note">Tap Void to cancel one</span>}
               </div>
-              <div className="divide-y divide-slate-100 max-h-40 overflow-y-auto">
+              <div className="divide-y divide-border max-h-40 overflow-y-auto">
                 {shift.creditEntries.map((entry) => (
                   <div key={entry.id} className={`flex items-center gap-2 px-3 py-2 ${entry.voidStatus === 'VOIDED' ? 'opacity-40' : ''}`}>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-700 truncate">{entry.clientName}</p>
-                      <p className="text-xs text-slate-500">
-                        ₹{entry.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      <p className="text-xs font-medium text-ink truncate">{entry.clientName}</p>
+                      <p className="text-xs text-ink-3">
+                        {formatCurrency(entry.amount)}
                         {entry.fuelType && ` · ${entry.fuelType}`}
                         {entry.voidStatus === 'VOIDED' && ' · VOIDED'}
                       </p>
@@ -189,7 +196,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                     {canVoidEntry && entry.voidStatus !== 'VOIDED' && voidTargetId !== entry.id && (
                       <button
                         onClick={() => { setVoidTargetId(entry.id); setVoidReason(''); setVoidError(null) }}
-                        className="ui-btn ui-btn-ghost min-h-0 shrink-0 border border-red-200 px-2 py-0.5 text-xs text-red-600 hover:border-red-300 hover:text-red-700"
+                        className="ui-btn ui-btn-ghost min-h-0 shrink-0 border border-bad px-2 py-0.5 text-xs text-bad hover:text-bad-strong"
                       >
                         Void
                       </button>
@@ -199,8 +206,8 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
               </div>
               {/* Void reason input */}
               {voidTargetId !== null && (
-                <div className="border-t border-orange-200 bg-orange-50 px-3 py-2">
-                  <div className="ui-inline-form space-y-2 border-orange-200 bg-white/70">
+                <div className="border-t border-warn bg-warn-bg px-3 py-2">
+                  <div className="ui-inline-form space-y-2 border-warn bg-surface">
                   <input aria-label="Reason for voiding"
                     ref={focusOnMount}
                     type="text"
@@ -259,7 +266,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
           {subAccounts.length > 0 && (
             <div>
               <span className="ui-label">
-                Sub-account <span className="text-slate-500 font-normal">(optional)</span>
+                Sub-account <span className="text-ink-3 font-normal">(optional)</span>
               </span>
               <SearchableSelect label="Sub-account"
                 value={subAccountId != null ? subAccountId.toString() : ''}
@@ -275,7 +282,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
           <div className="grid grid-cols-2 gap-3">
             <div>
               <span className="ui-label">
-                Fuel <span className="text-red-500">*</span>
+                Fuel <span className="text-bad">*</span>
               </span>
               <SearchableSelect label="Fuel"
                 value={fuelType}
@@ -294,14 +301,14 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
               <div className="flex items-center justify-between mb-1">
                 <span className="ui-label mb-0">
                   {inputMode === 'amount' ? 'Amount (₹)' : 'Liters'}{' '}
-                  <span className="text-red-500">*</span>
+                  <span className="text-bad">*</span>
                 </span>
                 <div className="flex gap-1 text-xs">
                   <button type="button"
                     onClick={() => { setInputMode('amount'); setLiters('') }}
                     aria-pressed={inputMode === 'amount'}
                     aria-label="Enter amount in rupees"
-                    className={`min-h-11 min-w-11 rounded border border-slate-200 px-2 font-medium transition-colors ${inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+                    className={`min-h-11 min-w-11 rounded-control border border-border px-2 font-medium transition-colors ${inputMode === 'amount' ? 'bg-warn text-on-primary' : 'bg-surface text-ink-3 hover:bg-bg'}`}>
                     ₹
                   </button>
                   <button type="button"
@@ -314,7 +321,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                     disabled={!priceForFuelType(fuelType)}
                     aria-pressed={inputMode === 'liters'}
                     aria-label="Enter litres"
-                    className={`min-h-11 min-w-11 rounded border border-slate-200 px-2 font-medium transition-colors ${inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
+                    className={`min-h-11 min-w-11 rounded-control border border-border px-2 font-medium transition-colors ${inputMode === 'liters' ? 'bg-warn text-on-primary' : 'bg-surface text-ink-3 hover:bg-bg'} disabled:opacity-40 disabled:cursor-not-allowed`}>
                     L
                   </button>
                 </div>
@@ -329,8 +336,8 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                     const unit = fuelType === 'CNG' ? 'kg' : 'L'
                     const litersCalc = price && amount ? (parseFloat(amount) / price) : null
                     return litersCalc ? (
-                      <p className="text-xs text-slate-500 mt-1">
-                        {litersCalc.toFixed(2)} {unit} × ₹{price} = ₹{parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <p className="text-xs text-ink-3 mt-1">
+                        {litersCalc.toFixed(2)} {unit} × ₹{price} = {formatCurrency(parseFloat(amount))}
                       </p>
                     ) : null
                   })()}
@@ -349,8 +356,8 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                     const price = priceForFuelType(fuelType)
                     const unit = fuelType === 'CNG' ? 'kg' : 'L'
                     return price ? (
-                      <p className="text-xs text-emerald-600 mt-1 font-medium">
-                        {parseFloat(liters).toFixed(2)} {unit} × ₹{price} = ₹{parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <p className="text-xs text-ok mt-1 font-medium">
+                        {parseFloat(liters).toFixed(2)} {unit} × ₹{price} = {formatCurrency(parseFloat(amount))}
                       </p>
                     ) : null
                   })()}
@@ -382,21 +389,6 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
           {error && (
             <div role="alert" className="ui-alert ui-alert-danger text-sm">{error}</div>
           )}
-        </div>
-
-        <div className="ui-modal-footer">
-          <button onClick={onClose}
-            className="ui-btn ui-btn-secondary flex-1">
-            Cancel
-          </button>
-          <LoadingButton type="button" onClick={handleSubmit} disabled={!canSave} isLoading={mutation.isPending}
-            loadingLabel="Saving the credit entry"
-            className="ui-btn-primary flex-1">
-            Save Entry
-          </LoadingButton>
-        </div>
-      </div>
-    </div>
-    </ModalPortal>
+    </Modal>
   )
 }

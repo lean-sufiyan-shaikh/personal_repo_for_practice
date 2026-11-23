@@ -3,6 +3,7 @@ import { FUEL_LABELS } from './fuel'
 
 const CODE_LABELS: Record<string, string> = {
   ...FUEL_LABELS,
+  OK: 'OK',
   UPI: 'UPI',
   CNG: 'CNG',
   GST: 'GST',

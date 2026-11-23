@@ -8,8 +8,11 @@ import { SkeletonRows } from '../../../components/Skeleton'
 import { formatIstDate, localDateInputValue } from '../../../utils/date'
 import { parseApiError } from '../../../utils/apiError'
 import { HistoryRow } from './HistoryRow'
-import { labelForDate, fmtAmt } from '../shiftLabels'
-import { ScrollRegion } from '../../../components/ScrollRegion'
+import { HISTORY_COLUMNS } from './historyColumns'
+import { labelForDate } from '../shiftLabels'
+import { DataTable } from '../../../components/DataTable'
+import { StatusBadge } from '../../../components/StatusBadge'
+import { MoneyText } from '../../../components/AmountText'
 
 // ── Day View ──────────────────────────────────────────────────────────────────
 
@@ -48,7 +51,7 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
   }
 
   return (
-    <div className="divide-y divide-slate-100">
+    <div className="divide-y divide-border">
       {visibleDates.map((date) => {
         const dayShifts = grouped[date]
         const isOpen    = openDays.has(date)
@@ -62,25 +65,23 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
             {/* Day accordion header */}
             <button
               onClick={() => toggle(date)}
-              className="w-full flex items-center justify-between px-6 py-3 hover:bg-slate-50 transition-colors text-left"
+              className="w-full flex items-center justify-between px-6 py-3 hover:bg-bg transition-colors text-left"
             >
               <div className="flex items-center gap-3">
-                <span className={`text-sm font-semibold ${isToday ? 'text-blue-700' : 'text-slate-700'}`}>
+                <span className={`text-sm font-semibold ${isToday ? 'text-primary' : 'text-ink'}`}>
                   {label}
                 </span>
-                <span className="text-xs text-slate-500">{fmtShortDate(date)}</span>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-ink-3">{fmtShortDate(date)}</span>
+                <span className="text-xs text-ink-3">
                   · {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''}{openCount > 0 && ` (${openCount} still open)`}
                 </span>
                 {totalAmt > 0 && (
-                  <span className="text-xs font-medium text-slate-600">
-                    · {fmtAmt(totalAmt)}
+                  <span className="text-xs font-medium text-ink-2">
+                    · <MoneyText value={totalAmt} />
                   </span>
                 )}
                 {isToday && (
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                    Today
-                  </span>
+                  <StatusBadge tone="info" label="Today" />
                 )}
               </div>
               <ChevronDown size={14} strokeWidth={2} className={`ui-accordion-arrow ${isOpen ? 'ui-accordion-arrow--open' : ''}`} />
@@ -88,28 +89,16 @@ export function DayViewHistory({ pumpId }: { pumpId: number }) {
 
             {/* Day shift table */}
             {isOpen && (
-              <ScrollRegion label="Shifts for the day" className="ui-accordion-content overflow-x-auto border-t border-slate-100 bg-slate-50/40">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-xs text-slate-500">
-                      <th scope="col" className="text-left px-5 py-2.5 font-medium hidden md:table-cell">ID</th>
-                      <th scope="col" className="text-left px-5 py-2.5 font-medium">Nozzle</th>
-                      <th scope="col" className="text-left px-5 py-2.5 font-medium hidden md:table-cell">Shift</th>
-                      <th scope="col" className="text-left px-5 py-2.5 font-medium">Operator</th>
-                      <th scope="col" className="text-left px-5 py-2.5 font-medium">Date</th>
-                      <th scope="col" className="text-left px-5 py-2.5 font-medium">Amount Due</th>
-                      <th scope="col" className="text-left px-5 py-2.5 font-medium">Status</th>
-                      <th scope="col" className="text-left px-5 py-2.5 font-medium hidden md:table-cell">Discrepancy</th>
-                      <th scope="col" className="px-4 py-2.5" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dayShifts.map((shift) => (
-                      <HistoryRow key={shift.id} shift={shift} />
-                    ))}
-                  </tbody>
-                </table>
-              </ScrollRegion>
+              <DataTable
+                caption={`Shifts for ${label}`}
+                captionHidden
+                regionLabel="Shifts for the day"
+                columns={HISTORY_COLUMNS}
+                rows={dayShifts}
+                rowKey={(shift) => shift.id}
+                renderRow={(shift) => <HistoryRow shift={shift} />}
+                className="ui-accordion-content rounded-none border-x-0 border-b-0"
+              />
             )}
           </div>
         )

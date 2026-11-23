@@ -30,7 +30,7 @@ export function OperatorPicker({
         </div>
       ) : (
         <div className="ui-card p-0 overflow-hidden">
-          <div className="ui-search-shell border-b border-slate-200 bg-slate-50 px-3 py-2">
+          <div className="ui-search-shell border-b border-border bg-surface-sunken px-3 py-2">
             <svg className="ui-search-shell__icon" fill="none" viewBox="0 0 24 24"
               stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round"
@@ -48,7 +48,7 @@ export function OperatorPicker({
               />
             )}
           </div>
-          <div className="max-h-44 overflow-y-auto divide-y divide-slate-50">
+          <div className="max-h-44 overflow-y-auto divide-y divide-border">
             {filteredOperators.length === 0 ? (
               <p className="ui-empty p-3">No operators match "{operatorSearch}"</p>
             ) : (
@@ -58,19 +58,19 @@ export function OperatorPicker({
                   <button key={o.id} type="button"
                     onClick={() => onSelect(o.id)}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${
-                      isSelected ? 'bg-blue-50' : 'hover:bg-slate-50'
+                      isSelected ? 'bg-info-bg' : 'hover:bg-bg'
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                      isSelected ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'
+                      isSelected ? 'bg-primary text-on-primary' : 'bg-surface-sunken text-ink-2'
                     }`}>
                       {o.fullName.charAt(0).toUpperCase()}
                     </div>
-                    <span className={`flex-1 font-medium ${isSelected ? 'text-blue-800' : 'text-slate-700'}`}>
+                    <span className={`flex-1 font-medium ${isSelected ? 'text-info' : 'text-ink'}`}>
                       {o.fullName}
                     </span>
                     {isSelected && (
-                      <svg className="w-4 h-4 text-blue-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-4 h-4 text-info shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     )}

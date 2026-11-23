@@ -20,7 +20,8 @@ import { DayViewHistory } from './history/DayViewHistory'
 import { DiscrepanciesHistory } from './history/DiscrepanciesHistory'
 import { SingleShiftHistory } from './history/SingleShiftHistory'
 import { AddCreditEntryModal } from './modals/AddCreditEntryModal'
-import { ScrollRegion } from '../../components/ScrollRegion'
+import { DataTable } from '../../components/DataTable'
+import type { DataTableColumn } from '../../components/DataTable'
 
 type HistoryTab = 'day' | 'all' | 'discrepancies'
 
@@ -71,6 +72,16 @@ function useHistoryFilters() {
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
+
+const ACTIVE_SHIFT_COLUMNS: DataTableColumn<Shift>[] = [
+  { key: 'nozzle', header: 'Nozzle' },
+  { key: 'operator', header: 'Operator' },
+  { key: 'window', header: 'Window', className: 'hidden md:table-cell' },
+  { key: 'started', header: 'Started', className: 'hidden md:table-cell' },
+  { key: 'prices', header: 'Prices (₹)', className: 'hidden md:table-cell' },
+  { key: 'status', header: 'Status' },
+  { key: 'actions', header: <span className="sr-only">Actions</span> },
+]
 
 export default function ShiftsPage() {
   const { user } = useAuthStore()
@@ -123,8 +134,8 @@ export default function ShiftsPage() {
     return (
       <div className="ui-page ui-page--narrow">
         <div className="ui-alert ui-alert-warning p-6 text-center">
-          <p className="text-amber-800 font-medium mb-2">No pumps set up yet</p>
-          <p className="text-amber-700 text-sm mb-4">
+          <p className="text-warn-strong font-medium mb-2">No pumps set up yet</p>
+          <p className="text-warn text-sm mb-4">
             Create a pump location first, then add nozzles and set fuel prices.
           </p>
           <Link to="/dashboard/setup"
@@ -170,7 +181,7 @@ export default function ShiftsPage() {
       </Reveal>
 
       {!pumpId ? (
-        <div className="ui-card text-center text-sm text-slate-500">
+        <div className="ui-card text-center text-sm text-ink-3">
           No pump selected. Use the pump selector in the top navigation bar.
         </div>
       ) : (
@@ -183,7 +194,7 @@ export default function ShiftsPage() {
                 <RefreshIndicator isFetching={activeFetching} dataUpdatedAt={activeUpdatedAt ?? 0} />
               </div>
               {selectedPump && (
-                <p className="text-xs text-slate-500">{selectedPump.name}</p>
+                <p className="text-xs text-ink-3">{selectedPump.name}</p>
               )}
               <div className="ui-toolbar-actions ml-auto">
                 {isOwnerOrAdmin && (
@@ -219,32 +230,23 @@ export default function ShiftsPage() {
                   : 'No active shifts.'}
               </div>
             ) : (
-              <ScrollRegion label="Active shifts" className="overflow-x-auto">
-                <table className="ui-table-cards w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-xs text-slate-500">
-                      <th scope="col" className="text-left px-6 py-3 font-medium">Nozzle</th>
-                      <th scope="col" className="text-left px-6 py-3 font-medium">Operator</th>
-                      <th scope="col" className="text-left px-6 py-3 font-medium hidden md:table-cell">Window</th>
-                      <th scope="col" className="text-left px-6 py-3 font-medium hidden md:table-cell">Started</th>
-                      <th scope="col" className="text-left px-6 py-3 font-medium hidden md:table-cell">Prices (₹)</th>
-                      <th scope="col" className="text-left px-6 py-3 font-medium">Status</th>
-                      <th scope="col" className="px-6 py-3" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeShifts.map((shift) => (
-                      <ShiftRow
-                        key={shift.id}
-                        shift={shift}
-                        onClose={canCloseShift ? () => setShiftToClose(shift) : undefined}
-                        onHandOver={canCloseShift ? () => setShiftToHandOver(shift) : undefined}
-                        onAddCredit={() => setShiftIdForCredit(shift.id)}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </ScrollRegion>
+              <DataTable
+                caption="Active shifts"
+                captionHidden
+                columns={ACTIVE_SHIFT_COLUMNS}
+                rows={activeShifts}
+                rowKey={(shift) => shift.id}
+                cardsOnPhone
+                className="rounded-none border-x-0 border-b-0"
+                renderRow={(shift) => (
+                  <ShiftRow
+                    shift={shift}
+                    onClose={canCloseShift ? () => setShiftToClose(shift) : undefined}
+                    onHandOver={canCloseShift ? () => setShiftToHandOver(shift) : undefined}
+                    onAddCredit={() => setShiftIdForCredit(shift.id)}
+                  />
+                )}
+              />
             )}
           </div>
 
@@ -253,9 +255,9 @@ export default function ShiftsPage() {
             {/* Header / toggle */}
             <button
               onClick={() => setHistoryOpen((v) => !v)}
-              className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors"
+              className="w-full flex items-center justify-between px-6 py-4 hover:bg-bg transition-colors"
             >
-              <span className="text-base font-semibold text-slate-800">{seesOnlyOwnShifts ? 'My Shift History' : 'Shift History'}</span>
+              <span className="text-base font-semibold text-ink">{seesOnlyOwnShifts ? 'My Shift History' : 'Shift History'}</span>
               <ChevronDown size={14} strokeWidth={2} className={`ui-accordion-arrow ${historyOpen ? 'ui-accordion-arrow--open' : ''}`} />
             </button>
 

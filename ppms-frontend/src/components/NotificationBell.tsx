@@ -78,11 +78,11 @@ export default function NotificationBell({ pumpId }: Props) {
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
-        className="ui-notification-bell relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 shadow-sm hover:border-white/20 hover:bg-white/10 hover:text-white"
+        className="ui-notification-bell relative inline-flex h-10 w-10 items-center justify-center rounded-card border border-white/10 bg-white/5 text-on-dark-2 shadow-sm hover:border-white/20 hover:bg-white/10 hover:text-white"
       >
         <Bell size={18} strokeWidth={1.75} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center leading-none">
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-bad text-white text-xs font-bold rounded-full flex items-center justify-center leading-none">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -90,11 +90,11 @@ export default function NotificationBell({ pumpId }: Props) {
 
       {/* Dropdown panel */}
       {open && (
-        <div id={panelId} role="region" aria-label="Notifications" className="ui-notification-panel absolute right-0 top-12 z-50 w-88 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-          <div className="ui-notification-panel__head flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
+        <div id={panelId} role="region" aria-label="Notifications" className="ui-notification-panel absolute right-0 top-12 z-50 w-88 max-w-[calc(100vw-2rem)] overflow-hidden rounded-card border border-border bg-surface shadow-2xl">
+          <div className="ui-notification-panel__head flex items-center justify-between border-b border-border px-4 py-3.5">
             <div>
-              <p className="text-sm font-semibold text-slate-800">Notifications</p>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="text-sm font-semibold text-ink">Notifications</p>
+              <p className="mt-0.5 text-xs text-ink-3">
                 {unreadCount} unread{unreadCount > notifications.length ? ` · showing newest ${notifications.length}` : ''}
               </p>
             </div>
@@ -111,32 +111,32 @@ export default function NotificationBell({ pumpId }: Props) {
 
           {notifications.length === 0 ? (
             <div className="px-4 py-8 text-center">
-              <p className="text-sm font-medium text-slate-500">No notifications</p>
-              <p className="mt-1 text-xs text-slate-500">You're all caught up</p>
+              <p className="text-sm font-medium text-ink-3">No notifications</p>
+              <p className="mt-1 text-xs text-ink-3">You're all caught up</p>
             </div>
           ) : (
-            <ul className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+            <ul className="max-h-80 overflow-y-auto divide-y divide-border">
               {groups.map(({ latest: n, count, ids }) => {
                 const href = openableHref(n.target, role)
                 const body = (
                   <div className="flex items-start gap-2">
                     <NotificationTypeIcon type={n.type} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-800">
+                      <p className="text-sm font-semibold text-ink">
                         <span className="sr-only">Unread: </span>{n.title}
                         {count > 1 && (
-                          <span className="ml-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600">
+                          <span className="ml-1.5 rounded-badge bg-surface-sunken px-1.5 py-0.5 text-xs font-medium text-ink-2">
                             <span aria-hidden="true">×{count}</span>
                             <span className="sr-only">({count} identical alerts)</span>
                           </span>
                         )}
                       </p>
-                      <p className="mt-1 text-sm leading-relaxed text-slate-500">{withReadableDates(n.message)}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-ink-3">{withReadableDates(n.message)}</p>
                       <time dateTime={n.createdAt} title={formatIstDateTime(n.createdAt)} className="mt-1 block text-xs text-ink-3">
                         {relativeTime(n.createdAt, new Date(now))}
                       </time>
                     </div>
-                    <span aria-hidden="true" className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1" />
+                    <span aria-hidden="true" className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-1" />
                   </div>
                 )
                 return (
@@ -145,19 +145,19 @@ export default function NotificationBell({ pumpId }: Props) {
                       <Link
                         to={href}
                         onClick={() => openNotification(ids)}
-                        className="ui-notification-panel__item block px-4 py-3.5 bg-blue-50/50"
+                        className="ui-notification-panel__item block px-4 py-3.5 bg-info-bg"
                       >
                         {body}
                       </Link>
                     ) : (
-                      <div className="ui-notification-panel__item px-4 py-3.5 bg-blue-50/50">{body}</div>
+                      <div className="ui-notification-panel__item px-4 py-3.5 bg-info-bg">{body}</div>
                     )}
                   </li>
                 )
               })}
             </ul>
           )}
-          <div className="border-t border-slate-100 px-4 py-2.5 text-center">
+          <div className="border-t border-border px-4 py-2.5 text-center">
             <Link to="/dashboard/notifications" onClick={() => setOpen(false)} className="ui-link text-sm">
               View all notifications
             </Link>

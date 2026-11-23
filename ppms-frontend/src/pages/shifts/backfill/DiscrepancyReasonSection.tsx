@@ -7,7 +7,7 @@ export function DiscrepancyReasonSection({ form }: { form: BackfillForm }) {
       <label className="block">
         <span className="ui-label">
         Discrepancy Reason
-        <span className="text-slate-500 font-normal ml-1 text-xs">(required if collected ≠ expected)</span>
+        <span className="text-ink-3 font-normal ml-1 text-xs">(required if collected ≠ expected)</span>
       </span>
         <textarea
           value={discrepancyReason}

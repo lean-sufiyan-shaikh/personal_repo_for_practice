@@ -30,7 +30,7 @@ export function HandoverFields({ shift, activeShifts, details, onChange }: Props
   return (
     <Section label="0" title="Incoming Operator">
       <div className="space-y-3">
-        <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+        <p className="rounded-card border border-info bg-info-bg px-3 py-2 text-xs text-info">
           {shift.operatorName}&apos;s shift is closed with the readings and payments below, and a new shift opens
           for the incoming operator on the same nozzles from these closing readings.
         </p>

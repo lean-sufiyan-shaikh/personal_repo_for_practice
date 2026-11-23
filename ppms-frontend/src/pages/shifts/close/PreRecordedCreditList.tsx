@@ -4,7 +4,7 @@ import { shiftApi } from '../../../api/shiftApi'
 import type { Shift } from '../../../types/shift'
 import { parseApiError } from '../../../utils/apiError'
 import type { CreditEntry } from '../../../types/shift'
-import { fmt } from '../components/creditRow'
+import { MoneyText } from '../../../components/AmountText'
 import { focusOnMount } from '../../../utils/focus'
 import { FUEL_LABELS } from '../../../constants/fuel'
 
@@ -46,8 +46,8 @@ export function PreRecordedCreditList({ shift, entries, total, onEdit, onVoided 
     ft ? (shift.fuelReadings.find(r => r.fuelType === ft)?.priceSnapshot ?? null) : null
 
   return (
-    <div className="px-4 py-2.5 bg-orange-50/70 border-b border-orange-100">
-      <p className="text-xs font-semibold text-orange-700 mb-2">
+    <div className="px-4 py-2.5 bg-warn-bg border-b border-border">
+      <p className="text-xs font-semibold text-warn mb-2">
         Pre-recorded during shift ({entries.length})
       </p>
       <div className="space-y-2">
@@ -58,29 +58,29 @@ export function PreRecordedCreditList({ shift, entries, total, onEdit, onVoided 
           const isVoiding = voidingEntryId === e.id
 
           return (
-            <div key={e.id} className="ui-card-plain bg-white border-orange-100 p-0 overflow-hidden">
+            <div key={e.id} className="ui-card-plain bg-surface border-border p-0 overflow-hidden">
               {/* Entry summary row */}
               <div className="flex items-start justify-between px-3 py-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-semibold text-slate-700">{e.clientName}</span>
+                    <span className="text-xs font-semibold text-ink">{e.clientName}</span>
                     {e.fuelType && (
-                      <span className="text-xs text-slate-500 uppercase tracking-wide">{FUEL_LABELS[e.fuelType] ?? e.fuelType}</span>
+                      <span className="text-xs text-ink-3 uppercase tracking-wide">{FUEL_LABELS[e.fuelType] ?? e.fuelType}</span>
                     )}
                     {e.billNo && (
-                      <span className="text-xs text-slate-500">#{e.billNo}</span>
+                      <span className="text-xs text-ink-3">#{e.billNo}</span>
                     )}
                   </div>
                   {liters && price ? (
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-ink-3 mt-0.5">
                       {liters.toFixed(2)} {unit} × ₹{price} =&nbsp;
-                      <span className="font-semibold text-emerald-700">₹{fmt(e.amount)}</span>
+                      <MoneyText value={e.amount} className="font-semibold text-ok" />
                     </p>
                   ) : (
-                    <p className="text-xs font-semibold text-emerald-700 mt-0.5">₹{fmt(e.amount)}</p>
+                    <p className="text-xs font-semibold text-ok mt-0.5"><MoneyText value={e.amount} /></p>
                   )}
                   {e.description && (
-                    <p className="text-xs text-slate-500 italic mt-0.5">{e.description}</p>
+                    <p className="text-xs text-ink-3 italic mt-0.5">{e.description}</p>
                   )}
                 </div>
                 {!isVoiding && (
@@ -89,14 +89,15 @@ export function PreRecordedCreditList({ shift, entries, total, onEdit, onVoided 
                       type="button"
                       onClick={() => onEdit(e)}
                       disabled={voidMutation.isPending}
-                      className="text-xs text-blue-500 hover:text-blue-700 font-medium transition-colors disabled:opacity-40"
+                      className="text-xs text-primary hover:text-primary-strong font-medium
+ transition-colors disabled:opacity-40"
                     >
                       Edit
                     </button>
                     <button
                       type="button"
                       onClick={() => startVoid(e.id)}
-                      className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-red-400 hover:text-red-600"
+                      className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-bad hover:text-bad"
                     >
                       Delete
                     </button>
@@ -106,8 +107,8 @@ export function PreRecordedCreditList({ shift, entries, total, onEdit, onVoided 
 
               {/* Inline void reason form */}
               {isVoiding && (
-                <div className="border-t border-orange-100 bg-red-50/60 px-3 py-2">
-                  <div className="ui-inline-form space-y-2 border-red-200 bg-white/70">
+                <div className="border-t border-border bg-bad-bg px-3 py-2">
+                  <div className="ui-inline-form space-y-2 border-bad bg-surface">
                   <input aria-label="Reason for deleting"
                     ref={focusOnMount}
                     type="text"
@@ -149,9 +150,9 @@ export function PreRecordedCreditList({ shift, entries, total, onEdit, onVoided 
           )
         })}
       </div>
-      <div className="flex justify-between mt-2 pt-1.5 border-t border-orange-100">
-        <span className="text-xs text-orange-600">Pre-recorded subtotal</span>
-        <span className="text-xs font-bold text-orange-700">₹{fmt(total)}</span>
+      <div className="flex justify-between mt-2 pt-1.5 border-t border-border">
+        <span className="text-xs text-warn">Pre-recorded subtotal</span>
+        <MoneyText value={total} className="text-xs font-bold text-warn" />
       </div>
     </div>
   )

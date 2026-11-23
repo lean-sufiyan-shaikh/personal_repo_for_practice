@@ -14,10 +14,10 @@ interface RefreshIndicatorProps {
 export function RefreshIndicator({ isFetching, dataUpdatedAt }: RefreshIndicatorProps) {
   const label = useLastUpdated(dataUpdatedAt)
   return (
-    <span className="flex items-center gap-1.5 text-xs text-slate-500 select-none">
+    <span className="flex items-center gap-1.5 text-xs text-ink-3 select-none">
       <span
         className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors duration-300 ${
-          isFetching ? 'bg-emerald-400 animate-pulse' : 'bg-slate-300'
+          isFetching ? 'bg-ok animate-pulse' : 'bg-control'
         }`}
       />
       {isFetching ? 'Refreshing…' : label ? `Updated ${label}` : ''}

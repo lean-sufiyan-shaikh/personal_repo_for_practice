@@ -6,7 +6,8 @@ import { onActivateKey } from '../../../utils/keyboard'
 import { FUEL_LABELS, FUEL_UNIT } from '../../../constants/fuel'
 import type { CreditClientSummary } from '../../../api/pumpApi'
 import { CreditClientSearch } from './CreditClientSearch'
-import { emptyNum, fmt } from './creditRow'
+import { emptyNum } from './creditRow'
+import { MoneyText } from '../../../components/AmountText'
 import type { CreditRow } from './creditRow'
 
 interface Props {
@@ -39,7 +40,7 @@ export function CreditEntryForm({
       {/* ── Collapsed summary row ── */}
       {!isExpanded ? (
         <div
-          className="flex items-center justify-between px-4 py-3 hover:bg-orange-50 transition-colors group"
+          className="flex items-center justify-between px-4 py-3 hover:bg-warn-bg transition-colors group"
           >
             <div
               className="flex flex-1 items-center gap-3 min-w-0 cursor-pointer"
@@ -49,23 +50,23 @@ export function CreditEntryForm({
               onClick={() => onExpandedChange(row.id)}
               onKeyDown={onActivateKey(() => onExpandedChange(row.id))}
             >
-            <span className="text-xs font-bold text-orange-700 shrink-0">#{rowNumber}</span>
+            <span className="text-xs font-bold text-warn shrink-0">#{rowNumber}</span>
             {isFilled ? (
               <>
-                <span className="text-sm font-medium text-slate-700 truncate">{row.clientName}</span>
-                <span className="text-xs text-slate-500 shrink-0">{FUEL_LABELS[row.fuelType] ?? row.fuelType}</span>
-                <span className="text-sm font-semibold text-emerald-700 shrink-0">₹{fmt(emptyNum(row.amount))}</span>
-                {row.billNo && <span className="text-xs text-slate-500 shrink-0">· {row.billNo}</span>}
+                <span className="text-sm font-medium text-ink truncate">{row.clientName}</span>
+                <span className="text-xs text-ink-3 shrink-0">{FUEL_LABELS[row.fuelType] ?? row.fuelType}</span>
+                <MoneyText value={emptyNum(row.amount)} className="text-sm font-semibold text-ok shrink-0" />
+                {row.billNo && <span className="text-xs text-ink-3 shrink-0">· {row.billNo}</span>}
               </>
             ) : (
-              <span className="text-xs text-slate-500 italic">Incomplete — tap to edit</span>
+              <span className="text-xs text-ink-3 italic">Incomplete — tap to edit</span>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-2">
-            <span className="text-xs text-orange-700 group-hover:text-orange-800 transition-colors">Edit</span>
+            <span className="text-xs text-warn group-hover:text-warn transition-colors">Edit</span>
             <IconButton
               onClick={(e) => { e.stopPropagation(); onRemove() }}
-              className="ui-btn-icon text-red-600 hover:text-red-700 transition-colors"
+              className="ui-btn-icon text-bad hover:text-bad transition-colors"
               label="Delete entry"
               icon={<X size={13} strokeWidth={2} />}
             />
@@ -73,13 +74,13 @@ export function CreditEntryForm({
         </div>
       ) : (
         /* ── Expanded form ── */
-        <div className="px-4 py-3 space-y-2.5 bg-orange-50/40">
+        <div className="px-4 py-3 space-y-2.5 bg-warn-bg">
           {/* Expanded header */}
           <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={() => onExpandedChange(null)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-orange-700 hover:text-orange-900 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-semibold text-warn hover:text-warn transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -87,7 +88,7 @@ export function CreditEntryForm({
               Entry {rowNumber}
             </button>
             <button type="button" onClick={() => onRemove()}
-              className="inline-flex items-center gap-1 text-red-400 hover:text-red-600 text-xs transition-colors">
+              className="inline-flex items-center gap-1 text-bad hover:text-bad text-xs transition-colors">
               <X size={12} strokeWidth={2} />Delete
             </button>
           </div>
@@ -110,27 +111,27 @@ export function CreditEntryForm({
           {subAccounts.length > 0 && (
             <div>
               <span className="ui-label">
-                Sub-account <span className="text-slate-500">(optional)</span>
+                Sub-account <span className="text-ink-3">(optional)</span>
               </span>
-              <div role="group" aria-label="Sub-account" className="ui-card p-0 overflow-hidden divide-y divide-slate-50 shadow-none border-slate-200">
+              <div role="group" aria-label="Sub-account" className="ui-card p-0 overflow-hidden divide-y divide-border shadow-none border-border">
                 {/* "Bill to parent" option */}
                 <button
                   type="button"
                   onClick={() => onUpdateMulti({ subAccountId: null, subAccountName: '' })}
                   className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors text-left ${
-                    row.subAccountId === null ? 'bg-orange-50' : 'hover:bg-slate-50'
+                    row.subAccountId === null ? 'bg-warn-bg' : 'hover:bg-bg'
                   }`}
                 >
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                    row.subAccountId === null ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-500'
+                    row.subAccountId === null ? 'bg-warn text-on-primary' : 'bg-surface-sunken text-ink-3'
                   }`}>
                     {row.clientName.charAt(0).toUpperCase()}
                   </div>
-                  <span className={`flex-1 font-medium text-xs ${row.subAccountId === null ? 'text-orange-800' : 'text-slate-500'}`}>
+                  <span className={`flex-1 font-medium text-xs ${row.subAccountId === null ? 'text-warn' : 'text-ink-3'}`}>
                     Bill to parent ({row.clientName})
                   </span>
                   {row.subAccountId === null && (
-                    <svg className="w-3.5 h-3.5 text-orange-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-3.5 h-3.5 text-warn shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   )}
@@ -144,22 +145,22 @@ export function CreditEntryForm({
                       type="button"
                       onClick={() => onUpdateMulti({ subAccountId: s.id, subAccountName: s.name })}
                       className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors text-left ${
-                        isSelected ? 'bg-orange-50' : 'hover:bg-slate-50'
+                        isSelected ? 'bg-warn-bg' : 'hover:bg-bg'
                       }`}
                     >
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                        isSelected ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
+                        isSelected ? 'bg-warn text-on-primary' : 'bg-surface-sunken text-ink-3'
                       }`}>
                         {s.name.charAt(0).toUpperCase()}
                       </div>
-                      <span className={`flex-1 font-medium text-sm ${isSelected ? 'text-orange-800' : 'text-slate-700'}`}>
+                      <span className={`flex-1 font-medium text-sm ${isSelected ? 'text-warn' : 'text-ink'}`}>
                         {s.name}
                       </span>
                       {s.phone && (
-                        <span className="text-xs text-slate-500 shrink-0">{s.phone}</span>
+                        <span className="text-xs text-ink-3 shrink-0">{s.phone}</span>
                       )}
                       {isSelected && (
-                        <svg className="w-3.5 h-3.5 text-orange-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-3.5 h-3.5 text-warn shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       )}
@@ -174,7 +175,7 @@ export function CreditEntryForm({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <span className="ui-label">
-                Fuel Type <span className="text-red-500">*</span>
+                Fuel Type <span className="text-bad">*</span>
               </span>
               <SearchableSelect label="Fuel Type"
                 value={row.fuelType}
@@ -196,14 +197,14 @@ export function CreditEntryForm({
               <div className="flex items-center justify-between mb-1">
                 <span className="ui-label mb-0">
                   {row.inputMode === 'amount' ? 'Amount (₹)' : 'Liters'}{' '}
-                  <span className="text-red-500">*</span>
+                  <span className="text-bad">*</span>
                 </span>
                 <div className="flex gap-1 text-xs">
                   <button type="button"
                     onClick={() => onUpdateMulti({ inputMode: 'amount', liters: '' })}
                     aria-pressed={row.inputMode === 'amount'}
                     aria-label="Enter amount in rupees"
-                    className={`min-h-11 min-w-11 rounded border border-slate-200 px-2 font-medium transition-colors ${row.inputMode === 'amount' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+                    className={`min-h-11 min-w-11 rounded-control border border-control px-2 font-medium transition-colors ${row.inputMode === 'amount' ? 'bg-warn text-on-primary' : 'bg-surface text-ink-3 hover:bg-bg'}`}>
                     ₹
                   </button>
                   <button type="button"
@@ -217,7 +218,7 @@ export function CreditEntryForm({
                     disabled={!priceForFuelType(row.fuelType)}
                     aria-pressed={row.inputMode === 'liters'}
                     aria-label="Enter litres"
-                    className={`min-h-11 min-w-11 rounded border border-slate-200 px-2 font-medium transition-colors ${row.inputMode === 'liters' ? 'bg-orange-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'} disabled:opacity-40 disabled:cursor-not-allowed`}>
+                    className={`min-h-11 min-w-11 rounded-control border border-control px-2 font-medium transition-colors ${row.inputMode === 'liters' ? 'bg-warn text-on-primary' : 'bg-surface text-ink-3 hover:bg-bg'} disabled:opacity-40 disabled:cursor-not-allowed`}>
                     L
                   </button>
                 </div>
@@ -233,7 +234,7 @@ export function CreditEntryForm({
                     const unit = FUEL_UNIT[row.fuelType] ?? 'L'
                     const litersCalc = price && row.amount ? (parseFloat(row.amount) / price) : null
                     return litersCalc ? (
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-ink-3 mt-1">
                         {litersCalc.toFixed(2)} {unit} × ₹{price} = ₹{parseFloat(row.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     ) : null
@@ -256,7 +257,7 @@ export function CreditEntryForm({
                     const price = priceForFuelType(row.fuelType)
                     const unit = FUEL_UNIT[row.fuelType] ?? 'L'
                     return price ? (
-                      <p className="text-xs text-emerald-600 mt-1 font-medium">
+                      <p className="text-xs text-ok mt-1 font-medium">
                         {parseFloat(row.liters).toFixed(2)} {unit} × ₹{price} = ₹{parseFloat(row.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     ) : null

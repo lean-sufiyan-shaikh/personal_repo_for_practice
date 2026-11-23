@@ -52,7 +52,7 @@ export function Pagination<T>({
 
         {buildPageNumbers(page, totalPages).map((p, i) =>
           p === '…' ? (
-            <span key={`ellipsis-${i}`} className="px-2 py-1 text-slate-500">
+            <span key={`ellipsis-${i}`} className="px-2 py-1 text-ink-3">
               …
             </span>
           ) : (

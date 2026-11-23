@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check } from 'lucide-react'
+import { Check, Lock } from 'lucide-react'
 import { shiftApi } from '../../api/shiftApi'
 import { pumpApi } from '../../api/pumpApi'
 import { userApi } from '../../api/userApi'
 import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import type { DUOption, NozzleDetail, OpenShiftRequest, Shift } from '../../types/shift'
-import { ModalPortal } from '../../components/ModalPortal'
+import { Modal } from '../../components/Modal'
+import { StatusBadge } from '../../components/StatusBadge'
 import { parseApiError } from '../../utils/apiError'
 import { FUEL_LABELS, FUEL_UNIT } from '../../constants/fuel'
 import { OperatorPicker } from './components/OperatorPicker'
-import { IconButton } from '../../components/IconButton'
 import { useToastStore } from '../../store/toastStore'
 
 /** Stored end times are inclusive (08:59 means the shift runs until 09:00), so the end minute is inside the window. */
@@ -166,28 +166,50 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
     : null
 
   return (
-    <ModalPortal onClose={onClose}>
-    <div className="ui-modal-backdrop">
-      <div className="ui-modal-panel w-full max-w-lg overflow-hidden">
-
-        {/* Header */}
-        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
-          <div className="ui-modal-heading">
-            <h2 className="ui-modal-title">Open New Shift</h2>
-            <p className="ui-modal-subtitle">Select a Dispensary Unit and assign an operator</p>
-          </div>
-          <IconButton label="Close" icon="×" onClick={onClose} className="ui-btn ui-btn-ghost ui-modal-close" />
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="ui-modal-body space-y-5">
+    <Modal
+      title="Open New Shift"
+      subtitle="Select a Dispensary Unit and assign an operator"
+      tone="info"
+      size="lg"
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      bodyClassName="space-y-5"
+      footerClassName="flex-wrap"
+      footer={<>
+            {selectedNozzles.length > 0 && (
+              <label className="ui-check-row">
+                <input
+                  type="checkbox"
+                  checked={readingConfirmed}
+                  onChange={(e) => { setReadingConfirmed(e.target.checked); setValidationError(null) }}
+                />
+                <span>I confirm the meter readings above are correct and authorise opening this shift.</span>
+              </label>
+            )}
+            <button type="button" onClick={onClose}
+              className="ui-btn ui-btn-secondary flex-1">
+              Cancel
+            </button>
+            {missingStep ? (
+              <button type="submit" disabled
+                className="ui-btn flex-1 whitespace-normal bg-surface-sunken text-ink border-control cursor-not-allowed disabled:opacity-100">
+                {missingStep}
+              </button>
+            ) : (
+              <button type="submit" disabled={openMutation.isPending}
+                className="ui-btn ui-btn-primary flex-1 disabled:opacity-60 disabled:cursor-not-allowed">
+                {openMutation.isPending ? 'Opening...' : 'Open Shift'}
+              </button>
+            )}
+      </>}
+    >
 
           {/* ── Step 1: Select DU ── */}
           <div>
             <span className="ui-label mb-2">
               Step 1 — Select Dispensary Unit
               {selectedDU && (
-                <span className="ml-2 text-blue-600 font-semibold normal-case">
+                <span className="ml-2 text-primary font-semibold normal-case">
                   DU #{selectedDU.duNumber} — {selectedDU.name}
                 </span>
               )}
@@ -208,29 +230,29 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                   return (
                     <button key={du.id} type="button"
                       onClick={() => handleSelectDU(du)}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-card border-2 transition-all ${
                         isSelected
-                          ? 'border-blue-500 bg-blue-50 shadow-sm'
-                          : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50'
+                          ? 'border-primary bg-info-bg shadow-raised'
+                          : 'border-border hover:border-primary hover:bg-bg'
                       }`}
                     >
-                      <span className={`text-xs font-bold ${isSelected ? 'text-blue-500' : 'text-slate-500'}`}>
+                      <span className={`text-xs font-bold ${isSelected ? 'text-primary' : 'text-ink-3'}`}>
                         DU #{du.duNumber}
                       </span>
-                      <span className={`text-sm font-bold ${isSelected ? 'text-blue-700' : 'text-slate-700'}`}>
+                      <span className={`text-sm font-bold ${isSelected ? 'text-primary' : 'text-ink'}`}>
                         {du.name}
                       </span>
                       <div className="flex flex-wrap gap-0.5 justify-center">
                         {fuelTypes.map((tag) => (
-                          <span key={tag} className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                            isSelected ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
+                          <span key={tag} className={`text-xs px-1.5 py-0.5 rounded-badge font-medium ${
+                            isSelected ? 'bg-info-bg text-info' : 'bg-surface-sunken text-ink-3'
                           }`}>
                             {tag}
                           </span>
                         ))}
                       </div>
                       {isSelected && (
-                        <span className="inline-flex items-center gap-1 text-xs text-blue-600 font-semibold"><Check size={11} strokeWidth={2.5} />Selected</span>
+                        <span className="inline-flex items-center gap-1 text-xs text-primary font-semibold"><Check size={11} strokeWidth={2.5} />Selected</span>
                       )}
                     </button>
                   )
@@ -245,7 +267,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
               <span className="ui-label mb-2">
                 Step 2 — Select Nozzle(s)
                 {selectedNozzleIds.size > 0 && (
-                  <span className="ml-2 text-blue-600 font-semibold normal-case">
+                  <span className="ml-2 text-primary font-semibold normal-case">
                     {selectedNozzleIds.size} selected
                   </span>
                 )}
@@ -258,25 +280,25 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                     <button key={nozzle.id} type="button"
                       disabled={isBusy}
                       onClick={() => handleNozzleToggle(nozzle)}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-card border-2 transition-all ${
                         isBusy
-                          ? 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'
+                          ? 'border-border bg-surface-sunken opacity-50 cursor-not-allowed'
                           : isSelected
-                          ? 'border-blue-500 bg-blue-50 shadow-sm'
-                          : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50'
+                          ? 'border-primary bg-info-bg shadow-raised'
+                          : 'border-border hover:border-primary hover:bg-bg'
                       }`}
                     >
-                      <span className={`text-xl font-bold ${isSelected ? 'text-blue-700' : 'text-slate-700'}`}>
+                      <span className={`text-xl font-bold ${isSelected ? 'text-primary' : 'text-ink'}`}>
                         #{nozzle.nozzleNumber}
                       </span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                        isSelected ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
+                      <span className={`text-xs px-1.5 py-0.5 rounded-badge font-medium ${
+                        isSelected ? 'bg-info-bg text-info' : 'bg-surface-sunken text-ink-3'
                       }`}>
                         {FUEL_LABELS[nozzle.fuelType] ?? nozzle.fuelType}
                       </span>
                       {isBusy
-                        ? <span className="text-xs text-slate-500">In use</span>
-                        : isSelected && <span className="inline-flex items-center gap-1 text-xs text-blue-600 font-semibold"><Check size={11} strokeWidth={2.5} />Selected</span>
+                        ? <span className="text-xs text-ink-3">In use</span>
+                        : isSelected && <span className="inline-flex items-center gap-1 text-xs text-primary font-semibold"><Check size={11} strokeWidth={2.5} />Selected</span>
                       }
                     </button>
                   )
@@ -302,29 +324,27 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
           {selectedNozzles.length > 0 && (
             <div className="ui-card-plain ui-card-muted p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <span className="text-xs font-semibold text-ink-3 uppercase tracking-wide">
                   Current Meter Readings
                 </span>
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                  Read-only
-                </span>
+                <StatusBadge tone="info" icon={Lock} label="Read-only" />
               </div>
               <div className={`grid gap-2 ${selectedNozzles.length > 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 {selectedNozzles.map((nozzle) => (
-                  <div key={nozzle.id} className="ui-card-plain bg-white border-slate-200 px-3 py-2.5">
-                    <p className="text-xs text-slate-500 mb-0.5">
+                  <div key={nozzle.id} className="ui-card-plain bg-surface border-border px-3 py-2.5">
+                    <p className="text-xs text-ink-3 mb-0.5">
                       Nozzle #{nozzle.nozzleNumber} — {FUEL_LABELS[nozzle.fuelType] ?? nozzle.fuelType} ({FUEL_UNIT[nozzle.fuelType] ?? 'L'})
                     </p>
-                    <p className="text-base font-semibold text-slate-800">
+                    <p className="text-base font-semibold text-ink tabular-nums">
                       {nozzle.lastReading.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-slate-500 leading-relaxed">
+              <p className="text-xs text-ink-3 leading-relaxed">
                 These readings are set automatically from the last shift close.
                 If a reading looks incorrect, an Admin must update it in{' '}
-                <span className="font-medium text-slate-700">Setup → Nozzle → Adjust Reading</span> first.
+                <span className="font-medium text-ink">Setup → Nozzle → Adjust Reading</span> first.
               </p>
             </div>
           )}
@@ -332,43 +352,9 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
           {/* ── Errors ── */}
           {(validationError || serverError) && (
             <div role="alert" className="ui-alert ui-alert-danger">
-              <p className="text-red-600 text-sm">{validationError ?? serverError}</p>
+              <p className="text-bad text-sm">{validationError ?? serverError}</p>
             </div>
           )}
-
-          </div>{/* end ui-modal-body */}
-
-          {/* ── Actions ── */}
-          <div className="ui-modal-footer flex-wrap">
-            {selectedNozzles.length > 0 && (
-              <label className="ui-check-row">
-                <input
-                  type="checkbox"
-                  checked={readingConfirmed}
-                  onChange={(e) => { setReadingConfirmed(e.target.checked); setValidationError(null) }}
-                />
-                <span>I confirm the meter readings above are correct and authorise opening this shift.</span>
-              </label>
-            )}
-            <button type="button" onClick={onClose}
-              className="ui-btn ui-btn-secondary flex-1">
-              Cancel
-            </button>
-            {missingStep ? (
-              <button type="submit" disabled
-                className="ui-btn flex-1 whitespace-normal bg-slate-100 text-slate-700 border-slate-300 cursor-not-allowed disabled:opacity-100">
-                {missingStep}
-              </button>
-            ) : (
-              <button type="submit" disabled={openMutation.isPending}
-                className="ui-btn ui-btn-primary flex-1 disabled:bg-blue-300 disabled:cursor-not-allowed">
-                {openMutation.isPending ? 'Opening...' : 'Open Shift'}
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
-    </div>
-    </ModalPortal>
+    </Modal>
   )
 }

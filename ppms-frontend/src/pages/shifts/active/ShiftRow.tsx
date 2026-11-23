@@ -1,7 +1,8 @@
 import { Plus } from 'lucide-react'
 import type { Shift } from '../../../types/shift'
 import { formatIstDateTime } from '../../../utils/date'
-import { STATUS_LABELS } from '../shiftLabels'
+import { StatusBadge } from '../../../components/StatusBadge'
+import { shiftStatusBadge } from '../../../components/statusBadges'
 import { codeLabel } from '../../../constants/labels'
 
 // ── Active shift row ──────────────────────────────────────────────────────────
@@ -9,7 +10,6 @@ import { codeLabel } from '../../../constants/labels'
 export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
   shift: Shift; onClose?: () => void; onHandOver?: () => void; onAddCredit: () => void
 }) {
-  const badge     = STATUS_LABELS[shift.status] ?? { label: shift.status, color: 'bg-slate-100 text-slate-600' }
   const startTime = formatIstDateTime(shift.actualStartTime, { hour: '2-digit', minute: '2-digit' })
   const fuelAbbr: Record<string, string> = {
     PETROL: 'P', SPEED_PETROL: 'SP', DIESEL: 'D', SPEED_DIESEL: 'SD', CNG: 'CNG',
@@ -19,24 +19,24 @@ export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
     .join(' · ')
 
   return (
-    <tr className="border-b border-slate-50 hover:bg-slate-50">
-      <td className="px-6 py-3 font-medium text-slate-700">
-        <span className="text-xs text-slate-500 block">
+    <tr>
+      <td className="px-6 py-3 font-medium text-ink">
+        <span className="text-xs text-ink-3 block">
           {shift.duName ?? `DU #${shift.duNumber}`}
         </span>
         {shift.nozzles.map((n) => `#${n.nozzleNumber} ${codeLabel(n.fuelType)}`).join(', ')}
       </td>
-      <td className="px-6 py-3 text-slate-600">
+      <td className="px-6 py-3 text-ink-2">
         {shift.operatorName}
-        <span className="block md:hidden text-xs text-slate-500">
+        <span className="block md:hidden text-xs text-ink-3">
           {[shift.shiftWindow, `Started ${startTime}`, prices].filter(Boolean).join(' · ')}
         </span>
       </td>
-      <td className="px-6 py-3 text-slate-500 hidden md:table-cell">{shift.shiftWindow}</td>
-      <td className="px-6 py-3 text-slate-500 hidden md:table-cell">{startTime}</td>
-      <td className="px-6 py-3 text-slate-500 text-xs hidden md:table-cell">{prices || '—'}</td>
+      <td className="px-6 py-3 text-ink-3 hidden md:table-cell">{shift.shiftWindow}</td>
+      <td className="px-6 py-3 text-ink-3 hidden md:table-cell">{startTime}</td>
+      <td className="px-6 py-3 text-ink-3 text-xs hidden md:table-cell">{prices || '—'}</td>
       <td className="px-6 py-3">
-        <span className={`text-xs font-medium px-2 py-1 rounded-full ${badge.color}`}>{badge.label}</span>
+        <StatusBadge {...shiftStatusBadge(shift.status)} />
       </td>
       <td className="px-6 py-3 text-right">
         <div className="flex items-center justify-end gap-2">

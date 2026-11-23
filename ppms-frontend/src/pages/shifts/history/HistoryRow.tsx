@@ -1,12 +1,15 @@
 import { useState } from 'react'
-import { Printer } from 'lucide-react'
+import { History, Printer } from 'lucide-react'
 import { useAuthStore } from '../../../store/authStore'
 import type { Shift } from '../../../types/shift'
 import { IconButton } from '../../../components/IconButton'
 import { CreditEntriesModal } from '../modals/CreditEntriesModal'
 import { HandoverModal } from '../modals/HandoverModal'
 import { ResolveDiscrepancyModal } from '../modals/ResolveDiscrepancyModal'
-import { AWAITING_OWNER_APPROVAL, discrepancyAction, fmtAmt, investigationLabel, statusBadge } from '../shiftLabels'
+import { AWAITING_OWNER_APPROVAL, discrepancyAction, fmtAmt, investigationLabel } from '../shiftLabels'
+import { StatusBadge } from '../../../components/StatusBadge'
+import { shiftStatusBadge } from '../../../components/statusBadges'
+import { MoneyText } from '../../../components/AmountText'
 import { codeLabel } from '../../../constants/labels'
 
 // ── History row ───────────────────────────────────────────────────────────────
@@ -22,7 +25,6 @@ export function HistoryRow({ shift }: { shift: Shift }) {
   const [resolveModalOpen,   setResolveModalOpen]   = useState(false)
   const [handoverOpen,       setHandoverOpen]       = useState(false)
 
-  const badge            = statusBadge(shift.status)
   const isClosed         = shift.totalAmountDue != null
   const digitalTotal     = (shift.upiCollected ?? 0) + (shift.cardCollected ?? 0)
   const hasCreditEntries = (shift.creditEntries?.length ?? 0) > 0
@@ -32,51 +34,43 @@ export function HistoryRow({ shift }: { shift: Shift }) {
   return (
     <>
       {/* ── Main data row ─────────────────────────────────────────────────── */}
-      <tr className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
-        <td className="px-5 py-3 text-slate-500 text-xs font-mono hidden md:table-cell">{shift.id}</td>
+      <tr>
+        <td className="px-5 py-3 text-ink-3 text-xs font-mono hidden md:table-cell">{shift.id}</td>
         <td className="px-5 py-3">
-          <span className="text-xs text-slate-500 block">
+          <span className="text-xs text-ink-3 block">
             {shift.duName ?? `DU #${shift.duNumber}`}
           </span>
-          <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md text-xs">
+          <span className="font-semibold text-ink bg-surface-sunken px-2 py-0.5 rounded-control text-xs">
             {shift.nozzles.map((n) => `#${n.nozzleNumber} ${n.fuelType}`).join(', ')}
           </span>
         </td>
         <td className="px-5 py-3 hidden md:table-cell">
           {shift.shiftWindow ? (
-            <span className="text-xs font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
-              {shift.shiftWindow}
-            </span>
+            <StatusBadge tone="info" label={shift.shiftWindow} />
           ) : (
-            <span className="text-xs text-slate-500">—</span>
+            <span className="text-xs text-ink-3">—</span>
           )}
         </td>
-        <td className="px-5 py-3 text-sm text-slate-700 font-medium">{shift.operatorName}</td>
-        <td className="px-5 py-3 text-xs text-slate-500">{shift.shiftDate}</td>
-        <td className="px-5 py-3 text-sm font-semibold text-slate-800">
-          {fmtAmt(shift.totalAmountDue)}
+        <td className="px-5 py-3 text-sm text-ink font-medium">{shift.operatorName}</td>
+        <td className="px-5 py-3 text-xs text-ink-3">{shift.shiftDate}</td>
+        <td className="px-5 py-3 text-sm font-semibold text-ink">
+          <MoneyText value={shift.totalAmountDue} />
         </td>
         <td className="px-5 py-3">
           <div className="flex flex-wrap items-center gap-1">
-            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${badge.color}`}>
-              {badge.label}
-            </span>
-            {shift.isBackfilled && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
-                Backfilled
-              </span>
-            )}
+            <StatusBadge {...shiftStatusBadge(shift.status)} />
+            {shift.isBackfilled && <StatusBadge tone="neutral" icon={History} label="Backfilled" />}
           </div>
         </td>
         <td className="px-5 py-3 hidden md:table-cell">
           {shift.discrepancyAmount != null ? (
-            <span className={`text-xs font-semibold ${
-              shift.discrepancyType === 'SHORT' ? 'text-red-600' : 'text-amber-600'
+            <span className={`text-xs font-semibold tabular-nums ${
+              shift.discrepancyType === 'SHORT' ? 'text-bad' : 'text-warn'
             }`}>
               {shift.discrepancyType} {fmtAmt(shift.discrepancyAmount)}
             </span>
           ) : (
-            <span className="text-xs text-slate-500">—</span>
+            <span className="text-xs text-ink-3">—</span>
           )}
         </td>
         <td className="px-4 py-3 text-right">
@@ -92,18 +86,18 @@ export function HistoryRow({ shift }: { shift: Shift }) {
               </button>
             )}
             {resolveAction === 'awaiting-owner' && (
-              <span className="text-xs text-orange-600 font-medium">{AWAITING_OWNER_APPROVAL}</span>
+              <span className="text-xs text-warn font-medium">{AWAITING_OWNER_APPROVAL}</span>
             )}
             {shift.discrepancyResolution && (
-              <span className="text-xs text-slate-500">{codeLabel(shift.discrepancyResolution)}</span>
+              <span className="text-xs text-ink-3">{codeLabel(shift.discrepancyResolution)}</span>
             )}
             {investigation && (
-              <span className="text-xs text-orange-700" title={shift.investigationNote ?? undefined}>{investigation}</span>
+              <span className="text-xs text-warn" title={shift.investigationNote ?? undefined}>{investigation}</span>
             )}
             {isClosed && (
               <IconButton
                 onClick={() => setHandoverOpen(true)}
-                className="text-slate-500 hover:text-slate-600 transition-colors"
+                className="text-ink-3 hover:text-ink-2 transition-colors"
                 label="Print handover report"
                 icon={<Printer size={14} strokeWidth={2} />}
               />
@@ -114,31 +108,29 @@ export function HistoryRow({ shift }: { shift: Shift }) {
 
       {/* ── Payment breakdown row — always visible for closed shifts ──────── */}
       {isClosed && (
-        <tr className="border-b border-slate-100 bg-slate-50/40">
+        <tr className="bg-surface-sunken">
           <td colSpan={9} className="px-5 pb-3 pt-1">
             <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs">
 
               {/* Cash */}
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                <span className="text-slate-500">Cash</span>
-                <span className="font-semibold text-slate-700">{fmtAmt(shift.cashCollected)}</span>
+                <span className="w-2 h-2 rounded-full bg-ok shrink-0" />
+                <span className="text-ink-3">Cash</span>
+                <MoneyText value={shift.cashCollected} className="font-semibold text-ink" />
               </div>
 
               {/* UPI + Card */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                <span className="text-slate-500">UPI + Card</span>
-                <span className="font-semibold text-slate-700">
-                  {digitalTotal > 0 ? fmtAmt(digitalTotal) : '—'}
-                </span>
+                <span className="w-2 h-2 rounded-full bg-info shrink-0" />
+                <span className="text-ink-3">UPI + Card</span>
+                <MoneyText value={digitalTotal > 0 ? digitalTotal : null} className="font-semibold text-ink" />
                 {(shift.upiCollected ?? 0) > 0 && (
-                  <span className="text-slate-500 bg-blue-50 px-1.5 py-0.5 rounded">
+                  <span className="text-ink-3 bg-info-bg px-1.5 py-0.5 rounded-control tabular-nums">
                     UPI {fmtAmt(shift.upiCollected)}
                   </span>
                 )}
                 {(shift.cardCollected ?? 0) > 0 && (
-                  <span className="text-slate-500 bg-blue-50 px-1.5 py-0.5 rounded">
+                  <span className="text-ink-3 bg-info-bg px-1.5 py-0.5 rounded-control tabular-nums">
                     Card {fmtAmt(shift.cardCollected)}
                   </span>
                 )}
@@ -146,26 +138,26 @@ export function HistoryRow({ shift }: { shift: Shift }) {
 
               {/* Credit — clickable pill that opens the modal */}
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
-                <span className="text-slate-500">Credit</span>
+                <span className="w-2 h-2 rounded-full bg-warn shrink-0" />
+                <span className="text-ink-3">Credit</span>
                 {creditAmt > 0 ? (
                   hasCreditEntries ? (
                     <button
                       type="button"
                       onClick={() => setCreditModalOpen(true)}
-                      className="flex items-center gap-1.5 font-semibold px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors"
+                      className="flex items-center gap-1.5 font-semibold px-2 py-0.5 rounded-control bg-warn-bg text-warn hover:text-warn-strong transition-colors tabular-nums"
                       title="Click to view credit details"
                     >
                       {fmtAmt(creditAmt)}
-                      <span className="text-orange-500 text-xs">
+                      <span className="text-warn text-xs">
                         · {shift.creditEntries.length} client{shift.creditEntries.length !== 1 ? 's' : ''} ↗
                       </span>
                     </button>
                   ) : (
-                    <span className="font-semibold text-orange-700">{fmtAmt(creditAmt)}</span>
+                    <MoneyText value={creditAmt} className="font-semibold text-warn" />
                   )
                 ) : (
-                  <span className="text-slate-500">—</span>
+                  <span className="text-ink-3">—</span>
                 )}
               </div>
             </div>

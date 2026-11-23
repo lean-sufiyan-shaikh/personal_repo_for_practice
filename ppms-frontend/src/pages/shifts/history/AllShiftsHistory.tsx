@@ -5,8 +5,9 @@ import { SkeletonRows } from '../../../components/Skeleton'
 import { localDateInputValue } from '../../../utils/date'
 import { parseApiError } from '../../../utils/apiError'
 import { HistoryRow } from './HistoryRow'
+import { HISTORY_COLUMNS } from './historyColumns'
 import { PAGE_SIZE } from '../shiftLabels'
-import { ScrollRegion } from '../../../components/ScrollRegion'
+import { DataTable } from '../../../components/DataTable'
 import { codeLabel } from '../../../constants/labels'
 
 // ── All Shifts (paginated + date range filter) ────────────────────────────────
@@ -39,21 +40,21 @@ export function AllShiftsHistory({ pumpId, initialFrom, initialTo, fuelType, onC
   return (
     <div>
       {/* Date range filter bar */}
-      <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-slate-100 bg-slate-50/60">
-        <span className="text-xs font-medium text-slate-500">Filter by date:</span>
+      <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-border bg-surface-sunken">
+        <span className="text-xs font-medium text-ink-3">Filter by date:</span>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <input aria-label="From date"
             type="date"
             value={fromDate}
             onChange={(e) => { setFromDate(e.target.value); setPage(0) }}
-            className="flex-1 min-w-[8.5rem] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs"
+            className="flex-1 min-w-[8.5rem] border border-control rounded-control px-2.5 py-1.5 text-xs"
           />
-          <span className="text-slate-500 text-xs">to</span>
+          <span className="text-ink-3 text-xs">to</span>
           <input aria-label="To date"
             type="date"
             value={toDate}
             onChange={(e) => { setToDate(e.target.value); setPage(0) }}
-            className="flex-1 min-w-[8.5rem] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs"
+            className="flex-1 min-w-[8.5rem] border border-control rounded-control px-2.5 py-1.5 text-xs"
           />
         </div>
         {fuelType && onClearFuel && (
@@ -65,63 +66,42 @@ export function AllShiftsHistory({ pumpId, initialFrom, initialTo, fuelType, onC
         {(fromDate || toDate) && (
           <button
             onClick={clearFilter}
-            className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-slate-500 hover:text-slate-700 underline"
+            className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-ink-3 hover:text-ink underline"
           >
             Clear
           </button>
         )}
-        <span className="ml-auto text-xs text-slate-500">
+        <span className="ml-auto text-xs text-ink-3">
           {totalElements} shift{totalElements !== 1 ? 's' : ''}
           {(fromDate || toDate || fuelType) ? ' (filtered)' : ''}
         </span>
       </div>
 
-      {/* Table */}
-      <ScrollRegion label="All shifts" className="overflow-x-auto border-t border-slate-100">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-100 text-xs text-slate-500">
-              <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">ID</th>
-              <th scope="col" className="text-left px-5 py-3 font-medium">Nozzle</th>
-              <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">Shift</th>
-              <th scope="col" className="text-left px-5 py-3 font-medium">Operator</th>
-              <th scope="col" className="text-left px-5 py-3 font-medium">Date</th>
-              <th scope="col" className="text-left px-5 py-3 font-medium">Amount Due</th>
-              <th scope="col" className="text-left px-5 py-3 font-medium">Status</th>
-              <th scope="col" className="text-left px-5 py-3 font-medium hidden md:table-cell">Discrepancy</th>
-              <th scope="col" className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={9} className="px-5 py-4"><SkeletonRows count={4} /></td>
-              </tr>
-            ) : error ? (
-              <tr>
-                <td colSpan={9} className="px-6 py-4">
-                  <p role="alert" className="ui-alert ui-alert-error text-sm">{parseApiError(error, 'Failed to load shift history')}</p>
-                </td>
-              </tr>
-            ) : paged.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="ui-empty px-6 py-6">
-                  No shifts match the selected date range.
-                </td>
-              </tr>
-            ) : (
-              paged.map((shift) => <HistoryRow key={shift.id} shift={shift} />)
-            )}
-          </tbody>
-        </table>
-      </ScrollRegion>
+      {isLoading ? (
+        <div className="px-5 py-4 border-t border-border"><SkeletonRows count={4} /></div>
+      ) : error ? (
+        <div className="px-6 py-4 border-t border-border">
+          <p role="alert" className="ui-alert ui-alert-error text-sm">{parseApiError(error, 'Failed to load shift history')}</p>
+        </div>
+      ) : (
+        <DataTable
+          caption="All shifts"
+          captionHidden
+          columns={HISTORY_COLUMNS}
+          rows={paged}
+          rowKey={(shift) => shift.id}
+          renderRow={(shift) => <HistoryRow shift={shift} />}
+          empty={<p className="ui-empty px-6 py-6">No shifts match the selected date range.</p>}
+          className="rounded-none border-x-0 border-b-0"
+        />
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-6 py-3 border-t border-slate-100 bg-slate-50/60">
-          <span className="text-xs text-slate-500">
+        <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-surface-sunken">
+          <span className="text-xs text-ink-3">
             Page {safePage + 1} of {totalPages}
-            <span className="ml-2 text-slate-500">
+            <span className="ml-2 text-ink-3">
               (showing {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, totalElements)} of {totalElements})
             </span>
           </span>
@@ -147,10 +127,10 @@ export function AllShiftsHistory({ pumpId, initialFrom, initialTo, fuelType, onC
                 <button
                   key={i}
                   onClick={() => setPage(i)}
-                  className={`ui-btn min-h-0 px-3 py-1 text-xs rounded-md border transition-colors ${
+                  className={`ui-btn min-h-0 px-3 py-1 text-xs rounded-control border transition-colors ${
                     i === safePage
-                      ? 'bg-blue-600 border-blue-600 text-white'
-                      : 'border-slate-200 hover:bg-slate-100 text-slate-600'
+                      ? 'bg-primary border-primary text-on-primary'
+                      : 'border-border hover:bg-surface-sunken text-ink-2'
                   }`}
                 >
                   {i + 1}

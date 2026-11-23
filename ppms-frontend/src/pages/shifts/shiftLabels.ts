@@ -1,22 +1,22 @@
 import { formatIstDate, formatIstDateTime, localDateInputValue } from '../../utils/date'
-import type { Shift } from '../../types/shift'
+import type { Shift, ShiftStatus } from '../../types/shift'
 import type { UserRole } from '../../types/auth'
 import { canPerformAction } from '../../permissions/permissions'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-export const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  OPEN:                                    { label: 'Open',             color: 'bg-green-100 text-green-700' },
-  OPEN_OVERDUE:                            { label: 'Overdue',          color: 'bg-amber-100 text-amber-700' },
-  AUTO_CLOSED_OVERDUE:                     { label: 'Auto-closed',      color: 'bg-red-100 text-red-700' },
-  CLOSED_BALANCED:                         { label: 'Balanced',         color: 'bg-slate-100 text-slate-600' },
-  CLOSED_DISCREPANCY_PENDING:              { label: 'Discrepancy',      color: 'bg-red-100 text-red-700' },
-  CLOSED_DISCREPANCY_PENDING_APPROVAL:     { label: 'Needs Approval',   color: 'bg-orange-100 text-orange-700' },
-  CLOSED_DISCREPANCY_RESOLVED:             { label: 'Resolved',         color: 'bg-slate-100 text-slate-600' },
+const STATUS_LABELS: Record<ShiftStatus, string> = {
+  OPEN:                                'Open',
+  OPEN_OVERDUE:                        'Overdue',
+  AUTO_CLOSED_OVERDUE:                 'Auto-closed',
+  CLOSED_BALANCED:                     'Balanced',
+  CLOSED_DISCREPANCY_PENDING:          'Discrepancy',
+  CLOSED_DISCREPANCY_PENDING_APPROVAL: 'Needs Approval',
+  CLOSED_DISCREPANCY_RESOLVED:         'Resolved',
 }
 
-export function statusBadge(status: string): { label: string; color: string } {
-  return STATUS_LABELS[status] ?? { label: status, color: 'bg-slate-100 text-slate-600' }
+export function statusLabel(status: ShiftStatus): string {
+  return STATUS_LABELS[status] ?? status
 }
 
 export const AWAITING_OWNER_APPROVAL = 'Waiting for owner approval'

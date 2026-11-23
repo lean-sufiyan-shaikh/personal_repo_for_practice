@@ -6,13 +6,13 @@ import type { BackfillForm } from './useBackfillForm'
 export function ShiftDetailsSection({ form }: { form: BackfillForm }) {
   const { shiftDate, setShiftDate, shiftDefinitionId, setShiftDefinitionId, selectedDU, setFuelRateInputs, defsLoading, definitions, dus, dusLoading, selectDU } = form
   return (
-    <div className="rounded-xl border border-violet-100 bg-violet-50/60 p-4 space-y-3">
+    <div className="rounded-card border border-border bg-surface-sunken p-4 space-y-3">
       <SectionLabel>Shift Details</SectionLabel>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block">
-            <span className="ui-label">Shift Date <span className="text-red-500">*</span></span>
+            <span className="ui-label">Shift Date <span className="text-bad">*</span></span>
             <input
               type="date"
               value={shiftDate}
@@ -23,11 +23,11 @@ export function ShiftDetailsSection({ form }: { form: BackfillForm }) {
               required
             />
           </label>
-          <p className="text-[11px] text-slate-500 mt-0.5">Last 365 days · not today</p>
+          <p className="text-xs text-ink-3 mt-0.5">Last 365 days · not today</p>
         </div>
 
         <div>
-          <span className="ui-label">Dispensary Unit <span className="text-red-500">*</span></span>
+          <span className="ui-label">Dispensary Unit <span className="text-bad">*</span></span>
           <SearchableSelect label="Dispensary Unit"
             value={String(selectedDU?.id ?? '')}
             onChange={(v) => selectDU(dus.find((d) => String(d.id) === v) ?? null)}
@@ -39,9 +39,9 @@ export function ShiftDetailsSection({ form }: { form: BackfillForm }) {
       </div>
 
       <div>
-        <span className="ui-label">Shift Window <span className="text-red-500">*</span></span>
+        <span className="ui-label">Shift Window <span className="text-bad">*</span></span>
         {definitions.length === 0 && !defsLoading ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+          <div className="rounded-card border border-border bg-warn-bg px-3 py-2 text-sm text-warn">
             No shift definitions found for this pump. Configure shift windows in Setup first.
           </div>
         ) : (

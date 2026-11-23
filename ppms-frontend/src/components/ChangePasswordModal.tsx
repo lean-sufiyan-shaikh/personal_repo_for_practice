@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import { authApi } from '../api/authApi'
 import { useAuthStore } from '../store/authStore'
 import { PasswordInput } from './PasswordInput'
-import { ModalPortal } from './ModalPortal'
+import { Modal } from './Modal'
 import { parseApiError } from '../utils/apiError'
 import { PASSWORD_POLICY_MESSAGE, PASSWORD_POLICY_REGEX } from '../constants/passwordPolicy'
 import { FormField } from './FormField'
@@ -58,67 +58,18 @@ export function ChangePasswordModal({ onClose, successMessage, required = false 
   }
 
   return (
-    <ModalPortal onClose={onClose} closeOnBackdropClick={!required}>
-    <div className="ui-modal-backdrop">
-      <div
-        className="ui-modal-panel"
-      >
-        <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
-          <div className="ui-modal-heading">
-            <h2 className="ui-modal-title">{required ? 'Choose a New Password' : 'Reset Password'}</h2>
-            <p className="ui-modal-subtitle">
-              {required
-                ? 'Your password was set by someone else. Enter it as the current password, choose your own, then sign in again.'
-                : 'Update your password, then sign in again.'}
-            </p>
-          </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="ui-btn ui-btn-ghost ui-modal-close">&times;</button>
-        </div>
-
-        <div className="ui-modal-body space-y-4">
-          <div>
-            <FormField label="Current Password">
-              <PasswordInput
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                autoComplete="current-password"
-                className="shadow-sm"
-              />
-            </FormField>
-          </div>
-
-          <div>
-            <FormField label="New Password">
-              <PasswordInput
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                autoComplete="new-password"
-                className="shadow-sm"
-              />
-            </FormField>
-            <p className="ui-help">{PASSWORD_POLICY_MESSAGE}</p>
-          </div>
-
-          <div>
-            <FormField label="Confirm New Password">
-              <PasswordInput
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleChangePassword() }}
-                autoComplete="new-password"
-                className="shadow-sm"
-              />
-            </FormField>
-          </div>
-
-          {passwordError && (
-            <div className="ui-alert ui-alert-danger" role="alert">
-              <p className="text-sm text-red-600">{passwordError}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="ui-modal-footer">
+    <Modal
+      title={required ? 'Choose a New Password' : 'Reset Password'}
+      subtitle={required
+        ? 'Your password was set by someone else. Enter it as the current password, choose your own, then sign in again.'
+        : 'Update your password, then sign in again.'}
+      tone="warning"
+      size="lg"
+      onClose={onClose}
+      closeOnBackdropClick={!required}
+      bodyClassName="space-y-4"
+      footer={
+        <>
           <button
             onClick={onClose}
             disabled={changePasswordMutation.isPending}
@@ -133,9 +84,49 @@ export function ChangePasswordModal({ onClose, successMessage, required = false 
           >
             {changePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
           </button>
-        </div>
+        </>
+      }
+    >
+      <div>
+        <FormField label="Current Password">
+          <PasswordInput
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            autoComplete="current-password"
+            className="shadow-sm"
+          />
+        </FormField>
       </div>
-    </div>
-    </ModalPortal>
+
+      <div>
+        <FormField label="New Password">
+          <PasswordInput
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            autoComplete="new-password"
+            className="shadow-sm"
+          />
+        </FormField>
+        <p className="ui-help">{PASSWORD_POLICY_MESSAGE}</p>
+      </div>
+
+      <div>
+        <FormField label="Confirm New Password">
+          <PasswordInput
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleChangePassword() }}
+            autoComplete="new-password"
+            className="shadow-sm"
+          />
+        </FormField>
+      </div>
+
+      {passwordError && (
+        <div className="ui-alert ui-alert-danger" role="alert">
+          <p className="text-sm text-bad">{passwordError}</p>
+        </div>
+      )}
+    </Modal>
   )
 }
