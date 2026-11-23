@@ -48,6 +48,9 @@ public class InventoryWorkflowService {
     private final AuditService auditService;
     private final BusinessClock businessClock;
     private final InventoryResponseAssembler responseAssembler;
+    private final OpenShiftMeterService openShiftMeterService;
+    private final DipCheckNozzleReadingRepository dipCheckNozzleReadingRepository;
+    private final TankLotConsumptionService tankLotConsumptionService;
 
     /**
      * Records one tanker delivery: a TankerDelivery row, a FIFO InventoryLot, and the added tank stock.
@@ -209,14 +212,21 @@ public class InventoryWorkflowService {
 
     /**
      * Deletes the most recently entered invoice (all its tank lines) and reverses the tank stock.
+     * The caller names the invoice it showed, so a newer entry made meanwhile is never deleted by mistake.
      * Refused once any fuel from the invoice has been consumed by a shift.
      */
     @Transactional
-    public void deleteLatestDelivery(Long pumpId, User currentUser) {
+    public void deleteLatestDelivery(Long pumpId, String expectedInvoiceReference, User currentUser) {
         TankerDelivery latest = tankerDeliveryRepository.findTopByPumpIdOrderByCreatedAtDesc(pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("No deliveries found for this pump"));
 
         String invoiceRef = latest.getInvoiceReference();
+        if (!expectedInvoiceReference.trim().equals(invoiceRef)) {
+            throw new BusinessException(
+                    "Invoice '" + expectedInvoiceReference.trim() + "' is not the most recently entered invoice — '" +
+                    invoiceRef + "' was entered after it. Only the latest entered invoice can be deleted; " +
+                    "reload the delivery history and try again.");
+        }
         List<TankerDelivery> toDelete = tankerDeliveryRepository.findByPumpIdAndInvoiceReference(pumpId, invoiceRef);
         tankRepository.findAllByIdForUpdate(toDelete.stream().map(TankerDelivery::getTankId).toList());
 
@@ -264,25 +274,32 @@ public class InventoryWorkflowService {
     }
 
     /**
-     * Records a physical dip measurement. The measurement is ground truth: tank stock is set to it at once,
-     * and the lot ledger is adjusted by the variance. Above-tolerance variances are flagged for review.
+     * Records a physical dip measurement for today. The measurement is ground truth: the tank and its lot ledger
+     * move by the variance at once. Fuel already sold on shifts still open has not left stock yet, so it is taken
+     * off the expected stock first, from the meter readings entered with the check. Above-tolerance variances are
+     * flagged for review.
      */
     @Transactional
     public DipCheckResponse recordDipCheck(Long pumpId, RecordDipCheckRequest request, User currentUser) {
         UndergroundTank tank = tankRepository.findByIdForUpdate(request.getTankId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
         assertTankUsable(tank, pumpId, "recording a DIP check");
+        assertCheckedToday(request.getCheckedAt());
 
-        if (tank.getCurrentStock().compareTo(BigDecimal.ZERO) == 0) {
+        if (currentStockOf(tank).compareTo(BigDecimal.ZERO) == 0 && !tankerDeliveryRepository.existsByTankId(tank.getId())) {
             throw new BusinessException(
-                    "Tank '" + tank.getTankIdentifier() + "' has no recorded stock. " +
+                    "Tank '" + tank.getTankIdentifier() + "' has never received a delivery. " +
                     "Record a tanker delivery first before performing a DIP check.");
         }
 
-        BigDecimal systemStockNow = tank.getCurrentStock().setScale(3, RoundingMode.HALF_UP);
+        List<DipCheckNozzleReading> openShiftSales = openShiftMeterService.salesSinceShiftOpen(tank, request.getNozzleReadings());
+        BigDecimal soldOnOpenShifts = openShiftSales.stream()
+                .map(DipCheckNozzleReading::getUnitsSold)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal systemStockNow = currentStockOf(tank).subtract(soldOnOpenShifts).setScale(3, RoundingMode.HALF_UP);
         BigDecimal measured = request.getMeasuredQuantity().setScale(3, RoundingMode.HALF_UP);
         BigDecimal variance = measured.subtract(systemStockNow);
-        OffsetDateTime checkedAt = dipCheckTime(request.getCheckedAt());
+        OffsetDateTime checkedAt = businessClock.now();
 
         String checkedByName = null;
         if (request.getCheckedByUserId() != null) {
@@ -306,14 +323,18 @@ public class InventoryWorkflowService {
                 .checkedByUserId(request.getCheckedByUserId())
                 .status(status)
                 .build());
+        openShiftSales.forEach(reading -> reading.setDipCheckId(check.getId()));
+        dipCheckNozzleReadingRepository.saveAll(openShiftSales);
 
-        tank.setCurrentStock(measured);
+        // Open shifts deduct their full sales at close, so the tank keeps what they sold until then.
+        tank.setCurrentStock(currentStockOf(tank).add(variance).setScale(3, RoundingMode.HALF_UP));
         tankRepository.save(tank);
 
         applyDipAdjustment(pumpId, tank, check, variance, checkedAt);
 
-        log.info("DIP check recorded: pump={}, tank={}, measured={}L, system={}L, variance={}L, status={}, by={}, checkedBy={}",
-                pumpId, tank.getId(), measured, systemStockNow, variance, status, currentUser.getId(), request.getCheckedByUserId());
+        log.info("DIP check recorded: pump={}, tank={}, measured={}L, system={}L, soldOnOpenShifts={}L, variance={}L, status={}, by={}, checkedBy={}",
+                pumpId, tank.getId(), measured, systemStockNow, soldOnOpenShifts, variance, status, currentUser.getId(),
+                request.getCheckedByUserId());
 
         return responseAssembler.toDipCheckResponse(check, tank, currentUser.getFullName(), checkedByName, null);
     }
@@ -376,33 +397,9 @@ public class InventoryWorkflowService {
             return;
         }
 
-        BigDecimal toDeduct = variance.abs();
-        List<InventoryLot> touchedLots = new ArrayList<>();
-        List<LotConsumption> consumptions = new ArrayList<>();
-        for (InventoryLot lot : inventoryLotRepository.findActiveLotsByTankFifo(tank.getId())) {
-            if (toDeduct.compareTo(BigDecimal.ZERO) <= 0) break;
-            BigDecimal consume = toDeduct.min(lot.getRemainingQuantity());
-            lot.setRemainingQuantity(lot.getRemainingQuantity().subtract(consume).setScale(3, RoundingMode.HALF_UP));
-            if (lot.getRemainingQuantity().compareTo(BigDecimal.ZERO) == 0) {
-                lot.setStatus(LotStatus.EXHAUSTED);
-            }
-            touchedLots.add(lot);
-            consumptions.add(LotConsumption.builder()
-                    .lotId(lot.getId())
-                    .sourceType(LotConsumptionSource.DIP_CORRECTION)
-                    .dipCorrectionId(check.getId())
-                    .quantityConsumed(consume)
-                    .costPricePerUnit(lot.getCostPricePerUnit())
-                    .build());
-            toDeduct = toDeduct.subtract(consume);
-        }
-        if (toDeduct.compareTo(BigDecimal.ZERO) > 0) {
-            throw new BusinessException(
-                    "The stock lots for tank '" + tank.getTankIdentifier() + "' hold " +
-                    toDeduct.setScale(3, RoundingMode.HALF_UP) + " L less than the recorded tank stock, so this " +
-                    "dip check cannot be applied. Ask an admin to reconcile the tank's deliveries first.");
-        }
-        inventoryLotRepository.saveAll(touchedLots);
+        List<LotConsumption> consumptions = tankLotConsumptionService.consumeOldestFirst(
+                tank, variance.abs(), LotConsumptionSource.DIP_CORRECTION);
+        consumptions.forEach(consumption -> consumption.setDipCorrectionId(check.getId()));
         lotConsumptionRepository.saveAll(consumptions);
         log.info("DIP adjustment: FIFO-consumed {}L from lots, tank={}, pump={}",
                 variance.abs().setScale(3, RoundingMode.HALF_UP), tank.getId(), pumpId);
@@ -594,14 +591,14 @@ public class InventoryWorkflowService {
                 });
     }
 
-    /**
-     * A dip check dated today is stamped with the current time; a back-dated one with the start of its day,
-     * since the time it was taken is not known.
-     */
-    private OffsetDateTime dipCheckTime(LocalDate checkedOn) {
-        return checkedOn.equals(businessClock.today())
-                ? businessClock.now()
-                : startOfBusinessDay(checkedOn);
+    /** A dip check sets the tank to what is in it now, so one dated any other day would overwrite today's stock. */
+    private void assertCheckedToday(LocalDate checkedOn) {
+        LocalDate today = businessClock.today();
+        if (checkedOn != null && !checkedOn.equals(today)) {
+            throw new BusinessException(
+                    "A DIP check can only be recorded for today (" + today + "). A check dated " + checkedOn +
+                    " would overwrite today's tank stock with an older measurement.");
+        }
     }
 
     private OffsetDateTime startOfBusinessDay(LocalDate date) {

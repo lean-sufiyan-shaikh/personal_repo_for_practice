@@ -56,7 +56,7 @@ public class PayrollController {
 
     /**
      * GET /api/pumps/{pumpId}/payroll/pending-discrepancies?userId={userId}
-     * Returns all unresolved discrepancy shifts for a user on this pump.
+     * Returns all unresolved SHORT discrepancy shifts for a user on this pump.
      * Called by the payroll UI before generating a payroll draft so the owner can choose
      * which discrepancies to resolve as SALARY_DEDUCTION in the current pay run.
      */

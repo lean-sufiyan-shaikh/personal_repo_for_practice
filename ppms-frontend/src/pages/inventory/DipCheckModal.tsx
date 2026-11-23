@@ -3,13 +3,25 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check } from 'lucide-react'
 import { inventoryApi } from '../../api/inventoryApi'
 import { userApi } from '../../api/userApi'
-import type { TankStock } from '../../api/inventoryApi'
+import type { OpenShiftNozzle, TankStock } from '../../api/inventoryApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
-import { localDateInputValue } from '../../utils/date'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
 import { FUEL_COLORS } from './inventoryFormat'
 import { IconButton } from '../../components/IconButton'
+
+const ROLLOVER_START_FRACTION = 0.99
+
+/** Litres dispensed since the shift opened, following the server's meter rollover rule; null while unknown or invalid. */
+function soldSinceOpening(nozzle: OpenShiftNozzle, reading: string): number | null {
+  if (reading === '') return null
+  const current = Number(reading)
+  if (current >= nozzle.openingReading) return current - nozzle.openingReading
+  if (nozzle.openingReading >= nozzle.maxMeterValue * ROLLOVER_START_FRACTION) {
+    return nozzle.maxMeterValue - nozzle.openingReading + current
+  }
+  return null
+}
 
 // ── DIP Check Modal ────────────────────────────────────────────────────────────
 
@@ -26,7 +38,7 @@ export function DipCheckModal({
   const cols = FUEL_COLORS[tank.fuelType] ?? FUEL_COLORS.PETROL
 
   const [measured,        setMeasured]        = useState('')
-  const [date,            setDate]            = useState(localDateInputValue())
+  const [meterReadings,   setMeterReadings]   = useState<Record<number, string>>({})
   const [checkedByUserId, setCheckedByUserId] = useState<string>('')
   const [notes,           setNotes]           = useState('')
   const [error,           setError]           = useState<string | null>(null)
@@ -36,30 +48,45 @@ export function DipCheckModal({
     queryFn:  () => userApi.getStaff(pumpId),
   })
 
+  const { data: openShiftNozzles = [], isLoading: openShiftNozzlesLoading } = useQuery({
+    queryKey: ['openShiftNozzles', pumpId, tank.tankId],
+    queryFn:  () => inventoryApi.getOpenShiftNozzles(pumpId, tank.tankId),
+  })
+
   const mutation = useMutation({
     mutationFn: () =>
       inventoryApi.recordDipCheck(pumpId, {
         tankId:           tank.tankId,
         measuredQuantity: Number(measured),
-        checkedAt:        date,
         checkedByUserId:  checkedByUserId ? Number(checkedByUserId) : undefined,
         notes:            notes.trim() || undefined,
+        nozzleReadings:   openShiftNozzles.map(n => ({ nozzleId: n.nozzleId, meterReading: Number(meterReadings[n.nozzleId]) })),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pumpId] })
       queryClient.invalidateQueries({ queryKey: ['dipChecks', pumpId] })
       onClose()
     },
-    onError: (err) =>
-      setError(parseApiError(err, 'Failed to record DIP check')),
+    onError: (err) => {
+      setError(parseApiError(err, 'Failed to record DIP check'))
+      queryClient.invalidateQueries({ queryKey: ['openShiftNozzles', pumpId, tank.tankId] })
+    },
   })
 
-  const variance = measured !== '' ? Number(measured) - tank.currentStock : null
+  const soldPerNozzle = openShiftNozzles.map(n => soldSinceOpening(n, meterReadings[n.nozzleId] ?? ''))
+  const soldKnown = soldPerNozzle.every(sold => sold !== null)
+  const soldOnOpenShifts = soldPerNozzle.reduce<number>((sum, sold) => sum + (sold ?? 0), 0)
+  const expectedStock = tank.currentStock - soldOnOpenShifts
+  const variance = measured !== '' && soldKnown ? Number(measured) - expectedStock : null
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!measured || !date) { setError('Measured quantity and date are required.'); return }
+    if (!measured) { setError('Measured quantity is required.'); return }
+    if (openShiftNozzles.some(n => (meterReadings[n.nozzleId] ?? '') === '')) {
+      setError('Enter the current meter reading of every nozzle on an open shift.')
+      return
+    }
     mutation.mutate()
   }
 
@@ -84,7 +111,51 @@ export function DipCheckModal({
             <span className="font-bold text-slate-700">
               {tank.currentStock.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
             </span>
+            <span className="block mt-1">Recorded for today — a DIP check cannot be back-dated.</span>
           </div>
+
+          {/* Meter readings of nozzles on open shifts */}
+          {openShiftNozzlesLoading ? (
+            <p className="text-xs text-slate-500">Checking for open shifts on this tank…</p>
+          ) : openShiftNozzles.length > 0 && (
+            <fieldset className="space-y-3">
+              <legend className="ui-label">Current meter readings</legend>
+              <p className="text-xs text-slate-500">
+                A shift is still open on this tank. Fuel it has sold since opening has not left stock yet,
+                so enter each nozzle&apos;s meter reading now.
+              </p>
+              {openShiftNozzles.map(n => (
+                <div key={n.nozzleId}>
+                  <label className="block">
+                    <span className="ui-label">
+                      Nozzle #{n.nozzleNumber}{n.duName ? ` · ${n.duName}` : ''} meter reading
+                    </span>
+                    <input
+                      required
+                      type="number"
+                      step="0.001"
+                      min="0"
+                      value={meterReadings[n.nozzleId] ?? ''}
+                      onChange={e => setMeterReadings(prev => ({ ...prev, [n.nozzleId]: e.target.value }))}
+                      aria-describedby={`opening-reading-${n.nozzleId}`}
+                      className="text-sm"
+                    />
+                  </label>
+                  <p id={`opening-reading-${n.nozzleId}`} className="text-xs text-slate-500 mt-1">
+                    Opened at {n.openingReading.toLocaleString('en-IN', { minimumFractionDigits: 3 })}
+                  </p>
+                </div>
+              ))}
+              {soldKnown && (
+                <p className="text-xs text-slate-500">
+                  Expected in tank after sales so far:{' '}
+                  <span className="font-bold text-slate-700">
+                    {expectedStock.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L
+                  </span>
+                </p>
+              )}
+            </fieldset>
+          )}
 
           {/* Measured quantity */}
           <div>
@@ -127,20 +198,6 @@ export function DipCheckModal({
               </span>
             </div>
           )}
-
-          {/* Date */}
-          <div>
-            <label className="block">
-              <span className="ui-label">Check Date</span>
-              <input
-                required
-                type="date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-                className="text-sm"
-              />
-            </label>
-          </div>
 
           {/* Operator */}
           <div>
@@ -186,7 +243,7 @@ export function DipCheckModal({
             </button>
             <button
               type="submit"
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || openShiftNozzlesLoading}
               className="ui-btn ui-btn-primary flex-1 bg-slate-700 hover:bg-slate-800 disabled:bg-slate-400"
             >
               {mutation.isPending ? 'Saving...' : 'Save DIP Check'}

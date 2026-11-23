@@ -42,6 +42,7 @@ import com.ppms.settlement.VoidSettlementRequest;
 import com.ppms.settlement.SettlementResponse;
 import com.ppms.settlement.RecordSettlementRequest;
 import com.ppms.settlement.SettlementPaymentType;
+import com.ppms.shift.DiscrepancyResolution;
 import com.ppms.shift.DiscrepancyType;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftCreditEntry;
@@ -199,6 +200,42 @@ class MoneyCorrectnessIntegrationTest {
         PayrollRecord earlierPayroll = payrollService.generate(pump.getId(), earlier, owner);
 
         assertThat(earlierPayroll.getDeductions()).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void overDiscrepancyCannotBeDeductedFromSalaryByPayroll() {
+        Shift over = saveOverDiscrepancy(ShiftStatus.CLOSED_DISCREPANCY_PENDING, null);
+
+        assertThatThrownBy(() -> payrollService.generate(pump.getId(), payrollRequest(over), owner))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("only SHORT discrepancies");
+
+        Shift reloaded = shiftRepository.findById(over.getId()).orElseThrow();
+        assertThat(reloaded.getStatus()).isEqualTo(ShiftStatus.CLOSED_DISCREPANCY_PENDING);
+        assertThat(reloaded.getDiscrepancyResolution()).isNull();
+        assertThat(payrollRepository.findAll()).noneMatch(record -> record.getPumpId().equals(pump.getId()));
+    }
+
+    @Test
+    void overDiscrepancyAlreadyMarkedAsSalaryDeductionIsLeftOutOfPayrollDeductions() {
+        saveOverDiscrepancy(ShiftStatus.CLOSED_DISCREPANCY_RESOLVED, DiscrepancyResolution.SALARY_DEDUCTION);
+        Shift shortShift = saveClosedShift(TestDates.today().minusDays(2), ShiftStatus.CLOSED_DISCREPANCY_RESOLVED, "40.00");
+        shortShift.setDiscrepancyResolution(DiscrepancyResolution.SALARY_DEDUCTION);
+        shiftRepository.save(shortShift);
+
+        PayrollRecord payroll = payrollService.generate(pump.getId(), payrollRequest(null), owner);
+
+        assertThat(payroll.getDeductions()).isEqualByComparingTo("40.00");
+    }
+
+    @Test
+    void pendingDiscrepanciesOfferedForSalaryDeductionAreOnlyShortOnes() {
+        Shift shortShift = saveClosedShift(TestDates.today().minusDays(2), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "50.00");
+        saveOverDiscrepancy(ShiftStatus.CLOSED_DISCREPANCY_PENDING, null);
+
+        assertThat(shiftRepository.findPendingDiscrepanciesByPumpAndOperator(pump.getId(), operator.getId()))
+                .extracting(Shift::getId)
+                .containsExactly(shortShift.getId());
     }
 
     @Test
@@ -693,6 +730,13 @@ class MoneyCorrectnessIntegrationTest {
                 .discrepancyAmount(discrepancyAmount == null ? null : new BigDecimal(discrepancyAmount))
                 .discrepancyType(discrepancyAmount == null ? null : DiscrepancyType.SHORT)
                 .build());
+    }
+
+    private Shift saveOverDiscrepancy(ShiftStatus status, DiscrepancyResolution resolution) {
+        Shift over = saveClosedShift(TestDates.today().minusDays(3), status, "75.00");
+        over.setDiscrepancyType(DiscrepancyType.OVER);
+        over.setDiscrepancyResolution(resolution);
+        return shiftRepository.save(over);
     }
 
     private CreditClient saveClient(BigDecimal monthlyInterestRate) {

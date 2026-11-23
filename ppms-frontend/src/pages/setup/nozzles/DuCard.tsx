@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react'
-import type { FuelPrice, TankInfo } from '../../../api/pumpApi'
+import type { TankInfo } from '../../../api/pumpApi'
 import type { DUOption } from '../../../types/shift'
 import { onActivateKey } from '../../../utils/keyboard'
 import type { NozzlePanel } from './nozzlePanels'
@@ -12,7 +12,6 @@ interface Props {
   isExpanded: boolean
   onToggle: () => void
   tanks: TankInfo[]
-  currentPrices: FuelPrice[]
   openPanelFor: (nozzleId: number) => NozzlePanel | null
   onOpenPanel: (nozzleId: number, panel: NozzlePanel) => void
   onClosePanel: () => void
@@ -27,7 +26,7 @@ interface Props {
 }
 
 export function DuCard({
-  pumpId, du, isExpanded, onToggle, tanks, currentPrices, openPanelFor, onOpenPanel, onClosePanel,
+  pumpId, du, isExpanded, onToggle, tanks, openPanelFor, onOpenPanel, onClosePanel,
   openMenu, onMenuChange, statusPending, statusError, onStatusChange, addingNozzle, onStartAddNozzle, onStopAddNozzle,
 }: Props) {
   const isDUInactive = du.status === 'INACTIVE'
@@ -66,7 +65,6 @@ export function DuCard({
             du={du}
             nozzle={nozzle}
             tanks={tanks}
-            currentPrices={currentPrices}
             openPanel={openPanelFor(nozzle.id)}
             onOpenPanel={(panel) => onOpenPanel(nozzle.id, panel)}
             onClosePanel={onClosePanel}

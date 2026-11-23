@@ -1,5 +1,6 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { AxiosError, AxiosHeaders } from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { pumpApi } from '../../api/pumpApi'
 import { shiftApi } from '../../api/shiftApi'
@@ -8,7 +9,7 @@ import type { Shift } from '../../types/shift'
 import CloseShiftModal from './CloseShiftModal'
 
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn() } }))
-vi.mock('../../api/shiftApi', () => ({ shiftApi: { closeShift: vi.fn(), voidCreditEntry: vi.fn() } }))
+vi.mock('../../api/shiftApi', () => ({ shiftApi: { closeShift: vi.fn(), voidCreditEntry: vi.fn(), getShift: vi.fn() } }))
 
 const shift: Shift = {
   id: 11, pumpId: 3, duId: 5, duNumber: 1, duName: 'DU 1',
@@ -37,6 +38,29 @@ describe('CloseShiftModal', () => {
   beforeEach(() => {
     vi.mocked(pumpApi.getCreditClients).mockResolvedValue([])
     vi.mocked(shiftApi.closeShift).mockResolvedValue({} as never)
+    vi.mocked(shiftApi.getShift).mockResolvedValue(shift)
+  })
+
+  it('shows a credit entry added while the modal is open and the reason a close is refused', async () => {
+    const user = userEvent.setup()
+    const addedMeanwhile = {
+      id: 42, clientId: 3, clientName: 'Fleet Co', billNo: null, amount: 250, fuelType: 'PETROL',
+      description: null, voidStatus: 'ACTIVE' as const, voidReason: null,
+    }
+    vi.mocked(shiftApi.getShift).mockResolvedValue({ ...shift, creditEntries: [addedMeanwhile] })
+    vi.mocked(shiftApi.closeShift).mockRejectedValue(new AxiosError('Request failed', 'ERR_BAD_REQUEST', undefined, undefined, {
+      status: 400, statusText: 'Bad Request', headers: {}, config: { headers: new AxiosHeaders() },
+      data: { message: 'Sum of all credit entries does not match the credit total.' },
+    }))
+    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
+
+    expect(await screen.findByText('Fleet Co')).toBeInTheDocument()
+    await user.type(screen.getByPlaceholderText('Enter end reading'), '1010')
+    await user.type(screen.getByLabelText('Cash (₹)'), '750')
+    await user.click(screen.getByRole('button', { name: 'Close Shift — Balanced' }))
+
+    expect(shiftApi.closeShift).toHaveBeenCalledWith(3, 11, expect.objectContaining({ creditTotal: 250 }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sum of all credit entries does not match the credit total.')
   })
 
   it('asks for readings and payment before it can close', () => {
@@ -124,6 +148,7 @@ describe('CloseShiftModal', () => {
       id: 41, clientId: 3, clientName: 'Acme', billNo: null, amount: 200, fuelType: 'PETROL',
       description: null, voidStatus: 'ACTIVE' as const, voidReason: null,
     }
+    vi.mocked(shiftApi.getShift).mockResolvedValue({ ...shift, creditEntries: [recordedEntry] })
     renderWithProviders(<CloseShiftModal shift={{ ...shift, creditEntries: [recordedEntry] }} onClose={vi.fn()} />)
 
     await user.click(await screen.findByRole('button', { name: 'Edit' }))

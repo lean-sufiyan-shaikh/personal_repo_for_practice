@@ -7,6 +7,7 @@ import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.planning.StaffLeaveRepository;
 import com.ppms.shift.DiscrepancyResolution;
+import com.ppms.shift.DiscrepancyType;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.shift.ShiftStatus;
@@ -143,6 +144,10 @@ public class PayrollService {
                     || shift.getStatus() == ShiftStatus.CLOSED_DISCREPANCY_PENDING_APPROVAL;
             if (!isPending) {
                 throw new BusinessException("Shift #" + shiftId + " is not in a pending discrepancy state.");
+            }
+            if (shift.getDiscrepancyType() != DiscrepancyType.SHORT) {
+                throw new BusinessException("Shift #" + shiftId + " has an OVER discrepancy; only SHORT discrepancies " +
+                        "can be deducted from salary.");
             }
 
             links.add(PayrollResolvedShift.builder()

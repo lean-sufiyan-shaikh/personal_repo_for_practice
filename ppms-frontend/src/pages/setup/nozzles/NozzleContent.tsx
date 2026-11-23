@@ -37,12 +37,6 @@ export function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: (
     queryFn: () => pumpApi.getTanks(pump.id),
   })
 
-  // Current prices — needed to compute dip loss preview
-  const { data: currentPrices = [] } = useQuery({
-    queryKey: ['currentPrices', pump.id],
-    queryFn: () => pumpApi.getCurrentPrices(pump.id),
-  })
-
   const statusMutation = useMutation({
     mutationFn: ({ pumpId, duId, nozzleId, status }: { pumpId: number; duId: number; nozzleId: number; status: 'ACTIVE' | 'INACTIVE' }) =>
       pumpApi.updateNozzleStatus(pumpId, duId, nozzleId, status),
@@ -90,7 +84,6 @@ export function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: (
               isExpanded={expandedDuIds.has(du.id)}
               onToggle={() => toggleDU(du.id)}
               tanks={tanks}
-              currentPrices={currentPrices}
               openPanelFor={panelFor}
               onOpenPanel={openPanelFor}
               onClosePanel={() => setOpenPanel(null)}

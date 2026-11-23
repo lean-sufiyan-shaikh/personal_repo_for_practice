@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 public class ShiftLifecycleSupportService {
 
     private static final BigDecimal ZERO = BigDecimal.ZERO;
-    private static final BigDecimal ROLLOVER_START_FRACTION = new BigDecimal("0.99");
 
     private final ShiftRepository shiftRepository;
     private final ShiftFuelReadingRepository fuelReadingRepository;
@@ -211,14 +210,14 @@ public class ShiftLifecycleSupportService {
             }
 
             if (endReading.compareTo(reading.getStartReading()) < 0
-                    && !isNearMeterMaximum(reading.getStartReading(), maxMeter)) {
+                    && !MeterRollover.canRollOverFrom(reading.getStartReading(), maxMeter)) {
                 throw new BusinessException(
                         "Closing reading " + endReading.toPlainString() + " is below the opening reading " +
                         reading.getStartReading().toPlainString() + " for the " + reading.getFuelType() +
                         " nozzle. Please verify the meter reading.");
             }
 
-            BigDecimal unitsSold = calcUnits(reading.getStartReading(), endReading, maxMeter);
+            BigDecimal unitsSold = MeterRollover.unitsBetween(reading.getStartReading(), endReading, maxMeter);
             reading.setEndReading(endReading);
             reading.setUnitsSold(unitsSold);
             totalDue = totalDue.add(unitsSold.multiply(reading.getPriceSnapshot()));
@@ -273,23 +272,23 @@ public class ShiftLifecycleSupportService {
                 .reduce(ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
 
-        if (creditTotal.compareTo(ZERO) > 0) {
-            BigDecimal newEntriesSum = safeEntries.stream()
-                    .map(CloseShiftRequest.CreditEntryRequest::amount)
-                    .reduce(ZERO, BigDecimal::add)
-                    .setScale(2, RoundingMode.HALF_UP);
-            BigDecimal allCreditSum = preExistingCreditSum.add(newEntriesSum).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal newEntriesSum = safeEntries.stream()
+                .map(CloseShiftRequest.CreditEntryRequest::amount)
+                .reduce(ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal allCreditSum = preExistingCreditSum.add(newEntriesSum).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal expectedCreditTotal = creditTotal.setScale(2, RoundingMode.HALF_UP);
 
-            if (safeEntries.isEmpty() && preExistingCreditSum.compareTo(ZERO) == 0) {
-                throw new BusinessException(
-                        "Credit entries are required when credit total is greater than zero. " +
-                        "Please add each client's name and amount.");
-            }
-            if (allCreditSum.compareTo(creditTotal.setScale(2, RoundingMode.HALF_UP)) != 0) {
-                throw new BusinessException(
-                        "Sum of all credit entries (₹" + allCreditSum + ") does not match the credit total " +
-                        "(₹" + creditTotal + "). Please check your entries.");
-            }
+        if (expectedCreditTotal.compareTo(ZERO) > 0 && safeEntries.isEmpty() && preExistingCreditSum.compareTo(ZERO) == 0) {
+            throw new BusinessException(
+                    "Credit entries are required when credit total is greater than zero. " +
+                    "Please add each client's name and amount.");
+        }
+        if (allCreditSum.compareTo(expectedCreditTotal) != 0) {
+            throw new BusinessException(
+                    "Sum of all credit entries (₹" + allCreditSum + ", of which ₹" + preExistingCreditSum +
+                    " was already recorded during the shift) does not match the credit total (₹" + expectedCreditTotal +
+                    "). A credit entry may have been added while you were closing — reload the shift and check the entries.");
         }
         return safeEntries;
     }
@@ -364,18 +363,6 @@ public class ShiftLifecycleSupportService {
         if (nozzleIds.size() != new HashSet<>(nozzleIds).size()) {
             throw new BusinessException("Each nozzle can only appear once in the request.");
         }
-    }
-
-    /** A meter only rolls over to zero from the top of its range; anything lower is a mistyped reading. */
-    private boolean isNearMeterMaximum(BigDecimal startReading, BigDecimal maxMeterValue) {
-        return startReading.compareTo(maxMeterValue.multiply(ROLLOVER_START_FRACTION)) >= 0;
-    }
-
-    private BigDecimal calcUnits(BigDecimal start, BigDecimal end, BigDecimal maxMeterValue) {
-        if (end.compareTo(start) >= 0) {
-            return end.subtract(start).setScale(3, RoundingMode.HALF_UP);
-        }
-        return maxMeterValue.subtract(start).add(end).setScale(3, RoundingMode.HALF_UP);
     }
 
     private BigDecimal getLatestPrice(Long pumpId, FuelType fuelType) {

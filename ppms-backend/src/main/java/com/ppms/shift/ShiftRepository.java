@@ -134,7 +134,7 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
     List<Shift> findByPumpIdAndOperatorIdAndDateRange(Long pumpId, Long operatorId, LocalDate from, LocalDate to);
 
     /**
-     * Returns closed shifts for an operator in a date range where the discrepancy was resolved
+     * Returns closed shifts for an operator in a date range where a SHORT discrepancy was resolved
      * via SALARY_DEDUCTION and no payroll has already taken the deduction (payroll_resolved_shifts).
      * deductions = SUM(discrepancy_amount) for these shifts.
      *
@@ -148,6 +148,7 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
               AND operator_id = :operatorId
               AND shift_date BETWEEN :from AND :to
               AND discrepancy_resolution = 'SALARY_DEDUCTION'::discrepancy_resolution
+              AND discrepancy_type = 'SHORT'::discrepancy_type
               AND discrepancy_amount IS NOT NULL
               AND NOT EXISTS (SELECT 1 FROM payroll_resolved_shifts prs WHERE prs.shift_id = shifts.id)
             ORDER BY shift_date ASC
@@ -298,7 +299,7 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
     boolean existsByShiftDefinitionIdIn(@Param("definitionIds") List<Long> definitionIds);
 
     /**
-     * All shifts for a user on a pump that still have an unresolved discrepancy.
+     * All shifts for a user on a pump that still have an unresolved SHORT discrepancy (OVER cannot be deducted).
      * Used by the payroll generation flow to present the owner with pending discrepancies
      * and offer to resolve them as SALARY_DEDUCTION in the current payroll run.
      */
@@ -307,6 +308,7 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
             WHERE s.pumpId = :pumpId
               AND s.operatorId = :operatorId
               AND s.status IN ('CLOSED_DISCREPANCY_PENDING', 'CLOSED_DISCREPANCY_PENDING_APPROVAL')
+              AND s.discrepancyType = 'SHORT'
             ORDER BY s.shiftDate DESC
             """)
     List<Shift> findPendingDiscrepanciesByPumpAndOperator(

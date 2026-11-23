@@ -35,6 +35,10 @@ export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onCl
 
   const discType  = shift.discrepancyType
   const discAmt   = shift.discrepancyAmount
+  // Only a shortage can be taken back from the operator's salary.
+  const resolutionOptions = discType === 'SHORT'
+    ? RESOLUTION_OPTIONS
+    : RESOLUTION_OPTIONS.filter(option => option.value !== 'SALARY_DEDUCTION')
 
   return (
     <tr>
@@ -60,7 +64,7 @@ export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onCl
                 <SearchableSelect label="Resolution Action"
                   value={action}
                   onChange={(v) => setAction(v as ResolveDiscrepancyRequest['resolutionAction'])}
-                  options={RESOLUTION_OPTIONS}
+                  options={resolutionOptions}
                 />
               </div>
               <div>

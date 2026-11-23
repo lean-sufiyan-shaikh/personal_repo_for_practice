@@ -177,6 +177,47 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void closingWithZeroCreditTotalIsRefusedWhileACreditEntryAddedDuringTheShiftIsActive() throws Exception {
+        long clientId = createCreditClient();
+        long shiftId = openShift();
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId),
+                setup.operator(), Map.of("clientName", "Fleet Co", "clientId", clientId,
+                        "amount", new BigDecimal("250.00"), "fuelType", "PETROL"))
+                .andExpect(status().is2xxSuccessful());
+
+        JsonNode refused = json(perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
+                setup.manager(), closeRequest("1010.000", "1000.00", "0", List.of(), "Over"))
+                .andExpect(status().isBadRequest()));
+
+        assertThat(refused.toString()).contains("already recorded during the shift");
+        JsonNode active = json(perform(get("/api/pumps/{pumpId}/shifts/active", setup.pumpId()), setup.manager())
+                .andExpect(status().is2xxSuccessful()));
+        assertThat(active).extracting(node -> node.get("id").asLong()).contains(shiftId);
+        assertThat(outstandingOf(clientId)).isEqualByComparingTo("250.00");
+
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
+                setup.manager(), closeRequest("1010.000", "750.00", "250.00", List.of(), null))
+                .andExpect(status().is2xxSuccessful());
+    }
+
+    @Test
+    void salaryDeductionIsRefusedForAnOverDiscrepancy() throws Exception {
+        long shiftId = openShift();
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
+                setup.manager(), closeRequest("1010.000", "1100.00", "0", List.of(), "Extra cash in drawer"))
+                .andExpect(status().is2xxSuccessful());
+
+        perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
+                setup.manager(), Map.of("resolutionAction", "SALARY_DEDUCTION"))
+                .andExpect(status().isBadRequest());
+
+        JsonNode unchanged = json(perform(get("/api/pumps/{pumpId}/shifts/{id}", setup.pumpId(), shiftId), setup.manager())
+                .andExpect(status().is2xxSuccessful()));
+        assertThat(unchanged.get("discrepancyType").asText()).isEqualTo("OVER");
+        assertThat(unchanged.get("status").asText()).isEqualTo("CLOSED_DISCREPANCY_PENDING");
+    }
+
+    @Test
     void closingAShiftTwiceIsRefused() throws Exception {
         long shiftId = openShift();
         Map<String, Object> request = closeRequest("1010.000", "1000.00", "0", List.of(), null);

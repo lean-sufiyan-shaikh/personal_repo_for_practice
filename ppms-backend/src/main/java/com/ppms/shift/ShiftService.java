@@ -360,6 +360,13 @@ public class ShiftService {
                     "Use WAIVED or PENDING_INVESTIGATION for OVER discrepancies.");
         }
 
+        if (request.resolutionAction() == DiscrepancyResolution.SALARY_DEDUCTION
+                && shift.getDiscrepancyType() != DiscrepancyType.SHORT) {
+            throw new BusinessException(
+                    "SALARY_DEDUCTION can only be applied to SHORT discrepancies. " +
+                    "Use WAIVED or PENDING_INVESTIGATION for OVER discrepancies.");
+        }
+
         shift.setDiscrepancyResolution(request.resolutionAction());
         shift.setDiscrepancyResolutionNote(request.resolutionNote() != null ? request.resolutionNote().trim() : null);
         shift.setDiscrepancyResolvedById(currentUser.getId());

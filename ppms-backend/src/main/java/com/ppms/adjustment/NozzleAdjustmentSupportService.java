@@ -2,8 +2,6 @@ package com.ppms.adjustment;
 
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
-import com.ppms.fuel.FuelType;
-import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.pump.DispensaryUnitRepository;
 import com.ppms.pump.Nozzle;
 import com.ppms.pump.NozzleRepository;
@@ -21,7 +19,6 @@ public class NozzleAdjustmentSupportService {
     private final NozzleRepository nozzleRepository;
     private final DispensaryUnitRepository dispensaryUnitRepository;
     private final ShiftRepository shiftRepository;
-    private final GlobalFuelPriceRepository fuelPriceRepository;
 
     public Nozzle requireAdjustableNozzle(Long pumpId, Long nozzleId) {
         Nozzle nozzle = nozzleRepository.findById(nozzleId)
@@ -69,21 +66,6 @@ public class NozzleAdjustmentSupportService {
             throw new BusinessException("newReading cannot be negative");
         }
         return requestedReading.setScale(3, RoundingMode.HALF_UP);
-    }
-
-    public FuelType parseFuelType(String fuelType) {
-        try {
-            return FuelType.valueOf(fuelType.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException("Unknown fuel type: " + fuelType);
-        }
-    }
-
-    public BigDecimal requireCurrentPrice(Long pumpId, FuelType fuelType) {
-        return fuelPriceRepository.findFirstByPumpIdAndFuelTypeOrderByEffectiveFromDesc(pumpId, fuelType)
-                .map(price -> price.getPricePerUnit())
-                .orElseThrow(() -> new BusinessException(
-                        "No price configured for " + fuelType + " on this pump. Set a price first."));
     }
 
     public Nozzle saveNozzle(Nozzle nozzle) {

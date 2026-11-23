@@ -112,18 +112,22 @@ export function ReviewModal({ form, selectedStaff, pumpId, formError, isPending,
                         )}
                       </div>
 
-                      {/* Toggle */}
-                      <button
-                        type="button"
-                        onClick={() => toggleDeduct(d.id)}
-                        className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
-                          isDeduct
-                            ? 'bg-red-600 border-red-600 text-white'
-                            : 'border-slate-300 text-slate-600 hover:border-red-400 hover:text-red-600'
-                        }`}
-                      >
-                        {isDeduct ? 'Deduct ✓' : 'Skip'}
-                      </button>
+                      {/* Toggle — an OVER discrepancy cannot be deducted from salary */}
+                      {d.discrepancyType === 'SHORT' ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleDeduct(d.id)}
+                          className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+                            isDeduct
+                              ? 'bg-red-600 border-red-600 text-white'
+                              : 'border-slate-300 text-slate-600 hover:border-red-400 hover:text-red-600'
+                          }`}
+                        >
+                          {isDeduct ? 'Deduct ✓' : 'Skip'}
+                        </button>
+                      ) : (
+                        <span className="shrink-0 text-xs text-slate-500">Not deductible</span>
+                      )}
                     </div>
                   )
                 })}

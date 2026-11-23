@@ -12,8 +12,9 @@ import java.time.LocalDate;
 @Data
 public class RecordDipRequest {
 
-    @NotBlank(message = "fuelType is required")
-    private String fuelType;
+    /** The tank the fuel was drained from; its fuel type is the entry's fuel type. */
+    @NotNull(message = "tankId is required")
+    private Long tankId;
 
     @NotNull(message = "litresRemoved is required")
     @DecimalMin(value = "0.001", message = "litresRemoved must be greater than 0")

@@ -30,6 +30,8 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
 
     @Autowired private InventoryLotRepository lotRepository;
 
+    @Autowired private DipCheckNozzleReadingRepository dipCheckNozzleReadingRepository;
+
     private PumpSetup setup;
 
     @BeforeEach
@@ -74,12 +76,33 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void deletingTheLatestDeliveryRemovesItsStock() throws Exception {
-        recordDelivery(setup, "300", "90.00", TestDates.today());
+        String invoice = recordDelivery(setup, "300", "90.00", TestDates.today()).get("invoiceReference").asText();
 
-        perform(delete("/api/inventory/{pumpId}/deliveries/latest", setup.pumpId()), setup.owner())
+        perform(delete("/api/inventory/{pumpId}/deliveries/latest", setup.pumpId())
+                .param("invoiceReference", invoice), setup.owner())
                 .andExpect(status().is2xxSuccessful());
 
         assertThat(currentStock()).isEqualByComparingTo("1000");
+    }
+
+    @Test
+    void deletingTheLatestDeliveryIsRefusedWhenTheNamedInvoiceIsNotTheLastOneEntered() throws Exception {
+        String newestByDate = recordDelivery(setup, "300", "90.00", TestDates.today()).get("invoiceReference").asText();
+        String lastEntered = recordDelivery(setup, "200", "90.00", TestDates.today().minusDays(3)).get("invoiceReference").asText();
+
+        perform(delete("/api/inventory/{pumpId}/deliveries/latest", setup.pumpId())
+                .param("invoiceReference", newestByDate), setup.owner())
+                .andExpect(status().isBadRequest());
+        assertThat(currentStock()).isEqualByComparingTo("1500");
+
+        JsonNode latest = json(perform(get("/api/inventory/{pumpId}/deliveries/latest", setup.pumpId()), setup.manager())
+                .andExpect(status().isOk()));
+        assertThat(latest).extracting(line -> line.get("invoiceReference").asText()).containsExactly(lastEntered);
+
+        perform(delete("/api/inventory/{pumpId}/deliveries/latest", setup.pumpId())
+                .param("invoiceReference", lastEntered), setup.owner())
+                .andExpect(status().is2xxSuccessful());
+        assertThat(currentStock()).isEqualByComparingTo("1300");
     }
 
     @Test
@@ -198,6 +221,115 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void dipCheckDuringAnOpenShiftCountsOnlyFuelMissingBeyondWhatTheShiftHasSoldAndStockStaysRightAfterClose() throws Exception {
+        long shiftId = openShift();
+        JsonNode nozzles = json(perform(get("/api/inventory/{pumpId}/tanks/{tankId}/open-shift-nozzles",
+                setup.pumpId(), setup.tank().getId()), setup.manager()).andExpect(status().isOk()));
+        assertThat(nozzles).singleElement().satisfies(nozzle -> {
+            assertThat(nozzle.get("nozzleId").asLong()).isEqualTo(setup.nozzle().getId());
+            assertThat(nozzle.get("openingReading").decimalValue()).isEqualByComparingTo("1000.000");
+        });
+
+        JsonNode dip = json(perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
+                dipRequest("965", List.of(Map.of("nozzleId", setup.nozzle().getId(), "meterReading", new BigDecimal("1030.000")))))
+                .andExpect(status().is2xxSuccessful()));
+
+        assertThat(dip.get("systemStock").decimalValue()).isEqualByComparingTo("970");
+        assertThat(dip.get("variance").decimalValue()).isEqualByComparingTo("-5");
+        assertThat(currentStock()).isEqualByComparingTo("995");
+        assertThat(dipCheckNozzleReadingRepository.findAll())
+                .filteredOn(reading -> reading.getDipCheckId().equals(dip.get("id").asLong()))
+                .singleElement()
+                .satisfies(reading -> {
+                    assertThat(reading.getShiftId()).isEqualTo(shiftId);
+                    assertThat(reading.getOpeningReading()).isEqualByComparingTo("1000.000");
+                    assertThat(reading.getMeterReading()).isEqualByComparingTo("1030.000");
+                    assertThat(reading.getUnitsSold()).isEqualByComparingTo("30.000");
+                });
+
+        closeShift(shiftId, "1050.000", "5000.00");
+
+        assertThat(currentStock()).isEqualByComparingTo("945");
+        BigDecimal lotStock = lotRepository.findActiveLotsByTankForDisplay(setup.tank().getId()).stream()
+                .map(InventoryLot::getRemainingQuantity)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertThat(lotStock).isEqualByComparingTo("945");
+    }
+
+    @Test
+    void dipCheckDuringAnOpenShiftWithoutTheNozzleMeterReadingIsRefused() throws Exception {
+        openShift();
+
+        JsonNode refused = json(perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
+                dipRequest("965", List.of()))
+                .andExpect(status().isBadRequest()));
+
+        assertThat(refused.toString()).contains("still open").contains("nozzle #1");
+        assertThat(currentStock()).isEqualByComparingTo("1000");
+    }
+
+    @Test
+    void dipCheckWithAMeterReadingBelowTheShiftOpeningReadingIsRefused() throws Exception {
+        openShift();
+
+        perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
+                dipRequest("965", List.of(Map.of("nozzleId", setup.nozzle().getId(), "meterReading", new BigDecimal("999.000")))))
+                .andExpect(status().isBadRequest());
+
+        assertThat(currentStock()).isEqualByComparingTo("1000");
+    }
+
+    @Test
+    void dipCheckWithAMeterReadingForANozzleWithoutAnOpenShiftIsRefused() throws Exception {
+        perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
+                dipRequest("990", List.of(Map.of("nozzleId", setup.nozzle().getId(), "meterReading", new BigDecimal("1010.000")))))
+                .andExpect(status().isBadRequest());
+
+        assertThat(currentStock()).isEqualByComparingTo("1000");
+    }
+
+    @Test
+    void backDatedDipCheckIsRefused() throws Exception {
+        perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
+                Map.of("tankId", setup.tank().getId(), "measuredQuantity", new BigDecimal("900"),
+                        "checkedAt", TestDates.today().minusDays(1).toString()))
+                .andExpect(status().isBadRequest());
+
+        assertThat(currentStock()).isEqualByComparingTo("1000");
+    }
+
+    @Test
+    void dipCheckAtZeroBookStockIsAllowedOnceTheTankHasHadADelivery() throws Exception {
+        perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(), dipRequest("0", List.of()))
+                .andExpect(status().is2xxSuccessful());
+        assertThat(currentStock()).isEqualByComparingTo("0");
+
+        JsonNode dip = json(perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
+                dipRequest("200", List.of()))
+                .andExpect(status().is2xxSuccessful()));
+
+        assertThat(dip.get("variance").decimalValue()).isEqualByComparingTo("200");
+        assertThat(currentStock()).isEqualByComparingTo("200");
+        assertThat(lotRepository.findActiveLotsByTankForDisplay(setup.tank().getId()))
+                .singleElement()
+                .satisfies(lot -> {
+                    assertThat(lot.getIsDipAdjustment()).isTrue();
+                    assertThat(lot.getCostPricePerUnit()).isEqualByComparingTo("90.00");
+                });
+    }
+
+    @Test
+    void dipCheckOnATankThatNeverHadADeliveryIsRefused() throws Exception {
+        PumpSetup emptyPump = createPumpWithStock("0");
+
+        perform(post("/api/inventory/{pumpId}/dip-checks", emptyPump.pumpId()), emptyPump.manager(),
+                Map.of("tankId", emptyPump.tank().getId(), "measuredQuantity", new BigDecimal("100")))
+                .andExpect(status().isBadRequest());
+
+        assertThat(tankRepository.findById(emptyPump.tank().getId()).orElseThrow().getCurrentStock()).isEqualByComparingTo("0");
+    }
+
+    @Test
     void tankLotsListShowsRemainingQuantityPerDelivery() throws Exception {
         JsonNode lots = json(perform(get("/api/inventory/{pumpId}/tanks/{tankId}/lots", setup.pumpId(), setup.tank().getId()),
                 setup.manager()).andExpect(status().isOk()));
@@ -248,6 +380,30 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
         request.put("creditTotal", BigDecimal.ZERO);
         request.put("fuelRateOverrides", Map.of("PETROL", new BigDecimal("95.00")));
         return request;
+    }
+
+    private Map<String, Object> dipRequest(String measured, List<Map<String, Object>> nozzleReadings) {
+        return Map.of("tankId", setup.tank().getId(), "measuredQuantity", new BigDecimal(measured),
+                "nozzleReadings", nozzleReadings);
+    }
+
+    private long openShift() throws Exception {
+        return json(perform(post("/api/pumps/{pumpId}/shifts/open", setup.pumpId()), setup.manager(),
+                Map.of("duId", setup.du().getId(), "nozzleIds", List.of(setup.nozzle().getId()),
+                        "operatorId", setup.operator().getId()))
+                .andExpect(status().is2xxSuccessful())).get("id").asLong();
+    }
+
+    private void closeShift(long shiftId, String endReading, String cash) throws Exception {
+        Map<String, Object> close = new HashMap<>();
+        close.put("fuelReadings", List.of(Map.of("nozzleId", setup.nozzle().getId(), "endReading", new BigDecimal(endReading))));
+        close.put("cashCollected", new BigDecimal(cash));
+        close.put("upiCollected", BigDecimal.ZERO);
+        close.put("cardCollected", BigDecimal.ZERO);
+        close.put("fleetCardCollected", BigDecimal.ZERO);
+        close.put("creditTotal", BigDecimal.ZERO);
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId), setup.manager(), close)
+                .andExpect(status().is2xxSuccessful());
     }
 
     private BigDecimal currentStock() {

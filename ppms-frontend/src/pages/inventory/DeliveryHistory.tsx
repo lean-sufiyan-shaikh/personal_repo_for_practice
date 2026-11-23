@@ -30,12 +30,13 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
   const [deleteInvoice,          setDeleteInvoice]          = useState<{ invoice: string; rows: TankerDelivery[] } | null>(null)
 
   const deleteLatestMutation = useMutation({
-    mutationFn: () => inventoryApi.deleteLatestDelivery(pumpId),
+    mutationFn: (invoiceReference: string) => inventoryApi.deleteLatestDelivery(pumpId, invoiceReference),
     onSuccess: () => {
       setDeleteInvoice(null)
       queryClient.invalidateQueries({ queryKey: ['deliveries', pumpId] })
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pumpId] })
     },
+    onError: () => queryClient.invalidateQueries({ queryKey: ['deliveries', pumpId] }),
   })
 
   const { data: deliveriesPage, isLoading: deliveriesLoading } = useQuery({
@@ -44,6 +45,14 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
     enabled:  deliveryHistOpen,
   })
   const deliveries = deliveriesPage?.content ?? []
+
+  // Only the most recently entered invoice can be deleted; it may be back-dated, so it is not always the top group.
+  const { data: latestInvoiceLines = [] } = useQuery({
+    queryKey: ['deliveries', pumpId, 'latest'],
+    queryFn:  () => inventoryApi.getLatestInvoiceLines(pumpId),
+    enabled:  deliveryHistOpen && canDeleteInvoice,
+  })
+  const latestInvoice = latestInvoiceLines[0]?.invoiceReference ?? null
 
   // When delivery data loads, collapse all groups except the first (newest) one
   useEffect(() => {
@@ -137,11 +146,11 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
               return (
                 <>
                   <div className="divide-y divide-slate-100">
-                    {groups.map(([invoice, rows], idx) => {
+                    {groups.map(([invoice, rows]) => {
                       const totalQty = rows.reduce((s, r) => s + r.quantityDelivered, 0)
                       const totalCost = rows.reduce((s, r) => s + r.totalCost, 0)
                       const isCollapsed = collapsedDeliveries.has(invoice)
-                      const isFirstGlobalGroup = deliveryPage === 0 && idx === 0 && !deliveryTankFilter && !deliveryFuelFilter
+                      const isLatestEnteredInvoice = latestInvoice !== null && invoice === latestInvoice
                       const toggleDelivery = () => setCollapsedDeliveries(prev => withToggled(prev, invoice))
                       return (
                         <div key={invoice} className="px-5 py-4 space-y-2">
@@ -190,9 +199,9 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
                                 <span className={`ui-accordion-arrow ml-1 ${!isCollapsed ? 'ui-accordion-arrow--open' : ''}`}><ChevronDown size={14} strokeWidth={2} /></span>
                               </div>
                             </button>
-                            {isFirstGlobalGroup && canDeleteInvoice && (
+                            {isLatestEnteredInvoice && canDeleteInvoice && (
                               <IconButton
-                                onClick={() => setDeleteInvoice({ invoice, rows })}
+                                onClick={() => setDeleteInvoice({ invoice, rows: latestInvoiceLines })}
                                 className="shrink-0 ml-2 text-slate-500 hover:text-red-500 transition-colors rounded"
                                 label="Delete this invoice"
                                 icon={<Trash2 size={14} />}
@@ -247,7 +256,7 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
           rows={deleteInvoice.rows}
           isPending={deleteLatestMutation.isPending}
           error={deleteLatestMutation.error ? parseApiError(deleteLatestMutation.error, 'Failed to delete invoice') : null}
-          onConfirm={() => deleteLatestMutation.mutate()}
+          onConfirm={() => deleteLatestMutation.mutate(deleteInvoice.invoice)}
           onClose={() => { setDeleteInvoice(null); deleteLatestMutation.reset() }}
         />
       )}

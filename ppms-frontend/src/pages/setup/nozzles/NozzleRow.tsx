@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { AlertTriangle, Database, Wrench, Ruler, CircleOff } from 'lucide-react'
-import type { FuelPrice, TankInfo } from '../../../api/pumpApi'
+import type { TankInfo } from '../../../api/pumpApi'
 import type { DUOption, NozzleDetail } from '../../../types/shift'
 import { Spinner } from '../../../components/Spinner'
 import { RowActionMenu } from '../../../components/RowActionMenu'
@@ -18,7 +18,6 @@ interface Props {
   du: DUOption
   nozzle: NozzleDetail
   tanks: TankInfo[]
-  currentPrices: FuelPrice[]
   openPanel: NozzlePanel | null
   onOpenPanel: (panel: NozzlePanel) => void
   onClosePanel: () => void
@@ -31,7 +30,7 @@ interface Props {
 }
 
 export function NozzleRow({
-  pumpId, du, nozzle, tanks, currentPrices, openPanel, onOpenPanel, onClosePanel,
+  pumpId, du, nozzle, tanks, openPanel, onOpenPanel, onClosePanel,
   menuOpen, onMenuChange, statusPending, statusError, onEnable, onDisable,
 }: Props) {
   const isInactive = nozzle.status === 'INACTIVE'
@@ -115,7 +114,12 @@ export function NozzleRow({
       )}
 
       {openPanel === 'dip' && (
-        <RecordDipPanel pumpId={pumpId} nozzle={nozzle} currentPrices={currentPrices} onClose={onClosePanel} />
+        <RecordDipPanel
+          pumpId={pumpId}
+          nozzle={nozzle}
+          tank={tanks.find((t) => t.id === nozzle.tankId) ?? null}
+          onClose={onClosePanel}
+        />
       )}
       </div>
     </div>

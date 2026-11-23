@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { parseApiError } from '../../../utils/apiError'
 import { dipApi } from '../../../api/dipApi'
-import type { FuelPrice } from '../../../api/pumpApi'
+import type { TankInfo } from '../../../api/pumpApi'
 import type { NozzleDetail } from '../../../types/shift'
 import { Spinner } from '../../../components/Spinner'
 import { useToastStore } from '../../../store/toastStore'
@@ -13,12 +13,14 @@ import { useInvalidateNozzles } from './nozzlePanels'
 interface Props {
   pumpId: number
   nozzle: NozzleDetail
-  currentPrices: FuelPrice[]
+  /** The tank the nozzle draws from — drained fuel leaves this tank's stock. */
+  tank: TankInfo | null
   onClose: () => void
 }
 
-export function RecordDipPanel({ pumpId, nozzle, currentPrices, onClose }: Props) {
+export function RecordDipPanel({ pumpId, nozzle, tank, onClose }: Props) {
   const { addToast } = useToastStore()
+  const queryClient = useQueryClient()
   const invalidate = useInvalidateNozzles(pumpId)
   const [dipLitres, setDipLitres] = useState('')
   const [dipDate, setDipDate] = useState('')
@@ -26,29 +28,31 @@ export function RecordDipPanel({ pumpId, nozzle, currentPrices, onClose }: Props
   const [dipError, setDipError] = useState<string | null>(null)
 
   const recordDipMutation = useMutation({
-    mutationFn: ({ fuelType, litresRemoved, reason, date }: { fuelType: string; litresRemoved: number; reason: string; date?: string }) =>
-      dipApi.recordDip(pumpId, fuelType, litresRemoved, reason, date),
-    onSuccess: () => { onClose(); addToast('Dip recorded', 'success'); invalidate() },
+    mutationFn: ({ tankId, litresRemoved, reason, date }: { tankId: number; litresRemoved: number; reason: string; date?: string }) =>
+      dipApi.recordDip(pumpId, tankId, litresRemoved, reason, date),
+    onSuccess: () => {
+      onClose()
+      addToast('Dip recorded', 'success')
+      invalidate()
+      queryClient.invalidateQueries({ queryKey: ['tanks', pumpId] })
+      queryClient.invalidateQueries({ queryKey: ['tankStocks', pumpId] })
+    },
     onError: (err) => { const msg = parseApiError(err, 'Failed to record dip'); setDipError(msg); addToast(msg, 'error') },
   })
 
   const submitDip = (e: React.FormEvent) => {
     e.preventDefault(); setDipError(null)
+    if (!tank) { setDipError('Map this nozzle to a tank before recording drained fuel.'); return }
     if (!dipLitres || Number(dipLitres) <= 0) { setDipError('Enter a valid litres amount.'); return }
+    if (Number(dipLitres) > tank.currentStock) { setDipError(`Tank ${tank.tankIdentifier} holds only ${tank.currentStock} L.`); return }
     if (!dipReason.trim()) { setDipError('Please provide a reason.'); return }
     recordDipMutation.mutate({
-      fuelType: nozzle.fuelType,
+      tankId: tank.id,
       litresRemoved: Number(dipLitres),
       reason: dipReason,
       date: dipDate || undefined,
     })
   }
-
-  const priceEntry = currentPrices.find((p) => p.fuelType === nozzle.fuelType)
-  const pricePerUnit = priceEntry?.pricePerUnit ?? 0
-  const estimatedLoss = dipLitres && Number(dipLitres) > 0 && pricePerUnit > 0
-    ? Number(dipLitres) * pricePerUnit
-    : null
 
   return (
     <div className="px-4 py-3 border-t border-slate-100">
@@ -59,6 +63,7 @@ export function RecordDipPanel({ pumpId, nozzle, currentPrices, onClose }: Props
             <h3 className="ui-title-sm">Record fuel dip</h3>
             <p className="ui-subtitle mt-1">
               Record fuel physically removed from the tank, such as maintenance draining or contamination removal.
+              The litres leave the tank&apos;s stock and the loss is valued at their purchase cost.
             </p>
           </div>
           <div className="ui-dip-editor__meta">
@@ -67,6 +72,11 @@ export function RecordDipPanel({ pumpId, nozzle, currentPrices, onClose }: Props
             </span>
           </div>
         </div>
+        <p className="text-xs text-slate-500">
+          {tank
+            ? `From tank ${tank.tankIdentifier} · ${tank.currentStock.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L in stock`
+            : 'This nozzle is not mapped to a tank, so drained fuel cannot be recorded yet.'}
+        </p>
         <div className="ui-dip-editor__section">
           <label className="block">
             <span className="ui-label">Litres Removed</span>
@@ -80,12 +90,6 @@ export function RecordDipPanel({ pumpId, nozzle, currentPrices, onClose }: Props
               className="text-xs min-h-10"
             />
           </label>
-          {estimatedLoss !== null && (
-            <p className="ui-dip-editor__loss">
-              Estimated loss: ₹{estimatedLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              {` @ ₹${pricePerUnit}/unit`}
-            </p>
-          )}
         </div>
         <div className="ui-dip-editor__grid">
           <div className="ui-dip-editor__section">
@@ -118,7 +122,7 @@ export function RecordDipPanel({ pumpId, nozzle, currentPrices, onClose }: Props
         <div className="ui-dip-editor__actions">
           <button
             type="submit"
-            disabled={recordDipMutation.isPending}
+            disabled={recordDipMutation.isPending || !tank}
             className="ui-btn ui-btn-warning"
           >
             {recordDipMutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-3 h-3" />Recording…</span> : 'Record Dip'}

@@ -48,6 +48,16 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
     queryFn:  () => pumpApi.getCreditClients(shift.pumpId),
   })
 
+  // The operator can add credit entries while this modal is open, so the list is reloaded rather than taken
+  // from the snapshot the modal was opened with.
+  const { data: latestShift, refetch: reloadShift } = useQuery({
+    queryKey: ['shift', shift.pumpId, shift.id],
+    queryFn:  () => shiftApi.getShift(shift.pumpId, shift.id),
+    initialData: shift,
+    initialDataUpdatedAt: 0,
+    refetchInterval: 30_000,
+  })
+
   const availableFuelTypes = shift.fuelReadings.map((r) => r.fuelType)
   const {
     creditRows, expandedRowId, setExpandedRowId,
@@ -62,8 +72,8 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
   // Entries that were saved mid-shift via "+ Credit"
   // Exclude voided entries and entries being replaced by an edited row so they don't inflate the subtotal
   const replacedEntryIds = new Set(creditRows.map(r => r.replacesEntryId).filter((id): id is number => id !== null))
-  const preRecordedEntries = (shift.creditEntries ?? [])
-    .filter(e => !localVoidedIds.has(e.id) && !replacedEntryIds.has(e.id))
+  const preRecordedEntries = (latestShift.creditEntries ?? [])
+    .filter(e => e.voidStatus !== 'VOIDED' && !localVoidedIds.has(e.id) && !replacedEntryIds.has(e.id))
   const preRecordedTotal   = preRecordedEntries.reduce((s, e) => s + e.amount, 0)
 
 
@@ -125,8 +135,10 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
       onShiftClosed?.(shift.duId, shift.nozzles.map(n => n.id))
       onClose()
     },
-    onError: (err: unknown) =>
-      setServerError(parseApiError(err, 'Failed to close shift. Please try again.')),
+    onError: (err: unknown) => {
+      setServerError(parseApiError(err, 'Failed to close shift. Please try again.'))
+      reloadShift()
+    },
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -325,7 +337,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
 
             {serverError && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                <p className="text-red-600 text-sm">{serverError}</p>
+                <p role="alert" className="text-red-600 text-sm">{serverError}</p>
               </div>
             )}
           </div>
