@@ -49,11 +49,11 @@ export function AddStaffForm({ pumpId, canAssignAdmin }: { pumpId: number; canAs
   }
 
   return (
-    <div className="border-t border-slate-200 pt-5">
+    <div className="border-t border-border pt-5">
       <div className="ui-card-plain ui-card-muted p-4 md:p-5">
-        <div className="flex flex-col gap-1 border-b border-slate-200/80 pb-3">
+        <div className="flex flex-col gap-1 border-b border-border/80 pb-3">
           <p className="ui-label mb-0">Add a new staff member</p>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-3">
             Capture staff details once here so planning and permissions can use the correct profile.
           </p>
         </div>
@@ -110,7 +110,7 @@ export function AddStaffForm({ pumpId, canAssignAdmin }: { pumpId: number; canAs
               </div>
             </div>
 
-            <div className="ui-card-plain bg-white border-slate-200 p-4 space-y-3">
+            <div className="ui-card-plain bg-surface border-border p-4 space-y-3">
               <div>
                 <p className="ui-label mb-0">Role & shift rules</p>
                 <p className="ui-help">Choose the staff role first. Extra planning rules appear only when needed.</p>
@@ -135,24 +135,24 @@ export function AddStaffForm({ pumpId, canAssignAdmin }: { pumpId: number; canAs
               </div>
 
               {form.role === 'OPERATOR' && form.gender === 'FEMALE' ? (
-                <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 px-3.5 py-3">
+                <label className="flex items-start gap-3 rounded-card border border-warn bg-warn-bg px-3.5 py-3">
                   <input
                     type="checkbox"
                     checked={!!form.nightShiftConsent}
                     onChange={(e) => set('nightShiftConsent', e.target.checked)}
-                    className="mt-0.5 h-4 w-4 accent-amber-600"
+                    className="mt-0.5 h-4 w-4 accent-warn"
                   />
                   <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-amber-900">Okay for night shift</span>
-                    <span className="mt-1 block text-xs leading-5 text-amber-800">
+                    <span className="block text-sm font-semibold text-warn-strong">Okay for night shift</span>
+                    <span className="mt-1 block text-xs leading-5 text-warn-strong">
                       If left unchecked, shift planning will skip night-shift assignment for this operator.
                     </span>
                   </span>
                 </label>
               ) : (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-3.5 py-3">
-                  <p className="text-sm font-medium text-slate-700">Night-shift consent</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                <div className="rounded-card border border-border bg-bg/90 px-3.5 py-3">
+                  <p className="text-sm font-medium text-ink">Night-shift consent</p>
+                  <p className="mt-1 text-xs leading-5 text-ink-3">
                     This appears only for female operators because it affects night-shift assignment in planning.
                   </p>
                 </div>
@@ -161,9 +161,9 @@ export function AddStaffForm({ pumpId, canAssignAdmin }: { pumpId: number; canAs
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-h-[20px]">
+            <div className="min-h-5">
               {error && <p role="alert" className="ui-error-text mt-0">{error}</p>}
-              {success && <p className="text-xs text-emerald-600">Staff member added successfully.</p>}
+              {success && <p className="text-xs text-ok">Staff member added successfully.</p>}
             </div>
 
             <button type="submit" disabled={mutation.isPending}

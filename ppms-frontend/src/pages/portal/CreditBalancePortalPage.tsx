@@ -4,7 +4,7 @@ import { Fuel } from 'lucide-react'
 import { FormField } from '../../components/FormField'
 import { PasswordInput } from '../../components/PasswordInput'
 import { PORTAL_PIN_PATTERN, digitsOnly } from '../../constants/portalPin'
-import { formatCurrency } from '../../utils/format'
+import { MoneyText } from '../../components/AmountText'
 
 // Uses a plain axios instance — no auth header, no JWT
 const publicClient = axios.create({ baseURL: '/api' })
@@ -55,15 +55,15 @@ export default function CreditBalancePortalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-4">
 
-      <div className="ui-card w-full max-w-sm p-0 overflow-hidden shadow-lg">
+      <div className="ui-card w-full max-w-sm p-0 overflow-hidden shadow-raised">
 
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-700 to-blue-800 px-6 py-5 text-white text-center">
-          <div className="flex justify-center mb-2"><Fuel size={28} strokeWidth={1.8} className="text-blue-200" /></div>
+        <div className="bg-ink border-t-4 border-accent px-6 py-5 text-surface text-center">
+          <div className="flex justify-center mb-2"><Fuel size={28} strokeWidth={1.8} className="text-accent" /></div>
           <h1 className="text-lg font-bold">Credit Balance Portal</h1>
-          <p className="text-blue-200 text-xs mt-1">Check your outstanding fuel credit balance</p>
+          <p className="text-on-dark-2 text-xs mt-1">Check your outstanding fuel credit balance</p>
         </div>
 
         {/* Form */}
@@ -82,7 +82,7 @@ export default function CreditBalancePortalPage() {
                   required
                 />
               </label>
-              <p className="text-xs text-slate-500 mt-0.5">Ask the pump manager for the Pump ID</p>
+              <p className="text-xs text-ink-3 mt-0.5">Ask the pump manager for the Pump ID</p>
             </div>
 
             <div>
@@ -131,33 +131,31 @@ export default function CreditBalancePortalPage() {
           {/* Result card */}
           {result && (
             <div className="mt-4 ui-card-plain ui-card-muted px-4 py-4">
-              <p className="text-xs text-slate-500 mb-3">Your credit account</p>
+              <p className="text-xs text-ink-3 mb-3">Your credit account</p>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-500">Outstanding Balance</span>
-                  <span className={`text-sm font-bold ${result.outstandingAmount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                    {formatCurrency(result.outstandingAmount)}
-                  </span>
+                  <span className="text-xs text-ink-3">Outstanding Balance</span>
+                  <MoneyText value={result.outstandingAmount} tone={result.outstandingAmount > 0 ? 'bad' : 'ok'} className="text-sm font-bold" />
                 </div>
                 {result.creditLimit > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Credit Limit</span>
-                    <span className="text-sm text-slate-700">{formatCurrency(result.creditLimit)}</span>
+                    <span className="text-xs text-ink-3">Credit Limit</span>
+                    <MoneyText value={result.creditLimit} className="text-sm text-ink" />
                   </div>
                 )}
               </div>
 
               {result.outstandingAmount <= 0 && (
-                <p className="text-xs text-emerald-600 font-medium mt-2">Your account is fully settled.</p>
+                <p className="text-xs text-ok font-medium mt-2">Your account is fully settled.</p>
               )}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 text-center">
-          <p className="text-xs text-slate-500">
+        <div className="px-6 py-3 bg-bg border-t border-border text-center">
+          <p className="text-xs text-ink-3">
             Powered by PPMS — Petrol Pump Management System
           </p>
         </div>

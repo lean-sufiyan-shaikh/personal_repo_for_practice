@@ -29,7 +29,7 @@ describe('PumpManagementPanel badges', () => {
     renderWithProviders(<PumpManagementPanel pump={pump} onPumpUpdated={vi.fn()} />)
 
     const badge = await screen.findByText('P: ₹102.5 · not updated today')
-    expect(badge).toHaveClass('text-amber-700')
+    expect(badge).toHaveClass('text-warn')
   })
 
   it('shows today\'s fuel prices as complete', async () => {
@@ -37,18 +37,18 @@ describe('PumpManagementPanel badges', () => {
     renderWithProviders(<PumpManagementPanel pump={pump} onPumpUpdated={vi.fn()} />)
 
     const badge = await screen.findByText('P: ₹102.5')
-    expect(badge).toHaveClass('text-emerald-700')
+    expect(badge).toHaveClass('text-ok')
   })
 
   it('marks missing GST details as needing attention and filled ones as complete', async () => {
     vi.mocked(pumpApi.getCurrentPrices).mockResolvedValue([])
     const { unmount } = renderWithProviders(<PumpManagementPanel pump={pump} onPumpUpdated={vi.fn()} />)
 
-    expect(screen.getByText('Not set')).toHaveClass('text-amber-700')
-    expect(screen.getAllByText('Not configured').at(-1)).toHaveClass('text-amber-700')
+    expect(screen.getByText('Not set')).toHaveClass('text-warn')
+    expect(screen.getAllByText('Not configured').at(-1)).toHaveClass('text-warn')
     unmount()
 
     renderWithProviders(<PumpManagementPanel pump={{ ...pump, gstin: '27AAAAA0000A1Z5' }} onPumpUpdated={vi.fn()} />)
-    expect(screen.getByText('GSTIN 27AAAAA0000A1Z5')).toHaveClass('text-emerald-700')
+    expect(screen.getByText('GSTIN 27AAAAA0000A1Z5')).toHaveClass('text-ok')
   })
 })

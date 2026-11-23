@@ -21,8 +21,8 @@ export default function ResetPasswordPage() {
       <div className="ui-auth-shell">
         <div className="ui-auth-card text-center space-y-4">
           <div className="flex justify-center">
-            <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center">
-              <AlertTriangle size={28} strokeWidth={2} className="text-amber-500" />
+            <div className="w-14 h-14 bg-warn-bg rounded-card flex items-center justify-center">
+              <AlertTriangle size={28} strokeWidth={2} className="text-warn" />
             </div>
           </div>
           <h1 className="ui-title-sm">Invalid Reset Link</h1>
@@ -71,7 +71,7 @@ export default function ResetPasswordPage() {
               onChange={e => setNewPassword(e.target.value)}
               autoComplete="new-password"
               placeholder="Use a strong password"
-              className="shadow-sm"
+              className="shadow-raised"
               minLength={8}
               required
             />
@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
               onChange={e => setConfirmPassword(e.target.value)}
               autoComplete="new-password"
               placeholder="Repeat the password"
-              className="shadow-sm"
+              className="shadow-raised"
               required
             />
           </div>

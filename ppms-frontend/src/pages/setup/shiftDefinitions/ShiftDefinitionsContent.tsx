@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { withToggled } from '../../../utils/setToggle'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, Moon } from 'lucide-react'
 import { parseApiError } from '../../../utils/apiError'
 import { shiftDefinitionApi } from '../../../api/shiftDefinitionApi'
 import { localDateInputValue } from '../../../utils/date'
 import { IconButton } from '../../../components/IconButton'
+import { StatusBadge } from '../../../components/StatusBadge'
 import { onActivateKey } from '../../../utils/keyboard'
 import { CreateShiftBatchForm } from './CreateShiftBatchForm'
 
@@ -114,14 +115,14 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
     disableMutation.mutate({ effectiveFrom: disablingDate, disableDate })
   }
 
-  if (isLoading) return <p className="text-xs text-slate-500 py-2">Loading…</p>
+  if (isLoading) return <p className="text-xs text-ink-3 py-2">Loading…</p>
 
   return (
     <div className="space-y-4">
 
       {/* Existing groups */}
       {sortedGroupKeys.length === 0 && !showForm && (
-        <p className="text-xs text-slate-500">No shift definitions yet. Add your first schedule below.</p>
+        <p className="text-xs text-ink-3">No shift definitions yet. Add your first schedule below.</p>
       )}
 
       {sortedGroupKeys.map(groupKey => {
@@ -143,16 +144,16 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                   onKeyDown={onActivateKey(() => toggleCollapsed(groupKey))}
                 >
                 {isCollapsed
-                  ? <ChevronRight size={14} strokeWidth={2} className="text-slate-500" />
-                  : <ChevronDown size={14} strokeWidth={2} className="text-slate-500" />
+                  ? <ChevronRight size={14} strokeWidth={2} className="text-ink-3" />
+                  : <ChevronDown size={14} strokeWidth={2} className="text-ink-3" />
                 }
-                <span className="text-xs font-semibold text-slate-700">
+                <span className="text-xs font-semibold text-ink">
                   {effectiveFromDate}
                   {defs[0]?.effectiveTo ? ` – ${defs[0].effectiveTo}` : ' onwards'}
                 </span>
                 {isActive
-                  ? <span className="text-[10px] font-medium bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Active</span>
-                  : <span className="text-[10px] font-medium bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full">Disabled</span>
+                  ? <StatusBadge tone="ok" label="Active" />
+                  : <StatusBadge tone="neutral" label="Disabled" />
                 }
               </div>
               <div className="flex items-center gap-3">
@@ -161,7 +162,7 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                   confirmDeleteKey === groupKey ? null : (
                     <button
                       onClick={() => openDisable(effectiveFromDate)}
-                      className="text-xs text-amber-600 hover:text-amber-800 font-medium"
+                      className="text-xs text-warn hover:text-warn-strong font-medium"
                     >
                       Disable
                     </button>
@@ -170,7 +171,7 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                 {/* Delete button with confirm — available for all groups (active or disabled) */}
                 {confirmDeleteKey === groupKey ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-red-600">Delete this group?</span>
+                    <span className="text-xs text-bad">Delete this group?</span>
                     <button
                       onClick={() => deleteMutation.mutate(groupKey)}
                       disabled={deleteMutation.isPending}
@@ -188,7 +189,7 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                 ) : (
                   <button
                     onClick={() => { setActionError(null); setConfirmDeleteKey(groupKey) }}
-                    className="text-xs text-red-500 hover:text-red-700 font-medium"
+                    className="text-xs text-bad hover:text-bad-strong font-medium"
                   >
                     Delete group
                   </button>
@@ -199,8 +200,8 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
             {!isCollapsed && (<>
             {/* Disable inline form */}
             {disablingDate === effectiveFromDate && (
-              <div className="px-4 py-3 bg-amber-50 border-t border-amber-200 space-y-3">
-                <p className="text-xs font-medium text-amber-800">
+              <div className="px-4 py-3 bg-warn-bg border-t border-warn space-y-3">
+                <p className="text-xs font-medium text-warn-strong">
                   Disable this schedule — operators will not be able to open new shifts after the selected date.
                 </p>
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -208,9 +209,9 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                     type="checkbox"
                     checked={disableFromToday}
                     onChange={e => setDisableFromToday(e.target.checked)}
-                    className="w-3.5 h-3.5 accent-amber-600"
+                    className="w-3.5 h-3.5 accent-warn"
                   />
-                  <span className="text-xs text-slate-700">Disable from today ({todayStr})</span>
+                  <span className="text-xs text-ink">Disable from today ({todayStr})</span>
                 </label>
                 {!disableFromToday && (
                   <div>
@@ -224,14 +225,14 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
                         className="text-sm"
                       />
                     </label>
-                    <p className="text-xs text-slate-500 mt-1">The schedule will remain active until this date.</p>
+                    <p className="text-xs text-ink-3 mt-1">The schedule will remain active until this date.</p>
                   </div>
                 )}
                 <div className="flex gap-2">
                   <button
                     onClick={confirmDisable}
                     disabled={disableMutation.isPending}
-                    className="ui-btn min-h-0 px-3 py-1.5 text-xs bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-40"
+                    className="ui-btn ui-btn-warning min-h-0 px-3 py-1.5 text-xs disabled:opacity-40"
                   >
                     {disableMutation.isPending ? 'Disabling…' : 'Confirm Disable'}
                   </button>
@@ -245,14 +246,14 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
               </div>
             )}
 
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-border">
               {defs.map(d => (
                 <div key={d.id} className="px-4 py-2.5 flex items-center gap-3">
-                  <span className="text-xs font-medium text-slate-600 w-4">#{d.sortOrder}</span>
-                  <span className="text-sm font-medium text-slate-800 flex-1">{d.name}</span>
-                  <span className="text-xs text-slate-500">{d.windowLabel}</span>
+                  <span className="text-xs font-medium text-ink-2 w-4">#{d.sortOrder}</span>
+                  <span className="text-sm font-medium text-ink flex-1">{d.name}</span>
+                  <span className="text-xs text-ink-3">{d.windowLabel}</span>
                   {d.isNightShift && (
-                    <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">Night</span>
+                    <StatusBadge tone="info" icon={Moon} label="Night" />
                   )}
                 </div>
               ))}
@@ -264,8 +265,8 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
 
       {actionError && (
         <div role="alert" className="ui-alert ui-alert-danger flex items-start gap-2">
-          <span className="text-red-600 text-xs flex-1">{actionError}</span>
-          <IconButton onClick={() => setActionError(null)} className="ui-btn ui-btn-ghost text-sm leading-none text-red-400 hover:text-red-600"
+          <span className="text-bad text-xs flex-1">{actionError}</span>
+          <IconButton onClick={() => setActionError(null)} className="ui-btn ui-btn-ghost text-sm leading-none text-bad hover:text-bad-strong"
             label="Dismiss error"
             icon={'×'}
           />
@@ -279,7 +280,7 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800"
+          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
         >
           + Add new shift schedule
         </button>

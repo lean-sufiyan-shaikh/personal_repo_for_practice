@@ -40,7 +40,7 @@ const CreditBalancePortalPage = lazy(() => import('./pages/portal/CreditBalanceP
 function PageFallback() {
   return (
     <div className="ui-auth-shell">
-      <div className="ui-auth-card text-center text-sm text-slate-500">
+      <div className="ui-auth-card text-center text-sm text-ink-3">
         Loading...
       </div>
     </div>

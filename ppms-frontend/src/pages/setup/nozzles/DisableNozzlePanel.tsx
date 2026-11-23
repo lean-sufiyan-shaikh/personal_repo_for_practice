@@ -10,7 +10,7 @@ interface Props {
 
 export function DisableNozzlePanel({ nozzleNumber, error, isPending, onDisable, onCancel }: Props) {
   return (
-    <div className="px-4 py-3 border-t border-slate-100">
+    <div className="px-4 py-3 border-t border-border">
       <div className="ui-disable-editor">
         <div className="ui-disable-editor__hero">
           <div>

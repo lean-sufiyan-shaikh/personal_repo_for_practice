@@ -36,15 +36,15 @@ export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Prop
   })
 
   return (
-    <div className="border-t border-violet-100 bg-violet-50/30 px-4 py-4">
+    <div className="border-t border-info bg-info-bg/30 px-4 py-4">
       {/* Panel header */}
       <div className="mb-4 flex items-center gap-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-600">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-info-bg text-primary">
           <Pencil size={13} strokeWidth={2.5} />
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-800">Edit Staff Details</p>
-          <p className="text-[11px] text-slate-500">Changes are saved when you click Save Changes</p>
+          <p className="text-sm font-semibold text-ink">Edit Staff Details</p>
+          <p className="text-xs text-ink-3">Changes are saved when you click Save Changes</p>
         </div>
       </div>
 
@@ -119,16 +119,16 @@ export function EditStaffPanel({ pumpId, member, canAssignAdmin, onClose }: Prop
 
         {/* Night shift consent — only for female operators */}
         {editRole === 'OPERATOR' && editGender === 'FEMALE' && (
-          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 px-3.5 py-3">
+          <label className="flex cursor-pointer items-start gap-3 rounded-card border border-warn bg-warn-bg px-3.5 py-3">
             <input
               type="checkbox"
               checked={editNightShiftConsent}
               onChange={e => setEditNightShiftConsent(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-amber-600"
+              className="mt-0.5 h-4 w-4 accent-warn"
             />
             <span className="min-w-0">
-              <span className="block text-sm font-semibold text-amber-900">Okay for night shift</span>
-              <span className="mt-1 block text-xs leading-5 text-amber-800">
+              <span className="block text-sm font-semibold text-warn-strong">Okay for night shift</span>
+              <span className="mt-1 block text-xs leading-5 text-warn-strong">
                 If left unchecked, shift planning will skip night-shift assignment for this operator.
               </span>
             </span>

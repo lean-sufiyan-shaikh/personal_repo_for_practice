@@ -61,12 +61,12 @@ export default function DashboardPage() {
   }, [location.pathname])
 
   return (
-    <div className="ui-dashboard-shell h-dvh bg-slate-50 flex flex-col overflow-hidden">
+    <div className="ui-dashboard-shell h-dvh bg-bg flex flex-col overflow-hidden">
 
       {/* Skip link — visible only on keyboard focus */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-white focus:text-blue-700 focus:font-medium focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-control focus:bg-surface focus:text-primary focus:font-medium focus:shadow-overlay"
       >
         Skip to main content
       </a>
@@ -81,12 +81,12 @@ export default function DashboardPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-base font-extrabold text-white tracking-wide">PPMS</span>
-              <span className="text-xs text-blue-300 font-medium hidden sm:inline border border-blue-500/40 bg-blue-500/10 px-2 py-0.5 rounded-full">
+              <span className="text-base font-extrabold text-surface tracking-wide">PPMS</span>
+              <span className="text-xs text-on-dark-2 font-medium hidden sm:inline border border-white/25 px-2 py-0.5 rounded-badge">
                 Petrol Pump Management
               </span>
             </div>
-            <p className="text-xs text-slate-400 italic hidden sm:block mt-0.5">
+            <p className="text-xs text-on-dark-2 italic hidden sm:block mt-0.5">
               Fuelling efficiency, every shift.
             </p>
           </div>

@@ -65,7 +65,7 @@ export function DashboardSidebar({ pumpName, switchablePumps, drawerOpen, onClos
                 aria-current={isActive ? 'page' : undefined}
                 className={`ui-dashboard-navlink ${isActive ? 'ui-dashboard-navlink--active' : ''}`}
               >
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${item.bg}`}>
+                <div className={`w-7 h-7 rounded-control flex items-center justify-center flex-shrink-0 ${item.bg}`}>
                   <item.icon size={14} strokeWidth={2} className={item.color} />
                 </div>
                 <span className="truncate">{item.label}</span>

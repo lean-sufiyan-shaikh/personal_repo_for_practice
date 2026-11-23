@@ -32,23 +32,23 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
   })
 
   return (
-    <div className="px-3 py-3 border-t border-slate-100">
+    <div className="px-3 py-3 border-t border-border">
       <div className="max-w-sm space-y-3">
         {member.role === 'OPERATOR' ? (
           <>
             <div>
-              <p className="text-xs font-semibold text-slate-700">Hourly pay rates for {member.fullName}</p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs font-semibold text-ink">Hourly pay rates for {member.fullName}</p>
+              <p className="text-xs text-ink-3 mt-0.5">
                 Shift 1 (12 AM–8 AM) = night rate · Shift 2 &amp; 3 (8 AM–12 AM) = standard rate
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <span className="ui-label">
-                  Night rate (₹/hr) <span className="text-red-500">*</span>
+                  Night rate (₹/hr) <span className="text-bad">*</span>
                 </span>
                 <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">₹</span>
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-ink-3">₹</span>
                   <input aria-label="Night rate (₹/hr)" type="number" min="1" step="0.01" value={rateShift1}
                     onChange={e => setRateShift1(e.target.value)} placeholder="e.g. 60"
                     className="w-full pl-5 pr-2 text-xs min-h-10" />
@@ -56,10 +56,10 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
               </div>
               <div>
                 <span className="ui-label">
-                  Day rate (₹/hr) <span className="text-red-500">*</span>
+                  Day rate (₹/hr) <span className="text-bad">*</span>
                 </span>
                 <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">₹</span>
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-ink-3">₹</span>
                   <input aria-label="Day rate (₹/hr)" type="number" min="1" step="0.01" value={rateStandard}
                     onChange={e => setRateStandard(e.target.value)} placeholder="e.g. 45"
                     className="w-full pl-5 pr-2 text-xs min-h-10" />
@@ -81,17 +81,17 @@ export function PayRatesPanel({ pumpId, member, onClose }: Props) {
         ) : (
           <>
             <div>
-              <p className="text-xs font-semibold text-slate-700">Daily pay rate for {member.fullName}</p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs font-semibold text-ink">Daily pay rate for {member.fullName}</p>
+              <p className="text-xs text-ink-3 mt-0.5">
                 Paid per working day · leave days are deducted automatically
               </p>
             </div>
             <div>
               <span className="ui-label">
-                Daily rate (₹/day) <span className="text-red-500">*</span>
+                Daily rate (₹/day) <span className="text-bad">*</span>
               </span>
-              <div className="relative max-w-[160px]">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">₹</span>
+              <div className="relative max-w-40">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-ink-3">₹</span>
                 <input aria-label="Daily rate (₹/day)" type="number" min="1" step="0.01" value={rateDaily}
                   onChange={e => setRateDaily(e.target.value)} placeholder="e.g. 800"
                   className="w-full pl-5 pr-2 text-xs min-h-10" />

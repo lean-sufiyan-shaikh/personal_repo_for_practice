@@ -29,7 +29,7 @@ export function EditPumpForm({ pump, isSaving, error, onSave }: EditPumpFormProp
   return (
     <form
       onSubmit={handleSubmitEdit(onEditPumpSubmit)}
-      className="mt-2 ui-card-plain bg-white border-indigo-100 p-3 space-y-2"
+      className="mt-2 ui-card-plain bg-surface border-info p-3 space-y-2"
     >
       <FormField label="Pump Name" error={editErrors.pumpName?.message}>
         <input
@@ -51,7 +51,7 @@ export function EditPumpForm({ pump, isSaving, error, onSave }: EditPumpFormProp
       <button
         type="submit"
         disabled={isSaving}
-        className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300"
+        className="ui-btn ui-btn-primary min-h-0 px-3 py-1.5 text-xs"
       >
         {isSaving ? 'Saving…' : 'Save Changes'}
       </button>

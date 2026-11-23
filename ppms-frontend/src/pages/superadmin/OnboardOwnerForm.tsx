@@ -45,15 +45,15 @@ export function OnboardOwnerForm({ onSubmitStart, onCreated }: OnboardOwnerFormP
   return (
     <div className="lg:col-span-2">
       <div className="ui-card p-0">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-800">Onboard New Owner</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Creates the owner account and their first pump.</p>
+        <div className="px-5 py-4 border-b border-border">
+          <h2 className="text-sm font-semibold text-ink">Onboard New Owner</h2>
+          <p className="text-xs text-ink-3 mt-0.5">Creates the owner account and their first pump.</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="px-5 py-4 space-y-4">
 
           <fieldset>
-            <legend className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+            <legend className="text-xs font-semibold text-ink-3 uppercase tracking-wide mb-3">
               Owner Details
             </legend>
             <div className="space-y-3">
@@ -88,7 +88,7 @@ export function OnboardOwnerForm({ onSubmitStart, onCreated }: OnboardOwnerFormP
           </fieldset>
 
           <fieldset>
-            <legend className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+            <legend className="text-xs font-semibold text-ink-3 uppercase tracking-wide mb-3">
               Pump Details
             </legend>
             <div className="space-y-3">
@@ -125,14 +125,14 @@ export function OnboardOwnerForm({ onSubmitStart, onCreated }: OnboardOwnerFormP
 
           {serverError && (
             <div role="alert" className="ui-alert ui-alert-danger">
-              <p className="text-red-600 text-sm">{serverError}</p>
+              <p className="text-bad text-sm">{serverError}</p>
             </div>
           )}
 
           <button
             type="submit"
             disabled={onboardMutation.isPending}
-            className="ui-btn ui-btn-primary w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300"
+            className="ui-btn ui-btn-primary w-full"
           >
             {onboardMutation.isPending ? 'Creating...' : 'Create Owner & Pump'}
           </button>

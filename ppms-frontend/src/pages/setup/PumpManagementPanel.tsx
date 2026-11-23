@@ -7,6 +7,7 @@ import { userApi } from '../../api/userApi'
 import { useAuthStore } from '../../store/authStore'
 import type { PumpSummary, SetupChecklist, SetupStep } from '../../api/pumpApi'
 import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
+import type { StatusTone } from '../../components/StatusBadge'
 import { AccordionSection } from './AccordionSection'
 import { FuelPricesContent } from './FuelPricesContent'
 import { GstDetailsContent } from './GstDetailsContent'
@@ -19,13 +20,13 @@ import { StaffContent } from './staff/StaffContent'
 import { TankersContent } from './tankers/TankersContent'
 import { isPriceStale } from '../../utils/fuelPrices'
 
-const COMPLETE_BADGE = 'bg-emerald-50 text-emerald-700'
-const NEEDS_ATTENTION_BADGE = 'bg-amber-50 text-amber-700'
-const NEUTRAL_BADGE = 'bg-slate-100 text-slate-600'
+const COMPLETE_BADGE: StatusTone = 'ok'
+const NEEDS_ATTENTION_BADGE: StatusTone = 'warn'
+const NEUTRAL_BADGE: StatusTone = 'neutral'
 
 const SECTION_KEYS: SectionKey[] = ['nozzles', 'tanks', 'prices', 'staff', 'shifts', 'tankers', 'settings', 'gst']
 
-function stepBadge(checklist: SetupChecklist | undefined, step: SetupStep): string {
+function stepBadge(checklist: SetupChecklist | undefined, step: SetupStep): StatusTone {
   const item = checklist?.items.find((entry) => entry.step === step)
   if (!item) return NEUTRAL_BADGE
   return item.done ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE
@@ -83,14 +84,14 @@ export function PumpManagementPanel({
     <div className="ui-card p-0">
 
       {/* Pump identity header */}
-      <div className="px-5 py-4 bg-gradient-to-r from-slate-700 to-slate-800">
+      <div className="px-5 py-4 bg-ink rounded-t-card">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-white text-base">{pump.name}</h2>
-            <p className="text-slate-500 text-xs mt-0.5">{pump.address}</p>
+            <h2 className="font-bold text-surface text-base">{pump.name}</h2>
+            <p className="text-on-dark-2 text-xs mt-0.5">{pump.address}</p>
           </div>
           <div className="flex gap-2">
-            <span className="bg-white/10 text-slate-300 text-xs px-2.5 py-1 rounded-full">
+            <span className="bg-white/10 text-on-dark-2 text-xs px-2.5 py-1 rounded-badge">
               {pump.dus.length}/{pump.maxDuCount} DUs
             </span>
           </div>
@@ -98,15 +99,15 @@ export function PumpManagementPanel({
       </div>
 
       {/* Accordion sections */}
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-border">
 
         {/* ── Manager access note ── */}
         {isManager && (
-          <div className="flex items-start gap-2.5 px-5 py-3 bg-blue-50/60 border-b border-blue-100">
-            <svg className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="flex items-start gap-2.5 px-5 py-3 bg-info-bg/60 border-b border-info">
+            <svg className="w-4 h-4 text-primary mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
             </svg>
-            <p className="text-xs text-blue-700">
+            <p className="text-xs text-info">
               You can update daily fuel prices below. Other pump settings are managed by your Owner or Admin.
             </p>
           </div>
@@ -118,10 +119,10 @@ export function PumpManagementPanel({
             sectionKey="nozzles"
             open={openSection === 'nozzles'}
             onToggle={() => toggle('nozzles')}
-            icon={<div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0"><Gauge size={14} strokeWidth={2} className="text-slate-600" /></div>}
+            icon={<div className="w-7 h-7 rounded-control bg-surface-sunken flex items-center justify-center shrink-0"><Gauge size={14} strokeWidth={2} className="text-ink-2" /></div>}
             title="Dispensary Units"
             summary={`${pump.dus.length} of ${pump.maxDuCount} DUs configured`}
-            badgeColor={stepBadge(checklist, 'DISPENSERS')}
+            badgeTone={stepBadge(checklist, 'DISPENSERS')}
           >
             <NozzleContent pump={pump} onAdded={onPumpUpdated} />
           </AccordionSection>
@@ -133,11 +134,11 @@ export function PumpManagementPanel({
             sectionKey="tanks"
             open={openSection === 'tanks'}
             onToggle={() => toggle('tanks')}
-            icon={<div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center shrink-0"><Database size={14} strokeWidth={2} className="text-blue-600" /></div>}
+            icon={<div className="w-7 h-7 rounded-control bg-info-bg flex items-center justify-center shrink-0"><Database size={14} strokeWidth={2} className="text-primary" /></div>}
             title="Underground Tanks"
             summary={checklist?.items.find((item) => item.step === 'TANKS')?.detail
               ?? (pump.dus.length > 0 ? 'Tap to configure capacity' : 'Add a DU first')}
-            badgeColor={stepBadge(checklist, 'TANKS')}
+            badgeTone={stepBadge(checklist, 'TANKS')}
           >
             <TanksContent pump={pump} />
           </AccordionSection>
@@ -148,10 +149,10 @@ export function PumpManagementPanel({
           sectionKey="prices"
           open={openSection === 'prices'}
           onToggle={() => toggle('prices')}
-          icon={<div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0"><IndianRupee size={14} strokeWidth={2} className="text-emerald-600" /></div>}
+          icon={<div className="w-7 h-7 rounded-control bg-ok-bg flex items-center justify-center shrink-0"><IndianRupee size={14} strokeWidth={2} className="text-ok" /></div>}
           title="Fuel Prices"
           summary={priceSummary}
-          badgeColor={pricesStale ? NEEDS_ATTENTION_BADGE : COMPLETE_BADGE}
+          badgeTone={pricesStale ? NEEDS_ATTENTION_BADGE : COMPLETE_BADGE}
         >
           <FuelPricesContent pump={pump} currentPrices={currentPrices} />
         </AccordionSection>
@@ -162,10 +163,10 @@ export function PumpManagementPanel({
             sectionKey="staff"
             open={openSection === 'staff'}
             onToggle={() => toggle('staff')}
-            icon={<div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0"><Users size={14} strokeWidth={2} className="text-indigo-600" /></div>}
+            icon={<div className="w-7 h-7 rounded-control bg-info-bg flex items-center justify-center shrink-0"><Users size={14} strokeWidth={2} className="text-primary" /></div>}
             title="Staff"
             summary={staff.length > 0 ? `${staff.length} member${staff.length !== 1 ? 's' : ''}` : 'None added'}
-            badgeColor={staff.length > 0 ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE}
+            badgeTone={staff.length > 0 ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE}
           >
             <StaffContent pump={pump} />
           </AccordionSection>
@@ -177,13 +178,13 @@ export function PumpManagementPanel({
             sectionKey="shifts"
             open={openSection === 'shifts'}
             onToggle={() => toggle('shifts')}
-            icon={<div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0"><Clock size={14} strokeWidth={2} className="text-violet-600" /></div>}
+            icon={<div className="w-7 h-7 rounded-control bg-info-bg flex items-center justify-center shrink-0"><Clock size={14} strokeWidth={2} className="text-primary" /></div>}
             title="Shift Definitions"
             summary={(() => {
               const groupCount = new Set(shiftDefs.map(d => `${d.effectiveFrom}|${d.effectiveTo ?? 'open'}`)).size
               return groupCount > 0 ? `${groupCount} schedule${groupCount !== 1 ? 's' : ''}` : 'Not configured'
             })()}
-            badgeColor={shiftDefs.length > 0 ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE}
+            badgeTone={shiftDefs.length > 0 ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE}
           >
             <ShiftDefinitionsContent pumpId={pump.id} />
           </AccordionSection>
@@ -195,10 +196,10 @@ export function PumpManagementPanel({
             sectionKey="tankers"
             open={openSection === 'tankers'}
             onToggle={() => toggle('tankers')}
-            icon={<div className="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center shrink-0"><Truck size={14} strokeWidth={2} className="text-orange-600" /></div>}
+            icon={<div className="w-7 h-7 rounded-control bg-warn-bg flex items-center justify-center shrink-0"><Truck size={14} strokeWidth={2} className="text-warn" /></div>}
             title="Tankers (Trucks)"
             summary="Configure tanker sizes and set the default"
-            badgeColor={NEUTRAL_BADGE}
+            badgeTone={NEUTRAL_BADGE}
           >
             <TankersContent pumpId={pump.id} />
           </AccordionSection>
@@ -210,10 +211,10 @@ export function PumpManagementPanel({
             sectionKey="settings"
             open={openSection === 'settings'}
             onToggle={() => toggle('settings')}
-            icon={<div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center shrink-0"><Settings size={14} strokeWidth={2} className="text-amber-600" /></div>}
+            icon={<div className="w-7 h-7 rounded-control bg-warn-bg flex items-center justify-center shrink-0"><Settings size={14} strokeWidth={2} className="text-warn" /></div>}
             title="Thresholds & Rules"
             summary={pump.discrepancyEscalationThreshold ? `Escalation: ₹${pump.discrepancyEscalationThreshold}` : 'Not configured'}
-            badgeColor={pump.discrepancyEscalationThreshold ? COMPLETE_BADGE : NEUTRAL_BADGE}
+            badgeTone={pump.discrepancyEscalationThreshold ? COMPLETE_BADGE : NEUTRAL_BADGE}
           >
             <PumpSettingsContent pump={pump} onUpdated={onPumpUpdated} />
           </AccordionSection>
@@ -225,10 +226,10 @@ export function PumpManagementPanel({
             sectionKey="gst"
             open={openSection === 'gst'}
             onToggle={() => toggle('gst')}
-            icon={<div className="w-7 h-7 rounded-lg bg-sky-100 flex items-center justify-center shrink-0"><Receipt size={14} strokeWidth={2} className="text-sky-600" /></div>}
+            icon={<div className="w-7 h-7 rounded-control bg-info-bg flex items-center justify-center shrink-0"><Receipt size={14} strokeWidth={2} className="text-primary" /></div>}
             title="GST & Invoices"
             summary={pump.gstin ? `GSTIN ${pump.gstin}` : 'Not configured'}
-            badgeColor={pump.gstin ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE}
+            badgeTone={pump.gstin ? COMPLETE_BADGE : NEEDS_ATTENTION_BADGE}
           >
             <GstDetailsContent pump={pump} onUpdated={onPumpUpdated} />
           </AccordionSection>

@@ -13,8 +13,8 @@ export function LiveClock() {
 
   return (
     <>
-      <span className="text-sm font-semibold text-white tabular-nums tracking-wide">{timeStr}</span>
-      <span className="text-xs text-slate-400">{dateStr}</span>
+      <span className="text-sm font-semibold text-surface tabular-nums tracking-wide">{timeStr}</span>
+      <span className="text-xs text-on-dark-2">{dateStr}</span>
     </>
   )
 }

@@ -42,23 +42,23 @@ export function LeavePanel({ pumpId, member, onClose }: Props) {
   })
 
   return (
-    <div className="px-3 py-3 border-t border-slate-100">
+    <div className="px-3 py-3 border-t border-border">
       <div className="max-w-sm space-y-3">
-        <p className="text-xs font-semibold text-slate-700">Leave dates for {member.fullName}</p>
+        <p className="text-xs font-semibold text-ink">Leave dates for {member.fullName}</p>
         {openLeaves.length === 0 ? (
-          <p className="text-xs text-slate-500">No leave dates recorded.</p>
+          <p className="text-xs text-ink-3">No leave dates recorded.</p>
         ) : (
           <div className="space-y-1">
             {openLeaves.map(lv => (
               <div key={lv.id} className="flex items-center gap-2">
-                <span className="text-xs font-medium text-slate-700">
+                <span className="text-xs font-medium text-ink">
                   {formatIstDate(lv.leaveDate)}
                 </span>
-                {lv.reason && <span className="text-xs text-slate-500">— {lv.reason}</span>}
+                {lv.reason && <span className="text-xs text-ink-3">— {lv.reason}</span>}
                 <IconButton
                   onClick={() => removeLeaveMutation.mutate({ leaveId: lv.id })}
                   disabled={removeLeaveMutation.isPending}
-                  className="ui-btn ui-btn-ghost ml-auto text-slate-500 hover:text-red-500 disabled:opacity-40"
+                  className="ui-btn ui-btn-ghost ml-auto text-ink-3 hover:text-bad disabled:opacity-40"
                   label="Remove leave"
                   icon={<X size={12} strokeWidth={2} />}
                 />
@@ -67,7 +67,7 @@ export function LeavePanel({ pumpId, member, onClose }: Props) {
           </div>
         )}
         {/* Add new leave */}
-        <div className="space-y-2 pt-1 border-t border-slate-100">
+        <div className="space-y-2 pt-1 border-t border-border">
           <p className="ui-label mb-0">Add leave date</p>
           <input aria-label="Leave date"
             type="date"

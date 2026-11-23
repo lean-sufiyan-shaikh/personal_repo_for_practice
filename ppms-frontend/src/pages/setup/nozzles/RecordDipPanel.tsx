@@ -56,7 +56,7 @@ export function RecordDipPanel({ pumpId, nozzle, tank, onClose }: Props) {
   }
 
   return (
-    <div className="px-4 py-3 border-t border-slate-100">
+    <div className="px-4 py-3 border-t border-border">
       <form onSubmit={submitDip} className="ui-dip-editor">
         <div className="ui-dip-editor__hero">
           <div>
@@ -68,12 +68,12 @@ export function RecordDipPanel({ pumpId, nozzle, tank, onClose }: Props) {
             </p>
           </div>
           <div className="ui-dip-editor__meta">
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${FUEL_COLOR[nozzle.fuelType] ?? ''}`}>
+            <span className={`text-xs px-2 py-0.5 rounded-badge font-medium border ${FUEL_COLOR[nozzle.fuelType] ?? ''}`}>
               {FUEL_LABELS[nozzle.fuelType]}
             </span>
           </div>
         </div>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-ink-3">
           {tank
             ? `From tank ${tank.tankIdentifier} · ${tank.currentStock.toLocaleString('en-IN', { minimumFractionDigits: 1 })} L in stock`
             : 'This nozzle is not mapped to a tank, so drained fuel cannot be recorded yet.'}
@@ -100,16 +100,16 @@ export function RecordDipPanel({ pumpId, nozzle, tank, onClose }: Props) {
                 type="date"
                 value={dipDate}
                 readOnly
-                className="text-xs min-h-10 bg-slate-50"
+                className="text-xs min-h-10 bg-bg"
               />
-              <span className="block mt-1 text-xs text-slate-500">
+              <span className="block mt-1 text-xs text-ink-3">
                 Recorded for today — drained fuel leaves today&apos;s stock, so it cannot be back-dated.
               </span>
             </label>
           </div>
           <div className="ui-dip-editor__section">
             <label className="block">
-              <span className="ui-label">Reason <span className="text-red-500">*</span></span>
+              <span className="ui-label">Reason <span className="text-bad">*</span></span>
               <input
                 type="text"
                 value={dipReason}

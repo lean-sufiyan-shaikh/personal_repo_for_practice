@@ -1,13 +1,17 @@
-// Mirrors the --color-primary, --color-ok, --color-bad, --color-warn, --color-info, --color-border and --color-ink-3
-// tokens in index.css; recharts needs plain colour strings.
+/** Reads a colour token (e.g. "ok" for --color-ok) from the @theme variables on :root; recharts needs plain colour strings. */
+export function themeColor(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(`--color-${name}`).trim()
+}
+
 export const CHART_COLORS = {
-  primary: '#0b5394',
-  ok: '#17663a',
-  bad: '#b42318',
-  warn: '#8a4b00',
-  info: '#1f4e8c',
-  grid: '#d5dae1',
-  axis: '#5a6472',
+  primary: themeColor('primary'),
+  ok: themeColor('ok'),
+  bad: themeColor('bad'),
+  warn: themeColor('warn'),
+  info: themeColor('info'),
+  accent: themeColor('accent'),
+  grid: themeColor('border'),
+  axis: themeColor('ink-3'),
 }
 
 export const CHART_TOOLTIP_STYLE = {

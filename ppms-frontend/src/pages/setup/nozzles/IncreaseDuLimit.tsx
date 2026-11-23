@@ -32,7 +32,7 @@ export function IncreaseDuLimit({ pump, onUpdated }: { pump: PumpSummary; onUpda
         <button
           type="button"
           onClick={() => { setShowIncreaseMax(true); setNewMaxCount(String(pump.maxDuCount + 1)) }}
-          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800"
+          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
         >
           + Increase DU limit
         </button>

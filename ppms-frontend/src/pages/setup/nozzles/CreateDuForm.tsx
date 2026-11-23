@@ -65,7 +65,7 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
 
              <div className="ui-nozzle-form__section">
                <label className="block">
-                 <span className="ui-label">DU Name <span className="text-red-500">*</span></span>
+                 <span className="ui-label">DU Name <span className="text-bad">*</span></span>
                  <input
                    required
                    type="text"
@@ -86,7 +86,7 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
                  <button
                    type="button"
                    onClick={() => setDuNozzles((prev) => [...prev, { nozzleNumber: String(prev.length + 1), fuelType: '', initialReading: '' }])}
-                   className="ui-btn ui-btn-ghost min-h-0 px-2 py-1 text-xs text-blue-600"
+                   className="ui-btn ui-btn-ghost min-h-0 px-2 py-1 text-xs text-primary"
                  >
                    + Add nozzle
                  </button>
@@ -97,7 +97,7 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
                    <div key={idx} className="flex items-end gap-2 flex-wrap">
                      <div className="w-20">
                        <label className="block">
-                         <span className="ui-label mb-1 text-[10px]">Nozzle #</span>
+                         <span className="ui-label mb-1 text-xs">Nozzle #</span>
                          <input
                            type="number"
                            min="1"
@@ -110,7 +110,7 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
                        </label>
                      </div>
                      <div className="flex-1">
-                       <span className="ui-label mb-1 text-[10px]">Fuel Type</span>
+                       <span className="ui-label mb-1 text-xs">Fuel Type</span>
                        <SearchableSelect label="Fuel Type"
                          value={row.fuelType}
                          onChange={(v) => setDuNozzles((prev) => prev.map((r, i) => i === idx ? { ...r, fuelType: v as FuelType } : r))}
@@ -121,7 +121,7 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
                      </div>
                      <div className="flex-1">
                        <label className="block">
-                         <span className="ui-label mb-1 text-[10px]">Start Reading</span>
+                         <span className="ui-label mb-1 text-xs">Start Reading</span>
                          <input
                            type="number"
                            step="0.001"
@@ -136,7 +136,7 @@ export function CreateDuForm({ pumpId, onCreated }: { pumpId: number; onCreated:
                      {duNozzles.length > 1 && (
                        <IconButton
                          onClick={() => setDuNozzles((prev) => prev.filter((_, i) => i !== idx))}
-                         className="text-red-500 hover:text-red-700"
+                         className="text-bad hover:text-bad-strong"
     label="Remove nozzle"
     icon={<X size={12} strokeWidth={2} />}
     />

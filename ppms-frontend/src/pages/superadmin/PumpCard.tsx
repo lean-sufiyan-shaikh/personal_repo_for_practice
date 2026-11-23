@@ -1,5 +1,6 @@
 import { AlertTriangle, Check, Fuel, Users, X } from 'lucide-react'
 import type { PumpSummary, UpdatePumpRequest } from '../../api/superAdminApi'
+import { StatusBadge } from '../../components/StatusBadge'
 import { EditPumpForm } from './EditPumpForm'
 
 interface PumpCardProps {
@@ -14,37 +15,30 @@ interface PumpCardProps {
 
 export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSaving, editError, onSaveEdit }: PumpCardProps) {
   return (
-    <div className={`rounded-lg border p-2.5 ${
-      pump.enabled ? 'border-slate-100 bg-slate-50/50' : 'border-red-100 bg-red-50/30 opacity-60'
+    <div className={`rounded-control border p-2.5 ${
+      pump.enabled ? 'border-border bg-bg' : 'border-bad bg-bad-bg opacity-60'
     }`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2 text-xs min-w-0">
-          <Fuel size={12} strokeWidth={1.8} className="text-slate-500 mt-0.5 flex-shrink-0" />
+          <Fuel size={12} strokeWidth={1.8} className="text-ink-3 mt-0.5 flex-shrink-0" />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className={`font-semibold ${!pump.enabled ? 'line-through text-slate-500' : 'text-slate-700'}`}>
+              <span className={`font-semibold ${!pump.enabled ? 'line-through text-ink-3' : 'text-ink'}`}>
                 {pump.pumpName}
               </span>
               {!pump.enabled && (
-                <span className="text-xs font-medium text-red-500 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full">
-                  disabled
-                </span>
+                <StatusBadge tone="bad" label="disabled" />
               )}
             </div>
-            <p className="text-slate-500 mt-0.5">{pump.pumpAddress}</p>
+            <p className="text-ink-3 mt-0.5">{pump.pumpAddress}</p>
             {/* Staff count badge */}
             <div className="mt-1 flex flex-wrap gap-1.5">
-              <span className="inline-flex items-center gap-1 text-xs text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
-                <Users size={11} strokeWidth={2} />{pump.staffCount} staff
-              </span>
-              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                pump.setupDoneCount === pump.setupRequiredCount ? 'bg-ok-bg text-ok' : 'bg-warn-bg text-warn'
-              }`}>
-                {pump.setupDoneCount === pump.setupRequiredCount
-                  ? <Check size={11} strokeWidth={2.5} aria-hidden="true" />
-                  : <AlertTriangle size={11} strokeWidth={2} aria-hidden="true" />}
-                Setup {pump.setupDoneCount} of {pump.setupRequiredCount} done
-              </span>
+              <StatusBadge tone="neutral" icon={Users} label={`${pump.staffCount} staff`} />
+              <StatusBadge
+                tone={pump.setupDoneCount === pump.setupRequiredCount ? 'ok' : 'warn'}
+                icon={pump.setupDoneCount === pump.setupRequiredCount ? Check : AlertTriangle}
+                label={`Setup ${pump.setupDoneCount} of ${pump.setupRequiredCount} done`}
+              />
             </div>
           </div>
         </div>
@@ -53,8 +47,8 @@ export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSa
             onClick={onToggleEdit}
             className={`ui-btn min-h-0 px-3 py-1 text-xs border transition-colors ${
               isEditOpen
-                ? 'border-indigo-400 text-indigo-700 bg-indigo-50'
-                : 'border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50'
+                ? 'border-primary text-info bg-info-bg'
+                : 'border-border text-ink-3 hover:border-info hover:text-primary hover:bg-info-bg'
             }`}
           >
             {isEditOpen ? <X size={12} strokeWidth={2} /> : 'Edit'}
@@ -64,8 +58,8 @@ export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSa
             disabled={isSaving}
             className={`ui-btn min-h-0 px-3 py-1 text-xs border transition-colors disabled:opacity-40 ${
               pump.enabled
-                ? 'border-red-200 text-red-600 hover:bg-red-50'
-                : 'border-green-200 text-green-600 hover:bg-green-50'
+                ? 'border-bad text-bad hover:bg-bad-bg'
+                : 'border-ok text-ok hover:bg-ok-bg'
             }`}
           >
             {pump.enabled ? 'Disable' : 'Enable'}

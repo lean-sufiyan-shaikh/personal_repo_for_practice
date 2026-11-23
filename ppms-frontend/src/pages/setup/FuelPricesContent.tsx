@@ -10,7 +10,8 @@ import { formatIstDate } from '../../utils/date'
 import { isPriceStale } from '../../utils/fuelPrices'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
-import { ModalPortal } from '../../components/ModalPortal'
+import { Modal } from '../../components/Modal'
+import { MoneyText } from '../../components/AmountText'
 import { IconButton } from '../../components/IconButton'
 import { FUEL_LABELS, FUEL_UNIT } from '../../constants/fuel'
 
@@ -116,7 +117,7 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
   const pricesStale = !pricesConfirmedToday && currentPrices.length > 0 && isPriceStale(currentPrices)
 
   if (pump.dus.length === 0) {
-    return <p className="text-xs text-slate-500">Add at least one DU with a nozzle first (Nozzles section above).</p>
+    return <p className="text-xs text-ink-3">Add at least one DU with a nozzle first (Nozzles section above).</p>
   }
 
   return (
@@ -126,12 +127,12 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
         const lastUpdatedOn = currentPrices.reduce((latest, p) =>
           p.effectiveFrom > latest ? p.effectiveFrom : latest, currentPrices[0].effectiveFrom)
         return (
-          <div className="flex items-start justify-between gap-3 bg-red-50 border border-red-300 rounded-lg px-4 py-3">
+          <div className="flex items-start justify-between gap-3 bg-bad-bg border border-bad rounded-control px-4 py-3">
             <div className="flex items-start gap-2.5">
-              <AlertTriangle size={16} strokeWidth={2} className="text-red-500 mt-0.5 shrink-0" />
+              <AlertTriangle size={16} strokeWidth={2} className="text-bad mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-red-700">Fuel prices not updated today</p>
-                <p className="text-xs text-red-500 mt-0.5">
+                <p className="text-sm font-semibold text-bad">Fuel prices not updated today</p>
+                <p className="text-xs text-bad mt-0.5">
                   Last updated on{' '}
                   <span className="font-medium">{formatIstDate(lastUpdatedOn)}</span>
                   . Enter new prices below, or confirm they are unchanged.
@@ -142,11 +143,11 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
               type="button"
               onClick={confirmUnchanged}
               disabled={confirmingUnchanged || mutation.isPending}
-              className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-50 active:bg-emerald-100 px-3 py-1.5 rounded-lg shadow-sm transition-colors disabled:opacity-60 whitespace-nowrap"
+              className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold bg-surface text-ok border border-ok hover:bg-ok-bg active:bg-ok-bg px-3 py-1.5 rounded-control transition-colors disabled:opacity-60 whitespace-nowrap"
             >
               {confirmingUnchanged
                 ? <><Spinner className="w-3.5 h-3.5" /><span>Confirming…</span></>
-                : <><span>Same prices</span><Check size={13} strokeWidth={2.5} className="text-emerald-500" /></>
+                : <><span>Same prices</span><Check size={13} strokeWidth={2.5} className="text-ok" /></>
               }
             </button>
           </div>
@@ -157,10 +158,10 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
       {currentPrices.length > 0 && (
         <div className="flex flex-wrap gap-3">
           {currentPrices.map((p) => (
-            <div key={p.id} className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
-              <span className="text-xs font-medium text-emerald-700">{FUEL_LABELS[p.fuelType] ?? p.fuelType}</span>
-              <span className="text-sm font-bold text-emerald-800">
-                ₹{p.pricePerUnit}/{FUEL_UNIT[p.fuelType] ?? 'L'}
+            <div key={p.id} className="flex items-center gap-1.5 bg-ok-bg border border-ok rounded-control px-3 py-1.5">
+              <span className="text-xs font-medium text-ok">{FUEL_LABELS[p.fuelType] ?? p.fuelType}</span>
+              <span className="text-sm font-bold text-ok">
+                <MoneyText value={p.pricePerUnit} />/{FUEL_UNIT[p.fuelType] ?? 'L'}
               </span>
             </div>
           ))}
@@ -175,7 +176,7 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
                 <span className="ui-label">
                 {FUEL_LABELS[ft]} (₹/{FUEL_UNIT[ft]})
                 {getCurrentPrice(ft) != null && (
-                  <span className="text-slate-500 ml-1">current: ₹{getCurrentPrice(ft)}</span>
+                  <span className="text-ink-3 ml-1">current: ₹{getCurrentPrice(ft)}</span>
                 )}
               </span>
                 <input type="number" step="0.01" min="0.01"
@@ -187,23 +188,23 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
             </div>
           ))}
           <button type="submit" disabled={mutation.isPending}
-            className="ui-btn ui-btn-primary disabled:bg-emerald-300">
+            className="ui-btn ui-btn-primary">
             {mutation.isPending ? <span className="flex items-center gap-1.5"><Spinner className="w-4 h-4" />Saving…</span> : 'Save Prices'}
           </button>
         </div>
         {error   && <p role="alert" className="ui-error-text">{error}</p>}
-        {success && <p className="text-emerald-600 text-xs">Prices saved successfully.</p>}
+        {success && <p className="text-ok text-xs">Prices saved successfully.</p>}
       </form>
 
       {/* P2.3 — Open-shifts warning after price change */}
       {openShiftsWarning && (
-        <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-300 rounded-lg px-4 py-3">
-          <AlertTriangle size={16} strokeWidth={2} className="text-amber-500 mt-0.5 shrink-0" />
+        <div className="flex items-start gap-2.5 bg-warn-bg border border-warn rounded-control px-4 py-3">
+          <AlertTriangle size={16} strokeWidth={2} className="text-warn mt-0.5 shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-amber-800">Open Shifts Detected</p>
-            <p className="text-xs text-amber-700 mt-0.5">{openShiftsWarning}</p>
+            <p className="text-sm font-semibold text-warn-strong">Open Shifts Detected</p>
+            <p className="text-xs text-warn mt-0.5">{openShiftsWarning}</p>
           </div>
-          <IconButton onClick={() => setOpenShiftsWarning(null)} className="text-amber-400 hover:text-amber-600 text-lg leading-none shrink-0"
+          <IconButton onClick={() => setOpenShiftsWarning(null)} className="text-warn hover:text-warn-strong text-lg leading-none shrink-0"
             label="Dismiss warning"
             icon={'×'}
           />
@@ -212,57 +213,42 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
 
       {/* 15% deviation confirmation dialog */}
       {deviationWarning && (
-        <ModalPortal onClose={() => setDeviationWarning(null)}>
-        <div className="ui-modal-backdrop">
-          <div className="ui-modal-panel w-full max-w-sm">
-            <div className="ui-modal-header ui-modal-header--themed ui-modal-header--warning">
-              <div className="ui-modal-heading flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                  <AlertTriangle size={18} strokeWidth={2} className="text-amber-600" />
-                </div>
-                <div>
-                  <p className="ui-modal-title">Large Price Change Detected</p>
-                  <p className="ui-modal-subtitle">{deviationWarning.message}</p>
-                </div>
-              </div>
-              <IconButton label="Close" icon="×" onClick={() => setDeviationWarning(null)} className="ui-btn ui-btn-ghost ui-modal-close" />
-            </div>
-            <div className="ui-modal-body space-y-4">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs space-y-1">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Last price</span>
-                <span className="font-semibold text-slate-700">₹{deviationWarning.lastPrice}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">New price</span>
-                <span className="font-semibold text-slate-700">₹{deviationWarning.newPrice}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Deviation</span>
-                <span className="font-bold text-amber-700">{deviationWarning.deviationPercent.toFixed(1)}%</span>
-              </div>
-            </div>
-            <p className="text-xs text-slate-500">
-              Are you sure you want to set this price? This is a significant deviation from the last recorded price.
-            </p>
-            </div>
-            <div className="ui-modal-footer -mx-6 -mb-6">
-              <button
-                onClick={() => setDeviationWarning(null)}
-                className="ui-btn ui-btn-secondary flex-1"
-              >
+        <Modal
+          title="Large Price Change Detected"
+          subtitle={deviationWarning.message}
+          tone="warning"
+          size="sm"
+          onClose={() => setDeviationWarning(null)}
+          bodyClassName="space-y-4"
+          footer={
+            <>
+              <button type="button" onClick={() => setDeviationWarning(null)} className="ui-btn ui-btn-secondary flex-1">
                 Cancel
               </button>
-              <button
-                onClick={confirmDeviation}
-                className="ui-btn flex-1 bg-amber-600 hover:bg-amber-700 text-white"
-              >
+              <button type="button" onClick={confirmDeviation} className="ui-btn ui-btn-warning flex-1">
                 Yes, Set Price
               </button>
+            </>
+          }
+        >
+          <div className="bg-warn-bg border border-warn rounded-control px-4 py-3 text-xs space-y-1">
+            <div className="flex justify-between">
+              <span className="text-ink-3">Last price</span>
+              <MoneyText value={deviationWarning.lastPrice} className="font-semibold text-ink" />
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ink-3">New price</span>
+              <MoneyText value={deviationWarning.newPrice} className="font-semibold text-ink" />
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ink-3">Deviation</span>
+              <span className="font-bold text-warn">{deviationWarning.deviationPercent.toFixed(1)}%</span>
             </div>
           </div>
-        </div>
-        </ModalPortal>
+          <p className="text-xs text-ink-3">
+            Are you sure you want to set this price? This is a significant deviation from the last recorded price.
+          </p>
+        </Modal>
       )}
     </div>
   )

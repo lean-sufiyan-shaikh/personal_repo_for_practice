@@ -5,9 +5,7 @@ import { withToggled } from '../../../utils/setToggle'
 import { localDateInputValue, formatIstDate } from '../../../utils/date'
 import { Reveal } from '../../../components/Reveal'
 import { FUEL_CHART_COLORS, FUEL_LABELS } from '../../../constants/fuel'
-
-// Mirrors the --color-primary, --color-border and --color-ink-3 tokens in index.css; recharts needs plain colour strings.
-const CHART_COLORS = { revenue: '#0b5394', grid: '#d5dae1', axis: '#5a6472' }
+import { CHART_COLORS, CHART_TOOLTIP_STYLE, compactRupees } from '../../../constants/chartColors'
 
 export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] }) {
   const [chartDays, setChartDays] = useState<7 | 14 | 30>(7)
@@ -77,8 +75,8 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
               <ComposedChart data={revenueChartData} margin={{ top: 4, right: 52, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor={CHART_COLORS.revenue} stopOpacity={0.18} />
-                    <stop offset="95%" stopColor={CHART_COLORS.revenue} stopOpacity={0} />
+                    <stop offset="5%"  stopColor={CHART_COLORS.primary} stopOpacity={0.18} />
+                    <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
@@ -93,11 +91,7 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
                   tick={{ fontSize: 12, fill: CHART_COLORS.axis }}
                   axisLine={false} tickLine={false}
                   width={62}
-                  tickFormatter={v =>
-                    v >= 100_000 ? `₹${(v / 100_000).toFixed(1)}L`
-                    : v >= 1_000  ? `₹${(v / 1_000).toFixed(0)}k`
-                    : `₹${v}`
-                  }
+                  tickFormatter={compactRupees}
                 />
                 <YAxis
                   yAxisId="right"
@@ -108,11 +102,7 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
                   tickFormatter={v => `${v}L`}
                 />
                 <Tooltip
-                  contentStyle={{
-                    fontSize: '0.75rem', borderRadius: '8px',
-                    border: `1px solid ${CHART_COLORS.grid}`, boxShadow: '0 8px 24px rgb(20 24 31 / 0.16)',
-                    padding: '0.5rem 0.75rem',
-                  }}
+                  contentStyle={CHART_TOOLTIP_STYLE}
                   formatter={(v, name) => {
                     const n = typeof v === 'number' ? v : 0
                     if (name === 'revenue') return [`₹${n.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, 'Revenue']
@@ -124,11 +114,11 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
                   yAxisId="left"
                   type="monotone"
                   dataKey="revenue"
-                  stroke={CHART_COLORS.revenue}
+                  stroke={CHART_COLORS.primary}
                   strokeWidth={2}
                   fill="url(#revGrad)"
                   dot={false}
-                  activeDot={{ r: 4, strokeWidth: 0, fill: CHART_COLORS.revenue }}
+                  activeDot={{ r: 4, strokeWidth: 0, fill: CHART_COLORS.primary }}
                   hide={hiddenSeries.has('revenue')}
                 />
                 {chartFuelTypes.map(ft => (
@@ -150,14 +140,14 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
           <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 px-4 pb-3 text-xs" aria-label="Chart series">
             {['revenue', ...chartFuelTypes].map(series => {
               const hidden = hiddenSeries.has(series)
-              const color = series === 'revenue' ? CHART_COLORS.revenue : (FUEL_CHART_COLORS[series] ?? CHART_COLORS.axis)
+              const color = series === 'revenue' ? CHART_COLORS.primary : (FUEL_CHART_COLORS[series] ?? CHART_COLORS.axis)
               return (
                 <button
                   key={series}
                   type="button"
                   aria-pressed={!hidden}
                   onClick={() => toggleSeries(series)}
-                  className={`inline-flex min-h-8 items-center gap-1.5 rounded-md px-1.5 ${hidden ? 'text-slate-500 line-through' : 'text-slate-700'}`}
+                  className={`inline-flex min-h-8 items-center gap-1.5 rounded-control px-1.5 ${hidden ? 'text-ink-3 line-through' : 'text-ink'}`}
                 >
                   <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: hidden ? CHART_COLORS.grid : color }} />
                   {series === 'revenue' ? 'Revenue' : (FUEL_LABELS[series] ?? series)}

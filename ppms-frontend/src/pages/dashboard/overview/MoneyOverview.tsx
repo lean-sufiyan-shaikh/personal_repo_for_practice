@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Banknote, CreditCard, ClipboardCheck, Landmark, type LucideIcon } from 'lucide-react'
@@ -8,23 +9,23 @@ import { paymentSettlementApi } from '../../../api/paymentSettlementApi'
 import { Reveal } from '../../../components/Reveal'
 import { canAccessPage, canPerformAction } from '../../../permissions/permissions'
 import { useAuthStore } from '../../../store/authStore'
-import { formatCurrency } from '../../../utils/format'
+import { MoneyText } from '../../../components/AmountText'
 
 function MoneyTile({ to, icon: Icon, label, value, note }: {
   to: string
   icon: LucideIcon
   label: string
-  value: string | undefined
+  value: ReactNode
   note: string
 }) {
   return (
-    <Link to={to} className="ui-dashboard-module block px-4 py-3.5 transition-shadow hover:shadow-md">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+    <Link to={to} className="ui-dashboard-module block px-4 py-3.5 transition-shadow hover:shadow-raised">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-3">
         <Icon size={14} strokeWidth={2} aria-hidden="true" />
         <span>{label}</span>
       </div>
-      <p className="mt-2 text-xl font-bold tabular-nums text-slate-900">{value ?? '—'}</p>
-      <p className="mt-1 text-xs text-slate-500">{note}</p>
+      <p className="mt-2 text-xl font-bold tabular-nums text-ink">{value ?? '—'}</p>
+      <p className="mt-1 text-xs text-ink-3">{note}</p>
     </Link>
   )
 }
@@ -66,15 +67,15 @@ export function MoneyOverview({ pumpId }: { pumpId: number }) {
     <Reveal delay={335}>
       <section aria-label="Money at a glance" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MoneyTile to="/dashboard/cash" icon={Banknote} label="Cash in drawer"
-          value={cash ? formatCurrency(cash.currentBalance) : undefined} note="Current drawer balance" />
+          value={cash ? <MoneyText value={cash.currentBalance} /> : undefined} note="Current drawer balance" />
         <MoneyTile to="/dashboard/credit" icon={CreditCard} label="Credit outstanding"
-          value={creditOutstanding != null ? formatCurrency(creditOutstanding) : undefined} note="Owed by credit clients" />
+          value={creditOutstanding != null ? <MoneyText value={creditOutstanding} /> : undefined} note="Owed by credit clients" />
         <MoneyTile to={canAccessPage('approvals', role) ? '/dashboard/approvals' : '/dashboard/expenses'}
           icon={ClipboardCheck} label="Waiting for approval"
-          value={waitingCount != null ? String(waitingCount) : undefined}
+          value={waitingCount}
           note={canApprovePayments ? 'Expenses and credit payments' : 'Expenses'} />
         <MoneyTile to="/dashboard/settlements" icon={Landmark} label="Not yet settled"
-          value={wallet ? formatCurrency(wallet.totalPending) : undefined} note="UPI, card and fleet card" />
+          value={wallet ? <MoneyText value={wallet.totalPending} /> : undefined} note="UPI, card and fleet card" />
       </section>
     </Reveal>
   )

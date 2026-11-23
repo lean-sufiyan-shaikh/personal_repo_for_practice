@@ -68,7 +68,7 @@ export function NozzleContent({ pump, onAdded }: { pump: PumpSummary; onAdded: (
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-ink-3">
         Each Dispensary Unit (DU) is a physical MPD machine. Add one or more nozzles to each DU — each nozzle carries exactly one fuel type with its own meter counter.
         CNG nozzles cannot share a DU with other fuel types.
       </p>

@@ -6,7 +6,9 @@ import type { TankStock } from '../../../api/inventoryApi'
 import { useAuthStore } from '../../../store/authStore'
 import { canPerformAction } from '../../../permissions/permissions'
 import { roleLabel } from '../../../constants/labels'
-import { formatCurrency } from '../../../utils/format'
+import { MoneyText } from '../../../components/AmountText'
+import { StatusBadge } from '../../../components/StatusBadge'
+import { shiftStatusBadge } from '../../../components/statusBadges'
 import { useNow } from '../../../hooks/useNow'
 import { RefreshIndicator } from '../../../components/RefreshIndicator'
 import OpenShiftModal from '../../shifts/OpenShiftModal'
@@ -126,10 +128,10 @@ export function OpenShiftsLive({ shifts, isFetching, dataUpdatedAt }: OpenShifts
                     <span className="font-semibold">{shift.operatorName}</span>
                     {' · '}{shift.duName ?? `DU ${shift.duNumber}`}
                     {' · '}open {timeOpen(shift.actualStartTime, now)}
-                    {' · '}{formatCurrency(creditTotal)} credit
+                    {' · '}<MoneyText value={creditTotal} /> credit
                   </span>
                   {isOverdue && (
-                    <span className="shrink-0 rounded-badge bg-bad-bg px-2 py-0.5 text-xs font-semibold text-bad">Overdue</span>
+                    <StatusBadge {...shiftStatusBadge(shift.status)} label="Overdue" className="shrink-0" />
                   )}
                 </Link>
               </li>

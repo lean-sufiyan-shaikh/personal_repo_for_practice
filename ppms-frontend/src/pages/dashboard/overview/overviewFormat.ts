@@ -2,10 +2,6 @@
 
 export const MAX_CHART_DAYS = 30
 
-export function fmtAmt(n: number) {
-  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-}
-
 // ── Live shift board row ───────────────────────────────────────────────────────
 
 export function timeOpen(startTime: string, now: number = Date.now()): string {

@@ -65,7 +65,7 @@ export default function SuperAdminPage() {
 
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-bg flex flex-col">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <SuperAdminHeader />

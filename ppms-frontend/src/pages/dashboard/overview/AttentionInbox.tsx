@@ -8,7 +8,7 @@ import { attentionApi } from '../../../api/attentionApi'
 import type { AttentionItem, AttentionSeverity, AttentionType } from '../../../api/attentionApi'
 import { SkeletonRows } from '../../../components/Skeleton'
 import { usePumpStore } from '../../../store/usePumpStore'
-import { formatCurrency } from '../../../utils/format'
+import { MoneyText } from '../../../components/AmountText'
 
 const ICON_BY_TYPE: Record<AttentionType, LucideIcon> = {
   PENDING_APPROVALS: ClipboardCheck,
@@ -37,7 +37,6 @@ function AttentionRow({ item, showPumpName }: { item: AttentionItem; showPumpNam
   const { selectedPumpId, setSelectedPumpId } = usePumpStore()
   const Icon = ICON_BY_TYPE[item.type]
   const severity = SEVERITY_STYLE[item.severity]
-  const figure = item.amount != null ? formatCurrency(item.amount) : String(item.count)
   const actionLabel = `Review: ${showPumpName ? `${item.pumpName}, ` : ''}${item.reason}`
 
   // The target pages show the selected pump, so an item from another pump switches to it first
@@ -48,7 +47,7 @@ function AttentionRow({ item, showPumpName }: { item: AttentionItem; showPumpNam
 
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${severity.chip}`} aria-hidden="true">
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-control ${severity.chip}`} aria-hidden="true">
         <Icon size={18} strokeWidth={2} />
       </span>
       <div className="min-w-0 flex-1 basis-48">
@@ -60,7 +59,7 @@ function AttentionRow({ item, showPumpName }: { item: AttentionItem; showPumpNam
           {showPumpName && <span>{item.pumpName} · </span>}
           {item.severity === 'HIGH' && <span className="font-semibold text-bad" aria-hidden="true">Urgent · </span>}
           {item.amount != null ? `${item.count} · ` : ''}
-          <span className="tabular-nums">{figure}</span>
+          {item.amount != null ? <MoneyText value={item.amount} /> : <span className="tabular-nums">{item.count}</span>}
         </p>
       </div>
       {item.pumpId === selectedPumpId || !showPumpName ? (

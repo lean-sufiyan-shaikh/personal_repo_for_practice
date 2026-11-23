@@ -7,6 +7,7 @@ import type { FuelType } from '../../types/shift'
 import { FUEL_LABELS, FUEL_UNIT } from '../../constants/fuel'
 import { ALL_FUEL_TYPES, FUEL_COLOR } from './fuelStyles'
 import { ConfirmButton } from '../../components/ConfirmButton'
+import { StatusBadge } from '../../components/StatusBadge'
 
 // ── Tanks content ─────────────────────────────────────────────────────────────
 // Owner manually creates each underground tank (name, fuel type, capacity).
@@ -108,50 +109,48 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-ink-3">
         Add each underground tank manually. Multiple tanks per fuel type are allowed.
         Set capacity so that stock level bars and low-stock alerts work correctly.
       </p>
 
       {/* Existing tanks */}
       {isLoading ? (
-        <p className="text-xs text-slate-500">Loading tanks...</p>
+        <p className="text-xs text-ink-3">Loading tanks...</p>
       ) : tanks.length === 0 ? (
-        <p className="text-xs text-slate-500">No tanks yet. Add one below.</p>
+        <p className="text-xs text-ink-3">No tanks yet. Add one below.</p>
       ) : (
         <div className="space-y-2">
           {statusError && (
             <div role="alert" className="ui-alert ui-alert-danger text-sm">
-              <p className="text-red-600 text-xs">{statusError}</p>
+              <p className="text-bad text-xs">{statusError}</p>
             </div>
           )}
           {(tanks as TankInfo[]).map((tank) => {
             const isInactive = tank.status === 'INACTIVE'
             return (
-              <div key={tank.id} className={`border rounded-lg overflow-hidden transition-opacity ${
-                isInactive ? 'border-slate-200 bg-slate-50 opacity-70' : 'border-slate-200 bg-white'
+              <div key={tank.id} className={`border rounded-control overflow-hidden transition-opacity ${
+                isInactive ? 'border-border bg-bg opacity-70' : 'border-border bg-surface'
               }`}>
                 <div className="flex items-center justify-between px-3 py-2.5">
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
-                      isInactive ? 'bg-slate-100 text-slate-500 border-slate-200' : (FUEL_COLOR[tank.fuelType] ?? 'bg-slate-100 text-slate-600 border-slate-200')
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-badge border ${
+                      isInactive ? 'bg-surface-sunken text-ink-3 border-border' : (FUEL_COLOR[tank.fuelType] ?? 'bg-surface-sunken text-ink-2 border-border')
                     }`}>
                       {FUEL_LABELS[tank.fuelType] ?? tank.fuelType}
                     </span>
-                    <span className={`text-sm font-semibold ${isInactive ? 'text-slate-500' : 'text-slate-700'}`}>
+                    <span className={`text-sm font-semibold ${isInactive ? 'text-ink-3' : 'text-ink'}`}>
                       {tank.tankIdentifier}
                     </span>
                     {isInactive && (
-                      <span className="text-xs bg-orange-100 text-orange-600 border border-orange-200 px-2 py-0.5 rounded-full font-medium">
-                        Disabled
-                      </span>
+                      <StatusBadge tone="warn" label="Disabled" />
                     )}
-                    <span className="text-xs text-slate-500">
-                      Capacity: <span className="text-slate-500 font-medium">
+                    <span className="text-xs text-ink-3">
+                      Capacity: <span className="text-ink-3 font-medium">
                         {Number(tank.capacity).toLocaleString('en-IN', { minimumFractionDigits: 0 })} {FUEL_UNIT[tank.fuelType] ?? 'L'}
                       </span>
                       {isInactive && (
-                        <span className="ml-1 text-orange-500">(stock frozen)</span>
+                        <span className="ml-1 text-warn">(stock frozen)</span>
                       )}
                     </span>
                   </div>
@@ -166,7 +165,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                               setEditIdentifier(tank.tankIdentifier); setEditError(null)
                             }
                           }}
-                          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800">
+                          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong">
                           {editingId === tank.id ? 'Cancel' : 'Edit'}
                         </button>
                     )}
@@ -177,7 +176,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                         type="button"
                         onClick={() => { setStatusError(null); statusMutation.mutate({ tankId: tank.id, status: 'ACTIVE' }) }}
                         disabled={statusMutation.isPending}
-                        className="min-h-6 text-xs font-medium text-emerald-700 transition-colors hover:text-emerald-800 disabled:opacity-50">
+                        className="min-h-6 text-xs font-medium text-ok transition-colors hover:underline disabled:opacity-50">
                         Enable
                       </button>
                     ) : (
@@ -189,8 +188,8 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                           : 'Disable this tank?'}
                         onConfirm={() => { setStatusError(null); statusMutation.mutate({ tankId: tank.id, status: 'INACTIVE' }) }}
                         disabled={statusMutation.isPending}
-                        triggerClassName="min-h-6 text-xs font-medium text-orange-700 transition-colors hover:text-orange-800 disabled:opacity-50"
-                        confirmClassName="ui-btn min-h-6 px-2 py-1 text-xs bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white"
+                        triggerClassName="min-h-6 text-xs font-medium text-warn transition-colors hover:text-warn-strong disabled:opacity-50"
+                        confirmClassName="ui-btn ui-btn-warning min-h-6 px-2 py-1 text-xs"
                       />
                     )}
                   </div>
@@ -198,7 +197,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
 
                 {editingId === tank.id && !isInactive && (
                   <form onSubmit={(e) => submitEdit(e, tank)}
-                    className="px-3 py-3 border-t border-slate-100 bg-slate-50 space-y-2">
+                    className="px-3 py-3 border-t border-border bg-bg space-y-2">
                     <div className="flex gap-3 items-end flex-wrap">
                       <div>
                         <label className="block">
@@ -235,7 +234,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
       )}
 
       {/* Add tank form */}
-      <div className={tanks.length > 0 ? 'border-t border-slate-200 pt-4' : ''}>
+      <div className={tanks.length > 0 ? 'border-t border-border pt-4' : ''}>
         <p className="ui-label mb-3">
           {tanks.length === 0 ? 'Add the first tank' : 'Add another tank'}
         </p>
@@ -243,7 +242,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
           <div className="flex gap-3 items-end flex-wrap">
             <div>
               <label className="block">
-                <span className="ui-label">Tank Name/ID <span className="text-red-500">*</span></span>
+                <span className="ui-label">Tank Name/ID <span className="text-bad">*</span></span>
                 <input required type="text" value={createIdentifier}
                   onChange={(e) => setCreateIdentifier(e.target.value)}
                   placeholder="e.g. Petrol Tank 1"
@@ -251,33 +250,33 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
               </label>
             </div>
             <div className="relative" ref={fuelDropdownRef}>
-              <span className="ui-label">Fuel Type <span className="text-red-500">*</span></span>
+              <span className="ui-label">Fuel Type <span className="text-bad">*</span></span>
               <button
                 type="button"
                 onClick={() => setFuelDropdownOpen(o => !o)}
-                className="ui-btn ui-btn-secondary min-w-[148px] justify-between bg-white text-sm"
+                className="ui-btn ui-btn-secondary min-w-37 justify-between bg-surface text-sm"
               >
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${FUEL_COLOR[createFuelType]}`}>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-badge text-xs font-medium border ${FUEL_COLOR[createFuelType]}`}>
                   {FUEL_LABELS[createFuelType]}
                 </span>
-                <svg className={`w-4 h-4 text-slate-500 transition-transform duration-150 ${fuelDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className={`w-4 h-4 text-ink-3 transition-transform duration-150 ${fuelDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               {fuelDropdownOpen && (
-                <div className="absolute z-20 mt-1 ui-card p-1 min-w-[160px]">
+                <div className="absolute z-20 mt-1 ui-card p-1 min-w-40 shadow-overlay">
                   {ALL_FUEL_TYPES.map((ft) => (
                     <button
                       key={ft}
                       type="button"
                       onClick={() => { setCreateFuelType(ft); setFuelDropdownOpen(false) }}
-                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 transition-colors ${createFuelType === ft ? 'bg-slate-50' : ''}`}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-bg transition-colors ${createFuelType === ft ? 'bg-bg' : ''}`}
                     >
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${FUEL_COLOR[ft]}`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-badge text-xs font-medium border ${FUEL_COLOR[ft]}`}>
                         {FUEL_LABELS[ft]}
                       </span>
                       {createFuelType === ft && (
-                        <svg className="ml-auto w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="ml-auto w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       )}
@@ -289,7 +288,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
             <div>
               <label className="block">
                 <span className="ui-label">
-                Capacity ({FUEL_UNIT[createFuelType]}) <span className="text-red-500">*</span>
+                Capacity ({FUEL_UNIT[createFuelType]}) <span className="text-bad">*</span>
               </span>
                 <input required type="number" step="0.01" min="1" value={createCapacity}
                   onChange={(e) => setCreateCapacity(e.target.value)}
@@ -300,7 +299,7 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
             <div>
               <label className="block">
                 <span className="ui-label">
-                DIP Tolerance ({FUEL_UNIT[createFuelType]}) <span className="text-slate-500">(optional)</span>
+                DIP Tolerance ({FUEL_UNIT[createFuelType]}) <span className="text-ink-3">(optional)</span>
               </span>
                 <input type="number" step="0.01" min="0" value={createDipTol}
                   onChange={(e) => setCreateDipTol(e.target.value)}

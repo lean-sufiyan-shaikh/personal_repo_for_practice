@@ -58,9 +58,9 @@ export function TankerForm({
               type="checkbox"
               checked={makeDefault}
               onChange={e => setMakeDefault(e.target.checked)}
-              className="rounded"
+              className="rounded-badge accent-primary"
             />
-            <span className="text-sm text-slate-700">Set as default</span>
+            <span className="text-sm text-ink">Set as default</span>
           </label>
         </div>
       </div>

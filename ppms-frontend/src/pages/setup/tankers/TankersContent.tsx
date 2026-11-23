@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Truck } from 'lucide-react'
+import { Check, Plus, Pencil, Truck } from 'lucide-react'
 import { parseApiError } from '../../../utils/apiError'
 import { tankerApi } from '../../../api/tankerApi'
 import type { Tanker, CreateTankerRequest } from '../../../api/tankerApi'
@@ -8,6 +8,7 @@ import { useToastStore } from '../../../store/toastStore'
 import { ConfirmButton } from '../../../components/ConfirmButton'
 import { IconButton } from '../../../components/IconButton'
 import { TankerForm } from './TankerForm'
+import { StatusBadge } from '../../../components/StatusBadge'
 
 // ── Tankers content ───────────────────────────────────────────────────────────
 
@@ -83,22 +84,22 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
 
   return (
     <div className="space-y-4 pt-2">
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-ink-3">
         Configure the tanker trucks used to deliver fuel. When recording a delivery, the total
         quantity across all tanks must exactly match the selected tanker's capacity.
       </p>
 
       {isLoading ? (
-        <p className="text-xs text-slate-500">Loading…</p>
+        <p className="text-xs text-ink-3">Loading…</p>
       ) : tankers.length === 0 && !showAdd ? (
-        <p className="text-xs text-slate-500">No tankers configured yet.</p>
+        <p className="text-xs text-ink-3">No tankers configured yet.</p>
       ) : (
         <div className="space-y-2">
           {tankers.map(t => (
             <div
               key={t.id}
-              className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
-                editId === t.id ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white'
+              className={`flex items-center gap-3 rounded-card border px-4 py-3 ${
+                editId === t.id ? 'border-info bg-info-bg' : 'border-border bg-surface'
               }`}
             >
               {editId === t.id ? (
@@ -120,25 +121,19 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
                 </div>
               ) : (
                 <>
-                  <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
-                    <Truck size={14} strokeWidth={2} className="text-orange-600" />
+                  <div className="w-8 h-8 rounded-control bg-warn-bg flex items-center justify-center shrink-0">
+                    <Truck size={14} strokeWidth={2} className="text-warn" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-slate-800">{t.name}</span>
-                      <span className="text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
+                      <span className="text-sm font-semibold text-ink">{t.name}</span>
+                      <span className="text-xs font-medium text-ink-2 bg-surface-sunken px-2 py-0.5 rounded-badge tabular-nums">
                         {(t.capacityLitres / 1000).toFixed(0)}K L
                       </span>
-                      <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                        {t.tankerType === 'OWN' ? 'Own' : 'Company'}
-                      </span>
-                      {t.defaultTanker && (
-                        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                          Default
-                        </span>
-                      )}
+                      <StatusBadge tone="neutral" label={t.tankerType === 'OWN' ? 'Own' : 'Company'} />
+                      {t.defaultTanker && <StatusBadge tone="ok" icon={Check} label="Default" />}
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-ink-3 mt-0.5">
                       {t.capacityLitres.toLocaleString('en-IN')} L capacity
                     </p>
                   </div>
@@ -147,7 +142,7 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
                       <button
                         onClick={() => setDefaultMutation.mutate(t.id)}
                         disabled={setDefaultMutation.isPending}
-                        className="ui-btn ui-btn-ghost text-xs py-1 px-2 min-h-0 text-slate-500"
+                        className="ui-btn ui-btn-ghost text-xs py-1 px-2 min-h-0 text-ink-3"
                         title="Set as default"
                       >
                         Set Default
@@ -155,7 +150,7 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
                     )}
                     <IconButton
                       onClick={() => startEdit(t)}
-                      className="text-slate-500 hover:text-blue-600 transition-colors rounded"
+                      className="text-ink-3 hover:text-primary transition-colors rounded-control"
                       label="Edit tanker"
                       icon={<Pencil size={13} />}
                     />
@@ -164,7 +159,7 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
                       disabled={deactivateMutation.isPending}
                       triggerAriaLabel={`Remove tanker ${t.name}`}
                       prompt="Remove?"
-                      triggerClassName="p-1.5 text-slate-500 hover:text-red-500 transition-colors rounded"
+                      triggerClassName="p-1.5 text-ink-3 hover:text-bad transition-colors rounded-control"
                     />
                   </div>
                 </>
@@ -175,8 +170,8 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
       )}
 
       {showAdd ? (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-3">
-          <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">New Tanker</p>
+        <div className="rounded-card border border-info bg-info-bg p-4 space-y-3">
+          <p className="text-xs font-semibold text-info uppercase tracking-wide">New Tanker</p>
           <TankerForm
             name={name} setName={setName}
             capacity={capacity} setCapacity={setCapacity}

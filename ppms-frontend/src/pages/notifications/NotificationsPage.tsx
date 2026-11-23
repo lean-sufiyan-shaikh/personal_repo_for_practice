@@ -5,6 +5,7 @@ import { notificationApi } from '../../api/notificationApi'
 import type { Notification, NotificationType } from '../../api/notificationApi'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
+import { StatusBadge } from '../../components/StatusBadge'
 import { NotificationTypeIcon } from '../../components/NotificationTypeIcon'
 import { NOTIFICATION_TYPE_LABELS, openableHref } from '../../components/notificationLinks'
 import { useNow } from '../../hooks/useNow'
@@ -36,11 +37,7 @@ function NotificationRow({ notification, now, onOpen }: { notification: Notifica
           <span>{NOTIFICATION_TYPE_LABELS[notification.type] ?? notification.type}</span>
         </p>
       </div>
-      <span className={`flex-shrink-0 rounded-sm px-2 py-0.5 text-xs font-semibold ${
-        notification.read ? 'bg-neutral-bg text-neutral' : 'bg-info-bg text-info'
-      }`}>
-        {notification.read ? 'Read' : 'Unread'}
-      </span>
+      <StatusBadge tone={notification.read ? 'neutral' : 'info'} label={notification.read ? 'Read' : 'Unread'} className="flex-shrink-0" />
     </div>
   )
   return (
@@ -115,7 +112,7 @@ export default function NotificationsPage() {
         ) : !data || data.content.length === 0 ? (
           <p className="ui-empty px-5 py-6">{type ? 'No notifications of this type.' : 'No notifications yet.'}</p>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-border">
             {data.content.map((notification) => (
               <NotificationRow key={notification.id} notification={notification} now={now} onOpen={(id) => markRead.mutate(id)} />
             ))}

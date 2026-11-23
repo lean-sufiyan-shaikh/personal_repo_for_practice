@@ -44,7 +44,7 @@ export function AddPumpForm({ owner, onDone }: AddPumpFormProps) {
   }
 
   return (
-    <div className="px-5 pb-4 bg-indigo-50/50 border-t border-indigo-100">
+    <div className="px-5 pb-4 bg-info-bg/50 border-t border-info">
       <div className="pt-3">
       <form onSubmit={handleSubmitPump(onAddPumpSubmit)} className="ui-inline-form space-y-3 max-w-md">
         <div>
@@ -83,7 +83,7 @@ export function AddPumpForm({ owner, onDone }: AddPumpFormProps) {
         <button
           type="submit"
           disabled={addPumpMutation.isPending}
-          className="ui-btn ui-btn-primary bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300"
+          className="ui-btn ui-btn-primary"
         >
           {addPumpMutation.isPending ? 'Adding…' : 'Add Pump'}
         </button>

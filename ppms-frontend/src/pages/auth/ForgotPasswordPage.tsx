@@ -40,15 +40,15 @@ export default function ForgotPasswordPage() {
     return (
       <div className="ui-auth-shell">
         <div className="ui-auth-card text-center space-y-4">
-          <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
-            <Check size={28} strokeWidth={2.5} className="text-emerald-600" />
+          <div className="w-14 h-14 bg-ok-bg rounded-full flex items-center justify-center mx-auto">
+            <Check size={28} strokeWidth={2.5} className="text-ok" />
           </div>
           <h1 className="ui-title-sm">Check your email</h1>
           <p className="ui-subtitle">
             If this phone number is registered and has an email address on file,
             we have sent a password reset link. Check your inbox.
           </p>
-          <p className="text-xs text-slate-500">The link expires in 1 hour.</p>
+          <p className="text-xs text-ink-3">The link expires in 1 hour.</p>
           <NoEmailHelp />
           <Link to="/login" className="ui-link inline-flex justify-center">
             Back to login
@@ -82,7 +82,7 @@ export default function ForgotPasswordPage() {
               value={phoneNumber}
               onChange={e => setPhoneNumber(e.target.value)}
               placeholder="e.g. 9876543210"
-              className="shadow-sm"
+              className="shadow-raised"
             />
           </div>
 

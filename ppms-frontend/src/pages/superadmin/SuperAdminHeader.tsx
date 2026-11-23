@@ -46,19 +46,19 @@ export function SuperAdminHeader() {
 
   return (
     <>
-    <header className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 px-6 py-3 flex items-center justify-between flex-shrink-0 shadow-md">
+    <header className="bg-ink px-6 py-3 flex items-center justify-between flex-shrink-0 shadow-raised">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-indigo-500/20 border border-indigo-400/30 rounded-xl flex items-center justify-center select-none">
-          <Fuel size={20} strokeWidth={1.8} className="text-indigo-300" />
+        <div className="ui-dashboard-brandmark select-none">
+          <Fuel size={20} strokeWidth={1.8} className="text-ink" />
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-base font-extrabold text-white tracking-wide">PPMS</span>
-            <span className="text-xs text-indigo-300 font-medium border border-indigo-500/40 bg-indigo-500/10 px-2 py-0.5 rounded-full">
+            <span className="text-base font-extrabold text-surface tracking-wide">PPMS</span>
+            <span className="text-xs text-on-dark-2 font-medium border border-white/25 px-2 py-0.5 rounded-badge">
               Super Admin Portal
             </span>
           </div>
-          <p className="text-xs text-slate-400 italic mt-0.5 hidden sm:block">
+          <p className="text-xs text-on-dark-2 italic mt-0.5 hidden sm:block">
             Platform management — onboard new pump owners
           </p>
         </div>
@@ -66,32 +66,32 @@ export function SuperAdminHeader() {
 
       <div className="flex items-center gap-3">
         <div className="text-right hidden sm:block">
-          <p className="text-xs font-semibold text-white leading-tight">{user?.fullName}</p>
-          <p className="text-xs text-indigo-300 leading-tight">Super Admin</p>
+          <p className="text-xs font-semibold text-surface leading-tight">{user?.fullName}</p>
+          <p className="text-xs text-on-dark-2 leading-tight">Super Admin</p>
         </div>
         <div className="relative" ref={profileMenuRef}>
           <button
             onClick={() => setProfileMenuOpen((open) => !open)}
-            className="w-9 h-9 bg-indigo-500/20 border border-indigo-400/40 rounded-full flex items-center justify-center hover:bg-indigo-500/30 transition-colors"
+            className="w-9 h-9 bg-white/10 border border-white/25 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
             title="Open profile menu"
           >
-            <span className="text-sm font-bold text-indigo-200">
+            <span className="text-sm font-bold text-surface">
               {user?.fullName?.charAt(0).toUpperCase()}
             </span>
           </button>
 
           {profileMenuOpen && (
-            <div className="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-card border border-border bg-surface shadow-overlay">
               <button
                 onClick={openPasswordModal}
-                className="ui-btn ui-btn-ghost w-full justify-start rounded-none border-0 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="ui-btn ui-btn-ghost w-full justify-start rounded-none border-0 px-4 py-3 text-left text-sm font-medium text-ink hover:bg-bg"
               >
                 Reset Password
               </button>
               <button
                 onClick={handleLogout}
                 disabled={logoutMutation.isPending}
-                className="ui-btn ui-btn-ghost w-full justify-start rounded-none border-0 px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                className="ui-btn ui-btn-ghost w-full justify-start rounded-none border-0 px-4 py-3 text-left text-sm font-medium text-bad hover:bg-bad-bg disabled:opacity-50"
               >
                 {logoutMutation.isPending ? 'Logging out...' : 'Logout'}
               </button>

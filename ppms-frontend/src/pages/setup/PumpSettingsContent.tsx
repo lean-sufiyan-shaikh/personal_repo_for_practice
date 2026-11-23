@@ -39,7 +39,7 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
 
   return (
     <div className="space-y-5 pt-2">
-      <div className="ui-alert bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+      <div className="ui-alert bg-warn-bg border border-warn rounded-control p-3 text-xs text-warn-strong">
         When a shift closes with a discrepancy above this amount, only Owner or Admin can resolve it.
         Managers will see it as locked. Leave blank to disable escalation.
       </div>

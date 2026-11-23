@@ -50,7 +50,7 @@ export function AdjustReadingPanel({ pumpId, nozzle, onClose }: Props) {
   }
 
   return (
-    <div className="px-4 py-3 border-t border-slate-100">
+    <div className="px-4 py-3 border-t border-border">
       <form onSubmit={submitAdjustment} className="ui-reading-editor">
         <div className="ui-reading-editor__hero">
           <div>
@@ -111,7 +111,7 @@ export function AdjustReadingPanel({ pumpId, nozzle, onClose }: Props) {
         {adjustType === 'RESET' && (
           <div className="ui-reading-editor__section">
             <div className="ui-alert ui-alert-danger">
-              <p className="text-xs text-red-700">
+              <p className="text-xs text-bad">
                 This will reset the meter on nozzle #{nozzle.nozzleNumber} to <strong>0.00</strong>. This action is logged and cannot be undone.
               </p>
             </div>
@@ -119,7 +119,7 @@ export function AdjustReadingPanel({ pumpId, nozzle, onClose }: Props) {
         )}
         <div className="ui-reading-editor__section">
           <label className="block">
-            <span className="ui-label">Reason <span className="text-red-500">*</span></span>
+            <span className="ui-label">Reason <span className="text-bad">*</span></span>
             <input
               type="text"
               value={adjustReason}

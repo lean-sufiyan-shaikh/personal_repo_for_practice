@@ -87,7 +87,7 @@ export default function LoginPage() {
           <div className="ui-auth-points">
             <div className="ui-auth-point">
               <span className="ui-auth-point-icon">
-                <BarChart2 size={17} strokeWidth={2} className="text-blue-200" />
+                <BarChart2 size={17} strokeWidth={2} className="text-accent" />
               </span>
               <div>
                 <p className="ui-auth-point-title">Daily control</p>
@@ -96,7 +96,7 @@ export default function LoginPage() {
             </div>
             <div className="ui-auth-point">
               <span className="ui-auth-point-icon">
-                <ShieldCheck size={17} strokeWidth={2} className="text-blue-200" />
+                <ShieldCheck size={17} strokeWidth={2} className="text-accent" />
               </span>
               <div>
                 <p className="ui-auth-point-title">Secure access</p>
@@ -115,17 +115,17 @@ export default function LoginPage() {
 
           {sessionExpired && (
             <div className="ui-alert ui-alert-warning flex items-start gap-2.5">
-              <AlertTriangle size={16} strokeWidth={2} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <AlertTriangle size={16} strokeWidth={2} className="text-warn flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-amber-800">Session expired</p>
-                <p className="text-xs text-amber-600 mt-0.5">You were signed out because your session timed out. Please sign in again.</p>
+                <p className="text-sm font-medium text-warn-strong">Session expired</p>
+                <p className="text-xs text-warn mt-0.5">You were signed out because your session timed out. Please sign in again.</p>
               </div>
             </div>
           )}
 
           {successMessage && (
             <div className="ui-alert ui-alert-success">
-              <p className="text-sm text-emerald-700">{successMessage}</p>
+              <p className="text-sm text-ok">{successMessage}</p>
             </div>
           )}
 
@@ -142,7 +142,7 @@ export default function LoginPage() {
                 autoComplete="tel"
                 maxLength={10}
                 placeholder="e.g. 9999999999"
-                className="shadow-sm"
+                className="shadow-raised"
               />
               {errors.phoneNumber && (
                 <p className="ui-error-text" role="alert">{errors.phoneNumber.message}</p>
@@ -158,7 +158,7 @@ export default function LoginPage() {
                 {...register('password')}
                 autoComplete="current-password"
                 placeholder="Enter your password"
-                className="shadow-sm"
+                className="shadow-raised"
               />
               {errors.password && (
                 <p className="ui-error-text" role="alert">{errors.password.message}</p>
@@ -167,7 +167,7 @@ export default function LoginPage() {
 
             {serverError && (
               <div className="ui-alert ui-alert-danger" role="alert">
-                <p className="text-red-600 text-sm">{serverError}</p>
+                <p className="text-bad text-sm">{serverError}</p>
               </div>
             )}
 
@@ -180,7 +180,7 @@ export default function LoginPage() {
             </button>
 
             <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="text-slate-500">Need help accessing your account?</span>
+              <span className="text-ink-3">Need help accessing your account?</span>
               <Link to="/forgot-password" className="ui-link text-sm">
                 Forgot password?
               </Link>

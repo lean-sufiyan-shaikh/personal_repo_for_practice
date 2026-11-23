@@ -41,7 +41,7 @@ export function GstDetailsContent({ pump, onUpdated }: { pump: PumpSummary; onUp
 
   return (
     <form onSubmit={handleSave} className="space-y-4 pt-2">
-      <div className="ui-alert bg-sky-50 border border-sky-200 rounded-lg p-3 text-xs text-sky-800">
+      <div className="ui-alert bg-info-bg border border-info rounded-control p-3 text-xs text-info">
         Needed before you can issue tax invoices to credit clients. Invoice numbers look like
         {' '}<strong>{(normaliseGstText(invoicePrefix) || 'PMP3')}/26-27/0001</strong> and restart every April.
       </div>

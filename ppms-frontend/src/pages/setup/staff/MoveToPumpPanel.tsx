@@ -35,11 +35,11 @@ export function MoveToPumpPanel({ pumpId, member, onClose }: Props) {
   })
 
   return (
-    <div className="px-3 py-3 border-t border-slate-100">
+    <div className="px-3 py-3 border-t border-border">
       <div className="max-w-sm space-y-3">
         <div>
-          <p className="text-xs font-semibold text-slate-700">Move {member.fullName} to another of your pumps</p>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs font-semibold text-ink">Move {member.fullName} to another of your pumps</p>
+          <p className="text-xs text-ink-3 mt-0.5">
             They are signed out and see the new pump at their next sign-in. Not allowed while they have an open
             shift or an unresolved discrepancy.
           </p>

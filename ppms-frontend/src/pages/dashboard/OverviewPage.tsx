@@ -11,7 +11,8 @@ import { localDateInputValue } from '../../utils/date'
 import { SkeletonStat } from '../../components/Skeleton'
 import { Reveal } from '../../components/Reveal'
 import { RefreshIndicator } from '../../components/RefreshIndicator'
-import { MAX_CHART_DAYS, fmtAmt } from './overview/overviewFormat'
+import { StatusBadge } from '../../components/StatusBadge'
+import { MAX_CHART_DAYS } from './overview/overviewFormat'
 import { isPriceStale } from '../../utils/fuelPrices'
 import { MoneyOverview } from './overview/MoneyOverview'
 import { TankStockOverview } from './overview/TankStockOverview'
@@ -121,10 +122,8 @@ export default function OverviewPage() {
 
       {/* ── Live data error banner ── */}
       {anyQueryError && (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-700">
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-          </svg>
+        <div className="flex items-center gap-2 rounded-control border border-warn bg-warn-bg px-4 py-2.5 text-xs text-warn">
+          <AlertTriangle size={16} strokeWidth={2} className="shrink-0" aria-hidden="true" />
           Some live data could not be loaded. Figures shown may be incomplete — refresh to try again.
         </div>
       )}
@@ -158,15 +157,15 @@ export default function OverviewPage() {
           {/* ── Stale fuel price alert ── */}
           {isManager && priceIsStale && selectedPump && (
             <Link to="/dashboard/setup" className="block">
-            <div className="ui-alert ui-alert-danger flex items-center gap-3 hover:bg-red-100 transition-colors">
-                <AlertTriangle size={18} className="text-red-500 flex-shrink-0" strokeWidth={2} />
+            <div className="ui-alert ui-alert-danger flex items-center gap-3 hover:bg-bad-bg transition-colors">
+                <AlertTriangle size={18} className="text-bad flex-shrink-0" strokeWidth={2} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-red-700">Fuel prices not updated today</p>
-                  <p className="text-xs text-red-500 mt-0.5 truncate">
+                  <p className="text-sm font-semibold text-bad">Fuel prices not updated today</p>
+                  <p className="text-xs text-bad mt-0.5 truncate">
                     {selectedPump.name} — tap here to update prices in Setup
                   </p>
                 </div>
-                <span className="text-xs text-red-400 font-medium flex-shrink-0">Update →</span>
+                <span className="text-xs text-bad font-medium flex-shrink-0">Update →</span>
               </div>
             </Link>
           )}
@@ -186,16 +185,16 @@ export default function OverviewPage() {
                   label="Active Shifts"
                   value={activeCount}
                   sub={activeCount === 0 ? 'No open shifts' : `at ${selectedPump?.name ?? 'selected pump'}`}
-                  color="bg-emerald-500"
+                  color="bg-ok"
                   icon={Zap}
                   to="/dashboard/shifts"
                 />
                 <StatCard
                   label="Today's Revenue"
                   value={todayRevenue}
-                  format={fmtAmt}
+                  money
                   sub={`${closedShiftCountToday} closed shift${closedShiftCountToday !== 1 ? 's' : ''} today`}
-                  color="bg-blue-500"
+                  color="bg-primary"
                   icon={IndianRupee}
                   to="/dashboard/shifts?history=all"
                 />
@@ -203,7 +202,7 @@ export default function OverviewPage() {
                   label="Low Stock Tanks"
                   value={lowStockTanks.length}
                   sub={lowStockTanks.length === 0 ? 'All tanks OK' : 'Need attention'}
-                  color={lowStockTanks.length > 0 ? 'bg-red-500' : 'bg-slate-400'}
+                  color={lowStockTanks.length > 0 ? 'bg-bad' : 'bg-ink-3'}
                   icon={Gauge}
                   alert={lowStockTanks.length > 0}
                   to="/dashboard/inventory"
@@ -218,13 +217,11 @@ export default function OverviewPage() {
           {/* ── Low stock details (shown only when alert) ── */}
           {lowStockTanks.length > 0 && (
             <div className="ui-alert ui-alert-danger">
-              <p className="text-xs font-semibold text-red-700 mb-2">Tanks needing a delivery:</p>
+              <p className="text-xs font-semibold text-bad mb-2">Tanks needing a delivery:</p>
               <div className="flex flex-wrap gap-2">
                 {lowStockTanks.map(t => (
-                  <span key={t.tankId}
-                    className="text-xs bg-white border border-red-200 text-red-700 px-3 py-1 rounded-full font-medium">
-                    {t.tankIdentifier} ({codeLabel(t.fuelType)}) — {t.stockPercentage.toFixed(1)}% full
-                  </span>
+                  <StatusBadge key={t.tankId} tone="bad" icon={Gauge}
+                    label={`${t.tankIdentifier} (${codeLabel(t.fuelType)}) — ${t.stockPercentage.toFixed(1)}% full`} />
                 ))}
               </div>
             </div>
@@ -240,7 +237,7 @@ export default function OverviewPage() {
                   <RefreshIndicator isFetching={activeShiftsFetching} dataUpdatedAt={activeShiftsUpdatedAt} />
                 </div>
               </div>
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-border">
                 {allActiveShifts.map(shift => (
                   <ShiftStatusRow key={shift.id} shift={shift} />
                 ))}

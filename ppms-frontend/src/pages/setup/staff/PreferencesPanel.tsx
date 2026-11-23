@@ -22,11 +22,11 @@ export function PreferencesPanel({ pumpId, member, activeShiftDefs, onClose }: P
   })
 
   return (
-    <div className="px-3 py-3 border-t border-slate-100">
+    <div className="px-3 py-3 border-t border-border">
       <div className="max-w-sm space-y-3">
-        <p className="text-xs font-semibold text-slate-700">Shift preferences for {member.fullName}</p>
+        <p className="text-xs font-semibold text-ink">Shift preferences for {member.fullName}</p>
         {isLoading ? (
-          <div className="flex items-center gap-2 text-xs text-slate-500" role="status">
+          <div className="flex items-center gap-2 text-xs text-ink-3" role="status">
             <Spinner className="w-3 h-3" />Loading saved preferences…
           </div>
         ) : isError ? (

@@ -10,6 +10,7 @@ import { parseApiError } from '../../utils/apiError'
 import { AddPumpForm } from './AddPumpForm'
 import { PumpCard } from './PumpCard'
 import { ResetPasswordDialog } from '../../components/ResetPasswordDialog'
+import { StatusBadge } from '../../components/StatusBadge'
 
 const ownersPageSize = 10
 
@@ -64,14 +65,12 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
   return (
     <div className="lg:col-span-3">
       <div className="ui-card p-0">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-slate-800">Onboarded Owners</h2>
-            <p className="text-xs text-slate-500 mt-0.5">All pump owners currently on the platform.</p>
+            <h2 className="text-sm font-semibold text-ink">Onboarded Owners</h2>
+            <p className="text-xs text-ink-3 mt-0.5">All pump owners currently on the platform.</p>
           </div>
-          <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full">
-            {owners.length} owner{owners.length !== 1 ? 's' : ''}
-          </span>
+          <StatusBadge tone="info" label={`${owners.length} owner${owners.length !== 1 ? 's' : ''}`} />
         </div>
 
         {ownersLoading ? (
@@ -79,7 +78,7 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
         ) : owners.length === 0 ? (
           <div className="ui-empty px-5 py-8">
             <p className="ui-subtitle">No owners yet.</p>
-            <p className="text-xs text-slate-500 mt-1">Use the form to onboard your first pump owner.</p>
+            <p className="text-xs text-ink-3 mt-1">Use the form to onboard your first pump owner.</p>
           </div>
         ) : (() => {
           const totalPages = Math.max(1, Math.ceil(owners.length / ownersPageSize))
@@ -92,7 +91,7 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
           }
           return (
             <>
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-border">
                 {pageOwners.map((owner) => {
                   const isPumpFormOpen = addPumpOwnerId === owner.ownerId
                   const enabledPumps   = owner.pumps.filter(p => p.enabled).length
@@ -102,29 +101,23 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
                         {/* Owner header row */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-9 h-9 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                              <span className="text-sm font-bold text-indigo-600">
+                            <div className="w-9 h-9 bg-info-bg border border-info rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-sm font-bold text-primary">
                                 {owner.fullName.charAt(0).toUpperCase()}
                               </span>
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-sm font-semibold text-slate-800">{owner.fullName}</p>
-                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                  owner.status === 'ACTIVE'
-                                    ? 'bg-green-50 text-green-700 border border-green-200'
-                                    : 'bg-slate-100 text-slate-500 border border-slate-200'
-                                }`}>
-                                  {owner.status.toLowerCase()}
-                                </span>
+                                <p className="text-sm font-semibold text-ink">{owner.fullName}</p>
+                                <StatusBadge tone={owner.status === 'ACTIVE' ? 'ok' : 'neutral'} label={owner.status.toLowerCase()} />
                               </div>
-                              <p className="text-xs text-slate-500 font-mono mt-0.5">{owner.phoneNumber}</p>
+                              <p className="text-xs text-ink-3 font-mono mt-0.5">{owner.phoneNumber}</p>
                               {/* Pump count summary */}
                               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                <span className="inline-flex items-center gap-1 text-xs text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
-                                  <Fuel size={11} strokeWidth={2} />{owner.pumps.length} pump{owner.pumps.length !== 1 ? 's' : ''}
+                                <span className="inline-flex items-center gap-1 text-xs text-ink-2 bg-neutral-bg px-2 py-0.5 rounded-badge">
+                                  <Fuel size={12} strokeWidth={2} aria-hidden="true" />{owner.pumps.length} pump{owner.pumps.length !== 1 ? 's' : ''}
                                   {owner.pumps.length > enabledPumps && (
-                                    <span className="text-red-400">· {owner.pumps.length - enabledPumps} disabled</span>
+                                    <span className="text-bad">· {owner.pumps.length - enabledPumps} disabled</span>
                                   )}
                                 </span>
                               </div>
@@ -134,7 +127,7 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
             <button
               type="button"
               onClick={() => setOwnerToReset(owner)}
-              className="ui-btn min-h-0 px-3 py-1 text-xs border border-slate-200 text-slate-600 transition-colors hover:border-orange-300 hover:text-orange-700 hover:bg-orange-50"
+              className="ui-btn min-h-0 px-3 py-1 text-xs border border-border text-ink-2 transition-colors hover:border-warn hover:text-warn hover:bg-warn-bg"
             >
               <span className="inline-flex items-center gap-1"><KeyRound size={12} strokeWidth={2} />Reset Password</span>
             </button>
@@ -142,8 +135,8 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
               onClick={() => toggleAddPump(owner.ownerId)}
               className={`ui-btn min-h-0 px-3 py-1 text-xs border transition-colors ${
                 isPumpFormOpen
-                  ? 'border-indigo-400 text-indigo-700 bg-indigo-50'
-                  : 'border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-700 hover:bg-indigo-50'
+                  ? 'border-primary text-info bg-info-bg'
+                  : 'border-border text-ink-2 hover:border-info hover:text-info hover:bg-info-bg'
               }`}
             >
                               {isPumpFormOpen ? <span className="inline-flex items-center gap-1"><X size={12} strokeWidth={2} />Cancel</span> : <span className="inline-flex items-center gap-1"><Plus size={12} strokeWidth={2.5} />Add Pump</span>}
@@ -180,7 +173,7 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
                         )}
 
                         <div className="mt-2 ml-12 flex items-center gap-3 ui-help">
-                          <span>ID: <span className="font-mono text-slate-500">{owner.employeeId}</span></span>
+                          <span>ID: <span className="font-mono text-ink-3">{owner.employeeId}</span></span>
                           <span>·</span>
                           <span>Joined {formatIstDate(owner.createdAt)}</span>
                         </div>
@@ -195,7 +188,7 @@ export function OwnersList({ owners, ownersLoading }: OwnersListProps) {
                 })}
               </div>
               {owners.length > ownersPageSize && (
-                <div className="px-5 border-t border-slate-100">
+                <div className="px-5 border-t border-border">
                   <Pagination
                     data={pagedData}
                     onPageChange={setOwnersPage}

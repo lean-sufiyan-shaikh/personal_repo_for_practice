@@ -48,11 +48,11 @@ export function AddNozzleForm({ pumpId, du, onClose }: Props) {
   }
 
   return (
-    <div className="px-4 py-3 border-t border-blue-100 bg-blue-50/40 rounded-b-xl">
+    <div className="px-4 py-3 border-t border-info bg-info-bg/40 rounded-b-card">
       <form onSubmit={submitInlineNozzle} className="flex items-end gap-2 flex-wrap">
         <div className="w-20">
           <label className="block">
-            <span className="ui-label mb-1 text-[10px]">Nozzle #</span>
+            <span className="ui-label mb-1 text-xs">Nozzle #</span>
             <input
               type="number" min="1" max="9"
               value={inlineNozzleNumber}
@@ -62,8 +62,8 @@ export function AddNozzleForm({ pumpId, du, onClose }: Props) {
             />
           </label>
         </div>
-        <div className="flex-1 min-w-[160px]">
-          <span className="ui-label mb-1 text-[10px]">Fuel Type</span>
+        <div className="flex-1 min-w-40">
+          <span className="ui-label mb-1 text-xs">Fuel Type</span>
           <SearchableSelect label="Fuel Type"
             value={inlineFuelType}
             onChange={(v) => setInlineFuelType(v as FuelType)}
@@ -74,7 +74,7 @@ export function AddNozzleForm({ pumpId, du, onClose }: Props) {
         </div>
         <div className="w-32">
           <label className="block">
-            <span className="ui-label mb-1 text-[10px]">Start Reading</span>
+            <span className="ui-label mb-1 text-xs">Start Reading</span>
             <input
               type="number" step="0.001" min="0"
               value={inlineReading}
@@ -95,7 +95,7 @@ export function AddNozzleForm({ pumpId, du, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="ui-btn ui-btn-ghost min-h-0 px-3 py-1.5 text-xs text-slate-500"
+            className="ui-btn ui-btn-ghost min-h-0 px-3 py-1.5 text-xs text-ink-3"
           >
             Cancel
           </button>

@@ -76,13 +76,13 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
 
   return (
     <div className="ui-card-plain p-4 space-y-4">
-      <h3 className="text-sm font-semibold text-slate-700">New Shift Schedule</h3>
+      <h3 className="text-sm font-semibold text-ink">New Shift Schedule</h3>
 
       {/* Date range */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block">
-            <span className="ui-label">Start Date <span className="text-red-400">*</span></span>
+            <span className="ui-label">Start Date <span className="text-bad">*</span></span>
             <input
               type="date"
               value={effectiveFrom}
@@ -94,12 +94,12 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="ui-label mb-0">End Date</span>
-            <label className="flex items-center gap-1 text-xs text-slate-500 cursor-pointer">
+            <label className="flex items-center gap-1 text-xs text-ink-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={hasEndDate}
                 onChange={e => { setHasEndDate(e.target.checked); if (!e.target.checked) setEffectiveTo('') }}
-                className="w-3 h-3 accent-blue-600"
+                className="w-3 h-3 accent-primary"
               />
               Set end date
             </label>
@@ -110,14 +110,14 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
             onChange={e => setEffectiveTo(e.target.value)}
             disabled={!hasEndDate}
             min={effectiveFrom || undefined}
-            className="text-sm disabled:bg-slate-50 disabled:text-slate-400"
+            className="text-sm disabled:bg-bg disabled:text-ink-3"
           />
           {!hasEndDate && (
-            <p className="text-xs text-slate-500 mt-1">Open-ended — no expiry date</p>
+            <p className="text-xs text-ink-3 mt-1">Open-ended — no expiry date</p>
           )}
         </div>
       </div>
-      <p className="text-xs text-slate-500 -mt-2">
+      <p className="text-xs text-ink-3 -mt-2">
         Any previously open schedule will be automatically closed on the day before the start date.
         You cannot create two schedules with overlapping date ranges.
       </p>
@@ -139,7 +139,7 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
               placeholder="Name (e.g. Morning)"
               value={row.name}
               onChange={e => updateRow(idx, { name: e.target.value })}
-              className="min-w-0 text-sm md:max-w-[12rem]"
+              className="min-w-0 text-sm md:max-w-48"
             />
             <SearchableSelect label="Start time"
               value={row.startTime}
@@ -148,7 +148,7 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
               size="sm"
               className="min-w-0"
             />
-            <span className="text-xs text-slate-500">→</span>
+            <span className="text-xs text-ink-3">→</span>
             <SearchableSelect label="End time"
               value={row.endTime}
               onChange={v => updateRow(idx, { endTime: v })}
@@ -169,11 +169,11 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
                 type="checkbox"
                 checked={row.isNightShift}
                 onChange={e => updateRow(idx, { isNightShift: e.target.checked })}
-                className="w-3.5 h-3.5 accent-indigo-600"
+                className="w-3.5 h-3.5 accent-primary"
               />
-              <label htmlFor={`night-${idx}`} className="text-xs text-slate-600 select-none">Night</label>
+              <label htmlFor={`night-${idx}`} className="text-xs text-ink-2 select-none">Night</label>
               {rows.length > 1 && (
-                <IconButton onClick={() => removeRow(idx)} className="ui-btn ui-btn-ghost ml-1 text-base leading-none text-red-400 hover:text-red-600"
+                <IconButton onClick={() => removeRow(idx)} className="ui-btn ui-btn-ghost ml-1 text-base leading-none text-bad hover:text-bad-strong"
                   label="Remove row"
                   icon={'×'}
                 />
@@ -188,7 +188,7 @@ export function CreateShiftBatchForm({ pumpId, onClose }: { pumpId: number; onCl
         <button
           type="button"
           onClick={addRow}
-          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-blue-600 hover:text-blue-800"
+          className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong"
         >
           + Add another shift
         </button>

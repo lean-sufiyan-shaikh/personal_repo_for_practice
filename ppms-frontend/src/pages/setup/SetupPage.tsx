@@ -60,19 +60,19 @@ export default function SetupPage() {
         <div className="ui-card overflow-hidden p-0">
           <button
             onClick={() => setCreateOpen((v) => !v)}
-            className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors"
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-bg transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center shrink-0">
-                <Plus size={12} strokeWidth={3} className="text-white" />
+              <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shrink-0">
+                <Plus size={12} strokeWidth={3} className="text-on-primary" />
               </div>
-              <span className="text-sm font-semibold text-slate-700">Create a New Pump Location</span>
+              <span className="text-sm font-semibold text-ink">Create a New Pump Location</span>
             </div>
-            <ChevronDown size={14} strokeWidth={2} className={`text-slate-500 transition-transform duration-200 ${createOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown size={14} strokeWidth={2} className={`text-ink-3 transition-transform duration-200 ${createOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {createOpen && (
-              <div className="border-t border-slate-100 px-5 pb-5 pt-2">
+              <div className="border-t border-border px-5 pb-5 pt-2">
                 <CreatePumpForm onCreated={handlePumpCreated} />
               </div>
             )}
@@ -98,7 +98,7 @@ export default function SetupPage() {
       )}
 
       {!isLoading && pumps.length === 0 && !createOpen && (
-        <div className="ui-card text-center text-sm text-slate-500 py-6">
+        <div className="ui-card text-center text-sm text-ink-3 py-6">
           No pumps yet. Create one above to get started.
         </div>
       )}

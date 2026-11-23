@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, ChevronRight, Gauge, IndianRupee, Zap } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Clock, Gauge, IndianRupee, Zap } from 'lucide-react'
 import { pumpApi, type PumpOverviewSummary } from '../../../api/pumpApi'
 import { Reveal } from '../../../components/Reveal'
 import { SkeletonRows, SkeletonStat } from '../../../components/Skeleton'
+import { MoneyText } from '../../../components/AmountText'
+import { StatusBadge } from '../../../components/StatusBadge'
 import { usePumpStore } from '../../../store/usePumpStore'
-import { fmtAmt } from './overviewFormat'
 import { StatCard } from './StatCard'
 
 function plural(count: number, word: string) {
@@ -47,26 +48,19 @@ function PumpRow({ pump, onSelect }: { pump: PumpOverviewSummary; onSelect: (pum
     <button
       type="button"
       onClick={() => onSelect(pump.pumpId)}
-      className="ui-record-row w-full text-left cursor-pointer transition-colors hover:bg-slate-50 focus-visible:bg-slate-50"
+      className="ui-record-row w-full text-left cursor-pointer transition-colors hover:bg-bg focus-visible:bg-bg"
     >
       <div className="ui-record-row__main">
         <div className="ui-record-row__title">
-          <span className="text-sm font-semibold text-slate-900">{pump.name}</span>
+          <span className="text-sm font-semibold text-ink">{pump.name}</span>
           {pump.overdueShiftCount > 0 && (
-            <span className="text-xs bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-              {plural(pump.overdueShiftCount, 'overdue shift')}
-            </span>
+            <StatusBadge tone="warn" icon={Clock} label={plural(pump.overdueShiftCount, 'overdue shift')} />
           )}
           {pump.lowStockTankCount > 0 && (
-            <span className="text-xs bg-red-50 border border-red-200 text-red-700 px-2 py-0.5 rounded-full font-medium">
-              {plural(pump.lowStockTankCount, 'low tank')}
-            </span>
+            <StatusBadge tone="bad" icon={Gauge} label={plural(pump.lowStockTankCount, 'low tank')} />
           )}
           {pump.fuelPricesStale && (
-            <span className="inline-flex items-center gap-1 text-xs bg-red-50 border border-red-200 text-red-700 px-2 py-0.5 rounded-full font-medium">
-              <AlertTriangle size={11} strokeWidth={2.2} aria-hidden="true" />
-              Prices not updated today
-            </span>
+            <StatusBadge tone="bad" icon={AlertTriangle} label="Prices not updated today" />
           )}
         </div>
         <div className="ui-record-row__meta">
@@ -74,8 +68,8 @@ function PumpRow({ pump, onSelect }: { pump: PumpOverviewSummary; onSelect: (pum
         </div>
       </div>
       <div className="ui-record-row__actions">
-        <span className="text-base font-bold tabular-nums text-slate-900">{fmtAmt(pump.todaySales)}</span>
-        <ChevronRight size={16} className="text-slate-400" aria-hidden="true" />
+        <MoneyText value={pump.todaySales} className="text-base font-bold text-ink" />
+        <ChevronRight size={16} className="text-ink-3" aria-hidden="true" />
       </div>
     </button>
   )
@@ -130,23 +124,23 @@ export function AllPumpsOverview({ onPumpSelected }: { onPumpSelected: () => voi
             label="Active Shifts"
             value={totals.openShiftCount}
             sub={totals.overdueShiftCount > 0 ? `${plural(totals.overdueShiftCount, 'shift')} overdue` : 'None overdue'}
-            color="bg-emerald-500"
+            color="bg-ok"
             icon={Zap}
             alert={totals.overdueShiftCount > 0}
           />
           <StatCard
             label="Today's Revenue"
             value={totals.todaySales}
-            format={fmtAmt}
+            money
             sub={`Across ${plural(pumps.length, 'pump')}`}
-            color="bg-blue-500"
+            color="bg-primary"
             icon={IndianRupee}
           />
           <StatCard
             label="Low Stock Tanks"
             value={totals.lowStockTankCount}
             sub={totals.lowStockTankCount === 0 ? 'All tanks OK' : 'Need attention'}
-            color={totals.lowStockTankCount > 0 ? 'bg-red-500' : 'bg-slate-400'}
+            color={totals.lowStockTankCount > 0 ? 'bg-bad' : 'bg-ink-3'}
             icon={Gauge}
             alert={totals.lowStockTankCount > 0}
           />
@@ -154,7 +148,7 @@ export function AllPumpsOverview({ onPumpSelected }: { onPumpSelected: () => voi
             label="Stale Fuel Prices"
             value={totals.stalePricePumpCount}
             sub={totals.stalePricePumpCount === 0 ? 'All prices updated today' : 'Pumps to update in Setup'}
-            color={totals.stalePricePumpCount > 0 ? 'bg-red-500' : 'bg-slate-400'}
+            color={totals.stalePricePumpCount > 0 ? 'bg-bad' : 'bg-ink-3'}
             icon={AlertTriangle}
             alert={totals.stalePricePumpCount > 0}
           />
@@ -165,7 +159,7 @@ export function AllPumpsOverview({ onPumpSelected }: { onPumpSelected: () => voi
         <section aria-label="Pumps" className="ui-card p-0 overflow-hidden">
           <div className="ui-toolbar">
             <p className="ui-toolbar-title">Pumps</p>
-            <p className="text-xs text-slate-500">Select a pump to open its overview</p>
+            <p className="text-xs text-ink-3">Select a pump to open its overview</p>
           </div>
           <div className="ui-record-list">
             {pumps.map(pump => (

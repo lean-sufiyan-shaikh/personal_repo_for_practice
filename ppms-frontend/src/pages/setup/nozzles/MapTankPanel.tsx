@@ -36,7 +36,7 @@ export function MapTankPanel({ pumpId, duId, nozzle, tanks, onClose }: Props) {
   )
 
   return (
-    <div className="px-4 py-3 border-t border-slate-100">
+    <div className="px-4 py-3 border-t border-border">
       <div className="ui-tank-map-form">
         <div className="ui-tank-map-form__hero">
           <div>
@@ -55,7 +55,7 @@ export function MapTankPanel({ pumpId, duId, nozzle, tanks, onClose }: Props) {
           options={compatibleTanks.map((t) => ({ value: t.id.toString(), label: t.tankIdentifier }))}
         />
         {compatibleTanks.length === 0 && (
-          <p className="text-xs text-amber-600 mt-1">
+          <p className="text-xs text-warn mt-1">
             No active {FUEL_LABELS[nozzle.fuelType]} tanks available.
           </p>
         )}
