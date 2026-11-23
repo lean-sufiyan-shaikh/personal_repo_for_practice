@@ -38,6 +38,11 @@ export function ReportListItem({ report, isSelected, onClick }: ReportListItemPr
             </span>
             <span className="text-sm font-medium text-slate-700 truncate">{report.periodLabel}</span>
           </div>
+          {report.stale && (
+            <span className="inline-block px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 mb-0.5">
+              Stale — regenerate
+            </span>
+          )}
           <p className="text-xs text-slate-500">{fmtDate(report.reportDate)}</p>
           <p className="text-xs text-slate-500 mt-0.5">
             {report.shiftCount} shift{report.shiftCount !== 1 ? 's' : ''} · {fmtLitres(report.totalLitresSold)} sold

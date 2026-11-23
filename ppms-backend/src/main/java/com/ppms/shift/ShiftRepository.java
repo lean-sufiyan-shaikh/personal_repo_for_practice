@@ -207,6 +207,25 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
             """)
     List<Shift> findClosedShiftsByDate(Long pumpId, LocalDate shiftDate);
 
+    @Query("""
+            SELECT s FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.shiftDate = :shiftDate
+              AND s.status IN ('OPEN', 'OPEN_OVERDUE', 'AUTO_CLOSED_OVERDUE')
+            ORDER BY s.actualStartTime ASC
+            """)
+    List<Shift> findOpenShiftsByDate(Long pumpId, LocalDate shiftDate);
+
+    @Query("""
+            SELECT s FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.shiftDate = :shiftDate
+              AND s.shiftDefinitionId = :shiftDefinitionId
+              AND s.status IN ('OPEN', 'OPEN_OVERDUE', 'AUTO_CLOSED_OVERDUE')
+            ORDER BY s.actualStartTime ASC
+            """)
+    List<Shift> findOpenShiftsByDefinition(Long pumpId, LocalDate shiftDate, Long shiftDefinitionId);
+
     /**
      * Shifts that ended (closed by an operator or auto-closed by the overdue job) within (from, to].
      * Used by alert generation, which must see night shifts whose shift date is the previous day.

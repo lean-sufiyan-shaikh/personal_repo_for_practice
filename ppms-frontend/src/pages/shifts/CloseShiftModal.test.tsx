@@ -4,12 +4,17 @@ import { AxiosError, AxiosHeaders } from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { pumpApi } from '../../api/pumpApi'
 import { shiftApi } from '../../api/shiftApi'
+import { userApi } from '../../api/userApi'
+import type { StaffMember } from '../../api/userApi'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import type { Shift } from '../../types/shift'
 import CloseShiftModal from './CloseShiftModal'
 
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn() } }))
-vi.mock('../../api/shiftApi', () => ({ shiftApi: { closeShift: vi.fn(), voidCreditEntry: vi.fn(), getShift: vi.fn() } }))
+vi.mock('../../api/shiftApi', () => ({
+  shiftApi: { closeShift: vi.fn(), createHandover: vi.fn(), voidCreditEntry: vi.fn(), getShift: vi.fn() },
+}))
+vi.mock('../../api/userApi', () => ({ userApi: { getOperators: vi.fn() } }))
 
 const shift: Shift = {
   id: 11, pumpId: 3, duId: 5, duNumber: 1, duName: 'DU 1',
@@ -27,6 +32,13 @@ const shift: Shift = {
   status: 'OPEN', isBackfilled: false, creditEntries: [],
 }
 
+function operator(id: number, fullName: string): StaffMember {
+  return {
+    id, employeeId: `E${id}`, fullName, phoneNumber: null, gender: null, nightShiftConsent: false, role: 'OPERATOR',
+    assignedPumpId: 3, status: 'ACTIVE', dailyRate: null, shift1HourlyRate: null, standardHourlyRate: null,
+  }
+}
+
 async function fillShift(cash: string) {
   const user = userEvent.setup()
   renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
@@ -40,6 +52,41 @@ describe('CloseShiftModal', () => {
     vi.mocked(pumpApi.getCreditClients).mockResolvedValue([])
     vi.mocked(shiftApi.closeShift).mockResolvedValue({} as never)
     vi.mocked(shiftApi.getShift).mockResolvedValue(shift)
+    vi.mocked(shiftApi.createHandover).mockResolvedValue({} as never)
+    vi.mocked(userApi.getOperators).mockResolvedValue([operator(9, 'Ravi'), operator(12, 'Sita'), operator(13, 'Busy Bala')])
+  })
+
+  it('hands the shift over by closing it with the entered readings and payments for the chosen operator', async () => {
+    const user = userEvent.setup()
+    const busyShift = { ...shift, id: 99, operatorId: 13 }
+    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} handoverActiveShifts={[shift, busyShift]} />)
+
+    expect(screen.getByRole('dialog', { name: 'Hand Over Shift' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /Sita/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Ravi/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Busy Bala/ })).not.toBeInTheDocument()
+
+    await user.type(screen.getByPlaceholderText('Enter end reading'), '1010')
+    await user.type(screen.getByLabelText('Cash (₹)'), '1000')
+    expect(screen.getByRole('button', { name: 'Choose the incoming operator to continue' })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: /Sita/ }))
+    await user.click(screen.getByLabelText('Cash counted with the incoming operator'))
+    await user.type(screen.getByLabelText('Handover notes (optional)'), 'Lunch break')
+    await user.click(screen.getByRole('button', { name: 'Close & Hand Over — Balanced' }))
+
+    expect(shiftApi.closeShift).not.toHaveBeenCalled()
+    expect(shiftApi.createHandover).toHaveBeenCalledWith(3, {
+      outgoingShiftId: 11,
+      incomingOperatorId: 12,
+      physicalCashVerified: true,
+      meterReadingsVerified: false,
+      notes: 'Lunch break',
+      closing: expect.objectContaining({
+        fuelReadings: [{ nozzleId: 21, endReading: 1010 }],
+        cashCollected: 1000,
+      }),
+    })
   })
 
   it('shows a credit entry added while the modal is open and the reason a close is refused', async () => {

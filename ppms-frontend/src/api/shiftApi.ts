@@ -1,6 +1,8 @@
 import client from './client'
 import type { SpringPage } from '../types/paged'
-import type { Shift, OpenShiftRequest, CloseShiftRequest, CreditEntryInput, BackfillShiftRequest } from '../types/shift'
+import type {
+  Shift, OpenShiftRequest, CloseShiftRequest, CreditEntryInput, BackfillShiftRequest, CreateHandoverRequest, HandoverResponse,
+} from '../types/shift'
 
 export type { CreditEntryInput }
 
@@ -57,6 +59,9 @@ export const shiftApi = {
 
   closeShift: (pumpId: number, shiftId: number, request: CloseShiftRequest) =>
     client.post<Shift>(`/pumps/${pumpId}/shifts/${shiftId}/close`, request).then((r) => r.data),
+
+  createHandover: (pumpId: number, request: CreateHandoverRequest) =>
+    client.post<HandoverResponse>(`/pumps/${pumpId}/handovers`, request).then((r) => r.data),
 
   resolveDiscrepancy: (pumpId: number, shiftId: number, req: ResolveDiscrepancyRequest) =>
     client.patch<Shift>(`/pumps/${pumpId}/shifts/${shiftId}/discrepancy-resolution`, req).then((r) => r.data),

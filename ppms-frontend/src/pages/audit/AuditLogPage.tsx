@@ -35,6 +35,7 @@ const ACTION_STYLES: Partial<Record<AuditAction, string>> = {
   // Inventory
   DELIVERY_RECORDED:          'bg-indigo-100 text-indigo-700',
   DIP_CHECK_RECORDED:         'bg-indigo-100 text-indigo-700',
+  LOT_COST_CORRECTED:         'bg-amber-100 text-amber-700',
   // Documents / Expenses
   DOCUMENT_ADDED:             'bg-slate-100 text-slate-700',
   EXPENSE_RECORDED:           'bg-rose-100 text-rose-700',

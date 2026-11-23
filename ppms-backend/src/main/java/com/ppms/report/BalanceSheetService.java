@@ -87,6 +87,14 @@ public class BalanceSheetService {
             rejectDuplicateSheet(pumpId, reportDate, shiftDef);
         }
 
+        List<Shift> openShifts = shiftDef != null
+                ? shiftRepository.findOpenShiftsByDefinition(pumpId, reportDate, shiftDef.getId())
+                : shiftRepository.findOpenShiftsByDate(pumpId, reportDate);
+        boolean isLiveSheet = reportDate.equals(businessClock.today());
+        if (!openShifts.isEmpty() && !isLiveSheet) {
+            throw new BusinessException(describeOpenShifts(reportDate, openShifts));
+        }
+
         List<Shift> shifts = findClosedShiftsForReport(pumpId, reportDate, shiftDef);
         List<Long> shiftIds = shifts.stream().map(Shift::getId).toList();
 
@@ -135,7 +143,7 @@ public class BalanceSheetService {
         BalanceSheet bs = balanceSheetRepository.save(buildSheet(pumpId, req, shiftDef, generatedBy,
                 buildPeriodLabel(req, pumpId, shiftDef, period),
                 shifts, fuelSales, costOfGoods, deliveries, recoveries.creditRecovered(), recoveries.cashRecovery(),
-                dipLosses, dipNetAmount, productSalesSummary, expenseSummary));
+                dipLosses, dipNetAmount, productSalesSummary, expenseSummary, openShifts.size()));
 
         List<BsFuelLine> fuelLines = BalanceSheetFuelLineBuilder.build(bs.getId(), fuelSales, costOfGoods, deliveries,
                 stock, dipLosses, priceMap, creditByFuel, dipVarianceByFuel);
@@ -200,6 +208,18 @@ public class BalanceSheetService {
         return shifts;
     }
 
+    private String describeOpenShifts(LocalDate reportDate, List<Shift> openShifts) {
+        Map<Long, String> operatorNames = userRepository
+                .findAllById(openShifts.stream().map(Shift::getOperatorId).collect(Collectors.toSet())).stream()
+                .collect(Collectors.toMap(User::getId, User::getFullName));
+        String listed = openShifts.stream()
+                .map(shift -> "Shift #" + shift.getId() + " (" + operatorNames.getOrDefault(shift.getOperatorId(), "Unknown") +
+                        ", " + shift.getStatus() + ")")
+                .collect(Collectors.joining(", "));
+        return "The balance sheet for " + reportDate + " cannot be generated while " + openShifts.size() +
+                " shift(s) of that day are still open: " + listed + ". Close them first.";
+    }
+
 
 
 
@@ -214,7 +234,8 @@ public class BalanceSheetService {
                                     BigDecimal creditRecovered, BigDecimal totalCashRecovery,
                                     DipLosses dipLosses, BigDecimal dipNetAmount,
                                     BalanceSheetDetailResponse.ProductSalesSummary productSalesSummary,
-                                    BalanceSheetDetailResponse.ExpenseSummary expenseSummary) {
+                                    BalanceSheetDetailResponse.ExpenseSummary expenseSummary,
+                                    int openShiftCount) {
         BigDecimal totalCash      = sumShiftAmounts(shifts, Shift::getCashCollected);
         BigDecimal totalUpi       = sumShiftAmounts(shifts, Shift::getUpiCollected);
         BigDecimal totalCard      = sumShiftAmounts(shifts, Shift::getCardCollected);
@@ -259,6 +280,7 @@ public class BalanceSheetService {
                         ? supportService.orZero(productSalesSummary.getGrossProfit()) : BigDecimal.ZERO)
                 .totalExpensesAmount(expenseSummary != null
                         ? supportService.orZero(expenseSummary.getTotalAmount()) : BigDecimal.ZERO)
+                .openShiftCount(openShiftCount)
                 .build();
     }
 
@@ -382,6 +404,9 @@ public class BalanceSheetService {
                     .generatedByUserName(userName)
                     .generatedAt(bs.getGeneratedAt())
                     .shiftCount(shiftCount)
+                    .stale(bs.isStale())
+                    .staleReason(bs.getStaleReason())
+                    .openShiftCount(bs.getOpenShiftCount())
                     .totalLitresSold(bs.getTotalLitresSold())
                     .totalExpectedRevenue(bs.getTotalExpectedRevenue())
                     .totalGrossProfit(bs.getTotalGrossProfit())
@@ -447,6 +472,34 @@ public class BalanceSheetService {
                 .orElseThrow(() -> new ResourceNotFoundException("Balance sheet not found"));
         balanceSheetRepository.delete(bs);
         log.info("Balance sheet deleted: id={}, pump={}", id, pumpId);
+    }
+
+    /**
+     * Replaces a saved sheet with a freshly generated one for the same day, type, shift and notes.
+     * The old sheet is kept if the new one cannot be generated, e.g. while that day still has open shifts.
+     */
+    @Transactional
+    public BalanceSheetDetailResponse regenerate(Long pumpId, Long id, User regeneratedBy) {
+        BalanceSheet old = balanceSheetRepository.findById(id)
+                .filter(found -> found.getPumpId().equals(pumpId))
+                .orElseThrow(() -> new ResourceNotFoundException("Balance sheet not found"));
+
+        GenerateBalanceSheetRequest request = new GenerateBalanceSheetRequest();
+        request.setReportType(old.getReportType());
+        request.setReportDate(old.getReportDate());
+        request.setShiftDefinitionId(old.getShiftDefinitionId());
+        request.setNotes(old.getNotes());
+
+        balanceSheetRepository.delete(old);
+        balanceSheetRepository.flush();
+        boolean otherRevisionsRemain = old.getShiftDefinitionId() != null
+                ? balanceSheetRepository.countByPumpIdAndReportDateAndShiftDefinitionId(pumpId, old.getReportDate(), old.getShiftDefinitionId()) > 0
+                : balanceSheetRepository.countByPumpIdAndReportDateAndReportType(pumpId, old.getReportDate(), BalanceSheetReportType.DAY) > 0;
+        request.setForceRegenerate(otherRevisionsRemain);
+
+        BalanceSheetDetailResponse regenerated = generate(pumpId, request, regeneratedBy);
+        log.info("Balance sheet regenerated: pump={}, oldId={}, newId={}, by={}", pumpId, id, regenerated.getId(), regeneratedBy.getId());
+        return regenerated;
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

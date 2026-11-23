@@ -144,6 +144,32 @@ export interface CloseShiftRequest {
   discrepancyReason?: string
 }
 
+export interface CreateHandoverRequest {
+  outgoingShiftId: number
+  incomingOperatorId: number
+  physicalCashVerified: boolean
+  meterReadingsVerified: boolean
+  notes?: string
+  closing: CloseShiftRequest
+}
+
+export interface HandoverResponse {
+  id: number
+  pumpId: number
+  outgoingShiftId: number
+  outgoingOperatorId: number
+  outgoingOperatorName: string
+  incomingOperatorId: number
+  incomingOperatorName: string
+  incomingShiftId: number
+  outgoingShiftStatus: ShiftStatus
+  physicalCashVerified: boolean
+  meterReadingsVerified: boolean
+  notes: string | null
+  handoverTime: string
+  createdAt: string
+}
+
 export interface BackfillNozzleReading {
   nozzleId: number
   openingReading: number

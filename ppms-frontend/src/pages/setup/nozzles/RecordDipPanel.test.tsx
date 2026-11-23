@@ -5,6 +5,7 @@ import { dipApi } from '../../../api/dipApi'
 import type { TankInfo } from '../../../api/pumpApi'
 import { renderWithProviders } from '../../../test/renderWithProviders'
 import type { NozzleDetail } from '../../../types/shift'
+import { localDateInputValue } from '../../../utils/date'
 import { RecordDipPanel } from './RecordDipPanel'
 
 vi.mock('../../../api/dipApi', () => ({ dipApi: { recordDip: vi.fn() } }))
@@ -34,7 +35,15 @@ describe('RecordDipPanel', () => {
 
     await fillDrain('12.5')
 
-    expect(dipApi.recordDip).toHaveBeenCalledWith(6, 4, 12.5, 'Filter cleaning', undefined)
+    expect(dipApi.recordDip).toHaveBeenCalledWith(6, 4, 12.5, 'Filter cleaning', localDateInputValue())
+  })
+
+  it('locks the drain date to today', () => {
+    renderWithProviders(<RecordDipPanel pumpId={6} nozzle={nozzle} tank={tank} onClose={vi.fn()} />)
+
+    const dateInput = screen.getByLabelText(/^Date/)
+    expect(dateInput).toHaveValue(localDateInputValue())
+    expect(dateInput).toHaveAttribute('readonly')
   })
 
   it('refuses to drain more than the tank holds', async () => {

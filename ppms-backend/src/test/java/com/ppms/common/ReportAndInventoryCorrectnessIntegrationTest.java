@@ -187,7 +187,7 @@ class ReportAndInventoryCorrectnessIntegrationTest {
 
         BalanceSheetDetailResponse reopened = balanceSheetService.getById(pump.getId(), generated.getId());
 
-        assertThat(generated.getTotalDipNetAmount()).isEqualByComparingTo("-1000.00");
+        assertThat(generated.getTotalDipNetAmount()).isEqualByComparingTo("-900.00");
         assertThat(reopened.getTotalDipNetAmount()).isEqualByComparingTo(generated.getTotalDipNetAmount());
         assertThat(reopened.getTotalNetProfit()).isEqualByComparingTo(generated.getTotalNetProfit());
         assertThat(reopened.isLinesChangedSinceGenerated()).isTrue();

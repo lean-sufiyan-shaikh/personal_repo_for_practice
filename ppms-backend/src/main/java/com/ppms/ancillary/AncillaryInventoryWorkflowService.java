@@ -12,6 +12,7 @@ import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditClientRepository;
 import com.ppms.invoice.GstFields;
+import com.ppms.report.BalanceSheetStalenessService;
 import com.ppms.transaction.TransactionPaymentMode;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
@@ -27,6 +28,8 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -45,6 +48,7 @@ public class AncillaryInventoryWorkflowService {
     private final CreditAccountPolicyService creditAccountPolicyService;
     private final AuditService auditService;
     private final BusinessClock businessClock;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
 
     @Transactional
     public AncillaryProduct createProduct(Long pumpId, CreateProductRequest request) {
@@ -233,7 +237,7 @@ public class AncillaryInventoryWorkflowService {
     }
 
     @Transactional
-    public LotCorrectionResult updateLot(Long pumpId, Long lotId, UpdateLotRequest request) {
+    public LotCorrectionResult updateLot(Long pumpId, Long lotId, UpdateLotRequest request, User currentUser) {
         AncillaryProduct product = accessService.requireProductForPumpForUpdate(
                 accessService.requireProductIdOfLot(lotId, pumpId), pumpId);
         AncillaryStockLot lot = accessService.requireLotForPump(lotId, pumpId);
@@ -258,7 +262,12 @@ public class AncillaryInventoryWorkflowService {
             if (request.getCostPricePerUnit().compareTo(BigDecimal.ZERO) <= 0) {
                 throw new BusinessException("Cost price must be greater than 0.");
             }
-            lot.setCostPricePerUnit(request.getCostPricePerUnit().setScale(2, RoundingMode.HALF_UP));
+            BigDecimal oldCost = lot.getCostPricePerUnit();
+            BigDecimal newCost = request.getCostPricePerUnit().setScale(2, RoundingMode.HALF_UP);
+            lot.setCostPricePerUnit(newCost);
+            if (newCost.compareTo(oldCost) != 0) {
+                recostSoldUnits(pumpId, product, lot, oldCost, newCost, currentUser);
+            }
         }
 
         AncillaryStockLot savedLot = lotRepository.save(lot);
@@ -267,6 +276,29 @@ public class AncillaryInventoryWorkflowService {
                 .lot(savedLot)
                 .delivery(delivery)
                 .build();
+    }
+
+    /** Units already sold from the lot take the corrected cost, so product profit on those days is right. */
+    private void recostSoldUnits(Long pumpId, AncillaryProduct product, AncillaryStockLot lot,
+                                 BigDecimal oldCost, BigDecimal newCost, User currentUser) {
+        List<AncillaryLotConsumption> consumptions = consumptionRepository.findByLotId(lot.getId());
+        consumptions.forEach(consumption -> consumption.setCostPricePerUnit(newCost));
+        consumptionRepository.saveAll(consumptions);
+
+        int unitsRecosted = consumptions.stream().mapToInt(AncillaryLotConsumption::getQuantityConsumed).sum();
+        Set<LocalDate> saleDates = saleRepository.findAllById(
+                        consumptions.stream().map(AncillaryLotConsumption::getSaleId).collect(Collectors.toSet()))
+                .stream().map(AncillarySale::getSaleDate).collect(Collectors.toSet());
+        balanceSheetStalenessService.markDaySheetsStale(pumpId, saleDates,
+                "The purchase cost of '" + product.getName() + "' was corrected from ₹" + oldCost + " to ₹" + newCost +
+                " after this sheet was generated.");
+
+        log.info("Ancillary lot re-costed: pump={}, lot={}, cost {} -> {}, unitsRecosted={}, days={}",
+                pumpId, lot.getId(), oldCost, newCost, unitsRecosted, saleDates.size());
+        auditService.log(pumpId, AuditAction.LOT_COST_CORRECTED, "AncillaryStockLot", lot.getId().toString(),
+                "Cost of '" + product.getName() + "' lot corrected ₹" + oldCost + " → ₹" + newCost + " per unit; " +
+                unitsRecosted + " unit(s) already sold re-costed",
+                currentUser);
     }
 
     /**

@@ -44,6 +44,7 @@ public enum AuditAction {
     // ── Inventory ─────────────────────────────────────────────────────────────
     DELIVERY_RECORDED,
     DELIVERY_UPDATED,
+    LOT_COST_CORRECTED,
     DELIVERY_DELETED,
     DIP_CHECK_RECORDED,
 

@@ -22,6 +22,12 @@ public class BalanceSheetDetailResponse {
     private OffsetDateTime generatedAt;
     private String   notes;
 
+    /** Something the sheet summarises changed after generation; regenerate to refresh it. */
+    private boolean  stale;
+    private String   staleReason;
+    /** Shifts of the report date still open when this live sheet for today was generated. */
+    private int      openShiftCount;
+
     /**
      * Distinct shift definition names included in this report (DAY reports only).
      * Derived from the shiftName snapshot stored on each Shift at open time.

@@ -4,7 +4,7 @@ import { calibrationApi } from '../../api/calibrationApi'
 import type { LogCalibrationRequest } from '../../api/calibrationApi'
 import type { NozzleDetail } from '../../types/shift'
 import { SearchableSelect } from '../../components/SearchableSelect'
-import { localDateInputValue } from '../../utils/date'
+import { addDays, localDateInputValue } from '../../utils/date'
 import { Reveal } from '../../components/Reveal'
 import { Spinner } from '../../components/Spinner'
 import { useToastStore } from '../../store/toastStore'
@@ -17,6 +17,15 @@ interface CalibrationFormProps {
   pumpId: number | null
   nozzles: NozzleDetail[]
   onRecorded: (nozzleId: number) => void
+}
+
+function missingDetailError(form: LogCalibrationRequest): string | null {
+  if (!form.calibratedBy?.trim()) return 'Calibrated By is required'
+  if (!form.calibrationDate) return 'Calibration date is required'
+  if (!form.nextCalibrationDue) return 'Next calibration due date is required'
+  if (form.nextCalibrationDue <= form.calibrationDate) return 'Next calibration due date must be after the calibration date'
+  if (!form.certificateReference?.trim()) return 'Certificate reference is required'
+  return null
 }
 
 export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationFormProps) {
@@ -54,8 +63,8 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedNozzleId) { setFormError('Please select a nozzle'); return }
-    if (!form.calibratedBy?.trim()) { setFormError('Calibrated By is required'); return }
-    if (!form.calibrationDate) { setFormError('Calibration date is required'); return }
+    const detailError = missingDetailError(form)
+    if (detailError) { setFormError(detailError); return }
     setFormError(null)
     setReviewOpen(true)
   }
@@ -67,14 +76,15 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
       setFormError('Please select a nozzle')
       return
     }
-    if (!form.calibratedBy?.trim()) {
-      setFormError('Calibrated By is required')
+    const detailError = missingDetailError(form)
+    if (detailError) {
+      setFormError(detailError)
       return
     }
     createMutation.mutate({
       ...form,
-      calibratedBy: form.calibratedBy.trim(),
-      certificateReference: form.certificateReference?.trim() || null,
+      calibratedBy: form.calibratedBy?.trim() ?? null,
+      certificateReference: form.certificateReference?.trim() ?? null,
       notes: form.notes?.trim() || null,
     })
   }
@@ -88,7 +98,7 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
           <div>
             <p className="ui-section-kicker mb-2">Calibration Entry</p>
             <h2 className="ui-title-sm">Record calibration</h2>
-            <p className="ui-subtitle mt-1">Attach the calibration date, technician, and next due date for compliance history.</p>
+            <p className="ui-subtitle mt-1">Attach the calibration date, technician, certificate and next due date for compliance history.</p>
           </div>
         </div>
 
@@ -121,10 +131,11 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
 
           <div>
             <label className="block">
-              <span className="ui-label">Next Calibration Due (optional)</span>
+              <span className="ui-label">Next Calibration Due *</span>
               <input
                 type="date"
                 value={form.nextCalibrationDue ?? ''}
+                min={form.calibrationDate ? addDays(form.calibrationDate, 1) : undefined}
                 onChange={e => setForm(f => ({ ...f, nextCalibrationDue: e.target.value || null }))}
                 className="text-sm"
               />
@@ -146,7 +157,7 @@ export function CalibrationForm({ pumpId, nozzles, onRecorded }: CalibrationForm
 
           <div>
             <label className="block">
-              <span className="ui-label">Certificate Reference (optional)</span>
+              <span className="ui-label">Certificate Reference *</span>
               <input
                 type="text"
                 value={form.certificateReference ?? ''}

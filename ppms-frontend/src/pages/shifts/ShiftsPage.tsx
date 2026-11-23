@@ -37,6 +37,7 @@ export default function ShiftsPage() {
   const [showOpenModal,     setShowOpenModal]     = useState(false)
   const [showBackfillModal, setShowBackfillModal] = useState(false)
   const [shiftToClose,      setShiftToClose]      = useState<Shift | null>(null)
+  const [shiftToHandOver,   setShiftToHandOver]   = useState<Shift | null>(null)
   const [shiftIdForCredit,  setShiftIdForCredit]  = useState<number | null>(null)
   const [historyOpen,    setHistoryOpen]    = useState(true)
   const [historyTab,     setHistoryTab]     = useState<'day' | 'all' | 'discrepancies'>('day')
@@ -178,6 +179,7 @@ export default function ShiftsPage() {
                         key={shift.id}
                         shift={shift}
                         onClose={canCloseShift ? () => setShiftToClose(shift) : undefined}
+                        onHandOver={canCloseShift ? () => setShiftToHandOver(shift) : undefined}
                         onAddCredit={() => setShiftIdForCredit(shift.id)}
                       />
                     ))}
@@ -248,6 +250,13 @@ export default function ShiftsPage() {
           shift={shiftToClose}
           onClose={() => setShiftToClose(null)}
           onShiftClosed={(duId, nozzleIds) => setClosedShiftPrefill({ duId, nozzleIds })}
+        />
+      )}
+      {shiftToHandOver && (
+        <CloseShiftModal
+          shift={shiftToHandOver}
+          onClose={() => setShiftToHandOver(null)}
+          handoverActiveShifts={activeShifts}
         />
       )}
       {closedShiftPrefill && !showOpenModal && (

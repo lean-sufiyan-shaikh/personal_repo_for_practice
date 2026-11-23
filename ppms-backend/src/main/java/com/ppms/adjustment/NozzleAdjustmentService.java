@@ -10,6 +10,7 @@ import com.ppms.inventory.TankLotConsumptionService;
 import com.ppms.pump.Nozzle;
 import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
+import com.ppms.report.BalanceSheetStalenessService;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class NozzleAdjustmentService {
     private final UndergroundTankRepository tankRepository;
     private final TankLotConsumptionService tankLotConsumptionService;
     private final LotConsumptionRepository lotConsumptionRepository;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
 
     // ── Meter reading adjustment ──────────────────────────────────────────────
 
@@ -95,13 +97,20 @@ public class NozzleAdjustmentService {
      * them as a loss again. The monetary loss is the purchase cost of those lots and is subtracted from gross
      * profit when generating balance sheets for the dip_date.
      *
-     * Can be recorded at any time (no shift state dependency) by Admin/Owner.
+     * Only today's drain can be recorded, since it reduces today's stock; no shift state dependency.
      */
     @Transactional
     public FuelDipEntry recordDip(Long pumpId, RecordDipRequest req, User currentUser) {
         UndergroundTank tank = tankRepository.findByIdForUpdate(req.getTankId())
                 .filter(found -> found.getPumpId().equals(pumpId))
                 .orElseThrow(() -> new ResourceNotFoundException("Tank not found"));
+
+        LocalDate dipDate = businessClock.today();
+        if (req.getDipDate() != null && !req.getDipDate().equals(dipDate)) {
+            throw new BusinessException(
+                    "A drain can only be recorded for today (" + dipDate + "). It takes the fuel out of today's tank " +
+                    "stock, so one dated " + req.getDipDate() + " would put the loss on the wrong day.");
+        }
 
         BigDecimal litresRemoved = req.getLitresRemoved().setScale(3, RoundingMode.HALF_UP);
         BigDecimal stock = tank.getCurrentStock() != null ? tank.getCurrentStock() : BigDecimal.ZERO;
@@ -118,7 +127,6 @@ public class NozzleAdjustmentService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal monetaryLoss = lotCost.setScale(2, RoundingMode.HALF_UP);
         BigDecimal costPerLitre = lotCost.divide(litresRemoved, 3, RoundingMode.HALF_UP);
-        LocalDate  dipDate      = req.getDipDate() != null ? req.getDipDate() : businessClock.today();
 
         tank.setCurrentStock(stock.subtract(litresRemoved).setScale(3, RoundingMode.HALF_UP));
         tankRepository.save(tank);
@@ -136,6 +144,8 @@ public class NozzleAdjustmentService {
                 .build());
         draws.forEach(draw -> draw.setFuelDipEntryId(saved.getId()));
         lotConsumptionRepository.saveAll(draws);
+        balanceSheetStalenessService.markAllSheetsStale(pumpId, List.of(dipDate),
+                "A drain of " + litresRemoved + " L was recorded after this sheet was generated.");
 
         log.info("Fuel dip recorded: pump={}, tank={}, fuel={}, litres={}, loss={}, date={}, by={}",
                 pumpId, tank.getId(), tank.getFuelType(), litresRemoved, monetaryLoss, dipDate, currentUser.getId());

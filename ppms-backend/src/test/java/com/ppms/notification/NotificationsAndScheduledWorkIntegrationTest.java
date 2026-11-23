@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +61,42 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().is2xxSuccessful());
 
         assertThat(notificationIds(setup.operator())).doesNotContain(lowStockIds.get(0));
+    }
+
+    @Test
+    void calibrationDueWithinAWeekAlertsOnceBeforeShiftsAreBlocked() throws Exception {
+        perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations", setup.pumpId(), setup.nozzle().getId()),
+                setup.owner(), Map.of("calibrationDate", TestDates.today().minusYears(1).toString(),
+                        "nextCalibrationDue", TestDates.today().plusDays(3).toString(),
+                        "calibratedBy", "Weights Dept", "certificateReference", "LM-2025-118"))
+                .andExpect(status().is2xxSuccessful());
+
+        notificationService.generateNotificationsForPump(setup.pumpId());
+        notificationService.generateNotificationsForPump(setup.pumpId());
+
+        List<Notification> dueSoon = notificationRepository.findAll().stream()
+                .filter(notification -> notification.getPumpId().equals(setup.pumpId()))
+                .filter(notification -> notification.getType() == NotificationType.CALIBRATION_DUE_SOON)
+                .toList();
+        assertThat(dueSoon).hasSize(1);
+        assertThat(dueSoon.get(0).getMessage()).contains("Nozzle #1", TestDates.today().plusDays(3).toString());
+        assertThat(notificationRepository.findAll()).noneMatch(notification ->
+                notification.getPumpId().equals(setup.pumpId()) && notification.getType() == NotificationType.CALIBRATION_DUE);
+    }
+
+    @Test
+    void calibrationDueLaterThanAWeekDoesNotAlertYet() throws Exception {
+        perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations", setup.pumpId(), setup.nozzle().getId()),
+                setup.owner(), Map.of("calibrationDate", TestDates.today().toString(),
+                        "nextCalibrationDue", TestDates.today().plusDays(8).toString(),
+                        "calibratedBy", "Weights Dept", "certificateReference", "LM-2026-007"))
+                .andExpect(status().is2xxSuccessful());
+
+        notificationService.generateNotificationsForPump(setup.pumpId());
+
+        assertThat(notificationRepository.findAll()).noneMatch(notification ->
+                notification.getPumpId().equals(setup.pumpId())
+                        && notification.getType() == NotificationType.CALIBRATION_DUE_SOON);
     }
 
     @Test
@@ -142,7 +179,8 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
         User incoming = saveUser(UserRole.OPERATOR, setup.pumpId());
 
         perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.manager(),
-                Map.of("outgoingShiftId", shiftId, "incomingOperatorId", incoming.getId(), "notes", "Lunch break"))
+                Map.of("outgoingShiftId", shiftId, "incomingOperatorId", incoming.getId(), "notes", "Lunch break",
+                        "closing", balancedClosing()))
                 .andExpect(status().is2xxSuccessful());
 
         JsonNode handovers = json(perform(get("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.manager())
@@ -161,18 +199,24 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void onlyTheShiftsOwnOperatorOrAManagerCanHandItOver() throws Exception {
+    void onlyAManagerOrAboveCanHandAShiftOverBecauseItClosesTheShift() throws Exception {
         long shiftId = openShift(setup.operator());
         User incoming = saveUser(UserRole.OPERATOR, setup.pumpId());
-        User otherOperator = saveUser(UserRole.OPERATOR, setup.pumpId());
-        Map<String, Object> handover = Map.of("outgoingShiftId", shiftId, "incomingOperatorId", incoming.getId());
+        Map<String, Object> handover = Map.of("outgoingShiftId", shiftId, "incomingOperatorId", incoming.getId(),
+                "closing", balancedClosing());
 
-        perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), otherOperator, handover)
+        perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.operator(), handover)
                 .andExpect(status().isForbidden());
         perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.accountant(), handover)
                 .andExpect(status().isForbidden());
-        perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.operator(), handover)
+        perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.manager(), handover)
                 .andExpect(status().is2xxSuccessful());
+    }
+
+    private Map<String, Object> balancedClosing() {
+        return Map.of("fuelReadings", List.of(Map.of("nozzleId", setup.nozzle().getId(), "endReading", new BigDecimal("1000.000"))),
+                "cashCollected", BigDecimal.ZERO, "upiCollected", BigDecimal.ZERO, "cardCollected", BigDecimal.ZERO,
+                "fleetCardCollected", BigDecimal.ZERO, "creditTotal", BigDecimal.ZERO);
     }
 
     private long insertNotification(NotificationType type) {

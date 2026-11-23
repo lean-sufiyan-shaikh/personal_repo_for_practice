@@ -14,6 +14,7 @@ import com.ppms.pump.Nozzle;
 import com.ppms.pump.NozzleRepository;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.pump.PumpShiftDefinition;
+import com.ppms.report.BalanceSheetStalenessService;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
@@ -64,6 +65,7 @@ public class ShiftService {
     private final ShiftFuelDeductionService fuelDeductionService;
     private final BusinessClock businessClock;
     private final InvoicedSaleGuard invoicedSaleGuard;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
 
     /**
      * Opens a new shift for selected nozzles on a Dispensary Unit.
@@ -114,6 +116,41 @@ public class ShiftService {
                 .isOverdueFlag(false)
                 .build();
 
+        return startShift(shift, du, nozzles, operator, currentUser);
+    }
+
+    /**
+     * Opens the incoming operator's shift after a handover closed the outgoing one: same nozzles, shift window and
+     * business date, starting when the outgoing shift ended, from the readings it closed with.
+     */
+    @Transactional
+    public ShiftResponse openShiftForHandover(Shift closedShift, User incomingOperator, User currentUser) {
+        List<Nozzle> nozzles = nozzleRepository.findAllById(shiftNozzleRepository.findNozzleIdsByShiftId(closedShift.getId()));
+        DispensaryUnit du = duRepository.findById(closedShift.getDuId())
+                .orElseThrow(() -> new ResourceNotFoundException("Dispensary Unit not found: " + closedShift.getDuId()));
+        nozzles.forEach(lifecycleSupportService::rejectExpiredCalibration);
+        lifecycleSupportService.rejectNightShiftWithoutConsent(
+                Boolean.TRUE.equals(closedShift.getIsNightShift()), incomingOperator);
+
+        Shift shift = Shift.builder()
+                .pumpId(closedShift.getPumpId())
+                .duId(closedShift.getDuId())
+                .operatorId(incomingOperator.getId())
+                .openedByUserId(currentUser.getId())
+                .shiftDefinitionId(closedShift.getShiftDefinitionId())
+                .shiftName(closedShift.getShiftName())
+                .isNightShift(closedShift.getIsNightShift())
+                .shiftDate(closedShift.getShiftDate())
+                .actualStartTime(closedShift.getActualEndTime())
+                .status(ShiftStatus.OPEN)
+                .isOverdueFlag(false)
+                .build();
+
+        return startShift(shift, du, nozzles, incomingOperator, currentUser);
+    }
+
+    private ShiftResponse startShift(Shift shift, DispensaryUnit du, List<Nozzle> nozzles, User operator, User currentUser) {
+        Long pumpId = shift.getPumpId();
         shift = shiftRepository.save(shift);
         final Long shiftId = shift.getId();
 
@@ -139,7 +176,7 @@ public class ShiftService {
         lifecycleSupportService.createOpeningReadings(shiftId, pumpId, nozzles);
 
         log.info("Shift {} opened: du={}, nozzles={}, operator={}, openedBy={}",
-                shiftId, du.getId(), request.getNozzleIds(), operator.getId(), currentUser.getId());
+                shiftId, du.getId(), nozzles.stream().map(Nozzle::getId).toList(), operator.getId(), currentUser.getId());
         shiftOpenedCounter.increment();
 
         shiftPlanningService.reconcileOnShiftOpen(
@@ -190,6 +227,8 @@ public class ShiftService {
         shift = shiftRepository.save(shift);
 
         activeNozzleRepository.deleteByShiftId(shiftId);
+        balanceSheetStalenessService.markSheetsOfShiftStale(shift.getPumpId(), shift.getShiftDate(),
+                shift.getShiftDefinitionId(), "Shift #" + shiftId + " was closed after this sheet was generated.");
 
         log.info("Shift {} closed: totalDue={}, totalCollected={}, discrepancy={}, status={}",
                 shiftId, closingSummary.getTotalDue(), closingSummary.getTotalCollected(),
@@ -383,6 +422,11 @@ public class ShiftService {
             shift.setCashRecoveryAmount(shift.getDiscrepancyAmount());
         }
         shift = shiftRepository.save(shift);
+        if (request.resolutionAction() == DiscrepancyResolution.CASH_RECOVERY) {
+            lifecycleSupportService.createCashRecoveryEvent(shift, currentUser);
+            balanceSheetStalenessService.markDaySheetsStale(shift.getPumpId(), List.of(businessClock.today()),
+                    "Cash was recovered for the shortage on Shift #" + shift.getId() + " after this sheet was generated.");
+        }
 
         log.info("Discrepancy resolved: shiftId={}, action={}, resolvedBy={}",
                 shiftId, request.resolutionAction(), currentUser.getId());

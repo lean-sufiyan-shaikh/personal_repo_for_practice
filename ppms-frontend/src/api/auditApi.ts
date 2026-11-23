@@ -26,6 +26,7 @@ export type AuditAction =
   // Inventory
   | 'DELIVERY_RECORDED'
   | 'DIP_CHECK_RECORDED'
+  | 'LOT_COST_CORRECTED'
   // Documents
   | 'DOCUMENT_ADDED'
   // Expenses

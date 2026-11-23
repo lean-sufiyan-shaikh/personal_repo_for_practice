@@ -6,7 +6,10 @@ import com.ppms.document.PumpDocument;
 import com.ppms.document.PumpDocumentRepository;
 import com.ppms.fuel.FuelType;
 import com.ppms.fuel.GlobalFuelPriceRepository;
+import com.ppms.pump.Nozzle;
+import com.ppms.pump.NozzleCalibrationLog;
 import com.ppms.pump.NozzleCalibrationLogRepository;
+import com.ppms.pump.NozzleRepository;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
@@ -37,12 +40,14 @@ class NotificationServiceTest {
     private final UndergroundTankRepository tankRepository = mock(UndergroundTankRepository.class);
     private final PumpDocumentRepository documentRepository = mock(PumpDocumentRepository.class);
     private final NotificationDedupService dedupService = mock(NotificationDedupService.class);
+    private final NozzleCalibrationLogRepository calibrationLogRepository = mock(NozzleCalibrationLogRepository.class);
+    private final NozzleRepository nozzleRepository = mock(NozzleRepository.class);
     private LocalDate today = LocalDate.of(2026, 3, 6);
 
     private final NotificationService notificationService = new NotificationService(
             mock(NotificationRepository.class), documentRepository, mock(GlobalFuelPriceRepository.class),
             mock(ShiftRepository.class), mock(AncillaryProductRepository.class), tankRepository,
-            mock(NozzleCalibrationLogRepository.class), dedupService, movableClock());
+            calibrationLogRepository, nozzleRepository, dedupService, movableClock());
 
     @Test
     void tankThatStaysLowAlertsAgainTheNextDay() {
@@ -76,6 +81,21 @@ class NotificationServiceTest {
                 "DOCUMENT_EXPIRING:doc:5:2026-03-16:SOON",
                 "DOCUMENT_EXPIRING:doc:5:2026-03-16:EXPIRED",
                 "DOCUMENT_EXPIRING:doc:5:2026-04-06:SOON");
+    }
+
+    @Test
+    void calibrationDueWithinSevenDaysAlertsWithOneKeyPerNozzleAndDueDate() {
+        LocalDate due = today.plusDays(7);
+        when(calibrationLogRepository.findCalibrationsDueBetween(PUMP_ID, today, today.plusDays(7)))
+                .thenReturn(List.of(NozzleCalibrationLog.builder().nozzleId(40L).nextCalibrationDue(due).build()));
+        when(nozzleRepository.findAllById(any())).thenReturn(List.of(Nozzle.builder().id(40L).nozzleNumber(2).build()));
+
+        notificationService.generateNotificationsForPump(PUMP_ID);
+
+        ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
+        verify(dedupService).maybeInsert(eq(PUMP_ID), eq(NotificationType.CALIBRATION_DUE_SOON),
+                eq("CALIBRATION_DUE_SOON:nozzle:40:2026-03-13"), eq("Nozzle Calibration Due Soon"), message.capture());
+        assertThat(message.getValue()).contains("Nozzle #2", "2026-03-13", "7 day(s) left");
     }
 
     private List<String> keysSentFor(NotificationType type) {

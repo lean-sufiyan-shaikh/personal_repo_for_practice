@@ -23,7 +23,7 @@ public class RecordDipRequest {
     @NotBlank(message = "reason is required")
     private String reason;
 
-    /** Defaults to today if not provided. */
+    /** Defaults to today; any other date is refused because the drain reduces today's stock. */
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate dipDate;
 }

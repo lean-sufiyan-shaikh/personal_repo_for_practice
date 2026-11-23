@@ -267,6 +267,30 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void correctingALotCostRecostsUnitsAlreadySoldAndMarksThatDaysSheetStale() throws Exception {
+        Long lotId = jdbcTemplate.queryForObject(
+                "SELECT id FROM ancillary_stock_lots WHERE product_id = ?", Long.class, productId);
+        long saleId = json(sell(4, "450.00").andExpect(status().is2xxSuccessful())).get("id").asLong();
+        jdbcTemplate.update("""
+                INSERT INTO balance_sheets (pump_id, report_type, report_date, period_label, generated_by_user_id, generated_at)
+                VALUES (?, 'DAY', ?, 'Day End', ?, NOW())
+                """, setup.pumpId(), TestDates.today(), setup.owner().getId());
+
+        perform(patch("/api/pumps/{pumpId}/ancillary/lots/{lotId}", setup.pumpId(), lotId), setup.owner(),
+                Map.of("costPricePerUnit", new BigDecimal("280.00")))
+                .andExpect(status().isOk());
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT cost_price_per_unit FROM ancillary_lot_consumptions WHERE sale_id = ?", BigDecimal.class, saleId))
+                .isEqualByComparingTo("280.00");
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT stale FROM balance_sheets WHERE pump_id = ?", Boolean.class, setup.pumpId())).isTrue();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT description FROM audit_logs WHERE pump_id = ? AND action = 'LOT_COST_CORRECTED'",
+                String.class, setup.pumpId())).contains("₹300.00 → ₹280.00", "4 unit(s)");
+    }
+
+    @Test
     void lotCannotHoldMoreThanWasDeliveredAndEmptyingItMarksItExhausted() throws Exception {
         Long lotId = jdbcTemplate.queryForObject(
                 "SELECT id FROM ancillary_stock_lots WHERE product_id = ?", Long.class, productId);

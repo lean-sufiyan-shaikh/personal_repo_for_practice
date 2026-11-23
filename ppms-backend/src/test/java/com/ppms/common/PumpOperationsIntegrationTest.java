@@ -34,7 +34,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.hamcrest.Matchers.containsString;
 
 class PumpOperationsIntegrationTest extends ApiIntegrationTest {
 
@@ -146,6 +148,22 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
 
         assertThat(json(perform(get("/api/pumps/{pumpId}/fuel-dips", setup.pumpId()), setup.owner())
                 .andExpect(status().isOk())).toString()).contains("Quality sample");
+    }
+
+    @Test
+    void backDatedDrainIsRefusedAndLeavesTheTankUntouched() throws Exception {
+        BigDecimal stockBefore = tankRepository.findById(setup.tank().getId()).orElseThrow().getCurrentStock();
+
+        perform(post("/api/pumps/{pumpId}/fuel-dips", setup.pumpId()), setup.owner(),
+                Map.of("tankId", setup.tank().getId(), "litresRemoved", new BigDecimal("2.5"), "reason", "Quality sample",
+                        "dipDate", TestDates.today().minusDays(1).toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("can only be recorded for today")));
+
+        assertThat(tankRepository.findById(setup.tank().getId()).orElseThrow().getCurrentStock())
+                .isEqualByComparingTo(stockBefore);
+        assertThat(json(perform(get("/api/pumps/{pumpId}/fuel-dips", setup.pumpId()), setup.owner())
+                .andExpect(status().isOk())).toString()).doesNotContain("Quality sample");
     }
 
     @Test

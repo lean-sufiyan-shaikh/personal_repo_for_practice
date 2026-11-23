@@ -28,6 +28,11 @@ export interface BalanceSheetSummary {
   totalExpectedRevenue: number
   totalGrossProfit: number
   cashDiscrepancy: number
+  /** True when a shift close, cash recovery, dip or cost correction changed this sheet's date after it was generated. */
+  stale: boolean
+  staleReason: string | null
+  /** Shifts of the period still open when today's live sheet was generated. */
+  openShiftCount: number
 }
 
 // ── Detail (single report view) ───────────────────────────────────────────────
@@ -188,6 +193,9 @@ export interface BalanceSheetDetail {
   settlementSummary: SettlementSummary | null
   /** Distinct shift definition names included in this DAY report. Null for SHIFT reports. */
   includedShiftNames: string[] | null
+  stale: boolean
+  staleReason: string | null
+  openShiftCount: number
 }
 
 // ── API ────────────────────────────────────────────────────────────────────────
@@ -205,6 +213,10 @@ export const balanceSheetApi = {
 
   getById: (pumpId: number, id: number) =>
     client.get<BalanceSheetDetail>(`/pumps/${pumpId}/balance-sheets/${id}`).then(r => r.data),
+
+  /** Replaces the sheet with a freshly generated one for the same period; the response carries the new id. */
+  regenerate: (pumpId: number, id: number) =>
+    client.post<BalanceSheetDetail>(`/pumps/${pumpId}/balance-sheets/${id}/regenerate`).then(r => r.data),
 
   delete: (pumpId: number, id: number) =>
     client.delete(`/pumps/${pumpId}/balance-sheets/${id}`).then(r => r.data),

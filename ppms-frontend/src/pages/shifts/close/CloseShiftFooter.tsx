@@ -6,10 +6,15 @@ interface Props {
   isBalanced: boolean
   reasonFilled: boolean
   isPending: boolean
+  isHandover?: boolean
+  incomingChosen?: boolean
   onCancel: () => void
 }
 
-export function CloseShiftFooter({ readingsComplete, paymentTouched, isBalanced, reasonFilled, isPending, onCancel }: Props) {
+export function CloseShiftFooter({
+  readingsComplete, paymentTouched, isBalanced, reasonFilled, isPending, isHandover = false, incomingChosen = true, onCancel,
+}: Props) {
+  const pendingLabel = isHandover ? 'Handing over...' : 'Closing...'
   return (
     <div className="ui-modal-footer flex-col-reverse sm:flex-row bg-slate-50/80">
       <button type="button" onClick={onCancel}
@@ -17,7 +22,12 @@ export function CloseShiftFooter({ readingsComplete, paymentTouched, isBalanced,
         Cancel
       </button>
       <div className="sm:flex-1 min-w-0">
-        {!readingsComplete || !paymentTouched ? (
+        {!incomingChosen ? (
+          <button type="submit" disabled
+            className="ui-btn w-full whitespace-normal bg-slate-100 text-slate-700 border-slate-300 cursor-not-allowed disabled:opacity-100">
+            Choose the incoming operator to continue
+          </button>
+        ) : !readingsComplete || !paymentTouched ? (
           <button type="submit" disabled
             className="ui-btn w-full whitespace-normal bg-slate-100 text-slate-700 border-slate-300 cursor-not-allowed disabled:opacity-100">
             Fill in readings &amp; payment to continue
@@ -25,12 +35,12 @@ export function CloseShiftFooter({ readingsComplete, paymentTouched, isBalanced,
         ) : isBalanced ? (
           <button type="submit" disabled={isPending}
             className="ui-btn w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white">
-            {isPending ? 'Closing...' : <span className="inline-flex items-center gap-1.5"><Check size={14} strokeWidth={2.5} />Close Shift — Balanced</span>}
+            {isPending ? pendingLabel : <span className="inline-flex items-center gap-1.5"><Check size={14} strokeWidth={2.5} />{isHandover ? 'Close & Hand Over — Balanced' : 'Close Shift — Balanced'}</span>}
           </button>
         ) : reasonFilled ? (
           <button type="submit" disabled={isPending}
             className="ui-btn w-full bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white">
-            {isPending ? 'Closing...' : <span className="inline-flex items-center gap-1.5"><AlertTriangle size={14} strokeWidth={2} />Close with Discrepancy</span>}
+            {isPending ? pendingLabel : <span className="inline-flex items-center gap-1.5"><AlertTriangle size={14} strokeWidth={2} />{isHandover ? 'Close & Hand Over with Discrepancy' : 'Close with Discrepancy'}</span>}
           </button>
         ) : (
           <button type="submit" disabled

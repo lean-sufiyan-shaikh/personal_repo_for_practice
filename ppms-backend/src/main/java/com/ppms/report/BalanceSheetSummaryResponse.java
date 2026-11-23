@@ -18,6 +18,9 @@ public class BalanceSheetSummaryResponse {
     private String   generatedByUserName;
     private OffsetDateTime generatedAt;
     private int      shiftCount;      // number of shifts included
+    private boolean  stale;
+    private String   staleReason;
+    private int      openShiftCount;
 
     // Quick summary numbers for the list view
     private BigDecimal totalLitresSold;

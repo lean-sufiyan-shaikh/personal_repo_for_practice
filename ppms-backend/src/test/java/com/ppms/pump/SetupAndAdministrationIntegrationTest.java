@@ -193,12 +193,34 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
     @Test
     void calibrationIsLoggedPerNozzleAndListedForThePump() throws Exception {
         perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations", setup.pumpId(), setup.nozzle().getId()),
-                setup.owner(), Map.of("calibrationDate", TestDates.today().toString(), "calibratedBy", "Weights Dept"))
+                setup.owner(), Map.of("calibrationDate", TestDates.today().toString(), "calibratedBy", "Weights Dept",
+                        "nextCalibrationDue", TestDates.today().plusYears(1).toString(), "certificateReference", "LM-118"))
                 .andExpect(status().is2xxSuccessful());
 
         JsonNode calibrations = json(perform(get("/api/pumps/{pumpId}/calibrations", setup.pumpId()), setup.manager())
                 .andExpect(status().isOk()));
         assertThat(calibrations.toString()).contains("Weights Dept");
+    }
+
+    @Test
+    void calibrationWithoutANextDueDateACertificateOrWithADueDateNotAfterItIsRefused() throws Exception {
+        String today = TestDates.today().toString();
+        String nextYear = TestDates.today().plusYears(1).toString();
+
+        perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations", setup.pumpId(), setup.nozzle().getId()),
+                setup.owner(), Map.of("calibrationDate", today, "calibratedBy", "Weights Dept", "certificateReference", "LM-118"))
+                .andExpect(status().isBadRequest());
+        perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations", setup.pumpId(), setup.nozzle().getId()),
+                setup.owner(), Map.of("calibrationDate", today, "calibratedBy", "Weights Dept", "nextCalibrationDue", nextYear))
+                .andExpect(status().isBadRequest());
+        perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations", setup.pumpId(), setup.nozzle().getId()),
+                setup.owner(), Map.of("calibrationDate", today, "calibratedBy", "Weights Dept",
+                        "nextCalibrationDue", today, "certificateReference", "LM-118"))
+                .andExpect(status().isBadRequest());
+
+        JsonNode calibrations = json(perform(get("/api/pumps/{pumpId}/calibrations", setup.pumpId()), setup.manager())
+                .andExpect(status().isOk()));
+        assertThat(calibrations.get("content")).isEmpty();
     }
 
     @Test

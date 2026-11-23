@@ -103,15 +103,7 @@ public class ShiftLifecycleSupportService {
                         "Nozzle #" + nozzle.getNozzleNumber() + " does not belong to DU '" + du.getName() + "'.");
             }
 
-            calibrationLogRepository.findLatestByNozzleId(nozzle.getId()).ifPresent(latest -> {
-                if (latest.getNextCalibrationDue() != null
-                        && businessClock.today().isAfter(latest.getNextCalibrationDue())) {
-                    throw new BusinessException(
-                            "Nozzle #" + nozzle.getNozzleNumber() + " calibration was due on " +
-                            latest.getNextCalibrationDue() + " and has expired. " +
-                            "Log a new calibration record (Setup → Calibration) before opening a shift.");
-                }
-            });
+            rejectExpiredCalibration(nozzle);
 
             if (nozzle.getStatus() != NozzleStatus.ACTIVE) {
                 throw new BusinessException(
@@ -151,15 +143,29 @@ public class ShiftLifecycleSupportService {
         });
 
         CurrentShiftWindow window = shiftDefinitionService.detectCurrentShift(pumpId);
+        rejectNightShiftWithoutConsent(window.definition().isNightShift(), operator);
+        return window;
+    }
 
-        if (window.definition().isNightShift()
+    public void rejectExpiredCalibration(Nozzle nozzle) {
+        calibrationLogRepository.findLatestByNozzleId(nozzle.getId()).ifPresent(latest -> {
+            if (latest.getNextCalibrationDue() != null
+                    && businessClock.today().isAfter(latest.getNextCalibrationDue())) {
+                throw new BusinessException(
+                        "Nozzle #" + nozzle.getNozzleNumber() + " calibration was due on " +
+                        latest.getNextCalibrationDue() + " and has expired. " +
+                        "Log a new calibration record (Setup → Calibration) before opening a shift.");
+            }
+        });
+    }
+
+    public void rejectNightShiftWithoutConsent(boolean isNightShift, User operator) {
+        if (isNightShift
                 && operator.getGender() == UserGender.FEMALE
                 && !operator.isNightShiftConsent()) {
             throw new BusinessException(
                     operator.getFullName() + " has not given consent to work night shifts and cannot be assigned to this shift.");
         }
-
-        return window;
     }
 
     /**
@@ -359,6 +365,19 @@ public class ShiftLifecycleSupportService {
                 .recordedByUserId(currentUser.getId())
                 .build());
         log.info("Auto-created CASH_IN event for shift {}: amount={}", shift.getId(), shift.getCashCollected());
+    }
+
+    public void createCashRecoveryEvent(Shift shift, User currentUser) {
+        cashEventRepository.save(CashEvent.builder()
+                .pumpId(shift.getPumpId())
+                .eventType(CashEventType.CASH_IN)
+                .amount(shift.getCashRecoveryAmount().setScale(2, RoundingMode.HALF_UP))
+                .description("Cash recovered from operator for the shortage on Shift #" + shift.getId())
+                .eventDate(businessClock.today())
+                .recordedByUserId(currentUser.getId())
+                .build());
+        log.info("Auto-created CASH_IN event for cash recovery on shift {}: amount={}",
+                shift.getId(), shift.getCashRecoveryAmount());
     }
 
     /** Request ids must be unique; a repeated nozzle would otherwise fail deep inside a map collector. */

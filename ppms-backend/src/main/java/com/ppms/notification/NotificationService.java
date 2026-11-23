@@ -6,7 +6,10 @@ import com.ppms.common.time.BusinessClock;
 import com.ppms.document.PumpDocumentRepository;
 import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.inventory.TankStockResponse;
+import com.ppms.pump.Nozzle;
+import com.ppms.pump.NozzleCalibrationLog;
 import com.ppms.pump.NozzleCalibrationLogRepository;
+import com.ppms.pump.NozzleRepository;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTankRepository;
 import com.ppms.shift.Shift;
@@ -23,8 +26,11 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Generates in-app notifications for pump alert conditions.
@@ -44,6 +50,7 @@ import java.util.Set;
 public class NotificationService {
 
     private static final int UNREAD_PAGE_SIZE = 100;
+    private static final int CALIBRATION_WARNING_DAYS = 7;
 
     private final NotificationRepository notificationRepository;
     private final PumpDocumentRepository documentRepository;
@@ -52,6 +59,7 @@ public class NotificationService {
     private final AncillaryProductRepository ancillaryProductRepository;
     private final UndergroundTankRepository tankRepository;
     private final NozzleCalibrationLogRepository calibrationLogRepository;
+    private final NozzleRepository nozzleRepository;
     private final NotificationDedupService dedupService;
     private final BusinessClock businessClock;
 
@@ -70,6 +78,7 @@ public class NotificationService {
         generateAutoClosedShiftAlerts(pumpId, recentlyEndedShifts);
         generateAncillaryLowStockAlerts(pumpId);
         generateCalibrationDueAlerts(pumpId);
+        generateCalibrationDueSoonAlerts(pumpId);
         log.debug("Notification generation complete for pump={}", pumpId);
     }
 
@@ -259,6 +268,32 @@ public class NotificationService {
                     dedupService.maybeInsert(pumpId, NotificationType.CALIBRATION_DUE, dedupKey,
                             "Nozzle Calibration Overdue", message);
                 });
+    }
+
+    /**
+     * Generates CALIBRATION_DUE_SOON alerts for nozzles whose latest calibration falls due within the next
+     * {@value #CALIBRATION_WARNING_DAYS} days, so it can be renewed before shifts on the nozzle are blocked.
+     * Dedup key includes the due date, so each due date alerts once per nozzle.
+     */
+    private void generateCalibrationDueSoonAlerts(Long pumpId) {
+        LocalDate today = businessClock.today();
+        List<NozzleCalibrationLog> dueSoon = calibrationLogRepository.findCalibrationsDueBetween(
+                pumpId, today, today.plusDays(CALIBRATION_WARNING_DAYS));
+        if (dueSoon.isEmpty()) {
+            return;
+        }
+        Map<Long, Integer> nozzleNumberById = nozzleRepository
+                .findAllById(dueSoon.stream().map(NozzleCalibrationLog::getNozzleId).collect(Collectors.toSet())).stream()
+                .collect(Collectors.toMap(Nozzle::getId, Nozzle::getNozzleNumber));
+        for (NozzleCalibrationLog calibration : dueSoon) {
+            LocalDate due = calibration.getNextCalibrationDue();
+            String dedupKey = "CALIBRATION_DUE_SOON:nozzle:" + calibration.getNozzleId() + ":" + due;
+            String message = "Nozzle #" + nozzleNumberById.getOrDefault(calibration.getNozzleId(), 0)
+                    + " calibration is due on " + due + " (" + ChronoUnit.DAYS.between(today, due) + " day(s) left)."
+                    + " Shifts on this nozzle are blocked after that date until a new calibration is logged.";
+            dedupService.maybeInsert(pumpId, NotificationType.CALIBRATION_DUE_SOON, dedupKey,
+                    "Nozzle Calibration Due Soon", message);
+        }
     }
 
     /**

@@ -27,8 +27,8 @@ import java.util.stream.Collectors;
  * GET  /api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations     — list calibration history (OWNER, ADMIN, MANAGER)
  * POST /api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations     — log a new calibration event (OWNER, ADMIN only)
  *
- * When a calibration is logged with next_calibration_due set:
- * - The notification service will alert when that date approaches.
+ * Every calibration is logged with next_calibration_due:
+ * - The notification service alerts 7 days before that date and again once it has passed.
  * - ShiftService.openShift() will BLOCK shift creation if the date has passed
  *   (calibration overdue = pump cannot legally operate until re-calibrated).
  */
@@ -77,7 +77,7 @@ public class NozzleCalibrationController {
      * POST /api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations
      * Logs a calibration event for the nozzle.
      *
-     * If nextCalibrationDue is set, future shifts will be blocked once that date passes,
+     * nextCalibrationDue and certificateReference are required: shifts are blocked once the due date passes,
      * ensuring the nozzle cannot operate with an expired calibration certificate.
      */
     @PostMapping
@@ -91,9 +91,8 @@ public class NozzleCalibrationController {
 
         Nozzle nozzle = findNozzleForPump(nozzleId, pumpId);
 
-        if (request.nextCalibrationDue() != null
-                && request.nextCalibrationDue().isBefore(request.calibrationDate())) {
-            throw new BusinessException("nextCalibrationDue must be on or after calibrationDate");
+        if (!request.nextCalibrationDue().isAfter(request.calibrationDate())) {
+            throw new BusinessException("The next calibration due date must be after the calibration date.");
         }
 
         NozzleCalibrationLog log = NozzleCalibrationLog.builder()
@@ -117,8 +116,7 @@ public class NozzleCalibrationController {
         auditService.log(pumpId, AuditAction.NOZZLE_ADDED,
                 "NozzleCalibrationLog", saved.getId().toString(),
                 "Calibration logged for nozzle #" + nozzle.getNozzleNumber() +
-                " on " + request.calibrationDate() +
-                (request.nextCalibrationDue() != null ? ", next due: " + request.nextCalibrationDue() : ""),
+                " on " + request.calibrationDate() + ", next due: " + request.nextCalibrationDue(),
                 currentUser);
 
         return ResponseEntity.status(HttpStatus.CREATED)

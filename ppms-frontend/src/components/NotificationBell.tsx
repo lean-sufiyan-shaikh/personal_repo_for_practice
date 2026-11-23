@@ -62,6 +62,7 @@ export default function NotificationBell({ pumpId }: Props) {
       case 'PRICE_STALE':             return <AlertTriangle {...base} className="text-amber-400  flex-shrink-0 mt-0.5" />
       case 'DOCUMENT_EXPIRING':       return <FileText      {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
       case 'CALIBRATION_DUE':         return <Wrench        {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
+      case 'CALIBRATION_DUE_SOON':    return <Wrench        {...base} className="text-amber-400  flex-shrink-0 mt-0.5" />
       case 'SHIFT_OVERDUE':           return <Clock         {...base} className="text-red-400    flex-shrink-0 mt-0.5" />
       case 'ZERO_SALE_SHIFT':         return <TrendingDown  {...base} className="text-slate-500  flex-shrink-0 mt-0.5" />
       case 'PRICE_CHANGE_OPEN_SHIFT': return <IndianRupee   {...base} className="text-blue-400   flex-shrink-0 mt-0.5" />

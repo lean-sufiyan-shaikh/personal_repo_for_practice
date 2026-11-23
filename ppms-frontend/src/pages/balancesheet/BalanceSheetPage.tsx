@@ -170,6 +170,7 @@ export default function BalanceSheetPage() {
           onClose={() => setSelectedReportId(null)}
           canDelete={canManage}
           onDelete={(s) => { setDeleteTarget(s); setSelectedReportId(null) }}
+          onRegenerated={setSelectedReportId}
           pumpName={pumpName}
         />
       )}

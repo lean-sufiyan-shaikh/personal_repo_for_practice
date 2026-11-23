@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { parseApiError } from '../../../utils/apiError'
+import { localDateInputValue } from '../../../utils/date'
 import { dipApi } from '../../../api/dipApi'
 import type { TankInfo } from '../../../api/pumpApi'
 import type { NozzleDetail } from '../../../types/shift'
@@ -23,12 +24,12 @@ export function RecordDipPanel({ pumpId, nozzle, tank, onClose }: Props) {
   const queryClient = useQueryClient()
   const invalidate = useInvalidateNozzles(pumpId)
   const [dipLitres, setDipLitres] = useState('')
-  const [dipDate, setDipDate] = useState('')
+  const dipDate = localDateInputValue()
   const [dipReason, setDipReason] = useState('')
   const [dipError, setDipError] = useState<string | null>(null)
 
   const recordDipMutation = useMutation({
-    mutationFn: ({ tankId, litresRemoved, reason, date }: { tankId: number; litresRemoved: number; reason: string; date?: string }) =>
+    mutationFn: ({ tankId, litresRemoved, reason, date }: { tankId: number; litresRemoved: number; reason: string; date: string }) =>
       dipApi.recordDip(pumpId, tankId, litresRemoved, reason, date),
     onSuccess: () => {
       onClose()
@@ -50,7 +51,7 @@ export function RecordDipPanel({ pumpId, nozzle, tank, onClose }: Props) {
       tankId: tank.id,
       litresRemoved: Number(dipLitres),
       reason: dipReason,
-      date: dipDate || undefined,
+      date: dipDate,
     })
   }
 
@@ -94,15 +95,16 @@ export function RecordDipPanel({ pumpId, nozzle, tank, onClose }: Props) {
         <div className="ui-dip-editor__grid">
           <div className="ui-dip-editor__section">
             <label className="block">
-              <span className="ui-label">
-              Date <span className="text-slate-500">(leave blank for today)</span>
-            </span>
+              <span className="ui-label">Date</span>
               <input
                 type="date"
                 value={dipDate}
-                onChange={(e) => setDipDate(e.target.value)}
-                className="text-xs min-h-10"
+                readOnly
+                className="text-xs min-h-10 bg-slate-50"
               />
+              <span className="block mt-1 text-xs text-slate-500">
+                Recorded for today — drained fuel leaves today&apos;s stock, so it cannot be back-dated.
+              </span>
             </label>
           </div>
           <div className="ui-dip-editor__section">

@@ -2,23 +2,26 @@ package com.ppms.shift;
 
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.common.time.BusinessClock;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
 import com.ppms.user.UserStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
+
 /**
- * Handles shift handover creation under a single transaction.
- * Keeping the duplicate-check and save in one @Transactional boundary prevents the TOCTOU
- * race where two concurrent requests both pass the findByOutgoingShiftId guard and each
- * create a duplicate handover row for the same outgoing shift.
- * The DB-level UNIQUE constraint on outgoing_shift_id is the final safety net.
+ * A handover closes the outgoing operator's shift with the readings and payments counted at handover, then opens a
+ * new shift for the incoming operator on the same nozzles and shift window from those readings. Both happen in one
+ * transaction, so a refused close never leaves the incoming operator with a shift.
+ * The DB-level UNIQUE constraint on outgoing_shift_id is the final guard against a duplicate handover.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ShiftHandoverService {
@@ -26,21 +29,24 @@ public class ShiftHandoverService {
     private final ShiftHandoverRepository handoverRepository;
     private final ShiftRepository shiftRepository;
     private final UserRepository userRepository;
+    private final ShiftService shiftService;
+    private final ShiftReadModelService shiftReadModelService;
+    private final BusinessClock businessClock;
+
+    public record HandoverResult(ShiftHandover handover, ShiftResponse closedShift, ShiftResponse openedShift) {}
 
     @Transactional
-    public ShiftHandover createHandover(Long pumpId, CreateHandoverRequest request, User currentUser) {
+    public HandoverResult createHandover(Long pumpId, CreateHandoverRequest request, User currentUser) {
         Shift outgoingShift = shiftRepository.findByIdAndPumpIdForUpdate(request.outgoingShiftId(), pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
 
-        if (currentUser.getRole() == UserRole.OPERATOR && !outgoingShift.getOperatorId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("Only the operator running this shift can hand it over.");
-        }
-
-        if (outgoingShift.getStatus() != ShiftStatus.OPEN
-                && outgoingShift.getStatus() != ShiftStatus.OPEN_OVERDUE) {
+        if (outgoingShift.getStatus() != ShiftStatus.OPEN) {
             throw new BusinessException(
-                    "Handover can only be created for an OPEN shift. Current status: " + outgoingShift.getStatus());
+                    "Handover can only be created for an OPEN shift. Current status: " + outgoingShift.getStatus() +
+                    (outgoingShift.getStatus() == ShiftStatus.OPEN_OVERDUE
+                            ? ". Close this shift and open a new shift for the incoming operator instead." : ""));
         }
+        rejectAfterScheduledEnd(outgoingShift);
 
         handoverRepository.findByOutgoingShiftId(request.outgoingShiftId()).ifPresent(existing -> {
             throw new BusinessException(
@@ -65,23 +71,45 @@ public class ShiftHandoverService {
                     "). They must close it before taking a handover.");
         });
 
+        if (request.closing() == null) {
+            throw new BusinessException(
+                    "Enter the outgoing operator's closing meter readings and payments: the shift is closed at handover.");
+        }
+        ShiftResponse closedShift = shiftService.closeShift(pumpId, outgoingShift.getId(), request.closing(), currentUser);
+        ShiftResponse openedShift = shiftService.openShiftForHandover(outgoingShift, incomingOperator, currentUser);
+
         ShiftHandover handover = ShiftHandover.builder()
                 .pumpId(pumpId)
-                .outgoingShiftId(request.outgoingShiftId())
+                .outgoingShiftId(outgoingShift.getId())
                 .outgoingOperatorId(outgoingShift.getOperatorId())
-                .incomingOperatorId(request.incomingOperatorId())
+                .incomingOperatorId(incomingOperator.getId())
+                .incomingShiftId(openedShift.getId())
                 .physicalCashVerified(request.physicalCashVerified())
                 .meterReadingsVerified(request.meterReadingsVerified())
                 .notes(request.notes())
+                .handoverTime(outgoingShift.getActualEndTime())
                 .build();
 
         try {
-            return handoverRepository.save(handover);
+            handover = handoverRepository.saveAndFlush(handover);
         } catch (DataIntegrityViolationException e) {
-            // Concurrent request raced past the application-level check above
             throw new BusinessException(
                     "A handover for shift #" + request.outgoingShiftId() + " was just created by a concurrent request. " +
                     "Please refresh and try again.");
+        }
+
+        log.info("Shift {} handed over: closed as {}, new shift {} opened for operator {}",
+                outgoingShift.getId(), closedShift.getStatus(), openedShift.getId(), incomingOperator.getId());
+        return new HandoverResult(handover, closedShift, openedShift);
+    }
+
+    /** The incoming shift keeps the outgoing shift's window, so it must start before that window ends. */
+    private void rejectAfterScheduledEnd(Shift outgoingShift) {
+        OffsetDateTime scheduledEnd = shiftReadModelService.computeScheduledEndTime(outgoingShift);
+        if (scheduledEnd != null && businessClock.now().isAfter(scheduledEnd)) {
+            throw new BusinessException(
+                    "Shift #" + outgoingShift.getId() + " has passed its scheduled end, so it cannot be handed over. " +
+                    "Close this shift and open a new shift for the incoming operator instead.");
         }
     }
 }

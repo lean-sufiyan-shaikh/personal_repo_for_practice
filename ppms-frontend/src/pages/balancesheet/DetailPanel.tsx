@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import { balanceSheetApi } from '../../api/balanceSheetApi'
 import { parseApiError } from '../../utils/apiError'
+import { useToastStore } from '../../store/toastStore'
 import type { BalanceSheetSummary, BsFuelLine, BsShiftLine } from '../../api/balanceSheetApi'
 import { SkeletonRows } from '../../components/Skeleton'
 import { IconButton } from '../../components/IconButton'
@@ -22,16 +23,28 @@ interface DetailPanelProps {
   onClose: () => void
   canDelete: boolean
   onDelete: (summary: BalanceSheetSummary) => void
+  onRegenerated: (newReportId: number) => void
   summary: BalanceSheetSummary
   pumpName: string
 }
 
-export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, summary, pumpName }: DetailPanelProps) {
+export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, onRegenerated, summary, pumpName }: DetailPanelProps) {
   const { user } = useAuthStore()
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const { data: detail, isLoading, error } = useQuery({
     queryKey: ['balance-sheet-detail', pumpId, reportId],
     queryFn: () => balanceSheetApi.getById(pumpId, reportId),
+  })
+  const qc = useQueryClient()
+  const { addToast } = useToastStore()
+  const regenerateMutation = useMutation({
+    mutationFn: () => balanceSheetApi.regenerate(pumpId, reportId),
+    onSuccess: (regenerated) => {
+      qc.invalidateQueries({ queryKey: ['balance-sheets', pumpId] })
+      addToast('Balance sheet regenerated', 'success')
+      onRegenerated(regenerated.id)
+    },
+    onError: (err) => addToast(parseApiError(err, 'Failed to regenerate balance sheet'), 'error'),
   })
 
   if (error) {
@@ -114,6 +127,31 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, su
       </div>
 
       <div className="px-6 py-5 space-y-6">
+        {(detail.stale || detail.linesChangedSinceGenerated) && (
+          <div role="alert" className="ui-alert ui-alert-warning text-sm flex flex-wrap items-center justify-between gap-2">
+            <span>
+              This sheet is out of date:{' '}
+              {detail.staleReason ?? 'Expenses, product sales or dip entries for this day changed after the sheet was generated.'}
+              {' '}Totals show the values saved at generation; regenerate it to include the change.
+            </span>
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => regenerateMutation.mutate()}
+                disabled={regenerateMutation.isPending}
+                className="ui-btn ui-btn-primary ui-btn-compact print:hidden"
+              >
+                {regenerateMutation.isPending ? 'Regenerating…' : 'Regenerate'}
+              </button>
+            )}
+          </div>
+        )}
+        {detail.openShiftCount > 0 && (
+          <div className="ui-alert ui-alert-warning text-sm">
+            {detail.openShiftCount} shift{detail.openShiftCount !== 1 ? 's' : ''} still open — this sheet covers only closed shifts.
+          </div>
+        )}
+
         {/* Notes */}
         {detail.notes && (
           <div className="ui-card-plain ui-card-muted px-4 py-3 text-sm text-slate-600">
@@ -188,12 +226,6 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, su
                 accent={detail.totalNetProfit >= 0 ? 'green' : 'red'}
               />
             ))}
-          {isOwnerOrAdmin && detail.linesChangedSinceGenerated && (
-            <p className="text-xs text-amber-600 col-span-full mt-1">
-              Some dip, product or expense entries changed after this sheet was generated. Totals show the
-              values saved at generation; regenerate the sheet to include the changes.
-            </p>
-          )}
           {!isOwnerOrAdmin && (
             <p className="text-xs text-slate-500 col-span-full mt-1">
               Financial details (cost, profit, P/L) are visible to Owner and Admin only.

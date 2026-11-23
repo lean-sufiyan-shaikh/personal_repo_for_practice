@@ -136,6 +136,18 @@ public class BalanceSheet {
     @Builder.Default
     private BigDecimal totalCashRecovery = BigDecimal.ZERO;
 
+    @Column(name = "stale", nullable = false)
+    @Builder.Default
+    private boolean stale = false;
+
+    @Column(name = "stale_reason", length = 500)
+    private String staleReason;
+
+    /** Shifts of the report date still open when a live sheet for today was generated. */
+    @Column(name = "open_shift_count", nullable = false)
+    @Builder.Default
+    private int openShiftCount = 0;
+
     @PrePersist
     protected void onCreate() {
         if (generatedAt == null) {

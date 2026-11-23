@@ -27,6 +27,6 @@ class NotificationAudienceTest {
         assertThat(NotificationAudience.typesVisibleTo(UserRole.OPERATOR)).doesNotContain(
                 NotificationType.ZERO_SALE_SHIFT, NotificationType.AUTO_CLOSED_SHIFT, NotificationType.SHIFT_OVERDUE,
                 NotificationType.PRICE_STALE, NotificationType.PRICE_CHANGE_OPEN_SHIFT, NotificationType.CALIBRATION_DUE,
-                NotificationType.DOCUMENT_EXPIRING, NotificationType.SETTLEMENT_REMINDER);
+                NotificationType.CALIBRATION_DUE_SOON, NotificationType.DOCUMENT_EXPIRING, NotificationType.SETTLEMENT_REMINDER);
     }
 }

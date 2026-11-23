@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { shiftApi } from '../../api/shiftApi'
 import { pumpApi } from '../../api/pumpApi'
-import type { CloseShiftRequest, Shift } from '../../types/shift'
+import type { CloseShiftRequest, CreateHandoverRequest, Shift } from '../../types/shift'
 import { formatIstDateTime } from '../../utils/date'
 import { ModalPortal } from '../../components/ModalPortal'
 import { parseApiError } from '../../utils/apiError'
@@ -20,15 +20,20 @@ import { LateCloseNotice } from './close/LateCloseNotice'
 import { computeCloseShiftTotals } from './close/closeShiftTotals'
 import { buildCloseShiftRequest } from './close/closeShiftRequest'
 import { useCloseShiftCreditRows } from './close/useCloseShiftCreditRows'
+import { HandoverFields } from './close/HandoverFields'
+import { EMPTY_HANDOVER_DETAILS } from './close/handoverDetails'
 import { IconButton } from '../../components/IconButton'
 
 interface Props {
   shift: Shift
   onClose: () => void
   onShiftClosed?: (duId: number, nozzleIds: number[]) => void
+  /** Set to hand the shift over: it is closed and a new shift opens for the incoming operator. */
+  handoverActiveShifts?: Shift[]
 }
 
-export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props) {
+export default function CloseShiftModal({ shift, onClose, onShiftClosed, handoverActiveShifts }: Props) {
+  const isHandover = handoverActiveShifts !== undefined
   const queryClient = useQueryClient()
   const [serverError, setServerError] = useState<string | null>(null)
   const [noChangeNozzles, setNoChangeNozzles] = useState<Set<number>>(new Set())
@@ -42,6 +47,7 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
   const [card,              setCard]              = useState('')
   const [fleetCard,         setFleetCard]         = useState('')
   const [discrepancyReason, setDiscrepancyReason] = useState('')
+  const [handoverDetails,   setHandoverDetails]   = useState(EMPTY_HANDOVER_DETAILS)
 
   const { data: creditClients = [] } = useQuery({
     queryKey: ['creditClients', shift.pumpId],
@@ -104,10 +110,12 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
     cash, upi, card, fleetCard, preRecordedTotal, newCreditTotal,
   })
   const reasonFilled     = discrepancyReason.trim().length > 0
-  const canClose         = isBalanced || (hasDiscrepancy && reasonFilled)
+  const incomingChosen   = !isHandover || handoverDetails.incomingOperatorId !== null
+  const canClose         = incomingChosen && (isBalanced || (hasDiscrepancy && reasonFilled))
   const hasUnsavedChanges = Object.values(endReadings).some(v => v !== '')
     || cash !== '' || upi !== '' || card !== '' || fleetCard !== ''
     || creditRows.length > 0 || discrepancyReason.trim() !== ''
+    || handoverDetails.incomingOperatorId !== null || handoverDetails.notes.trim() !== ''
 
   // ── Credit row helpers ──────────────────────────────────────────────────────
 
@@ -127,19 +135,33 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
 
   // ── Submit ──────────────────────────────────────────────────────────────────
 
+  const onSubmitted = () => {
+    queryClient.invalidateQueries({ queryKey: ['activeShifts', shift.pumpId] })
+    queryClient.invalidateQueries({ queryKey: ['shiftHistory', shift.pumpId] })
+    onClose()
+  }
+
   const closeMutation = useMutation({
     mutationFn: (req: CloseShiftRequest) => shiftApi.closeShift(shift.pumpId, shift.id, req),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activeShifts', shift.pumpId] })
-      queryClient.invalidateQueries({ queryKey: ['shiftHistory', shift.pumpId] })
       onShiftClosed?.(shift.duId, shift.nozzles.map(n => n.id))
-      onClose()
+      onSubmitted()
     },
     onError: (err: unknown) => {
       setServerError(parseApiError(err, 'Failed to close shift. Please try again.'))
       reloadShift()
     },
   })
+
+  const handoverMutation = useMutation({
+    mutationFn: (req: CreateHandoverRequest) => shiftApi.createHandover(shift.pumpId, req),
+    onSuccess: onSubmitted,
+    onError: (err: unknown) => {
+      setServerError(parseApiError(err, 'Failed to hand over the shift. Please try again.'))
+      reloadShift()
+    },
+  })
+  const isSubmitting = closeMutation.isPending || handoverMutation.isPending
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -152,6 +174,17 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
     })
     if ('error' in result) {
       setServerError(result.error)
+      return
+    }
+    if (isHandover && handoverDetails.incomingOperatorId !== null) {
+      handoverMutation.mutate({
+        outgoingShiftId: shift.id,
+        incomingOperatorId: handoverDetails.incomingOperatorId,
+        physicalCashVerified: handoverDetails.physicalCashVerified,
+        meterReadingsVerified: handoverDetails.meterReadingsVerified,
+        notes: handoverDetails.notes.trim() || undefined,
+        closing: result.request,
+      })
       return
     }
     closeMutation.mutate(result.request)
@@ -179,14 +212,14 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
     : 'ui-modal-header--neutral'
 
   return (
-    <ModalPortal onClose={closeMutation.isPending ? undefined : requestClose}>
+    <ModalPortal onClose={isSubmitting ? undefined : requestClose}>
     <div className="ui-modal-backdrop">
       <div className="ui-modal-panel">
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className={`ui-modal-header ui-modal-header--themed ${headerToneClass} relative`}>
           <div className="ui-modal-heading pr-10">
-            <h2 className="ui-modal-title">Close Shift</h2>
+            <h2 className="ui-modal-title">{isHandover ? 'Hand Over Shift' : 'Close Shift'}</h2>
             <p className="ui-modal-subtitle">
               Nozzle {shift.nozzles.map((n) => `#${n.nozzleNumber}`).join(', ')} · {shift.operatorName} · {shift.shiftWindow}
             </p>
@@ -210,6 +243,15 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
             {/* ── Late-close notice ─────────────────────────────────────── */}
             {isLateClose && scheduledEndDisplay && (
               <LateCloseNotice scheduledEndDisplay={scheduledEndDisplay} />
+            )}
+
+            {isHandover && handoverActiveShifts && (
+              <HandoverFields
+                shift={shift}
+                activeShifts={handoverActiveShifts}
+                details={handoverDetails}
+                onChange={setHandoverDetails}
+              />
             )}
 
             {/* ── Step 1: End Readings ──────────────────────────────────── */}
@@ -348,7 +390,9 @@ export default function CloseShiftModal({ shift, onClose, onShiftClosed }: Props
             paymentTouched={paymentTouched}
             isBalanced={isBalanced}
             reasonFilled={reasonFilled}
-            isPending={closeMutation.isPending}
+            isPending={isSubmitting}
+            isHandover={isHandover}
+            incomingChosen={incomingChosen}
             onCancel={requestClose}
           />
         </form>

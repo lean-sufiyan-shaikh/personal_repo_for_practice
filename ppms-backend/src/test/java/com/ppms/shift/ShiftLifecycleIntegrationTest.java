@@ -11,6 +11,7 @@ import com.ppms.inventory.LotConsumption;
 import com.ppms.inventory.LotConsumptionRepository;
 import com.ppms.pump.PumpLocation;
 import com.ppms.support.ApiIntegrationTest;
+import com.ppms.support.TestDates;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
 import org.junit.jupiter.api.BeforeEach;
@@ -128,6 +129,37 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
         assertThat(resolved.get("discrepancyResolution").asText()).isEqualTo("CASH_RECOVERY");
         assertThat(resolved.get("cashRecoveryAmount").decimalValue()).isEqualByComparingTo("200.00");
         assertThat(resolved.get("investigationNote").asText()).isEqualTo("Checking CCTV");
+    }
+
+    @Test
+    void recoveredShortageIsPaidIntoTheCashDrawerOnceAndTheDaySheetShowsItOnlyAsARecovery() throws Exception {
+        long shiftId = openShift();
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
+                setup.manager(), closeRequest("1010.000", "800.00", "0", List.of(), "Customer left without paying"))
+                .andExpect(status().is2xxSuccessful());
+
+        perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
+                setup.manager(), Map.of("resolutionAction", "CASH_RECOVERY", "resolutionNote", "Operator paid back"))
+                .andExpect(status().is2xxSuccessful());
+
+        List<CashEvent> cashIn = cashEventRepository
+                .findByPumpIdOrderByEventDateDescCreatedAtDesc(setup.pumpId(), PageRequest.of(0, 10)).getContent().stream()
+                .filter(event -> event.getEventType() == CashEventType.CASH_IN)
+                .toList();
+        assertThat(cashIn).extracting(CashEvent::getAmount)
+                .usingComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .containsExactlyInAnyOrder(new BigDecimal("800.00"), new BigDecimal("200.00"));
+        assertThat(cashIn).filteredOn(event -> event.getDescription().contains("recovered")).singleElement()
+                .satisfies(event -> assertThat(event.getEventDate()).isEqualTo(TestDates.today()));
+        JsonNode drawer = json(perform(get("/api/pumps/{pumpId}/cash-events", setup.pumpId()), setup.manager())
+                .andExpect(status().isOk()));
+        assertThat(drawer.get("currentBalance").decimalValue()).isEqualByComparingTo("1000.00");
+
+        JsonNode sheet = json(perform(post("/api/pumps/{pumpId}/balance-sheets/generate", setup.pumpId()), setup.manager(),
+                Map.of("reportType", "DAY", "reportDate", TestDates.today().toString()))
+                .andExpect(status().is2xxSuccessful()));
+        assertThat(sheet.get("totalCashCollected").decimalValue()).isEqualByComparingTo("800.00");
+        assertThat(sheet.get("totalCashRecovery").decimalValue()).isEqualByComparingTo("200.00");
     }
 
     @Test

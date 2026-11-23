@@ -10,6 +10,7 @@ import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
+import com.ppms.report.BalanceSheetStalenessService;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
@@ -53,6 +54,8 @@ public class InventoryWorkflowService {
     private final OpenShiftMeterService openShiftMeterService;
     private final DipCheckNozzleReadingRepository dipCheckNozzleReadingRepository;
     private final TankLotConsumptionService tankLotConsumptionService;
+    private final LotCostCorrectionService lotCostCorrectionService;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
 
     /**
      * Records one tanker delivery: a TankerDelivery row, a FIFO InventoryLot, and the added tank stock.
@@ -185,6 +188,7 @@ public class InventoryWorkflowService {
                 ? request.getCostPricePerUnit()
                 : delivery.getCostPricePerUnit();
 
+        BigDecimal oldCostPrice = lot.getCostPricePerUnit();
         BigDecimal newRemaining = lot.getRemainingQuantity().add(deltaQty).setScale(3, RoundingMode.HALF_UP);
         lot.setOriginalQuantity(newQty);
         lot.setRemainingQuantity(newRemaining);
@@ -199,6 +203,9 @@ public class InventoryWorkflowService {
         delivery.setInvoiceReference(invoiceRef);
         delivery = tankerDeliveryRepository.save(delivery);
         moveOtherInvoiceLines(otherInvoiceLines, invoiceRef, newDeliveryDateTime);
+        if (costPrice.compareTo(oldCostPrice) != 0) {
+            lotCostCorrectionService.recostConsumedFuel(pumpId, lot, oldCostPrice, costPrice, delivery, currentUser);
+        }
 
         log.info("Delivery updated: pump={}, delivery={}, fuel={}, oldQty={}L, newQty={}L, invoice={}, by={}",
                 pumpId, deliveryId, delivery.getFuelType(), oldQty, newQty, invoiceRef, currentUser.getId());
@@ -333,6 +340,8 @@ public class InventoryWorkflowService {
         tankRepository.save(tank);
 
         applyDipAdjustment(pumpId, tank, check, variance, checkedAt);
+        balanceSheetStalenessService.markAllSheetsStale(pumpId, List.of(businessClock.today()),
+                "A dip check on tank '" + tank.getTankIdentifier() + "' was recorded after this sheet was generated.");
 
         log.info("DIP check recorded: pump={}, tank={}, measured={}L, system={}L, soldOnOpenShifts={}L, variance={}L, status={}, by={}, checkedBy={}",
                 pumpId, tank.getId(), measured, systemStockNow, soldOnOpenShifts, variance, status, currentUser.getId(),
@@ -389,6 +398,7 @@ public class InventoryWorkflowService {
                     .costPricePerUnit(adjustmentCost)
                     .deliveryDate(checkedAt)
                     .isDipAdjustment(true)
+                    .dipCheckId(check.getId())
                     .status(LotStatus.ACTIVE)
                     .build());
             log.info("DIP adjustment lot created: pump={}, tank={}, +{}L at cost {}",

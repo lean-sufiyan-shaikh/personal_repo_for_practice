@@ -6,7 +6,9 @@ import { codeLabel } from '../../../constants/labels'
 
 // ── Active shift row ──────────────────────────────────────────────────────────
 
-export function ShiftRow({ shift, onClose, onAddCredit }: { shift: Shift; onClose?: () => void; onAddCredit: () => void }) {
+export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
+  shift: Shift; onClose?: () => void; onHandOver?: () => void; onAddCredit: () => void
+}) {
   const badge     = STATUS_LABELS[shift.status] ?? { label: shift.status, color: 'bg-slate-100 text-slate-600' }
   const startTime = formatIstDateTime(shift.actualStartTime, { hour: '2-digit', minute: '2-digit' })
   const fuelAbbr: Record<string, string> = {
@@ -40,6 +42,14 @@ export function ShiftRow({ shift, onClose, onAddCredit }: { shift: Shift; onClos
             <Plus size={12} strokeWidth={2.5} />
             <span>Credit</span>
           </button>
+          {onHandOver && shift.status === 'OPEN' && (
+            <button
+              onClick={onHandOver}
+              className="ui-btn ui-btn-secondary ui-btn-compact"
+            >
+              Hand over
+            </button>
+          )}
           {onClose && (
             <button
               onClick={onClose}

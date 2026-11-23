@@ -1,6 +1,7 @@
 package com.ppms.shift;
 
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.time.BusinessClock;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
@@ -49,14 +50,15 @@ class InactiveOperatorAssignmentTest {
     @Test
     void inactiveOperatorCannotReceiveAHandover() {
         ShiftHandoverService handoverService = new ShiftHandoverService(
-                mock(ShiftHandoverRepository.class), shiftRepository, userRepository);
+                mock(ShiftHandoverRepository.class), shiftRepository, userRepository, mock(ShiftService.class),
+                mock(ShiftReadModelService.class), mock(BusinessClock.class));
         Shift outgoing = Shift.builder().id(30L).pumpId(PUMP_ID).operatorId(7L).status(ShiftStatus.OPEN).build();
         when(shiftRepository.findByIdAndPumpIdForUpdate(30L, PUMP_ID)).thenReturn(Optional.of(outgoing));
         when(userRepository.findById(8L)).thenReturn(Optional.of(operator(UserStatus.INACTIVE)));
         User manager = User.builder().id(2L).role(UserRole.MANAGER).assignedPumpId(PUMP_ID).build();
 
         assertThatThrownBy(() -> handoverService.createHandover(PUMP_ID,
-                new CreateHandoverRequest(30L, 8L, true, true, null), manager))
+                new CreateHandoverRequest(30L, 8L, true, true, null, new CloseShiftRequest()), manager))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("inactive");
     }
