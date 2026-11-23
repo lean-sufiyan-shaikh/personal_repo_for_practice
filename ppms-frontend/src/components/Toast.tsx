@@ -3,17 +3,17 @@ import type { Toast, ToastVariant } from '../store/toastStore'
 import { IconButton } from './IconButton'
 
 const VARIANT_STYLES: Record<ToastVariant, { border: string; icon: string }> = {
-  success: { border: 'border-l-emerald-500', icon: '✓' },
-  error:   { border: 'border-l-red-500',     icon: '✕' },
-  warning: { border: 'border-l-amber-500',   icon: '⚠' },
-  info:    { border: 'border-l-blue-500',    icon: 'ℹ' },
+  success: { border: 'border-l-ok',   icon: '✓' },
+  error:   { border: 'border-l-bad',  icon: '✕' },
+  warning: { border: 'border-l-warn', icon: '⚠' },
+  info:    { border: 'border-l-info', icon: 'ℹ' },
 }
 
 const ICON_COLOR: Record<ToastVariant, string> = {
-  success: 'text-emerald-600',
-  error:   'text-red-600',
-  warning: 'text-amber-600',
-  info:    'text-blue-600',
+  success: 'text-ok',
+  error:   'text-bad',
+  warning: 'text-warn',
+  info:    'text-info',
 }
 
 export function ToastContainer() {

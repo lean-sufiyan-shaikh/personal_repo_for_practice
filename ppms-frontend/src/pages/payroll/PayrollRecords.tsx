@@ -72,7 +72,7 @@ export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, o
             value={nameSearch}
             onChange={e => { setNameSearch(e.target.value); setDraftPage(0); setApprovedPage(0); setPaidPage(0) }}
             placeholder="Search staff…"
-            className="text-sm h-8 px-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-300 w-36"
+            className="text-sm h-8 px-2.5 rounded-lg border border-slate-200 w-36"
           />
           {monthOptions.length > 0 && (
             <div className="flex items-center gap-2">

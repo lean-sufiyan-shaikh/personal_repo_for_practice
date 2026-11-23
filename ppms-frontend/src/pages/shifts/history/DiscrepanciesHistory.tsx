@@ -79,14 +79,14 @@ export function DiscrepanciesHistory({ pumpId }: { pumpId: number }) {
             type="date"
             value={fromDate}
             onChange={(e) => { setFromDate(e.target.value); setPage(0) }}
-            className="flex-1 min-w-[8.5rem] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 min-w-[8.5rem] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs"
           />
           <span className="text-slate-500 text-xs">to</span>
           <input aria-label="To date"
             type="date"
             value={toDate}
             onChange={(e) => { setToDate(e.target.value); setPage(0) }}
-            className="flex-1 min-w-[8.5rem] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 min-w-[8.5rem] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs"
           />
         </div>
         <div className="flex items-center gap-1">

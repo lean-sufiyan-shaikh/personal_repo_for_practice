@@ -101,7 +101,7 @@ export function UserProfileArea() {
                 onChange={(e) => setNameInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') cancelEdit() }}
                 disabled={renameMutation.isPending}
-                className="text-xs font-semibold bg-white/10 text-white border border-white/30 rounded px-2 py-0.5 w-36 focus:outline-none focus:border-blue-400"
+                className="text-xs font-semibold bg-white/10 text-white border border-white/30 rounded px-2 py-0.5 w-36"
               />
               <button
                 onClick={saveName}

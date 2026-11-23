@@ -19,7 +19,7 @@ export function OperatorPicker({
 }: Props) {
   return (
     <div>
-      <span className="ui-label uppercase tracking-wide mb-2">
+      <span className="ui-label mb-2">
         {showStepNumber ? 'Step 3 — ' : ''}{title}
       </span>
       {operatorsLoading ? (
@@ -39,7 +39,7 @@ export function OperatorPicker({
             <input aria-label={title} type="text" value={operatorSearch}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search by name..."
-              className="ui-search-shell__input flex-1 min-h-0 border-0 bg-transparent p-0 text-sm text-slate-700 shadow-none focus:outline-none focus:ring-0 placeholder-slate-400" />
+              className="ui-search-shell__input flex-1 text-sm" />
             {operatorSearch && (
               <IconButton onClick={() => onSearchChange('')}
                 className="ui-search-shell__clear text-lg leading-none"

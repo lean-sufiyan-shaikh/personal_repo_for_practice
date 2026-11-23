@@ -52,7 +52,7 @@ export function AddStaffForm({ pumpId, canAssignAdmin }: { pumpId: number; canAs
     <div className="border-t border-slate-200 pt-5">
       <div className="ui-card-plain ui-card-muted p-4 md:p-5">
         <div className="flex flex-col gap-1 border-b border-slate-200/80 pb-3">
-          <p className="ui-label mb-0 tracking-[0.14em] uppercase text-slate-500">Add a new staff member</p>
+          <p className="ui-label mb-0">Add a new staff member</p>
           <p className="text-sm text-slate-500">
             Capture staff details once here so planning and permissions can use the correct profile.
           </p>

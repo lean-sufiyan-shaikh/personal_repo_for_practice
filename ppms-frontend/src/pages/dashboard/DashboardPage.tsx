@@ -86,7 +86,7 @@ export default function DashboardPage() {
             icon={<Menu size={20} strokeWidth={2} />}
           />
           <div className="ui-dashboard-brandmark">
-            <Fuel size={20} className="text-blue-300" strokeWidth={1.8} />
+            <Fuel size={20} className="text-ink" strokeWidth={1.8} />
           </div>
           <div>
             <div className="flex items-center gap-2">

@@ -83,12 +83,12 @@ export function LedgerFilterBar({ filters }: { filters: LedgerFilters }) {
         <div className="flex items-center gap-2">
           <label htmlFor="credit-ledger-from" className="text-xs text-slate-500 whitespace-nowrap">From</label>
           <input id="credit-ledger-from" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
-            className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm" />
         </div>
         <div className="flex items-center gap-2">
           <label htmlFor="credit-ledger-to" className="text-xs text-slate-500 whitespace-nowrap">To</label>
           <input id="credit-ledger-to" type="date" value={toDate} onChange={e => setToDate(e.target.value)}
-            className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm" />
         </div>
         {(fromDate || toDate) && (
           <button onClick={() => { setFromDate(''); setToDate('') }}

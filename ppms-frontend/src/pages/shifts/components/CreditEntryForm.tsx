@@ -226,7 +226,7 @@ export function CreditEntryForm({
                   <NumericInput aria-label="Credit amount in rupees" step="0.01" min="0.01" value={row.amount}
                     onChange={(e) => onUpdate('amount', e.target.value)}
                     placeholder="0.00"
-                    className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                    className="ui-input-compact" />
                   {(() => {
                     const price = priceForFuelType(row.fuelType)
                     const unit = FUEL_UNIT[row.fuelType] ?? 'L'
@@ -250,7 +250,7 @@ export function CreditEntryForm({
                       onUpdateMulti({ liters: e.target.value, amount: amt })
                     }}
                     placeholder="0.00"
-                    className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                    className="ui-input-compact" />
                   {row.liters && row.amount && (() => {
                     const price = priceForFuelType(row.fuelType)
                     const unit = FUEL_UNIT[row.fuelType] ?? 'L'
@@ -273,7 +273,7 @@ export function CreditEntryForm({
                 <input type="text" value={row.billNo}
                   onChange={(e) => onUpdate('billNo', e.target.value)}
                   placeholder="e.g. B-101"
-                  className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                  className="ui-input-compact" />
               </label>
             </div>
             <div>
@@ -282,7 +282,7 @@ export function CreditEntryForm({
                 <input type="text" value={row.description}
                   onChange={(e) => onUpdate('description', e.target.value)}
                   placeholder="e.g. given to driver"
-                  className="ui-input-compact focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                  className="ui-input-compact" />
               </label>
             </div>
           </div>

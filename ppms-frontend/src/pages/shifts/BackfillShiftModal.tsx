@@ -24,10 +24,7 @@ export default function BackfillShiftModal({ pumpId, onClose }: BackfillShiftMod
           className="ui-modal-panel w-full max-w-xl"
         >
           {/* ── Header ──────────────────────────────────────────────────── */}
-          <div
-            className="ui-modal-header ui-modal-header--themed"
-            style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)' }}
-          >
+          <div className="ui-modal-header ui-modal-header--themed ui-modal-header--info">
             <div className="ui-modal-heading">
               <h2 className="ui-modal-title">Backfill Historical Shift</h2>
               <p className="ui-modal-subtitle">
@@ -83,7 +80,6 @@ export default function BackfillShiftModal({ pumpId, onClose }: BackfillShiftMod
                 type="submit"
                 disabled={isPending || !canSubmit}
                 className="ui-btn ui-btn-primary disabled:opacity-40"
-                style={!isPending ? { background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)', border: 'none' } : {}}
               >
                 {isPending ? 'Saving…' : 'Save Historical Shift'}
               </button>

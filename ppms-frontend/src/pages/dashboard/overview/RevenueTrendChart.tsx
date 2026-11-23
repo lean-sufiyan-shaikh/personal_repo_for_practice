@@ -6,6 +6,8 @@ import { localDateInputValue, formatIstDate } from '../../../utils/date'
 import { Reveal } from '../../../components/Reveal'
 import { FUEL_CHART_COLORS, FUEL_LABELS } from '../../../constants/fuel'
 
+// Mirrors the --color-primary, --color-border and --color-ink-3 tokens in index.css; recharts needs plain colour strings.
+const CHART_COLORS = { revenue: '#0b5394', grid: '#d5dae1', axis: '#5a6472' }
 
 export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] }) {
   const [chartDays, setChartDays] = useState<7 | 14 | 30>(7)
@@ -77,20 +79,20 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
               <ComposedChart data={revenueChartData} margin={{ top: 4, right: 52, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.18} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    <stop offset="5%"  stopColor={CHART_COLORS.revenue} stopOpacity={0.18} />
+                    <stop offset="95%" stopColor={CHART_COLORS.revenue} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 10, fill: '#94a3b8' }}
+                  tick={{ fontSize: 12, fill: CHART_COLORS.axis }}
                   axisLine={false} tickLine={false}
                   interval={chartDays === 30 ? 4 : chartDays === 14 ? 1 : 0}
                 />
                 <YAxis
                   yAxisId="left"
-                  tick={{ fontSize: 10, fill: '#94a3b8' }}
+                  tick={{ fontSize: 12, fill: CHART_COLORS.axis }}
                   axisLine={false} tickLine={false}
                   width={62}
                   tickFormatter={v =>
@@ -102,15 +104,15 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
                 <YAxis
                   yAxisId="right"
                   orientation="right"
-                  tick={{ fontSize: 10, fill: '#94a3b8' }}
+                  tick={{ fontSize: 12, fill: CHART_COLORS.axis }}
                   axisLine={false} tickLine={false}
                   width={48}
                   tickFormatter={v => `${v}L`}
                 />
                 <Tooltip
                   contentStyle={{
-                    fontSize: '0.75rem', borderRadius: '0.625rem',
-                    border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+                    fontSize: '0.75rem', borderRadius: '8px',
+                    border: `1px solid ${CHART_COLORS.grid}`, boxShadow: '0 8px 24px rgb(20 24 31 / 0.16)',
                     padding: '0.5rem 0.75rem',
                   }}
                   formatter={(v, name) => {
@@ -118,17 +120,17 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
                     if (name === 'revenue') return [`₹${n.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, 'Revenue']
                     return [`${n.toFixed(2)} L`, FUEL_LABELS[name as string] ?? name]
                   }}
-                  labelStyle={{ color: '#64748b', marginBottom: '0.25rem' }}
+                  labelStyle={{ color: CHART_COLORS.axis, marginBottom: '0.25rem' }}
                 />
                 <Area
                   yAxisId="left"
                   type="monotone"
                   dataKey="revenue"
-                  stroke="#3b82f6"
+                  stroke={CHART_COLORS.revenue}
                   strokeWidth={2}
                   fill="url(#revGrad)"
                   dot={false}
-                  activeDot={{ r: 4, strokeWidth: 0, fill: '#3b82f6' }}
+                  activeDot={{ r: 4, strokeWidth: 0, fill: CHART_COLORS.revenue }}
                   hide={hiddenSeries.has('revenue')}
                 />
                 {chartFuelTypes.map(ft => (
@@ -137,10 +139,10 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
                     yAxisId="right"
                     type="monotone"
                     dataKey={ft}
-                    stroke={FUEL_CHART_COLORS[ft] ?? '#94a3b8'}
+                    stroke={FUEL_CHART_COLORS[ft] ?? CHART_COLORS.axis}
                     strokeWidth={2}
                     dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0, fill: FUEL_CHART_COLORS[ft] ?? '#94a3b8' }}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: FUEL_CHART_COLORS[ft] ?? CHART_COLORS.axis }}
                     hide={hiddenSeries.has(ft)}
                   />
                 ))}
@@ -150,7 +152,7 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
           <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 px-4 pb-3 text-xs" aria-label="Chart series">
             {['revenue', ...chartFuelTypes].map(series => {
               const hidden = hiddenSeries.has(series)
-              const color = series === 'revenue' ? '#3b82f6' : (FUEL_CHART_COLORS[series] ?? '#94a3b8')
+              const color = series === 'revenue' ? CHART_COLORS.revenue : (FUEL_CHART_COLORS[series] ?? CHART_COLORS.axis)
               return (
                 <button
                   key={series}
@@ -159,7 +161,7 @@ export function RevenueTrendChart({ historyShifts }: { historyShifts: Shift[] })
                   onClick={() => toggleSeries(series)}
                   className={`inline-flex min-h-8 items-center gap-1.5 rounded-md px-1.5 ${hidden ? 'text-slate-500 line-through' : 'text-slate-700'}`}
                 >
-                  <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: hidden ? '#cbd5e1' : color }} />
+                  <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: hidden ? CHART_COLORS.grid : color }} />
                   {series === 'revenue' ? 'Revenue' : (FUEL_LABELS[series] ?? series)}
                 </button>
               )

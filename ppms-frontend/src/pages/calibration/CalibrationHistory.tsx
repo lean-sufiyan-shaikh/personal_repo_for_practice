@@ -49,7 +49,7 @@ export function CalibrationHistory({ history, nozzles }: CalibrationHistoryProps
               type="date"
               value={fromDate}
               onChange={e => { setFromDate(e.target.value); setHistoryPage(0) }}
-              className="text-xs h-7 px-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              className="text-xs h-7 px-2 rounded-lg border border-slate-200"
             />
           </div>
           <div className="flex items-center gap-1.5">
@@ -58,7 +58,7 @@ export function CalibrationHistory({ history, nozzles }: CalibrationHistoryProps
               type="date"
               value={toDate}
               onChange={e => { setToDate(e.target.value); setHistoryPage(0) }}
-              className="text-xs h-7 px-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              className="text-xs h-7 px-2 rounded-lg border border-slate-200"
             />
           </div>
           <div className="w-56">

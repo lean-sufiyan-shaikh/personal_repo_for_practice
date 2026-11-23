@@ -119,7 +119,7 @@ export function PreRecordedCreditList({ shift, entries, total, onEdit, onVoided 
                       setVoidingEntryId(null); setVoidReasonInput(''); setVoidError(null)
                     }}
                     placeholder="Reason for deleting (required)"
-                    className="ui-input-compact text-xs focus:outline-none focus:ring-1 focus:ring-red-400"
+                    className="ui-input-compact text-xs"
                   />
                   {voidError && <p role="alert" className="ui-error-text">{voidError}</p>}
                   <div className="flex gap-2">

@@ -150,7 +150,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                     value={voidReason}
                     onChange={(e) => setVoidReason(e.target.value)}
                     placeholder="Reason for voiding (required)"
-                    className="ui-input-compact text-xs focus:outline-none focus:ring-1 focus:ring-orange-400"
+                    className="ui-input-compact text-xs"
                   />
                   {voidError && <p role="alert" className="ui-error-text">{voidError}</p>}
                   <div className="flex gap-2">

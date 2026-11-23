@@ -184,7 +184,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
 
           {/* ── Step 1: Select DU ── */}
           <div>
-            <span className="ui-label uppercase tracking-wide mb-2">
+            <span className="ui-label mb-2">
               Step 1 — Select Dispensary Unit
               {selectedDU && (
                 <span className="ml-2 text-blue-600 font-semibold normal-case">
@@ -242,7 +242,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
           {/* ── Step 2: Select Nozzles from selected DU ── */}
           {selectedDU && (
             <div>
-              <span className="ui-label uppercase tracking-wide mb-2">
+              <span className="ui-label mb-2">
                 Step 2 — Select Nozzle(s)
                 {selectedNozzleIds.size > 0 && (
                   <span className="ml-2 text-blue-600 font-semibold normal-case">

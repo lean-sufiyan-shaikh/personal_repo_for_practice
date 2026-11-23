@@ -47,8 +47,8 @@ export function DiscrepancySection({ diff, canRoundOff, onRoundOff, reason, onRe
           <textarea value={reason} onChange={(e) => onReasonChange(e.target.value)}
             rows={2}
             placeholder="e.g. Customer paid partial — balance pending, meter error, etc."
-            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 resize-none ${
-              reason.trim().length > 0 ? 'border-emerald-300 focus:ring-emerald-400' : 'border-slate-300 focus:ring-amber-400'
+            className={`w-full border rounded-lg px-3 py-2 text-sm resize-none ${
+              reason.trim().length > 0 ? 'border-emerald-300' : 'border-slate-300'
             }`}
           />
         </label>

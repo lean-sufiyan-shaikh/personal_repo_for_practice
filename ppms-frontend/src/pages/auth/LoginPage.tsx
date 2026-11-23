@@ -62,8 +62,6 @@ export default function LoginPage() {
 
   return (
     <div className="ui-auth-shell ui-auth-shell--split">
-      <div className="ui-auth-orb ui-auth-orb--blue" />
-      <div className="ui-auth-orb ui-auth-orb--amber" />
       <div className="ui-auth-frame">
         <section className="ui-auth-hero">
           <div className="ui-auth-badge">
