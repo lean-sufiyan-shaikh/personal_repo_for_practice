@@ -2764,6 +2764,35 @@
     background: var(--color-primary);
   }
 
+  .ui-stepper--horizontal {
+    display: flex;
+    overflow-x: auto;
+    padding: 1rem 0.5rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .ui-stepper--horizontal .ui-stepper__item {
+    flex: 1 0 7.5rem;
+    scroll-snap-align: start;
+  }
+
+  /* Runs from just right of this dot to just left of the next one, through the middle of the dots. */
+  .ui-stepper--horizontal .ui-stepper__item:not(:last-child)::after {
+    left: calc(50% + 0.875rem + 0.375rem);
+    right: calc(-50% + 0.875rem + 0.375rem);
+    top: calc(0.625rem + 0.875rem - 1px);
+    bottom: auto;
+    width: auto;
+    height: 2px;
+  }
+
+  .ui-stepper--horizontal .ui-stepper__link {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
   .ui-stepper__link {
     display: flex;
     align-items: flex-start;

@@ -54,8 +54,8 @@ export function SetupHub({ checklist, summaries }: SetupHubProps) {
         </button>
       </div>
 
-      <div id={checklistId} hidden={!isChecklistOpen} className="ui-card max-w-md p-0">
-        <SetupStepItems currentStep={null} checklist={checklist} replace={false} className="flex" />
+      <div id={checklistId} hidden={!isChecklistOpen} className="ui-card p-0">
+        <SetupStepItems currentStep={null} checklist={checklist} replace={false} orientation="horizontal" />
       </div>
 
       <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

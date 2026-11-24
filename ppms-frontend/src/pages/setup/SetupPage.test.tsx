@@ -252,7 +252,7 @@ describe('SetupPage', () => {
       expect(screen.getByLabelText('Address search')).toBeEmptyDOMElement()
     })
 
-    it('keeps the setup checklist one click away', async () => {
+    it('keeps the setup checklist one click away, laid out in one row', async () => {
       const user = userEvent.setup()
       renderSetup()
 
@@ -262,7 +262,9 @@ describe('SetupPage', () => {
       await user.click(checklistButton)
 
       expect(checklistButton).toHaveAttribute('aria-expanded', 'true')
-      expect(screen.getByRole('link', { name: /Fuel prices\s*Done/ })).toBeVisible()
+      const fuelPricesStep = screen.getByRole('link', { name: /Fuel prices\s*Done/ })
+      expect(fuelPricesStep).toBeVisible()
+      expect(fuelPricesStep.closest('ol')).toHaveClass('ui-stepper--horizontal')
     })
 
     it('opens the staff area with the add form for ?action=add-staff, and stays there when it closes', async () => {
