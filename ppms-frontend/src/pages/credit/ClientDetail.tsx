@@ -224,7 +224,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
       {rejectingPayment && (
         <RejectReasonDialog
           title={t('detail.rejectPayment')}
-          subtitle={`${formatCurrency(rejectingPayment.amount)} · ${rejectingPayment.reference || codeLabel(rejectingPayment.detail)}`}
+          subtitle={`${formatCurrency(rejectingPayment.amount)} · ${(rejectingPayment.reference && serverText(rejectingPayment.referenceCode, rejectingPayment.referenceParams, rejectingPayment.reference)) || codeLabel(rejectingPayment.detail)}`}
           isPending={approvePaymentMutation.isPending}
           error={rejectError}
           onConfirm={(reason) => approvePaymentMutation.mutate({

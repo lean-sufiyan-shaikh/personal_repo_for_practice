@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CreditTransaction } from '../../api/creditApi'
+import { changeAppLanguage } from '../../i18n'
 import { LedgerWeekGroups, type LedgerRowActions } from './LedgerWeekGroups'
 
 const actions: LedgerRowActions = {
@@ -34,6 +35,56 @@ describe('LedgerWeekGroups shop sales', () => {
     expect(screen.getByText('Castrol Engine Oil 1 L × 2 (Bill B-42)')).toBeInTheDocument()
     expect(screen.getByText('+₹1,000.00 sales')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Move' })).toHaveLength(1)
+  })
+})
+
+describe('LedgerWeekGroups server-written references', () => {
+  afterEach(async () => {
+    await changeAppLanguage('en')
+  })
+
+  it('shows a shop sale and a payment by unknown staff in the chosen language', async () => {
+    await changeAppLanguage('hi')
+    render(
+      <LedgerWeekGroups
+        srcClientId={7}
+        actions={actions}
+        groups={[{ label: 'Week', items: [
+          row({
+            referenceId: 1, type: 'COUNTER_SALE', reference: 'Castrol Engine Oil — 1 LITRE × 2 (Bill B-42)',
+            referenceCode: 'COUNTER_SALE_DETAILS_WITH_BILL',
+            referenceParams: { productName: 'Castrol Engine Oil — 1 LITRE', quantity: 2, billNo: 'B-42' },
+          }),
+          row({
+            referenceId: 2, type: 'PAYMENT', reference: 'Unknown staff', referenceCode: 'UNKNOWN_STAFF',
+            detail: 'CASH', status: 'APPROVED',
+          }),
+        ] }]}
+      />,
+    )
+
+    expect(screen.getByText('Castrol Engine Oil — 1 LITRE × 2 (बिल B-42)')).toBeInTheDocument()
+    expect(screen.getByText('अज्ञात कर्मचारी')).toBeInTheDocument()
+    expect(screen.queryByText('Unknown staff')).not.toBeInTheDocument()
+  })
+
+  it('keeps the server English for English users', () => {
+    render(
+      <LedgerWeekGroups
+        srcClientId={7}
+        actions={actions}
+        groups={[{ label: 'Week', items: [
+          row({
+            referenceId: 1, type: 'COUNTER_SALE', reference: 'Engine Oil — 1 LITRE × 3',
+            referenceCode: 'COUNTER_SALE_DETAILS', referenceParams: { productName: 'Engine Oil — 1 LITRE', quantity: 3 },
+          }),
+          row({ referenceId: 2, type: 'PAYMENT', reference: 'Unknown staff', referenceCode: 'UNKNOWN_STAFF', status: 'APPROVED' }),
+        ] }]}
+      />,
+    )
+
+    expect(screen.getByText('Engine Oil — 1 LITRE × 3')).toBeInTheDocument()
+    expect(screen.getByText('Unknown staff')).toBeInTheDocument()
   })
 })
 
