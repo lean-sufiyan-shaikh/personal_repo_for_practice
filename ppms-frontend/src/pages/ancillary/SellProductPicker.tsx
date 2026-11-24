@@ -26,6 +26,7 @@ export function SellProductPicker({
       title={t('sell.title')}
       subtitle={t('sellPicker.subtitle')}
       onClose={onClose}
+      confirmDiscard={false}
       bodyClassName="space-y-3"
       footer={<>
         <StillNeeded id={stillNeededId} items={stillNeeded} />

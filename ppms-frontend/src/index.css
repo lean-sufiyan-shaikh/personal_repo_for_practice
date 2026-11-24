@@ -1942,7 +1942,24 @@
     overflow-y: auto;
     /* 4rem clears the dashboard topbar (~3.3rem rendered height) with headroom */
     padding: 4rem 1rem 1.5rem;
-    background: rgb(20 24 31 / 0.56);
+    animation: ppms-backdrop-in 0.2s ease-out backwards;
+  }
+
+  /* The dim and blur sit on a pseudo-element: backdrop-filter on the backdrop itself would trap fixed-position popovers inside it. */
+  .ui-modal-backdrop::before,
+  .ui-side-panel-backdrop::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: rgb(20 24 31 / 0.48);
+    backdrop-filter: blur(4px);
+  }
+
+  .ui-modal-backdrop[data-closing],
+  .ui-side-panel-backdrop[data-closing] {
+    pointer-events: none;
+    animation: ppms-backdrop-out 0.15s ease-in forwards;
   }
 
   .ui-modal-panel {
@@ -1953,9 +1970,13 @@
     overflow: hidden;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-card);
+    border-radius: calc(var(--radius-card) * 1.5);
     box-shadow: var(--shadow-overlay);
-    animation: ppms-modal-in 0.15s ease-out both;
+    animation: ppms-modal-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  }
+
+  .ui-modal-backdrop[data-closing] > .ui-modal-panel {
+    animation: ppms-modal-out 0.15s ease-in forwards;
   }
 
   .ui-modal-panel--lg {
@@ -1963,68 +1984,64 @@
   }
 
   .ui-modal-header {
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 0.75rem;
-    padding: 1rem 1.25rem;
+    padding: 1rem 1rem 1rem 1.25rem;
     border-bottom: 1px solid var(--color-border);
     background: var(--color-surface);
     flex-shrink: 0;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .ui-modal-panel .ui-modal-header {
+    border-bottom-color: transparent;
+  }
+
+  .ui-modal-panel[data-scrolled] .ui-modal-header {
+    border-bottom-color: var(--color-border);
+    box-shadow: var(--shadow-raised);
   }
 
   .ui-modal-header--themed {
     --modal-tone: var(--color-neutral);
-    border-top: 4px solid var(--modal-tone);
-  }
-
-  .ui-modal-header--themed::before {
-    content: var(--modal-icon);
-    content: var(--modal-icon) / "";
-    display: var(--modal-icon-display, inline-flex);
-    flex: 0 0 auto;
-    align-items: center;
-    justify-content: center;
-    width: 1.5rem;
-    height: 1.5rem;
-    margin-top: 0.125rem;
-    border-radius: var(--modal-icon-radius, 999px);
-    background: var(--modal-tone);
-    color: var(--color-surface);
-    font-size: 0.875rem;
-    line-height: 1;
-    font-weight: 600;
   }
 
   .ui-modal-header--info {
     --modal-tone: var(--color-info);
-    --modal-icon: "i";
   }
 
   .ui-modal-header--warning {
     --modal-tone: var(--color-warn);
-    --modal-icon: "!";
-    --modal-icon-radius: var(--radius-badge);
   }
 
   .ui-modal-header--danger {
     --modal-tone: var(--color-bad);
-    --modal-icon: "!";
   }
 
   .ui-modal-header--success {
     --modal-tone: var(--color-ok);
-    --modal-icon: "\2713";
   }
 
-  .ui-modal-header--neutral {
-    --modal-tone: var(--color-neutral);
-    --modal-icon-display: none;
+  .ui-modal-tone-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius-card);
+    color: var(--modal-tone);
+    background: color-mix(in srgb, var(--modal-tone) 12%, var(--color-surface));
   }
 
   .ui-modal-heading {
     min-width: 0;
     flex: 1 1 auto;
+    align-self: center;
   }
 
   .ui-modal-title {
@@ -2036,22 +2053,19 @@
   }
 
   .ui-modal-subtitle {
-    margin: 0.25rem 0 0;
+    margin: 0.125rem 0 0;
     font-size: 0.875rem;
     line-height: 1.25rem;
     color: var(--color-ink-2);
   }
 
   .ui-modal-close {
-    min-height: 0;
-    width: 2rem;
-    height: 2rem;
+    width: 2.25rem;
+    height: 2.25rem;
     padding: 0;
     border-radius: var(--radius-control);
     flex: 0 0 auto;
-    color: var(--color-ink-2);
-    font-size: 1.375rem;
-    line-height: 1;
+    color: var(--color-ink-3);
   }
 
   .ui-modal-body {
@@ -2063,18 +2077,118 @@
   }
 
   .ui-modal-footer {
+    position: relative;
+    z-index: 1;
     padding: 1rem 1.25rem;
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
     flex-shrink: 0;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
-  /* Steps that need the whole screen on a phone (review before closing, the closing summary). */
+  .ui-modal-panel .ui-modal-footer {
+    border-top-color: transparent;
+  }
+
+  .ui-modal-panel[data-more-below] .ui-modal-footer {
+    border-top-color: var(--color-border);
+    box-shadow: 0 -4px 12px rgb(20 24 31 / 0.08);
+  }
+
+  .ui-modal-discard {
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    background: var(--color-warn-bg);
+  }
+
+  .ui-modal-panel .ui-modal-discard {
+    border-top-color: var(--color-warn);
+  }
+
+  .ui-modal-discard__question {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    color: var(--color-warn-strong);
+  }
+
+  .ui-modal-discard__actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .ui-modal-grab {
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0.5rem 0 0.25rem;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .ui-modal-grab::before {
+    content: "";
+    width: 2.5rem;
+    height: 0.25rem;
+    border-radius: 999px;
+    background: var(--color-control);
+  }
+
+  /* Phones: a bottom sheet in thumb reach, unless the step needs the whole screen. */
   @media (max-width: 768px) {
-    .ui-modal-backdrop--fullscreen {
+    .ui-modal-backdrop.ui-modal-backdrop--sheet {
+      align-items: flex-end;
+      padding: calc(1rem + env(safe-area-inset-top)) 0 0;
+    }
+
+    .ui-modal-backdrop--sheet > .ui-modal-panel {
+      width: 100%;
+      max-height: 92dvh;
+      border-bottom: 0;
+      border-radius: calc(var(--radius-card) * 2) calc(var(--radius-card) * 2) 0 0;
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .ui-modal-backdrop--sheet > .ui-modal-panel,
+    .ui-modal-backdrop--fullscreen > .ui-modal-panel {
+      animation-name: ppms-sheet-in;
+    }
+
+    .ui-modal-backdrop--sheet[data-closing] > .ui-modal-panel,
+    .ui-modal-backdrop--fullscreen[data-closing] > .ui-modal-panel {
+      animation-name: ppms-sheet-out;
+    }
+
+    .ui-modal-header[data-sheet-drag] {
+      padding-top: 0.25rem;
+      touch-action: none;
+    }
+
+    .ui-modal-panel .ui-modal-body:last-child {
+      padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    }
+
+    .ui-modal-discard {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .ui-modal-discard__actions > .ui-btn {
+      flex: 1 1 0;
+    }
+
+    .ui-modal-backdrop.ui-modal-backdrop--fullscreen {
       padding: 0;
     }
 
@@ -2833,7 +2947,7 @@
     z-index: 50;
     display: flex;
     justify-content: flex-end;
-    background: rgb(20 24 31 / 0.56);
+    animation: ppms-backdrop-in 0.2s ease-out backwards;
   }
 
   .ui-side-panel {
@@ -2846,7 +2960,11 @@
     background: var(--color-surface);
     border-left: 1px solid var(--color-border);
     box-shadow: var(--shadow-overlay);
-    animation: ppms-panel-in 0.18s ease-out both;
+    animation: ppms-panel-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  }
+
+  .ui-side-panel-backdrop[data-closing] > .ui-side-panel {
+    animation: ppms-panel-out 0.15s ease-in forwards;
   }
 
   .ui-side-panel--lg {
@@ -3293,9 +3411,43 @@
   to   { opacity: 1; transform: none; }
 }
 
+@keyframes ppms-panel-out {
+  to { opacity: 0; transform: translateX(1.5rem); }
+}
+
 @keyframes ppms-modal-in {
+  from { opacity: 0; transform: translateY(0.5rem) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes ppms-modal-out {
+  to { opacity: 0; transform: translateY(0.25rem) scale(0.96); }
+}
+
+@keyframes ppms-sheet-in {
+  from { transform: translateY(100%); }
+  to   { transform: none; }
+}
+
+/* Only `to` frames on the way out, so a sheet dragged part-way down slides on from where the finger left it. */
+@keyframes ppms-sheet-out {
+  to { transform: translateY(100%); }
+}
+
+@keyframes ppms-backdrop-in {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+@keyframes ppms-backdrop-out {
+  to { opacity: 0; }
+}
+
+/* Unlayered so the size utilities (max-w-*) on the panel cannot narrow the phone bottom sheet. */
+@media (max-width: 768px) {
+  .ui-modal-backdrop--sheet > .ui-modal-panel {
+    max-width: none;
+  }
 }
 
 @keyframes ppms-skeleton-pulse {
@@ -3485,6 +3637,11 @@
     padding: 0 !important;
   }
 
+  body.handover-printing .ui-side-panel-backdrop::before,
+  body.handover-printing .ui-modal-backdrop::before {
+    display: none !important;
+  }
+
   body.handover-printing .ui-side-panel,
   body.handover-printing .ui-side-panel .ui-modal-body,
   body.handover-printing .ui-modal-panel {
@@ -3597,10 +3754,18 @@
     transition: none;
   }
 
-  /* Modal entrance */
+  /* Modal and side panel entrance, exit, sheet spring-back and scroll edges */
+  .ui-modal-backdrop,
+  .ui-side-panel-backdrop,
   .ui-modal-panel,
   .ui-side-panel {
     animation: none;
+    transition: none;
+  }
+
+  .ui-modal-header,
+  .ui-modal-footer {
+    transition: none;
   }
 
   .ui-dashboard-sidebar--rail {

@@ -29,6 +29,7 @@ export function ChooseClientModal({ clients, isLoading, onChoose, onClose }: Cho
       size="md"
       onClose={onClose}
       closeOnBackdropClick
+      confirmDiscard={false}
       fullScreenOnPhone
       bodyClassName="space-y-3"
     >

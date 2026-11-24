@@ -53,6 +53,10 @@
     "title": "Discard what you entered?",
     "body": "The details you have typed in this form will be lost."
   },
+  "modal": {
+    "discardQuestion": "Discard your changes?",
+    "dragToClose": "Drag down to close"
+  },
   "rejectDialog": {
     "reason": "Reason",
     "help": "For example: no bill attached. Saved with the rejection.",
