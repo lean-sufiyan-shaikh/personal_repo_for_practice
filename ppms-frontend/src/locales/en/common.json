@@ -121,8 +121,8 @@
     "fyToDate": "FY to date"
   },
   "badges": {
-    "short": "SHORT",
-    "over": "OVER",
+    "short": "Short",
+    "over": "Over",
     "balanced": "Balanced",
     "pendingApproval": "Pending approval",
     "rejected": "Rejected",

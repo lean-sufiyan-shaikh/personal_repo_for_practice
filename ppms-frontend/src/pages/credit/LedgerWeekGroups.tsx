@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import type { CreditTransaction } from '../../api/creditApi'
 import { formatIstDate } from '../../utils/date'
-import { formatDecimal } from '../../utils/format'
+import { formatCurrency, formatWithSign } from '../../utils/format'
 import { DataTable } from '../../components/DataTable'
 import type { DataTableColumn } from '../../components/DataTable'
 import { MoneyText } from '../../components/AmountText'
@@ -73,9 +73,9 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
         <div className="ui-toolbar">
           <span className="ui-toolbar-title">{label}</span>
           <div className="ui-toolbar-actions text-xs">
-            {weekSales    > 0 && <span className="text-warn">{t('ledger.week.sales', { amount: `+₹${formatDecimal(weekSales)}` })}</span>}
-            {weekInterest > 0 && <span className="text-info">{t('ledger.week.interest', { amount: `+₹${formatDecimal(weekInterest)}` })}</span>}
-            {weekPayments > 0 && <span className="text-ok">{t('ledger.week.paid', { amount: `−₹${formatDecimal(weekPayments)}` })}</span>}
+            {weekSales    > 0 && <span className="text-warn">{t('ledger.week.sales', { amount: formatWithSign(weekSales, formatCurrency) })}</span>}
+            {weekInterest > 0 && <span className="text-info">{t('ledger.week.interest', { amount: formatWithSign(weekInterest, formatCurrency) })}</span>}
+            {weekPayments > 0 && <span className="text-ok">{t('ledger.week.paid', { amount: formatWithSign(-weekPayments, formatCurrency) })}</span>}
           </div>
         </div>
         <DataTable

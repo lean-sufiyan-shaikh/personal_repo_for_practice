@@ -3,7 +3,7 @@ import { codeLabel } from '../../constants/labels'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronRight, Trash2, Truck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { formatNumberIn } from '../../i18n/format'
+import { formatDecimal } from '../../utils/format'
 import { inventoryApi } from '../../api/inventoryApi'
 import type { TankStock, TankerDelivery } from '../../api/inventoryApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
@@ -151,7 +151,7 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
                           <MoneyText value={Number(rows[0].billTotal)} className="text-sm font-bold text-ink" />
                           {Math.abs(Number(rows[0].billTotal) - totalCost) > 0.005 && (
                             <span className="text-xs text-ink-3">
-                              {t('deliveries.calculated', { amount: formatNumberIn(totalCost, { minimumFractionDigits: 2 }) })}
+                              {t('deliveries.calculated', { amount: formatDecimal(totalCost) })}
                             </span>
                           )}
                         </span>

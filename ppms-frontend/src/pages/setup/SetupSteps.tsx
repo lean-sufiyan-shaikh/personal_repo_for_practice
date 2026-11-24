@@ -10,6 +10,8 @@ import { shiftDefinitionApi } from '../../api/shiftDefinitionApi'
 import { PageSection } from '../../components/layout/PageSection'
 import { StatusBadge } from '../../components/StatusBadge'
 import type { StatusTone } from '../../components/StatusBadge'
+import { codeLabel } from '../../constants/labels'
+import { formatCurrency } from '../../utils/format'
 import { isPriceStale } from '../../utils/fuelPrices'
 import { serverText } from '../../utils/serverText'
 import { FuelPricesContent } from './FuelPricesContent'
@@ -76,7 +78,7 @@ export function SetupSteps({ pump, checklist, currentStep, onPumpUpdated, isAddS
       : pump.dus.length > 0 ? t('sections.tanks.tapToConfigure') : t('sections.tanks.addDuFirst'),
     prices: currentPrices.length === 0
       ? t('sections.prices.notSet')
-      : currentPrices.map((p) => `${p.fuelType.charAt(0)}: ₹${p.pricePerUnit}`).join(' · ')
+      : currentPrices.map((p) => `${codeLabel(p.fuelType)} ${formatCurrency(p.pricePerUnit)}`).join(' · ')
         + (isPriceStale(currentPrices) ? t('sections.prices.notUpdatedToday') : ''),
     shifts: scheduleCount > 0 ? t('sections.shifts.schedules', { count: scheduleCount }) : t('sections.notConfigured'),
     staff: staff.length > 0 ? t('sections.staff.members', { count: staff.length }) : t('sections.staff.noneAdded'),

@@ -117,7 +117,7 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
     { key: 'du', header: t('history.discrepancies.columns.du'), className: 'px-5 hidden md:table-cell', cell: (shift) => <span className="text-xs text-ink-3">{shift.duName ?? `DU #${shift.duNumber}`}</span> },
     { key: 'type', header: t('history.discrepancies.columns.type'), className: 'px-5', cell: (shift) => <StatusBadge {...discrepancyBadge(shift.discrepancyType)} /> },
     {
-      key: 'amount', header: t('history.discrepancies.columns.amount'), className: 'px-5', cell: (shift) => (
+      key: 'amount', header: t('history.discrepancies.columns.amount'), numeric: true, className: 'px-5', cell: (shift) => (
         <>
           <MoneyText value={shift.discrepancyAmount} tone={shift.discrepancyType === 'SHORT' ? 'bad' : 'warn'} className="text-sm font-semibold" />
           {shift.cashRecoveryAmount != null && shift.cashRecoveryAmount > 0 && (

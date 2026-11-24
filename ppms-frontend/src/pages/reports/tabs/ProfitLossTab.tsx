@@ -85,7 +85,7 @@ function lotCostColumns(t: ReportsT): DataTableColumn<LotCostLine>[] {
     { key: 'reference', header: t('columns.lotRef'), cell: (lot) => <span className="text-ink-2">{lot.tankerReference}</span> },
     { key: 'delivered', header: t('columns.deliveryDate'), cell: (lot) => <span className="text-ink-3">{fmtShortDate(lot.deliveryDate)}</span> },
     { key: 'cost', header: t('columns.costPerLitre'), numeric: true, cell: (lot) => <MoneyText value={lot.costPricePerUnit} className="text-ink-2" /> },
-    { key: 'units', header: t('columns.unitsConsumed'), numeric: true, cell: (lot) => <LitresText value={lot.quantityConsumed} decimals={2} className="text-ink-2" /> },
+    { key: 'units', header: t('columns.unitsConsumed'), numeric: true, cell: (lot) => <LitresText value={lot.quantityConsumed} className="text-ink-2" /> },
     { key: 'total', header: t('columns.cost'), numeric: true, cell: (lot) => <MoneyText value={lot.lotCost} className="font-medium text-ink" /> },
   ]
 }
@@ -112,7 +112,7 @@ function FuelFigureCells({ row }: { row: ProfitLossFuelLine }) {
       <td className="text-right"><MoneyText value={row.cogs} tone="bad" /></td>
       <td className="text-right"><MoneyText value={row.grossProfit} tone={row.grossProfit >= 0 ? 'ok' : 'bad'} className="font-semibold" /></td>
       <td className="text-right text-ink-3 text-xs">
-        {row.grossMarginPerLitre != null ? `₹${row.grossMarginPerLitre.toFixed(2)}/L` : '—'}
+        {row.grossMarginPerLitre != null ? <><MoneyText value={row.grossMarginPerLitre} />/L</> : '—'}
       </td>
     </>
   )

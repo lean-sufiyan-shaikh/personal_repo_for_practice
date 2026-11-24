@@ -260,9 +260,9 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
                 </Link>
               </p>
             )}
-            <SummaryTile label={t('summary.totalLitresSold')} value={<LitresText value={detail.totalLitresSold} decimals={1} />} />
+            <SummaryTile label={t('summary.totalLitresSold')} value={<LitresText value={detail.totalLitresSold} />} />
             {detail.reportType === 'DAY' && (
-              <SummaryTile label={t('summary.litresDelivered')} value={<LitresText value={detail.totalLitresDelivered} decimals={1} />} />
+              <SummaryTile label={t('summary.litresDelivered')} value={<LitresText value={detail.totalLitresDelivered} />} />
             )}
             {isOwnerOrAdmin && <SummaryTile label={t('summary.costOfGoods')} value={<MoneyText value={detail.totalCostOfGoods} />} />}
             {isOwnerOrAdmin && (
@@ -363,7 +363,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
             footer={detail.shiftLines.length > 1 && (
               <tr className="bg-surface-sunken text-ink">
                 <Td colSpan={3}>{t('common:fields.total')}</Td>
-                <Td right><LitresText value={detail.shiftLines.reduce((s, l) => s + l.litresSold, 0)} decimals={1} /></Td>
+                <Td right><LitresText value={detail.shiftLines.reduce((s, l) => s + l.litresSold, 0)} /></Td>
                 <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.expectedRevenue, 0)} /></Td>
                 <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.cashCollected + l.upiCollected + l.cardCollected + (l.fleetCardCollected ?? 0), 0)} /></Td>
                 <Td right><MoneyText value={detail.shiftLines.reduce((s, l) => s + l.cashCollected, 0)} /></Td>

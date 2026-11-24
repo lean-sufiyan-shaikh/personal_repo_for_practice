@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { CreditClient } from '../../api/creditApi'
 import { onActivateKey } from '../../utils/keyboard'
-import { formatDecimal } from '../../utils/format'
+import { formatCurrency, formatDecimal } from '../../utils/format'
 import { MoneyText } from '../../components/AmountText'
 
 interface ClientSummaryCardsProps {
@@ -32,7 +32,7 @@ export function ClientSummaryCards({
           <MoneyText value={outstandingBalance} />
         </p>
         {pendingApprovalTotal > 0 && (
-          <p className="text-xs font-medium text-warn mt-0.5">{t('summaryCards.pendingApproval', { amount: `₹${formatDecimal(pendingApprovalTotal)}` })}</p>
+          <p className="text-xs font-medium text-warn mt-0.5">{t('summaryCards.pendingApproval', { amount: formatCurrency(pendingApprovalTotal) })}</p>
         )}
         {hasSubAccounts && (
           <p className="text-xs text-ink-3 mt-0.5">{t('summaryCards.parentAndSubAccounts')}</p>
@@ -68,7 +68,7 @@ export function ClientSummaryCards({
           <p className="text-sm font-medium text-ink-3">{t('summaryCards.setOnParent')}</p>
         ) : (
           <p className={`text-lg font-bold ${client.monthlyInterestRate > 0 ? 'text-info' : 'text-ink-3'}`}>
-            {client.monthlyInterestRate > 0 ? t('summaryCards.ratePerMonth', { rate: client.monthlyInterestRate }) : '—'}
+            {client.monthlyInterestRate > 0 ? t('summaryCards.ratePerMonth', { rate: formatDecimal(client.monthlyInterestRate) }) : '—'}
           </p>
         )}
         {canManageInterest && (

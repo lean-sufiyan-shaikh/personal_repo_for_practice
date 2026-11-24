@@ -14,7 +14,7 @@ import { StillNeeded } from '../../components/StillNeeded'
 import { parseApiError } from '../../utils/apiError'
 import { FUEL_UNIT } from '../../constants/fuel'
 import { codeLabel } from '../../constants/labels'
-import { formatDecimal } from '../../utils/format'
+import { formatNumberIn } from '../../i18n/format'
 import { OperatorPicker } from './components/OperatorPicker'
 import { useToastStore } from '../../store/toastStore'
 
@@ -286,7 +286,7 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
                   {t('open.nozzleReadingLabel', { number: nozzle.nozzleNumber, fuel: codeLabel(nozzle.fuelType) })}
                 </dt>
                 <dd className="text-sm font-semibold text-ink tabular-nums">
-                  {formatDecimal(nozzle.lastReading)} {FUEL_UNIT[nozzle.fuelType] ?? 'L'}
+                  {formatNumberIn(nozzle.lastReading, { maximumFractionDigits: 3 })} {FUEL_UNIT[nozzle.fuelType] ?? 'L'}
                 </dd>
               </div>
             ))}

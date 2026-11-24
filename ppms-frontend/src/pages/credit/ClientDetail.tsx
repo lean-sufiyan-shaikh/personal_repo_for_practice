@@ -34,7 +34,7 @@ import { useLedgerFilters } from './useLedgerFilters'
 import { LedgerFilterBar } from './LedgerFilterBar'
 import { ClientSummaryCards } from './ClientSummaryCards'
 import { ClientInvoicesTab } from './ClientInvoicesTab'
-import { formatCurrency } from '../../utils/format'
+import { formatCurrency, formatCurrencyOrDash } from '../../utils/format'
 import { PageTabs } from '../../components/layout/PageTabs'
 import { useActiveTab } from '../../components/layout/useActiveTab'
 import { useUrlParam } from '../../components/layout/useUrlParam'
@@ -112,7 +112,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
       invalidateLedger()
       if (result.applied) {
         setApplyInterestFeedback(t('detail.interestApplied', {
-          amount: `₹${result.amount?.toFixed(2)}`, days: result.days, from: result.periodFrom, to: result.periodTo,
+          amount: formatCurrencyOrDash(result.amount), days: result.days, from: result.periodFrom, to: result.periodTo,
         }))
       } else {
         setApplyInterestFeedback(result.reason ? serverText(result.reasonCode, result.reasonParams, result.reason) : t('detail.noInterestApplicable'))

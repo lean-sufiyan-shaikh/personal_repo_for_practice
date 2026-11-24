@@ -71,7 +71,7 @@ describe('DiscrepanciesHistory', () => {
 
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('Shift #11 · Ravi')).toBeInTheDocument()
-    expect(within(dialog).getByText('SHORT ₹2,000.00')).toBeInTheDocument()
+    expect(within(dialog).getByText('Short ₹2,000.00')).toBeInTheDocument()
     expect(within(dialog).getByText('Reason given at close').nextSibling).toHaveTextContent('Cash bag missing')
   })
 
@@ -87,7 +87,7 @@ describe('DiscrepanciesHistory', () => {
     const escalated = cards[0]
     expect(within(escalated).getByText('Ravi')).toBeInTheDocument()
     expect(within(escalated).getByText('2026-03-15 · MORNING')).toBeInTheDocument()
-    expect(within(escalated).getByText('SHORT ₹2,000.00')).toBeInTheDocument()
+    expect(within(escalated).getByText('Short ₹2,000.00')).toBeInTheDocument()
     expect(within(escalated).getByText('Needs Approval')).toBeInTheDocument()
     expect(within(escalated).getByText('Cash bag missing')).toBeInTheDocument()
     const approve = within(escalated).getByRole('button', { name: `Approve discrepancy for shift ${ESCALATED_ID}` })
@@ -95,5 +95,17 @@ describe('DiscrepanciesHistory', () => {
 
     await user.click(approve)
     expect(await screen.findByRole('dialog')).toHaveTextContent('Shift #11 · Ravi')
+  })
+
+  it('labels totals and filters in sentence case and right-aligns the amount column', async () => {
+    signIn('OWNER')
+    renderWithProviders(<DiscrepanciesHistory pumpId={3} />)
+
+    expect(await screen.findByText('Short total:')).toBeInTheDocument()
+    expect(screen.getByText('Over total:')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Short' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Over' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Amount' })).toHaveClass('text-right', 'tabular-nums')
   })
 })
