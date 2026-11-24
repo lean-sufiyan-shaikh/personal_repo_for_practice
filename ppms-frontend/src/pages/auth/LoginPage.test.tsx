@@ -35,10 +35,15 @@ function storedValues(): string[] {
   return Object.keys(localStorage).map((key) => localStorage.getItem(key) ?? '')
 }
 
+function useFinePointer(fine: boolean) {
+  vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === '(pointer: fine)' && fine, media: query }))
+}
+
 describe('LoginPage', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks() })
 
   afterEach(async () => {
+    vi.unstubAllGlobals()
     useAuthStore.setState({ user: null, isAuthenticated: false })
     await changeAppLanguage('en')
   })
@@ -110,6 +115,7 @@ describe('LoginPage', () => {
   describe('remember my number', () => {
     it('is off by default, puts the cursor in the phone field and stores nothing', async () => {
       const user = userEvent.setup()
+      useFinePointer(true)
       vi.mocked(authApi.login).mockResolvedValue(signedInAs('en'))
       renderWithProviders(<LoginPage />)
 
@@ -134,12 +140,26 @@ describe('LoginPage', () => {
     })
 
     it('fills in the remembered number with the box ticked and puts the cursor in the password', async () => {
+      useFinePointer(true)
       localStorage.setItem(REMEMBERED_PHONE_KEY, '9876543210')
       renderWithProviders(<LoginPage />)
 
       expect(screen.getByLabelText('Phone number')).toHaveValue('98765 43210')
       expect(screen.getByRole('checkbox', { name: 'Remember my number on this device' })).toBeChecked()
       await vi.waitFor(() => expect(screen.getByLabelText('Password')).toHaveFocus())
+    })
+
+    it.each([
+      ['a touch screen', () => useFinePointer(false)],
+      ['a browser without matchMedia', () => {}],
+    ])('leaves the fields unfocused on %s, so no keyboard pops up', async (_, setPointer) => {
+      setPointer()
+      localStorage.setItem(REMEMBERED_PHONE_KEY, '9876543210')
+      renderWithProviders(<LoginPage />)
+
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      expect(screen.getByLabelText('Password')).not.toHaveFocus()
+      expect(screen.getByLabelText('Phone number')).not.toHaveFocus()
     })
 
     it('forgets the number when unticked and the sign-in succeeds', async () => {

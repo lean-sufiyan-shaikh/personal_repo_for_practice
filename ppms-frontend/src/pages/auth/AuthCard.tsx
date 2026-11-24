@@ -4,6 +4,7 @@ import { activeLanguage, changeAppLanguage } from '../../i18n'
 import { storeLanguage } from '../../i18n/detectLanguage'
 import type { AppLanguage } from '../../i18n/languages'
 import { AuthBrandPanel } from './AuthBrandPanel'
+import type { BrandMessage } from './AuthBrandPanel'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
 function chooseLanguage(language: AppLanguage) {
@@ -52,10 +53,10 @@ export function AuthCard({ title, description, icon, footer, onLanguagePicked, c
 }
 
 /** The split page behind a signed-out screen: the brand half, then the form half, which scrolls on short phones. */
-export function AuthScreen({ children }: { children: ReactNode }) {
+export function AuthScreen({ brandMessage, children }: { brandMessage?: BrandMessage; children: ReactNode }) {
   return (
     <main id="main-content" className="ui-auth-screen">
-      <AuthBrandPanel />
+      <AuthBrandPanel message={brandMessage} />
       <div className="ui-auth-screen__form">{children}</div>
     </main>
   )

@@ -19,6 +19,7 @@ import { AuthCard, AuthScreen } from './AuthCard'
 import { PhoneNumberField } from './PhoneNumberField'
 import { forgetRememberedPhone, readRememberedPhone, rememberPhone } from './rememberedPhone'
 import { useCapsLock } from './useCapsLock'
+import { hasFinePointer } from './hasFinePointer'
 
 function loginSchema(t: TFunction<'auth'>) {
   return z.object({
@@ -58,7 +59,7 @@ export default function LoginPage() {
   const { field: phoneField } = useController({ name: 'phoneNumber', control })
 
   useEffect(() => {
-    setFocus(rememberedPhone ? 'password' : 'phoneNumber')
+    if (hasFinePointer()) setFocus(rememberedPhone ? 'password' : 'phoneNumber')
   }, [rememberedPhone, setFocus])
 
   const onSubmit = async (data: LoginFormData) => {
