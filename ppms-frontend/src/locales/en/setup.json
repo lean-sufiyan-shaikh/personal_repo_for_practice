@@ -64,14 +64,13 @@
     "thresholdLabel": "Owner approval limit",
     "effectOn": "Shortages or overages above {{amount}} will need Owner or Admin to resolve.",
     "effectOff": "Blank: managers can resolve every discrepancy.",
-    "save": "Save settings"
+    "save": "Save settings",
+    "escalationTitle": "Owner approval for discrepancies"
   },
   "gst": {
     "saved": "GST details saved",
     "saveFailed": "Failed to save GST details",
     "prefixFormat": "Invoice prefix must be 1 to 5 letters or digits.",
-    "introBefore": "Needed before you can issue tax invoices to credit clients. Invoice numbers look like",
-    "introAfter": "and restart every April.",
     "legalName": "Legal name (as registered)",
     "legalNamePlaceholder": "e.g. Lakshmi Fuels Pvt Ltd",
     "state": "State",
@@ -79,7 +78,13 @@
     "invoicePrefix": "Invoice prefix",
     "invoicePrefixPlaceholder": "e.g. PMP3",
     "invoicePrefixHelp": "1 to 5 letters or digits.",
-    "save": "Save GST details"
+    "save": "Save GST details",
+    "businessTitle": "Business details",
+    "businessHint": "Needed before you can issue tax invoices to credit clients.",
+    "gstinHelp": "15 characters, as on your GST certificate.",
+    "numberingTitle": "Invoice numbering",
+    "numberingHint": "Every invoice number starts with this prefix, and the count restarts every April.",
+    "firstInvoice": "First invoice number this year"
   },
   "prices": {
     "setFailed": "Failed to set price",
@@ -94,7 +99,6 @@
     "samePrices": "Same prices",
     "currentPrice": "Current price",
     "noCurrentPrice": "No price set yet",
-    "change": "change",
     "stillNeededPrice": "A new price for at least one fuel",
     "save": "Save prices",
     "openShiftsTitle": "Open shifts found",
@@ -107,6 +111,15 @@
       "newPrice": "New price",
       "deviation": "Change",
       "body": "Are you sure you want to set this price? This is a significant deviation from the last recorded price."
+    },
+    "keepHint": "Leave blank to keep {{price}}",
+    "firstPrice": "First price for this fuel",
+    "notSet": "Not set",
+    "newPrice": "New price",
+    "change": {
+      "up": "Up {{amount}} ({{percent}}) from {{current}}",
+      "down": "Down {{amount}} ({{percent}}) from {{current}}",
+      "same": "Same as the current {{current}}"
     }
   },
   "tanks": {
@@ -292,7 +305,6 @@
     "nightShiftConsent": "Okay for night shift",
     "nightShiftConsentHint": "If left unchecked, shift planning will skip night-shift assignment for this operator.",
     "menu": {
-      "label": "Staff actions",
       "edit": "Edit details",
       "editHint": "Update name, phone number, or role",
       "resetPassword": "Reset password",
@@ -309,7 +321,8 @@
       "activate": "Activate staff",
       "deactivate": "Deactivate staff",
       "activateHint": "Allow this staff member to work again",
-      "deactivateHint": "Temporarily remove this staff member from active use"
+      "deactivateHint": "Temporarily remove this staff member from active use",
+      "labelFor": "Actions for {{name}}"
     },
     "edit": {
       "failed": "Failed to save details",
@@ -325,7 +338,7 @@
       "passwordHint": "They choose their own password at first sign-in.",
       "success": "Staff member added successfully.",
       "submit": "Add staff",
-      "open": "Add staff"
+      "open": "Add staff member"
     },
     "move": {
       "failed": "Failed to move staff member",
@@ -378,6 +391,30 @@
       "nightShiftPay": "{{hours}}-hour night shift",
       "dayShiftPay": "{{hours}}-hour day shift",
       "monthPay": "{{days}} working days"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "listLabel": "Staff members",
+    "empty": {
+      "title": "No staff yet",
+      "body": "Add the people who run your shifts. They sign in with their phone number."
+    },
+    "filters": {
+      "label": "Filter staff",
+      "summary": "{{shown}} of {{total}} shown",
+      "search": "Search staff",
+      "searchPlaceholder": "Name, phone or ID",
+      "clearSearch": "Clear search",
+      "allRoles": "All roles",
+      "status": "Status",
+      "statuses": {
+        "all": "Any status",
+        "ACTIVE": "Active",
+        "INACTIVE": "Inactive"
+      },
+      "noMatch": "No staff match these filters."
     }
   },
   "actions": {
@@ -406,14 +443,16 @@
     "setAsDefault": "Set as default",
     "setDefault": "Make default",
     "default": "Default",
-    "capacityShort": "{{thousands}}K L",
-    "capacityLong": "{{litres}} L capacity",
     "edit": "Edit tanker",
     "removeAria": "Remove tanker {{name}}",
     "removePrompt": "Remove?",
     "newTanker": "New tanker",
     "save": "Save tanker",
-    "add": "Add tanker"
+    "add": "Add tanker",
+    "capacityLitres": "{{litres}} L",
+    "editAria": "Edit tanker {{name}}",
+    "editTitle": "Edit {{name}}",
+    "remove": "Remove"
   },
   "shiftDefs": {
     "empty": "No shift definitions yet. Add your first schedule below.",
@@ -435,7 +474,7 @@
     "confirmDisable": "Disable schedule",
     "night": "Night",
     "dismissError": "Dismiss error",
-    "addSchedule": "+ Add new shift schedule",
+    "addSchedule": "Add shift schedule",
     "form": {
       "saveFailed": "Failed to save shift definitions",
       "startRequired": "Start date is required",
@@ -458,8 +497,18 @@
       "endTime": "End time",
       "displayOrder": "Display order",
       "removeRow": "Remove row",
-      "addShift": "+ Add another shift",
-      "save": "Save schedule"
+      "addShift": "Add another shift",
+      "save": "Save schedule",
+      "shiftsLabel": "Shifts in this schedule"
+    },
+    "scheduleLabel": "Schedule from {{from}}",
+    "shiftCount_one": "{{count}} shift",
+    "shiftCount_other": "{{count}} shifts",
+    "timeline": {
+      "label": "24-hour timeline. {{shifts}}",
+      "gap": "No shift covers {{range}}",
+      "overlap": "Overlap: {{names}} both run {{range}}",
+      "fullDay": "Covers all 24 hours with no overlaps"
     }
   },
   "steps": {
@@ -496,5 +545,8 @@
     "title": "All settings",
     "checklist": "Setup checklist",
     "backLink": "All settings"
+  },
+  "saveBar": {
+    "unsaved": "Unsaved changes"
   }
 }

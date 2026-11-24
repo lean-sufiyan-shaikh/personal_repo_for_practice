@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { UserPlus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { FuelPrice, PumpSummary } from '../../api/pumpApi'
 import { PageSection } from '../../components/layout/PageSection'
@@ -56,7 +57,8 @@ export function SetupArea({
       titleMeta={titleMeta}
       description={summary}
       actions={section === 'staff' && staffCount > 0 && !isAddStaffOpen && (
-        <button type="button" onClick={onOpenAddStaff} className="ui-btn ui-btn-primary ui-btn-compact">
+        <button type="button" onClick={onOpenAddStaff} className="ui-btn ui-btn-primary ui-btn-compact gap-1.5">
+          <UserPlus size={14} strokeWidth={2} aria-hidden="true" />
           {t('staff.add.open')}
         </button>
       )}

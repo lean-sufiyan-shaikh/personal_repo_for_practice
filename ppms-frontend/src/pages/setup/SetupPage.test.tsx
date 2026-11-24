@@ -187,7 +187,7 @@ describe('SetupPage', () => {
 
       expect(screen.getByText('Staff list')).toBeInTheDocument()
       expect(screen.getByLabelText('Address search')).toHaveTextContent('?section=staff')
-      expect(await screen.findByRole('button', { name: 'Add staff' })).toBeInTheDocument()
+      expect(await screen.findByRole('button', { name: 'Add staff member' })).toBeInTheDocument()
     })
 
     it('opens the fuel prices step for ?action=set-fuel-prices', async () => {
