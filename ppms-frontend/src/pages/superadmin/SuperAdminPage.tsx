@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { superAdminApi } from '../../api/superAdminApi'
 import type { OnboardOwnerResponse } from '../../api/superAdminApi'
 import client from '../../api/client'
+import { useToastStore } from '../../store/toastStore'
 import { KpiRow } from '../../components/layout/DashboardGrid'
 import { Page } from '../../components/layout/Page'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -34,10 +35,11 @@ export default function SuperAdminPage() {
   const isOnboarding = action.value === ONBOARD_ACTION
   const [createdOwner, setCreatedOwner] = useState<OnboardOwnerResponse | null>(null)
   // Password is stored in a ref — not in React state — so it never appears in
-  // React DevTools. It is wiped immediately after the super admin copies it.
+  // React DevTools. It is wiped as soon as the super admin has copied it.
   const createdPasswordRef = useRef<string | null>(null)
   const [revealedPassword, setRevealedPassword] = useState<string | null>(null)
   const showPassword = revealedPassword !== null
+  const { addToast } = useToastStore()
 
   const { data: owners = [], isLoading: ownersLoading } = useQuery({
     queryKey: ['superadmin-owners'],
@@ -73,11 +75,18 @@ export default function SuperAdminPage() {
     setSearchParams({ owner: String(owner.ownerId) }, { replace: true })
   }
 
-  const handleCopyCredentials = () => {
+  const handleCopyCredentials = async () => {
     if (!createdOwner || !createdPasswordRef.current) return
     const text = t('page.copiedCredentials', { phone: createdOwner.phoneNumber, password: createdPasswordRef.current, pump: createdOwner.pumpName })
-    navigator.clipboard.writeText(text)
-    // Wipe the password from memory immediately after copying — one-time copy only
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      // Kept on screen, revealed, so the admin can copy it by hand.
+      setRevealedPassword(createdPasswordRef.current)
+      addToast(t('page.copyFailed'), 'error')
+      return
+    }
+    addToast(t('page.copied'), 'success')
     dismissCreatedOwner()
   }
 
@@ -107,7 +116,7 @@ export default function SuperAdminPage() {
                   createdOwner={createdOwner}
                   revealedPassword={revealedPassword}
                   onToggleReveal={() => setRevealedPassword(showPassword ? null : createdPasswordRef.current)}
-                  onCopy={handleCopyCredentials}
+                  onCopy={() => void handleCopyCredentials()}
                   onDismiss={dismissCreatedOwner}
                 />
               )}

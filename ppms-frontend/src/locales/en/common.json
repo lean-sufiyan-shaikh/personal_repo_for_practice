@@ -25,7 +25,8 @@
     "enable": "Enable",
     "disable": "Disable",
     "clear": "Clear",
-    "clearFilters": "Clear filters"
+    "clearFilters": "Clear filters",
+    "retry": "Retry"
   },
   "language": {
     "label": "Language",
@@ -181,5 +182,8 @@
   },
   "form": {
     "stillNeeded": "Still needed"
+  },
+  "loadError": {
+    "message": "Could not load this. Check your connection and retry."
   }
 }

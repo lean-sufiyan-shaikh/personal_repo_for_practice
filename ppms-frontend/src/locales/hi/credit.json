@@ -369,7 +369,9 @@
     "clientName": "ग्राहक का नाम",
     "clientNamePlaceholder": "जैसे ABC ट्रांसपोर्ट्स",
     "addClient": "ग्राहक जोड़ें",
-    "emptyReadOnlyHint": "क्रेडिट ग्राहक जोड़ने के लिए मालिक या एडमिन से संपर्क करें।"
+    "emptyReadOnlyHint": "क्रेडिट ग्राहक जोड़ने के लिए मालिक या एडमिन से संपर्क करें।",
+    "disableAria": "ग्राहक {{name}} बंद करें",
+    "disablePrompt": "यह ग्राहक बंद करें?"
   },
   "detail": {
     "interestApplied": "{{days}} दिनों ({{from}} – {{to}}) का {{amount}} ब्याज लगाया गया",

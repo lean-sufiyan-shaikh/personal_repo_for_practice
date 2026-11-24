@@ -1,8 +1,8 @@
-import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { StaffMember } from '../../api/userApi'
 import type { PayrollRecord, PayrollStatus } from '../../api/payrollApi'
+import { ConfirmButton } from '../../components/ConfirmButton'
 import { Pagination } from '../../components/Pagination'
 import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
@@ -38,7 +38,6 @@ export function PayrollGroup({
 }: GroupProps) {
   const { t } = useTranslation(['payroll', 'common'])
   const next = NEXT_STATUS[status]
-  const [rejectRecordId, setRejectRecordId] = useState<number | null>(null)
 
   const totalPages   = Math.max(1, Math.ceil(totalRecords / pageSize))
   const pagedData = {
@@ -178,42 +177,34 @@ export function PayrollGroup({
                     {r.notes && ` · ${r.notes}`}
                   </p>
                   <div className="flex items-center gap-2">
-                    {status === 'DRAFT' && rejectRecordId === r.id ? (
-                      <>
-                        <button
-                          onClick={() => setRejectRecordId(null)}
-                          className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs"
-                        >
-                          {t('common:actions.cancel')}
-                        </button>
-                        <button
-                          onClick={() => onDelete(r.id)}
-                          disabled={isDeletePending}
-                          className="ui-btn ui-btn-danger min-h-0 px-3 py-1 text-xs"
-                        >
-                          {isDeletePending ? t('group.deleting') : t('common:actions.delete')}
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        {next && (
-                          <button
-                            onClick={() => onStatusChange(r.id, next)}
-                            disabled={isPending}
-                            className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
-                          >
-                            {t(`group.mark.${next}`)}
-                          </button>
-                        )}
-                        {status === 'DRAFT' && (
-                          <button
-                            onClick={() => setRejectRecordId(r.id)}
-                            className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs"
-                          >
-                            {t('common:actions.reject')}
-                          </button>
-                        )}
-                      </>
+                    {next === 'PAID' ? (
+                      <ConfirmButton
+                        onConfirm={() => onStatusChange(r.id, next)}
+                        disabled={isPending}
+                        triggerLabel={t('group.mark.PAID')}
+                        triggerAriaLabel={t('group.mark.PAID')}
+                        prompt={t('group.markPaidPrompt')}
+                        triggerClassName="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
+                        confirmClassName="ui-btn ui-btn-primary min-h-0 px-2 py-0.5 text-xs"
+                      />
+                    ) : next && (
+                      <button
+                        type="button"
+                        onClick={() => onStatusChange(r.id, next)}
+                        disabled={isPending}
+                        className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
+                      >
+                        {t(`group.mark.${next}`)}
+                      </button>
+                    )}
+                    {status === 'DRAFT' && (
+                      <ConfirmButton
+                        onConfirm={() => onDelete(r.id)}
+                        disabled={isDeletePending}
+                        triggerLabel={t('common:actions.delete')}
+                        triggerAriaLabel={t('common:actions.delete')}
+                        prompt={t('group.deletePrompt')}
+                      />
                     )}
                   </div>
                 </div>

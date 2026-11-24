@@ -10,6 +10,7 @@ import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { StatusBadge } from '../../components/StatusBadge'
 import { SkeletonRows } from '../../components/Skeleton'
+import { LoadError } from '../../components/LoadError'
 import { FilterBar } from '../../components/layout/FilterBar'
 import { PageSection } from '../../components/layout/PageSection'
 import { DipItem } from './DipItem'
@@ -23,7 +24,7 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
   const [dipFuelFilter,          setDipFuelFilter]          = useState('')
   const [collapsedDipGroups,     setCollapsedDipGroups]     = useState<Set<string>>(new Set())
 
-  const { data: dipChecksPage, isLoading: dipLoading } = useQuery({
+  const { data: dipChecksPage, isLoading: dipLoading, isLoadingError: dipLoadFailed, refetch: refetchDipChecks } = useQuery({
     queryKey: ['dipChecks', pumpId, dipPage, dipPageSize],
     queryFn:  () => inventoryApi.getDipChecks(pumpId, dipPage, dipPageSize),
   })
@@ -71,6 +72,8 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
 
             {dipLoading ? (
               <div className="p-(--density-card-pad)"><SkeletonRows count={3} /></div>
+            ) : dipLoadFailed ? (
+              <LoadError onRetry={() => void refetchDipChecks()} className="m-4" />
             ) : (() => {
               // Apply client-side filters on the current page's data
               const filtered = dipChecks.filter(d =>

@@ -66,7 +66,9 @@
     "statusFailed": "Failed to update product status",
     "filtersLabel": "Product filters",
     "matchCount_one": "{{count}} match",
-    "matchCount_other": "{{count}} matches"
+    "matchCount_other": "{{count}} matches",
+    "disableAria": "Disable product {{name}}",
+    "disablePrompt": "Disable this product?"
   },
   "addProduct": {
     "title": "Add product",

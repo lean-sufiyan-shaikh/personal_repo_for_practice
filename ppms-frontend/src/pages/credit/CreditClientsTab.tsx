@@ -5,6 +5,7 @@ import { pumpApi } from '../../api/pumpApi'
 import type { CreateCreditClientRequest, CreditClient as PumpCreditClient } from '../../api/pumpApi'
 import { Pause, Users } from 'lucide-react'
 import { SkeletonRows } from '../../components/Skeleton'
+import { LoadError } from '../../components/LoadError'
 import { StatusBadge } from '../../components/StatusBadge'
 import { EmptyState } from '../../components/EmptyState'
 import { FormField } from '../../components/FormField'
@@ -12,6 +13,7 @@ import { LoadingButton } from '../../components/LoadingButton'
 import { parseApiError } from '../../utils/apiError'
 import { onActivateKey } from '../../utils/keyboard'
 import { isValidGstin, normaliseGstText } from '../../utils/gst'
+import { ClientStatusToggle } from './ClientStatusToggle'
 import { EditCreditClientForm } from './EditCreditClientForm'
 import { PortalPinControl } from './PortalPinControl'
 import { FormGrid, FormGridFullRow } from '../../components/layout/FormGrid'
@@ -53,7 +55,7 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
   const [addSubNotes,    setAddSubNotes]    = useState('')
   const [addSubError,    setAddSubError]    = useState<string | null>(null)
 
-  const { data: clients = [], isLoading } = useQuery({
+  const { data: clients = [], isLoading, isLoadingError, refetch } = useQuery({
     queryKey: ['creditClients', pumpId],
     queryFn:  () => pumpApi.getCreditClientAccounts(pumpId),
   })
@@ -131,6 +133,7 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
     : rootClients
 
   if (isLoading) return <div className="px-5 py-4"><SkeletonRows count={4} /></div>
+  if (isLoadingError) return <LoadError onRetry={() => void refetch()} className="m-4" />
 
   return (
     <div className="space-y-4">
@@ -227,17 +230,11 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
                       >
                         {editingId === parent.id ? t('common:actions.cancel') : t('common:actions.edit')}
                       </button>
-                      <button
-                        onClick={() => toggleStatusMutation.mutate({ clientId: parent.id, isActive: !parent.isActive })}
+                      <ClientStatusToggle
+                        client={parent}
+                        onChange={(isActive) => toggleStatusMutation.mutate({ clientId: parent.id, isActive })}
                         disabled={toggleStatusMutation.isPending}
-                        className={`ui-btn ui-btn-ghost min-h-0 px-2 py-1 text-xs border ${
-                          parent.isActive
-                            ? 'text-ink-3 hover:text-ink border-border'
-                            : 'text-ok border-ok/30 hover:bg-ok-bg'
-                        }`}
-                      >
-                        {parent.isActive ? t('common:actions.disable') : t('common:actions.enable')}
-                      </button>
+                      />
                     </div>
                   )}
                 </div>
@@ -272,17 +269,11 @@ export function CreditClientsTab({ pumpId, canManageClients, canManagePortalPins
                             className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-primary hover:text-primary-strong">
                             {editingId === child.id ? t('common:actions.cancel') : t('common:actions.edit')}
                           </button>
-                          <button
-                            onClick={() => toggleStatusMutation.mutate({ clientId: child.id, isActive: !child.isActive })}
+                          <ClientStatusToggle
+                            client={child}
+                            onChange={(isActive) => toggleStatusMutation.mutate({ clientId: child.id, isActive })}
                             disabled={toggleStatusMutation.isPending}
-                            className={`ui-btn ui-btn-ghost min-h-0 px-2 py-1 text-xs border ${
-                              child.isActive
-                                ? 'text-ink-3 hover:text-ink border-border'
-                                : 'text-ok border-ok/30 hover:bg-ok-bg'
-                            }`}
-                          >
-                            {child.isActive ? t('common:actions.disable') : t('common:actions.enable')}
-                          </button>
+                          />
                         </div>
                       )}
                     </div>

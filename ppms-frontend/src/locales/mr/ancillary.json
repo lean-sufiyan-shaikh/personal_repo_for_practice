@@ -66,7 +66,9 @@
     "statusFailed": "उत्पादनाची स्थिती अपडेट करता आली नाही",
     "filtersLabel": "उत्पादन फिल्टर",
     "matchCount_one": "{{count}} जुळले",
-    "matchCount_other": "{{count}} जुळले"
+    "matchCount_other": "{{count}} जुळले",
+    "disableAria": "उत्पादन {{name}} बंद करा",
+    "disablePrompt": "हे उत्पादन बंद करायचे?"
   },
   "addProduct": {
     "title": "उत्पादन जोडा",

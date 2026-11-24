@@ -6,6 +6,8 @@ import { ancillaryApi } from '../../api/ancillaryApi'
 import type { AncillaryProduct, AncillarySale } from '../../api/ancillaryApi'
 import { Pagination } from '../../components/Pagination'
 import { EmptyState } from '../../components/EmptyState'
+import { LoadError } from '../../components/LoadError'
+import { SkeletonRows } from '../../components/Skeleton'
 import { BackfillSaleModal } from './BackfillSaleModal'
 import { fmtDate, paymentModeBadge } from './ancillaryFormat'
 import { DataTable } from '../../components/DataTable'
@@ -32,7 +34,7 @@ export function SalesTab({
   const [salesPage, setSalesPage] = useState(0)
   const [salesPageSize, setSalesPageSize] = useState(10)
 
-  const { data: salesPageData } = useQuery({
+  const { data: salesPageData, isLoading, isLoadingError, refetch } = useQuery({
     queryKey: ['ancillarySales', pumpId, salesPage, salesPageSize],
     queryFn:  () => ancillaryApi.getSales(pumpId, salesPage, salesPageSize),
   })
@@ -52,7 +54,11 @@ export function SalesTab({
   return (
     <>
       <PageSection title={t('salesTab.title')} flush>
-        {sales.length === 0 ? (
+        {isLoading ? (
+          <div className="px-5 py-4" aria-busy="true"><SkeletonRows count={5} /></div>
+        ) : isLoadingError ? (
+          <LoadError onRetry={() => void refetch()} className="m-4" />
+        ) : sales.length === 0 ? (
           <EmptyState icon="transactions" title={t('salesTab.emptyTitle')} subtitle={t('salesTab.emptySubtitle')} />
         ) : (
           <>

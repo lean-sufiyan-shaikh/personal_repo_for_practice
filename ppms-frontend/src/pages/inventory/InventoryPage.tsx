@@ -10,6 +10,7 @@ import type { TankStock } from '../../api/inventoryApi'
 import { canPerformAction } from '../../permissions/permissions'
 import { useAuthStore } from '../../store/authStore'
 import { SkeletonRows } from '../../components/Skeleton'
+import { LoadError } from '../../components/LoadError'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Page } from '../../components/layout/Page'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -52,7 +53,7 @@ export default function InventoryPage() {
     enabled:  isOwnerOrAdmin,
   })
 
-  const { data: tanks = [], isLoading: tanksLoading, isSuccess: tanksLoaded, dataUpdatedAt: tanksUpdatedAt } = useQuery({
+  const { data: tanks = [], isLoading: tanksLoading, isLoadingError: tanksLoadFailed, refetch: refetchTanks, isSuccess: tanksLoaded, dataUpdatedAt: tanksUpdatedAt } = useQuery({
     queryKey: ['tankStocks', pumpId],
     queryFn:  () => inventoryApi.getTankStocks(pumpId!),
     enabled:  !!pumpId,
@@ -154,6 +155,8 @@ export default function InventoryPage() {
           >
             {tanksLoading ? (
               <SkeletonRows count={3} />
+            ) : tanksLoadFailed ? (
+              <LoadError onRetry={() => void refetchTanks()} />
             ) : tanks.length === 0 ? (
               <p className="text-sm text-ink-3">{t('page.noTanks')}</p>
             ) : (

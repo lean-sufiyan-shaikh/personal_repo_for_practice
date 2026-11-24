@@ -369,7 +369,9 @@
     "clientName": "ग्राहकाचे नाव",
     "clientNamePlaceholder": "उदा. ABC ट्रान्सपोर्ट्स",
     "addClient": "ग्राहक जोडा",
-    "emptyReadOnlyHint": "क्रेडिट ग्राहक जोडण्यासाठी मालक किंवा ॲडमिनशी संपर्क साधा."
+    "emptyReadOnlyHint": "क्रेडिट ग्राहक जोडण्यासाठी मालक किंवा ॲडमिनशी संपर्क साधा.",
+    "disableAria": "ग्राहक {{name}} बंद करा",
+    "disablePrompt": "हा ग्राहक बंद करायचा?"
   },
   "detail": {
     "interestApplied": "{{days}} दिवसांचे ({{from}} – {{to}}) {{amount}} व्याज लावले",

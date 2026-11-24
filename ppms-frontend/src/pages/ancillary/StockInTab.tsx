@@ -6,6 +6,8 @@ import { ancillaryApi } from '../../api/ancillaryApi'
 import type { AncillaryStockDelivery, AncillaryProduct } from '../../api/ancillaryApi'
 import { Pagination } from '../../components/Pagination'
 import { EmptyState } from '../../components/EmptyState'
+import { LoadError } from '../../components/LoadError'
+import { SkeletonRows } from '../../components/Skeleton'
 import { StockInDialog } from './StockInDialog'
 import { fmtDate } from './ancillaryFormat'
 import { DataTable } from '../../components/DataTable'
@@ -30,7 +32,7 @@ export function StockInTab({
   const [deliveryPageSize, setDeliveryPageSize] = useState(10)
   const productMap = new Map(products.map((product) => [product.id, product]))
 
-  const { data: deliveriesPage } = useQuery({
+  const { data: deliveriesPage, isLoading, isLoadingError, refetch } = useQuery({
     queryKey: ['ancillaryDeliveries', pumpId, deliveryPage, deliveryPageSize],
     queryFn:  () => ancillaryApi.getDeliveries(pumpId, deliveryPage, deliveryPageSize),
   })
@@ -74,7 +76,11 @@ export function StockInTab({
       )}
 
       <PageSection title={t('stockInTab.recent')} flush>
-        {deliveries.length === 0 ? (
+        {isLoading ? (
+          <div className="px-5 py-4" aria-busy="true"><SkeletonRows count={5} /></div>
+        ) : isLoadingError ? (
+          <LoadError onRetry={() => void refetch()} className="m-4" />
+        ) : deliveries.length === 0 ? (
           <EmptyState icon="generic" title={t('stockInTab.emptyTitle')} subtitle={t('stockInTab.emptySubtitle')} />
         ) : (
           <>

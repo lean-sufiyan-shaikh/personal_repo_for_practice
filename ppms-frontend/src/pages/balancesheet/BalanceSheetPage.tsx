@@ -14,6 +14,7 @@ import { useDateRangeParams } from '../../hooks/useDateRangeParams'
 import { DatePresetChips } from '../../components/DatePresetChips'
 import { SkeletonRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
+import { LoadError } from '../../components/LoadError'
 import { RefreshIndicator } from '../../components/RefreshIndicator'
 import { Page } from '../../components/layout/Page'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -59,7 +60,7 @@ export default function BalanceSheetPage() {
 
   useOnValuesChange([filterFrom, filterTo, pumpId], () => setBsPage(0))
 
-  const { data: reportsPage, isLoading, isFetching: fetchingReports, dataUpdatedAt: reportsUpdatedAt } = useQuery({
+  const { data: reportsPage, isLoading, isLoadingError, refetch, isFetching: fetchingReports, dataUpdatedAt: reportsUpdatedAt } = useQuery({
     queryKey: ['balance-sheets', pumpId, filterFrom, filterTo, bsPage, bsPageSize],
     queryFn:  () => balanceSheetApi.list(
       pumpId!,
@@ -143,6 +144,8 @@ export default function BalanceSheetPage() {
 
       {(!pumpId || isLoading) ? (
         <div className="px-4 py-4"><SkeletonRows count={5} /></div>
+      ) : isLoadingError ? (
+        <LoadError onRetry={() => void refetch()} className="m-4" />
       ) : reports.length === 0 ? (
         <EmptyState icon="generic" title={t('list.emptyTitle')} subtitle={t('list.emptySubtitle')} />
       ) : (

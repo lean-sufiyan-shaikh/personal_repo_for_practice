@@ -369,7 +369,9 @@
     "clientName": "Client name",
     "clientNamePlaceholder": "e.g. ABC Transports",
     "addClient": "Add client",
-    "emptyReadOnlyHint": "Contact the Owner or Admin to add credit clients."
+    "emptyReadOnlyHint": "Contact the Owner or Admin to add credit clients.",
+    "disableAria": "Disable client {{name}}",
+    "disablePrompt": "Disable this client?"
   },
   "detail": {
     "interestApplied": "{{amount}} interest applied for {{days}} days ({{from}} – {{to}})",

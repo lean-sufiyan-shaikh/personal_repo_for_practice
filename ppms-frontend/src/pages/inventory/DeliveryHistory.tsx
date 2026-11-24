@@ -9,6 +9,7 @@ import type { TankStock, TankerDelivery } from '../../api/inventoryApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
+import { LoadError } from '../../components/LoadError'
 import { parseApiError } from '../../utils/apiError'
 import { IconButton } from '../../components/IconButton'
 import { LitresText, MoneyText } from '../../components/AmountText'
@@ -47,7 +48,7 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
     onError: () => queryClient.invalidateQueries({ queryKey: ['deliveries', pumpId] }),
   })
 
-  const { data: deliveriesPage, isLoading: deliveriesLoading } = useQuery({
+  const { data: deliveriesPage, isLoading: deliveriesLoading, isLoadingError: deliveriesLoadFailed, refetch: refetchDeliveries } = useQuery({
     queryKey: ['deliveries', pumpId, deliveryPage, deliveryPageSize],
     queryFn:  () => inventoryApi.getDeliveries(pumpId, deliveryPage, deliveryPageSize),
   })
@@ -109,6 +110,8 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
 
       {deliveriesLoading ? (
         <div className="p-(--density-card-pad)"><SkeletonRows count={3} /></div>
+      ) : deliveriesLoadFailed ? (
+        <LoadError onRetry={() => void refetchDeliveries()} className="m-4" />
       ) : groups.length === 0 ? (
         <p className="p-(--density-card-pad) text-sm text-ink-3">
           {deliveries.length === 0 ? t('deliveries.empty') : t('deliveries.noMatch')}

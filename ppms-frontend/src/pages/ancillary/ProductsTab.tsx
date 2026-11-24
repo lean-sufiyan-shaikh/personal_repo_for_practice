@@ -12,6 +12,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { IconButton } from '../../components/IconButton'
+import { ConfirmButton } from '../../components/ConfirmButton'
 import { StatusBadge } from '../../components/StatusBadge'
 import { AddProductDialog } from './AddProductDialog'
 import { SellDialog } from './SellDialog'
@@ -204,22 +205,25 @@ export function ProductsTab({
                       HSN
                     </button>
                   )}
-                  {isOwnerOrAdmin && (
-                    <button
-                      onClick={() => statusMutation.mutate({
-                        id: product.id,
-                        status: product.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE',
-                      })}
+                  {isOwnerOrAdmin && (product.status === 'ACTIVE' ? (
+                    <ConfirmButton
+                      onConfirm={() => statusMutation.mutate({ id: product.id, status: 'INACTIVE' })}
                       disabled={statusMutation.isPending}
-                      className={`ui-btn min-h-0 px-2.5 py-1 text-xs ${
-                        product.status === 'ACTIVE'
-                          ? 'ui-btn-danger'
-                          : 'ui-btn-secondary'
-                      }`}
+                      triggerLabel={t('common:actions.disable')}
+                      triggerAriaLabel={t('products.disableAria', { name: product.displayName })}
+                      prompt={t('products.disablePrompt')}
+                      triggerClassName="ui-btn ui-btn-danger min-h-0 px-2.5 py-1 text-xs"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => statusMutation.mutate({ id: product.id, status: 'ACTIVE' })}
+                      disabled={statusMutation.isPending}
+                      className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs"
                     >
-                      {product.status === 'ACTIVE' ? t('common:actions.disable') : t('common:actions.enable')}
+                      {t('common:actions.enable')}
                     </button>
-                  )}
+                  ))}
                 </div>
               </div>
             ))}
