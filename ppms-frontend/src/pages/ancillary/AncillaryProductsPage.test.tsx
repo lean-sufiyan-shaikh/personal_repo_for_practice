@@ -28,7 +28,7 @@ function product(id: number, displayName: string, currentStockUnits: number): An
   return {
     id, pumpId: PUMP_ID, name: displayName, brand: null, variant: null, packageSize: 1, unitOfMeasure: 'LITRE',
     currentStockUnits, lowStockThreshold: null, status: 'ACTIVE', fifoCostPricePerUnit: 100,
-    activeFifoLots: [], displayName, createdAt: '', updatedAt: '',
+    activeFifoLots: [], currentSellingPricePerUnit: 150, displayName, createdAt: '', updatedAt: '',
   }
 }
 
@@ -88,6 +88,22 @@ describe('AncillaryProductsPage', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Address' })).not.toHaveTextContent('action=')
+  })
+
+  it('marks a product without a selling price in the sale picker', async () => {
+    signIn('MANAGER')
+    vi.mocked(ancillaryApi.getProducts).mockResolvedValue([
+      product(1, 'Engine Oil 1L', 12),
+      { ...product(3, 'Brake Fluid', 4), currentSellingPricePerUnit: null },
+    ])
+    const user = userEvent.setup()
+    renderWithProviders(<AncillaryProductsPage />, { route: '/dashboard/ancillary?action=sell-product' })
+
+    const picker = await screen.findByRole('dialog', { name: 'Record sale' })
+    await user.click(within(picker).getByRole('button', { name: /Product:/ }))
+
+    expect(await screen.findByRole('option', { name: 'Brake Fluid (stock: 4) · No price' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Engine Oil 1L (stock: 12)' })).toBeInTheDocument()
   })
 
   it('ignores the sell address for an operator, whom the server refuses for sales', async () => {

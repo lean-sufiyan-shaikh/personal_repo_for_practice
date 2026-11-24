@@ -13,6 +13,14 @@ export function fmtCurrency(n: number | null | undefined) {
 
 export { formatIstDate as fmtDate } from '../../utils/date'
 
+/** The typed selling price as a number, or null unless it is above zero with at most two decimals. */
+export function parseSellingPrice(text: string): number | null {
+  const trimmed = text.trim()
+  if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) return null
+  const price = Number(trimmed)
+  return price > 0 ? price : null
+}
+
 export const PAYMENT_MODES: AncillaryPaymentMode[] = ['CASH', 'UPI', 'CARD', 'FLEET_CARD', 'CREDIT']
 
 export const UNITS: UnitOfMeasure[] = ['LITRE', 'KG', 'PIECE']

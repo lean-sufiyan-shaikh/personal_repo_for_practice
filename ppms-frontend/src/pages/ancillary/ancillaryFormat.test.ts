@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fmtCurrency, fmtDate } from './ancillaryFormat'
+import { fmtCurrency, fmtDate, parseSellingPrice } from './ancillaryFormat'
 
 describe('fmtCurrency', () => {
   it('formats rupees with Indian grouping and two decimals', () => {
@@ -10,6 +10,21 @@ describe('fmtCurrency', () => {
   it('shows a dash for a missing value', () => {
     expect(fmtCurrency(null)).toBe('—')
     expect(fmtCurrency(undefined)).toBe('—')
+  })
+})
+
+describe('parseSellingPrice', () => {
+  it('reads a price above zero with up to two decimals', () => {
+    expect(parseSellingPrice('450')).toBe(450)
+    expect(parseSellingPrice(' 12.5 ')).toBe(12.5)
+    expect(parseSellingPrice('0.01')).toBe(0.01)
+  })
+
+  it('refuses zero, blanks, negatives and more than two decimals', () => {
+    expect(parseSellingPrice('0')).toBeNull()
+    expect(parseSellingPrice('')).toBeNull()
+    expect(parseSellingPrice('-5')).toBeNull()
+    expect(parseSellingPrice('12.345')).toBeNull()
   })
 })
 

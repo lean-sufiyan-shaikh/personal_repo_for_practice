@@ -36,7 +36,8 @@
     "selectProduct": "उत्पादन निवडा…",
     "productOption": "{{name}} (स्टॉक: {{stock}})",
     "backfilled": "नंतर नोंदवलेले",
-    "hsnCode": "HSN कोड"
+    "hsnCode": "HSN कोड",
+    "productOptionNoPrice": "{{name}} (स्टॉक: {{stock}}) · दर नाही"
   },
   "validation": {
     "quantityMin": "संख्या किमान 1 असावी",
@@ -69,7 +70,11 @@
     "matchCount_other": "{{count}} जुळले",
     "disableAria": "उत्पादन {{name}} बंद करा",
     "disablePrompt": "हे उत्पादन बंद करायचे?",
-    "hsnButton": "HSN"
+    "hsnButton": "HSN",
+    "sellPrice": "विक्री: <price>{{price}}/नग</price>",
+    "noPrice": "दर नाही",
+    "setPrice": "दर ठरवा",
+    "setPriceOf": "{{name}} चा विक्री दर ठरवा"
   },
   "addProduct": {
     "title": "उत्पादन जोडा",
@@ -91,7 +96,11 @@
     "created": "उत्पादन तयार झाले",
     "createFailed": "उत्पादन तयार करता आले नाही",
     "nameMissing": "उत्पादनाचे नाव आवश्यक आहे",
-    "packageSizePositive": "पॅकचा आकार 0 पेक्षा जास्त असावा"
+    "packageSizePositive": "पॅकचा आकार 0 पेक्षा जास्त असावा",
+    "sellingPrice": "प्रति नग विक्री दर",
+    "sellingPriceHelp": "ग्राहक एका नगासाठी किती देईल. हा नंतर बदलता येतो.",
+    "sellingPriceInvalid": "₹0 पेक्षा जास्त विक्री दर टाका, दशांशानंतर जास्तीत जास्त 2 अंक",
+    "needSellingPrice": "विक्री दर"
   },
   "editHsn": {
     "saved": "HSN कोड सेव्ह झाला",
@@ -120,10 +129,11 @@
     "needQuantity": "संख्या",
     "needClient": "क्रेडिट ग्राहक",
     "liveLabel": "विक्रीची एकूण रक्कम",
-    "noPrice": "या उत्पादनाचा विक्री दर ठरलेला नाही. आधी दर ठरवा.",
     "buyPricePerUnit": "प्रति नग खरेदी दर",
     "sellPricePerUnit": "प्रति नग विक्री दर",
-    "paymentModeRow": "पेमेंटची पद्धत"
+    "paymentModeRow": "पेमेंटची पद्धत",
+    "firstPriceTitle": "अजून विक्री दर ठरलेला नाही. ही विक्री पुढे नेण्यासाठी दर ठरवा.",
+    "askOwnerForPrice": "अजून विक्री दर ठरलेला नाही — मालकाला दर ठरवायला सांगा."
   },
   "stockIn": {
     "title": "स्टॉक डिलिव्हरी नोंदवा",
@@ -205,5 +215,23 @@
     "subtitle": "ग्राहक घेत असलेले उत्पादन निवडा.",
     "continue": "पुढे जा",
     "noneInStock": "कोणत्याही चालू उत्पादनाचा विकण्याजोगा स्टॉक नाही. आधी आलेल्या स्टॉकची नोंद करा."
+  },
+  "setPrice": {
+    "title": "विक्री दर ठरवा",
+    "current": "सध्याचा दर",
+    "notSet": "ठरलेला नाही",
+    "newPrice": "प्रति नग नवीन दर",
+    "help": "आतापासूनच्या विक्रीला लागू. आधीच्या विक्रीचा दर बदलणार नाही.",
+    "firstPrice": "या उत्पादनाचा पहिला विक्री दर",
+    "up": "{{current}} पेक्षा {{amount}} जास्त",
+    "down": "{{current}} पेक्षा {{amount}} कमी",
+    "same": "सध्याच्या {{current}} इतकाच",
+    "invalid": "₹0 पेक्षा जास्त दर टाका, दशांशानंतर जास्तीत जास्त 2 अंक",
+    "save": "दर सेव्ह करा",
+    "saved": "विक्री दर {{price}} ठरवला",
+    "saveFailed": "विक्री दर ठरवता आला नाही",
+    "history": "दराचा इतिहास",
+    "historyLoading": "दराचा इतिहास लोड होत आहे…",
+    "historyEmpty": "अजून कोणताही दर ठरलेला नाही."
   }
 }

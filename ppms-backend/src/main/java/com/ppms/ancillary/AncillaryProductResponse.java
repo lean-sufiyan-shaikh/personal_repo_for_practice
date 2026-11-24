@@ -40,6 +40,9 @@ public class AncillaryProductResponse {
      */
     private List<FifoLotSummary> activeFifoLots;
 
+    /** Selling price in effect now. Null when no price has been set, so the product cannot be sold yet. */
+    private BigDecimal currentSellingPricePerUnit;
+
     /**
      * Human-readable display name composed from brand + name + variant + packageSize + unit.
      * Example: "Castrol GTX 10W-40 — 1.000 L"

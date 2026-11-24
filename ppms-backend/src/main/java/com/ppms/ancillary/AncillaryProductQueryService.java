@@ -2,6 +2,7 @@ package com.ppms.ancillary;
 
 import com.ppms.common.dto.PageRequests;
 import com.ppms.common.dto.PagedResponse;
+import com.ppms.common.time.BusinessClock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,8 @@ public class AncillaryProductQueryService {
     private final AncillaryStockLotRepository lotRepository;
     private final AncillaryStockDeliveryRepository deliveryRepository;
     private final AncillarySaleRepository saleRepository;
+    private final AncillaryProductPriceRepository priceRepository;
+    private final BusinessClock businessClock;
 
     public List<AncillaryProductResponse> getProducts(Long pumpId) {
         List<AncillaryProduct> products = productRepository.findByPumpId(pumpId);
@@ -27,13 +30,17 @@ public class AncillaryProductQueryService {
             return List.of();
         }
 
+        List<Long> productIds = products.stream().map(AncillaryProduct::getId).toList();
         Map<Long, List<AncillaryStockLot>> activeLotsByProductId = lotRepository
-                .findAllActiveLotsByProductIds(products.stream().map(AncillaryProduct::getId).toList())
+                .findAllActiveLotsByProductIds(productIds)
                 .stream()
                 .collect(Collectors.groupingBy(AncillaryStockLot::getProductId));
+        Map<Long, BigDecimal> currentPriceByProductId = currentPricesFor(productIds);
 
         return products.stream()
-                .map(product -> toProductResponse(product, activeLotsByProductId.getOrDefault(product.getId(), List.of())))
+                .map(product -> toProductResponse(product,
+                        activeLotsByProductId.getOrDefault(product.getId(), List.of()),
+                        currentPriceByProductId.get(product.getId())))
                 .toList();
     }
 
@@ -65,7 +72,15 @@ public class AncillaryProductQueryService {
     }
 
     public AncillaryProductResponse toProductResponseWithLots(AncillaryProduct product) {
-        return toProductResponse(product, lotRepository.findAllActiveLotsByProductIds(List.of(product.getId())));
+        return toProductResponse(product,
+                lotRepository.findAllActiveLotsByProductIds(List.of(product.getId())),
+                currentPricesFor(List.of(product.getId())).get(product.getId()));
+    }
+
+    private Map<Long, BigDecimal> currentPricesFor(List<Long> productIds) {
+        return priceRepository.findPricesInEffectForProducts(productIds, businessClock.now())
+                .stream()
+                .collect(Collectors.toMap(AncillaryProductPrice::getProductId, AncillaryProductPrice::getPricePerUnit));
     }
 
     public AncillarySaleResponse toSaleResponse(AncillarySale sale, AncillaryProduct product) {
@@ -106,7 +121,8 @@ public class AncillaryProductQueryService {
                 .build();
     }
 
-    private AncillaryProductResponse toProductResponse(AncillaryProduct product, List<AncillaryStockLot> activeLots) {
+    private AncillaryProductResponse toProductResponse(AncillaryProduct product, List<AncillaryStockLot> activeLots,
+                                                       BigDecimal currentSellingPricePerUnit) {
         BigDecimal fifoCostPricePerUnit = activeLots.isEmpty() ? null : activeLots.get(0).getCostPricePerUnit();
 
         List<AncillaryProductResponse.FifoLotSummary> lotSummaries = activeLots.stream()
@@ -132,6 +148,7 @@ public class AncillaryProductQueryService {
                 .updatedAt(product.getUpdatedAt())
                 .fifoCostPricePerUnit(fifoCostPricePerUnit)
                 .activeFifoLots(lotSummaries)
+                .currentSellingPricePerUnit(currentSellingPricePerUnit)
                 .displayName(buildDisplayName(product))
                 .build();
     }

@@ -26,6 +26,8 @@ export interface AncillaryProduct {
    * Used by the SellDialog to compute accurate multi-batch projected profit.
    */
   activeFifoLots: { remainingQuantity: number; costPricePerUnit: number }[]
+  /** Selling price in effect now. Null until an Owner or Admin sets one; the product cannot be sold before that. */
+  currentSellingPricePerUnit: number | null
   displayName: string
   createdAt: string
   updatedAt: string
@@ -83,6 +85,8 @@ export interface CreateProductRequest {
   unitOfMeasure: UnitOfMeasure
   lowStockThreshold?: number
   hsnCode?: string
+  /** Becomes the first selling price, saved together with the product. */
+  sellingPricePerUnit?: number
 }
 
 export interface UpdateProductRequest {

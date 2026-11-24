@@ -1,7 +1,7 @@
 import { useState, useDeferredValue } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, AlertTriangle, Check, Package, PackageCheck, Pause } from 'lucide-react'
+import { X, AlertTriangle, Check, CircleAlert, Package, PackageCheck, Pause } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import { useOnValuesChange } from '../../hooks/useOnValuesChange'
 import type { AncillaryProduct } from '../../api/ancillaryApi'
@@ -18,6 +18,7 @@ import { AddProductDialog } from './AddProductDialog'
 import { SellDialog } from './SellDialog'
 import { StockLotsPanel } from './StockLotsPanel'
 import { EditHsnDialog } from './EditHsnDialog'
+import { SetPriceDialog } from './SetPriceDialog'
 import { fmtCurrency } from './ancillaryFormat'
 import { useAuthStore } from '../../store/authStore'
 import { canPerformAction } from '../../permissions/permissions'
@@ -48,6 +49,7 @@ export function ProductsTab({
   const [sellProduct, setSellProduct] = useState<AncillaryProduct | null>(null)
   const [stockLotsProduct, setStockLotsProduct] = useState<AncillaryProduct | null>(null)
   const [hsnProduct, setHsnProduct] = useState<AncillaryProduct | null>(null)
+  const [priceProduct, setPriceProduct] = useState<AncillaryProduct | null>(null)
 
   useOnValuesChange([deferredSearch], () => setProductsPage(0))
 
@@ -163,9 +165,17 @@ export function ProductsTab({
                   />
                 </div>
 
-                {/* Stock + buy price row */}
+                {/* Stock + sell and buy price row */}
                 <div className="flex items-center gap-2 flex-wrap">
                   {stockBadge(product)}
+                  {product.currentSellingPricePerUnit != null ? (
+                    <span className="text-xs text-ink-3">
+                      <Trans t={t} i18nKey="products.sellPrice" values={{ price: fmtCurrency(product.currentSellingPricePerUnit) }}
+                        components={{ price: <span className="font-medium text-ink" /> }} />
+                    </span>
+                  ) : (
+                    <StatusBadge tone="warn" icon={CircleAlert} label={t('products.noPrice')} />
+                  )}
                   {isManagerOrAbove && (
                     <>
                       <span className="text-xs text-ink-3">·</span>
@@ -180,7 +190,7 @@ export function ProductsTab({
                 </div>
 
                 {/* Action buttons */}
-                <div className="mt-auto flex items-center gap-2 pt-3 border-t border-border">
+                <div className="mt-auto flex flex-wrap items-center gap-2 pt-3 border-t border-border">
                   {canSell && product.status === 'ACTIVE' && (
                     <button
                       onClick={() => setSellProduct(product)}
@@ -195,6 +205,16 @@ export function ProductsTab({
                   >
                     {t('products.inventory')}
                   </button>
+                  {isOwnerOrAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setPriceProduct(product)}
+                      className="ui-btn ui-btn-secondary ui-btn-compact"
+                      aria-label={t('products.setPriceOf', { name: product.displayName })}
+                    >
+                      {t('products.setPrice')}
+                    </button>
+                  )}
                   {isOwnerOrAdmin && (
                     <button
                       type="button"
@@ -274,6 +294,10 @@ export function ProductsTab({
             onRefresh()
           }}
         />
+      )}
+
+      {priceProduct && (
+        <SetPriceDialog pumpId={pumpId} product={priceProduct} onClose={() => setPriceProduct(null)} />
       )}
 
       {stockLotsProduct && (
