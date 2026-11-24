@@ -68,7 +68,8 @@
     "matchCount_one": "{{count}} जुळले",
     "matchCount_other": "{{count}} जुळले",
     "disableAria": "उत्पादन {{name}} बंद करा",
-    "disablePrompt": "हे उत्पादन बंद करायचे?"
+    "disablePrompt": "हे उत्पादन बंद करायचे?",
+    "hsnButton": "HSN"
   },
   "addProduct": {
     "title": "उत्पादन जोडा",

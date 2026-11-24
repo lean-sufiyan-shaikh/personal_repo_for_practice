@@ -504,9 +504,6 @@
     "filtered": " (छाँटी गई)",
     "allShiftsCaption": "सभी शिफ्ट",
     "allEmpty": "चुनी गई तारीखों में कोई शिफ्ट नहीं।",
-    "showingRange": "({{total}} में से {{from}}–{{to}})",
-    "firstPage": "पहला पेज",
-    "lastPage": "आखिरी पेज",
     "backfilled": "बाद में भरी गई",
     "duName": "DU {{name}}",
     "resolve": "सुलझाएँ",
@@ -536,10 +533,10 @@
       "overTotal": "कुल ज़्यादा: ",
       "resolved": "सुलझे: ",
       "cashRecovered": "नकद वसूली: ",
-      "filter": "छाँटें:",
       "all": "सभी",
       "caption": "अंतर",
-      "noMatch": "चुने गए फ़िल्टर से कोई अंतर नहीं मिला।"
+      "noMatch": "चुने गए फ़िल्टर से कोई अंतर नहीं मिला।",
+      "filtersLabel": "अंतर फ़िल्टर"
     },
     "filtersLabel": "शिफ्ट फ़िल्टर",
     "listLabel": "शिफ्ट",

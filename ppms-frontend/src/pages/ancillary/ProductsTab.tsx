@@ -184,14 +184,14 @@ export function ProductsTab({
                   {canSell && product.status === 'ACTIVE' && (
                     <button
                       onClick={() => setSellProduct(product)}
-                      className="ui-btn ui-btn-primary min-h-0 px-2.5 py-1 text-xs"
+                      className="ui-btn ui-btn-primary ui-btn-compact"
                     >
                       {t('products.sell')}
                     </button>
                   )}
                   <button
                     onClick={() => setStockLotsProduct(product)}
-                    className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs"
+                    className="ui-btn ui-btn-secondary ui-btn-compact"
                   >
                     {t('products.inventory')}
                   </button>
@@ -199,10 +199,10 @@ export function ProductsTab({
                     <button
                       type="button"
                       onClick={() => setHsnProduct(product)}
-                      className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs"
+                      className="ui-btn ui-btn-secondary ui-btn-compact"
                       aria-label={t('products.editHsnOf', { name: product.displayName })}
                     >
-                      HSN
+                      {t('products.hsnButton')}
                     </button>
                   )}
                   {isOwnerOrAdmin && (product.status === 'ACTIVE' ? (
@@ -212,14 +212,14 @@ export function ProductsTab({
                       triggerLabel={t('common:actions.disable')}
                       triggerAriaLabel={t('products.disableAria', { name: product.displayName })}
                       prompt={t('products.disablePrompt')}
-                      triggerClassName="ui-btn ui-btn-danger min-h-0 px-2.5 py-1 text-xs"
+                      triggerClassName="ui-btn ui-btn-danger ui-btn-compact"
                     />
                   ) : (
                     <button
                       type="button"
                       onClick={() => statusMutation.mutate({ id: product.id, status: 'ACTIVE' })}
                       disabled={statusMutation.isPending}
-                      className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs"
+                      className="ui-btn ui-btn-secondary ui-btn-compact"
                     >
                       {t('common:actions.enable')}
                     </button>

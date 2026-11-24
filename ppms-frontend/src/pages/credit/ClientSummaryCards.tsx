@@ -25,7 +25,7 @@ export function ClientSummaryCards({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
       <div className="ui-card">
-        <p className="text-xs text-ink-3 uppercase tracking-wide mb-1">
+        <p className="ui-kpi-label mb-1">
           {hasSubAccounts ? t('summaryCards.outstandingCombined') : t('summaryCards.outstanding')}
         </p>
         <p className={`text-lg font-bold ${outstandingBalance > 0 ? 'text-warn' : 'text-ok'}`}>
@@ -39,14 +39,14 @@ export function ClientSummaryCards({
         )}
       </div>
       <div className={`ui-card ${outstandingInterest > 0 ? 'border-info/30 bg-info-bg' : ''}`}>
-        <p className="text-xs text-ink-3 uppercase tracking-wide mb-1">{t('summaryCards.interestDue')}</p>
+        <p className="ui-kpi-label mb-1">{t('summaryCards.interestDue')}</p>
         <p className={`text-lg font-bold ${outstandingInterest > 0 ? 'text-info' : 'text-ink-3'}`}>
           <MoneyText value={outstandingInterest} />
         </p>
         <p className="text-xs text-ink-3 mt-0.5">{t('summaryCards.ofOutstandingBalance')}</p>
       </div>
       <div className="ui-card">
-        <p className="text-xs text-ink-3 uppercase tracking-wide mb-1">{t('summaryCards.interestRecovered')}</p>
+        <p className="ui-kpi-label mb-1">{t('summaryCards.interestRecovered')}</p>
         <p className={`text-lg font-bold ${totalInterestRecovered > 0 ? 'text-ok' : 'text-ink-3'}`}>
           <MoneyText value={totalInterestRecovered} />
         </p>
@@ -63,7 +63,7 @@ export function ClientSummaryCards({
         onKeyDown={canManageInterest ? onActivateKey(onOpenInterestSettings) : undefined}
         title={canManageInterest ? t('summaryCards.clickToConfigureInterestRate') : undefined}
       >
-        <p className="text-xs text-ink-3 uppercase tracking-wide mb-1">{t('summaryCards.interestRate')}</p>
+        <p className="ui-kpi-label mb-1">{t('summaryCards.interestRate')}</p>
         {client.parentClientId != null ? (
           <p className="text-sm font-medium text-ink-3">{t('summaryCards.setOnParent')}</p>
         ) : (
@@ -76,7 +76,7 @@ export function ClientSummaryCards({
         )}
       </div>
       <div className="ui-card">
-        <p className="text-xs text-ink-3 uppercase tracking-wide mb-1">{t('summaryCards.transactions')}</p>
+        <p className="ui-kpi-label mb-1">{t('summaryCards.transactions')}</p>
         <p className="text-lg font-bold text-ink">
           {transactionCount}
         </p>

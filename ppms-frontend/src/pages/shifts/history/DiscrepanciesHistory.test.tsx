@@ -91,7 +91,7 @@ describe('DiscrepanciesHistory', () => {
     expect(within(escalated).getByText('Needs Approval')).toBeInTheDocument()
     expect(within(escalated).getByText('Cash bag missing')).toBeInTheDocument()
     const approve = within(escalated).getByRole('button', { name: `Approve discrepancy for shift ${ESCALATED_ID}` })
-    expect(approve).toHaveClass('ui-btn', 'w-full')
+    expect(approve).toHaveClass('ui-btn', 'ui-btn-primary', 'w-full')
 
     await user.click(approve)
     expect(await screen.findByRole('dialog')).toHaveTextContent('Shift #11 · Ravi')
@@ -107,5 +107,55 @@ describe('DiscrepanciesHistory', () => {
     expect(screen.getByRole('button', { name: 'Short' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Over' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Amount' })).toHaveClass('text-right', 'tabular-nums')
+  })
+
+  it('puts the dates and type chips in a filter bar that clears back to every discrepancy', async () => {
+    const user = userEvent.setup()
+    signIn('OWNER')
+    renderWithProviders(<DiscrepanciesHistory pumpId={3} />)
+
+    const filters = await screen.findByRole('group', { name: 'Discrepancy filters' })
+    expect(within(filters).getByLabelText('From date')).toBeInTheDocument()
+    const short = within(filters).getByRole('button', { name: 'Short' })
+    expect(short).toHaveClass('ui-chip')
+    expect(within(filters).getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(short)
+
+    const filtered = await screen.findByRole('group', { name: 'Discrepancy filters' })
+    expect(within(filtered).getByRole('button', { name: 'Short' })).toHaveAttribute('aria-pressed', 'true')
+    expect(shiftApi.getShiftHistory).toHaveBeenLastCalledWith(3, expect.objectContaining({ discrepancyType: 'SHORT' }))
+
+    await user.click(within(filtered).getByRole('button', { name: 'Clear filters' }))
+
+    const cleared = await screen.findByRole('group', { name: 'Discrepancy filters' })
+    expect(within(cleared).getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(cleared).queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument()
+  })
+
+  it('pages through discrepancies with the shared pagination bar', async () => {
+    const user = userEvent.setup()
+    signIn('OWNER')
+    vi.mocked(shiftApi.getShiftHistory).mockResolvedValue(
+      Array.from({ length: 12 }, (_, index) => shortShift(100 + index, 'CLOSED_DISCREPANCY_PENDING')))
+    renderWithProviders(<DiscrepanciesHistory pumpId={3} />)
+
+    expect(await screen.findByText('1–10')).toBeInTheDocument()
+    expect(screen.getByText('100')).toBeInTheDocument()
+    expect(screen.queryByText('110')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Next page' }))
+
+    expect(screen.getByText('11–12')).toBeInTheDocument()
+    expect(screen.getByText('110')).toBeInTheDocument()
+    expect(screen.queryByText('100')).not.toBeInTheDocument()
+  })
+
+  it('names a dispenser without a name by its translated number', async () => {
+    signIn('OWNER')
+    vi.mocked(shiftApi.getShiftHistory).mockResolvedValue([{ ...shortShift(PENDING_ID, 'CLOSED_DISCREPANCY_PENDING'), duName: null, duNumber: 4 }])
+    renderWithProviders(<DiscrepanciesHistory pumpId={3} />)
+
+    expect(within(await rowOf(PENDING_ID)).getByText('DU #4')).toBeInTheDocument()
   })
 })

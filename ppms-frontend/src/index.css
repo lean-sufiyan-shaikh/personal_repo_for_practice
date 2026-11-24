@@ -652,6 +652,14 @@
     color: var(--color-ink);
   }
 
+  .ui-section-heading {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
   .ui-subtitle {
     margin: 0.25rem 0 0;
     font-size: 0.875rem;
@@ -690,7 +698,8 @@
     padding-left: 1rem;
   }
 
-  .ui-summary-strip__label {
+  .ui-summary-strip__label,
+  .ui-kpi-label {
     font-size: 0.75rem;
     line-height: 1rem;
     font-weight: 500;
@@ -1265,15 +1274,6 @@
     padding: 0.25rem 0.75rem;
     font-size: 0.75rem;
     line-height: 1rem;
-  }
-
-  .ui-btn-warning {
-    background: var(--color-warn);
-    color: var(--color-surface);
-  }
-
-  .ui-btn-warning:hover:not(:disabled) {
-    background: var(--color-warn-strong);
   }
 
   .ui-btn-ghost {
@@ -2184,8 +2184,7 @@
     color: var(--color-ok);
   }
 
-  .ui-alert-danger,
-  .ui-alert-error {
+  .ui-alert-danger {
     background: var(--color-bad-bg);
     border-color: var(--color-bad);
     color: var(--color-bad);

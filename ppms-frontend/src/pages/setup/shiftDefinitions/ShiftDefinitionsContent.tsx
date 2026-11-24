@@ -8,6 +8,7 @@ import { shiftDefinitionApi } from '../../../api/shiftDefinitionApi'
 import { localDateInputValue } from '../../../utils/date'
 import { IconButton } from '../../../components/IconButton'
 import { StatusBadge } from '../../../components/StatusBadge'
+import { SkeletonRows } from '../../../components/Skeleton'
 import { onActivateKey } from '../../../utils/keyboard'
 import { FormField } from '../../../components/FormField'
 import { LoadingButton } from '../../../components/LoadingButton'
@@ -122,14 +123,14 @@ export function ShiftDefinitionsContent({ pumpId }: { pumpId: number }) {
     disableMutation.mutate({ effectiveFrom: disablingDate, disableDate })
   }
 
-  if (isLoading) return <p className="text-xs text-ink-3 py-2">{t('common:loading.short')}</p>
+  if (isLoading) return <SkeletonRows count={3} />
 
   return (
     <div className="space-y-4">
 
       {/* Existing groups */}
       {sortedGroupKeys.length === 0 && !showForm && (
-        <p className="text-xs text-ink-3">{t('shiftDefs.empty')}</p>
+        <p className="ui-empty">{t('shiftDefs.empty')}</p>
       )}
 
       {sortedGroupKeys.map(groupKey => {

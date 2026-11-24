@@ -84,7 +84,6 @@
     "change": "change",
     "stillNeededPrice": "A new price for at least one fuel",
     "save": "Save prices",
-    "savedSuccess": "Prices saved successfully.",
     "openShiftsTitle": "Open shifts found",
     "dismissWarning": "Dismiss warning",
     "deviation": {
@@ -104,7 +103,6 @@
     "nameRequired": "Tank name is required.",
     "capacityPositive": "Capacity must be greater than 0.",
     "intro": "Add each underground tank manually. Multiple tanks per fuel type are allowed. Set capacity so that stock level bars and low-stock alerts work correctly.",
-    "loading": "Loading tanks...",
     "empty": "No tanks yet. Add one below.",
     "disabled": "Disabled",
     "capacityPrefix": "Capacity:",
@@ -326,7 +324,6 @@
     },
     "preferences": {
       "title": "Shift preferences for {{name}}",
-      "loading": "Loading saved preferences…",
       "loadFailed": "Could not load saved preferences. Close and try again.",
       "failed": "Failed to save preferences",
       "shift": "Preferred shift",

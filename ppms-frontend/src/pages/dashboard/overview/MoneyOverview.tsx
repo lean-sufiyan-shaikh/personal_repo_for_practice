@@ -22,7 +22,7 @@ function MoneyTile({ to, icon: Icon, label, value, note }: {
 }) {
   return (
     <Link to={to} className="ui-dashboard-module block px-4 py-3.5 transition-shadow hover:shadow-raised">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-3">
+      <div className="ui-kpi-label flex items-center gap-2">
         <Icon size={14} strokeWidth={2} aria-hidden="true" />
         <span>{label}</span>
       </div>

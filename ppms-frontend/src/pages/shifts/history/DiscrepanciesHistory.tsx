@@ -6,6 +6,9 @@ import { useAuthStore } from '../../../store/authStore'
 import type { Shift } from '../../../types/shift'
 import { ResolveDiscrepancyModal } from '../modals/ResolveDiscrepancyModal'
 import { SkeletonRows } from '../../../components/Skeleton'
+import { Pagination } from '../../../components/Pagination'
+import { FilterBar } from '../../../components/layout/FilterBar'
+import { pageSlice } from '../../../utils/pageSlice'
 import { parseApiError } from '../../../utils/apiError'
 import { PAGE_SIZE, awaitingOwnerApprovalLabel, discrepancyAction, investigationLabel, resolutionLabel } from '../shiftLabels'
 import { DataTable } from '../../../components/DataTable'
@@ -52,7 +55,7 @@ function DiscrepancyAction({ shift, role, onOpen, className = '' }: {
     return (
       <button type="button" onClick={() => onOpen(shift)}
         aria-label={t('history.discrepancies.resolveLabel', { id: shift.id })}
-        className={`ui-btn ui-btn-danger ${className}`}>
+        className={`ui-btn ui-btn-primary ${className}`}>
         {t('history.resolve')}
       </button>
     )
@@ -61,7 +64,7 @@ function DiscrepancyAction({ shift, role, onOpen, className = '' }: {
     return (
       <button type="button" onClick={() => onOpen(shift)}
         aria-label={t('history.discrepancies.approveLabel', { id: shift.id })}
-        className={`ui-btn ui-btn-warning ${className}`}>
+        className={`ui-btn ui-btn-primary ${className}`}>
         {t('common:actions.approve')}
       </button>
     )
@@ -81,6 +84,7 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
 }) {
   const { t } = useTranslation(['shifts', 'common'])
   const [page,     setPage]     = useState(0)
+  const [pageSize, setPageSize] = useState(PAGE_SIZE)
   const [fromDate, setFromDate] = useState(initialFrom)
   const [toDate,   setToDate]   = useState(initialTo)
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'SHORT' | 'OVER'>(initialType)
@@ -99,9 +103,8 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
   })
   const hasFilter = !!fromDate || !!toDate || typeFilter !== 'ALL'
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const safePage   = Math.min(page, totalPages - 1)
-  const paged      = filtered.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
+  const pageData = pageSlice(filtered, page, pageSize)
+  const paged    = pageData.content
 
   const clearFilter = () => { setFromDate(''); setToDate(''); setTypeFilter('ALL'); setPage(0) }
 
@@ -114,7 +117,7 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
     { key: 'id', header: t('history.columns.id'), className: 'px-5 hidden md:table-cell', cell: (shift) => <span className="text-ink-3 text-xs font-mono">{shift.id}</span> },
     { key: 'date', header: t('history.columns.date'), className: 'px-5', cell: (shift) => <span className="text-xs text-ink-2">{shift.shiftDate}</span> },
     { key: 'operator', header: t('history.columns.operator'), className: 'px-5', cell: (shift) => <span className="text-sm text-ink font-medium">{shift.operatorName}</span> },
-    { key: 'du', header: t('history.discrepancies.columns.du'), className: 'px-5 hidden md:table-cell', cell: (shift) => <span className="text-xs text-ink-3">{shift.duName ?? `DU #${shift.duNumber}`}</span> },
+    { key: 'du', header: t('history.discrepancies.columns.du'), className: 'px-5 hidden md:table-cell', cell: (shift) => <span className="text-xs text-ink-3">{shift.duName ?? t('common:duNumber', { number: shift.duNumber })}</span> },
     { key: 'type', header: t('history.discrepancies.columns.type'), className: 'px-5', cell: (shift) => <StatusBadge {...discrepancyBadge(shift.discrepancyType)} /> },
     {
       key: 'amount', header: t('history.discrepancies.columns.amount'), numeric: true, className: 'px-5', cell: (shift) => (
@@ -135,12 +138,12 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
     },
     {
       key: 'action', header: <span className="sr-only">{t('history.discrepancies.columns.action')}</span>, align: 'right', className: 'px-5',
-      cell: (shift) => <DiscrepancyAction shift={shift} role={role} onOpen={setResolvingShift} className="min-h-0 px-3 py-1.5 text-xs" />,
+      cell: (shift) => <DiscrepancyAction shift={shift} role={role} onOpen={setResolvingShift} className="ui-btn-compact" />,
     },
   ]
 
   if (isLoading) return <div className="px-5 py-4"><SkeletonRows count={4} /></div>
-  if (error) return <p role="alert" className="ui-alert ui-alert-error m-4 text-sm">{parseApiError(error, t('history.discrepancies.loadFailed'))}</p>
+  if (error) return <p role="alert" className="ui-alert ui-alert-danger m-4 text-sm">{parseApiError(error, t('history.discrepancies.loadFailed'))}</p>
   if (filtered.length === 0 && !hasFilter) {
     return <div className="ui-empty p-6">{t('history.discrepancies.empty')}</div>
   }
@@ -169,49 +172,28 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
         )}
       </div>
 
-      {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-t border-border bg-surface-sunken">
-        <span className="text-xs font-medium text-ink-3">{t('history.discrepancies.filter')}</span>
+      <FilterBar
+        label={t('history.discrepancies.filtersLabel')}
+        onClearFilters={clearFilter}
+        hasActiveFilters={hasFilter}
+        summary={t('history.shiftCount', { count: filtered.length })}
+      >
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <input aria-label={t('common:fields.fromDate')}
-            type="date"
-            value={fromDate}
-            onChange={(e) => { setFromDate(e.target.value); setPage(0) }}
-            className="flex-1 min-w-[8.5rem] border border-control rounded-control px-2.5 py-1.5 text-xs"
-          />
-          <span className="text-ink-3 text-xs">{t('history.to')}</span>
-          <input aria-label={t('common:fields.toDate')}
-            type="date"
-            value={toDate}
-            onChange={(e) => { setToDate(e.target.value); setPage(0) }}
-            className="flex-1 min-w-[8.5rem] border border-control rounded-control px-2.5 py-1.5 text-xs"
-          />
+          <input aria-label={t('common:fields.fromDate')} type="date" value={fromDate}
+            onChange={(e) => { setFromDate(e.target.value); setPage(0) }} className="min-w-[8.5rem] flex-1 text-xs" />
+          <span className="text-xs text-ink-3">{t('history.to')}</span>
+          <input aria-label={t('common:fields.toDate')} type="date" value={toDate}
+            onChange={(e) => { setToDate(e.target.value); setPage(0) }} className="min-w-[8.5rem] flex-1 text-xs" />
         </div>
-        <div className="flex items-center gap-1">
+        <div className="ui-chip-row" role="group" aria-label={t('history.discrepancies.columns.type')}>
           {(['ALL', 'SHORT', 'OVER'] as const).map(type => (
-            <button
-              key={type}
-              onClick={() => { setTypeFilter(type); setPage(0) }}
-              aria-pressed={typeFilter === type}
-              className={`px-2.5 py-1 text-xs rounded-badge border transition-colors ${
-                typeFilter === type
-                  ? type === 'SHORT' ? 'bg-bad border-bad text-on-primary'
-                    : type === 'OVER' ? 'bg-warn border-warn text-on-primary'
-                    : 'bg-primary border-primary text-on-primary'
-                  : 'border-border text-ink-2 hover:bg-surface-sunken'
-              }`}
-            >
+            <button key={type} type="button" className="ui-chip" aria-pressed={typeFilter === type}
+              onClick={() => { setTypeFilter(type); setPage(0) }}>
               {type === 'SHORT' ? t('common:badges.short') : type === 'OVER' ? t('common:badges.over') : t('history.discrepancies.all')}
             </button>
           ))}
         </div>
-        {(fromDate || toDate || typeFilter !== 'ALL') && (
-          <button onClick={clearFilter} className="ui-btn ui-btn-ghost min-h-0 px-0 py-0 text-xs text-ink-3 hover:text-ink underline">
-            {t('common:actions.clear')}
-          </button>
-        )}
-        <span className="ml-auto text-xs text-ink-3">{t('history.shiftCount', { count: filtered.length })}</span>
-      </div>
+      </FilterBar>
 
       {/* Cards below md */}
       <ul className="md:hidden divide-y divide-border border-t border-border" aria-label={t('history.discrepancies.caption')}>
@@ -255,36 +237,11 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
         <ResolveDiscrepancyModal shift={resolvingShift} onClose={() => setResolvingShift(null)} />
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-surface-sunken">
-          <span className="text-xs text-ink-3">
-            {t('common:pagination.pageOf', { page: safePage + 1, total: totalPages })}
-            <span className="ml-2 text-ink-3">
-              {t('history.showingRange', { from: safePage * PAGE_SIZE + 1, to: Math.min((safePage + 1) * PAGE_SIZE, filtered.length), total: filtered.length })}
-            </span>
-          </span>
-          <div className="flex gap-1">
-            <button aria-label={t('history.firstPage')} onClick={() => setPage(0)} disabled={safePage === 0} className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30">«</button>
-            <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0} className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30">{t('common:pagination.prev')}</button>
-            {Array.from({ length: totalPages }, (_, i) => i)
-              .filter((i) => Math.abs(i - safePage) <= 2)
-              .map((i) => (
-                <button
-                  key={i}
-                  onClick={() => setPage(i)}
-                  className={`ui-btn min-h-0 px-3 py-1 text-xs rounded-control border transition-colors ${
-                    i === safePage ? 'bg-primary border-primary text-on-primary' : 'border-border hover:bg-surface-sunken text-ink-2'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage === totalPages - 1} className="ui-btn ui-btn-secondary min-h-0 px-3 py-1 text-xs disabled:opacity-30">{t('common:pagination.next')}</button>
-            <button aria-label={t('history.lastPage')} onClick={() => setPage(totalPages - 1)} disabled={safePage === totalPages - 1} className="ui-btn ui-btn-secondary min-h-0 px-2.5 py-1 text-xs disabled:opacity-30">»</button>
-          </div>
-        </div>
-      )}
+      <Pagination
+        data={pageData}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => { setPageSize(size); setPage(0) }}
+      />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { serverMessage } from '../../../utils/apiError'
@@ -106,6 +106,7 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
   const [from, setFrom] = useState(range.from)
   const [to,   setTo]   = useState(range.to)
   const [expandedLot, setExpandedLot] = useState<number | null>(null)
+  const expandedContentId = useId()
 
   const { data: tanks = [] } = useQuery({
     queryKey: ['tanks', pumpId],
@@ -194,15 +195,15 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
           {data.weightedAvgCostPerUnit != null && (
             <ReportSummary columns={3}>
               <div className="ui-card ui-card-muted p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">{t('inventory.totalRemaining')}</p>
+                <p className="ui-kpi-label">{t('inventory.totalRemaining')}</p>
                 <p className="text-sm font-semibold text-ink mt-0.5"><LitresText value={data.totalRemaining} /></p>
               </div>
               <div className="ui-card ui-card-muted p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">{t('inventory.avgCost')}</p>
+                <p className="ui-kpi-label">{t('inventory.avgCost')}</p>
                 <p className="text-sm font-semibold text-ink mt-0.5"><MoneyText value={data.weightedAvgCostPerUnit} />/L</p>
               </div>
               <div className="ui-card ui-card-muted p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">{t('inventory.stockValue')}</p>
+                <p className="ui-kpi-label">{t('inventory.stockValue')}</p>
                 <MoneyText value={data.totalStockValue} className="block text-sm font-semibold text-ink mt-0.5" />
               </div>
             </ReportSummary>
@@ -216,7 +217,10 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
           {paged.content.map((lot) => (
             <div key={lot.lotId} className="border-b border-border">
               <button
+                type="button"
                 className="ui-accordion-trigger"
+                aria-expanded={expandedLot === lot.lotId}
+                aria-controls={expandedLot === lot.lotId ? `${expandedContentId}-lot-${lot.lotId}` : undefined}
                 onClick={() => setExpandedLot(expandedLot === lot.lotId ? null : lot.lotId)}
               >
                 <div className="flex items-center gap-3">
@@ -235,19 +239,22 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                   }
                 </div>
               </button>
-              {expandedLot === lot.lotId && lot.consumptions.length > 0 && (
-                <DataTable
-                  caption={t('inventory.consumptionCaption', { reference: lot.tankerReference })}
-                  captionHidden
-                  columns={consumptionColumns(t, lot)}
-                  rows={lot.consumptions}
-                  rowKey={(c) => c.id}
-                  className="rounded-none border-x-0 border-b-0"
-                  tableClassName="text-xs"
-                />
-              )}
-              {expandedLot === lot.lotId && lot.consumptions.length === 0 && (
-                <p className="ui-empty border-t border-border px-4 py-3">{t('inventory.noConsumptions')}</p>
+              {expandedLot === lot.lotId && (
+                <div id={`${expandedContentId}-lot-${lot.lotId}`}>
+                  {lot.consumptions.length > 0 ? (
+                    <DataTable
+                      caption={t('inventory.consumptionCaption', { reference: lot.tankerReference })}
+                      captionHidden
+                      columns={consumptionColumns(t, lot)}
+                      rows={lot.consumptions}
+                      rowKey={(c) => c.id}
+                      className="rounded-none border-x-0 border-b-0"
+                      tableClassName="text-xs"
+                    />
+                  ) : (
+                    <p className="ui-empty border-t border-border px-4 py-3">{t('inventory.noConsumptions')}</p>
+                  )}
+                </div>
               )}
             </div>
           ))}
@@ -272,7 +279,10 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
               {allTanksData.tanks.map((section) => (
                 <div key={section.tankId} className="border-b border-border">
                   <button
+                    type="button"
                     className="ui-accordion-trigger"
+                    aria-expanded={expandedLot === section.tankId}
+                    aria-controls={expandedLot === section.tankId ? `${expandedContentId}-tank-${section.tankId}` : undefined}
                     onClick={() => setExpandedLot(expandedLot === section.tankId ? null : section.tankId)}
                   >
                     <div className="flex items-center gap-3">
@@ -292,7 +302,7 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
                     </div>
                   </button>
                   {expandedLot === section.tankId && (
-                    <div className="p-4 border-t border-border">
+                    <div id={`${expandedContentId}-tank-${section.tankId}`} className="p-4 border-t border-border">
                       {section.lots.length === 0 ? (
                         <p className="ui-empty">{t('inventory.noLotsInTank')}</p>
                       ) : (

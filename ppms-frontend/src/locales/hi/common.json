@@ -69,8 +69,6 @@
     "previousPage": "पिछला पेज",
     "nextPage": "अगला पेज",
     "rowsPerPage": "हर पेज पर पंक्तियाँ",
-    "prev": "पिछला",
-    "next": "अगला",
     "pageOf": "पेज {{page}} / {{total}}"
   },
   "select": {
@@ -185,5 +183,6 @@
   },
   "loadError": {
     "message": "यह लोड नहीं हो सका। कनेक्शन जाँचें और फिर से कोशिश करें।"
-  }
+  },
+  "duNumber": "DU #{{number}}"
 }

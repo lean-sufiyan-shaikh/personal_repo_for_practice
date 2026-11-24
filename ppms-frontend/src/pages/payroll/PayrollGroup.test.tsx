@@ -14,14 +14,14 @@ function record(status: PayrollStatus): PayrollRecord {
   }
 }
 
-function renderGroup(status: PayrollStatus) {
+function renderGroup(status: PayrollStatus, isOpen = true) {
   const onStatusChange = vi.fn()
   const onDelete = vi.fn()
   render(
     <PayrollGroup
       status={status} records={[record(status)]} totalRecords={1} totalAmount={15_000}
       page={0} pageSize={10} onPageChange={vi.fn()} onPageSizeChange={vi.fn()}
-      isOpen onToggle={vi.fn()} staff={[]}
+      isOpen={isOpen} onToggle={vi.fn()} staff={[]}
       onStatusChange={onStatusChange} onDelete={onDelete} isPending={false} isDeletePending={false}
     />,
   )
@@ -39,6 +39,28 @@ describe('PayrollGroup', () => {
 
     await user.click(screen.getByRole('button', { name: 'Yes' }))
     expect(onStatusChange).toHaveBeenCalledWith(7, 'PAID')
+  })
+
+  it('asks to mark as paid in neutral ink with a primary Yes, since paying is not destructive', async () => {
+    const user = userEvent.setup()
+    renderGroup('APPROVED')
+
+    await user.click(screen.getByRole('button', { name: 'Mark as paid' }))
+
+    expect(screen.getByText('Mark as paid? This is final and cannot be undone.')).toHaveClass('text-ink')
+    expect(screen.getByRole('button', { name: 'Yes' })).toHaveClass('ui-btn-primary')
+  })
+
+  it('reports whether the group is open and points the header at its records', () => {
+    renderGroup('DRAFT')
+    const header = screen.getByRole('button', { expanded: true })
+    expect(document.getElementById(header.getAttribute('aria-controls') ?? '')).toHaveTextContent('Mark as approved')
+  })
+
+  it('reports a closed group as collapsed with nothing to point at', () => {
+    renderGroup('DRAFT', false)
+    const header = screen.getByRole('button', { expanded: false })
+    expect(header).not.toHaveAttribute('aria-controls')
   })
 
   it('approves a draft in one click', async () => {

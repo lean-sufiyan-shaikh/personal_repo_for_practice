@@ -29,9 +29,9 @@ export function DipPlSection({ detail }: { detail: BalanceSheetDetail }) {
   const { t } = useTranslation(['balancesheet', 'common'])
   return (
     <section>
-      <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-wider mb-3">
+      <h3 className="ui-section-heading mb-3">
         {t('dip.title')}
-        <span className="ml-2 text-ink-3 normal-case font-normal">
+        <span className="ml-2 font-normal text-ink-3">
           {t('dip.count', { count: detail.dipPlEntries.length })}
         </span>
       </h3>

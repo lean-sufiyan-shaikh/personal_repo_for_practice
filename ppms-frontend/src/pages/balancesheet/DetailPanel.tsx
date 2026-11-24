@@ -234,7 +234,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
 
         {/* Cash summary tiles */}
         <section>
-          <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-wider mb-3">{t('summary.title')}</h3>
+          <h3 className="ui-section-heading mb-3">{t('summary.title')}</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <SummaryTile label={t('summary.expectedRevenue')} value={<MoneyText value={detail.totalExpectedRevenue} />} />
             <SummaryTile label={t('summary.cashCollected')} value={<MoneyText value={detail.totalCashCollected} />} />
@@ -317,7 +317,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
         {/* Fuel lines */}
         <section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-wider">{t('fuel.title')}</h3>
+            <h3 className="ui-section-heading">{t('fuel.title')}</h3>
             <CsvExportButton
               filename={csvFilename(`balance-sheet-${reportId}-fuel`, sheetRange)}
               columns={fuelColumns}
@@ -340,8 +340,8 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
         {/* Shift lines */}
         <section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-wider">
-              {t('shifts.title')} <span className="text-ink-3 normal-case font-normal">{t('shifts.count', { count: detail.shiftLines.length })}</span>
+            <h3 className="ui-section-heading">
+              {t('shifts.title')} <span className="font-normal text-ink-3">{t('shifts.count', { count: detail.shiftLines.length })}</span>
             </h3>
             <CsvExportButton
               filename={csvFilename(`balance-sheet-${reportId}-shifts`, sheetRange)}

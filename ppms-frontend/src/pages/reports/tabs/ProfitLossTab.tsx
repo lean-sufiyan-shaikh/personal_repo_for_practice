@@ -130,7 +130,7 @@ function RevenueBreakdown({ report, className }: { report: ProfitLossReport; cla
     <div className={`grid grid-cols-4 gap-3 ${className}`}>
       {figures.map((figure) => (
         <div key={figure.key}>
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">{figure.label}</p>
+          <p className="ui-kpi-label">{figure.label}</p>
           <MoneyText value={figure.value} tone={figure.tone} className={`mt-0.5 block text-sm font-semibold ${figure.tone ? '' : 'text-ink'}`} />
         </div>
       ))}

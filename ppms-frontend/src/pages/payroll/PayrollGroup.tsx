@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { StaffMember } from '../../api/userApi'
@@ -37,6 +38,7 @@ export function PayrollGroup({
   isOpen, onToggle, staff, onStatusChange, onDelete, isPending, isDeletePending,
 }: GroupProps) {
   const { t } = useTranslation(['payroll', 'common'])
+  const recordsId = useId()
   const next = NEXT_STATUS[status]
 
   const totalPages   = Math.max(1, Math.ceil(totalRecords / pageSize))
@@ -56,6 +58,8 @@ export function PayrollGroup({
       <button
         type="button"
         onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? recordsId : undefined}
         className="ui-accordion-trigger"
       >
         <div className="flex items-center gap-3">
@@ -70,7 +74,7 @@ export function PayrollGroup({
 
       {/* Records — shown only when expanded */}
       {isOpen && (
-        <div className="ui-accordion-content border-t border-border">
+        <div id={recordsId} className="ui-accordion-content border-t border-border">
         <div className="divide-y divide-border">
           {records.map(r => {
             const staffMember = staff.find((s) => s.id === r.userId)
@@ -184,15 +188,15 @@ export function PayrollGroup({
                         triggerLabel={t('group.mark.PAID')}
                         triggerAriaLabel={t('group.mark.PAID')}
                         prompt={t('group.markPaidPrompt')}
-                        triggerClassName="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
-                        confirmClassName="ui-btn ui-btn-primary min-h-0 px-2 py-0.5 text-xs"
+                        triggerClassName="ui-btn ui-btn-primary ui-btn-compact"
+                        tone="neutral"
                       />
                     ) : next && (
                       <button
                         type="button"
                         onClick={() => onStatusChange(r.id, next)}
                         disabled={isPending}
-                        className="ui-btn ui-btn-primary min-h-0 px-3 py-1 text-xs"
+                        className="ui-btn ui-btn-primary ui-btn-compact"
                       >
                         {t(`group.mark.${next}`)}
                       </button>

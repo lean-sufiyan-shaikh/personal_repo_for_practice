@@ -120,7 +120,7 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
                       type="button"
                       onClick={() => approvePayment(tx.referenceId)}
                       disabled={isApproving}
-                      className="ui-btn ui-btn-primary min-h-0 px-2 py-0.5 text-xs disabled:opacity-50"
+                      className="ui-btn ui-btn-primary ui-btn-compact"
                     >
                       {t('common:actions.approve')}
                     </button>
@@ -128,7 +128,7 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
                       type="button"
                       onClick={() => onRejectPayment(tx)}
                       disabled={isApproving}
-                      className="ui-btn ui-btn-danger min-h-0 px-2 py-0.5 text-xs disabled:opacity-50"
+                      className="ui-btn ui-btn-danger ui-btn-compact"
                     >
                       {t('common:actions.reject')}
                     </button>

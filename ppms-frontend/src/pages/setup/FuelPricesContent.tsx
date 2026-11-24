@@ -61,7 +61,6 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
   // Dynamic price inputs keyed by fuel type (only for fuel types actually present on this pump)
   const [prices, setPrices] = useState<Record<string, string>>({})
   const [error, setError]   = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
   // Set to true immediately after a successful save so the alert disappears without waiting for query refetch
   const [pricesConfirmedToday, setPricesConfirmedToday] = useState(false)
   // 15% deviation warning state — set when backend returns HTTP 409
@@ -97,7 +96,7 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
   const stillNeeded = pricesToSave.length === 0 ? [t('prices.stillNeededPrice')] : []
 
   const submit = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(null); setSuccess(false); setDeviationWarning(null); setOpenShiftsWarning(null)
+    e.preventDefault(); setError(null); setDeviationWarning(null); setOpenShiftsWarning(null)
     const tasks = pricesToSave
       .map((ft) => mutation.mutateAsync({ pumpId: pump.id, fuelType: ft, pricePerUnit: Number(prices[ft]) }))
     if (tasks.length === 0) { setError(t('prices.enterOne')); return }
@@ -106,7 +105,6 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
       queryClient.invalidateQueries({ queryKey: ['fuelPrices', pump.id] })
       setPrices({})
       setPricesConfirmedToday(true)
-      setSuccess(true); setTimeout(() => setSuccess(false), 3000)
       addToast(t('prices.updated'), 'success')
       // Show open-shifts warning if any price update detected open shifts
       const warning = results.find((r) => r.openShiftsWarning)?.openShiftsWarning ?? null
@@ -118,7 +116,7 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
   // so the stale alert is dismissed without requiring manual re-entry.
   const [confirmingUnchanged, setConfirmingUnchanged] = useState(false)
   const confirmUnchanged = async () => {
-    setError(null); setSuccess(false); setOpenShiftsWarning(null); setConfirmingUnchanged(true)
+    setError(null); setOpenShiftsWarning(null); setConfirmingUnchanged(true)
     const tasks = currentPrices.map((p) =>
       mutation.mutateAsync({ pumpId: pump.id, fuelType: p.fuelType as FuelType, pricePerUnit: Number(p.pricePerUnit) })
     )
@@ -126,7 +124,6 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
       const results = await Promise.all(tasks)
       queryClient.invalidateQueries({ queryKey: ['fuelPrices', pump.id] })
       setPricesConfirmedToday(true)
-      setSuccess(true); setTimeout(() => setSuccess(false), 3000)
       addToast(t('prices.confirmedToday'), 'success')
       const warning = results.find((r) => r.openShiftsWarning)?.openShiftsWarning ?? null
       setOpenShiftsWarning(warning)
@@ -147,7 +144,7 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
       queryClient.invalidateQueries({ queryKey: ['fuelPrices', pump.id] })
       setPrices({})
       setPricesConfirmedToday(true)
-      setSuccess(true); setTimeout(() => setSuccess(false), 3000)
+      addToast(t('prices.updated'), 'success')
       if (result.openShiftsWarning) setOpenShiftsWarning(result.openShiftsWarning)
     } catch (err) {
       setError(parseApiError(err, t('prices.setFailed')))
@@ -200,7 +197,6 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
           ))}
         </FormGrid>
         {error   && <p role="alert" className="ui-error-text">{error}</p>}
-        {success && <p role="status" className="text-ok text-xs">{t('prices.savedSuccess')}</p>}
         <div className="flex flex-wrap items-center justify-end gap-3">
           <StillNeeded id={stillNeededId} items={stillNeeded} />
           <LoadingButton type="submit" isLoading={mutation.isPending && !confirmingUnchanged} loadingLabel={t('common:actions.saving')}

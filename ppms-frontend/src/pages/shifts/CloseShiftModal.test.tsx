@@ -288,7 +288,7 @@ describe('CloseShiftModal', () => {
   it('shows Short and requires a reason, with no round off for a gap of a rupee or more', async () => {
     const user = await fillShift('900')
     expect(screen.getByText('Short ₹100.00')).toBeInTheDocument()
-    expect(screen.getByText('Shift is SHORT by ₹100.00')).toBeInTheDocument()
+    expect(screen.getByText('Shift is short by ₹100.00')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Round off/ })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Review close' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Review close' })).toHaveAccessibleDescription('Still needed Reason for the difference')
@@ -301,7 +301,7 @@ describe('CloseShiftModal', () => {
 
   it('rounds a gap under one rupee into cash so the shift balances', async () => {
     const user = await fillShift('999.40')
-    expect(screen.getByText('Shift is SHORT by ₹0.60')).toBeInTheDocument()
+    expect(screen.getByText('Shift is short by ₹0.60')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Round off ₹0.60 into cash' }))
     expect(screen.getByLabelText('Cash (₹)')).toHaveValue(1000)

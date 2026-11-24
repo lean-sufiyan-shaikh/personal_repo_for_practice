@@ -504,9 +504,6 @@
     "filtered": " (निवडलेले)",
     "allShiftsCaption": "सर्व शिफ्ट",
     "allEmpty": "निवडलेल्या तारखांमध्ये शिफ्ट नाहीत.",
-    "showingRange": "({{total}} पैकी {{from}}–{{to}})",
-    "firstPage": "पहिले पान",
-    "lastPage": "शेवटचे पान",
     "backfilled": "नंतर भरलेली",
     "duName": "DU {{name}}",
     "resolve": "सोडवा",
@@ -536,10 +533,10 @@
       "overTotal": "एकूण जास्त: ",
       "resolved": "सोडवले: ",
       "cashRecovered": "रोख वसुली: ",
-      "filter": "निवडा:",
       "all": "सर्व",
       "caption": "फरक",
-      "noMatch": "निवडलेल्या फिल्टरनुसार फरक सापडला नाही."
+      "noMatch": "निवडलेल्या फिल्टरनुसार फरक सापडला नाही.",
+      "filtersLabel": "फरक फिल्टर"
     },
     "filtersLabel": "शिफ्ट फिल्टर",
     "listLabel": "शिफ्ट",

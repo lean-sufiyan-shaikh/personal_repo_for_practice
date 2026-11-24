@@ -27,7 +27,7 @@ export function TankStockOverview({ tanks: allTanks }: { tanks: TankStock[] }) {
           {allTanks.map(tank => {
             const pct = Math.min(100, Math.max(0, tank.stockPercentage))
             const barColor = tank.lowStock ? 'bg-bad' : FUEL_STOCK_COLORS[tank.fuelType]?.bar ?? 'bg-control'
-            const percent = pct.toFixed(0)
+            const percent = formatDecimal(pct, 0)
 
             return (
             <div key={tank.tankId} className="ui-card-plain ui-card-muted px-3 py-2.5">

@@ -158,7 +158,7 @@ export default function InventoryPage() {
             ) : tanksLoadFailed ? (
               <LoadError onRetry={() => void refetchTanks()} />
             ) : tanks.length === 0 ? (
-              <p className="text-sm text-ink-3">{t('page.noTanks')}</p>
+              <p className="ui-empty">{t('page.noTanks')}</p>
             ) : (
               <ul className="grid grid-cols-1 gap-(--density-gap) sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {tanks.map(tank => (

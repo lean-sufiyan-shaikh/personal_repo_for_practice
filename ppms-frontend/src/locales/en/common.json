@@ -69,8 +69,6 @@
     "previousPage": "Previous page",
     "nextPage": "Next page",
     "rowsPerPage": "Rows per page",
-    "prev": "Prev",
-    "next": "Next",
     "pageOf": "Page {{page}} of {{total}}"
   },
   "select": {
@@ -185,5 +183,6 @@
   },
   "loadError": {
     "message": "Could not load this. Check your connection and retry."
-  }
+  },
+  "duNumber": "DU #{{number}}"
 }

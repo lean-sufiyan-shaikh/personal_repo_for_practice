@@ -68,7 +68,8 @@
     "matchCount_one": "{{count}} मिला",
     "matchCount_other": "{{count}} मिले",
     "disableAria": "उत्पाद {{name}} बंद करें",
-    "disablePrompt": "यह उत्पाद बंद करें?"
+    "disablePrompt": "यह उत्पाद बंद करें?",
+    "hsnButton": "HSN"
   },
   "addProduct": {
     "title": "उत्पाद जोड़ें",

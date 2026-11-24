@@ -177,7 +177,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
     if (clientsLoading) return <div className="px-5 py-4"><SkeletonRows count={4} /></div>
     return (
       <div className="space-y-4">
-        <p className="ui-alert ui-alert-error text-sm" role="alert">
+        <p className="ui-alert ui-alert-danger text-sm" role="alert">
           {clientsFailed ? t('detail.loadFailed') : t('detail.notFound')}
         </p>
         <button type="button" onClick={onBack} className="ui-btn ui-btn-secondary">{t('detail.back')}</button>

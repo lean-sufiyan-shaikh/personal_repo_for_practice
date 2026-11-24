@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -74,6 +74,7 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
   const [from, setFrom] = useState(query.from)
   const [to,   setTo]   = useState(query.to)
   const [expandedOp, setExpandedOp] = useState<number | null>(null)
+  const operatorShiftsId = useId()
 
   const [page, setPage]   = useState(0)
   const [pageSize, setPageSize] = useState(10)
@@ -169,7 +170,10 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
             paged.content.map((op) => (
               <div key={op.operatorId} className="border-b border-border">
                 <button
+                  type="button"
                   className="ui-accordion-trigger"
+                  aria-expanded={expandedOp === op.operatorId}
+                  aria-controls={expandedOp === op.operatorId ? `${operatorShiftsId}-${op.operatorId}` : undefined}
                   onClick={() => setExpandedOp(expandedOp === op.operatorId ? null : op.operatorId)}
                 >
                   <div className="flex items-center gap-3">
@@ -193,15 +197,17 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
                   </div>
                 </button>
                 {expandedOp === op.operatorId && (
-                  <DataTable
-                    caption={t('discrepancy.operatorCaption', { name: op.operatorName })}
-                    captionHidden
-                    columns={screenColumns(t)}
-                    rows={op.shifts}
-                    rowKey={(s) => s.shiftId}
-                    className="rounded-none border-x-0 border-b-0"
-                    tableClassName="text-xs"
-                  />
+                  <div id={`${operatorShiftsId}-${op.operatorId}`}>
+                    <DataTable
+                      caption={t('discrepancy.operatorCaption', { name: op.operatorName })}
+                      captionHidden
+                      columns={screenColumns(t)}
+                      rows={op.shifts}
+                      rowKey={(s) => s.shiftId}
+                      className="rounded-none border-x-0 border-b-0"
+                      tableClassName="text-xs"
+                    />
+                  </div>
                 )}
               </div>
             ))

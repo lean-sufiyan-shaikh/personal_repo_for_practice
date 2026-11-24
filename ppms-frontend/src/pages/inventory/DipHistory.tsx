@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { codeLabel } from '../../constants/labels'
 import { withToggled } from '../../utils/setToggle'
 import { useQuery } from '@tanstack/react-query'
@@ -18,6 +18,7 @@ import { fmtDate } from './inventoryFormat'
 
 export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: number; tanks: TankStock[]; canViewFinancials: boolean }) {
   const { t } = useTranslation(['inventory', 'common'])
+  const dipGroupsId = useId()
   const [dipPage,           setDipPage]           = useState(0)
   const [dipPageSize,       setDipPageSize]       = useState(10)
   const [dipTankFilter,          setDipTankFilter]          = useState('')
@@ -112,6 +113,8 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
                         <button
                           type="button"
                           onClick={toggleDip}
+                          aria-expanded={!isCollapsed}
+                          aria-controls={!isCollapsed ? `${dipGroupsId}-${dateKey}` : undefined}
                           className="w-full flex items-center gap-2 text-left hover:opacity-70 transition-opacity"
                         >
                           <span className="text-xs font-semibold text-ink bg-surface-sunken px-2.5 py-1 rounded-control">
@@ -129,7 +132,7 @@ export function DipHistory({ pumpId, tanks, canViewFinancials }: { pumpId: numbe
                           <span className={`ui-accordion-arrow ml-1 ${!isCollapsed ? 'ui-accordion-arrow--open' : ''}`}><ChevronDown size={14} strokeWidth={2} /></span>
                         </button>
                         {!isCollapsed && (
-                          <div className="ui-accordion-content space-y-1.5">
+                          <div id={`${dipGroupsId}-${dateKey}`} className="ui-accordion-content space-y-1.5">
                             {rows.map(d => (
                               <DipItem
                                 key={d.id}

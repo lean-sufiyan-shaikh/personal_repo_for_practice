@@ -11,6 +11,7 @@ import { formatNumberIn } from '../../i18n/format'
 import { ALL_FUEL_TYPES, FUEL_COLOR } from './fuelStyles'
 import { ConfirmButton } from '../../components/ConfirmButton'
 import { StatusBadge } from '../../components/StatusBadge'
+import { SkeletonRows } from '../../components/Skeleton'
 import { FormField } from '../../components/FormField'
 import { FormGrid } from '../../components/layout/FormGrid'
 import { LoadingButton } from '../../components/LoadingButton'
@@ -129,9 +130,9 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
 
       {/* Existing tanks */}
       {isLoading ? (
-        <p className="text-xs text-ink-3">{t('tanks.loading')}</p>
+        <SkeletonRows count={3} />
       ) : tanks.length === 0 ? (
-        <p className="text-xs text-ink-3">{t('tanks.empty')}</p>
+        <p className="ui-empty">{t('tanks.empty')}</p>
       ) : (
         <div className="space-y-2">
           {statusError && (
@@ -197,12 +198,11 @@ export function TanksContent({ pump }: { pump: PumpSummary }) {
                         triggerLabel={t('common:actions.disable')}
                         triggerAriaLabel={t('tanks.disableAria', { name: tank.tankIdentifier })}
                         prompt={hasSignificantStock(tank)
-                          ? t('tanks.freezePrompt', { percent: ((tank.currentStock / tank.capacity) * 100).toFixed(0) })
+                          ? t('tanks.freezePrompt', { percent: formatNumberIn((tank.currentStock / tank.capacity) * 100, { maximumFractionDigits: 0 }) })
                           : t('tanks.disablePrompt')}
                         onConfirm={() => { setStatusError(null); statusMutation.mutate({ tankId: tank.id, status: 'INACTIVE' }) }}
                         disabled={statusMutation.isPending}
                         triggerClassName="ui-btn ui-btn-ghost ui-btn-compact"
-                        confirmClassName="ui-btn ui-btn-danger ui-btn-compact"
                       />
                     )}
                   </div>

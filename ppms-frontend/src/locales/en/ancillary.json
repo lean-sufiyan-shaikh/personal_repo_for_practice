@@ -68,7 +68,8 @@
     "matchCount_one": "{{count}} match",
     "matchCount_other": "{{count}} matches",
     "disableAria": "Disable product {{name}}",
-    "disablePrompt": "Disable this product?"
+    "disablePrompt": "Disable this product?",
+    "hsnButton": "HSN"
   },
   "addProduct": {
     "title": "Add product",

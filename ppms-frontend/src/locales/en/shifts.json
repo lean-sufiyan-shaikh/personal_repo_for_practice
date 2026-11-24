@@ -113,8 +113,8 @@
       "print": "Print / share"
     },
     "discrepancy": {
-      "short": "Shift is SHORT by ₹{{amount}}",
-      "excess": "Shift has EXCESS of ₹{{amount}}",
+      "short": "Shift is short by ₹{{amount}}",
+      "excess": "Shift is over by ₹{{amount}}",
       "collectedLess": "The operator collected less than the amount due.",
       "collectedMore": "The operator collected more than the amount due.",
       "roundOffOrReason": "Round it off into cash, or add a reason below.",
@@ -504,9 +504,6 @@
     "filtered": " (filtered)",
     "allShiftsCaption": "All shifts",
     "allEmpty": "No shifts match the selected date range.",
-    "showingRange": "(showing {{from}}–{{to}} of {{total}})",
-    "firstPage": "First page",
-    "lastPage": "Last page",
     "backfilled": "Backfilled",
     "duName": "DU {{name}}",
     "resolve": "Resolve",
@@ -536,10 +533,10 @@
       "overTotal": "Over total: ",
       "resolved": "Resolved: ",
       "cashRecovered": "Cash recovered: ",
-      "filter": "Filter:",
       "all": "All",
       "caption": "Discrepancies",
-      "noMatch": "No discrepancies match the selected filters."
+      "noMatch": "No discrepancies match the selected filters.",
+      "filtersLabel": "Discrepancy filters"
     },
     "filtersLabel": "Shift filters",
     "listLabel": "Shifts",

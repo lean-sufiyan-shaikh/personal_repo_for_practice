@@ -22,7 +22,7 @@ export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
     <tr>
       <td className="px-6 py-3 font-medium text-ink">
         <span className="text-xs text-ink-3 block">
-          {shift.duName ?? `DU #${shift.duNumber}`}
+          {shift.duName ?? t('common:duNumber', { number: shift.duNumber })}
         </span>
         {shift.nozzles.map((n) => `#${n.nozzleNumber} ${codeLabel(n.fuelType)}`).join(', ')}
       </td>

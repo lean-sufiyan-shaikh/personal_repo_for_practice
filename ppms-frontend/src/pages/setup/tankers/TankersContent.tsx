@@ -12,6 +12,7 @@ import { TankerForm } from './TankerForm'
 import type { TankerFieldErrors } from './TankerForm'
 import { LoadingButton } from '../../../components/LoadingButton'
 import { StatusBadge } from '../../../components/StatusBadge'
+import { SkeletonRows } from '../../../components/Skeleton'
 import { codeLabel } from '../../../constants/labels'
 import { formatNumberIn } from '../../../i18n/format'
 
@@ -101,9 +102,9 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
       </p>
 
       {isLoading ? (
-        <p className="text-xs text-ink-3">{t('common:loading.short')}</p>
+        <SkeletonRows count={3} />
       ) : tankers.length === 0 && !showAdd ? (
-        <p className="text-xs text-ink-3">{t('tankers.empty')}</p>
+        <p className="ui-empty">{t('tankers.empty')}</p>
       ) : (
         <div className="space-y-2">
           {tankers.map(tanker => (
@@ -140,7 +141,7 @@ export function TankersContent({ pumpId }: { pumpId: number }) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-ink">{tanker.name}</span>
                       <span className="text-xs font-medium text-ink-2 bg-surface-sunken px-2 py-0.5 rounded-badge tabular-nums">
-                        {t('tankers.capacityShort', { thousands: (tanker.capacityLitres / 1000).toFixed(0) })}
+                        {t('tankers.capacityShort', { thousands: formatNumberIn(tanker.capacityLitres / 1000, { maximumFractionDigits: 0 }) })}
                       </span>
                       <StatusBadge tone="neutral" label={codeLabel(tanker.tankerType)} />
                       {tanker.defaultTanker && <StatusBadge tone="ok" icon={Check} label={t('tankers.default')} />}

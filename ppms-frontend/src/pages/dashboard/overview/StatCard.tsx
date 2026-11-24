@@ -25,7 +25,7 @@ export function StatCard({
   const content = (
     <>
       <div className="flex items-center justify-between mb-4">
-        <span className="text-xs font-semibold text-ink-3 uppercase tracking-wide">{label}</span>
+        <span className="ui-kpi-label">{label}</span>
         <div className={`w-10 h-10 ${color} rounded-card flex items-center justify-center text-surface`}>
           <Icon size={18} strokeWidth={2} />
         </div>

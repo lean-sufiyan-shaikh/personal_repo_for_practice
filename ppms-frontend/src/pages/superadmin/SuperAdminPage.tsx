@@ -22,7 +22,7 @@ const ONBOARD_ACTION = 'onboard-owner'
 function PlatformTotal({ label, value }: { label: string; value: number }) {
   return (
     <div className="ui-card">
-      <p className="text-xs font-semibold uppercase tracking-wide text-ink-3">{label}</p>
+      <p className="ui-kpi-label">{label}</p>
       <p className="mt-1 text-2xl font-bold tabular-nums text-ink"><AnimatedCount value={value} /></p>
     </div>
   )
