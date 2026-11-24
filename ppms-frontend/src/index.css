@@ -2705,6 +2705,143 @@
     background: var(--color-primary);
   }
 
+  /* ── Setup: progress ring, vertical stepper, settings hub cards and tank gauge ── */
+  .ui-progress-ring {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ui-progress-ring svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+
+  .ui-progress-ring circle {
+    fill: none;
+    stroke-width: 3;
+  }
+
+  .ui-progress-ring__track {
+    stroke: var(--color-border);
+  }
+
+  .ui-progress-ring__fill {
+    stroke: var(--color-primary);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 600ms ease-out;
+    animation: ppms-ring-draw 900ms ease-out;
+  }
+
+  .ui-stepper__item {
+    position: relative;
+  }
+
+  /* The line joining one step's dot to the next; solid once the step is done. */
+  .ui-stepper__item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: calc(0.75rem + 0.875rem - 1px);
+    top: calc(0.625rem + 1.75rem + 0.25rem);
+    bottom: calc(-0.625rem + 0.25rem);
+    width: 2px;
+    border-radius: 9999px;
+    background: var(--color-border);
+  }
+
+  .ui-stepper__item--done:not(:last-child)::after {
+    background: var(--color-primary);
+  }
+
+  .ui-stepper__link {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    min-height: 44px;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--radius-control);
+    transition: background-color 0.15s ease;
+  }
+
+  .ui-stepper__link:hover {
+    background: var(--color-bg);
+  }
+
+  .ui-stepper__link[aria-current='step'] {
+    background: var(--color-info-bg);
+  }
+
+  .ui-stepper__link[aria-current='step'] .ui-step-number {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-info-bg), 0 0 0 3px var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .ui-stepper__link[aria-current='step'] .ui-step-number--done {
+    color: var(--color-on-primary);
+  }
+
+  .ui-step-number--optional {
+    border-style: dashed;
+    color: var(--color-ink-3);
+  }
+
+  .ui-hub-card {
+    display: flex;
+    height: 100%;
+    align-items: flex-start;
+    gap: 0.75rem;
+    min-height: 44px;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    box-shadow: var(--shadow-raised);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  }
+
+  .ui-hub-card:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-1px);
+  }
+
+  .ui-hub-card__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-control);
+    background: var(--color-info-bg);
+    color: var(--color-primary);
+  }
+
+  .ui-tank-gauge {
+    height: 0.75rem;
+    overflow: hidden;
+    border-radius: 9999px;
+    background: var(--color-surface-sunken);
+  }
+
+  .ui-tank-gauge__fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 700ms ease-out;
+  }
+
   /* Long tables scroll inside the card so the sticky header row stays in view. */
   .ui-table-wrap--scroll {
     max-height: 70vh;
@@ -4133,11 +4270,20 @@
 
   .ui-choice-tile,
   .ui-step-number,
-  .ui-step-progress__segment {
+  .ui-step-progress__segment,
+  .ui-stepper__link,
+  .ui-hub-card,
+  .ui-tank-gauge__fill,
+  .ui-progress-ring__fill {
     transition: none;
   }
 
-  .ui-choice-tile:active:not(:disabled) {
+  .ui-progress-ring__fill {
+    animation: none;
+  }
+
+  .ui-choice-tile:active:not(:disabled),
+  .ui-hub-card:hover {
     transform: none;
   }
 

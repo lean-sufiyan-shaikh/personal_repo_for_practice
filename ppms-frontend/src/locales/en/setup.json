@@ -14,20 +14,33 @@
     "managerNote": "You can update daily fuel prices below. Other pump settings are managed by your Owner or Admin.",
     "notConfigured": "Not configured",
     "nozzles": {
-      "summary": "{{used}} of {{max}} DUs configured"
+      "none": "No dispensers yet",
+      "dus_one": "{{count}} DU",
+      "dus_other": "{{count}} DUs",
+      "nozzles_one": "{{count}} nozzle",
+      "nozzles_other": "{{count}} nozzles",
+      "withoutTank_one": "{{count}} nozzle has no tank",
+      "withoutTank_other": "{{count}} nozzles have no tank"
     },
     "tanks": {
-      "tapToConfigure": "Tap to configure capacity",
-      "addDuFirst": "Add a DU first"
+      "addDuFirst": "Add a DU first",
+      "none": "No tanks yet",
+      "summary_one": "{{count}} tank · {{capacity}} L capacity",
+      "summary_other": "{{count}} tanks · {{capacity}} L capacity",
+      "withoutNozzle_one": "{{count}} tank has no nozzle",
+      "withoutNozzle_other": "{{count}} tanks have no nozzle"
     },
     "prices": {
       "notSet": "Not set",
-      "notUpdatedToday": " · not updated today"
+      "notUpdatedToday": "Not updated today",
+      "updatedToday": "Prices updated today",
+      "updatedOn": "Prices updated on {{date}}",
+      "setToday": "Set today's prices"
     },
     "staff": {
-      "members_one": "{{count}} member",
-      "members_other": "{{count}} members",
-      "noneAdded": "None added"
+      "noneAdded": "None added",
+      "active_one": "{{count}} active staff member",
+      "active_other": "{{count}} active staff"
     },
     "shifts": {
       "schedules_one": "{{count}} schedule",
@@ -103,10 +116,6 @@
     "nameRequired": "Tank name is required.",
     "capacityPositive": "Capacity must be greater than 0.",
     "intro": "Add each underground tank manually. Multiple tanks per fuel type are allowed. Set capacity so that stock level bars and low-stock alerts work correctly.",
-    "empty": "No tanks yet. Add one below.",
-    "disabled": "Disabled",
-    "capacityPrefix": "Capacity:",
-    "stockFrozen": "(stock frozen)",
     "disableAria": "Disable tank {{name}}",
     "freezePrompt": "{{percent}}% stock will be frozen. Confirm?",
     "disablePrompt": "Disable this tank?",
@@ -121,7 +130,21 @@
     "dipToleranceHint": "How far a dip reading may differ from book stock before it is flagged.",
     "dipToleranceHelp": "Dip checks within ±{{amount}} of book stock count as matching.",
     "saveTank": "Save tank",
-    "add": "Add tank"
+    "add": "Add tank",
+    "emptyTitle": "No tanks yet",
+    "addFirstButton": "Add your first tank",
+    "cardLabel": "{{name}}, {{fuel}}",
+    "gaugeLabel": "Stock in {{name}}",
+    "percentFull": "{{percent}}% full",
+    "stockOfCapacity": "{{stock}} of {{capacity}}",
+    "lowStock": "Low stock",
+    "emptyStock": "Empty",
+    "disabledFrozen": "Disabled · stock frozen",
+    "noNozzles": "No nozzle mapped",
+    "mappedNozzles_one": "{{count}} nozzle mapped",
+    "mappedNozzles_other": "{{count}} nozzles mapped",
+    "lastDip": "Last dip {{date}}",
+    "disabled": "Disabled"
   },
   "nozzles": {
     "intro": "Each Dispensary Unit (DU) is a physical MPD machine. Add one or more nozzles to each DU — each nozzle carries exactly one fuel type with its own meter counter. CNG nozzles cannot share a DU with other fuel types.",
@@ -135,14 +158,14 @@
     "du": {
       "number": "DU #{{number}}",
       "inactive": "Inactive",
-      "activeNozzles_one": "{{count}} active nozzle(s)",
-      "activeNozzles_other": "{{count}} active nozzle(s)",
-      "addNozzle": "Add nozzle"
+      "addNozzle": "Add nozzle",
+      "nozzleSummary_one": "{{count}} nozzle · {{active}} active",
+      "nozzleSummary_other": "{{count}} nozzles · {{active}} active",
+      "nozzlesOf": "Nozzles on {{name}}"
     },
     "row": {
       "maintenance": "Maintenance",
-      "tankNotMapped": "tank not mapped",
-      "actions": "Nozzle actions",
+      "tankNotMapped": "No tank mapped",
       "mapTank": "Map tank",
       "mapTankHint": "Assign the supply tank",
       "adjustReading": "Adjust reading",
@@ -150,7 +173,8 @@
       "recordDip": "Record dip",
       "recordDipHint": "Log a manual dip check",
       "disable": "Disable for maintenance",
-      "disableHint": "Temporarily take nozzle offline"
+      "disableHint": "Temporarily take nozzle offline",
+      "actionsFor": "Actions for nozzle #{{number}}"
     },
     "add": {
       "added": "Nozzle added",
@@ -246,6 +270,12 @@
       "addNozzle": "Add another nozzle",
       "removeNozzle": "Remove nozzle",
       "submit": "Create DU"
+    },
+    "active": "Active",
+    "tile": {
+      "label": "Nozzle #{{number}}, {{fuel}}",
+      "meter": "Meter {{reading}} {{unit}}",
+      "tank": "Tank {{name}}"
     }
   },
   "staff": {
@@ -436,7 +466,6 @@
     "listLabel": "Setup steps",
     "navigationLabel": "Previous and next step",
     "position": "Step {{current}} of {{total}}",
-    "previous": "Previous: {{step}}",
     "next": "Next step: {{step}}",
     "names": {
       "nozzles": "Dispensers & nozzles",
@@ -454,9 +483,18 @@
       "open": "Open Credit clients"
     },
     "complete": "Setup complete",
-    "reviewChecklist": "Review checklist"
+    "back": "Back: {{step}}",
+    "allSteps": "All steps",
+    "finish": "Finish",
+    "stillToDo_one": "{{count}} required step is still to do",
+    "stillToDo_other": "{{count}} required steps are still to do"
   },
   "createPump": {
     "creating": "Creating…"
+  },
+  "hub": {
+    "title": "All settings",
+    "checklist": "Setup checklist",
+    "backLink": "All settings"
   }
 }

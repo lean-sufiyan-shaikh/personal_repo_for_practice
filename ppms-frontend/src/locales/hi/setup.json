@@ -14,20 +14,33 @@
     "managerNote": "आप नीचे रोज़ की ईंधन कीमतें बदल सकते हैं। पंप की बाकी सेटिंग आपके मालिक या एडमिन संभालते हैं।",
     "notConfigured": "सेट नहीं है",
     "nozzles": {
-      "summary": "{{max}} में से {{used}} DU सेट हैं"
+      "none": "अभी कोई डिस्पेंसर नहीं",
+      "dus_one": "{{count}} DU",
+      "dus_other": "{{count}} DU",
+      "nozzles_one": "{{count}} नोज़ल",
+      "nozzles_other": "{{count}} नोज़ल",
+      "withoutTank_one": "{{count}} नोज़ल किसी टैंक से नहीं जुड़ा",
+      "withoutTank_other": "{{count}} नोज़ल किसी टैंक से नहीं जुड़े"
     },
     "tanks": {
-      "tapToConfigure": "क्षमता सेट करने के लिए टैप करें",
-      "addDuFirst": "पहले एक DU जोड़ें"
+      "addDuFirst": "पहले एक DU जोड़ें",
+      "none": "अभी कोई टैंक नहीं",
+      "summary_one": "{{count}} टैंक · {{capacity}} L क्षमता",
+      "summary_other": "{{count}} टैंक · {{capacity}} L क्षमता",
+      "withoutNozzle_one": "{{count}} टैंक से कोई नोज़ल नहीं जुड़ा",
+      "withoutNozzle_other": "{{count}} टैंकों से कोई नोज़ल नहीं जुड़ा"
     },
     "prices": {
       "notSet": "सेट नहीं है",
-      "notUpdatedToday": " · आज अपडेट नहीं हुई"
+      "notUpdatedToday": "आज अपडेट नहीं हुई",
+      "updatedToday": "कीमतें आज अपडेट हुईं",
+      "updatedOn": "कीमतें {{date}} को अपडेट हुईं",
+      "setToday": "आज की कीमतें सेट करें"
     },
     "staff": {
-      "members_one": "{{count}} सदस्य",
-      "members_other": "{{count}} सदस्य",
-      "noneAdded": "कोई नहीं जोड़ा"
+      "noneAdded": "कोई नहीं जोड़ा",
+      "active_one": "{{count}} चालू स्टाफ़",
+      "active_other": "{{count}} चालू स्टाफ़"
     },
     "shifts": {
       "schedules_one": "{{count}} शेड्यूल",
@@ -103,10 +116,6 @@
     "nameRequired": "टैंक का नाम ज़रूरी है।",
     "capacityPositive": "क्षमता 0 से ज़्यादा होनी चाहिए।",
     "intro": "हर भूमिगत टैंक खुद जोड़ें। एक ईंधन के कई टैंक हो सकते हैं। क्षमता सेट करें ताकि स्टॉक बार और कम-स्टॉक अलर्ट सही काम करें।",
-    "empty": "अभी कोई टैंक नहीं है। नीचे एक जोड़ें।",
-    "disabled": "बंद",
-    "capacityPrefix": "क्षमता:",
-    "stockFrozen": "(स्टॉक रुका हुआ)",
     "disableAria": "टैंक {{name}} बंद करें",
     "freezePrompt": "{{percent}}% स्टॉक रुक जाएगा। पक्का?",
     "disablePrompt": "यह टैंक बंद करें?",
@@ -121,7 +130,21 @@
     "dipToleranceHint": "डिप रीडिंग बुक स्टॉक से कितनी अलग हो सकती है, उसके बाद उसे चिह्नित किया जाता है।",
     "dipToleranceHelp": "बुक स्टॉक से ±{{amount}} के अंदर की डिप जाँच मेल खाती मानी जाएगी।",
     "saveTank": "टैंक सेव करें",
-    "add": "टैंक जोड़ें"
+    "add": "टैंक जोड़ें",
+    "emptyTitle": "अभी कोई टैंक नहीं",
+    "addFirstButton": "अपना पहला टैंक जोड़ें",
+    "cardLabel": "{{name}}, {{fuel}}",
+    "gaugeLabel": "{{name}} में स्टॉक",
+    "percentFull": "{{percent}}% भरा",
+    "stockOfCapacity": "{{capacity}} में से {{stock}}",
+    "lowStock": "कम स्टॉक",
+    "emptyStock": "खाली",
+    "disabledFrozen": "बंद · स्टॉक रुका हुआ",
+    "noNozzles": "कोई नोज़ल नहीं जुड़ा",
+    "mappedNozzles_one": "{{count}} नोज़ल जुड़ा",
+    "mappedNozzles_other": "{{count}} नोज़ल जुड़े",
+    "lastDip": "आखिरी डिप {{date}}",
+    "disabled": "बंद"
   },
   "nozzles": {
     "intro": "हर डिस्पेंसिंग यूनिट (DU) एक असली MPD मशीन है। हर DU में एक या ज़्यादा नोज़ल जोड़ें — हर नोज़ल में सिर्फ़ एक ईंधन होता है और उसका अपना मीटर होता है। CNG नोज़ल दूसरे ईंधन वाले DU में नहीं लग सकते।",
@@ -135,14 +158,14 @@
     "du": {
       "number": "DU #{{number}}",
       "inactive": "निष्क्रिय",
-      "activeNozzles_one": "{{count}} चालू नोज़ल",
-      "activeNozzles_other": "{{count}} चालू नोज़ल",
-      "addNozzle": "नोज़ल जोड़ें"
+      "addNozzle": "नोज़ल जोड़ें",
+      "nozzleSummary_one": "{{count}} नोज़ल · {{active}} चालू",
+      "nozzleSummary_other": "{{count}} नोज़ल · {{active}} चालू",
+      "nozzlesOf": "{{name}} के नोज़ल"
     },
     "row": {
       "maintenance": "मेंटेनेंस",
       "tankNotMapped": "टैंक से नहीं जुड़ा",
-      "actions": "नोज़ल के विकल्प",
       "mapTank": "टैंक जोड़ें",
       "mapTankHint": "सप्लाई टैंक चुनें",
       "adjustReading": "रीडिंग ठीक करें",
@@ -150,7 +173,8 @@
       "recordDip": "डिप दर्ज करें",
       "recordDipHint": "हाथ से की गई डिप जाँच दर्ज करें",
       "disable": "मेंटेनेंस के लिए बंद करें",
-      "disableHint": "नोज़ल को कुछ समय के लिए बंद करें"
+      "disableHint": "नोज़ल को कुछ समय के लिए बंद करें",
+      "actionsFor": "नोज़ल #{{number}} के विकल्प"
     },
     "add": {
       "added": "नोज़ल जुड़ गया",
@@ -246,6 +270,12 @@
       "addNozzle": "एक और नोज़ल जोड़ें",
       "removeNozzle": "नोज़ल हटाएँ",
       "submit": "DU बनाएँ"
+    },
+    "active": "चालू",
+    "tile": {
+      "label": "नोज़ल #{{number}}, {{fuel}}",
+      "meter": "मीटर {{reading}} {{unit}}",
+      "tank": "टैंक {{name}}"
     }
   },
   "staff": {
@@ -436,7 +466,6 @@
     "listLabel": "सेटअप के चरण",
     "navigationLabel": "पिछला और अगला चरण",
     "position": "{{total}} में से चरण {{current}}",
-    "previous": "पिछला: {{step}}",
     "next": "अगला चरण: {{step}}",
     "names": {
       "nozzles": "डिस्पेंसर और नोज़ल",
@@ -454,9 +483,18 @@
       "open": "क्रेडिट ग्राहक खोलें"
     },
     "complete": "सेटअप पूरा",
-    "reviewChecklist": "चेकलिस्ट देखें"
+    "back": "वापस: {{step}}",
+    "allSteps": "सभी चरण",
+    "finish": "पूरा करें",
+    "stillToDo_one": "{{count}} ज़रूरी चरण अभी बाकी है",
+    "stillToDo_other": "{{count}} ज़रूरी चरण अभी बाकी हैं"
   },
   "createPump": {
     "creating": "बन रहा है…"
+  },
+  "hub": {
+    "title": "सभी सेटिंग",
+    "checklist": "सेटअप चेकलिस्ट",
+    "backLink": "सभी सेटिंग"
   }
 }
