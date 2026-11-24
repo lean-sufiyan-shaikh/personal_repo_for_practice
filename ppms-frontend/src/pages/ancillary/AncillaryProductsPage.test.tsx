@@ -120,8 +120,9 @@ describe('AncillaryProductsPage', () => {
     const user = userEvent.setup()
     renderWithProviders(<AncillaryProductsPage />)
 
-    const card = (await screen.findByText('Engine Oil 1L')).closest('.ui-card') as HTMLElement
-    await user.click(within(card).getByRole('button', { name: 'Inventory' }))
+    const card = await screen.findByRole('article', { name: 'Engine Oil 1L' })
+    await user.click(within(card).getByRole('button', { name: 'More actions for Engine Oil 1L' }))
+    await user.click(screen.getByRole('menuitem', { name: /Inventory lots/ }))
 
     const panel = await screen.findByRole('dialog', { name: 'Stock lots' })
     expect(within(panel).getByText('Engine Oil 1L')).toBeInTheDocument()

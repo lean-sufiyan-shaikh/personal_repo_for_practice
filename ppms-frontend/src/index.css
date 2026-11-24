@@ -2858,6 +2858,36 @@
     color: var(--color-primary);
   }
 
+  /* A counter product: lifts a little on hover, like the hub cards; a disabled one sits flat and faded. */
+  .ui-product-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    height: 100%;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-raised);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  }
+
+  .ui-product-card:hover {
+    border-color: var(--color-control);
+    box-shadow: var(--shadow-overlay);
+    transform: translateY(-2px);
+  }
+
+  .ui-product-card--disabled {
+    background: var(--color-surface-sunken);
+    box-shadow: none;
+  }
+
+  .ui-product-card--disabled:hover {
+    box-shadow: none;
+    transform: none;
+  }
+
   .ui-tank-gauge {
     height: 0.75rem;
     overflow: hidden;
@@ -4376,6 +4406,7 @@
   .ui-step-progress__segment,
   .ui-stepper__link,
   .ui-hub-card,
+  .ui-product-card,
   .ui-tank-gauge__fill,
   .ui-progress-ring__fill {
     transition: none;
@@ -4386,7 +4417,8 @@
   }
 
   .ui-choice-tile:active:not(:disabled),
-  .ui-hub-card:hover {
+  .ui-hub-card:hover,
+  .ui-product-card:hover {
     transform: none;
   }
 

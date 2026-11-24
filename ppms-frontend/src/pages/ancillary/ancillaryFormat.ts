@@ -25,6 +25,17 @@ export const PAYMENT_MODES: AncillaryPaymentMode[] = ['CASH', 'UPI', 'CARD', 'FL
 
 export const UNITS: UnitOfMeasure[] = ['LITRE', 'KG', 'PIECE']
 
+export type PackUnit = 'litre' | 'millilitre' | 'kg' | 'gram' | 'piece'
+
+/** A pack below one litre or one kilo reads better in ml or g: 0.5 L is "500 ml". */
+export function packSize(packageSize: number, unit: UnitOfMeasure): { amount: number; unit: PackUnit } {
+  const size = Number(packageSize)
+  if (unit === 'PIECE') return { amount: size, unit: 'piece' }
+  const isSmall = size > 0 && size < 1
+  if (unit === 'KG') return isSmall ? { amount: Math.round(size * 1000), unit: 'gram' } : { amount: size, unit: 'kg' }
+  return isSmall ? { amount: Math.round(size * 1000), unit: 'millilitre' } : { amount: size, unit: 'litre' }
+}
+
 const PAYMENT_MODE_BADGE: Record<AncillaryPaymentMode, Omit<StatusBadgeSpec, 'label'>> = {
   CASH: { tone: 'ok', icon: Banknote },
   UPI: { tone: 'info', icon: Smartphone },
