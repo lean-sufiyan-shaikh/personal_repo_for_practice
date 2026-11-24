@@ -63,7 +63,16 @@
     "noneInView": "या यादीत ग्राहक नाहीत",
     "noMatchHint": "दुसरे नाव किंवा फोन नंबर वापरून पाहा.",
     "noneInViewHint": "सर्व ग्राहक पाहण्यासाठी \"सर्व\" निवडा.",
-    "sortBy": "क्रम"
+    "sortBy": "क्रम",
+    "ageBuckets": {
+      "label": "किती दिवस जुनी थकबाकी",
+      "upTo30Days": "0–30 दिवस",
+      "days31To60": "31–60 दिवस",
+      "days61To90": "61–90 दिवस",
+      "over90Days": "90 दिवसांपेक्षा जास्त"
+    },
+    "overdueDays_one": "{{count}} दिवस थकीत",
+    "overdueDays_other": "{{count}} दिवस थकीत"
   },
   "portalPin": {
     "removed": "{{name}} यांचा पोर्टल PIN काढला",

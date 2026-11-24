@@ -278,7 +278,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
                       aria-expanded={expandedFuelRows.has(row.fuelType)}
                       aria-label={t('pl.showShiftDetails', { fuel: codeLabel(row.fuelType) })}
                       onClick={(e) => { e.stopPropagation(); toggleFuelRow(row.fuelType) }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-control"
+                      className="ui-btn-icon"
                     >
                       {expandedFuelRows.has(row.fuelType)
                         ? <ChevronUp size={13} strokeWidth={2} aria-hidden="true" />

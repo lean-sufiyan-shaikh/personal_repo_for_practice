@@ -63,7 +63,16 @@
     "noneInView": "No clients in this view",
     "noMatchHint": "Try a different name or phone number.",
     "noneInViewHint": "Choose All to see every client.",
-    "sortBy": "Sort by"
+    "sortBy": "Sort by",
+    "ageBuckets": {
+      "label": "Outstanding by age",
+      "upTo30Days": "0–30 days",
+      "days31To60": "31–60 days",
+      "days61To90": "61–90 days",
+      "over90Days": "Over 90 days"
+    },
+    "overdueDays_one": "{{count}} day overdue",
+    "overdueDays_other": "{{count}} days overdue"
   },
   "portalPin": {
     "removed": "Portal PIN removed for {{name}}",

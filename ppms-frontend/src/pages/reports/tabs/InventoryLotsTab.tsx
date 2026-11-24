@@ -218,18 +218,18 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
             <div key={lot.lotId} className="border-b border-border">
               <button
                 type="button"
-                className="ui-accordion-trigger"
+                className="ui-accordion-trigger flex-wrap"
                 aria-expanded={expandedLot === lot.lotId}
                 aria-controls={expandedLot === lot.lotId ? `${expandedContentId}-lot-${lot.lotId}` : undefined}
                 onClick={() => setExpandedLot(expandedLot === lot.lotId ? null : lot.lotId)}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                   <LotBadges lot={lot} />
                   <span className="text-sm font-medium text-ink">{fmtShortDate(lot.deliveryDate)}</span>
                   <span className="text-xs text-ink-3">{codeLabel(lot.fuelType)}</span>
                   <span className="text-xs text-ink-3">{lot.tankerReference}</span>
                 </div>
-                <div className="flex items-center gap-4 text-xs text-ink-3">
+                <div className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs text-ink-3">
                   <span><MoneyText value={lot.costPricePerUnit} />/L</span>
                   <span>{t('inventory.remaining', { quantity: fmtQty(lot.remainingQuantity) })}</span>
                   <span><MoneyText value={lot.totalCogsConsumed} /> {t('inventory.cogsSuffix')}</span>

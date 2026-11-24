@@ -125,7 +125,7 @@ export function StaffRow({
               open={menuOpen}
               onOpenChange={(open) => onMenuChange(open ? member.id : null)}
               triggerRef={menuButtonRef}
-              triggerClassName="flex h-10 w-10 items-center justify-center rounded-card border border-border bg-bg text-lg leading-none text-ink-2 transition-colors hover:border-control hover:bg-surface hover:text-ink"
+              triggerClassName="ui-btn-icon h-10 w-10 rounded-card border border-border bg-bg text-lg leading-none text-ink-2 transition-colors hover:border-control hover:bg-surface hover:text-ink"
               menuClassName="absolute right-0 top-full z-6 mt-2 w-64 overflow-hidden rounded-card border border-border bg-surface p-1.5 shadow-overlay"
               items={menuItems}
             />

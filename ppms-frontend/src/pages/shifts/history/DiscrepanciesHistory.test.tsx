@@ -158,4 +158,27 @@ describe('DiscrepanciesHistory', () => {
 
     expect(within(await rowOf(PENDING_ID)).getByText('DU #4')).toBeInTheDocument()
   })
+
+  it('keeps the current rows on screen, marked busy, while a new filter loads instead of flashing a skeleton', async () => {
+    const user = userEvent.setup()
+    signIn('OWNER')
+    let finishShortOnly: (shifts: Shift[]) => void = () => {}
+    vi.mocked(shiftApi.getShiftHistory).mockImplementation((_pumpId, filters) => filters?.discrepancyType === 'SHORT'
+      ? new Promise(resolve => { finishShortOnly = resolve })
+      : Promise.resolve([shortShift(ESCALATED_ID, 'CLOSED_DISCREPANCY_PENDING_APPROVAL'), shortShift(PENDING_ID, 'CLOSED_DISCREPANCY_PENDING')]))
+    renderWithProviders(<DiscrepanciesHistory pumpId={3} />)
+    await rowOf(PENDING_ID)
+
+    await user.click(screen.getByRole('button', { name: 'Short' }))
+
+    const results = screen.getByTestId('discrepancy-results')
+    expect(results).toHaveAttribute('aria-busy', 'true')
+    expect(results).toHaveClass('opacity-60')
+    expect(screen.getByText(String(PENDING_ID))).toBeInTheDocument()
+    expect(document.querySelector('.ui-skeleton')).toBeNull()
+
+    finishShortOnly([shortShift(PENDING_ID, 'CLOSED_DISCREPANCY_PENDING')])
+    await vi.waitFor(() => expect(results).toHaveAttribute('aria-busy', 'false'))
+    expect(screen.queryByText(String(ESCALATED_ID))).not.toBeInTheDocument()
+  })
 })

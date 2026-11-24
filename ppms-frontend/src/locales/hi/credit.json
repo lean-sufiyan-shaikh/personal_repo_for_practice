@@ -63,7 +63,16 @@
     "noneInView": "इस सूची में कोई ग्राहक नहीं",
     "noMatchHint": "कोई दूसरा नाम या फ़ोन नंबर आज़माएँ।",
     "noneInViewHint": "सभी ग्राहक देखने के लिए \"सभी\" चुनें।",
-    "sortBy": "क्रम"
+    "sortBy": "क्रम",
+    "ageBuckets": {
+      "label": "कितने दिन पुराना बकाया",
+      "upTo30Days": "0–30 दिन",
+      "days31To60": "31–60 दिन",
+      "days61To90": "61–90 दिन",
+      "over90Days": "90 दिन से ज़्यादा"
+    },
+    "overdueDays_one": "{{count}} दिन से बकाया",
+    "overdueDays_other": "{{count}} दिन से बकाया"
   },
   "portalPin": {
     "removed": "{{name}} का पोर्टल PIN हटाया गया",

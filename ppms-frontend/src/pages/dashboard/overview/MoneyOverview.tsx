@@ -21,12 +21,12 @@ function MoneyTile({ to, icon: Icon, label, value, note }: {
   note: string
 }) {
   return (
-    <Link to={to} className="ui-dashboard-module block px-4 py-3.5 transition-shadow hover:shadow-raised">
+    <Link to={to} className="ui-dashboard-module block min-w-0 px-4 py-3.5 transition-shadow hover:shadow-raised">
       <div className="ui-kpi-label flex items-center gap-2">
         <Icon size={14} strokeWidth={2} aria-hidden="true" />
         <span>{label}</span>
       </div>
-      <p className="mt-2 text-xl font-bold tabular-nums text-ink">{value ?? '—'}</p>
+      <p className="ui-money-tile-value mt-2 font-bold tabular-nums text-ink">{value ?? '—'}</p>
       <p className="mt-1 text-xs text-ink-3">{note}</p>
     </Link>
   )
@@ -75,7 +75,7 @@ export function MoneyOverview({ pumpId }: { pumpId: number }) {
 
   return (
     <Reveal delay={335}>
-      <section aria-label={t('money.label')} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section aria-label={t('money.label')} className="grid grid-cols-1 min-[30rem]:grid-cols-2 lg:grid-cols-4 gap-4">
         {failedQueries.length > 0 && (
           <LoadError className="col-span-full" onRetry={() => failedQueries.forEach(query => void query.refetch())} />
         )}

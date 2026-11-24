@@ -15,6 +15,7 @@ import type { DataTableColumn } from '../../components/DataTable'
 import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
 import { PageSection } from '../../components/layout/PageSection'
+import { useIsPhone } from '../../hooks/useIsPhone'
 
 export function SalesTab({
   pumpId,
@@ -39,8 +40,34 @@ export function SalesTab({
     queryFn:  () => ancillaryApi.getSales(pumpId, salesPage, salesPageSize),
   })
   const sales = salesPageData?.content ?? []
+  const isPhone = useIsPhone()
 
-  const columns: DataTableColumn<AncillarySale>[] = [
+  const phoneColumns: DataTableColumn<AncillarySale>[] = [
+    {
+      key: 'product', header: t('fields.product'), cell: (sale) => (
+        <span className="flex items-start justify-between gap-3">
+          <span className="min-w-0">
+            <span className="block font-medium text-ink">{sale.productDisplayName}</span>
+            <span className="block text-xs text-ink-3">
+              {fmtDate(sale.saleDate)} · {sale.quantityUnits} × <MoneyText value={sale.sellingPricePerUnit} />
+            </span>
+          </span>
+          <MoneyText value={sale.totalAmount} className="font-semibold text-ink" />
+        </span>
+      ),
+    },
+    {
+      key: 'mode', header: t('salesTab.mode'), cell: (sale) => (
+        <span className="flex flex-wrap items-center gap-1.5">
+          <StatusBadge {...paymentModeBadge(sale.paymentMode)} />
+          {sale.clientName && <span className="text-xs text-ink-3">{sale.clientName}</span>}
+          {sale.isBackfilled && <StatusBadge tone="info" icon={History} label={t('fields.backfilled')} />}
+        </span>
+      ),
+    },
+  ]
+
+  const columns: DataTableColumn<AncillarySale>[] = isPhone ? phoneColumns : [
     { key: 'date', header: t('fields.date'), className: 'px-5 text-ink-2 whitespace-nowrap', cell: (sale) => fmtDate(sale.saleDate) },
     { key: 'product', header: t('fields.product'), className: 'px-5 text-ink font-medium max-w-[180px] truncate', cell: (sale) => sale.productDisplayName },
     { key: 'qty', header: t('fields.qty'), numeric: true, className: 'px-5', cell: (sale) => sale.quantityUnits },
@@ -68,6 +95,7 @@ export function SalesTab({
               columns={columns}
               rows={sales}
               rowKey={(sale) => sale.id}
+              cardsOnPhone
               className="rounded-none border-0"
             />
             {salesPageData && (

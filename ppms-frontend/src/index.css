@@ -1093,6 +1093,28 @@
   .ui-plan-accent--3 { --plan-accent: var(--color-ok); }
   .ui-plan-accent--4 { --plan-accent: var(--color-ink-3); }
 
+  /* The remove button shows on hover or keyboard focus; touch screens cannot hover, so it always shows there. */
+  .ui-plan-entry__remove {
+    opacity: 0;
+    transition: opacity 0.15s ease, color 0.15s ease;
+  }
+
+  .ui-plan-entry:hover .ui-plan-entry__remove,
+  .ui-plan-entry__remove:focus-visible {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .ui-plan-entry__remove {
+      opacity: 1;
+    }
+
+    .ui-btn-icon.ui-plan-entry__remove {
+      min-width: 2.75rem;
+      min-height: 2.75rem;
+    }
+  }
+
   .ui-close-readings {
     container-type: inline-size;
     border-top: 1px solid var(--color-border);
@@ -1320,6 +1342,17 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     padding: var(--density-card-pad);
+  }
+
+  /* Figures shrink with the screen so a crore amount fits a phone; MoneyText never wraps. */
+  .ui-stat-value {
+    font-size: clamp(1.5rem, 7.5vw, 1.875rem);
+    line-height: 1.2;
+  }
+
+  .ui-money-tile-value {
+    font-size: clamp(1.125rem, 4vw, 1.25rem);
+    line-height: 1.4;
   }
 
   .ui-dashboard-stat--alert {
@@ -3520,7 +3553,8 @@
     .ui-table-cards,
     .ui-table-cards tbody,
     .ui-table-cards tr,
-    .ui-table-cards td:not(.hidden) {
+    .ui-table-cards td:not(.hidden),
+    .ui-table-cards tbody th {
       display: block;
       width: 100%;
     }
@@ -3538,9 +3572,16 @@
       padding: 0.75rem 1rem;
     }
 
-    .ui-table-cards td:not(.hidden) {
+    .ui-table-cards td:not(.hidden),
+    .ui-table-cards tbody th {
       padding: 0.125rem 0;
       text-align: left;
+    }
+
+    .ui-table-cards tbody th {
+      position: static;
+      background: none;
+      border-bottom: 0;
     }
 
     .ui-table-cards td:last-child > div {

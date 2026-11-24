@@ -171,19 +171,19 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
               <div key={op.operatorId} className="border-b border-border">
                 <button
                   type="button"
-                  className="ui-accordion-trigger"
+                  className="ui-accordion-trigger flex-wrap"
                   aria-expanded={expandedOp === op.operatorId}
                   aria-controls={expandedOp === op.operatorId ? `${operatorShiftsId}-${op.operatorId}` : undefined}
                   onClick={() => setExpandedOp(expandedOp === op.operatorId ? null : op.operatorId)}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="text-sm font-semibold text-ink">{op.operatorName}</span>
                     <span className="text-xs text-ink-3">{t('discrepancy.shiftCount', { value: op.discrepancyShiftCount })}</span>
                     {op.unresolvedCount > 0 && (
                       <StatusBadge tone="bad" icon={AlertTriangle} label={t('discrepancy.unresolved', { value: op.unresolvedCount })} />
                     )}
                   </div>
-                  <div className="flex items-center gap-4 text-xs">
+                  <div className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs">
                     {op.totalShortAmount > 0 && (
                       <span className="text-bad font-semibold">{t('discrepancy.short')} <MoneyText value={op.totalShortAmount} /></span>
                     )}

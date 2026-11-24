@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { shiftApi } from '../../../api/shiftApi'
 import { useAuthStore } from '../../../store/authStore'
@@ -10,70 +10,14 @@ import { Pagination } from '../../../components/Pagination'
 import { FilterBar } from '../../../components/layout/FilterBar'
 import { pageSlice } from '../../../utils/pageSlice'
 import { parseApiError } from '../../../utils/apiError'
-import { PAGE_SIZE, awaitingOwnerApprovalLabel, discrepancyAction, investigationLabel, resolutionLabel } from '../shiftLabels'
+import { PAGE_SIZE } from '../shiftLabels'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { StatusBadge } from '../../../components/StatusBadge'
-import type { StatusTone } from '../../../components/StatusBadge'
-import { discrepancyBadge, shiftStatusBadge } from '../../../components/statusBadges'
+import { discrepancyBadge } from '../../../components/statusBadges'
 import { MoneyText } from '../../../components/AmountText'
 import { FULL_HISTORY_QUERY_OPTIONS } from '../../../queryClient'
-import type { UserRole } from '../../../types/auth'
-import { DiscrepancyBadge } from '../components/DiscrepancyBadge'
-
-const RESOLUTION_TONE: Record<string, StatusTone> = {
-  CASH_RECOVERY:    'ok',
-  SALARY_DEDUCTION: 'info',
-  WAIVED:           'neutral',
-}
-
-function DiscrepancyStatus({ shift }: { shift: Shift }) {
-  const investigation = investigationLabel(shift)
-  return (
-    <>
-      {shift.discrepancyResolution ? (
-        <StatusBadge
-          tone={RESOLUTION_TONE[shift.discrepancyResolution] ?? 'warn'}
-          label={resolutionLabel(shift.discrepancyResolution)}
-        />
-      ) : (
-        <StatusBadge {...shiftStatusBadge(shift.status)} />
-      )}
-      {investigation && (
-        <span className="block text-xs text-warn font-medium mt-1">{investigation}</span>
-      )}
-    </>
-  )
-}
-
-function DiscrepancyAction({ shift, role, onOpen, className = '' }: {
-  shift: Shift; role: UserRole | undefined; onOpen: (shift: Shift) => void; className?: string
-}) {
-  const { t } = useTranslation(['shifts', 'common'])
-  const action = discrepancyAction(shift, role)
-  if (action === 'resolve') {
-    return (
-      <button type="button" onClick={() => onOpen(shift)}
-        aria-label={t('history.discrepancies.resolveLabel', { id: shift.id })}
-        className={`ui-btn ui-btn-primary ${className}`}>
-        {t('history.resolve')}
-      </button>
-    )
-  }
-  if (action === 'approve') {
-    return (
-      <button type="button" onClick={() => onOpen(shift)}
-        aria-label={t('history.discrepancies.approveLabel', { id: shift.id })}
-        className={`ui-btn ui-btn-primary ${className}`}>
-        {t('common:actions.approve')}
-      </button>
-    )
-  }
-  if (action === 'awaiting-owner') {
-    return <span className="text-xs text-warn font-medium">{awaitingOwnerApprovalLabel()}</span>
-  }
-  return null
-}
+import { DiscrepancyAction, DiscrepancyCard, DiscrepancyStatus } from './DiscrepancyCard'
 
 /** The initial filters come from the address, e.g. a "View short shifts" link on the Short / Over report. */
 export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '', initialType = 'ALL' }: {
@@ -91,7 +35,7 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
   const [resolvingShift, setResolvingShift] = useState<Shift | null>(null)
   const role = useAuthStore((state) => state.user?.role)
 
-  const { data: filtered = [], isLoading, error } = useQuery({
+  const { data: filtered = [], isLoading, isPlaceholderData, error } = useQuery({
     queryKey: ['shiftHistory', pumpId, 'discrepancies', fromDate, toDate, typeFilter],
     queryFn:  () => shiftApi.getShiftHistory(pumpId, {
       from: fromDate || undefined,
@@ -100,8 +44,10 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
       discrepancyType: typeFilter === 'ALL' ? undefined : typeFilter,
     }),
     ...FULL_HISTORY_QUERY_OPTIONS,
+    placeholderData: keepPreviousData,
   })
   const hasFilter = !!fromDate || !!toDate || typeFilter !== 'ALL'
+  const staleClass = `transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`
 
   const pageData = pageSlice(filtered, page, pageSize)
   const paged    = pageData.content
@@ -151,7 +97,7 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
   return (
     <div>
       {/* Summary bar */}
-      <div className="flex flex-wrap gap-4 px-6 py-3 border-t border-border bg-bad-bg">
+      <div className={`flex flex-wrap gap-4 px-6 py-3 border-t border-border bg-bad-bg ${staleClass}`}>
         <div className="text-xs">
           <span className="text-ink-3">{t('history.discrepancies.shortTotal')}</span>
           <MoneyText value={totalShort} tone="bad" className="font-semibold" />
@@ -195,43 +141,26 @@ export function DiscrepanciesHistory({ pumpId, initialFrom = '', initialTo = '',
         </div>
       </FilterBar>
 
-      {/* Cards below md */}
-      <ul className="md:hidden divide-y divide-border border-t border-border" aria-label={t('history.discrepancies.caption')}>
-        {paged.length === 0 ? (
-          <li className="ui-empty px-4 py-6">{t('history.discrepancies.noMatch')}</li>
-        ) : (
-          paged.map((shift) => {
-            const note = shift.discrepancyResolutionNote ?? shift.investigationNote ?? shift.discrepancyReason
-            return (
-              <li key={shift.id} data-testid="discrepancy-card" className="space-y-2 bg-surface px-4 py-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-ink">{shift.operatorName}</p>
-                    <p className="text-xs text-ink-3">{shift.shiftDate} · {shift.shiftWindow}</p>
-                  </div>
-                  <DiscrepancyBadge type={shift.discrepancyType} amount={shift.discrepancyAmount ?? 0} />
-                </div>
-                <div><DiscrepancyStatus shift={shift} /></div>
-                {shift.cashRecoveryAmount != null && shift.cashRecoveryAmount > 0 && (
-                  <p className="text-xs text-ok">{t('history.discrepancies.recovered')} <MoneyText value={shift.cashRecoveryAmount} /></p>
-                )}
-                {note && <p className="text-xs text-ink-2">{note}</p>}
-                <DiscrepancyAction shift={shift} role={role} onOpen={setResolvingShift} className="w-full" />
-              </li>
-            )
-          })
-        )}
-      </ul>
+      <div aria-busy={isPlaceholderData} data-testid="discrepancy-results" className={staleClass}>
+        {/* Cards below md */}
+        <ul className="md:hidden divide-y divide-border border-t border-border" aria-label={t('history.discrepancies.caption')}>
+          {paged.length === 0 ? (
+            <li className="ui-empty px-4 py-6">{t('history.discrepancies.noMatch')}</li>
+          ) : (
+            paged.map((shift) => <DiscrepancyCard key={shift.id} shift={shift} role={role} onOpen={setResolvingShift} />)
+          )}
+        </ul>
 
-      <DataTable
-        caption={t('history.discrepancies.caption')}
-        captionHidden
-        columns={columns}
-        rows={paged}
-        rowKey={(shift) => shift.id}
-        empty={<p className="ui-empty px-6 py-6">{t('history.discrepancies.noMatch')}</p>}
-        className="hidden md:block rounded-none border-x-0 border-b-0"
-      />
+        <DataTable
+          caption={t('history.discrepancies.caption')}
+          captionHidden
+          columns={columns}
+          rows={paged}
+          rowKey={(shift) => shift.id}
+          empty={<p className="ui-empty px-6 py-6">{t('history.discrepancies.noMatch')}</p>}
+          className="hidden md:block rounded-none border-x-0 border-b-0"
+        />
+      </div>
 
       {resolvingShift && (
         <ResolveDiscrepancyModal shift={resolvingShift} onClose={() => setResolvingShift(null)} />

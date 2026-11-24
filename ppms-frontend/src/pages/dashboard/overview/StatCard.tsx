@@ -30,7 +30,7 @@ export function StatCard({
           <Icon size={18} strokeWidth={2} />
         </div>
       </div>
-      <p className={`text-3xl font-bold tracking-tight tabular-nums ${alert ? 'text-bad' : 'text-ink'}`}>
+      <p className={`ui-stat-value font-bold tracking-tight tabular-nums ${alert ? 'text-bad' : 'text-ink'}`}>
         {money ? <MoneyText value={animated} /> : animated}
       </p>
       <p className="text-xs text-ink-3 mt-1.5 leading-relaxed">{sub}</p>

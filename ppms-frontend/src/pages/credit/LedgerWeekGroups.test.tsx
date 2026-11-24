@@ -1,8 +1,11 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CreditTransaction } from '../../api/creditApi'
 import { changeAppLanguage } from '../../i18n'
-import { LedgerWeekGroups, type LedgerRowActions } from './LedgerWeekGroups'
+import { resetScreenWidthAfterEach, setScreenWidth } from '../../test/screenWidth'
+import type { LedgerRowActions } from './LedgerEntryActions'
+import { LedgerWeekGroups } from './LedgerWeekGroups'
 
 const actions: LedgerRowActions = {
   canMoveEntries: false, canWaiveInterest: false, canApprovePayments: false, currentUserId: 1,
@@ -136,5 +139,47 @@ describe('LedgerWeekGroups interest waiver', () => {
     )
 
     expect(screen.queryByRole('button', { name: 'Waive this interest charge' })).not.toBeInTheDocument()
+  })
+})
+
+describe('LedgerWeekGroups on a phone', () => {
+  resetScreenWidthAfterEach()
+
+  it('stacks each entry with its date, description, signed amount and running balance instead of a wide table', async () => {
+    setScreenWidth(375)
+    const user = userEvent.setup()
+    const approvePayment = vi.fn()
+    render(
+      <LedgerWeekGroups
+        srcClientId={7}
+        actions={{ ...actions, canApprovePayments: true, pendingPaymentRecorders: new Map([[2, 99]]), approvePayment }}
+        groups={[{ label: 'Week of 10 Nov', items: [
+          row({ referenceId: 1, detail: 'PETROL', amount: 500, runningBalance: 1500 }),
+          row({ referenceId: 2, type: 'PAYMENT', detail: 'CASH', amount: 400, runningBalance: 1100, status: 'PENDING_APPROVAL' }),
+        ] }]}
+      />,
+    )
+
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    const list = screen.getByRole('list', { name: 'Transactions, Week of 10 Nov' })
+    const [sale, payment] = within(list).getAllByTestId('ledger-entry')
+
+    expect(within(sale).getByText('10 Nov')).toBeInTheDocument()
+    expect(within(sale).getByText('Petrol')).toBeInTheDocument()
+    expect(within(sale).getByText('+₹500.00')).toHaveClass('text-warn')
+    expect(within(sale).getByText('₹1,500.00')).toBeInTheDocument()
+    expect(within(payment).getByText('−₹400.00')).toHaveClass('text-ok')
+    expect(within(payment).getByText('Cash')).toBeInTheDocument()
+
+    await user.click(within(payment).getByRole('button', { name: 'Approve' }))
+    expect(approvePayment).toHaveBeenCalledWith(2)
+  })
+
+  it('keeps the table from tablet width up', () => {
+    setScreenWidth(1024)
+    render(<LedgerWeekGroups srcClientId={7} actions={actions} groups={[{ label: 'Week', items: [row({})] }]} />)
+
+    expect(screen.getByRole('table', { name: 'Transactions, Week' })).toHaveClass('min-w-208')
+    expect(screen.queryByTestId('ledger-entry')).not.toBeInTheDocument()
   })
 })
