@@ -13,7 +13,7 @@ vi.mock('../../api/ancillaryApi', () => ({ ancillaryApi: { setProductStatus: vi.
 const product: AncillaryProduct = {
   id: 1, pumpId: 1, name: 'Engine Oil', brand: 'Castrol', variant: null, displayName: 'Castrol Engine Oil — 1 LITRE',
   packageSize: 1, unitOfMeasure: 'LITRE', hsnCode: '2710', status: 'ACTIVE',
-  currentStockUnits: 12, lowStockThreshold: null, fifoCostPricePerUnit: 360, activeFifoLots: [], currentSellingPricePerUnit: 450,
+  currentStockUnits: 12, lowStockThreshold: null, fifoCostPricePerUnit: 360, activeFifoLots: [], currentSellingPricePerUnit: 450, soldTodayUnits: 0, soldTodayAmount: 0,
   createdAt: '2026-05-01T06:30:00Z', updatedAt: '2026-05-01T06:30:00Z',
 }
 const TITLE = 'Castrol Engine Oil'
@@ -36,7 +36,7 @@ async function openMenu(user: ReturnType<typeof userEvent.setup>, name = TITLE) 
 }
 
 describe('ProductsTab card header', () => {
-  it('names the product without the size and unit, which sit in a pack chip, with its status', () => {
+  it('names the product without the size and unit, which sit in a pack chip, with a pill only when disabled', () => {
     renderAs('OWNER', [
       product,
       { ...product, id: 2, name: 'Coolant', brand: null, variant: 'Green', packageSize: 0.5, status: 'INACTIVE' },
@@ -44,7 +44,8 @@ describe('ProductsTab card header', () => {
 
     expect(within(card()).getByRole('heading', { name: TITLE })).toBeInTheDocument()
     expect(within(card()).getByText('1 L')).toBeInTheDocument()
-    expect(within(card()).getByText('Active')).toBeInTheDocument()
+    expect(within(card()).queryByText('Active')).not.toBeInTheDocument()
+    expect(within(card()).queryByText('Disabled')).not.toBeInTheDocument()
     expect(screen.queryByText(/LITRE/)).not.toBeInTheDocument()
 
     expect(within(card('Coolant Green')).getByText('500 ml')).toBeInTheDocument()
@@ -62,7 +63,15 @@ describe('ProductsTab price and margin', () => {
     renderAs('MANAGER')
     expect(within(card()).getByText('₹450.00')).toBeInTheDocument()
     expect(within(card()).getByText(/^Margin/)).toHaveTextContent('Margin ₹90.00 · 20%')
-    expect(within(card()).getByText(/^Buy/)).toHaveTextContent('Buy ₹360.00/unit')
+    expect(within(card()).getByText(/^Buy/)).toHaveTextContent('Buy ₹360.00/unit · Stock value ₹4,320.00')
+  })
+
+  it('values the stock batch by batch at each batch\'s buy price', () => {
+    renderAs('MANAGER', [{ ...product, currentStockUnits: 19, fifoCostPricePerUnit: 200, activeFifoLots: [
+      { remainingQuantity: 4, originalQuantity: 10, costPricePerUnit: 200 },
+      { remainingQuantity: 15, originalQuantity: 15, costPricePerUnit: 200 },
+    ] }])
+    expect(within(card()).getByText(/^Buy/)).toHaveTextContent('Buy ₹200.00/unit · Stock value ₹3,800.00')
   })
 
   it('says in words when the price is below the buy price', () => {
@@ -75,6 +84,7 @@ describe('ProductsTab price and margin', () => {
     expect(within(card()).getByText('₹450.00')).toBeInTheDocument()
     expect(screen.queryByText(/Margin/)).not.toBeInTheDocument()
     expect(screen.queryByText(/^Buy/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Stock value/)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Sell' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Stock in/ })).not.toBeInTheDocument()
     expect(within(card()).getByRole('button', { name: 'Inventory' })).toBeInTheDocument()
@@ -90,6 +100,7 @@ describe('ProductsTab without a selling price', () => {
     renderAs('OWNER', [{ ...product, currentSellingPricePerUnit: null }])
 
     expect(within(card()).getByText('No selling price')).toBeInTheDocument()
+    expect(within(card()).queryByRole('alert')).not.toBeInTheDocument()
     expect(within(card()).getByRole('button', { name: 'Sell' })).toBeEnabled()
     await user.click(within(card()).getByRole('button', { name: `Set selling price of ${TITLE}` }))
 
@@ -111,12 +122,24 @@ describe('ProductsTab without a selling price', () => {
   })
 })
 
+const stockBarWidth = () => (within(card()).getByTestId('stock-bar').firstElementChild as HTMLElement).style.width
+
 describe('ProductsTab stock', () => {
-  it('shows the units in stock, and a Low stock pill at or below the threshold', () => {
+  it('shows the units in stock, a Low stock pill at or below the threshold, and where low starts', () => {
     renderAs('MANAGER', [{ ...product, currentStockUnits: 5, lowStockThreshold: 5 }])
     expect(within(card()).getByText('5 units in stock')).toBeInTheDocument()
     expect(within(card()).getByText('Low stock')).toBeInTheDocument()
+    expect(within(card()).getByText('Low at 5 or less')).toBeInTheDocument()
+    expect(stockBarWidth()).toBe('50%')
     expect(within(card()).getByRole('button', { name: 'Sell' })).toBeEnabled()
+  })
+
+  it('always shows the stock bar, scaled to the open batches as delivered when no threshold is set', () => {
+    renderAs('MANAGER', [{ ...product, currentStockUnits: 6, lowStockThreshold: null, activeFifoLots: [
+      { remainingQuantity: 6, originalQuantity: 24, costPricePerUnit: 360 },
+    ] }])
+    expect(stockBarWidth()).toBe('25%')
+    expect(within(card()).queryByText(/^Low at/)).not.toBeInTheDocument()
   })
 
   it('marks an empty product Out of stock and blocks Sell with the reason', () => {
@@ -128,10 +151,14 @@ describe('ProductsTab stock', () => {
     expect(sell).toHaveAccessibleDescription('Out of stock. Record a stock-in before selling.')
   })
 
-  it('opens the stock delivery dialog for the card\'s product from Stock in', async () => {
+  it('opens the stock delivery dialog for the card\'s product from a compact Stock in beside the primary Sell', async () => {
     const user = userEvent.setup()
     renderAs('MANAGER')
-    await user.click(within(card()).getByRole('button', { name: `Stock in for ${TITLE}` }))
+    const stockIn = within(card()).getByRole('button', { name: `Stock in for ${TITLE}` })
+    expect(stockIn).toHaveTextContent('Stock in')
+    expect(stockIn).toHaveClass('ui-btn-compact', 'ui-btn-secondary')
+    expect(within(card()).getByRole('button', { name: 'Sell' })).toHaveClass('ui-btn-primary')
+    await user.click(stockIn)
     expect(await screen.findByRole('dialog', { name: 'Record stock delivery' })).toBeInTheDocument()
   })
 
@@ -139,6 +166,18 @@ describe('ProductsTab stock', () => {
     renderAs('MANAGER', [{ ...product, status: 'INACTIVE' }])
     expect(within(card()).getByRole('button', { name: 'Sell' })).toHaveAccessibleDescription('This product is disabled. Enable it to sell or stock in.')
     expect(within(card()).getByRole('button', { name: `Stock in for ${TITLE}` })).toBeDisabled()
+  })
+})
+
+describe('ProductsTab sold today', () => {
+  it('shows the units and amount sold today', () => {
+    renderAs('OPERATOR', [{ ...product, soldTodayUnits: 3, soldTodayAmount: 750 }])
+    expect(within(card()).getByText('Sold today: 3 · ₹750.00')).toBeInTheDocument()
+  })
+
+  it('says No sales today when nothing has sold', () => {
+    renderAs('MANAGER')
+    expect(within(card()).getByText('No sales today')).toBeInTheDocument()
   })
 })
 

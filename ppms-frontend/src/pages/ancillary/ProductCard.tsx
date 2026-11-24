@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Check, Droplet, Package, PackagePlus, Pause, ShoppingCart, Weight } from 'lucide-react'
+import { Droplet, Package, PackagePlus, Pause, ShoppingCart, Weight } from 'lucide-react'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import type { AncillaryProduct, UnitOfMeasure } from '../../api/ancillaryApi'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -13,11 +13,12 @@ import { packSize } from './ancillaryFormat'
 import { DisableProductPanel } from './DisableProductPanel'
 import { ProductCardMenu } from './ProductCardMenu'
 import { ProductPriceBlock } from './ProductPriceBlock'
+import { ProductSoldToday } from './ProductSoldToday'
 import { ProductStockBar } from './ProductStockBar'
 import { isOutOfStock, productTitle } from './productFilters'
 
 const UNIT_ICON: Record<UnitOfMeasure, typeof Package> = { LITRE: Droplet, KG: Weight, PIECE: Package }
-const FOOTER_BUTTON = 'ui-btn inline-flex flex-1 items-center justify-center gap-1.5 min-h-11 md:min-h-9'
+const FOOTER_BUTTON = 'ui-btn inline-flex items-center justify-center gap-1.5 min-h-11 md:min-h-9'
 
 export interface ProductCardProps {
   pumpId: number
@@ -32,7 +33,7 @@ export interface ProductCardProps {
   onEditHsn: () => void
 }
 
-/** One counter product: what it is, its price and margin, its stock, and Sell, Stock in and a menu for the rest. */
+/** One counter product: what it is, its price and margin, its stock, today's sales, and Sell, Stock in and a menu for the rest. */
 export function ProductCard({
   pumpId, product, isOwnerOrAdmin, isManagerOrAbove, canSell, onSell, onStockIn, onShowLots, onSetPrice, onEditHsn,
 }: ProductCardProps) {
@@ -79,33 +80,33 @@ export function ProductCard({
             <span className="rounded-badge border border-border px-2 py-0.5 text-xs font-semibold tabular-nums text-ink-2">
               {t(`packSize.${pack.unit}`, { value: formatNumberIn(pack.amount, { maximumFractionDigits: 2 }) })}
             </span>
-            {isActive
-              ? <StatusBadge tone="ok" icon={Check} label={t('products.statusActive')} />
-              : <StatusBadge tone="neutral" icon={Pause} label={t('products.statusDisabled')} />}
+            {!isActive && <StatusBadge tone="neutral" icon={Pause} label={t('products.statusDisabled')} />}
           </div>
         </div>
       </header>
 
       <ProductPriceBlock product={product} title={title} canSeeCost={isManagerOrAbove} canSetPrice={isOwnerOrAdmin} onSetPrice={onSetPrice} />
       <ProductStockBar product={product} canSeeCost={isManagerOrAbove} />
+      <ProductSoldToday product={product} />
 
       <footer className="mt-auto border-t border-border pt-3">
         <div className="flex items-center gap-2">
           {canSell && (
             <button type="button" onClick={onSell} disabled={sellBlockedReason != null}
-              aria-describedby={sellBlockedReason ? blockedReasonId : undefined} className={`${FOOTER_BUTTON} ui-btn-primary`}>
+              aria-describedby={sellBlockedReason ? blockedReasonId : undefined} className={`${FOOTER_BUTTON} flex-1 ui-btn-primary`}>
               <ShoppingCart size={14} strokeWidth={2} aria-hidden="true" />
               {t('products.sell')}
             </button>
           )}
           {isManagerOrAbove ? (
             <button type="button" onClick={onStockIn} disabled={!isActive} aria-label={t('products.stockInOf', { name: title })}
-              aria-describedby={!isActive ? blockedReasonId : undefined} className={`${FOOTER_BUTTON} ui-btn-secondary`}>
+              title={t('products.stockInOf', { name: title })} aria-describedby={!isActive ? blockedReasonId : undefined}
+              className={`${FOOTER_BUTTON} ui-btn-secondary ui-btn-compact ${canSell ? '' : 'flex-1'}`}>
               <PackagePlus size={14} strokeWidth={2} aria-hidden="true" />
               {t('products.stockIn')}
             </button>
           ) : (
-            <button type="button" onClick={onShowLots} className={`${FOOTER_BUTTON} ui-btn-secondary`}>
+            <button type="button" onClick={onShowLots} className={`${FOOTER_BUTTON} flex-1 ui-btn-secondary`}>
               {t('products.inventory')}
             </button>
           )}

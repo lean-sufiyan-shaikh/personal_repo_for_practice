@@ -16,7 +16,7 @@ function product(lots: AncillaryProduct['activeFifoLots']): AncillaryProduct {
   return {
     id: 8, pumpId: 3, name: 'Engine Oil', brand: null, variant: null, packageSize: 1, unitOfMeasure: 'LITRE',
     currentStockUnits: 7, lowStockThreshold: null, status: 'ACTIVE', fifoCostPricePerUnit: lots[0]?.costPricePerUnit ?? null,
-    activeFifoLots: lots, currentSellingPricePerUnit: 120, displayName: 'Engine Oil 1L', createdAt: '', updatedAt: '',
+    activeFifoLots: lots, currentSellingPricePerUnit: 120, soldTodayUnits: 0, soldTodayAmount: 0, displayName: 'Engine Oil 1L', createdAt: '', updatedAt: '',
   }
 }
 
@@ -44,28 +44,28 @@ describe('SellDialog projected profit', () => {
   })
 
   it('walks FIFO lots so a sale spanning two batches uses each batch cost', async () => {
-    await sell([{ remainingQuantity: 5, costPricePerUnit: 100 }, { remainingQuantity: 2, costPricePerUnit: 200 }], '6')
+    await sell([{ remainingQuantity: 5, originalQuantity: 5, costPricePerUnit: 100 }, { remainingQuantity: 2, originalQuantity: 2, costPricePerUnit: 200 }], '6')
     expect(figure('Projected profit')).toHaveTextContent('+₹20.00')
   })
 
   it('shows a projected loss when later batches cost more than the price', async () => {
-    await sell([{ remainingQuantity: 1, costPricePerUnit: 100 }, { remainingQuantity: 5, costPricePerUnit: 200 }], '3')
+    await sell([{ remainingQuantity: 1, originalQuantity: 1, costPricePerUnit: 100 }, { remainingQuantity: 5, originalQuantity: 5, costPricePerUnit: 200 }], '3')
     expect(figure('Projected loss')).toHaveTextContent('−₹140.00')
   })
 
   it('shows break-even when the price equals the cost', async () => {
-    await sell([{ remainingQuantity: 5, costPricePerUnit: 120 }], '2')
+    await sell([{ remainingQuantity: 5, originalQuantity: 5, costPricePerUnit: 120 }], '2')
     expect(figure('Break-even')).toHaveTextContent('₹0.00')
   })
 
   it('shows no projection when the lots cannot cover the quantity', async () => {
-    await sell([{ remainingQuantity: 2, costPricePerUnit: 100 }], '3')
+    await sell([{ remainingQuantity: 2, originalQuantity: 2, costPricePerUnit: 100 }], '3')
     expect(screen.queryByText(/Projected|Break-even/)).not.toBeInTheDocument()
   })
 
   it('hides the projection from an operator, who must not see cost prices', async () => {
     useAuthStore.setState({ user: { userId: 1, fullName: 'Op', role: 'OPERATOR', assignedPumpId: 3 }, isAuthenticated: true })
-    await sell([{ remainingQuantity: 5, costPricePerUnit: 100 }], '2')
+    await sell([{ remainingQuantity: 5, originalQuantity: 5, costPricePerUnit: 100 }], '2')
     expect(screen.queryByText(/Projected|Break-even/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Buy price/)).not.toBeInTheDocument()
   })
@@ -85,14 +85,14 @@ describe('SellDialog live total', () => {
   })
 
   it('works out quantity × price and the stock left as the quantity is typed', async () => {
-    await sell([{ remainingQuantity: 7, costPricePerUnit: 100 }], '3')
+    await sell([{ remainingQuantity: 7, originalQuantity: 7, costPricePerUnit: 100 }], '3')
     expect(screen.getByText('3 × ₹120.00')).toBeInTheDocument()
     expect(figure(/^Total/)).toHaveTextContent('₹360.00')
     expect(figure('Stock after sale')).toHaveTextContent('4 units')
   })
 
   it('shows a dash for the total and stock until a quantity is entered', async () => {
-    const user = await sell([{ remainingQuantity: 7, costPricePerUnit: 100 }], '1')
+    const user = await sell([{ remainingQuantity: 7, originalQuantity: 7, costPricePerUnit: 100 }], '1')
     await user.clear(screen.getByLabelText('Quantity'))
     expect(figure(/^Total/)).toHaveTextContent('—')
     expect(figure('Stock after sale')).toHaveTextContent('—')
@@ -122,7 +122,7 @@ describe('SellDialog first selling price', () => {
     const savedByServerLater = { id: 7, productId: 8, pumpId: 3, pricePerUnit: 95, effectiveFrom: '2099-01-01T00:00:00Z', setByUserId: 1 }
     vi.mocked(ancillaryApi.setPrice).mockResolvedValue(savedByServerLater)
     const user = userEvent.setup()
-    const { queryClient } = renderWithProviders(<SellDialog pumpId={3} product={product([{ remainingQuantity: 7, costPricePerUnit: 60 }])} onClose={vi.fn()} onSuccess={vi.fn()} />)
+    const { queryClient } = renderWithProviders(<SellDialog pumpId={3} product={product([{ remainingQuantity: 7, originalQuantity: 7, costPricePerUnit: 60 }])} onClose={vi.fn()} onSuccess={vi.fn()} />)
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
 
     expect(await screen.findByText('No selling price yet. Set one to continue this sale.')).toBeInTheDocument()
@@ -164,9 +164,9 @@ describe('SellDialog credit sale', () => {
     vi.mocked(ancillaryApi.recordSale).mockResolvedValue({} as Awaited<ReturnType<typeof ancillaryApi.recordSale>>)
   })
 
-  it('lets a manager pick a credit client from the pump client list and refreshes the credit ledger after the sale', async () => {
+  it('lets a manager pick a credit client and refreshes the credit ledger, products and sales after the sale', async () => {
     const user = userEvent.setup()
-    const { queryClient } = renderWithProviders(<SellDialog pumpId={3} product={product([{ remainingQuantity: 5, costPricePerUnit: 100 }])} onClose={vi.fn()} onSuccess={vi.fn()} />)
+    const { queryClient } = renderWithProviders(<SellDialog pumpId={3} product={product([{ remainingQuantity: 5, originalQuantity: 5, costPricePerUnit: 100 }])} onClose={vi.fn()} onSuccess={vi.fn()} />)
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
     await screen.findByDisplayValue('120')
 
@@ -183,5 +183,7 @@ describe('SellDialog credit sale', () => {
 
     await vi.waitFor(() => expect(ancillaryApi.recordSale).toHaveBeenCalledWith(3, expect.objectContaining({ paymentMode: 'CREDIT', clientId: 41 })))
     await vi.waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['credit-ledger', 3] }))
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['ancillaryProducts', 3] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['ancillarySales', 3] })
   })
 })

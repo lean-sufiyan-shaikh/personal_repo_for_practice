@@ -142,11 +142,7 @@ export function ProductsTab({
           pumpId={pumpId}
           product={dialog.product}
           onClose={closeDialog}
-          onSuccess={() => {
-            closeDialog()
-            onRefresh()
-            qc.invalidateQueries({ queryKey: ['ancillarySales', pumpId] })
-          }}
+          onSuccess={closeDialog}
         />
       )}
 

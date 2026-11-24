@@ -150,6 +150,8 @@ export function SellDialog({
   const saleMutation = useMutation({
     mutationFn: (data: RecordAncillarySaleRequest) => ancillaryApi.recordSale(pumpId, data),
     onSuccess: (_, data) => {
+      queryClient.invalidateQueries({ queryKey: ['ancillaryProducts', pumpId] })
+      queryClient.invalidateQueries({ queryKey: ['ancillarySales', pumpId] })
       if (data.paymentMode === 'CREDIT') {
         queryClient.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
         queryClient.invalidateQueries({ queryKey: ['credit-transactions', pumpId] })

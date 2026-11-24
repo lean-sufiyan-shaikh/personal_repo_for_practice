@@ -28,7 +28,7 @@ function product(id: number, displayName: string, currentStockUnits: number): An
   return {
     id, pumpId: PUMP_ID, name: displayName, brand: null, variant: null, packageSize: 1, unitOfMeasure: 'LITRE',
     currentStockUnits, lowStockThreshold: null, status: 'ACTIVE', fifoCostPricePerUnit: 100,
-    activeFifoLots: [], currentSellingPricePerUnit: 150, displayName, createdAt: '', updatedAt: '',
+    activeFifoLots: [], currentSellingPricePerUnit: 150, soldTodayUnits: 0, soldTodayAmount: 0, displayName, createdAt: '', updatedAt: '',
   }
 }
 

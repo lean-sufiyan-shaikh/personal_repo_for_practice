@@ -36,11 +36,13 @@ public class AncillaryProductQueryService {
                 .stream()
                 .collect(Collectors.groupingBy(AncillaryStockLot::getProductId));
         Map<Long, BigDecimal> currentPriceByProductId = currentPricesFor(productIds);
+        Map<Long, SoldToday> soldTodayByProductId = soldTodayFor(pumpId, productIds);
 
         return products.stream()
                 .map(product -> toProductResponse(product,
                         activeLotsByProductId.getOrDefault(product.getId(), List.of()),
-                        currentPriceByProductId.get(product.getId())))
+                        currentPriceByProductId.get(product.getId()),
+                        soldTodayByProductId.getOrDefault(product.getId(), SoldToday.NONE)))
                 .toList();
     }
 
@@ -72,9 +74,22 @@ public class AncillaryProductQueryService {
     }
 
     public AncillaryProductResponse toProductResponseWithLots(AncillaryProduct product) {
+        List<Long> productIds = List.of(product.getId());
         return toProductResponse(product,
-                lotRepository.findAllActiveLotsByProductIds(List.of(product.getId())),
-                currentPricesFor(List.of(product.getId())).get(product.getId()));
+                lotRepository.findAllActiveLotsByProductIds(productIds),
+                currentPricesFor(productIds).get(product.getId()),
+                soldTodayFor(product.getPumpId(), productIds).getOrDefault(product.getId(), SoldToday.NONE));
+    }
+
+    private Map<Long, SoldToday> soldTodayFor(Long pumpId, List<Long> productIds) {
+        return saleRepository.sumSalesByProductIdsOnDate(pumpId, productIds, businessClock.today())
+                .stream()
+                .collect(Collectors.toMap(row -> (Long) row[0],
+                        row -> new SoldToday(((Number) row[1]).intValue(), (BigDecimal) row[2])));
+    }
+
+    private record SoldToday(int units, BigDecimal amount) {
+        static final SoldToday NONE = new SoldToday(0, BigDecimal.ZERO.setScale(2));
     }
 
     private Map<Long, BigDecimal> currentPricesFor(List<Long> productIds) {
@@ -122,12 +137,13 @@ public class AncillaryProductQueryService {
     }
 
     private AncillaryProductResponse toProductResponse(AncillaryProduct product, List<AncillaryStockLot> activeLots,
-                                                       BigDecimal currentSellingPricePerUnit) {
+                                                       BigDecimal currentSellingPricePerUnit, SoldToday soldToday) {
         BigDecimal fifoCostPricePerUnit = activeLots.isEmpty() ? null : activeLots.get(0).getCostPricePerUnit();
 
         List<AncillaryProductResponse.FifoLotSummary> lotSummaries = activeLots.stream()
                 .map(lot -> AncillaryProductResponse.FifoLotSummary.builder()
                         .remainingQuantity(lot.getRemainingQuantity())
+                        .originalQuantity(lot.getOriginalQuantity())
                         .costPricePerUnit(lot.getCostPricePerUnit())
                         .build())
                 .toList();
@@ -149,6 +165,8 @@ public class AncillaryProductQueryService {
                 .fifoCostPricePerUnit(fifoCostPricePerUnit)
                 .activeFifoLots(lotSummaries)
                 .currentSellingPricePerUnit(currentSellingPricePerUnit)
+                .soldTodayUnits(soldToday.units())
+                .soldTodayAmount(soldToday.amount())
                 .displayName(buildDisplayName(product))
                 .build();
     }

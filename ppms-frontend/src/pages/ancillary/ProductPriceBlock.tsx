@@ -20,20 +20,20 @@ export function ProductPriceBlock({ product, title, canSeeCost, canSetPrice, onS
 
   if (price == null) {
     return (
-      <div className="ui-alert ui-alert-warning flex flex-wrap items-center justify-between gap-2 text-sm">
-        <span className="inline-flex items-center gap-1.5 font-semibold">
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        <span className="inline-flex items-center gap-1.5 font-semibold text-warn">
           <CircleAlert size={16} strokeWidth={2} aria-hidden="true" />
           {t('products.noSellingPrice')}
         </span>
         {canSetPrice ? (
           <button type="button" onClick={onSetPrice} aria-label={t('products.setPriceOf', { name: title })}
-            className="ui-btn ui-btn-secondary ui-btn-compact min-h-11 md:min-h-8">
+            className="ui-link min-h-11 md:min-h-8">
             {t('products.setPrice')}
           </button>
         ) : (
-          <span className="text-xs">{t('products.askOwnerToSetPrice')}</span>
+          <span className="text-xs text-ink-3">{t('products.askOwnerToSetPrice')}</span>
         )}
-      </div>
+      </p>
     )
   }
 

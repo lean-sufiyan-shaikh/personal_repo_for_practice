@@ -13,7 +13,7 @@ vi.mock('../../api/ancillaryApi', () => ({ ancillaryApi: { updateProduct: vi.fn(
 const product = {
   id: 9, pumpId: 1, name: 'Engine Oil', brand: 'Castrol', variant: null, packageSize: 1, unitOfMeasure: 'LITRE',
   currentStockUnits: 12, lowStockThreshold: null, hsnCode: '2710', status: 'ACTIVE', fifoCostPricePerUnit: 310,
-  activeFifoLots: [], currentSellingPricePerUnit: 150, displayName: 'Castrol Engine Oil — 1 LITRE', createdAt: '2026-01-01', updatedAt: '2026-01-01',
+  activeFifoLots: [], currentSellingPricePerUnit: 150, soldTodayUnits: 0, soldTodayAmount: 0, displayName: 'Castrol Engine Oil — 1 LITRE', createdAt: '2026-01-01', updatedAt: '2026-01-01',
 } as AncillaryProduct
 
 function renderAs(role: UserRole, onRefresh = vi.fn()) {

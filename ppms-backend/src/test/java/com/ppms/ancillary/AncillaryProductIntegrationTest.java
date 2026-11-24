@@ -362,10 +362,37 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void productListShowsOnlyTodaysSalesOfThisPumpAsSoldToday() throws Exception {
+        sell(2, "450.00").andExpect(status().isCreated());
+        sell(1, "450.00").andExpect(status().isCreated());
+        long yesterdaySaleId = json(sell(4, "450.00").andExpect(status().isCreated())).get("id").asLong();
+        jdbcTemplate.update("UPDATE ancillary_sales SET sale_date = ? WHERE id = ?",
+                java.sql.Date.valueOf(TestDates.today().minusDays(1)), yesterdaySaleId);
+        PumpSetup other = createPumpWithStock("0");
+        jdbcTemplate.update("""
+                INSERT INTO ancillary_sales (pump_id, product_id, quantity_units, selling_price_per_unit, total_amount,
+                    gst_amount, total_with_gst, gst_rate_percent, payment_mode, sold_by_user_id, sale_date, created_at)
+                VALUES (?, ?, 5, 450.00, 2250.00, 0, 2250.00, 18, 'CASH', ?, ?, now())""",
+                other.pumpId(), productId, other.owner().getId(), java.sql.Date.valueOf(TestDates.today()));
+        long unsoldProductId = json(createProduct(Map.of()).andExpect(status().isCreated())).get("id").asLong();
+
+        JsonNode product = product();
+        assertThat(product.get("soldTodayUnits").asInt()).isEqualTo(3);
+        assertThat(product.get("soldTodayAmount").decimalValue()).isEqualByComparingTo("1350.00");
+        JsonNode unsold = productById(unsoldProductId);
+        assertThat(unsold.get("soldTodayUnits").asInt()).isZero();
+        assertThat(unsold.get("soldTodayAmount").decimalValue()).isEqualByComparingTo("0");
+    }
+
+    @Test
     void productListRunsTheSameNumberOfQueriesWhateverTheNumberOfProducts() throws Exception {
+        sell(1, "450.00").andExpect(status().isCreated());
         long fewProducts = statementsRunBy(get("/api/pumps/{pumpId}/ancillary/products", setup.pumpId()), setup.manager());
         for (int i = 0; i < 4; i++) {
-            createProduct(Map.of("sellingPricePerUnit", new BigDecimal("50.00"))).andExpect(status().isCreated());
+            productId = json(createProduct(Map.of("sellingPricePerUnit", new BigDecimal("50.00")))
+                    .andExpect(status().isCreated())).get("id").asLong();
+            stockIn(2, "30.00");
+            sell(1, "50.00").andExpect(status().isCreated());
         }
         long manyProducts = statementsRunBy(get("/api/pumps/{pumpId}/ancillary/products", setup.pumpId()), setup.manager());
 

@@ -25,9 +25,13 @@ export interface AncillaryProduct {
    * All active FIFO lots in consumption order (oldest first).
    * Used by the SellDialog to compute accurate multi-batch projected profit.
    */
-  activeFifoLots: { remainingQuantity: number; costPricePerUnit: number }[]
+  activeFifoLots: { remainingQuantity: number; originalQuantity: number; costPricePerUnit: number }[]
   /** Selling price in effect now. Null until an Owner or Admin sets one; the product cannot be sold before that. */
   currentSellingPricePerUnit: number | null
+  /** Units sold on the pump's current business day. */
+  soldTodayUnits: number
+  /** Amount taken on the pump's current business day, tax included. */
+  soldTodayAmount: number
   displayName: string
   createdAt: string
   updatedAt: string
