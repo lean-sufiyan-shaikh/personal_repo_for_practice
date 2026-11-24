@@ -50,7 +50,9 @@
     "quantityMin": "संख्या किमान 1 असावी",
     "selectProduct": "एक उत्पादन निवडा",
     "creditClient": "क्रेडिट पेमेंटसाठी ग्राहक निवडा",
-    "hsnInvalid": "HSN कोड 4 ते 8 अंकी असावा"
+    "hsnInvalid": "HSN कोड 4 ते 8 अंकी असावा",
+    "quantityOverStock_one": "स्टॉकमध्ये फक्त {{count}} आहे. संख्या कमी करा.",
+    "quantityOverStock_other": "स्टॉकमध्ये फक्त {{count}} आहेत. संख्या कमी करा."
   },
   "products": {
     "searchLabel": "उत्पादने शोधा",
@@ -178,7 +180,8 @@
     "sellPricePerUnit": "प्रति नग विक्री दर",
     "paymentModeRow": "पेमेंटची पद्धत",
     "firstPriceTitle": "अजून विक्री दर ठरलेला नाही. ही विक्री पुढे नेण्यासाठी दर ठरवा.",
-    "askOwnerForPrice": "अजून विक्री दर ठरलेला नाही — मालकाला दर ठरवायला सांगा."
+    "askOwnerForPrice": "अजून विक्री दर ठरलेला नाही — मालकाला दर ठरवायला सांगा.",
+    "needQuantityWithinStock": "{{count}} किंवा त्यापेक्षा कमी संख्या"
   },
   "stockIn": {
     "title": "स्टॉक डिलिव्हरी नोंदवा",

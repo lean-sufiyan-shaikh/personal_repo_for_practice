@@ -91,6 +91,15 @@ describe('SellDialog live total', () => {
     expect(figure('Stock after sale')).toHaveTextContent('4 units')
   })
 
+  it('refuses a quantity above the stock and says how many are available', async () => {
+    await sell([{ remainingQuantity: 7, originalQuantity: 7, costPricePerUnit: 100 }], '9')
+
+    expect(screen.getByLabelText('Quantity')).toHaveAccessibleDescription(/Only 7 in stock\. Lower the quantity\./)
+    const review = screen.getByRole('button', { name: 'Review' })
+    expect(review).toBeDisabled()
+    expect(review).toHaveAccessibleDescription('Still needed A quantity of 7 or less')
+  })
+
   it('shows a dash for the total and stock until a quantity is entered', async () => {
     const user = await sell([{ remainingQuantity: 7, originalQuantity: 7, costPricePerUnit: 100 }], '1')
     await user.clear(screen.getByLabelText('Quantity'))

@@ -50,7 +50,9 @@
     "quantityMin": "Quantity must be at least 1",
     "selectProduct": "Select a product",
     "creditClient": "Please select a client for CREDIT payment",
-    "hsnInvalid": "HSN code must be 4 to 8 digits"
+    "hsnInvalid": "HSN code must be 4 to 8 digits",
+    "quantityOverStock_one": "Only {{count}} in stock. Lower the quantity.",
+    "quantityOverStock_other": "Only {{count}} in stock. Lower the quantity."
   },
   "products": {
     "searchLabel": "Search products",
@@ -178,7 +180,8 @@
     "sellPricePerUnit": "Sell price per unit",
     "paymentModeRow": "Payment mode",
     "firstPriceTitle": "No selling price yet. Set one to continue this sale.",
-    "askOwnerForPrice": "No selling price yet — ask the owner to set one."
+    "askOwnerForPrice": "No selling price yet — ask the owner to set one.",
+    "needQuantityWithinStock": "A quantity of {{count}} or less"
   },
   "stockIn": {
     "title": "Record stock delivery",

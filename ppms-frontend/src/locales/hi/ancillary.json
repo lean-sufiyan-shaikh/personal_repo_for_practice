@@ -50,7 +50,9 @@
     "quantityMin": "मात्रा कम से कम 1 होनी चाहिए",
     "selectProduct": "एक उत्पाद चुनें",
     "creditClient": "क्रेडिट भुगतान के लिए ग्राहक चुनें",
-    "hsnInvalid": "HSN कोड 4 से 8 अंकों का होना चाहिए"
+    "hsnInvalid": "HSN कोड 4 से 8 अंकों का होना चाहिए",
+    "quantityOverStock_one": "स्टॉक में केवल {{count}} है। मात्रा कम करें।",
+    "quantityOverStock_other": "स्टॉक में केवल {{count}} हैं। मात्रा कम करें।"
   },
   "products": {
     "searchLabel": "उत्पाद खोजें",
@@ -178,7 +180,8 @@
     "sellPricePerUnit": "प्रति नग बिक्री कीमत",
     "paymentModeRow": "भुगतान का तरीका",
     "firstPriceTitle": "अभी बिक्री दर तय नहीं है। यह बिक्री जारी रखने के लिए दर तय करें।",
-    "askOwnerForPrice": "अभी बिक्री दर तय नहीं है — मालिक से दर तय करने को कहें।"
+    "askOwnerForPrice": "अभी बिक्री दर तय नहीं है — मालिक से दर तय करने को कहें।",
+    "needQuantityWithinStock": "{{count}} या उससे कम मात्रा"
   },
   "stockIn": {
     "title": "स्टॉक डिलीवरी दर्ज करें",

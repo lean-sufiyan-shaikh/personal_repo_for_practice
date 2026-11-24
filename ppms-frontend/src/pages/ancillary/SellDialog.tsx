@@ -170,6 +170,9 @@ export function SellDialog({
     e.preventDefault()
     const errors: FieldErrors = {}
     if (!form.quantityUnits || form.quantityUnits < 1) errors.quantity = t('validation.quantityMin')
+    else if (form.quantityUnits > product.currentStockUnits) {
+      errors.quantity = t('validation.quantityOverStock', { count: product.currentStockUnits })
+    }
     if (!form.sellingPricePerUnit || form.sellingPricePerUnit <= 0) errors.price = t('sell.priceInvalid')
     if (form.paymentMode === 'CREDIT' && !form.clientId) errors.client = t('validation.creditClient')
     setFieldErrors(errors)
@@ -183,6 +186,9 @@ export function SellDialog({
   const hasQuantity = form.quantityUnits > 0
   const totalAmount = sellPrice != null && hasQuantity ? sellPrice * form.quantityUnits : null
   const stockAfter = product.currentStockUnits - form.quantityUnits
+  const exceedsStock = stockAfter < 0
+  const quantityError = fieldErrors.quantity
+    ?? (exceedsStock ? t('validation.quantityOverStock', { count: product.currentStockUnits }) : undefined)
 
   // Walks FIFO lots in order so multi-batch sales are correct.
   // e.g. sell 6 from lots [5@100, 2@200] @ 120 → (120-100)×5 + (120-200)×1 = 20, not 120.
@@ -227,6 +233,7 @@ export function SellDialog({
   const stillNeeded = [
     ...(noPrice ? [t('sell.needPrice')] : []),
     ...(hasQuantity ? [] : [t('sell.needQuantity')]),
+    ...(exceedsStock ? [t('sell.needQuantityWithinStock', { count: product.currentStockUnits })] : []),
     ...(form.paymentMode === 'CREDIT' && !form.clientId ? [t('sell.needClient')] : []),
   ]
 
@@ -284,12 +291,12 @@ export function SellDialog({
             <FormGrid>
               <FormField
                 label={t('fields.quantity')}
-                error={fieldErrors.quantity}
+                error={quantityError}
                 help={t('sell.inStock', { count: product.currentStockUnits })}
               >
                 <NumericInput
                   unit={t('fields.unitsSuffix')}
-                  min="1" step="1" data-autofocus inputMode="numeric"
+                  min="1" max={product.currentStockUnits} step="1" data-autofocus inputMode="numeric"
                   value={form.quantityUnits || ''}
                   onChange={e => setForm(f => ({ ...f, quantityUnits: parseInt(e.target.value) || 0 }))}
                 />
