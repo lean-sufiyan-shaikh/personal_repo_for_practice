@@ -8,6 +8,7 @@ import { useNow } from '../../hooks/useNow'
 import { SkeletonRows } from '../../components/Skeleton'
 import { MyShiftCard } from './active/MyShiftCard'
 import { AddCreditEntryModal } from './modals/AddCreditEntryModal'
+import { RecordDropModal } from './drops/RecordDropModal'
 import { Page } from '../../components/layout/Page'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { StickyActions } from '../../components/layout/StickyActions'
@@ -17,6 +18,7 @@ export default function MyShiftPage() {
   const pumpId = usePumpStore((state) => state.selectedPumpId)
   const now = useNow(30_000)
   const [shiftIdForCredit, setShiftIdForCredit] = useState<number | null>(null)
+  const [shiftIdForDrop, setShiftIdForDrop] = useState<number | null>(null)
 
   const { data: myShifts = [], isLoading, isError } = useQuery({
     queryKey:        ['activeShifts', pumpId],
@@ -32,6 +34,9 @@ export default function MyShiftPage() {
   })
 
   const shiftForCredit = myShifts.find((shift) => shift.id === shiftIdForCredit) ?? null
+  const shiftForDrop = myShifts.find((shift) => shift.id === shiftIdForDrop) ?? null
+  const duSuffix = (duName: string | null, duNumber: number | null) =>
+    myShifts.length > 1 ? ` · ${duName ?? `DU ${duNumber}`}` : ''
 
   return (
     <Page className="min-h-full">
@@ -59,14 +64,22 @@ export default function MyShiftPage() {
           ))}
           <StickyActions>
             {myShifts.map((shift) => (
-              <button
-                key={shift.id}
-                type="button"
-                onClick={() => setShiftIdForCredit(shift.id)}
-                className="ui-btn ui-btn-primary min-h-14 w-full text-base"
-              >
-                {t('myShift.addCreditSale')}{myShifts.length > 1 ? ` · ${shift.duName ?? `DU ${shift.duNumber}`}` : ''}
-              </button>
+              <div key={shift.id} className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShiftIdForDrop(shift.id)}
+                  className="ui-btn ui-btn-secondary min-h-14 w-full text-base"
+                >
+                  {t('myShift.dropCash')}{duSuffix(shift.duName, shift.duNumber)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShiftIdForCredit(shift.id)}
+                  className="ui-btn ui-btn-primary min-h-14 w-full text-base"
+                >
+                  {t('myShift.addCreditSale')}{duSuffix(shift.duName, shift.duNumber)}
+                </button>
+              </div>
             ))}
           </StickyActions>
         </>
@@ -75,6 +88,7 @@ export default function MyShiftPage() {
       {shiftForCredit && (
         <AddCreditEntryModal shift={shiftForCredit} onClose={() => setShiftIdForCredit(null)} />
       )}
+      {shiftForDrop && <RecordDropModal shift={shiftForDrop} onClose={() => setShiftIdForDrop(null)} />}
     </Page>
   )
 }

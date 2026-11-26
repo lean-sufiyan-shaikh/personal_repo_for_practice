@@ -62,4 +62,23 @@ describe('PumpSettingsContent', () => {
 
     expect(pumpApi.updatePumpSettings).toHaveBeenCalledWith(3, { receiptTolerancePercent: 0.3, densityTolerance: 2.5 })
   })
+
+  it('saves the safe count tolerance, starting from ₹10 and allowing ₹0', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PumpSettingsContent pump={pump} onUpdated={vi.fn()} />)
+
+    const tolerance = screen.getByRole('spinbutton', { name: 'Safe count tolerance' })
+    expect(tolerance).toHaveValue(10)
+    expect(tolerance).toHaveAccessibleDescription(/more than ₹10.00 short or over/)
+
+    await user.clear(tolerance)
+    await user.type(tolerance, '10001')
+    expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled()
+
+    await user.clear(tolerance)
+    await user.type(tolerance, '0')
+    await user.click(screen.getByRole('button', { name: 'Save settings' }))
+
+    expect(pumpApi.updatePumpSettings).toHaveBeenCalledWith(3, { safeCountTolerance: 0 })
+  })
 })

@@ -184,5 +184,16 @@
   "loadError": {
     "message": "हे लोड झाले नाही. कनेक्शन तपासा आणि पुन्हा प्रयत्न करा."
   },
-  "duNumber": "DU #{{number}}"
+  "duNumber": "DU #{{number}}",
+  "cashCount": {
+    "note": "₹{{value}}",
+    "noteCount": "{{note}} च्या नोटांची संख्या",
+    "addNote": "एक {{note}} ची नोट वाढवा",
+    "removeNote": "एक {{note}} ची नोट कमी करा",
+    "coins": "नाणी",
+    "coinsAmount": "नाणी रुपयांत",
+    "total": "एकूण मोजणी",
+    "typeTotal": "फक्त एकूण रक्कम लिहा",
+    "countNotes": "नोटा मोजून भरा"
+  }
 }

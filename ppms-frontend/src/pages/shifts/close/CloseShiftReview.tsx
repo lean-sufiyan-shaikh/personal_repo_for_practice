@@ -18,6 +18,8 @@ export interface NozzleSaleLine {
 
 export interface PaymentSplit {
   cash: number
+  /** Confirmed drops already in the safe; cash is then what was in the bag. */
+  dropped: number
   upi: number
   card: number
   fleetCard: number
@@ -53,7 +55,8 @@ export function CloseShiftReview({
   const { t } = useTranslation(['shifts', 'common'])
   const discrepancyType = discrepancyTypeOf(diff)
   const paymentRows: Array<[string, number]> = [
-    [t('common:paymentMethods.CASH'), payments.cash],
+    ...(payments.dropped > 0 ? [[t('close.drops.droppedToSafe'), payments.dropped] as [string, number]] : []),
+    [payments.dropped > 0 ? t('close.review.cashInBag') : t('common:paymentMethods.CASH'), payments.cash],
     [t('common:paymentMethods.UPI'), payments.upi],
     [t('common:paymentMethods.CARD'), payments.card],
     [t('close.review.fleetCard'), payments.fleetCard],

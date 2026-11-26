@@ -13,6 +13,8 @@ interface TotalsInput {
   fleetCard: string
   preRecordedTotal: number
   newCreditTotal: number
+  /** Confirmed drops already in the safe: collected on top of the cash in the bag. */
+  cashDropped: number
 }
 
 export interface FuelSale {
@@ -24,7 +26,7 @@ export interface FuelSale {
 
 // Mirrors the backend: units rounded to 3 decimals, the total due rounded once to paise.
 export function computeCloseShiftTotals({
-  fuelReadings, endReadings, noChangeNozzles, cash, upi, card, fleetCard, preRecordedTotal, newCreditTotal,
+  fuelReadings, endReadings, noChangeNozzles, cash, upi, card, fleetCard, preRecordedTotal, newCreditTotal, cashDropped,
 }: TotalsInput) {
   const perFuelSales: FuelSale[] = fuelReadings.map((r) => {
     const endRaw = endReadings[r.nozzleId] ?? ''
@@ -40,7 +42,7 @@ export function computeCloseShiftTotals({
   const totalDue       = roundToPaise(perFuelSales.reduce((s, x) => s + x.value, 0))
   // creditTotal for the close request = pre-recorded entries + new entries added here
   const creditTotal    = roundToPaise(preRecordedTotal + newCreditTotal)
-  const totalCollected = roundToPaise(emptyNum(cash) + emptyNum(upi) + emptyNum(card) + emptyNum(fleetCard) + creditTotal)
+  const totalCollected = roundToPaise(emptyNum(cash) + cashDropped + emptyNum(upi) + emptyNum(card) + emptyNum(fleetCard) + creditTotal)
   const diffPaise      = toPaise(totalCollected) - toPaise(totalDue)
 
   const readingsComplete = fuelReadings.every((r) => (endReadings[r.nozzleId] ?? '') !== '')

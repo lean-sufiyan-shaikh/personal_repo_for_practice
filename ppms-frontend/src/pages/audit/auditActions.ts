@@ -89,4 +89,10 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   SETTLEMENT_RECORDED:                'ok',
   SETTLEMENT_VOIDED:                  'bad',
   SETTLEMENT_CONFIG_UPDATED:          'neutral',
+  CASH_DROP_RECORDED:                 'neutral',
+  CASH_DROP_CONFIRMED:                'ok',
+  CASH_DROP_REJECTED:                 'bad',
+  SAFE_COUNTED:                       'neutral',
+  BANK_DEPOSIT_RECORDED:              'ok',
+  DEPOSIT_SLIP_ATTACHED:              'neutral',
 }

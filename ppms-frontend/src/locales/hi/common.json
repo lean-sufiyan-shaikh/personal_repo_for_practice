@@ -184,5 +184,16 @@
   "loadError": {
     "message": "यह लोड नहीं हो सका। कनेक्शन जाँचें और फिर से कोशिश करें।"
   },
-  "duNumber": "DU #{{number}}"
+  "duNumber": "DU #{{number}}",
+  "cashCount": {
+    "note": "₹{{value}}",
+    "noteCount": "{{note}} के नोटों की संख्या",
+    "addNote": "एक {{note}} का नोट जोड़ें",
+    "removeNote": "एक {{note}} का नोट हटाएँ",
+    "coins": "सिक्के",
+    "coinsAmount": "सिक्के रुपये में",
+    "total": "कुल गिनती",
+    "typeTotal": "सिर्फ़ कुल राशि लिखें",
+    "countNotes": "नोट गिनकर भरें"
+  }
 }

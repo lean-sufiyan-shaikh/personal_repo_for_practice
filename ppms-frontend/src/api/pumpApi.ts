@@ -19,6 +19,8 @@ export interface PumpSummary {
   receiptTolerancePercent?: number
   /** Observed and invoice density may differ by this many kg/m³ before a delivery is flagged; 3.0 by default. */
   densityTolerance?: number
+  /** A safe count further from the ledger than this many rupees notifies the owner; ₹10 by default. */
+  safeCountTolerance?: number
   dus: DUOption[]
 }
 
@@ -32,6 +34,7 @@ export interface UpdatePumpSettingsRequest {
   invoicePrefix?: string
   receiptTolerancePercent?: number
   densityTolerance?: number
+  safeCountTolerance?: number
 }
 
 export interface CreatePumpRequest {

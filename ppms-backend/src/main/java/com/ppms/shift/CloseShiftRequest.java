@@ -1,5 +1,6 @@
 package com.ppms.shift;
 
+import com.ppms.cash.CashDenominations;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -23,9 +24,14 @@ public class CloseShiftRequest {
     private List<OutletEndReadingRequest> fuelReadings;
 
     // Payment breakdown — all must be >= 0
+    // Cash counted in the bag at close; confirmed cash drops are added on the server to give the shift's cash.
     @NotNull(message = "Cash collected is required")
     @DecimalMin(value = "0", message = "Cash collected must be >= 0")
     private BigDecimal cashCollected;
+
+    /** The bag count by note, when it was counted that way; must add up to cashCollected. Null when only a total was typed. */
+    @Valid
+    private CashDenominations cashDenominations;
 
     @NotNull(message = "UPI collected is required")
     @DecimalMin(value = "0", message = "UPI collected must be >= 0")

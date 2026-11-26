@@ -1,4 +1,5 @@
 import type { SubmitAttempt } from '../../../utils/idempotencyKey'
+import type { DenominationCounts } from '../../../components/cash/denominations'
 import type { CreditRow } from '../components/creditRow'
 import type { HandoverDetails } from './handoverDetails'
 
@@ -7,6 +8,8 @@ export interface CloseShiftDraft {
   endReadings: Record<number, string>
   noChangeNozzleIds: number[]
   cash: string
+  /** Missing in drafts saved before cash could be counted by note: those had a typed total. */
+  cashCounts?: DenominationCounts | null
   upi: string
   card: string
   fleetCard: string

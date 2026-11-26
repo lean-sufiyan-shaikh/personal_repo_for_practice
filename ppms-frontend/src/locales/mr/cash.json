@@ -3,7 +3,9 @@
     "OPENING_BALANCE": "सुरुवातीचा बॅलन्स",
     "CASH_IN": "रोख जमा",
     "CASH_OUT": "रोख काढली",
-    "CLOSING_BALANCE": "शेवटचा बॅलन्स"
+    "CLOSING_BALANCE": "शेवटचा बॅलन्स",
+    "CASH_DROP": "कॅश ड्रॉप",
+    "BANK_DEPOSIT": "बँक भरणा"
   },
   "page": {
     "title": "कॅश ड्रॉवर",
@@ -12,7 +14,10 @@
     "currentBalance": "सध्याचा बॅलन्स",
     "balanceHint": "सर्व रोख जमा मधून काढलेली रोख वजा करून काढला",
     "eventCount_one": "{{count}} नोंद",
-    "eventCount_other": "{{count}} नोंदी"
+    "eventCount_other": "{{count}} नोंदी",
+    "views": "रोख दृश्ये",
+    "tabMovements": "व्यवहार",
+    "tabSafe": "तिजोरी"
   },
   "list": {
     "title": "रोख नोंदी",
@@ -45,5 +50,113 @@
   "review": {
     "title": "रोख नोंद तपासा",
     "record": "नोंद करा"
+  },
+  "drops": {
+    "status": {
+      "PENDING": "खात्री प्रलंबित",
+      "CONFIRMED": "तिजोरीत खात्री",
+      "REJECTED": "नाकारले"
+    },
+    "reviewedBy": {
+      "CONFIRMED": "{{name}} यांनी खात्री केली",
+      "REJECTED": "{{name}} यांनी नाकारले"
+    },
+    "byOperatorAt": "{{operator}} · {{time}}",
+    "confirm": "खात्री करा",
+    "confirming": "ड्रॉपची खात्री होत आहे",
+    "confirmed": "{{operator}} यांचे {{amount}} तिजोरीत जमा झाल्याची खात्री",
+    "rejected": "{{operator}} यांचे {{amount}} नाकारले",
+    "reviewFailed": "कॅश ड्रॉप अपडेट करता आला नाही. पुन्हा प्रयत्न करा.",
+    "rejectTitle": "कॅश ड्रॉप नाकारा",
+    "rejectSubtitle": "{{operator}} यांचे {{amount}} ड्रॉपमध्ये धरले जाणार नाहीत. काय चुकले ते लिहा."
+  },
+  "safe": {
+    "balance": "तिजोरीत आत्ता",
+    "balanceHint": "बंद शिफ्ट आणि खात्री केलेल्या ड्रॉपची रोख, बँक भरणा आणि काढलेली रोख वजा करून.",
+    "tolerance": "मोजणीची सूट {{amount}}",
+    "latestCount": "मागील मोजणी",
+    "noCount": "तिजोरी अजून मोजलेली नाही.",
+    "countedAgainst": "अपेक्षित {{expected}} विरुद्ध {{counted}} मोजले",
+    "countedBy": "{{name}} · {{time}}",
+    "matches": "जुळले",
+    "beyondTolerance": "{{amount}} सुटीपेक्षा जास्त: मालकाला सूचना पाठवली.",
+    "countSafe": "तिजोरी मोजा",
+    "recordDeposit": "बँक भरणा नोंदवा",
+    "loadFailed": "तिजोरी लोड करता आली नाही. कनेक्शन तपासा आणि पुन्हा प्रयत्न करा.",
+    "pending": {
+      "title": "खात्रीसाठी प्रलंबित ड्रॉप",
+      "summary_one": "{{count}} ड्रॉप · {{amount}}",
+      "summary_other": "{{count}} ड्रॉप · {{amount}}",
+      "hint": "प्रत्येक ड्रॉप तिजोरीत आल्यावर मोजा, मग खात्री करा. फक्त खात्री केलेले ड्रॉपच पिशवीबाहेर धरले जातात."
+    },
+    "ledger": {
+      "title": "तिजोरी लेजर",
+      "filtersLabel": "तिजोरी लेजर फिल्टर",
+      "empty": "तिजोरीत अजून कोणताही व्यवहार झालेला नाही.",
+      "emptyRange": "या तारखांमध्ये कोणताही व्यवहार नाही.",
+      "balanceAfter": "नंतरचा बॅलन्स"
+    },
+    "deposits": {
+      "title": "बँक भरणा",
+      "filtersLabel": "बँक भरणा फिल्टर",
+      "bankFilter": "बँक खाते",
+      "summary_one": "{{count}} भरणा · {{amount}}",
+      "summary_other": "{{count}} भरणे · {{amount}}",
+      "empty": "अजून कोणताही बँक भरणा नोंदवलेला नाही.",
+      "emptyFiltered": "या फिल्टरशी जुळणारा भरणा नाही.",
+      "slipReference": "पावती {{reference}}",
+      "recordedBy": "{{name}} यांनी नोंदवला",
+      "viewSlip": "पावती पहा",
+      "attachSlip": "पावती जोडा",
+      "attaching": "पावती जोडली जात आहे",
+      "slipAttached": "पावती जोडली",
+      "openFailed": "पावती उघडता आली नाही.",
+      "attachFailed": "पावती जोडता आली नाही."
+    },
+    "slip": {
+      "tooLarge": "पावतीची फाइल जास्तीत जास्त 5 MB असावी.",
+      "wrongType": "JPEG किंवा PNG फोटो किंवा PDF निवडा."
+    },
+    "count": {
+      "title": "तिजोरी मोजा",
+      "subtitle": "तिजोरीतील प्रत्येक नोट आणि नाणे आत्ता मोजा.",
+      "amountLabel": "तिजोरीतील रोख",
+      "notes": "टीप",
+      "figuresLabel": "लेजरविरुद्ध मोजणी",
+      "expected": "लेजरनुसार अपेक्षित",
+      "counted": "मोजले",
+      "difference": "फरक",
+      "notifyOwner": "हे {{amount}} सुटीपेक्षा जास्त आहे, त्यामुळे मालकाला सूचना जाईल.",
+      "save": "मोजणी सेव्ह करा",
+      "saving": "मोजणी सेव्ह होत आहे",
+      "saved": "तिजोरीची मोजणी सेव्ह झाली",
+      "failed": "मोजणी सेव्ह करता आली नाही.",
+      "needAmount": "मोजलेली रक्कम"
+    },
+    "deposit": {
+      "title": "बँक भरणा नोंदवा",
+      "subtitle": "तिजोरीतून बँकेत नेलेली रोख.",
+      "amount": "रक्कम",
+      "bankAccount": "बँक खाते",
+      "bankAccountPlaceholder": "SBI current ••1234",
+      "date": "भरण्याची तारीख",
+      "slipReference": "पावती क्रमांक",
+      "slipFile": "पावतीचा फोटो किंवा PDF",
+      "slipHint": "JPEG, PNG किंवा PDF, 5 MB पर्यंत.",
+      "notes": "टीप",
+      "figuresLabel": "या भरण्यानंतर तिजोरी",
+      "inSafe": "तिजोरीत आत्ता",
+      "afterDeposit": "यानंतर तिजोरीत",
+      "exceeds": "तिजोरीत फक्त {{amount}} आहेत.",
+      "save": "भरणा नोंदवा",
+      "saving": "भरणा नोंदवला जात आहे",
+      "saved": "{{amount}} चा बँक भरणा नोंदवला",
+      "failed": "भरणा नोंदवता आला नाही.",
+      "slipUploadFailed": "भरणा नोंदवला, पण पावती जोडली नाही: {{reason}} भरणा यादीतून ती जोडा.",
+      "needAmount": "रक्कम",
+      "needBank": "बँक खाते",
+      "needDate": "भरण्याची तारीख",
+      "needSlip": "पावती क्रमांक"
+    }
   }
 }

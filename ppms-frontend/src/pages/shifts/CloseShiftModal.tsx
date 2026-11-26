@@ -39,6 +39,10 @@ import type { CloseShiftDraft } from './close/closeShiftDraft'
 import { CloseShiftReview, CloseShiftReviewActions } from './close/CloseShiftReview'
 import { CloseShiftSummary, CloseShiftSummaryActions } from './close/CloseShiftSummary'
 import { HandoverReportPanel } from './modals/HandoverReportPanel'
+import { CashDropsAtClose } from './close/CashDropsAtClose'
+import { useShiftCashDrops } from './drops/useShiftCashDrops'
+import { EMPTY_COUNTS, toDenominations } from '../../components/cash/denominations'
+import type { DenominationCounts } from '../../components/cash/denominations'
 
 interface Props {
   shift: Shift
@@ -85,6 +89,8 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
     ({ ...emptyEndReadings(shift), ...restoredDraft?.values.endReadings })
   )
   const [cash,              setCash]              = useState(() => restoredDraft?.values.cash ?? '')
+  const [cashCounts,        setCashCounts]        = useState<DenominationCounts | null>(() =>
+    restoredDraft ? restoredDraft.values.cashCounts ?? null : EMPTY_COUNTS)
   const [upi,               setUpi]               = useState(() => restoredDraft?.values.upi ?? '')
   const [card,              setCard]              = useState(() => restoredDraft?.values.card ?? '')
   const [fleetCard,         setFleetCard]         = useState(() => restoredDraft?.values.fleetCard ?? '')
@@ -137,6 +143,8 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
     enabled: closedResult === null,
   })
 
+  const { drops, confirmedTotal: cashDropped, pendingDrops } = useShiftCashDrops(shift.pumpId, shift.id, closedResult === null)
+
   const availableFuelTypes = shift.fuelReadings.map((r) => r.fuelType)
   const {
     creditRows, expandedRowId, setExpandedRowId, clearCreditRows,
@@ -177,14 +185,14 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
     readingsComplete, readingsBelowStart, paymentTouched, isBalanced, hasDiscrepancy, canRoundOff,
   } = computeCloseShiftTotals({
     fuelReadings: shift.fuelReadings, endReadings, noChangeNozzles,
-    cash, upi, card, fleetCard, preRecordedTotal, newCreditTotal,
+    cash, upi, card, fleetCard, preRecordedTotal, newCreditTotal, cashDropped,
   })
   const reasonFilled     = discrepancyReason.trim().length > 0
   const incomingChosen   = !isHandover || handoverDetails.incomingOperatorId !== null
   const missingReadingCount = shift.fuelReadings.filter((r) => (endReadings[r.nozzleId] ?? '') === '').length
   const stillNeeded = stillNeededItems({
     isHandover, incomingChosen, missingReadingCount, readingsBelowStart, paymentTouched,
-    creditRows, hasDiscrepancy, reasonFilled,
+    creditRows, hasDiscrepancy, reasonFilled, pendingDropCount: pendingDrops.length,
   }).map((item) => stillNeededLabel(item, t))
   const canClose = stillNeeded.length === 0
   const hasUnsavedChanges = Object.values(endReadings).some(v => v !== '')
@@ -195,7 +203,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   // ── Draft kept on this device ───────────────────────────────────────────────
 
   const draftValues: CloseShiftDraft = {
-    endReadings, noChangeNozzleIds: [...noChangeNozzles], cash, upi, card, fleetCard, discrepancyReason,
+    endReadings, noChangeNozzleIds: [...noChangeNozzles], cash, cashCounts, upi, card, fleetCard, discrepancyReason,
     handoverDetails, creditRows, submitAttempt,
   }
   useSaveDraft(draftName, draftValues, hasUnsavedChanges && closedResult === null)
@@ -206,6 +214,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
     setEndReadings(emptyEndReadings(shift))
     setNoChangeNozzles(new Set())
     setCash('')
+    setCashCounts(EMPTY_COUNTS)
     setUpi('')
     setCard('')
     setFleetCard('')
@@ -245,6 +254,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   const showSubmitError = (fallback: string) => (err: unknown) => {
     setServerError(parseApiError(err, fallback))
     reloadShift()
+    queryClient.invalidateQueries({ queryKey: ['cashDrops', shift.pumpId, shift.id] })
   }
 
   const closeMutation = useMutation({
@@ -280,7 +290,8 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
 
     const result = buildCloseShiftRequest({
       fuelReadings: shift.fuelReadings, endReadings, readingsBelowStart, creditRows,
-      cash, upi, card, fleetCard, creditTotal, discrepancyReason,
+      cash, cashDenominations: cashCounts ? toDenominations(cashCounts) : undefined,
+      upi, card, fleetCard, creditTotal, discrepancyReason,
     })
     if ('error' in result) {
       setServerError(result.error)
@@ -334,11 +345,12 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
       setServerError(t('close.errors.roundOffNegative'))
       return
     }
+    setCashCounts(null)
     setCash(newCashPaise === 0 ? '' : (newCashPaise / 100).toFixed(2))
   }
 
   const restInCashPaise = Math.max(0,
-    toPaise(totalDue) - toPaise(emptyNum(upi)) - toPaise(emptyNum(card)) - toPaise(emptyNum(fleetCard)) - toPaise(creditTotal))
+    toPaise(totalDue) - toPaise(cashDropped) - toPaise(emptyNum(upi)) - toPaise(emptyNum(card)) - toPaise(emptyNum(fleetCard)) - toPaise(creditTotal))
 
   const soldByUnit = perFuelSales
     .filter(({ reading }) => (endReadings[reading.nozzleId] ?? '') !== '')
@@ -353,11 +365,12 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
     sold: soldByUnit,
     totalDue: soldByUnit.length > 0 ? totalDue : null,
     payments: paymentTouched
-      ? { cash: emptyNum(cash), upi: emptyNum(upi), card: emptyNum(card), fleetCard: emptyNum(fleetCard), credit: creditTotal }
+      ? { cash: emptyNum(cash), dropped: cashDropped, upi: emptyNum(upi), card: emptyNum(card), fleetCard: emptyNum(fleetCard), credit: creditTotal }
       : null,
     totalCollected: paymentTouched ? totalCollected : null,
     diff: isBalanced || hasDiscrepancy ? diff : null,
     approvalLimit: hasDiscrepancy && needsOwnerApproval(diff, escalationThreshold) ? escalationThreshold : null,
+    expectedInBag: cashDropped > 0 && soldByUnit.length > 0 ? restInCashPaise / 100 : null,
   }
 
   const closeAndForget = () => {
@@ -435,7 +448,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
               amount: value,
             }))}
             totalDue={reviewedFigures.totalDue}
-            payments={{ cash: emptyNum(cash), upi: emptyNum(upi), card: emptyNum(card), fleetCard: emptyNum(fleetCard), credit: creditTotal }}
+            payments={{ cash: emptyNum(cash), dropped: cashDropped, upi: emptyNum(upi), card: emptyNum(card), fleetCard: emptyNum(fleetCard), credit: creditTotal }}
             creditEntryCount={reviewedFigures.creditEntryCount}
             totalCollected={reviewedFigures.totalCollected}
             diff={reviewedFigures.diff}
@@ -518,10 +531,14 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
                 onRemoveRow={removeCreditRow}
               />
 
+              <CashDropsAtClose pumpId={shift.pumpId} drops={drops} confirmedTotal={cashDropped} />
+
               <PaymentSection
-                cash={cash} upi={upi} card={card} fleetCard={fleetCard}
-                onCashChange={setCash} onUpiChange={setUpi} onCardChange={setCard} onFleetCardChange={setFleetCard}
+                cash={cash} cashCounts={cashCounts} upi={upi} card={card} fleetCard={fleetCard}
+                onCashChange={setCash} onCashCountsChange={setCashCounts}
+                onUpiChange={setUpi} onCardChange={setCard} onFleetCardChange={setFleetCard}
                 restInCashPaise={restInCashPaise}
+                cashDropped={cashDropped}
                 creditTotal={creditTotal}
               />
 

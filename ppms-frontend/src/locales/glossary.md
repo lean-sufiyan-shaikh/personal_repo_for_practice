@@ -119,6 +119,13 @@ Marathi is not Hindi with different spelling. Watch these:
 | Active / Inactive | सक्रिय / निष्क्रिय | सक्रिय / निष्क्रिय | translate |
 | Suspended | निलंबित | निलंबित | translate |
 | Balance sheet | बैलेंस शीट | बॅलन्स शीट | transliterate |
+| Safe (pump safe) | तिजोरी | तिजोरी | translate |
+| Cash drop | कैश ड्रॉप | कॅश ड्रॉप | transliterate |
+| Bank deposit | बैंक जमा | बँक भरणा | translate |
+| Deposit slip | जमा पर्ची | भरणा पावती | translate |
+| Count by notes (denominations) | नोट गिनकर भरें | नोटा मोजून भरा | translate |
+| Coins | सिक्के | नाणी | translate |
+| Tolerance (allowed difference) | छूट | सूट | translate |
 | Report | रिपोर्ट | रिपोर्ट | transliterate (staff say रिपोर्ट, not अहवाल) |
 | Audit log | ऑडिट लॉग | ऑडिट लॉग | transliterate |
 | Overview / Dashboard home | सारांश / होम | सारांश / होम | translate "overview"; "Home" tab transliterated |

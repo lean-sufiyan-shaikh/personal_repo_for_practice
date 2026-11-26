@@ -206,9 +206,11 @@ public class ShiftLifecycleSupportService {
      * Processes end readings for all nozzles in the shift.
      *
      * @param maxMeterByNozzleId maps nozzleId → its maxMeterValue for rollover detection
+     * @param cashDropped        confirmed drops already in the safe, collected on top of the cash in the bag
      */
     public ClosingSummary processClosingReadings(Long shiftId, Map<Long, BigDecimal> maxMeterByNozzleId,
-                                                  CloseShiftRequest request, List<ShiftFuelReading> readings) {
+                                                  CloseShiftRequest request, BigDecimal cashDropped,
+                                                  List<ShiftFuelReading> readings) {
         rejectDuplicateNozzles(request.getFuelReadings().stream()
                 .map(CloseShiftRequest.OutletEndReadingRequest::nozzleId)
                 .toList());
@@ -261,6 +263,7 @@ public class ShiftLifecycleSupportService {
 
         BigDecimal roundedTotalDue = totalDue.setScale(2, RoundingMode.HALF_UP);
         BigDecimal totalCollected = request.getCashCollected()
+                .add(cashDropped)
                 .add(request.getUpiCollected())
                 .add(request.getCardCollected())
                 .add(request.getFleetCardCollected())
@@ -378,8 +381,11 @@ public class ShiftLifecycleSupportService {
         creditEntryRepository.saveAll(toSave);
     }
 
+    /** Only the bag cash enters the safe here: confirmed drops already did when they were confirmed. */
     public void createCashCollectionEvent(Shift shift, User currentUser, List<Nozzle> nozzles) {
-        if (shift.getCashCollected() == null || shift.getCashCollected().compareTo(ZERO) <= 0) {
+        BigDecimal bagCash = shift.getCashCollected() == null ? ZERO
+                : shift.getCashCollected().subtract(shift.getCashDropped() == null ? ZERO : shift.getCashDropped());
+        if (bagCash.compareTo(ZERO) <= 0) {
             return;
         }
         String nozzleLabel = nozzles != null && !nozzles.isEmpty()
@@ -388,12 +394,12 @@ public class ShiftLifecycleSupportService {
         cashEventRepository.save(CashEvent.builder()
                 .pumpId(shift.getPumpId())
                 .eventType(CashEventType.CASH_IN)
-                .amount(shift.getCashCollected().setScale(2, RoundingMode.HALF_UP))
+                .amount(bagCash.setScale(2, RoundingMode.HALF_UP))
                 .description("Cash collection from " + nozzleLabel + " shift close (Shift #" + shift.getId() + ")")
                 .eventDate(businessClock.today())
                 .recordedByUserId(currentUser.getId())
                 .build());
-        log.info("Auto-created CASH_IN event for shift {}: amount={}", shift.getId(), shift.getCashCollected());
+        log.info("Auto-created CASH_IN event for shift {}: amount={}", shift.getId(), bagCash);
     }
 
     public void createCashRecoveryEvent(Shift shift, User currentUser) {

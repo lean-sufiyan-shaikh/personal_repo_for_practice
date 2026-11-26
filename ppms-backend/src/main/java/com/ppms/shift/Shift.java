@@ -1,5 +1,6 @@
 package com.ppms.shift;
 
+import com.ppms.cash.CashDenominations;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -91,6 +92,15 @@ public class Shift {
 
     @Column(name = "credit_total")
     private BigDecimal creditTotal;
+
+    /** Confirmed cash drops of this shift at close; already part of cashCollected. Null for shifts closed before drops existed. */
+    @Column(name = "cash_dropped")
+    private BigDecimal cashDropped;
+
+    /** The bag count by note at close; null when only a total was typed. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "cash_denominations", columnDefinition = "jsonb")
+    private CashDenominations cashDenominations;
 
     // ── Totals computed at close ───────────────────────────────────────────
 

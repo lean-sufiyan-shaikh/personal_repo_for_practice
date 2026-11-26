@@ -32,6 +32,7 @@ public class PumpService {
 
     private static final BigDecimal MAX_RECEIPT_TOLERANCE_PERCENT = new BigDecimal("5");
     private static final BigDecimal MAX_DENSITY_TOLERANCE = new BigDecimal("50");
+    private static final BigDecimal MAX_SAFE_COUNT_TOLERANCE = new BigDecimal("10000");
     private static final String HAS_DATA_MESSAGE =
             "This pump has recorded data and cannot be deleted. Ask the Super Admin to suspend it instead.";
 
@@ -165,13 +166,16 @@ public class PumpService {
         if (request.densityTolerance() != null) {
             pump.setDensityTolerance(validDensityTolerance(request.densityTolerance()));
         }
+        if (request.safeCountTolerance() != null) {
+            pump.setSafeCountTolerance(validSafeCountTolerance(request.safeCountTolerance()));
+        }
 
         pumpLocationRepository.save(pump);
         log.info("Pump {} settings updated by user={}: escalationThreshold={}, expenseApprovalThreshold={}, "
-                        + "receiptTolerancePercent={}, densityTolerance={}",
+                        + "receiptTolerancePercent={}, densityTolerance={}, safeCountTolerance={}",
                 pumpId, currentUser.getId(),
                 pump.getDiscrepancyEscalationThreshold(), pump.getExpenseApprovalThreshold(),
-                pump.getReceiptTolerancePercent(), pump.getDensityTolerance());
+                pump.getReceiptTolerancePercent(), pump.getDensityTolerance(), pump.getSafeCountTolerance());
 
         return toPumpResponse(pump);
     }
@@ -190,6 +194,15 @@ public class PumpService {
                     "Density tolerance must be more than 0 and at most " + MAX_DENSITY_TOLERANCE + " kg/m³.");
         }
         return tolerance.setScale(1, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal validSafeCountTolerance(BigDecimal tolerance) {
+        if (tolerance.signum() < 0 || tolerance.compareTo(MAX_SAFE_COUNT_TOLERANCE) > 0) {
+            throw new BusinessException(ErrorCodes.SAFE_COUNT_TOLERANCE_OUT_OF_RANGE,
+                    Map.of("max", MAX_SAFE_COUNT_TOLERANCE.toPlainString()),
+                    "Safe count tolerance must be between ₹0 and ₹" + MAX_SAFE_COUNT_TOLERANCE + ".");
+        }
+        return tolerance.setScale(2, RoundingMode.HALF_UP);
     }
 
     /** Only a pump that was set up but never used can be deleted; its equipment is removed with it. */
@@ -251,6 +264,7 @@ public class PumpService {
                 .invoicePrefix(pump.getInvoicePrefix())
                 .receiptTolerancePercent(pump.getReceiptTolerancePercent())
                 .densityTolerance(pump.getDensityTolerance())
+                .safeCountTolerance(pump.getSafeCountTolerance())
                 .dus(activeDUs)
                 .build();
     }

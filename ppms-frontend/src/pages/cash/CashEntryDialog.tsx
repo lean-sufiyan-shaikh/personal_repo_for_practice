@@ -2,7 +2,7 @@ import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { cashApi } from '../../api/cashApi'
-import type { CashEventType, RecordCashEventRequest } from '../../api/cashApi'
+import type { ManualCashEventType, RecordCashEventRequest } from '../../api/cashApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { localDateInputValue } from '../../utils/date'
 import { NumericInput } from '../../components/NumericInput'
@@ -168,7 +168,7 @@ export function CashEntryDialog({ pumpId, balance, onClose }: CashEntryDialogPro
           <span className="ui-label">{t('form.eventType')}</span>
           <SearchableSelect label={t('form.eventType')}
             value={form.eventType}
-            onChange={v => setForm(f => ({ ...f, eventType: v as CashEventType }))}
+            onChange={v => setForm(f => ({ ...f, eventType: v as ManualCashEventType }))}
             options={EVENT_TYPES.map(type => ({ value: type, label: t(`eventTypes.${type}`) }))}
           />
         </div>

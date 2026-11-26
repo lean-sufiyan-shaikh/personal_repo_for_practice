@@ -1,5 +1,7 @@
 package com.ppms.attention;
 
+import com.ppms.cash.CashDropRepository;
+import com.ppms.cash.CashDropService;
 import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.text.CodedText;
@@ -87,6 +89,7 @@ public class AttentionService {
     private static final String RECONCILIATION_PATH = "/dashboard/inventory?tab=reconciliation";
     private static final String INVENTORY_PATH = "/dashboard/inventory";
     private static final String CLAIMS_PATH = "/dashboard/inventory?tab=claims";
+    private static final String SAFE_PATH = "/dashboard/cash?tab=safe";
 
     private static final Comparator<AttentionItem> MOST_URGENT_FIRST = Comparator
             .comparing(AttentionItem::severity)
@@ -109,6 +112,7 @@ public class AttentionService {
     private final DipCheckRepository dipCheckRepository;
     private final WetStockLossAlertService wetStockLossAlertService;
     private final ShortageClaimQueryService shortageClaimQueryService;
+    private final CashDropService cashDropService;
     private final BusinessClock businessClock;
 
     @Transactional(readOnly = true)
@@ -139,6 +143,7 @@ public class AttentionService {
             return items;
         }
         addPendingApprovals(items, item, pump.getId());
+        addPendingCashDrops(items, item, pump.getId());
         addShortages(items, item, pump.getId());
         addUnsettledPayments(items, item, pump.getId());
         addBalanceSheets(items, item, pump.getId());
@@ -195,6 +200,18 @@ public class AttentionService {
                     plural(expenseCount, "expense") + " and " + plural(payments.size(), "credit payment") + waiting);
         }
         items.add(item.of(AttentionType.PENDING_APPROVALS, AttentionSeverity.MEDIUM, total, amount, reason, APPROVALS_PATH));
+    }
+
+    private void addPendingCashDrops(List<AttentionItem> items, Item item, Long pumpId) {
+        CashDropRepository.DropTotal pending = cashDropService.pendingTotal(pumpId);
+        if (pending.getDropCount() == 0) {
+            return;
+        }
+        items.add(item.of(AttentionType.PENDING_CASH_DROPS, AttentionSeverity.HIGH, pending.getDropCount(),
+                pending.getAmount().setScale(2, RoundingMode.HALF_UP),
+                counted(ServerTextCodes.ATTENTION_PENDING_CASH_DROPS, pending.getDropCount(),
+                        plural(pending.getDropCount(), "cash drop") + " waiting to be confirmed in the safe"),
+                SAFE_PATH));
     }
 
     private void addShortages(List<AttentionItem> items, Item item, Long pumpId) {

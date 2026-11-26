@@ -73,7 +73,12 @@
     "receiptToleranceInvalid": "Enter a share above 0 and at most {{max}}%.",
     "densityToleranceLabel": "Density tolerance",
     "densityToleranceEffect": "Observed and invoice density more than {{tolerance}} kg/m³ apart is flagged.",
-    "densityToleranceInvalid": "Enter a value above 0 and at most {{max}} kg/m³."
+    "densityToleranceInvalid": "Enter a value above 0 and at most {{max}} kg/m³.",
+    "safeTitle": "Safe count",
+    "safeExplanation": "How far a count of the safe may differ from what the cash ledger says before the owner is notified.",
+    "safeToleranceLabel": "Safe count tolerance",
+    "safeToleranceEffect": "A count more than {{amount}} short or over notifies the owner.",
+    "safeToleranceInvalid": "Enter an amount from ₹0 to {{max}}."
   },
   "gst": {
     "saved": "GST details saved",

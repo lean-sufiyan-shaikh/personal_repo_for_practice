@@ -102,6 +102,7 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
 
   // Cash Drawer
   'cash:record-event':             ['OWNER', 'ADMIN', 'MANAGER'],
+  'cash:manage-safe':              ['OWNER', 'ADMIN', 'MANAGER'],
 
   // Calibration
   'calibration:add':               ['OWNER', 'ADMIN'],

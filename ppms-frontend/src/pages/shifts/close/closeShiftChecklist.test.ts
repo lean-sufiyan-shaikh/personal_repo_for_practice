@@ -10,7 +10,7 @@ const completeRow: CreditRow = {
 
 const ready = {
   isHandover: false, incomingChosen: true, missingReadingCount: 0, readingsBelowStart: false,
-  paymentTouched: true, creditRows: [completeRow], hasDiscrepancy: false, reasonFilled: false,
+  paymentTouched: true, creditRows: [completeRow], hasDiscrepancy: false, reasonFilled: false, pendingDropCount: 0,
 }
 
 describe('stillNeededItems', () => {
@@ -21,12 +21,13 @@ describe('stillNeededItems', () => {
   it('lists what is missing in the order the form asks for it', () => {
     expect(stillNeededItems({
       ...ready, isHandover: true, incomingChosen: false, missingReadingCount: 2, readingsBelowStart: true,
-      paymentTouched: false, creditRows: [{ ...completeRow, amount: '' }], hasDiscrepancy: true,
+      paymentTouched: false, creditRows: [{ ...completeRow, amount: '' }], hasDiscrepancy: true, pendingDropCount: 1,
     })).toEqual([
       { kind: 'incomingOperator' },
       { kind: 'endReadings', count: 2 },
       { kind: 'readingsBelowStart' },
       { kind: 'creditEntries', count: 1 },
+      { kind: 'pendingDrops', count: 1 },
       { kind: 'payments' },
       { kind: 'reason' },
     ])

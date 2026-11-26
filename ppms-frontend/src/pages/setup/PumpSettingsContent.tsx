@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { ShieldCheck, Truck } from 'lucide-react'
+import { ShieldCheck, Truck, Vault } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../utils/apiError'
 import { pumpApi } from '../../api/pumpApi'
@@ -16,11 +16,14 @@ import { SetupSaveBar } from './SetupSaveBar'
 
 const MAX_RECEIPT_TOLERANCE_PERCENT = 5
 const MAX_DENSITY_TOLERANCE = 50
+const MAX_SAFE_COUNT_TOLERANCE = 10_000
+const DEFAULT_SAFE_COUNT_TOLERANCE = 10
 
 interface SettingsText {
   threshold: string
   receiptTolerance: string
   densityTolerance: string
+  safeCountTolerance: string
 }
 
 function textOf(pump: PumpSummary): SettingsText {
@@ -28,12 +31,18 @@ function textOf(pump: PumpSummary): SettingsText {
     threshold: pump.discrepancyEscalationThreshold?.toString() ?? '',
     receiptTolerance: String(pump.receiptTolerancePercent ?? DEFAULT_RECEIPT_TOLERANCE_PERCENT),
     densityTolerance: String(pump.densityTolerance ?? DEFAULT_DENSITY_TOLERANCE),
+    safeCountTolerance: String(pump.safeCountTolerance ?? DEFAULT_SAFE_COUNT_TOLERANCE),
   }
 }
 
 function inRange(text: string, max: number): boolean {
   const value = Number(text)
   return text.trim() !== '' && Number.isFinite(value) && value > 0 && value <= max
+}
+
+function inRangeFromZero(text: string, max: number): boolean {
+  const value = Number(text)
+  return text.trim() !== '' && Number.isFinite(value) && value >= 0 && value <= max
 }
 
 export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; onUpdated: () => void }) {
@@ -63,6 +72,7 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
 
   const receiptToleranceValid = inRange(values.receiptTolerance, MAX_RECEIPT_TOLERANCE_PERCENT)
   const densityToleranceValid = inRange(values.densityTolerance, MAX_DENSITY_TOLERANCE)
+  const safeToleranceValid = inRangeFromZero(values.safeCountTolerance, MAX_SAFE_COUNT_TOLERANCE)
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,6 +88,7 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
     }
     if (values.receiptTolerance !== saved.receiptTolerance) req.receiptTolerancePercent = Number(values.receiptTolerance)
     if (values.densityTolerance !== saved.densityTolerance) req.densityTolerance = Number(values.densityTolerance)
+    if (values.safeCountTolerance !== saved.safeCountTolerance) req.safeCountTolerance = Number(values.safeCountTolerance)
     mutation.mutate(req)
   }
 
@@ -89,6 +100,7 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
     : null
   const hasChanges = values.threshold.trim() !== saved.threshold.trim()
     || values.receiptTolerance !== saved.receiptTolerance || values.densityTolerance !== saved.densityTolerance
+    || values.safeCountTolerance !== saved.safeCountTolerance
 
   return (
     <form onSubmit={handleSave} className="space-y-4">
@@ -126,7 +138,20 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
         </FormGrid>
       </SetupFormGroup>
 
-      <SetupSaveBar hasChanges={hasChanges && receiptToleranceValid && densityToleranceValid} isSaving={mutation.isPending}
+      <SetupFormGroup icon={Vault} title={t('settings.safeTitle')} hint={t('settings.safeExplanation')}>
+        <FormGrid>
+          <FormField
+            label={t('settings.safeToleranceLabel')}
+            help={safeToleranceValid ? t('settings.safeToleranceEffect', { amount: formatCurrency(Number(values.safeCountTolerance)) }) : undefined}
+            error={safeToleranceValid ? undefined : t('settings.safeToleranceInvalid', { max: formatCurrency(MAX_SAFE_COUNT_TOLERANCE) })}
+          >
+            <NumericInput min="0" max={MAX_SAFE_COUNT_TOLERANCE} step="1" unit="₹" value={values.safeCountTolerance}
+              onChange={(e) => change('safeCountTolerance', e.target.value)} />
+          </FormField>
+        </FormGrid>
+      </SetupFormGroup>
+
+      <SetupSaveBar hasChanges={hasChanges && receiptToleranceValid && densityToleranceValid && safeToleranceValid} isSaving={mutation.isPending}
         saveLabel={t('settings.save')} error={error} />
     </form>
   )

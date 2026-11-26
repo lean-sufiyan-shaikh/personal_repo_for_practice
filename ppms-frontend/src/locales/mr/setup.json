@@ -73,7 +73,12 @@
     "receiptToleranceInvalid": "0 पेक्षा जास्त आणि जास्तीत जास्त {{max}}% भरा.",
     "densityToleranceLabel": "घनतेची मर्यादा",
     "densityToleranceEffect": "मोजलेली आणि इनव्हॉइसवरील घनता {{tolerance}} kg/m³ पेक्षा जास्त वेगळी असल्यास फ्लॅग होईल.",
-    "densityToleranceInvalid": "0 पेक्षा जास्त आणि जास्तीत जास्त {{max}} kg/m³ भरा."
+    "densityToleranceInvalid": "0 पेक्षा जास्त आणि जास्तीत जास्त {{max}} kg/m³ भरा.",
+    "safeTitle": "तिजोरी मोजणी",
+    "safeExplanation": "तिजोरीची मोजणी रोख लेजरपेक्षा किती वेगळी असू शकते, त्यापेक्षा जास्त फरक असल्यास मालकाला सूचना जाते.",
+    "safeToleranceLabel": "तिजोरी मोजणीची सूट",
+    "safeToleranceEffect": "{{amount}} पेक्षा जास्त कमी किंवा जास्त मोजणी झाल्यास मालकाला सूचना जाईल.",
+    "safeToleranceInvalid": "₹0 ते {{max}} पर्यंतची रक्कम भरा."
   },
   "gst": {
     "saved": "GST तपशील सेव्ह झाला",

@@ -22,6 +22,8 @@ export interface LiveSummaryFigures {
   diff: number | null
   /** The approval limit the difference is above, when it is. */
   approvalLimit: number | null
+  /** What should still be in the bag once confirmed drops are taken off; null when nothing was dropped. */
+  expectedInBag: number | null
 }
 
 interface Props {
@@ -63,7 +65,8 @@ function Breakdown({ figures }: { figures: LiveSummaryFigures }) {
   const { t } = useTranslation(['shifts', 'common'])
   const { payments } = figures
   const paymentLines: Array<[string, number]> = payments ? [
-    [t('common:paymentMethods.CASH'), payments.cash],
+    [t('close.drops.droppedToSafe'), payments.dropped],
+    [payments.dropped > 0 ? t('close.review.cashInBag') : t('common:paymentMethods.CASH'), payments.cash],
     [t('common:paymentMethods.UPI'), payments.upi],
     [t('common:paymentMethods.CARD'), payments.card],
     [t('close.review.fleetCard'), payments.fleetCard],
@@ -87,6 +90,12 @@ function Breakdown({ figures }: { figures: LiveSummaryFigures }) {
         <dt className="text-ink-2">{t('close.liveSummary.collected')}</dt>
         <dd><MoneyText value={figures.totalCollected} className="font-semibold" /></dd>
       </div>
+      {figures.expectedInBag !== null && (
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="text-ink-2">{t('close.drops.expectedInBag')}</dt>
+          <dd><MoneyText value={figures.expectedInBag} className="font-semibold" /></dd>
+        </div>
+      )}
       {shownPayments.map(([label, amount]) => (
         <div key={label} className="flex items-baseline justify-between gap-3 pl-3 text-xs">
           <dt className="text-ink-3">{label}</dt>

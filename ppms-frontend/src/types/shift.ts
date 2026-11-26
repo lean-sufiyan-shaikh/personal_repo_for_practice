@@ -1,3 +1,4 @@
+import type { CashDenominations } from '../api/cashApi'
 export type FuelType = 'PETROL' | 'SPEED_PETROL' | 'DIESEL' | 'SPEED_DIESEL' | 'CNG'
 
 export type ShiftStatus =
@@ -103,6 +104,10 @@ export interface Shift {
   cardCollected: number | null
   fleetCardCollected: number | null
   creditTotal: number | null
+  /** Confirmed cash drops at close, already part of cashCollected; null while open and for older shifts. */
+  cashDropped: number | null
+  /** The bag count by note at close; null when only a total was typed. */
+  cashDenominations: CashDenominations | null
   discrepancyAmount: number | null
   discrepancyType: DiscrepancyType | null
   discrepancyReason: string | null
@@ -133,7 +138,10 @@ export interface CloseShiftRequest {
     nozzleId: number
     endReading: number
   }>
+  /** Cash counted in the bag; the server adds the confirmed drops to give the shift's cash. */
   cashCollected: number
+  /** Sent only when the bag was counted note by note; must add up to cashCollected. */
+  cashDenominations?: CashDenominations
   upiCollected: number
   cardCollected: number
   fleetCardCollected: number

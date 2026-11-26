@@ -1,5 +1,7 @@
 package com.ppms.shift;
 
+import com.ppms.cash.CashDenominations;
+import com.ppms.cash.CashDropService;
 import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.time.BusinessClock;
@@ -71,6 +73,7 @@ public class ShiftService {
     private final BusinessClock businessClock;
     private final InvoicedSaleGuard invoicedSaleGuard;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
+    private final CashDropService cashDropService;
 
     /**
      * Opens a new shift for selected nozzles on a Dispensary Unit.
@@ -223,16 +226,19 @@ public class ShiftService {
         Map<Long, BigDecimal> maxMeterByNozzleId = nozzles.stream()
                 .collect(Collectors.toMap(Nozzle::getId, Nozzle::getMaxMeterValue));
 
+        CashDenominations.requireMatches(request.getCashDenominations(), request.getCashCollected());
+        BigDecimal cashDropped = cashDropService.confirmedTotalForClose(shiftId);
+
         List<ShiftFuelReading> readings = fuelReadingRepository.findByShiftId(shiftId);
         ShiftLifecycleSupportService.ClosingSummary closingSummary =
-                lifecycleSupportService.processClosingReadings(shiftId, maxMeterByNozzleId, request, readings);
+                lifecycleSupportService.processClosingReadings(shiftId, maxMeterByNozzleId, request, cashDropped, readings);
         List<CloseShiftRequest.CreditEntryRequest> creditEntries =
                 lifecycleSupportService.validateCloseCreditEntries(shiftId, request.getCreditTotal(), request.getCreditEntries(),
                         request.getReplacedCreditEntryIds());
 
         deductSoldFuel(shift, readings);
 
-        applyClosingValues(shift, request, closingSummary, currentUser);
+        applyClosingValues(shift, request, cashDropped, closingSummary, currentUser);
         shift = shiftRepository.save(shift);
 
         activeNozzleRepository.deleteByShiftId(shiftId);
@@ -270,7 +276,7 @@ public class ShiftService {
         }
     }
 
-    private void applyClosingValues(Shift shift, CloseShiftRequest request,
+    private void applyClosingValues(Shift shift, CloseShiftRequest request, BigDecimal cashDropped,
                                     ShiftLifecycleSupportService.ClosingSummary closingSummary, User closedBy) {
         // A late close is recorded at the scheduled end, so DAY balance-sheet windows stay aligned
         // with the shift definition; an early or on-time close keeps the real time.
@@ -279,7 +285,9 @@ public class ShiftService {
         shift.setActualEndTime(scheduledEnd != null && closeTime.isAfter(scheduledEnd) ? scheduledEnd : closeTime);
         shift.setClosedByUserId(closedBy.getId());
         shift.setTotalAmountDue(closingSummary.getTotalDue());
-        shift.setCashCollected(request.getCashCollected());
+        shift.setCashCollected(request.getCashCollected().add(cashDropped));
+        shift.setCashDropped(cashDropped);
+        shift.setCashDenominations(request.getCashDenominations());
         shift.setUpiCollected(request.getUpiCollected());
         shift.setCardCollected(request.getCardCollected());
         shift.setFleetCardCollected(request.getFleetCardCollected());

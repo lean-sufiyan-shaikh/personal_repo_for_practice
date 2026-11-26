@@ -181,6 +181,8 @@ public class ShiftReadModelService {
                 .cardCollected(shift.getCardCollected())
                 .fleetCardCollected(shift.getFleetCardCollected())
                 .creditTotal(shift.getCreditTotal())
+                .cashDropped(shift.getCashDropped())
+                .cashDenominations(shift.getCashDenominations())
                 .discrepancyAmount(shift.getDiscrepancyAmount())
                 .discrepancyType(shift.getDiscrepancyType() != null ? shift.getDiscrepancyType().name() : null)
                 .discrepancyReason(shift.getDiscrepancyReason())

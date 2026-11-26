@@ -3,11 +3,14 @@ package com.ppms.common.exception;
 /** The kind of record a NOT_FOUND error is about; the frontend shows it from enums.json. */
 public enum EntityType {
     BALANCE_SHEET,
+    BANK_DEPOSIT,
+    CASH_DROP,
     CREDIT_CLIENT,
     CREDIT_ENTRY,
     CREDIT_EXTENSION,
     CREDIT_PAYMENT,
     DELIVERY,
+    DEPOSIT_SLIP,
     DIP_CHECK,
     DISPENSARY_UNIT,
     DOCUMENT,

@@ -17,6 +17,8 @@ import java.time.OffsetDateTime;
  *   CASH_IN         — money received (e.g. shift collection deposited to safe)
  *   CASH_OUT        — money taken out (e.g. bank deposit, petty cash withdrawal)
  *   CLOSING_BALANCE — physical count of cash at end of day
+ *   CASH_DROP       — a confirmed drop from an open shift's bag
+ *   BANK_DEPOSIT    — cash deposited at the bank against a slip
  *
  * The running balance is computed from events, not stored, to avoid drift.
  */

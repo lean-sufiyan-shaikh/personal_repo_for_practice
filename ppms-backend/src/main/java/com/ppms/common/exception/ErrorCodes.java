@@ -331,6 +331,20 @@ public final class ErrorCodes {
     public static final String CREDIT_NOTE_EXCEEDS_INVOICE_VALUE = "CREDIT_NOTE_EXCEEDS_INVOICE_VALUE";
     public static final String RECEIPT_TOLERANCE_OUT_OF_RANGE = "RECEIPT_TOLERANCE_OUT_OF_RANGE";
     public static final String DENSITY_TOLERANCE_OUT_OF_RANGE = "DENSITY_TOLERANCE_OUT_OF_RANGE";
+    public static final String DENOMINATIONS_TOTAL_MISMATCH = "DENOMINATIONS_TOTAL_MISMATCH";
+    public static final String CASH_DROP_SHIFT_NOT_OPEN = "CASH_DROP_SHIFT_NOT_OPEN";
+    public static final String CASH_DROP_NOT_OWN_SHIFT = "CASH_DROP_NOT_OWN_SHIFT";
+    public static final String CASH_DROP_NOT_PENDING = "CASH_DROP_NOT_PENDING";
+    public static final String CASH_DROP_SELF_CONFIRMATION = "CASH_DROP_SELF_CONFIRMATION";
+    public static final String CASH_DROPS_PENDING_AT_CLOSE = "CASH_DROPS_PENDING_AT_CLOSE";
+    public static final String CASH_EVENT_TYPE_NOT_MANUAL = "CASH_EVENT_TYPE_NOT_MANUAL";
+    public static final String BANK_DEPOSIT_EXCEEDS_SAFE_BALANCE = "BANK_DEPOSIT_EXCEEDS_SAFE_BALANCE";
+    public static final String BANK_DEPOSIT_DATE_IN_FUTURE = "BANK_DEPOSIT_DATE_IN_FUTURE";
+    public static final String BANK_DEPOSIT_SLIP_REFERENCE_USED = "BANK_DEPOSIT_SLIP_REFERENCE_USED";
+    public static final String DEPOSIT_SLIP_TYPE_NOT_ALLOWED = "DEPOSIT_SLIP_TYPE_NOT_ALLOWED";
+    public static final String DEPOSIT_SLIP_TOO_LARGE = "DEPOSIT_SLIP_TOO_LARGE";
+    public static final String DEPOSIT_SLIP_EMPTY = "DEPOSIT_SLIP_EMPTY";
+    public static final String SAFE_COUNT_TOLERANCE_OUT_OF_RANGE = "SAFE_COUNT_TOLERANCE_OUT_OF_RANGE";
 
     private ErrorCodes() {
     }

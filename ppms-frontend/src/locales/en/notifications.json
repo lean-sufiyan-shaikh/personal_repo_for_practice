@@ -31,6 +31,8 @@
     "AUTO_CLOSED_SHIFT": "Shift force-closed",
     "SETTLEMENT_REMINDER": "Settlement reminder",
     "WET_STOCK_LOSS": "Fuel loss above limit",
-    "DELIVERY_SHORTAGE": "Short tanker delivery"
+    "DELIVERY_SHORTAGE": "Short tanker delivery",
+    "CASH_DROP_PENDING": "Cash drop to confirm",
+    "SAFE_COUNT_VARIANCE": "Safe count difference"
   }
 }

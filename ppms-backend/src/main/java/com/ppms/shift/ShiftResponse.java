@@ -2,6 +2,7 @@ package com.ppms.shift;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ppms.fuel.FuelType;
+import com.ppms.cash.CashDenominations;
 import lombok.Builder;
 import lombok.Data;
 
@@ -53,6 +54,9 @@ public class ShiftResponse {
     private BigDecimal cardCollected;
     private BigDecimal fleetCardCollected;
     private BigDecimal creditTotal;
+    /** Confirmed cash drops, already included in cashCollected; null before the shift closes. */
+    private BigDecimal cashDropped;
+    private CashDenominations cashDenominations;
 
     // Discrepancy
     private BigDecimal discrepancyAmount;

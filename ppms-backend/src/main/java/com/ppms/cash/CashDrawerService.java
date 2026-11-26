@@ -32,6 +32,11 @@ public class CashDrawerService {
      */
     @Transactional
     public CashEvent recordCashEvent(Long pumpId, RecordCashEventRequest req, User currentUser) {
+        if (!req.getEventType().isRecordedByHand()) {
+            throw new BusinessException(ErrorCodes.CASH_EVENT_TYPE_NOT_MANUAL,
+                    Map.of("eventTypeCode", req.getEventType().name()),
+                    req.getEventType() + " movements are recorded by confirming a cash drop or recording a bank deposit.");
+        }
         BigDecimal amount = req.getAmount().setScale(2, RoundingMode.HALF_UP);
 
         if (req.getEventType() == CashEventType.CASH_OUT) {

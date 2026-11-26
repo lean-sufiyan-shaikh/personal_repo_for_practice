@@ -6,6 +6,7 @@ import { codeLabel } from '../../../constants/labels'
 import { formatCurrency } from '../../../utils/format'
 import { formatIstDateTime } from '../../../utils/date'
 import { timeOpen } from '../../dashboard/overview/overviewFormat'
+import { ShiftDropsList } from '../drops/ShiftDropsList'
 
 interface MyShiftCardProps {
   shift: Shift
@@ -79,6 +80,8 @@ export function MyShiftCard({ shift, currentPrices, now }: MyShiftCardProps) {
           })}
         </ul>
       </div>
+
+      <ShiftDropsList pumpId={shift.pumpId} shiftId={shift.id} />
     </section>
   )
 }

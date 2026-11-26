@@ -6,7 +6,7 @@ import { SkeletonRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
-import { EVENT_BADGES, EVENT_TYPES, fmtDate } from './cashFormat'
+import { ALL_EVENT_TYPES, EVENT_BADGES, fmtDate, isOutflow } from './cashFormat'
 import type { CashEventsState } from './useCashEvents'
 import { codeLabel } from '../../constants/labels'
 import { PageSection } from '../../components/layout/PageSection'
@@ -55,7 +55,7 @@ export function CashEventList({ events }: { events: CashEventsState }) {
             onChange={v => { setEventTypeFilter(v as CashEventType | ''); setPage(0) }}
             options={[
               { value: '', label: t('list.allTypes') },
-              ...EVENT_TYPES.map(type => ({ value: type, label: t(`eventTypes.${type}`) })),
+              ...ALL_EVENT_TYPES.map(type => ({ value: type, label: t(`eventTypes.${type}`) })),
             ]}
             size="sm"
           />
@@ -85,9 +85,9 @@ export function CashEventList({ events }: { events: CashEventsState }) {
                   </div>
                 </div>
                 <MoneyText
-                  value={ev.eventType === 'CASH_OUT' ? -ev.amount : ev.amount}
+                  value={isOutflow(ev.eventType) ? -ev.amount : ev.amount}
                   showSign
-                  tone={ev.eventType === 'CASH_OUT' ? 'bad' : 'ok'}
+                  tone={isOutflow(ev.eventType) ? 'bad' : 'ok'}
                   className="text-sm font-semibold flex-shrink-0"
                 />
               </div>

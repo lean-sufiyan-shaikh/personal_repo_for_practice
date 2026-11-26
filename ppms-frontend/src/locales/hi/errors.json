@@ -327,5 +327,19 @@
   "CREDIT_NOTE_DATE_IN_FUTURE": "क्रेडिट नोट की तारीख भविष्य की नहीं हो सकती।",
   "CREDIT_NOTE_EXCEEDS_INVOICE_VALUE": "₹{{creditNoteAmount}} का क्रेडिट नोट डिलीवरी के इनवॉइस मूल्य ₹{{invoiceValue}} से ज़्यादा है।",
   "RECEIPT_TOLERANCE_OUT_OF_RANGE": "कम / ज़्यादा की सीमा 0 से ज़्यादा और अधिकतम 5% होनी चाहिए।",
-  "DENSITY_TOLERANCE_OUT_OF_RANGE": "घनत्व की सीमा 0 से ज़्यादा और अधिकतम 50 kg/m³ होनी चाहिए।"
+  "DENSITY_TOLERANCE_OUT_OF_RANGE": "घनत्व की सीमा 0 से ज़्यादा और अधिकतम 50 kg/m³ होनी चाहिए।",
+  "DENOMINATIONS_TOTAL_MISMATCH": "गिने गए नोट और सिक्के ₹{{denominationTotal}} होते हैं, लेकिन दर्ज राशि ₹{{amount}} है।",
+  "CASH_DROP_SHIFT_NOT_OPEN": "नकद केवल चालू शिफ्ट से ड्रॉप किया जा सकता है। यह शिफ्ट {{statusCode}} है।",
+  "CASH_DROP_NOT_OWN_SHIFT": "आप केवल अपनी चालू शिफ्ट से नकद ड्रॉप कर सकते हैं।",
+  "CASH_DROP_NOT_PENDING": "यह कैश ड्रॉप पहले से {{statusCode}} है।",
+  "CASH_DROP_SELF_CONFIRMATION": "इस ड्रॉप की पुष्टि उसे दर्ज करने वाले के अलावा कोई और करे।",
+  "CASH_DROPS_PENDING_AT_CLOSE": "इस शिफ्ट के {{count}} कैश ड्रॉप (₹{{amount}}) पुष्टि की प्रतीक्षा में हैं। बंद करने से पहले उनकी पुष्टि करें या अस्वीकार करें।",
+  "CASH_EVENT_TYPE_NOT_MANUAL": "{{eventTypeCode}} एंट्री कैश ड्रॉप की पुष्टि या बैंक जमा दर्ज करने से ही बनती है।",
+  "BANK_DEPOSIT_EXCEEDS_SAFE_BALANCE": "₹{{amount}} की जमा राशि तिजोरी में रखे ₹{{balance}} से ज़्यादा है।",
+  "BANK_DEPOSIT_DATE_IN_FUTURE": "जमा की तारीख भविष्य की नहीं हो सकती।",
+  "BANK_DEPOSIT_SLIP_REFERENCE_USED": "पर्ची नंबर {{slipReference}} वाली जमा पहले से दर्ज है।",
+  "DEPOSIT_SLIP_TYPE_NOT_ALLOWED": "पर्ची JPEG या PNG फ़ोटो या PDF होनी चाहिए।",
+  "DEPOSIT_SLIP_TOO_LARGE": "पर्ची की फ़ाइल अधिकतम {{maxMb}} MB की हो सकती है।",
+  "DEPOSIT_SLIP_EMPTY": "जमा पर्ची की फ़ोटो या PDF चुनें।",
+  "SAFE_COUNT_TOLERANCE_OUT_OF_RANGE": "तिजोरी गिनती की छूट ₹0 से ₹{{max}} के बीच होनी चाहिए।"
 }

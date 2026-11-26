@@ -262,6 +262,14 @@
     "DELIVERY_SHORTAGE": {
       "title": "टँकर डिलिव्हरी कमी आली",
       "message": "{{tankName}} ({{fuelTypeCode}}) मध्ये इनव्हॉइस {{invoiceReference}} पेक्षा {{shortLitres}} L कमी आले — {{shortPercent}}% कमी. ₹{{claimAmount}} चा दावा केला आहे."
+    },
+    "CASH_DROP_PENDING": {
+      "title": "कॅश ड्रॉपची खात्री करा",
+      "message": "{{operatorName}} यांनी शिफ्ट #{{shiftId}} मधून ₹{{amount}} तिजोरीत टाकले. मोजून खात्री करा किंवा नाकारा."
+    },
+    "SAFE_COUNT_VARIANCE": {
+      "title": "तिजोरी मोजणीत फरक",
+      "message": "{{countedByName}} यांनी तिजोरीत ₹{{countedAmount}} मोजले, अपेक्षित ₹{{expectedAmount}} होते: ₹{{amount}} {{varianceTypeCode}}."
     }
   },
   "serverTexts": {
@@ -355,7 +363,9 @@
     "ATTENTION_MISSING_DIPS_one": "{{count}} टँकची काल एकही डिप रीडिंग नाही",
     "ATTENTION_MISSING_DIPS_other": "{{count}} टँकची काल एकही डिप रीडिंग नाही",
     "ATTENTION_SHORTAGE_CLAIMS_OPEN_one": "{{count}} कमतरतेचा दावा {{days}} दिवसांपूर्वी केला आणि अजून खुला आहे",
-    "ATTENTION_SHORTAGE_CLAIMS_OPEN_other": "{{count}} कमतरतेचे दावे {{days}} दिवसांपूर्वी केले आणि अजून खुले आहेत"
+    "ATTENTION_SHORTAGE_CLAIMS_OPEN_other": "{{count}} कमतरतेचे दावे {{days}} दिवसांपूर्वी केले आणि अजून खुले आहेत",
+    "ATTENTION_PENDING_CASH_DROPS_one": "{{count}} कॅश ड्रॉप तिजोरीत खात्रीच्या प्रतीक्षेत",
+    "ATTENTION_PENDING_CASH_DROPS_other": "{{count}} कॅश ड्रॉप तिजोरीत खात्रीच्या प्रतीक्षेत"
   },
   "WET_STOCK_LOSS": "मर्यादेपेक्षा जास्त इंधन तोटा",
   "RAISED": "दावा केला",
@@ -363,5 +373,12 @@
   "NOT_CHECKED": "तपासणी झाली नाही",
   "SHORTAGE_CLAIM": "कमतरतेचा दावा",
   "SHORTAGE_CLAIMS_OPEN": "खुले कमतरतेचे दावे",
-  "DELIVERY_SHORTAGE": "कमी डिलिव्हरी"
+  "DELIVERY_SHORTAGE": "कमी डिलिव्हरी",
+  "BANK_DEPOSIT": "बँक भरणा",
+  "CASH_DROP": "कॅश ड्रॉप",
+  "DEPOSIT_SLIP": "भरणा पावती",
+  "PENDING": "प्रलंबित",
+  "PENDING_CASH_DROPS": "खात्रीसाठी कॅश ड्रॉप",
+  "CASH_DROP_PENDING": "खात्रीसाठी कॅश ड्रॉप",
+  "SAFE_COUNT_VARIANCE": "तिजोरी मोजणीत फरक"
 }

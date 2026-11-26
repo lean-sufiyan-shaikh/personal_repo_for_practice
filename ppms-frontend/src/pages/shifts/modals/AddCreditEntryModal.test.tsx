@@ -24,7 +24,7 @@ const shift: Shift = {
     priceSnapshot: 100, unitsSold: null, maxMeterValue: 999_999,
   }],
   totalAmountDue: null, cashCollected: null, upiCollected: null, cardCollected: null, fleetCardCollected: null,
-  creditTotal: null, discrepancyAmount: null, discrepancyType: null, discrepancyReason: null,
+  creditTotal: null, cashDropped: null, cashDenominations: null, discrepancyAmount: null, discrepancyType: null, discrepancyReason: null,
   discrepancyResolution: null, discrepancyResolutionNote: null,
   investigationNote: null, investigatedByName: null, investigationStartedAt: null, cashRecoveryAmount: null,
   status: 'OPEN', isBackfilled: false, creditEntries: [],

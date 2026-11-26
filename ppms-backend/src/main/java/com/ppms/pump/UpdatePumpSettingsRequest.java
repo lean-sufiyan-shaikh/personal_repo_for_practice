@@ -13,5 +13,6 @@ public record UpdatePumpSettingsRequest(
         @Size(max = 60, message = "State name must be at most 60 characters") String stateName,
         String invoicePrefix,
         BigDecimal receiptTolerancePercent,
-        BigDecimal densityTolerance
+        BigDecimal densityTolerance,
+        BigDecimal safeCountTolerance
 ) {}

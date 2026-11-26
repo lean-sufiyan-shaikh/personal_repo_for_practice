@@ -81,6 +81,12 @@ export type AuditAction =
   | 'SETTLEMENT_RECORDED'
   | 'SETTLEMENT_VOIDED'
   | 'SETTLEMENT_CONFIG_UPDATED'
+  | 'CASH_DROP_RECORDED'
+  | 'CASH_DROP_CONFIRMED'
+  | 'CASH_DROP_REJECTED'
+  | 'SAFE_COUNTED'
+  | 'BANK_DEPOSIT_RECORDED'
+  | 'DEPOSIT_SLIP_ATTACHED'
 
 export interface AuditLog {
   id: number

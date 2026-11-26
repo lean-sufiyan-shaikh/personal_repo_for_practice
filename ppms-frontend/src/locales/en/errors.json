@@ -327,5 +327,19 @@
   "CREDIT_NOTE_DATE_IN_FUTURE": "The credit note date cannot be in the future.",
   "CREDIT_NOTE_EXCEEDS_INVOICE_VALUE": "The credit note of ₹{{creditNoteAmount}} is more than the delivery's invoice value of ₹{{invoiceValue}}.",
   "RECEIPT_TOLERANCE_OUT_OF_RANGE": "The short / over tolerance must be above 0 and at most 5%.",
-  "DENSITY_TOLERANCE_OUT_OF_RANGE": "The density tolerance must be above 0 and at most 50 kg/m³."
+  "DENSITY_TOLERANCE_OUT_OF_RANGE": "The density tolerance must be above 0 and at most 50 kg/m³.",
+  "DENOMINATIONS_TOTAL_MISMATCH": "The notes and coins counted add up to ₹{{denominationTotal}}, but the amount entered is ₹{{amount}}.",
+  "CASH_DROP_SHIFT_NOT_OPEN": "Cash can only be dropped from an open shift. This shift is {{statusCode}}.",
+  "CASH_DROP_NOT_OWN_SHIFT": "You can only drop cash from your own open shift.",
+  "CASH_DROP_NOT_PENDING": "This cash drop is already {{statusCode}}.",
+  "CASH_DROP_SELF_CONFIRMATION": "Someone other than the person who recorded this drop must confirm it.",
+  "CASH_DROPS_PENDING_AT_CLOSE": "{{count}} cash drop(s) worth ₹{{amount}} from this shift are waiting for confirmation. Confirm or reject them before closing.",
+  "CASH_EVENT_TYPE_NOT_MANUAL": "{{eventTypeCode}} movements are recorded by confirming a cash drop or recording a bank deposit.",
+  "BANK_DEPOSIT_EXCEEDS_SAFE_BALANCE": "A deposit of ₹{{amount}} is more than the ₹{{balance}} the safe holds.",
+  "BANK_DEPOSIT_DATE_IN_FUTURE": "The deposit date cannot be in the future.",
+  "BANK_DEPOSIT_SLIP_REFERENCE_USED": "A deposit with slip reference {{slipReference}} is already recorded.",
+  "DEPOSIT_SLIP_TYPE_NOT_ALLOWED": "The slip must be a JPEG or PNG photo or a PDF.",
+  "DEPOSIT_SLIP_TOO_LARGE": "The slip file must be at most {{maxMb}} MB.",
+  "DEPOSIT_SLIP_EMPTY": "Choose a photo or PDF of the deposit slip.",
+  "SAFE_COUNT_TOLERANCE_OUT_OF_RANGE": "The safe count tolerance must be between ₹0 and ₹{{max}}."
 }

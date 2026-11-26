@@ -327,5 +327,19 @@
   "CREDIT_NOTE_DATE_IN_FUTURE": "क्रेडिट नोटची तारीख भविष्यातील असू शकत नाही.",
   "CREDIT_NOTE_EXCEEDS_INVOICE_VALUE": "₹{{creditNoteAmount}} ची क्रेडिट नोट डिलिव्हरीच्या इनव्हॉइस मूल्य ₹{{invoiceValue}} पेक्षा जास्त आहे.",
   "RECEIPT_TOLERANCE_OUT_OF_RANGE": "कमी / जास्तची मर्यादा 0 पेक्षा जास्त आणि जास्तीत जास्त 5% असावी.",
-  "DENSITY_TOLERANCE_OUT_OF_RANGE": "घनतेची मर्यादा 0 पेक्षा जास्त आणि जास्तीत जास्त 50 kg/m³ असावी."
+  "DENSITY_TOLERANCE_OUT_OF_RANGE": "घनतेची मर्यादा 0 पेक्षा जास्त आणि जास्तीत जास्त 50 kg/m³ असावी.",
+  "DENOMINATIONS_TOTAL_MISMATCH": "मोजलेल्या नोटा आणि नाणी ₹{{denominationTotal}} होतात, पण भरलेली रक्कम ₹{{amount}} आहे.",
+  "CASH_DROP_SHIFT_NOT_OPEN": "रोख फक्त चालू शिफ्टमधून ड्रॉप करता येते. ही शिफ्ट {{statusCode}} आहे.",
+  "CASH_DROP_NOT_OWN_SHIFT": "तुम्ही फक्त तुमच्या स्वतःच्या चालू शिफ्टमधून रोख ड्रॉप करू शकता.",
+  "CASH_DROP_NOT_PENDING": "हा कॅश ड्रॉप आधीच {{statusCode}} आहे.",
+  "CASH_DROP_SELF_CONFIRMATION": "हा ड्रॉप नोंदवणाऱ्या व्यक्तीशिवाय दुसऱ्या कोणीतरी त्याची खात्री करावी.",
+  "CASH_DROPS_PENDING_AT_CLOSE": "या शिफ्टचे {{count}} कॅश ड्रॉप (₹{{amount}}) खात्रीच्या प्रतीक्षेत आहेत. बंद करण्यापूर्वी त्यांची खात्री करा किंवा नाकारा.",
+  "CASH_EVENT_TYPE_NOT_MANUAL": "{{eventTypeCode}} नोंद कॅश ड्रॉपची खात्री किंवा बँक भरणा नोंदवल्यानेच होते.",
+  "BANK_DEPOSIT_EXCEEDS_SAFE_BALANCE": "₹{{amount}} चा भरणा तिजोरीतील ₹{{balance}} पेक्षा जास्त आहे.",
+  "BANK_DEPOSIT_DATE_IN_FUTURE": "भरण्याची तारीख भविष्यातील असू शकत नाही.",
+  "BANK_DEPOSIT_SLIP_REFERENCE_USED": "पावती क्रमांक {{slipReference}} असलेला भरणा आधीच नोंदवला आहे.",
+  "DEPOSIT_SLIP_TYPE_NOT_ALLOWED": "पावती JPEG किंवा PNG फोटो किंवा PDF असावी.",
+  "DEPOSIT_SLIP_TOO_LARGE": "पावतीची फाइल जास्तीत जास्त {{maxMb}} MB असावी.",
+  "DEPOSIT_SLIP_EMPTY": "भरणा पावतीचा फोटो किंवा PDF निवडा.",
+  "SAFE_COUNT_TOLERANCE_OUT_OF_RANGE": "तिजोरी मोजणीची सूट ₹0 ते ₹{{max}} दरम्यान असावी."
 }

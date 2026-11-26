@@ -19,7 +19,7 @@ function shortShift(id: number, status: Shift['status']): Shift {
     shiftDate: '2026-03-15', actualStartTime: '2026-03-15T00:30:00Z', actualEndTime: '2026-03-15T08:30:00Z', scheduledEndTime: null,
     fuelReadings: [],
     totalAmountDue: 10000, cashCollected: 8000, upiCollected: 0, cardCollected: 0, fleetCardCollected: 0,
-    creditTotal: 0, discrepancyAmount: 2000, discrepancyType: 'SHORT', discrepancyReason: 'Cash bag missing',
+    creditTotal: 0, cashDropped: null, cashDenominations: null, discrepancyAmount: 2000, discrepancyType: 'SHORT', discrepancyReason: 'Cash bag missing',
     discrepancyResolution: null, discrepancyResolutionNote: null,
     investigationNote: null, investigatedByName: null, investigationStartedAt: null, cashRecoveryAmount: null,
     status, isBackfilled: false, creditEntries: [],

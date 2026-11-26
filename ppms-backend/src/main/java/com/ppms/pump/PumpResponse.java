@@ -25,6 +25,7 @@ public class PumpResponse {
     private String invoicePrefix;
     private BigDecimal receiptTolerancePercent;
     private BigDecimal densityTolerance;
+    private BigDecimal safeCountTolerance;
     /** Active Dispensary Units with their nozzles. */
     private List<DUResponse> dus;
 }

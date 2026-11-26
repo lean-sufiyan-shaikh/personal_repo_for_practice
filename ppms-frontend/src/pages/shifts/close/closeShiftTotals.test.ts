@@ -9,7 +9,7 @@ function reading(overrides: Partial<FuelReading> = {}): FuelReading {
   }
 }
 
-const blankPayments = { cash: '', upi: '', card: '', fleetCard: '', preRecordedTotal: 0, newCreditTotal: 0 }
+const blankPayments = { cash: '', upi: '', card: '', fleetCard: '', preRecordedTotal: 0, newCreditTotal: 0, cashDropped: 0 }
 
 function totals(input: Partial<Parameters<typeof computeCloseShiftTotals>[0]> = {}) {
   return computeCloseShiftTotals({
@@ -22,6 +22,16 @@ function totals(input: Partial<Parameters<typeof computeCloseShiftTotals>[0]> = 
 }
 
 describe('computeCloseShiftTotals', () => {
+  it('counts confirmed drops as collected, so only the bag is compared with what is left', () => {
+    const balanced = totals({ cash: '400', cashDropped: 600 })
+    expect(balanced.totalCollected).toBe(1000)
+    expect(balanced.isBalanced).toBe(true)
+
+    const short = totals({ cash: '350', cashDropped: 600 })
+    expect(short.diff).toBe(-50)
+    expect(short.hasDiscrepancy).toBe(true)
+  })
+
   it('is balanced when payments plus credit equal the meter value', () => {
     const result = totals({ cash: '600', upi: '200', card: '100', fleetCard: '50', newCreditTotal: 50 })
     expect(result.totalDue).toBe(1000)

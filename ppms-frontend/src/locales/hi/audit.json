@@ -82,6 +82,12 @@
     "SHORTAGE_CLAIM_UPDATED": "कमी का दावा बदला गया",
     "SHORTAGE_CLAIM_SETTLED": "कमी का दावा निपटाया गया",
     "SHORTAGE_CLAIM_REJECTED": "कमी का दावा अस्वीकार किया गया",
-    "SHORTAGE_CLAIM_WITHDRAWN": "कमी का दावा वापस लिया गया"
+    "SHORTAGE_CLAIM_WITHDRAWN": "कमी का दावा वापस लिया गया",
+    "CASH_DROP_RECORDED": "कैश ड्रॉप दर्ज",
+    "CASH_DROP_CONFIRMED": "कैश ड्रॉप की पुष्टि",
+    "CASH_DROP_REJECTED": "कैश ड्रॉप अस्वीकृत",
+    "SAFE_COUNTED": "तिजोरी गिनी गई",
+    "BANK_DEPOSIT_RECORDED": "बैंक जमा दर्ज",
+    "DEPOSIT_SLIP_ATTACHED": "जमा पर्ची जोड़ी गई"
   }
 }

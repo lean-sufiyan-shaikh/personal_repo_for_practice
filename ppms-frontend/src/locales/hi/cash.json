@@ -3,7 +3,9 @@
     "OPENING_BALANCE": "शुरुआती बैलेंस",
     "CASH_IN": "नकद जमा",
     "CASH_OUT": "नकद निकासी",
-    "CLOSING_BALANCE": "अंतिम बैलेंस"
+    "CLOSING_BALANCE": "अंतिम बैलेंस",
+    "CASH_DROP": "कैश ड्रॉप",
+    "BANK_DEPOSIT": "बैंक जमा"
   },
   "page": {
     "title": "कैश ड्रॉअर",
@@ -12,7 +14,10 @@
     "currentBalance": "मौजूदा बैलेंस",
     "balanceHint": "सभी नकद जमा में से नकद निकासी घटाकर निकाला गया",
     "eventCount_one": "{{count}} एंट्री",
-    "eventCount_other": "{{count}} एंट्री"
+    "eventCount_other": "{{count}} एंट्री",
+    "views": "नकद दृश्य",
+    "tabMovements": "लेन-देन",
+    "tabSafe": "तिजोरी"
   },
   "list": {
     "title": "नकद एंट्री",
@@ -45,5 +50,113 @@
   "review": {
     "title": "नकद एंट्री जाँचें",
     "record": "एंट्री दर्ज करें"
+  },
+  "drops": {
+    "status": {
+      "PENDING": "पुष्टि बाकी",
+      "CONFIRMED": "तिजोरी में पुष्टि",
+      "REJECTED": "अस्वीकृत"
+    },
+    "reviewedBy": {
+      "CONFIRMED": "{{name}} ने पुष्टि की",
+      "REJECTED": "{{name}} ने अस्वीकार किया"
+    },
+    "byOperatorAt": "{{operator}} · {{time}}",
+    "confirm": "पुष्टि करें",
+    "confirming": "ड्रॉप की पुष्टि हो रही है",
+    "confirmed": "{{operator}} के {{amount}} तिजोरी में पुष्टि हुए",
+    "rejected": "{{operator}} के {{amount}} अस्वीकृत",
+    "reviewFailed": "कैश ड्रॉप अपडेट नहीं हो सका। फिर से कोशिश करें।",
+    "rejectTitle": "कैश ड्रॉप अस्वीकार करें",
+    "rejectSubtitle": "{{operator}} के {{amount}} ड्रॉप में नहीं गिने जाएँगे। बताएँ कि क्या गलत था।"
+  },
+  "safe": {
+    "balance": "तिजोरी में अभी",
+    "balanceHint": "बंद शिफ्टों और पुष्टि किए गए ड्रॉप का नकद, बैंक जमा और निकाले गए नकद को घटाकर।",
+    "tolerance": "गिनती की छूट {{amount}}",
+    "latestCount": "पिछली गिनती",
+    "noCount": "तिजोरी अभी तक गिनी नहीं गई है।",
+    "countedAgainst": "अपेक्षित {{expected}} के मुकाबले {{counted}} गिने गए",
+    "countedBy": "{{name}} · {{time}}",
+    "matches": "मेल खाता है",
+    "beyondTolerance": "{{amount}} की छूट से ज़्यादा: मालिक को सूचना भेजी गई।",
+    "countSafe": "तिजोरी गिनें",
+    "recordDeposit": "बैंक जमा दर्ज करें",
+    "loadFailed": "तिजोरी लोड नहीं हो सकी। कनेक्शन जाँचें और फिर से कोशिश करें।",
+    "pending": {
+      "title": "पुष्टि के लिए बाकी ड्रॉप",
+      "summary_one": "{{count}} ड्रॉप · {{amount}}",
+      "summary_other": "{{count}} ड्रॉप · {{amount}}",
+      "hint": "हर ड्रॉप तिजोरी में पहुँचने पर गिनें, फिर पुष्टि करें। केवल पुष्टि किए गए ड्रॉप ही थैले से बाहर माने जाते हैं।"
+    },
+    "ledger": {
+      "title": "तिजोरी लेजर",
+      "filtersLabel": "तिजोरी लेजर फ़िल्टर",
+      "empty": "तिजोरी में अभी तक कोई लेन-देन नहीं हुआ है।",
+      "emptyRange": "इस तारीख सीमा में कोई लेन-देन नहीं।",
+      "balanceAfter": "बाद का बैलेंस"
+    },
+    "deposits": {
+      "title": "बैंक जमा",
+      "filtersLabel": "बैंक जमा फ़िल्टर",
+      "bankFilter": "बैंक खाता",
+      "summary_one": "{{count}} जमा · {{amount}}",
+      "summary_other": "{{count}} जमा · {{amount}}",
+      "empty": "अभी तक कोई बैंक जमा दर्ज नहीं है।",
+      "emptyFiltered": "इन फ़िल्टर से कोई जमा मेल नहीं खाती।",
+      "slipReference": "पर्ची {{reference}}",
+      "recordedBy": "{{name}} ने दर्ज की",
+      "viewSlip": "पर्ची देखें",
+      "attachSlip": "पर्ची जोड़ें",
+      "attaching": "पर्ची जोड़ी जा रही है",
+      "slipAttached": "पर्ची जोड़ी गई",
+      "openFailed": "पर्ची खुल नहीं सकी।",
+      "attachFailed": "पर्ची जोड़ी नहीं जा सकी।"
+    },
+    "slip": {
+      "tooLarge": "पर्ची की फ़ाइल अधिकतम 5 MB की हो सकती है।",
+      "wrongType": "JPEG या PNG फ़ोटो या PDF चुनें।"
+    },
+    "count": {
+      "title": "तिजोरी गिनें",
+      "subtitle": "तिजोरी में अभी रखे हर नोट और सिक्के को गिनें।",
+      "amountLabel": "तिजोरी में नकद",
+      "notes": "टिप्पणी",
+      "figuresLabel": "लेजर के मुकाबले गिनती",
+      "expected": "लेजर के अनुसार अपेक्षित",
+      "counted": "गिना गया",
+      "difference": "अंतर",
+      "notifyOwner": "यह {{amount}} की छूट से ज़्यादा है, इसलिए मालिक को सूचना जाएगी।",
+      "save": "गिनती सेव करें",
+      "saving": "गिनती सेव हो रही है",
+      "saved": "तिजोरी की गिनती सेव हुई",
+      "failed": "गिनती सेव नहीं हो सकी।",
+      "needAmount": "गिनी गई राशि"
+    },
+    "deposit": {
+      "title": "बैंक जमा दर्ज करें",
+      "subtitle": "तिजोरी से बैंक में ले जाया गया नकद।",
+      "amount": "राशि",
+      "bankAccount": "बैंक खाता",
+      "bankAccountPlaceholder": "SBI current ••1234",
+      "date": "जमा की तारीख",
+      "slipReference": "पर्ची नंबर",
+      "slipFile": "पर्ची की फ़ोटो या PDF",
+      "slipHint": "JPEG, PNG या PDF, 5 MB तक।",
+      "notes": "टिप्पणी",
+      "figuresLabel": "इस जमा के बाद तिजोरी",
+      "inSafe": "तिजोरी में अभी",
+      "afterDeposit": "इसके बाद तिजोरी में",
+      "exceeds": "तिजोरी में केवल {{amount}} हैं।",
+      "save": "जमा दर्ज करें",
+      "saving": "जमा दर्ज हो रही है",
+      "saved": "{{amount}} की बैंक जमा दर्ज हुई",
+      "failed": "जमा दर्ज नहीं हो सकी।",
+      "slipUploadFailed": "जमा दर्ज हो गई, लेकिन पर्ची नहीं जुड़ी: {{reason}} जमा सूची से इसे जोड़ें।",
+      "needAmount": "राशि",
+      "needBank": "बैंक खाता",
+      "needDate": "जमा की तारीख",
+      "needSlip": "पर्ची नंबर"
+    }
   }
 }

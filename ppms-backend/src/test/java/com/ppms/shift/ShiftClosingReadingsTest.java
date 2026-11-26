@@ -31,7 +31,7 @@ class ShiftClosingReadingsTest {
         ShiftFuelReading reading = readingStartingAt("5000.000");
 
         assertThatThrownBy(() -> lifecycleSupportService.processClosingReadings(
-                1L, Map.of(NOZZLE_ID, MAX_METER), closeRequest("4999.000", "0.00"), List.of(reading)))
+                1L, Map.of(NOZZLE_ID, MAX_METER), closeRequest("4999.000", "0.00"), BigDecimal.ZERO, List.of(reading)))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("is below the opening reading");
     }
@@ -41,10 +41,23 @@ class ShiftClosingReadingsTest {
         ShiftFuelReading reading = readingStartingAt("999990.000");
 
         ShiftLifecycleSupportService.ClosingSummary summary = lifecycleSupportService.processClosingReadings(
-                1L, Map.of(NOZZLE_ID, MAX_METER), closeRequest("5.001", "1500.00"), List.of(reading));
+                1L, Map.of(NOZZLE_ID, MAX_METER), closeRequest("5.001", "1500.00"), BigDecimal.ZERO, List.of(reading));
 
         assertThat(reading.getUnitsSold()).isEqualByComparingTo("15.000");
         assertThat(summary.getTotalDue()).isEqualByComparingTo("1500.00");
+    }
+
+    @Test
+    void confirmedDropsCountAsCollectedCashSoOnlyTheBagIsCompared() {
+        ShiftFuelReading reading = readingStartingAt("5000.000");
+
+        ShiftLifecycleSupportService.ClosingSummary summary = lifecycleSupportService.processClosingReadings(
+                1L, Map.of(NOZZLE_ID, MAX_METER), closeRequest("5010.000", "400.00"), new BigDecimal("600.00"), List.of(reading));
+
+        assertThat(summary.getTotalDue()).isEqualByComparingTo("1000.00");
+        assertThat(summary.getTotalCollected()).isEqualByComparingTo("1000.00");
+        assertThat(summary.getDiscrepancyType()).isNull();
+        assertThat(summary.getStatus()).isEqualTo(ShiftStatus.CLOSED_BALANCED);
     }
 
     @Test
@@ -53,7 +66,7 @@ class ShiftClosingReadingsTest {
         ShiftFuelReading reading = readingStartingAt("990000.000");
 
         lifecycleSupportService.processClosingReadings(
-                1L, Map.of(NOZZLE_ID, roundMaxMeter), closeRequest("5.000", "1000500.00"), List.of(reading));
+                1L, Map.of(NOZZLE_ID, roundMaxMeter), closeRequest("5.000", "1000500.00"), BigDecimal.ZERO, List.of(reading));
 
         assertThat(reading.getUnitsSold()).isEqualByComparingTo("10005.000");
     }
@@ -64,7 +77,7 @@ class ShiftClosingReadingsTest {
         ShiftFuelReading reading = readingStartingAt("989999.999");
 
         assertThatThrownBy(() -> lifecycleSupportService.processClosingReadings(
-                1L, Map.of(NOZZLE_ID, roundMaxMeter), closeRequest("5.000", "0.00"), List.of(reading)))
+                1L, Map.of(NOZZLE_ID, roundMaxMeter), closeRequest("5.000", "0.00"), BigDecimal.ZERO, List.of(reading)))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("is below the opening reading");
     }
@@ -77,7 +90,7 @@ class ShiftClosingReadingsTest {
                 new CloseShiftRequest.OutletEndReadingRequest(NOZZLE_ID, new BigDecimal("5020.000"))));
 
         assertThatThrownBy(() -> lifecycleSupportService.processClosingReadings(
-                1L, Map.of(NOZZLE_ID, MAX_METER), request, List.of(readingStartingAt("5000.000"))))
+                1L, Map.of(NOZZLE_ID, MAX_METER), request, BigDecimal.ZERO, List.of(readingStartingAt("5000.000"))))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("only appear once");
     }

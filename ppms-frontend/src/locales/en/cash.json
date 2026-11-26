@@ -3,7 +3,9 @@
     "OPENING_BALANCE": "Opening balance",
     "CASH_IN": "Cash in",
     "CASH_OUT": "Cash out",
-    "CLOSING_BALANCE": "Closing balance"
+    "CLOSING_BALANCE": "Closing balance",
+    "CASH_DROP": "Cash drop",
+    "BANK_DEPOSIT": "Bank deposit"
   },
   "page": {
     "title": "Cash Drawer",
@@ -12,7 +14,10 @@
     "currentBalance": "Current Balance",
     "balanceHint": "Calculated from all cash-in minus cash-out events",
     "eventCount_one": "{{count}} event",
-    "eventCount_other": "{{count}} events"
+    "eventCount_other": "{{count}} events",
+    "views": "Cash views",
+    "tabMovements": "Movements",
+    "tabSafe": "Safe"
   },
   "list": {
     "title": "Cash Events",
@@ -45,5 +50,113 @@
   "review": {
     "title": "Review cash movement",
     "record": "Record movement"
+  },
+  "drops": {
+    "status": {
+      "PENDING": "Waiting for confirmation",
+      "CONFIRMED": "Confirmed in safe",
+      "REJECTED": "Rejected"
+    },
+    "reviewedBy": {
+      "CONFIRMED": "confirmed by {{name}}",
+      "REJECTED": "rejected by {{name}}"
+    },
+    "byOperatorAt": "{{operator}} · {{time}}",
+    "confirm": "Confirm",
+    "confirming": "Confirming drop",
+    "confirmed": "{{amount}} from {{operator}} confirmed in the safe",
+    "rejected": "{{amount}} from {{operator}} rejected",
+    "reviewFailed": "Could not update the cash drop. Please try again.",
+    "rejectTitle": "Reject cash drop",
+    "rejectSubtitle": "{{amount}} from {{operator}} will not count as dropped. Say what was wrong."
+  },
+  "safe": {
+    "balance": "In the safe now",
+    "balanceHint": "Cash from closed shifts and confirmed drops, less bank deposits and cash taken out.",
+    "tolerance": "Count tolerance {{amount}}",
+    "latestCount": "Last count",
+    "noCount": "The safe has not been counted yet.",
+    "countedAgainst": "Counted {{counted}} against {{expected}} expected",
+    "countedBy": "{{name}} · {{time}}",
+    "matches": "Matches",
+    "beyondTolerance": "Beyond the {{amount}} tolerance: the owner was notified.",
+    "countSafe": "Count safe",
+    "recordDeposit": "Record bank deposit",
+    "loadFailed": "Could not load the safe. Check your connection and try again.",
+    "pending": {
+      "title": "Drops waiting for confirmation",
+      "summary_one": "{{count}} drop · {{amount}}",
+      "summary_other": "{{count}} drops · {{amount}}",
+      "hint": "Count each drop when it reaches the safe, then confirm it. Only confirmed drops count as out of the bag."
+    },
+    "ledger": {
+      "title": "Safe ledger",
+      "filtersLabel": "Safe ledger filters",
+      "empty": "No money has moved through the safe yet.",
+      "emptyRange": "No movements in this date range.",
+      "balanceAfter": "Balance after"
+    },
+    "deposits": {
+      "title": "Bank deposits",
+      "filtersLabel": "Bank deposit filters",
+      "bankFilter": "Bank account",
+      "summary_one": "{{count}} deposit · {{amount}}",
+      "summary_other": "{{count}} deposits · {{amount}}",
+      "empty": "No bank deposits recorded yet.",
+      "emptyFiltered": "No deposits match these filters.",
+      "slipReference": "Slip {{reference}}",
+      "recordedBy": "Recorded by {{name}}",
+      "viewSlip": "View slip",
+      "attachSlip": "Attach slip",
+      "attaching": "Attaching slip",
+      "slipAttached": "Slip attached",
+      "openFailed": "Could not open the slip.",
+      "attachFailed": "Could not attach the slip."
+    },
+    "slip": {
+      "tooLarge": "The slip file must be at most 5 MB.",
+      "wrongType": "Choose a JPEG or PNG photo or a PDF."
+    },
+    "count": {
+      "title": "Count safe",
+      "subtitle": "Count every note and coin in the safe now.",
+      "amountLabel": "Cash in the safe",
+      "notes": "Notes",
+      "figuresLabel": "Count against the ledger",
+      "expected": "Expected from the ledger",
+      "counted": "Counted",
+      "difference": "Difference",
+      "notifyOwner": "This is beyond the {{amount}} tolerance, so the owner will be notified.",
+      "save": "Save count",
+      "saving": "Saving count",
+      "saved": "Safe count saved",
+      "failed": "Could not save the count.",
+      "needAmount": "Counted amount"
+    },
+    "deposit": {
+      "title": "Record bank deposit",
+      "subtitle": "Cash taken from the safe to the bank.",
+      "amount": "Amount",
+      "bankAccount": "Bank account",
+      "bankAccountPlaceholder": "SBI current ••1234",
+      "date": "Deposit date",
+      "slipReference": "Slip reference",
+      "slipFile": "Slip photo or PDF",
+      "slipHint": "JPEG, PNG or PDF, up to 5 MB.",
+      "notes": "Notes",
+      "figuresLabel": "Safe after this deposit",
+      "inSafe": "In the safe now",
+      "afterDeposit": "In the safe after this",
+      "exceeds": "The safe holds only {{amount}}.",
+      "save": "Record deposit",
+      "saving": "Recording deposit",
+      "saved": "Bank deposit of {{amount}} recorded",
+      "failed": "Could not record the deposit.",
+      "slipUploadFailed": "The deposit was recorded, but the slip was not attached: {{reason}} Attach it from the deposit list.",
+      "needAmount": "Amount",
+      "needBank": "Bank account",
+      "needDate": "Deposit date",
+      "needSlip": "Slip reference"
+    }
   }
 }

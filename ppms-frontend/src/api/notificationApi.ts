@@ -15,6 +15,8 @@ export type NotificationType =
   | 'SETTLEMENT_REMINDER'
   | 'WET_STOCK_LOSS'
   | 'DELIVERY_SHORTAGE'
+  | 'CASH_DROP_PENDING'
+  | 'SAFE_COUNT_VARIANCE'
 
 /** The page a notification opens: an app route and the query parameters that pick what it is about. */
 export interface NotificationTarget {

@@ -31,6 +31,8 @@
     "AUTO_CLOSED_SHIFT": "शिफ्ट सक्तीने बंद केली",
     "SETTLEMENT_REMINDER": "सेटलमेंट रिमाइंडर",
     "WET_STOCK_LOSS": "मर्यादेपेक्षा जास्त इंधन तोटा",
-    "DELIVERY_SHORTAGE": "टँकर डिलिव्हरी कमी"
+    "DELIVERY_SHORTAGE": "टँकर डिलिव्हरी कमी",
+    "CASH_DROP_PENDING": "खात्रीसाठी कॅश ड्रॉप",
+    "SAFE_COUNT_VARIANCE": "तिजोरी मोजणीत फरक"
   }
 }

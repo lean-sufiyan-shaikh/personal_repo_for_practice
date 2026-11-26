@@ -31,7 +31,8 @@
       "card": "Card (₹)",
       "fleetCard": "Fleet card (₹)",
       "creditTotal": "Credit sales total",
-      "fillRest": "Fill rest · ₹{{amount}}"
+      "fillRest": "Fill rest · ₹{{amount}}",
+      "cashInBag": "Cash in bag (₹)"
     },
     "validation": {
       "readingBelowStart": "End reading cannot be less than the start reading. Please correct the highlighted fields.",
@@ -74,7 +75,9 @@
       "payments": "Payments collected",
       "creditEntries_one": "Finish {{count}} credit entry",
       "creditEntries_other": "Finish {{count}} credit entries",
-      "reason": "Reason for the difference"
+      "reason": "Reason for the difference",
+      "pendingDrops_one": "Confirm or reject {{count}} cash drop",
+      "pendingDrops_other": "Confirm or reject {{count}} cash drops"
     },
     "review": {
       "introHandover": "Handing over can't be undone. Check these figures with the operator.",
@@ -98,7 +101,8 @@
       "handingOver": "Handing over the shift",
       "closing": "Closing the shift",
       "confirmHandover": "Confirm handover",
-      "confirmClose": "Confirm close"
+      "confirmClose": "Confirm close",
+      "cashInBag": "Cash in bag"
     },
     "summary": {
       "totalDue": "Total due",
@@ -136,6 +140,15 @@
       "reasonRequired": "Reason is required",
       "confirmDelete": "Confirm Delete",
       "subtotal": "Pre-recorded subtotal"
+    },
+    "drops": {
+      "title": "Cash dropped to the safe",
+      "confirmedTotal": "Confirmed",
+      "pendingNotice_one": "{{count}} drop is waiting. Confirm or reject it before closing.",
+      "pendingNotice_other": "{{count}} drops are waiting. Confirm or reject them before closing.",
+      "droppedToSafe": "Dropped to safe",
+      "expectedInBag": "Expected in bag",
+      "bagFigures": "Cash in the safe and in the bag"
     }
   },
   "handover": {
@@ -341,7 +354,8 @@
     "loadFailed": "Could not load your shift. Check your connection and refresh.",
     "noOpenShift": "No open shift.",
     "askManager": "Ask your manager to open your shift.",
-    "addCreditSale": "+ Credit sale"
+    "addCreditSale": "+ Credit sale",
+    "dropCash": "Drop cash to safe"
   },
   "open": {
     "opened": "Shift opened for {{name}}",
@@ -616,5 +630,22 @@
   "detail": {
     "nozzles": "Nozzles",
     "time": "Time"
+  },
+  "drops": {
+    "title": "Drop cash to safe",
+    "subtitle": "{{du}} · {{operator}}",
+    "help": "Count the cash you are putting in the safe. A manager counts it again and confirms it.",
+    "amount": "Cash going into the safe",
+    "save": "Record drop",
+    "saving": "Recording drop",
+    "recorded": "{{amount}} dropped. Waiting for a manager to confirm it.",
+    "recordFailed": "Could not record the drop. Please try again.",
+    "stillNeededAmount": "Amount dropped",
+    "listTitle": "Cash drops this shift",
+    "confirmedSoFar": "Confirmed so far",
+    "none": "No cash dropped yet.",
+    "loadFailed": "Could not load the cash drops.",
+    "waiting_one": "{{count}} drop waiting for a manager",
+    "waiting_other": "{{count}} drops waiting for a manager"
   }
 }

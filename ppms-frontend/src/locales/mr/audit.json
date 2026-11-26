@@ -82,6 +82,12 @@
     "SHORTAGE_CLAIM_UPDATED": "कमतरतेचा दावा बदलला",
     "SHORTAGE_CLAIM_SETTLED": "कमतरतेचा दावा निकाली काढला",
     "SHORTAGE_CLAIM_REJECTED": "कमतरतेचा दावा नाकारला",
-    "SHORTAGE_CLAIM_WITHDRAWN": "कमतरतेचा दावा मागे घेतला"
+    "SHORTAGE_CLAIM_WITHDRAWN": "कमतरतेचा दावा मागे घेतला",
+    "CASH_DROP_RECORDED": "कॅश ड्रॉप नोंदवला",
+    "CASH_DROP_CONFIRMED": "कॅश ड्रॉपची खात्री",
+    "CASH_DROP_REJECTED": "कॅश ड्रॉप नाकारला",
+    "SAFE_COUNTED": "तिजोरी मोजली",
+    "BANK_DEPOSIT_RECORDED": "बँक भरणा नोंदवला",
+    "DEPOSIT_SLIP_ATTACHED": "भरणा पावती जोडली"
   }
 }

@@ -1,4 +1,5 @@
 import type { CloseShiftRequest, CreditEntryInput, FuelReading } from '../../../types/shift'
+import type { CashDenominations } from '../../../api/cashApi'
 import i18n from '../../../i18n'
 import { emptyNum } from '../components/creditRow'
 import type { CreditRow } from '../components/creditRow'
@@ -16,6 +17,8 @@ interface CloseFormValues {
   readingsBelowStart: boolean
   creditRows: CreditRow[]
   cash: string
+  /** Only when the bag was counted note by note. */
+  cashDenominations?: CashDenominations
   upi: string
   card: string
   fleetCard: string
@@ -24,7 +27,9 @@ interface CloseFormValues {
 }
 
 export function buildCloseShiftRequest(values: CloseFormValues): { request: CloseShiftRequest } | { error: string } {
-  const { fuelReadings, endReadings, readingsBelowStart, creditRows, cash, upi, card, fleetCard, creditTotal, discrepancyReason } = values
+  const {
+    fuelReadings, endReadings, readingsBelowStart, creditRows, cash, cashDenominations, upi, card, fleetCard, creditTotal, discrepancyReason,
+  } = values
 
   if (readingsBelowStart) {
     return { error: i18n.t('shifts:close.validation.readingBelowStart') }
@@ -71,6 +76,7 @@ export function buildCloseShiftRequest(values: CloseFormValues): { request: Clos
         endReading: Number(endReadings[r.nozzleId]),
       })),
       cashCollected:      emptyNum(cash),
+      ...(cashDenominations && { cashDenominations }),
       upiCollected:       emptyNum(upi),
       cardCollected:      emptyNum(card),
       fleetCardCollected: emptyNum(fleetCard),

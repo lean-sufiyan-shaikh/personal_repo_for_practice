@@ -17,6 +17,7 @@ public class PumpLocation {
 
     public static final BigDecimal DEFAULT_RECEIPT_TOLERANCE_PERCENT = new BigDecimal("0.20");
     public static final BigDecimal DEFAULT_DENSITY_TOLERANCE = new BigDecimal("3.0");
+    public static final BigDecimal DEFAULT_SAFE_COUNT_TOLERANCE = new BigDecimal("10.00");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -85,6 +86,11 @@ public class PumpLocation {
     @Column(name = "density_tolerance", nullable = false)
     @Builder.Default
     private BigDecimal densityTolerance = DEFAULT_DENSITY_TOLERANCE;
+
+    /** A safe count further from the ledger balance than this many rupees notifies the owner. */
+    @Column(name = "safe_count_tolerance", nullable = false)
+    @Builder.Default
+    private BigDecimal safeCountTolerance = DEFAULT_SAFE_COUNT_TOLERANCE;
 
     @Column(name = "enabled", nullable = false)
     @Builder.Default

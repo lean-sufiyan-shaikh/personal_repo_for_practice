@@ -73,7 +73,12 @@
     "receiptToleranceInvalid": "0 से ज़्यादा और अधिकतम {{max}}% भरें।",
     "densityToleranceLabel": "घनत्व की सीमा",
     "densityToleranceEffect": "मापा गया और इनवॉइस का घनत्व {{tolerance}} kg/m³ से ज़्यादा अलग हो तो फ़्लैग होगा।",
-    "densityToleranceInvalid": "0 से ज़्यादा और अधिकतम {{max}} kg/m³ भरें।"
+    "densityToleranceInvalid": "0 से ज़्यादा और अधिकतम {{max}} kg/m³ भरें।",
+    "safeTitle": "तिजोरी गिनती",
+    "safeExplanation": "तिजोरी की गिनती नकद लेजर से कितनी अलग हो सकती है, इससे ज़्यादा होने पर मालिक को सूचना मिलती है।",
+    "safeToleranceLabel": "तिजोरी गिनती की छूट",
+    "safeToleranceEffect": "{{amount}} से ज़्यादा कम या ज़्यादा गिनती होने पर मालिक को सूचना मिलेगी।",
+    "safeToleranceInvalid": "₹0 से {{max}} तक की राशि दर्ज करें।"
   },
   "gst": {
     "saved": "GST विवरण सेव हो गया",

@@ -26,6 +26,7 @@ public final class ServerTextCodes {
     public static final String ATTENTION_WET_STOCK_LOSS = "ATTENTION_WET_STOCK_LOSS";
     public static final String ATTENTION_MISSING_DIPS = "ATTENTION_MISSING_DIPS";
     public static final String ATTENTION_SHORTAGE_CLAIMS_OPEN = "ATTENTION_SHORTAGE_CLAIMS_OPEN";
+    public static final String ATTENTION_PENDING_CASH_DROPS = "ATTENTION_PENDING_CASH_DROPS";
 
     public static final String SETUP_DISPENSERS_MISSING = "SETUP_DISPENSERS_MISSING";
     public static final String SETUP_ACTIVE_NOZZLES = "SETUP_ACTIVE_NOZZLES";

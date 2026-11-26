@@ -184,5 +184,16 @@
   "loadError": {
     "message": "Could not load this. Check your connection and retry."
   },
-  "duNumber": "DU #{{number}}"
+  "duNumber": "DU #{{number}}",
+  "cashCount": {
+    "note": "₹{{value}}",
+    "noteCount": "Number of {{note}} notes",
+    "addNote": "Add one {{note}} note",
+    "removeNote": "Remove one {{note}} note",
+    "coins": "Coins",
+    "coinsAmount": "Coins in rupees",
+    "total": "Total counted",
+    "typeTotal": "Just type the total",
+    "countNotes": "Count by notes"
+  }
 }

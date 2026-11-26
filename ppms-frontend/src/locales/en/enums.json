@@ -262,6 +262,14 @@
     "DELIVERY_SHORTAGE": {
       "title": "Short Tanker Delivery",
       "message": "{{tankName}} ({{fuelTypeCode}}) received {{shortLitres}} L less than invoice {{invoiceReference}} — {{shortPercent}}% short. A claim for ₹{{claimAmount}} has been raised."
+    },
+    "CASH_DROP_PENDING": {
+      "title": "Cash Drop to Confirm",
+      "message": "{{operatorName}} dropped ₹{{amount}} into the safe from shift #{{shiftId}}. Count it and confirm or reject it."
+    },
+    "SAFE_COUNT_VARIANCE": {
+      "title": "Safe Count Differs",
+      "message": "{{countedByName}} counted ₹{{countedAmount}} in the safe against ₹{{expectedAmount}} expected: {{varianceTypeCode}} by ₹{{amount}}."
     }
   },
   "serverTexts": {
@@ -355,7 +363,9 @@
     "ATTENTION_MISSING_DIPS_one": "{{count}} tank with no dip reading yesterday",
     "ATTENTION_MISSING_DIPS_other": "{{count}} tanks with no dip reading yesterday",
     "ATTENTION_SHORTAGE_CLAIMS_OPEN_one": "{{count}} shortage claim raised more than {{days}} days ago and still open",
-    "ATTENTION_SHORTAGE_CLAIMS_OPEN_other": "{{count}} shortage claims raised more than {{days}} days ago and still open"
+    "ATTENTION_SHORTAGE_CLAIMS_OPEN_other": "{{count}} shortage claims raised more than {{days}} days ago and still open",
+    "ATTENTION_PENDING_CASH_DROPS_one": "{{count}} cash drop waiting to be confirmed in the safe",
+    "ATTENTION_PENDING_CASH_DROPS_other": "{{count}} cash drops waiting to be confirmed in the safe"
   },
   "WET_STOCK_LOSS": "Fuel loss above limit",
   "RAISED": "Raised",
@@ -363,5 +373,12 @@
   "NOT_CHECKED": "Not checked",
   "SHORTAGE_CLAIM": "Shortage claim",
   "SHORTAGE_CLAIMS_OPEN": "Open shortage claims",
-  "DELIVERY_SHORTAGE": "Short delivery"
+  "DELIVERY_SHORTAGE": "Short delivery",
+  "BANK_DEPOSIT": "Bank deposit",
+  "CASH_DROP": "Cash drop",
+  "DEPOSIT_SLIP": "Deposit slip",
+  "PENDING": "Pending",
+  "PENDING_CASH_DROPS": "Cash drops to confirm",
+  "CASH_DROP_PENDING": "Cash drop to confirm",
+  "SAFE_COUNT_VARIANCE": "Safe count difference"
 }

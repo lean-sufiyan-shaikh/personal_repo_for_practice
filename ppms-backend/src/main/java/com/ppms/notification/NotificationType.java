@@ -28,5 +28,9 @@ public enum NotificationType {
     /** Fired once per tank and day while the tank's 7-day reconciled loss is above its loss alert limit. */
     WET_STOCK_LOSS,
     /** Fired once per delivery whose receipt check found it short beyond the pump's tolerance. */
-    DELIVERY_SHORTAGE
+    DELIVERY_SHORTAGE,
+    /** Fired once per cash drop waiting for a manager to confirm it reached the safe. */
+    CASH_DROP_PENDING,
+    /** Fired once per safe count that differs from the ledger by more than the pump's tolerance. */
+    SAFE_COUNT_VARIANCE
 }

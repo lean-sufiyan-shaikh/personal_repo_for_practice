@@ -82,6 +82,12 @@
     "SHORTAGE_CLAIM_UPDATED": "Shortage claim updated",
     "SHORTAGE_CLAIM_SETTLED": "Shortage claim settled",
     "SHORTAGE_CLAIM_REJECTED": "Shortage claim rejected",
-    "SHORTAGE_CLAIM_WITHDRAWN": "Shortage claim withdrawn"
+    "SHORTAGE_CLAIM_WITHDRAWN": "Shortage claim withdrawn",
+    "CASH_DROP_RECORDED": "Cash drop recorded",
+    "CASH_DROP_CONFIRMED": "Cash drop confirmed",
+    "CASH_DROP_REJECTED": "Cash drop rejected",
+    "SAFE_COUNTED": "Safe counted",
+    "BANK_DEPOSIT_RECORDED": "Bank deposit recorded",
+    "DEPOSIT_SLIP_ATTACHED": "Deposit slip attached"
   }
 }
