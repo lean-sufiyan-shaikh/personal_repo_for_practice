@@ -21,7 +21,7 @@ const du: DUOption = {
 }
 
 const tanks: TankInfo[] = [
-  { id: 11, pumpId: 3, tankIdentifier: 'Petrol Tank 1', fuelType: 'PETROL', capacity: 20000, currentStock: 5000, dipTolerance: 0, status: 'ACTIVE', createdAt: '' },
+  { id: 11, pumpId: 3, tankIdentifier: 'Petrol Tank 1', fuelType: 'PETROL', capacity: 20000, currentStock: 5000, dipTolerance: 0, lossAlertPercent: 0.5, status: 'ACTIVE', createdAt: '' },
 ]
 
 function renderNozzles(maxDuCount = 4) {

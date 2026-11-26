@@ -8,7 +8,10 @@
     "lowStockCount_one": "{{count}} टैंक में कम स्टॉक",
     "lowStockCount_other": "{{count}} टैंकों में कम स्टॉक",
     "dipOverdueCount_one": "{{count}} डिप जाँच बाकी",
-    "dipOverdueCount_other": "{{count}} डिप जाँच बाकी"
+    "dipOverdueCount_other": "{{count}} डिप जाँच बाकी",
+    "views": "स्टॉक के हिस्से",
+    "tabStock": "स्टॉक",
+    "tabReconciliation": "मिलान"
   },
   "alerts": {
     "lowStockOne": "{{tank}} ({{fuel}}) में 20% से कम स्टॉक है।",
@@ -229,5 +232,48 @@
     "tanks": "टैंक",
     "totalQuantity": "कुल आया ईंधन",
     "calculatedTotal": "हिसाब से राशि"
+  },
+  "reconciliation": {
+    "filterTitle": "मिलान फ़िल्टर",
+    "to": "तक",
+    "filterByTank": "टैंक चुनें",
+    "ambientNote": "लीटर आसपास के तापमान पर नापे जाते हैं, इसलिए अंतर में तापमान से ईंधन के आयतन पर पड़ा असर भी शामिल है। जिन दिनों डिप नहीं हुई, वे डिप वाले अगले दिन में जोड़ दिए जाते हैं।",
+    "rangeStartAfterEnd": "शुरू की तारीख आख़िरी तारीख के बाद की नहीं हो सकती।",
+    "rangeTooLong": "ज़्यादा से ज़्यादा {{days}} दिन चुनें।",
+    "rangeInFuture": "आख़िरी तारीख आगे की नहीं हो सकती।",
+    "noTanks": "मिलान के लिए कोई टैंक नहीं है।",
+    "cumulativeVariance": "कुल अंतर",
+    "soldInRange": "{{litres}} बिका",
+    "flaggedCount_one": "{{count}} अवधि डिप टॉलरेंस से बाहर",
+    "flaggedCount_other": "{{count}} अवधियाँ डिप टॉलरेंस से बाहर",
+    "statusWithinLimits": "सीमा के अंदर",
+    "statusLossAboveLimit": "{{limit}}% से ज़्यादा नुकसान",
+    "statusGainAboveLimit": "{{limit}}% से ज़्यादा बढ़त",
+    "statusNoData": "कोई मिलान वाला दिन नहीं",
+    "trendLabel": "{{tank}} का हर अवधि का अंतर",
+    "noPeriods": "चुनी गई तारीखों में इस टैंक की कोई डिप दर्ज नहीं है।",
+    "tableCaption": "{{tank}} का रोज़ का मिलान",
+    "days_one": "{{count}} दिन",
+    "days_other": "{{count}} दिन",
+    "percent": "{{value}}%",
+    "withinTolerance": "टॉलरेंस के अंदर",
+    "outsideTolerance": "टॉलरेंस से बाहर",
+    "needsOpeningDip": "शुरुआती डिप चाहिए",
+    "phoneFlows": "शुरुआत {{opening}} · आया {{delivered}} · बिका {{sold}} · निकाला {{removed}}",
+    "phoneClosing": "अपेक्षित {{expected}} · डिप {{closing}}",
+    "phoneCumulative": "चालू कुल {{litres}} ({{percent}})",
+    "columns": {
+      "period": "अवधि",
+      "opening": "शुरुआती",
+      "delivered": "डिलीवरी",
+      "sold": "बिका",
+      "removed": "निकाला",
+      "expected": "अपेक्षित",
+      "closing": "आख़िरी डिप",
+      "variance": "अंतर",
+      "variancePercent": "अंतर %",
+      "cumulative": "चालू कुल",
+      "check": "जाँच"
+    }
   }
 }

@@ -9,15 +9,15 @@ import { inventoryApi } from '../../api/inventoryApi'
 import type { TankStock } from '../../api/inventoryApi'
 import { canPerformAction } from '../../permissions/permissions'
 import { useAuthStore } from '../../store/authStore'
-import { SkeletonRows } from '../../components/Skeleton'
-import { LoadError } from '../../components/LoadError'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Page } from '../../components/layout/Page'
 import { PageHeader } from '../../components/layout/PageHeader'
-import { PageSection } from '../../components/layout/PageSection'
+import { PageTabs } from '../../components/layout/PageTabs'
+import { useActiveTab } from '../../components/layout/useActiveTab'
+import { CurrentStockSection } from './CurrentStockSection'
 import { DipCheckModal } from './DipCheckModal'
 import { FuelLotsDialog } from './FuelLotsDialog'
-import { TankStockBar } from './TankStockBar'
+import { ReconciliationTab } from './reconciliation/ReconciliationTab'
 import { RecordDeliveryModal } from './record-delivery/RecordDeliveryModal'
 import { InventoryAlerts } from './InventoryAlerts'
 import { DeliveryHistory } from './DeliveryHistory'
@@ -27,6 +27,7 @@ const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000
 
 const RECORD_DELIVERY_ACTION = 'record-delivery'
 const DIP_CHECK_ACTION = 'dip-check'
+const TAB_IDS = ['stock', 'reconciliation'] as const
 
 /**
  * ?action=record-delivery opens Record Delivery.
@@ -46,6 +47,11 @@ export default function InventoryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [lotsForTank, setLotsForTank] = useState<TankStock | null>(null)
   const action = searchParams.get('action')
+  const activeTab = useActiveTab(TAB_IDS, 'stock')
+  const tabs = [
+    { id: 'stock', label: t('page.tabStock') },
+    { id: 'reconciliation', label: t('page.tabReconciliation') },
+  ]
 
   const { data: pumps = [] } = useQuery({
     queryKey: ['myPumps'],
@@ -139,47 +145,35 @@ export default function InventoryPage() {
             {t('page.recordDelivery')}
           </button>
         )}
+        tabs={pumpId && <PageTabs label={t('page.views')} tabs={tabs} activeTab={activeTab} resetParams={['action', 'tank']} />}
       />
 
       {!pumpId ? (
         <div className="ui-empty">
           {t('common:notices.noPump')}
         </div>
+      ) : activeTab === 'reconciliation' ? (
+        <div key={activeTab} className="ui-tab-content">
+          <ReconciliationTab pumpId={pumpId} tanks={tanks} />
+        </div>
       ) : (
-        <>
+        <div key={activeTab} className="ui-tab-content space-y-(--density-gap)">
           <InventoryAlerts lowStockTanks={lowStockTanks} dipOverdueTanks={dipOverdueTanks} />
-
-          <PageSection
-            title={t('page.currentStock')}
-            actions={selectedPump && <span className="text-xs text-ink-3">{selectedPump.name}</span>}
-          >
-            {tanksLoading ? (
-              <SkeletonRows count={3} />
-            ) : tanksLoadFailed ? (
-              <LoadError onRetry={() => void refetchTanks()} />
-            ) : tanks.length === 0 ? (
-              <p className="ui-empty">{t('page.noTanks')}</p>
-            ) : (
-              <ul className="grid grid-cols-1 gap-(--density-gap) sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                {tanks.map(tank => (
-                  <li key={tank.tankId}>
-                    <TankStockBar
-                      tank={tank}
-                      dipOverdue={isDipOverdue(tank)}
-                      lastDipAt={lastDipByTankId.get(tank.tankId)}
-                      now={now}
-                      onDipCheck={canRecordDipCheck ? () => openAction(DIP_CHECK_ACTION, tank.tankId) : undefined}
-                      onViewLots={() => setLotsForTank(tank)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </PageSection>
-
+          <CurrentStockSection
+            tanks={tanks}
+            isLoading={tanksLoading}
+            loadFailed={tanksLoadFailed}
+            onRetry={() => void refetchTanks()}
+            pumpName={selectedPump?.name}
+            isDipOverdue={isDipOverdue}
+            lastDipByTankId={lastDipByTankId}
+            now={now}
+            onDipCheck={canRecordDipCheck ? (tankId) => openAction(DIP_CHECK_ACTION, tankId) : undefined}
+            onViewLots={setLotsForTank}
+          />
           <DeliveryHistory pumpId={pumpId} tanks={tanks} isOwnerOrAdmin={isOwnerOrAdmin} canDeleteInvoice={canDeleteInvoice} />
           <DipHistory pumpId={pumpId} tanks={tanks} canViewFinancials={canViewFinancials} />
-        </>
+        </div>
       )}
 
       {showDeliveryModal && pumpId && (

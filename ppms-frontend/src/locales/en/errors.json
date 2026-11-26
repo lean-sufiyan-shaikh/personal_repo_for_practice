@@ -315,5 +315,7 @@
   "VALIDATION_FAILED": "Validation failed",
   "VOID_REASON_REQUIRED": "A mandatory void reason is required.",
   "WAIVER_REASON_REQUIRED": "A mandatory reason is required when waiving a discrepancy (Business Rule 19).",
-  "ADJUSTMENT_OWNER_OR_ADMIN_ONLY": "Only Owner or Admin can record reading adjustments and dip entries."
+  "ADJUSTMENT_OWNER_OR_ADMIN_ONLY": "Only Owner or Admin can record reading adjustments and dip entries.",
+  "DATE_RANGE_END_IN_FUTURE": "'to' date cannot be in the future",
+  "DATE_RANGE_TOO_LONG": "Choose a date range of at most {{maxDays}} days"
 }

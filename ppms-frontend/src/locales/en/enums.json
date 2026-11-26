@@ -254,6 +254,10 @@
     "SETTLEMENT_REMINDER": {
       "title": "{{paymentTypeCode}} Settlement Reminder",
       "message": "Record today's {{paymentTypeCode}} settlement — amount received in bank account. Go to Settlements to log the credit."
+    },
+    "WET_STOCK_LOSS": {
+      "title": "Fuel Loss Above Limit",
+      "message": "{{tankName}} ({{fuelTypeCode}}) lost {{lossLitres}} L in the last {{days}} days — {{lossPercent}}% of {{salesLitres}} L sold, above the {{limitPercent}}% limit. Check for leaks, meter errors or theft."
     }
   },
   "serverTexts": {
@@ -341,6 +345,11 @@
     "PERIOD_SHIFT_REVISION": "{{shiftName}} · {{date}} #{{revision}}",
     "SETUP_FUEL_PRICES_SET": "Prices set for every fuel sold",
     "SETUP_FUEL_PRICES_UNPRICED_one": "{{count}} fuel without a price",
-    "SETUP_FUEL_PRICES_UNPRICED_other": "{{count}} fuels without a price"
-  }
+    "SETUP_FUEL_PRICES_UNPRICED_other": "{{count}} fuels without a price",
+    "ATTENTION_WET_STOCK_LOSS_one": "{{count}} tank losing more fuel than its limit over the last {{days}} days",
+    "ATTENTION_WET_STOCK_LOSS_other": "{{count}} tanks losing more fuel than their limit over the last {{days}} days",
+    "ATTENTION_MISSING_DIPS_one": "{{count}} tank with no dip reading yesterday",
+    "ATTENTION_MISSING_DIPS_other": "{{count}} tanks with no dip reading yesterday"
+  },
+  "WET_STOCK_LOSS": "Fuel loss above limit"
 }

@@ -14,6 +14,8 @@ export type AttentionType =
   | 'CALIBRATIONS_DUE'
   | 'STALE_FUEL_PRICES'
   | 'SETUP_INCOMPLETE'
+  | 'WET_STOCK_LOSS'
+  | 'MISSING_DIPS'
 
 /** Most urgent first; the server already returns items in this order. */
 export type AttentionSeverity = 'HIGH' | 'MEDIUM' | 'LOW'

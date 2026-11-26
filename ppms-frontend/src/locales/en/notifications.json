@@ -29,6 +29,7 @@
     "PRICE_CHANGE_OPEN_SHIFT": "Price changed during a shift",
     "ANCILLARY_LOW_STOCK": "Low product stock",
     "AUTO_CLOSED_SHIFT": "Shift force-closed",
-    "SETTLEMENT_REMINDER": "Settlement reminder"
+    "SETTLEMENT_REMINDER": "Settlement reminder",
+    "WET_STOCK_LOSS": "Fuel loss above limit"
   }
 }

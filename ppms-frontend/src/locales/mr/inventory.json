@@ -8,7 +8,10 @@
     "lowStockCount_one": "{{count}} टँकमध्ये कमी स्टॉक",
     "lowStockCount_other": "{{count}} टँकमध्ये कमी स्टॉक",
     "dipOverdueCount_one": "{{count}} डिप तपासणी बाकी",
-    "dipOverdueCount_other": "{{count}} डिप तपासण्या बाकी"
+    "dipOverdueCount_other": "{{count}} डिप तपासण्या बाकी",
+    "views": "स्टॉकचे भाग",
+    "tabStock": "स्टॉक",
+    "tabReconciliation": "जुळवणी"
   },
   "alerts": {
     "lowStockOne": "{{tank}} ({{fuel}}) मध्ये 20% पेक्षा कमी स्टॉक आहे.",
@@ -229,5 +232,48 @@
     "tanks": "टँक",
     "totalQuantity": "एकूण आलेले इंधन",
     "calculatedTotal": "हिशोबाने रक्कम"
+  },
+  "reconciliation": {
+    "filterTitle": "जुळवणी फिल्टर",
+    "to": "ते",
+    "filterByTank": "टँक निवडा",
+    "ambientNote": "लिटर सभोवतालच्या तापमानावर मोजले जातात, त्यामुळे फरकात तापमानामुळे इंधनाच्या आकारमानावर झालेला परिणामही येतो. ज्या दिवशी डिप झाली नाही ते दिवस डिप असलेल्या पुढच्या दिवसात जोडले जातात.",
+    "rangeStartAfterEnd": "सुरुवातीची तारीख शेवटच्या तारखेनंतरची असू शकत नाही.",
+    "rangeTooLong": "जास्तीत जास्त {{days}} दिवस निवडा.",
+    "rangeInFuture": "शेवटची तारीख पुढची असू शकत नाही.",
+    "noTanks": "जुळवणीसाठी एकही टँक नाही.",
+    "cumulativeVariance": "एकूण फरक",
+    "soldInRange": "{{litres}} विकले",
+    "flaggedCount_one": "{{count}} कालावधी डिप टॉलरन्सबाहेर",
+    "flaggedCount_other": "{{count}} कालावधी डिप टॉलरन्सबाहेर",
+    "statusWithinLimits": "मर्यादेत",
+    "statusLossAboveLimit": "{{limit}}% पेक्षा जास्त तोटा",
+    "statusGainAboveLimit": "{{limit}}% पेक्षा जास्त वाढ",
+    "statusNoData": "जुळवलेला एकही दिवस नाही",
+    "trendLabel": "{{tank}} चा प्रत्येक कालावधीतील फरक",
+    "noPeriods": "निवडलेल्या तारखांमध्ये या टँकची एकही डिप नोंदवलेली नाही.",
+    "tableCaption": "{{tank}} ची रोजची जुळवणी",
+    "days_one": "{{count}} दिवस",
+    "days_other": "{{count}} दिवस",
+    "percent": "{{value}}%",
+    "withinTolerance": "टॉलरन्सच्या आत",
+    "outsideTolerance": "टॉलरन्सबाहेर",
+    "needsOpeningDip": "सुरुवातीची डिप हवी",
+    "phoneFlows": "सुरुवात {{opening}} · आले {{delivered}} · विकले {{sold}} · काढले {{removed}}",
+    "phoneClosing": "अपेक्षित {{expected}} · डिप {{closing}}",
+    "phoneCumulative": "चालू एकूण {{litres}} ({{percent}})",
+    "columns": {
+      "period": "कालावधी",
+      "opening": "सुरुवातीचा",
+      "delivered": "डिलिव्हरी",
+      "sold": "विकले",
+      "removed": "काढले",
+      "expected": "अपेक्षित",
+      "closing": "शेवटची डिप",
+      "variance": "फरक",
+      "variancePercent": "फरक %",
+      "cumulative": "चालू एकूण",
+      "check": "तपासणी"
+    }
   }
 }

@@ -80,7 +80,8 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/shift-definitions", "MANAGER", null),
                 Arguments.of("/api/inventory/{pumpId}/tanks", "MANAGER", "OPERATOR"),
                 Arguments.of("/api/inventory/{pumpId}/deliveries", "MANAGER", "OPERATOR"),
-                Arguments.of("/api/inventory/{pumpId}/dip-checks", "MANAGER", "OPERATOR"));
+                Arguments.of("/api/inventory/{pumpId}/dip-checks", "MANAGER", "OPERATOR"),
+                Arguments.of("/api/inventory/{pumpId}/reconciliation" + RANGE, "MANAGER", "ACCOUNTANT"));
     }
 
     @ParameterizedTest(name = "{0} allows {1}")

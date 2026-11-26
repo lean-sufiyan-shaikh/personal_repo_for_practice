@@ -15,7 +15,7 @@ const nozzle: NozzleDetail = {
 }
 const tank: TankInfo = {
   id: 4, pumpId: 6, tankIdentifier: 'T1', fuelType: 'PETROL', capacity: 10_000, currentStock: 500,
-  dipTolerance: 50, status: 'ACTIVE', createdAt: '2026-01-01T00:00:00Z',
+  dipTolerance: 50, lossAlertPercent: 0.5, status: 'ACTIVE', createdAt: '2026-01-01T00:00:00Z',
 }
 
 async function fillDrain(litres: string) {

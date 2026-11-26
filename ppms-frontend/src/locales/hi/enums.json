@@ -254,6 +254,10 @@
     "SETTLEMENT_REMINDER": {
       "title": "{{paymentTypeCode}} सेटलमेंट रिमाइंडर",
       "message": "आज का {{paymentTypeCode}} सेटलमेंट दर्ज करें — बैंक खाते में आई राशि। सेटलमेंट पेज पर जाकर दर्ज करें।"
+    },
+    "WET_STOCK_LOSS": {
+      "title": "सीमा से ज़्यादा ईंधन नुकसान",
+      "message": "{{tankName}} ({{fuelTypeCode}}) में पिछले {{days}} दिनों में {{lossLitres}} L कम हुआ — बिके {{salesLitres}} L का {{lossPercent}}%, जो {{limitPercent}}% की सीमा से ज़्यादा है। रिसाव, मीटर की गलती या चोरी की जाँच करें।"
     }
   },
   "serverTexts": {
@@ -341,6 +345,11 @@
     "PERIOD_SHIFT_REVISION": "{{shiftName}} · {{date}} #{{revision}}",
     "SETUP_FUEL_PRICES_SET": "बेचे जाने वाले हर ईंधन की कीमत तय है",
     "SETUP_FUEL_PRICES_UNPRICED_one": "{{count}} ईंधन की कीमत तय नहीं है",
-    "SETUP_FUEL_PRICES_UNPRICED_other": "{{count}} ईंधनों की कीमत तय नहीं है"
-  }
+    "SETUP_FUEL_PRICES_UNPRICED_other": "{{count}} ईंधनों की कीमत तय नहीं है",
+    "ATTENTION_WET_STOCK_LOSS_one": "{{count}} टैंक में पिछले {{days}} दिनों में सीमा से ज़्यादा ईंधन नुकसान",
+    "ATTENTION_WET_STOCK_LOSS_other": "{{count}} टैंकों में पिछले {{days}} दिनों में सीमा से ज़्यादा ईंधन नुकसान",
+    "ATTENTION_MISSING_DIPS_one": "{{count}} टैंक की कल कोई डिप रीडिंग नहीं",
+    "ATTENTION_MISSING_DIPS_other": "{{count}} टैंकों की कल कोई डिप रीडिंग नहीं"
+  },
+  "WET_STOCK_LOSS": "सीमा से ज़्यादा ईंधन नुकसान"
 }

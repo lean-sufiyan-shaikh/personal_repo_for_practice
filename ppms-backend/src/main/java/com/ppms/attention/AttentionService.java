@@ -16,6 +16,8 @@ import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.expense.PumpExpenseRepository;
 import com.ppms.fuel.GlobalFuelPrice;
 import com.ppms.fuel.GlobalFuelPriceRepository;
+import com.ppms.inventory.DipCheckRepository;
+import com.ppms.inventory.WetStockLossAlertService;
 import com.ppms.invoice.CreditInvoiceService;
 import com.ppms.pump.NozzleCalibrationLog;
 import com.ppms.pump.NozzleCalibrationLogRepository;
@@ -24,6 +26,7 @@ import com.ppms.pump.PumpLocationRepository;
 import com.ppms.pump.PumpService;
 import com.ppms.pump.PumpShiftDefinitionRepository;
 import com.ppms.pump.TankStatus;
+import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
 import com.ppms.report.BalanceSheet;
 import com.ppms.report.BalanceSheetReportType;
@@ -80,6 +83,8 @@ public class AttentionService {
     private static final String DOCUMENTS_PATH = "/dashboard/documents";
     private static final String CALIBRATION_PATH = "/dashboard/calibration";
     private static final String SETUP_PATH = "/dashboard/setup";
+    private static final String RECONCILIATION_PATH = "/dashboard/inventory?tab=reconciliation";
+    private static final String INVENTORY_PATH = "/dashboard/inventory";
 
     private static final Comparator<AttentionItem> MOST_URGENT_FIRST = Comparator
             .comparing(AttentionItem::severity)
@@ -99,6 +104,8 @@ public class AttentionService {
     private final GlobalFuelPriceRepository fuelPriceRepository;
     private final UndergroundTankRepository tankRepository;
     private final PumpShiftDefinitionRepository shiftDefinitionRepository;
+    private final DipCheckRepository dipCheckRepository;
+    private final WetStockLossAlertService wetStockLossAlertService;
     private final BusinessClock businessClock;
 
     @Transactional(readOnly = true)
@@ -135,6 +142,7 @@ public class AttentionService {
         addShifts(items, item, pump.getId());
         addDocuments(items, item, pump.getId());
         addCalibrations(items, item, pump.getId());
+        addWetStock(items, item, pump.getId());
         addSetupAndPrices(items, item, pump);
         return items;
     }
@@ -343,6 +351,39 @@ public class AttentionService {
         return new CodedText(ServerTextCodes.ATTENTION_CALIBRATIONS_DUE_SOON,
                 params("count", nozzleCount, "days", CALIBRATION_WARNING_DAYS),
                 nozzles + " due for calibration within " + CALIBRATION_WARNING_DAYS + " days");
+    }
+
+    private void addWetStock(List<AttentionItem> items, Item item, Long pumpId) {
+        int tanksLosing = wetStockLossAlertService.tanksWithLossAboveLimit(pumpId).size();
+        if (tanksLosing > 0) {
+            int days = WetStockLossAlertService.WINDOW_DAYS;
+            items.add(item.of(AttentionType.WET_STOCK_LOSS, AttentionSeverity.HIGH, tanksLosing, null,
+                    new CodedText(ServerTextCodes.ATTENTION_WET_STOCK_LOSS, params("count", tanksLosing, "days", days),
+                            plural(tanksLosing, "tank") + " losing more fuel than its limit over the last " + days + " days"),
+                    RECONCILIATION_PATH));
+        }
+        long tanksWithoutDip = tanksWithoutDipYesterday(pumpId);
+        if (tanksWithoutDip > 0) {
+            items.add(item.of(AttentionType.MISSING_DIPS, AttentionSeverity.LOW, tanksWithoutDip, null,
+                    counted(ServerTextCodes.ATTENTION_MISSING_DIPS, tanksWithoutDip,
+                            plural(tanksWithoutDip, "tank") + " with no dip reading yesterday"),
+                    INVENTORY_PATH));
+        }
+    }
+
+    /** Active tanks holding fuel that already existed yesterday but had no dip taken during it. */
+    private long tanksWithoutDipYesterday(Long pumpId) {
+        LocalDate yesterday = businessClock.today().minusDays(1);
+        var yesterdayStart = businessClock.startOfDay(yesterday);
+        var todayStart = businessClock.startOfDay(yesterday.plusDays(1));
+        Set<Long> dipped = new HashSet<>(dipCheckRepository.findTankIdsDippedBetween(pumpId, yesterdayStart, todayStart));
+        return tankRepository.findByPumpId(pumpId).stream()
+                .filter(tank -> tank.getStatus() == TankStatus.ACTIVE)
+                .filter(tank -> tank.getCurrentStock().signum() > 0)
+                .filter(tank -> tank.getCreatedAt().isBefore(yesterdayStart))
+                .map(UndergroundTank::getId)
+                .filter(tankId -> !dipped.contains(tankId))
+                .count();
     }
 
     private void addSetupAndPrices(List<AttentionItem> items, Item item, PumpLocation pump) {

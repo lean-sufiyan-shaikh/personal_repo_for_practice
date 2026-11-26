@@ -13,6 +13,7 @@ export type NotificationType =
   | 'ANCILLARY_LOW_STOCK'
   | 'AUTO_CLOSED_SHIFT'
   | 'SETTLEMENT_REMINDER'
+  | 'WET_STOCK_LOSS'
 
 /** The page a notification opens: an app route and the query parameters that pick what it is about. */
 export interface NotificationTarget {

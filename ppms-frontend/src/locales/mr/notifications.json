@@ -29,6 +29,7 @@
     "PRICE_CHANGE_OPEN_SHIFT": "शिफ्ट चालू असताना दर बदलला",
     "ANCILLARY_LOW_STOCK": "उत्पादनांचा स्टॉक कमी",
     "AUTO_CLOSED_SHIFT": "शिफ्ट सक्तीने बंद केली",
-    "SETTLEMENT_REMINDER": "सेटलमेंट रिमाइंडर"
+    "SETTLEMENT_REMINDER": "सेटलमेंट रिमाइंडर",
+    "WET_STOCK_LOSS": "मर्यादेपेक्षा जास्त इंधन तोटा"
   }
 }

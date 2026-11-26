@@ -22,7 +22,9 @@ export function EditTankForm({ pumpId, tank, unit, onClose }: EditTankFormProps)
   const invalidateTanks = useInvalidateTanks(pumpId)
   const [identifier, setIdentifier] = useState(tank.tankIdentifier)
   const [capacity, setCapacity] = useState(String(tank.capacity))
+  const [lossAlertPercent, setLossAlertPercent] = useState(String(tank.lossAlertPercent))
   const [error, setError] = useState<string | null>(null)
+  const [lossAlertError, setLossAlertError] = useState<string | null>(null)
 
   const updateMutation = useMutation({
     mutationFn: (req: UpdateTankRequest) => pumpApi.updateTank(pumpId, tank.id, req),
@@ -31,9 +33,11 @@ export function EditTankForm({ pumpId, tank, unit, onClose }: EditTankFormProps)
   })
 
   const submit = (e: React.FormEvent) => {
-    e.preventDefault(); setError(null)
+    e.preventDefault(); setError(null); setLossAlertError(null)
     if (!capacity || Number(capacity) <= 0) { setError(t('tanks.capacityPositive')); return }
-    updateMutation.mutate({ capacity: Number(capacity), tankIdentifier: identifier.trim() || undefined })
+    const limit = Number(lossAlertPercent)
+    if (!lossAlertPercent || limit < 0.01 || limit > 100) { setLossAlertError(t('tanks.lossAlertRange')); return }
+    updateMutation.mutate({ capacity: Number(capacity), tankIdentifier: identifier.trim() || undefined, lossAlertPercent: limit })
   }
 
   return (
@@ -44,6 +48,9 @@ export function EditTankForm({ pumpId, tank, unit, onClose }: EditTankFormProps)
         </FormField>
         <FormField label={t('tanks.capacity')} help={typedQuantity(capacity, unit) ?? undefined} error={error ?? undefined}>
           <NumericInput step="0.01" min="1" unit={unit} value={capacity} onChange={(e) => setCapacity(e.target.value)} />
+        </FormField>
+        <FormField label={t('tanks.lossAlertLabel')} help={t('tanks.lossAlertHelp')} error={lossAlertError ?? undefined}>
+          <NumericInput step="0.01" unit="%" value={lossAlertPercent} onChange={(e) => setLossAlertPercent(e.target.value)} />
         </FormField>
       </FormGrid>
       <div className="flex flex-wrap gap-2">

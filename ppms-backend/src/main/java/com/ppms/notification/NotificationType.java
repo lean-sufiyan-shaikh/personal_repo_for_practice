@@ -24,5 +24,7 @@ public enum NotificationType {
      * Admin/Owner to record the day's UPI / Card / Fleet Card bank settlement.
      * Dedup key format: SETTLEMENT_REMINDER:{type}:{pumpId}:{date}
      */
-    SETTLEMENT_REMINDER
+    SETTLEMENT_REMINDER,
+    /** Fired once per tank and day while the tank's 7-day reconciled loss is above its loss alert limit. */
+    WET_STOCK_LOSS
 }

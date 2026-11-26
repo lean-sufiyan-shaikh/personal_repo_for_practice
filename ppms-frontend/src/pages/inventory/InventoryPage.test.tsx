@@ -19,6 +19,7 @@ vi.mock('../../api/inventoryApi', () => ({
     getLatestInvoiceLines: vi.fn(),
     getOpenShiftNozzles: vi.fn(),
     getActiveTankLots: vi.fn(),
+    getReconciliation: vi.fn(),
   },
 }))
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getMyPumps: vi.fn().mockResolvedValue([]) } }))
@@ -55,6 +56,16 @@ describe('InventoryPage', () => {
     vi.mocked(inventoryApi.getLatestInvoiceLines).mockResolvedValue([])
     vi.mocked(inventoryApi.getOpenShiftNozzles).mockResolvedValue([])
     vi.mocked(inventoryApi.getActiveTankLots).mockResolvedValue([])
+    vi.mocked(inventoryApi.getReconciliation).mockResolvedValue({ from: '', to: '', tanks: [] })
+  })
+
+  it('opens the reconciliation tab from the address in place of the stock views', async () => {
+    signIn('MANAGER')
+    renderPage('/?tab=reconciliation')
+
+    expect(await screen.findByRole('link', { name: 'Reconciliation' })).toHaveAttribute('aria-current', 'page')
+    expect(await screen.findByText('No tanks to reconcile.')).toBeInTheDocument()
+    expect(screen.queryByText('Current Stock Levels')).not.toBeInTheDocument()
   })
 
   it('lets a manager record a dip check, as the backend allows', async () => {

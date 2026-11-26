@@ -8,7 +8,7 @@ import type { PumpSummary, TankInfo } from '../../api/pumpApi'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import { TanksContent } from './TanksContent'
 
-vi.mock('../../api/pumpApi', () => ({ pumpApi: { getTanks: vi.fn(), createTank: vi.fn(), updateTankStatus: vi.fn() } }))
+vi.mock('../../api/pumpApi', () => ({ pumpApi: { getTanks: vi.fn(), createTank: vi.fn(), updateTank: vi.fn(), updateTankStatus: vi.fn() } }))
 vi.mock('../../api/inventoryApi', () => ({ inventoryApi: { getTankStocks: vi.fn(), getDipChecks: vi.fn() } }))
 
 const nozzle = (id: number, tankId: number | null) =>
@@ -20,7 +20,7 @@ const pump = {
 } as unknown as PumpSummary
 
 const tank = (id: number, tankIdentifier: string, currentStock: number, fuelType: TankInfo['fuelType'] = 'PETROL'): TankInfo =>
-  ({ id, pumpId: 3, tankIdentifier, fuelType, capacity: 20000, currentStock, dipTolerance: 0, status: 'ACTIVE', createdAt: '' })
+  ({ id, pumpId: 3, tankIdentifier, fuelType, capacity: 20000, currentStock, dipTolerance: 0, lossAlertPercent: 0.5, status: 'ACTIVE', createdAt: '' })
 
 const stock = (tankId: number, lowStock: boolean) => ({ tankId, lowStock }) as TankStock
 
@@ -28,6 +28,7 @@ describe('TanksContent', () => {
   beforeEach(() => {
     vi.mocked(pumpApi.getTanks).mockResolvedValue([])
     vi.mocked(pumpApi.createTank).mockResolvedValue({} as never)
+    vi.mocked(pumpApi.updateTank).mockResolvedValue({} as never)
     vi.mocked(pumpApi.updateTankStatus).mockResolvedValue({} as never)
     vi.mocked(inventoryApi.getTankStocks).mockResolvedValue([])
     vi.mocked(inventoryApi.getDipChecks).mockResolvedValue({ content: [] } as never)
@@ -105,5 +106,26 @@ describe('TanksContent', () => {
 
     expect(within(card).getByRole('button', { name: 'Save tank' })).toBeInTheDocument()
     expect(within(card).getByLabelText('Tank name or ID')).toHaveValue('T1')
+  })
+
+  it('lets the owner change the tank loss alert limit, refusing one outside 0.01% to 100%', async () => {
+    const user = userEvent.setup()
+    vi.mocked(pumpApi.getTanks).mockResolvedValue([tank(11, 'T1', 500)])
+    renderWithProviders(<TanksContent pump={pump} />)
+    const card = await screen.findByRole('article', { name: 'T1, Petrol' })
+    await user.click(within(card).getByRole('button', { name: 'Edit' }))
+
+    const limit = within(card).getByLabelText('Loss alert limit')
+    expect(limit).toHaveValue(0.5)
+    await user.clear(limit)
+    await user.type(limit, '0')
+    await user.click(within(card).getByRole('button', { name: 'Save tank' }))
+    expect(within(card).getByRole('alert')).toHaveTextContent('Enter a limit between 0.01% and 100%.')
+    expect(pumpApi.updateTank).not.toHaveBeenCalled()
+
+    await user.clear(limit)
+    await user.type(limit, '1.25')
+    await user.click(within(card).getByRole('button', { name: 'Save tank' }))
+    expect(pumpApi.updateTank).toHaveBeenCalledWith(3, 11, { capacity: 20000, tankIdentifier: 'T1', lossAlertPercent: 1.25 })
   })
 })

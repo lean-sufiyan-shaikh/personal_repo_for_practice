@@ -51,6 +51,8 @@ export interface TankInfo {
   capacity: number
   currentStock: number
   dipTolerance: number
+  /** 7-day fuel loss, as a share of litres sold, that raises an alert. */
+  lossAlertPercent: number
   status: string
   createdAt: string
 }
@@ -65,6 +67,7 @@ export interface CreateTankRequest {
 export interface UpdateTankRequest {
   capacity: number
   tankIdentifier?: string
+  lossAlertPercent?: number
 }
 
 /** What every role can read about a client, and all an operator gets: enough to pick one for a credit sale. */

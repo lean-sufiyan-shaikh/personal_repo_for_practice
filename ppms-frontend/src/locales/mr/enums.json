@@ -254,6 +254,10 @@
     "SETTLEMENT_REMINDER": {
       "title": "{{paymentTypeCode}} सेटलमेंट आठवण",
       "message": "आजचे {{paymentTypeCode}} सेटलमेंट नोंदवा — बँक खात्यात आलेली रक्कम. सेटलमेंट पानावर जाऊन नोंदवा."
+    },
+    "WET_STOCK_LOSS": {
+      "title": "मर्यादेपेक्षा जास्त इंधन तोटा",
+      "message": "{{tankName}} ({{fuelTypeCode}}) मध्ये मागील {{days}} दिवसांत {{lossLitres}} L कमी झाले — विकलेल्या {{salesLitres}} L चा {{lossPercent}}%, जो {{limitPercent}}% मर्यादेपेक्षा जास्त आहे. गळती, मीटरची चूक किंवा चोरी तपासा."
     }
   },
   "serverTexts": {
@@ -341,6 +345,11 @@
     "PERIOD_SHIFT_REVISION": "{{shiftName}} · {{date}} #{{revision}}",
     "SETUP_FUEL_PRICES_SET": "विकल्या जाणाऱ्या प्रत्येक इंधनाचा दर ठरलेला आहे",
     "SETUP_FUEL_PRICES_UNPRICED_one": "{{count}} इंधनाचा दर ठरलेला नाही",
-    "SETUP_FUEL_PRICES_UNPRICED_other": "{{count}} इंधनांचे दर ठरलेले नाहीत"
-  }
+    "SETUP_FUEL_PRICES_UNPRICED_other": "{{count}} इंधनांचे दर ठरलेले नाहीत",
+    "ATTENTION_WET_STOCK_LOSS_one": "{{count}} टँकमध्ये मागील {{days}} दिवसांत मर्यादेपेक्षा जास्त इंधन तोटा",
+    "ATTENTION_WET_STOCK_LOSS_other": "{{count}} टँकमध्ये मागील {{days}} दिवसांत मर्यादेपेक्षा जास्त इंधन तोटा",
+    "ATTENTION_MISSING_DIPS_one": "{{count}} टँकची काल एकही डिप रीडिंग नाही",
+    "ATTENTION_MISSING_DIPS_other": "{{count}} टँकची काल एकही डिप रीडिंग नाही"
+  },
+  "WET_STOCK_LOSS": "मर्यादेपेक्षा जास्त इंधन तोटा"
 }

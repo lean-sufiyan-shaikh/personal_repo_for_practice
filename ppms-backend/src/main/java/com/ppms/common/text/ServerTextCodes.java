@@ -23,6 +23,8 @@ public final class ServerTextCodes {
     public static final String ATTENTION_CALIBRATIONS_DUE_SOON = "ATTENTION_CALIBRATIONS_DUE_SOON";
     public static final String ATTENTION_SETUP_INCOMPLETE = "ATTENTION_SETUP_INCOMPLETE";
     public static final String ATTENTION_STALE_FUEL_PRICES = "ATTENTION_STALE_FUEL_PRICES";
+    public static final String ATTENTION_WET_STOCK_LOSS = "ATTENTION_WET_STOCK_LOSS";
+    public static final String ATTENTION_MISSING_DIPS = "ATTENTION_MISSING_DIPS";
 
     public static final String SETUP_DISPENSERS_MISSING = "SETUP_DISPENSERS_MISSING";
     public static final String SETUP_ACTIVE_NOZZLES = "SETUP_ACTIVE_NOZZLES";

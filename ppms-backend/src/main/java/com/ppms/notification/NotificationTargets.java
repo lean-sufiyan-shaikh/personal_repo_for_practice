@@ -15,6 +15,7 @@ public final class NotificationTargets {
         return switch (type) {
             case SETTLEMENT_REMINDER -> NotificationTarget.of("/dashboard/settlements");
             case LOW_STOCK -> NotificationTarget.of("/dashboard/inventory");
+            case WET_STOCK_LOSS -> NotificationTarget.of("/dashboard/inventory", "tab", "reconciliation");
             case PRICE_STALE -> NotificationTarget.of("/dashboard/setup", "section", "prices");
             case CALIBRATION_DUE, CALIBRATION_DUE_SOON -> NotificationTarget.of("/dashboard/calibration");
             case DOCUMENT_EXPIRING -> NotificationTarget.of("/dashboard/documents");

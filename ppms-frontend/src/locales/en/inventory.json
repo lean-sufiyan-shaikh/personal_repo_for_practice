@@ -8,7 +8,10 @@
     "lowStockCount_one": "{{count}} tank low",
     "lowStockCount_other": "{{count}} tanks low",
     "dipOverdueCount_one": "{{count}} DIP check overdue",
-    "dipOverdueCount_other": "{{count}} DIP checks overdue"
+    "dipOverdueCount_other": "{{count}} DIP checks overdue",
+    "views": "Inventory views",
+    "tabStock": "Stock",
+    "tabReconciliation": "Reconciliation"
   },
   "alerts": {
     "lowStockOne": "{{tank}} ({{fuel}}) is below 20% capacity.",
@@ -229,5 +232,48 @@
     "tanks": "Tanks",
     "totalQuantity": "Total received",
     "calculatedTotal": "Calculated amount"
+  },
+  "reconciliation": {
+    "filterTitle": "Reconciliation filters",
+    "to": "to",
+    "filterByTank": "Reconcile tank",
+    "ambientNote": "Litres are measured at ambient temperature, so variances include the effect of temperature on fuel volume. Days without a dip are merged into the next day that has one.",
+    "rangeStartAfterEnd": "The start date must not be after the end date.",
+    "rangeTooLong": "Choose a range of at most {{days}} days.",
+    "rangeInFuture": "The end date cannot be in the future.",
+    "noTanks": "No tanks to reconcile.",
+    "cumulativeVariance": "Cumulative variance",
+    "soldInRange": "{{litres}} sold",
+    "flaggedCount_one": "{{count}} period outside dip tolerance",
+    "flaggedCount_other": "{{count}} periods outside dip tolerance",
+    "statusWithinLimits": "Within limits",
+    "statusLossAboveLimit": "Loss above {{limit}}%",
+    "statusGainAboveLimit": "Gain above {{limit}}%",
+    "statusNoData": "No reconciled days",
+    "trendLabel": "Variance per period for {{tank}}",
+    "noPeriods": "No dips recorded for this tank in the selected dates.",
+    "tableCaption": "Daily reconciliation for {{tank}}",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "percent": "{{value}}%",
+    "withinTolerance": "Within tolerance",
+    "outsideTolerance": "Outside tolerance",
+    "needsOpeningDip": "Needs an opening dip",
+    "phoneFlows": "Opening {{opening}} · in {{delivered}} · sold {{sold}} · removed {{removed}}",
+    "phoneClosing": "Expected {{expected}} · dip {{closing}}",
+    "phoneCumulative": "Running total {{litres}} ({{percent}})",
+    "columns": {
+      "period": "Period",
+      "opening": "Opening",
+      "delivered": "Delivered",
+      "sold": "Sold",
+      "removed": "Removed",
+      "expected": "Expected",
+      "closing": "Closing dip",
+      "variance": "Variance",
+      "variancePercent": "Variance %",
+      "cumulative": "Running total",
+      "check": "Check"
+    }
   }
 }

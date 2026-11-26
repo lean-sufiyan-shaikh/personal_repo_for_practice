@@ -116,6 +116,52 @@ export interface RecordDipCheckRequest {
   nozzleReadings: Array<{ nozzleId: number; meterReading: number }>
 }
 
+/** A stretch ending on a day with a dip; days without a dip are merged into it. NEEDS_OPENING_DIP has only closingLitres. */
+export interface ReconciliationPeriod {
+  periodStart: string
+  periodEnd: string
+  days: number
+  status: 'RECONCILED' | 'NEEDS_OPENING_DIP'
+  openingLitres: number | null
+  deliveredLitres: number | null
+  soldLitres: number | null
+  removedLitres: number | null
+  expectedClosingLitres: number | null
+  closingLitres: number
+  /** Closing dip minus expected closing: negative is a loss. */
+  varianceLitres: number | null
+  /** Variance as a share of litres sold; null when nothing was sold. */
+  variancePercent: number | null
+  withinTolerance: boolean | null
+  cumulativeVarianceLitres: number | null
+  cumulativeVariancePercent: number | null
+}
+
+export type ReconciliationStatus = 'WITHIN_LIMITS' | 'LOSS_ABOVE_LIMIT' | 'GAIN_ABOVE_LIMIT' | 'NO_DATA'
+
+export interface TankReconciliation {
+  tankId: number
+  tankIdentifier: string
+  fuelType: string
+  dipTolerance: number
+  lossAlertPercent: number
+  summary: {
+    salesLitres: number
+    varianceLitres: number
+    variancePercent: number | null
+    reconciledPeriodCount: number
+    flaggedPeriodCount: number
+    status: ReconciliationStatus
+  }
+  periods: ReconciliationPeriod[]
+}
+
+export interface WetStockReconciliation {
+  from: string
+  to: string
+  tanks: TankReconciliation[]
+}
+
 export const inventoryApi = {
   getTankStocks: (pumpId: number) =>
     client.get<TankStock[]>(`/inventory/${pumpId}/tanks`).then(r => r.data),
@@ -153,4 +199,7 @@ export const inventoryApi = {
 
   deleteLatestDelivery: (pumpId: number, invoiceReference: string) =>
     client.delete(`/inventory/${pumpId}/deliveries/latest`, { params: { invoiceReference } }),
+
+  getReconciliation: (pumpId: number, from: string, to: string, tankId?: number) =>
+    client.get<WetStockReconciliation>(`/inventory/${pumpId}/reconciliation`, { params: { from, to, tankId } }).then(r => r.data),
 }

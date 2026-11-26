@@ -17,6 +17,7 @@ public class TankResponse {
     private BigDecimal capacity;
     private BigDecimal currentStock;
     private BigDecimal dipTolerance;
+    private BigDecimal lossAlertPercent;
     private String status;
     private OffsetDateTime createdAt;
 }

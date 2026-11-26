@@ -5,12 +5,14 @@ import com.ppms.fuel.FuelType;
 import com.ppms.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -20,6 +22,7 @@ public class InventoryController {
 
     private final InventoryWorkflowService workflowService;
     private final InventoryQueryService queryService;
+    private final WetStockReconciliationService reconciliationService;
 
     /**
      * GET /api/inventory/{pumpId}/tanks
@@ -175,5 +178,19 @@ public class InventoryController {
             @PathVariable Long pumpId,
             @PathVariable Long tankId) {
         return ResponseEntity.ok(queryService.getActiveTankLots(pumpId, tankId));
+    }
+
+    /**
+     * GET /api/inventory/{pumpId}/reconciliation?from=&to=&tankId=
+     * Daily wet-stock reconciliation per tank over at most 92 days ending no later than today.
+     */
+    @GetMapping("/{pumpId}/reconciliation")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
+    public ResponseEntity<WetStockReconciliationResponse> getReconciliation(
+            @PathVariable Long pumpId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) Long tankId) {
+        return ResponseEntity.ok(reconciliationService.reconcile(pumpId, from, to, tankId));
     }
 }

@@ -43,6 +43,9 @@ public class UndergroundTank {
     @Column(name = "dip_tolerance", nullable = false)
     private BigDecimal dipTolerance;
 
+    @Column(name = "loss_alert_percent")
+    private BigDecimal lossAlertPercent;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false)
@@ -53,6 +56,13 @@ public class UndergroundTank {
 
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    public static final BigDecimal DEFAULT_LOSS_ALERT_PERCENT = new BigDecimal("0.50");
+
+    /** The 7-day loss share of litres sold that raises an alert; tanks saved without one use 0.5%. */
+    public BigDecimal effectiveLossAlertPercent() {
+        return lossAlertPercent != null ? lossAlertPercent : DEFAULT_LOSS_ALERT_PERCENT;
+    }
 
     @PrePersist
     protected void onCreate() {

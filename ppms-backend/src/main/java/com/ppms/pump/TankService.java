@@ -58,6 +58,7 @@ public class TankService {
                 .capacity(request.getCapacity())
                 .currentStock(BigDecimal.ZERO)
                 .dipTolerance(request.getDipTolerance() != null ? request.getDipTolerance() : DEFAULT_DIP_TOLERANCE)
+                .lossAlertPercent(UndergroundTank.DEFAULT_LOSS_ALERT_PERCENT)
                 .status(TankStatus.ACTIVE)
                 .build());
 
@@ -74,6 +75,9 @@ public class TankService {
         tank.setCapacity(request.getCapacity());
         if (request.getTankIdentifier() != null && !request.getTankIdentifier().isBlank()) {
             tank.setTankIdentifier(request.getTankIdentifier().trim());
+        }
+        if (request.getLossAlertPercent() != null) {
+            tank.setLossAlertPercent(request.getLossAlertPercent());
         }
         return toTankResponse(tankRepository.save(tank));
     }
@@ -124,6 +128,7 @@ public class TankService {
                 .capacity(tank.getCapacity())
                 .currentStock(tank.getCurrentStock())
                 .dipTolerance(tank.getDipTolerance())
+                .lossAlertPercent(tank.effectiveLossAlertPercent())
                 .status(tank.getStatus().name())
                 .createdAt(tank.getCreatedAt())
                 .build();

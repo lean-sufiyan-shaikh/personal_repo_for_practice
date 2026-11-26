@@ -157,7 +157,10 @@
     "mappedNozzles_one": "{{count}} nozzle mapped",
     "mappedNozzles_other": "{{count}} nozzles mapped",
     "lastDip": "Last dip {{date}}",
-    "disabled": "Disabled"
+    "disabled": "Disabled",
+    "lossAlertLabel": "Loss alert limit",
+    "lossAlertHelp": "Alert when the fuel lost over 7 days is more than this share of litres sold.",
+    "lossAlertRange": "Enter a limit between 0.01% and 100%."
   },
   "nozzles": {
     "intro": "Each Dispensary Unit (DU) is a physical MPD machine. Add one or more nozzles to each DU — each nozzle carries exactly one fuel type with its own meter counter. CNG nozzles cannot share a DU with other fuel types.",
