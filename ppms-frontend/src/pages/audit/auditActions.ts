@@ -48,6 +48,11 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   DELIVERY_UPDATED:                   'warn',
   DELIVERY_DELETED:                   'bad',
   LOT_COST_CORRECTED:                 'warn',
+  SHORTAGE_CLAIM_RAISED:              'warn',
+  SHORTAGE_CLAIM_UPDATED:             'warn',
+  SHORTAGE_CLAIM_SETTLED:             'ok',
+  SHORTAGE_CLAIM_REJECTED:            'bad',
+  SHORTAGE_CLAIM_WITHDRAWN:           'neutral',
   DIP_CHECK_RECORDED:                 'info',
   // Documents
   DOCUMENT_ADDED:                     'neutral',

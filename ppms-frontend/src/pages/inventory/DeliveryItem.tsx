@@ -6,8 +6,9 @@ import type { TankerDelivery } from '../../api/inventoryApi'
 import { IconButton } from '../../components/IconButton'
 import { LitresText, MoneyText } from '../../components/AmountText'
 import { EditDeliveryModal } from './EditDeliveryModal'
+import { ReceiptCheckBadges } from './ReceiptCheckBadges'
 import { FUEL_COLORS } from './inventoryFormat'
-import { formatCurrency } from '../../utils/format'
+import { formatCurrency, formatLitres } from '../../utils/format'
 
 // ── Delivery item (compact card inside invoice group) ─────────────────────────
 
@@ -20,8 +21,8 @@ export function DeliveryItem({ delivery, pumpId, isOwnerOrAdmin }: {
   const cols = FUEL_COLORS[delivery.fuelType] ?? FUEL_COLORS.PETROL
   const [editing, setEditing] = useState(false)
   return (
-    <>
-      <div className={`grid gap-3 rounded-control bg-bg px-3 py-2.5 text-xs items-center ${
+    <div className="space-y-1.5 rounded-control bg-bg px-3 py-2.5">
+      <div className={`grid gap-3 text-xs items-center ${
         isOwnerOrAdmin
           ? 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'
           : 'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'
@@ -44,6 +45,15 @@ export function DeliveryItem({ delivery, pumpId, isOwnerOrAdmin }: {
           icon={<Pencil size={13} />}
         />
       </div>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
+        <ReceiptCheckBadges lines={[delivery]} />
+        {delivery.receiptCheck && (
+          <span>{t('deliveries.receivedOfInvoiced', {
+            received: formatLitres(delivery.receiptCheck.receivedLitres),
+            invoiced: formatLitres(delivery.quantityDelivered),
+          })}</span>
+        )}
+      </div>
       {editing && (
         <EditDeliveryModal
           delivery={delivery}
@@ -52,6 +62,6 @@ export function DeliveryItem({ delivery, pumpId, isOwnerOrAdmin }: {
           onClose={() => setEditing(false)}
         />
       )}
-    </>
+    </div>
   )
 }

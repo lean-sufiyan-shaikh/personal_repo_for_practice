@@ -11,7 +11,8 @@
     "dipOverdueCount_other": "{{count}} डिप जाँच बाकी",
     "views": "स्टॉक के हिस्से",
     "tabStock": "स्टॉक",
-    "tabReconciliation": "मिलान"
+    "tabReconciliation": "मिलान",
+    "tabClaims": "दावे"
   },
   "alerts": {
     "lowStockOne": "{{tank}} ({{fuel}}) में 20% से कम स्टॉक है।",
@@ -75,7 +76,8 @@
     "deleteFailed": "इनवॉइस नहीं हट सका",
     "editDelivery": "डिलीवरी बदलें",
     "invoiceTitle": "बिल {{invoice}}",
-    "loggedBy": "{{name}} ने दर्ज किया"
+    "loggedBy": "{{name}} ने दर्ज किया",
+    "receivedOfInvoiced": "{{invoiced}} में से {{received}} मिला"
   },
   "deleteInvoice": {
     "title": "इनवॉइस हटाएँ?",
@@ -185,7 +187,7 @@
     "addTank": "एक और टैंक जोड़ें",
     "billAmountHelp": "टैंक लाइनों से भरा गया है; सप्लायर इनवॉइस की कुल राशि हो तो बदलें।",
     "totals": "कुल",
-    "totalQuantity": "कुल आया ईंधन"
+    "totalQuantity": "कुल इनवॉइस मात्रा"
   },
   "header": {
     "date": "डिलीवरी की तारीख",
@@ -208,7 +210,7 @@
     "tankNumber": "टैंक {{number}}",
     "tank": "टैंक",
     "selectTank": "टैंक चुनें…",
-    "quantity": "आई मात्रा",
+    "quantity": "इनवॉइस मात्रा",
     "costPerLitre": "प्रति लीटर खरीद दर",
     "costManaged": "खरीद दर मालिक / एडमिन तय करते हैं। इस टैंक की पिछली दर ली जाएगी।",
     "deliveryCost": "राशि (लीटर × दर)",
@@ -216,7 +218,8 @@
     "stockAfter": "डिलीवरी के बाद स्टॉक",
     "freeSpace": "टैंक में खाली जगह",
     "ofCapacity": "{{capacity}} L में से",
-    "figuresLabel": "टैंक {{number}} का नतीजा"
+    "figuresLabel": "टैंक {{number}} का नतीजा",
+    "received": "मिला {{litres}}"
   },
   "review": {
     "title": "टैंकर डिलीवरी जाँचें",
@@ -230,7 +233,7 @@
     "stockAfterDelivery": "डिलीवरी के बाद स्टॉक:",
     "ofCapacity": "/ {{capacity}} L क्षमता",
     "tanks": "टैंक",
-    "totalQuantity": "कुल आया ईंधन",
+    "totalQuantity": "कुल इनवॉइस मात्रा",
     "calculatedTotal": "हिसाब से राशि"
   },
   "reconciliation": {
@@ -275,5 +278,144 @@
       "cumulative": "चालू कुल",
       "check": "जाँच"
     }
+  },
+  "checkStatus": {
+    "OK": "जाँच ठीक",
+    "SHORT": "कम आया",
+    "OVER": "ज़्यादा आया",
+    "NOT_CHECKED": "जाँच नहीं हुई",
+    "densityFlag": "घनत्व में अंतर"
+  },
+  "receipt": {
+    "title": "प्राप्ति जाँच",
+    "intro": "उतारने से पहले और बाद में टैंक का डिप लें और उसके हर नोज़ल की रीडिंग लें, ताकि इस बीच बिका ईंधन गिना जाए।",
+    "noNozzles": "इस टैंक से कोई नोज़ल नहीं जुड़ा है, इसलिए केवल दोनों डिप चाहिए।",
+    "beforeTitle": "1. उतारने से पहले",
+    "afterTitle": "2. उतारने के बाद",
+    "dipBefore": "उतारने से पहले डिप",
+    "dipAfter": "उतारने के बाद डिप",
+    "nozzleBefore": "नोज़ल #{{number}} पहले",
+    "nozzleAfter": "नोज़ल #{{number}} बाद में",
+    "nozzleBeforeWithDu": "नोज़ल #{{number}} · {{du}} पहले",
+    "nozzleAfterWithDu": "नोज़ल #{{number}} · {{du}} बाद में",
+    "densityTitle": "घनत्व (वैकल्पिक)",
+    "observedDensity": "मापा गया घनत्व",
+    "invoiceDensity": "इनवॉइस पर घनत्व",
+    "incomplete": "कितना मिला यह देखने के लिए दोनों डिप और हर नोज़ल की रीडिंग भरें।",
+    "received": "इनवॉइस के {{invoiced}} में से {{received}} मिला",
+    "soldBetween": "उतारते समय बिका {{litres}} शामिल है",
+    "match": "इनवॉइस से मेल खाता है",
+    "shortWithin": "{{litres}} कम ({{percent}}%) — सीमा के भीतर",
+    "shortBeyond": "{{litres}} कम ({{percent}}%) — {{tolerance}}% सीमा से ज़्यादा, दावा बनाया जाएगा",
+    "overWithin": "{{litres}} ज़्यादा ({{percent}}%) — सीमा के भीतर",
+    "overBeyond": "{{litres}} ज़्यादा ({{percent}}%) — {{tolerance}}% सीमा से ज़्यादा, केवल दर्ज, कोई दावा नहीं",
+    "densityDifference": "घनत्व अंतर {{difference}} kg/m³",
+    "densityFlag": "{{tolerance}} kg/m³ से ज़्यादा, ईंधन जाँचें",
+    "densityOk": "{{tolerance}} kg/m³ के भीतर",
+    "completeEveryRow": "हर टैंक की प्राप्ति जाँच पूरी करें।",
+    "needDipBefore": "टैंक {{number}}: उतारने से पहले डिप",
+    "needDipAfter": "टैंक {{number}}: उतारने के बाद डिप",
+    "needReadingsBefore": "टैंक {{number}}: उतारने से पहले नोज़ल रीडिंग",
+    "needReadingsAfter": "टैंक {{number}}: उतारने के बाद नोज़ल रीडिंग",
+    "nozzlesLoading": "टैंकों के नोज़ल लोड हो रहे हैं",
+    "nozzlesFailed": "टैंकों के नोज़ल लोड नहीं हुए — बंद करके फिर कोशिश करें"
+  },
+  "claims": {
+    "title": "कमी के दावे",
+    "description": "जब डिलीवरी सीमा से ज़्यादा कम आती है तो अपने आप बनते हैं। सप्लायर के क्रेडिट नोट से निपटाएँ, या कारण देकर अस्वीकार करें।",
+    "totalsLabel": "दावों का कुल",
+    "openTotal_one": "{{count}} खुला दावा",
+    "openTotal_other": "{{count}} खुले दावे",
+    "settledTotal_one": "{{count}} निपटाया · क्रेडिट मिला",
+    "settledTotal_other": "{{count}} निपटाए · क्रेडिट मिला",
+    "rejectedTotal": "अस्वीकृत",
+    "filterTitle": "दावा फ़िल्टर",
+    "filterByStatus": "स्थिति से फ़िल्टर करें",
+    "allStatuses": "सभी स्थितियाँ",
+    "empty": "अभी कोई कमी का दावा नहीं। डिलीवरी सीमा से ज़्यादा कम आने पर दावा बनता है।",
+    "noMatch": "इस स्थिति का कोई दावा नहीं।",
+    "claimAmount": "दावे की रकम",
+    "open": "देखें",
+    "openNamed": "{{invoice}} · {{tank}} का दावा देखें",
+    "settle": "निपटाएँ",
+    "reject": "अस्वीकार करें",
+    "status": {
+      "RAISED": "दावा किया",
+      "SETTLED": "निपटाया",
+      "REJECTED": "अस्वीकृत"
+    },
+    "columns": {
+      "delivered": "डिलीवरी",
+      "invoice": "इनवॉइस",
+      "tank": "टैंक",
+      "short": "कम",
+      "status": "स्थिति",
+      "actions": "कार्रवाई"
+    }
+  },
+  "claimNote": {
+    "panelTitle": "कमी का दावा #{{id}}",
+    "panelSubtitle": "इनवॉइस {{invoice}} · {{tank}}",
+    "print": "दावा नोट प्रिंट करें",
+    "title": "डिलीवरी कमी दावा नोट #{{id}}",
+    "gstin": "GSTIN {{gstin}}",
+    "invoice": "इनवॉइस / बिल नंबर",
+    "deliveryDate": "डिलीवरी की तारीख",
+    "tank": "टैंक",
+    "tanker": "टैंकर",
+    "raised": "दावा किया",
+    "raisedBy": "{{date}}, {{name}} द्वारा",
+    "status": "स्थिति",
+    "quantityTitle": "मात्रा",
+    "invoiceLitres": "इनवॉइस पर",
+    "dipBefore": "उतारने से पहले डिप",
+    "dipAfter": "उतारने के बाद डिप",
+    "soldBetween": "दोनों डिप के बीच बिका",
+    "received": "मिला",
+    "short": "कम ({{percent}}%, सीमा {{tolerance}}%)",
+    "pricePerLitre": "इनवॉइस का प्रति लीटर भाव",
+    "densityTitle": "घनत्व",
+    "observedDensity": "मापा गया",
+    "invoiceDensity": "इनवॉइस पर",
+    "densityDifference": "अंतर (अनुमत {{tolerance}} kg/m³)",
+    "readingsTitle": "दोनों डिप के बीच नोज़ल रीडिंग",
+    "nozzle": "नोज़ल",
+    "nozzleNumber": "#{{number}}",
+    "nozzleWithDu": "#{{number}} · {{du}}",
+    "readingBefore": "पहले",
+    "readingAfter": "बाद में",
+    "litresSold": "बिके लीटर",
+    "settlementTitle": "निपटारा",
+    "rejectionTitle": "अस्वीकृति",
+    "resolvedBy": "निर्णय लेने वाले",
+    "pumpSignature": "पंप मैनेजर / मालिक",
+    "supplierSignature": "सप्लायर / टैंकर ड्राइवर"
+  },
+  "settleClaim": {
+    "title": "दावा निपटाएँ",
+    "subtitle": "इनवॉइस {{invoice}} — सप्लायर का क्रेडिट नोट भरें",
+    "amount": "क्रेडिट नोट की रकम",
+    "reference": "क्रेडिट नोट नंबर",
+    "date": "क्रेडिट नोट की तारीख",
+    "creditNote": "क्रेडिट मिला",
+    "confirm": "दावा निपटाएँ",
+    "settling": "दावा निपटाया जा रहा है",
+    "failed": "दावा निपटाया नहीं जा सका",
+    "done": "दावा निपटाया गया",
+    "amountNeeded": "शून्य से ज़्यादा क्रेडिट नोट रकम",
+    "referenceNeeded": "क्रेडिट नोट नंबर",
+    "dateNeeded": "क्रेडिट नोट की तारीख",
+    "dateNotFuture": "ऐसी क्रेडिट नोट तारीख जो भविष्य की न हो"
+  },
+  "rejectClaim": {
+    "title": "दावा अस्वीकार करें",
+    "subtitle": "इनवॉइस {{invoice}} · {{amount}}",
+    "explanation": "दावा बिना क्रेडिट नोट के बंद होगा। कारण बताएँ, जैसे सप्लायर ने दिखाया कि कमी गलत मापी गई थी।",
+    "reason": "कारण",
+    "reasonNeeded": "अस्वीकार करने का कारण",
+    "confirm": "दावा अस्वीकार करें",
+    "rejecting": "दावा अस्वीकार हो रहा है",
+    "failed": "दावा अस्वीकार नहीं हो सका",
+    "done": "दावा अस्वीकार किया गया"
   }
 }

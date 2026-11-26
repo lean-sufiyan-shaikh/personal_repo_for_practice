@@ -59,5 +59,9 @@ public class RecordBatchDeliveryRequest {
         /** Null is allowed — backend will use the last recorded price for this tank. */
         @DecimalMin(value = "0.0001", message = "Cost price must be greater than 0")
         private BigDecimal costPricePerUnit;
+
+        @NotNull(message = "Receipt check is required")
+        @Valid
+        private ReceiptCheckRequest receiptCheck;
     }
 }

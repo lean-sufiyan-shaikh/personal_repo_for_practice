@@ -1,6 +1,6 @@
 import {
   Droplets, AlertTriangle, FileText, Wrench,
-  Clock, TrendingDown, IndianRupee, Package, Lock, Info,
+  Clock, TrendingDown, IndianRupee, Package, Lock, Info, Truck,
 } from 'lucide-react'
 import type { LucideProps } from 'lucide-react'
 
@@ -17,6 +17,7 @@ export function NotificationTypeIcon({ type }: { type: string }) {
     case 'PRICE_CHANGE_OPEN_SHIFT': return <IndianRupee   {...base} className="text-info flex-shrink-0 mt-0.5" />
     case 'ANCILLARY_LOW_STOCK':     return <Package       {...base} className="text-ink-3 flex-shrink-0 mt-0.5" />
     case 'WET_STOCK_LOSS':          return <Droplets      {...base} className="text-bad flex-shrink-0 mt-0.5" />
+    case 'DELIVERY_SHORTAGE':       return <Truck         {...base} className="text-bad flex-shrink-0 mt-0.5" />
     case 'AUTO_CLOSED_SHIFT':       return <Lock          {...base} className="text-ink-3 flex-shrink-0 mt-0.5" />
     default:                        return <Info          {...base} className="text-ink-3 flex-shrink-0 mt-0.5" />
   }

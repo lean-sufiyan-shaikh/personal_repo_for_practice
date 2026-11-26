@@ -24,6 +24,7 @@ import com.ppms.inventory.InventoryLot;
 import com.ppms.inventory.InventoryLotRepository;
 import com.ppms.inventory.LotConsumptionRepository;
 import com.ppms.inventory.LotStatus;
+import com.ppms.inventory.ReceiptCheckRequest;
 import com.ppms.inventory.RecordDeliveryRequest;
 import com.ppms.pump.DispensaryUnit;
 import com.ppms.pump.DispensaryUnitRepository;
@@ -181,6 +182,9 @@ class ConcurrentUpdateIntegrationTest {
         delivery.setCostPricePerUnit(new BigDecimal("91.00"));
         delivery.setDeliveryDate(TestDates.today());
         delivery.setInvoiceReference("INV-" + shortId());
+        delivery.setReceiptCheck(new ReceiptCheckRequest(new BigDecimal("4000"), new BigDecimal("5000"),
+                List.of(new ReceiptCheckRequest.NozzleReading(nozzle.getId(), new BigDecimal("1000"), new BigDecimal("1000"))),
+                null, null));
 
         CompetitorResult<?> deliveryResult = runWhileRowIsLocked(
                 () -> tankRepository.findByIdForUpdate(tank.getId()).orElseThrow(),

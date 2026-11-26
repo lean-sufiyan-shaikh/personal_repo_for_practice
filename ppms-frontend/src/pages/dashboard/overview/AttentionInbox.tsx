@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   AlertTriangle, BarChart2, CheckCircle2, ClipboardCheck, Clock, CreditCard, Droplets, FileText, Fuel, Gauge, Landmark,
-  Ruler, Search, Settings, Wrench, ZapOff, type LucideIcon,
+  Ruler, Search, Settings, Truck, Wrench, ZapOff, type LucideIcon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { attentionApi } from '../../../api/attentionApi'
@@ -29,6 +29,7 @@ const ICON_BY_TYPE: Record<AttentionType, LucideIcon> = {
   SETUP_INCOMPLETE: Settings,
   WET_STOCK_LOSS: Droplets,
   MISSING_DIPS: Ruler,
+  SHORTAGE_CLAIMS_OPEN: Truck,
 }
 
 const SEVERITY_CHIP: Record<AttentionSeverity, string> = {

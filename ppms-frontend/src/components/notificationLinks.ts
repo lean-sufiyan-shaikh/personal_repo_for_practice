@@ -27,6 +27,7 @@ export const NOTIFICATION_TYPES: NotificationType[] = [
   'AUTO_CLOSED_SHIFT',
   'SETTLEMENT_REMINDER',
   'WET_STOCK_LOSS',
+  'DELIVERY_SHORTAGE',
 ]
 
 /** The type's name in the active language (notifications.json types.<TYPE>); the raw code when the type is new. */

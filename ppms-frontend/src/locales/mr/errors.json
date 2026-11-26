@@ -317,5 +317,15 @@
   "WAIVER_REASON_REQUIRED": "फरक माफ करताना कारण लिहिणे आवश्यक आहे (नियम 19).",
   "ADJUSTMENT_OWNER_OR_ADMIN_ONLY": "रीडिंग दुरुस्ती आणि डिप नोंदी फक्त मालक किंवा ॲडमिन करू शकतात.",
   "DATE_RANGE_END_IN_FUTURE": "'पर्यंत' तारीख पुढची असू शकत नाही",
-  "DATE_RANGE_TOO_LONG": "जास्तीत जास्त {{maxDays}} दिवसांच्या तारखा निवडा"
+  "DATE_RANGE_TOO_LONG": "जास्तीत जास्त {{maxDays}} दिवसांच्या तारखा निवडा",
+  "RECEIPT_NOZZLE_READINGS_MISSING": "टाकी {{tankIdentifier}} च्या प्रत्येक नोझलचे ({{nozzleNumbers}}) आधीचे आणि नंतरचे मीटर रीडिंग भरा.",
+  "RECEIPT_READING_FOR_UNMAPPED_NOZZLE": "टाकी {{tankIdentifier}} ला न जोडलेल्या नोझलचे रीडिंग भरले आहे. पेज रीलोड करून रीडिंग पुन्हा भरा.",
+  "RECEIPT_AFTER_READING_BELOW_BEFORE": "नोझल #{{nozzleNumber}}: उतरवल्यानंतरचे रीडिंग ({{readingAfter}}) आधीच्या रीडिंगपेक्षा ({{readingBefore}}) कमी आहे.",
+  "RECEIVED_LITRES_NOT_POSITIVE": "टाकी {{tankIdentifier}} च्या डिप आणि रीडिंगनुसार {{receivedLitres}} L मिळाले असे येते. उतरवण्यापूर्वी आणि नंतरचे डिप तपासा.",
+  "SHORTAGE_CLAIM_NOT_RAISED": "हा दावा आधीच {{statusCode}} आहे; फक्त खुला दावा निकाली काढता किंवा नाकारता येतो.",
+  "SHORTAGE_CLAIM_CLOSED_FOR_DELIVERY": "इनव्हॉइस {{invoiceReference}} चा कमतरतेचा दावा {{statusCode}} आहे, म्हणून त्याचे प्रमाण आणि खर्च आता बदलू शकत नाही.",
+  "CREDIT_NOTE_DATE_IN_FUTURE": "क्रेडिट नोटची तारीख भविष्यातील असू शकत नाही.",
+  "CREDIT_NOTE_EXCEEDS_INVOICE_VALUE": "₹{{creditNoteAmount}} ची क्रेडिट नोट डिलिव्हरीच्या इनव्हॉइस मूल्य ₹{{invoiceValue}} पेक्षा जास्त आहे.",
+  "RECEIPT_TOLERANCE_OUT_OF_RANGE": "कमी / जास्तची मर्यादा 0 पेक्षा जास्त आणि जास्तीत जास्त 5% असावी.",
+  "DENSITY_TOLERANCE_OUT_OF_RANGE": "घनतेची मर्यादा 0 पेक्षा जास्त आणि जास्तीत जास्त 50 kg/m³ असावी."
 }

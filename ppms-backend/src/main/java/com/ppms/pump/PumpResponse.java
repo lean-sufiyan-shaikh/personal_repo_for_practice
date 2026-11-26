@@ -23,6 +23,8 @@ public class PumpResponse {
     private String legalName;
     private String stateName;
     private String invoicePrefix;
+    private BigDecimal receiptTolerancePercent;
+    private BigDecimal densityTolerance;
     /** Active Dispensary Units with their nozzles. */
     private List<DUResponse> dus;
 }

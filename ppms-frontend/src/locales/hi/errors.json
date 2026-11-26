@@ -317,5 +317,15 @@
   "WAIVER_REASON_REQUIRED": "अंतर माफ़ करते समय कारण लिखना ज़रूरी है (नियम 19)।",
   "ADJUSTMENT_OWNER_OR_ADMIN_ONLY": "रीडिंग सुधार और डिप एंट्री केवल मालिक या एडमिन दर्ज कर सकते हैं।",
   "DATE_RANGE_END_IN_FUTURE": "'तक' तारीख आगे की नहीं हो सकती",
-  "DATE_RANGE_TOO_LONG": "ज़्यादा से ज़्यादा {{maxDays}} दिन की तारीखें चुनें"
+  "DATE_RANGE_TOO_LONG": "ज़्यादा से ज़्यादा {{maxDays}} दिन की तारीखें चुनें",
+  "RECEIPT_NOZZLE_READINGS_MISSING": "टैंक {{tankIdentifier}} के हर नोज़ल ({{nozzleNumbers}}) की पहले और बाद की मीटर रीडिंग भरें।",
+  "RECEIPT_READING_FOR_UNMAPPED_NOZZLE": "ऐसे नोज़ल की रीडिंग भरी गई जो टैंक {{tankIdentifier}} से नहीं जुड़ा है। पेज रीलोड करके रीडिंग फिर भरें।",
+  "RECEIPT_AFTER_READING_BELOW_BEFORE": "नोज़ल #{{nozzleNumber}}: उतारने के बाद की रीडिंग ({{readingAfter}}) पहले की रीडिंग ({{readingBefore}}) से कम है।",
+  "RECEIVED_LITRES_NOT_POSITIVE": "टैंक {{tankIdentifier}} के डिप और रीडिंग से {{receivedLitres}} L मिलना बनता है। उतारने से पहले और बाद के डिप जाँचें।",
+  "SHORTAGE_CLAIM_NOT_RAISED": "यह दावा पहले से {{statusCode}} है; केवल खुला दावा निपटाया या अस्वीकार किया जा सकता है।",
+  "SHORTAGE_CLAIM_CLOSED_FOR_DELIVERY": "इनवॉइस {{invoiceReference}} का कमी का दावा {{statusCode}} है, इसलिए उसकी मात्रा और लागत अब नहीं बदल सकती।",
+  "CREDIT_NOTE_DATE_IN_FUTURE": "क्रेडिट नोट की तारीख भविष्य की नहीं हो सकती।",
+  "CREDIT_NOTE_EXCEEDS_INVOICE_VALUE": "₹{{creditNoteAmount}} का क्रेडिट नोट डिलीवरी के इनवॉइस मूल्य ₹{{invoiceValue}} से ज़्यादा है।",
+  "RECEIPT_TOLERANCE_OUT_OF_RANGE": "कम / ज़्यादा की सीमा 0 से ज़्यादा और अधिकतम 5% होनी चाहिए।",
+  "DENSITY_TOLERANCE_OUT_OF_RANGE": "घनत्व की सीमा 0 से ज़्यादा और अधिकतम 50 kg/m³ होनी चाहिए।"
 }

@@ -16,6 +16,7 @@ export type AttentionType =
   | 'SETUP_INCOMPLETE'
   | 'WET_STOCK_LOSS'
   | 'MISSING_DIPS'
+  | 'SHORTAGE_CLAIMS_OPEN'
 
 /** Most urgent first; the server already returns items in this order. */
 export type AttentionSeverity = 'HIGH' | 'MEDIUM' | 'LOW'

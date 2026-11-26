@@ -9,6 +9,8 @@ import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.fuel.GlobalFuelPrice;
 import com.ppms.fuel.GlobalFuelPriceRepository;
+import com.ppms.pump.PumpLocation;
+import com.ppms.pump.PumpLocationRepository;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
@@ -60,16 +62,22 @@ public class InventoryWorkflowService {
     private final TankLotConsumptionService tankLotConsumptionService;
     private final LotCostCorrectionService lotCostCorrectionService;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
+    private final DeliveryReceiptService deliveryReceiptService;
+    private final ShortageClaimService shortageClaimService;
+    private final PumpLocationRepository pumpLocationRepository;
 
     /**
-     * Records one tanker delivery: a TankerDelivery row, a FIFO InventoryLot, and the added tank stock.
+     * Records one tanker delivery: a TankerDelivery row, a FIFO InventoryLot, and the added tank stock. Stock and the
+     * lot take the litres the receipt check measured in the tank; the lot keeps the invoice value, so a short
+     * delivery costs more per litre until its claim is settled.
      */
     @Transactional
     public TankerDeliveryResponse recordDelivery(Long pumpId, RecordDeliveryRequest request, User currentUser) {
         UndergroundTank tank = tankRepository.findByIdForUpdate(request.getTankId())
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.TANK, "Tank not found"));
         assertTankUsable(tank, pumpId, "recording a delivery");
-        assertCapacity(tank, request.getQuantityDelivered());
+        DeliveryReceiptService.MeasuredReceipt receipt = deliveryReceiptService.measure(tank, request.getReceiptCheck());
+        assertCapacity(tank, receipt.receivedLitres());
 
         String invoiceRef = request.getInvoiceReference() != null ? request.getInvoiceReference().trim() : null;
         if (invoiceRef != null && !invoiceRef.isBlank()) {
@@ -84,20 +92,21 @@ public class InventoryWorkflowService {
 
         TankerDelivery delivery = createDeliveryWithLot(pumpId, tank, request.getQuantityDelivered(),
                 costPrice, startOfBusinessDay(request.getDeliveryDate()), invoiceRef,
-                request.getBillTotal(), null, currentUser);
+                request.getBillTotal(), null, currentUser, receipt, findPump(pumpId));
 
-        log.info("Tanker delivery recorded: pump={}, tank={}, fuel={}, qty={}L, invoice={}, by={}",
-                pumpId, tank.getId(), tank.getFuelType(),
-                request.getQuantityDelivered(), request.getInvoiceReference(), currentUser.getId());
+        log.info("Tanker delivery recorded: pump={}, tank={}, fuel={}, qty={}L, received={}L, check={}, invoice={}, by={}",
+                pumpId, tank.getId(), tank.getFuelType(), request.getQuantityDelivered(), delivery.getReceivedLitres(),
+                delivery.getCheckStatus(), request.getInvoiceReference(), currentUser.getId());
 
         auditService.log(pumpId, AuditAction.DELIVERY_RECORDED,
                 "TankerDelivery", delivery.getId().toString(),
                 "Delivery: " + tank.getFuelType() + " " + request.getQuantityDelivered() + "L to tank " +
                 tank.getTankIdentifier() + " at ₹" + costPrice + "/L, invoice=" +
-                request.getInvoiceReference(),
+                request.getInvoiceReference() + receiptSummary(delivery),
                 currentUser);
 
-        return responseAssembler.toDeliveryResponse(delivery, tank, currentUser.getFullName());
+        ShortageClaim claim = shortageClaimService.syncWithDelivery(delivery, tank, currentUser);
+        return responseAssembler.toDeliveryResponse(delivery, tank, currentUser.getFullName(), claim);
     }
 
     /**
@@ -122,6 +131,7 @@ public class InventoryWorkflowService {
         Tanker tanker = request.getTankerId() != null ? findTankerMatchingQuantity(pumpId, request) : null;
 
         tankRepository.findAllByIdForUpdate(tankIds);
+        PumpLocation pump = findPump(pumpId);
 
         List<TankerDeliveryResponse> responses = new ArrayList<>();
         for (RecordBatchDeliveryRequest.LineItem item : request.getItems()) {
@@ -132,19 +142,22 @@ public class InventoryWorkflowService {
                 throw new ResourceNotFoundException(EntityType.TANK, "Tank " + item.getTankId() + " not found");
             }
             assertTankUsable(tank, pumpId, "recording a delivery");
-            assertCapacity(tank, item.getQuantityDelivered());
+            DeliveryReceiptService.MeasuredReceipt receipt = deliveryReceiptService.measure(tank, item.getReceiptCheck());
+            assertCapacity(tank, receipt.receivedLitres());
             assertInvoiceNotRecorded(pumpId, invoiceRef, tank);
 
             BigDecimal costPrice = costPriceForDelivery(tank, item.getCostPricePerUnit(), currentUser);
             validateCostPriceAgainstSellingPrice(pumpId, tank, costPrice);
 
             TankerDelivery delivery = createDeliveryWithLot(pumpId, tank, item.getQuantityDelivered(), costPrice,
-                    deliveryDateTime, invoiceRef, request.getBillTotal(), tanker, currentUser);
+                    deliveryDateTime, invoiceRef, request.getBillTotal(), tanker, currentUser, receipt, pump);
 
-            log.info("Batch delivery item recorded: pump={}, tank={}, fuel={}, qty={}L, invoice={}, by={}",
-                    pumpId, tank.getId(), tank.getFuelType(), delivery.getQuantityDelivered(), invoiceRef, currentUser.getId());
+            log.info("Batch delivery item recorded: pump={}, tank={}, fuel={}, qty={}L, received={}L, check={}, invoice={}, by={}",
+                    pumpId, tank.getId(), tank.getFuelType(), delivery.getQuantityDelivered(), delivery.getReceivedLitres(),
+                    delivery.getCheckStatus(), invoiceRef, currentUser.getId());
 
-            responses.add(responseAssembler.toDeliveryResponse(delivery, tank, currentUser.getFullName()));
+            ShortageClaim claim = shortageClaimService.syncWithDelivery(delivery, tank, currentUser);
+            responses.add(responseAssembler.toDeliveryResponse(delivery, tank, currentUser.getFullName(), claim));
         }
         return responses;
     }
@@ -165,9 +178,10 @@ public class InventoryWorkflowService {
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.STOCK_LOT,
                         "Inventory lot not found for this delivery"));
 
+        boolean receiptChecked = delivery.getReceivedLitres() != null;
         BigDecimal consumed = lot.getOriginalQuantity().subtract(lot.getRemainingQuantity());
         BigDecimal newQty = request.getQuantityDelivered().setScale(3, RoundingMode.HALF_UP);
-        if (newQty.compareTo(consumed) < 0) {
+        if (!receiptChecked && newQty.compareTo(consumed) < 0) {
             throw new BusinessException(ErrorCodes.DELIVERY_QUANTITY_BELOW_CONSUMED,
                     Map.of("newQuantity", newQty.toPlainString(),
                            "consumedQuantity", consumed.setScale(3, RoundingMode.HALF_UP).toPlainString()),
@@ -180,8 +194,22 @@ public class InventoryWorkflowService {
         List<TankerDelivery> otherInvoiceLines = otherLinesOfInvoice(pumpId, delivery);
         assertInvoiceFreeForLines(pumpId, invoiceRef, delivery, otherInvoiceLines);
 
-        BigDecimal oldQty = lot.getOriginalQuantity();
-        BigDecimal deltaQty = newQty.subtract(oldQty);
+        if (currentUser.getRole() == UserRole.MANAGER && request.getCostPricePerUnit() != null) {
+            throw new AccessDeniedException("Only an owner or admin can change the fuel purchase cost.");
+        }
+        BigDecimal costPrice = request.getCostPricePerUnit() != null
+                ? request.getCostPricePerUnit()
+                : delivery.getCostPricePerUnit();
+        BigDecimal oldQty = delivery.getQuantityDelivered();
+        boolean invoiceFiguresChanged = newQty.compareTo(oldQty) != 0
+                || costPrice.compareTo(delivery.getCostPricePerUnit()) != 0;
+        if (invoiceFiguresChanged) {
+            shortageClaimService.assertDeliveryChangeable(delivery);
+        }
+
+        // A checked delivery's lot holds the litres measured in the tank, which an invoice correction does not change.
+        BigDecimal newLotQty = receiptChecked ? lot.getOriginalQuantity() : newQty;
+        BigDecimal deltaQty = newLotQty.subtract(lot.getOriginalQuantity());
         BigDecimal newStock = tank.getCurrentStock().add(deltaQty).setScale(3, RoundingMode.HALF_UP);
         if (newStock.compareTo(BigDecimal.ZERO) < 0) {
             throw new BusinessException(ErrorCodes.DELIVERY_REDUCTION_MAKES_STOCK_NEGATIVE, Map.of(),
@@ -192,19 +220,15 @@ public class InventoryWorkflowService {
 
         OffsetDateTime newDeliveryDateTime = startOfBusinessDay(request.getDeliveryDate());
         assertDeliveryNotAfterFirstUse(lot, newDeliveryDateTime);
-        if (currentUser.getRole() == UserRole.MANAGER && request.getCostPricePerUnit() != null) {
-            throw new AccessDeniedException("Only an owner or admin can change the fuel purchase cost.");
-        }
-        BigDecimal costPrice = request.getCostPricePerUnit() != null
-                ? request.getCostPricePerUnit()
-                : delivery.getCostPricePerUnit();
 
-        BigDecimal oldCostPrice = lot.getCostPricePerUnit();
+        BigDecimal oldLotCost = lot.getCostPricePerUnit();
+        BigDecimal newLotCost = lotCostAfterCorrection(invoiceFiguresChanged, receiptChecked, oldLotCost, newQty, costPrice,
+                delivery.getReceivedLitres());
         BigDecimal newRemaining = lot.getRemainingQuantity().add(deltaQty).setScale(3, RoundingMode.HALF_UP);
-        lot.setOriginalQuantity(newQty);
+        lot.setOriginalQuantity(newLotQty);
         lot.setRemainingQuantity(newRemaining);
         lot.setStatus(newRemaining.compareTo(BigDecimal.ZERO) > 0 ? LotStatus.ACTIVE : LotStatus.EXHAUSTED);
-        lot.setCostPricePerUnit(costPrice);
+        lot.setCostPricePerUnit(newLotCost);
         lot.setDeliveryDate(newDeliveryDateTime);
         inventoryLotRepository.save(lot);
 
@@ -212,22 +236,27 @@ public class InventoryWorkflowService {
         delivery.setCostPricePerUnit(costPrice);
         delivery.setDeliveryDate(newDeliveryDateTime);
         delivery.setInvoiceReference(invoiceRef);
+        if (receiptChecked) {
+            deliveryReceiptService.compareWithInvoice(delivery);
+        }
         delivery = tankerDeliveryRepository.save(delivery);
         moveOtherInvoiceLines(otherInvoiceLines, invoiceRef, newDeliveryDateTime);
-        if (costPrice.compareTo(oldCostPrice) != 0) {
-            lotCostCorrectionService.recostConsumedFuel(pumpId, lot, oldCostPrice, costPrice, delivery, currentUser);
+        if (newLotCost.compareTo(oldLotCost) != 0) {
+            lotCostCorrectionService.recostConsumedFuel(pumpId, lot, oldLotCost, newLotCost, delivery, currentUser);
         }
 
-        log.info("Delivery updated: pump={}, delivery={}, fuel={}, oldQty={}L, newQty={}L, invoice={}, by={}",
-                pumpId, deliveryId, delivery.getFuelType(), oldQty, newQty, invoiceRef, currentUser.getId());
+        log.info("Delivery updated: pump={}, delivery={}, fuel={}, oldQty={}L, newQty={}L, check={}, invoice={}, by={}",
+                pumpId, deliveryId, delivery.getFuelType(), oldQty, newQty, delivery.getCheckStatus(), invoiceRef,
+                currentUser.getId());
 
         auditService.log(pumpId, AuditAction.DELIVERY_UPDATED,
                 "TankerDelivery", delivery.getId().toString(),
                 "Delivery updated: " + delivery.getFuelType() + " qty " + oldQty + "→" + newQty + "L, " +
-                "cost ₹" + costPrice + "/L, invoice=" + invoiceRef,
+                "cost ₹" + costPrice + "/L, invoice=" + invoiceRef + receiptSummary(delivery),
                 currentUser);
 
-        return responseAssembler.toDeliveryResponse(delivery, tank, currentUser.getFullName());
+        ShortageClaim claim = receiptChecked ? shortageClaimService.syncWithDelivery(delivery, tank, currentUser) : null;
+        return responseAssembler.toDeliveryResponse(delivery, tank, currentUser.getFullName(), claim);
     }
 
     /**
@@ -263,6 +292,7 @@ public class InventoryWorkflowService {
                         "This invoice cannot be deleted — fuel from it has already been consumed in a shift. " +
                         "Use Edit to correct quantities instead.");
             }
+            shortageClaimService.assertDeliveryChangeable(delivery);
             lots.add(lot);
         }
 
@@ -275,16 +305,17 @@ public class InventoryWorkflowService {
                             "Tank not found: " + delivery.getTankId()));
 
             tank.setCurrentStock(tank.getCurrentStock()
-                    .subtract(delivery.getQuantityDelivered())
+                    .subtract(delivery.litresAddedToTank())
                     .setScale(3, RoundingMode.HALF_UP));
             tankRepository.save(tank);
 
+            shortageClaimService.withdrawForDeletedDelivery(delivery, currentUser);
             inventoryLotRepository.delete(lots.get(i));
             tankerDeliveryRepository.delete(delivery);
 
-            totalQty = totalQty.add(delivery.getQuantityDelivered());
+            totalQty = totalQty.add(delivery.litresAddedToTank());
             detail.append(tank.getTankIdentifier()).append(" -")
-                  .append(delivery.getQuantityDelivered().setScale(3, RoundingMode.HALF_UP)).append("L ")
+                  .append(delivery.litresAddedToTank().setScale(3, RoundingMode.HALF_UP)).append("L ")
                   .append(delivery.getFuelType()).append(", ");
         }
         detail.append("Total: -").append(totalQty.setScale(3, RoundingMode.HALF_UP)).append("L");
@@ -457,9 +488,10 @@ public class InventoryWorkflowService {
     private TankerDelivery createDeliveryWithLot(Long pumpId, UndergroundTank tank, BigDecimal quantity,
                                                  BigDecimal costPrice, OffsetDateTime deliveryDateTime,
                                                  String invoiceRef, BigDecimal billTotal, Tanker tanker,
-                                                 User currentUser) {
+                                                 User currentUser, DeliveryReceiptService.MeasuredReceipt receipt,
+                                                 PumpLocation pump) {
         BigDecimal qty = quantity.setScale(3, RoundingMode.HALF_UP);
-        TankerDelivery delivery = tankerDeliveryRepository.save(TankerDelivery.builder()
+        TankerDelivery delivery = TankerDelivery.builder()
                 .pumpId(pumpId)
                 .tankId(tank.getId())
                 .fuelType(tank.getFuelType())
@@ -471,24 +503,56 @@ public class InventoryWorkflowService {
                 .tankerId(tanker != null ? tanker.getId() : null)
                 .tankerName(tanker != null ? tanker.getName() : null)
                 .loggedByUserId(currentUser.getId())
-                .build());
+                .build();
+        deliveryReceiptService.applyTo(delivery, receipt, pump);
+        delivery = tankerDeliveryRepository.save(delivery);
+        deliveryReceiptService.saveReadings(delivery, receipt);
 
+        BigDecimal received = delivery.getReceivedLitres();
         inventoryLotRepository.save(InventoryLot.builder()
                 .tankerDeliveryId(delivery.getId())
                 .tankId(tank.getId())
                 .fuelType(tank.getFuelType())
                 .pumpId(pumpId)
-                .originalQuantity(qty)
-                .remainingQuantity(qty)
-                .costPricePerUnit(costPrice)
+                .originalQuantity(received)
+                .remainingQuantity(received)
+                .costPricePerUnit(ReceiptCheckCalculator.costPerReceivedLitre(qty.multiply(costPrice), received))
                 .deliveryDate(deliveryDateTime)
                 .isDipAdjustment(false)
                 .status(LotStatus.ACTIVE)
                 .build());
 
-        tank.setCurrentStock(currentStockOf(tank).add(qty).setScale(3, RoundingMode.HALF_UP));
+        tank.setCurrentStock(currentStockOf(tank).add(received).setScale(3, RoundingMode.HALF_UP));
         tankRepository.save(tank);
         return delivery;
+    }
+
+    /**
+     * A checked delivery's lot carries the invoice value over the litres received; it is only recomputed when the
+     * invoice quantity or cost changes, so a settled claim's lower cost is kept.
+     */
+    private static BigDecimal lotCostAfterCorrection(boolean invoiceFiguresChanged, boolean receiptChecked,
+                                                     BigDecimal currentLotCost, BigDecimal invoiceQty,
+                                                     BigDecimal costPrice, BigDecimal receivedLitres) {
+        if (!invoiceFiguresChanged) {
+            return currentLotCost;
+        }
+        return receiptChecked
+                ? ReceiptCheckCalculator.costPerReceivedLitre(invoiceQty.multiply(costPrice), receivedLitres)
+                : costPrice;
+    }
+
+    private static String receiptSummary(TankerDelivery delivery) {
+        if (delivery.getReceivedLitres() == null) {
+            return "";
+        }
+        return ", received " + delivery.getReceivedLitres() + "L (" + delivery.getCheckStatus()
+                + (delivery.isDensityFlagged() ? ", density flagged" : "") + ")";
+    }
+
+    private PumpLocation findPump(Long pumpId) {
+        return pumpLocationRepository.findById(pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found"));
     }
 
     private Tanker findTankerMatchingQuantity(Long pumpId, RecordBatchDeliveryRequest request) {

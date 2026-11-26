@@ -65,7 +65,15 @@
     "effectOn": "Shortages or overages above {{amount}} will need Owner or Admin to resolve.",
     "effectOff": "Blank: managers can resolve every discrepancy.",
     "save": "Save settings",
-    "escalationTitle": "Owner approval for discrepancies"
+    "escalationTitle": "Owner approval for discrepancies",
+    "receiptTitle": "Tanker receipt check",
+    "receiptExplanation": "How far what reaches the tank may differ from the invoice before a delivery is flagged. A shortage beyond this raises a claim against the supplier.",
+    "receiptToleranceLabel": "Short / over tolerance",
+    "receiptToleranceEffect": "A delivery more than {{percent}}% short or over the invoiced litres is flagged.",
+    "receiptToleranceInvalid": "Enter a share above 0 and at most {{max}}%.",
+    "densityToleranceLabel": "Density tolerance",
+    "densityToleranceEffect": "Observed and invoice density more than {{tolerance}} kg/m³ apart is flagged.",
+    "densityToleranceInvalid": "Enter a value above 0 and at most {{max}} kg/m³."
   },
   "gst": {
     "saved": "GST details saved",

@@ -26,5 +26,7 @@ public enum NotificationType {
      */
     SETTLEMENT_REMINDER,
     /** Fired once per tank and day while the tank's 7-day reconciled loss is above its loss alert limit. */
-    WET_STOCK_LOSS
+    WET_STOCK_LOSS,
+    /** Fired once per delivery whose receipt check found it short beyond the pump's tolerance. */
+    DELIVERY_SHORTAGE
 }

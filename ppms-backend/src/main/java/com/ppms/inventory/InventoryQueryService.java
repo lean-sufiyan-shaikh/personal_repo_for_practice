@@ -36,6 +36,7 @@ public class InventoryQueryService {
     private final UserRepository userRepository;
     private final InventoryResponseAssembler responseAssembler;
     private final OpenShiftMeterService openShiftMeterService;
+    private final ShortageClaimQueryService shortageClaimQueryService;
 
     public List<TankStockResponse> getTankStocks(Long pumpId) {
         return tankRepository.findByPumpId(pumpId).stream()
@@ -52,10 +53,13 @@ public class InventoryQueryService {
                 deliveries.getContent().stream().map(TankerDelivery::getTankId).collect(Collectors.toSet()));
         Map<Long, String> userNameById = findUserNamesById(
                 deliveries.getContent().stream().map(TankerDelivery::getLoggedByUserId).collect(Collectors.toSet()));
+        Map<Long, ShortageClaim> claimByDeliveryId = shortageClaimQueryService.claimsByDeliveryId(
+                deliveries.getContent().stream().map(TankerDelivery::getId).collect(Collectors.toSet()));
 
         return PagedResponse.of(deliveries.map(delivery -> responseAssembler.toDeliveryResponse(
                 delivery, tankById.get(delivery.getTankId()),
-                userNameById.getOrDefault(delivery.getLoggedByUserId(), "Unknown"))));
+                userNameById.getOrDefault(delivery.getLoggedByUserId(), "Unknown"),
+                claimByDeliveryId.get(delivery.getId()))));
     }
 
     /** Every tank line of the most recently entered invoice — the only one that may be deleted. Empty when none exist. */
@@ -68,10 +72,13 @@ public class InventoryQueryService {
                 lines.stream().map(TankerDelivery::getTankId).collect(Collectors.toSet()));
         Map<Long, String> userNameById = findUserNamesById(
                 lines.stream().map(TankerDelivery::getLoggedByUserId).collect(Collectors.toSet()));
+        Map<Long, ShortageClaim> claimByDeliveryId = shortageClaimQueryService.claimsByDeliveryId(
+                lines.stream().map(TankerDelivery::getId).collect(Collectors.toSet()));
         return lines.stream()
                 .map(delivery -> responseAssembler.toDeliveryResponse(
                         delivery, tankById.get(delivery.getTankId()),
-                        userNameById.getOrDefault(delivery.getLoggedByUserId(), "Unknown")))
+                        userNameById.getOrDefault(delivery.getLoggedByUserId(), "Unknown"),
+                        claimByDeliveryId.get(delivery.getId())))
                 .toList();
     }
 

@@ -3,8 +3,8 @@ import { X } from 'lucide-react'
 import { codeLabel } from '../../../constants/labels'
 import { useTranslation } from 'react-i18next'
 import { formatNumberIn } from '../../../i18n/format'
-import { formatDecimal } from '../../../utils/format'
-import type { TankStock } from '../../../api/inventoryApi'
+import { formatDecimal, formatLitres } from '../../../utils/format'
+import type { ReceiptNozzle, TankStock } from '../../../api/inventoryApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { IconButton } from '../../../components/IconButton'
 import { NumericInput } from '../../../components/NumericInput'
@@ -14,7 +14,11 @@ import type { LiveFigure } from '../../../components/LiveFigures'
 import { LitresText, MoneyText } from '../../../components/AmountText'
 import { FormGrid, FormGridFullRow } from '../../../components/layout/FormGrid'
 import { limitDecimals } from '../inventoryFormat'
-import type { DeliveryRow } from './deliveryRows'
+import type { DeliveryRow, DeliveryRowField } from './deliveryRows'
+import { ReceiptCheckFields } from './ReceiptCheckFields'
+import { ReceiptResultCard } from './ReceiptResultCard'
+import { densityDifference, isDensityFlagged, missingReceiptFields, receiptResult } from './receiptCheck'
+import type { ReceiptCheckInput, ReceiptTolerances } from './receiptCheck'
 
 interface Props {
   row: DeliveryRow
@@ -26,11 +30,15 @@ interface Props {
   onExpandedChange: (rowId: number | null) => void
   canRemove: boolean
   onRemove: () => void
-  onChange: (field: keyof Omit<DeliveryRow, 'id'>, value: string) => void
+  onChange: (field: DeliveryRowField, value: string) => void
+  nozzles: ReceiptNozzle[]
+  tolerances: ReceiptTolerances
+  onCheckChange: (check: ReceiptCheckInput) => void
 }
 
 export function DeliveryRowEditor({
   row, rowNumber, tanks, tankOptions, isOwnerOrAdmin, isExpanded, onExpandedChange, canRemove, onRemove, onChange,
+  nozzles, tolerances, onCheckChange,
 }: Props) {
   const { t } = useTranslation(['inventory', 'common'])
   const headingId = useId()
@@ -41,7 +49,10 @@ export function DeliveryRowEditor({
   const afterStock    = tank ? tank.currentStock + enteredQty : null
   const availableSpace = tank && tank.capacity > 0 ? tank.capacity - tank.currentStock : null
   const rowOverflow   = availableSpace !== null && enteredQty > 0 && enteredQty > availableSpace
+  const receipt       = receiptResult(row.check, nozzles, enteredQty, tolerances.receiptTolerancePercent)
+  const density       = densityDifference(row.check)
   const isFilled      = !!row.tankId && enteredQty > 0 && (isOwnerOrAdmin ? enteredCost > 0 : true)
+    && missingReceiptFields(row.check, nozzles).length === 0
 
   if (!isExpanded) {
     return (
@@ -55,6 +66,7 @@ export function DeliveryRowEditor({
               </span>
               <LitresText value={enteredQty} className="text-xs text-ink-2" />
               {rowOverflow && <span className="text-xs font-semibold text-bad">{t('row.overCapacity')}</span>}
+              {receipt && <span className="text-xs text-ink-3">{t('row.received', { litres: formatLitres(receipt.receivedLitres) })}</span>}
               {!rowOverflow && isOwnerOrAdmin && rowCost > 0 && (
                 <MoneyText value={rowCost} className="text-sm font-semibold text-ink" />
               )}
@@ -166,6 +178,13 @@ export function DeliveryRowEditor({
           </FormGridFullRow>
         )}
       </FormGrid>
+
+      {row.tankId && (
+        <ReceiptCheckFields check={row.check} nozzles={nozzles} onChange={onCheckChange}
+          result={<ReceiptResultCard result={receipt} invoiceLitres={enteredQty}
+            tolerancePercent={tolerances.receiptTolerancePercent} densityDifference={density}
+            densityFlagged={isDensityFlagged(density, tolerances.densityTolerance)} densityTolerance={tolerances.densityTolerance} />} />
+      )}
 
       {isFilled && (
         <div className="flex justify-end">

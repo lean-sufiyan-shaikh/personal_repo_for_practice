@@ -26,4 +26,10 @@ public class TankerDeliveryResponse {
     private String invoiceReference;
     private String loggedByUserName;
     private OffsetDateTime createdAt;
+    private String checkStatus;
+    private boolean densityFlagged;
+    /** Null for deliveries recorded before receipt checks existed. */
+    private ReceiptCheckResponse receiptCheck;
+    private Long shortageClaimId;
+    private String shortageClaimStatus;
 }

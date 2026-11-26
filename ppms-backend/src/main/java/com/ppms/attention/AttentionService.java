@@ -17,6 +17,7 @@ import com.ppms.expense.PumpExpenseRepository;
 import com.ppms.fuel.GlobalFuelPrice;
 import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.inventory.DipCheckRepository;
+import com.ppms.inventory.ShortageClaimQueryService;
 import com.ppms.inventory.WetStockLossAlertService;
 import com.ppms.invoice.CreditInvoiceService;
 import com.ppms.pump.NozzleCalibrationLog;
@@ -85,6 +86,7 @@ public class AttentionService {
     private static final String SETUP_PATH = "/dashboard/setup";
     private static final String RECONCILIATION_PATH = "/dashboard/inventory?tab=reconciliation";
     private static final String INVENTORY_PATH = "/dashboard/inventory";
+    private static final String CLAIMS_PATH = "/dashboard/inventory?tab=claims";
 
     private static final Comparator<AttentionItem> MOST_URGENT_FIRST = Comparator
             .comparing(AttentionItem::severity)
@@ -106,6 +108,7 @@ public class AttentionService {
     private final PumpShiftDefinitionRepository shiftDefinitionRepository;
     private final DipCheckRepository dipCheckRepository;
     private final WetStockLossAlertService wetStockLossAlertService;
+    private final ShortageClaimQueryService shortageClaimQueryService;
     private final BusinessClock businessClock;
 
     @Transactional(readOnly = true)
@@ -143,6 +146,7 @@ public class AttentionService {
         addDocuments(items, item, pump.getId());
         addCalibrations(items, item, pump.getId());
         addWetStock(items, item, pump.getId());
+        addOverdueShortageClaims(items, item, pump.getId());
         addSetupAndPrices(items, item, pump);
         return items;
     }
@@ -369,6 +373,19 @@ public class AttentionService {
                             plural(tanksWithoutDip, "tank") + " with no dip reading yesterday"),
                     INVENTORY_PATH));
         }
+    }
+
+    private void addOverdueShortageClaims(List<AttentionItem> items, Item item, Long pumpId) {
+        ShortageClaimQueryService.OverdueClaims overdue = shortageClaimQueryService.overdueClaims(pumpId, businessClock.now());
+        if (overdue.count() == 0) {
+            return;
+        }
+        int days = ShortageClaimQueryService.OPEN_CLAIM_ATTENTION_DAYS;
+        items.add(item.of(AttentionType.SHORTAGE_CLAIMS_OPEN, AttentionSeverity.MEDIUM, overdue.count(), overdue.amount(),
+                new CodedText(ServerTextCodes.ATTENTION_SHORTAGE_CLAIMS_OPEN, params("count", overdue.count(), "days", days),
+                        plural(overdue.count(), "shortage claim") + " raised more than " + days
+                                + " days ago still waiting for the supplier"),
+                CLAIMS_PATH));
     }
 
     /** Active tanks holding fuel that already existed yesterday but had no dip taken during it. */

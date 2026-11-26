@@ -51,6 +51,11 @@ public enum AuditAction {
     LOT_COST_CORRECTED,
     DELIVERY_DELETED,
     DIP_CHECK_RECORDED,
+    SHORTAGE_CLAIM_RAISED,
+    SHORTAGE_CLAIM_UPDATED,
+    SHORTAGE_CLAIM_SETTLED,
+    SHORTAGE_CLAIM_REJECTED,
+    SHORTAGE_CLAIM_WITHDRAWN,
 
     // ── Documents ─────────────────────────────────────────────────────────────
     DOCUMENT_ADDED,

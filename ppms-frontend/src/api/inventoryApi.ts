@@ -13,6 +13,110 @@ export interface TankStock {
   pumpId: number
 }
 
+export type ReceiptCheckStatus = 'NOT_CHECKED' | 'OK' | 'SHORT' | 'OVER'
+export type ShortageClaimStatus = 'RAISED' | 'SETTLED' | 'REJECTED'
+
+/** What a delivery's dips and meter readings say reached the tank. varianceLitres is received − invoiced: negative is short. */
+export interface DeliveryReceiptCheck {
+  dipBeforeLitres: number
+  dipAfterLitres: number
+  soldBetweenLitres: number
+  receivedLitres: number
+  varianceLitres: number
+  variancePercent: number
+  tolerancePercent: number
+  observedDensity: number | null
+  invoiceDensity: number | null
+  densityDifference: number | null
+  densityTolerance: number
+}
+
+/** An active nozzle drawing from one of the pump's tanks; lastReading prefills its reading before unloading. */
+export interface ReceiptNozzle {
+  nozzleId: number
+  nozzleNumber: number
+  duName: string | null
+  tankId: number
+  fuelType: string
+  lastReading: number
+  maxMeterValue: number
+}
+
+export interface ReceiptCheckRequest {
+  dipBeforeLitres: number
+  dipAfterLitres: number
+  nozzleReadings: Array<{ nozzleId: number; readingBefore: number; readingAfter: number }>
+  observedDensity?: number | null
+  invoiceDensity?: number | null
+}
+
+export interface ShortageClaimNozzleReading {
+  nozzleId: number
+  nozzleNumber: number
+  duName: string | null
+  readingBefore: number
+  readingAfter: number
+  litresSold: number
+}
+
+export interface ShortageClaim {
+  id: number
+  deliveryId: number
+  tankId: number
+  tankIdentifier: string
+  fuelType: string
+  invoiceReference: string
+  deliveryDate: string
+  tankerName: string | null
+  invoiceLitres: number
+  receivedLitres: number
+  shortLitres: number
+  shortPercent: number
+  tolerancePercent: number
+  pricePerLitre: number
+  claimAmount: number
+  dipBeforeLitres: number
+  dipAfterLitres: number
+  soldBetweenLitres: number
+  observedDensity: number | null
+  invoiceDensity: number | null
+  densityDifference: number | null
+  densityTolerance: number
+  densityFlagged: boolean
+  status: ShortageClaimStatus
+  raisedAt: string
+  raisedByUserName: string
+  creditNoteAmount: number | null
+  creditNoteReference: string | null
+  creditNoteDate: string | null
+  rejectionReason: string | null
+  resolvedAt: string | null
+  resolvedByUserName: string | null
+  /** Only filled when one claim is fetched. */
+  nozzleReadings: ShortageClaimNozzleReading[] | null
+  pump: { name: string; address: string; gstin: string | null; legalName: string | null } | null
+}
+
+/** Totals over every claim of the pump, whatever the status filter. */
+export interface ShortageClaimTotals {
+  openCount: number
+  openAmount: number
+  settledCount: number
+  settledAmount: number
+  rejectedCount: number
+}
+
+export interface ShortageClaimList {
+  claims: PagedResponse<ShortageClaim>
+  totals: ShortageClaimTotals
+}
+
+export interface SettleShortageClaimRequest {
+  creditNoteAmount: number
+  creditNoteReference: string
+  creditNoteDate: string   // YYYY-MM-DD
+}
+
 export interface TankerDelivery {
   id: number
   pumpId: number
@@ -30,6 +134,12 @@ export interface TankerDelivery {
   invoiceReference: string
   loggedByUserName: string
   createdAt: string
+  checkStatus: ReceiptCheckStatus
+  densityFlagged: boolean
+  /** Null for deliveries recorded before receipt checks. */
+  receiptCheck: DeliveryReceiptCheck | null
+  shortageClaimId: number | null
+  shortageClaimStatus: ShortageClaimStatus | null
 }
 
 export interface RecordDeliveryRequest {
@@ -38,6 +148,7 @@ export interface RecordDeliveryRequest {
   costPricePerUnit: number
   deliveryDate: string   // YYYY-MM-DD
   invoiceReference: string
+  receiptCheck: ReceiptCheckRequest
 }
 
 export interface UpdateDeliveryRequest {
@@ -60,6 +171,7 @@ export interface RecordBatchDeliveryRequest {
     quantityDelivered: number
     /** Omit to inherit the last recorded price for this tank (manager entries). */
     costPricePerUnit?: number | null
+    receiptCheck: ReceiptCheckRequest
   }>
 }
 
@@ -199,6 +311,21 @@ export const inventoryApi = {
 
   deleteLatestDelivery: (pumpId: number, invoiceReference: string) =>
     client.delete(`/inventory/${pumpId}/deliveries/latest`, { params: { invoiceReference } }),
+
+  getReceiptNozzles: (pumpId: number) =>
+    client.get<ReceiptNozzle[]>(`/inventory/${pumpId}/receipt-nozzles`).then(r => r.data),
+
+  getShortageClaims: (pumpId: number, status: ShortageClaimStatus | undefined, page = 0, size = 20) =>
+    client.get<ShortageClaimList>(`/inventory/${pumpId}/shortage-claims`, { params: { status, page, size } }).then(r => r.data),
+
+  getShortageClaim: (pumpId: number, claimId: number) =>
+    client.get<ShortageClaim>(`/inventory/${pumpId}/shortage-claims/${claimId}`).then(r => r.data),
+
+  settleShortageClaim: (pumpId: number, claimId: number, req: SettleShortageClaimRequest) =>
+    client.patch<ShortageClaim>(`/inventory/${pumpId}/shortage-claims/${claimId}/settle`, req).then(r => r.data),
+
+  rejectShortageClaim: (pumpId: number, claimId: number, reason: string) =>
+    client.patch<ShortageClaim>(`/inventory/${pumpId}/shortage-claims/${claimId}/reject`, { reason }).then(r => r.data),
 
   getReconciliation: (pumpId: number, from: string, to: string, tankId?: number) =>
     client.get<WetStockReconciliation>(`/inventory/${pumpId}/reconciliation`, { params: { from, to, tankId } }).then(r => r.data),

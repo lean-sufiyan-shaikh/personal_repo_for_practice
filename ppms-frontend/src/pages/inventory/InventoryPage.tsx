@@ -18,6 +18,7 @@ import { CurrentStockSection } from './CurrentStockSection'
 import { DipCheckModal } from './DipCheckModal'
 import { FuelLotsDialog } from './FuelLotsDialog'
 import { ReconciliationTab } from './reconciliation/ReconciliationTab'
+import { ClaimsTab } from './claims/ClaimsTab'
 import { RecordDeliveryModal } from './record-delivery/RecordDeliveryModal'
 import { InventoryAlerts } from './InventoryAlerts'
 import { DeliveryHistory } from './DeliveryHistory'
@@ -27,7 +28,7 @@ const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000
 
 const RECORD_DELIVERY_ACTION = 'record-delivery'
 const DIP_CHECK_ACTION = 'dip-check'
-const TAB_IDS = ['stock', 'reconciliation'] as const
+const TAB_IDS = ['stock', 'reconciliation', 'claims'] as const
 
 /**
  * ?action=record-delivery opens Record Delivery.
@@ -51,6 +52,7 @@ export default function InventoryPage() {
   const tabs = [
     { id: 'stock', label: t('page.tabStock') },
     { id: 'reconciliation', label: t('page.tabReconciliation') },
+    { id: 'claims', label: t('page.tabClaims') },
   ]
 
   const { data: pumps = [] } = useQuery({
@@ -155,6 +157,10 @@ export default function InventoryPage() {
       ) : activeTab === 'reconciliation' ? (
         <div key={activeTab} className="ui-tab-content">
           <ReconciliationTab pumpId={pumpId} tanks={tanks} />
+        </div>
+      ) : activeTab === 'claims' ? (
+        <div key={activeTab} className="ui-tab-content">
+          <ClaimsTab pumpId={pumpId} canResolve={isOwnerOrAdmin} />
         </div>
       ) : (
         <div key={activeTab} className="ui-tab-content space-y-(--density-gap)">

@@ -15,5 +15,6 @@ public enum AttentionType {
     STALE_FUEL_PRICES,
     SETUP_INCOMPLETE,
     WET_STOCK_LOSS,
-    MISSING_DIPS
+    MISSING_DIPS,
+    SHORTAGE_CLAIMS_OPEN
 }

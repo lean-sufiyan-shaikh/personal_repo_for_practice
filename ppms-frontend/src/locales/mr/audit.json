@@ -77,6 +77,11 @@
     "PUMP_CONFIG_UPDATED": "पंप सेटिंग बदलली",
     "SETTLEMENT_RECORDED": "सेटलमेंट नोंदवले",
     "SETTLEMENT_VOIDED": "सेटलमेंट रद्द केले",
-    "SETTLEMENT_CONFIG_UPDATED": "सेटलमेंट अलर्ट बदलले"
+    "SETTLEMENT_CONFIG_UPDATED": "सेटलमेंट अलर्ट बदलले",
+    "SHORTAGE_CLAIM_RAISED": "कमतरतेचा दावा केला",
+    "SHORTAGE_CLAIM_UPDATED": "कमतरतेचा दावा बदलला",
+    "SHORTAGE_CLAIM_SETTLED": "कमतरतेचा दावा निकाली काढला",
+    "SHORTAGE_CLAIM_REJECTED": "कमतरतेचा दावा नाकारला",
+    "SHORTAGE_CLAIM_WITHDRAWN": "कमतरतेचा दावा मागे घेतला"
   }
 }

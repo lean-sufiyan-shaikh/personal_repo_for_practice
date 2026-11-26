@@ -119,7 +119,7 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isOk()));
 
         assertThat(corrected.get("costPricePerUnit").decimalValue()).isEqualByComparingTo("90.00");
-        assertThat(currentStock()).isEqualByComparingTo("1450");
+        assertThat(currentStock()).isEqualByComparingTo("1400");
     }
 
     @Test
@@ -127,21 +127,60 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
         perform(post("/api/inventory/{pumpId}/deliveries", setup.pumpId()), setup.owner(),
                 Map.of("tankId", setup.tank().getId(), "quantityDelivered", new BigDecimal("19500"),
                         "costPricePerUnit", new BigDecimal("90"), "deliveryDate", TestDates.today().toString(),
-                        "invoiceReference", "INV-" + shortId()))
-                .andExpect(status().isBadRequest());
+                        "invoiceReference", "INV-" + shortId(),
+                        "receiptCheck", receiptCheckReceiving(setup.pumpId(), setup.tank().getId(), "19500")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DELIVERY_OVERFLOWS_TANK"));
         assertThat(currentStock()).isEqualByComparingTo("1000");
     }
 
     @Test
-    void correctingADeliveryQuantityMovesTankStockByTheDifference() throws Exception {
+    void correctingTheInvoiceQuantityOfACheckedDeliveryKeepsTheMeasuredStockAndRechecksIt() throws Exception {
         long deliveryId = recordDelivery(setup, "400", "90.00", TestDates.today()).get("id").asLong();
 
-        perform(patch("/api/inventory/{pumpId}/deliveries/{deliveryId}", setup.pumpId(), deliveryId), setup.owner(),
+        JsonNode corrected = json(perform(patch("/api/inventory/{pumpId}/deliveries/{deliveryId}", setup.pumpId(), deliveryId),
+                setup.owner(), Map.of("quantityDelivered", new BigDecimal("450"), "costPricePerUnit", new BigDecimal("90.00"),
+                        "deliveryDate", TestDates.today().toString(), "invoiceReference", "INV-FIXED"))
+                .andExpect(status().isOk()));
+
+        assertThat(currentStock()).isEqualByComparingTo("1400");
+        assertThat(corrected.get("checkStatus").asText()).isEqualTo("SHORT");
+        assertThat(lotRepository.findByTankerDeliveryId(deliveryId).orElseThrow().getCostPricePerUnit())
+                .isEqualByComparingTo("101.250");
+    }
+
+    @Test
+    void correctingADeliveryRecordedBeforeReceiptChecksMovesTankStockByTheDifference() throws Exception {
+        TankerDelivery unchecked = tankerDeliveryRepository.save(TankerDelivery.builder()
+                .pumpId(setup.pumpId())
+                .tankId(setup.tank().getId())
+                .fuelType(FuelType.PETROL)
+                .quantityDelivered(new BigDecimal("400"))
+                .costPricePerUnit(new BigDecimal("90"))
+                .deliveryDate(TestDates.now())
+                .invoiceReference("OLD-" + shortId())
+                .loggedByUserId(setup.owner().getId())
+                .build());
+        lotRepository.save(InventoryLot.builder()
+                .tankerDeliveryId(unchecked.getId())
+                .tankId(setup.tank().getId())
+                .fuelType(FuelType.PETROL)
+                .pumpId(setup.pumpId())
+                .originalQuantity(new BigDecimal("400"))
+                .remainingQuantity(new BigDecimal("400"))
+                .costPricePerUnit(new BigDecimal("90"))
+                .deliveryDate(TestDates.now())
+                .isDipAdjustment(false)
+                .status(LotStatus.ACTIVE)
+                .build());
+
+        perform(patch("/api/inventory/{pumpId}/deliveries/{deliveryId}", setup.pumpId(), unchecked.getId()), setup.owner(),
                 Map.of("quantityDelivered", new BigDecimal("450"), "costPricePerUnit", new BigDecimal("90.00"),
                         "deliveryDate", TestDates.today().toString(), "invoiceReference", "INV-FIXED"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.checkStatus").value("NOT_CHECKED"));
 
-        assertThat(currentStock()).isEqualByComparingTo("1450");
+        assertThat(currentStock()).isEqualByComparingTo("1050");
     }
 
     @Test
@@ -233,14 +272,20 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
 
     private Map<String, Object> managerDelivery(Long tankId, String litres) {
         return Map.of("tankId", tankId, "quantityDelivered", new BigDecimal(litres),
-                "deliveryDate", TestDates.today().toString(), "invoiceReference", "INV-" + shortId());
+                "deliveryDate", TestDates.today().toString(), "invoiceReference", "INV-" + shortId(),
+                "receiptCheck", receiptCheckReceiving(setup.pumpId(), tankId, litres));
     }
 
     private Map<String, Object> batchRequest(List<Map<String, Object>> items) {
         Map<String, Object> request = new HashMap<>();
         request.put("deliveryDate", TestDates.today().toString());
         request.put("invoiceReference", "INV-" + shortId());
-        request.put("items", items);
+        request.put("items", items.stream().map(item -> {
+            Map<String, Object> checked = new HashMap<>(item);
+            checked.putIfAbsent("receiptCheck", receiptCheckReceiving(setup.pumpId(), (Long) item.get("tankId"),
+                    item.get("quantityDelivered").toString()));
+            return checked;
+        }).toList());
         return request;
     }
 

@@ -14,7 +14,8 @@ function delivery(id: number, invoiceReference: string, deliveryDate: string, cr
   return {
     id, pumpId: 6, tankId: 1, tankIdentifier: 'T1', fuelType: 'PETROL', quantityDelivered: 100,
     costPricePerUnit: 90, totalCost: 9000, billTotal: null, tankerName: null, deliveryDate,
-    invoiceReference, loggedByUserName: 'Owner', createdAt,
+    invoiceReference, loggedByUserName: 'Owner', createdAt, checkStatus: 'NOT_CHECKED', densityFlagged: false,
+    receiptCheck: null, shortageClaimId: null, shortageClaimStatus: null,
   }
 }
 
@@ -56,5 +57,33 @@ describe('DeliveryHistory', () => {
 
     await user.click(within(panel).getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('shows each invoice\'s receipt-check result, with the most serious line and any density flag on the row', async () => {
+    const user = userEvent.setup()
+    const checked = (id: number, tankIdentifier: string, checkStatus: TankerDelivery['checkStatus'], receivedLitres: number) => ({
+      ...delivery(id, 'INV-CHECKED', '2026-03-16T00:00:00+05:30', '2026-03-16T09:00:00+05:30'),
+      tankIdentifier, checkStatus, densityFlagged: checkStatus === 'SHORT',
+      receiptCheck: {
+        dipBeforeLitres: 500, dipAfterLitres: 500 + receivedLitres, soldBetweenLitres: 0, receivedLitres,
+        varianceLitres: receivedLitres - 100, variancePercent: receivedLitres - 100, tolerancePercent: 0.2,
+        observedDensity: null, invoiceDensity: null, densityDifference: null, densityTolerance: 3,
+      },
+    })
+    vi.mocked(inventoryApi.getDeliveries).mockResolvedValue({
+      content: [checked(3, 'T1', 'OK', 100), checked(4, 'T2', 'SHORT', 95), newestByDate], page: 0, pageSize: 10,
+      totalElements: 3, totalPages: 1, hasNext: false, hasPrevious: false,
+    })
+    renderWithProviders(<DeliveryHistory pumpId={6} tanks={[]} isOwnerOrAdmin canDeleteInvoice />)
+
+    const checkedRow = await screen.findByRole('button', { name: /INV-CHECKED/ })
+    expect(within(checkedRow).getByText('Short')).toBeInTheDocument()
+    expect(within(checkedRow).getByText('Density flag')).toBeInTheDocument()
+    expect(within(screen.getByRole('button', { name: /INV-TODAY/ })).getByText('Not checked')).toBeInTheDocument()
+
+    await user.click(checkedRow)
+    const panel = screen.getByRole('dialog', { name: 'Invoice INV-CHECKED' })
+    expect(within(panel).getByText('Checked OK')).toBeInTheDocument()
+    expect(within(panel).getByText('Received 95.00 L of 100.00 L')).toBeInTheDocument()
   })
 })

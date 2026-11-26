@@ -258,6 +258,10 @@
     "WET_STOCK_LOSS": {
       "title": "सीमा से ज़्यादा ईंधन नुकसान",
       "message": "{{tankName}} ({{fuelTypeCode}}) में पिछले {{days}} दिनों में {{lossLitres}} L कम हुआ — बिके {{salesLitres}} L का {{lossPercent}}%, जो {{limitPercent}}% की सीमा से ज़्यादा है। रिसाव, मीटर की गलती या चोरी की जाँच करें।"
+    },
+    "DELIVERY_SHORTAGE": {
+      "title": "टैंकर डिलीवरी कम आई",
+      "message": "{{tankName}} ({{fuelTypeCode}}) में इनवॉइस {{invoiceReference}} से {{shortLitres}} L कम आया — {{shortPercent}}% कम। ₹{{claimAmount}} का दावा बनाया गया है।"
     }
   },
   "serverTexts": {
@@ -349,7 +353,15 @@
     "ATTENTION_WET_STOCK_LOSS_one": "{{count}} टैंक में पिछले {{days}} दिनों में सीमा से ज़्यादा ईंधन नुकसान",
     "ATTENTION_WET_STOCK_LOSS_other": "{{count}} टैंकों में पिछले {{days}} दिनों में सीमा से ज़्यादा ईंधन नुकसान",
     "ATTENTION_MISSING_DIPS_one": "{{count}} टैंक की कल कोई डिप रीडिंग नहीं",
-    "ATTENTION_MISSING_DIPS_other": "{{count}} टैंकों की कल कोई डिप रीडिंग नहीं"
+    "ATTENTION_MISSING_DIPS_other": "{{count}} टैंकों की कल कोई डिप रीडिंग नहीं",
+    "ATTENTION_SHORTAGE_CLAIMS_OPEN_one": "{{count}} कमी का दावा {{days}} दिन से ज़्यादा पहले बना और अब भी खुला है",
+    "ATTENTION_SHORTAGE_CLAIMS_OPEN_other": "{{count}} कमी के दावे {{days}} दिन से ज़्यादा पहले बने और अब भी खुले हैं"
   },
-  "WET_STOCK_LOSS": "सीमा से ज़्यादा ईंधन नुकसान"
+  "WET_STOCK_LOSS": "सीमा से ज़्यादा ईंधन नुकसान",
+  "RAISED": "दावा किया",
+  "SETTLED": "निपटाया",
+  "NOT_CHECKED": "जाँच नहीं हुई",
+  "SHORTAGE_CLAIM": "कमी का दावा",
+  "SHORTAGE_CLAIMS_OPEN": "खुले कमी के दावे",
+  "DELIVERY_SHORTAGE": "कम डिलीवरी"
 }

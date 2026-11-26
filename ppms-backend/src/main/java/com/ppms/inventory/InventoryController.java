@@ -23,6 +23,7 @@ public class InventoryController {
     private final InventoryWorkflowService workflowService;
     private final InventoryQueryService queryService;
     private final WetStockReconciliationService reconciliationService;
+    private final DeliveryReceiptService deliveryReceiptService;
 
     /**
      * GET /api/inventory/{pumpId}/tanks
@@ -166,6 +167,16 @@ public class InventoryController {
             @PathVariable Long pumpId,
             @PathVariable Long tankId) {
         return ResponseEntity.ok(queryService.getOpenShiftNozzles(pumpId, tankId));
+    }
+
+    /**
+     * GET /api/inventory/{pumpId}/receipt-nozzles
+     * Active nozzles drawing from the pump's tanks, with their last meter reading, for a delivery receipt check.
+     */
+    @GetMapping("/{pumpId}/receipt-nozzles")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
+    public ResponseEntity<List<ReceiptNozzleResponse>> getReceiptNozzles(@PathVariable Long pumpId) {
+        return ResponseEntity.ok(deliveryReceiptService.findReceiptNozzles(pumpId));
     }
 
     /**

@@ -30,6 +30,7 @@ import java.util.TreeMap;
 /**
  * Loads a pump's dips, deliveries, metered sales and drains for a date range in a fixed number of queries and
  * reconciles each tank. Sales are the closed shifts' meter litres per tank, the same litres the DAY balance sheet sums.
+ * A delivery counts with the litres its receipt check measured in the tank, the same litres added to tank stock.
  */
 @Slf4j
 @Service
@@ -104,7 +105,7 @@ public class WetStockReconciliationService {
         Map<Long, Map<LocalDate, BigDecimal>> byTank = new HashMap<>();
         for (TankerDelivery delivery : deliveryRepository
                 .findByPumpIdAndDeliveryDateGreaterThanEqualAndDeliveryDateLessThan(pumpId, from, to)) {
-            addTo(byTank, delivery.getTankId(), businessDayOf(delivery.getDeliveryDate()), delivery.getQuantityDelivered());
+            addTo(byTank, delivery.getTankId(), businessDayOf(delivery.getDeliveryDate()), delivery.litresAddedToTank());
         }
         return byTank;
     }

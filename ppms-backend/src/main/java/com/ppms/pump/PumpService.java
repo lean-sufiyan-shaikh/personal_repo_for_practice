@@ -30,6 +30,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PumpService {
 
+    private static final BigDecimal MAX_RECEIPT_TOLERANCE_PERCENT = new BigDecimal("5");
+    private static final BigDecimal MAX_DENSITY_TOLERANCE = new BigDecimal("50");
     private static final String HAS_DATA_MESSAGE =
             "This pump has recorded data and cannot be deleted. Ask the Super Admin to suspend it instead.";
 
@@ -157,13 +159,37 @@ public class PumpService {
         if (request.invoicePrefix() != null) {
             pump.setInvoicePrefix(GstFields.normaliseInvoicePrefix(request.invoicePrefix()));
         }
+        if (request.receiptTolerancePercent() != null) {
+            pump.setReceiptTolerancePercent(validReceiptTolerance(request.receiptTolerancePercent()));
+        }
+        if (request.densityTolerance() != null) {
+            pump.setDensityTolerance(validDensityTolerance(request.densityTolerance()));
+        }
 
         pumpLocationRepository.save(pump);
-        log.info("Pump {} settings updated by user={}: escalationThreshold={}, expenseApprovalThreshold={}",
+        log.info("Pump {} settings updated by user={}: escalationThreshold={}, expenseApprovalThreshold={}, "
+                        + "receiptTolerancePercent={}, densityTolerance={}",
                 pumpId, currentUser.getId(),
-                pump.getDiscrepancyEscalationThreshold(), pump.getExpenseApprovalThreshold());
+                pump.getDiscrepancyEscalationThreshold(), pump.getExpenseApprovalThreshold(),
+                pump.getReceiptTolerancePercent(), pump.getDensityTolerance());
 
         return toPumpResponse(pump);
+    }
+
+    private static BigDecimal validReceiptTolerance(BigDecimal percent) {
+        if (percent.signum() <= 0 || percent.compareTo(MAX_RECEIPT_TOLERANCE_PERCENT) > 0) {
+            throw new BusinessException(ErrorCodes.RECEIPT_TOLERANCE_OUT_OF_RANGE, Map.of(),
+                    "Receipt tolerance must be more than 0% and at most " + MAX_RECEIPT_TOLERANCE_PERCENT + "%.");
+        }
+        return percent.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal validDensityTolerance(BigDecimal tolerance) {
+        if (tolerance.signum() <= 0 || tolerance.compareTo(MAX_DENSITY_TOLERANCE) > 0) {
+            throw new BusinessException(ErrorCodes.DENSITY_TOLERANCE_OUT_OF_RANGE, Map.of(),
+                    "Density tolerance must be more than 0 and at most " + MAX_DENSITY_TOLERANCE + " kg/m³.");
+        }
+        return tolerance.setScale(1, RoundingMode.HALF_UP);
     }
 
     /** Only a pump that was set up but never used can be deleted; its equipment is removed with it. */
@@ -223,6 +249,8 @@ public class PumpService {
                 .legalName(pump.getLegalName())
                 .stateName(pump.getStateName())
                 .invoicePrefix(pump.getInvoicePrefix())
+                .receiptTolerancePercent(pump.getReceiptTolerancePercent())
+                .densityTolerance(pump.getDensityTolerance())
                 .dus(activeDUs)
                 .build();
     }

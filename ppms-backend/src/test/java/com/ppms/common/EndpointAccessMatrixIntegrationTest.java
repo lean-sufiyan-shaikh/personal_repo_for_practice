@@ -81,7 +81,9 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/inventory/{pumpId}/tanks", "MANAGER", "OPERATOR"),
                 Arguments.of("/api/inventory/{pumpId}/deliveries", "MANAGER", "OPERATOR"),
                 Arguments.of("/api/inventory/{pumpId}/dip-checks", "MANAGER", "OPERATOR"),
-                Arguments.of("/api/inventory/{pumpId}/reconciliation" + RANGE, "MANAGER", "ACCOUNTANT"));
+                Arguments.of("/api/inventory/{pumpId}/reconciliation" + RANGE, "MANAGER", "ACCOUNTANT"),
+                Arguments.of("/api/inventory/{pumpId}/receipt-nozzles", "MANAGER", "OPERATOR"),
+                Arguments.of("/api/inventory/{pumpId}/shortage-claims", "MANAGER", "ACCOUNTANT"));
     }
 
     @ParameterizedTest(name = "{0} allows {1}")
@@ -108,7 +110,10 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
     static Stream<Arguments> writeEndpoints() {
         return Stream.of(
                 Arguments.of("/api/pumps/{pumpId}/credit-clients/1/extensions/1/revoke", Map.of("reason", "Matrix"), "MANAGER"),
-                Arguments.of("/api/pumps/{pumpId}/bank-reconciliation/lines/1", Map.of("status", "IGNORED"), "MANAGER"));
+                Arguments.of("/api/pumps/{pumpId}/bank-reconciliation/lines/1", Map.of("status", "IGNORED"), "MANAGER"),
+                Arguments.of("/api/inventory/{pumpId}/shortage-claims/1/settle", Map.of("creditNoteAmount", 1,
+                        "creditNoteReference", "CN", "creditNoteDate", TODAY), "MANAGER"),
+                Arguments.of("/api/inventory/{pumpId}/shortage-claims/1/reject", Map.of("reason", "Matrix"), "MANAGER"));
     }
 
     @ParameterizedTest(name = "{0} refuses {2}")

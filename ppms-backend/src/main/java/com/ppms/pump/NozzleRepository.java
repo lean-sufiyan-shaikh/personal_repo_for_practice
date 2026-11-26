@@ -24,6 +24,19 @@ public interface NozzleRepository extends JpaRepository<Nozzle, Long> {
 
     List<Nozzle> findByDuIdAndStatus(Long duId, NozzleStatus status);
 
+    /** Active nozzles on active DUs of the pump that draw from a tank, in DU then nozzle order. */
+    default List<Nozzle> findActiveTankNozzlesByPumpId(Long pumpId) {
+        return findTankNozzlesByPumpIdAndStatus(pumpId, NozzleStatus.ACTIVE);
+    }
+
+    @Query("""
+            SELECT n FROM Nozzle n, DispensaryUnit d
+            WHERE d.id = n.duId AND d.pumpId = :pumpId AND n.tankId IS NOT NULL
+              AND d.status = :status AND n.status = :status
+            ORDER BY d.duNumber, n.nozzleNumber
+            """)
+    List<Nozzle> findTankNozzlesByPumpIdAndStatus(@Param("pumpId") Long pumpId, @Param("status") NozzleStatus status);
+
     /** Returns all nozzles across multiple DUs — used when building DU responses. */
     List<Nozzle> findByDuIdIn(List<Long> duIds);
 

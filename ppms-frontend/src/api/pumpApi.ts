@@ -15,6 +15,10 @@ export interface PumpSummary {
   legalName?: string | null
   stateName?: string | null
   invoicePrefix?: string | null
+  /** Short or over beyond this share of the invoiced litres is flagged on a delivery; 0.20 by default. */
+  receiptTolerancePercent?: number
+  /** Observed and invoice density may differ by this many kg/m³ before a delivery is flagged; 3.0 by default. */
+  densityTolerance?: number
   dus: DUOption[]
 }
 
@@ -26,6 +30,8 @@ export interface UpdatePumpSettingsRequest {
   legalName?: string
   stateName?: string
   invoicePrefix?: string
+  receiptTolerancePercent?: number
+  densityTolerance?: number
 }
 
 export interface CreatePumpRequest {

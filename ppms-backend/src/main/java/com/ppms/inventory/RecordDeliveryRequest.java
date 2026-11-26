@@ -1,5 +1,6 @@
 package com.ppms.inventory;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -31,4 +32,8 @@ public class RecordDeliveryRequest {
     /** Actual bill total (optional — may include freight, taxes, other charges). */
     @DecimalMin(value = "0.01", message = "Bill total must be greater than 0")
     private BigDecimal billTotal;
+
+    @NotNull(message = "Receipt check is required")
+    @Valid
+    private ReceiptCheckRequest receiptCheck;
 }

@@ -65,7 +65,15 @@
     "effectOn": "{{amount}} से ज़्यादा कम या ज़्यादा राशि को मालिक या एडमिन सुलझाएँगे।",
     "effectOff": "खाली: मैनेजर हर अंतर सुलझा सकते हैं।",
     "save": "सेटिंग सेव करें",
-    "escalationTitle": "कमी-ज़्यादा पर मालिक की मंज़ूरी"
+    "escalationTitle": "कमी-ज़्यादा पर मालिक की मंज़ूरी",
+    "receiptTitle": "टैंकर प्राप्ति जाँच",
+    "receiptExplanation": "डिलीवरी फ़्लैग होने से पहले टैंक में पहुँचा ईंधन इनवॉइस से कितना अलग हो सकता है। इससे ज़्यादा कमी पर सप्लायर के खिलाफ दावा बनता है।",
+    "receiptToleranceLabel": "कम / ज़्यादा की सीमा",
+    "receiptToleranceEffect": "इनवॉइस के लीटर से {{percent}}% से ज़्यादा कम या ज़्यादा डिलीवरी फ़्लैग होगी।",
+    "receiptToleranceInvalid": "0 से ज़्यादा और अधिकतम {{max}}% भरें।",
+    "densityToleranceLabel": "घनत्व की सीमा",
+    "densityToleranceEffect": "मापा गया और इनवॉइस का घनत्व {{tolerance}} kg/m³ से ज़्यादा अलग हो तो फ़्लैग होगा।",
+    "densityToleranceInvalid": "0 से ज़्यादा और अधिकतम {{max}} kg/m³ भरें।"
   },
   "gst": {
     "saved": "GST विवरण सेव हो गया",

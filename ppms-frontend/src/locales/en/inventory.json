@@ -11,7 +11,8 @@
     "dipOverdueCount_other": "{{count}} DIP checks overdue",
     "views": "Inventory views",
     "tabStock": "Stock",
-    "tabReconciliation": "Reconciliation"
+    "tabReconciliation": "Reconciliation",
+    "tabClaims": "Claims"
   },
   "alerts": {
     "lowStockOne": "{{tank}} ({{fuel}}) is below 20% capacity.",
@@ -75,7 +76,8 @@
     "deleteFailed": "Failed to delete invoice",
     "editDelivery": "Edit delivery",
     "invoiceTitle": "Invoice {{invoice}}",
-    "loggedBy": "Logged by {{name}}"
+    "loggedBy": "Logged by {{name}}",
+    "receivedOfInvoiced": "Received {{received}} of {{invoiced}}"
   },
   "deleteInvoice": {
     "title": "Delete invoice?",
@@ -185,7 +187,7 @@
     "addTank": "Add another tank",
     "billAmountHelp": "Filled in from the tank lines; change it to the total on the supplier invoice.",
     "totals": "Totals",
-    "totalQuantity": "Total received"
+    "totalQuantity": "Total invoiced"
   },
   "header": {
     "date": "Delivery date",
@@ -208,7 +210,7 @@
     "tankNumber": "Tank {{number}}",
     "tank": "Tank",
     "selectTank": "Select tank…",
-    "quantity": "Quantity received",
+    "quantity": "Invoice quantity",
     "costPerLitre": "Cost per litre",
     "costManaged": "Cost price is managed by Owner / Admin. The last recorded price for this tank will be used.",
     "deliveryCost": "Amount (litres × rate)",
@@ -216,7 +218,8 @@
     "stockAfter": "Stock after delivery",
     "freeSpace": "Free space in tank",
     "ofCapacity": "of {{capacity}} L",
-    "figuresLabel": "Tank {{number}} result"
+    "figuresLabel": "Tank {{number}} result",
+    "received": "Received {{litres}}"
   },
   "review": {
     "title": "Review tanker delivery",
@@ -230,7 +233,7 @@
     "stockAfterDelivery": "Stock after delivery:",
     "ofCapacity": "/ {{capacity}} L capacity",
     "tanks": "Tanks",
-    "totalQuantity": "Total received",
+    "totalQuantity": "Total invoiced",
     "calculatedTotal": "Calculated amount"
   },
   "reconciliation": {
@@ -275,5 +278,144 @@
       "cumulative": "Running total",
       "check": "Check"
     }
+  },
+  "checkStatus": {
+    "OK": "Checked OK",
+    "SHORT": "Short",
+    "OVER": "Over",
+    "NOT_CHECKED": "Not checked",
+    "densityFlag": "Density flag"
+  },
+  "receipt": {
+    "title": "Receipt check",
+    "intro": "Dip the tank and read every nozzle on it before and after unloading, so fuel sold meanwhile is counted.",
+    "noNozzles": "No nozzle draws from this tank, so only the two dips are needed.",
+    "beforeTitle": "1. Before unloading",
+    "afterTitle": "2. After unloading",
+    "dipBefore": "Dip before unloading",
+    "dipAfter": "Dip after unloading",
+    "nozzleBefore": "Nozzle #{{number}} before",
+    "nozzleAfter": "Nozzle #{{number}} after",
+    "nozzleBeforeWithDu": "Nozzle #{{number}} · {{du}} before",
+    "nozzleAfterWithDu": "Nozzle #{{number}} · {{du}} after",
+    "densityTitle": "Density (optional)",
+    "observedDensity": "Observed density",
+    "invoiceDensity": "Invoice density",
+    "incomplete": "Enter both dips and every nozzle reading to see what was received.",
+    "received": "Received {{received}} of {{invoiced}} invoiced",
+    "soldBetween": "Includes {{litres}} sold while unloading",
+    "match": "Matches the invoice",
+    "shortWithin": "Short {{litres}} ({{percent}}%) — within tolerance",
+    "shortBeyond": "Short {{litres}} ({{percent}}%) — beyond the {{tolerance}}% tolerance, a claim will be raised",
+    "overWithin": "Over {{litres}} ({{percent}}%) — within tolerance",
+    "overBeyond": "Over {{litres}} ({{percent}}%) — beyond the {{tolerance}}% tolerance, noted only, no claim",
+    "densityDifference": "Density difference {{difference}} kg/m³",
+    "densityFlag": "more than {{tolerance}} kg/m³, check the fuel",
+    "densityOk": "within {{tolerance}} kg/m³",
+    "completeEveryRow": "Complete the receipt check for every tank.",
+    "needDipBefore": "Tank {{number}}: dip before unloading",
+    "needDipAfter": "Tank {{number}}: dip after unloading",
+    "needReadingsBefore": "Tank {{number}}: nozzle readings before unloading",
+    "needReadingsAfter": "Tank {{number}}: nozzle readings after unloading",
+    "nozzlesLoading": "Loading the tanks' nozzles",
+    "nozzlesFailed": "Could not load the tanks' nozzles — close and try again"
+  },
+  "claims": {
+    "title": "Shortage claims",
+    "description": "Raised automatically when a delivery is short beyond tolerance. Settle with the supplier's credit note, or reject with a reason.",
+    "totalsLabel": "Claim totals",
+    "openTotal_one": "{{count}} open claim",
+    "openTotal_other": "{{count}} open claims",
+    "settledTotal_one": "{{count}} settled · credited",
+    "settledTotal_other": "{{count}} settled · credited",
+    "rejectedTotal": "Rejected",
+    "filterTitle": "Claim filters",
+    "filterByStatus": "Filter by status",
+    "allStatuses": "All statuses",
+    "empty": "No shortage claims yet. One is raised when a delivery is short beyond tolerance.",
+    "noMatch": "No claims with this status.",
+    "claimAmount": "Claim amount",
+    "open": "View",
+    "openNamed": "View claim for {{invoice}} · {{tank}}",
+    "settle": "Settle",
+    "reject": "Reject",
+    "status": {
+      "RAISED": "Raised",
+      "SETTLED": "Settled",
+      "REJECTED": "Rejected"
+    },
+    "columns": {
+      "delivered": "Delivered",
+      "invoice": "Invoice",
+      "tank": "Tank",
+      "short": "Short",
+      "status": "Status",
+      "actions": "Actions"
+    }
+  },
+  "claimNote": {
+    "panelTitle": "Shortage claim #{{id}}",
+    "panelSubtitle": "Invoice {{invoice}} · {{tank}}",
+    "print": "Print claim note",
+    "title": "Delivery shortage claim note #{{id}}",
+    "gstin": "GSTIN {{gstin}}",
+    "invoice": "Invoice / bill no.",
+    "deliveryDate": "Delivery date",
+    "tank": "Tank",
+    "tanker": "Tanker",
+    "raised": "Raised",
+    "raisedBy": "{{date}} by {{name}}",
+    "status": "Status",
+    "quantityTitle": "Quantity",
+    "invoiceLitres": "Invoiced",
+    "dipBefore": "Dip before unloading",
+    "dipAfter": "Dip after unloading",
+    "soldBetween": "Sold between the dips",
+    "received": "Received",
+    "short": "Short ({{percent}}%, tolerance {{tolerance}}%)",
+    "pricePerLitre": "Invoice price per litre",
+    "densityTitle": "Density",
+    "observedDensity": "Observed",
+    "invoiceDensity": "Invoice",
+    "densityDifference": "Difference (allowed {{tolerance}} kg/m³)",
+    "readingsTitle": "Nozzle readings between the dips",
+    "nozzle": "Nozzle",
+    "nozzleNumber": "#{{number}}",
+    "nozzleWithDu": "#{{number}} · {{du}}",
+    "readingBefore": "Before",
+    "readingAfter": "After",
+    "litresSold": "Litres sold",
+    "settlementTitle": "Settlement",
+    "rejectionTitle": "Rejection",
+    "resolvedBy": "Decided by",
+    "pumpSignature": "Pump manager / owner",
+    "supplierSignature": "Supplier / tanker driver"
+  },
+  "settleClaim": {
+    "title": "Settle claim",
+    "subtitle": "Invoice {{invoice}} — enter the supplier's credit note",
+    "amount": "Credit note amount",
+    "reference": "Credit note number",
+    "date": "Credit note date",
+    "creditNote": "Credited",
+    "confirm": "Settle claim",
+    "settling": "Settling claim",
+    "failed": "Could not settle the claim",
+    "done": "Claim settled",
+    "amountNeeded": "A credit note amount above zero",
+    "referenceNeeded": "The credit note number",
+    "dateNeeded": "The credit note date",
+    "dateNotFuture": "A credit note date that is not in the future"
+  },
+  "rejectClaim": {
+    "title": "Reject claim",
+    "subtitle": "Invoice {{invoice}} · {{amount}}",
+    "explanation": "The claim is closed without a credit note. Say why, for example the supplier showed the shortage was measured wrongly.",
+    "reason": "Reason",
+    "reasonNeeded": "A reason for rejecting",
+    "confirm": "Reject claim",
+    "rejecting": "Rejecting claim",
+    "failed": "Could not reject the claim",
+    "done": "Claim rejected"
   }
 }

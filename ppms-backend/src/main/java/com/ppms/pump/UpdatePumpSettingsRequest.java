@@ -11,5 +11,7 @@ public record UpdatePumpSettingsRequest(
         String gstin,
         @Size(max = 150, message = "Legal name must be at most 150 characters") String legalName,
         @Size(max = 60, message = "State name must be at most 60 characters") String stateName,
-        String invoicePrefix
+        String invoicePrefix,
+        BigDecimal receiptTolerancePercent,
+        BigDecimal densityTolerance
 ) {}

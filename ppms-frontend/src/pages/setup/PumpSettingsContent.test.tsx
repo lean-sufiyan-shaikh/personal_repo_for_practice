@@ -38,4 +38,28 @@ describe('PumpSettingsContent', () => {
     expect(useToastStore.getState().toasts.map((toast) => toast.message)).toEqual(['Settings saved'])
     expect(save).toBeDisabled()
   })
+
+  it('saves the receipt and density tolerances, starting from the defaults', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PumpSettingsContent pump={pump} onUpdated={vi.fn()} />)
+
+    const tolerance = screen.getByRole('spinbutton', { name: 'Short / over tolerance' })
+    const density = screen.getByRole('spinbutton', { name: 'Density tolerance' })
+    expect(tolerance).toHaveValue(0.2)
+    expect(density).toHaveValue(3)
+    expect(tolerance).toHaveAccessibleDescription(/more than 0\.20% short or over/)
+
+    await user.clear(tolerance)
+    await user.type(tolerance, '7')
+    expect(tolerance).toHaveAccessibleDescription(/at most 5%/)
+    expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled()
+
+    await user.clear(tolerance)
+    await user.type(tolerance, '0.3')
+    await user.clear(density)
+    await user.type(density, '2.5')
+    await user.click(screen.getByRole('button', { name: 'Save settings' }))
+
+    expect(pumpApi.updatePumpSettings).toHaveBeenCalledWith(3, { receiptTolerancePercent: 0.3, densityTolerance: 2.5 })
+  })
 })

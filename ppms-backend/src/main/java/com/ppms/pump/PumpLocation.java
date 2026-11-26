@@ -15,6 +15,9 @@ import java.time.OffsetDateTime;
 @Builder
 public class PumpLocation {
 
+    public static final BigDecimal DEFAULT_RECEIPT_TOLERANCE_PERCENT = new BigDecimal("0.20");
+    public static final BigDecimal DEFAULT_DENSITY_TOLERANCE = new BigDecimal("3.0");
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -72,6 +75,16 @@ public class PumpLocation {
 
     @Column(name = "invoice_prefix", length = 5)
     private String invoicePrefix;
+
+    /** A delivery received short of its invoice by more than this share of the invoice litres raises a claim. */
+    @Column(name = "receipt_tolerance_percent", nullable = false)
+    @Builder.Default
+    private BigDecimal receiptTolerancePercent = DEFAULT_RECEIPT_TOLERANCE_PERCENT;
+
+    /** Observed and invoice densities (kg/m³) further apart than this are flagged. */
+    @Column(name = "density_tolerance", nullable = false)
+    @Builder.Default
+    private BigDecimal densityTolerance = DEFAULT_DENSITY_TOLERANCE;
 
     @Column(name = "enabled", nullable = false)
     @Builder.Default

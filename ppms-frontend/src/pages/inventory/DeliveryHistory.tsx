@@ -17,6 +17,7 @@ import { FilterBar } from '../../components/layout/FilterBar'
 import { PageSection } from '../../components/layout/PageSection'
 import { DeleteInvoiceModal } from './DeleteInvoiceModal'
 import { InvoiceDetailsPanel } from './InvoiceDetailsPanel'
+import { ReceiptCheckBadges } from './ReceiptCheckBadges'
 import { fmtDate } from './inventoryFormat'
 
 interface Props {
@@ -144,6 +145,7 @@ export function DeliveryHistory({ pumpId, tanks, isOwnerOrAdmin, canDeleteInvoic
                         {rows[0].tankerName}
                       </span>
                     )}
+                    <ReceiptCheckBadges lines={rows} />
                     <span className="ml-auto flex items-center gap-3">
                       <LitresText value={totalQty} className="text-xs text-ink-3" />
                       {isOwnerOrAdmin && (rows[0].billTotal != null ? (

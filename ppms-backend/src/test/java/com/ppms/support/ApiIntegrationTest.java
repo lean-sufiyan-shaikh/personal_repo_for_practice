@@ -39,6 +39,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -148,8 +149,25 @@ public abstract class ApiIntegrationTest {
                         "quantityDelivered", new BigDecimal(litres),
                         "costPricePerUnit", new BigDecimal(costPerLitre),
                         "deliveryDate", date.toString(),
-                        "invoiceReference", "INV-" + shortId()))
+                        "invoiceReference", "INV-" + shortId(),
+                        "receiptCheck", receiptCheckReceiving(setup.pumpId(), setup.tank().getId(), litres)))
                 .andExpect(status().is2xxSuccessful()));
+    }
+
+    /** A receipt check that finds exactly {@code litres} in the tank, with no sales while unloading. */
+    protected Map<String, Object> receiptCheckReceiving(Long pumpId, Long tankId, String litres) {
+        return receiptCheck(pumpId, tankId, "0", litres);
+    }
+
+    /** Dips before and after unloading, with every nozzle on the tank reading the same at both. */
+    protected Map<String, Object> receiptCheck(Long pumpId, Long tankId, String dipBefore, String dipAfter) {
+        List<Map<String, Object>> readings = nozzleRepository.findActiveTankNozzlesByPumpId(pumpId).stream()
+                .filter(nozzle -> tankId.equals(nozzle.getTankId()))
+                .map(nozzle -> Map.<String, Object>of("nozzleId", nozzle.getId(),
+                        "readingBefore", nozzle.getLastReading(), "readingAfter", nozzle.getLastReading()))
+                .toList();
+        return Map.of("dipBeforeLitres", new BigDecimal(dipBefore), "dipAfterLitres", new BigDecimal(dipAfter),
+                "nozzleReadings", readings);
     }
 
     protected ResultActions perform(MockHttpServletRequestBuilder request, User user) throws Exception {

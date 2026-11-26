@@ -20,6 +20,8 @@ vi.mock('../../api/inventoryApi', () => ({
     getOpenShiftNozzles: vi.fn(),
     getActiveTankLots: vi.fn(),
     getReconciliation: vi.fn(),
+    getReceiptNozzles: vi.fn(),
+    getShortageClaims: vi.fn(),
   },
 }))
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getMyPumps: vi.fn().mockResolvedValue([]) } }))
@@ -57,6 +59,19 @@ describe('InventoryPage', () => {
     vi.mocked(inventoryApi.getOpenShiftNozzles).mockResolvedValue([])
     vi.mocked(inventoryApi.getActiveTankLots).mockResolvedValue([])
     vi.mocked(inventoryApi.getReconciliation).mockResolvedValue({ from: '', to: '', tanks: [] })
+    vi.mocked(inventoryApi.getReceiptNozzles).mockResolvedValue([])
+    vi.mocked(inventoryApi.getShortageClaims).mockResolvedValue({
+      claims: emptyPage(), totals: { openCount: 0, openAmount: 0, settledCount: 0, settledAmount: 0, rejectedCount: 0 },
+    })
+  })
+
+  it('opens the claims tab from the address in place of the stock views', async () => {
+    signIn('MANAGER')
+    renderPage('/?tab=claims')
+
+    expect(await screen.findByRole('link', { name: 'Claims' })).toHaveAttribute('aria-current', 'page')
+    expect(await screen.findByText(/No shortage claims yet/)).toBeInTheDocument()
+    expect(screen.queryByText('Current Stock Levels')).not.toBeInTheDocument()
   })
 
   it('opens the reconciliation tab from the address in place of the stock views', async () => {

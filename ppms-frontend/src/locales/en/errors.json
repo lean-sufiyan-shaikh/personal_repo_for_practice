@@ -317,5 +317,15 @@
   "WAIVER_REASON_REQUIRED": "A mandatory reason is required when waiving a discrepancy (Business Rule 19).",
   "ADJUSTMENT_OWNER_OR_ADMIN_ONLY": "Only Owner or Admin can record reading adjustments and dip entries.",
   "DATE_RANGE_END_IN_FUTURE": "'to' date cannot be in the future",
-  "DATE_RANGE_TOO_LONG": "Choose a date range of at most {{maxDays}} days"
+  "DATE_RANGE_TOO_LONG": "Choose a date range of at most {{maxDays}} days",
+  "RECEIPT_NOZZLE_READINGS_MISSING": "Enter the before and after meter readings of every nozzle on tank {{tankIdentifier}} ({{nozzleNumbers}}).",
+  "RECEIPT_READING_FOR_UNMAPPED_NOZZLE": "A meter reading was entered for a nozzle that does not draw from tank {{tankIdentifier}}. Reload and enter the readings again.",
+  "RECEIPT_AFTER_READING_BELOW_BEFORE": "Nozzle #{{nozzleNumber}}: the reading after unloading ({{readingAfter}}) is below the reading before ({{readingBefore}}).",
+  "RECEIVED_LITRES_NOT_POSITIVE": "The dips and readings for tank {{tankIdentifier}} work out to {{receivedLitres}} L received. Check the dips before and after unloading.",
+  "SHORTAGE_CLAIM_NOT_RAISED": "This claim is already {{statusCode}}; only a raised claim can be settled or rejected.",
+  "SHORTAGE_CLAIM_CLOSED_FOR_DELIVERY": "The shortage claim on invoice {{invoiceReference}} is {{statusCode}}, so its quantity and cost can no longer change.",
+  "CREDIT_NOTE_DATE_IN_FUTURE": "The credit note date cannot be in the future.",
+  "CREDIT_NOTE_EXCEEDS_INVOICE_VALUE": "The credit note of ₹{{creditNoteAmount}} is more than the delivery's invoice value of ₹{{invoiceValue}}.",
+  "RECEIPT_TOLERANCE_OUT_OF_RANGE": "The short / over tolerance must be above 0 and at most 5%.",
+  "DENSITY_TOLERANCE_OUT_OF_RANGE": "The density tolerance must be above 0 and at most 50 kg/m³."
 }

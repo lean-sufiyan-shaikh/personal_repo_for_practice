@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useOnValuesChange } from '../../../hooks/useOnValuesChange'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { inventoryApi } from '../../../api/inventoryApi'
+import { pumpApi } from '../../../api/pumpApi'
 import { tankerApi } from '../../../api/tankerApi'
 import type { Tanker } from '../../../api/tankerApi'
 import type { TankStock, RecordBatchDeliveryRequest } from '../../../api/inventoryApi'
@@ -20,13 +21,23 @@ import { parseApiError } from '../../../utils/apiError'
 import { useToastStore } from '../../../store/toastStore'
 import { limitDecimals } from '../inventoryFormat'
 import { _rowSeq, newRow } from './deliveryRows'
-import type { DeliveryRow, PreparedDeliveryItem } from './deliveryRows'
+import type { DeliveryRow, DeliveryRowField } from './deliveryRows'
+import { prepareDeliveryItems } from './prepareDeliveryItems'
+import { DEFAULT_DENSITY_TOLERANCE, DEFAULT_RECEIPT_TOLERANCE_PERCENT, missingReceiptFields } from './receiptCheck'
+import type { ReceiptCheckInput, ReceiptField, ReceiptTolerances } from './receiptCheck'
 import { DeliveryRowEditor } from './DeliveryRowEditor'
 import { DeliveryHeaderFields } from './DeliveryHeaderFields'
 import { DeliveryReviewDialog } from './DeliveryReviewDialog'
 import { NumericInput } from '../../../components/NumericInput'
 import { formatNumberIn } from '../../../i18n/format'
 import { formatDecimal } from '../../../utils/format'
+
+const STILL_NEEDED_KEY = {
+  dipBefore: 'receipt.needDipBefore',
+  readingsBefore: 'receipt.needReadingsBefore',
+  dipAfter: 'receipt.needDipAfter',
+  readingsAfter: 'receipt.needReadingsAfter',
+} as const satisfies Record<ReceiptField, string>
 
 export function RecordDeliveryModal({
   pumpId,
@@ -61,6 +72,18 @@ export function RecordDeliveryModal({
   const [reviewOpen,        setReviewOpen]        = useState(false)
   const [billTotalStr,      setBillTotalStr]      = useState('')
   const [billTotalManual,   setBillTotalManual]   = useState(false)
+  const { data: receiptNozzles = [], isSuccess: nozzlesLoaded, isError: nozzlesFailed } = useQuery({
+    queryKey: ['receiptNozzles', pumpId],
+    queryFn: () => inventoryApi.getReceiptNozzles(pumpId),
+  })
+  const { data: pumps = [] } = useQuery({ queryKey: ['myPumps'], queryFn: pumpApi.getMyPumps })
+  const pump = pumps.find(p => p.id === pumpId)
+  const tolerances: ReceiptTolerances = {
+    receiptTolerancePercent: pump?.receiptTolerancePercent ?? DEFAULT_RECEIPT_TOLERANCE_PERCENT,
+    densityTolerance: pump?.densityTolerance ?? DEFAULT_DENSITY_TOLERANCE,
+  }
+  const nozzlesForTank = (tankId: number) => receiptNozzles.filter(n => n.tankId === tankId)
+
   const [selectedTankerId,  setSelectedTankerId]  = useState<number | null>(
     () => tankers.find(t => t.defaultTanker)?.id ?? null
   )
@@ -78,8 +101,10 @@ export function RecordDeliveryModal({
       setError(parseApiError(err, t('recordDelivery.failed'))),
   })
 
-  const updateRow = (id: number, field: keyof Omit<DeliveryRow, 'id'>, value: string) =>
+  const updateRow = (id: number, field: DeliveryRowField, value: string) =>
     setRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r))
+  const updateCheck = (id: number, check: ReceiptCheckInput) =>
+    setRows(prev => prev.map(r => r.id === id ? { ...r, check } : r))
 
   const addRow = () => {
     const r = newRow(defaultTankId)
@@ -120,105 +145,40 @@ export function RecordDeliveryModal({
     return tank && tank.capacity > 0 && q > 0 && q > (tank.capacity - tank.currentStock)
   })
 
-  const buildPreparedItems = (): { items: PreparedDeliveryItem[] | null; error: string | null } => {
-    if (!date || !invoice.trim()) {
-      return { items: null, error: t('recordDelivery.dateAndInvoiceRequired') }
-    }
-
-    for (const r of rows) {
-      if (!r.tankId) return { items: null, error: t('recordDelivery.selectTankEveryRow') }
-      const q = parseFloat(r.qty)
-      if (!r.qty || isNaN(q) || q <= 0) return { items: null, error: t('recordDelivery.quantityEveryRow') }
-      const rowTank = tanks.find(tk => tk.tankId === Number(r.tankId))
-      if (rowTank && rowTank.capacity > 0) {
-        const availableSpace = rowTank.capacity - rowTank.currentStock
-        if (q > availableSpace) {
-          return {
-            items: null,
-            error: t('recordDelivery.exceedsSpace', {
-              tank: rowTank.tankIdentifier,
-              quantity: formatDecimal(q),
-              space: formatDecimal(availableSpace),
-            }),
-          }
-        }
-      }
-      if (isOwnerOrAdmin) {
-        const c = parseFloat(r.costPrice)
-        if (!r.costPrice || isNaN(c) || c <= 0) return { items: null, error: t('recordDelivery.costEveryRow') }
-      }
-    }
-
-    const selectedTankIds = rows.map(r => r.tankId)
-    const unique = new Set(selectedTankIds)
-    if (unique.size !== selectedTankIds.length) {
-      return { items: null, error: t('recordDelivery.duplicateTank') }
-    }
-
-    const preparedItems = rows.map((r) => {
-      const tank = tanks.find(tk => tk.tankId === Number(r.tankId))
-      if (!tank) {
-        throw new Error('Selected tank not found.')
-      }
-
-      const quantityDelivered = parseFloat(r.qty)
-      const costPricePerUnit = isOwnerOrAdmin ? parseFloat(r.costPrice) : 0
-
-      return {
-        tankId: tank.tankId,
-        tankIdentifier: tank.tankIdentifier,
-        fuelType: tank.fuelType,
-        quantityDelivered,
-        costPricePerUnit,
-        totalCost: isOwnerOrAdmin ? quantityDelivered * costPricePerUnit : 0,
-        stockAfter: tank.currentStock + quantityDelivered,
-        capacity: tank.capacity,
-      }
-    })
-
-    return { items: preparedItems, error: null }
-  }
+  const buildPreparedItems = () => prepareDeliveryItems({
+    date, invoice, rows, tanks, isOwnerOrAdmin, nozzlesForTank, tolerances, t,
+  })
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    try {
-      const { items, error } = buildPreparedItems()
-      if (error || !items) {
-        setError(error)
-        return
-      }
-
-      setReviewOpen(true)
-    } catch {
-      setError(t('recordDelivery.tankNotFound'))
+    const { error } = buildPreparedItems()
+    if (error) {
+      setError(error)
       return
     }
+    setReviewOpen(true)
   }
 
   const handleConfirmSubmit = () => {
-    try {
-      const { items, error } = buildPreparedItems()
-      if (error || !items) {
-        setError(error)
-        return
-      }
-
-      mutation.mutate({
-        deliveryDate:     date,
-        invoiceReference: invoice.trim(),
-        billTotal: canSetBillTotal && billTotalNum > 0 ? billTotalNum : null,
-        tankerId: selectedTankerId ?? null,
-        items: items.map(item => ({
-          tankId: item.tankId,
-          quantityDelivered: item.quantityDelivered,
-          costPricePerUnit: isOwnerOrAdmin ? item.costPricePerUnit : null,
-        })),
-      })
-    } catch {
-      setError(t('recordDelivery.tankNotFound'))
+    const { items, error } = buildPreparedItems()
+    if (!items) {
+      setError(error)
+      return
     }
+    mutation.mutate({
+      deliveryDate:     date,
+      invoiceReference: invoice.trim(),
+      billTotal: canSetBillTotal && billTotalNum > 0 ? billTotalNum : null,
+      tankerId: selectedTankerId ?? null,
+      items: items.map(item => ({
+        tankId: item.tankId,
+        quantityDelivered: item.quantityDelivered,
+        costPricePerUnit: isOwnerOrAdmin ? item.costPricePerUnit : null,
+        receiptCheck: item.receiptCheck,
+      })),
+    })
   }
 
   const tankOptions = tanks.map(tank => ({
@@ -230,6 +190,9 @@ export function RecordDeliveryModal({
   const stillNeeded = [
     ...(tankerMismatch ? [t('recordDelivery.mustEqualTanker', { capacity: formatNumberIn(selectedTanker?.capacityLitres ?? 0) })] : []),
     ...(anyTankOverflow ? [t('recordDelivery.tankOverflow')] : []),
+    ...(nozzlesFailed ? [t('receipt.nozzlesFailed')] : !nozzlesLoaded ? [t('receipt.nozzlesLoading')] : rows.flatMap((r, idx) => r.tankId
+      ? missingReceiptFields(r.check, nozzlesForTank(Number(r.tankId))).map(field => t(STILL_NEEDED_KEY[field], { number: idx + 1 }))
+      : [])),
   ]
 
   const totalFigures: LiveFigure[] = [
@@ -245,6 +208,8 @@ export function RecordDeliveryModal({
       isResult: true,
     }] : []),
   ]
+
+  const preparedForReview = reviewOpen ? buildPreparedItems().items : null
 
   return (
     <>
@@ -302,6 +267,9 @@ export function RecordDeliveryModal({
           canRemove={rows.length > 1}
           onRemove={() => removeRow(row.id)}
           onChange={(field, value) => updateRow(row.id, field, value)}
+          nozzles={nozzlesForTank(Number(row.tankId))}
+          tolerances={tolerances}
+          onCheckChange={check => updateCheck(row.id, check)}
         />
       ))}
 
@@ -332,14 +300,9 @@ export function RecordDeliveryModal({
         <LiveFigures label={t('recordDelivery.totals')} figures={totalFigures} />
       </section>
     </Modal>
-      {reviewOpen && (() => {
-        try {
-          const { items } = buildPreparedItems()
-          if (!items) return null
-
-          return (
+      {reviewOpen && preparedForReview && (
         <DeliveryReviewDialog
-          items={items}
+          items={preparedForReview}
           date={date}
           invoice={invoice}
           error={error}
@@ -348,15 +311,12 @@ export function RecordDeliveryModal({
           billTotalManual={billTotalManual}
           billTotalNum={billTotalNum}
           otherCharges={otherCharges}
+          tolerances={tolerances}
           isPending={mutation.isPending}
           onBack={() => setReviewOpen(false)}
           onConfirm={handleConfirmSubmit}
         />
-          )
-        } catch {
-          return null
-        }
-      })()}
+      )}
     </>
   )
 }

@@ -77,6 +77,11 @@
     "PUMP_CONFIG_UPDATED": "Pump settings updated",
     "SETTLEMENT_RECORDED": "Settlement recorded",
     "SETTLEMENT_VOIDED": "Settlement voided",
-    "SETTLEMENT_CONFIG_UPDATED": "Settlement alerts updated"
+    "SETTLEMENT_CONFIG_UPDATED": "Settlement alerts updated",
+    "SHORTAGE_CLAIM_RAISED": "Shortage claim raised",
+    "SHORTAGE_CLAIM_UPDATED": "Shortage claim updated",
+    "SHORTAGE_CLAIM_SETTLED": "Shortage claim settled",
+    "SHORTAGE_CLAIM_REJECTED": "Shortage claim rejected",
+    "SHORTAGE_CLAIM_WITHDRAWN": "Shortage claim withdrawn"
   }
 }

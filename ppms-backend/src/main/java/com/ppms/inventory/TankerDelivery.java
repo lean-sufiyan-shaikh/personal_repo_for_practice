@@ -57,11 +57,54 @@ public class TankerDelivery {
     @Column(name = "tanker_name", length = 100)
     private String tankerName;
 
+    @Column(name = "dip_before_litres")
+    private BigDecimal dipBeforeLitres;
+
+    @Column(name = "dip_after_litres")
+    private BigDecimal dipAfterLitres;
+
+    @Column(name = "sold_between_litres")
+    private BigDecimal soldBetweenLitres;
+
+    /** Litres that really entered the tank; null for deliveries recorded before receipt checks existed. */
+    @Column(name = "received_litres")
+    private BigDecimal receivedLitres;
+
+    /** Received minus invoiced litres; negative when short. */
+    @Column(name = "variance_litres")
+    private BigDecimal varianceLitres;
+
+    @Column(name = "receipt_tolerance_percent")
+    private BigDecimal receiptTolerancePercent;
+
+    @Column(name = "observed_density")
+    private BigDecimal observedDensity;
+
+    @Column(name = "invoice_density")
+    private BigDecimal invoiceDensity;
+
+    @Column(name = "density_tolerance")
+    private BigDecimal densityTolerance;
+
+    @Column(name = "density_flagged", nullable = false)
+    @Builder.Default
+    private boolean densityFlagged = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "check_status", nullable = false)
+    @Builder.Default
+    private DeliveryCheckStatus checkStatus = DeliveryCheckStatus.NOT_CHECKED;
+
     @Column(name = "logged_by_user_id", nullable = false)
     private Long loggedByUserId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
+
+    /** What this delivery added to tank stock: the received litres when checked, else the invoiced litres. */
+    public BigDecimal litresAddedToTank() {
+        return receivedLitres != null ? receivedLitres : quantityDelivered;
+    }
 
     @PrePersist
     protected void onCreate() {

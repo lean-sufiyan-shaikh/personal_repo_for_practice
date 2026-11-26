@@ -8,6 +8,8 @@ import { StatusBadge } from '../../../components/StatusBadge'
 import { formatCurrency, formatDecimal, formatLitres } from '../../../utils/format'
 import { fmtDate } from '../inventoryFormat'
 import type { PreparedDeliveryItem } from './deliveryRows'
+import { ReceiptResultCard } from './ReceiptResultCard'
+import type { ReceiptTolerances } from './receiptCheck'
 
 interface Props {
   items: PreparedDeliveryItem[]
@@ -19,6 +21,7 @@ interface Props {
   billTotalManual: boolean
   billTotalNum: number
   otherCharges: number
+  tolerances: ReceiptTolerances
   isPending: boolean
   onBack: () => void
   onConfirm: () => void
@@ -35,7 +38,7 @@ function SummaryFigure({ label, children }: { label: string; children: React.Rea
 
 export function DeliveryReviewDialog({
   items, date, invoice, error, isOwnerOrAdmin, canSetBillTotal, billTotalManual, billTotalNum, otherCharges,
-  isPending, onBack, onConfirm,
+  tolerances, isPending, onBack, onConfirm,
 }: Props) {
   const { t } = useTranslation(['inventory', 'common'])
   const totalQty = items.reduce((sum, item) => sum + item.quantityDelivered, 0)
@@ -102,7 +105,7 @@ export function DeliveryReviewDialog({
         </div>
         <div className="divide-y divide-border">
           {items.map((item) => (
-            <div key={item.tankId} className="px-4 py-3">
+            <div key={item.tankId} className="space-y-2 px-4 py-3">
               <div className={`grid gap-3 items-center text-sm ${columns}`}>
                 <span className="font-semibold text-ink">{item.tankIdentifier}</span>
                 <StatusBadge tone="neutral" label={codeLabel(item.fuelType)} className="w-fit" />
@@ -124,6 +127,9 @@ export function DeliveryReviewDialog({
                   {item.capacity !== null && <>{' '}{t('review.ofCapacity', { capacity: formatNumberIn(item.capacity, { minimumFractionDigits: 0 }) })}</>}
                 </p>
               )}
+              <ReceiptResultCard result={item.receipt} invoiceLitres={item.quantityDelivered}
+                tolerancePercent={tolerances.receiptTolerancePercent} densityDifference={item.densityDifference}
+                densityFlagged={item.densityFlagged} densityTolerance={tolerances.densityTolerance} />
             </div>
           ))}
         </div>
