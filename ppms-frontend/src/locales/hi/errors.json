@@ -352,5 +352,14 @@
   "DAY_CLOSE_DATE_IN_FUTURE": "{{date}} अभी आया नहीं है, इसलिए बंद नहीं हो सकता।",
   "DAY_CLOSE_NOT_AWAITING_APPROVAL": "{{date}} मंज़ूरी के इंतज़ार में नहीं है ({{statusCode}})।",
   "DAY_NOT_CLOSED": "{{date}} बंद नहीं है ({{statusCode}})।",
-  "DAY_CLOSE_APPROVE_NOT_ALLOWED": "दिन सिर्फ़ मालिक या एडमिन मंज़ूर कर सकते हैं।"
+  "DAY_CLOSE_APPROVE_NOT_ALLOWED": "दिन सिर्फ़ मालिक या एडमिन मंज़ूर कर सकते हैं।",
+  "CREDIT_ON_HOLD": "'{{clientName}}' का क्रेडिट रुका है: {{daysOverdue}} दिन से बकाया, और {{holdDays}} दिन पर क्रेडिट रोक दिया जाता है। ग्राहक भुगतान करे, या मालिक/एडमिन रोक हटाए।",
+  "REMINDER_STAGES_INVALID": "याद दिलाने के दिन 1 से {{maxDays}} के बीच अलग-अलग हों, अधिकतम {{maxStages}}।",
+  "CREDIT_HOLD_DAYS_OUT_OF_RANGE": "क्रेडिट रोकने के दिन 1 से {{maxDays}} के बीच हों, या रोक बंद करने के लिए खाली छोड़ें।",
+  "UPI_DETAILS_INCOMPLETE": "UPI ID और प्राप्तकर्ता का नाम दोनों भरें, या दोनों खाली छोड़ें।",
+  "UPI_ID_INVALID": "'{{upiId}}' UPI ID नहीं है। यह name@bank जैसी होती है, जैसे ramfuels@okaxis।",
+  "UPI_PAYEE_NAME_INVALID": "प्राप्तकर्ता के नाम में केवल अक्षर, अंक, स्पेस और . & ' - हो सकते हैं, अधिकतम 100 अक्षर।",
+  "CREDIT_REMINDER_CLIENT_NOT_OVERDUE": "'{{clientName}}' का कुछ बकाया नहीं है, इसलिए याद दिलाने को कुछ नहीं है।",
+  "CREDIT_PROMISE_ALREADY_OPEN": "'{{clientName}}' पहले ही {{promisedDate}} तक ₹{{amount}} देने का वादा कर चुका है। वह वादा पूरा या चूकने तक रुकें।",
+  "CREDIT_PROMISE_DATE_IN_PAST": "वादे की तारीख आज से पहले नहीं हो सकती।"
 }

@@ -1,6 +1,7 @@
 package com.ppms.credit;
 
 import com.ppms.audit.AuditAction;
+import com.ppms.collection.UpiPaymentLink;
 import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
@@ -357,8 +358,9 @@ public class CreditLedgerController {
         PumpLocation pump = pumpLocationRepository.findById(pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found"));
 
-        String html = statementRenderer.render(pump, client, queryService.getStatement(client, fromDate, toDate),
-                fromDate, toDate);
+        CreditStatement statement = queryService.getStatement(client, fromDate, toDate);
+        String html = statementRenderer.render(pump, client, statement, fromDate, toDate,
+                UpiPaymentLink.forPump(pump, statement.outstanding(), client.getName()));
 
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_HTML)

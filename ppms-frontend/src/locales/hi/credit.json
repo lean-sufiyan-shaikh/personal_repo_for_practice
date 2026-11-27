@@ -3,7 +3,8 @@
     "summary": {
       "amount": "+₹{{amount}} अतिरिक्त क्रेडिट सीमा",
       "billingCycle": "बिलिंग चक्र की बकाया रोक टाली गई",
-      "overdueWaiver": "बकाया रोक माफ़ की गई"
+      "overdueWaiver": "बकाया रोक माफ़ की गई",
+      "holdOverride": "क्रेडिट रोक हटाई गई"
     },
     "expires": "{{date}} को समाप्त",
     "revoke": "वापस लें"
@@ -250,7 +251,8 @@
     "typeHelp": {
       "AMOUNT_EXTENSION": "समाप्ति तारीख तक क्रेडिट सीमा अतिरिक्त राशि से बढ़ जाती है।",
       "BILLING_CYCLE_EXTENSION": "समाप्ति तारीख तक बकाया रोक टल जाती है।",
-      "OVERDUE_BLOCK_WAIVER": "बकाया बिल होते हुए भी ग्राहक एक बार और क्रेडिट ले सकता है।"
+      "OVERDUE_BLOCK_WAIVER": "बकाया बिल होते हुए भी ग्राहक एक बार और क्रेडिट ले सकता है।",
+      "CREDIT_HOLD_OVERRIDE": "बहुत दिनों से बकाया ग्राहक की क्रेडिट रोक, और साथ में बकाया रोक, समाप्ति तारीख तक हटाता है।"
     },
     "extraAmount": "अतिरिक्त राशि",
     "limitUntil": "{{date}} तक सीमा",
@@ -345,7 +347,9 @@
     "tabs": {
       "clients": "ग्राहक",
       "ledger": "लेजर",
-      "aging": "बकाया की उम्र तालिका"
+      "aging": "बकाया की उम्र तालिका",
+      "collections": "वसूली",
+      "statements": "स्टेटमेंट"
     },
     "views": "क्रेडिट के हिस्से",
     "accountCount_one": "{{count}} खाता",
@@ -411,7 +415,9 @@
     "recordsLabel": "ग्राहक रिकॉर्ड",
     "tabs": {
       "ledger": "लेजर",
-      "invoices": "इनवॉइस"
+      "invoices": "इनवॉइस",
+      "followUp": "फ़ॉलो-अप",
+      "statements": "स्टेटमेंट"
     },
     "ownTransactions": "अपने लेन-देन",
     "noOwnTransactions": "अभी अपना कोई लेन-देन नहीं।",

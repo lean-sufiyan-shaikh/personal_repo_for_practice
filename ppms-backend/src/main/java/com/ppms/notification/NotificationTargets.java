@@ -25,6 +25,8 @@ public final class NotificationTargets {
             case ANCILLARY_LOW_STOCK -> NotificationTarget.of("/dashboard/ancillary");
             case SHIFT_OVERDUE, ZERO_SALE_SHIFT, AUTO_CLOSED_SHIFT, PRICE_CHANGE_OPEN_SHIFT -> shiftTarget(dedupKey);
             case DAY_CLOSED, DAY_REOPENED, DAY_CLOSE_COMMENT -> dayCloseTarget(dedupKey);
+            case CREDIT_REMINDERS_DUE, CREDIT_HOLD_PLACED, CREDIT_PROMISE_MISSED ->
+                    NotificationTarget.of("/dashboard/credit", "tab", "collections");
         };
     }
 

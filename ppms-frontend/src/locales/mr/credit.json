@@ -3,7 +3,8 @@
     "summary": {
       "amount": "+₹{{amount}} जादा क्रेडिट मर्यादा",
       "billingCycle": "बिलिंग चक्राची थकीत बंदी पुढे ढकलली",
-      "overdueWaiver": "थकीत बंदी माफ केली"
+      "overdueWaiver": "थकीत बंदी माफ केली",
+      "holdOverride": "क्रेडिट थांबवणे हटवले"
     },
     "expires": "{{date}} रोजी संपते",
     "revoke": "मागे घ्या"
@@ -250,7 +251,8 @@
     "typeHelp": {
       "AMOUNT_EXTENSION": "संपण्याच्या तारखेपर्यंत क्रेडिट मर्यादा जादा रकमेने वाढते.",
       "BILLING_CYCLE_EXTENSION": "संपण्याच्या तारखेपर्यंत थकीत बंदी पुढे ढकलली जाते.",
-      "OVERDUE_BLOCK_WAIVER": "थकीत बिले असूनही ग्राहक आणखी एकदा क्रेडिट घेऊ शकतो."
+      "OVERDUE_BLOCK_WAIVER": "थकीत बिले असूनही ग्राहक आणखी एकदा क्रेडिट घेऊ शकतो.",
+      "CREDIT_HOLD_OVERRIDE": "बरेच दिवस थकीत ग्राहकाचे क्रेडिट थांबवणे, आणि सोबत थकबाकीची रोक, समाप्ती तारखेपर्यंत हटवते."
     },
     "extraAmount": "जादा रक्कम",
     "limitUntil": "{{date}} पर्यंत मर्यादा",
@@ -345,7 +347,9 @@
     "tabs": {
       "clients": "ग्राहक",
       "ledger": "लेजर",
-      "aging": "थकबाकी वय तक्ता"
+      "aging": "थकबाकी वय तक्ता",
+      "collections": "वसुली",
+      "statements": "स्टेटमेंट"
     },
     "views": "क्रेडिटचे विभाग",
     "accountCount_one": "{{count}} खाते",
@@ -411,7 +415,9 @@
     "recordsLabel": "ग्राहकाच्या नोंदी",
     "tabs": {
       "ledger": "लेजर",
-      "invoices": "इनव्हॉइस"
+      "invoices": "इनव्हॉइस",
+      "followUp": "पाठपुरावा",
+      "statements": "स्टेटमेंट"
     },
     "ownTransactions": "स्वतःचे व्यवहार",
     "noOwnTransactions": "अजून स्वतःचे व्यवहार नाहीत.",

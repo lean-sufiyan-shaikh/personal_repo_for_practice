@@ -282,6 +282,18 @@
     "DAY_CLOSE_COMMENT": {
       "title": "Day Close Message",
       "message": "{{authorName}} wrote about {{date}}: {{message}}"
+    },
+    "CREDIT_REMINDERS_DUE": {
+      "title": "Credit Reminders Due",
+      "message": "Overdue credit clients due a reminder today: {{count}}. Open Credit → Collections."
+    },
+    "CREDIT_HOLD_PLACED": {
+      "title": "Credit Put on Hold",
+      "message": "{{clientName}} is {{daysOverdue}} days overdue, so new credit is on hold until they pay."
+    },
+    "CREDIT_PROMISE_MISSED": {
+      "title": "Promise to Pay Missed",
+      "message": "{{clientName}} promised ₹{{amount}} by {{promisedDate}} but paid ₹{{paidAmount}}. Reminders have resumed."
     }
   },
   "serverTexts": {
@@ -398,5 +410,11 @@
   "DAY_CLOSES_UNAPPROVED": "Closed days to approve",
   "DAY_CLOSED": "Day closed",
   "DAY_REOPENED": "Day re-opened",
-  "DAY_CLOSE_COMMENT": "Day close message"
+  "DAY_CLOSE_COMMENT": "Day close message",
+  "ON_HOLD": "On hold",
+  "CREDIT_HOLD_OVERRIDE": "Credit hold override",
+  "CREDIT_STATEMENT": "Credit statement",
+  "CREDIT_REMINDERS_DUE": "Credit reminders due",
+  "CREDIT_HOLD_PLACED": "Credit put on hold",
+  "CREDIT_PROMISE_MISSED": "Promise to pay missed"
 }

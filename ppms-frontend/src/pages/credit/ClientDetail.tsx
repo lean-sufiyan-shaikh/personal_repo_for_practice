@@ -34,12 +34,14 @@ import { useLedgerFilters } from './useLedgerFilters'
 import { LedgerFilterBar } from './LedgerFilterBar'
 import { ClientSummaryCards } from './ClientSummaryCards'
 import { ClientInvoicesTab } from './ClientInvoicesTab'
+import { ClientFollowUpTab } from './collections/ClientFollowUpTab'
+import { ClientStatementsTab } from './collections/ClientStatementsTab'
 import { formatCurrency, formatCurrencyOrDash } from '../../utils/format'
 import { PageTabs } from '../../components/layout/PageTabs'
 import { useActiveTab } from '../../components/layout/useActiveTab'
 import { useUrlParam } from '../../components/layout/useUrlParam'
 
-const RECORD_TABS = ['ledger', 'invoices'] as const
+const RECORD_TABS = ['ledger', 'invoices', 'followUp', 'statements'] as const
 
 interface ClientDetailProps {
   clientId: number
@@ -52,7 +54,7 @@ interface ClientDetailProps {
  * ?action=record-payment opens Record payment, so the command palette and links can start there.
  */
 export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
-  const { t } = useTranslation('credit')
+  const { t } = useTranslation(['credit', 'collections'])
   const paymentAction = useUrlParam('action')
   const [showInterestSettingsModal, setShowInterestSettingsModal] = useState(false)
   const [showExtensionModal, setShowExtensionModal] = useState(false)
@@ -344,6 +346,19 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           <ClientInvoicesTab pumpId={pumpId} clientId={clientId} canIssueInvoices={canIssueInvoices} />
         </div>
       )}
+
+      {activeTab === 'followUp' && (isSubAccount ? (
+        <p className="ui-card-plain px-4 py-2.5 text-sm text-ink-3">
+          {client.parentClientName
+            ? t('collections:followUp.subAccountNamed', { name: client.parentClientName })
+            : t('collections:followUp.subAccount')}
+        </p>
+      ) : (
+        <ClientFollowUpTab pumpId={pumpId} clientId={clientId} clientName={client.name} phone={client.phone}
+          canRemind={canPerformAction('credit:record-payment', role)} canOverrideHold={canManageExtensions} />
+      ))}
+
+      {activeTab === 'statements' && <ClientStatementsTab pumpId={pumpId} clientId={clientId} />}
 
       {/* Transaction ledger */}
       {activeTab === 'ledger' && (

@@ -7,5 +7,6 @@ export function extensionSummary(ext: CreditExtension) {
     case 'AMOUNT_EXTENSION': return translateKey('credit:extension.summary.amount', { amount: formatDecimal(ext.extensionAmount ?? 0) })
     case 'BILLING_CYCLE_EXTENSION': return translateKey('credit:extension.summary.billingCycle')
     case 'OVERDUE_BLOCK_WAIVER': return translateKey('credit:extension.summary.overdueWaiver')
+    case 'CREDIT_HOLD_OVERRIDE': return translateKey('credit:extension.summary.holdOverride')
   }
 }

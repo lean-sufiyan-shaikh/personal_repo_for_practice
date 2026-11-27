@@ -1,5 +1,6 @@
 package com.ppms.credit;
 
+import com.ppms.collection.QrCodeSvg;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.pump.PumpLocation;
 import lombok.RequiredArgsConstructor;
@@ -14,13 +15,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CreditStatementRenderer {
 
+    private static final int QR_SIZE_PIXELS = 132;
+
     private final BusinessClock businessClock;
 
+    /** {@code upiPayLink} adds a QR code to pay the outstanding by UPI; null leaves it out. */
     public String render(PumpLocation pump,
                          CreditClient client,
                          CreditStatement statement,
                          LocalDate fromDate,
-                         LocalDate toDate) {
+                         LocalDate toDate,
+                         String upiPayLink) {
         StringBuilder sb = new StringBuilder();
         String periodLabel = (fromDate != null || toDate != null)
                 ? "Period: " + (fromDate != null ? fromDate : "inception") + " to " + (toDate != null ? toDate : "today")
@@ -46,6 +51,10 @@ public class CreditStatementRenderer {
                 .append(statement.coversSubAccounts() ? "Group Outstanding Balance (incl. sub-accounts): ₹" : "Outstanding Balance: ₹")
                 .append(statement.outstanding().setScale(2, RoundingMode.HALF_UP).toPlainString())
                 .append("</p></div>");
+
+        if (upiPayLink != null) {
+            appendUpiPayment(sb, pump, statement.outstanding(), upiPayLink);
+        }
 
         sb.append("<div class='no-print'><button onclick='window.print()' ")
                 .append("style='padding:8px 20px;font-size:13px;cursor:pointer;'>Print Statement</button></div>");
@@ -78,6 +87,8 @@ public class CreditStatementRenderer {
                   .type-SALE { color: #333; }
                   .summary { margin-top: 20px; text-align: right; }
                   .outstanding { font-size: 14px; font-weight: bold; }
+                  .upi { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 12px; }
+                  .upi p { margin: 2px 0; text-align: right; }
                   .no-print { margin-top: 20px; }
                   @media print { .no-print { display: none; } }
                 </style>
@@ -105,6 +116,17 @@ public class CreditStatementRenderer {
                 .append("<p>").append(periodLabel).append("</p>")
                 .append("<p>Printed: ").append(businessClock.today()).append("</p>")
                 .append("</div></div>");
+    }
+
+    private void appendUpiPayment(StringBuilder sb, PumpLocation pump, BigDecimal amount, String upiPayLink) {
+        sb.append("<div class='upi'><div>")
+                .append("<p><strong>Scan to pay ₹").append(amount.setScale(2, RoundingMode.HALF_UP).toPlainString())
+                .append(" with any UPI app</strong></p>")
+                .append("<p>").append(escapeHtml(pump.getUpiPayeeName())).append(" · ")
+                .append(escapeHtml(pump.getUpiId())).append("</p>")
+                .append("</div>")
+                .append(QrCodeSvg.render(upiPayLink, QR_SIZE_PIXELS))
+                .append("</div>");
     }
 
     private void appendTransactionTable(StringBuilder sb, List<CreditTransactionResponse> transactions, boolean showAccount) {

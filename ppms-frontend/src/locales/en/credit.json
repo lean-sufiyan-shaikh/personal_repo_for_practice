@@ -3,7 +3,8 @@
     "summary": {
       "amount": "+₹{{amount}} credit headroom",
       "billingCycle": "Billing cycle overdue block deferred",
-      "overdueWaiver": "Overdue block waived"
+      "overdueWaiver": "Overdue block waived",
+      "holdOverride": "Credit hold lifted"
     },
     "expires": "expires {{date}}",
     "revoke": "Revoke"
@@ -250,7 +251,8 @@
     "typeHelp": {
       "AMOUNT_EXTENSION": "Raises the credit limit by an extra amount until the expiry date.",
       "BILLING_CYCLE_EXTENSION": "Holds off the overdue block until the expiry date.",
-      "OVERDUE_BLOCK_WAIVER": "Lets the client take credit once more despite overdue bills."
+      "OVERDUE_BLOCK_WAIVER": "Lets the client take credit once more despite overdue bills.",
+      "CREDIT_HOLD_OVERRIDE": "Lifts the credit hold of a long-overdue client, and the overdue block with it, until the expiry date."
     },
     "extraAmount": "Extra amount",
     "limitUntil": "Limit until {{date}}",
@@ -345,7 +347,9 @@
     "tabs": {
       "clients": "Clients",
       "ledger": "Ledger",
-      "aging": "Aging table"
+      "aging": "Aging table",
+      "collections": "Collections",
+      "statements": "Statements"
     },
     "views": "Credit views",
     "accountCount_one": "{{count}} account",
@@ -411,7 +415,9 @@
     "recordsLabel": "Client records",
     "tabs": {
       "ledger": "Ledger",
-      "invoices": "Invoices"
+      "invoices": "Invoices",
+      "followUp": "Follow-up",
+      "statements": "Statements"
     },
     "ownTransactions": "own transactions",
     "noOwnTransactions": "No own transactions yet.",

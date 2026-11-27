@@ -10,12 +10,14 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -91,7 +93,11 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/cash-drops/pending", "MANAGER", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/day-closes", "MANAGER", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/day-closes", "OWNER", "ACCOUNTANT"),
-                Arguments.of("/api/pumps/{pumpId}/day-closes/preview?date=" + TODAY, "MANAGER", "ACCOUNTANT"));
+                Arguments.of("/api/pumps/{pumpId}/day-closes/preview?date=" + TODAY, "MANAGER", "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/collections/dashboard", "ACCOUNTANT", "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/collections/reminders/due", "MANAGER", "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/collections/statements", "ACCOUNTANT", "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/collection-settings", "MANAGER", "ACCOUNTANT"));
     }
 
     @ParameterizedTest(name = "{0} allows {1}")
@@ -131,7 +137,11 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/day-closes/" + TODAY + "/close", Map.of(), "ACCOUNTANT"),
                 Arguments.of("/api/pumps/{pumpId}/day-closes/" + TODAY + "/approve", Map.of(), "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/day-closes/" + TODAY + "/reopen", Map.of("reason", "Matrix"), "MANAGER"),
-                Arguments.of("/api/pumps/{pumpId}/day-closes/" + TODAY + "/comments", Map.of("message", "Matrix"), "OPERATOR"));
+                Arguments.of("/api/pumps/{pumpId}/day-closes/" + TODAY + "/comments", Map.of("message", "Matrix"), "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/collections/clients/1/reminders", Map.of("method", "CALL"), "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/collections/clients/1/promises", Map.of("amount", 1,
+                        "promisedDate", TODAY), "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/collection-settings", Map.of("reminderStageDays", List.of(7)), "MANAGER"));
     }
 
     @ParameterizedTest(name = "{0} refuses {2}")
@@ -148,7 +158,11 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
 
     private MockHttpServletRequestBuilder write(String path, PumpSetup pump) {
         String resolved = path.replace("{pumpId}", pump.pumpId().toString());
-        return path.endsWith("/revoke") || path.contains("/safe/") || path.contains("/day-closes/") ? post(resolved) : patch(resolved);
+        if (path.endsWith("/collection-settings")) {
+            return put(resolved);
+        }
+        return path.endsWith("/revoke") || path.contains("/safe/") || path.contains("/day-closes/")
+                || path.contains("/collections/") ? post(resolved) : patch(resolved);
     }
 
     private MockHttpServletRequestBuilder request(String path, PumpSetup pump) {

@@ -8,6 +8,7 @@ import { MoneyText } from '../../components/AmountText'
 import { NumericInput } from '../../components/NumericInput'
 import { LoadingButton } from '../../components/LoadingButton'
 import { AuthCard, AuthScreen } from '../auth/AuthCard'
+import { PortalUpiPayment } from './PortalUpiPayment'
 
 // Uses a plain axios instance — no auth header, no JWT
 const publicClient = axios.create({ baseURL: '/api' })
@@ -15,6 +16,14 @@ const publicClient = axios.create({ baseURL: '/api' })
 interface BalanceResult {
   outstandingAmount: number
   creditLimit: number
+  /** upi://pay link for the outstanding; null when the pump takes no UPI payments by link or nothing is owed. */
+  upiPayLink: string | null
+}
+
+/** A reminder links here with ?pump=<id>, so the client only types their phone and PIN. */
+function pumpIdFromLink(): string {
+  const pump = new URLSearchParams(window.location.search).get('pump') ?? ''
+  return /^\d+$/.test(pump) ? pump : ''
 }
 
 type PortalError = 'incomplete' | 'noMatch' | 'tooManyAttempts' | 'lookupFailed'
@@ -28,7 +37,7 @@ function lookupError(err: unknown): PortalError {
 
 export default function CreditBalancePortalPage() {
   const { t } = useTranslation('portal')
-  const [pumpId, setPumpId]   = useState('')
+  const [pumpId, setPumpId]   = useState(pumpIdFromLink)
   const [phone, setPhone]     = useState('')
   const [pin, setPin]         = useState('')
   const [result, setResult]   = useState<BalanceResult | null>(null)
@@ -120,6 +129,9 @@ export default function CreditBalancePortalPage() {
 
             {result.outstandingAmount <= 0 && (
               <p className="text-xs text-ok font-medium mt-2">{t('result.settled')}</p>
+            )}
+            {result.upiPayLink && result.outstandingAmount > 0 && (
+              <PortalUpiPayment link={result.upiPayLink} amount={result.outstandingAmount} />
             )}
           </div>
         )}

@@ -1,6 +1,7 @@
 package com.ppms.credit;
 
 import com.ppms.auth.ClientIpResolver;
+import com.ppms.collection.UpiPaymentLink;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.pump.PumpLocation;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -46,9 +48,11 @@ public class ClientPortalController {
                         Map.of(),
                         NOT_FOUND_MESSAGE));
 
-        return new CreditBalanceLookupResponse(
-                creditInterestService.computeOutstanding(client.getId()),
-                client.getCreditLimit());
+        BigDecimal outstanding = creditInterestService.computeOutstanding(client.getId());
+        String upiPayLink = pumpLocationRepository.findById(lookup.pumpId())
+                .map(pump -> UpiPaymentLink.forPump(pump, outstanding, client.getName()))
+                .orElse(null);
+        return new CreditBalanceLookupResponse(outstanding, client.getCreditLimit(), upiPayLink);
     }
 
     private Optional<CreditClient> findClientWithPin(CreditBalanceLookupRequest lookup) {

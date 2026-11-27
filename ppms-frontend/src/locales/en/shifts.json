@@ -256,7 +256,8 @@
       "parentDisabled": "Parent account disabled",
       "creditDisabled": "Credit disabled",
       "overLimit": "Over credit limit",
-      "cycleOverdue": "Billing cycle overdue"
+      "cycleOverdue": "Billing cycle overdue",
+      "onHold": "Credit on hold: long overdue"
     }
   },
   "creditEntries": {

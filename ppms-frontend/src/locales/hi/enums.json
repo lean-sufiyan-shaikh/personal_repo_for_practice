@@ -282,6 +282,18 @@
     "DAY_CLOSE_COMMENT": {
       "title": "दिन बंद पर संदेश",
       "message": "{{authorName}} ने {{date}} के बारे में लिखा: {{message}}"
+    },
+    "CREDIT_REMINDERS_DUE": {
+      "title": "क्रेडिट याद दिलाना बाकी",
+      "message": "आज याद दिलाने वाले बकाया क्रेडिट ग्राहक: {{count}}। क्रेडिट → वसूली खोलें।"
+    },
+    "CREDIT_HOLD_PLACED": {
+      "title": "क्रेडिट रोका गया",
+      "message": "{{clientName}} का {{daysOverdue}} दिन से बकाया है, इसलिए भुगतान होने तक नया क्रेडिट रुका है।"
+    },
+    "CREDIT_PROMISE_MISSED": {
+      "title": "भुगतान का वादा चूका",
+      "message": "{{clientName}} ने {{promisedDate}} तक ₹{{amount}} का वादा किया था पर ₹{{paidAmount}} दिए। याद दिलाना फिर शुरू हो गया है।"
     }
   },
   "serverTexts": {
@@ -398,5 +410,11 @@
   "DAY_CLOSES_UNAPPROVED": "मंज़ूरी के लिए बंद दिन",
   "DAY_CLOSED": "दिन बंद हुआ",
   "DAY_REOPENED": "दिन दोबारा खुला",
-  "DAY_CLOSE_COMMENT": "दिन बंद पर संदेश"
+  "DAY_CLOSE_COMMENT": "दिन बंद पर संदेश",
+  "ON_HOLD": "रोका गया",
+  "CREDIT_HOLD_OVERRIDE": "क्रेडिट रोक हटाना",
+  "CREDIT_STATEMENT": "क्रेडिट स्टेटमेंट",
+  "CREDIT_REMINDERS_DUE": "क्रेडिट याद दिलाना बाकी",
+  "CREDIT_HOLD_PLACED": "क्रेडिट रोका गया",
+  "CREDIT_PROMISE_MISSED": "भुगतान का वादा चूका"
 }

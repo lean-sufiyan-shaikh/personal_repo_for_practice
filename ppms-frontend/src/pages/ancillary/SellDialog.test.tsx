@@ -10,7 +10,7 @@ import { renderWithProviders } from '../../test/renderWithProviders'
 import { SellDialog } from './SellDialog'
 
 vi.mock('../../api/ancillaryApi', () => ({ ancillaryApi: { getPriceHistory: vi.fn(), recordSale: vi.fn(), setPrice: vi.fn() } }))
-vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn().mockResolvedValue([]) } }))
+vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn().mockResolvedValue([]), getCreditStanding: vi.fn().mockResolvedValue([]) } }))
 
 function product(lots: AncillaryProduct['activeFifoLots']): AncillaryProduct {
   return {
@@ -194,5 +194,42 @@ describe('SellDialog credit sale', () => {
     await vi.waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['credit-ledger', 3] }))
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['ancillaryProducts', 3] })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['ancillarySales', 3] })
+  })
+
+  it('marks a client whose credit is on hold and will not review a credit sale for them', async () => {
+    vi.mocked(pumpApi.getCreditStanding).mockResolvedValue([{ clientId: 41, creditStatus: 'ON_HOLD', availableCredit: null }])
+    const user = userEvent.setup()
+    renderWithProviders(<SellDialog pumpId={3} product={product([{ remainingQuantity: 5, originalQuantity: 5, costPricePerUnit: 100 }])} onClose={vi.fn()} onSuccess={vi.fn()} />)
+    await screen.findByDisplayValue('120')
+
+    await user.click(screen.getByRole('button', { name: /Payment mode/i }))
+    await user.click(await screen.findByRole('option', { name: 'Credit' }))
+    await user.click(await screen.findByRole('button', { name: /^Client/ }))
+    await user.click(await screen.findByRole('option', { name: 'Acme Transport · On hold' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Credit on hold: long overdue')
+    expect(screen.getByRole('button', { name: 'Review' })).toBeDisabled()
+    expect(pumpApi.getCreditStanding).toHaveBeenCalledWith(3)
+  })
+
+  it('shows the refusal when the server finds the credit on hold', async () => {
+    vi.mocked(pumpApi.getCreditStanding).mockResolvedValue([])
+    vi.mocked(ancillaryApi.recordSale).mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 400, data: { code: 'CREDIT_ON_HOLD', params: { clientName: 'Acme Transport', daysOverdue: 47, holdDays: 45 },
+        message: "Credit is on hold for 'Acme Transport': 47 days overdue, and credit is held from 45 days. The client must pay, or an Owner/Admin must override the hold." } },
+    })
+    const user = userEvent.setup()
+    renderWithProviders(<SellDialog pumpId={3} product={product([{ remainingQuantity: 5, originalQuantity: 5, costPricePerUnit: 100 }])} onClose={vi.fn()} onSuccess={vi.fn()} />)
+    await screen.findByDisplayValue('120')
+    await user.click(screen.getByRole('button', { name: /Payment mode/i }))
+    await user.click(await screen.findByRole('option', { name: 'Credit' }))
+    await user.click(await screen.findByRole('button', { name: /^Client/ }))
+    await user.click(await screen.findByRole('option', { name: 'Acme Transport' }))
+    await user.click(screen.getByRole('button', { name: 'Review' }))
+    await user.click(await screen.findByRole('button', { name: 'Record sale' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "Credit is on hold for 'Acme Transport': 47 days overdue, and credit is held from 45 days.")
   })
 })

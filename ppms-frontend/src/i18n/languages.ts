@@ -25,6 +25,7 @@ export const NAMESPACES = [
   'calibration',
   'documents',
   'credit',
+  'collections',
   'settlements',
   'payroll',
   'setup',

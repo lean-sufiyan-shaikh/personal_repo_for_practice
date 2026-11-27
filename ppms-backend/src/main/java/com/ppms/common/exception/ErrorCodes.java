@@ -356,6 +356,15 @@ public final class ErrorCodes {
     public static final String DAY_CLOSE_NOT_AWAITING_APPROVAL = "DAY_CLOSE_NOT_AWAITING_APPROVAL";
     public static final String DAY_NOT_CLOSED = "DAY_NOT_CLOSED";
     public static final String DAY_CLOSE_APPROVE_NOT_ALLOWED = "DAY_CLOSE_APPROVE_NOT_ALLOWED";
+    public static final String CREDIT_ON_HOLD = "CREDIT_ON_HOLD";
+    public static final String REMINDER_STAGES_INVALID = "REMINDER_STAGES_INVALID";
+    public static final String CREDIT_HOLD_DAYS_OUT_OF_RANGE = "CREDIT_HOLD_DAYS_OUT_OF_RANGE";
+    public static final String UPI_DETAILS_INCOMPLETE = "UPI_DETAILS_INCOMPLETE";
+    public static final String UPI_ID_INVALID = "UPI_ID_INVALID";
+    public static final String UPI_PAYEE_NAME_INVALID = "UPI_PAYEE_NAME_INVALID";
+    public static final String CREDIT_REMINDER_CLIENT_NOT_OVERDUE = "CREDIT_REMINDER_CLIENT_NOT_OVERDUE";
+    public static final String CREDIT_PROMISE_ALREADY_OPEN = "CREDIT_PROMISE_ALREADY_OPEN";
+    public static final String CREDIT_PROMISE_DATE_IN_PAST = "CREDIT_PROMISE_DATE_IN_PAST";
 
     private ErrorCodes() {
     }

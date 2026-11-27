@@ -5,6 +5,7 @@ import auth from './auth.json'
 import balancesheet from './balancesheet.json'
 import calibration from './calibration.json'
 import cash from './cash.json'
+import collections from './collections.json'
 import common from './common.json'
 import credit from './credit.json'
 import dashboard from './dashboard.json'
@@ -33,6 +34,7 @@ export const enResources = {
   balancesheet,
   calibration,
   cash,
+  collections,
   common,
   credit,
   dashboard,

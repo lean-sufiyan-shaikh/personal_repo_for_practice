@@ -36,6 +36,9 @@
     "SAFE_COUNT_VARIANCE": "तिजोरी मोजणीत फरक",
     "DAY_CLOSED": "दिवस बंद झाला",
     "DAY_REOPENED": "दिवस पुन्हा उघडला",
-    "DAY_CLOSE_COMMENT": "दिवस बंदवर प्रश्न किंवा उत्तर"
+    "DAY_CLOSE_COMMENT": "दिवस बंदवर प्रश्न किंवा उत्तर",
+    "CREDIT_REMINDERS_DUE": "क्रेडिट आठवण बाकी",
+    "CREDIT_HOLD_PLACED": "क्रेडिट थांबवले",
+    "CREDIT_PROMISE_MISSED": "भरण्याचे वचन चुकले"
   }
 }

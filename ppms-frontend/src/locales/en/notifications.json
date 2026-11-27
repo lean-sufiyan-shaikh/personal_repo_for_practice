@@ -36,6 +36,9 @@
     "SAFE_COUNT_VARIANCE": "Safe count difference",
     "DAY_CLOSED": "Day closed",
     "DAY_REOPENED": "Day re-opened",
-    "DAY_CLOSE_COMMENT": "Day close question or reply"
+    "DAY_CLOSE_COMMENT": "Day close question or reply",
+    "CREDIT_REMINDERS_DUE": "Credit reminders due",
+    "CREDIT_HOLD_PLACED": "Credit put on hold",
+    "CREDIT_PROMISE_MISSED": "Promise to pay missed"
   }
 }

@@ -1,11 +1,13 @@
 package com.ppms.credit;
 
 import com.ppms.common.exception.BusinessException;
+import com.ppms.pump.PumpLocationRepository;
 import com.ppms.support.FixedBusinessClock;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,6 +24,7 @@ class CreditAccountPolicyServiceTest {
 
     private final CreditAccountPolicyService policyService = new CreditAccountPolicyService(clientRepository,
             mock(CreditInterestService.class), mock(CreditExtensionRepository.class), mock(CreditPaymentRepository.class),
+            mock(PumpLocationRepository.class),
             new FixedBusinessClock(OffsetDateTime.parse("2026-03-06T10:00:00+05:30")),
             mock(EntityManager.class));
 
@@ -65,6 +68,22 @@ class CreditAccountPolicyServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("parent account");
         assertThatNoException().isThrownBy(() -> policyService.requireClientAcceptsCredit(activeStandalone));
+    }
+
+    @Test
+    void creditIsHeldFromTheHoldDaysOnUnlessAHoldOverrideIsInEffect() {
+        CreditExtension waiver = extension(CreditExtensionType.OVERDUE_BLOCK_WAIVER);
+        CreditExtension override = extension(CreditExtensionType.CREDIT_HOLD_OVERRIDE);
+
+        assertThat(CreditAccountPolicyService.isOnHold(45, 44, List.of())).isFalse();
+        assertThat(CreditAccountPolicyService.isOnHold(45, 45, List.of())).isTrue();
+        assertThat(CreditAccountPolicyService.isOnHold(45, 90, List.of(waiver))).isTrue();
+        assertThat(CreditAccountPolicyService.isOnHold(45, 90, List.of(waiver, override))).isFalse();
+        assertThat(CreditAccountPolicyService.isOnHold(null, 400, List.of())).isFalse();
+    }
+
+    private static CreditExtension extension(CreditExtensionType type) {
+        return CreditExtension.builder().extensionType(type).build();
     }
 
     private static CreditClient client(Long id, Long pumpId, Long parentClientId, boolean active) {

@@ -130,11 +130,29 @@ public class CreditLedgerQueryService {
     }
 
     public CreditStatement getStatement(CreditClient client, LocalDate fromDate, LocalDate toDate) {
+        CreditStatement allRows = statementOfAllRows(client);
+        return new CreditStatement(filterByDate(allRows.transactions(), fromDate, toDate), allRows.outstanding(),
+                allRows.subAccountNames());
+    }
+
+    /** A closed period's statement, whose outstanding is the balance at the end of its last day rather than today's. */
+    public CreditStatement getPeriodStatement(CreditClient client, LocalDate fromDate, LocalDate toDate) {
+        CreditStatement allRows = statementOfAllRows(client);
+        BigDecimal closingBalance = allRows.transactions().stream()
+                .filter(tx -> !tx.getBusinessDate().isAfter(toDate))
+                .reduce((earlier, later) -> later)
+                .map(CreditTransactionResponse::getRunningBalance)
+                .orElse(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+        return new CreditStatement(filterByDate(allRows.transactions(), fromDate, toDate), closingBalance,
+                allRows.subAccountNames());
+    }
+
+    private CreditStatement statementOfAllRows(CreditClient client) {
         List<CreditClient> subAccounts = client.getParentClientId() == null
                 ? clientRepository.findByParentClientId(client.getId())
                 : List.of();
         if (subAccounts.isEmpty()) {
-            return new CreditStatement(filterByDate(buildTransactionList(client.getId()), fromDate, toDate),
+            return new CreditStatement(buildTransactionList(client.getId()),
                     interestService.computeOutstanding(client.getId()), List.of());
         }
 
@@ -152,7 +170,7 @@ public class CreditLedgerQueryService {
         }
         transactions.sort(OLDEST_FIRST);
         applyRunningBalance(transactions);
-        return new CreditStatement(filterByDate(transactions, fromDate, toDate),
+        return new CreditStatement(transactions,
                 interestService.computeOutstandingWithChildren(client.getId()),
                 subAccounts.stream().map(CreditClient::getName).toList());
     }

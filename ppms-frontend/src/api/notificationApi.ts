@@ -20,6 +20,9 @@ export type NotificationType =
   | 'DAY_CLOSED'
   | 'DAY_REOPENED'
   | 'DAY_CLOSE_COMMENT'
+  | 'CREDIT_REMINDERS_DUE'
+  | 'CREDIT_HOLD_PLACED'
+  | 'CREDIT_PROMISE_MISSED'
 
 /** The page a notification opens: an app route and the query parameters that pick what it is about. */
 export interface NotificationTarget {

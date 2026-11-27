@@ -108,7 +108,7 @@ export function SellDialog({
   onClose: () => void
   onSuccess: () => void
 }) {
-  const { t } = useTranslation(['ancillary', 'common'])
+  const { t } = useTranslation(['ancillary', 'common', 'shifts'])
   const { addToast } = useToastStore()
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
@@ -146,6 +146,14 @@ export function SellDialog({
     queryFn: () => pumpApi.getCreditClients(pumpId),
     enabled: form.paymentMode === 'CREDIT',
   })
+
+  // The client search at the shift reads the same list, so a held client shows the same everywhere credit is given.
+  const { data: standings = [] } = useQuery({
+    queryKey: ['creditStanding', pumpId],
+    queryFn: () => pumpApi.getCreditStanding(pumpId),
+    enabled: form.paymentMode === 'CREDIT',
+  })
+  const heldClientIds = new Set(standings.filter(s => s.creditStatus === 'ON_HOLD').map(s => s.clientId))
 
   const saleMutation = useMutation({
     mutationFn: (data: RecordAncillarySaleRequest) => ancillaryApi.recordSale(pumpId, data),
@@ -204,6 +212,7 @@ export function SellDialog({
   )
 
   const selectedClient = creditClients.find(c => c.id === form.clientId)
+  const selectedClientHeld = form.paymentMode === 'CREDIT' && form.clientId != null && heldClientIds.has(form.clientId)
   const noPrice = !priceLoading && configuredPrice == null
 
   const figures: LiveFigure[] = [
@@ -235,6 +244,7 @@ export function SellDialog({
     ...(hasQuantity ? [] : [t('sell.needQuantity')]),
     ...(exceedsStock ? [t('sell.needQuantityWithinStock', { count: product.currentStockUnits })] : []),
     ...(form.paymentMode === 'CREDIT' && !form.clientId ? [t('sell.needClient')] : []),
+    ...(selectedClientHeld ? [t('shifts:clientSearch.blocked.onHold')] : []),
   ]
 
   const applyNewPrice = (price: number) => {
@@ -351,10 +361,11 @@ export function SellDialog({
                     placeholder={t('fields.searchClient')}
                     options={creditClients.map(c => ({
                       value: c.id.toString(),
-                      label: c.name + (c.phone ? ` · ${c.phone}` : ''),
+                      label: c.name + (c.phone ? ` · ${c.phone}` : '') + (heldClientIds.has(c.id) ? ` · ${codeLabel('ON_HOLD')}` : ''),
                     }))}
                   />
                   {fieldErrors.client && <p role="alert" className="ui-error-text">{fieldErrors.client}</p>}
+                  {selectedClientHeld && <p role="alert" className="ui-error-text">{t('shifts:clientSearch.blocked.onHold')}</p>}
                 </div>
               )}
 

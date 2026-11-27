@@ -2,6 +2,8 @@ package com.ppms.pump;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalTime;
@@ -20,6 +22,7 @@ public class PumpLocation {
     public static final BigDecimal DEFAULT_DENSITY_TOLERANCE = new BigDecimal("3.0");
     public static final BigDecimal DEFAULT_SAFE_COUNT_TOLERANCE = new BigDecimal("10.00");
     public static final LocalTime DEFAULT_SAFE_COUNT_CUTOFF_TIME = LocalTime.of(10, 0);
+    public static final int DEFAULT_CREDIT_HOLD_DAYS = 45;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -98,6 +101,24 @@ public class PumpLocation {
     @Column(name = "safe_count_cutoff_time", nullable = false)
     @Builder.Default
     private LocalTime safeCountCutoffTime = DEFAULT_SAFE_COUNT_CUTOFF_TIME;
+
+    /** Days overdue at which an overdue credit client is due a reminder, ascending; empty turns reminders off. */
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "reminder_stage_days", nullable = false)
+    @Builder.Default
+    private Integer[] reminderStageDays = {7, 15, 30};
+
+    /** Days overdue at which new credit for the client is held; null turns the hold off. */
+    @Column(name = "credit_hold_days")
+    @Builder.Default
+    private Integer creditHoldDays = DEFAULT_CREDIT_HOLD_DAYS;
+
+    /** Set together with upiPayeeName, or both null when the pump takes no UPI payments by link. */
+    @Column(name = "upi_id", length = 100)
+    private String upiId;
+
+    @Column(name = "upi_payee_name", length = 100)
+    private String upiPayeeName;
 
     @Column(name = "enabled", nullable = false)
     @Builder.Default

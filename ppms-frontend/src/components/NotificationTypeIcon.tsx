@@ -1,6 +1,7 @@
 import {
   Droplets, AlertTriangle, FileText, Wrench,
   Clock, TrendingDown, IndianRupee, Package, Lock, Info, Truck, Vault, CalendarCheck, RotateCcw, MessageCircle,
+  BellRing, Handshake,
 } from 'lucide-react'
 import type { LucideProps } from 'lucide-react'
 
@@ -23,6 +24,9 @@ export function NotificationTypeIcon({ type }: { type: string }) {
     case 'DAY_CLOSED':              return <CalendarCheck {...base} className="text-info flex-shrink-0 mt-0.5" />
     case 'DAY_REOPENED':            return <RotateCcw     {...base} className="text-warn flex-shrink-0 mt-0.5" />
     case 'DAY_CLOSE_COMMENT':       return <MessageCircle {...base} className="text-info flex-shrink-0 mt-0.5" />
+    case 'CREDIT_REMINDERS_DUE':    return <BellRing      {...base} className="text-warn flex-shrink-0 mt-0.5" />
+    case 'CREDIT_HOLD_PLACED':      return <Lock          {...base} className="text-bad flex-shrink-0 mt-0.5" />
+    case 'CREDIT_PROMISE_MISSED':   return <Handshake     {...base} className="text-bad flex-shrink-0 mt-0.5" />
     case 'AUTO_CLOSED_SHIFT':       return <Lock          {...base} className="text-ink-3 flex-shrink-0 mt-0.5" />
     default:                        return <Info          {...base} className="text-ink-3 flex-shrink-0 mt-0.5" />
   }

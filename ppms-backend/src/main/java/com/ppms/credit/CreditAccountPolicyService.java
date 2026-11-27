@@ -5,6 +5,8 @@ import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.pump.PumpLocation;
+import com.ppms.pump.PumpLocationRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,7 @@ public class CreditAccountPolicyService {
     private final CreditInterestService creditInterestService;
     private final CreditExtensionRepository creditExtensionRepository;
     private final CreditPaymentRepository creditPaymentRepository;
+    private final PumpLocationRepository pumpLocationRepository;
     private final BusinessClock businessClock;
     private final EntityManager entityManager;
 
@@ -168,7 +171,8 @@ public class CreditAccountPolicyService {
 
     /**
      * Applies the stricter mid-shift sale rules. Close-shift entry capture only validates the limit,
-     * while real-time credit sales must also respect approved extensions and overdue billing-cycle rules.
+     * while real-time credit sales must also respect the credit hold, approved extensions and overdue
+     * billing-cycle rules.
      *
      * Acquires a PESSIMISTIC WRITE lock on the limit-holder row before reading the outstanding
      * balance. This serialises concurrent credit sales for the same client so two operators at
@@ -181,6 +185,15 @@ public class CreditAccountPolicyService {
         CreditClient limitHolder = lockLimitHolder(client);
         List<CreditExtension> activeExtensions = creditExtensionRepository
                 .findInEffect(pumpId, limitHolder.getId(), businessClock.today());
+        long daysOverdue = groupDaysOverdue(limitHolder);
+
+        Integer holdDays = creditHoldDaysOf(pumpId);
+        if (isOnHold(holdDays, daysOverdue, activeExtensions)) {
+            throw new BusinessException(ErrorCodes.CREDIT_ON_HOLD,
+                    Map.of("clientName", limitHolder.getName(), "daysOverdue", daysOverdue, "holdDays", holdDays),
+                    "Credit is on hold for '" + limitHolder.getName() + "': " + daysOverdue + " days overdue, and credit "
+                            + "is held from " + holdDays + " days. The client must pay, or an Owner/Admin must override the hold.");
+        }
 
         if (limitHolder.getCreditLimit().compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal combinedOutstanding = creditInterestService.computeOutstandingWithChildren(limitHolder.getId());
@@ -200,7 +213,7 @@ public class CreditAccountPolicyService {
             }
         }
 
-        if (!hasCycleWaiver(activeExtensions) && isBillingCycleOverdue(limitHolder)) {
+        if (!hasCycleWaiver(activeExtensions) && daysOverdue > 0) {
             throw new BusinessException(ErrorCodes.CREDIT_BILLING_CYCLE_OVERDUE,
                     Map.of("clientName", limitHolder.getName()),
                     "Credit sales blocked for '" + limitHolder.getName() + "': billing cycle overdue. " +
@@ -212,10 +225,10 @@ public class CreditAccountPolicyService {
      * The whole group counts: sub-account sales make the group owe, and a payment on any account of
      * the group keeps it current.
      */
-    private boolean isBillingCycleOverdue(CreditClient limitHolder) {
+    private long groupDaysOverdue(CreditClient limitHolder) {
         BigDecimal groupOutstanding = creditInterestService.computeOutstandingWithChildren(limitHolder.getId());
         if (groupOutstanding.compareTo(BigDecimal.ZERO) <= 0) {
-            return false;
+            return 0;
         }
 
         List<Long> groupClientIds = new ArrayList<>();
@@ -223,15 +236,29 @@ public class CreditAccountPolicyService {
         creditClientRepository.findByParentClientId(limitHolder.getId())
                 .forEach(child -> groupClientIds.add(child.getId()));
 
-        return isBillingCycleOverdue(limitHolder.getBillingCycle(), groupOutstanding,
+        return daysOverdue(limitHolder.getBillingCycle(), groupOutstanding,
                 creditPaymentRepository.findLastPaymentDateByClientIds(groupClientIds).orElse(null),
-                creditInterestService.findOldestCreditSaleDate(groupClientIds).orElse(null));
+                creditInterestService.findOldestCreditSaleDate(groupClientIds).orElse(null),
+                businessClock.today());
+    }
+
+    /** Null when the pump holds no credit for being overdue. */
+    public Integer creditHoldDaysOf(Long pumpId) {
+        PumpLocation pump = pumpLocationRepository.findById(pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found: " + pumpId));
+        return pump.getCreditHoldDays();
+    }
+
+    /** A credit hold override in effect lifts the hold; other extensions do not. */
+    static boolean isOnHold(Integer holdDays, long daysOverdue, List<CreditExtension> activeExtensions) {
+        return holdDays != null && daysOverdue >= holdDays && activeExtensions.stream()
+                .noneMatch(extension -> extension.getExtensionType() == CreditExtensionType.CREDIT_HOLD_OVERRIDE);
     }
 
     /**
      * Whether each client of the pump could take a credit sale now, by the rules of validateCreditSaleAllowed:
-     * a disabled client or parent first, then the group limit with any amount extension, then the overdue
-     * billing cycle unless an extension waives it. Loads the whole pump in a fixed number of queries.
+     * a disabled client or parent first, then the credit hold unless overridden, then the group limit with any
+     * amount extension, then the overdue billing cycle unless an extension waives it. Loads the whole pump in a fixed number of queries.
      */
     @Transactional(readOnly = true)
     public Map<Long, CreditClientStandingResponse> creditStandingOfPumpClients(Long pumpId) {
@@ -252,6 +279,7 @@ public class CreditAccountPolicyService {
         Map<Long, List<CreditExtension>> extensionsByClientId = creditExtensionRepository
                 .findInEffectAtPump(pumpId, businessClock.today()).stream()
                 .collect(Collectors.groupingBy(CreditExtension::getClientId));
+        Integer holdDays = creditHoldDaysOf(pumpId);
 
         Map<Long, CreditClientStandingResponse> groupStandingByHolderId = new HashMap<>();
         groupIdsByHolderId.forEach((holderId, groupIds) -> {
@@ -270,9 +298,11 @@ public class CreditAccountPolicyService {
                     availableCredit = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
                 }
             }
-            if (status == CreditStatus.OK && !hasCycleWaiver(extensions)
-                    && isBillingCycleOverdue(holder.getBillingCycle(), groupOutstanding,
-                    latestDate(groupIds, lastPaymentById), earliestDate(groupIds, oldestSaleById))) {
+            long daysOverdue = daysOverdue(holder.getBillingCycle(), groupOutstanding,
+                    latestDate(groupIds, lastPaymentById), earliestDate(groupIds, oldestSaleById), businessClock.today());
+            if (isOnHold(holdDays, daysOverdue, extensions)) {
+                status = CreditStatus.ON_HOLD;
+            } else if (status == CreditStatus.OK && !hasCycleWaiver(extensions) && daysOverdue > 0) {
                 status = CreditStatus.OVERDUE;
             }
             groupStandingByHolderId.put(holderId, new CreditClientStandingResponse(holderId, status, availableCredit));
@@ -299,20 +329,16 @@ public class CreditAccountPolicyService {
         return limitHolder.getCreditLimit().add(extensionHeadroom);
     }
 
+    /** A credit hold override lifts the overdue block too, or the client it lets buy would still be refused. */
     private static boolean hasCycleWaiver(List<CreditExtension> activeExtensions) {
         return activeExtensions.stream().anyMatch(extension ->
                 extension.getExtensionType() == CreditExtensionType.BILLING_CYCLE_EXTENSION
-                        || extension.getExtensionType() == CreditExtensionType.OVERDUE_BLOCK_WAIVER);
-    }
-
-    /** A group with a balance is overdue when its last payment, or else its oldest sale, is older than one cycle. */
-    private boolean isBillingCycleOverdue(BillingCycle billingCycle, BigDecimal groupOutstanding,
-                                          LocalDate lastPaymentDate, LocalDate oldestSaleDate) {
-        return daysOverdue(billingCycle, groupOutstanding, lastPaymentDate, oldestSaleDate, businessClock.today()) > 0;
+                        || extension.getExtensionType() == CreditExtensionType.OVERDUE_BLOCK_WAIVER
+                        || extension.getExtensionType() == CreditExtensionType.CREDIT_HOLD_OVERRIDE);
     }
 
     /** Days a group with a balance is past one billing cycle since its last payment, or else its oldest sale; 0 when current. */
-    static long daysOverdue(BillingCycle billingCycle, BigDecimal groupOutstanding,
+    public static long daysOverdue(BillingCycle billingCycle, BigDecimal groupOutstanding,
                             LocalDate lastPaymentDate, LocalDate oldestSaleDate, LocalDate today) {
         LocalDate countedFrom = lastPaymentDate != null ? lastPaymentDate : oldestSaleDate;
         if (groupOutstanding.compareTo(BigDecimal.ZERO) <= 0 || countedFrom == null) {

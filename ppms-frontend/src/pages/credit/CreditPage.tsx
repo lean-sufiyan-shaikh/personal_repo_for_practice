@@ -24,12 +24,14 @@ import { AgingTableTab } from './AgingTableTab'
 import { AgingSummary } from './AgingSummary'
 import { CreditAccountList } from './CreditAccountList'
 import { CreditClientsTab } from './CreditClientsTab'
+import { CollectionsTab } from './collections/CollectionsTab'
+import { StatementsTab } from './collections/StatementsTab'
 import { GenerateAllInvoicesModal } from './modals/GenerateAllInvoicesModal'
 import { ChooseClientModal } from './modals/ChooseClientModal'
 import { useCreditAging } from './useCreditAging'
 
 const CREDIT_PATH = '/dashboard/credit'
-const LEDGER_TABS = ['ledger', 'aging', 'clients'] as const
+const LEDGER_TABS = ['ledger', 'aging', 'collections', 'statements', 'clients'] as const
 /** Belong to the open client, so they are left behind when going back to the list or to another client. */
 const CLIENT_PARAMS = ['records', 'action', 'invoice'] as const
 
@@ -39,7 +41,7 @@ const CLIENT_PARAMS = ['records', 'action', 'invoice'] as const
  * (?filter=overdue&q=&sort=&dir=), and ?action=record-payment starts a payment, asking for the client when none is open.
  */
 export default function CreditPage() {
-  const { t } = useTranslation(['credit', 'common'])
+  const { t } = useTranslation(['credit', 'common', 'collections'])
   const { user } = useAuthStore()
   const role = user?.role
   const isOwnerOrAdmin    = role === 'OWNER' || role === 'ADMIN'
@@ -106,7 +108,7 @@ export default function CreditPage() {
     ? allCreditClients.filter(c => !c.parentClientId).length
     : clients.filter(c => !c.parentClientId).length
   const showPayerChoice = paymentAction.value === 'record-payment' && canRecordPayment && selectedClientId === null && !!pumpId
-  const showSummary = activeTab !== 'clients' && agingView.aging && agingView.allRows.length > 0
+  const showSummary = (activeTab === 'ledger' || activeTab === 'aging') && agingView.aging && agingView.allRows.length > 0
     && (isDesktop || selectedClientId === null || activeTab === 'aging')
   const tabs = LEDGER_TABS.map(id => ({ id, label: t(`page.tabs.${id}`) }))
 
@@ -160,6 +162,14 @@ export default function CreditPage() {
             <PageSection title={t('aging.region')} flush>
               <AgingTableTab pumpId={pumpId} view={agingView} clients={clients}
                 canAdjustLimit={canAdjustLimit} onOpenClient={openClientInLedger} />
+            </PageSection>
+          )}
+
+          {activeTab === 'collections' && <CollectionsTab pumpId={pumpId} canRemind={canRecordPayment} />}
+
+          {activeTab === 'statements' && (
+            <PageSection title={t('collections:statements.title')}>
+              <StatementsTab pumpId={pumpId} />
             </PageSection>
           )}
 

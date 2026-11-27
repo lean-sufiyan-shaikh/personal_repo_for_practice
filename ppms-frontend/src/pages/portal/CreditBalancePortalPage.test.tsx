@@ -8,7 +8,10 @@ vi.mock('axios', async (importOriginal) => {
   return { ...actual, default: { ...actual.default, create: () => ({ post }) } }
 })
 
+vi.mock('qrcode', () => ({ default: { toString: vi.fn().mockResolvedValue('<svg>qr</svg>') } }))
+
 import CreditBalancePortalPage from './CreditBalancePortalPage'
+import { resetScreenWidthAfterEach, setScreenWidth } from '../../test/screenWidth'
 
 function httpError(status: number) {
   return { isAxiosError: true, response: { status, data: { message: 'No credit account matches these details.' } } }
@@ -24,8 +27,38 @@ async function lookUp(pin = '4821') {
 }
 
 describe('CreditBalancePortalPage', () => {
+  resetScreenWidthAfterEach()
+
   beforeEach(() => {
     post.mockReset()
+  })
+
+  it('shows a UPI QR code for the balance and, on a phone, a Pay via UPI button', async () => {
+    setScreenWidth(390)
+    const link = 'upi://pay?pa=ramfuels@okaxis&pn=Ram%20Fuels&am=1250.50&cu=INR&tn=Acme'
+    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: 0, upiPayLink: link } })
+    await lookUp()
+
+    expect(await screen.findByRole('link', { name: 'Pay via UPI' })).toHaveAttribute('href', link)
+    expect(await screen.findByRole('img', { name: 'UPI QR code to pay ₹1,250.50' })).toBeInTheDocument()
+    expect(screen.getByText(/once the pump records it/)).toBeInTheDocument()
+  })
+
+  it('keeps the pay button off a desktop and shows nothing to pay when the pump has no UPI details', async () => {
+    setScreenWidth(1280)
+    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: 0, upiPayLink: null } })
+    await lookUp()
+
+    expect(await screen.findByText('₹1,250.50')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Pay via UPI' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('fills the pump from the link a reminder sends', () => {
+    window.history.pushState({}, '', '/portal/credit-balance?pump=12')
+    render(<CreditBalancePortalPage />)
+    expect(screen.getByLabelText('Pump ID')).toHaveValue(12)
+    window.history.pushState({}, '', '/')
   })
 
   it('looks the balance up with pump, phone and PIN and shows the amounts without a name', async () => {

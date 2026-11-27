@@ -20,7 +20,11 @@
     "account": "Your credit account",
     "outstanding": "Outstanding balance",
     "creditLimit": "Credit limit",
-    "settled": "Your account is fully settled."
+    "settled": "Your account is fully settled.",
+    "payUpi": "Pay via UPI",
+    "scanToPay": "Scan with any UPI app to pay {{amount}}.",
+    "qrLabel": "UPI QR code to pay {{amount}}",
+    "confirmNote": "Your payment shows here once the pump records it."
   },
   "errors": {
     "incomplete": "Enter the Pump ID, your 10-digit phone number and your 4 to 6 digit PIN.",

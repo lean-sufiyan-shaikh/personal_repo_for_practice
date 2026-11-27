@@ -10,6 +10,7 @@ public enum EntityType {
     DAY_CLOSE,
     CREDIT_EXTENSION,
     CREDIT_PAYMENT,
+    CREDIT_STATEMENT,
     DELIVERY,
     DEPOSIT_SLIP,
     DIP_CHECK,

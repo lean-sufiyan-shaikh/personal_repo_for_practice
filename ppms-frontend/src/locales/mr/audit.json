@@ -94,6 +94,9 @@
     "DAY_CLOSED": "दिवस बंद केला",
     "DAY_APPROVED": "दिवस मंजूर केला",
     "DAY_REOPENED": "दिवस पुन्हा उघडला",
-    "DAY_CLOSE_COMMENTED": "दिवस बंदवर टिप्पणी जोडली"
+    "DAY_CLOSE_COMMENTED": "दिवस बंदवर टिप्पणी जोडली",
+    "CREDIT_REMINDER_RECORDED": "क्रेडिट आठवण नोंदवली",
+    "CREDIT_PROMISE_RECORDED": "भरण्याचे वचन नोंदवले",
+    "COLLECTION_SETTINGS_UPDATED": "वसुली सेटिंग बदलली"
   }
 }

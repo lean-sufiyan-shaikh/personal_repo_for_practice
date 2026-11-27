@@ -111,7 +111,7 @@ export interface CreditClient extends CreditClientSummary {
 }
 
 /** Whether a client could take a credit sale now, by the rules the sale itself is checked against. */
-export type CreditStatus = 'OK' | 'OVERDUE' | 'OVER_LIMIT' | 'INACTIVE'
+export type CreditStatus = 'OK' | 'OVERDUE' | 'ON_HOLD' | 'OVER_LIMIT' | 'INACTIVE'
 
 export interface CreditClientStanding {
   clientId: number

@@ -94,6 +94,10 @@ export type AuditAction =
   | 'DAY_APPROVED'
   | 'DAY_REOPENED'
   | 'DAY_CLOSE_COMMENTED'
+  // Credit collections
+  | 'CREDIT_REMINDER_RECORDED'
+  | 'CREDIT_PROMISE_RECORDED'
+  | 'COLLECTION_SETTINGS_UPDATED'
 
 export interface AuditLog {
   id: number

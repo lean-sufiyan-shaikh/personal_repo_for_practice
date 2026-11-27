@@ -38,5 +38,11 @@ public enum NotificationType {
     /** Fired once per re-open of a closed business day, with the reason. */
     DAY_REOPENED,
     /** Fired once per question or reply on a closed business day. */
-    DAY_CLOSE_COMMENT
+    DAY_CLOSE_COMMENT,
+    /** Fired once a day while overdue credit clients reached a reminder stage nobody has reminded them of. */
+    CREDIT_REMINDERS_DUE,
+    /** Fired once per overdue episode when a client's credit goes on hold. */
+    CREDIT_HOLD_PLACED,
+    /** Fired once per promise to pay that passed its date without the promised amount paid. */
+    CREDIT_PROMISE_MISSED
 }

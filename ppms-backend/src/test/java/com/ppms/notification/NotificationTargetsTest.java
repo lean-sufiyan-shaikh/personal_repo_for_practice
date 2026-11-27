@@ -57,6 +57,13 @@ class NotificationTargetsTest {
     }
 
     @ParameterizedTest
+    @EnumSource(value = NotificationType.class, names = {"CREDIT_REMINDERS_DUE", "CREDIT_HOLD_PLACED", "CREDIT_PROMISE_MISSED"})
+    void creditCollectionAlertsOpenTheCollectionsTab(NotificationType type) {
+        assertThat(NotificationTargets.targetOf(type, type + ":client:40:2026-10-09"))
+                .isEqualTo(new NotificationTarget("/dashboard/credit", Map.of("tab", "collections")));
+    }
+
+    @ParameterizedTest
     @EnumSource(NotificationType.class)
     void everyTypeHasATargetInsideTheDashboard(NotificationType type) {
         assertThat(NotificationTargets.targetOf(type, type + ":test").route()).startsWith("/dashboard/");

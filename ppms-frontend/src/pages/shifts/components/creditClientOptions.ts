@@ -27,7 +27,7 @@ export function matchingRootClients(clients: CreditClientSummary[], search: stri
 
 /**
  * Shift close records credit already given, where the server checks only the limit,
- * so blockOverdue is false there; a mid-shift sale is also refused for an overdue cycle.
+ * so blockOverdue is false there; a mid-shift sale is also refused for an overdue cycle or a credit hold.
  */
 export function toClientOption(
   client: CreditClientSummary,
@@ -42,6 +42,8 @@ export function toClientOption(
       return { client, availableText: null, blockReason: client.isActive ? i18n.t('shifts:clientSearch.blocked.parentDisabled') : i18n.t('shifts:clientSearch.blocked.creditDisabled') }
     case 'OVER_LIMIT':
       return { client, availableText, blockReason: i18n.t('shifts:clientSearch.blocked.overLimit') }
+    case 'ON_HOLD':
+      return { client, availableText, blockReason: blockOverdue ? i18n.t('shifts:clientSearch.blocked.onHold') : null }
     case 'OVERDUE':
       return { client, availableText, blockReason: blockOverdue ? i18n.t('shifts:clientSearch.blocked.cycleOverdue') : null }
     default:

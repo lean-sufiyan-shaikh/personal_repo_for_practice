@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDown, ArrowUp, Ban, Check, CircleDot, Clock, FileCheck, Gauge, Hourglass, Pause, Percent, X } from 'lucide-react'
+import { AlertTriangle, ArrowDown, ArrowUp, Ban, Check, CircleDot, Clock, FileCheck, Gauge, Hourglass, Lock, Pause, Percent, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { DiscrepancyType, ShiftStatus } from '../types/shift'
 import type { CreditInvoiceStatus, CreditStanding, CreditTransaction } from '../api/creditApi'
@@ -56,6 +56,7 @@ export function invoiceStatusBadge(status: CreditInvoiceStatus): StatusBadgeSpec
 const CREDIT_STANDING: Record<CreditStanding, Omit<StatusBadgeSpec, 'label'>> = {
   OK: { tone: 'ok', icon: Check },
   OVERDUE: { tone: 'bad', icon: Clock },
+  ON_HOLD: { tone: 'bad', icon: Lock },
   OVER_LIMIT: { tone: 'warn', icon: Gauge },
   INACTIVE: { tone: 'neutral', icon: Pause },
 }

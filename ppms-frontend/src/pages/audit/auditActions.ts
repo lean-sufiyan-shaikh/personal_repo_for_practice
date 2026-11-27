@@ -102,4 +102,8 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   DAY_APPROVED:                       'ok',
   DAY_REOPENED:                       'warn',
   DAY_CLOSE_COMMENTED:                'neutral',
+  // Credit collections
+  CREDIT_REMINDER_RECORDED:           'neutral',
+  CREDIT_PROMISE_RECORDED:            'info',
+  COLLECTION_SETTINGS_UPDATED:        'neutral',
 }

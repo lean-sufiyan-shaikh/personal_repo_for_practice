@@ -282,6 +282,18 @@
     "DAY_CLOSE_COMMENT": {
       "title": "दिवस बंदवर संदेश",
       "message": "{{authorName}} यांनी {{date}} बद्दल लिहिले: {{message}}"
+    },
+    "CREDIT_REMINDERS_DUE": {
+      "title": "क्रेडिट आठवण बाकी",
+      "message": "आज आठवण करून द्यायचे थकीत क्रेडिट ग्राहक: {{count}}. क्रेडिट → वसुली उघडा."
+    },
+    "CREDIT_HOLD_PLACED": {
+      "title": "क्रेडिट थांबवले",
+      "message": "{{clientName}} चे {{daysOverdue}} दिवस थकीत आहे, त्यामुळे पैसे भरेपर्यंत नवीन क्रेडिट थांबवले आहे."
+    },
+    "CREDIT_PROMISE_MISSED": {
+      "title": "भरण्याचे वचन चुकले",
+      "message": "{{clientName}} ने {{promisedDate}} पर्यंत ₹{{amount}} चे वचन दिले होते पण ₹{{paidAmount}} भरले. आठवण पुन्हा सुरू झाली आहे."
     }
   },
   "serverTexts": {
@@ -398,5 +410,11 @@
   "DAY_CLOSES_UNAPPROVED": "मंजुरीसाठी बंद दिवस",
   "DAY_CLOSED": "दिवस बंद झाला",
   "DAY_REOPENED": "दिवस पुन्हा उघडला",
-  "DAY_CLOSE_COMMENT": "दिवस बंदवर संदेश"
+  "DAY_CLOSE_COMMENT": "दिवस बंदवर संदेश",
+  "ON_HOLD": "थांबवले",
+  "CREDIT_HOLD_OVERRIDE": "क्रेडिट थांबवणे हटवणे",
+  "CREDIT_STATEMENT": "क्रेडिट स्टेटमेंट",
+  "CREDIT_REMINDERS_DUE": "क्रेडिट आठवण बाकी",
+  "CREDIT_HOLD_PLACED": "क्रेडिट थांबवले",
+  "CREDIT_PROMISE_MISSED": "भरण्याचे वचन चुकले"
 }

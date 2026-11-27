@@ -33,6 +33,9 @@ export const NOTIFICATION_TYPES: NotificationType[] = [
   'DAY_CLOSED',
   'DAY_REOPENED',
   'DAY_CLOSE_COMMENT',
+  'CREDIT_REMINDERS_DUE',
+  'CREDIT_HOLD_PLACED',
+  'CREDIT_PROMISE_MISSED',
 ]
 
 /** The type's name in the active language (notifications.json types.<TYPE>); the raw code when the type is new. */

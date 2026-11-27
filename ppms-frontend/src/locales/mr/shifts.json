@@ -256,7 +256,8 @@
       "parentDisabled": "मुख्य खाते बंद आहे",
       "creditDisabled": "क्रेडिट बंद आहे",
       "overLimit": "क्रेडिट मर्यादेपेक्षा जास्त",
-      "cycleOverdue": "बिलिंग चक्र थकीत"
+      "cycleOverdue": "बिलिंग चक्र थकीत",
+      "onHold": "क्रेडिट थांबवले: बरेच दिवस थकीत"
     }
   },
   "creditEntries": {

@@ -7,6 +7,7 @@ import { PageSection } from '../../components/layout/PageSection'
 import { FuelPricesContent } from './FuelPricesContent'
 import { GstDetailsContent } from './GstDetailsContent'
 import { PumpSettingsContent } from './PumpSettingsContent'
+import { CollectionSettingsForm } from './CollectionSettingsForm'
 import { TanksContent } from './TanksContent'
 import { NozzleContent } from './nozzles/NozzleContent'
 import { ShiftDefinitionsContent } from './shiftDefinitions/ShiftDefinitionsContent'
@@ -48,7 +49,12 @@ export function SetupArea({
       </div>
     ),
     tankers: <TankersContent pumpId={pump.id} />,
-    settings: <PumpSettingsContent pump={pump} onUpdated={onPumpUpdated} />,
+    settings: (
+      <div className="space-y-6">
+        <PumpSettingsContent pump={pump} onUpdated={onPumpUpdated} />
+        <CollectionSettingsForm pumpId={pump.id} />
+      </div>
+    ),
   }
 
   return (

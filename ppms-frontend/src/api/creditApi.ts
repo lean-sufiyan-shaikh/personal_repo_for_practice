@@ -92,7 +92,8 @@ export interface UpdateCreditLimitRequest {
 
 // ── Credit extensions ─────────────────────────────────────────────────────────
 
-export type CreditExtensionType = 'AMOUNT_EXTENSION' | 'BILLING_CYCLE_EXTENSION' | 'OVERDUE_BLOCK_WAIVER'
+/** CREDIT_HOLD_OVERRIDE lifts the credit hold of a long-overdue client, and the overdue block with it. */
+export type CreditExtensionType = 'AMOUNT_EXTENSION' | 'BILLING_CYCLE_EXTENSION' | 'OVERDUE_BLOCK_WAIVER' | 'CREDIT_HOLD_OVERRIDE'
 
 export interface CreditExtension {
   id: number
@@ -159,7 +160,8 @@ export interface GenerateAllInvoicesResult {
   failedClientIds: number[]
 }
 
-export type CreditStanding = 'OK' | 'OVERDUE' | 'OVER_LIMIT' | 'INACTIVE'
+/** ON_HOLD: overdue for at least the pump's credit hold days; only a credit hold override lifts it. */
+export type CreditStanding = 'OK' | 'OVERDUE' | 'ON_HOLD' | 'OVER_LIMIT' | 'INACTIVE'
 
 /** One standalone or parent account; a parent's figures cover its sub-accounts. */
 export interface CreditAgingRow {
