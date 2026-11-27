@@ -10,9 +10,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 class NotificationAudienceTest {
 
     @ParameterizedTest
-    @EnumSource(value = UserRole.class, names = {"OWNER", "ADMIN", "MANAGER"})
-    void pumpManagementReceivesEveryType(UserRole role) {
+    @EnumSource(value = UserRole.class, names = {"OWNER", "ADMIN"})
+    void ownersAndAdminsReceiveEveryType(UserRole role) {
         assertThat(NotificationAudience.typesVisibleTo(role)).containsExactlyInAnyOrder(NotificationType.values());
+    }
+
+    @Test
+    void managersReceiveEveryTypeExceptTheLeakageRadarSummary() {
+        assertThat(NotificationAudience.typesVisibleTo(UserRole.MANAGER))
+                .doesNotContain(NotificationType.LEAKAGE_RADAR_WEEKLY)
+                .hasSize(NotificationType.values().length - 1);
     }
 
     @ParameterizedTest

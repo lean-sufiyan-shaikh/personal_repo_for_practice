@@ -11,6 +11,7 @@ export const pageLoaders = {
   credit:         () => import('../pages/credit/CreditPage'),
   balanceSheets:  () => import('../pages/balancesheet/BalanceSheetPage'),
   reports:        () => import('../pages/reports/ReportsPage'),
+  radar:          () => import('../pages/radar/RadarPage'),
   superAdmin:     () => import('../pages/superadmin/SuperAdminPage'),
   expenses:       () => import('../pages/expenses/ExpensesPage'),
   documents:      () => import('../pages/documents/DocumentsPage'),
@@ -43,6 +44,7 @@ const PAGE_BY_PATH: Record<string, keyof typeof pageLoaders> = {
   '/dashboard/notifications':  'notifications',
   '/dashboard/balance-sheets': 'balanceSheets',
   '/dashboard/reports':        'reports',
+  '/dashboard/radar':          'radar',
   '/dashboard/setup':          'setup',
   '/super-admin':              'superAdmin',
 }

@@ -29,6 +29,7 @@ public final class NotificationTargets {
             case CREDIT_REMINDERS_DUE, CREDIT_HOLD_PLACED, CREDIT_PROMISE_MISSED ->
                     NotificationTarget.of("/dashboard/credit", "tab", "collections");
             case VEHICLE_CREDIT_FLAGGED -> vehiclesTarget(dedupKey);
+            case LEAKAGE_RADAR_WEEKLY -> NotificationTarget.of("/dashboard/radar");
         };
     }
 

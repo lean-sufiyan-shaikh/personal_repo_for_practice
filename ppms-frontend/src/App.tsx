@@ -34,6 +34,7 @@ const DocumentsPage = lazy(pageLoaders.documents)
 const CashDrawerPage = lazy(pageLoaders.cash)
 const CalibrationPage = lazy(pageLoaders.calibration)
 const AuditLogPage = lazy(pageLoaders.audit)
+const RadarPage = lazy(pageLoaders.radar)
 const PayrollPage = lazy(pageLoaders.payroll)
 const AncillaryProductsPage = lazy(pageLoaders.ancillary)
 const PaymentSettlementsPage = lazy(pageLoaders.settlements)
@@ -208,6 +209,14 @@ export default function App() {
               element={withPageSuspense(
                 <ProtectedRoute page="products">
                   <AncillaryProductsPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="radar"
+              element={withPageSuspense(
+                <ProtectedRoute page="radar">
+                  <RadarPage />
                 </ProtectedRoute>
               )}
             />

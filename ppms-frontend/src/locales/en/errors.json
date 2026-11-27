@@ -253,6 +253,7 @@
   "PUMP_NOT_OWNED": "You do not own pump {{pumpId}}",
   "PUMP_SUSPENDED": "Pump is suspended",
   "PUMP_SUSPEND_BLOCKED_BY_OPEN_SHIFTS": "Pump '{{pumpName}}' has {{openShiftCount}} open shift(s). Ask the owner to close them before suspending the pump.",
+  "RADAR_PERIOD_INVALID": "The radar looks back over 30 or 90 days, not {{days}}",
   "REQUEST_ALREADY_IN_PROGRESS": "This request is already being processed. Please wait a moment.",
   "REQUEST_KEY_REUSED": "This request was already sent with different details. Please reload and try again.",
   "RESET_LINK_ALREADY_USED": "This password reset link has already been used. Please request a new one.",

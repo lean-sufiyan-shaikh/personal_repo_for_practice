@@ -19,6 +19,7 @@ import nav from './nav.json'
 import notifications from './notifications.json'
 import payroll from './payroll.json'
 import portal from './portal.json'
+import radar from './radar.json'
 import reports from './reports.json'
 import settlements from './settlements.json'
 import setup from './setup.json'
@@ -48,6 +49,7 @@ export const enResources = {
   notifications,
   payroll,
   portal,
+  radar,
   reports,
   settlements,
   setup,

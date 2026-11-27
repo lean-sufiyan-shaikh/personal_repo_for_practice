@@ -40,6 +40,7 @@
     "CREDIT_REMINDERS_DUE": "Credit reminders due",
     "CREDIT_HOLD_PLACED": "Credit put on hold",
     "CREDIT_PROMISE_MISSED": "Promise to pay missed",
-    "VEHICLE_CREDIT_FLAGGED": "Credit vehicle flagged"
+    "VEHICLE_CREDIT_FLAGGED": "Credit vehicle flagged",
+    "LEAKAGE_RADAR_WEEKLY": "Radar: worth a look"
   }
 }

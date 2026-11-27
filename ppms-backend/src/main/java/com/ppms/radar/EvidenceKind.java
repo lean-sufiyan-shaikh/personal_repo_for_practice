@@ -1,0 +1,14 @@
+package com.ppms.radar;
+
+public enum EvidenceKind {
+    SHORT_SHIFT,
+    CREDIT_VOID,
+    CREDIT_REASSIGNED,
+    SETTLEMENT_VOID,
+    CASH_DROP_REJECTED,
+    EXPENSE_REJECTED,
+    METER_AMENDMENT,
+    READING_JUMP,
+    SALES_OUTLIER,
+    LOSS_WEEK
+}

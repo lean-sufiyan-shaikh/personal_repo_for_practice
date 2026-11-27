@@ -1,4 +1,4 @@
-import { Bell, CalendarCheck, Clock, LayoutDashboard, ClipboardCheck, Zap, CalendarDays, Database, CreditCard, ReceiptText, FileText, Wallet, Wrench, HardHat, Package, ClipboardList, Landmark, BarChart2, TrendingUp, Settings, type LucideIcon } from 'lucide-react'
+import { Bell, CalendarCheck, Clock, LayoutDashboard, ClipboardCheck, Zap, CalendarDays, Database, CreditCard, ReceiptText, FileText, Wallet, Wrench, HardHat, Package, ClipboardList, Landmark, BarChart2, TrendingUp, Radar, Settings, type LucideIcon } from 'lucide-react'
 import type { UserRole } from '../../types/auth'
 import { canAccessPage } from '../../permissions/permissions'
 import { translateKey } from '../../i18n'
@@ -23,6 +23,7 @@ export const ALL_NAV_ITEMS: { path: string; icon: LucideIcon; page: string; bg: 
   { path: '/dashboard/settlements',    icon: Landmark,        page: 'settlements',   bg: 'bg-info-bg',  color: 'text-primary'  },
   { path: '/dashboard/balance-sheets', icon: BarChart2,       page: 'balanceSheets', bg: 'bg-info-bg',     color: 'text-primary'     },
   { path: '/dashboard/reports',        icon: TrendingUp,      page: 'reports',       bg: 'bg-ok-bg',   color: 'text-ok'   },
+  { path: '/dashboard/radar',          icon: Radar,           page: 'radar',         bg: 'bg-warn-bg', color: 'text-warn' },
   { path: '/dashboard/setup',          icon: Settings,        page: 'setup',         bg: 'bg-surface-sunken',    color: 'text-ink-2'    },
   { path: '/dashboard/notifications',  icon: Bell,            page: 'notifications', bg: 'bg-info-bg',        color: 'text-primary'  },
 ]
@@ -35,7 +36,7 @@ export type NavGroupId = 'operations' | 'money' | 'reports' | 'admin'
 const NAV_GROUP_PAGES: { id: NavGroupId; pages: string[] }[] = [
   { id: 'operations', pages: ['myShift', 'overview', 'shifts', 'shiftPlanning', 'inventory', 'cashDrawer', 'products', 'calibration', 'documents'] },
   { id: 'money',      pages: ['dayClose', 'credit', 'settlements', 'expenses', 'approvals', 'payroll'] },
-  { id: 'reports',    pages: ['reports', 'balanceSheets', 'auditLog'] },
+  { id: 'reports',    pages: ['reports', 'radar', 'balanceSheets', 'auditLog'] },
   { id: 'admin',      pages: ['setup', 'notifications'] },
 ]
 

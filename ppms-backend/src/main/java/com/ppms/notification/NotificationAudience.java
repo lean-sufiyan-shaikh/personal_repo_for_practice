@@ -8,8 +8,8 @@ import java.util.Set;
 /**
  * Which notification types each role receives.
  *
- * Owners, admins and managers run the pump and receive every alert. Operators and accountants only receive
- * stock alerts: the other types are shift-integrity or management alerts (zero-sale and force-closed shifts,
+ * Owners and admins receive every alert. Managers receive every alert except the weekly leakage radar summary,
+ * which can be about them. Operators and accountants only receive stock alerts: the other types are shift-integrity or management alerts (zero-sale and force-closed shifts,
  * overdue shifts, prices, calibration, documents, settlements) that they cannot act on, and some of them are
  * about the operator who would otherwise be able to see and dismiss them.
  */
@@ -24,6 +24,7 @@ public final class NotificationAudience {
     public static Set<NotificationType> typesVisibleTo(UserRole role) {
         return switch (role) {
             case OPERATOR, ACCOUNTANT -> STOCK_ALERTS;
+            case MANAGER -> EnumSet.complementOf(EnumSet.of(NotificationType.LEAKAGE_RADAR_WEEKLY));
             default -> EnumSet.allOf(NotificationType.class);
         };
     }

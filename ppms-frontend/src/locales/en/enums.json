@@ -298,6 +298,10 @@
     "VEHICLE_CREDIT_FLAGGED": {
       "title": "Credit Vehicle Flagged",
       "message": "Credit for {{clientName}} was given today to a vehicle outside its rules ({{registration}}). Check the client's Vehicles tab."
+    },
+    "LEAKAGE_RADAR_WEEKLY": {
+      "title": "Radar: Worth a Look",
+      "message": "Over the last {{days}} days, {{people}} people, {{nozzles}} nozzles and {{tanks}} tanks scored Watch or High. Open Radar to see why."
     }
   },
   "serverTexts": {
@@ -422,5 +426,6 @@
   "CREDIT_HOLD_PLACED": "Credit put on hold",
   "CREDIT_PROMISE_MISSED": "Promise to pay missed",
   "VEHICLE": "Vehicle",
-  "VEHICLE_CREDIT_FLAGGED": "Credit vehicle flagged"
+  "VEHICLE_CREDIT_FLAGGED": "Credit vehicle flagged",
+  "LEAKAGE_RADAR_WEEKLY": "Radar: worth a look"
 }

@@ -24,6 +24,7 @@ export type NotificationType =
   | 'CREDIT_HOLD_PLACED'
   | 'CREDIT_PROMISE_MISSED'
   | 'VEHICLE_CREDIT_FLAGGED'
+  | 'LEAKAGE_RADAR_WEEKLY'
 
 /** The page a notification opens: an app route and the query parameters that pick what it is about. */
 export interface NotificationTarget {

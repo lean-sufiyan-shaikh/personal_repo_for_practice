@@ -46,5 +46,7 @@ public enum NotificationType {
     /** Fired once per promise to pay that passed its date without the promised amount paid. */
     CREDIT_PROMISE_MISSED,
     /** Fired once a day per account when a WARN account's credit entry is let through outside its vehicle rules. */
-    VEHICLE_CREDIT_FLAGGED
+    VEHICLE_CREDIT_FLAGGED,
+    /** Fired once a week, for owners and admins only, when the leakage radar has something worth a look. */
+    LEAKAGE_RADAR_WEEKLY
 }

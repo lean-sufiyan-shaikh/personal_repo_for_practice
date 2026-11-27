@@ -298,6 +298,10 @@
     "VEHICLE_CREDIT_FLAGGED": {
       "title": "क्रेडिट वाहन चिह्नित",
       "message": "{{clientName}} का क्रेडिट आज नियम से बाहर वाहन ({{registration}}) को दिया गया। ग्राहक का वाहन टैब देखें।"
+    },
+    "LEAKAGE_RADAR_WEEKLY": {
+      "title": "रडार: एक नज़र डालें",
+      "message": "पिछले {{days}} दिनों में {{people}} लोग, {{nozzles}} नोज़ल और {{tanks}} टैंक \"ध्यान दें\" या \"ज़्यादा\" स्तर पर रहे। वजह देखने के लिए रडार खोलें।"
     }
   },
   "serverTexts": {
@@ -422,5 +426,6 @@
   "CREDIT_HOLD_PLACED": "क्रेडिट रोका गया",
   "CREDIT_PROMISE_MISSED": "भुगतान का वादा चूका",
   "VEHICLE": "वाहन",
-  "VEHICLE_CREDIT_FLAGGED": "क्रेडिट वाहन चिह्नित"
+  "VEHICLE_CREDIT_FLAGGED": "क्रेडिट वाहन चिह्नित",
+  "LEAKAGE_RADAR_WEEKLY": "रडार: एक नज़र डालें"
 }

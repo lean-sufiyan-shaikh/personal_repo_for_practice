@@ -33,6 +33,7 @@ export const NAMESPACES = [
   'approvals',
   'notifications',
   'reports',
+  'radar',
   'balancesheet',
   'dayclose',
   'audit',

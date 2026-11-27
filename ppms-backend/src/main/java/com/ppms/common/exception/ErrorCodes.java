@@ -258,6 +258,7 @@ public final class ErrorCodes {
     public static final String PUMP_NOT_OWNED = "PUMP_NOT_OWNED";
     public static final String PUMP_SUSPENDED = "PUMP_SUSPENDED";
     public static final String PUMP_SUSPEND_BLOCKED_BY_OPEN_SHIFTS = "PUMP_SUSPEND_BLOCKED_BY_OPEN_SHIFTS";
+    public static final String RADAR_PERIOD_INVALID = "RADAR_PERIOD_INVALID";
     public static final String REQUEST_ALREADY_IN_PROGRESS = "REQUEST_ALREADY_IN_PROGRESS";
     public static final String REQUEST_KEY_REUSED = "REQUEST_KEY_REUSED";
     public static final String RESET_LINK_ALREADY_USED = "RESET_LINK_ALREADY_USED";

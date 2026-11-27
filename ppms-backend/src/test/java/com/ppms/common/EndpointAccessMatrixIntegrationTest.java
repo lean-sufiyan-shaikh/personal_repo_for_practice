@@ -61,6 +61,8 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/shift-plans/planned-operators?shiftDefinitionId={definitionId}&date=" + TODAY, "MANAGER", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/documents", "ADMIN", "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/audit-logs", "ADMIN", "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/leakage-radar", "OWNER", "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/leakage-radar?days=90", "ADMIN", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/supplier-payments", "ADMIN", "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/suppliers", "ADMIN", "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/tankers", "MANAGER", "OPERATOR"),

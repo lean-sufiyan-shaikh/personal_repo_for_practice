@@ -1,0 +1,90 @@
+{
+  "page": {
+    "title": "Radar",
+    "description": "Patterns from {{from}} to {{to}} that are worth a look. A high score is a reason to check the records, not proof that anything is wrong.",
+    "periodLabel": "Period",
+    "days30": "Last 30 days",
+    "days90": "Last 90 days",
+    "loadError": "The radar could not be loaded."
+  },
+  "sections": {
+    "people": "People",
+    "peopleHint": "Shortages on their own shifts, and the voids, reassignments and rejections counted against them.",
+    "nozzles": "Nozzles",
+    "nozzlesHint": "Meter amendments, readings that jump between shifts, and shifts far from the nozzle's usual sales.",
+    "tanks": "Tanks",
+    "tanksHint": "Weekly losses from the wet-stock reconciliation.",
+    "emptyPeople": "No closed shifts, voids or rejections in this period.",
+    "emptyNozzles": "No nozzles are set up yet.",
+    "emptyTanks": "No tanks are set up yet."
+  },
+  "band": {
+    "LOW": "Low",
+    "WATCH": "Watch",
+    "HIGH": "High",
+    "NOT_ENOUGH_DATA": "Not enough data yet"
+  },
+  "card": {
+    "scoreLabel": "Score {{score}} of 100",
+    "nozzleName": "{{du}} · Nozzle {{number}}",
+    "personFacts": "{{role}} · {{shifts}} shifts · {{shortShifts}} short ({{amount}}) · {{corrections}} corrections",
+    "nozzleFacts": "{{fuel}} · {{shifts}} shifts · {{amendments}} amendments · {{jumps}} jumps · {{outliers}} unusual shifts",
+    "tankFacts": "{{fuel}} · {{weeks}} weeks with dips · loss limit {{limit}}%",
+    "trend": {
+      "RISING": "Shortages rising",
+      "STEADY": "Shortages steady",
+      "FALLING": "Shortages falling"
+    },
+    "showWhy": "Why this score",
+    "reasonsTitle": "How the points add up",
+    "evidenceTitle": "What it is based on",
+    "noEvidence": "No events in this period.",
+    "points": "{{points}} of {{max}} points",
+    "moreEvidence": "Newest {{count}} events shown."
+  },
+  "reasons": {
+    "SHORTAGE_RATE": "Short on {{shortShifts}} of {{shifts}} shifts ({{percent}}%), against {{restPercent}}% for everyone else. 0.6 points for each percentage point above, up to 30.",
+    "SHORTAGE_AMOUNT": "Shortages average {{perShift}} a shift, against {{restPerShift}} for everyone else. 1 point for each ₹25 above, up to 20.",
+    "SHORTAGE_TREND": "{{earlier}} shortages in the first half of the period and {{recent}} in the second. 10 points when the second half has more, and at least 2.",
+    "CORRECTIONS": "{{count}} voids, reassignments or rejections. {{expected}} per 30 days is normal; 8 points for each one more, up to 40.",
+    "NOT_ENOUGH_SHIFTS": "Only {{shifts}} closed shifts in the period; shortages are scored from {{minimum}} shifts.",
+    "METER_AMENDMENTS": "{{count}} meter amendments, {{lowering}} of them typing in a lower reading. 15 points each, 25 for one that lowers the meter, up to 50.",
+    "READING_JUMPS": "{{count}} shifts opened on a different reading than the previous shift closed on, with no amendment or meter rollover to explain it. 20 points each, up to 40.",
+    "SALES_OUTLIERS": "{{count}} of {{shifts}} shifts sold under half or over double the nozzle's usual litres for that shift. 10 points each, up to 30.",
+    "LOSS_WEEKS": "Lost more than {{limitPercent}}% of sales in {{lossWeeks}} of {{weeks}} weeks. Up to 40 points for the share of loss weeks.",
+    "LOSS_STREAK": "Longest run of loss weeks in a row: {{weeks}}. 10 points for each week after the first, up to 30.",
+    "PERIOD_LOSS": "Variance over the whole period: {{percent}}% of sales, against a {{limitPercent}}% loss limit. 30 points for a loss above the limit, 15 above half of it.",
+    "PERIOD_LOSS_NO_SALES": "No sales to compare over the whole period, so no points against the {{limitPercent}}% loss limit.",
+    "NOT_ENOUGH_WEEKS": "Only {{weeks}} weeks with reconciled dips; tanks are scored from {{minimum}} weeks."
+  },
+  "evidence": {
+    "SHORT_SHIFT": "Shift short by {{amount}}",
+    "CREDIT_VOID": "Voided a credit entry of {{amount}}",
+    "CREDIT_REASSIGNED": "Moved a credit entry of {{amount}} to another client",
+    "SETTLEMENT_VOID": "Voided a settlement of {{amount}}",
+    "CASH_DROP_REJECTED": "Cash drop of {{amount}} rejected",
+    "EXPENSE_REJECTED": "Expense of {{amount}} rejected",
+    "METER_AMENDMENT": "Meter changed from {{from}} to {{to}}",
+    "READING_JUMP": "Opened on {{to}} after the previous shift closed on {{from}}",
+    "SALES_OUTLIER": "Sold {{litres}} against a usual {{usual}}",
+    "LOSS_WEEK": "Week lost {{litres}}, {{percent}}% of {{usual}} sold",
+    "note": "Reason given: {{note}}",
+    "openShift": "Open shift",
+    "openClient": "Open client",
+    "openSettlements": "Open settlements",
+    "openExpenses": "Open expenses",
+    "openNozzles": "Open nozzle setup",
+    "openReconciliation": "Open reconciliation"
+  },
+  "howItWorks": {
+    "title": "How the scores work",
+    "summary": "Each person, nozzle and tank gets 0–100 points from a few simple rules. Open \"Why this score\" on a card to see every rule, its points and the events behind it.",
+    "bands": "Low is under 30, Watch is 30 to 59, High is 60 and above.",
+    "people": "People: up to 60 points for shortages on their own shifts compared with everyone else, and up to 40 for voids, reassignments and rejections. Shortages of ₹20 or less are ignored. Owners are not scored.",
+    "nozzles": "Nozzles: meter amendments, readings that jump between shifts, and shifts far from the nozzle's usual sales.",
+    "tanks": "Tanks: weeks that lost more than the tank's loss limit, losses several weeks in a row, and the loss over the whole period.",
+    "notEnoughData": "With fewer than {{minimum}} closed shifts, or fewer than 3 weeks of dips for a tank, a card says \"Not enough data yet\".",
+    "innocentReasons": "Scores show where to look first. There is often an everyday reason: a new staff member, a meter repair, a festival rush.",
+    "weekly": "Owners and admins get a summary every Monday when something scores Watch or High."
+  }
+}
