@@ -11,6 +11,8 @@ import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.notification.NotificationDedupService;
 import com.ppms.notification.NotificationType;
+import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -43,6 +46,7 @@ public class CreditPaymentReversalService {
     private final AuditService auditService;
     private final NotificationDedupService notificationDedupService;
     private final BusinessClock businessClock;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
 
     @Transactional
     public CreditPaymentReversal reverse(Long pumpId, Long paymentId, ReversePaymentRequest request, User currentUser) {
@@ -79,6 +83,7 @@ public class CreditPaymentReversalService {
                 .build());
         interestService.recalculateChargedInterestFrom(payment.getClientId(), payment.getPaidAt(),
                 "Recalculated after reversing payment dated " + payment.getPaidAt(), currentUser);
+        balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(today), StaleReasons.creditPaymentChanged(paymentId));
 
         auditService.log(pumpId, AuditAction.CREDIT_PAYMENT_REVERSED, "CreditPayment", paymentId.toString(),
                 "Payment ₹" + payment.getAmount() + " (" + payment.getPaymentMode() + ", dated " + payment.getPaidAt()
