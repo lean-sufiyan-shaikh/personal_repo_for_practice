@@ -80,6 +80,7 @@ public class CreditAccountPolicyService {
                     "Credit is disabled for '" + client.getName()
                     + "'. Enable the client on the Credit page before giving it credit.");
         }
+        requireNotWrittenOff(client);
         if (client.getParentClientId() == null) {
             return;
         }
@@ -91,6 +92,15 @@ public class CreditAccountPolicyService {
                     Map.of("clientName", client.getName(), "parentName", parent.getName()),
                     "Credit is disabled for '" + client.getName() + "' because its parent account '"
                     + parent.getName() + "' is disabled.");
+        }
+        requireNotWrittenOff(parent);
+    }
+
+    private static void requireNotWrittenOff(CreditClient holder) {
+        if (holder.getWrittenOffOn() != null) {
+            throw new BusinessException(ErrorCodes.CREDIT_CLIENT_WRITTEN_OFF, Map.of("clientName", holder.getName()),
+                    "'" + holder.getName() + "' was written off as a bad debt on " + holder.getWrittenOffOn()
+                            + ", so it gets no more credit.");
         }
     }
 
@@ -371,7 +381,7 @@ public class CreditAccountPolicyService {
             CreditClient holder = clientById.get(holderId);
             List<CreditExtension> extensions = extensionsByClientId.getOrDefault(holderId, List.of());
             CreditBillLedger.Standing overdue = overdueByHolderId.getOrDefault(holderId, CreditBillLedger.Standing.NOTHING_OWED);
-            BigDecimal groupOutstanding = overdue.outstanding();
+            BigDecimal groupOutstanding = overdue.outstanding().max(BigDecimal.ZERO);
             BigDecimal availableCredit = null;
             boolean nearLimit = false;
             CreditStatus status = CreditStatus.OK;

@@ -42,7 +42,9 @@ class CreditLedgerQueryServiceTest {
     private final CreditLedgerQueryService queryService = new CreditLedgerQueryService(
             mock(CreditClientRepository.class), paymentRepository, reversalRepository, interestChargeRepository,
             mock(ShiftCreditEntryRepository.class), ancillarySaleRepository, ancillaryProductRepository,
-            mock(CreditOpeningBalanceRepository.class), mock(CreditInterestService.class), userRepository,
+            mock(CreditOpeningBalanceRepository.class), mock(CreditAdjustmentRepository.class),
+            mock(CreditDisputeRepository.class), mock(CreditDepositRepository.class),
+            mock(CreditInterestService.class), userRepository,
             mock(VehicleUsageService.class));
 
     @Test

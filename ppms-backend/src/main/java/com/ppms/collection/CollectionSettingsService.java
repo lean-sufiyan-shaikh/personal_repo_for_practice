@@ -67,12 +67,16 @@ public class CollectionSettingsService {
         pump.setUpiPayeeName(payeeName);
         pump.setCreditPaymentApprovalThreshold(paymentThreshold);
         pump.setBackdatedPaymentApprovalDays(backdatedDays);
+        if (request.groupInvoiceByDefault() != null) {
+            pump.setGroupInvoiceByDefault(request.groupInvoiceByDefault());
+        }
         pumpLocationRepository.save(pump);
 
         String description = "Reminder stages=" + Arrays.toString(stages) + ", creditHoldDays="
                 + (holdDays == null ? "off" : holdDays) + ", upiId=" + (upiId == null ? "none" : upiId)
                 + ", creditPaymentApprovalThreshold=" + (paymentThreshold == null ? "none" : paymentThreshold)
-                + ", backdatedPaymentApprovalDays=" + backdatedDays;
+                + ", backdatedPaymentApprovalDays=" + backdatedDays
+                + ", groupInvoiceByDefault=" + pump.isGroupInvoiceByDefault();
         auditService.log(pumpId, AuditAction.COLLECTION_SETTINGS_UPDATED, "PumpLocation", pumpId.toString(),
                 description, currentUser);
         log.info("Collection settings of pump={} updated by user={}: {}", pumpId, currentUser.getId(), description);

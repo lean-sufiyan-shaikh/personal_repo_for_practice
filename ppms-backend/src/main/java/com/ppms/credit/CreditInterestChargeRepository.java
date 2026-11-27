@@ -31,6 +31,10 @@ public interface CreditInterestChargeRepository extends JpaRepository<CreditInte
             """)
     Optional<LocalDate> findLastPeriodToByClientIds(@Param("clientIds") java.util.Collection<Long> clientIds);
 
+    /** Last day any charge of the given clients ever covered, waived or not: how far interest has been run. */
+    @Query("SELECT MAX(c.periodTo) FROM CreditInterestCharge c WHERE c.clientId IN :clientIds")
+    Optional<LocalDate> findLastPeriodToOfAnyChargeByClientIds(@Param("clientIds") java.util.Collection<Long> clientIds);
+
     /** Live charges of the given clients whose period ends on or after {@code date}, oldest period first. */
     @Query("""
             SELECT c FROM CreditInterestCharge c

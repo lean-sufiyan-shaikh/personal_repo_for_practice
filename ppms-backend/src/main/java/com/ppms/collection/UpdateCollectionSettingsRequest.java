@@ -11,6 +11,7 @@ import java.util.List;
  * @param creditHoldDays null turns the credit hold off
  * @param upiId          blank, together with upiPayeeName, removes the UPI details
  * @param creditPaymentApprovalThreshold null lets a manager's credit payment of any amount through
+ * @param groupInvoiceByDefault          a parent's invoice covers its sub-accounts unless chosen otherwise; null keeps it
  */
 public record UpdateCollectionSettingsRequest(
         @NotNull(message = "Reminder stages are required") List<Integer> reminderStageDays,
@@ -18,5 +19,6 @@ public record UpdateCollectionSettingsRequest(
         String upiId,
         String upiPayeeName,
         BigDecimal creditPaymentApprovalThreshold,
-        @NotNull(message = "Back-dated payment days are required") Integer backdatedPaymentApprovalDays
+        @NotNull(message = "Back-dated payment days are required") Integer backdatedPaymentApprovalDays,
+        Boolean groupInvoiceByDefault
 ) {}

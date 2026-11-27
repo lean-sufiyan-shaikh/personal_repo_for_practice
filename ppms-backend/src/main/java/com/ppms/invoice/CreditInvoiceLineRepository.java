@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CreditInvoiceLineRepository extends JpaRepository<CreditInvoiceLine, Long> {
@@ -74,6 +75,11 @@ public interface CreditInvoiceLineRepository extends JpaRepository<CreditInvoice
             + "AND l.isActive = true AND l.lineType = :lineType AND l.sourceId IN :sourceIds ORDER BY i.invoiceNumber")
     List<String> findActiveInvoiceNumbersOfSources(@Param("lineType") InvoiceLineType lineType,
                                                    @Param("sourceIds") Collection<Long> sourceIds);
+
+    /** The line of an issued invoice that bills the sale; a sale is on at most one issued invoice. */
+    @Query("SELECT l FROM CreditInvoiceLine l WHERE l.isActive = true AND l.lineType = :lineType AND l.sourceId = :sourceId")
+    Optional<CreditInvoiceLine> findActiveLineOfSource(@Param("lineType") InvoiceLineType lineType,
+                                                       @Param("sourceId") Long sourceId);
 
     @Modifying
     @Query("UPDATE CreditInvoiceLine l SET l.isActive = false WHERE l.invoiceId = :invoiceId")

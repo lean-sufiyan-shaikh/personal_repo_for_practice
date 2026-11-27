@@ -33,6 +33,20 @@ public final class CreditBillLedger {
                            long daysOverdue, LocalDate overdueSince) {
 
         public static final Standing NOTHING_OWED = new Standing(ZERO, List.of(), null, 0, null);
+
+        /** Disputed debits are owed but are not chased, so they add to the balance only. */
+        public Standing plusDisputed(BigDecimal disputedAmount) {
+            if (disputedAmount.signum() == 0) {
+                return this;
+            }
+            return new Standing(outstanding.add(disputedAmount).setScale(2, RoundingMode.HALF_UP), unpaidBills,
+                    oldestUnpaidSaleDate, daysOverdue, overdueSince);
+        }
+
+        /** A written-off account still shows what it owes but is never overdue. */
+        public Standing notOverdue() {
+            return new Standing(outstanding, unpaidBills, oldestUnpaidSaleDate, 0, null);
+        }
     }
 
     private static final Comparator<Bill> OLDEST_FIRST = Comparator.comparing(Bill::date)

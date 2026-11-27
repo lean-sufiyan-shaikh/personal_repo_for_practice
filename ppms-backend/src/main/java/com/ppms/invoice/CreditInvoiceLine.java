@@ -70,6 +70,10 @@ public class CreditInvoiceLine {
     @Column(name = "line_total", nullable = false, precision = 14, scale = 2)
     private BigDecimal lineTotal;
 
+    /** On a group invoice, the account the sale was made to; null on an invoice for one account. */
+    @Column(name = "account_name", length = 150)
+    private String accountName;
+
     /** True while the invoice is ISSUED; the unique index on active lines stops a sale being billed twice. */
     @Column(name = "is_active", nullable = false)
     @Builder.Default

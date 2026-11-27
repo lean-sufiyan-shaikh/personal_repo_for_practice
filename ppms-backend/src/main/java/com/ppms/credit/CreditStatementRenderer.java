@@ -53,13 +53,9 @@ public class CreditStatementRenderer {
             appendVehicleUsage(sb, statement.vehicleUsage(), statement.coversSubAccounts());
         }
 
-        sb.append("<div class='summary'>")
-                .append("<p class='outstanding'>")
-                .append(statement.coversSubAccounts() ? "Group Outstanding Balance (incl. sub-accounts): ₹" : "Outstanding Balance: ₹")
-                .append(statement.outstanding().setScale(2, RoundingMode.HALF_UP).toPlainString())
-                .append("</p></div>");
+        appendSummary(sb, statement);
 
-        if (upiPayLink != null) {
+        if (upiPayLink != null && statement.outstanding().signum() > 0) {
             appendUpiPayment(sb, pump, statement.outstanding(), upiPayLink);
         }
 
@@ -68,6 +64,24 @@ public class CreditStatementRenderer {
 
         sb.append("</body></html>");
         return sb.toString();
+    }
+
+    /** A balance below zero is an advance the client paid ahead; a security deposit is shown apart from the balance. */
+    private void appendSummary(StringBuilder sb, CreditStatement statement) {
+        BigDecimal outstanding = statement.outstanding().setScale(2, RoundingMode.HALF_UP);
+        sb.append("<div class='summary'><p class='outstanding'>");
+        if (outstanding.signum() < 0) {
+            sb.append("Advance (paid ahead): ₹").append(outstanding.negate().toPlainString());
+        } else {
+            sb.append(statement.coversSubAccounts() ? "Group Outstanding Balance (incl. sub-accounts): ₹" : "Outstanding Balance: ₹")
+                    .append(outstanding.toPlainString());
+        }
+        sb.append("</p>");
+        if (statement.depositHeld() != null && statement.depositHeld().signum() > 0) {
+            sb.append("<p>Security deposit held (not part of the balance): ₹")
+                    .append(statement.depositHeld().setScale(2, RoundingMode.HALF_UP).toPlainString()).append("</p>");
+        }
+        sb.append("</div>");
     }
 
     private void appendDocumentHead(StringBuilder sb, CreditClient client) {
@@ -150,8 +164,9 @@ public class CreditStatementRenderer {
 
         for (CreditTransactionResponse tx : transactions) {
             String typeClass = "type-" + tx.getType();
-            String debit = "PAYMENT".equals(tx.getType()) ? "" : tx.getAmount().toPlainString();
-            String credit = "PAYMENT".equals(tx.getType()) ? tx.getAmount().toPlainString() : "";
+            boolean isCredit = CreditTransactionResponse.isCredit(tx.getType());
+            String debit = isCredit ? "" : tx.getAmount().toPlainString();
+            String credit = isCredit ? tx.getAmount().toPlainString() : "";
             String desc = tx.getReference() != null ? escapeHtml(tx.getReference()) : "";
             if (tx.getDetail() != null) {
                 desc += " <span style='color:#888;'>(" + escapeHtml(tx.getDetail()) + ")</span>";
@@ -160,6 +175,9 @@ public class CreditStatementRenderer {
                 desc += " <strong>[" + escapeHtml(tx.getStatus()) + " – not in balance]</strong>";
             } else if (REVERSED.equals(tx.getStatus())) {
                 desc += " <strong>[REVERSED – taken back on a later row]</strong>";
+            }
+            if (tx.getOpenDisputeId() != null) {
+                desc += " <strong>[DISPUTED]</strong>";
             }
 
             sb.append("<tr class='").append(typeClass).append("'>")

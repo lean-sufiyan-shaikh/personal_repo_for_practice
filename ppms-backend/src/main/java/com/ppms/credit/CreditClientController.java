@@ -30,6 +30,7 @@ public class CreditClientController {
     private final CreditClientService creditClientService;
     private final CreditAccountPolicyService creditAccountPolicyService;
     private final CreditClientEditService clientEditService;
+    private final CreditDepositRepository depositRepository;
 
     /**
      * GET /api/pumps/{pumpId}/credit-clients
@@ -71,6 +72,7 @@ public class CreditClientController {
                 .collect(Collectors.toMap(CreditClient::getParentClientId,
                         c -> ownOutstandingById.getOrDefault(c.getId(), BigDecimal.ZERO), BigDecimal::add));
 
+        Map<Long, BigDecimal> depositHeldById = depositHeldById(allClients.stream().map(CreditClient::getId).toList());
         List<CreditClientResponse> clients = allClients.stream()
                 .map(c -> {
                     boolean isParent = c.getParentClientId() == null && idsWithChildren.contains(c.getId());
@@ -79,7 +81,8 @@ public class CreditClientController {
                             ? own.add(childrenOutstandingByParentId.getOrDefault(c.getId(), BigDecimal.ZERO))
                                     .setScale(2, RoundingMode.HALF_UP)
                             : own;
-                    return toResponse(c, nameById, isParent, outstanding);
+                    return toResponse(c, nameById, isParent, outstanding,
+                            depositHeldById.getOrDefault(c.getId(), BigDecimal.ZERO));
                 })
                 .sorted(Comparator
                         // Active clients first, disabled last
@@ -193,11 +196,19 @@ public class CreditClientController {
         BigDecimal outstanding = isParent
                 ? interestService.computeOutstandingWithChildren(c.getId())
                 : interestService.computeOutstanding(c.getId());
-        return toResponse(c, nameById, isParent, outstanding);
+        return toResponse(c, nameById, isParent, outstanding, depositRepository.heldByClientId(c.getId()));
+    }
+
+    private Map<Long, BigDecimal> depositHeldById(List<Long> clientIds) {
+        if (clientIds.isEmpty()) {
+            return Map.of();
+        }
+        return depositRepository.heldByClientIds(clientIds).stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (BigDecimal) row[1]));
     }
 
     private CreditClientResponse toResponse(CreditClient c, Map<Long, String> nameById, boolean isParent,
-                                            BigDecimal outstanding) {
+                                            BigDecimal outstanding, BigDecimal depositHeld) {
         return CreditClientResponse.builder()
                 .id(c.getId())
                 .pumpId(c.getPumpId())
@@ -218,6 +229,13 @@ public class CreditClientController {
                 .weakPortalPin(c.getPortalPinHash() != null && Boolean.TRUE.equals(c.getPortalPinWeak()))
                 .gstin(c.getGstin())
                 .billingAddress(c.getBillingAddress())
+                .advance(c.getParentClientId() == null ? CreditLedgerQueryService.advanceOf(outstanding)
+                        : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP))
+                .depositHeld(depositHeld.setScale(2, RoundingMode.HALF_UP))
+                .closedAt(c.getClosedAt())
+                .closeReason(c.getCloseReason())
+                .mergedIntoClientId(c.getMergedIntoClientId())
+                .writtenOffOn(c.getWrittenOffOn())
                 .build();
     }
 }

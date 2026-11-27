@@ -7,6 +7,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
@@ -122,8 +123,30 @@ public class CreditClient {
     @Column(name = "portal_pin_weak")
     private Boolean portalPinWeak;
 
+    /** Set when an owner closed the account; a closed account is inactive and keeps its history. */
+    @Column(name = "closed_at")
+    private OffsetDateTime closedAt;
+
+    @Column(name = "closed_by")
+    private Long closedBy;
+
+    @Column(name = "close_reason")
+    private String closeReason;
+
+    /** Set on a duplicate whose records were all moved to this other client. */
+    @Column(name = "merged_into_client_id")
+    private Long mergedIntoClientId;
+
+    /** First day of a bad-debt write-off: no interest from it, and the account is no longer chased as overdue. */
+    @Column(name = "written_off_on")
+    private LocalDate writtenOffOn;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
+
+    public boolean isClosed() {
+        return closedAt != null;
+    }
 
     @PrePersist
     protected void onCreate() {

@@ -39,7 +39,9 @@ import java.util.stream.Stream;
  * Interest model:
  *   - Simple interest on principal only: earlier interest charges are never charged interest.
  *   - Principal on a day = opening balance + ACTIVE fuel credit sales + credit counter sales up to that day
- *     − APPROVED payments up to that day, each dated by its business date.
+ *     − APPROVED payments up to that day, each dated by its business date, with the corrections described on
+ *     loadDailyPrincipal (credit notes, write-offs, applied deposits, advance refunds, open disputes).
+ *   - No interest from the day an account was written off, nor on a closed account.
  *   - Each day of the period is charged on that day's principal:
  *     amount = Σ principal(day) × (monthly rate / 100) / 30
  *   - A parent with sub-accounts is charged on the combined balance of the whole group, using the
@@ -66,6 +68,8 @@ public class CreditInterestService {
     private final ShiftCreditEntryRepository creditEntryRepository;
     private final AncillarySaleRepository ancillarySaleRepository;
     private final CreditOpeningBalanceRepository openingBalanceRepository;
+    private final CreditAdjustmentRepository adjustmentRepository;
+    private final CreditDebitCorrectionsReader correctionsReader;
     private final AuditService auditService;
     private final BusinessClock businessClock;
 
@@ -74,7 +78,9 @@ public class CreditInterestService {
     /**
      * Computes the true outstanding balance for a client (own transactions only):
      *   outstanding = opening balance + sum(fuel credit sales) + sum(credit counter sales) + sum(interest_charges)
-     *                 + sum(bounce charges) − sum(approved payments)
+     *                 + sum(bounce charges) − sum(approved payments) − credit notes, write-offs and applied deposits
+     *                 + advance refunds
+     * A result below zero is an advance the client has paid.
      */
     public BigDecimal computeOutstanding(Long clientId) {
         BigDecimal opening      = openingBalanceRepository.sumAmountByClientId(clientId);
@@ -83,7 +89,10 @@ public class CreditInterestService {
         BigDecimal interest     = interestChargeRepository.sumAmountByClientId(clientId);
         BigDecimal bounce       = reversalRepository.sumBounceChargesByClientId(clientId);
         BigDecimal paid         = paymentRepository.sumAmountByClientId(clientId);
-        return opening.add(fuelSales).add(counterSales).add(interest).add(bounce).subtract(paid).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal adjusted     = toAmountMap(adjustmentRepository.signedSumsByClientIds(List.of(clientId)))
+                .getOrDefault(clientId, BigDecimal.ZERO);
+        return opening.add(fuelSales).add(counterSales).add(interest).add(bounce).subtract(paid).add(adjusted)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -116,6 +125,7 @@ public class CreditInterestService {
         Map<Long, BigDecimal> interestMap     = toAmountMap(interestChargeRepository.sumAmountsByClientIds(clientIds));
         Map<Long, BigDecimal> bounceMap       = toAmountMap(reversalRepository.sumBounceChargesByClientIds(clientIds));
         Map<Long, BigDecimal> paymentsMap     = toAmountMap(paymentRepository.sumAmountsByClientIds(clientIds));
+        Map<Long, BigDecimal> adjustedMap     = toAmountMap(adjustmentRepository.signedSumsByClientIds(clientIds));
 
         return clientIds.stream().collect(Collectors.toMap(
                 id -> id,
@@ -125,6 +135,7 @@ public class CreditInterestService {
                         .add(interestMap.getOrDefault(id, BigDecimal.ZERO))
                         .add(bounceMap.getOrDefault(id, BigDecimal.ZERO))
                         .subtract(paymentsMap.getOrDefault(id, BigDecimal.ZERO))
+                        .add(adjustedMap.getOrDefault(id, BigDecimal.ZERO))
                         .setScale(2, RoundingMode.HALF_UP)
         ));
     }
@@ -329,7 +340,7 @@ public class CreditInterestService {
                                                          LocalDate periodTo, String source, Long appliedByUserId) {
 
         BigDecimal rate = root.getMonthlyInterestRate();
-        if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
+        if (root.isClosed() || rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
             return Optional.empty();
         }
 
@@ -352,6 +363,12 @@ public class CreditInterestService {
     private Optional<CreditInterestCharge> saveChargeIfDue(CreditClient root, DailyPrincipal principal, BigDecimal rate,
                                                            LocalDate periodFrom, LocalDate periodTo, String source,
                                                            Long appliedByUserId) {
+        if (root.getWrittenOffOn() != null && !periodTo.isBefore(root.getWrittenOffOn())) {
+            periodTo = root.getWrittenOffOn().minusDays(1);
+            if (periodTo.isBefore(periodFrom)) {
+                return Optional.empty();
+            }
+        }
         BigDecimal dailyRate = rate.divide(ONE_HUNDRED, 10, RoundingMode.HALF_UP)
                 .divide(DAYS_IN_MONTH, 10, RoundingMode.HALF_UP);
         BigDecimal interest = BigDecimal.ZERO;
@@ -450,6 +467,22 @@ public class CreditInterestService {
     }
 
     /**
+     * Charges the days up to the last day interest was ever run for the group that no live charge covers, such as
+     * days left uncharged while a debit was disputed and nothing else was owed. Call after recalculating.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void chargeUncoveredDaysThroughLastRun(Long clientId, User actor) {
+        CreditClient client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_CLIENT,
+                        "Client not found: " + clientId));
+        Long rootId = client.getParentClientId() != null ? client.getParentClientId() : client.getId();
+        CreditClient root = lockGroupRoot(rootId);
+        List<Long> groupClientIds = groupClientIds(rootId);
+        interestChargeRepository.findLastPeriodToOfAnyChargeByClientIds(groupClientIds).ifPresent(lastRun ->
+                applyInterest(root, groupClientIds, lastRun, RECALCULATED_SOURCE, actor.getId()));
+    }
+
+    /**
      * Re-charges the charged periods of every group a credit sale dated {@code saleDate} was added to, once per group.
      * Nothing changes for a group whose charges all end before the sale date.
      */
@@ -479,21 +512,45 @@ public class CreditInterestService {
         }
     }
 
+    /**
+     * An openly disputed sale bears no interest until the dispute is resolved. Credit notes, write-offs and applied
+     * deposits lower the principal from their own date, and an advance refund raises it; a disputed sale credited after
+     * the dispute is lowered from the sale's date, so the credited part never bore interest.
+     */
     private DailyPrincipal loadDailyPrincipal(Collection<Long> clientIds) {
+        CreditDebitCorrections corrections = correctionsReader.of(clientIds);
         Map<LocalDate, BigDecimal> changes = new HashMap<>();
         for (CreditOpeningBalance balance : openingBalanceRepository.findByClientIdIn(clientIds)) {
             changes.merge(balance.getAsOfDate(), balance.getAmount(), BigDecimal::add);
         }
         for (var entry : creditEntryRepository.findActiveByClientIdIn(clientIds)) {
-            changes.merge(entry.getSaleDate(), entry.getAmount(), BigDecimal::add);
+            if (!corrections.isDisputed(CreditDebitType.SALE, entry.getId())) {
+                changes.merge(entry.getSaleDate(), entry.getAmount(), BigDecimal::add);
+            }
         }
         for (AncillarySale sale : ancillarySaleRepository.findByClientIdsAndPaymentMode(clientIds, CREDIT)) {
-            changes.merge(sale.getSaleDate(), sale.getTotalWithGst(), BigDecimal::add);
+            if (!corrections.isDisputed(CreditDebitType.COUNTER_SALE, sale.getId())) {
+                changes.merge(sale.getSaleDate(), sale.getTotalWithGst(), BigDecimal::add);
+            }
         }
         for (CreditPayment payment : paymentRepository.findApprovedByClientIdIn(clientIds)) {
             changes.merge(payment.getPaidAt(), payment.getAmount().negate(), BigDecimal::add);
         }
+        for (CreditAdjustment adjustment : corrections.adjustments()) {
+            if (isSaleCredit(adjustment) && corrections.isDisputed(adjustment.getDebitType(), adjustment.getDebitId())) {
+                continue;
+            }
+            if (adjustment.creditsDebit() && !isSaleCredit(adjustment)) {
+                continue;
+            }
+            changes.merge(adjustment.principalDate(), adjustment.signedAmount(), BigDecimal::add);
+        }
         return new DailyPrincipal(changes);
+    }
+
+    /** Interest and bounce charges are not principal, so a credit note on one leaves the principal alone. */
+    private static boolean isSaleCredit(CreditAdjustment adjustment) {
+        return adjustment.getDebitType() == CreditDebitType.SALE || adjustment.getDebitType() == CreditDebitType.COUNTER_SALE;
     }
 
     /**

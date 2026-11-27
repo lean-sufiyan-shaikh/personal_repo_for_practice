@@ -218,7 +218,7 @@ class CreditInvoiceIntegrationTest extends ApiIntegrationTest {
         for (int i = 0; i < 2; i++) {
             attempts.add(executor.submit(() -> {
                 start.await();
-                return invoiceService.issue(setup.pumpId(), clientId, TODAY, TODAY, setup.owner());
+                return invoiceService.issue(setup.pumpId(), clientId, TODAY, TODAY, false, setup.owner());
             }));
         }
         start.countDown();

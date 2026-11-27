@@ -147,6 +147,11 @@ public class PumpLocation {
     @Builder.Default
     private Integer backdatedPaymentApprovalDays = DEFAULT_BACKDATED_PAYMENT_APPROVAL_DAYS;
 
+    /** Whether a parent account is invoiced once for its whole group, its sub-accounts included, unless chosen otherwise. */
+    @Column(name = "group_invoice_by_default", nullable = false)
+    @Builder.Default
+    private boolean groupInvoiceByDefault = false;
+
     /** The credit limit a new client starts with; 0 means it can take no credit until a limit is set. */
     @Column(name = "default_credit_limit", nullable = false)
     @Builder.Default

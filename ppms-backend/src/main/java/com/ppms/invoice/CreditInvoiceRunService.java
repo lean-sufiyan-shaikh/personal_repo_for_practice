@@ -35,15 +35,19 @@ public class CreditInvoiceRunService {
     }
 
     public InvoiceRunResult issueForAllClients(Long pumpId, LocalDate periodFrom, LocalDate periodTo, User issuedBy) {
-        invoiceService.requirePumpWithGstDetails(pumpId);
+        boolean groupInvoices = invoiceService.requirePumpWithGstDetails(pumpId).isGroupInvoiceByDefault();
         invoiceService.validatePeriod(periodFrom, periodTo);
 
         int issued = 0;
         int skipped = 0;
         List<Long> failedClientIds = new ArrayList<>();
         for (CreditClient client : clientRepository.findByPumpIdOrderByNameAsc(pumpId)) {
+            if (groupInvoices && client.getParentClientId() != null) {
+                continue;
+            }
             try {
-                if (invoiceService.issueInNewTransaction(pumpId, client.getId(), periodFrom, periodTo, issuedBy).isPresent()) {
+                if (invoiceService.issueInNewTransaction(pumpId, client.getId(), periodFrom, periodTo, groupInvoices,
+                        issuedBy).isPresent()) {
                     issued++;
                 } else {
                     skipped++;

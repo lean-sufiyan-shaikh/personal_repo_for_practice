@@ -96,6 +96,11 @@ public class CreditInvoice {
     @Column(name = "grand_total", nullable = false, precision = 14, scale = 2)
     private BigDecimal grandTotal;
 
+    /** One invoice for a parent account and its sub-accounts, its lines naming the account of each sale. */
+    @Column(name = "covers_sub_accounts", nullable = false)
+    @Builder.Default
+    private boolean coversSubAccounts = false;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     @Builder.Default

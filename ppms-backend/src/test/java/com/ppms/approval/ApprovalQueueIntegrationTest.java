@@ -103,14 +103,15 @@ class ApprovalQueueIntegrationTest extends ApiIntegrationTest {
     @Test
     void approvalStillAppliesThePaymentRules() throws Exception {
         long paymentId = recordPayment("300.00");
-        jdbcTemplate.update("UPDATE shift_credit_entries SET void_status = 'VOIDED' WHERE client_id = ?", clientId);
+        jdbcTemplate.update("INSERT INTO day_closes (pump_id, business_date, status, current_version, closed_by_user_id,"
+                + " closed_at) VALUES (?, ?, 'CLOSED', 1, ?, NOW())", setup.pumpId(), TODAY, setup.owner().getId());
 
         JsonNode result = json(decide(setup.owner(), Map.of("action", "APPROVED",
                 "items", List.of(Map.of("kind", "CREDIT_PAYMENT", "id", paymentId))))
                 .andExpect(status().isOk()));
 
         assertThat(result.get("failed").asInt()).isEqualTo(1);
-        assertThat(resultOf(result, "CREDIT_PAYMENT", paymentId).get("message").asText()).contains("would exceed");
+        assertThat(resultOf(result, "CREDIT_PAYMENT", paymentId).get("message").asText()).contains("is closed");
         assertThat(paymentStatus(paymentId)).isEqualTo("PENDING_APPROVAL");
     }
 

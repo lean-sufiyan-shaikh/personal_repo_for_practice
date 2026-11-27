@@ -13,6 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -23,6 +24,8 @@ public class CreditInvoiceController {
     private final CreditInvoiceService invoiceService;
     private final CreditInvoiceRunService invoiceRunService;
     private final CreditInvoiceRenderer invoiceRenderer;
+    private final GstCreditNoteService creditNoteService;
+    private final GstCreditNoteRenderer creditNoteRenderer;
 
     /** GET /api/pumps/{pumpId}/credit-invoices?clientId=&page=0&size=50 — newest first. */
     @GetMapping
@@ -68,7 +71,8 @@ public class CreditInvoiceController {
             @Valid @RequestBody GenerateCreditInvoiceRequest request,
             @AuthenticationPrincipal User currentUser) {
         CreditInvoice invoice = invoiceService.issue(
-                pumpId, request.clientId(), request.periodFrom(), request.periodTo(), currentUser);
+                pumpId, request.clientId(), request.periodFrom(), request.periodTo(), request.coverSubAccounts(),
+                currentUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(CreditInvoiceResponse.from(invoice));
     }
 
@@ -99,6 +103,30 @@ public class CreditInvoiceController {
             @RequestParam LocalDate periodFrom,
             @RequestParam LocalDate periodTo) {
         return ResponseEntity.ok(invoiceService.previewForAllClients(pumpId, periodFrom, periodTo));
+    }
+
+    /** GET /api/pumps/{pumpId}/credit-invoices/credit-notes?clientId= — GST credit notes, newest first. */
+    @GetMapping("/credit-notes")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")
+    public ResponseEntity<List<GstCreditNoteResponse>> listCreditNotes(@PathVariable Long pumpId,
+                                                                      @RequestParam(required = false) Long clientId) {
+        List<GstCreditNote> notes = creditNoteService.listCreditNotes(pumpId, clientId);
+        Map<Long, String> numberByInvoiceId = invoiceService.invoiceNumbersByIds(
+                notes.stream().map(GstCreditNote::getInvoiceId).distinct().toList());
+        return ResponseEntity.ok(notes.stream()
+                .map(note -> GstCreditNoteResponse.of(note, numberByInvoiceId.get(note.getInvoiceId())))
+                .toList());
+    }
+
+    /** GET /api/pumps/{pumpId}/credit-invoices/credit-notes/{creditNoteId}/print — printable HTML. */
+    @GetMapping(value = "/credit-notes/{creditNoteId}/print", produces = MediaType.TEXT_HTML_VALUE)
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")
+    public ResponseEntity<String> printCreditNote(@PathVariable Long pumpId, @PathVariable Long creditNoteId) {
+        GstCreditNote note = creditNoteService.requireCreditNoteForPump(pumpId, creditNoteId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_HTML)
+                .header("Content-Security-Policy", CreditLedgerController.STATEMENT_CONTENT_SECURITY_POLICY)
+                .body(creditNoteRenderer.render(note, creditNoteService.invoiceOf(note)));
     }
 
     /** POST /api/pumps/{pumpId}/credit-invoices/{invoiceId}/cancel — keeps the invoice and its number, frees its sales. */

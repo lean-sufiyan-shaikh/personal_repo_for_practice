@@ -36,6 +36,9 @@ public class RecordPaymentRequest {
     /** True once the user has seen the possible-duplicate warning for this reference and still wants to record it. */
     private boolean confirmDuplicate;
 
+    /** True when the user agreed to keep what is paid above the balance as an advance for future bills. */
+    private boolean recordAsAdvance;
+
     // Optional note, e.g. "Partial payment for March outstanding"
     private String notes;
 }

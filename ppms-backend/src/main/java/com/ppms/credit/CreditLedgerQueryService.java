@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -60,6 +61,9 @@ public class CreditLedgerQueryService {
     private final AncillarySaleRepository ancillarySaleRepository;
     private final AncillaryProductRepository ancillaryProductRepository;
     private final CreditOpeningBalanceRepository openingBalanceRepository;
+    private final CreditAdjustmentRepository adjustmentRepository;
+    private final CreditDisputeRepository disputeRepository;
+    private final CreditDepositRepository depositRepository;
     private final CreditInterestService interestService;
     private final UserRepository userRepository;
     private final VehicleUsageService vehicleUsageService;
@@ -69,6 +73,7 @@ public class CreditLedgerQueryService {
         List<Long> clientIds = clients.stream().map(CreditClient::getId).toList();
         Map<Long, BigDecimal> outstandingMap = interestService.computeOutstandingBatch(clientIds);
         Map<Long, CreditInterestService.InterestBreakdown> breakdownMap = interestService.computeInterestBreakdownBatch(clientIds);
+        Map<Long, BigDecimal> depositHeldById = depositHeldByClientId(clientIds);
         Map<Long, List<CreditClient>> childrenByParentId = clients.stream()
                 .filter(client -> client.getParentClientId() != null)
                 .collect(Collectors.groupingBy(CreditClient::getParentClientId));
@@ -76,7 +81,8 @@ public class CreditLedgerQueryService {
                 .collect(Collectors.toMap(CreditClient::getId, CreditClient::getName));
 
         return clients.stream()
-                .map(client -> toClientResponse(client, clients, outstandingMap, breakdownMap, childrenByParentId, nameById))
+                .map(client -> toClientResponse(client, outstandingMap, breakdownMap, childrenByParentId, nameById,
+                        depositHeldById))
                 .sorted(Comparator
                         .comparing(CreditClientResponse::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
                         .thenComparing(CreditClientResponse::getName, String.CASE_INSENSITIVE_ORDER))
@@ -112,7 +118,8 @@ public class CreditLedgerQueryService {
                 .collect(Collectors.groupingBy(CreditClient::getParentClientId));
         Map<Long, String> nameById = family.stream()
                 .collect(Collectors.toMap(CreditClient::getId, CreditClient::getName));
-        return toClientResponse(client, family, outstandingByClientId, breakdownMap, childrenByParentId, nameById);
+        return toClientResponse(client, outstandingByClientId, breakdownMap, childrenByParentId, nameById,
+                depositHeldByClientId(ids));
     }
 
     public List<CreditTransactionResponse> getAllTransactions(CreditClient client, boolean includeChildren) {
@@ -138,7 +145,7 @@ public class CreditLedgerQueryService {
     public CreditStatement getStatement(CreditClient client, LocalDate fromDate, LocalDate toDate) {
         CreditStatement allRows = statementOfAllRows(client);
         return new CreditStatement(filterByDate(allRows.transactions(), fromDate, toDate), allRows.outstanding(),
-                allRows.subAccountNames(), vehicleUsageOf(client, fromDate, toDate));
+                allRows.subAccountNames(), vehicleUsageOf(client, fromDate, toDate), allRows.depositHeld());
     }
 
     /** A closed period's statement, whose outstanding is the balance at the end of its last day rather than today's. */
@@ -150,7 +157,7 @@ public class CreditLedgerQueryService {
                 .map(CreditTransactionResponse::getRunningBalance)
                 .orElse(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
         return new CreditStatement(filterByDate(allRows.transactions(), fromDate, toDate), closingBalance,
-                allRows.subAccountNames(), vehicleUsageOf(client, fromDate, toDate));
+                allRows.subAccountNames(), vehicleUsageOf(client, fromDate, toDate), allRows.depositHeld());
     }
 
     private List<VehicleUsageGroup> vehicleUsageOf(CreditClient client, LocalDate fromDate, LocalDate toDate) {
@@ -168,7 +175,8 @@ public class CreditLedgerQueryService {
                 : List.of();
         if (subAccounts.isEmpty()) {
             return new CreditStatement(buildTransactionList(client.getId()),
-                    interestService.computeOutstanding(client.getId()), List.of(), List.of());
+                    interestService.computeOutstanding(client.getId()), List.of(), List.of(),
+                    depositRepository.heldByClientId(client.getId()).setScale(2, RoundingMode.HALF_UP));
         }
 
         List<CreditClient> group = new ArrayList<>();
@@ -185,9 +193,11 @@ public class CreditLedgerQueryService {
         }
         transactions.sort(OLDEST_FIRST);
         applyRunningBalance(transactions);
+        BigDecimal groupDeposit = depositHeldByClientId(group.stream().map(CreditClient::getId).toList()).values()
+                .stream().reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
         return new CreditStatement(transactions,
                 interestService.computeOutstandingWithChildren(client.getId()),
-                subAccounts.stream().map(CreditClient::getName).toList(), List.of());
+                subAccounts.stream().map(CreditClient::getName).toList(), List.of(), groupDeposit);
     }
 
     private static List<CreditTransactionResponse> filterByDate(List<CreditTransactionResponse> transactions,
@@ -338,7 +348,37 @@ public class CreditLedgerQueryService {
                             .countedInBalance(charge.getVoidedAt() == null)
                             .build());
                 });
+        adjustmentRepository.findByClientIdOrderByCreatedAtDesc(clientId)
+                .forEach(adjustment -> transactions.add(adjustmentRow(adjustment)));
+        markOpenDisputes(clientId, transactions);
         return transactions;
+    }
+
+    private static CreditTransactionResponse adjustmentRow(CreditAdjustment adjustment) {
+        return CreditTransactionResponse.builder()
+                .type(adjustment.getKind().name())
+                .referenceId(adjustment.getId())
+                .reference(adjustment.getReason())
+                .detail(adjustment.getRefundMode() != null ? adjustment.getRefundMode().name() : null)
+                .amount(adjustment.getAmount().setScale(2, RoundingMode.HALF_UP))
+                .occurredAt(adjustment.getCreatedAt())
+                .businessDate(adjustment.getAdjustmentDate())
+                .status(ACTIVE)
+                .countedInBalance(true)
+                .linkedReferenceId(adjustment.getDebitId())
+                .linkedReferenceType(adjustment.getDebitType() != null ? adjustment.getDebitType().name() : null)
+                .build();
+    }
+
+    private void markOpenDisputes(Long clientId, List<CreditTransactionResponse> transactions) {
+        Map<String, Long> disputeIdByDebit = disputeRepository
+                .findByClientIdInAndStatus(List.of(clientId), CreditDisputeStatus.OPEN).stream()
+                .collect(Collectors.toMap(dispute -> dispute.getDebitType().name() + ":" + dispute.getDebitId(),
+                        CreditDispute::getId));
+        if (disputeIdByDebit.isEmpty()) {
+            return;
+        }
+        transactions.forEach(row -> row.setOpenDisputeId(disputeIdByDebit.get(row.getType() + ":" + row.getReferenceId())));
     }
 
     /** A reversed payment stays in the running balance until its reversal row takes it back out. */
@@ -394,7 +434,7 @@ public class CreditLedgerQueryService {
                 transaction.setRunningBalance(runningBalance.setScale(2, RoundingMode.HALF_UP));
                 continue;
             }
-            if ("PAYMENT".equals(transaction.getType())) {
+            if (CreditTransactionResponse.isCredit(transaction.getType())) {
                 runningBalance = runningBalance.subtract(transaction.getAmount());
             } else {
                 runningBalance = runningBalance.add(transaction.getAmount());
@@ -417,12 +457,26 @@ public class CreditLedgerQueryService {
                 label + " (Bill " + sale.getBillNo() + ")");
     }
 
+    public Map<Long, BigDecimal> depositHeldByClientId(Collection<Long> clientIds) {
+        if (clientIds.isEmpty()) {
+            return Map.of();
+        }
+        return depositRepository.heldByClientIds(clientIds).stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (BigDecimal) row[1]));
+    }
+
+    /** What an account has paid ahead: the part of a balance below zero. */
+    public static BigDecimal advanceOf(BigDecimal outstanding) {
+        return outstanding.signum() < 0 ? outstanding.negate().setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+    }
+
     private CreditClientResponse toClientResponse(CreditClient client,
-                                                  List<CreditClient> allPumpClients,
                                                   Map<Long, BigDecimal> outstandingByClientId,
                                                   Map<Long, CreditInterestService.InterestBreakdown> breakdownMap,
                                                   Map<Long, List<CreditClient>> childrenByParentId,
-                                                  Map<Long, String> nameById) {
+                                                  Map<Long, String> nameById,
+                                                  Map<Long, BigDecimal> depositHeldById) {
         boolean isParent = client.getParentClientId() == null && childrenByParentId.containsKey(client.getId());
         BigDecimal outstanding = outstandingByClientId.getOrDefault(client.getId(), BigDecimal.ZERO);
         CreditInterestService.InterestBreakdown breakdown = breakdownMap.getOrDefault(client.getId(), CreditInterestService.InterestBreakdown.ZERO);
@@ -457,6 +511,12 @@ public class CreditLedgerQueryService {
                 .parentClientId(client.getParentClientId())
                 .parentClientName(client.getParentClientId() != null ? nameById.get(client.getParentClientId()) : null)
                 .isParent(isParent)
+                .advance(client.getParentClientId() == null ? advanceOf(outstanding) : BigDecimal.ZERO.setScale(2))
+                .depositHeld(depositHeldById.getOrDefault(client.getId(), BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP))
+                .closedAt(client.getClosedAt())
+                .closeReason(client.getCloseReason())
+                .mergedIntoClientId(client.getMergedIntoClientId())
+                .writtenOffOn(client.getWrittenOffOn())
                 .build();
     }
 

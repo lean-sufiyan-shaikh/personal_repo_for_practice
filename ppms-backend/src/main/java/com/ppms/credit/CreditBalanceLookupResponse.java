@@ -11,9 +11,12 @@ import java.util.List;
  * @param upiPayLink        upi://pay link for the group balance; null for a sub-account, when the pump has no UPI
  *                          details or nothing is owed
  * @param vehicleUsage      this calendar month and the one before, newest first
+ * @param advance           what the group has paid ahead of its bills; zero for a sub-account
+ * @param sessionToken      opens the client's recent transactions and statements for a few minutes
  */
 public record CreditBalanceLookupResponse(BigDecimal outstandingAmount, BigDecimal creditLimit, boolean unlimited,
-                                          boolean subAccount, String upiPayLink, List<VehicleMonth> vehicleUsage) {
+                                          boolean subAccount, String upiPayLink, List<VehicleMonth> vehicleUsage,
+                                          BigDecimal advance, String sessionToken) {
 
     public record VehicleMonth(YearMonth month, List<VehicleTotal> vehicles) {}
 

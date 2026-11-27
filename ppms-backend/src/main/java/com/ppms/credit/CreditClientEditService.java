@@ -170,6 +170,7 @@ public class CreditClientEditService {
         if (active) {
             requireOwnerOrAdmin(currentUser, ErrorCodes.CREDIT_CLIENT_ENABLE_OWNER_ONLY,
                     "Only an Owner or Admin can enable a disabled client.");
+            CreditDeskRules.requireOpenAccount(client);
         }
         client.setActive(active);
         CreditClient saved = clientRepository.save(client);

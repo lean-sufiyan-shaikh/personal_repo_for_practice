@@ -27,7 +27,9 @@ public record ProfitLossReport(
         BigDecimal bankCharges,
         /** Net pay of the payroll paid in the period, by its paid date. */
         BigDecimal payrollPaid,
-        /** grossProfit − approvedExpenses − bankCharges − payrollPaid. */
+        /** Bad debt written off on credit accounts in the period, by its write-off date. */
+        BigDecimal badDebtWrittenOff,
+        /** grossProfit − approvedExpenses − bankCharges − payrollPaid − badDebtWrittenOff. */
         BigDecimal netOperatingProfit,
         List<FuelLine> byFuelType,
         List<DayLine> byDay) {

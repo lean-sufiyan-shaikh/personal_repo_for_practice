@@ -27,7 +27,8 @@ public record CreditInvoiceResponse(
         String status,
         String cancelReason,
         OffsetDateTime cancelledAt,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        boolean coversSubAccounts
 ) {
 
     public static CreditInvoiceResponse from(CreditInvoice invoice) {
@@ -54,6 +55,7 @@ public record CreditInvoiceResponse(
                 invoice.getStatus().name(),
                 invoice.getCancelReason(),
                 invoice.getCancelledAt(),
-                invoice.getCreatedAt());
+                invoice.getCreatedAt(),
+                invoice.isCoversSubAccounts());
     }
 }

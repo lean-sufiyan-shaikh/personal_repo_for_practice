@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Represents a single line in the client's ledger — a fuel or counter credit sale or an interest
@@ -16,7 +17,8 @@ import java.util.Map;
 @Builder
 public class CreditTransactionResponse {
 
-    // "SALE" (fuel), "COUNTER_SALE" (shop product), "PAYMENT", "INTEREST", "PAYMENT_REVERSAL" or "BOUNCE_CHARGE"
+    // "SALE" (fuel), "COUNTER_SALE" (shop product), "PAYMENT", "INTEREST", "PAYMENT_REVERSAL", "BOUNCE_CHARGE",
+    // "CREDIT_NOTE", "WRITE_OFF", "DEPOSIT_APPLIED" or "ADVANCE_REFUND"
     private String type;
 
     private Long referenceId;
@@ -55,6 +57,20 @@ public class CreditTransactionResponse {
 
     private String clientName;
 
-    // For a REVERSED payment the id of its reversal; for a PAYMENT_REVERSAL or BOUNCE_CHARGE row the reversed payment's id
+    // For a REVERSED payment the id of its reversal; for a PAYMENT_REVERSAL or BOUNCE_CHARGE row the reversed payment's id;
+    // for a CREDIT_NOTE that names a debit, that debit's id
     private Long linkedReferenceId;
+
+    // For a CREDIT_NOTE that names a debit, the debit's type (SALE, COUNTER_SALE, INTEREST, BOUNCE_CHARGE)
+    private String linkedReferenceType;
+
+    // The id of the open dispute on this debit; null when it is not disputed
+    private Long openDisputeId;
+
+    private static final Set<String> CREDIT_TYPES = Set.of("PAYMENT", "CREDIT_NOTE", "WRITE_OFF", "DEPOSIT_APPLIED");
+
+    /** Rows that lower the balance; every other row raises it. */
+    public static boolean isCredit(String type) {
+        return CREDIT_TYPES.contains(type);
+    }
 }

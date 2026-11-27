@@ -24,7 +24,7 @@ public class CreditInvoiceRenderer {
         boolean cancelled = invoice.getStatus() == CreditInvoiceStatus.CANCELLED;
 
         StringBuilder sb = new StringBuilder();
-        appendDocumentHead(sb, invoice);
+        appendDocumentHead(sb, "Invoice " + invoice.getInvoiceNumber());
         if (cancelled) {
             sb.append("<div class='watermark'>CANCELLED</div>");
         }
@@ -36,10 +36,10 @@ public class CreditInvoiceRenderer {
                     .append(":</strong> ").append(escapeHtml(invoice.getCancelReason())).append("</p>");
         }
         if (!fuelLines.isEmpty()) {
-            appendFuelTable(sb, fuelLines, invoice.getFuelTotal());
+            appendFuelTable(sb, fuelLines, invoice.getFuelTotal(), invoice.isCoversSubAccounts());
         }
         if (!ancillaryLines.isEmpty()) {
-            appendAncillaryTable(sb, ancillaryLines, interState);
+            appendAncillaryTable(sb, ancillaryLines, interState, invoice.isCoversSubAccounts());
         }
         appendTotals(sb, invoice, interState);
 
@@ -49,14 +49,14 @@ public class CreditInvoiceRenderer {
         return sb.toString();
     }
 
-    private void appendDocumentHead(StringBuilder sb, CreditInvoice invoice) {
+    void appendDocumentHead(StringBuilder sb, String title) {
         sb.append("""
                 <!DOCTYPE html>
                 <html lang="en">
                 <head>
                 <meta charset="UTF-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <title>Invoice %s</title>
+                <title>%s</title>
                 <style>
                   body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; color: #333; position: relative; }
                   h1 { font-size: 18px; margin: 0; }
@@ -83,10 +83,10 @@ public class CreditInvoiceRenderer {
                 </style>
                 </head>
                 <body>
-                """.formatted(escapeHtml(invoice.getInvoiceNumber())));
+                """.formatted(escapeHtml(title)));
     }
 
-    private void appendSeller(StringBuilder sb, CreditInvoice invoice, String documentTitle) {
+    void appendSeller(StringBuilder sb, CreditInvoice invoice, String documentTitle) {
         sb.append("<div class='header'>")
                 .append("<h1>").append(escapeHtml(invoice.getSellerTradeName())).append("</h1>")
                 .append("<h2>").append(escapeHtml(invoice.getSellerLegalName())).append("</h2>")
@@ -122,15 +122,18 @@ public class CreditInvoiceRenderer {
                 .append("</div></div>");
     }
 
-    private void appendFuelTable(StringBuilder sb, List<CreditInvoiceLine> fuelLines, BigDecimal fuelTotal) {
+    private void appendFuelTable(StringBuilder sb, List<CreditInvoiceLine> fuelLines, BigDecimal fuelTotal,
+                                 boolean showAccount) {
         sb.append("<h3>Fuel</h3>")
                 .append("<p class='note'>Petrol and diesel are outside GST (VAT included in the price).</p>")
                 .append("<div class='table-wrap'><table><thead><tr>")
+                .append(showAccount ? "<th>Account</th>" : "")
                 .append("<th>Date</th><th>Bill No</th><th>Description</th><th>Vehicle</th>")
                 .append("<th class='amount'>Amount (₹)</th>")
                 .append("</tr></thead><tbody>");
         for (CreditInvoiceLine line : fuelLines) {
             sb.append("<tr>")
+                    .append(showAccount ? "<td>" + escapeHtml(line.getAccountName()) + "</td>" : "")
                     .append("<td>").append(line.getSaleDate()).append("</td>")
                     .append("<td>").append(escapeHtml(line.getBillNo())).append("</td>")
                     .append("<td>").append(escapeHtml(line.getDescription())).append("</td>")
@@ -138,14 +141,16 @@ public class CreditInvoiceRenderer {
                     .append("<td class='amount'>").append(money(line.getLineTotal())).append("</td>")
                     .append("</tr>");
         }
-        sb.append("<tr><td colspan='4'><strong>Fuel total (outside GST)</strong></td>")
+        sb.append("<tr><td colspan='").append(showAccount ? 5 : 4).append("'><strong>Fuel total (outside GST)</strong></td>")
                 .append("<td class='amount'><strong>").append(money(fuelTotal)).append("</strong></td></tr>")
                 .append("</tbody></table></div>");
     }
 
-    private void appendAncillaryTable(StringBuilder sb, List<CreditInvoiceLine> ancillaryLines, boolean interState) {
+    private void appendAncillaryTable(StringBuilder sb, List<CreditInvoiceLine> ancillaryLines, boolean interState,
+                                      boolean showAccount) {
         sb.append("<h3>Lubricants and other products</h3>")
                 .append("<div class='table-wrap'><table><thead><tr>")
+                .append(showAccount ? "<th>Account</th>" : "")
                 .append("<th>Date</th><th>Bill No</th><th>Description</th><th>HSN</th>")
                 .append("<th class='amount'>Qty</th><th class='amount'>Rate (₹)</th>")
                 .append("<th class='amount'>Taxable (₹)</th><th class='amount'>GST %</th>");
@@ -157,6 +162,7 @@ public class CreditInvoiceRenderer {
         sb.append("<th class='amount'>Total (₹)</th></tr></thead><tbody>");
         for (CreditInvoiceLine line : ancillaryLines) {
             sb.append("<tr>")
+                    .append(showAccount ? "<td>" + escapeHtml(line.getAccountName()) + "</td>" : "")
                     .append("<td>").append(line.getSaleDate()).append("</td>")
                     .append("<td>").append(escapeHtml(line.getBillNo())).append("</td>")
                     .append("<td>").append(escapeHtml(line.getDescription())).append("</td>")
@@ -196,11 +202,11 @@ public class CreditInvoiceRenderer {
                 .append(money(amount)).append("</td></tr>");
     }
 
-    private String money(BigDecimal amount) {
+    String money(BigDecimal amount) {
         return amount == null ? "" : amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 
-    private String escapeHtml(String value) {
+    String escapeHtml(String value) {
         if (value == null) {
             return "";
         }

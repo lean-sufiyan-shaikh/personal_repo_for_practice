@@ -27,7 +27,7 @@ public class MonthlyStatementWriter {
     private final CreditStatementRenderer statementRenderer;
 
     /**
-     * False when the month's statement already exists, or when the client owes nothing at the end of the month and
+     * False when the month's statement already exists, the account is closed, or the client owes nothing at the end of the month and
      * either had nothing in the month or is inactive. The pay link asks for the balance at the end of the month.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -40,6 +40,9 @@ public class MonthlyStatementWriter {
         CreditClient client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_CLIENT,
                         "Credit client not found: " + clientId));
+        if (client.isClosed()) {
+            return false;
+        }
         CreditStatement statement = ledgerQueryService.getPeriodStatement(client, periodFrom, periodTo);
         boolean closesAtZero = statement.outstanding().signum() == 0;
         if (closesAtZero && (statement.transactions().isEmpty() || !client.isActive())) {

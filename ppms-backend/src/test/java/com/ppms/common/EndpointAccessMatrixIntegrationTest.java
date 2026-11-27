@@ -46,6 +46,7 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/credit-clients/credit-standing", "OPERATOR", null),
                 Arguments.of("/api/pumps/{pumpId}/credit-ledger/payments/pending", "MANAGER", "ACCOUNTANT"),
                 Arguments.of("/api/pumps/{pumpId}/credit-invoices", "ACCOUNTANT", "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/credit-invoices/credit-notes", "ACCOUNTANT", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/fuel-prices/current", "OPERATOR", null),
                 Arguments.of("/api/pumps/{pumpId}/fuel-prices/for-date?date=" + TODAY, "MANAGER", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/expenses", "ACCOUNTANT", null),

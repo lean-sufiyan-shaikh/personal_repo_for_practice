@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 @Data
@@ -43,4 +44,13 @@ public class CreditClientResponse {
     private Boolean weakPortalPin;
     private String gstin;
     private String billingAddress;
+    // What the account has paid ahead of its bills (a main account only); new bills use it up first
+    private BigDecimal advance;
+    // Security deposit held; never part of the outstanding balance until an owner applies it
+    private BigDecimal depositHeld;
+    private OffsetDateTime closedAt;
+    private String closeReason;
+    private Long mergedIntoClientId;
+    // First day of a bad-debt write-off; null when never written off
+    private LocalDate writtenOffOn;
 }

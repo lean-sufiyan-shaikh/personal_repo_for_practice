@@ -14,6 +14,7 @@ import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditClientAccessService;
+import com.ppms.credit.CreditClientRepository;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.shift.ShiftCreditEntry;
@@ -52,12 +53,18 @@ public class CreditInvoiceService {
     private final PumpLocationRepository pumpLocationRepository;
     private final AncillaryProductRepository productRepository;
     private final AuditService auditService;
+    private final CreditClientRepository clientRepository;
+    private final GstCreditNoteRepository creditNoteRepository;
     private final BusinessClock businessClock;
 
-    /** Issues an invoice for every unbilled credit sale of the client in the period; refuses an empty one. */
+    /**
+     * Issues an invoice for every unbilled credit sale of the client in the period; refuses an empty one. With
+     * coverSubAccounts (the pump's default when null) a parent's invoice also bills its sub-accounts' sales.
+     */
     @Transactional
-    public CreditInvoice issue(Long pumpId, Long clientId, LocalDate periodFrom, LocalDate periodTo, User issuedBy) {
-        return issueIfAnythingToBill(pumpId, clientId, periodFrom, periodTo, issuedBy)
+    public CreditInvoice issue(Long pumpId, Long clientId, LocalDate periodFrom, LocalDate periodTo,
+                               Boolean coverSubAccounts, User issuedBy) {
+        return issueIfAnythingToBill(pumpId, clientId, periodFrom, periodTo, coverSubAccounts, issuedBy)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.INVOICE_NOTHING_TO_BILL,
                         Map.of("periodFrom", periodFrom.toString(), "periodTo", periodTo.toString()),
                         "Nothing to invoice: this client has no uninvoiced credit sales between "
@@ -67,8 +74,8 @@ public class CreditInvoiceService {
     /** Own transaction, so one client failing during a pump-wide run cannot undo the invoices of the others. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Optional<CreditInvoice> issueInNewTransaction(Long pumpId, Long clientId, LocalDate periodFrom,
-                                                         LocalDate periodTo, User issuedBy) {
-        return issueIfAnythingToBill(pumpId, clientId, periodFrom, periodTo, issuedBy);
+                                                         LocalDate periodTo, boolean coverSubAccounts, User issuedBy) {
+        return issueIfAnythingToBill(pumpId, clientId, periodFrom, periodTo, coverSubAccounts, issuedBy);
     }
 
     @Transactional
@@ -79,6 +86,11 @@ public class CreditInvoiceService {
             throw new BusinessException(ErrorCodes.INVOICE_ALREADY_CANCELLED,
                     Map.of("invoiceNumber", invoice.getInvoiceNumber()),
                     "Invoice " + invoice.getInvoiceNumber() + " is already cancelled.");
+        }
+        if (creditNoteRepository.existsByInvoiceId(invoice.getId())) {
+            throw new BusinessException(ErrorCodes.INVOICE_HAS_CREDIT_NOTES,
+                    Map.of("invoiceNumber", invoice.getInvoiceNumber()),
+                    "Invoice " + invoice.getInvoiceNumber() + " has GST credit notes against it, so it cannot be cancelled.");
         }
         invoice.setStatus(CreditInvoiceStatus.CANCELLED);
         invoice.setCancelReason(reason.trim());
@@ -181,32 +193,49 @@ public class CreditInvoiceService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public Map<Long, String> invoiceNumbersByIds(List<Long> invoiceIds) {
+        return invoiceRepository.findAllById(invoiceIds).stream()
+                .collect(Collectors.toMap(CreditInvoice::getId, CreditInvoice::getInvoiceNumber));
+    }
+
     private Optional<CreditInvoice> issueIfAnythingToBill(Long pumpId, Long clientId, LocalDate periodFrom,
-                                                          LocalDate periodTo, User issuedBy) {
+                                                          LocalDate periodTo, Boolean coverSubAccounts, User issuedBy) {
         CreditClient client = clientAccessService.requireClientForPump(pumpId, clientId);
         PumpLocation pump = requirePumpWithGstDetails(pumpId);
         validatePeriod(periodFrom, periodTo);
+        List<CreditClient> accounts = new ArrayList<>(List.of(client));
+        boolean coverGroup = coverSubAccounts != null ? coverSubAccounts : pump.isGroupInvoiceByDefault();
+        if (coverGroup && client.getParentClientId() == null) {
+            accounts.addAll(clientRepository.findByParentClientId(client.getId()));
+        }
+        boolean groupInvoice = accounts.size() > 1;
 
         LocalDate issuedOn = businessClock.today();
         String financialYear = InvoiceNumbering.financialYearOf(issuedOn);
         // Locked before reading the sales: a concurrent issue for this pump waits here and then sees our lines.
         InvoiceSequence sequence = lockSequence(pumpId, financialYear);
 
-        List<ShiftCreditEntry> fuelEntries = lineRepository.findUninvoicedFuelEntries(clientId, periodFrom, periodTo);
-        List<AncillarySale> ancillarySales = lineRepository.findUninvoicedAncillarySales(
-                pumpId, clientId, TransactionPaymentMode.CREDIT, periodFrom, periodTo);
-        if (fuelEntries.isEmpty() && ancillarySales.isEmpty()) {
+        String sellerStateCode = GstFields.stateCodeOf(pump.getGstin());
+        String buyerStateCode = client.getGstin() != null ? GstFields.stateCodeOf(client.getGstin()) : sellerStateCode;
+        List<CreditInvoiceLine> lines = new ArrayList<>();
+        for (CreditClient account : accounts) {
+            List<CreditInvoiceLine> accountLines = new ArrayList<>(CreditInvoiceLineBuilder.fuelLines(
+                    lineRepository.findUninvoicedFuelEntries(account.getId(), periodFrom, periodTo)));
+            List<AncillarySale> ancillarySales = lineRepository.findUninvoicedAncillarySales(
+                    pumpId, account.getId(), TransactionPaymentMode.CREDIT, periodFrom, periodTo);
+            accountLines.addAll(CreditInvoiceLineBuilder.ancillaryLines(ancillarySales, productsOf(ancillarySales),
+                    sellerStateCode.equals(buyerStateCode)));
+            if (groupInvoice) {
+                accountLines.forEach(line -> line.setAccountName(account.getName()));
+            }
+            lines.addAll(accountLines);
+        }
+        if (lines.isEmpty()) {
             return Optional.empty();
         }
 
         String invoiceNumber = InvoiceNumbering.invoiceNumber(pump.getInvoicePrefix(), financialYear, sequence.getNextNumber());
-        String sellerStateCode = GstFields.stateCodeOf(pump.getGstin());
-        String buyerStateCode = client.getGstin() != null ? GstFields.stateCodeOf(client.getGstin()) : sellerStateCode;
-
-        List<CreditInvoiceLine> lines = new ArrayList<>(
-                CreditInvoiceLineBuilder.fuelLines(fuelEntries));
-        lines.addAll(CreditInvoiceLineBuilder.ancillaryLines(ancillarySales, productsOf(ancillarySales),
-                sellerStateCode.equals(buyerStateCode)));
 
         CreditInvoice invoice = invoiceRepository.save(withTotals(CreditInvoice.builder()
                 .pumpId(pumpId)
@@ -228,6 +257,7 @@ public class CreditInvoiceService {
                 .buyerGstin(client.getGstin())
                 .buyerStateCode(buyerStateCode)
                 .placeOfSupplyStateCode(buyerStateCode)
+                .coversSubAccounts(groupInvoice)
                 .createdBy(issuedBy.getId()), lines)
                 .build());
         lines.forEach(line -> line.setInvoiceId(invoice.getId()));
@@ -235,7 +265,8 @@ public class CreditInvoiceService {
         sequence.setNextNumber(sequence.getNextNumber() + 1);
 
         auditService.log(pumpId, AuditAction.CREDIT_INVOICE_ISSUED, "CreditInvoice", invoice.getId().toString(),
-                "Invoice " + invoiceNumber + " issued for clientId=" + clientId + " (" + periodFrom + " to " + periodTo
+                "Invoice " + invoiceNumber + " issued for clientId=" + clientId
+                        + (groupInvoice ? " and its " + (accounts.size() - 1) + " sub-account(s)" : "") + " (" + periodFrom + " to " + periodTo
                         + "), total ₹" + invoice.getGrandTotal(), issuedBy);
         log.info("Credit invoice issued: pump={}, client={}, invoice={}, number={}, lines={}",
                 pumpId, clientId, invoice.getId(), invoiceNumber, lines.size());

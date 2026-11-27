@@ -22,14 +22,15 @@ public record CreditInvoiceDetailResponse(CreditInvoiceResponse invoice, List<Li
             BigDecimal cgst,
             BigDecimal sgst,
             BigDecimal igst,
-            BigDecimal lineTotal
+            BigDecimal lineTotal,
+            String accountName
     ) {
 
         static Line from(CreditInvoiceLine line) {
             return new Line(line.getId(), line.getLineType().name(), line.getSourceId(), line.getSaleDate(),
                     line.getBillNo(), line.getDescription(), line.getVehicleRegistration(), line.getHsnCode(),
                     line.getQuantity(), line.getRate(), line.getTaxableValue(), line.getGstRate(),
-                    line.getCgst(), line.getSgst(), line.getIgst(), line.getLineTotal());
+                    line.getCgst(), line.getSgst(), line.getIgst(), line.getLineTotal(), line.getAccountName());
         }
     }
 

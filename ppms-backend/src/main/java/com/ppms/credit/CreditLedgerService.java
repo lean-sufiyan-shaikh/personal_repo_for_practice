@@ -57,8 +57,8 @@ public class CreditLedgerService {
     private final CreditPaymentReferenceCheck referenceCheck;
 
     /**
-     * Records a payment settlement against a client's outstanding balance.
-     * A payment can never exceed what the whole client group still owes.
+     * Records a payment settlement against a client's outstanding balance. A payment above what the group still owes
+     * is refused unless it is recorded as an advance, which new bills then use up oldest first.
      */
     @Transactional
     public CreditPayment recordPayment(Long pumpId, Long clientId,
@@ -77,12 +77,12 @@ public class CreditLedgerService {
 
         BigDecimal payable = payableAmount(client);
         BigDecimal paymentAmount = request.getAmount().setScale(2, RoundingMode.HALF_UP);
-        if (paymentAmount.compareTo(payable) > 0) {
+        if (paymentAmount.compareTo(payable) > 0 && !request.isRecordAsAdvance()) {
             throw new BusinessException(ErrorCodes.CREDIT_PAYMENT_EXCEEDS_PAYABLE,
                     Map.of("amount", paymentAmount.toPlainString(), "payable", payable.toPlainString()),
                     "Payment amount (" + paymentAmount + ") exceeds the amount still payable (" + payable + "), "
                             + "which is the outstanding balance less payments awaiting approval. "
-                            + "You cannot over-pay a credit account.");
+                            + "Record the extra as an advance if the client is paying ahead.");
         }
 
         LocalDate today = businessClock.today();
@@ -314,17 +314,6 @@ public class CreditLedgerService {
                     Map.of("chequeDate", payment.getChequeDate().toString()),
                     "This cheque is dated " + payment.getChequeDate() + ", so it can be approved from that date.");
         }
-        if (newStatus == ExpenseApprovalStatus.APPROVED) {
-            BigDecimal payableIncludingThisPayment = payableAmount(client).add(payment.getAmount());
-            if (payment.getAmount().compareTo(payableIncludingThisPayment) > 0) {
-                throw new BusinessException(ErrorCodes.CREDIT_PAYMENT_APPROVAL_EXCEEDS_PAYABLE,
-                        Map.of("amount", payment.getAmount().toPlainString(),
-                               "payable", payableIncludingThisPayment.toPlainString()),
-                        "Approving this payment (" + payment.getAmount() + ") would exceed the amount still payable ("
-                                + payableIncludingThisPayment + "). Reject it or record a smaller payment.");
-            }
-        }
-
         payment.setPaymentApprovalStatus(newStatus);
         payment.setApprovedByUserId(currentUser.getId());
         payment.setApprovedAt(businessClock.now());

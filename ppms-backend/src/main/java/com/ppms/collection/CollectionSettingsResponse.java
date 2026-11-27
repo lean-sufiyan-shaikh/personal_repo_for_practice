@@ -12,14 +12,15 @@ import java.util.List;
  * @param upiId             null, with upiPayeeName, when the pump has no UPI details
  * @param creditPaymentApprovalThreshold a manager's payment above it waits for approval; null when any amount passes
  * @param backdatedPaymentApprovalDays   a manager's payment dated more days back than this waits for approval
+ * @param groupInvoiceByDefault          a parent's invoice covers its sub-accounts unless chosen otherwise
  */
 public record CollectionSettingsResponse(List<Integer> reminderStageDays, Integer creditHoldDays, String upiId,
                                          String upiPayeeName, BigDecimal creditPaymentApprovalThreshold,
-                                         int backdatedPaymentApprovalDays) {
+                                         int backdatedPaymentApprovalDays, boolean groupInvoiceByDefault) {
 
     static CollectionSettingsResponse of(PumpLocation pump) {
         return new CollectionSettingsResponse(Arrays.asList(pump.getReminderStageDays()), pump.getCreditHoldDays(),
                 pump.getUpiId(), pump.getUpiPayeeName(), pump.getCreditPaymentApprovalThreshold(),
-                pump.getBackdatedPaymentApprovalDays());
+                pump.getBackdatedPaymentApprovalDays(), pump.isGroupInvoiceByDefault());
     }
 }

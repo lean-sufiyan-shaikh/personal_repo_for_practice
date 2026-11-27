@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +45,7 @@ public class ClientPortalController {
     private final PasswordEncoder passwordEncoder;
     private final VehicleUsageService vehicleUsageService;
     private final BusinessClock businessClock;
+    private final CreditPortalSessionService sessionService;
     // Compared against when no client matches, so a wrong phone takes as long as a wrong PIN.
     private volatile String unusedPinHash;
 
@@ -68,24 +70,28 @@ public class ClientPortalController {
             client.setPortalPinWeak(PortalPinRules.isWeak(lookup.pin()));
             creditClientRepository.save(client);
         }
-        return client.getParentClientId() != null ? subAccountBalance(client) : groupBalance(lookup.pumpId(), client);
+        String sessionToken = sessionService.open(lookup.pumpId(), client.getId());
+        return client.getParentClientId() != null ? subAccountBalance(client, sessionToken)
+                : groupBalance(lookup.pumpId(), client, sessionToken);
     }
 
     /** The same group balance the statement and reminders ask the client to pay. */
-    private CreditBalanceLookupResponse groupBalance(Long pumpId, CreditClient client) {
-        BigDecimal outstanding = creditOverdueService.standingOfAccount(client, businessClock.today()).outstanding();
+    private CreditBalanceLookupResponse groupBalance(Long pumpId, CreditClient client, String sessionToken) {
+        BigDecimal balance = creditOverdueService.standingOfAccount(client, businessClock.today()).outstanding();
+        BigDecimal outstanding = balance.max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
         String upiPayLink = pumpLocationRepository.findById(pumpId)
                 .map(pump -> UpiPaymentLink.forPump(pump, outstanding, client.getName()))
                 .orElse(null);
         return new CreditBalanceLookupResponse(outstanding,
                 client.isUnlimitedCredit() ? null : client.getCreditLimit(), client.isUnlimitedCredit(), false,
-                upiPayLink, vehicleUsageOf(client));
+                upiPayLink, vehicleUsageOf(client), CreditLedgerQueryService.advanceOf(balance), sessionToken);
     }
 
     /** A sub-account sees what it used; the balance it owes is held, and paid, on its main account. */
-    private CreditBalanceLookupResponse subAccountBalance(CreditClient client) {
+    private CreditBalanceLookupResponse subAccountBalance(CreditClient client, String sessionToken) {
         BigDecimal ownUsage = creditInterestService.computeOutstanding(client.getId());
-        return new CreditBalanceLookupResponse(ownUsage, null, false, true, null, vehicleUsageOf(client));
+        return new CreditBalanceLookupResponse(ownUsage, null, false, true, null, vehicleUsageOf(client),
+                BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP), sessionToken);
     }
 
     /** A parent sees the vehicles of its whole group; a standalone client or a sub-account sees its own credit. */

@@ -114,6 +114,21 @@ public class CashDrawerService {
         return reversal;
     }
 
+    /** Puts money into the safe for another record (a security deposit taken in cash); the caller audits that record. */
+    @Transactional
+    public CashEvent recordAutomaticCashIn(Long pumpId, BigDecimal amount, LocalDate eventDate, String description,
+                                           User currentUser) {
+        lockPump(pumpId);
+        return cashEventRepository.save(CashEvent.builder()
+                .pumpId(pumpId)
+                .eventType(CashEventType.CASH_IN)
+                .amount(amount.setScale(2, RoundingMode.HALF_UP))
+                .description(description)
+                .eventDate(eventDate)
+                .recordedByUserId(currentUser.getId())
+                .build());
+    }
+
     /** Pays money out of the safe for another record (a supplier payment); the caller audits that record. */
     @Transactional
     public CashEvent recordAutomaticCashOut(Long pumpId, BigDecimal amount, LocalDate eventDate, String description,

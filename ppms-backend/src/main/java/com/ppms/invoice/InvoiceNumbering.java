@@ -32,4 +32,9 @@ public final class InvoiceNumbering {
         }
         return number;
     }
+
+    /** CN/26-27/0001: a series of its own per pump and financial year, apart from the invoice numbers. */
+    public static String creditNoteNumber(String financialYear, int sequenceNumber) {
+        return "CN/" + financialYear.substring(2) + "/" + String.format("%04d", sequenceNumber);
+    }
 }
