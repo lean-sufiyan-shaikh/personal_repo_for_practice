@@ -41,6 +41,8 @@ interface SettingsText {
   safeCountCutoff: string
   testVolume: string
   maxTestLitres: string
+  /** 'true' or 'false', kept as text like every other setting while it is edited. */
+  blindCashCount: string
 }
 
 function textOf(pump: PumpSummary): SettingsText {
@@ -54,6 +56,7 @@ function textOf(pump: PumpSummary): SettingsText {
     safeCountCutoff: pump.safeCountCutoffTime?.slice(0, 5) ?? DEFAULT_SAFE_COUNT_CUTOFF,
     testVolume: String(pump.testVolumeLitres ?? DEFAULT_TEST_VOLUME_LITRES),
     maxTestLitres: String(pump.maxTestLitresPerNozzle ?? DEFAULT_MAX_TEST_LITRES_PER_NOZZLE),
+    blindCashCount: String(pump.blindCashCount ?? true),
   }
 }
 
@@ -114,6 +117,7 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
     if (values.safeCountCutoff !== saved.safeCountCutoff) req.safeCountCutoffTime = values.safeCountCutoff
     if (values.testVolume !== saved.testVolume) req.testVolumeLitres = Number(values.testVolume)
     if (values.maxTestLitres !== saved.maxTestLitres) req.maxTestLitresPerNozzle = Number(values.maxTestLitres)
+    if (values.blindCashCount !== saved.blindCashCount) req.blindCashCount = values.blindCashCount === 'true'
     mutation.mutate(req)
   }
 
@@ -140,6 +144,14 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
               onChange={(e) => change('roundingTolerance', e.target.value)} />
           </FormField>
         </FormGrid>
+        <label className="mt-3 flex items-start gap-2 text-sm text-ink">
+          <input type="checkbox" checked={values.blindCashCount === 'true'}
+            onChange={(e) => change('blindCashCount', String(e.target.checked))} />
+          <span>
+            <span className="block font-medium">{t('settings.blindCountLabel')}</span>
+            <span className="block text-xs text-ink-3">{t('settings.blindCountHelp')}</span>
+          </span>
+        </label>
       </SetupFormGroup>
 
       <SetupFormGroup icon={Clock} title={t('settings.graceTitle')} hint={t('settings.graceExplanation')}>

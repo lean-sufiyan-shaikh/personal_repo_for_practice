@@ -15,8 +15,9 @@ import { CashEventList } from './CashEventList'
 import { useCashEvents } from './useCashEvents'
 import { SafeTab } from './safe/SafeTab'
 import { PettyCashTab } from './petty/PettyCashTab'
+import { StaffAdvancesTab } from './advances/StaffAdvancesTab'
 
-const TAB_IDS = ['movements', 'safe', 'petty'] as const
+const TAB_IDS = ['movements', 'safe', 'petty', 'advances'] as const
 
 /** The pump safe's balance and every cash movement, plus the Safe and Petty cash tabs; ?action=cash-entry opens the entry form. */
 export default function CashDrawerPage() {
@@ -39,6 +40,7 @@ export default function CashDrawerPage() {
     { id: 'movements', label: t('page.tabMovements') },
     { id: 'safe', label: t('page.tabSafe') },
     { id: 'petty', label: t('page.tabPetty') },
+    ...(canPerformAction('cash:give-advance', user?.role) ? [{ id: 'advances', label: t('page.tabAdvances') }] : []),
   ]
 
   return (
@@ -63,6 +65,10 @@ export default function CashDrawerPage() {
       ) : activeTab === 'petty' ? (
         <div key={activeTab} className="ui-tab-content">
           <PettyCashTab pumpId={pumpId} canManage={canManageSafe} canSetFloat={canSetPettyFloat} />
+        </div>
+      ) : activeTab === 'advances' ? (
+        <div key={activeTab} className="ui-tab-content">
+          <StaffAdvancesTab pumpId={pumpId} />
         </div>
       ) : activeTab === 'safe' ? (
         <div key={activeTab} className="ui-tab-content">

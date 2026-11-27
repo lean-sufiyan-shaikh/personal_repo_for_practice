@@ -9,8 +9,8 @@ import { formatCurrency } from '../../../utils/format'
 
 // ── Active shift row ──────────────────────────────────────────────────────────
 
-export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
-  shift: Shift; onClose?: () => void; onHandOver?: () => void; onAddCredit: () => void
+export function ShiftRow({ shift, onClose, onHandOver, onAddCredit, onOperations }: {
+  shift: Shift; onClose?: () => void; onHandOver?: () => void; onAddCredit: () => void; onOperations?: () => void
 }) {
   const { t } = useTranslation(['shifts', 'common'])
   const startTime = formatIstDateTime(shift.actualStartTime, { hour: '2-digit', minute: '2-digit' })
@@ -28,6 +28,13 @@ export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
       </td>
       <td className="px-6 py-3 text-ink-2">
         {shift.operatorName}
+        {(shift.otherOperators ?? []).some((other) => other.active) && (
+          <span className="block text-xs text-ink-3">
+            {t('operations.alsoOnShift', {
+              names: (shift.otherOperators ?? []).filter((other) => other.active).map((other) => other.operatorName).join(', '),
+            })}
+          </span>
+        )}
         <span className="block md:hidden text-xs text-ink-3">
           {[shift.shiftWindow, t('active.startedTime', { time: startTime }), prices].filter(Boolean).join(' · ')}
         </span>
@@ -47,6 +54,11 @@ export function ShiftRow({ shift, onClose, onHandOver, onAddCredit }: {
             <Plus size={12} strokeWidth={2.5} />
             <span>{t('active.credit')}</span>
           </button>
+          {onOperations && (
+            <button onClick={onOperations} className="ui-btn ui-btn-secondary ui-btn-compact">
+              {t('operations.open')}
+            </button>
+          )}
           {onHandOver && shift.status === 'OPEN' && (
             <button
               onClick={onHandOver}

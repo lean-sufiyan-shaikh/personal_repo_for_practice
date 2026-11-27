@@ -21,6 +21,7 @@ import { AllShiftsHistory } from './history/AllShiftsHistory'
 import { DayViewHistory } from './history/DayViewHistory'
 import { DiscrepanciesHistory } from './history/DiscrepanciesHistory'
 import { AddCreditEntryModal } from './modals/AddCreditEntryModal'
+import { ShiftOperationsModal } from './operations/ShiftOperationsModal'
 import { DataTable } from '../../components/DataTable'
 import type { DataTableColumn } from '../../components/DataTable'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -92,6 +93,7 @@ export default function ShiftsPage() {
   const [shiftToClose,      setShiftToClose]      = useState<Shift | null>(null)
   const [shiftToHandOver,   setShiftToHandOver]   = useState<Shift | null>(null)
   const [shiftIdForCredit,  setShiftIdForCredit]  = useState<number | null>(null)
+  const [shiftIdForOperations, setShiftIdForOperations] = useState<number | null>(null)
   const [closedShiftPrefill, setClosedShiftPrefill] = useState<{ duId: number; nozzleIds: number[] } | null>(null)
   const historyFilters = useHistoryFilters()
   const historyTab = historyFilters.tab === 'discrepancies' && !canViewDiscrepancies ? 'day' : historyFilters.tab
@@ -144,6 +146,7 @@ export default function ShiftsPage() {
 
   const selectedPump = rawPumps.find((p) => p.id === pumpId)
   const shiftForCredit = activeShifts.find((shift) => shift.id === shiftIdForCredit) ?? null
+  const shiftForOperations = activeShifts.find((shift) => shift.id === shiftIdForOperations) ?? null
   const closeOpenShiftModal = () => {
     openShiftAction.remove()
     setClosedShiftPrefill(null)
@@ -219,6 +222,7 @@ export default function ShiftsPage() {
                     onClose={canCloseShift ? () => setShiftToClose(shift) : undefined}
                     onHandOver={canCloseShift ? () => setShiftToHandOver(shift) : undefined}
                     onAddCredit={() => setShiftIdForCredit(shift.id)}
+                    onOperations={canCloseShift ? () => setShiftIdForOperations(shift.id) : undefined}
                   />
                 )}
               />
@@ -278,6 +282,9 @@ export default function ShiftsPage() {
           onClose={() => setShiftToHandOver(null)}
           handoverActiveShifts={activeShifts}
         />
+      )}
+      {shiftForOperations && (
+        <ShiftOperationsModal shift={shiftForOperations} onClose={() => setShiftIdForOperations(null)} />
       )}
       {shiftForCredit && (
         <AddCreditEntryModal

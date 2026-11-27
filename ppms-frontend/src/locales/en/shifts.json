@@ -723,5 +723,97 @@
       "title": "Litres by nozzle",
       "line": "Meter {{meter}} · Test returned {{test}} · Sold {{sold}}"
     }
+  },
+  "blindCount": {
+    "title": "Count the cash",
+    "help": "Count the cash in the bag and the UPI, card and fleet card totals. The amount the shift should have taken is shown only after the count is saved.",
+    "lockedNote": "Once saved, the count cannot be changed; the shift closes with it.",
+    "save": "Save the count",
+    "saving": "Saving…",
+    "saveFailed": "Could not save the count. Please try again.",
+    "saved": "Count saved",
+    "countedTitle": "Counted blind",
+    "countedBy": "Counted by {{name}} at {{time}}",
+    "usedAtClose": "These figures were counted before the expected amount was shown, so they are used as they are."
+  },
+  "operations": {
+    "title": "Operators and breaks",
+    "open": "Operators",
+    "alsoOnShift": "Also: {{names}}",
+    "loadFailed": "Could not load who works this shift.",
+    "saving": "Saving…",
+    "meterReading": "Meter reading now",
+    "note": "Note (optional)",
+    "roles": {
+      "SHIFT_OPERATOR": "Shift operator",
+      "ADDITIONAL": "Added",
+      "RELIEF": "Relief"
+    },
+    "operators": {
+      "title": "On this shift",
+      "nozzles": "Nozzles {{nozzles}}",
+      "noNozzles": "No nozzle now",
+      "onBreak": "On break",
+      "remove": "Remove",
+      "addLabel": "Add an operator",
+      "choose": "Choose…",
+      "add": "Add",
+      "addFailed": "Could not add the operator.",
+      "removeFailed": "Could not remove the operator."
+    },
+    "swap": {
+      "title": "Move a nozzle",
+      "help": "Litres before the reading stay with the operator who had the nozzle; litres after it go to the new operator.",
+      "nozzle": "Nozzle",
+      "toOperator": "Move to",
+      "heldBy": "Now worked by {{name}}",
+      "save": "Move nozzle",
+      "failed": "Could not move the nozzle."
+    },
+    "relief": {
+      "title": "Break",
+      "running": "{{relieved}} is on a break; {{reliever}} is covering.",
+      "relieved": "Operator going on break",
+      "reliever": "Relief operator",
+      "readings": "Meter readings now",
+      "cashOver": "Cash handed to the relief operator (optional)",
+      "cashBack": "Cash handed back (optional)",
+      "start": "Start break",
+      "end": "End break",
+      "startFailed": "Could not start the break.",
+      "endFailed": "Could not end the break."
+    },
+    "timeline": {
+      "title": "Timeline",
+      "reading": "#{{number}} at {{reading}}",
+      "cash": "Cash {{amount}}",
+      "events": {
+        "SHIFT_OPENED": "Shift opened for {{name}}",
+        "OPERATOR_JOINED": "{{name}} joined the shift",
+        "OPERATOR_LEFT": "{{name}} left the shift",
+        "NOZZLE_SWAPPED": "Nozzle moved from {{name}} to {{other}}",
+        "RELIEF_STARTED": "{{name}} went on a break; {{other}} took over",
+        "RELIEF_ENDED": "{{name}} came back from the break; {{other}} handed back",
+        "BLIND_COUNTED": "Collections counted blind by {{name}}",
+        "SHIFT_CLOSED": "Shift closed"
+      }
+    },
+    "shares": {
+      "title": "By operator",
+      "operator": "Operator",
+      "litres": "Litres",
+      "due": "Due",
+      "collected": "Handed in",
+      "difference": "Difference",
+      "combined": "Combined",
+      "notSplit": "The collections were not split by operator at close."
+    },
+    "split": {
+      "title": "Collections by operator",
+      "add": "Split by operator",
+      "remove": "Don't split",
+      "help": "Optional. Cash includes any cash drops. Each column must add up to the shift's own figure.",
+      "splitTotal": "{{label}} total"
+    }
   }
 }

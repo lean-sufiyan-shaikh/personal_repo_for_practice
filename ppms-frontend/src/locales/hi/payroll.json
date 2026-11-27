@@ -94,6 +94,7 @@
     },
     "deletePrompt": "यह ड्राफ्ट हटाएँ? रिकॉर्ड हमेशा के लिए हट जाएगा।",
     "openingDeductions": "पिछले वेतन से आगे लाई गई कटौती",
+    "advanceRecovered": "अग्रिम की वसूली",
     "toCarryForward": "{{amount}} की कटौती वेतन से ज़्यादा है; अगला वेतन इसे लेगा।",
     "carriedForward": "{{amount}} की कटौती अगले वेतन में ले जाई गई।",
     "paidOn": "{{date}} को भुगतान हुआ",

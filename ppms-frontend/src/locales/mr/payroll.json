@@ -94,6 +94,7 @@
     },
     "deletePrompt": "हा मसुदा हटवायचा? नोंद कायमची काढली जाईल.",
     "openingDeductions": "आधीच्या पगारातून पुढे आणलेली कपात",
+    "advanceRecovered": "उचलीची वसुली",
     "toCarryForward": "{{amount}} ची कपात पगारापेक्षा जास्त आहे; पुढचा पगार ती घेईल.",
     "carriedForward": "{{amount}} ची कपात पुढच्या पगारात नेली.",
     "paidOn": "{{date}} रोजी दिला",

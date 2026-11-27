@@ -7,7 +7,7 @@ import { formatIstDateTime } from '../../../utils/date'
 export function BlindCountSummary({ count }: { count: BlindCount }) {
   const { t } = useTranslation(['shifts', 'common'])
   const figures = [
-    { label: t('blindCount.cash'), value: count.cashCollected },
+    { label: t('close.payment.cashInBag'), value: count.cashCollected },
     { label: t('close.payment.upi'), value: count.upiCollected },
     { label: t('close.payment.card'), value: count.cardCollected },
     { label: t('close.payment.fleetCard'), value: count.fleetCardCollected },

@@ -29,6 +29,12 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   SHIFT_AMENDED:                      'warn',
   DISCREPANCY_RESOLVED:               'warn',
   DISCREPANCY_INVESTIGATION_STARTED:  'warn',
+  BLIND_CASH_COUNTED:                 'info',
+  SHIFT_OPERATOR_ADDED:               'info',
+  SHIFT_OPERATOR_REMOVED:             'neutral',
+  NOZZLE_SWAPPED:                     'info',
+  RELIEF_STARTED:                     'info',
+  RELIEF_ENDED:                       'neutral',
   // Credit management
   CREDIT_ENTRY_VOIDED:                'bad',
   CREDIT_LIMIT_CHANGED:               'warn',
@@ -67,6 +73,8 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   PAYROLL_DELETED:                    'bad',
   PAYROLL_PAID:                       'ok',
   PAYROLL_RETURNED_TO_DRAFT:          'warn',
+  STAFF_ADVANCE_GIVEN:                'warn',
+  STAFF_ADVANCE_VOIDED:               'bad',
   // Pump management
   PUMP_CREATED:                       'info',
   PUMP_DELETED:                       'bad',

@@ -51,7 +51,7 @@ export function BlindCountForm({ shift, onCounted }: Props) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-ink-2">{t('blindCount.help')}</p>
-      <CashCountField label={t('blindCount.cash')} amount={cash} onAmountChange={setCash} counts={cashCounts}
+      <CashCountField label={t('close.payment.cashInBag')} amount={cash} onAmountChange={setCash} counts={cashCounts}
         onCountsChange={setCashCounts} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <PaymentField label={t('close.payment.upi')} value={upi} onChange={setUpi} />

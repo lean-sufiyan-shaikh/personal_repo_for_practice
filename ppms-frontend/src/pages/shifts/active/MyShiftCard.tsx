@@ -7,14 +7,17 @@ import { formatCurrency } from '../../../utils/format'
 import { formatIstDateTime } from '../../../utils/date'
 import { timeOpen } from '../../dashboard/overview/overviewFormat'
 import { ShiftDropsList } from '../drops/ShiftDropsList'
+import { BlindCountSummary } from '../operations/BlindCountSummary'
 
 interface MyShiftCardProps {
   shift: Shift
   currentPrices: FuelPrice[]
   now: number
+  onCountCash: () => void
+  onBreak: () => void
 }
 
-export function MyShiftCard({ shift, currentPrices, now }: MyShiftCardProps) {
+export function MyShiftCard({ shift, currentPrices, now, onCountCash, onBreak }: MyShiftCardProps) {
   const { t } = useTranslation('shifts')
   const isOverdue = shift.status === 'OPEN_OVERDUE'
   const fuelTypes = [...new Set(shift.nozzles.map((nozzle) => nozzle.fuelType))]
@@ -79,6 +82,14 @@ export function MyShiftCard({ shift, currentPrices, now }: MyShiftCardProps) {
             )
           })}
         </ul>
+      </div>
+
+      {shift.blindCount && <BlindCountSummary count={shift.blindCount} />}
+      <div className="flex flex-wrap gap-2">
+        {shift.blindCountRequired && !shift.blindCount && (
+          <button type="button" onClick={onCountCash} className="ui-btn ui-btn-secondary">{t('blindCount.title')}</button>
+        )}
+        <button type="button" onClick={onBreak} className="ui-btn ui-btn-secondary">{t('operations.relief.title')}</button>
       </div>
 
       <ShiftDropsList pumpId={shift.pumpId} shiftId={shift.id} />

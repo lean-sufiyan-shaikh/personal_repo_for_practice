@@ -33,6 +33,8 @@ export interface PayrollRecord {
   uncoveredDeductions: number
   /** Deductions earlier payroll could not take, brought into this one. */
   openingDeductions: number
+  /** Cash advances taken back from this payroll; already taken off net pay. */
+  advanceRecovered?: number
   /** The payroll this record's uncovered deductions were carried into. */
   carriedToPayrollId: number | null
   notes: string | null

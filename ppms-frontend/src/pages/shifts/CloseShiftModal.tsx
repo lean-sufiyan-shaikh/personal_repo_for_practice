@@ -103,12 +103,12 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   const [endReadings, setEndReadings] = useState<Record<number, string>>(() =>
     ({ ...emptyEndReadings(shift), ...restoredDraft?.values.endReadings })
   )
-  const [cash,              setCash]              = useState(() => restoredDraft?.values.cash ?? '')
+  const [typedCash,         setCash]              = useState(() => restoredDraft?.values.cash ?? '')
   const [cashCounts,        setCashCounts]        = useState<DenominationCounts | null>(() =>
     restoredDraft ? restoredDraft.values.cashCounts ?? null : EMPTY_COUNTS)
-  const [upi,               setUpi]               = useState(() => restoredDraft?.values.upi ?? '')
-  const [card,              setCard]              = useState(() => restoredDraft?.values.card ?? '')
-  const [fleetCard,         setFleetCard]         = useState(() => restoredDraft?.values.fleetCard ?? '')
+  const [typedUpi,          setUpi]               = useState(() => restoredDraft?.values.upi ?? '')
+  const [typedCard,         setCard]              = useState(() => restoredDraft?.values.card ?? '')
+  const [typedFleetCard,    setFleetCard]         = useState(() => restoredDraft?.values.fleetCard ?? '')
   const [discrepancyReason, setDiscrepancyReason] = useState(() => restoredDraft?.values.discrepancyReason ?? '')
   const [testLitres,        setTestLitres]        = useState<Record<number, string>>(() => restoredDraft?.values.testLitres ?? {})
   const [testLitresNote,    setTestLitresNote]    = useState(() => restoredDraft?.values.testLitresNote ?? '')
@@ -166,14 +166,10 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   // A blind count locks the collections: they are counted before any expected figure is shown, then used as they are.
   const blindCount = latestShift.blindCount ?? null
   const needsBlindCount = (latestShift.blindCountRequired ?? false) && blindCount === null
-  useEffect(() => {
-    if (!blindCount) return
-    setCash(String(blindCount.cashCollected))
-    setCashCounts(null)
-    setUpi(String(blindCount.upiCollected))
-    setCard(String(blindCount.cardCollected))
-    setFleetCard(String(blindCount.fleetCardCollected))
-  }, [blindCount])
+  const cash = blindCount ? String(blindCount.cashCollected) : typedCash
+  const upi = blindCount ? String(blindCount.upiCollected) : typedUpi
+  const card = blindCount ? String(blindCount.cardCollected) : typedCard
+  const fleetCard = blindCount ? String(blindCount.fleetCardCollected) : typedFleetCard
   const [operatorSplit, setOperatorSplit] = useState<OperatorCollectionRows>({})
 
   const availableFuelTypes = shift.fuelReadings.map((r) => r.fuelType)

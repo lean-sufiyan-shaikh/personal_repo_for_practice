@@ -18,6 +18,7 @@ import { HandoverReportPanel } from '../modals/HandoverReportPanel'
 import { ResolveDiscrepancyModal } from '../modals/ResolveDiscrepancyModal'
 import { ShiftCloseFacts } from './ShiftCloseFacts'
 import { ShiftLitresByNozzle } from './ShiftLitresByNozzle'
+import { ShiftOperationsDetail } from '../operations/ShiftOperationsDetail'
 import { awaitingOwnerApprovalLabel, discrepancyAction, investigationLabel } from '../shiftLabels'
 
 const TIME = { hour: '2-digit', minute: '2-digit' } as const
@@ -109,6 +110,8 @@ export function ShiftDetail({ pumpId, shiftId }: { pumpId: number; shiftId: numb
       )}
 
       <ShiftCloseFacts shift={shift} />
+
+      <ShiftOperationsDetail shift={shift} />
 
       {shift.creditEntries.length > 0 && (
         <section aria-labelledby={`shift-credit-${shift.id}`}>

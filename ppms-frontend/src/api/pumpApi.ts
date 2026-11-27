@@ -33,6 +33,8 @@ export interface PumpSummary {
   testVolumeLitres?: number
   /** Test litres above this on one nozzle in one shift need a note; 10 L by default. */
   maxTestLitresPerNozzle?: number
+  /** The collections are counted and locked before the expected amount is shown; on by default. */
+  blindCashCount?: boolean
   dus: DUOption[]
 }
 
@@ -53,6 +55,7 @@ export interface UpdatePumpSettingsRequest {
   roundingTolerance?: number
   testVolumeLitres?: number
   maxTestLitresPerNozzle?: number
+  blindCashCount?: boolean
 }
 
 export interface CreatePumpRequest {

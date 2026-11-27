@@ -94,6 +94,7 @@
     },
     "deletePrompt": "Delete this draft? The record is removed for good.",
     "openingDeductions": "Carried from earlier payroll",
+    "advanceRecovered": "Advance recovered",
     "toCarryForward": "{{amount}} of deductions is more than the pay; the next payroll takes it.",
     "carriedForward": "{{amount}} of deductions was carried into the next payroll.",
     "paidOn": "Paid on {{date}}",

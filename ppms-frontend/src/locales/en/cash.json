@@ -18,7 +18,8 @@
     "views": "Cash views",
     "tabMovements": "Movements",
     "tabSafe": "Safe",
-    "tabPetty": "Petty cash"
+    "tabPetty": "Petty cash",
+    "tabAdvances": "Staff advances"
   },
   "list": {
     "title": "Cash Events",
@@ -237,5 +238,30 @@
     "toleranceLabel": "Count tolerance",
     "settingsSaved": "Petty cash float saved",
     "settingsFailed": "Could not save the petty cash float"
+  },
+  "advances": {
+    "help": "Cash given to staff before payday. It leaves the safe now and is taken back from their next payroll.",
+    "give": "Give advance",
+    "giveTitle": "Give a cash advance",
+    "giveSubtitle": "The cash leaves the safe on the advance date.",
+    "staff": "Staff member",
+    "chooseStaff": "Choose…",
+    "amount": "Amount",
+    "date": "Advance date",
+    "note": "Note (optional)",
+    "saving": "Saving…",
+    "given": "Advance of {{amount}} given to {{name}}",
+    "giveFailed": "Could not give the advance.",
+    "loadFailed": "Could not load the advances.",
+    "outstandingTitle": "Still to recover",
+    "empty": "No advances given yet.",
+    "line": "{{date}} · given by {{by}}",
+    "voidedBecause": "Voided: {{reason}}",
+    "voided": "Voided",
+    "outstanding": "Outstanding",
+    "void": "Void",
+    "voidTitle": "Void advance",
+    "voidSubtitle": "The cash goes back into the safe. Advance to {{name}}.",
+    "voidFailed": "Could not void the advance."
   }
 }

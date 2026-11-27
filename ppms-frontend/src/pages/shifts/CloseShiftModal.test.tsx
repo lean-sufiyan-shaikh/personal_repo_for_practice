@@ -17,7 +17,7 @@ import CloseShiftModal from './CloseShiftModal'
 
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn(), getMyPumps: vi.fn() } }))
 vi.mock('../../api/shiftApi', () => ({
-  shiftApi: { closeShift: vi.fn(), createHandover: vi.fn(), voidCreditEntry: vi.fn(), getShift: vi.fn() },
+  shiftApi: { closeShift: vi.fn(), createHandover: vi.fn(), voidCreditEntry: vi.fn(), getShift: vi.fn(), recordBlindCount: vi.fn() },
 }))
 vi.mock('../../api/userApi', () => ({ userApi: { getOperators: vi.fn() } }))
 vi.mock('../../api/cashApi', () => ({ cashApi: { getShiftDrops: vi.fn(), confirmDrop: vi.fn(), rejectDrop: vi.fn() } }))
@@ -714,5 +714,35 @@ describe('CloseShiftModal drafts', () => {
     await waitFor(() => expect(warn).toHaveBeenCalledWith(expect.stringContaining('Could not save the draft'), expect.any(Error)))
     setItem.mockRestore()
     warn.mockRestore()
+  })
+
+  it('asks for the blind count before showing any reading or expected amount, then closes with the counted figures', async () => {
+    const user = userEvent.setup()
+    const blindShift = { ...shift, blindCountRequired: true, blindCount: null }
+    const counted = {
+      ...blindShift,
+      blindCount: { cashCollected: 900, cashDenominations: null, upiCollected: 100, cardCollected: 0, fleetCardCollected: 0,
+        countedAt: '2026-03-15T08:00:00Z', countedByName: 'Ravi' },
+    }
+    vi.mocked(shiftApi.getShift).mockResolvedValue(blindShift)
+    vi.mocked(shiftApi.recordBlindCount).mockResolvedValue(counted)
+    renderWithProviders(<CloseShiftModal shift={blindShift} onClose={vi.fn()} />)
+
+    expect(screen.queryByLabelText('Nozzle #1 · Petrol end reading')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Review close' })).toBeDisabled()
+    await user.type(await cashTotalField(user, 'Cash in bag (₹)'), '900')
+    await user.type(screen.getByLabelText('UPI (₹)'), '100')
+    vi.mocked(shiftApi.getShift).mockResolvedValue(counted)
+    await user.click(screen.getByRole('button', { name: 'Save the count' }))
+
+    expect(shiftApi.recordBlindCount).toHaveBeenCalledWith(3, 11,
+      expect.objectContaining({ cashCollected: 900, upiCollected: 100, cardCollected: 0, fleetCardCollected: 0 }))
+    await user.type(await screen.findByLabelText('Nozzle #1 · Petrol end reading'), '1010')
+    expect(screen.queryByLabelText('UPI (₹)')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Review close' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm close' }))
+
+    expect(shiftApi.closeShift).toHaveBeenCalledWith(3, 11,
+      expect.objectContaining({ cashCollected: 900, upiCollected: 100, cardCollected: 0, fleetCardCollected: 0 }), expect.any(String))
   })
 })

@@ -122,6 +122,15 @@ export function PayrollRecordCard({
             <MoneyText value={-r.openingDeductions} showSign tone="bad" className="font-medium" />
           </div>
         )}
+        {(r.advanceRecovered ?? 0) > 0 && (
+          <div className="flex items-center justify-between px-3 py-2 bg-bad-bg">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-bad shrink-0" />
+              <span className="text-ink-3">{t('group.advanceRecovered')}</span>
+            </div>
+            <MoneyText value={-(r.advanceRecovered ?? 0)} showSign tone="bad" className="font-medium" />
+          </div>
+        )}
       </div>
 
       {r.uncoveredDeductions > 0 && (

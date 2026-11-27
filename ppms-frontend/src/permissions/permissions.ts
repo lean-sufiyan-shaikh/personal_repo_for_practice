@@ -76,6 +76,10 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'shift:add-credit-entry':        ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
   'shift:void-credit-entry':       ['OWNER', 'ADMIN', 'MANAGER'],
   'shift:resolve-discrepancy':     ['OWNER', 'ADMIN', 'MANAGER'],
+  'shift:manage-operators':        ['OWNER', 'ADMIN', 'MANAGER'],
+  // Operators count their own collections and start their own breaks.
+  'shift:blind-count':             ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
+  'shift:relief':                  ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
   // Operators only see their own shifts, so the pump-wide discrepancy view is not theirs.
   'shift:view-discrepancies':      ['OWNER', 'ADMIN', 'MANAGER'],
 
@@ -132,6 +136,7 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'cash:record-opening-balance':   ['OWNER', 'ADMIN'],
   'cash:reverse-event':            ['OWNER', 'ADMIN'],
   'cash:set-petty-float':          ['OWNER', 'ADMIN'],
+  'cash:give-advance':             ['OWNER', 'ADMIN', 'MANAGER'],
 
   // Calibration
   'calibration:add':               ['OWNER', 'ADMIN'],

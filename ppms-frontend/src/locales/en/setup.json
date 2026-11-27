@@ -86,6 +86,8 @@
     "safeCutoffInvalid": "Enter a time of day.",
     "effectAll": "₹0: every shortage or overage needs Owner or Admin to resolve.",
     "roundingLabel": "Rounding allowance",
+    "blindCountLabel": "Count cash blind at close",
+    "blindCountHelp": "The collections are counted and locked before the amount the shift should have taken is shown.",
     "roundingEffect": "A shift up to {{amount}} short or over closes balanced; the difference is kept as rounding.",
     "roundingInvalid": "Enter an amount from ₹0 to {{max}}.",
     "graceTitle": "Opening a shift early",
