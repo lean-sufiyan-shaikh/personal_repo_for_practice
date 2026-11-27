@@ -93,6 +93,7 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'credit:manage-interest':        ['OWNER', 'ADMIN'],
   'credit:apply-interest':         ['OWNER', 'ADMIN', 'MANAGER'],
   'credit:approve-payment':        ['OWNER', 'ADMIN'],
+  'credit:reverse-payment':        ['OWNER', 'ADMIN'],
   'credit:grant-extension':        ['OWNER', 'ADMIN'],
   'credit:reassign':               ['OWNER', 'ADMIN', 'MANAGER'],
   'credit:waive-interest':         ['OWNER', 'ADMIN'],

@@ -26,7 +26,7 @@ export function buildWeekGroups<T extends CreditTransaction>(txs: T[]): Array<{ 
 function detailText(tx: CreditTransaction): string {
   if (!tx.detail) return '—'
   if (tx.type === 'SALE') return tx.detail in FUEL_LABELS ? codeLabel(tx.detail) : tx.detail
-  if (tx.type === 'PAYMENT') return codeLabel(tx.detail)
+  if (tx.type === 'PAYMENT' || tx.type === 'PAYMENT_REVERSAL') return codeLabel(tx.detail)
   return tx.detail
 }
 
@@ -40,5 +40,7 @@ export function signedEntryAmount(tx: CreditTransaction): number {
 }
 
 export function entryAmountClass(tx: CreditTransaction): string {
-  return tx.type === 'PAYMENT' ? 'text-ok' : tx.type === 'INTEREST' ? 'text-info' : 'text-warn'
+  if (tx.type === 'PAYMENT') return 'text-ok'
+  if (tx.type === 'INTEREST') return 'text-info'
+  return tx.type === 'PAYMENT_REVERSAL' || tx.type === 'BOUNCE_CHARGE' ? 'text-bad' : 'text-warn'
 }

@@ -108,6 +108,7 @@
     "COLLECTION_SETTINGS_UPDATED": "वसुली सेटिंग बदलली",
     "CLIENT_VEHICLE_SAVED": "क्रेडिट वाहन जतन केले",
     "CLIENT_VEHICLE_STATUS_CHANGED": "क्रेडिट वाहन सुरू किंवा बंद केले",
-    "VEHICLE_CHECK_CHANGED": "वाहन तपासणी बदलली"
+    "VEHICLE_CHECK_CHANGED": "वाहन तपासणी बदलली",
+    "CREDIT_PAYMENT_REVERSED": "क्रेडिट पेमेंट उलटवले"
   }
 }

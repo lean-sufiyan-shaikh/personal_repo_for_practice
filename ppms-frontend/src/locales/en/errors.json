@@ -399,5 +399,15 @@
   "VEHICLE_NOT_APPROVED": "Vehicle {{registration}} is not on '{{clientName}}''s approved list, so it cannot take credit. Ask a manager to add it on the client's Vehicles tab.",
   "VEHICLE_FUEL_NOT_ALLOWED": "Vehicle {{registration}} may not take {{fuelType}} on credit.",
   "VEHICLE_MONTHLY_LITRE_LIMIT_EXCEEDED": "Vehicle {{registration}} has used {{used}} L of its monthly limit of {{limit}} L; this entry of {{requested}} L is more than the {{left}} L left.",
-  "VEHICLE_MONTHLY_AMOUNT_LIMIT_EXCEEDED": "Vehicle {{registration}} has used ₹{{used}} of its monthly limit of ₹{{limit}}; this entry of ₹{{requested}} is more than the ₹{{left}} left."
+  "VEHICLE_MONTHLY_AMOUNT_LIMIT_EXCEEDED": "Vehicle {{registration}} has used ₹{{used}} of its monthly limit of ₹{{limit}}; this entry of ₹{{requested}} is more than the ₹{{left}} left.",
+  "CREDIT_PAYMENT_ALREADY_REVERSED": "This payment has already been reversed.",
+  "CREDIT_PAYMENT_NOT_REVERSIBLE": "Only an approved payment can be reversed; this one is {{statusCode}}. Reject a payment that is still waiting for approval.",
+  "CREDIT_PAYMENT_REVERSAL_REASON_REQUIRED": "A reason is required to reverse a payment.",
+  "CREDIT_PAYMENT_MATCHED_TO_BANK_LINE": "This payment is matched to a bank statement line. Unmatch it in bank reconciliation first.",
+  "CREDIT_PAYMENT_REFERENCE_REQUIRED": "A {{modeCode}} payment needs its reference (UTR, transaction ID or cheque number).",
+  "CREDIT_PAYMENT_POSSIBLE_DUPLICATE": "Possible duplicate: a payment with reference {{referenceNo}} (₹{{amount}}, dated {{paidAt}}) was already recorded in the last 90 days. Check it, then record again to confirm.",
+  "CREDIT_PAYMENT_CHEQUE_DETAILS_NOT_CHEQUE": "Cheque bank and cheque date can only be given for a cheque payment.",
+  "CREDIT_PAYMENT_CHEQUE_NOT_DUE": "This cheque is dated {{chequeDate}}, so it can be approved from that date.",
+  "BACKDATED_PAYMENT_DAYS_OUT_OF_RANGE": "Back-dated payment days must be from 0 to {{maxDays}}.",
+  "CREDIT_PAYMENT_THRESHOLD_INVALID": "The credit payment approval amount must be more than ₹0 and at most ₹{{maxAmount}}, in rupees and paise, or empty for no limit."
 }

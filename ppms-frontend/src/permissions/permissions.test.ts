@@ -94,6 +94,9 @@ describe('canPerformAction', () => {
     ['credit:apply-interest', 'MANAGER', true],
     ['credit:waive-interest', 'OWNER', true],
     ['credit:waive-interest', 'MANAGER', false],
+    ['credit:reverse-payment', 'OWNER', true],
+    ['credit:reverse-payment', 'ADMIN', true],
+    ['credit:reverse-payment', 'MANAGER', false],
   ])('%s for %s is %s', (action, role, expected) => {
     expect(canPerformAction(action, role)).toBe(expected)
   })

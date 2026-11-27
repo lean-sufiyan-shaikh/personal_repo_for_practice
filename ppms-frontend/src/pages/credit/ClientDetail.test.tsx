@@ -72,7 +72,7 @@ describe('ClientDetail pending payment approval', () => {
     signIn('OWNER', 1)
     await renderClient()
     await user.click(await screen.findByRole('button', { name: 'Approve' }))
-    expect(creditApi.approvePayment).toHaveBeenCalledWith(PUMP_ID, PAYMENT_ID, 'APPROVED', undefined)
+    expect(creditApi.approvePayment).toHaveBeenCalledWith(PUMP_ID, PAYMENT_ID, 'APPROVED', undefined, expect.any(String))
   })
 
   it('asks for a reason before rejecting the payment and sends it with the rejection', async () => {
@@ -88,7 +88,7 @@ describe('ClientDetail pending payment approval', () => {
 
     await user.type(within(dialog).getByLabelText(/Reason/), 'Cheque bounced')
     await user.click(within(dialog).getByRole('button', { name: 'Reject' }))
-    expect(creditApi.approvePayment).toHaveBeenCalledWith(PUMP_ID, PAYMENT_ID, 'REJECTED', 'Cheque bounced')
+    expect(creditApi.approvePayment).toHaveBeenCalledWith(PUMP_ID, PAYMENT_ID, 'REJECTED', 'Cheque bounced', expect.any(String))
   })
 
   it('hides Approve and Reject from the user who recorded the payment', async () => {

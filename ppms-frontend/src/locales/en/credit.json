@@ -273,7 +273,15 @@
     "overpaidBy": "More than owed by",
     "thisPayment": "This payment",
     "figuresLabel": "After this payment",
-    "notesHelp": "For example, the bank or UPI reference."
+    "notesHelp": "For example, the bank or UPI reference.",
+    "reference": "Reference (UTR / transaction ID)",
+    "referenceHelp": "Needed for UPI and bank transfer payments.",
+    "chequeNumber": "Cheque number",
+    "chequeBank": "Bank",
+    "chequeDate": "Cheque date",
+    "chequeDateHelp": "A cheque dated after today waits for approval until that date.",
+    "duplicateTitle": "Possible duplicate",
+    "recordAnyway": "Record anyway"
   },
   "ledger": {
     "history": "Ledger History",
@@ -309,7 +317,9 @@
     "move": "Move",
     "waiveLabel": "Waive this interest charge",
     "waive": "Waive",
-    "filtersLabel": "Ledger filters"
+    "filtersLabel": "Ledger filters",
+    "reverse": "Reverse",
+    "reverseLabel": "Reverse this payment"
   },
   "clientForm": {
     "updateFailed": "Failed to update client",
@@ -533,5 +543,22 @@
       "FUEL_NOT_ALLOWED": "Fuel not allowed",
       "OVER_MONTHLY_LIMIT": "Over monthly limit"
     }
+  },
+  "reversePayment": {
+    "title": "Reverse payment",
+    "explanation": "The payment stays on the ledger marked Reversed, and a reversal dated today puts its amount back on the account. Interest and overdue days are worked out again as if it had not been paid.",
+    "payment": "Payment",
+    "reason": "Reason",
+    "reasonPlaceholder": "For example, cheque bounced",
+    "bounceCharge": "Bounce or bank charge",
+    "bounceChargeHelp": "Added to the account as a separate charge. Leave empty if there is none.",
+    "invalidCharge": "Enter an amount above ₹0 with at most 2 decimals, or leave empty.",
+    "keep": "Keep payment",
+    "confirm": "Reverse payment",
+    "reversing": "Reversing…",
+    "reversed": "Payment reversed",
+    "failed": "Could not reverse the payment.",
+    "addedBack": "Added back to the account",
+    "reasonRequired": "A reason is required to reverse a payment"
   }
 }

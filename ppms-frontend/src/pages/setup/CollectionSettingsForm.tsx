@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { BellRing, QrCode } from 'lucide-react'
+import { BellRing, QrCode, ShieldCheck } from 'lucide-react'
 import { collectionApi } from '../../api/collectionApi'
 import { FormField } from '../../components/FormField'
 import { FormGrid } from '../../components/layout/FormGrid'
@@ -27,7 +27,7 @@ export function CollectionSettingsForm({ pumpId }: { pumpId: number }) {
   return <CollectionSettingsFields pumpId={pumpId} saved={textOf(settings)} />
 }
 
-/** Reminder stages, the credit hold and the UPI details used for pay links and QR codes. */
+/** Reminder stages, the credit hold, the UPI details used for pay links and QR codes, and credit payment approval. */
 function CollectionSettingsFields({ pumpId, saved }: { pumpId: number; saved: CollectionSettingsText }) {
   const { t } = useTranslation(['collections', 'common'])
   const qc = useQueryClient()
@@ -79,6 +79,18 @@ function CollectionSettingsFields({ pumpId, saved }: { pumpId: number; saved: Co
           </FormField>
           <FormField label={t('settings.payeeName')} error={errorOf('payeeName')}>
             <input value={values.payeeName} maxLength={100} onChange={(e) => change('payeeName', e.target.value)} />
+          </FormField>
+        </FormGrid>
+      </SetupFormGroup>
+      <SetupFormGroup icon={ShieldCheck} title={t('settings.paymentsTitle')} hint={t('settings.paymentsHint')}>
+        <FormGrid>
+          <FormField label={t('settings.paymentThreshold')} help={t('settings.paymentThresholdHelp')} error={errorOf('paymentThreshold')}>
+            <NumericInput unit="₹" min="0.01" step="0.01" value={values.paymentThreshold}
+              onChange={(e) => change('paymentThreshold', e.target.value)} />
+          </FormField>
+          <FormField label={t('settings.backdatedDays')} help={t('settings.backdatedDaysHelp')} error={errorOf('backdatedDays')}>
+            <NumericInput min="0" max="365" step="1" inputMode="numeric" value={values.backdatedDays}
+              onChange={(e) => change('backdatedDays', e.target.value)} />
           </FormField>
         </FormGrid>
       </SetupFormGroup>

@@ -64,8 +64,9 @@ export function useClientLedger(pumpId: number, clientId: number, canApprovePaym
     queryFn: () => creditApi.getPendingPayments(pumpId),
     enabled: canApprovePayments,
   })
+  // A post-dated cheque waits only for its date, so whoever recorded it may decide it: no recorder is kept for it.
   const pendingPaymentRecorders = useMemo(
-    () => new Map(pendingPayments.map(p => [p.id, p.recordedById])),
+    () => new Map(pendingPayments.map(p => [p.id, p.chequeDate !== null && p.chequeDate > p.paidAt ? null : p.recordedById])),
     [pendingPayments],
   )
 

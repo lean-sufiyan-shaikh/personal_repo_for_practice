@@ -130,7 +130,10 @@
     "shopSale": "Shop sale",
     "interest": "Interest",
     "paid": "Paid",
-    "overdue": "Overdue"
+    "overdue": "Overdue",
+    "reversed": "Reversed",
+    "paymentReversal": "Payment reversed",
+    "bounceCharge": "Bounce charge"
   },
   "passwordInput": {
     "show": "Show password"
@@ -153,7 +156,8 @@
     "FLEET_CARD": "Fleet Card",
     "CREDIT": "Credit",
     "BANK_TRANSFER": "Bank transfer",
-    "OTHER": "Other"
+    "OTHER": "Other",
+    "CHEQUE": "Cheque"
   },
   "notices": {
     "noPumpTitle": "No pump selected",

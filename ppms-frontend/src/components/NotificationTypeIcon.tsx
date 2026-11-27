@@ -1,7 +1,7 @@
 import {
   Droplets, AlertTriangle, FileText, Wrench,
   Clock, TrendingDown, IndianRupee, Package, Lock, Info, Truck, Vault, CalendarCheck, RotateCcw, MessageCircle,
-  BellRing, Handshake, Car, Radar, Landmark,
+  BellRing, Handshake, Car, Radar, Landmark, Undo2,
 } from 'lucide-react'
 import type { LucideProps } from 'lucide-react'
 
@@ -27,6 +27,7 @@ export function NotificationTypeIcon({ type }: { type: string }) {
     case 'CREDIT_REMINDERS_DUE':    return <BellRing      {...base} className="text-warn flex-shrink-0 mt-0.5" />
     case 'CREDIT_HOLD_PLACED':      return <Lock          {...base} className="text-bad flex-shrink-0 mt-0.5" />
     case 'CREDIT_PROMISE_MISSED':   return <Handshake     {...base} className="text-bad flex-shrink-0 mt-0.5" />
+    case 'CREDIT_PAYMENT_REVERSED': return <Undo2         {...base} className="text-bad flex-shrink-0 mt-0.5" />
     case 'VEHICLE_CREDIT_FLAGGED':  return <Car           {...base} className="text-warn flex-shrink-0 mt-0.5" />
     case 'LEAKAGE_RADAR_WEEKLY':    return <Radar         {...base} className="text-warn flex-shrink-0 mt-0.5" />
     case 'SETTLEMENT_OVERDUE':      return <Landmark      {...base} className="text-bad flex-shrink-0 mt-0.5" />

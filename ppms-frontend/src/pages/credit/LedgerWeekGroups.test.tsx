@@ -8,9 +8,9 @@ import type { LedgerRowActions } from './LedgerEntryActions'
 import { LedgerWeekGroups } from './LedgerWeekGroups'
 
 const actions: LedgerRowActions = {
-  canMoveEntries: false, canWaiveInterest: false, canApprovePayments: false, currentUserId: 1,
+  canMoveEntries: false, canWaiveInterest: false, canApprovePayments: false, canReversePayments: false, currentUserId: 1,
   pendingPaymentRecorders: new Map(), approvePayment: vi.fn(), onRejectPayment: vi.fn(), isApproving: false,
-  onMove: vi.fn(), onWaiveInterest: vi.fn(),
+  onMove: vi.fn(), onWaiveInterest: vi.fn(), onReversePayment: vi.fn(),
 }
 
 function row(overrides: Partial<CreditTransaction>): CreditTransaction {
@@ -139,6 +139,52 @@ describe('LedgerWeekGroups interest waiver', () => {
     )
 
     expect(screen.queryByRole('button', { name: 'Waive this interest charge' })).not.toBeInTheDocument()
+  })
+})
+
+describe('LedgerWeekGroups payment reversal', () => {
+  const reversedPaymentRows = [
+    row({ referenceId: 9, type: 'BOUNCE_CHARGE', amount: 250, runningBalance: 4250,
+      reference: 'Bounce charge for the payment of 2026-11-03', referenceCode: 'BOUNCE_CHARGE_DETAILS',
+      referenceParams: { paidAt: '2026-11-03' }, linkedReferenceId: 2 }),
+    row({ referenceId: 9, type: 'PAYMENT_REVERSAL', detail: 'CHEQUE', amount: 4000, runningBalance: 4000,
+      reference: 'Payment of 2026-11-03 reversed: Cheque bounced', referenceCode: 'PAYMENT_REVERSAL_DETAILS',
+      referenceParams: { paidAt: '2026-11-03', reason: 'Cheque bounced' }, linkedReferenceId: 2 }),
+    row({ referenceId: 2, type: 'PAYMENT', detail: 'CHEQUE', amount: 4000, runningBalance: 0, status: 'REVERSED', linkedReferenceId: 9 }),
+    row({ referenceId: 3, type: 'PAYMENT', detail: 'CASH', amount: 100, runningBalance: 4000, status: 'APPROVED' }),
+  ]
+
+  it('marks the reversed payment and lists its reversal and bounce charge as debits', () => {
+    render(<LedgerWeekGroups srcClientId={7} actions={actions} groups={[{ label: 'Week', items: reversedPaymentRows }]} />)
+
+    expect(screen.getByText('Reversed')).toBeInTheDocument()
+    expect(screen.getByText('Payment reversed')).toBeInTheDocument()
+    expect(screen.getByText('Bounce charge')).toBeInTheDocument()
+    expect(screen.getByText('Payment of 2026-11-03 reversed: Cheque bounced')).toBeInTheDocument()
+    expect(screen.getByText('+₹250.00').closest('td')).toHaveClass('text-bad')
+    expect(screen.getByText('+₹4,000.00').closest('td')).toHaveClass('text-bad')
+  })
+
+  it('offers Reverse only on approved payments to someone who may reverse them, and no Move on a reversed one', async () => {
+    const user = userEvent.setup()
+    const onReversePayment = vi.fn()
+    render(
+      <LedgerWeekGroups srcClientId={7}
+        actions={{ ...actions, canReversePayments: true, canMoveEntries: true, onReversePayment }}
+        groups={[{ label: 'Week', items: reversedPaymentRows }]} />,
+    )
+
+    const reverseButtons = screen.getAllByRole('button', { name: 'Reverse this payment' })
+    expect(reverseButtons).toHaveLength(1)
+    expect(screen.getAllByRole('button', { name: 'Move' })).toHaveLength(1)
+    await user.click(reverseButtons[0])
+    expect(onReversePayment).toHaveBeenCalledWith(expect.objectContaining({ referenceId: 3 }))
+  })
+
+  it('hides Reverse from a manager', () => {
+    render(<LedgerWeekGroups srcClientId={7} actions={actions} groups={[{ label: 'Week', items: reversedPaymentRows }]} />)
+
+    expect(screen.queryByRole('button', { name: 'Reverse this payment' })).not.toBeInTheDocument()
   })
 })
 

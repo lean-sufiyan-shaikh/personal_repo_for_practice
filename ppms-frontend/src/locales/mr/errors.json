@@ -399,5 +399,15 @@
   "VEHICLE_NOT_APPROVED": "वाहन {{registration}} '{{clientName}}' च्या मंजूर यादीत नाही, म्हणून क्रेडिट घेऊ शकत नाही. व्यवस्थापकाला ते ग्राहकाच्या वाहने टॅबवर जोडायला सांगा.",
   "VEHICLE_FUEL_NOT_ALLOWED": "वाहन {{registration}} ला क्रेडिटवर {{fuelType}} घेता येत नाही.",
   "VEHICLE_MONTHLY_LITRE_LIMIT_EXCEEDED": "वाहन {{registration}} ने आपल्या {{limit}} L मासिक मर्यादेपैकी {{used}} L वापरले आहे; ही {{requested}} L ची नोंद शिल्लक {{left}} L पेक्षा जास्त आहे.",
-  "VEHICLE_MONTHLY_AMOUNT_LIMIT_EXCEEDED": "वाहन {{registration}} ने आपल्या ₹{{limit}} मासिक मर्यादेपैकी ₹{{used}} वापरले आहे; ही ₹{{requested}} ची नोंद शिल्लक ₹{{left}} पेक्षा जास्त आहे."
+  "VEHICLE_MONTHLY_AMOUNT_LIMIT_EXCEEDED": "वाहन {{registration}} ने आपल्या ₹{{limit}} मासिक मर्यादेपैकी ₹{{used}} वापरले आहे; ही ₹{{requested}} ची नोंद शिल्लक ₹{{left}} पेक्षा जास्त आहे.",
+  "CREDIT_PAYMENT_ALREADY_REVERSED": "हे पेमेंट आधीच उलटवले आहे.",
+  "CREDIT_PAYMENT_NOT_REVERSIBLE": "फक्त मंजूर पेमेंटच उलटवता येते; हे {{statusCode}} आहे. मंजुरीच्या प्रतीक्षेतील पेमेंट नाकारा.",
+  "CREDIT_PAYMENT_REVERSAL_REASON_REQUIRED": "पेमेंट उलटवण्यासाठी कारण आवश्यक आहे.",
+  "CREDIT_PAYMENT_MATCHED_TO_BANK_LINE": "हे पेमेंट बँक स्टेटमेंटच्या एका ओळीशी जुळवले आहे. आधी बँक जुळवणीत ते वेगळे करा.",
+  "CREDIT_PAYMENT_REFERENCE_REQUIRED": "{{modeCode}} पेमेंटसाठी संदर्भ (UTR, व्यवहार ID किंवा चेक क्रमांक) आवश्यक आहे.",
+  "CREDIT_PAYMENT_POSSIBLE_DUPLICATE": "संभाव्य दुहेरी नोंद: संदर्भ {{referenceNo}} असलेले पेमेंट (₹{{amount}}, तारीख {{paidAt}}) मागील 90 दिवसांत आधीच नोंदवले आहे. तपासा, मग खात्रीसाठी पुन्हा नोंदवा.",
+  "CREDIT_PAYMENT_CHEQUE_DETAILS_NOT_CHEQUE": "चेकची बँक आणि चेकची तारीख फक्त चेक पेमेंटसाठी देता येते.",
+  "CREDIT_PAYMENT_CHEQUE_NOT_DUE": "हा चेक {{chequeDate}} चा आहे, त्यामुळे त्या तारखेपासून मंजूर करता येईल.",
+  "BACKDATED_PAYMENT_DAYS_OUT_OF_RANGE": "मागील तारखेच्या पेमेंटचे दिवस 0 ते {{maxDays}} असावेत.",
+  "CREDIT_PAYMENT_THRESHOLD_INVALID": "क्रेडिट पेमेंट मंजुरीची रक्कम ₹0 पेक्षा जास्त आणि जास्तीत जास्त ₹{{maxAmount}} (रुपये आणि पैसे) असावी, किंवा मर्यादा नसल्यास रिकामी ठेवा."
 }

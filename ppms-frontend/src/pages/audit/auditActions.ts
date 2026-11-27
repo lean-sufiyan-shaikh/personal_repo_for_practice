@@ -33,6 +33,7 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   CREDIT_ENTRY_VOIDED:                'bad',
   CREDIT_LIMIT_CHANGED:               'warn',
   CREDIT_PAYMENT_RECEIVED:            'ok',
+  CREDIT_PAYMENT_REVERSED:            'bad',
   INTEREST_APPLIED:                   'warn',
   INTEREST_CHARGE_WAIVED:             'warn',
   INTEREST_SETTINGS_CHANGED:          'neutral',

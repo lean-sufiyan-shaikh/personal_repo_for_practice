@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDown, ArrowUp, Ban, Check, CircleDot, Clock, FileCheck, Gauge, Hourglass, Lock, Pause, Percent, X } from 'lucide-react'
+import { AlertTriangle, ArrowDown, ArrowUp, Ban, Check, CircleDot, Clock, FileCheck, Gauge, Hourglass, Lock, Pause, Percent, Undo2, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { DiscrepancyType, ShiftStatus } from '../types/shift'
 import type { CreditInvoiceStatus, CreditStanding, CreditTransaction } from '../api/creditApi'
@@ -75,6 +75,9 @@ export function creditTransactionBadge(tx: Pick<CreditTransaction, 'type' | 'sta
   if (tx.status === 'REJECTED') return { label: i18n.t('badges.rejected'), tone: 'neutral', icon: X }
   if (tx.status === 'VOIDED') return { label: i18n.t('badges.voided'), tone: 'neutral', icon: Ban }
   if (tx.status === 'WAIVED') return { label: i18n.t('badges.waived'), tone: 'neutral', icon: Ban }
+  if (tx.status === 'REVERSED') return { label: i18n.t('badges.reversed'), tone: 'neutral', icon: Undo2 }
+  if (tx.type === 'PAYMENT_REVERSAL') return { label: i18n.t('badges.paymentReversal'), tone: 'bad', icon: Undo2 }
+  if (tx.type === 'BOUNCE_CHARGE') return { label: i18n.t('badges.bounceCharge'), tone: 'bad', icon: ArrowUp }
   if (tx.type === 'SALE') return { label: i18n.t('badges.sale'), tone: 'warn', icon: ArrowUp }
   if (tx.type === 'COUNTER_SALE') return { label: i18n.t('badges.shopSale'), tone: 'warn', icon: ArrowUp }
   if (tx.type === 'INTEREST') return { label: i18n.t('badges.interest'), tone: 'info', icon: Percent }

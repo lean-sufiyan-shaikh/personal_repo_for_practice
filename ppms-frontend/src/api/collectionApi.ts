@@ -103,6 +103,10 @@ export interface CollectionSettings {
   creditHoldDays: number | null
   upiId: string | null
   upiPayeeName: string | null
+  /** A manager's credit payment above this waits for approval; null lets any amount through. */
+  creditPaymentApprovalThreshold: number | null
+  /** A manager's credit payment dated more days back than this waits for approval. */
+  backdatedPaymentApprovalDays: number
 }
 
 export interface RecordPromiseRequest {

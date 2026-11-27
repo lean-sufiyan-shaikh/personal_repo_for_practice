@@ -27,8 +27,11 @@ export interface CreditClient {
 }
 
 export interface CreditTransaction {
-  /** SALE is fuel on credit; COUNTER_SALE is a shop product sold on credit. */
-  type: 'SALE' | 'COUNTER_SALE' | 'PAYMENT' | 'INTEREST'
+  /**
+   * SALE is fuel on credit; COUNTER_SALE is a shop product sold on credit. PAYMENT_REVERSAL takes a reversed payment
+   * back onto the account on the day it was reversed; BOUNCE_CHARGE is the charge added with that reversal.
+   */
+  type: 'SALE' | 'COUNTER_SALE' | 'PAYMENT' | 'INTEREST' | 'PAYMENT_REVERSAL' | 'BOUNCE_CHARGE'
   referenceId: number
   reference: string | null
   /** Set when the server wrote the reference (COUNTER_SALE and INTEREST rows, a payment by unknown staff), for translated screens. */
@@ -41,13 +44,15 @@ export interface CreditTransaction {
   occurredAt: string
   /** IST date (YYYY-MM-DD) the row belongs to; for a payment, the date the client paid. */
   businessDate: string
-  /** ACTIVE / VOIDED for sales; APPROVED / PENDING_APPROVAL / REJECTED for payments. */
+  /** ACTIVE / VOIDED for sales; APPROVED / PENDING_APPROVAL / REJECTED / REVERSED for payments. */
   status: string
   /** False for voided sales and non-approved payments; they leave the running balance unchanged. */
   countedInBalance: boolean
   /** Account the row belongs to; set by the full-ledger endpoint. */
   clientId?: number
   clientName?: string
+  /** For a REVERSED payment its reversal's id; for a PAYMENT_REVERSAL or BOUNCE_CHARGE row the reversed payment's id. */
+  linkedReferenceId?: number | null
 }
 
 export interface UpdateInterestSettingsRequest {
@@ -71,19 +76,48 @@ export interface CreditPayment {
   clientId: number
   amount: number
   paymentMode: string
+  referenceNo: string | null
+  chequeBank: string | null
+  chequeDate: string | null
   notes: string | null
   paidAt: string
   recordedById: number
   recordedByUserName: string
-  paymentApprovalStatus: 'APPROVED' | 'PENDING_APPROVAL' | 'REJECTED'
+  paymentApprovalStatus: 'APPROVED' | 'PENDING_APPROVAL' | 'REJECTED' | 'REVERSED'
   createdAt: string
 }
 
+export type CreditPaymentMode = 'CASH' | 'UPI' | 'BANK_TRANSFER' | 'CHEQUE' | 'OTHER'
+
 export interface RecordPaymentRequest {
   amount: number
-  paymentMode: 'CASH' | 'UPI' | 'BANK_TRANSFER' | 'OTHER'
+  paymentMode: CreditPaymentMode
   paidAt: string  // YYYY-MM-DD
+  /** UTR, transaction ID or cheque number; required for UPI, BANK_TRANSFER and CHEQUE. */
+  referenceNo?: string
+  chequeBank?: string
+  /** A cheque dated after today waits for approval until this date. */
+  chequeDate?: string
+  /** Sent after the user has seen the possible-duplicate warning for this reference. */
+  confirmDuplicate?: boolean
   notes?: string
+}
+
+export interface ReversePaymentRequest {
+  reason: string
+  bounceCharge?: number
+}
+
+export interface PaymentReversal {
+  id: number
+  paymentId: number
+  clientId: number
+  amount: number
+  bounceCharge: number | null
+  reversalDate: string
+  reason: string
+  reversedByUserId: number
+  createdAt: string
 }
 
 export interface UpdateCreditLimitRequest {
@@ -206,6 +240,9 @@ export interface InvoiceRunPreview {
   gstDetailsComplete: boolean
 }
 
+const withIdempotencyKey = (idempotencyKey?: string) =>
+  idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : undefined
+
 export const creditApi = {
   // Returns all clients with outstanding balances
   getLedgerSummary: (pumpId: number) =>
@@ -225,12 +262,19 @@ export const creditApi = {
   getPendingPayments: (pumpId: number) =>
     client.get<CreditPayment[]>(`/pumps/${pumpId}/credit-ledger/payments/pending`).then(r => r.data),
 
-  approvePayment: (pumpId: number, paymentId: number, status: 'APPROVED' | 'REJECTED', reason?: string) =>
-    client.patch<CreditPayment>(`/pumps/${pumpId}/credit-ledger/payments/${paymentId}/approve`, { status, reason }).then(r => r.data),
+  approvePayment: (pumpId: number, paymentId: number, status: 'APPROVED' | 'REJECTED', reason?: string, idempotencyKey?: string) =>
+    client.patch<CreditPayment>(`/pumps/${pumpId}/credit-ledger/payments/${paymentId}/approve`, { status, reason },
+      withIdempotencyKey(idempotencyKey)).then(r => r.data),
 
   // Records a payment against a client's balance
-  recordPayment: (pumpId: number, clientId: number, req: RecordPaymentRequest) =>
-    client.post<CreditPayment>(`/pumps/${pumpId}/credit-ledger/${clientId}/payments`, req).then(r => r.data),
+  recordPayment: (pumpId: number, clientId: number, req: RecordPaymentRequest, idempotencyKey?: string) =>
+    client.post<CreditPayment>(`/pumps/${pumpId}/credit-ledger/${clientId}/payments`, req, withIdempotencyKey(idempotencyKey))
+      .then(r => r.data),
+
+  // Takes an approved payment back off the account today, with an optional bounce charge (Owner/Admin only)
+  reversePayment: (pumpId: number, paymentId: number, req: ReversePaymentRequest, idempotencyKey?: string) =>
+    client.post<PaymentReversal>(`/pumps/${pumpId}/credit-ledger/payments/${paymentId}/reverse`, req,
+      withIdempotencyKey(idempotencyKey)).then(r => r.data),
 
   // Updates the credit limit for a client (0 = unlimited)
   updateCreditLimit: (pumpId: number, clientId: number, req: UpdateCreditLimitRequest) =>

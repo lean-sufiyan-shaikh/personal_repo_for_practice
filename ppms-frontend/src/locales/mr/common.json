@@ -130,7 +130,10 @@
     "shopSale": "दुकान विक्री",
     "interest": "व्याज",
     "paid": "भरले",
-    "overdue": "वेळ उलटली"
+    "overdue": "वेळ उलटली",
+    "reversed": "उलटवले",
+    "paymentReversal": "पेमेंट उलटवले",
+    "bounceCharge": "बाउन्स शुल्क"
   },
   "passwordInput": {
     "show": "पासवर्ड दाखवा"
@@ -153,7 +156,8 @@
     "FLEET_CARD": "फ्लीट कार्ड",
     "CREDIT": "क्रेडिट",
     "BANK_TRANSFER": "बँक ट्रान्सफर",
-    "OTHER": "इतर"
+    "OTHER": "इतर",
+    "CHEQUE": "चेक"
   },
   "notices": {
     "noPumpTitle": "कोणताही पंप निवडलेला नाही",

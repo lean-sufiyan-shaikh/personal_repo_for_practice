@@ -309,6 +309,10 @@
     "LEAKAGE_RADAR_WEEKLY": {
       "title": "Radar: Worth a Look",
       "message": "Over the last {{days}} days, {{people}} people, {{nozzles}} nozzles and {{tanks}} tanks scored Watch or High. Open Radar to see why."
+    },
+    "CREDIT_PAYMENT_REVERSED": {
+      "title": "Credit Payment Reversed",
+      "message": "{{reversedByName}} reversed {{clientName}}'s payment of ₹{{amount}} dated {{paidAt}}: {{reason}}"
     }
   },
   "serverTexts": {
@@ -414,7 +418,9 @@
     "ATTENTION_PENDING_CASH_DROPS_one": "{{count}} cash drop waiting to be confirmed in the safe",
     "ATTENTION_PENDING_CASH_DROPS_other": "{{count}} cash drops waiting to be confirmed in the safe",
     "ATTENTION_DAY_CLOSES_UNAPPROVED_one": "{{count}} closed day waiting for your approval",
-    "ATTENTION_DAY_CLOSES_UNAPPROVED_other": "{{count}} closed days waiting for your approval"
+    "ATTENTION_DAY_CLOSES_UNAPPROVED_other": "{{count}} closed days waiting for your approval",
+    "PAYMENT_REVERSAL_DETAILS": "Payment of {{paidAt}} reversed: {{reason}}",
+    "BOUNCE_CHARGE_DETAILS": "Bounce charge for the payment of {{paidAt}}"
   },
   "WET_STOCK_LOSS": "Fuel loss above limit",
   "RAISED": "Raised",
@@ -444,5 +450,10 @@
   "CREDIT_PROMISE_MISSED": "Promise to pay missed",
   "VEHICLE": "Vehicle",
   "VEHICLE_CREDIT_FLAGGED": "Credit vehicle flagged",
-  "LEAKAGE_RADAR_WEEKLY": "Radar: worth a look"
+  "LEAKAGE_RADAR_WEEKLY": "Radar: worth a look",
+  "CHEQUE": "Cheque",
+  "REVERSED": "Reversed",
+  "PAYMENT_REVERSAL": "Payment reversal",
+  "BOUNCE_CHARGE": "Bounce charge",
+  "CREDIT_PAYMENT_REVERSED": "Credit payment reversed"
 }

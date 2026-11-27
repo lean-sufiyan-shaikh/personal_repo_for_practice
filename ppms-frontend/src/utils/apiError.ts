@@ -39,6 +39,13 @@ export function parseApiError(err: unknown, fallback?: string): string {
   return fallbackMessage
 }
 
+/** The code the server named a refused request with, such as CREDIT_PAYMENT_POSSIBLE_DUPLICATE. */
+export function apiErrorCode(err: unknown): string | undefined {
+  if (!isAxiosError<ApiErrorBody>(err)) return undefined
+  const code = err.response?.data?.code
+  return typeof code === 'string' ? code : undefined
+}
+
 export function serverMessage(err: unknown): string | undefined {
   if (!isAxiosError<ApiErrorBody>(err)) return undefined
   const message = err.response?.data?.message

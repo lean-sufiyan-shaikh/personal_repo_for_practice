@@ -2,14 +2,16 @@ import { useId, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
-import type { CreditClient, RecordPaymentRequest } from '../../../api/creditApi'
+import type { CreditClient, CreditPaymentMode, RecordPaymentRequest } from '../../../api/creditApi'
 import { SearchableSelect } from '../../../components/SearchableSelect'
 import { localDateInputValue } from '../../../utils/date'
 import { formatCurrency } from '../../../utils/format'
 import { useToastStore } from '../../../store/toastStore'
 import { Modal } from '../../../components/Modal'
 import { MoneyText } from '../../../components/AmountText'
-import { parseApiError } from '../../../utils/apiError'
+import { apiErrorCode, parseApiError } from '../../../utils/apiError'
+import { attemptFor } from '../../../utils/idempotencyKey'
+import type { SubmitAttempt } from '../../../utils/idempotencyKey'
 import { FormGrid, FormGridFullRow } from '../../../components/layout/FormGrid'
 import { FormField } from '../../../components/FormField'
 import { NumericInput } from '../../../components/NumericInput'
@@ -17,6 +19,8 @@ import { LoadingButton } from '../../../components/LoadingButton'
 import { LiveFigures } from '../../../components/LiveFigures'
 import { StillNeeded } from '../../../components/StillNeeded'
 import { toPaise } from '../../../utils/money'
+import { PaymentReferenceFields, PossibleDuplicateWarning } from './PaymentReferenceFields'
+import { EMPTY_PAYMENT_REFERENCE, needsReference, referenceFieldsOf } from './paymentReference'
 
 interface RecordPaymentModalProps {
   client: CreditClient
@@ -27,14 +31,18 @@ interface RecordPaymentModalProps {
 }
 
 /** Each label is common.json paymentMethods.<mode>. */
-const PAYMENT_MODES = ['CASH', 'UPI', 'BANK_TRANSFER', 'OTHER'] as const
+const PAYMENT_MODES: CreditPaymentMode[] = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'OTHER']
+const POSSIBLE_DUPLICATE_CODE = 'CREDIT_PAYMENT_POSSIBLE_DUPLICATE'
 
 export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride, subClients = [], onClose }: RecordPaymentModalProps) {
   const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
   const { addToast } = useToastStore()
   const [amount, setAmount] = useState('')
-  const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI' | 'BANK_TRANSFER' | 'OTHER'>('CASH')
+  const [paymentMode, setPaymentMode] = useState<CreditPaymentMode>('CASH')
+  const [reference, setReference] = useState(EMPTY_PAYMENT_REFERENCE)
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
+  const [submitAttempt, setSubmitAttempt] = useState<SubmitAttempt | null>(null)
   const [paidAt, setPaidAt] = useState(() => localDateInputValue())
   const [notes, setNotes] = useState('')
   const [amountError, setAmountError] = useState<string | undefined>()
@@ -60,11 +68,13 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
   const stillNeeded = [
     ...(amount === '' ? [t('recordPayment.amount')] : []),
     ...(paidAt === '' ? [t('recordPayment.date')] : []),
+    ...(needsReference(paymentMode) && reference.referenceNo.trim() === ''
+      ? [paymentMode === 'CHEQUE' ? t('recordPayment.chequeNumber') : t('recordPayment.reference')] : []),
   ]
 
   const mutation = useMutation({
-    mutationFn: (req: RecordPaymentRequest) =>
-      creditApi.recordPayment(pumpId, targetClientId, req),
+    mutationFn: ({ request, idempotencyKey }: { request: RecordPaymentRequest; idempotencyKey: string }) =>
+      creditApi.recordPayment(pumpId, targetClientId, request, idempotencyKey),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['credit-ledger', pumpId] })
       qc.invalidateQueries({ queryKey: ['credit-transactions', pumpId, client.id] })
@@ -76,14 +86,18 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
     },
     onError: (err) => {
       const msg = parseApiError(err, t('recordPayment.failed'))
+      if (apiErrorCode(err) === POSSIBLE_DUPLICATE_CODE) {
+        setDuplicateWarning(msg)
+        return
+      }
       setServerError(msg)
       addToast(msg, 'error')
     },
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const submit = (confirmDuplicate: boolean) => {
     setServerError(null)
+    setDuplicateWarning(null)
     const amt = parseFloat(amount)
     if (!amount || isNaN(amt) || amt <= 0) {
       setAmountError(t('recordPayment.invalidAmount'))
@@ -94,7 +108,18 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
       return
     }
     setAmountError(undefined)
-    mutation.mutate({ amount: amt, paymentMode, paidAt, notes: notes.trim() || undefined })
+    const request: RecordPaymentRequest = {
+      amount: amt, paymentMode, paidAt, ...referenceFieldsOf(paymentMode, reference),
+      confirmDuplicate: confirmDuplicate || undefined, notes: notes.trim() || undefined,
+    }
+    const attempt = attemptFor(submitAttempt, { targetClientId, request })
+    setSubmitAttempt(attempt)
+    mutation.mutate({ request, idempotencyKey: attempt.key })
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    submit(false)
   }
 
   return (
@@ -147,7 +172,7 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
           <span id={modeLabelId} className="ui-label">{t('recordPayment.mode')}</span>
           <SearchableSelect aria-labelledby={modeLabelId}
             value={paymentMode}
-            onChange={v => setPaymentMode(v as typeof paymentMode)}
+            onChange={v => { setPaymentMode(v as CreditPaymentMode); setDuplicateWarning(null) }}
             options={PAYMENT_MODES.map(mode => ({ value: mode, label: t(`common:paymentMethods.${mode}`) }))}
           />
         </div>
@@ -155,6 +180,9 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
         <FormField label={t('recordPayment.date')}>
           <input type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)} />
         </FormField>
+
+        <PaymentReferenceFields mode={paymentMode} value={reference}
+          onChange={value => { setReference(value); setDuplicateWarning(null) }} />
 
         <FormField
           label={<>{t('common:fields.notes')} <span className="font-normal text-ink-3">{t('common:fields.optionalSuffix')}</span></>}
@@ -175,6 +203,9 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
         ]}
       />
 
+      {duplicateWarning && (
+        <PossibleDuplicateWarning message={duplicateWarning} isPending={mutation.isPending} onConfirm={() => submit(true)} />
+      )}
       {serverError && (
         <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>
       )}

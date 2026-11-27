@@ -75,7 +75,8 @@ describe('RecordPaymentModal', () => {
     expect(submit).not.toHaveAccessibleDescription()
     await user.click(submit)
 
-    expect(creditApi.recordPayment).toHaveBeenCalledWith(PUMP_ID, client.id, expect.objectContaining({ amount: 1000, paymentMode: 'CASH' }))
+    expect(creditApi.recordPayment).toHaveBeenCalledWith(PUMP_ID, client.id, expect.objectContaining({ amount: 1000, paymentMode: 'CASH' }),
+      expect.any(String))
   })
 })
 

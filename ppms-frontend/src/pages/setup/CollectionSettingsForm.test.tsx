@@ -21,12 +21,22 @@ describe('collection settings rules', () => {
   })
 
   it('needs a UPI ID like name@bank together with a payee name', () => {
-    const base = { stages: '7', holdDays: '45', upiId: '', payeeName: '' }
+    const base = { stages: '7', holdDays: '45', upiId: '', payeeName: '', paymentThreshold: '', backdatedDays: '7' }
     expect(problemsOf(base)).toEqual({})
     expect(problemsOf({ ...base, upiId: 'ramfuels' }).upiId).toBe('settings.upiIdInvalid')
     expect(problemsOf({ ...base, upiId: 'ramfuels@okaxis' }).payeeName).toBe('settings.upiIncomplete')
     expect(problemsOf({ ...base, payeeName: 'Ram?pa=x', upiId: 'ram@okaxis' }).payeeName).toBe('settings.payeeNameInvalid')
     expect(problemsOf({ ...base, holdDays: '0' }).holdDays).toBe('settings.holdDaysInvalid')
+  })
+
+  it('takes an approval amount above zero in rupees and paise, and back-dated days from 0 to 365', () => {
+    const base = { stages: '7', holdDays: '45', upiId: '', payeeName: '', paymentThreshold: '', backdatedDays: '0' }
+    expect(problemsOf(base)).toEqual({})
+    expect(problemsOf({ ...base, paymentThreshold: '5000.50' })).toEqual({})
+    expect(problemsOf({ ...base, paymentThreshold: '0' }).paymentThreshold).toBe('settings.paymentThresholdInvalid')
+    expect(problemsOf({ ...base, paymentThreshold: '10.555' }).paymentThreshold).toBe('settings.paymentThresholdInvalid')
+    expect(problemsOf({ ...base, backdatedDays: '366' }).backdatedDays).toBe('settings.backdatedDaysInvalid')
+    expect(problemsOf({ ...base, backdatedDays: '' }).backdatedDays).toBe('settings.backdatedDaysInvalid')
   })
 })
 
@@ -34,6 +44,7 @@ describe('CollectionSettingsForm', () => {
   beforeEach(() => {
     vi.mocked(collectionApi.getSettings).mockResolvedValue({
       reminderStageDays: [7, 15, 30], creditHoldDays: 45, upiId: null, upiPayeeName: null,
+      creditPaymentApprovalThreshold: null, backdatedPaymentApprovalDays: 7,
     })
     vi.mocked(collectionApi.updateSettings).mockImplementation((_pumpId, settings) => Promise.resolve(settings))
   })
@@ -53,7 +64,24 @@ describe('CollectionSettingsForm', () => {
 
     expect(collectionApi.updateSettings).toHaveBeenCalledWith(3, {
       reminderStageDays: [10, 20], creditHoldDays: null, upiId: 'ramfuels@okaxis', upiPayeeName: 'Ram Fuels',
+      creditPaymentApprovalThreshold: null, backdatedPaymentApprovalDays: 7,
     })
+  })
+
+  it('saves the credit payment approval amount and the back-dated days', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<CollectionSettingsForm pumpId={3} />)
+
+    await user.type(await screen.findByLabelText('Approve automatically up to (₹)'), '5000')
+    const days = screen.getByLabelText('Back-dated payments allowed (days)')
+    expect(days).toHaveValue(7)
+    await user.clear(days)
+    await user.type(days, '3')
+    await user.click(screen.getByRole('button', { name: 'Save collection settings' }))
+
+    expect(collectionApi.updateSettings).toHaveBeenCalledWith(3, expect.objectContaining({
+      creditPaymentApprovalThreshold: 5000, backdatedPaymentApprovalDays: 3,
+    }))
   })
 
   it('shows what is wrong instead of saving an invalid UPI ID', async () => {

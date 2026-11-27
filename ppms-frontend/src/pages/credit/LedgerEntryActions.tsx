@@ -5,22 +5,25 @@ export interface LedgerRowActions {
   canMoveEntries: boolean
   canWaiveInterest: boolean
   canApprovePayments: boolean
+  canReversePayments: boolean
   currentUserId: number | undefined
-  pendingPaymentRecorders: Map<number, number>
+  pendingPaymentRecorders: Map<number, number | null>
   approvePayment: (paymentId: number) => void
   onRejectPayment: (payment: CreditTransaction) => void
   isApproving: boolean
   onMove: (entryId: number, sourceClientId: number, type: 'SALE' | 'PAYMENT') => void
   onWaiveInterest: (charge: CreditTransaction, sourceClientId: number) => void
+  onReversePayment: (payment: CreditTransaction) => void
 }
 
-/** Approve or reject a pending payment, move an entry, or waive an interest charge — whichever the entry and role allow. */
+/** Approve, reject or reverse a payment, move an entry, or waive an interest charge — whichever the entry and role allow. */
 export function LedgerEntryActions({ tx, srcClientId, actions }: { tx: CreditTransaction; srcClientId: number; actions: LedgerRowActions }) {
   const { t } = useTranslation(['credit', 'common'])
   const {
-    canMoveEntries, canWaiveInterest, canApprovePayments, currentUserId, pendingPaymentRecorders,
-    approvePayment, onRejectPayment, isApproving, onMove, onWaiveInterest,
+    canMoveEntries, canWaiveInterest, canApprovePayments, canReversePayments, currentUserId, pendingPaymentRecorders,
+    approvePayment, onRejectPayment, isApproving, onMove, onWaiveInterest, onReversePayment,
   } = actions
+  const isReversedPayment = tx.type === 'PAYMENT' && tx.status === 'REVERSED'
 
   return (
     <>
@@ -46,7 +49,17 @@ export function LedgerEntryActions({ tx, srcClientId, actions }: { tx: CreditTra
           </button>
         </span>
       )}
-      {canMoveEntries && (tx.type === 'SALE' || tx.type === 'PAYMENT') && (
+      {canReversePayments && tx.type === 'PAYMENT' && tx.status === 'APPROVED' && (
+        <button
+          type="button"
+          onClick={() => onReversePayment(tx)}
+          aria-label={t('ledger.reverseLabel')}
+          className="ui-btn ui-btn-ghost min-h-6 px-1 text-xs text-bad hover:text-bad-strong mr-1"
+        >
+          {t('ledger.reverse')}
+        </button>
+      )}
+      {canMoveEntries && (tx.type === 'SALE' || (tx.type === 'PAYMENT' && !isReversedPayment)) && (
         <button
           onClick={() => onMove(tx.referenceId, srcClientId, tx.type === 'PAYMENT' ? 'PAYMENT' : 'SALE')}
           className="ui-btn ui-btn-secondary ui-btn-compact"

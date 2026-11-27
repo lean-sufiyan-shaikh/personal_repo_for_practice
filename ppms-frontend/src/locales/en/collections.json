@@ -139,6 +139,14 @@
     "upiIncomplete": "Enter both the UPI ID and the payee name, or neither.",
     "save": "Save collection settings",
     "saved": "Collection settings saved",
-    "saveFailed": "Could not save collection settings."
+    "saveFailed": "Could not save collection settings.",
+    "paymentsTitle": "Credit payment approval",
+    "paymentsHint": "When a manager's credit payment waits for an Owner or Admin to approve it.",
+    "paymentThreshold": "Approve automatically up to (₹)",
+    "paymentThresholdHelp": "A manager's payment above this waits for approval. Leave empty to let any amount through.",
+    "paymentThresholdInvalid": "Enter an amount above ₹0 with at most 2 decimals, or leave empty.",
+    "backdatedDays": "Back-dated payments allowed (days)",
+    "backdatedDaysHelp": "A manager's payment dated more days back than this waits for approval, whatever its amount.",
+    "backdatedDaysInvalid": "Use a whole number from 0 to 365."
   }
 }

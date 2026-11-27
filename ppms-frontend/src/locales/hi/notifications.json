@@ -42,6 +42,7 @@
     "CREDIT_HOLD_PLACED": "क्रेडिट रोका गया",
     "CREDIT_PROMISE_MISSED": "भुगतान का वादा चूका",
     "VEHICLE_CREDIT_FLAGGED": "क्रेडिट वाहन चिह्नित",
-    "LEAKAGE_RADAR_WEEKLY": "रडार: एक नज़र डालें"
+    "LEAKAGE_RADAR_WEEKLY": "रडार: एक नज़र डालें",
+    "CREDIT_PAYMENT_REVERSED": "क्रेडिट भुगतान उलटाया गया"
   }
 }

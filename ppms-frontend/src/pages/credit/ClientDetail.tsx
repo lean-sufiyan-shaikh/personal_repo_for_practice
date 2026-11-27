@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { serverText } from '../../utils/serverText'
 import { useTranslation } from 'react-i18next'
 import { withToggled } from '../../utils/setToggle'
@@ -12,6 +12,8 @@ import { SkeletonRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
+import { attemptFor } from '../../utils/idempotencyKey'
+import type { SubmitAttempt } from '../../utils/idempotencyKey'
 import { IconButton } from '../../components/IconButton'
 import { RejectReasonDialog } from '../../components/RejectReasonDialog'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -29,6 +31,7 @@ import { RecordPaymentModal } from './modals/RecordPaymentModal'
 import { StatementModal } from './modals/StatementModal'
 import { SetInterestSettingsModal } from './modals/SetInterestSettingsModal'
 import { WaiveInterestModal } from './modals/WaiveInterestModal'
+import { ReversePaymentModal } from './modals/ReversePaymentModal'
 import { useClientLedger } from './useClientLedger'
 import { useLedgerFilters } from './useLedgerFilters'
 import { LedgerFilterBar } from './LedgerFilterBar'
@@ -69,6 +72,8 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const [rejectingPayment, setRejectingPayment] = useState<CreditTransaction | null>(null)
   const [rejectError, setRejectError] = useState<string | null>(null)
   const [waivingInterest, setWaivingInterest] = useState<{ charge: CreditTransaction; sourceClientId: number } | null>(null)
+  const [reversingPayment, setReversingPayment] = useState<CreditTransaction | null>(null)
+  const decisionAttempt = useRef<SubmitAttempt | null>(null)
   // Tracks which sections are expanded in the parent ledger view.
   // 'own' (parent's own transactions) starts expanded; sub-account sections start collapsed.
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['own']))
@@ -84,6 +89,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const canManageInterestForRole = canPerformAction('credit:manage-interest', role)
   const canApplyInterestForRole  = canPerformAction('credit:apply-interest', role)
   const canWaiveInterest   = canPerformAction('credit:waive-interest', role)
+  const canReversePayments = canPerformAction('credit:reverse-payment', role)
   const canManageExtensions = canPerformAction('credit:grant-extension', role)
   const canIssueInvoices   = canPerformAction('credit:issue-invoice', role)
   const canManageVehicles  = canPerformAction('credit:manage-client', role)
@@ -126,8 +132,10 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   })
 
   const approvePaymentMutation = useMutation({
-    mutationFn: ({ paymentId, status, reason }: { paymentId: number; status: 'APPROVED' | 'REJECTED'; reason?: string }) =>
-      creditApi.approvePayment(pumpId, paymentId, status, reason),
+    mutationFn: ({ paymentId, status, reason }: { paymentId: number; status: 'APPROVED' | 'REJECTED'; reason?: string }) => {
+      decisionAttempt.current = attemptFor(decisionAttempt.current, { paymentId, status, reason })
+      return creditApi.approvePayment(pumpId, paymentId, status, reason, decisionAttempt.current.key)
+    },
     onSuccess: (_payment, { status }) => {
       invalidateLedger()
       setRejectingPayment(null)
@@ -159,6 +167,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
     canMoveEntries,
     canWaiveInterest,
     canApprovePayments,
+    canReversePayments,
     currentUserId: user?.userId,
     pendingPaymentRecorders,
     approvePayment: (paymentId) => approvePaymentMutation.mutate({ paymentId, status: 'APPROVED' }),
@@ -173,6 +182,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
       setReassignType(type)
     },
     onWaiveInterest: (charge, sourceClientId) => setWaivingInterest({ charge, sourceClientId }),
+    onReversePayment: setReversingPayment,
   }
 
   const showPaymentModal = paymentAction.value === 'record-payment' && canRecordPayment
@@ -223,6 +233,14 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           charge={waivingInterest.charge}
           onWaived={() => { invalidateLedger(); addToast(t('detail.interestWaived'), 'success') }}
           onClose={() => setWaivingInterest(null)}
+        />
+      )}
+      {reversingPayment && canReversePayments && (
+        <ReversePaymentModal
+          pumpId={pumpId}
+          payment={reversingPayment}
+          onReversed={() => { invalidateLedger(); addToast(t('reversePayment.reversed'), 'success') }}
+          onClose={() => setReversingPayment(null)}
         />
       )}
       {rejectingPayment && (

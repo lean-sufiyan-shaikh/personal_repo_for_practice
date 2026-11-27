@@ -9,6 +9,12 @@ import { getMonthKey } from './creditDates'
 export type FilterMode = 'all' | 'month' | 'range'
 export type TxTypeFilter = 'ALL' | 'SALE' | 'PAYMENT' | 'INTEREST'
 
+/** A payment's reversal and bounce charge are listed with the payments, a shop sale with the sales. */
+function filterTypeOf(type: string): string {
+  if (type === 'COUNTER_SALE') return 'SALE'
+  return type === 'PAYMENT_REVERSAL' || type === 'BOUNCE_CHARGE' ? 'PAYMENT' : type
+}
+
 export function useLedgerFilters(
   transactions: MergedTx[],
   ownTransactions: CreditTransaction[],
@@ -29,7 +35,7 @@ export function useLedgerFilters(
   )
 
   const applyFilters = useCallback((tx: { type: string; businessDate: string }): boolean => {
-    const filterType = tx.type === 'COUNTER_SALE' ? 'SALE' : tx.type
+    const filterType = filterTypeOf(tx.type)
     if (txTypeFilter !== 'ALL' && filterType !== txTypeFilter) return false
     if (filterMode === 'month' && selectedMonth) return getMonthKey(tx.businessDate) === selectedMonth
     if (filterMode === 'range') {

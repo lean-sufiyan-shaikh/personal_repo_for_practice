@@ -399,5 +399,15 @@
   "VEHICLE_NOT_APPROVED": "वाहन {{registration}} '{{clientName}}' की मंज़ूर सूची में नहीं है, इसलिए क्रेडिट नहीं ले सकता। मैनेजर से इसे ग्राहक के वाहन टैब पर जुड़वाएँ।",
   "VEHICLE_FUEL_NOT_ALLOWED": "वाहन {{registration}} क्रेडिट पर {{fuelType}} नहीं ले सकता।",
   "VEHICLE_MONTHLY_LITRE_LIMIT_EXCEEDED": "वाहन {{registration}} ने अपनी {{limit}} L की मासिक सीमा में से {{used}} L ले लिया है; यह {{requested}} L की एंट्री बाकी {{left}} L से ज़्यादा है।",
-  "VEHICLE_MONTHLY_AMOUNT_LIMIT_EXCEEDED": "वाहन {{registration}} ने अपनी ₹{{limit}} की मासिक सीमा में से ₹{{used}} ले लिया है; यह ₹{{requested}} की एंट्री बाकी ₹{{left}} से ज़्यादा है।"
+  "VEHICLE_MONTHLY_AMOUNT_LIMIT_EXCEEDED": "वाहन {{registration}} ने अपनी ₹{{limit}} की मासिक सीमा में से ₹{{used}} ले लिया है; यह ₹{{requested}} की एंट्री बाकी ₹{{left}} से ज़्यादा है।",
+  "CREDIT_PAYMENT_ALREADY_REVERSED": "यह भुगतान पहले ही उलटाया जा चुका है।",
+  "CREDIT_PAYMENT_NOT_REVERSIBLE": "केवल मंज़ूर भुगतान ही उलटाया जा सकता है; यह {{statusCode}} है। मंज़ूरी की प्रतीक्षा वाले भुगतान को अस्वीकार करें।",
+  "CREDIT_PAYMENT_REVERSAL_REASON_REQUIRED": "भुगतान उलटाने के लिए कारण ज़रूरी है।",
+  "CREDIT_PAYMENT_MATCHED_TO_BANK_LINE": "यह भुगतान बैंक स्टेटमेंट की एक लाइन से मिलाया गया है। पहले बैंक मिलान में उसे अलग करें।",
+  "CREDIT_PAYMENT_REFERENCE_REQUIRED": "{{modeCode}} भुगतान के लिए रेफ़रेंस (UTR, ट्रांज़ैक्शन ID या चेक नंबर) ज़रूरी है।",
+  "CREDIT_PAYMENT_POSSIBLE_DUPLICATE": "संभावित दोहराव: रेफ़रेंस {{referenceNo}} वाला भुगतान (₹{{amount}}, तारीख {{paidAt}}) पिछले 90 दिनों में पहले ही दर्ज है। जाँच लें, फिर पुष्टि के लिए दोबारा दर्ज करें।",
+  "CREDIT_PAYMENT_CHEQUE_DETAILS_NOT_CHEQUE": "चेक का बैंक और चेक की तारीख केवल चेक भुगतान के लिए दी जा सकती है।",
+  "CREDIT_PAYMENT_CHEQUE_NOT_DUE": "यह चेक {{chequeDate}} का है, इसलिए उसी तारीख से मंज़ूर किया जा सकता है।",
+  "BACKDATED_PAYMENT_DAYS_OUT_OF_RANGE": "पिछली तारीख के भुगतान के दिन 0 से {{maxDays}} तक होने चाहिए।",
+  "CREDIT_PAYMENT_THRESHOLD_INVALID": "क्रेडिट भुगतान मंज़ूरी राशि ₹0 से ज़्यादा और अधिकतम ₹{{maxAmount}} (रुपये और पैसे में) होनी चाहिए, या कोई सीमा न हो तो खाली छोड़ें।"
 }

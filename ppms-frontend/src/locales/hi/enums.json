@@ -309,6 +309,10 @@
     "LEAKAGE_RADAR_WEEKLY": {
       "title": "रडार: एक नज़र डालें",
       "message": "पिछले {{days}} दिनों में {{people}} लोग, {{nozzles}} नोज़ल और {{tanks}} टैंक \"ध्यान दें\" या \"ज़्यादा\" स्तर पर रहे। वजह देखने के लिए रडार खोलें।"
+    },
+    "CREDIT_PAYMENT_REVERSED": {
+      "title": "क्रेडिट भुगतान उलटाया गया",
+      "message": "{{reversedByName}} ने {{clientName}} का {{paidAt}} का ₹{{amount}} का भुगतान उलटाया: {{reason}}"
     }
   },
   "serverTexts": {
@@ -414,7 +418,9 @@
     "ATTENTION_PENDING_CASH_DROPS_one": "{{count}} कैश ड्रॉप तिजोरी में पुष्टि की प्रतीक्षा में",
     "ATTENTION_PENDING_CASH_DROPS_other": "{{count}} कैश ड्रॉप तिजोरी में पुष्टि की प्रतीक्षा में",
     "ATTENTION_DAY_CLOSES_UNAPPROVED_one": "{{count}} बंद दिन आपकी मंज़ूरी के इंतज़ार में",
-    "ATTENTION_DAY_CLOSES_UNAPPROVED_other": "{{count}} बंद दिन आपकी मंज़ूरी के इंतज़ार में"
+    "ATTENTION_DAY_CLOSES_UNAPPROVED_other": "{{count}} बंद दिन आपकी मंज़ूरी के इंतज़ार में",
+    "PAYMENT_REVERSAL_DETAILS": "{{paidAt}} का भुगतान उलटाया: {{reason}}",
+    "BOUNCE_CHARGE_DETAILS": "{{paidAt}} के भुगतान का बाउंस शुल्क"
   },
   "WET_STOCK_LOSS": "सीमा से ज़्यादा ईंधन नुकसान",
   "RAISED": "दावा किया",
@@ -444,5 +450,10 @@
   "CREDIT_PROMISE_MISSED": "भुगतान का वादा चूका",
   "VEHICLE": "वाहन",
   "VEHICLE_CREDIT_FLAGGED": "क्रेडिट वाहन चिह्नित",
-  "LEAKAGE_RADAR_WEEKLY": "रडार: एक नज़र डालें"
+  "LEAKAGE_RADAR_WEEKLY": "रडार: एक नज़र डालें",
+  "CHEQUE": "चेक",
+  "REVERSED": "उलटाया गया",
+  "PAYMENT_REVERSAL": "भुगतान उलटाव",
+  "BOUNCE_CHARGE": "बाउंस शुल्क",
+  "CREDIT_PAYMENT_REVERSED": "क्रेडिट भुगतान उलटाया गया"
 }
