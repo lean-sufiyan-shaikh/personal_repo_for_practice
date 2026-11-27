@@ -60,4 +60,44 @@ public final class StaleReasons {
                 "The purchase cost of " + fuelType + " delivery (invoice " + invoiceReference + ") was corrected ₹"
                         + oldCost + " → ₹" + newCost + "/L" + AFTER_GENERATED);
     }
+
+    public static CodedText deliveryChanged(String invoiceReference) {
+        return CodedText.of(ServerTextCodes.STALE_DELIVERY_CHANGED, "invoiceReference", invoiceReference,
+                "The tanker delivery with invoice " + invoiceReference + " was recorded, edited or deleted" + AFTER_GENERATED);
+    }
+
+    public static CodedText expenseChanged(Long expenseId) {
+        return CodedText.of(ServerTextCodes.STALE_EXPENSE_CHANGED, "expenseId", expenseId,
+                "Expense #" + expenseId + " was recorded, approved or rejected" + AFTER_GENERATED);
+    }
+
+    public static CodedText creditPaymentChanged(Long paymentId) {
+        return CodedText.of(ServerTextCodes.STALE_CREDIT_PAYMENT_CHANGED, "paymentId", paymentId,
+                "Credit payment #" + paymentId + " was recorded, approved or rejected" + AFTER_GENERATED);
+    }
+
+    public static CodedText settlementChanged(Long settlementId) {
+        return CodedText.of(ServerTextCodes.STALE_SETTLEMENT_CHANGED, "settlementId", settlementId,
+                "Settlement #" + settlementId + " was recorded or voided" + AFTER_GENERATED);
+    }
+
+    public static CodedText meterAmended(Long nozzleId) {
+        return CodedText.of(ServerTextCodes.STALE_METER_AMENDED, "nozzleId", nozzleId,
+                "The meter reading of nozzle #" + nozzleId + " was amended" + AFTER_GENERATED);
+    }
+
+    public static CodedText discrepancyResolved(Long shiftId) {
+        return CodedText.of(ServerTextCodes.STALE_DISCREPANCY_RESOLVED, "shiftId", shiftId,
+                "The discrepancy on Shift #" + shiftId + " was resolved" + AFTER_GENERATED);
+    }
+
+    public static CodedText dayReopened(String date) {
+        return CodedText.of(ServerTextCodes.STALE_DAY_REOPENED, "date", date,
+                date + " was re-opened" + AFTER_GENERATED);
+    }
+
+    public static CodedText shiftAmended(Long shiftId) {
+        return CodedText.of(ServerTextCodes.STALE_SHIFT_AMENDED, "shiftId", shiftId,
+                "Shift #" + shiftId + " was amended" + AFTER_GENERATED);
+    }
 }

@@ -20,7 +20,6 @@ import com.ppms.pump.DispensaryUnit;
 import com.ppms.pump.DispensaryUnitRepository;
 import com.ppms.pump.Nozzle;
 import com.ppms.pump.NozzleRepository;
-import com.ppms.pump.PumpLocationRepository;
 import com.ppms.pump.PumpShiftDefinition;
 import com.ppms.report.BalanceSheetStalenessService;
 import com.ppms.report.StaleReasons;
@@ -68,7 +67,6 @@ public class ShiftService {
     private final ShiftLifecycleSupportService lifecycleSupportService;
     private final ShiftReadModelService shiftReadModelService;
     private final com.ppms.planning.ShiftPlanningService shiftPlanningService;
-    private final PumpLocationRepository pumpLocationRepository;
     private final Counter shiftOpenedCounter;
     private final Counter shiftClosedCounter;
     private final ActiveNozzleAssignmentRepository activeNozzleRepository;
@@ -222,6 +220,7 @@ public class ShiftService {
                     Map.of("statusCode", shift.getStatus().name()),
                     "Shift is not open. Current status: " + shift.getStatus());
         }
+        closedDayGuard.requireOpen(pumpId, shift.getShiftDate());
 
         List<Long> nozzleIds = shiftNozzleRepository.findNozzleIdsByShiftId(shiftId);
         List<Nozzle> nozzles = nozzleRepository.findAllById(nozzleIds);
@@ -258,8 +257,8 @@ public class ShiftService {
         rememberLastReadings(readings, nozzleById);
 
         lifecycleSupportService.createCashCollectionEvent(shift, currentUser, nozzles);
-        lifecycleSupportService.voidReplacedCreditEntries(request.getReplacedCreditEntryIds(), currentUser);
-        lifecycleSupportService.persistCloseCreditEntries(shift.getId(), shift.getPumpId(), businessClock.today(), creditEntries);
+        lifecycleSupportService.voidReplacedCreditEntries(shift.getPumpId(), request.getReplacedCreditEntryIds(), currentUser);
+        lifecycleSupportService.persistCloseCreditEntries(shift.getId(), shift.getPumpId(), shift.getShiftDate(), creditEntries);
 
         User operator = userRepository.findById(shift.getOperatorId())
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.OPERATOR, "Operator not found"));
@@ -301,7 +300,7 @@ public class ShiftService {
                 ? closingSummary.getDiscrepancyAmount() : null);
         shift.setDiscrepancyType(closingSummary.getDiscrepancyType());
         shift.setDiscrepancyReason(request.getDiscrepancyReason());
-        shift.setStatus(escalateStatusIfNeeded(closingSummary.getStatus(),
+        shift.setStatus(lifecycleSupportService.escalateStatusIfNeeded(closingSummary.getStatus(),
                 closingSummary.getDiscrepancyAmount(), shift.getPumpId()));
     }
 
@@ -316,26 +315,6 @@ public class ShiftService {
             }
         }
         nozzleRepository.saveAll(updatedNozzles);
-    }
-
-    /**
-     * If the initial status is CLOSED_DISCREPANCY_PENDING and the pump has a configured
-     * escalation threshold that the discrepancy exceeds, upgrades the status to
-     * CLOSED_DISCREPANCY_PENDING_APPROVAL so only OWNER/ADMIN can resolve it.
-     */
-    private ShiftStatus escalateStatusIfNeeded(ShiftStatus base, BigDecimal discrepancyAmount, Long pumpId) {
-        if (base != ShiftStatus.CLOSED_DISCREPANCY_PENDING) return base;
-        if (discrepancyAmount == null || discrepancyAmount.compareTo(ZERO) <= 0) return base;
-        return pumpLocationRepository.findById(pumpId)
-                .map(pump -> {
-                    BigDecimal threshold = pump.getDiscrepancyEscalationThreshold();
-                    if (threshold != null && threshold.compareTo(ZERO) > 0
-                            && discrepancyAmount.compareTo(threshold) > 0) {
-                        return ShiftStatus.CLOSED_DISCREPANCY_PENDING_APPROVAL;
-                    }
-                    return base;
-                })
-                .orElse(base);
     }
 
     private Shift findShiftForUpdate(Long pumpId, Long shiftId) {
@@ -362,6 +341,7 @@ public class ShiftService {
                     Map.of(),
                     "Operators can only add credit entries to their own active shift.");
         }
+        closedDayGuard.requireOpen(pumpId, shift.getShiftDate());
 
         CreditClient matchedClient = creditAccountPolicyService.requireClientForCreditEntry(
                 shift.getPumpId(), request.getClientId(), request.getClientName());
@@ -371,7 +351,7 @@ public class ShiftService {
                 request.getClientName().trim(),
                 request.getBillNo() != null ? request.getBillNo().trim() : null,
                 request.getAmount().setScale(2, RoundingMode.HALF_UP),
-                businessClock.today(),
+                shift.getShiftDate(),
                 request.getFuelType(),
                 request.getDescription() != null ? request.getDescription().trim() : null,
                 new VehicleCreditInput(request.getVehicleId(), request.getVehicleRegistration(), request.getDriverName(),
@@ -455,6 +435,9 @@ public class ShiftService {
             lifecycleSupportService.createCashRecoveryEvent(shift, currentUser);
             balanceSheetStalenessService.markDaySheetsStale(shift.getPumpId(), List.of(businessClock.today()),
                     StaleReasons.cashRecovered(shift.getId()));
+        } else {
+            balanceSheetStalenessService.markSheetsOfShiftStale(shift.getPumpId(), shift.getShiftDate(),
+                    shift.getShiftDefinitionId(), StaleReasons.discrepancyResolved(shift.getId()));
         }
 
         log.info("Discrepancy resolved: shiftId={}, action={}, resolvedBy={}",
@@ -512,6 +495,7 @@ public class ShiftService {
                     Map.of(),
                     "Credit entry is already voided.");
         }
+        closedDayGuard.requireOpen(pumpId, List.of(shift.getShiftDate(), entry.getSaleDate()));
         invoicedSaleGuard.requireFuelEntriesNotInvoiced(List.of(entryId));
 
         if (entry.getClientId() != null) {

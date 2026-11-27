@@ -63,6 +63,14 @@ public final class ServerTextCodes {
     public static final String STALE_PRODUCT_COST_CORRECTED = "STALE_PRODUCT_COST_CORRECTED";
     public static final String STALE_DIP_CHECK_RECORDED = "STALE_DIP_CHECK_RECORDED";
     public static final String STALE_FUEL_COST_CORRECTED = "STALE_FUEL_COST_CORRECTED";
+    public static final String STALE_DELIVERY_CHANGED = "STALE_DELIVERY_CHANGED";
+    public static final String STALE_EXPENSE_CHANGED = "STALE_EXPENSE_CHANGED";
+    public static final String STALE_CREDIT_PAYMENT_CHANGED = "STALE_CREDIT_PAYMENT_CHANGED";
+    public static final String STALE_SETTLEMENT_CHANGED = "STALE_SETTLEMENT_CHANGED";
+    public static final String STALE_METER_AMENDED = "STALE_METER_AMENDED";
+    public static final String STALE_DISCREPANCY_RESOLVED = "STALE_DISCREPANCY_RESOLVED";
+    public static final String STALE_DAY_REOPENED = "STALE_DAY_REOPENED";
+    public static final String STALE_SHIFT_AMENDED = "STALE_SHIFT_AMENDED";
 
     public static final String PERIOD_DAY_END = "PERIOD_DAY_END";
     public static final String PERIOD_DAY_END_UP_TO = "PERIOD_DAY_END_UP_TO";

@@ -19,6 +19,8 @@ public interface CashEventRepository extends JpaRepository<CashEvent, Long> {
 
     Page<CashEvent> findByPumpIdOrderByEventDateDescCreatedAtDesc(Long pumpId, Pageable pageable);
 
+    boolean existsByPumpIdAndEventTypeAndReversedAtIsNull(Long pumpId, CashEventType eventType);
+
     /** Filter by event type — used when the event-type filter is active. */
     Page<CashEvent> findByPumpIdAndEventTypeOrderByEventDateDescCreatedAtDesc(
             Long pumpId, CashEventType eventType, Pageable pageable);

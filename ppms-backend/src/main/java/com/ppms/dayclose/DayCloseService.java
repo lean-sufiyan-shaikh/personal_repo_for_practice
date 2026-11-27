@@ -11,6 +11,8 @@ import com.ppms.notification.NotificationDedupService;
 import com.ppms.notification.NotificationType;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.report.BalanceSheetService;
+import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +43,7 @@ public class DayCloseService {
     private final DayCloseQueryService queryService;
     private final DayFiguresReader figuresReader;
     private final BalanceSheetService balanceSheetService;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
     private final PumpLocationRepository pumpLocationRepository;
     private final NotificationDedupService dedupService;
     private final AuditService auditService;
@@ -155,6 +158,7 @@ public class DayCloseService {
         close.setApprovedByUserId(null);
         close.setApprovedAt(null);
         dayCloseRepository.save(close);
+        balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(date), StaleReasons.dayReopened(date.toString()));
         DayCloseComment comment = commentRepository.save(DayCloseComment.builder()
                 .dayCloseId(close.getId())
                 .kind(DayCloseCommentKind.REOPEN_REASON)
@@ -188,10 +192,16 @@ public class DayCloseService {
         Map<String, Object> params = new LinkedHashMap<>(first.params());
         params.put("date", date.toString());
         params.put("missingCodes", missing.stream().map(ChecklistItem::code).toList());
-        String code = ChecklistItem.SAFE_COUNT.equals(first.code())
-                ? ErrorCodes.DAY_CLOSE_SAFE_COUNT_MISSING
-                : ErrorCodes.DAY_CLOSE_PRICES_MISSING;
-        throw new BusinessException(code, params, first.text() + ".");
+        throw new BusinessException(errorCodeOf(first), params, first.text() + ".");
+    }
+
+    private static String errorCodeOf(ChecklistItem missing) {
+        return switch (missing.code()) {
+            case ChecklistItem.SAFE_COUNT -> ErrorCodes.DAY_CLOSE_SAFE_COUNT_MISSING;
+            case ChecklistItem.OPEN_SHIFTS -> ErrorCodes.DAY_CLOSE_OPEN_SHIFTS;
+            case ChecklistItem.PENDING_EXPENSES, ChecklistItem.PENDING_CREDIT_PAYMENTS -> ErrorCodes.DAY_CLOSE_PENDING_APPROVALS;
+            default -> ErrorCodes.DAY_CLOSE_PRICES_MISSING;
+        };
     }
 
     private void notifyClosed(DayClose close, DaySummary summary, User closedBy) {

@@ -150,16 +150,40 @@ class DaySummaryBuilderTest {
     }
 
     @Test
-    void overallFlagIsTheWorstSectionAndWarningsListOpenShifts() {
-        DaySummary summary = DaySummaryBuilder.build(figures().openShifts(List.of(shift(null, null))).build(), BUILT_AT);
+    void openShiftsAlwaysBlockTheCloseAndAreNotAWarning() {
+        DayFigures figures = figures().openShifts(List.of(shift(null, null), shift(null, null))).build();
 
-        assertThat(summary.overallFlag()).isEqualTo(FlagColour.AMBER);
-        assertThat(summary.openShiftCount()).isEqualTo(1);
-        assertThat(summary.warnings()).singleElement().satisfies(warning -> {
-            assertThat(warning.code()).isEqualTo(ChecklistItem.OPEN_SHIFTS);
-            assertThat(warning.blocking()).isFalse();
-            assertThat(warning.text()).contains("left out of the day's figures");
-        });
+        assertThat(DayChecklist.checksFor(figures)).filteredOn(ChecklistItem::isMissingBlockingItem)
+                .singleElement().satisfies(check -> {
+                    assertThat(check.code()).isEqualTo(ChecklistItem.OPEN_SHIFTS);
+                    assertThat(check.params()).containsEntry("count", 2L);
+                    assertThat(check.fixPath()).isEqualTo("/dashboard/shifts");
+                });
+        assertThat(DayChecklist.warningsFor(figures)).isEmpty();
+        assertThat(DayChecklist.checksFor(figures().build())).filteredOn(check -> check.code().equals(ChecklistItem.OPEN_SHIFTS))
+                .singleElement().satisfies(check -> assertThat(check.done()).isTrue());
+    }
+
+    @Test
+    void pendingExpensesAndCreditPaymentsBlockAPastDayAndOnlyWarnForToday() {
+        FiguresBuilder withPending = figures()
+                .pendingExpenses(new DayFigures.Total(2, new BigDecimal("1500.00")))
+                .pendingCreditPayments(new DayFigures.Total(1, new BigDecimal("800.00")));
+
+        List<ChecklistItem> pastDay = DayChecklist.checksFor(withPending.pastDay(true).build());
+        assertThat(pastDay).filteredOn(ChecklistItem::isMissingBlockingItem).extracting(ChecklistItem::code)
+                .containsExactly(ChecklistItem.PENDING_EXPENSES, ChecklistItem.PENDING_CREDIT_PAYMENTS);
+        assertThat(pastDay).filteredOn(check -> check.code().equals(ChecklistItem.PENDING_EXPENSES)).singleElement()
+                .satisfies(check -> {
+                    assertThat(check.params()).containsEntry("count", 2L).containsEntry("amount", "1500.00");
+                    assertThat(check.fixPath()).isEqualTo("/dashboard/approvals?kind=expenses");
+                });
+
+        DaySummary today = DaySummaryBuilder.build(withPending.pastDay(false).build(), BUILT_AT);
+        assertThat(today.warnings()).extracting(ChecklistItem::code)
+                .containsExactly(ChecklistItem.PENDING_EXPENSES, ChecklistItem.PENDING_CREDIT_PAYMENTS);
+        assertThat(today.warnings()).noneMatch(ChecklistItem::blocking);
+        assertThat(DayChecklist.checksFor(withPending.build())).noneMatch(ChecklistItem::isMissingBlockingItem);
     }
 
     @Test
@@ -271,7 +295,13 @@ class DaySummaryBuilderTest {
         private CreditAgingResponse.Summary credit = new CreditAgingResponse.Summary(BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, 0, 0, 0);
         private List<AttentionItem> attentionItems = List.of();
+        private boolean pastDay = false;
+        private DayFigures.Total pendingExpenses = new DayFigures.Total(0, new BigDecimal("0.00"));
+        private DayFigures.Total pendingCreditPayments = new DayFigures.Total(0, new BigDecimal("0.00"));
 
+        FiguresBuilder pastDay(boolean value) { pastDay = value; return this; }
+        FiguresBuilder pendingExpenses(DayFigures.Total value) { pendingExpenses = value; return this; }
+        FiguresBuilder pendingCreditPayments(DayFigures.Total value) { pendingCreditPayments = value; return this; }
         FiguresBuilder businessDate(LocalDate value) { businessDate = value; return this; }
         FiguresBuilder closedShifts(List<Shift> value) { closedShifts = value; return this; }
         FiguresBuilder openShifts(List<Shift> value) { openShifts = value; return this; }
@@ -290,7 +320,7 @@ class DaySummaryBuilderTest {
             return new DayFigures(businessDate, closedShifts, openShifts, safeCount, fuelTypesWithoutNextDayPrice, pendingDrops,
                     new DayFigures.Total(1, new BigDecimal("700.00")), new DayFigures.Total(1, new BigDecimal("5000.00")),
                     deliveries, openClaims, tanksToDip, Set.of(1L), reconciliation, sales, new BigDecimal("300.00"), credit,
-                    attentionItems);
+                    attentionItems, pastDay, pendingExpenses, pendingCreditPayments);
         }
     }
 }

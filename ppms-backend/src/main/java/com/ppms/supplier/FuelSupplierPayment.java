@@ -27,6 +27,9 @@ import java.time.OffsetDateTime;
 @Builder
 public class FuelSupplierPayment {
 
+    public static final String ACTIVE = "ACTIVE";
+    public static final String VOIDED = "VOIDED";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -60,6 +63,23 @@ public class FuelSupplierPayment {
 
     @Column(name = "recorded_by_user_id", nullable = false)
     private Long recordedByUserId;
+
+    @Builder.Default
+    @Column(name = "void_status", nullable = false)
+    private String voidStatus = ACTIVE;
+
+    @Column(name = "void_reason")
+    private String voidReason;
+
+    @Column(name = "voided_by_user_id")
+    private Long voidedByUserId;
+
+    @Column(name = "voided_at")
+    private OffsetDateTime voidedAt;
+
+    /** The safe's CASH_OUT for a cash payment; reversed when the payment is voided. */
+    @Column(name = "cash_event_id")
+    private Long cashEventId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

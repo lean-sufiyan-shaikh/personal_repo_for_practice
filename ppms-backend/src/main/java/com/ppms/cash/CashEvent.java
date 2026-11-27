@@ -55,6 +55,20 @@ public class CashEvent {
     @Column(name = "recorded_by_user_id", nullable = false)
     private Long recordedByUserId;
 
+    /** The shift whose close (or amendment) moved this cash; null for every other movement. */
+    @Column(name = "shift_id")
+    private Long shiftId;
+
+    @Column(name = "recorded_by_hand", nullable = false)
+    private boolean recordedByHand;
+
+    /** Set on a reversal entry: the movement it cancels. */
+    @Column(name = "reverses_event_id")
+    private Long reversesEventId;
+
+    @Column(name = "reversed_at")
+    private OffsetDateTime reversedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

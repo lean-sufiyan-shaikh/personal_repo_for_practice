@@ -74,6 +74,14 @@ public class BalanceSheetDetailResponse {
      */
     private boolean linesChangedSinceGenerated;
 
+    /**
+     * Live line items minus the total stored at generation, so the sheet shows how far each moved since then.
+     * Net profit keeps the stored totals until the sheet is regenerated.
+     */
+    private BigDecimal dipNetChangeSinceGenerated;
+    private BigDecimal productSalesProfitChangeSinceGenerated;
+    private BigDecimal expensesChangeSinceGenerated;
+
     // ── Detail lines ──────────────────────────────────────────────────────────
     private List<BsFuelLineResponse>        fuelLines;
     private List<BsShiftLineResponse>       shiftLines;

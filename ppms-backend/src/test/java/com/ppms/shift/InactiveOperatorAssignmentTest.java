@@ -2,6 +2,7 @@ package com.ppms.shift;
 
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
@@ -51,7 +52,7 @@ class InactiveOperatorAssignmentTest {
     void inactiveOperatorCannotReceiveAHandover() {
         ShiftHandoverService handoverService = new ShiftHandoverService(
                 mock(ShiftHandoverRepository.class), shiftRepository, userRepository, mock(ShiftService.class),
-                mock(ShiftReadModelService.class), mock(BusinessClock.class));
+                mock(ShiftReadModelService.class), mock(BusinessClock.class), mock(ClosedDayGuard.class));
         Shift outgoing = Shift.builder().id(30L).pumpId(PUMP_ID).operatorId(7L).status(ShiftStatus.OPEN).build();
         when(shiftRepository.findByIdAndPumpIdForUpdate(30L, PUMP_ID)).thenReturn(Optional.of(outgoing));
         when(userRepository.findById(8L)).thenReturn(Optional.of(operator(UserStatus.INACTIVE)));

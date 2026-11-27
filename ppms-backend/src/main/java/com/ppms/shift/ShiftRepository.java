@@ -29,6 +29,14 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
     @Query("SELECT s FROM Shift s WHERE s.id = :id AND s.pumpId = :pumpId")
     Optional<Shift> findByIdAndPumpIdForUpdate(@Param("id") Long id, @Param("pumpId") Long pumpId);
 
+    /** Nozzles of the list that another shift started on after the given moment. */
+    @Query("""
+            SELECT DISTINCT sn.nozzleId FROM ShiftNozzle sn, Shift s
+            WHERE sn.shiftId = s.id AND sn.nozzleId IN :nozzleIds AND s.id <> :shiftId AND s.actualStartTime > :startedAfter
+            """)
+    List<Long> findNozzlesUsedByLaterShifts(@Param("shiftId") Long shiftId, @Param("nozzleIds") Collection<Long> nozzleIds,
+                                            @Param("startedAfter") OffsetDateTime startedAfter);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM Shift s WHERE s.id = :id")
     Optional<Shift> findByIdForUpdate(@Param("id") Long id);

@@ -5,6 +5,7 @@ import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
@@ -35,6 +36,7 @@ public class ShiftHandoverService {
     private final ShiftService shiftService;
     private final ShiftReadModelService shiftReadModelService;
     private final BusinessClock businessClock;
+    private final ClosedDayGuard closedDayGuard;
 
     public record HandoverResult(ShiftHandover handover, ShiftResponse closedShift, ShiftResponse openedShift) {}
 
@@ -51,6 +53,7 @@ public class ShiftHandoverService {
                     (outgoingShift.getStatus() == ShiftStatus.OPEN_OVERDUE
                             ? ". Close this shift and open a new shift for the incoming operator instead." : ""));
         }
+        closedDayGuard.requireOpen(pumpId, outgoingShift.getShiftDate());
         rejectAfterScheduledEnd(outgoingShift);
 
         handoverRepository.findByOutgoingShiftId(request.outgoingShiftId()).ifPresent(existing -> {

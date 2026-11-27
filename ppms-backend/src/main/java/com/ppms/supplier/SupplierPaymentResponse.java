@@ -23,4 +23,8 @@ public class SupplierPaymentResponse {
     Long recordedByUserId;
     String recordedByName;
     OffsetDateTime createdAt;
+    String voidStatus;
+    String voidReason;
+    OffsetDateTime voidedAt;
+    Long cashEventId;
 }

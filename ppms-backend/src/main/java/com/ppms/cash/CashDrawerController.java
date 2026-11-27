@@ -79,4 +79,19 @@ public class CashDrawerController {
             @AuthenticationPrincipal User currentUser) {
         return cashDrawerService.recordCashEvent(pumpId, req, currentUser);
     }
+
+    /**
+     * POST /api/pumps/{pumpId}/cash-events/{eventId}/reverse
+     * Cancels a movement typed by hand with an opposite entry; only an owner or admin, with a reason.
+     */
+    @PostMapping("/{pumpId}/cash-events/{eventId}/reverse")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    public CashEvent reverseCashEvent(
+            @PathVariable Long pumpId,
+            @PathVariable Long eventId,
+            @Valid @RequestBody ReverseCashEventRequest req,
+            @AuthenticationPrincipal User currentUser) {
+        return cashDrawerService.reverseCashEvent(pumpId, eventId, req.reason(), currentUser);
+    }
 }

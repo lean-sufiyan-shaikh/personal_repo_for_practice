@@ -7,6 +7,8 @@ import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.dayclose.ClosedDayGuard;
+import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.expense.ApprovalPolicy;
 import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.invoice.InvoicedSaleGuard;
@@ -50,6 +52,7 @@ public class CreditLedgerService {
     private final UserRepository userRepository;
     private final BusinessClock businessClock;
     private final ClosedDayGuard closedDayGuard;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
 
     /**
      * Records a payment settlement against a client's outstanding balance.
@@ -97,6 +100,7 @@ public class CreditLedgerService {
                 .build();
 
         payment = paymentRepository.save(payment);
+        markRecoveredFigureStale(payment);
         if (approvalStatus == ExpenseApprovalStatus.APPROVED) {
             interestService.recalculateChargedInterestFrom(clientId, payment.getPaidAt(),
                     "Recalculated after payment dated " + payment.getPaidAt(), currentUser);
@@ -107,6 +111,12 @@ public class CreditLedgerService {
                 payment.getPaymentApprovalStatus(), currentUser.getId());
 
         return payment;
+    }
+
+    /** The DAY sheet of the payment's date shows the credit recovered that day. */
+    private void markRecoveredFigureStale(CreditPayment payment) {
+        balanceSheetStalenessService.markDaySheetsStale(payment.getPumpId(), List.of(payment.getPaidAt()),
+                StaleReasons.creditPaymentChanged(payment.getId()));
     }
 
     public CreditClient saveClient(CreditClient client) {
@@ -291,6 +301,7 @@ public class CreditLedgerService {
         payment.setApprovedByUserId(currentUser.getId());
         payment.setApprovedAt(businessClock.now());
         payment = paymentRepository.save(payment);
+        markRecoveredFigureStale(payment);
         if (newStatus == ExpenseApprovalStatus.APPROVED) {
             interestService.recalculateChargedInterestFrom(payment.getClientId(), payment.getPaidAt(),
                     "Recalculated after approving payment dated " + payment.getPaidAt(), currentUser);

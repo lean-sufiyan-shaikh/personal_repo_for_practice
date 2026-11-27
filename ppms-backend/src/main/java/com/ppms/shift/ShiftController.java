@@ -36,6 +36,7 @@ public class ShiftController {
     private final ShiftBackfillService shiftBackfillService;
     private final AuditService auditService;
     private final IdempotencyService idempotencyService;
+    private final ShiftAmendmentService shiftAmendmentService;
 
     /**
      * GET /api/pumps/{pumpId}/shifts/active
@@ -216,5 +217,26 @@ public class ShiftController {
             @Valid @RequestBody VoidCreditEntryRequest request,
             @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(shiftService.voidCreditEntry(pumpId, shiftId, entryId, request.voidReason(), currentUser));
+    }
+
+    /**
+     * POST /api/pumps/{pumpId}/shifts/{id}/amend
+     * Corrects the closing readings and collections of a closed shift, with a reason. Owner or admin only.
+     */
+    @PostMapping("/{id}/amend")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    public ResponseEntity<ShiftResponse> amendShift(
+            @PathVariable Long pumpId,
+            @PathVariable Long id,
+            @Valid @RequestBody AmendShiftRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(shiftAmendmentService.amend(pumpId, id, request, currentUser));
+    }
+
+    /** GET /api/pumps/{pumpId}/shifts/{id}/amendments — every amendment of the shift, newest first. */
+    @GetMapping("/{id}/amendments")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
+    public List<ShiftAmendmentService.AmendmentResponse> amendments(@PathVariable Long pumpId, @PathVariable Long id) {
+        return shiftAmendmentService.amendmentsOf(pumpId, id);
     }
 }

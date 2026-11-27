@@ -11,6 +11,8 @@ import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.dayclose.ClosedDayGuard;
+import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
 import jakarta.validation.Valid;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/pumps")
@@ -36,6 +39,7 @@ public class ExpenseController {
     private final AuditService           auditService;
     private final BusinessClock businessClock;
     private final ClosedDayGuard closedDayGuard;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
 
     /**
      * GET /api/pumps/{pumpId}/expenses?page=0&size=50&category=MAINTENANCE&approvalStatus=APPROVED
@@ -131,6 +135,10 @@ public class ExpenseController {
                 .build();
 
         PumpExpense saved = expenseRepository.save(expense);
+        if (approvalStatus != ExpenseApprovalStatus.DRAFT) {
+            balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(saved.getExpenseDate()),
+                    StaleReasons.expenseChanged(saved.getId()));
+        }
 
         auditService.log(pumpId, AuditAction.EXPENSE_RECORDED, "PumpExpense",
                 saved.getId().toString(),
@@ -184,6 +192,8 @@ public class ExpenseController {
         expense.setApprovalStatus(newStatus);
         expense.setSubmittedByUserId(currentUser.getId());
         expense.setSubmittedAt(businessClock.now());
+        balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(expense.getExpenseDate()),
+                StaleReasons.expenseChanged(expenseId));
 
         return expenseRepository.save(expense);
     }

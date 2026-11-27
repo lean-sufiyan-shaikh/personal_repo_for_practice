@@ -96,6 +96,7 @@ public class InventoryWorkflowService {
         TankerDelivery delivery = createDeliveryWithLot(pumpId, tank, request.getQuantityDelivered(),
                 costPrice, startOfBusinessDay(request.getDeliveryDate()), invoiceRef,
                 request.getBillTotal(), null, currentUser, receipt, findPump(pumpId));
+        markSheetsStaleForDelivery(pumpId, List.of(request.getDeliveryDate()), invoiceRef);
 
         log.info("Tanker delivery recorded: pump={}, tank={}, fuel={}, qty={}L, received={}L, check={}, invoice={}, by={}",
                 pumpId, tank.getId(), tank.getFuelType(), request.getQuantityDelivered(), delivery.getReceivedLitres(),
@@ -163,6 +164,7 @@ public class InventoryWorkflowService {
             ShortageClaim claim = shortageClaimService.syncWithDelivery(delivery, tank, currentUser);
             responses.add(responseAssembler.toDeliveryResponse(delivery, tank, currentUser.getFullName(), claim));
         }
+        markSheetsStaleForDelivery(pumpId, List.of(request.getDeliveryDate()), invoiceRef);
         return responses;
     }
 
@@ -175,7 +177,8 @@ public class InventoryWorkflowService {
         TankerDelivery delivery = tankerDeliveryRepository.findById(deliveryId)
                 .filter(found -> found.getPumpId().equals(pumpId))
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.DELIVERY, "Delivery not found"));
-        closedDayGuard.requireOpen(pumpId, List.of(businessDayOf(delivery.getDeliveryDate()), request.getDeliveryDate()));
+        List<LocalDate> deliveryDays = List.of(businessDayOf(delivery.getDeliveryDate()), request.getDeliveryDate());
+        closedDayGuard.requireOpen(pumpId, deliveryDays);
 
         UndergroundTank tank = tankRepository.findByIdForUpdate(delivery.getTankId())
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.TANK, "Tank not found"));
@@ -246,6 +249,7 @@ public class InventoryWorkflowService {
         }
         delivery = tankerDeliveryRepository.save(delivery);
         moveOtherInvoiceLines(otherInvoiceLines, invoiceRef, newDeliveryDateTime);
+        markSheetsStaleForDelivery(pumpId, deliveryDays.stream().distinct().toList(), invoiceRef);
         if (newLotCost.compareTo(oldLotCost) != 0) {
             lotCostCorrectionService.recostConsumedFuel(pumpId, lot, oldLotCost, newLotCost, delivery, currentUser);
         }
@@ -284,7 +288,8 @@ public class InventoryWorkflowService {
                     "reload the delivery history and try again.");
         }
         List<TankerDelivery> toDelete = tankerDeliveryRepository.findByPumpIdAndInvoiceReference(pumpId, invoiceRef);
-        closedDayGuard.requireOpen(pumpId, toDelete.stream().map(delivery -> businessDayOf(delivery.getDeliveryDate())).toList());
+        List<LocalDate> deliveryDays = toDelete.stream().map(delivery -> businessDayOf(delivery.getDeliveryDate())).distinct().toList();
+        closedDayGuard.requireOpen(pumpId, deliveryDays);
         tankRepository.findAllByIdForUpdate(toDelete.stream().map(TankerDelivery::getTankId).toList());
 
         List<InventoryLot> lots = new ArrayList<>();
@@ -331,6 +336,7 @@ public class InventoryWorkflowService {
                 toDelete.stream().map(d -> d.getId().toString()).collect(Collectors.joining(",")),
                 currentUser.getId());
 
+        markSheetsStaleForDelivery(pumpId, deliveryDays, invoiceRef);
         auditService.log(pumpId, AuditAction.DELIVERY_DELETED, "TankerDelivery", invoiceRef, detail.toString(), currentUser);
     }
 
@@ -740,6 +746,11 @@ public class InventoryWorkflowService {
                     "A DIP check can only be recorded for today (" + today + "). A check dated " + checkedOn +
                     " would overwrite today's tank stock with an older measurement.");
         }
+    }
+
+    /** Deliveries feed every sheet of their day: litres delivered, stock and purchase cost. */
+    private void markSheetsStaleForDelivery(Long pumpId, List<LocalDate> deliveryDays, String invoiceRef) {
+        balanceSheetStalenessService.markAllSheetsStale(pumpId, deliveryDays, StaleReasons.deliveryChanged(invoiceRef));
     }
 
     private LocalDate businessDayOf(OffsetDateTime moment) {

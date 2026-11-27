@@ -264,7 +264,7 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void cashOutLargerThanTheDrawerBalanceIsRefused() throws Exception {
-        perform(post("/api/pumps/{pumpId}/cash-events", setup.pumpId()), setup.manager(),
+        perform(post("/api/pumps/{pumpId}/cash-events", setup.pumpId()), setup.owner(),
                 cashEvent("OPENING_BALANCE", "500.00")).andExpect(status().is2xxSuccessful());
 
         perform(post("/api/pumps/{pumpId}/cash-events", setup.pumpId()), setup.manager(),

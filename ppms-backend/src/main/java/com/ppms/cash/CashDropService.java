@@ -7,6 +7,7 @@ import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.notification.NotificationDedupService;
 import com.ppms.notification.NotificationType;
 import com.ppms.shift.Shift;
@@ -49,6 +50,7 @@ public class CashDropService {
     private final NotificationDedupService dedupService;
     private final AuditService auditService;
     private final BusinessClock businessClock;
+    private final ClosedDayGuard closedDayGuard;
 
     @Transactional
     public CashDropResponse recordDrop(Long pumpId, Long shiftId, RecordCashDropRequest request, User currentUser) {
@@ -63,6 +65,7 @@ public class CashDropService {
                     Map.of("statusCode", shift.getStatus().name()),
                     "Cash can only be dropped from an open shift. Current status: " + shift.getStatus());
         }
+        closedDayGuard.requireOpen(pumpId, shift.getShiftDate());
         BigDecimal amount = request.amount().setScale(2, RoundingMode.HALF_UP);
         CashDenominations.requireMatches(request.denominations(), amount);
 
@@ -88,7 +91,8 @@ public class CashDropService {
     /** The shift row is locked first, in the same order as a close, so a confirm and a close never interleave. */
     @Transactional
     public CashDropResponse confirmDrop(Long pumpId, Long dropId, User currentUser) {
-        CashDrop drop = findPendingDropLockingShift(pumpId, dropId);
+        LockedDrop locked = findPendingDropLockingShift(pumpId, dropId);
+        CashDrop drop = locked.drop();
         if (currentUser.getId().equals(drop.getRecordedByUserId())) {
             throw new BusinessException(ErrorCodes.CASH_DROP_SELF_CONFIRMATION, Map.of(),
                     "A cash drop must be confirmed by someone other than the person who recorded it.");
@@ -98,7 +102,8 @@ public class CashDropService {
                 .eventType(CashEventType.CASH_DROP)
                 .amount(drop.getAmount())
                 .description("Cash drop from shift #" + drop.getShiftId() + " (drop #" + drop.getId() + ")")
-                .eventDate(businessClock.today())
+                .eventDate(locked.shift().getShiftDate())
+                .shiftId(drop.getShiftId())
                 .recordedByUserId(currentUser.getId())
                 .build());
         drop.setStatus(CashDropStatus.CONFIRMED);
@@ -115,7 +120,7 @@ public class CashDropService {
 
     @Transactional
     public CashDropResponse rejectDrop(Long pumpId, Long dropId, RejectCashDropRequest request, User currentUser) {
-        CashDrop drop = findPendingDropLockingShift(pumpId, dropId);
+        CashDrop drop = findPendingDropLockingShift(pumpId, dropId).drop();
         drop.setStatus(CashDropStatus.REJECTED);
         drop.setRejectionReason(request.reason().trim());
         markReviewed(drop, currentUser);
@@ -165,10 +170,14 @@ public class CashDropService {
         return dropRepository.totalForShift(shiftId, CashDropStatus.CONFIRMED).getAmount().setScale(2, RoundingMode.HALF_UP);
     }
 
-    private CashDrop findPendingDropLockingShift(Long pumpId, Long dropId) {
+    private record LockedDrop(CashDrop drop, Shift shift) {}
+
+    /** A drop belongs to its shift's business day, so a closed day refuses its confirmation and rejection too. */
+    private LockedDrop findPendingDropLockingShift(Long pumpId, Long dropId) {
         Long shiftId = dropRepository.findShiftIdOfDrop(dropId, pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.CASH_DROP, "Cash drop not found"));
-        shiftRepository.findByIdForUpdate(shiftId);
+        Shift shift = shiftRepository.findByIdForUpdate(shiftId)
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.SHIFT, "Shift not found"));
         CashDrop drop = dropRepository.findByIdAndPumpIdForUpdate(dropId, pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.CASH_DROP, "Cash drop not found"));
         if (drop.getStatus() != CashDropStatus.PENDING) {
@@ -176,7 +185,8 @@ public class CashDropService {
                     Map.of("statusCode", drop.getStatus().name()),
                     "This cash drop is already " + drop.getStatus() + ".");
         }
-        return drop;
+        closedDayGuard.requireOpen(pumpId, shift.getShiftDate());
+        return new LockedDrop(drop, shift);
     }
 
     private void markReviewed(CashDrop drop, User currentUser) {

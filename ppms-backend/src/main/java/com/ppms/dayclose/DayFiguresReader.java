@@ -57,6 +57,7 @@ class DayFiguresReader {
     private final CreditPaymentRepository creditPaymentRepository;
     private final CreditAgingService creditAgingService;
     private final AttentionService attentionService;
+    private final DayPendingApprovalRepository pendingApprovalRepository;
     private final BusinessClock businessClock;
 
     DayFigures read(Long pumpId, LocalDate date, User currentUser) {
@@ -92,7 +93,10 @@ class DayFiguresReader {
                 creditAgingService.agingOfPump(pumpId).summary(),
                 attentionService.itemsForPump(pumpId, currentUser).stream()
                         .filter(item -> item.type() != AttentionType.DAY_CLOSES_UNAPPROVED)
-                        .toList());
+                        .toList(),
+                date.isBefore(businessClock.today()),
+                total(pendingApprovalRepository.pendingExpensesOn(pumpId, date)),
+                total(pendingApprovalRepository.pendingCreditPaymentsOn(pumpId, date)));
     }
 
     /**
@@ -121,6 +125,10 @@ class DayFiguresReader {
                 .findFirst()
                 .map(totals -> new DayFigures.Total(totals.getClaimCount(), money(totals.getClaimAmount())))
                 .orElse(new DayFigures.Total(0, money(BigDecimal.ZERO)));
+    }
+
+    private static DayFigures.Total total(DayPendingApprovalRepository.PendingTotal pending) {
+        return new DayFigures.Total(pending.getItemCount(), money(pending.getAmount()));
     }
 
     private static BigDecimal money(BigDecimal amount) {

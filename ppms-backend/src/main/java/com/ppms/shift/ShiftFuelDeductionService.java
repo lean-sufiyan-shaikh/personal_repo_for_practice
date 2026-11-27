@@ -94,6 +94,39 @@ public class ShiftFuelDeductionService {
     }
 
     /**
+     * Puts a closed shift's FIFO draw back into the lots and tanks it came from and forgets it, so an amended shift is
+     * deducted again from scratch. The caller has locked the tanks with {@link #lockTanksForDeduction}.
+     */
+    public void restoreShiftCloseConsumption(Long shiftId) {
+        List<LotConsumption> consumptions = lotConsumptionRepository.findByShiftId(shiftId).stream()
+                .filter(consumption -> consumption.getSourceType() == LotConsumptionSource.SHIFT_CLOSE)
+                .toList();
+        if (consumptions.isEmpty()) {
+            return;
+        }
+        Map<Long, InventoryLot> lotsById = inventoryLotRepository.findAllById(
+                        consumptions.stream().map(LotConsumption::getLotId).collect(Collectors.toSet())).stream()
+                .collect(Collectors.toMap(InventoryLot::getId, Function.identity()));
+        Map<Long, UndergroundTank> tanksById = tankRepository.findAllById(lotsById.values().stream()
+                        .map(InventoryLot::getTankId).filter(Objects::nonNull).collect(Collectors.toSet())).stream()
+                .collect(Collectors.toMap(UndergroundTank::getId, Function.identity()));
+        for (LotConsumption consumption : consumptions) {
+            InventoryLot lot = lotsById.get(consumption.getLotId());
+            lot.setRemainingQuantity(lot.getRemainingQuantity().add(consumption.getQuantityConsumed()).setScale(3, RoundingMode.HALF_UP));
+            lot.setStatus(LotStatus.ACTIVE);
+            UndergroundTank tank = tanksById.get(lot.getTankId());
+            if (tank != null) {
+                tank.setCurrentStock(tank.getCurrentStock().add(consumption.getQuantityConsumed()).setScale(3, RoundingMode.HALF_UP));
+            }
+        }
+        inventoryLotRepository.saveAll(lotsById.values());
+        tankRepository.saveAll(tanksById.values());
+        lotConsumptionRepository.deleteAll(consumptions);
+        lotConsumptionRepository.flush();
+        log.info("Restored FIFO draw of shift {}: {} lot consumptions put back", shiftId, consumptions.size());
+    }
+
+    /**
      * Deducts a backfilled shift's sales using only lots delivered before {@code asOf}, so stock that arrived
      * after the historical shift is never drawn down. The caller has already checked availability.
      */

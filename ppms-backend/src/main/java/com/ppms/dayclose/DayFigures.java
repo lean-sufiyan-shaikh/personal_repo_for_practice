@@ -35,7 +35,10 @@ record DayFigures(
         DaySalesReader.DaySales sales,
         BigDecimal collections,
         CreditAgingResponse.Summary credit,
-        List<AttentionItem> attentionItems) {
+        List<AttentionItem> attentionItems,
+        boolean pastDay,
+        Total pendingExpenses,
+        Total pendingCreditPayments) {
 
     record Total(long count, BigDecimal amount) {}
 

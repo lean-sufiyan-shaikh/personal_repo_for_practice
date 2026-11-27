@@ -10,6 +10,8 @@ import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.time.DateRangeBounds;
 import com.ppms.dayclose.ClosedDayGuard;
+import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
@@ -52,6 +54,7 @@ public class PaymentSettlementService {
     private final AuditService                   auditService;
     private final BusinessClock businessClock;
     private final ClosedDayGuard closedDayGuard;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
 
 
 
@@ -203,6 +206,7 @@ public class PaymentSettlementService {
                 .build();
 
         settlement = settlementRepository.save(settlement);
+        balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(settlementDate), StaleReasons.settlementChanged(settlement.getId()));
 
         auditService.log(pumpId, AuditAction.SETTLEMENT_RECORDED,
                 "PaymentSettlement", settlement.getId().toString(),
@@ -239,6 +243,7 @@ public class PaymentSettlementService {
         settlement.setVoidedByUserId(currentUser.getId());
         settlement.setVoidedAt(businessClock.now());
         settlement = settlementRepository.save(settlement);
+        balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(settlement.getSettlementDate()), StaleReasons.settlementChanged(settlementId));
 
         auditService.log(pumpId, AuditAction.SETTLEMENT_VOIDED,
                 "PaymentSettlement", settlementId.toString(),

@@ -1,5 +1,6 @@
 package com.ppms.expense;
 
+import java.util.List;
 import java.util.Map;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
@@ -9,6 +10,8 @@ import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.dayclose.ClosedDayGuard;
+import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +28,7 @@ public class ExpenseApprovalService {
     private final AuditService auditService;
     private final BusinessClock businessClock;
     private final ClosedDayGuard closedDayGuard;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
 
     @Transactional
     public PumpExpense review(Long pumpId, Long expenseId, ExpenseApprovalStatus action, String notes, User reviewer) {
@@ -50,6 +54,8 @@ public class ExpenseApprovalService {
         expense.setApprovedAt(businessClock.now());
         expense.setApprovalNotes(trimmedNotes);
         PumpExpense saved = expenseRepository.save(expense);
+        balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(saved.getExpenseDate()),
+                StaleReasons.expenseChanged(expenseId));
 
         boolean approved = action == ExpenseApprovalStatus.APPROVED;
         auditService.log(pumpId, approved ? AuditAction.EXPENSE_APPROVED : AuditAction.EXPENSE_REJECTED,

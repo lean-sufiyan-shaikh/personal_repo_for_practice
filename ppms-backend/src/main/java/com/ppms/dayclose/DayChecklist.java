@@ -8,14 +8,22 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * What must be done before a day can be closed (a safe count that day, the next day's fuel prices) and what the owner
- * should know about it (open shifts, undipped tanks, pending drops, unchecked deliveries, open alerts).
+ * What must be done before a day can be closed (a safe count that day, the next day's fuel prices, every shift of the
+ * day closed, and for a past day every expense and credit payment of it decided) and what the owner should know about
+ * it (undipped tanks, pending drops, unchecked deliveries, open alerts, today's undecided approvals).
+ *
+ * Open shifts always block: once the day is closed every write on its shifts is refused, so a shift left open could
+ * not be closed without re-opening the day. Undecided expenses and credit payments block a past day, which has had
+ * its time to be reviewed, and only warn for today so a manager can close tonight; they then wait for a re-open.
  */
 final class DayChecklist {
 
     private static final String SAFE_PATH = "/dashboard/cash?tab=safe";
     private static final String SAFE_COUNT_PATH = SAFE_PATH + "&action=count-safe&countFor=";
     private static final String PRICES_PATH = "/dashboard/setup?section=prices";
+    private static final String SHIFTS_PATH = "/dashboard/shifts";
+    private static final String PENDING_EXPENSES_PATH = "/dashboard/approvals?kind=expenses";
+    private static final String PENDING_PAYMENTS_PATH = "/dashboard/approvals?kind=payments";
 
     private DayChecklist() {
     }
@@ -34,17 +42,24 @@ final class DayChecklist {
                         ? "The next day's fuel prices are set"
                         : "Set or confirm the next day's price of " + String.join(", ", missingFuelTypes),
                 PRICES_PATH));
+        int openShifts = figures.openShifts().size();
+        checks.add(new ChecklistItem(ChecklistItem.OPEN_SHIFTS, true, openShifts == 0, counted(openShifts),
+                openShifts == 0
+                        ? "Every shift of " + figures.businessDate() + " is closed"
+                        : "Close or hand over " + plural(openShifts, "open shift") + " of " + figures.businessDate()
+                                + " first",
+                SHIFTS_PATH));
+        if (figures.pastDay()) {
+            checks.addAll(pendingApprovals(figures, true));
+        }
         checks.addAll(warningsFor(figures));
         return checks;
     }
 
     static List<ChecklistItem> warningsFor(DayFigures figures) {
         List<ChecklistItem> warnings = new ArrayList<>();
-        int openShifts = figures.openShifts().size();
-        if (openShifts > 0) {
-            warnings.add(ChecklistItem.warning(ChecklistItem.OPEN_SHIFTS, counted(openShifts),
-                    plural(openShifts, "shift") + " of this day still open; they are left out of the day's figures",
-                    "/dashboard/shifts"));
+        if (!figures.pastDay()) {
+            warnings.addAll(pendingApprovals(figures, false));
         }
         int tanksWithoutDip = figures.tanksWithoutDip().size();
         if (tanksWithoutDip > 0) {
@@ -53,9 +68,7 @@ final class DayChecklist {
         }
         DayFigures.Total pendingDrops = figures.pendingDrops();
         if (pendingDrops.count() > 0) {
-            Map<String, Object> params = counted(pendingDrops.count());
-            params.put("amount", pendingDrops.amount().toPlainString());
-            warnings.add(ChecklistItem.warning(ChecklistItem.PENDING_CASH_DROPS, params,
+            warnings.add(ChecklistItem.warning(ChecklistItem.PENDING_CASH_DROPS, countedAmount(pendingDrops),
                     plural(pendingDrops.count(), "cash drop") + " of ₹" + pendingDrops.amount().toPlainString()
                             + " waiting to be confirmed in the safe", SAFE_PATH));
         }
@@ -71,6 +84,29 @@ final class DayChecklist {
                     plural(attentionItems, "item") + " still needing attention", "/dashboard"));
         }
         return warnings;
+    }
+
+    private static List<ChecklistItem> pendingApprovals(DayFigures figures, boolean blocking) {
+        List<ChecklistItem> items = new ArrayList<>();
+        DayFigures.Total expenses = figures.pendingExpenses();
+        if (expenses.count() > 0) {
+            items.add(new ChecklistItem(ChecklistItem.PENDING_EXPENSES, blocking, false, countedAmount(expenses),
+                    plural(expenses.count(), "expense") + " of ₹" + expenses.amount().toPlainString()
+                            + " dated this day waiting for approval", PENDING_EXPENSES_PATH));
+        }
+        DayFigures.Total payments = figures.pendingCreditPayments();
+        if (payments.count() > 0) {
+            items.add(new ChecklistItem(ChecklistItem.PENDING_CREDIT_PAYMENTS, blocking, false, countedAmount(payments),
+                    plural(payments.count(), "credit payment") + " of ₹" + payments.amount().toPlainString()
+                            + " dated this day waiting for approval", PENDING_PAYMENTS_PATH));
+        }
+        return items;
+    }
+
+    private static Map<String, Object> countedAmount(DayFigures.Total total) {
+        Map<String, Object> params = counted(total.count());
+        params.put("amount", total.amount().toPlainString());
+        return params;
     }
 
     static Map<String, Object> counted(long count) {

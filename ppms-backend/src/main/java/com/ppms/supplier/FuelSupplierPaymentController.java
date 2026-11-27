@@ -1,61 +1,34 @@
 package com.ppms.supplier;
 
-import com.ppms.common.dto.PageRequests;
-import com.ppms.audit.AuditAction;
-import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
-import com.ppms.common.exception.EntityType;
-import com.ppms.common.exception.ResourceNotFoundException;
-import com.ppms.inventory.TankerDeliveryRepository;
+import com.ppms.common.idempotency.IdempotencyService;
+import com.ppms.common.idempotency.IdempotentRequest;
 import com.ppms.user.User;
-import com.ppms.user.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.RoundingMode;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 /**
- * REST controller for recording fuel supplier payments.
+ * Payments sent to fuel suppliers, against a tanker delivery or as an advance. Only owners and admins see and record
+ * them.
  *
- * GET  /api/pumps/{pumpId}/supplier-payments                   — list all payments
- * GET  /api/pumps/{pumpId}/supplier-payments?supplierId={id}   — filter by supplier
- * POST /api/pumps/{pumpId}/supplier-payments                   — record a new payment
- *
- * Payments track amounts sent to fuel suppliers — either against a specific tanker
- * delivery or as an advance/bulk payment. This enables tracking of outstanding dues.
- *
- * Only OWNER and ADMIN can record and view supplier payments.
+ * GET  /api/pumps/{pumpId}/supplier-payments[?supplierId=]   — newest first
+ * POST /api/pumps/{pumpId}/supplier-payments                 — record (Idempotency-Key supported)
+ * POST /api/pumps/{pumpId}/supplier-payments/{id}/void       — void with a reason
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/pumps/{pumpId}/supplier-payments")
 @RequiredArgsConstructor
 public class FuelSupplierPaymentController {
 
-    private final FuelSupplierPaymentRepository paymentRepository;
-    private final FuelSupplierRepository supplierRepository;
-    private final TankerDeliveryRepository deliveryRepository;
-    private final UserRepository userRepository;
-    private final AuditService auditService;
+    private final FuelSupplierPaymentService paymentService;
+    private final IdempotencyService idempotencyService;
 
-    /**
-     * GET /api/pumps/{pumpId}/supplier-payments?page=0&size=50
-     * Returns paginated supplier payments for a pump, newest first.
-     * Optional supplierId query param to filter by a specific supplier.
-     * Max page size is capped at 200 to prevent runaway queries.
-     */
     @GetMapping
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     public ResponseEntity<PagedResponse<SupplierPaymentResponse>> getPayments(
@@ -63,98 +36,31 @@ public class FuelSupplierPaymentController {
             @RequestParam(required = false) Long supplierId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
-
-        var pageable = PageRequests.of(page, size);
-
-        Page<FuelSupplierPayment> paymentsPage = supplierId != null
-                ? paymentRepository.findByPumpIdAndSupplierIdOrderByPaymentDateDesc(pumpId, supplierId, pageable)
-                : paymentRepository.findByPumpIdOrderByPaymentDateDescCreatedAtDesc(pumpId, pageable);
-
-        List<FuelSupplierPayment> payments = paymentsPage.getContent();
-
-        // Batch-load supplier names and user names for this page only
-        Set<Long> supplierIds = payments.stream().map(FuelSupplierPayment::getSupplierId).collect(Collectors.toSet());
-        Map<Long, String> supplierNameById = supplierRepository.findAllById(supplierIds).stream()
-                .collect(Collectors.toMap(FuelSupplier::getId, FuelSupplier::getName));
-
-        Set<Long> userIds = payments.stream().map(FuelSupplierPayment::getRecordedByUserId).collect(Collectors.toSet());
-        Map<Long, String> userNameById = userRepository.findAllById(userIds).stream()
-                .collect(Collectors.toMap(User::getId, User::getFullName));
-
-        Page<SupplierPaymentResponse> responsePage = paymentsPage.map(p ->
-                toResponse(p, supplierNameById.getOrDefault(p.getSupplierId(), "Unknown"),
-                        userNameById.getOrDefault(p.getRecordedByUserId(), "Unknown")));
-
-        return ResponseEntity.ok(PagedResponse.of(responsePage));
+        return ResponseEntity.ok(paymentService.list(pumpId, supplierId, page, size));
     }
 
-    /**
-     * POST /api/pumps/{pumpId}/supplier-payments
-     * Records a payment made to a fuel supplier.
-     * The payment may be linked to a specific tanker delivery or left unlinked (advance payment).
-     */
+    /** An Idempotency-Key header makes a resend after a timeout return the first payment instead of recording two. */
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    @Transactional
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'SUPER_ADMIN')")
-    public ResponseEntity<SupplierPaymentResponse> recordPayment(
+    public ResponseEntity<?> recordPayment(
             @PathVariable Long pumpId,
             @Valid @RequestBody RecordSupplierPaymentRequest request,
+            @RequestHeader(value = IdempotencyService.HEADER, required = false) String idempotencyKey,
+            HttpServletRequest httpRequest,
             @AuthenticationPrincipal User currentUser) {
-
-        FuelSupplier supplier = supplierRepository.findByIdAndPumpId(request.supplierId(), pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException(EntityType.SUPPLIER, "Supplier not found"));
-
-        if (request.deliveryId() != null && !deliveryRepository.existsByIdAndPumpId(request.deliveryId(), pumpId)) {
-            throw new ResourceNotFoundException(EntityType.DELIVERY, "Delivery not found");
-        }
-
-        FuelSupplierPayment payment = FuelSupplierPayment.builder()
-                .pumpId(pumpId)
-                .supplierId(request.supplierId())
-                .deliveryId(request.deliveryId())
-                .amount(request.amount().setScale(2, RoundingMode.HALF_UP))
-                .paymentDate(request.paymentDate())
-                .paymentMode(request.paymentMode())
-                .referenceNo(request.referenceNo())
-                .notes(request.notes())
-                .recordedByUserId(currentUser.getId())
-                .build();
-
-        FuelSupplierPayment saved = paymentRepository.save(payment);
-
-        log.info("Supplier payment recorded: pump={} supplier={} amount={} mode={} ref={} by={}",
-                pumpId, request.supplierId(), request.amount(), request.paymentMode(),
-                request.referenceNo(), currentUser.getId());
-
-        auditService.log(pumpId, AuditAction.SUPPLIER_PAYMENT_RECORDED,
-                "FuelSupplierPayment", saved.getId().toString(),
-                "Payment ₹" + request.amount() + " to " + supplier.getName() +
-                " (" + request.paymentMode() + ")" +
-                (request.referenceNo() != null ? " ref=" + request.referenceNo() : ""),
-                currentUser);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(toResponse(saved, supplier.getName(), currentUser.getFullName()));
+        return idempotencyService.runOnce(
+                IdempotentRequest.of(currentUser.getId(), idempotencyKey, httpRequest, request),
+                () -> ResponseEntity.status(HttpStatus.CREATED)
+                        .body(paymentService.record(pumpId, request, currentUser)));
     }
 
-    private SupplierPaymentResponse toResponse(FuelSupplierPayment p,
-                                                String supplierName,
-                                                String recordedByName) {
-        return SupplierPaymentResponse.builder()
-                .id(p.getId())
-                .pumpId(p.getPumpId())
-                .supplierId(p.getSupplierId())
-                .supplierName(supplierName)
-                .deliveryId(p.getDeliveryId())
-                .amount(p.getAmount())
-                .paymentDate(p.getPaymentDate())
-                .paymentMode(p.getPaymentMode().name())
-                .referenceNo(p.getReferenceNo())
-                .notes(p.getNotes())
-                .recordedByUserId(p.getRecordedByUserId())
-                .recordedByName(recordedByName)
-                .createdAt(p.getCreatedAt())
-                .build();
+    @PostMapping("/{paymentId}/void")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    public SupplierPaymentResponse voidPayment(
+            @PathVariable Long pumpId,
+            @PathVariable Long paymentId,
+            @Valid @RequestBody VoidSupplierPaymentRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        return paymentService.voidPayment(pumpId, paymentId, request.reason(), currentUser);
     }
 }

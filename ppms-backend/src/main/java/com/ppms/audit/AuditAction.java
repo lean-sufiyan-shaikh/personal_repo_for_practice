@@ -26,6 +26,7 @@ public enum AuditAction {
     SHIFT_OPENED,
     SHIFT_CLOSED,
     SHIFT_BACKFILLED,
+    SHIFT_AMENDED,
     DISCREPANCY_RESOLVED,
     DISCREPANCY_INVESTIGATION_STARTED,
 
@@ -92,6 +93,7 @@ public enum AuditAction {
     PUMP_CLOSURE_ADDED,
     BANK_STATEMENT_IMPORTED,
     SUPPLIER_PAYMENT_RECORDED,
+    SUPPLIER_PAYMENT_VOIDED,
     PUMP_CONFIG_UPDATED,
 
     // ── Payment settlements ───────────────────────────────────────────────────
@@ -103,6 +105,8 @@ public enum AuditAction {
     CASH_DROP_RECORDED,
     CASH_DROP_CONFIRMED,
     CASH_DROP_REJECTED,
+    CASH_EVENT_RECORDED,
+    CASH_EVENT_REVERSED,
     SAFE_COUNTED,
     SAFE_COUNTED_LATE,
     SAFE_COUNT_BACK_DATED,

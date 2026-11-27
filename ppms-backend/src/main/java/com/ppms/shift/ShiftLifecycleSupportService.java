@@ -14,6 +14,7 @@ import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.fuel.FuelType;
 import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.invoice.InvoicedSaleGuard;
@@ -21,6 +22,7 @@ import com.ppms.pump.CurrentShiftWindow;
 import com.ppms.pump.DispensaryUnit;
 import com.ppms.pump.Nozzle;
 import com.ppms.pump.NozzleStatus;
+import com.ppms.pump.PumpLocationRepository;
 import com.ppms.pump.PumpShiftDefinitionService;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTankRepository;
@@ -71,6 +73,8 @@ public class ShiftLifecycleSupportService {
     private final BusinessClock businessClock;
     private final InvoicedSaleGuard invoicedSaleGuard;
     private final VehicleCreditCheck vehicleCreditCheck;
+    private final ClosedDayGuard closedDayGuard;
+    private final PumpLocationRepository pumpLocationRepository;
 
     public User findOperatorForPump(Long operatorId, Long pumpId) {
         User operator = userRepository.findById(operatorId)
@@ -342,11 +346,12 @@ public class ShiftLifecycleSupportService {
         return safeEntries;
     }
 
-    public void voidReplacedCreditEntries(Collection<Long> replacedEntryIds, User currentUser) {
+    public void voidReplacedCreditEntries(Long pumpId, Collection<Long> replacedEntryIds, User currentUser) {
         if (replacedEntryIds == null || replacedEntryIds.isEmpty()) {
             return;
         }
         List<ShiftCreditEntry> replaced = creditEntryRepository.findAllByIdForUpdate(replacedEntryIds);
+        closedDayGuard.requireOpen(pumpId, replaced.stream().map(ShiftCreditEntry::getSaleDate).toList());
         invoicedSaleGuard.requireFuelEntriesNotInvoiced(replaced.stream().map(ShiftCreditEntry::getId).toList());
         creditAccountPolicyService.lockLimitHoldersOfClients(replaced.stream()
                 .map(ShiftCreditEntry::getClientId)
@@ -424,7 +429,10 @@ public class ShiftLifecycleSupportService {
         return priceByFuelType;
     }
 
-    /** Only the bag cash enters the safe here: confirmed drops already did when they were confirmed. */
+    /**
+     * Only the bag cash enters the safe here: confirmed drops already did when they were confirmed. It is dated on the
+     * shift's business day, so a night shift closed after midnight lands on the day its DAY sheet counts it.
+     */
     public void createCashCollectionEvent(Shift shift, User currentUser, List<Nozzle> nozzles) {
         BigDecimal bagCash = shift.getCashCollected() == null ? ZERO
                 : shift.getCashCollected().subtract(shift.getCashDropped() == null ? ZERO : shift.getCashDropped());
@@ -439,7 +447,8 @@ public class ShiftLifecycleSupportService {
                 .eventType(CashEventType.CASH_IN)
                 .amount(bagCash.setScale(2, RoundingMode.HALF_UP))
                 .description("Cash collection from " + nozzleLabel + " shift close (Shift #" + shift.getId() + ")")
-                .eventDate(businessClock.today())
+                .eventDate(shift.getShiftDate())
+                .shiftId(shift.getId())
                 .recordedByUserId(currentUser.getId())
                 .build());
         log.info("Auto-created CASH_IN event for shift {}: amount={}", shift.getId(), bagCash);
@@ -456,6 +465,26 @@ public class ShiftLifecycleSupportService {
                 .build());
         log.info("Auto-created CASH_IN event for cash recovery on shift {}: amount={}",
                 shift.getId(), shift.getCashRecoveryAmount());
+    }
+
+    /**
+     * If the initial status is CLOSED_DISCREPANCY_PENDING and the pump has a configured
+     * escalation threshold that the discrepancy exceeds, upgrades the status to
+     * CLOSED_DISCREPANCY_PENDING_APPROVAL so only OWNER/ADMIN can resolve it.
+     */
+    public ShiftStatus escalateStatusIfNeeded(ShiftStatus base, BigDecimal discrepancyAmount, Long pumpId) {
+        if (base != ShiftStatus.CLOSED_DISCREPANCY_PENDING) return base;
+        if (discrepancyAmount == null || discrepancyAmount.compareTo(ZERO) <= 0) return base;
+        return pumpLocationRepository.findById(pumpId)
+                .map(pump -> {
+                    BigDecimal threshold = pump.getDiscrepancyEscalationThreshold();
+                    if (threshold != null && threshold.compareTo(ZERO) > 0
+                            && discrepancyAmount.compareTo(threshold) > 0) {
+                        return ShiftStatus.CLOSED_DISCREPANCY_PENDING_APPROVAL;
+                    }
+                    return base;
+                })
+                .orElse(base);
     }
 
     /** Request ids must be unique; a repeated nozzle would otherwise fail deep inside a map collector. */

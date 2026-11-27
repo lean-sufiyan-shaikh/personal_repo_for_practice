@@ -83,6 +83,7 @@ public class NozzleAdjustmentService {
                 .build();
 
         NozzleReadingAdjustment saved = adjustmentRepository.save(adjustment);
+        balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(businessClock.today()), StaleReasons.meterAmended(nozzleId));
 
         log.info("Meter reading adjusted: nozzle={}, type={}, {} → {}, by={}",
                 nozzleId, type, previousReading, newReading, currentUser.getId());

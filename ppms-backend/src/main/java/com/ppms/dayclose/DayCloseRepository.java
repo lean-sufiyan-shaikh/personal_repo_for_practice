@@ -3,6 +3,7 @@ package com.ppms.dayclose;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -28,4 +29,8 @@ public interface DayCloseRepository extends JpaRepository<DayClose, Long> {
     Page<DayClose> findByPumpIdAndStatusOrderByBusinessDateDesc(Long pumpId, DayCloseStatus status, Pageable pageable);
 
     long countByPumpIdAndStatus(Long pumpId, DayCloseStatus status);
+
+    @Modifying
+    @Query("UPDATE DayClose d SET d.balanceSheetId = :sheetId WHERE d.pumpId = :pumpId AND d.businessDate = :date")
+    int linkBalanceSheet(@Param("pumpId") Long pumpId, @Param("date") LocalDate date, @Param("sheetId") Long sheetId);
 }

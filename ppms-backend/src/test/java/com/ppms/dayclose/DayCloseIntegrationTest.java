@@ -118,7 +118,6 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
     void warningsDoNotBlockAndTheStoredSummaryShowsEachSectionWithItsFlag() throws Exception {
         long shortShift = openShift();
         closeShift(shortShift, "900.00").andExpect(jsonPath("$.status").value("CLOSED_DISCREPANCY_PENDING"));
-        openShift();
         countSafe();
 
         JsonNode closed = json(closeDay(TODAY, setup.manager()).andExpect(status().isOk()));
@@ -128,12 +127,11 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
         assertThat(closed.get("balanceSheetId").isNull()).isFalse();
         JsonNode summary = closed.get("summary");
         assertThat(summary.get("closedShiftCount").asInt()).isEqualTo(1);
-        assertThat(summary.get("openShiftCount").asInt()).isEqualTo(1);
-        assertThat(summary.get("warnings").findValuesAsText("code")).contains("OPEN_SHIFTS", "TANKS_WITHOUT_DIP");
+        assertThat(summary.get("openShiftCount").asInt()).isZero();
+        assertThat(summary.get("warnings").findValuesAsText("code")).contains("TANKS_WITHOUT_DIP").doesNotContain("OPEN_SHIFTS");
 
         JsonNode sales = summary.get("sales");
-        assertThat(sales.get("flag").get("colour").asText()).isEqualTo("AMBER");
-        assertThat(sales.get("flag").get("reasons").findValuesAsText("code")).containsExactly("SALES_OPEN_SHIFTS_EXCLUDED");
+        assertThat(sales.get("flag").get("reasons").findValuesAsText("code")).doesNotContain("SALES_OPEN_SHIFTS_EXCLUDED");
         assertThat(sales.get("fuelLitres").decimalValue()).isEqualByComparingTo("10.000");
         assertThat(sales.get("fuelRevenue").decimalValue()).isEqualByComparingTo("1000.00");
         assertThat(sales.get("fuelCost").decimalValue()).isEqualByComparingTo("900.00");
@@ -157,7 +155,7 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void pastDayWithAShiftStillOpenGetsItsBalanceSheetWithThatShiftLeftOut() throws Exception {
+    void aShiftStillOpenBlocksTheCloseUntilItIsClosed() throws Exception {
         long closedShift = openShift();
         closeShift(closedShift, "1000.00").andExpect(jsonPath("$.status").value("CLOSED_BALANCED"));
         long stillOpen = openShift();
@@ -167,15 +165,54 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
         }
         safeCountOn(YESTERDAY);
 
+        perform(get("/api/pumps/{pumpId}/day-closes/preview", setup.pumpId()).param("date", YESTERDAY.toString()), setup.manager())
+                .andExpect(jsonPath("$.canClose").value(false))
+                .andExpect(jsonPath("$.checks[2].code").value("OPEN_SHIFTS"))
+                .andExpect(jsonPath("$.checks[2].blocking").value(true))
+                .andExpect(jsonPath("$.checks[2].done").value(false))
+                .andExpect(jsonPath("$.checks[2].params.count").value(1));
+        closeDay(YESTERDAY, setup.manager())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DAY_CLOSE_OPEN_SHIFTS"))
+                .andExpect(jsonPath("$.params.count").value(1));
+
+        closeShift(stillOpen, "1000.00");
         JsonNode closed = json(closeDay(YESTERDAY, setup.manager()).andExpect(status().isOk()));
 
-        assertThat(closed.get("summary").get("openShiftCount").asInt()).isEqualTo(1);
-        long sheetId = closed.get("balanceSheetId").asLong();
-        perform(get("/api/pumps/{pumpId}/balance-sheets/{id}", setup.pumpId(), sheetId), setup.owner())
+        assertThat(closed.get("summary").get("openShiftCount").asInt()).isZero();
+        perform(get("/api/pumps/{pumpId}/balance-sheets/{id}", setup.pumpId(), closed.get("balanceSheetId").asLong()), setup.owner())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reportType").value("DAY"))
-                .andExpect(jsonPath("$.openShiftCount").value(1))
-                .andExpect(jsonPath("$.shiftLines.length()").value(1));
+                .andExpect(jsonPath("$.shiftLines.length()").value(2));
+    }
+
+    @Test
+    void pendingExpensesBlockAPastDayButOnlyWarnWhenClosingToday() throws Exception {
+        long pastExpense = pendingExpense(YESTERDAY);
+        safeCountOn(YESTERDAY);
+
+        perform(get("/api/pumps/{pumpId}/day-closes/preview", setup.pumpId()).param("date", YESTERDAY.toString()), setup.manager())
+                .andExpect(jsonPath("$.canClose").value(false))
+                .andExpect(jsonPath("$.checks[3].code").value("PENDING_EXPENSES"))
+                .andExpect(jsonPath("$.checks[3].blocking").value(true))
+                .andExpect(jsonPath("$.checks[3].params.amount").value("5000.00"))
+                .andExpect(jsonPath("$.checks[3].fixPath").value("/dashboard/approvals?kind=expenses"));
+        closeDay(YESTERDAY, setup.manager())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DAY_CLOSE_PENDING_APPROVALS"))
+                .andExpect(jsonPath("$.params.missingCodes[0]").value("PENDING_EXPENSES"));
+        perform(patch("/api/pumps/{pumpId}/expenses/{id}/approve", setup.pumpId(), pastExpense), setup.owner(),
+                Map.of("action", "APPROVED")).andExpect(status().isOk());
+        closeDay(YESTERDAY, setup.manager()).andExpect(status().isOk());
+
+        long todayExpense = pendingExpense(TODAY);
+        countSafe();
+        JsonNode closedToday = json(closeDay(TODAY, setup.manager()).andExpect(status().isOk()));
+        assertThat(closedToday.get("summary").get("warnings").findValuesAsText("code")).contains("PENDING_EXPENSES");
+        perform(patch("/api/pumps/{pumpId}/expenses/{id}/approve", setup.pumpId(), todayExpense), setup.owner(),
+                Map.of("action", "APPROVED"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DAY_CLOSED"));
     }
 
     @Test
@@ -336,6 +373,14 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
         request.put("discrepancyReason", "Counted short");
         return perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId), setup.manager(), request)
                 .andExpect(status().isOk());
+    }
+
+    private long pendingExpense(LocalDate date) throws Exception {
+        return json(perform(post("/api/pumps/{pumpId}/expenses", setup.pumpId()), setup.manager(),
+                Map.of("category", "MAINTENANCE", "amount", new BigDecimal("5000.00"), "description", "Pump motor rewinding",
+                        "expenseDate", date.toString()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.approvalStatus").value("PENDING_APPROVAL"))).get("id").asLong();
     }
 
     private List<String> attentionTypes() throws Exception {

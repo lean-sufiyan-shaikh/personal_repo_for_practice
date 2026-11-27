@@ -14,6 +14,8 @@ import com.ppms.common.text.CodedText;
 import com.ppms.common.text.ServerTextCodes;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CreditPaymentRepository;
+import com.ppms.dayclose.ClosedDayGuard;
+import com.ppms.dayclose.DayCloseRepository;
 import com.ppms.fuel.FuelType;
 import com.ppms.fuel.GlobalFuelPrice;
 import com.ppms.fuel.GlobalFuelPriceRepository;
@@ -69,12 +71,23 @@ public class BalanceSheetService {
     private final BalanceSheetInputsCollector inputs;
     private final BalanceSheetDetailAssembler detailAssembler;
     private final PumpLocationRepository    pumpLocationRepository;
+    private final ClosedDayGuard            closedDayGuard;
+    private final DayCloseRepository        dayCloseRepository;
 
     // ── Generate ──────────────────────────────────────────────────────────────
 
+    /**
+     * A closed day's sheets are part of its close, so they are only generated, regenerated or deleted after the day
+     * is re-opened. A new DAY sheet becomes the one the day's close points to.
+     */
     @Transactional
     public BalanceSheetDetailResponse generate(Long pumpId, GenerateBalanceSheetRequest req, User generatedBy) {
-        return generateSheet(pumpId, req, generatedBy, false);
+        closedDayGuard.requireOpen(pumpId, req.getReportDate());
+        BalanceSheetDetailResponse generated = generateSheet(pumpId, req, generatedBy, false);
+        if (req.getReportType() == BalanceSheetReportType.DAY) {
+            dayCloseRepository.linkBalanceSheet(pumpId, req.getReportDate(), generated.getId());
+        }
+        return generated;
     }
 
     /**
@@ -527,6 +540,7 @@ public class BalanceSheetService {
         BalanceSheet bs = balanceSheetRepository.findById(id)
                 .filter(found -> found.getPumpId().equals(pumpId))
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.BALANCE_SHEET, "Balance sheet not found"));
+        closedDayGuard.requireOpen(pumpId, bs.getReportDate());
         balanceSheetRepository.delete(bs);
         log.info("Balance sheet deleted: id={}, pump={}", id, pumpId);
     }
@@ -540,6 +554,7 @@ public class BalanceSheetService {
         BalanceSheet old = balanceSheetRepository.findById(id)
                 .filter(found -> found.getPumpId().equals(pumpId))
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.BALANCE_SHEET, "Balance sheet not found"));
+        closedDayGuard.requireOpen(pumpId, old.getReportDate());
 
         GenerateBalanceSheetRequest request = new GenerateBalanceSheetRequest();
         request.setReportType(old.getReportType());
