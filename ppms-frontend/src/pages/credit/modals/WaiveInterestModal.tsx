@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { creditApi } from '../../../api/creditApi'
-import type { CreditTransaction } from '../../../api/creditApi'
+import type { CreditTransaction, InterestWaiverKind } from '../../../api/creditApi'
 import { Modal } from '../../../components/Modal'
 import { FormField } from '../../../components/FormField'
 import { LoadingButton } from '../../../components/LoadingButton'
@@ -10,6 +10,8 @@ import { LiveFigures } from '../../../components/LiveFigures'
 import { MoneyText } from '../../../components/AmountText'
 import { parseApiError } from '../../../utils/apiError'
 import { formatCurrency } from '../../../utils/format'
+
+const INTEREST_WAIVER_KINDS: InterestWaiverKind[] = ['KEEP_PERIOD_CHARGED', 'RECALCULATE']
 
 interface WaiveInterestModalProps {
   pumpId: number
@@ -22,11 +24,12 @@ interface WaiveInterestModalProps {
 export function WaiveInterestModal({ pumpId, clientId, charge, onWaived, onClose }: WaiveInterestModalProps) {
   const { t } = useTranslation(['credit', 'common'])
   const [reason, setReason] = useState('')
+  const [kind, setKind] = useState<InterestWaiverKind>('KEEP_PERIOD_CHARGED')
   const [reasonError, setReasonError] = useState<string | undefined>()
   const [serverError, setServerError] = useState<string | null>(null)
 
   const mutation = useMutation({
-    mutationFn: () => creditApi.waiveInterestCharge(pumpId, clientId, charge.referenceId, reason.trim()),
+    mutationFn: () => creditApi.waiveInterestCharge(pumpId, clientId, charge.referenceId, reason.trim(), kind),
     onSuccess: () => {
       onWaived()
       onClose()
@@ -67,6 +70,21 @@ export function WaiveInterestModal({ pumpId, clientId, charge, onWaived, onClose
         { label: t('waiveInterest.owedAfter'), value: <MoneyText value={0} />, isResult: true },
       ]} />
       <p className="text-sm text-ink-2">{t('waiveInterest.explanation')}</p>
+      <fieldset>
+        <legend className="ui-label">{t('waiveInterest.kindLegend')}</legend>
+        <div className="flex flex-col gap-2">
+          {INTEREST_WAIVER_KINDS.map((option) => (
+            <label key={option} className="flex items-start gap-2 text-sm text-ink">
+              <input type="radio" name="waiver-kind" value={option} checked={kind === option}
+                onChange={() => setKind(option)} className="mt-1" />
+              <span>
+                <span className="block font-medium">{t(`waiveInterest.kinds.${option}.label`)}</span>
+                <span className="block text-xs text-ink-3">{t(`waiveInterest.kinds.${option}.hint`)}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <FormField label={t('common:fields.reason')} error={reasonError}>
         <textarea value={reason} onChange={(e) => { setReason(e.target.value); setReasonError(undefined) }}
           rows={3} maxLength={500} className="resize-none" data-autofocus />

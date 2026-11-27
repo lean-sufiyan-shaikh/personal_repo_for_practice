@@ -57,6 +57,8 @@ export type AuditAction =
   // Payroll
   | 'PAYROLL_APPROVED'
   | 'PAYROLL_DELETED'
+  | 'PAYROLL_PAID'
+  | 'PAYROLL_RETURNED_TO_DRAFT'
   // Pump management
   | 'PUMP_CREATED'
   | 'PUMP_DELETED'
@@ -106,6 +108,8 @@ export type AuditAction =
   // Credit collections
   | 'CREDIT_REMINDER_RECORDED'
   | 'CREDIT_PROMISE_RECORDED'
+  | 'CREDIT_PROMISE_EDITED'
+  | 'CREDIT_PROMISE_CANCELLED'
   | 'COLLECTION_SETTINGS_UPDATED'
   // Fleet vehicles
   | 'CLIENT_VEHICLE_SAVED'

@@ -3,12 +3,11 @@ import { ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { StaffMember } from '../../api/userApi'
 import type { PayrollRecord, PayrollStatus } from '../../api/payrollApi'
-import { ConfirmButton } from '../../components/ConfirmButton'
 import { Pagination } from '../../components/Pagination'
 import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
-import { formatDecimal } from '../../utils/format'
-import { NEXT_STATUS, fmtAmt, fmtDate, statusBadge } from './payrollFormat'
+import { statusBadge } from './payrollFormat'
+import { PayrollRecordCard } from './PayrollRecordCard'
 
 // ── Collapsible group header ──────────────────────────────────────────────────
 interface GroupProps {
@@ -27,6 +26,7 @@ interface GroupProps {
   onToggle: () => void
   staff: StaffMember[]
   onStatusChange: (recordId: number, status: PayrollStatus) => void
+  onMarkPaid: (record: PayrollRecord) => void
   onDelete: (recordId: number) => void
   isPending: boolean
   isDeletePending: boolean
@@ -35,11 +35,10 @@ interface GroupProps {
 export function PayrollGroup({
   status, records, totalRecords, totalAmount,
   page, pageSize, onPageChange, onPageSizeChange,
-  isOpen, onToggle, staff, onStatusChange, onDelete, isPending, isDeletePending,
+  isOpen, onToggle, staff, onStatusChange, onMarkPaid, onDelete, isPending, isDeletePending,
 }: GroupProps) {
   const { t } = useTranslation(['payroll', 'common'])
   const recordsId = useId()
-  const next = NEXT_STATUS[status]
 
   const totalPages   = Math.max(1, Math.ceil(totalRecords / pageSize))
   const pagedData = {
@@ -76,145 +75,18 @@ export function PayrollGroup({
       {isOpen && (
         <div id={recordsId} className="ui-accordion-content border-t border-border">
         <div className="divide-y divide-border">
-          {records.map(r => {
-            const staffMember = staff.find((s) => s.id === r.userId)
-            return (
-              <div key={r.id} className="px-5 py-4 space-y-2.5 bg-surface">
-                {/* Header row */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-ink">
-                      {staffMember?.fullName ?? t('group.staffNumber', { id: r.userId })}
-                    </span>
-                    <span className="text-xs text-ink-3">
-                      {fmtDate(r.periodFrom)} – {fmtDate(r.periodTo)}
-                    </span>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <MoneyText value={r.netPay} className="block text-base font-bold text-ink" />
-                    {r.deductions > 0 && (
-                      <MoneyText value={r.grossAmount} className="block text-xs text-ink-3 line-through" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Breakdown */}
-                <div className="bg-surface-sunken rounded-card border border-border divide-y divide-border text-xs">
-                  {r.salaryType === 'DAILY' ? (
-                    <>
-                      <div className="flex items-center justify-between px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-info shrink-0" />
-                          <span className="text-ink-3">{t('group.totalDays')}</span>
-                        </div>
-                        <span className="font-medium text-ink">{r.totalDays ?? 0}</span>
-                      </div>
-                      <div className="flex items-center justify-between px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-warn shrink-0" />
-                          <span className="text-ink-3">{t('group.leaveDays')}</span>
-                        </div>
-                        <span className="font-medium text-warn">− {r.leaveDays ?? 0}</span>
-                      </div>
-                      <div className="flex items-center justify-between px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-ok shrink-0" />
-                          <span className="text-ink-3">{t('group.daysWorked')}</span>
-                          {r.dailyRateSnapshot != null && (
-                            <span className="text-ink-3">{t('group.perDay', { rate: fmtAmt(r.dailyRateSnapshot) })}</span>
-                          )}
-                        </div>
-                        <span className="font-medium text-ink">{t('group.days', { count: r.daysWorked ?? 0 })}</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {r.shift1Shifts > 0 && (
-                        <div className="flex items-center justify-between px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                            <span className="text-ink-3">{t('group.night')}</span>
-                            <span className="text-ink-3">{t('group.shiftsHours', { count: r.shift1Shifts, hours: formatDecimal(r.shift1Hours) })}</span>
-                            {r.shift1RateSnapshot != null && (
-                              <span className="text-ink-3">{t('group.perHour', { rate: fmtAmt(r.shift1RateSnapshot) })}</span>
-                            )}
-                          </div>
-                          <MoneyText value={r.shift1RateSnapshot != null ? r.shift1Hours * r.shift1RateSnapshot : null} className="font-medium text-ink" />
-                        </div>
-                      )}
-                      {r.standardShifts > 0 && (
-                        <div className="flex items-center justify-between px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-accent shrink-0" />
-                            <span className="text-ink-3">{t('group.day')}</span>
-                            <span className="text-ink-3">{t('group.shiftsHours', { count: r.standardShifts, hours: formatDecimal(r.standardHours) })}</span>
-                            {r.standardRateSnapshot != null && (
-                              <span className="text-ink-3">{t('group.perHour', { rate: fmtAmt(r.standardRateSnapshot) })}</span>
-                            )}
-                          </div>
-                          <MoneyText value={r.standardRateSnapshot != null ? r.standardHours * r.standardRateSnapshot : null} className="font-medium text-ink" />
-                        </div>
-                      )}
-                      {r.shift1Shifts === 0 && r.standardShifts === 0 && (
-                        <p className="px-3 py-2 text-ink-3">{t('group.noShifts')}</p>
-                      )}
-                    </>
-                  )}
-                  {r.deductions > 0 && (
-                    <div className="flex items-center justify-between px-3 py-2 bg-bad-bg">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-bad shrink-0" />
-                        <span className="text-ink-3">{t('group.deductions')}</span>
-                        <span className="text-xs text-ink-3">{t('group.shortfall')}</span>
-                      </div>
-                      <MoneyText value={-r.deductions} showSign tone="bad" className="font-medium" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-ink-3">
-                    {r.salaryType === 'DAILY'
-                      ? t('group.daysWorkedTotal', { count: r.daysWorked ?? 0 })
-                      : t('group.shiftsTotal', { count: r.totalShifts })}
-                    {r.notes && ` · ${r.notes}`}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    {next === 'PAID' ? (
-                      <ConfirmButton
-                        onConfirm={() => onStatusChange(r.id, next)}
-                        disabled={isPending}
-                        triggerLabel={t('group.mark.PAID')}
-                        triggerAriaLabel={t('group.mark.PAID')}
-                        prompt={t('group.markPaidPrompt')}
-                        triggerClassName="ui-btn ui-btn-primary ui-btn-compact"
-                        tone="neutral"
-                      />
-                    ) : next && (
-                      <button
-                        type="button"
-                        onClick={() => onStatusChange(r.id, next)}
-                        disabled={isPending}
-                        className="ui-btn ui-btn-primary ui-btn-compact"
-                      >
-                        {t(`group.mark.${next}`)}
-                      </button>
-                    )}
-                    {status === 'DRAFT' && (
-                      <ConfirmButton
-                        onConfirm={() => onDelete(r.id)}
-                        disabled={isDeletePending}
-                        triggerLabel={t('common:actions.delete')}
-                        triggerAriaLabel={t('common:actions.delete')}
-                        prompt={t('group.deletePrompt')}
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+          {records.map(r => (
+            <PayrollRecordCard
+              key={r.id}
+              record={r}
+              staffName={staff.find((s) => s.id === r.userId)?.fullName}
+              onStatusChange={onStatusChange}
+              onMarkPaid={onMarkPaid}
+              onDelete={onDelete}
+              isPending={isPending}
+              isDeletePending={isDeletePending}
+            />
+          ))}
         </div>
         <Pagination
           data={pagedData}

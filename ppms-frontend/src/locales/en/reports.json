@@ -93,8 +93,8 @@
     "operatingTitle": "Operating",
     "approvedExpenses": "Approved expenses",
     "bankCharges": "MDR / bank charges",
-    "netOperatingProfit": "Net operating profit",
-    "payrollNotIncluded": "Payroll is not included yet."
+    "payrollPaid": "Payroll paid",
+    "netOperatingProfit": "Net operating profit"
   },
   "duty": {
     "operator": "Operator",

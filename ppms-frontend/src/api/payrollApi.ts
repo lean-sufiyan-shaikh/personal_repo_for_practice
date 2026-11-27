@@ -2,6 +2,9 @@ import client from './client'
 
 export type PayrollStatus = 'DRAFT' | 'APPROVED' | 'PAID'
 
+/** A CASH payment is taken out of the safe on the paid date. */
+export type PayrollPaymentMode = 'CASH' | 'BANK' | 'UPI'
+
 export interface PayrollRecord {
   id: number
   pumpId: number
@@ -23,11 +26,24 @@ export interface PayrollRecord {
   daysWorked: number | null
   dailyRateSnapshot: number | null
   grossAmount: number
+  /** Shift deductions plus openingDeductions. */
   deductions: number
   netPay: number
+  /** Deductions above the gross pay; carried into the next payroll of the staff member. */
+  uncoveredDeductions: number
+  /** Deductions earlier payroll could not take, brought into this one. */
+  openingDeductions: number
+  /** The payroll this record's uncovered deductions were carried into. */
+  carriedToPayrollId: number | null
   notes: string | null
   status: PayrollStatus
   approvedBy: number | null
+  paidDate: string | null
+  /** Null on payroll marked paid before the payment mode was recorded. */
+  paymentMode: PayrollPaymentMode | null
+  paymentReference: string | null
+  paidBy: number | null
+  cashEventId: number | null
   createdAt: string
   updatedAt: string
 }
@@ -51,6 +67,12 @@ export interface GeneratePayrollRequest {
   deductFromSalaryShiftIds?: number[]
 }
 
+export interface PayrollPayment {
+  paidDate: string
+  paymentMode: PayrollPaymentMode
+  paymentReference?: string
+}
+
 export const payrollApi = {
   getPayroll: (pumpId: number): Promise<PayrollRecord[]> =>
     client.get(`/pumps/${pumpId}/payroll`).then(r => r.data),
@@ -66,4 +88,7 @@ export const payrollApi = {
 
   updateStatus: (pumpId: number, recordId: number, status: PayrollStatus): Promise<PayrollRecord> =>
     client.patch(`/pumps/${pumpId}/payroll/${recordId}/status`, { status }).then(r => r.data),
+
+  markPaid: (pumpId: number, recordId: number, payment: PayrollPayment): Promise<PayrollRecord> =>
+    client.patch(`/pumps/${pumpId}/payroll/${recordId}/status`, { status: 'PAID', ...payment }).then(r => r.data),
 }

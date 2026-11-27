@@ -8,6 +8,7 @@ import { SkeletonRows } from '../../../components/Skeleton'
 import { UpiQrCode } from '../../../components/UpiQrCode'
 import { formatIstDate } from '../../../utils/date'
 import { formatCurrency } from '../../../utils/format'
+import { CancelPromiseModal } from './CancelPromiseModal'
 import { FollowUpHistory } from './FollowUpHistory'
 import { OverrideHoldModal } from './OverrideHoldModal'
 import { PromiseModal } from './PromiseModal'
@@ -18,7 +19,7 @@ interface ClientFollowUpTabProps {
   clientId: number
   clientName: string
   phone: string | null
-  /** Records reminders and promises (managers and above). */
+  /** Records reminders, and records, changes and cancels promises (managers and above). */
   canRemind: boolean
   /** Overrides a credit hold (owners and admins). */
   canOverrideHold: boolean
@@ -28,6 +29,8 @@ interface ClientFollowUpTabProps {
 export function ClientFollowUpTab({ pumpId, clientId, clientName, phone, canRemind, canOverrideHold }: ClientFollowUpTabProps) {
   const { t } = useTranslation('collections')
   const [showPromise, setShowPromise] = useState(false)
+  const [changingPromise, setChangingPromise] = useState(false)
+  const [cancellingPromise, setCancellingPromise] = useState(false)
   const [showOverride, setShowOverride] = useState(false)
   const { data: followUp, isLoading, isError, refetch } = useQuery({
     queryKey: ['collections', pumpId, 'client', clientId],
@@ -76,6 +79,16 @@ export function ClientFollowUpTab({ pumpId, clientId, clientName, phone, canRemi
               {t('promise.openUntil', { amount: formatCurrency(openPromise.amount), date: formatIstDate(openPromise.promisedDate) })}
             </p>
           )}
+          {openPromise && canRemind && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button type="button" onClick={() => setChangingPromise(true)} className="ui-btn ui-btn-secondary">
+                {t('promise.change')}
+              </button>
+              <button type="button" onClick={() => setCancellingPromise(true)} className="ui-btn ui-btn-secondary">
+                {t('promise.cancel')}
+              </button>
+            </div>
+          )}
         </div>
         {canRemind && !openPromise && followUp.outstanding > 0 && (
           <button type="button" onClick={() => setShowPromise(true)} className="ui-btn ui-btn-secondary">
@@ -102,6 +115,14 @@ export function ClientFollowUpTab({ pumpId, clientId, clientName, phone, canRemi
       {showPromise && (
         <PromiseModal pumpId={pumpId} clientId={followUp.clientId} clientName={clientName}
           outstanding={followUp.outstanding} onClose={() => setShowPromise(false)} />
+      )}
+      {changingPromise && openPromise && (
+        <PromiseModal pumpId={pumpId} clientId={followUp.clientId} clientName={clientName}
+          outstanding={followUp.outstanding} promise={openPromise} onClose={() => setChangingPromise(false)} />
+      )}
+      {cancellingPromise && openPromise && (
+        <CancelPromiseModal pumpId={pumpId} clientName={clientName} promise={openPromise}
+          onClose={() => setCancellingPromise(false)} />
       )}
       {showOverride && (
         <OverrideHoldModal pumpId={pumpId} clientId={followUp.clientId} clientName={clientName}

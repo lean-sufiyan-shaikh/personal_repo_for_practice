@@ -151,9 +151,20 @@
     "title": "Waive interest",
     "keep": "Keep charge",
     "waiving": "Waiving…",
-    "explanation": "The charge stays on the ledger marked as waived and is no longer owed. The waiver is recorded in the audit log. If this is the latest charge, the next interest run can charge its period again.",
+    "explanation": "The charge stays on the ledger marked as waived and is no longer owed. The waiver is recorded in the audit log.",
     "charge": "Interest charge",
-    "owedAfter": "Still owed on this charge"
+    "owedAfter": "Still owed on this charge",
+    "kindLegend": "After waiving",
+    "kinds": {
+      "KEEP_PERIOD_CHARGED": {
+        "label": "Waive (don't charge again)",
+        "hint": "The next interest run skips these days, so the client is not charged for them again."
+      },
+      "RECALCULATE": {
+        "label": "Waive and recalculate",
+        "hint": "If this is the latest charge, the next interest run charges these days again from the balance on record, for example after a wrong rate or a missed payment."
+      }
+    }
   },
   "cancelInvoice": {
     "cancelled": "Invoice {{number}} cancelled",

@@ -65,6 +65,8 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   // Payroll
   PAYROLL_APPROVED:                   'ok',
   PAYROLL_DELETED:                    'bad',
+  PAYROLL_PAID:                       'ok',
+  PAYROLL_RETURNED_TO_DRAFT:          'warn',
   // Pump management
   PUMP_CREATED:                       'info',
   PUMP_DELETED:                       'bad',
@@ -114,6 +116,8 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   // Credit collections
   CREDIT_REMINDER_RECORDED:           'neutral',
   CREDIT_PROMISE_RECORDED:            'info',
+  CREDIT_PROMISE_EDITED:              'neutral',
+  CREDIT_PROMISE_CANCELLED:           'warn',
   COLLECTION_SETTINGS_UPDATED:        'neutral',
   // Fleet vehicles
   CLIENT_VEHICLE_SAVED:               'info',

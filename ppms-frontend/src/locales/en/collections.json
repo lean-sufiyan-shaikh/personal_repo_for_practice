@@ -76,8 +76,26 @@
     "status": {
       "OPEN": "Open",
       "KEPT": "Kept",
-      "MISSED": "Missed"
-    }
+      "MISSED": "Missed",
+      "CANCELLED": "Cancelled"
+    },
+    "change": "Change",
+    "changeTitle": "Change promise",
+    "saveChanges": "Save changes",
+    "changed": "Promise changed",
+    "changeFailed": "Could not change the promise.",
+    "changeReason": "Why it changed",
+    "cancel": "Cancel promise",
+    "cancelTitle": "Cancel promise",
+    "cancelHint": "The promise is kept in the history as cancelled, with what was paid towards it so far. Reminders resume for this account.",
+    "cancelReason": "Reason",
+    "cancelReasonRequired": "A reason is required to cancel a promise.",
+    "keepPromise": "Keep promise",
+    "cancelling": "Cancelling…",
+    "cancelled": "Promise cancelled",
+    "cancelFailed": "Could not cancel the promise.",
+    "limitsHint": "At most {{days}} days ahead and at most what the account owes ({{outstanding}}).",
+    "dateTooFar": "Pick a date at most {{days}} days ahead."
   },
   "hold": {
     "onHold": "Credit on hold: {{days}} days overdue (held from {{holdDays}} days). New credit is refused until the client pays or the hold is overridden.",

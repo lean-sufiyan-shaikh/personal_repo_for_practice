@@ -38,7 +38,7 @@ export function ExpensesSection({ expenses }: { expenses: ExpenseSummary }) {
         regionLabel={t('expenses.region')}
         columns={expenseColumns(t)}
         rows={expenses.lines}
-        rowKey={(line) => line.id}
+        rowKey={(line) => `${line.category}-${line.id}`}
         renderRow={(line) => (
           <tr>
             <Td><StatusBadge tone="neutral" label={codeLabel(line.category)} /></Td>

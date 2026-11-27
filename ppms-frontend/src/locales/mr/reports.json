@@ -93,8 +93,8 @@
     "operatingTitle": "परिचालन",
     "approvedExpenses": "मंजूर खर्च",
     "bankCharges": "MDR / बँक शुल्क",
-    "netOperatingProfit": "निव्वळ परिचालन नफा",
-    "payrollNotIncluded": "पगार अजून यात धरलेला नाही."
+    "payrollPaid": "दिलेला पगार",
+    "netOperatingProfit": "निव्वळ परिचालन नफा"
   },
   "duty": {
     "operator": "ऑपरेटर",

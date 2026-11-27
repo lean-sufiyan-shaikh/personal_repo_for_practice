@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { StaffMember } from '../../api/userApi'
@@ -7,6 +8,7 @@ import { SkeletonTable } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
+import { MarkPaidDialog } from './MarkPaidDialog'
 import { PayrollGroup } from './PayrollGroup'
 import { STATUS_ORDER, fmtMonthKey } from './payrollFormat'
 import { usePayrollGroups } from './usePayrollGroups'
@@ -47,6 +49,7 @@ export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, o
   const { t } = useTranslation('payroll')
   const { addToast } = useToastStore()
   const qc = useQueryClient()
+  const [payingRecord, setPayingRecord] = useState<PayrollRecord | null>(null)
   const {
     monthOptions, selectedMonth, setSelectedMonth, nameSearch, setNameSearch,
     draftPage, setDraftPage, draftPageSize, setDraftPageSize,
@@ -167,6 +170,7 @@ export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, o
                   onToggle={() => toggleGroup(status)}
                   staff={staff}
                   onStatusChange={(recordId, next) => statusMutation.mutate({ recordId, status: next })}
+                  onMarkPaid={setPayingRecord}
                   onDelete={(recordId) => deleteMutation.mutate(recordId)}
                   isPending={statusMutation.isPending}
                   isDeletePending={deleteMutation.isPending}
@@ -176,6 +180,11 @@ export function PayrollRecords({ pumpId, staff, records, isLoading, openGroup, o
           </div>
         )}
       </div>
+      {payingRecord && (
+        <MarkPaidDialog pumpId={pumpId} record={payingRecord}
+          staffName={staff.find((member) => member.id === payingRecord.userId)?.fullName ?? t('group.staffNumber', { id: payingRecord.userId })}
+          onClose={() => setPayingRecord(null)} />
+      )}
     </PageSection>
   )
 }

@@ -1,7 +1,7 @@
 import client from './client'
 
 export type ReminderMethod = 'CALL' | 'IN_PERSON' | 'MESSAGE_COPIED'
-export type PromiseStatus = 'OPEN' | 'KEPT' | 'MISSED'
+export type PromiseStatus = 'OPEN' | 'KEPT' | 'MISSED' | 'CANCELLED'
 
 /** An overdue account at a reminder stage nobody has reminded it of in this overdue episode; a parent covers its group. */
 export interface ReminderDue {
@@ -115,6 +115,10 @@ export interface RecordPromiseRequest {
   note?: string
 }
 
+export interface EditPromiseRequest extends RecordPromiseRequest {
+  reason?: string
+}
+
 export const collectionApi = {
   getDashboard: (pumpId: number) =>
     client.get<CollectionDashboard>(`/pumps/${pumpId}/collections/dashboard`).then(r => r.data),
@@ -130,6 +134,12 @@ export const collectionApi = {
 
   recordPromise: (pumpId: number, clientId: number, req: RecordPromiseRequest) =>
     client.post<PaymentPromise>(`/pumps/${pumpId}/collections/clients/${clientId}/promises`, req).then(r => r.data),
+
+  editPromise: (pumpId: number, promiseId: number, req: EditPromiseRequest) =>
+    client.put<PaymentPromise>(`/pumps/${pumpId}/collections/promises/${promiseId}`, req).then(r => r.data),
+
+  cancelPromise: (pumpId: number, promiseId: number, reason: string) =>
+    client.post<PaymentPromise>(`/pumps/${pumpId}/collections/promises/${promiseId}/cancel`, { reason }).then(r => r.data),
 
   /** month is YYYY-MM. */
   getStatementsOfMonth: (pumpId: number, month: string) =>

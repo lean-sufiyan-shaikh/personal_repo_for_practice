@@ -92,7 +92,30 @@
       "APPROVED": "Mark as approved",
       "PAID": "Mark as paid"
     },
-    "markPaidPrompt": "Mark as paid? This is final and cannot be undone.",
-    "deletePrompt": "Delete this draft? The record is removed for good."
+    "deletePrompt": "Delete this draft? The record is removed for good.",
+    "openingDeductions": "Carried from earlier payroll",
+    "toCarryForward": "{{amount}} of deductions is more than the pay; the next payroll takes it.",
+    "carriedForward": "{{amount}} of deductions was carried into the next payroll.",
+    "paidOn": "Paid on {{date}}",
+    "paidOnBy": "Paid on {{date}} by {{mode}}",
+    "paidOnByWithReference": "Paid on {{date}} by {{mode}} ({{reference}})"
+  },
+  "markPaid": {
+    "title": "Mark as paid",
+    "netPay": "Net pay",
+    "paidDate": "Paid on",
+    "mode": "Paid by",
+    "modes": {
+      "CASH": "Cash",
+      "BANK": "Bank transfer",
+      "UPI": "UPI"
+    },
+    "reference": "Reference",
+    "cashHint": "Cash is taken out of the safe on the paid date.",
+    "finalHint": "Paid is final: the payroll can no longer be changed or deleted.",
+    "save": "Mark as paid",
+    "saving": "Saving…",
+    "invalidDate": "Pick a date that is not in the future.",
+    "failed": "Could not mark the payroll as paid."
   }
 }

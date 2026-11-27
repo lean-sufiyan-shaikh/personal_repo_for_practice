@@ -23,7 +23,7 @@ const reportWithOneLotAtTwoPrices: ProfitLossReport = {
   pumpId: PUMP_ID, from: '2026-01-01', to: '2026-01-31', totalShifts: 2, autoClosedShiftCount: 1,
   totalRevenue: 3000, totalCogs: 2700, grossProfit: 300,
   totalCashRevenue: 3000, totalUpiRevenue: 0, totalCardRevenue: 0, totalFleetCardRevenue: 0, totalCreditRevenue: 0, totalCollected: 3000,
-  approvedExpenses: 0, bankCharges: 0, netOperatingProfit: 300,
+  approvedExpenses: 0, bankCharges: 0, payrollPaid: 0, netOperatingProfit: 300,
   byFuelType: [{
     fuelType: 'PETROL', revenue: 3000, cogs: 2700, grossProfit: 300, grossMarginPerLitre: 10,
     lotCostLines: [
@@ -59,12 +59,12 @@ describe('ReportsPage', () => {
     expect(screen.getByLabelText('From')).toHaveValue('2026-01-01')
   })
 
-  it('lists fleet card in the payment mix with the total collected, and an operating section after expenses and bank charges', async () => {
+  it('lists fleet card in the payment mix with the total collected, and an operating section after expenses, bank charges and payroll', async () => {
     const user = userEvent.setup()
     vi.mocked(reportApi.getProfitLoss).mockResolvedValue({
       ...reportWithOneLotAtTwoPrices,
       totalCashRevenue: 2000, totalFleetCardRevenue: 1000, totalCollected: 3000,
-      approvedExpenses: 150, bankCharges: 21.24, netOperatingProfit: 128.76,
+      approvedExpenses: 150, bankCharges: 21.24, payrollPaid: 100, netOperatingProfit: 28.76,
     })
     renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
 
@@ -76,8 +76,9 @@ describe('ReportsPage', () => {
     const operating = screen.getAllByRole('region', { name: 'Operating' })[0]
     expect(within(operating).getByText('Approved expenses').nextSibling).toHaveTextContent('−₹150.00')
     expect(within(operating).getByText('MDR / bank charges').nextSibling).toHaveTextContent('−₹21.24')
-    expect(within(operating).getByText('Net operating profit').nextSibling).toHaveTextContent('₹128.76')
-    expect(within(operating).getByText('Payroll is not included yet.')).toBeInTheDocument()
+    expect(within(operating).getByText('Payroll paid').nextSibling).toHaveTextContent('−₹100.00')
+    expect(within(operating).getByText('Net operating profit').nextSibling).toHaveTextContent('₹28.76')
+    expect(within(operating).queryByText('Payroll is not included yet.')).not.toBeInTheDocument()
   })
 
   it('shows the report types as tabs under the page title', async () => {

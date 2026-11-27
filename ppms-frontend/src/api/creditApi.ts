@@ -63,6 +63,9 @@ export interface UpdateInterestSettingsRequest {
   interestGraceDays: number
 }
 
+/** KEEP_PERIOD_CHARGED: the waived days are not charged again; RECALCULATE: the next run may charge them again. */
+export type InterestWaiverKind = 'KEEP_PERIOD_CHARGED' | 'RECALCULATE'
+
 export interface ApplyInterestResponse {
   applied: boolean
   amount?: number
@@ -332,8 +335,8 @@ export const creditApi = {
     }>(`/pumps/${pumpId}/credit-ledger/interest/apply-all`).then(r => r.data),
 
   // Waives an interest charge with a reason; the row stays on the ledger but is no longer owed (Owner/Admin only)
-  waiveInterestCharge: (pumpId: number, clientId: number, chargeId: number, reason: string) =>
-    client.patch(`/pumps/${pumpId}/credit-ledger/${clientId}/interest/${chargeId}/waive`, { reason }),
+  waiveInterestCharge: (pumpId: number, clientId: number, chargeId: number, reason: string, kind: InterestWaiverKind) =>
+    client.patch(`/pumps/${pumpId}/credit-ledger/${clientId}/interest/${chargeId}/waive`, { reason, kind }),
 
   // Total interest ever recovered for a client (parent = includes all sub-accounts)
   getTotalInterestRecovered: (pumpId: number, clientId: number): Promise<number> =>

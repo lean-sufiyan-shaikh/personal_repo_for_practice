@@ -240,7 +240,8 @@ describe('ClientDetail interest waiver', () => {
 
     await user.type(screen.getByRole('textbox'), 'Charged at the wrong rate')
     await user.click(screen.getByRole('button', { name: 'Waive interest' }))
-    expect(creditApi.waiveInterestCharge).toHaveBeenCalledWith(PUMP_ID, CLIENT_ID, 91, 'Charged at the wrong rate')
+    expect(creditApi.waiveInterestCharge).toHaveBeenCalledWith(PUMP_ID, CLIENT_ID, 91, 'Charged at the wrong rate',
+      'KEEP_PERIOD_CHARGED')
   })
 
   it('does not offer a manager the waiver', async () => {

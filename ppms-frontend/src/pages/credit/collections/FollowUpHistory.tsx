@@ -5,7 +5,7 @@ import type { StatusTone } from '../../../components/StatusBadge'
 import { formatIstDate, formatIstDateTime } from '../../../utils/date'
 import { formatCurrency } from '../../../utils/format'
 
-const PROMISE_TONE: Record<PromiseStatus, StatusTone> = { OPEN: 'info', KEPT: 'ok', MISSED: 'bad' }
+const PROMISE_TONE: Record<PromiseStatus, StatusTone> = { OPEN: 'info', KEPT: 'ok', MISSED: 'bad', CANCELLED: 'neutral' }
 
 /** The account's latest promises and reminders, newest first. */
 export function FollowUpHistory({ promises, reminders }: { promises: PaymentPromise[]; reminders: Reminder[] }) {

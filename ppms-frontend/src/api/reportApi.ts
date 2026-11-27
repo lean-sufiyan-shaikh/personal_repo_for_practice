@@ -49,7 +49,9 @@ export interface ProfitLossReport {
   approvedExpenses: number
   /** MDR plus GST on MDR deducted from settlements recorded in the range. */
   bankCharges: number
-  /** grossProfit − approvedExpenses − bankCharges; payroll is not deducted yet. */
+  /** Net pay of the payroll paid in the period, by its paid date. */
+  payrollPaid: number
+  /** grossProfit − approvedExpenses − bankCharges − payrollPaid. */
   netOperatingProfit: number
   byFuelType: ProfitLossFuelLine[]
   byDay: ProfitLossDayLine[]

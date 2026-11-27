@@ -31,7 +31,7 @@ export function RevenueBreakdown({ report, className }: { report: ProfitLossRepo
   )
 }
 
-/** Gross profit less approved expenses and bank charges; payroll is not taken off yet, which the note says. */
+/** Gross profit less approved expenses, bank charges and the payroll paid in the period. */
 export function OperatingProfitSection({ report, className = '' }: { report: ProfitLossReport; className?: string }) {
   const { t } = useTranslation('reports')
   const titleId = useId()
@@ -39,6 +39,7 @@ export function OperatingProfitSection({ report, className = '' }: { report: Pro
     { key: 'gross', label: t('pl.grossProfit'), value: report.grossProfit, showSign: false },
     { key: 'expenses', label: t('pl.approvedExpenses'), value: -report.approvedExpenses, showSign: true },
     { key: 'charges', label: t('pl.bankCharges'), value: -report.bankCharges, showSign: true },
+    { key: 'payroll', label: t('pl.payrollPaid'), value: -report.payrollPaid, showSign: true },
   ]
   return (
     <section aria-labelledby={titleId} className={`ui-card ui-card-muted p-3 ${className}`}>
@@ -57,7 +58,6 @@ export function OperatingProfitSection({ report, className = '' }: { report: Pro
           </dd>
         </div>
       </dl>
-      <p className="mt-2 text-xs text-ink-3">{t('pl.payrollNotIncluded')}</p>
     </section>
   )
 }
