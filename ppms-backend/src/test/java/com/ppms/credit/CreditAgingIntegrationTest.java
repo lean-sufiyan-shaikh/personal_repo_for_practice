@@ -217,7 +217,7 @@ class CreditAgingIntegrationTest extends ApiIntegrationTest {
 
     private void setCreditLimit(long clientId, String limit) throws Exception {
         perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit", setup.pumpId(), clientId),
-                setup.manager(), Map.of("creditLimit", new BigDecimal(limit)))
+                setup.manager(), Map.of("creditLimit", new BigDecimal(limit), "reason", "Limit review"))
                 .andExpect(status().isOk());
     }
 }

@@ -54,6 +54,7 @@ public class CreditLedgerController {
     private final CreditStatementRenderer statementRenderer;
     private final PumpLocationRepository pumpLocationRepository;
     private final AuditService auditService;
+    private final CreditLimitService creditLimitService;
 
     /**
      * GET /api/pumps/{pumpId}/credit-ledger
@@ -175,7 +176,7 @@ public class CreditLedgerController {
 
     /**
      * PATCH /api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit
-     * Updates the credit limit for a client. 0 = no limit.
+     * Sets a client's credit limit (0 allows no credit) or unlimited credit, with a reason kept in its history.
      */
     @PatchMapping("/clients/{clientId}/credit-limit")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
@@ -184,21 +185,16 @@ public class CreditLedgerController {
             @PathVariable Long clientId,
             @Valid @RequestBody UpdateCreditLimitRequest request,
             @AuthenticationPrincipal User currentUser) {
-
-        CreditClient client = clientAccessService.requireClientForPump(pumpId, clientId);
-
-        BigDecimal oldLimit = client.getCreditLimit();
-        client.setCreditLimit(request.getCreditLimit().setScale(2, RoundingMode.HALF_UP));
-        client = ledgerService.saveClient(client);
-
-        log.info("Credit limit updated: pump={}, client={}, newLimit={}", pumpId, clientId, client.getCreditLimit());
-
-        auditService.log(pumpId, AuditAction.CREDIT_LIMIT_CHANGED,
-                "CreditClient", clientId.toString(),
-                "Credit limit for " + client.getName() + " changed from ₹" + oldLimit + " to ₹" + client.getCreditLimit(),
-                currentUser);
-
+        CreditClient client = creditLimitService.changeLimit(pumpId, clientId, request, currentUser);
         return ResponseEntity.ok(queryService.toClientResponse(client));
+    }
+
+    /** GET /api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit-changes — newest first. */
+    @GetMapping("/clients/{clientId}/credit-limit-changes")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")
+    public ResponseEntity<List<CreditLimitChangeResponse>> getCreditLimitChanges(@PathVariable Long pumpId,
+                                                                                @PathVariable Long clientId) {
+        return ResponseEntity.ok(creditLimitService.limitChanges(pumpId, clientId));
     }
 
     /**

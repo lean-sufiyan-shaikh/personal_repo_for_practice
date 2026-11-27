@@ -26,6 +26,7 @@ public class CreditClientService {
     private final AncillarySaleRepository ancillarySaleRepository;
     private final CreditOpeningBalanceRepository openingBalanceRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CreditPortalAttemptService portalAttemptService;
 
     /** Only a client with no ledger history can be removed; anyone else is deactivated so the history stays intact. */
     @Transactional
@@ -44,11 +45,21 @@ public class CreditClientService {
         log.info("Credit client deleted: pump={}, client={}", pumpId, clientId);
     }
 
+    /** A new PIN must not be easy to guess; setting one also lifts any lockout of the client's phone. */
     @Transactional
     public void setPortalPin(Long pumpId, Long clientId, String pin) {
+        if (PortalPinRules.isTrivial(pin)) {
+            throw new BusinessException(ErrorCodes.PORTAL_PIN_TOO_EASY, Map.of(),
+                    "Choose a PIN that is hard to guess: not one digit repeated, not a run like 123456, "
+                            + "and not a common PIN.");
+        }
         CreditClient client = clientAccessService.requireClientForPump(pumpId, clientId);
         client.setPortalPinHash(passwordEncoder.encode(pin));
+        client.setPortalPinWeak(PortalPinRules.isWeak(pin));
         clientRepository.save(client);
+        if (client.getPhone() != null) {
+            portalAttemptService.clearAttempts(pumpId, client.getPhone());
+        }
         log.info("Credit portal PIN set: pump={}, client={}", pumpId, clientId);
     }
 
@@ -56,6 +67,7 @@ public class CreditClientService {
     public void removePortalPin(Long pumpId, Long clientId) {
         CreditClient client = clientAccessService.requireClientForPump(pumpId, clientId);
         client.setPortalPinHash(null);
+        client.setPortalPinWeak(null);
         clientRepository.save(client);
         log.info("Credit portal PIN removed: pump={}, client={}", pumpId, clientId);
     }

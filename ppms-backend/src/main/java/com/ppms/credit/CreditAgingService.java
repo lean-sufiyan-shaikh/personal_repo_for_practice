@@ -79,10 +79,12 @@ public class CreditAgingService {
         }
 
         return new CreditAgingResponse.Row(holder.getId(), holder.getName(), holder.getPhone(), subAccountCount,
-                holder.getBillingCycle(), holder.getCreditLimit().setScale(2, RoundingMode.HALF_UP), overdue.outstanding(),
+                holder.getBillingCycle(), holder.getCreditLimit().setScale(2, RoundingMode.HALF_UP), holder.isUnlimitedCredit(),
+                overdue.outstanding(),
                 money(buckets[0]), money(buckets[1]), money(buckets[2]), money(buckets[3]),
                 overdue.oldestUnpaidSaleDate(), lastPaymentDate, overdue.daysOverdue(), overdue.overdueSince(),
                 standing != null ? standing.creditStatus() : CreditStatus.OK,
+                standing != null && standing.nearLimit(),
                 pendingPayments.size(),
                 money(pendingPayments.stream().map(CreditPayment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add)));
     }

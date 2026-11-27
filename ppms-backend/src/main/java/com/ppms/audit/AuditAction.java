@@ -138,5 +138,17 @@ public enum AuditAction {
     PRODUCTS_IMPORTED,
     TANK_STOCK_IMPORTED,
     DEMO_PUMP_CREATED,
-    DEMO_PUMP_DELETED
+    DEMO_PUMP_DELETED,
+
+    // ── Credit controls ───────────────────────────────────────────────────────
+    CREDIT_CLIENT_UPDATED,
+    CREDIT_CLIENT_STATUS_CHANGED,
+    CREDIT_PORTAL_LOCKED,
+    CREDIT_CLOSE_BLOCKED_ALLOWED,
+
+    // ── Meter adjustments ─────────────────────────────────────────────────────
+    METER_READING_ADJUSTED,
+    METER_ADJUSTMENT_REQUESTED,
+    METER_ADJUSTMENT_APPROVED,
+    METER_ADJUSTMENT_REJECTED
 }

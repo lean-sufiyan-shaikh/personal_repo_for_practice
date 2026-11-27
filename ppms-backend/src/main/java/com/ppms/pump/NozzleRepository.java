@@ -1,7 +1,9 @@
 package com.ppms.pump;
 
 import com.ppms.fuel.FuelType;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -13,6 +15,11 @@ import java.util.Optional;
 public interface NozzleRepository extends JpaRepository<Nozzle, Long> {
 
     List<Nozzle> findByDuIdOrderByNozzleNumberAsc(Long duId);
+
+    /** Serialises meter adjustments of one nozzle, so its last reading is read and moved by one at a time. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT n FROM Nozzle n WHERE n.id = :id")
+    Optional<Nozzle> findByIdForUpdate(@Param("id") Long id);
 
     Optional<Nozzle> findByIdAndDuId(Long id, Long duId);
 

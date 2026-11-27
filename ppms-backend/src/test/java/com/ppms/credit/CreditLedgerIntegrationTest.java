@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.ppms.scheduler.CreditExtensionExpiryJob;
 import com.ppms.support.ApiIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -142,7 +144,7 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
     void creditSaleBeyondTheClientsLimitIsRefused() throws Exception {
         long clientId = createClient(null);
         perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit", setup.pumpId(), clientId),
-                setup.manager(), Map.of("creditLimit", new BigDecimal("500.00")))
+                setup.manager(), Map.of("creditLimit", new BigDecimal("500.00"), "reason", "Limit review"))
                 .andExpect(status().isOk());
         sellOnCredit(clientId, "400.00");
 
@@ -424,25 +426,25 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().is2xxSuccessful())).get("id").asLong();
         sellOnCredit(clientId, "75.00");
 
-        lookUpBalance(phone, "4321").andExpect(status().isNotFound());
+        lookUpBalance(phone, "482913").andExpect(status().isNotFound());
 
         perform(put("/api/pumps/{pumpId}/credit-clients/{clientId}/portal-pin", setup.pumpId(), clientId),
-                setup.manager(), Map.of("pin", "4321"))
+                setup.manager(), Map.of("pin", "482913"))
                 .andExpect(status().isForbidden());
         perform(put("/api/pumps/{pumpId}/credit-clients/{clientId}/portal-pin", setup.pumpId(), clientId),
-                setup.owner(), Map.of("pin", "4321"))
+                setup.owner(), Map.of("pin", "482913"))
                 .andExpect(status().isNoContent());
 
-        lookUpBalance(phone, "9999").andExpect(status().isNotFound())
+        lookUpBalance(phone, "999999").andExpect(status().isNotFound())
                 .andExpect(content().string(containsString("No credit account matches these details.")));
-        lookUpBalance(phone, "4321")
+        lookUpBalance(phone, "482913")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.outstandingAmount").value(75.00))
                 .andExpect(jsonPath("$.clientName").doesNotExist());
 
         perform(delete("/api/pumps/{pumpId}/credit-clients/{clientId}/portal-pin", setup.pumpId(), clientId), setup.owner())
                 .andExpect(status().isNoContent());
-        lookUpBalance(phone, "4321").andExpect(status().isNotFound());
+        lookUpBalance(phone, "482913").andExpect(status().isNotFound());
     }
 
     @Test
@@ -452,12 +454,12 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
                 Map.of("name", "Suspended Pump Client", "phone", phone))
                 .andExpect(status().is2xxSuccessful())).get("id").asLong();
         perform(put("/api/pumps/{pumpId}/credit-clients/{clientId}/portal-pin", setup.pumpId(), clientId),
-                setup.owner(), Map.of("pin", "2468"))
+                setup.owner(), Map.of("pin", "582614"))
                 .andExpect(status().isNoContent());
         setup.pump().setEnabled(false);
         pumpLocationRepository.save(setup.pump());
 
-        lookUpBalance(phone, "2468").andExpect(status().isNotFound());
+        lookUpBalance(phone, "582614").andExpect(status().isNotFound());
     }
 
     @Test
@@ -553,30 +555,23 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
         sellOnCredit(createClient(null), "20.00");
 
         JsonNode parent = json(perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit",
-                setup.pumpId(), parentId), setup.owner(), Map.of("creditLimit", new BigDecimal("1000.00")))
+                setup.pumpId(), parentId), setup.owner(), Map.of("creditLimit", new BigDecimal("1000.00"), "reason", "Limit review"))
                 .andExpect(status().isOk()));
-        JsonNode child = json(perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit",
-                setup.pumpId(), childId), setup.owner(), Map.of("creditLimit", new BigDecimal("0")))
-                .andExpect(status().isOk()));
+        perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit", setup.pumpId(), childId),
+                setup.owner(), Map.of("creditLimit", new BigDecimal("0"), "reason", "Limit review"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CREDIT_LIMIT_ON_SUB_ACCOUNT"));
 
         assertThat(parent.get("isParent").asBoolean()).isTrue();
         assertThat(parent.get("creditLimit").decimalValue()).isEqualByComparingTo("1000.00");
         assertThat(parent.get("outstandingBalance").decimalValue()).isEqualByComparingTo("350.00");
-        assertThat(child.get("parentClientName").asText()).isEqualTo(parent.get("name").asText());
-        assertThat(child.get("outstandingBalance").decimalValue()).isEqualByComparingTo("250.00");
     }
 
     @Test
-    void lapsedExtensionStopsCountingAtOnceAndIsMarkedExpiredByTheDailyJob() throws Exception {
+    void lapsedExtensionStopsCountingAtOnceAndIsExpiredWhenRenewedOrByTheDailyJob() throws Exception {
         long clientId = createClient(null);
-        CreditExtension lapsed = extensionRepository.save(CreditExtension.builder()
-                .pumpId(setup.pumpId())
-                .clientId(clientId)
-                .extensionType(CreditExtensionType.BILLING_CYCLE_EXTENSION)
-                .expiryDate(TestDates.today().minusDays(1))
-                .grantedByUserId(setup.owner().getId())
-                .reason("Lapsed")
-                .build());
+        CreditExtension lapsed = saveLapsedExtension(clientId, CreditExtensionType.BILLING_CYCLE_EXTENSION);
+        CreditExtension otherLapsed = saveLapsedExtension(clientId, CreditExtensionType.OVERDUE_BLOCK_WAIVER);
 
         perform(get("/api/pumps/{pumpId}/credit-clients/{clientId}/extensions/active", setup.pumpId(), clientId), setup.owner())
                 .andExpect(status().isOk())
@@ -585,11 +580,42 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
                 Map.of("extensionType", "BILLING_CYCLE_EXTENSION",
                         "expiryDate", TestDates.today().plusDays(7).toString(), "reason", "Renewed"))
                 .andExpect(status().is2xxSuccessful());
-        assertThat(extensionRepository.findById(lapsed.getId()).orElseThrow().getStatus()).isEqualTo(CreditExtensionStatus.ACTIVE);
+        assertThat(extensionRepository.findById(lapsed.getId()).orElseThrow().getStatus()).isEqualTo(CreditExtensionStatus.EXPIRED);
+        assertThat(extensionRepository.findById(otherLapsed.getId()).orElseThrow().getStatus()).isEqualTo(CreditExtensionStatus.ACTIVE);
 
         extensionExpiryJob.expireOverdueExtensions();
 
-        assertThat(extensionRepository.findById(lapsed.getId()).orElseThrow().getStatus()).isEqualTo(CreditExtensionStatus.EXPIRED);
+        assertThat(extensionRepository.findById(otherLapsed.getId()).orElseThrow().getStatus()).isEqualTo(CreditExtensionStatus.EXPIRED);
+    }
+
+    @Test
+    void secondActiveExtensionOfATypeIsRefusedEvenWhenTheServiceCheckIsSkipped() throws Exception {
+        long clientId = createClient(null);
+        perform(post("/api/pumps/{pumpId}/credit-clients/{clientId}/extensions", setup.pumpId(), clientId), setup.owner(),
+                Map.of("extensionType", "OVERDUE_BLOCK_WAIVER",
+                        "expiryDate", TestDates.today().plusDays(7).toString(), "reason", "First"))
+                .andExpect(status().is2xxSuccessful());
+
+        assertThatThrownBy(() -> extensionRepository.saveAndFlush(CreditExtension.builder()
+                .pumpId(setup.pumpId())
+                .clientId(clientId)
+                .extensionType(CreditExtensionType.OVERDUE_BLOCK_WAIVER)
+                .expiryDate(TestDates.today().plusDays(9))
+                .grantedByUserId(setup.owner().getId())
+                .reason("Second")
+                .build()))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    private CreditExtension saveLapsedExtension(long clientId, CreditExtensionType type) {
+        return extensionRepository.save(CreditExtension.builder()
+                .pumpId(setup.pumpId())
+                .clientId(clientId)
+                .extensionType(type)
+                .expiryDate(TestDates.today().minusDays(1))
+                .grantedByUserId(setup.owner().getId())
+                .reason("Lapsed")
+                .build());
     }
 
     @Test
@@ -597,7 +623,7 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
         long parentId = createClient(null);
         long childId = createClient(parentId);
         perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit", setup.pumpId(), parentId),
-                setup.owner(), Map.of("creditLimit", new BigDecimal("500.00")))
+                setup.owner(), Map.of("creditLimit", new BigDecimal("500.00"), "reason", "Limit review"))
                 .andExpect(status().isOk());
         sellOnCredit(childId, "450.00");
         Map<String, Object> extension = Map.of("extensionType", "AMOUNT_EXTENSION",
@@ -623,7 +649,7 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
     void ownerRevokesAnExtensionWithAReasonAfterWhichItNoLongerLetsCreditThrough() throws Exception {
         long clientId = createClient(null);
         perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit", setup.pumpId(), clientId),
-                setup.owner(), Map.of("creditLimit", new BigDecimal("500.00")))
+                setup.owner(), Map.of("creditLimit", new BigDecimal("500.00"), "reason", "Limit review"))
                 .andExpect(status().isOk());
         long extensionId = json(perform(post("/api/pumps/{pumpId}/credit-clients/{clientId}/extensions", setup.pumpId(), clientId),
                 setup.owner(), Map.of("extensionType", "AMOUNT_EXTENSION", "extensionAmount", new BigDecimal("1000.00"),

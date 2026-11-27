@@ -113,7 +113,7 @@ class AttentionIntegrationTest extends ApiIntegrationTest {
         sellOnCredit(shiftId, overLimitClient, "300.00");
         jdbcTemplate.update("UPDATE shift_credit_entries SET sale_date = ? WHERE id = ?", TODAY.minusDays(45), entryId);
         perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit", setup.pumpId(), overLimitClient),
-                setup.manager(), Map.of("creditLimit", new BigDecimal("100.00")))
+                setup.manager(), Map.of("creditLimit", new BigDecimal("100.00"), "reason", "Limit review"))
                 .andExpect(status().isOk());
 
         JsonNode items = attention(setup.owner());

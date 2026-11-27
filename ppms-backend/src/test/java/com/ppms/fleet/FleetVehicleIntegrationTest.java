@@ -241,7 +241,7 @@ class FleetVehicleIntegrationTest extends ApiIntegrationTest {
         jdbcTemplate.update("UPDATE shift_credit_entries SET sale_date = ? WHERE id = ?",
                 YearMonth.from(TestDates.today()).minusMonths(1).atDay(5), lastMonthEntry);
         perform(put("/api/pumps/{pumpId}/credit-clients/{clientId}/portal-pin", setup.pumpId(), clientId), setup.owner(),
-                Map.of("pin", "4321")).andExpect(status().isNoContent());
+                Map.of("pin", "482913")).andExpect(status().isNoContent());
 
         JsonNode balance = json(mockMvc.perform(post("/api/public/credit-balance")
                         .with(request -> {
@@ -250,7 +250,7 @@ class FleetVehicleIntegrationTest extends ApiIntegrationTest {
                         })
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("pumpId", setup.pumpId(), "phone", phone, "pin", "4321"))))
+                                Map.of("pumpId", setup.pumpId(), "phone", phone, "pin", "482913"))))
                 .andExpect(status().isOk()));
 
         JsonNode months = balance.get("vehicleUsage");

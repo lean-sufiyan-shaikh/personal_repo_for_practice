@@ -10,6 +10,8 @@ import com.ppms.pump.NozzleRepository;
 import com.ppms.shift.ShiftRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -23,8 +25,13 @@ public class NozzleAdjustmentSupportService {
     private final DispensaryUnitRepository dispensaryUnitRepository;
     private final ShiftRepository shiftRepository;
 
+    /**
+     * Locks the nozzle row and checks no shift is running on it, in the caller's transaction, so neither a second
+     * adjustment nor a shift's start reading can see the reading half-moved.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
     public Nozzle requireAdjustableNozzle(Long pumpId, Long nozzleId) {
-        Nozzle nozzle = nozzleRepository.findById(nozzleId)
+        Nozzle nozzle = nozzleRepository.findByIdForUpdate(nozzleId)
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.NOZZLE, "Nozzle not found"));
         dispensaryUnitRepository.findById(nozzle.getDuId()).ifPresent(du -> {
             if (!du.getPumpId().equals(pumpId)) {

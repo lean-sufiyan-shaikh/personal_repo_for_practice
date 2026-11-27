@@ -24,7 +24,8 @@ import java.util.Optional;
 /**
  * Public credit balance lookup, whitelisted in SecurityConfig at /api/public/**.
  * A client proves who they are with their phone number and the portal PIN the pump owner set for them.
- * Every failure gets the same answer so the page cannot be used to find out which phones are clients.
+ * Every failure gets the same answer so the page cannot be used to find out which phones are clients, and wrong
+ * PINs lock a phone out whether or not it is a client's.
  */
 @RestController
 @RequestMapping("/api/public")
@@ -37,6 +38,8 @@ public class ClientPortalController {
     private final PumpLocationRepository pumpLocationRepository;
     private final CreditInterestService creditInterestService;
     private final CreditBalanceLookupLimiter lookupLimiter;
+    private final CreditPortalAttemptService attemptService;
+    private final CreditOverdueService creditOverdueService;
     private final ClientIpResolver clientIpResolver;
     private final PasswordEncoder passwordEncoder;
     private final VehicleUsageService vehicleUsageService;
@@ -47,18 +50,42 @@ public class ClientPortalController {
     @PostMapping("/credit-balance")
     public CreditBalanceLookupResponse getBalance(@Valid @RequestBody CreditBalanceLookupRequest lookup,
                                                   HttpServletRequest request) {
-        lookupLimiter.checkLookupAllowed(clientIpResolver.resolve(request), lookup.pumpId(), lookup.phone());
+        lookupLimiter.checkLookupAllowed(clientIpResolver.resolve(request));
+        attemptService.requireNotLocked(lookup.pumpId(), lookup.phone());
 
-        CreditClient client = findClientWithPin(lookup)
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorCodes.CREDIT_ACCOUNT_NOT_MATCHED,
-                        Map.of(),
-                        NOT_FOUND_MESSAGE));
+        List<CreditClient> candidates = clientsWithPin(lookup);
+        Optional<CreditClient> matched = matchingPin(candidates, lookup.pin());
+        if (matched.isEmpty()) {
+            if (pumpLocationRepository.existsById(lookup.pumpId())) {
+                attemptService.recordFailure(lookup.pumpId(), lookup.phone(),
+                        candidates.isEmpty() ? null : candidates.get(0).getId());
+            }
+            throw new ResourceNotFoundException(ErrorCodes.CREDIT_ACCOUNT_NOT_MATCHED, Map.of(), NOT_FOUND_MESSAGE);
+        }
+        attemptService.clearAttempts(lookup.pumpId(), lookup.phone());
+        CreditClient client = matched.get();
+        if (client.getPortalPinWeak() == null) {
+            client.setPortalPinWeak(PortalPinRules.isWeak(lookup.pin()));
+            creditClientRepository.save(client);
+        }
+        return client.getParentClientId() != null ? subAccountBalance(client) : groupBalance(lookup.pumpId(), client);
+    }
 
-        BigDecimal outstanding = creditInterestService.computeOutstanding(client.getId());
-        String upiPayLink = pumpLocationRepository.findById(lookup.pumpId())
+    /** The same group balance the statement and reminders ask the client to pay. */
+    private CreditBalanceLookupResponse groupBalance(Long pumpId, CreditClient client) {
+        BigDecimal outstanding = creditOverdueService.standingOfAccount(client, businessClock.today()).outstanding();
+        String upiPayLink = pumpLocationRepository.findById(pumpId)
                 .map(pump -> UpiPaymentLink.forPump(pump, outstanding, client.getName()))
                 .orElse(null);
-        return new CreditBalanceLookupResponse(outstanding, client.getCreditLimit(), upiPayLink, vehicleUsageOf(client));
+        return new CreditBalanceLookupResponse(outstanding,
+                client.isUnlimitedCredit() ? null : client.getCreditLimit(), client.isUnlimitedCredit(), false,
+                upiPayLink, vehicleUsageOf(client));
+    }
+
+    /** A sub-account sees what it used; the balance it owes is held, and paid, on its main account. */
+    private CreditBalanceLookupResponse subAccountBalance(CreditClient client) {
+        BigDecimal ownUsage = creditInterestService.computeOutstanding(client.getId());
+        return new CreditBalanceLookupResponse(ownUsage, null, false, true, null, vehicleUsageOf(client));
     }
 
     /** A parent sees the vehicles of its whole group; a standalone client or a sub-account sees its own credit. */
@@ -80,19 +107,22 @@ public class ClientPortalController {
                         .toList());
     }
 
-    private Optional<CreditClient> findClientWithPin(CreditBalanceLookupRequest lookup) {
+    private List<CreditClient> clientsWithPin(CreditBalanceLookupRequest lookup) {
         boolean pumpOpen = pumpLocationRepository.findById(lookup.pumpId()).map(PumpLocation::isEnabled).orElse(false);
-        var candidates = pumpOpen
+        return pumpOpen
                 ? creditClientRepository.findAllByPumpIdAndPhoneAndIsActiveTrue(lookup.pumpId(), lookup.phone()).stream()
                         .filter(client -> client.getPortalPinHash() != null)
                         .toList()
-                : List.<CreditClient>of();
+                : List.of();
+    }
+
+    private Optional<CreditClient> matchingPin(List<CreditClient> candidates, String pin) {
         if (candidates.isEmpty()) {
-            passwordEncoder.matches(lookup.pin(), unusedPinHash());
+            passwordEncoder.matches(pin, unusedPinHash());
             return Optional.empty();
         }
         return candidates.stream()
-                .filter(client -> passwordEncoder.matches(lookup.pin(), client.getPortalPinHash()))
+                .filter(client -> passwordEncoder.matches(pin, client.getPortalPinHash()))
                 .findFirst();
     }
 

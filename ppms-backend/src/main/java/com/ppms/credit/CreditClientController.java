@@ -2,7 +2,6 @@ package com.ppms.credit;
 
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ErrorCodes;
-import com.ppms.invoice.GstFields;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
 import jakarta.validation.Valid;
@@ -29,8 +28,8 @@ public class CreditClientController {
     private final CreditClientRepository creditClientRepository;
     private final CreditInterestService interestService;
     private final CreditClientService creditClientService;
-    private final CreditClientAccessService clientAccessService;
     private final CreditAccountPolicyService creditAccountPolicyService;
+    private final CreditClientEditService clientEditService;
 
     /**
      * GET /api/pumps/{pumpId}/credit-clients
@@ -104,185 +103,56 @@ public class CreditClientController {
 
     /**
      * POST /api/pumps/{pumpId}/credit-clients
-     * Creates a new credit client for a pump.
-     * If parentClientId is provided, the new client becomes a sub-account (max 1 level deep).
-     * Restricted to OWNER and ADMIN.
+     * Creates a credit client; with parentClientId it becomes a sub-account (max 1 level deep).
+     * A main account starts with the pump's default credit limit.
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
     public ResponseEntity<CreditClientResponse> createClient(
             @PathVariable Long pumpId,
-            @Valid @RequestBody CreateCreditClientRequest request) {
-
-        String trimmedName = request.getName().trim();
-        Long parentClientId = request.getParentClientId();
-
-        if (parentClientId == null) {
-            // Root client — name must be unique per pump among root accounts
-            if (creditClientRepository.existsByPumpIdAndNameIgnoreCaseAndParentClientIdIsNull(pumpId, trimmedName)) {
-                throw new BusinessException(ErrorCodes.CREDIT_CLIENT_NAME_TAKEN,
-                        Map.of("clientName", trimmedName),
-                        "A client named \"" + trimmedName + "\" already exists.");
-            }
-        } else {
-            // Sub-account — validate parent first, then check uniqueness within that parent
-            CreditClient parent = clientAccessService.requireClientForPump(pumpId, parentClientId);
-            if (parent.getParentClientId() != null) {
-                throw new BusinessException(ErrorCodes.CREDIT_SUB_ACCOUNT_NESTING_NOT_ALLOWED,
-                        Map.of(),
-                        "Cannot create a sub-account under another sub-account. Only one level of nesting is allowed.");
-            }
-            if (creditClientRepository.existsByParentClientIdAndNameIgnoreCase(parentClientId, trimmedName)) {
-                throw new BusinessException(ErrorCodes.CREDIT_SUB_ACCOUNT_NAME_TAKEN,
-                        Map.of("clientName", trimmedName),
-                        "A sub-account named \"" + trimmedName + "\" already exists under this parent.");
-            }
-        }
-
-        // Phone uniqueness: within a group (parent + its sub-accounts) phones may be shared;
-        // across groups they must be unique.
-        String phone = request.getPhone() != null && !request.getPhone().isBlank() ? request.getPhone().trim() : null;
-        if (phone != null) {
-            boolean conflict = (parentClientId == null)
-                    // Root client being created — no group yet, any existing match is a conflict
-                    ? creditClientRepository.existsByPumpIdAndPhone(pumpId, phone)
-                    // Sub-account — only conflict if the phone belongs to a client outside this group
-                    : creditClientRepository.existsPhoneConflictForSubAccount(pumpId, phone, parentClientId);
-            if (conflict) {
-                throw new BusinessException(ErrorCodes.CREDIT_CLIENT_PHONE_TAKEN,
-                        Map.of(),
-                        "Phone number " + phone + " is already registered to another client group in this pump.");
-            }
-        }
-
-        CreditClient client = CreditClient.builder()
-                .pumpId(pumpId)
-                .name(trimmedName)
-                .phone(phone)
-                .notes(request.getNotes())
-                .creditLimit(BigDecimal.ZERO) // credit limit lives on the parent account
-                .parentClientId(parentClientId)
-                .gstin(GstFields.normaliseGstin(request.getGstin()))
-                .billingAddress(GstFields.trimmedOrNull(request.getBillingAddress()))
-                .build();
-
-        client = creditClientRepository.save(client);
-
-        Map<Long, String> nameById = creditClientRepository.findByPumpIdOrderByNameAsc(pumpId)
-                .stream().collect(Collectors.toMap(CreditClient::getId, CreditClient::getName));
-        Set<Long> idsWithChildren = creditClientRepository.findByParentClientId(client.getId()).isEmpty()
-                ? Set.of()
-                : Set.of(client.getId());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(client, nameById, idsWithChildren));
+            @Valid @RequestBody CreateCreditClientRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        CreditClient client = clientEditService.createClient(pumpId, request, currentUser);
+        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(client, pumpId));
     }
 
     /**
      * PATCH /api/pumps/{pumpId}/credit-clients/{clientId}
-     * Updates name, phone, notes, GSTIN and/or billing address for a credit client.
-     * Only non-null fields in the request are applied.
-     * Name uniqueness is re-enforced if the name is being changed.
+     * Updates name, phone, notes, GSTIN and/or billing address; only non-null fields are applied.
+     * Changing the phone or GSTIN needs an Owner or Admin, and a new phone turns off the balance-page PIN.
      */
     @PatchMapping("/{clientId}")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
     public ResponseEntity<CreditClientResponse> updateClient(
             @PathVariable Long pumpId,
             @PathVariable Long clientId,
-            @Valid @RequestBody UpdateCreditClientRequest request) {
-
-        CreditClient client = clientAccessService.requireClientForPump(pumpId, clientId);
-
-        if (request.name() != null) {
-            String trimmedName = request.name().trim();
-            if (!trimmedName.equalsIgnoreCase(client.getName())) {
-                if (client.getParentClientId() == null) {
-                    // Root client — name must be unique per pump among root accounts
-                    if (creditClientRepository.existsByPumpIdAndNameIgnoreCaseAndParentClientIdIsNull(pumpId, trimmedName)) {
-                        throw new BusinessException(ErrorCodes.CREDIT_CLIENT_NAME_TAKEN,
-                                Map.of("clientName", trimmedName),
-                                "A client named \"" + trimmedName + "\" already exists.");
-                    }
-                } else {
-                    // Sub-account — name must be unique within the same parent
-                    if (creditClientRepository.existsByParentClientIdAndNameIgnoreCase(client.getParentClientId(), trimmedName)) {
-                        throw new BusinessException(ErrorCodes.CREDIT_SUB_ACCOUNT_NAME_TAKEN,
-                                Map.of("clientName", trimmedName),
-                                "A sub-account named \"" + trimmedName + "\" already exists under this parent.");
-                    }
-                }
-            }
-            client.setName(trimmedName);
-        }
-        if (request.phone() != null) {
-            String trimmedPhone = request.phone().trim();
-            String newPhone = trimmedPhone.isEmpty() ? null : trimmedPhone;
-            if (newPhone != null) {
-                boolean conflict = (client.getParentClientId() == null)
-                        // Root client update — conflict if phone belongs to a client outside this root's group
-                        ? creditClientRepository.existsPhoneConflictForRootClientUpdate(pumpId, newPhone, clientId)
-                        // Sub-account update — conflict if phone belongs to a client outside this group
-                        : creditClientRepository.existsPhoneConflictForSubAccount(pumpId, newPhone, client.getParentClientId());
-                if (conflict) {
-                    throw new BusinessException(ErrorCodes.CREDIT_CLIENT_PHONE_TAKEN,
-                            Map.of(),
-                            "Phone number " + newPhone + " is already registered to another client group in this pump.");
-                }
-            }
-            client.setPhone(newPhone);
-        }
-        if (request.notes() != null) {
-            client.setNotes(request.notes().trim().isEmpty() ? null : request.notes().trim());
-        }
-        if (request.gstin() != null) {
-            client.setGstin(GstFields.normaliseGstin(request.gstin()));
-        }
-        if (request.billingAddress() != null) {
-            client.setBillingAddress(GstFields.trimmedOrNull(request.billingAddress()));
-        }
-
-        client = creditClientRepository.save(client);
-
-        Map<Long, String> nameById = creditClientRepository.findByPumpIdOrderByNameAsc(pumpId)
-                .stream().collect(Collectors.toMap(CreditClient::getId, CreditClient::getName));
-        Set<Long> idsWithChildren = creditClientRepository.findByParentClientId(client.getId()).stream()
-                .map(CreditClient::getId)
-                .collect(Collectors.toSet());
-        // For the updated client: check if it has children
-        boolean hasChildren = !creditClientRepository.findByParentClientId(clientId).isEmpty();
-
-        return ResponseEntity.ok(toResponse(client, nameById, hasChildren ? Set.of(clientId) : Set.of()));
+            @Valid @RequestBody UpdateCreditClientRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        CreditClient client = clientEditService.updateClient(pumpId, clientId, request, currentUser);
+        return ResponseEntity.ok(toResponse(client, pumpId));
     }
 
     /**
      * PATCH /api/pumps/{pumpId}/credit-clients/{clientId}/status
-     * Enables or disables a credit client (soft toggle). Owner/Admin/Manager only.
-     * Disabled clients are hidden from shift credit-entry dropdowns and shown at the
-     * bottom of the Clients list. All historical data (ledger, entries) is preserved.
-     * Disabling a parent also implicitly hides it from dropdowns — sub-accounts retain
-     * their own individual active flags.
+     * Enables or disables a credit client (soft toggle); enabling a disabled client needs an Owner or Admin.
+     * Disabled clients are hidden from shift credit-entry dropdowns and shown at the bottom of the Clients list.
+     * All historical data is preserved; sub-accounts keep their own active flags.
      */
     @PatchMapping("/{clientId}/status")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
     public ResponseEntity<CreditClientResponse> toggleStatus(
             @PathVariable Long pumpId,
             @PathVariable Long clientId,
-            @RequestBody Map<String, Boolean> body) {
+            @RequestBody Map<String, Boolean> body,
+            @AuthenticationPrincipal User currentUser) {
 
         Boolean active = body.get("isActive");
         if (active == null) throw new BusinessException(ErrorCodes.CREDIT_CLIENT_ACTIVE_FLAG_REQUIRED,
                 Map.of(),
                 "isActive is required");
 
-        CreditClient client = clientAccessService.requireClientForPump(pumpId, clientId);
-
-        client.setActive(active);
-        client = creditClientRepository.save(client);
-
-        Map<Long, String> nameById = creditClientRepository.findByPumpIdOrderByNameAsc(pumpId)
-                .stream().collect(Collectors.toMap(CreditClient::getId, CreditClient::getName));
-        boolean hasChildren = !creditClientRepository.findByParentClientId(clientId).isEmpty();
-
-        return ResponseEntity.ok(toResponse(client, nameById, hasChildren ? Set.of(clientId) : Set.of()));
+        CreditClient client = clientEditService.changeStatus(pumpId, clientId, active, currentUser);
+        return ResponseEntity.ok(toResponse(client, pumpId));
     }
 
     /**
@@ -315,16 +185,11 @@ public class CreditClientController {
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 
-    /**
-     * Builds a CreditClientResponse, populating hierarchy metadata.
-     *
-     * @param c               the client entity
-     * @param nameById        pre-loaded name map for the pump (avoids N+1 parent name lookups)
-     * @param idsWithChildren set of client IDs that have at least one sub-account
-     */
-    private CreditClientResponse toResponse(CreditClient c, Map<Long, String> nameById, Set<Long> idsWithChildren) {
-        // A parent's outstanding includes all its sub-accounts; others show their own balance only.
-        boolean isParent = c.getParentClientId() == null && idsWithChildren.contains(c.getId());
+    /** A parent's outstanding includes all its sub-accounts; others show their own balance only. */
+    private CreditClientResponse toResponse(CreditClient c, Long pumpId) {
+        Map<Long, String> nameById = creditClientRepository.findByPumpIdOrderByNameAsc(pumpId)
+                .stream().collect(Collectors.toMap(CreditClient::getId, CreditClient::getName));
+        boolean isParent = c.getParentClientId() == null && !creditClientRepository.findByParentClientId(c.getId()).isEmpty();
         BigDecimal outstanding = isParent
                 ? interestService.computeOutstandingWithChildren(c.getId())
                 : interestService.computeOutstanding(c.getId());
@@ -340,6 +205,7 @@ public class CreditClientController {
                 .phone(c.getPhone())
                 .notes(c.getNotes())
                 .creditLimit(c.getCreditLimit())
+                .unlimited(c.isUnlimitedCredit())
                 .outstandingBalance(outstanding)
                 .monthlyInterestRate(c.getMonthlyInterestRate())
                 .interestGraceDays(c.getInterestGraceDays())
@@ -349,6 +215,7 @@ public class CreditClientController {
                 .isParent(isParent)
                 .isActive(c.isActive())
                 .hasPortalPin(c.getPortalPinHash() != null)
+                .weakPortalPin(c.getPortalPinHash() != null && Boolean.TRUE.equals(c.getPortalPinWeak()))
                 .gstin(c.getGstin())
                 .billingAddress(c.getBillingAddress())
                 .build();

@@ -38,10 +38,14 @@ public class CreditClient {
     @Column(name = "notes")
     private String notes;
 
-    // Maximum outstanding balance allowed; 0 means no limit enforced
+    /** Highest outstanding balance the group may owe; 0 allows no credit unless unlimitedCredit is set. */
     @Column(name = "credit_limit", nullable = false)
     @Builder.Default
     private BigDecimal creditLimit = BigDecimal.ZERO;
+
+    @Column(name = "unlimited_credit", nullable = false)
+    @Builder.Default
+    private boolean unlimitedCredit = false;
 
     /**
      * Billing cycle: how often the customer is billed and overdue status is assessed.
@@ -113,6 +117,10 @@ public class CreditClient {
     @JsonIgnore
     @Column(name = "portal_pin_hash")
     private String portalPinHash;
+
+    /** Null for a PIN set before PIN strength was kept, until the client next uses it. */
+    @Column(name = "portal_pin_weak")
+    private Boolean portalPinWeak;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

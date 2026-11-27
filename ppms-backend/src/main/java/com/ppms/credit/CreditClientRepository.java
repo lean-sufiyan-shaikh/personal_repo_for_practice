@@ -25,8 +25,8 @@ public interface CreditClientRepository extends JpaRepository<CreditClient, Long
     // Sub-account uniqueness check: name must be unique per parent
     boolean existsByParentClientIdAndNameIgnoreCase(Long parentClientId, String name);
 
-    // Used by ShiftService to resolve client_id by name at shift close
-    Optional<CreditClient> findByPumpIdAndName(Long pumpId, String name);
+    // Resolves a credit entry given by name only; sub-account names repeat across groups, so only main accounts match
+    List<CreditClient> findByPumpIdAndNameAndParentClientIdIsNull(Long pumpId, String name);
 
     /**
      * Fetches a client with a PESSIMISTIC WRITE lock (SELECT FOR UPDATE).

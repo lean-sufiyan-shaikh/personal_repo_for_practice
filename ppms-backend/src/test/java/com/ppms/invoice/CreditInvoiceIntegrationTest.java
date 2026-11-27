@@ -407,6 +407,7 @@ class CreditInvoiceIntegrationTest extends ApiIntegrationTest {
         CreditClient client = creditClientRepository.save(CreditClient.builder()
                 .pumpId(setup.pumpId())
                 .name("</title><script>alert(1)</script>")
+                .unlimitedCredit(true)
                 .billingAddress("<img src=x onerror='alert(2)'>")
                 .build());
         sellFuelOnCredit(client.getId(), "100.00");

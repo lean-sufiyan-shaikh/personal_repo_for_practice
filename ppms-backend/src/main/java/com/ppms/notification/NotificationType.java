@@ -55,5 +55,9 @@ public enum NotificationType {
     /** Fired once a day per account when a WARN account's credit entry is let through outside its vehicle rules. */
     VEHICLE_CREDIT_FLAGGED,
     /** Fired once a week, for owners and admins only, when the leakage radar has something worth a look. */
-    LEAKAGE_RADAR_WEEKLY
+    LEAKAGE_RADAR_WEEKLY,
+    /** Fired once per lockout of the credit balance page after too many wrong PINs, for owners and admins only. */
+    CREDIT_PORTAL_LOCKED,
+    /** Fired once per change of a credit client's phone, which turns off its balance-page PIN; owners and admins only. */
+    CREDIT_CLIENT_PHONE_CHANGED
 }

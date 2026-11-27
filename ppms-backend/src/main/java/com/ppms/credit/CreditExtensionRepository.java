@@ -48,5 +48,14 @@ public interface CreditExtensionRepository extends JpaRepository<CreditExtension
             """)
     int expireOverdueExtensions(LocalDate today);
 
+    /** Expires one client's extensions of a type that ran out but are still ACTIVE, before a new one of that type is granted. */
+    @Modifying
+    @Query("""
+            UPDATE CreditExtension e SET e.status = 'EXPIRED'
+            WHERE e.pumpId = :pumpId AND e.clientId = :clientId AND e.extensionType = :type
+              AND e.status = 'ACTIVE' AND e.expiryDate < :today
+            """)
+    int expireRunOutOfType(Long pumpId, Long clientId, CreditExtensionType type, LocalDate today);
+
     boolean existsByClientId(Long clientId);
 }

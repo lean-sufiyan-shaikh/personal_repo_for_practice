@@ -23,11 +23,14 @@ public record CreditAgingResponse(Summary summary, List<Row> clients) {
      *                             0 when no unpaid bill is past due
      * @param overdueSince         first day of the unbroken spell in which some bill has been unpaid past its due
      *                             date; null when not overdue. Collections keys its reminder episodes on it.
+     * @param unlimited            the account has no credit limit; creditLimit is then not applied
      * @param creditStatus         whether the account can take a credit sale now, as the client picker shows it
+     * @param nearLimit            the account has used at least the pump's near-limit share of its limit
      */
     public record Row(Long clientId, String name, String phone, int subAccountCount, BillingCycle billingCycle,
-                      BigDecimal creditLimit, BigDecimal outstanding,
+                      BigDecimal creditLimit, boolean unlimited, BigDecimal outstanding,
                       BigDecimal upTo30Days, BigDecimal days31To60, BigDecimal days61To90, BigDecimal over90Days,
                       LocalDate oldestUnpaidSaleDate, LocalDate lastPaymentDate, long daysOverdue, LocalDate overdueSince,
-                      CreditStatus creditStatus, int pendingPaymentCount, BigDecimal pendingPaymentAmount) {}
+                      CreditStatus creditStatus, boolean nearLimit, int pendingPaymentCount,
+                      BigDecimal pendingPaymentAmount) {}
 }

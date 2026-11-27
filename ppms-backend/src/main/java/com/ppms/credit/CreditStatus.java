@@ -7,5 +7,7 @@ public enum CreditStatus {
     /** Overdue for at least the pump's credit hold days; only a credit hold override lifts it. */
     ON_HOLD,
     OVER_LIMIT,
+    /** At or above the pump's near-limit share of the effective limit, and otherwise OK. */
+    NEAR_LIMIT,
     INACTIVE
 }

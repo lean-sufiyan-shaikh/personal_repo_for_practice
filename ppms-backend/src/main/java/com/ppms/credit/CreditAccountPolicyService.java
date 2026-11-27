@@ -1,5 +1,7 @@
 package com.ppms.credit;
 
+import com.ppms.audit.AuditAction;
+import com.ppms.audit.AuditService;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.EntityType;
@@ -7,6 +9,7 @@ import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
+import com.ppms.user.UserRole;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,10 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
@@ -35,10 +40,12 @@ public class CreditAccountPolicyService {
     private final PumpLocationRepository pumpLocationRepository;
     private final BusinessClock businessClock;
     private final EntityManager entityManager;
+    private final CreditCloseExceptionRepository closeExceptionRepository;
+    private final AuditService auditService;
 
     /**
-     * Finds the client a credit entry is for, by id or else by exact name. Every credit entry must
-     * belong to an existing client of the pump, so an unknown client is refused.
+     * Finds the client a credit entry is for, by id or else by the exact name of a main account; sub-accounts share
+     * names across groups, so they are only found by id. An unknown client is refused.
      */
     public CreditClient requireClientForCreditEntry(Long pumpId, Long clientId, String clientName) {
         if (clientId != null) {
@@ -53,10 +60,16 @@ public class CreditAccountPolicyService {
                     Map.of(),
                     "Pick a credit client for every credit entry.");
         }
-        return creditClientRepository.findByPumpIdAndName(pumpId, clientName.trim())
+        String name = clientName.trim();
+        List<CreditClient> matches = creditClientRepository.findByPumpIdAndNameAndParentClientIdIsNull(pumpId, name);
+        if (matches.size() > 1) {
+            throw new BusinessException(ErrorCodes.CREDIT_CLIENT_NAME_AMBIGUOUS, Map.of("clientName", name),
+                    "More than one client is named '" + name + "'. Pick the client from the list.");
+        }
+        return matches.stream().findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCodes.CREDIT_CLIENT_NAME_NOT_AT_PUMP,
-                        Map.of("clientName", clientName.trim()),
-                        "No credit client named '" + clientName.trim() + "' exists at this pump. "
+                        Map.of("clientName", name),
+                        "No credit client named '" + name + "' exists at this pump. "
                                 + "Add the client on the Credit page first, then pick it from the list."));
     }
 
@@ -82,42 +95,129 @@ public class CreditAccountPolicyService {
     }
 
     /**
-     * Checks credit entries captured at shift close against each group's limit. Group rows are
-     * locked first, and entries for the same group are added together before each check.
+     * Checks credit entries captured at shift close by the same rules as a credit sale during the shift: the credit
+     * hold, the group limit with any amount extension, and the overdue billing cycle. Group rows are locked first and
+     * entries for the same group are added together. Every blocked account is named in one refusal.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void validateCreditLimits(Map<CreditClient, BigDecimal> amountByClient) {
+        validateCreditLimits(amountByClient, null);
+    }
+
+    /**
+     * As above; with an Owner/Admin override the blocked accounts are let through and each one is recorded as a
+     * close-time credit exception.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void validateCreditLimits(Map<CreditClient, BigDecimal> amountByClient, CloseCreditOverride override) {
+        if (amountByClient.isEmpty()) {
+            return;
+        }
         amountByClient.keySet().forEach(this::requireClientAcceptsCredit);
         Map<Long, BigDecimal> amountByHolderId = new HashMap<>();
         amountByClient.forEach((client, amount) ->
                 amountByHolderId.merge(limitHolderId(client), amount, BigDecimal::add));
-
         lockLimitHolders(amountByHolderId.keySet());
 
-        for (Map.Entry<Long, BigDecimal> holderAmount : amountByHolderId.entrySet()) {
-            CreditClient limitHolder = creditClientRepository.findById(holderAmount.getKey())
+        Long pumpId = amountByClient.keySet().iterator().next().getPumpId();
+        Integer holdDays = creditHoldDaysOf(pumpId);
+        List<BlockedCredit> blocked = new ArrayList<>();
+        for (Long holderId : new TreeSet<>(amountByHolderId.keySet())) {
+            CreditClient holder = creditClientRepository.findById(holderId)
                     .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_CLIENT,
-                            "Credit client not found: " + holderAmount.getKey()));
-            if (limitHolder.getCreditLimit().compareTo(BigDecimal.ZERO) <= 0) {
-                continue;
-            }
-            BigDecimal amount = holderAmount.getValue();
-            BigDecimal combinedOutstanding = creditInterestService.computeOutstandingWithChildren(limitHolder.getId());
-            BigDecimal projectedOutstanding = combinedOutstanding.add(amount).setScale(2, RoundingMode.HALF_UP);
-            if (projectedOutstanding.compareTo(limitHolder.getCreditLimit()) > 0) {
-                throw new BusinessException(ErrorCodes.CREDIT_LIMIT_EXCEEDED,
-                        Map.of("clientName", limitHolder.getName(),
-                                "outstanding", combinedOutstanding.setScale(2, RoundingMode.HALF_UP).toPlainString(),
-                                "amount", amount.setScale(2, RoundingMode.HALF_UP).toPlainString(),
-                                "limit", limitHolder.getCreditLimit().setScale(2, RoundingMode.HALF_UP).toPlainString()),
-                        "Credit limit exceeded for '" + limitHolder.getName() + "'. " +
-                                "Current outstanding (group): " + combinedOutstanding.setScale(2, RoundingMode.HALF_UP) +
-                                ", entries in this shift: " + amount.setScale(2, RoundingMode.HALF_UP) +
-                                ", limit: " + limitHolder.getCreditLimit() + ". " +
-                                "Please record a payment before adding more credit.");
-            }
+                            "Credit client not found: " + holderId));
+            blockedCreditOf(pumpId, holder, amountByHolderId.get(holderId), holdDays).ifPresent(blocked::add);
+        }
+        if (blocked.isEmpty()) {
+            return;
+        }
+        if (override == null) {
+            throw blockedAtCloseError(blocked);
+        }
+        recordCloseExceptions(pumpId, blocked, override);
+    }
+
+    private Optional<BlockedCredit> blockedCreditOf(Long pumpId, CreditClient holder, BigDecimal amount,
+                                                    Integer holdDays) {
+        List<CreditExtension> extensions = creditExtensionRepository.findInEffect(pumpId, holder.getId(),
+                businessClock.today());
+        long daysOverdue = groupDaysOverdue(holder);
+        BigDecimal outstanding = creditInterestService.computeOutstandingWithChildren(holder.getId())
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal limit = holder.isUnlimitedCredit() ? null : effectiveLimit(holder, extensions);
+        CreditStatus reason = null;
+        if (isOnHold(holdDays, daysOverdue, extensions)) {
+            reason = CreditStatus.ON_HOLD;
+        } else if (limit != null && outstanding.add(amount).compareTo(limit) > 0) {
+            reason = CreditStatus.OVER_LIMIT;
+        } else if (!hasCycleWaiver(extensions) && daysOverdue > 0) {
+            reason = CreditStatus.OVERDUE;
+        }
+        return reason == null ? Optional.empty()
+                : Optional.of(new BlockedCredit(holder, reason, amount.setScale(2, RoundingMode.HALF_UP), outstanding,
+                        limit, daysOverdue));
+    }
+
+    private static BusinessException blockedAtCloseError(List<BlockedCredit> blocked) {
+        String overLimit = namesBlockedFor(blocked, CreditStatus.OVER_LIMIT);
+        String onHold = namesBlockedFor(blocked, CreditStatus.ON_HOLD);
+        String overdue = namesBlockedFor(blocked, CreditStatus.OVERDUE);
+        String details = blocked.stream()
+                .map(credit -> "'" + credit.holder().getName() + "' " + switch (credit.reason()) {
+                    case ON_HOLD -> "is on hold, " + credit.daysOverdue() + " days overdue";
+                    case OVER_LIMIT -> "would owe " + credit.outstanding().add(credit.amount()).toPlainString()
+                            + " against a limit of " + credit.limit().toPlainString();
+                    default -> "is " + credit.daysOverdue() + " days overdue";
+                })
+                .collect(Collectors.joining("; "));
+        return new BusinessException(ErrorCodes.CREDIT_CLOSE_BLOCKED_CLIENTS,
+                Map.of("overLimitClients", overLimit, "onHoldClients", onHold, "overdueClients", overdue),
+                "The shift can't close with credit for blocked clients: " + details + ". Record a payment, remove "
+                        + "those entries, or ask an Owner/Admin to allow blocked credit.");
+    }
+
+    private static String namesBlockedFor(List<BlockedCredit> blocked, CreditStatus reason) {
+        String names = blocked.stream()
+                .filter(credit -> credit.reason() == reason)
+                .map(credit -> credit.holder().getName())
+                .collect(Collectors.joining(", "));
+        return names.isEmpty() ? "—" : names;
+    }
+
+    private void recordCloseExceptions(Long pumpId, List<BlockedCredit> blocked, CloseCreditOverride override) {
+        UserRole role = override.allowedBy().getRole();
+        if (role != UserRole.OWNER && role != UserRole.ADMIN) {
+            throw new BusinessException(ErrorCodes.CREDIT_CLOSE_OVERRIDE_OWNER_ONLY, Map.of(),
+                    "Only an Owner or Admin can allow credit for blocked clients.");
+        }
+        if (override.reason() == null || override.reason().isBlank()) {
+            throw new BusinessException(ErrorCodes.CREDIT_CLOSE_OVERRIDE_REASON_REQUIRED, Map.of(),
+                    "Give a reason for allowing credit to blocked clients.");
+        }
+        String reason = override.reason().trim();
+        for (BlockedCredit credit : blocked) {
+            CreditCloseException exception = closeExceptionRepository.save(CreditCloseException.builder()
+                    .pumpId(pumpId)
+                    .shiftId(override.shiftId())
+                    .clientId(credit.holder().getId())
+                    .blockedReason(credit.reason())
+                    .amount(credit.amount())
+                    .outstanding(credit.outstanding())
+                    .effectiveLimit(credit.limit())
+                    .daysOverdue((int) credit.daysOverdue())
+                    .reason(reason)
+                    .allowedByUserId(override.allowedBy().getId())
+                    .build());
+            auditService.log(pumpId, AuditAction.CREDIT_CLOSE_BLOCKED_ALLOWED, "CreditCloseException",
+                    exception.getId().toString(),
+                    "Shift-close credit of " + credit.amount() + " allowed for clientId=" + credit.holder().getId()
+                            + " while " + credit.reason() + " (shiftId=" + override.shiftId() + "), reason=" + reason,
+                    override.allowedBy());
         }
     }
+
+    private record BlockedCredit(CreditClient holder, CreditStatus reason, BigDecimal amount, BigDecimal outstanding,
+                                 BigDecimal limit, long daysOverdue) {}
 
     public Long limitHolderId(CreditClient client) {
         return client.getParentClientId() != null ? client.getParentClientId() : client.getId();
@@ -166,9 +266,8 @@ public class CreditAccountPolicyService {
     }
 
     /**
-     * Applies the stricter mid-shift sale rules. Close-shift entry capture only validates the limit,
-     * while real-time credit sales must also respect the credit hold, approved extensions and overdue
-     * billing-cycle rules.
+     * Applies the credit hold, the group limit with approved extensions, and the overdue billing-cycle rules
+     * to a credit sale during the shift.
      *
      * Acquires a PESSIMISTIC WRITE lock on the limit-holder row before reading the outstanding
      * balance. This serialises concurrent credit sales for the same client so two operators at
@@ -191,7 +290,7 @@ public class CreditAccountPolicyService {
                             + "is held from " + holdDays + " days. The client must pay, or an Owner/Admin must override the hold.");
         }
 
-        if (limitHolder.getCreditLimit().compareTo(BigDecimal.ZERO) > 0) {
+        if (!limitHolder.isUnlimitedCredit()) {
             BigDecimal combinedOutstanding = creditInterestService.computeOutstandingWithChildren(limitHolder.getId());
             BigDecimal projected = combinedOutstanding.add(amount).setScale(2, RoundingMode.HALF_UP);
             BigDecimal effectiveLimit = effectiveLimit(limitHolder, activeExtensions);
@@ -224,9 +323,12 @@ public class CreditAccountPolicyService {
 
     /** Null when the pump holds no credit for being overdue. */
     public Integer creditHoldDaysOf(Long pumpId) {
-        PumpLocation pump = pumpLocationRepository.findById(pumpId)
+        return requirePump(pumpId).getCreditHoldDays();
+    }
+
+    private PumpLocation requirePump(Long pumpId) {
+        return pumpLocationRepository.findById(pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found: " + pumpId));
-        return pump.getCreditHoldDays();
     }
 
     /** A credit hold override in effect lifts the hold; other extensions do not. */
@@ -260,7 +362,9 @@ public class CreditAccountPolicyService {
         Map<Long, List<CreditExtension>> extensionsByClientId = creditExtensionRepository
                 .findInEffectAtPump(pumpId, businessClock.today()).stream()
                 .collect(Collectors.groupingBy(CreditExtension::getClientId));
-        Integer holdDays = creditHoldDaysOf(pumpId);
+        PumpLocation pump = requirePump(pumpId);
+        Integer holdDays = pump.getCreditHoldDays();
+        BigDecimal nearLimitShare = BigDecimal.valueOf(pump.getNearLimitPercent()).movePointLeft(2);
 
         Map<Long, CreditClientStandingResponse> groupStandingByHolderId = new HashMap<>();
         holderIds.forEach(holderId -> {
@@ -269,12 +373,16 @@ public class CreditAccountPolicyService {
             CreditBillLedger.Standing overdue = overdueByHolderId.getOrDefault(holderId, CreditBillLedger.Standing.NOTHING_OWED);
             BigDecimal groupOutstanding = overdue.outstanding();
             BigDecimal availableCredit = null;
+            boolean nearLimit = false;
             CreditStatus status = CreditStatus.OK;
-            if (holder.getCreditLimit().compareTo(BigDecimal.ZERO) > 0) {
-                availableCredit = effectiveLimit(holder, extensions).subtract(groupOutstanding).setScale(2, RoundingMode.HALF_UP);
+            if (!holder.isUnlimitedCredit()) {
+                BigDecimal limit = effectiveLimit(holder, extensions);
+                availableCredit = limit.subtract(groupOutstanding).setScale(2, RoundingMode.HALF_UP);
                 if (availableCredit.compareTo(BigDecimal.ZERO) <= 0) {
                     status = CreditStatus.OVER_LIMIT;
                     availableCredit = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+                } else {
+                    nearLimit = groupOutstanding.compareTo(limit.multiply(nearLimitShare)) >= 0;
                 }
             }
             long daysOverdue = overdue.daysOverdue();
@@ -282,8 +390,11 @@ public class CreditAccountPolicyService {
                 status = CreditStatus.ON_HOLD;
             } else if (status == CreditStatus.OK && !hasCycleWaiver(extensions) && daysOverdue > 0) {
                 status = CreditStatus.OVERDUE;
+            } else if (status == CreditStatus.OK && nearLimit) {
+                status = CreditStatus.NEAR_LIMIT;
             }
-            groupStandingByHolderId.put(holderId, new CreditClientStandingResponse(holderId, status, availableCredit));
+            groupStandingByHolderId.put(holderId,
+                    new CreditClientStandingResponse(holderId, status, availableCredit, nearLimit));
         });
 
         Map<Long, CreditClientStandingResponse> standingById = new HashMap<>();
@@ -292,7 +403,7 @@ public class CreditAccountPolicyService {
             CreditClient parent = client.getParentClientId() != null ? clientById.get(client.getParentClientId()) : null;
             boolean disabled = !client.isActive() || (parent != null && !parent.isActive());
             standingById.put(client.getId(), new CreditClientStandingResponse(client.getId(),
-                    disabled ? CreditStatus.INACTIVE : group.creditStatus(), group.availableCredit()));
+                    disabled ? CreditStatus.INACTIVE : group.creditStatus(), group.availableCredit(), group.nearLimit()));
         }
         return standingById;
     }

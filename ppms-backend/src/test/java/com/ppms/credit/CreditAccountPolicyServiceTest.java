@@ -1,5 +1,6 @@
 package com.ppms.credit;
 
+import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.support.FixedBusinessClock;
@@ -26,7 +27,7 @@ class CreditAccountPolicyServiceTest {
             mock(CreditInterestService.class), mock(CreditExtensionRepository.class), mock(CreditOverdueService.class),
             mock(PumpLocationRepository.class),
             new FixedBusinessClock(OffsetDateTime.parse("2026-03-06T10:00:00+05:30")),
-            mock(EntityManager.class));
+            mock(EntityManager.class), mock(CreditCloseExceptionRepository.class), mock(AuditService.class));
 
     @Test
     void clientIsFoundByIdOnlyWhenItBelongsToThePump() {
@@ -43,8 +44,8 @@ class CreditAccountPolicyServiceTest {
     @Test
     void clientIsFoundByExactNameAndAnUnknownNameIsRefused() {
         CreditClient client = client(1L, PUMP_ID, null, true);
-        when(clientRepository.findByPumpIdAndName(PUMP_ID, "Fleet Co")).thenReturn(Optional.of(client));
-        when(clientRepository.findByPumpIdAndName(PUMP_ID, "Walk-in")).thenReturn(Optional.empty());
+        when(clientRepository.findByPumpIdAndNameAndParentClientIdIsNull(PUMP_ID, "Fleet Co")).thenReturn(List.of(client));
+        when(clientRepository.findByPumpIdAndNameAndParentClientIdIsNull(PUMP_ID, "Walk-in")).thenReturn(List.of());
 
         assertThat(policyService.requireClientForCreditEntry(PUMP_ID, null, "  Fleet Co ")).isSameAs(client);
         assertThatThrownBy(() -> policyService.requireClientForCreditEntry(PUMP_ID, null, "Walk-in"))
@@ -52,6 +53,16 @@ class CreditAccountPolicyServiceTest {
                 .hasMessageContaining("No credit client named 'Walk-in'");
         assertThatThrownBy(() -> policyService.requireClientForCreditEntry(PUMP_ID, null, " "))
                 .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void nameMatchingTwoMainAccountsIsRefusedInsteadOfPickingOne() {
+        when(clientRepository.findByPumpIdAndNameAndParentClientIdIsNull(PUMP_ID, "Fleet Co"))
+                .thenReturn(List.of(client(1L, PUMP_ID, null, true), client(2L, PUMP_ID, null, true)));
+
+        assertThatThrownBy(() -> policyService.requireClientForCreditEntry(PUMP_ID, null, "Fleet Co"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("code").isEqualTo("CREDIT_CLIENT_NAME_AMBIGUOUS");
     }
 
     @Test

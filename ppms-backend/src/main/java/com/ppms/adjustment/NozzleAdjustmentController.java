@@ -22,6 +22,7 @@ public class NozzleAdjustmentController {
 
     // ── Meter reading adjustments ─────────────────────────────────────────────
 
+    /** A manager may only ask for a forward adjustment, which waits for an Owner or Admin to approve it. */
     @PostMapping("/{pumpId}/nozzles/{nozzleId}/reading-adjustments")
     @ResponseStatus(HttpStatus.CREATED)
     public NozzleReadingAdjustment recordAdjustment(
@@ -29,7 +30,7 @@ public class NozzleAdjustmentController {
             @PathVariable Long nozzleId,
             @Valid @RequestBody RecordAdjustmentRequest req,
             @AuthenticationPrincipal User currentUser) {
-        requireOwnerOrAdmin(currentUser);
+        requireOwnerAdminOrManager(currentUser);
         return adjustmentService.recordReadingAdjustment(pumpId, nozzleId, req, currentUser);
     }
 
@@ -38,7 +39,7 @@ public class NozzleAdjustmentController {
             @PathVariable Long pumpId,
             @PathVariable Long nozzleId,
             @AuthenticationPrincipal User currentUser) {
-        requireOwnerOrAdmin(currentUser);
+        requireOwnerAdminOrManager(currentUser);
         return adjustmentService.getAdjustments(pumpId, nozzleId);
     }
 
@@ -63,6 +64,12 @@ public class NozzleAdjustmentController {
     }
 
     // ── Guard ─────────────────────────────────────────────────────────────────
+
+    private void requireOwnerAdminOrManager(User user) {
+        if (user.getRole() != UserRole.MANAGER) {
+            requireOwnerOrAdmin(user);
+        }
+    }
 
     private void requireOwnerOrAdmin(User user) {
         if (user.getRole() != UserRole.OWNER && user.getRole() != UserRole.ADMIN) {

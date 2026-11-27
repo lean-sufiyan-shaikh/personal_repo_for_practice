@@ -58,6 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public abstract class ApiIntegrationTest {
 
     protected static final String PASSWORD = "Secret@123";
+    protected static final BigDecimal TEST_DEFAULT_CREDIT_LIMIT = new BigDecimal("10000000.00");
     private static final AtomicLong PHONE_SEQUENCE = new AtomicLong(System.nanoTime() % 1_000_000_000L);
 
     @Autowired protected MockMvc mockMvc;
@@ -82,7 +83,10 @@ public abstract class ApiIntegrationTest {
         }
     }
 
-    /** A pump with staff, a petrol tank holding {@code stockLitres} (as a real delivery lot), price ₹100/L. */
+    /**
+     * A pump with staff, a petrol tank holding {@code stockLitres} (as a real delivery lot), price ₹100/L. New credit
+     * clients start with a ₹1 crore limit, so tests that are not about limits can sell on credit.
+     */
     protected PumpSetup createPumpWithStock(String stockLitres) throws Exception {
         User owner = saveUser(UserRole.OWNER, null);
         PumpLocation pump = pumpLocationRepository.save(PumpLocation.builder()
@@ -90,6 +94,7 @@ public abstract class ApiIntegrationTest {
                 .name("Pump " + shortId())
                 .address("Test address")
                 .maxDuCount(4)
+                .defaultCreditLimit(TEST_DEFAULT_CREDIT_LIMIT)
                 .build());
         User admin = saveUser(UserRole.ADMIN, pump.getId());
         User manager = saveUser(UserRole.MANAGER, pump.getId());

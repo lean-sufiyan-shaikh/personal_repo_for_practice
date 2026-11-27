@@ -115,7 +115,7 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
     @Test
     void meterReadingAdjustmentIsRefusedDuringAShiftAndAppliedAfter() throws Exception {
         long shiftId = openShift();
-        Map<String, Object> adjustment = Map.of("adjustmentType", "CUSTOM_READING", "newReading", new BigDecimal("5000"),
+        Map<String, Object> adjustment = Map.of("adjustmentType", "CUSTOM_READING", "newReading", new BigDecimal("900"),
                 "reason", "Meter replaced");
 
         perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/reading-adjustments", setup.pumpId(), setup.nozzle().getId()),
@@ -134,7 +134,7 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
         perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/reading-adjustments", setup.pumpId(), setup.nozzle().getId()),
                 setup.owner(), adjustment).andExpect(status().is2xxSuccessful());
         assertThat(nozzleRepository.findById(setup.nozzle().getId()).orElseThrow().getLastReading())
-                .isEqualByComparingTo("5000");
+                .isEqualByComparingTo("900");
         assertThat(json(perform(get("/api/pumps/{pumpId}/nozzles/{nozzleId}/reading-adjustments", setup.pumpId(),
                 setup.nozzle().getId()), setup.owner()).andExpect(status().isOk())).toString()).contains("Meter replaced");
     }

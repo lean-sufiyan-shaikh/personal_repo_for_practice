@@ -24,6 +24,8 @@ public class PumpLocation {
     public static final LocalTime DEFAULT_SAFE_COUNT_CUTOFF_TIME = LocalTime.of(10, 0);
     public static final int DEFAULT_CREDIT_HOLD_DAYS = 45;
     public static final int DEFAULT_BACKDATED_PAYMENT_APPROVAL_DAYS = 7;
+    public static final BigDecimal DEFAULT_MANAGER_CREDIT_LIMIT_CAP = new BigDecimal("50000.00");
+    public static final int DEFAULT_NEAR_LIMIT_PERCENT = 90;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -122,6 +124,20 @@ public class PumpLocation {
     @Column(name = "backdated_payment_approval_days", nullable = false)
     @Builder.Default
     private Integer backdatedPaymentApprovalDays = DEFAULT_BACKDATED_PAYMENT_APPROVAL_DAYS;
+
+    /** The credit limit a new client starts with; 0 means it can take no credit until a limit is set. */
+    @Column(name = "default_credit_limit", nullable = false)
+    @Builder.Default
+    private BigDecimal defaultCreditLimit = BigDecimal.ZERO;
+
+    /** The highest credit limit a manager may set; above it, or unlimited credit, needs an Owner or Admin. */
+    @Column(name = "manager_credit_limit_cap", nullable = false)
+    @Builder.Default
+    private BigDecimal managerCreditLimitCap = DEFAULT_MANAGER_CREDIT_LIMIT_CAP;
+
+    @Column(name = "near_limit_percent", nullable = false)
+    @Builder.Default
+    private int nearLimitPercent = DEFAULT_NEAR_LIMIT_PERCENT;
 
     /** Set together with upiPayeeName, or both null when the pump takes no UPI payments by link. */
     @Column(name = "upi_id", length = 100)

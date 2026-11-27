@@ -15,6 +15,8 @@ public class CreditClientResponse {
     private String phone;
     private String notes;
     private BigDecimal creditLimit;
+    // When true the account has no credit limit; otherwise creditLimit applies, and 0 allows no credit
+    private Boolean unlimited;
     // Total credit sales + interest charges minus total payments — computed on the fly
     private BigDecimal outstandingBalance;
     // Unpaid portion of applied interest charges (interest-first allocation). Subset of outstandingBalance.
@@ -37,6 +39,8 @@ public class CreditClientResponse {
     /** False when the client has been soft-disabled by an Owner/Admin. */
     private Boolean isActive;
     private Boolean hasPortalPin;
+    // The PIN is shorter than six digits or easy to guess; the owner should set a new one
+    private Boolean weakPortalPin;
     private String gstin;
     private String billingAddress;
 }

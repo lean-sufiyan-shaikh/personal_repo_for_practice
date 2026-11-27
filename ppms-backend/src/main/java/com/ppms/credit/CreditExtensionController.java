@@ -96,7 +96,8 @@ public class CreditExtensionController {
                     + "'. Grant the extension on the parent account instead.");
         }
 
-        // Enforce Business Rule 60: only one active extension of the same type
+        // Enforce Business Rule 60: only one active extension of the same type; a unique index backs it up
+        extensionRepository.expireRunOutOfType(pumpId, clientId, request.extensionType(), businessClock.today());
         extensionRepository.findInEffectOfType(pumpId, clientId, request.extensionType(), businessClock.today())
                 .ifPresent(existing -> {
                     throw new BusinessException(ErrorCodes.CREDIT_EXTENSION_ALREADY_ACTIVE,

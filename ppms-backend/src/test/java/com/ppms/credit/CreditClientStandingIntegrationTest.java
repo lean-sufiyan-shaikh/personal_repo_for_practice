@@ -39,8 +39,11 @@ class CreditClientStandingIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void clientWithoutALimitIsOkWithNoAvailableAmount() throws Exception {
+    void clientWithUnlimitedCreditIsOkWithNoAvailableAmount() throws Exception {
         long clientId = createClient(null);
+        perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit", setup.pumpId(), clientId),
+                setup.owner(), Map.of("creditLimit", BigDecimal.ZERO, "unlimited", true, "reason", "Trusted fleet"))
+                .andExpect(status().isOk());
         sellOnCredit(clientId, "900.00");
 
         JsonNode standing = standingOf(clientId, setup.manager());
@@ -225,7 +228,7 @@ class CreditClientStandingIntegrationTest extends ApiIntegrationTest {
 
     private void setCreditLimit(long clientId, String limit) throws Exception {
         perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit", setup.pumpId(), clientId),
-                setup.manager(), Map.of("creditLimit", new BigDecimal(limit)))
+                setup.manager(), Map.of("creditLimit", new BigDecimal(limit), "reason", "Limit review"))
                 .andExpect(status().isOk());
     }
 

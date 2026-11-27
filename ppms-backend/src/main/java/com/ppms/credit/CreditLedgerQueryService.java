@@ -454,6 +454,7 @@ public class CreditLedgerQueryService {
                 .phone(client.getPhone())
                 .notes(client.getNotes())
                 .creditLimit(client.getCreditLimit())
+                .unlimited(client.isUnlimitedCredit())
                 .outstandingBalance(outstanding.setScale(2, RoundingMode.HALF_UP))
                 .outstandingInterest(breakdown.outstandingInterest())
                 .totalInterestRecovered(breakdown.totalInterestRecovered())

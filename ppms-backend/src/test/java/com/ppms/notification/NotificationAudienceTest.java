@@ -16,10 +16,11 @@ class NotificationAudienceTest {
     }
 
     @Test
-    void managersReceiveEveryTypeExceptTheLeakageRadarSummary() {
+    void managersReceiveEveryTypeExceptTheLeakageRadarSummaryAndBalancePageSecurityAlerts() {
         assertThat(NotificationAudience.typesVisibleTo(UserRole.MANAGER))
-                .doesNotContain(NotificationType.LEAKAGE_RADAR_WEEKLY)
-                .hasSize(NotificationType.values().length - 1);
+                .doesNotContain(NotificationType.LEAKAGE_RADAR_WEEKLY, NotificationType.CREDIT_PORTAL_LOCKED,
+                        NotificationType.CREDIT_CLIENT_PHONE_CHANGED)
+                .hasSize(NotificationType.values().length - 3);
     }
 
     @ParameterizedTest

@@ -100,7 +100,8 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/collections/dashboard", "ACCOUNTANT", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/collections/reminders/due", "MANAGER", "ACCOUNTANT"),
                 Arguments.of("/api/pumps/{pumpId}/collections/statements", "ACCOUNTANT", "OPERATOR"),
-                Arguments.of("/api/pumps/{pumpId}/collection-settings", "MANAGER", "ACCOUNTANT"));
+                Arguments.of("/api/pumps/{pumpId}/collection-settings", "MANAGER", "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/credit-limit-settings", "MANAGER", "ACCOUNTANT"));
     }
 
     @ParameterizedTest(name = "{0} allows {1}")
@@ -154,7 +155,9 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/imports/staff", Map.of("rows", List.of()), "ACCOUNTANT"),
                 Arguments.of("/api/pumps/{pumpId}/imports/credit-clients", Map.of("rows", List.of()), "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/imports/products", Map.of("rows", List.of()), "OPERATOR"),
-                Arguments.of("/api/pumps/{pumpId}/imports/tank-stock", Map.of("rows", List.of()), "MANAGER"));
+                Arguments.of("/api/pumps/{pumpId}/imports/tank-stock", Map.of("rows", List.of()), "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/credit-limit-settings", Map.of("defaultCreditLimit", 0,
+                        "managerLimitCap", 1000, "nearLimitPercent", 90), "MANAGER"));
     }
 
     @ParameterizedTest(name = "{0} refuses {2}")
@@ -171,7 +174,7 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
 
     private MockHttpServletRequestBuilder write(String path, PumpSetup pump) {
         String resolved = path.replace("{pumpId}", pump.pumpId().toString());
-        if (path.endsWith("/collection-settings")) {
+        if (path.endsWith("/collection-settings") || path.endsWith("/credit-limit-settings")) {
             return put(resolved);
         }
         return path.endsWith("/revoke") || path.endsWith("/reverse") || path.contains("/safe/") || path.contains("/day-closes/")

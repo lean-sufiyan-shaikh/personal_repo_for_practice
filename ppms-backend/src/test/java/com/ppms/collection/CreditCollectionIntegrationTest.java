@@ -321,7 +321,7 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
         long clientId = createClient(null, phone);
         makeOverdue(sellOnCredit(clientId, "345.50"), 8);
         perform(put("/api/pumps/{pumpId}/credit-clients/{clientId}/portal-pin", setup.pumpId(), clientId), setup.owner(),
-                Map.of("pin", "4321")).andExpect(status().isNoContent());
+                Map.of("pin", "482913")).andExpect(status().isNoContent());
 
         JsonNode balance = json(mockMvc.perform(post("/api/public/credit-balance")
                         .with(request -> {
@@ -330,7 +330,7 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
                         })
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("pumpId", setup.pumpId(), "phone", phone, "pin", "4321"))))
+                                Map.of("pumpId", setup.pumpId(), "phone", phone, "pin", "482913"))))
                 .andExpect(status().isOk()));
 
         assertThat(balance.get("upiPayLink").asText()).startsWith("upi://pay?pa=ramfuels@okaxis&pn=Ram%20Fuels&am=345.50&cu=INR");

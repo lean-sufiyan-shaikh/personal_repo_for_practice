@@ -244,6 +244,7 @@ class MoneyCorrectnessIntegrationTest {
         CreditClient parent = saveClient(BigDecimal.ZERO);
         CreditClient child = clientRepository.save(CreditClient.builder()
                 .pumpId(pump.getId())
+                .unlimitedCredit(true)
                 .name("Child " + shortId())
                 .parentClientId(parent.getId())
                 .monthlyInterestRate(BigDecimal.ZERO)
@@ -368,6 +369,7 @@ class MoneyCorrectnessIntegrationTest {
     void linkingAnUnlinkedCreditEntryForTheFirstTimeChecksTheClientsLimit() {
         CreditClient client = saveClient(BigDecimal.ZERO);
         client.setCreditLimit(new BigDecimal("500.00"));
+        client.setUnlimitedCredit(false);
         clientRepository.save(client);
         saveCreditSaleOn(client, "400.00", TestDates.today());
         Shift shift = saveClosedShift(TestDates.today(), ShiftStatus.CLOSED_BALANCED, null);
@@ -416,6 +418,7 @@ class MoneyCorrectnessIntegrationTest {
     void creditCounterSaleBeyondTheGroupLimitIsRefusedAndTakesNoStock() {
         CreditClient parent = saveClient(BigDecimal.ZERO);
         parent.setCreditLimit(new BigDecimal("1000.00"));
+        parent.setUnlimitedCredit(false);
         clientRepository.save(parent);
         CreditClient child = saveSubAccount(parent);
         saveCreditSaleOn(child, "500.00", TestDates.today());
@@ -776,6 +779,7 @@ class MoneyCorrectnessIntegrationTest {
     private CreditClient saveSubAccount(CreditClient parent) {
         return clientRepository.save(CreditClient.builder()
                 .pumpId(pump.getId())
+                .unlimitedCredit(true)
                 .name("Child " + shortId())
                 .parentClientId(parent.getId())
                 .monthlyInterestRate(BigDecimal.ZERO)
@@ -841,6 +845,7 @@ class MoneyCorrectnessIntegrationTest {
     private CreditClient saveClient(BigDecimal monthlyInterestRate) {
         return clientRepository.save(CreditClient.builder()
                 .pumpId(pump.getId())
+                .unlimitedCredit(true)
                 .name("Client " + shortId())
                 .monthlyInterestRate(monthlyInterestRate)
                 .build());

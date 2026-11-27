@@ -118,7 +118,7 @@ public class CreditStatementRenderer {
         if (client.getPhone() != null) {
             sb.append("<p><strong>Phone:</strong> ").append(escapeHtml(client.getPhone())).append("</p>");
         }
-        if (client.getCreditLimit() != null && client.getCreditLimit().compareTo(BigDecimal.ZERO) > 0) {
+        if (client.getParentClientId() == null && !client.isUnlimitedCredit()) {
             sb.append("<p><strong>Credit Limit:</strong> ₹").append(client.getCreditLimit().toPlainString()).append("</p>");
         }
         sb.append("</div>")
