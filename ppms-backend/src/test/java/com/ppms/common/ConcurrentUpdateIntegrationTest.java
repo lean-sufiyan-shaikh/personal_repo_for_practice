@@ -121,6 +121,7 @@ class ConcurrentUpdateIntegrationTest {
                 .name("Pump " + shortId())
                 .address("Test address")
                 .maxDuCount(4)
+                .blindCashCount(false)
                 .build());
         manager = saveUser(UserRole.MANAGER, pump.getId());
         operator = saveUser(UserRole.OPERATOR, pump.getId());

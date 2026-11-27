@@ -95,6 +95,8 @@ public abstract class ApiIntegrationTest {
                 .address("Test address")
                 .maxDuCount(4)
                 .defaultCreditLimit(TEST_DEFAULT_CREDIT_LIMIT)
+                // Tests about other features close shifts directly; the blind count tests turn it back on.
+                .blindCashCount(false)
                 .build());
         User admin = saveUser(UserRole.ADMIN, pump.getId());
         User manager = saveUser(UserRole.MANAGER, pump.getId());

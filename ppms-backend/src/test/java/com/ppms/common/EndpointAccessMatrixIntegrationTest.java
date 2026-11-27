@@ -76,6 +76,8 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/reports/profit-loss" + RANGE, "MANAGER", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/reports/interest-accrual" + RANGE, "ACCOUNTANT", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/payroll", "OWNER", "ADMIN"),
+                Arguments.of("/api/pumps/{pumpId}/staff-advances", "MANAGER", "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/staff-advances", "ADMIN", "ACCOUNTANT"),
                 Arguments.of("/api/pumps/{pumpId}/bank-reconciliation/imports", "ADMIN", "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/export/shifts" + RANGE, "ADMIN", "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/ancillary/products", "OPERATOR", "ACCOUNTANT"),
@@ -156,6 +158,18 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/collections/promises/1/cancel", Map.of("reason", "Matrix"), "ACCOUNTANT"),
                 Arguments.of("/api/pumps/{pumpId}/payroll/1/status", Map.of("status", "PAID", "paidDate", TODAY,
                         "paymentMode", "CASH"), "ADMIN"),
+                Arguments.of("/api/pumps/{pumpId}/staff-advances", Map.of("staffUserId", 1, "amount", 1,
+                        "advanceDate", TODAY), "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/staff-advances/1/void", Map.of("voidReason", "Matrix"), "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/shifts/1/blind-count", Map.of("cashCollected", 1, "upiCollected", 0,
+                        "cardCollected", 0, "fleetCardCollected", 0), "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/shifts/1/operators", Map.of("operatorId", 1), "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/shifts/1/nozzle-swaps", Map.of("nozzleId", 1, "toOperatorId", 1,
+                        "meterReading", 1), "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/shifts/1/reliefs", Map.of("relievedOperatorId", 1, "reliefOperatorId", 2,
+                        "readings", List.of(Map.of("nozzleId", 1, "meterReading", 1))), "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/shifts/1/reliefs/1/end", Map.of(
+                        "readings", List.of(Map.of("nozzleId", 1, "meterReading", 1))), "ACCOUNTANT"),
                 Arguments.of("/api/pumps/{pumpId}/collection-settings", Map.of("reminderStageDays", List.of(7),
                         "backdatedPaymentApprovalDays", 7), "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/credit-ledger/payments/1/reverse", Map.of("reason", "Matrix"), "MANAGER"),
@@ -189,7 +203,7 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
         }
         return path.endsWith("/revoke") || path.endsWith("/reverse") || path.contains("/safe/") || path.contains("/day-closes/")
                 || path.contains("/collections/") || path.endsWith("/accept-suggestion") || path.endsWith("/auto-match")
-                || path.contains("/imports/")
+                || path.contains("/imports/") || path.contains("/shifts/") || path.endsWith("/staff-advances")
                 ? post(resolved) : patch(resolved);
     }
 

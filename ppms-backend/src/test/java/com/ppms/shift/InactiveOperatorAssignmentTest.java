@@ -52,7 +52,8 @@ class InactiveOperatorAssignmentTest {
     void inactiveOperatorCannotReceiveAHandover() {
         ShiftHandoverService handoverService = new ShiftHandoverService(
                 mock(ShiftHandoverRepository.class), shiftRepository, userRepository, mock(ShiftService.class),
-                mock(ShiftReadModelService.class), mock(BusinessClock.class), mock(ClosedDayGuard.class));
+                mock(ShiftReadModelService.class), mock(BusinessClock.class), mock(ClosedDayGuard.class),
+                mock(ShiftOperatorRepository.class));
         Shift outgoing = Shift.builder().id(30L).pumpId(PUMP_ID).operatorId(7L).status(ShiftStatus.OPEN).build();
         when(shiftRepository.findByIdAndPumpIdForUpdate(30L, PUMP_ID)).thenReturn(Optional.of(outgoing));
         when(userRepository.findById(8L)).thenReturn(Optional.of(operator(UserStatus.INACTIVE)));
