@@ -25,6 +25,7 @@ export default function CashDrawerPage() {
   const canRecord = canPerformAction('cash:record-event', user?.role)
   const canManageSafe = canPerformAction('cash:manage-safe', user?.role)
   const canBackDateSafeCount = canPerformAction('cash:back-date-safe-count', user?.role)
+  const canReverse = canPerformAction('cash:reverse-event', user?.role)
   const entryAction = useUrlParam('action')
   const activeTab = useActiveTab(TAB_IDS, 'movements')
   const showEntry = entryAction.value === 'cash-entry' && canRecord && pumpId !== null
@@ -74,7 +75,7 @@ export default function CashDrawerPage() {
             <p className="mt-1 text-xs text-ink-3">{t('page.balanceHint')}</p>
           </div>
 
-          <CashEventList events={events} />
+          <CashEventList pumpId={pumpId} events={events} canReverse={canReverse} />
         </div>
       )}
 

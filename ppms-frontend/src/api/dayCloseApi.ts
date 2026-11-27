@@ -14,6 +14,8 @@ export type ChecklistCode =
   | 'PENDING_CASH_DROPS'
   | 'DELIVERIES_NOT_CHECKED'
   | 'OPEN_ATTENTION_ITEMS'
+  | 'PENDING_EXPENSES'
+  | 'PENDING_CREDIT_PAYMENTS'
 
 export interface ChecklistItem {
   code: ChecklistCode

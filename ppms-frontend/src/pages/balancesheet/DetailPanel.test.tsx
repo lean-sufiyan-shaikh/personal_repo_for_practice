@@ -66,6 +66,19 @@ describe('Balance sheet staleness', () => {
     expect(screen.getByRole('button', { name: 'Regenerate' })).toBeInTheDocument()
   })
 
+  it('lists how far each changed line total moved since the sheet was generated', async () => {
+    vi.mocked(balanceSheetApi.getById).mockResolvedValue({
+      ...detail, stale: false, staleReason: null, linesChangedSinceGenerated: true,
+      dipNetChangeSinceGenerated: 0, productSalesProfitChangeSinceGenerated: -120.5, expensesChangeSinceGenerated: 1500,
+    })
+    renderPanel()
+
+    const changes = await screen.findByRole('list', { name: 'Changes since the sheet was generated' })
+    expect(changes).toHaveTextContent('Product sales profit−₹120.50')
+    expect(changes).toHaveTextContent('Expenses+₹1,500.00')
+    expect(changes).not.toHaveTextContent('Dip P/L lines')
+  })
+
   it('says how many shifts were still open on a live sheet', async () => {
     vi.mocked(balanceSheetApi.getById).mockResolvedValue({ ...detail, stale: false, staleReason: null, openShiftCount: 2 })
     renderPanel()

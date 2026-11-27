@@ -31,7 +31,7 @@
   },
   "checklist": {
     "title": "चेकलिस्ट",
-    "description": "बंद करने से पहले दो काम ज़रूरी हैं। चेतावनियाँ बंद करने से नहीं रोकतीं, पर मालिक को दिखाई जाती हैं।",
+    "description": "बंद करने से पहले ये ज़रूरी हैं: तिजोरी गिनती, अगले दिन के दाम, हर शिफ्ट बंद, और पिछले दिन के लिए हर खर्च और उधार भुगतान पर फ़ैसला। चेतावनियाँ बंद करने से नहीं रोकतीं, पर मालिक को दिखाई जाती हैं।",
     "mustDo": "ज़रूरी काम",
     "warnings": "चेतावनियाँ",
     "noWarnings": "इस दिन के लिए कोई चेतावनी नहीं।"
@@ -45,6 +45,11 @@
       "done": "अगले दिन के ईंधन दाम तय या पक्के हैं",
       "missing": "अगले दिन के ईंधन दाम तय करें या पक्के करें ({{fuelTypes}})"
     },
+    "OPEN_SHIFTS": {
+      "done": "इस दिन की हर शिफ्ट बंद है",
+      "missing_one": "पहले इस दिन की {{count}} खुली शिफ्ट बंद करें या सौंपें",
+      "missing_other": "पहले इस दिन की {{count}} खुली शिफ्ट बंद करें या सौंपें"
+    },
     "OPEN_SHIFTS_one": "{{count}} शिफ्ट अभी खुली है — इसे इस दिन के आँकड़ों में नहीं गिना गया",
     "OPEN_SHIFTS_other": "{{count}} शिफ्ट अभी खुली हैं — इन्हें इस दिन के आँकड़ों में नहीं गिना गया",
     "TANKS_WITHOUT_DIP_one": "{{count}} चालू टैंक की इस दिन कोई डिप रीडिंग नहीं है",
@@ -54,7 +59,19 @@
     "DELIVERIES_NOT_CHECKED_one": "इस दिन की {{count}} डिलीवरी की रसीद जाँच नहीं हुई",
     "DELIVERIES_NOT_CHECKED_other": "इस दिन की {{count}} डिलीवरी की रसीद जाँच नहीं हुई",
     "OPEN_ATTENTION_ITEMS_one": "{{count}} खुली चेतावनी पर ध्यान देना है",
-    "OPEN_ATTENTION_ITEMS_other": "{{count}} खुली चेतावनियों पर ध्यान देना है"
+    "OPEN_ATTENTION_ITEMS_other": "{{count}} खुली चेतावनियों पर ध्यान देना है",
+    "PENDING_EXPENSES": {
+      "missing_one": "इस दिन का {{amount}} का {{count}} खर्च मंज़ूरी की राह देख रहा है",
+      "missing_other": "इस दिन के {{amount}} के {{count}} खर्च मंज़ूरी की राह देख रहे हैं"
+    },
+    "PENDING_EXPENSES_one": "इस दिन का {{amount}} का {{count}} खर्च मंज़ूरी की राह देख रहा है",
+    "PENDING_EXPENSES_other": "इस दिन के {{amount}} के {{count}} खर्च मंज़ूरी की राह देख रहे हैं",
+    "PENDING_CREDIT_PAYMENTS": {
+      "missing_one": "इस दिन का {{amount}} का {{count}} उधार भुगतान मंज़ूरी की राह देख रहा है",
+      "missing_other": "इस दिन के {{amount}} के {{count}} उधार भुगतान मंज़ूरी की राह देख रहे हैं"
+    },
+    "PENDING_CREDIT_PAYMENTS_one": "इस दिन का {{amount}} का {{count}} उधार भुगतान मंज़ूरी की राह देख रहा है",
+    "PENDING_CREDIT_PAYMENTS_other": "इस दिन के {{amount}} के {{count}} उधार भुगतान मंज़ूरी की राह देख रहे हैं"
   },
   "fix": {
     "SAFE_COUNT": "तिजोरी गिनें",
@@ -63,7 +80,9 @@
     "TANKS_WITHOUT_DIP": "डिप लें",
     "PENDING_CASH_DROPS": "ड्रॉप पक्के करें",
     "DELIVERIES_NOT_CHECKED": "डिलीवरी देखें",
-    "OPEN_ATTENTION_ITEMS": "चेतावनियाँ देखें"
+    "OPEN_ATTENTION_ITEMS": "चेतावनियाँ देखें",
+    "PENDING_EXPENSES": "खर्च देखें",
+    "PENDING_CREDIT_PAYMENTS": "भुगतान देखें"
   },
   "flags": {
     "GREEN": "सब ठीक",

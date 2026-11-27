@@ -8,8 +8,17 @@ export const pricesDone: ChecklistItem = {
   code: 'NEXT_DAY_PRICES', blocking: true, done: true, params: { fuelTypeCodes: [] }, text: 'Prices set', fixPath: '/dashboard/setup?section=prices',
 }
 export const pricesMissing: ChecklistItem = { ...pricesDone, done: false, params: { fuelTypeCodes: ['PETROL', 'DIESEL'] }, text: 'Prices missing' }
-export const openShiftsWarning: ChecklistItem = {
-  code: 'OPEN_SHIFTS', blocking: false, done: false, params: { count: 2 }, text: '2 shifts open', fixPath: '/dashboard/shifts',
+export const openShiftsDone: ChecklistItem = {
+  code: 'OPEN_SHIFTS', blocking: true, done: true, params: { count: 0 }, text: 'Every shift closed', fixPath: '/dashboard/shifts',
+}
+export const openShiftsMissing: ChecklistItem = { ...openShiftsDone, done: false, params: { count: 2 }, text: '2 shifts open' }
+export const pendingExpensesBlocking: ChecklistItem = {
+  code: 'PENDING_EXPENSES', blocking: true, done: false, params: { count: 2, amount: '1500.00' }, text: '2 expenses pending',
+  fixPath: '/dashboard/approvals?kind=expenses',
+}
+export const pendingPaymentsWarning: ChecklistItem = {
+  code: 'PENDING_CREDIT_PAYMENTS', blocking: false, done: false, params: { count: 1, amount: '800.00' }, text: '1 payment pending',
+  fixPath: '/dashboard/approvals?kind=payments',
 }
 
 export const summary: DaySummary = {
@@ -54,7 +63,7 @@ export function preview(overrides: Partial<DayClosePreview> = {}): DayClosePrevi
     businessDate: '2026-11-26',
     status: null,
     canClose: true,
-    checks: [safeCountDone, pricesDone],
+    checks: [safeCountDone, pricesDone, openShiftsDone],
     summary,
     ...overrides,
   }

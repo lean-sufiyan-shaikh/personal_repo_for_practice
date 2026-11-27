@@ -5,6 +5,7 @@ import type { TFunction } from 'i18next'
 import { useAuthStore } from '../../store/authStore'
 import { balanceSheetApi } from '../../api/balanceSheetApi'
 import { parseApiError } from '../../utils/apiError'
+import { ChangesSinceGenerated } from './sections/ChangesSinceGenerated'
 import { useToastStore } from '../../store/toastStore'
 import type { BsFuelLine, BsShiftLine } from '../../api/balanceSheetApi'
 import type { DeletableSheet } from './DeleteConfirmModal'
@@ -207,6 +208,7 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
               {detail.staleReason ? serverText(detail.staleReasonCode, detail.staleReasonParams, detail.staleReason) : t('detail.defaultStaleReason')}
               {' '}{t('detail.staleTail')}
             </span>
+            <ChangesSinceGenerated detail={detail} />
             {canDelete && (
               <button
                 type="button"

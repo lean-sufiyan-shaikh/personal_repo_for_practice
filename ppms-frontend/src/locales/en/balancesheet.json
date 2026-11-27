@@ -77,7 +77,13 @@
     "regenerating": "Regenerating…",
     "regenerate": "Regenerate",
     "openShifts_one": "{{count}} shift still open — this sheet covers only closed shifts.",
-    "openShifts_other": "{{count}} shifts still open — this sheet covers only closed shifts."
+    "openShifts_other": "{{count}} shifts still open — this sheet covers only closed shifts.",
+    "changes": {
+      "title": "Changes since the sheet was generated",
+      "dipNet": "Dip P/L lines",
+      "productProfit": "Product sales profit",
+      "expenses": "Expenses"
+    }
   },
   "summary": {
     "title": "Cash & Revenue Summary",

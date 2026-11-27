@@ -12,6 +12,8 @@ import { useAuthStore } from '../../../store/authStore'
 import { parseApiError } from '../../../utils/apiError'
 import { formatIstDateTime } from '../../../utils/date'
 import { DiscrepancyBadge } from '../components/DiscrepancyBadge'
+import { AmendShiftModal } from '../amend/AmendShiftModal'
+import { canAmendShift } from '../amend/amendFigures'
 import { HandoverReportPanel } from '../modals/HandoverReportPanel'
 import { ResolveDiscrepancyModal } from '../modals/ResolveDiscrepancyModal'
 import { awaitingOwnerApprovalLabel, discrepancyAction, investigationLabel } from '../shiftLabels'
@@ -24,6 +26,7 @@ export function ShiftDetail({ pumpId, shiftId }: { pumpId: number; shiftId: numb
   const role = useAuthStore((state) => state.user?.role)
   const [resolveOpen, setResolveOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
+  const [amendOpen, setAmendOpen] = useState(false)
   const { data: shift, isLoading, error } = useQuery({
     queryKey: ['shift', pumpId, shiftId],
     queryFn: () => shiftApi.getShift(pumpId, shiftId),
@@ -131,10 +134,14 @@ export function ShiftDetail({ pumpId, shiftId }: { pumpId: number; shiftId: numb
             {t('history.printHandover')}
           </button>
         )}
+        {canAmendShift(shift, role) && (
+          <button type="button" onClick={() => setAmendOpen(true)} className="ui-btn ui-btn-secondary">{t('amend.action')}</button>
+        )}
       </div>
 
       {resolveOpen && <ResolveDiscrepancyModal shift={shift} onClose={() => setResolveOpen(false)} />}
       {reportOpen && <HandoverReportPanel shift={shift} onClose={() => setReportOpen(false)} />}
+      {amendOpen && <AmendShiftModal shift={shift} onClose={() => setAmendOpen(false)} />}
     </article>
   )
 }

@@ -9,7 +9,7 @@ import { usePumpStore } from '../../../store/usePumpStore'
 import { renderWithProviders } from '../../../test/renderWithProviders'
 import { localDateInputValue } from '../../../utils/date'
 import DayClosePage from '../DayClosePage'
-import { detail, listItem, openShiftsWarning, page, preview, pricesDone, pricesMissing, safeCountDone, safeCountMissing } from '../dayCloseTestData'
+import { detail, listItem, openShiftsMissing, page, pendingExpensesBlocking, pendingPaymentsWarning, preview, pricesDone, pricesMissing, safeCountDone, safeCountMissing } from '../dayCloseTestData'
 
 vi.mock('../../../api/dayCloseApi', () => ({
   dayCloseApi: {
@@ -40,7 +40,7 @@ describe('Day close — closing a day', () => {
   })
 
   it('keeps Close day disabled and says what is still needed while a blocking check is missing', async () => {
-    vi.mocked(dayCloseApi.getPreview).mockResolvedValue(preview({ canClose: false, checks: [safeCountMissing, pricesMissing, openShiftsWarning] }))
+    vi.mocked(dayCloseApi.getPreview).mockResolvedValue(preview({ canClose: false, checks: [safeCountMissing, pricesMissing, openShiftsMissing, pendingExpensesBlocking, pendingPaymentsWarning] }))
     renderClose()
 
     const mustDo = await screen.findByRole('list', { name: 'Must be done' })
@@ -50,8 +50,14 @@ describe('Day close — closing a day', () => {
       .toHaveAttribute('href', '/dashboard/cash?tab=safe&action=count-safe&countFor=2026-11-26')
     expect(within(mustDo).getByRole('link', { name: 'Set prices' })).toHaveAttribute('href', '/dashboard/setup?section=prices')
 
+    expect(within(mustDo).getByText('Close or hand over 2 open shifts of this day first')).toBeInTheDocument()
+    expect(within(mustDo).getByRole('link', { name: 'See shifts' })).toHaveAttribute('href', '/dashboard/shifts')
+    expect(within(mustDo).getByText('2 expenses worth ₹1,500.00 dated this day are waiting for approval')).toBeInTheDocument()
+    expect(within(mustDo).getByRole('link', { name: 'Review expenses' })).toHaveAttribute('href', '/dashboard/approvals?kind=expenses')
+
     const warnings = screen.getByRole('list', { name: 'Warnings' })
-    expect(within(warnings).getByText('2 shifts are still open — they are left out of this day\'s figures')).toBeInTheDocument()
+    expect(within(warnings).getByText('1 credit payment of ₹800.00 dated this day is waiting for approval')).toBeInTheDocument()
+    expect(within(warnings).getByRole('link', { name: 'Review payments' })).toHaveAttribute('href', '/dashboard/approvals?kind=payments')
 
     const closeButton = screen.getByRole('button', { name: /^Close 26 Nov 2026/ })
     expect(closeButton).toBeDisabled()
@@ -64,6 +70,7 @@ describe('Day close — closing a day', () => {
     const mustDo = await screen.findByRole('list', { name: 'Must be done' })
     expect(within(mustDo).getByText('The safe was counted on this day')).toBeInTheDocument()
     expect(within(mustDo).getByText('Next day\'s fuel prices are set or confirmed')).toBeInTheDocument()
+    expect(within(mustDo).getByText('Every shift of this day is closed')).toBeInTheDocument()
     expect(within(mustDo).queryByRole('link')).not.toBeInTheDocument()
     expect(screen.getByText('No warnings for this day.')).toBeInTheDocument()
     expect(screen.queryByText('Still needed')).not.toBeInTheDocument()

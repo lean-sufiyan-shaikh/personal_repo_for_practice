@@ -108,6 +108,8 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'cash:record-event':             ['OWNER', 'ADMIN', 'MANAGER'],
   'cash:manage-safe':              ['OWNER', 'ADMIN', 'MANAGER'],
   'cash:back-date-safe-count':     ['OWNER', 'ADMIN'],
+  'cash:record-opening-balance':   ['OWNER', 'ADMIN'],
+  'cash:reverse-event':            ['OWNER', 'ADMIN'],
 
   // Calibration
   'calibration:add':               ['OWNER', 'ADMIN'],

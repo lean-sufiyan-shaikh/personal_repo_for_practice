@@ -7,6 +7,8 @@ import { SearchableSelect } from '../../components/SearchableSelect'
 import { localDateInputValue } from '../../utils/date'
 import { NumericInput } from '../../components/NumericInput'
 import { useToastStore } from '../../store/toastStore'
+import { useAuthStore } from '../../store/authStore'
+import { canPerformAction } from '../../permissions/permissions'
 import { Modal } from '../../components/Modal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
@@ -36,6 +38,8 @@ export function CashEntryDialog({ pumpId, balance, onClose }: CashEntryDialogPro
   const qc           = useQueryClient()
   const { addToast } = useToastStore()
   const stillNeededId = useId()
+  const role = useAuthStore((state) => state.user?.role)
+  const eventTypes = EVENT_TYPES.filter((type) => type !== 'OPENING_BALANCE' || canPerformAction('cash:record-opening-balance', role))
   const [form, setForm] = useState<RecordCashEventRequest>({
     eventType: 'CASH_IN',
     amount: 0,
@@ -169,7 +173,7 @@ export function CashEntryDialog({ pumpId, balance, onClose }: CashEntryDialogPro
           <SearchableSelect label={t('form.eventType')}
             value={form.eventType}
             onChange={v => setForm(f => ({ ...f, eventType: v as ManualCashEventType }))}
-            options={EVENT_TYPES.map(type => ({ value: type, label: t(`eventTypes.${type}`) }))}
+            options={eventTypes.map(type => ({ value: type, label: t(`eventTypes.${type}`) }))}
           />
         </div>
 

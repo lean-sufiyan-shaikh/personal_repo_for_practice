@@ -11,6 +11,16 @@ export interface ResolveDiscrepancyRequest {
   resolutionNote?: string
 }
 
+export interface AmendShiftRequest {
+  fuelReadings: Array<{ nozzleId: number; endReading: number }>
+  /** The bag count, as at close; confirmed drops are added on the server. */
+  cashCollected: number
+  upiCollected: number
+  cardCollected: number
+  fleetCardCollected: number
+  reason: string
+}
+
 export interface ShiftHistoryFilter {
   from?: string
   to?: string
@@ -78,6 +88,9 @@ export const shiftApi = {
 
   voidCreditEntry: (pumpId: number, shiftId: number, entryId: number, voidReason: string) =>
     client.patch<Shift>(`/pumps/${pumpId}/shifts/${shiftId}/credit-entries/${entryId}/void`, { voidReason }).then((r) => r.data),
+
+  amendShift: (pumpId: number, shiftId: number, request: AmendShiftRequest) =>
+    client.post<Shift>(`/pumps/${pumpId}/shifts/${shiftId}/amend`, request).then((r) => r.data),
 
   backfillShift: (pumpId: number, request: BackfillShiftRequest) =>
     client.post<Shift>(`/pumps/${pumpId}/shifts/backfill`, request).then((r) => r.data),

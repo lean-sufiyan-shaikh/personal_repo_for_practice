@@ -648,5 +648,24 @@
     "loadFailed": "Could not load the cash drops.",
     "waiting_one": "{{count}} drop waiting for a manager",
     "waiting_other": "{{count}} drops waiting for a manager"
+  },
+  "amend": {
+    "action": "Amend shift",
+    "title": "Amend shift #{{id}}",
+    "subtitle": "{{operator}} · {{date}}. Correct the closing readings and collections; the shift is worked out again and the change is kept in its history.",
+    "closingReading": "Closing reading — nozzle #{{number}} ({{fuel}})",
+    "openingReading": "Opening reading {{reading}}",
+    "bagCash": "Cash in the bag",
+    "bagCashHelp": "Confirmed drops of {{amount}} are added to it.",
+    "figures": "Before and after",
+    "litresSold": "Litres sold",
+    "amountDue": "Amount due",
+    "totalCollected": "Total collected",
+    "difference": "Difference (collected − due)",
+    "reason": "Why the shift is amended",
+    "reasonMissing": "Give a reason for the amendment.",
+    "enterNumber": "Enter a number, zero or more.",
+    "save": "Save amendment",
+    "failed": "Could not amend the shift. Try again."
   }
 }

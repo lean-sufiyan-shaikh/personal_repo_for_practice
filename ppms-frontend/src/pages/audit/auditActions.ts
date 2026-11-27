@@ -26,6 +26,7 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   SHIFT_OPENED:                       'info',
   SHIFT_CLOSED:                       'ok',
   SHIFT_BACKFILLED:                   'info',
+  SHIFT_AMENDED:                      'warn',
   DISCREPANCY_RESOLVED:               'warn',
   DISCREPANCY_INVESTIGATION_STARTED:  'warn',
   // Credit management
@@ -84,6 +85,7 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   PUMP_CLOSURE_ADDED:                 'neutral',
   BANK_STATEMENT_IMPORTED:            'info',
   SUPPLIER_PAYMENT_RECORDED:          'ok',
+  SUPPLIER_PAYMENT_VOIDED:            'bad',
   PUMP_CONFIG_UPDATED:                'neutral',
   // Payment settlements
   SETTLEMENT_RECORDED:                'ok',
@@ -92,6 +94,8 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   CASH_DROP_RECORDED:                 'neutral',
   CASH_DROP_CONFIRMED:                'ok',
   CASH_DROP_REJECTED:                 'bad',
+  CASH_EVENT_RECORDED:                'info',
+  CASH_EVENT_REVERSED:                'warn',
   SAFE_COUNTED:                       'neutral',
   SAFE_COUNTED_LATE:                  'warn',
   SAFE_COUNT_BACK_DATED:              'warn',

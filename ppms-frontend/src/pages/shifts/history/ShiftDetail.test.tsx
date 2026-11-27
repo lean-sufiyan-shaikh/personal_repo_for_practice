@@ -9,6 +9,7 @@ import type { Shift } from '../../../types/shift'
 import { ShiftDetail } from './ShiftDetail'
 
 vi.mock('../../../api/shiftApi', () => ({ shiftApi: { getShift: vi.fn() } }))
+vi.mock('../amend/AmendShiftModal', () => ({ AmendShiftModal: () => <div role="dialog" aria-label="Amend form" /> }))
 vi.mock('../modals/ResolveDiscrepancyModal', () => ({ ResolveDiscrepancyModal: () => <div role="dialog" aria-label="Resolve form" /> }))
 
 const shortShift = {
@@ -51,6 +52,17 @@ describe('ShiftDetail', () => {
     await user.click(screen.getByRole('button', { name: 'Print handover report' }))
     const report = screen.getByRole('dialog', { name: 'Shift handover report' })
     expect(report.querySelector('.ui-side-panel')).not.toBeNull()
+  })
+
+  it('offers Amend shift on a closed shift to an owner but not to a manager', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ShiftDetail pumpId={4} shiftId={77} />)
+    await screen.findByRole('article', { name: 'Shift #77' })
+    expect(screen.queryByRole('button', { name: 'Amend shift' })).not.toBeInTheDocument()
+
+    useAuthStore.setState({ user: { userId: 2, fullName: 'Own', role: 'OWNER', assignedPumpId: 4 }, isAuthenticated: true })
+    await user.click(await screen.findByRole('button', { name: 'Amend shift' }))
+    expect(screen.getByRole('dialog', { name: 'Amend form' })).toBeInTheDocument()
   })
 
   it('says so when the shift cannot be found at this pump', async () => {

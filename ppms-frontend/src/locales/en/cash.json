@@ -176,5 +176,20 @@
       "needDate": "Deposit date",
       "needSlip": "Slip reference"
     }
+  },
+  "reverse": {
+    "action": "Reverse",
+    "actionLabel": "Reverse {{description}}",
+    "title": "Reverse cash movement",
+    "subtitle": "An opposite entry is added on the same day. Nothing is edited or deleted; both stay in the ledger.",
+    "date": "Date",
+    "description": "Note",
+    "reason": "Why it is reversed",
+    "reasonMissing": "Give a reason for the reversal.",
+    "confirm": "Reverse movement",
+    "done": "Cash movement reversed.",
+    "failed": "Could not reverse the movement. Try again.",
+    "reversedBadge": "Reversed",
+    "reversalBadge": "Reversal"
   }
 }

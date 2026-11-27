@@ -182,6 +182,10 @@ export interface BalanceSheetDetail {
   totalNetProfit: number
   /** True when the dip, product or expense lines below no longer add up to the totals saved at generation. */
   linesChangedSinceGenerated: boolean
+  /** Live line items minus the total saved at generation; null on responses from before this was sent. */
+  dipNetChangeSinceGenerated?: number | null
+  productSalesProfitChangeSinceGenerated?: number | null
+  expensesChangeSinceGenerated?: number | null
   fuelLines: BsFuelLine[]
   shiftLines: BsShiftLine[]
   meterAmendments: MeterAmendmentLine[]

@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Landmark, Lock, PackageCheck, Wallet } from 'lucide-react'
-import type { CashEventType, ManualCashEventType } from '../../api/cashApi'
+import type { CashEvent, CashEventType, ManualCashEventType } from '../../api/cashApi'
 import type { StatusBadgeSpec } from '../../components/statusBadges'
 
 /** The types a person records by hand. Labels are cash.json eventTypes.<value>. */
@@ -15,6 +15,13 @@ export const EVENT_BADGES: Record<CashEventType, Omit<StatusBadgeSpec, 'label'>>
   CLOSING_BALANCE: { tone: 'neutral', icon: Lock },
   CASH_DROP:       { tone: 'ok', icon: PackageCheck },
   BANK_DEPOSIT:    { tone: 'info', icon: Landmark },
+}
+
+const REVERSIBLE_TYPES = new Set<CashEventType>(['OPENING_BALANCE', 'CASH_IN', 'CASH_OUT'])
+
+/** A movement typed by hand that has not been reversed and is not itself a reversal. */
+export function isReversible(event: CashEvent): boolean {
+  return event.recordedByHand && event.reversedAt == null && event.reversesEventId == null && REVERSIBLE_TYPES.has(event.eventType)
 }
 
 /** Money leaving the safe. */

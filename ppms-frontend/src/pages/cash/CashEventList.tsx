@@ -1,19 +1,28 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { CashEventType } from '../../api/cashApi'
+import type { CashEvent, CashEventType } from '../../api/cashApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Pagination } from '../../components/Pagination'
 import { SkeletonRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
-import { ALL_EVENT_TYPES, EVENT_BADGES, fmtDate, isOutflow } from './cashFormat'
+import { ALL_EVENT_TYPES, EVENT_BADGES, fmtDate, isOutflow, isReversible } from './cashFormat'
+import { ReverseCashEventDialog } from './ReverseCashEventDialog'
 import type { CashEventsState } from './useCashEvents'
 import { codeLabel } from '../../constants/labels'
 import { PageSection } from '../../components/layout/PageSection'
 import { FilterBar } from '../../components/layout/FilterBar'
 
-export function CashEventList({ events }: { events: CashEventsState }) {
+interface CashEventListProps {
+  pumpId: number
+  events: CashEventsState
+  canReverse: boolean
+}
+
+export function CashEventList({ pumpId, events, canReverse }: CashEventListProps) {
   const { t } = useTranslation(['cash', 'common'])
+  const [reversing, setReversing] = useState<CashEvent | null>(null)
   const {
     cashData, isLoading, filteredEvents,
     eventTypeFilter, setEventTypeFilter, fromDate, setFromDate, toDate, setToDate,
@@ -79,17 +88,27 @@ export function CashEventList({ events }: { events: CashEventsState }) {
                   <StatusBadge {...EVENT_BADGES[ev.eventType]} label={codeLabel(ev.eventType)} className="flex-shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm text-ink truncate">{ev.description}</p>
-                    <div className="ui-record-row__meta mt-0">
+                    <div className="ui-record-row__meta mt-0 flex flex-wrap items-center gap-2">
                       <span>{fmtDate(ev.eventDate)}</span>
+                      {ev.reversedAt && <StatusBadge tone="neutral" label={t('reverse.reversedBadge')} />}
+                      {ev.reversesEventId != null && <StatusBadge tone="warn" label={t('reverse.reversalBadge')} />}
                     </div>
                   </div>
                 </div>
-                <MoneyText
-                  value={isOutflow(ev.eventType) ? -ev.amount : ev.amount}
-                  showSign
-                  tone={isOutflow(ev.eventType) ? 'bad' : 'ok'}
-                  className="text-sm font-semibold flex-shrink-0"
-                />
+                <div className="flex flex-shrink-0 items-center gap-2">
+                  <MoneyText
+                    value={isOutflow(ev.eventType) ? -ev.amount : ev.amount}
+                    showSign
+                    tone={isOutflow(ev.eventType) ? 'bad' : 'ok'}
+                    className={`text-sm font-semibold ${ev.reversedAt ? 'line-through' : ''}`}
+                  />
+                  {canReverse && isReversible(ev) && (
+                    <button type="button" onClick={() => setReversing(ev)} className="ui-btn ui-btn-secondary ui-btn-compact"
+                      aria-label={t('reverse.actionLabel', { description: ev.description })}>
+                      {t('reverse.action')}
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -105,6 +124,7 @@ export function CashEventList({ events }: { events: CashEventsState }) {
           )}
         </>
       )}
+      {reversing && <ReverseCashEventDialog pumpId={pumpId} event={reversing} onClose={() => setReversing(null)} />}
     </PageSection>
   )
 }

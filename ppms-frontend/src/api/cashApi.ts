@@ -15,6 +15,12 @@ export interface CashEvent {
   eventDate: string
   recordedByUserId: number
   createdAt: string
+  /** The shift whose close or amendment moved this cash; null for every other movement. */
+  shiftId: number | null
+  recordedByHand: boolean
+  /** Set on a reversal entry: the movement it cancels. */
+  reversesEventId: number | null
+  reversedAt: string | null
 }
 
 export interface CashDrawerResponse {
@@ -170,6 +176,9 @@ export const cashApi = {
 
   recordCashEvent: (pumpId: number, data: RecordCashEventRequest): Promise<CashEvent> =>
     client.post(`/pumps/${pumpId}/cash-events`, data).then(r => r.data),
+
+  reverseCashEvent: (pumpId: number, eventId: number, reason: string): Promise<CashEvent> =>
+    client.post(`/pumps/${pumpId}/cash-events/${eventId}/reverse`, { reason }).then(r => r.data),
 
   getShiftDrops: (pumpId: number, shiftId: number): Promise<CashDrop[]> =>
     client.get(`/pumps/${pumpId}/shifts/${shiftId}/cash-drops`).then(r => r.data),

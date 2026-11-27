@@ -31,7 +31,7 @@
   },
   "checklist": {
     "title": "Checklist",
-    "description": "Two things must be done before closing. Warnings do not stop the close but are shown to the owner.",
+    "description": "These must be done before closing: a safe count, the next day's prices, every shift closed, and for a past day every expense and credit payment decided. Warnings do not stop the close but are shown to the owner.",
     "mustDo": "Must be done",
     "warnings": "Warnings",
     "noWarnings": "No warnings for this day."
@@ -45,6 +45,11 @@
       "done": "Next day's fuel prices are set or confirmed",
       "missing": "Set or confirm the next day's fuel prices ({{fuelTypes}})"
     },
+    "OPEN_SHIFTS": {
+      "done": "Every shift of this day is closed",
+      "missing_one": "Close or hand over {{count}} open shift of this day first",
+      "missing_other": "Close or hand over {{count}} open shifts of this day first"
+    },
     "OPEN_SHIFTS_one": "{{count}} shift is still open — it is left out of this day's figures",
     "OPEN_SHIFTS_other": "{{count}} shifts are still open — they are left out of this day's figures",
     "TANKS_WITHOUT_DIP_one": "{{count}} active tank has no dip reading on this day",
@@ -54,7 +59,19 @@
     "DELIVERIES_NOT_CHECKED_one": "{{count}} delivery on this day has no receipt check",
     "DELIVERIES_NOT_CHECKED_other": "{{count}} deliveries on this day have no receipt check",
     "OPEN_ATTENTION_ITEMS_one": "{{count}} open alert needs attention",
-    "OPEN_ATTENTION_ITEMS_other": "{{count}} open alerts need attention"
+    "OPEN_ATTENTION_ITEMS_other": "{{count}} open alerts need attention",
+    "PENDING_EXPENSES": {
+      "missing_one": "{{count}} expense of {{amount}} dated this day is waiting for approval",
+      "missing_other": "{{count}} expenses worth {{amount}} dated this day are waiting for approval"
+    },
+    "PENDING_EXPENSES_one": "{{count}} expense of {{amount}} dated this day is waiting for approval",
+    "PENDING_EXPENSES_other": "{{count}} expenses worth {{amount}} dated this day are waiting for approval",
+    "PENDING_CREDIT_PAYMENTS": {
+      "missing_one": "{{count}} credit payment of {{amount}} dated this day is waiting for approval",
+      "missing_other": "{{count}} credit payments worth {{amount}} dated this day are waiting for approval"
+    },
+    "PENDING_CREDIT_PAYMENTS_one": "{{count}} credit payment of {{amount}} dated this day is waiting for approval",
+    "PENDING_CREDIT_PAYMENTS_other": "{{count}} credit payments worth {{amount}} dated this day are waiting for approval"
   },
   "fix": {
     "SAFE_COUNT": "Count safe",
@@ -63,7 +80,9 @@
     "TANKS_WITHOUT_DIP": "Take dips",
     "PENDING_CASH_DROPS": "Confirm drops",
     "DELIVERIES_NOT_CHECKED": "See deliveries",
-    "OPEN_ATTENTION_ITEMS": "See alerts"
+    "OPEN_ATTENTION_ITEMS": "See alerts",
+    "PENDING_EXPENSES": "Review expenses",
+    "PENDING_CREDIT_PAYMENTS": "Review payments"
   },
   "flags": {
     "GREEN": "All good",
