@@ -125,4 +125,13 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   TANK_STOCK_IMPORTED:                'ok',
   DEMO_PUMP_CREATED:                  'info',
   DEMO_PUMP_DELETED:                  'neutral',
+  // Credit and meter controls
+  CREDIT_CLIENT_UPDATED:              'neutral',
+  CREDIT_CLIENT_STATUS_CHANGED:       'warn',
+  CREDIT_PORTAL_LOCKED:               'bad',
+  CREDIT_CLOSE_BLOCKED_ALLOWED:       'warn',
+  METER_READING_ADJUSTED:             'warn',
+  METER_ADJUSTMENT_REQUESTED:         'info',
+  METER_ADJUSTMENT_APPROVED:          'ok',
+  METER_ADJUSTMENT_REJECTED:          'neutral',
 }

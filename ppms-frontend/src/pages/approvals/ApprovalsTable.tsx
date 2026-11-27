@@ -5,12 +5,10 @@ import type { ApprovalItem } from '../../api/approvalApi'
 import { DataTable } from '../../components/DataTable'
 import type { DataTableColumn } from '../../components/DataTable'
 import { MoneyText } from '../../components/AmountText'
-import { codeLabel } from '../../constants/labels'
-import { translateKey } from '../../i18n'
 import { useIsPhone } from '../../hooks/useIsPhone'
 import { formatIstDate } from '../../utils/date'
 import { formatCurrency } from '../../utils/format'
-import { approvalKey, waitingFor } from './approvalFormat'
+import { approvalKey, itemName, waitingFor } from './approvalFormat'
 
 interface ApprovalsTableProps {
   items: ApprovalItem[]
@@ -27,16 +25,15 @@ function blockedReasonText(item: ApprovalItem): string | undefined {
   return item.blockedReason === null ? undefined : serverText(item.blockedReasonCode, item.blockedReasonParams, item.blockedReason)
 }
 
-function itemName(item: ApprovalItem) {
-  return item.kind === 'EXPENSE' ? codeLabel(item.category ?? '') : (item.clientName ?? translateKey('approvals:table.clientNumber', { id: item.clientId }))
-}
+const KIND_TEXT_KEY = { EXPENSE: 'kind.expense', CREDIT_PAYMENT: 'kind.creditPayment', METER_ADJUSTMENT: 'kind.meterAdjustment' } as const
+const SELECT_LABEL_KEY = { EXPENSE: 'table.selectExpense', CREDIT_PAYMENT: 'table.selectPayment', METER_ADJUSTMENT: 'table.selectMeter' } as const
 
 function kindText(t: TFunction<'approvals'>, item: ApprovalItem) {
-  return item.kind === 'EXPENSE' ? t('kind.expense') : t('kind.creditPayment')
+  return t(KIND_TEXT_KEY[item.kind])
 }
 
 function selectLabel(t: TFunction<'approvals'>, item: ApprovalItem) {
-  return t(item.kind === 'EXPENSE' ? 'table.selectExpense' : 'table.selectPayment', { name: itemName(item), amount: formatCurrency(item.amount) })
+  return t(SELECT_LABEL_KEY[item.kind], { name: itemName(item), amount: formatCurrency(item.amount) })
 }
 
 type CheckboxProps = Pick<ApprovalsTableProps, 'selectedKeys' | 'onToggle'> & { item: ApprovalItem }

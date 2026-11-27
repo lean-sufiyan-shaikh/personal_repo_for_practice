@@ -288,7 +288,20 @@
       "reasonPlaceholder": "जैसे खराबी के बाद मीटर बदला",
       "reasonHint": "यह नोट ऑडिट के लिए सुधार लॉग के साथ सेव होता है।",
       "resetSubmit": "शून्य करें",
-      "saveSubmit": "रीडिंग सेव करें"
+      "saveSubmit": "रीडिंग सेव करें",
+      "unbilledNeedsApproval": "{{litres}} आगे ≈ मौजूदा दाम पर {{value}} बिना बिल का। रीडिंग बदलने से पहले मालिक या एडमिन की मंज़ूरी चाहिए।",
+      "unbilledDrawn": "{{litres}} आगे ≈ मौजूदा दाम पर {{value}}। ये बिना बिल के लीटर टैंक स्टॉक से नुकसान के रूप में घटेंगे।",
+      "sentForApproval": "सुधार मंज़ूरी के लिए मालिक या एडमिन को भेजा गया",
+      "backwardOwnerOnly": "रीडिंग पीछे सिर्फ़ मालिक या एडमिन कर सकते हैं। आप ज़्यादा रीडिंग के लिए कह सकते हैं।",
+      "requestSubmit": "मंज़ूरी माँगें",
+      "history": "हाल के सुधार",
+      "historyChange": "{{from}} → {{to}}",
+      "historyUnbilled": "{{litres}} L बिना बिल ({{value}})",
+      "managerTitle": "मीटर सुधार",
+      "managerIntro": "अगर मीटर पिछली सेव रीडिंग से ज़्यादा दिखाए, तो शिफ्ट के बाहर नोज़ल से ईंधन निकला है। यहाँ सुधार माँगें; मालिक या एडमिन उसे मंज़ूर करेंगे।",
+      "chooseNozzle": "नोज़ल",
+      "chooseNozzlePlaceholder": "नोज़ल चुनें",
+      "nozzleOption": "{{du}} · नोज़ल #{{number}} · {{fuel}}"
     },
     "createDu": {
       "created": "DU बन गया",

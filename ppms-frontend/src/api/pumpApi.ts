@@ -107,13 +107,16 @@ export interface CreditClient extends CreditClientSummary {
   createdAt: string
   /** True when the client can check their balance on the public portal. The PIN itself is never returned. */
   hasPortalPin: boolean
+  /** A PIN set before 6-digit PINs were required, or an easy one; the owner should set a new one. */
+  weakPortalPin: boolean
+  unlimited: boolean
   /** Null for an unregistered (B2C) client. */
   gstin?: string | null
   billingAddress?: string | null
 }
 
 /** Whether a client could take a credit sale now, by the rules the sale itself is checked against. */
-export type CreditStatus = 'OK' | 'OVERDUE' | 'ON_HOLD' | 'OVER_LIMIT' | 'INACTIVE'
+export type CreditStatus = 'OK' | 'NEAR_LIMIT' | 'OVERDUE' | 'ON_HOLD' | 'OVER_LIMIT' | 'INACTIVE'
 
 export interface CreditClientStanding {
   clientId: number

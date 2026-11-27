@@ -115,6 +115,14 @@
     "PRODUCTS_IMPORTED": "उत्पादने आयात केली",
     "TANK_STOCK_IMPORTED": "सुरुवातीचा टँक स्टॉक आयात केला",
     "DEMO_PUMP_CREATED": "डेमो पंप तयार केला",
-    "DEMO_PUMP_DELETED": "डेमो पंप हटवला"
+    "DEMO_PUMP_DELETED": "डेमो पंप हटवला",
+    "CREDIT_CLIENT_UPDATED": "क्रेडिट ग्राहक बदलला",
+    "CREDIT_CLIENT_STATUS_CHANGED": "क्रेडिट ग्राहक सुरू किंवा बंद केला",
+    "CREDIT_PORTAL_LOCKED": "चुकीच्या PIN नंतर शिल्लक पान लॉक झाले",
+    "CREDIT_CLOSE_BLOCKED_ALLOWED": "शिफ्ट बंद करताना थांबवलेले क्रेडिट मंजूर केले",
+    "METER_READING_ADJUSTED": "मीटर रीडिंग दुरुस्त केले",
+    "METER_ADJUSTMENT_REQUESTED": "मीटर दुरुस्ती मागितली",
+    "METER_ADJUSTMENT_APPROVED": "मीटर दुरुस्ती मंजूर झाली",
+    "METER_ADJUSTMENT_REJECTED": "मीटर दुरुस्ती नामंजूर झाली"
   }
 }

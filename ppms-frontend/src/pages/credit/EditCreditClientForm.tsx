@@ -6,6 +6,8 @@ import type { CreditClient as PumpCreditClient, UpdateCreditClientRequest } from
 import { FormField } from '../../components/FormField'
 import { FormGrid, FormGridFullRow } from '../../components/layout/FormGrid'
 import { LoadingButton } from '../../components/LoadingButton'
+import { canPerformAction } from '../../permissions/permissions'
+import { useAuthStore } from '../../store/authStore'
 import { parseApiError } from '../../utils/apiError'
 import { isValidGstin, normaliseGstText } from '../../utils/gst'
 
@@ -20,6 +22,7 @@ interface EditCreditClientFormProps {
 export function EditCreditClientForm({ pumpId, client, indent = false, onSaved, onCancel }: EditCreditClientFormProps) {
   const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
+  const canChangeContact = canPerformAction('credit:change-client-contact', useAuthStore(state => state.user?.role))
   const [editName, setEditName]   = useState(client.name)
   const [editPhone, setEditPhone] = useState(client.phone ?? '')
   const [editNotes, setEditNotes] = useState(client.notes ?? '')
@@ -40,6 +43,11 @@ export function EditCreditClientForm({ pumpId, client, indent = false, onSaved, 
     onError: (err) => setEditError(parseApiError(err, t('clientForm.updateFailed'))),
   })
 
+  const phoneChanged = editPhone.trim() !== (client.phone ?? '')
+  const phoneHelp = !canChangeContact ? t('clientForm.ownerOnlyField')
+    : phoneChanged && client.hasPortalPin ? t('clientForm.phoneChangeClearsPin')
+    : undefined
+
   const submitEdit = (e: React.FormEvent) => {
     e.preventDefault(); setEditError(null)
     if (!/^\d{10}$/.test(editPhone.trim())) { setPhoneError(t('clientForm.phoneInvalid')); return }
@@ -47,8 +55,8 @@ export function EditCreditClientForm({ pumpId, client, indent = false, onSaved, 
     if (!isValidGstin(editGstin)) { setGstinError(t('common:gst.gstinFormat')); return }
     setGstinError(undefined)
     updateMutation.mutate({
-      name: editName.trim(), phone: editPhone.trim(), notes: editNotes.trim() || undefined,
-      gstin: normaliseGstText(editGstin), billingAddress: editBillingAddress.trim(),
+      name: editName.trim(), notes: editNotes.trim() || undefined, billingAddress: editBillingAddress.trim(),
+      ...(canChangeContact ? { phone: editPhone.trim(), gstin: normaliseGstText(editGstin) } : {}),
     })
   }
 
@@ -59,8 +67,8 @@ export function EditCreditClientForm({ pumpId, client, indent = false, onSaved, 
         <FormField label={t('clientForm.name')}>
           <input required value={editName} onChange={e => setEditName(e.target.value)} />
         </FormField>
-        <FormField label={t('clientForm.phone')} error={phoneError}>
-          <input required value={editPhone} type="tel" autoComplete="off"
+        <FormField label={t('clientForm.phone')} error={phoneError} help={phoneHelp}>
+          <input required value={editPhone} type="tel" autoComplete="off" disabled={!canChangeContact}
             onChange={e => { setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setPhoneError(undefined) }}
             inputMode="numeric" maxLength={10} />
         </FormField>
@@ -69,8 +77,8 @@ export function EditCreditClientForm({ pumpId, client, indent = false, onSaved, 
             <input value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder={t('clientForm.notesPlaceholder')} />
           </FormField>
         </FormGridFullRow>
-        <FormField label={<>GSTIN {optional}</>} help={t('clientForm.gstinHelp')} error={gstinError}>
-          <input value={editGstin} onChange={e => { setEditGstin(e.target.value.toUpperCase()); setGstinError(undefined) }}
+        <FormField label={<>GSTIN {optional}</>} help={canChangeContact ? t('clientForm.gstinHelp') : t('clientForm.ownerOnlyField')} error={gstinError}>
+          <input value={editGstin} disabled={!canChangeContact} onChange={e => { setEditGstin(e.target.value.toUpperCase()); setGstinError(undefined) }}
             maxLength={15} autoCapitalize="characters" placeholder={t('common:gst.gstinPlaceholder')} />
         </FormField>
         <FormField label={<>{t('clientForm.billingAddress')} {optional}</>} help={t('clientForm.billingAddressHelp')}>

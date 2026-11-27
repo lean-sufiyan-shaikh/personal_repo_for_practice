@@ -29,7 +29,7 @@ const RECORDER_ID = 5
 
 const client: CreditClient = {
   id: CLIENT_ID, pumpId: PUMP_ID, name: 'Acme Transport', phone: '9876543210', notes: null,
-  creditLimit: 50_000, outstandingBalance: 5_000, outstandingInterest: 0, totalInterestRecovered: 0,
+  creditLimit: 50_000, unlimited: false, outstandingBalance: 5_000, outstandingInterest: 0, totalInterestRecovered: 0,
   monthlyInterestRate: 0, interestGraceDays: 0, createdAt: '2026-01-01T00:00:00Z',
   parentClientId: null, parentClientName: null, isParent: false,
 }

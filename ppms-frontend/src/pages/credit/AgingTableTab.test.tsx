@@ -14,7 +14,7 @@ vi.mock('../../api/creditApi', () => ({ creditApi: { getAging: vi.fn() } }))
 
 function row(overrides: Partial<CreditAgingRow>): CreditAgingRow {
   return {
-    clientId: 1, name: 'Client', phone: '9876543210', subAccountCount: 0, billingCycle: 'MONTHLY', creditLimit: 0,
+    clientId: 1, name: 'Client', phone: '9876543210', subAccountCount: 0, billingCycle: 'MONTHLY', creditLimit: 0, unlimited: true, nearLimit: false,
     outstanding: 0, upTo30Days: 0, days31To60: 0, days61To90: 0, over90Days: 0, oldestUnpaidSaleDate: null,
     lastPaymentDate: null, daysOverdue: 0, creditStatus: 'OK', pendingPaymentCount: 0, pendingPaymentAmount: 0,
     ...overrides,
@@ -33,7 +33,7 @@ const aging: CreditAging = {
       clientId: 3, name: 'City Transport', outstanding: 10000, upTo30Days: 1000, days61To90: 9000, daysOverdue: 40,
       creditStatus: 'OVERDUE', subAccountCount: 2,
     }),
-    row({ clientId: 4, name: 'Delta Fuels', outstanding: 5000, upTo30Days: 5000, creditLimit: 4000, creditStatus: 'OVER_LIMIT' }),
+    row({ clientId: 4, name: 'Delta Fuels', outstanding: 5000, upTo30Days: 5000, creditLimit: 4000, unlimited: false, creditStatus: 'OVER_LIMIT' }),
   ],
 }
 
@@ -65,6 +65,32 @@ async function clientNames() {
 describe('AgingTableTab credit aging', () => {
   beforeEach(() => {
     vi.mocked(creditApi.getAging).mockResolvedValue(aging)
+  })
+
+  it('marks accounts near their limit, beside an overdue status too, and filters to them', async () => {
+    const user = userEvent.setup()
+    vi.mocked(creditApi.getAging).mockResolvedValue({
+      summary: aging.summary,
+      clients: [
+        row({ clientId: 5, name: 'Echo Movers', outstanding: 9200, upTo30Days: 9200, creditLimit: 10000, unlimited: false,
+          nearLimit: true, creditStatus: 'NEAR_LIMIT' }),
+        row({ clientId: 6, name: 'Fast Freight', outstanding: 9500, days31To60: 9500, creditLimit: 10000, unlimited: false,
+          nearLimit: true, daysOverdue: 5, creditStatus: 'OVERDUE' }),
+        row({ clientId: 7, name: 'Gati Haulers', outstanding: 100, upTo30Days: 100 }),
+      ],
+    })
+    renderLedger('/dashboard/credit?tab=ledger')
+
+    const table = await screen.findByRole('table', { name: /unpaid balance by age/ })
+    const echo = within(table).getByRole('row', { name: /Echo Movers/ })
+    expect(within(echo).getByText('Near limit')).toBeInTheDocument()
+    const fast = within(table).getByRole('row', { name: /Fast Freight/ })
+    expect(within(fast).getByText('Overdue')).toBeInTheDocument()
+    expect(within(fast).getByText('Near limit')).toBeInTheDocument()
+    expect(within(table).getByRole('row', { name: /Gati Haulers/ })).toHaveTextContent('no limit')
+
+    await user.click(screen.getByRole('button', { name: 'Near limit (2)' }))
+    expect(await clientNames()).toEqual(['Fast Freight', 'Echo Movers'])
   })
 
   it('shows the summary strip and lists the most overdue clients first by default', async () => {

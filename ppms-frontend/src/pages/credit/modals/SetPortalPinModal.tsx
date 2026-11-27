@@ -7,7 +7,7 @@ import { FormField } from '../../../components/FormField'
 import { Modal } from '../../../components/Modal'
 import { PasswordInput } from '../../../components/PasswordInput'
 import { LoadingButton } from '../../../components/LoadingButton'
-import { PORTAL_PIN_PATTERN, digitsOnly } from '../../../constants/portalPin'
+import { digitsOnly, portalPinProblem } from '../../../constants/portalPin'
 import { useToastStore } from '../../../store/toastStore'
 import { parseApiError } from '../../../utils/apiError'
 
@@ -34,10 +34,13 @@ export function SetPortalPinModal({ pumpId, client, onClose }: SetPortalPinModal
     onError: (err) => setError(parseApiError(err, t('portalPin.saveFailed'))),
   })
 
+  const problem = portalPinProblem(pin)
+  const hint = pin.length === 0 ? null : problem === null ? t('portalPin.strength.good') : t(`portalPin.strength.${problem}`)
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!PORTAL_PIN_PATTERN.test(pin)) {
-      setError(t('portalPin.invalid'))
+    if (problem !== null) {
+      setError(t(`portalPin.strength.${problem}`))
       return
     }
     setError(undefined)
@@ -71,13 +74,17 @@ export function SetPortalPinModal({ pumpId, client, onClose }: SetPortalPinModal
         <PasswordInput
           toggleLabel={t('portalPin.show')}
           value={pin}
-          onChange={e => setPin(digitsOnly(e.target.value))}
+          onChange={e => { setPin(digitsOnly(e.target.value)); setError(undefined) }}
           inputMode="numeric"
           autoComplete="off"
           maxLength={6}
           data-autofocus
         />
       </FormField>
+      {hint && !error && (
+        <p aria-live="polite" className={`text-xs ${problem === null ? 'text-ok' : 'text-ink-3'}`}>{hint}</p>
+      )}
+      {client.weakPortalPin && <p className="ui-alert ui-alert-warning text-xs">{t('portalPin.weakNote')}</p>}
     </Modal>
   )
 }

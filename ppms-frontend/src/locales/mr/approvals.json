@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "मंजुरी",
-    "subtitle": "खर्च आणि क्रेडिट पेमेंट, जे मोजले जाण्यापूर्वी तुमचा निर्णय आवश्यक आहे",
+    "subtitle": "खर्च, क्रेडिट भरणा आणि मीटर दुरुस्त्या ज्यांना मोजण्याआधी तुमच्या निर्णयाची गरज आहे",
     "noPumpSubtitle": "वरच्या पट्टीत पंप निवडा.",
     "emptyTitle": "मंजुरीसाठी काहीही प्रलंबित नाही",
     "emptySubtitle": "तुमच्या मंजुरी मर्यादेपेक्षा जास्त नवीन खर्च आणि पेमेंट इथे दिसतील.",
@@ -13,11 +13,13 @@
     "label": "दाखवा",
     "all": "सर्व",
     "expenses": "खर्च",
-    "payments": "क्रेडिट पेमेंट"
+    "payments": "क्रेडिट पेमेंट",
+    "meter": "मीटर दुरुस्त्या"
   },
   "kind": {
     "expense": "खर्च",
-    "creditPayment": "क्रेडिट पेमेंट"
+    "creditPayment": "क्रेडिट पेमेंट",
+    "meterAdjustment": "मीटर दुरुस्ती"
   },
   "selection": {
     "summary": "{{count}} निवडले · {{amount}}",
@@ -37,7 +39,8 @@
     "notRejected_other": "{{count}} नाकारता आल्या नाहीत:",
     "expenseName": "खर्च {{amount}}",
     "paymentName": "पेमेंट {{amount}}",
-    "notSaved": "सेव्ह झाले नाही"
+    "notSaved": "सेव्ह झाले नाही",
+    "meterName": "मीटर दुरुस्ती {{amount}}"
   },
   "errors": {
     "approveFailed": "निवडलेल्या नोंदी मंजूर होऊ शकल्या नाहीत",
@@ -65,7 +68,9 @@
     "note": "टीप",
     "decide": "निर्णय",
     "approveItem": "मंजूर करा {{name}} {{amount}}",
-    "rejectItem": "नाकारा {{name}} {{amount}}"
+    "rejectItem": "नाकारा {{name}} {{amount}}",
+    "meterItem": "{{nozzle}} · {{fuel}} · {{litres}} L बिलाशिवाय",
+    "selectMeter": "मीटर दुरुस्ती {{name}} {{amount}} निवडा"
   },
   "waiting": {
     "justNow": "आत्ताच",

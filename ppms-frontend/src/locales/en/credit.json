@@ -22,7 +22,8 @@
       "all": "All",
       "overdue": "Overdue",
       "overLimit": "Over limit",
-      "pendingApproval": "Pending approval"
+      "pendingApproval": "Pending approval",
+      "nearLimit": "Near limit"
     },
     "columns": {
       "name": "Client",
@@ -73,7 +74,8 @@
       "over90Days": "Over 90 days"
     },
     "overdueDays_one": "{{count}} day overdue",
-    "overdueDays_other": "{{count}} days overdue"
+    "overdueDays_other": "{{count}} days overdue",
+    "unlimited": "no limit"
   },
   "portalPin": {
     "removed": "Portal PIN removed for {{name}}",
@@ -86,12 +88,22 @@
     "removeFor": "Remove portal PIN for {{name}}",
     "saved": "Portal PIN saved for {{name}}",
     "saveFailed": "Failed to save portal PIN",
-    "invalid": "PIN must be 4 to 6 digits",
+    "invalid": "PIN must be exactly 6 digits",
     "changeTitle": "Change portal PIN",
     "save": "Save PIN",
     "label": "Portal PIN",
-    "help": "4 to 6 digits. The client enters this PIN with their phone number to check their balance. It cannot be viewed later, so share it with the client now.",
-    "show": "Show PIN"
+    "help": "6 digits that are hard to guess. The client enters this PIN with their phone number to check their balance. It cannot be viewed later, so share it with the client now.",
+    "show": "Show PIN",
+    "strength": {
+      "good": "Good PIN.",
+      "length": "Use exactly 6 digits.",
+      "repeated": "Don't repeat one digit, like 111111.",
+      "sequential": "Don't use a run of digits, like 123456 or 654321.",
+      "common": "This PIN is too common. Choose another."
+    },
+    "weak": "Weak PIN",
+    "weakHint": "This PIN is short or easy to guess. Set a new 6-digit PIN.",
+    "weakNote": "The current PIN is short or easy to guess. Set a new 6-digit PIN and share it with the client."
   },
   "summaryCards": {
     "outstanding": "Outstanding",
@@ -159,14 +171,28 @@
     "title": "Set credit limit",
     "save": "Save limit",
     "label": "Credit limit",
-    "help": "Enter 0 for no limit.",
+    "help": "0 means the client cannot take credit until a limit is set.",
     "figuresLabel": "Effect of the new limit",
     "outstanding": "Outstanding now",
     "currentLimit": "Current limit",
     "newLimit": "New limit",
     "leftAfter": "Credit left",
     "overLimitBy": "Over the new limit by",
-    "noLimit": "No limit"
+    "noLimit": "No limit",
+    "unlimited": "No limit (unlimited credit)",
+    "unlimitedOwnerOnly": "Only an Owner or Admin can give unlimited credit.",
+    "managerCap": "You can set up to {{cap}}. A higher limit needs an Owner or Admin.",
+    "aboveCap": "Managers can set a limit up to {{cap}}. Ask an Owner or Admin for a higher limit.",
+    "reasonRequired": "Say why the limit is changing.",
+    "reasonPlaceholder": "e.g. Pays on time, monthly fleet volume grew",
+    "history": {
+      "title": "Limit changes",
+      "loading": "Loading limit changes…",
+      "failed": "Could not load the limit changes.",
+      "empty": "The limit has not been changed yet.",
+      "change": "{{from}} → {{to}}",
+      "by": "{{name}} · {{when}}"
+    }
   },
   "interestSettings": {
     "failed": "Failed to update interest settings",
@@ -329,7 +355,9 @@
     "notesPlaceholder": "e.g. Fleet manager, lorry owner",
     "billingAddress": "Billing address",
     "gstinHelp": "Leave blank if the client is not GST registered.",
-    "billingAddressHelp": "Printed on invoices."
+    "billingAddressHelp": "Printed on invoices.",
+    "ownerOnlyField": "Only an Owner or Admin can change this.",
+    "phoneChangeClearsPin": "Changing the phone turns off the client's balance page until a new PIN is set."
   },
   "invoices": {
     "loadFailed": "Could not load invoices. Please try again.",
@@ -560,5 +588,21 @@
     "failed": "Could not reverse the payment.",
     "addedBack": "Added back to the account",
     "reasonRequired": "A reason is required to reverse a payment"
+  },
+  "limitSettings": {
+    "title": "Credit limits",
+    "hint": "The limit new clients start with, how high a manager may set one, and when an account shows as near its limit.",
+    "defaultLimit": "Limit for new clients",
+    "defaultLimitHelp": "₹0 means a new client can take no credit until a limit is set.",
+    "managerCap": "Highest limit a manager can set",
+    "managerCapHelp": "Higher limits and unlimited credit need an Owner or Admin.",
+    "nearLimitPercent": "Near limit at",
+    "nearLimitPercentHelp": "Share of the limit used at which an account is shown as near its limit.",
+    "amountInvalid": "Enter 0 or a positive number.",
+    "percentInvalid": "Enter a number from {{min}} to {{max}}.",
+    "save": "Save credit limits",
+    "saved": "Credit limit settings saved",
+    "saveFailed": "Could not save the credit limit settings",
+    "loadFailed": "Could not load the credit limit settings"
   }
 }

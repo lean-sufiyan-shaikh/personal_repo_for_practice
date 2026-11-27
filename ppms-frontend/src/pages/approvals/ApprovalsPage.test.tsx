@@ -14,12 +14,12 @@ vi.mock('../../api/approvalApi', () => ({ approvalApi: { getPending: vi.fn(), de
 const expense: ApprovalItem = {
   kind: 'EXPENSE', id: 7, amount: 1200, itemDate: '2026-11-20', submittedByName: 'Ravi Manager',
   submittedAt: new Date(Date.now() - 3 * 24 * 3_600_000).toISOString(), category: 'MAINTENANCE',
-  clientId: null, clientName: null, note: 'Compressor repair', blockedReason: null, blockedReasonCode: null, blockedReasonParams: {},
+  clientId: null, clientName: null, note: 'Compressor repair', litres: null, nozzleLabel: null, blockedReason: null, blockedReasonCode: null, blockedReasonParams: {},
 }
 const payment: ApprovalItem = {
   kind: 'CREDIT_PAYMENT', id: 12, amount: 5000, itemDate: '2026-11-22', submittedByName: 'Ravi Manager',
   submittedAt: new Date(Date.now() - 5 * 3_600_000).toISOString(), category: null,
-  clientId: 40, clientName: 'Sharma Transport', note: null, blockedReason: null, blockedReasonCode: null, blockedReasonParams: {},
+  clientId: 40, clientName: 'Sharma Transport', note: null, litres: null, nozzleLabel: null, blockedReason: null, blockedReasonCode: null, blockedReasonParams: {},
 }
 const ownPayment: ApprovalItem = {
   ...payment, id: 13, amount: 800, clientName: 'Gupta Logistics',
@@ -180,5 +180,27 @@ describe('ApprovalsPage on a phone', () => {
 
     expect(screen.getByText('1 selected · ₹1,200.00')).toBeInTheDocument()
     expect(screen.getAllByTestId('approval-card')[0]).toHaveClass('bg-info-bg')
+  })
+
+  it('shows a manager meter adjustment with its nozzle and unbilled litres, and approves it', async () => {
+    const user = userEvent.setup()
+    const meter: ApprovalItem = {
+      kind: 'METER_ADJUSTMENT', id: 9, amount: 1250, itemDate: '2026-11-26', submittedByName: 'Ravi Manager',
+      submittedAt: new Date(Date.now() - 2 * 3_600_000).toISOString(), category: 'PETROL', clientId: null, clientName: null,
+      note: 'Meter ran during power cut', litres: 12.5, nozzleLabel: 'DU 1 · Nozzle #2',
+      blockedReason: null, blockedReasonCode: null, blockedReasonParams: {},
+    }
+    vi.mocked(approvalApi.getPending).mockResolvedValue([meter])
+    vi.mocked(approvalApi.decide).mockResolvedValue({
+      succeeded: 1, failed: 0, results: [{ kind: 'METER_ADJUSTMENT', id: 9, succeeded: true, message: null, code: null, params: null }],
+    })
+    renderApprovals('/dashboard/approvals?kind=meter')
+
+    expect(await screen.findByText('DU 1 · Nozzle #2 · Petrol · 12.5 L unbilled')).toBeInTheDocument()
+    expect(screen.getByText(/^Meter adjustment · Ravi Manager/)).toBeInTheDocument()
+    await user.click(screen.getByRole('checkbox', { name: 'Select meter adjustment DU 1 · Nozzle #2 · Petrol · 12.5 L unbilled ₹1,250.00' }))
+    await user.click(screen.getByRole('button', { name: 'Approve selected' }))
+
+    expect(approvalApi.decide).toHaveBeenCalledWith(3, [{ kind: 'METER_ADJUSTMENT', id: 9 }], 'APPROVED', undefined)
   })
 })

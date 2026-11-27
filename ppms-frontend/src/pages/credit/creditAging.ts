@@ -1,15 +1,18 @@
 import type { CreditAgingRow } from '../../api/creditApi'
+import { translateKey } from '../../i18n'
+import { formatCurrency } from '../../utils/format'
 
-export type AgingFilter = 'all' | 'overdue' | 'over-limit' | 'pending-approval'
+export type AgingFilter = 'all' | 'overdue' | 'near-limit' | 'over-limit' | 'pending-approval'
 export type AgingSortKey =
   | 'name' | 'outstanding' | 'upTo30Days' | 'days31To60' | 'days61To90' | 'over90Days'
   | 'oldestUnpaidSaleDate' | 'lastPaymentDate' | 'daysOverdue'
 export type SortDirection = 'asc' | 'desc'
 
 /** Each label is credit.json aging.filters.<labelKey>, read when the filter bar renders. */
-export const AGING_FILTERS: { value: AgingFilter; labelKey: 'all' | 'overdue' | 'overLimit' | 'pendingApproval' }[] = [
+export const AGING_FILTERS: { value: AgingFilter; labelKey: 'all' | 'overdue' | 'nearLimit' | 'overLimit' | 'pendingApproval' }[] = [
   { value: 'all', labelKey: 'all' },
   { value: 'overdue', labelKey: 'overdue' },
+  { value: 'near-limit', labelKey: 'nearLimit' },
   { value: 'over-limit', labelKey: 'overLimit' },
   { value: 'pending-approval', labelKey: 'pendingApproval' },
 ]
@@ -34,10 +37,18 @@ export function agingSortOf(key: string | null, direction: string | null): { key
 export function matchesAgingFilter(row: CreditAgingRow, filter: AgingFilter): boolean {
   switch (filter) {
     case 'overdue': return row.daysOverdue > 0
+    case 'near-limit': return row.nearLimit
     case 'over-limit': return row.creditStatus === 'OVER_LIMIT'
     case 'pending-approval': return row.pendingPaymentCount > 0
     default: return true
   }
+}
+
+/** " · limit ₹50,000.00", or " · no limit" for an unlimited account. */
+export function agingLimitSuffix(row: Pick<CreditAgingRow, 'creditLimit' | 'unlimited'>): string {
+  return row.unlimited
+    ? ` · ${translateKey('credit:aging.unlimited')}`
+    : ` · ${translateKey('credit:aging.limit', { amount: formatCurrency(row.creditLimit) })}`
 }
 
 function compareValues(first: CreditAgingRow, second: CreditAgingRow, key: AgingSortKey): number {

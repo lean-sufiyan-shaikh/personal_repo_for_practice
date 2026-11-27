@@ -439,5 +439,21 @@
   "IMPORT_TANK_ALREADY_HAS_STOCK": "टैंक \"{{tankIdentifier}}\" में पहले से स्टॉक है, इसलिए यह पंक्ति छोड़ी गई।",
   "DEMO_PUMP_ALREADY_EXISTS": "डेमो पंप पहले से है। नया बनाने से पहले उसे हटाएँ।",
   "DEMO_PUMP_NOT_FOUND": "हटाने के लिए कोई डेमो पंप नहीं है।",
-  "DEMO_PUMP_DELETE_BLOCKED": "डेमो पंप किसी दूसरे पंप के रिकॉर्ड से जुड़ा है, जैसे वहाँ भेजा गया स्टाफ़। डेमो पंप हटाने से पहले उन्हें वापस भेजें।"
+  "DEMO_PUMP_DELETE_BLOCKED": "डेमो पंप किसी दूसरे पंप के रिकॉर्ड से जुड़ा है, जैसे वहाँ भेजा गया स्टाफ़। डेमो पंप हटाने से पहले उन्हें वापस भेजें।",
+  "CREDIT_LIMIT_ABOVE_MANAGER_CAP": "मैनेजर {{cap}} तक की क्रेडिट सीमा रख सकते हैं। ज़्यादा सीमा के लिए मालिक या एडमिन से कहें।",
+  "CREDIT_LIMIT_UNLIMITED_OWNER_ONLY": "ग्राहक को असीमित क्रेडिट सिर्फ़ मालिक या एडमिन दे सकते हैं।",
+  "CREDIT_LIMIT_ON_SUB_ACCOUNT": "'{{clientName}}' एक उप-खाता है। इसकी क्रेडिट सीमा मुख्य खाते '{{parentName}}' पर तय होती है।",
+  "CREDIT_CLOSE_BLOCKED_CLIENTS": "रुके हुए ग्राहकों के क्रेडिट के साथ शिफ्ट बंद नहीं हो सकती। सीमा से ज़्यादा: {{overLimitClients}}। होल्ड पर: {{onHoldClients}}। बकाया: {{overdueClients}}। भुगतान दर्ज करें, वे एंट्री हटाएँ, या मालिक/एडमिन से रुका क्रेडिट मंज़ूर करवाएँ।",
+  "CREDIT_CLOSE_OVERRIDE_OWNER_ONLY": "रुके हुए ग्राहकों का क्रेडिट सिर्फ़ मालिक या एडमिन मंज़ूर कर सकते हैं।",
+  "CREDIT_CLOSE_OVERRIDE_REASON_REQUIRED": "रुके हुए ग्राहकों को क्रेडिट मंज़ूर करने का कारण बताएँ।",
+  "PORTAL_PIN_TOO_EASY": "ऐसा PIN चुनें जिसका अंदाज़ा मुश्किल हो: एक ही अंक बार-बार नहीं, 123456 जैसे लगातार अंक नहीं, और आम PIN नहीं।",
+  "CREDIT_CLIENT_PHONE_CHANGE_OWNER_ONLY": "ग्राहक का फ़ोन नंबर सिर्फ़ मालिक या एडमिन बदल सकते हैं।",
+  "CREDIT_CLIENT_GSTIN_CHANGE_OWNER_ONLY": "ग्राहक का GSTIN सिर्फ़ मालिक या एडमिन बदल सकते हैं।",
+  "CREDIT_CLIENT_ENABLE_OWNER_ONLY": "बंद ग्राहक को सिर्फ़ मालिक या एडमिन चालू कर सकते हैं।",
+  "CREDIT_CLIENT_NAME_AMBIGUOUS": "'{{clientName}}' नाम के एक से ज़्यादा ग्राहक हैं। सूची से ग्राहक चुनें।",
+  "METER_ADJUSTMENT_ALREADY_PENDING": "इस नोज़ल का एक मीटर सुधार पहले से मंज़ूरी का इंतज़ार कर रहा है।",
+  "METER_ADJUSTMENT_NOT_PENDING": "यह मीटर सुधार मंज़ूरी का इंतज़ार नहीं कर रहा (यह {{statusCode}} है)।",
+  "METER_ADJUSTMENT_READING_MOVED": "सुधार माँगे जाने के बाद नोज़ल की रीडिंग {{expectedReading}} से {{currentReading}} हो गई। नया सुधार माँगें।",
+  "METER_ADJUSTMENT_NO_TANK": "यह नोज़ल किसी टैंक से जुड़ा नहीं है, इसलिए इसके बिना बिल के लीटर स्टॉक से नहीं घटाए जा सकते।",
+  "METER_ADJUSTMENT_NO_PRICE": "{{fuelTypeCode}} का कोई मौजूदा दाम नहीं है, इसलिए बिना बिल के लीटर की कीमत नहीं लगाई जा सकती।"
 }

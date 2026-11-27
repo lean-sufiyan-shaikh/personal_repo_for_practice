@@ -75,7 +75,7 @@ export function GrantExtensionModal({ client, pumpId, onClose }: GrantExtensionM
 
   const enteredAmount = extensionAmount === '' ? null : parseFloat(extensionAmount)
   const extraAmount = enteredAmount !== null && !isNaN(enteredAmount) && enteredAmount > 0 ? enteredAmount : null
-  const hasLimit = client.creditLimit > 0
+  const hasLimit = !client.unlimited
   const noLimit = <span className="text-ink-2">{t('grantExtension.unlimited')}</span>
   const expiryText = expiryDate ? formatIstDate(expiryDate) : '—'
 

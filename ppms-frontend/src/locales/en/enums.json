@@ -313,6 +313,14 @@
     "CREDIT_PAYMENT_REVERSED": {
       "title": "Credit Payment Reversed",
       "message": "{{reversedByName}} reversed {{clientName}}'s payment of ₹{{amount}} dated {{paidAt}}: {{reason}}"
+    },
+    "CREDIT_PORTAL_LOCKED": {
+      "title": "Balance Page Locked",
+      "message": "After 5 wrong PINs, balance lookups for this number are locked for {{minutes}} minutes."
+    },
+    "CREDIT_CLIENT_PHONE_CHANGED": {
+      "title": "Client Phone Changed",
+      "message": "The phone number of {{clientName}} was changed. Their balance page is off until a new PIN is set."
     }
   },
   "serverTexts": {
@@ -456,5 +464,9 @@
   "REVERSED": "Reversed",
   "PAYMENT_REVERSAL": "Payment reversal",
   "BOUNCE_CHARGE": "Bounce charge",
-  "CREDIT_PAYMENT_REVERSED": "Credit payment reversed"
+  "CREDIT_PAYMENT_REVERSED": "Credit payment reversed",
+  "NEAR_LIMIT": "Near limit",
+  "APPLIED": "Applied",
+  "CREDIT_PORTAL_LOCKED": "Balance page locked",
+  "CREDIT_CLIENT_PHONE_CHANGED": "Client phone changed"
 }

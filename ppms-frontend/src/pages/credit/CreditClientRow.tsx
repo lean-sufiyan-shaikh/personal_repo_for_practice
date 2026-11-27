@@ -2,12 +2,12 @@ import { useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { KeyRound, Minus } from 'lucide-react'
 import { pumpApi } from '../../api/pumpApi'
 import type { CreditClient as PumpCreditClient } from '../../api/pumpApi'
 import { RowActionMenu } from '../../components/RowActionMenu'
-import { StatusBadge } from '../../components/StatusBadge'
 import { useRowPanelFocus } from '../../hooks/useRowPanelFocus'
+import { canPerformAction } from '../../permissions/permissions'
+import { useAuthStore } from '../../store/authStore'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { AddSubAccountForm } from './AddSubAccountForm'
@@ -16,6 +16,7 @@ import { EditCreditClientForm } from './EditCreditClientForm'
 import { clientMenuItems } from './creditClientMenu'
 import type { ClientPanel } from './creditClientMenu'
 import { SetPortalPinModal } from './modals/SetPortalPinModal'
+import { PortalPinBadge } from './PortalPinBadge'
 
 interface CreditClientRowProps {
   pumpId: number
@@ -44,6 +45,7 @@ export function CreditClientRow({
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   useRowPanelFocus(openPanel, panelRef, menuButtonRef)
+  const canEnableClient = canPerformAction('credit:enable-client', useAuthStore(state => state.user?.role))
   const isSubAccount = subAccounts === undefined
   const closePanel = () => setOpenPanel(null)
 
@@ -65,10 +67,8 @@ export function CreditClientRow({
         {summary}
         {canManageClients && (
           <div className="ml-3 flex shrink-0 flex-wrap items-center justify-end gap-2">
-            {canManagePortalPins && (client.hasPortalPin
-              ? <StatusBadge tone="ok" icon={KeyRound} label={t('portalPin.set')} />
-              : <StatusBadge tone="neutral" icon={Minus} label={t('portalPin.none')} />)}
-            {!client.isActive && (
+            {canManagePortalPins && <PortalPinBadge client={client} />}
+            {!client.isActive && canEnableClient && (
               <button type="button" onClick={() => enableMutation.mutate()} disabled={enableMutation.isPending}
                 aria-label={t('clients.menu.enableAria', { name: client.name })}
                 className="ui-btn ui-btn-secondary ui-btn-compact">

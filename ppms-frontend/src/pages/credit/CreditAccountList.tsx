@@ -1,13 +1,11 @@
 import { Link } from 'react-router-dom'
 import type { To } from 'react-router-dom'
-import { Hourglass } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { CreditAgingRow } from '../../api/creditApi'
 import { MoneyText } from '../../components/AmountText'
 import { EmptyState } from '../../components/EmptyState'
 import { SkeletonRows } from '../../components/Skeleton'
-import { StatusBadge } from '../../components/StatusBadge'
-import { creditStandingBadge } from '../../components/statusBadges'
+import { CreditStandingBadges } from './CreditStandingBadges'
 import { AgingFilterBar } from './AgingFilterBar'
 import type { CreditAgingView } from './useCreditAging'
 
@@ -25,12 +23,7 @@ function AccountListItem({ row, to, selected }: { row: CreditAgingRow; to: To; s
       </span>
       <span className="flex shrink-0 flex-col items-end gap-1">
         <MoneyText value={row.outstanding} className="text-sm font-semibold text-ink" />
-        <span className="flex flex-wrap justify-end gap-1">
-          <StatusBadge {...creditStandingBadge(row.creditStatus)} />
-          {row.pendingPaymentCount > 0 && (
-            <StatusBadge tone="info" icon={Hourglass} label={t('aging.pendingCount', { count: row.pendingPaymentCount })} />
-          )}
-        </span>
+        <CreditStandingBadges row={row} className="flex flex-wrap justify-end gap-1" />
       </span>
     </Link>
   )

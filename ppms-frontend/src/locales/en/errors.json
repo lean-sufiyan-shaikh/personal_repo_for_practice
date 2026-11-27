@@ -439,5 +439,21 @@
   "IMPORT_TANK_ALREADY_HAS_STOCK": "Tank \"{{tankIdentifier}}\" already holds stock, so this row is skipped.",
   "DEMO_PUMP_ALREADY_EXISTS": "A demo pump already exists. Delete it before creating a new one.",
   "DEMO_PUMP_NOT_FOUND": "There is no demo pump to delete.",
-  "DEMO_PUMP_DELETE_BLOCKED": "The demo pump is linked to records of another pump, such as a staff member moved there. Move them back before deleting the demo pump."
+  "DEMO_PUMP_DELETE_BLOCKED": "The demo pump is linked to records of another pump, such as a staff member moved there. Move them back before deleting the demo pump.",
+  "CREDIT_LIMIT_ABOVE_MANAGER_CAP": "Managers can set a credit limit up to {{cap}}. Ask an Owner or Admin for a higher limit.",
+  "CREDIT_LIMIT_UNLIMITED_OWNER_ONLY": "Only an Owner or Admin can give a client unlimited credit.",
+  "CREDIT_LIMIT_ON_SUB_ACCOUNT": "'{{clientName}}' is a sub-account. Its credit limit is set on the main account '{{parentName}}'.",
+  "CREDIT_CLOSE_BLOCKED_CLIENTS": "The shift can't close with credit for blocked clients. Over limit: {{overLimitClients}}. On hold: {{onHoldClients}}. Overdue: {{overdueClients}}. Record a payment, remove those entries, or ask an Owner/Admin to allow blocked credit.",
+  "CREDIT_CLOSE_OVERRIDE_OWNER_ONLY": "Only an Owner or Admin can allow credit for blocked clients.",
+  "CREDIT_CLOSE_OVERRIDE_REASON_REQUIRED": "Give a reason for allowing credit to blocked clients.",
+  "PORTAL_PIN_TOO_EASY": "Choose a PIN that is hard to guess: not one digit repeated, not a run like 123456, and not a common PIN.",
+  "CREDIT_CLIENT_PHONE_CHANGE_OWNER_ONLY": "Only an Owner or Admin can change a client's phone number.",
+  "CREDIT_CLIENT_GSTIN_CHANGE_OWNER_ONLY": "Only an Owner or Admin can change a client's GSTIN.",
+  "CREDIT_CLIENT_ENABLE_OWNER_ONLY": "Only an Owner or Admin can enable a disabled client.",
+  "CREDIT_CLIENT_NAME_AMBIGUOUS": "More than one client is named '{{clientName}}'. Pick the client from the list.",
+  "METER_ADJUSTMENT_ALREADY_PENDING": "A meter adjustment for this nozzle is already waiting for approval.",
+  "METER_ADJUSTMENT_NOT_PENDING": "This meter adjustment is not waiting for approval (it is {{statusCode}}).",
+  "METER_ADJUSTMENT_READING_MOVED": "The nozzle's reading changed from {{expectedReading}} to {{currentReading}} since this adjustment was asked for. Ask for a new adjustment.",
+  "METER_ADJUSTMENT_NO_TANK": "This nozzle is not linked to a tank, so its unbilled litres cannot be taken from stock.",
+  "METER_ADJUSTMENT_NO_PRICE": "There is no current price for {{fuelTypeCode}}, so the unbilled litres cannot be valued."
 }

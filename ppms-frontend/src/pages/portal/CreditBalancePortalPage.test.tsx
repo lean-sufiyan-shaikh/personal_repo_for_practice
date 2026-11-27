@@ -13,8 +13,8 @@ vi.mock('qrcode', () => ({ default: { toString: vi.fn().mockResolvedValue('<svg>
 import CreditBalancePortalPage from './CreditBalancePortalPage'
 import { resetScreenWidthAfterEach, setScreenWidth } from '../../test/screenWidth'
 
-function httpError(status: number) {
-  return { isAxiosError: true, response: { status, data: { message: 'No credit account matches these details.' } } }
+function httpError(status: number, params: Record<string, unknown> = {}) {
+  return { isAxiosError: true, response: { status, data: { message: 'No credit account matches these details.', params } } }
 }
 
 async function lookUp(pin = '4821') {
@@ -36,7 +36,7 @@ describe('CreditBalancePortalPage', () => {
   it('shows a UPI QR code for the balance and, on a phone, a Pay via UPI button', async () => {
     setScreenWidth(390)
     const link = 'upi://pay?pa=ramfuels@okaxis&pn=Ram%20Fuels&am=1250.50&cu=INR&tn=Acme'
-    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: 0, upiPayLink: link, vehicleUsage: [] } })
+    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: null, unlimited: true, subAccount: false, upiPayLink: link, vehicleUsage: [] } })
     await lookUp()
 
     expect(await screen.findByRole('link', { name: 'Pay via UPI' })).toHaveAttribute('href', link)
@@ -46,7 +46,7 @@ describe('CreditBalancePortalPage', () => {
 
   it('keeps the pay button off a desktop and shows nothing to pay when the pump has no UPI details', async () => {
     setScreenWidth(1280)
-    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: 0, upiPayLink: null, vehicleUsage: [] } })
+    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: null, unlimited: true, subAccount: false, upiPayLink: null, vehicleUsage: [] } })
     await lookUp()
 
     expect(await screen.findByText('₹1,250.50')).toBeInTheDocument()
@@ -62,7 +62,7 @@ describe('CreditBalancePortalPage', () => {
   })
 
   it('looks the balance up with pump, phone and PIN and shows the amounts without a name', async () => {
-    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: 50000, upiPayLink: null, vehicleUsage: [] } })
+    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: 50000, unlimited: false, subAccount: false, upiPayLink: null, vehicleUsage: [] } })
     await lookUp()
 
     expect(post).toHaveBeenCalledWith('/public/credit-balance', { pumpId: 3, phone: '9876543210', pin: '4821' })
@@ -73,7 +73,7 @@ describe('CreditBalancePortalPage', () => {
 
   it('shows the fuel each vehicle took this month and last month, with credit for unknown vehicles apart', async () => {
     setScreenWidth(390)
-    post.mockResolvedValue({ data: { outstandingAmount: 500, creditLimit: 0, upiPayLink: null, vehicleUsage: [
+    post.mockResolvedValue({ data: { outstandingAmount: 500, creditLimit: null, unlimited: true, subAccount: false, upiPayLink: null, vehicleUsage: [
       { month: '2026-11', vehicles: [{ registration: 'MH12AB1234', litres: 30, amount: 3000, entryCount: 2 }] },
       { month: '2026-10', vehicles: [{ registration: null, litres: 0, amount: 450, entryCount: 1 }] },
     ] } })
@@ -107,6 +107,42 @@ describe('CreditBalancePortalPage', () => {
     post.mockRejectedValue(httpError(429))
     await lookUp()
     expect(await screen.findByRole('alert')).toHaveTextContent('Too many attempts. Please wait 15 minutes and try again.')
+  })
+
+  it('says how long the lock lasts when it has grown after repeated lockouts', async () => {
+    post.mockRejectedValue(httpError(429, { minutes: 60 }))
+    await lookUp()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Too many attempts. Please wait 60 minutes and try again.')
+  })
+
+  it('shows a main account the group balance and limit', async () => {
+    post.mockResolvedValue({ data: { outstandingAmount: 8200, creditLimit: 20000, unlimited: false, subAccount: false,
+      upiPayLink: null, vehicleUsage: [] } })
+    await lookUp('482971')
+
+    expect(await screen.findByText('Outstanding balance')).toBeInTheDocument()
+    expect(screen.getByText('₹8,200.00')).toBeInTheDocument()
+    expect(screen.getByText('₹20,000.00')).toBeInTheDocument()
+  })
+
+  it('shows a sub-account its own usage and says the balance is held on the main account', async () => {
+    post.mockResolvedValue({ data: { outstandingAmount: 1500, creditLimit: null, unlimited: false, subAccount: true,
+      upiPayLink: null, vehicleUsage: [] } })
+    await lookUp()
+
+    expect(await screen.findByText('Credit used on this account')).toBeInTheDocument()
+    expect(screen.getByText('₹1,500.00')).toBeInTheDocument()
+    expect(screen.getByText('This is a sub-account. The account balance and limit are held on the main account.')).toBeInTheDocument()
+    expect(screen.queryByText('Credit limit')).not.toBeInTheDocument()
+    expect(screen.queryByText('Your account is fully settled.')).not.toBeInTheDocument()
+  })
+
+  it('says there is no limit for an unlimited account', async () => {
+    post.mockResolvedValue({ data: { outstandingAmount: 100, creditLimit: null, unlimited: true, subAccount: false,
+      upiPayLink: null, vehicleUsage: [] } })
+    await lookUp()
+
+    expect(await screen.findByText('No limit')).toBeInTheDocument()
   })
 
   it('does not call the server with a PIN that is too short', async () => {

@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../../utils/apiError'
 import { dipApi } from '../../../api/dipApi'
@@ -13,7 +13,11 @@ import { FormField } from '../../../components/FormField'
 import { LiveFigures } from '../../../components/LiveFigures'
 import { LoadingButton } from '../../../components/LoadingButton'
 import { NumericInput } from '../../../components/NumericInput'
+import { canPerformAction } from '../../../permissions/permissions'
+import { useAuthStore } from '../../../store/authStore'
 import { useInvalidateNozzles } from './nozzlePanels'
+import { ReadingAdjustmentHistory } from './ReadingAdjustmentHistory'
+import { UnbilledLitresNote } from './UnbilledLitresNote'
 
 interface Props {
   pumpId: number
@@ -25,6 +29,8 @@ export function AdjustReadingPanel({ pumpId, nozzle, onClose }: Props) {
   const { t } = useTranslation(['setup', 'common'])
   const { addToast } = useToastStore()
   const invalidate = useInvalidateNozzles(pumpId)
+  const qc = useQueryClient()
+  const canAdjustFreely = canPerformAction('setup:manage', useAuthStore(state => state.user?.role))
   const titleId = useId()
   const [adjustType, setAdjustType] = useState<'RESET' | 'CUSTOM_READING'>('CUSTOM_READING')
   const [adjustReading, setAdjustReading] = useState('')
@@ -34,7 +40,12 @@ export function AdjustReadingPanel({ pumpId, nozzle, onClose }: Props) {
   const recordAdjustmentMutation = useMutation({
     mutationFn: ({ nozzleId, adjustmentType, reason, newReading }: { nozzleId: number; adjustmentType: 'RESET' | 'CUSTOM_READING'; reason: string; newReading?: number }) =>
       dipApi.recordAdjustment(pumpId, nozzleId, adjustmentType, reason, newReading),
-    onSuccess: () => { onClose(); addToast(t('nozzles.reading.adjusted'), 'success'); invalidate() },
+    onSuccess: (saved) => {
+      onClose()
+      addToast(saved.status === 'PENDING_APPROVAL' ? t('nozzles.reading.sentForApproval') : t('nozzles.reading.adjusted'), 'success')
+      invalidate()
+      qc.invalidateQueries({ queryKey: ['readingAdjustments', pumpId, nozzle.id] })
+    },
     onError: (err) => { const msg = parseApiError(err, t('nozzles.reading.failed')); setAdjustError(msg); addToast(msg, 'error') },
   })
 
@@ -43,6 +54,7 @@ export function AdjustReadingPanel({ pumpId, nozzle, onClose }: Props) {
     if (!adjustReason.trim()) { setAdjustError(t('nozzles.reasonRequired')); return }
     if (adjustType === 'CUSTOM_READING') {
       if (!adjustReading) { setAdjustError(t('nozzles.reading.enterReading')); return }
+      if (!canAdjustFreely && Number(adjustReading) < nozzle.lastReading) { setAdjustError(t('nozzles.reading.backwardOwnerOnly')); return }
       await recordAdjustmentMutation.mutateAsync({
         nozzleId: nozzle.id,
         adjustmentType: 'CUSTOM_READING',
@@ -92,7 +104,7 @@ export function AdjustReadingPanel({ pumpId, nozzle, onClose }: Props) {
               <span className="ui-reading-editor__mode-title">{t('nozzles.reading.custom')}</span>
               <span className="ui-reading-editor__mode-copy">{t('nozzles.reading.customHint')}</span>
             </button>
-            <button
+            {canAdjustFreely && <button
               type="button"
               aria-pressed={adjustType === 'RESET'}
               onClick={() => setAdjustType('RESET')}
@@ -100,7 +112,7 @@ export function AdjustReadingPanel({ pumpId, nozzle, onClose }: Props) {
             >
               <span className="ui-reading-editor__mode-title">{t('nozzles.reading.reset')}</span>
               <span className="ui-reading-editor__mode-copy">{t('nozzles.reading.resetHint')}</span>
-            </button>
+            </button>}
           </div>
         </fieldset>
         {adjustType === 'CUSTOM_READING' && (
@@ -131,6 +143,10 @@ export function AdjustReadingPanel({ pumpId, nozzle, onClose }: Props) {
             },
           ]}
         />
+        {adjustType === 'CUSTOM_READING' && difference !== null && difference > 0 && (
+          <UnbilledLitresNote pumpId={pumpId} fuelType={nozzle.fuelType} unit={unit} forwardLitres={difference}
+            needsApproval={!canAdjustFreely} />
+        )}
         <FormField className="ui-reading-editor__section" label={t('common:fields.reason')} help={t('nozzles.reading.reasonHint')}>
           <input
             type="text"
@@ -148,12 +164,13 @@ export function AdjustReadingPanel({ pumpId, nozzle, onClose }: Props) {
             loadingLabel={t('common:actions.saving')}
             className={adjustType === 'RESET' ? 'ui-btn-danger' : 'ui-btn-primary'}
           >
-            {adjustType === 'RESET' ? t('nozzles.reading.resetSubmit') : t('nozzles.reading.saveSubmit')}
+            {adjustType === 'RESET' ? t('nozzles.reading.resetSubmit') : canAdjustFreely ? t('nozzles.reading.saveSubmit') : t('nozzles.reading.requestSubmit')}
           </LoadingButton>
           <button type="button" onClick={onClose} className="ui-btn ui-btn-secondary">
             {t('common:actions.cancel')}
           </button>
         </div>
+        <ReadingAdjustmentHistory pumpId={pumpId} nozzleId={nozzle.id} />
       </form>
     </div>
   )

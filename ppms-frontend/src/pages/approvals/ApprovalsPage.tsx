@@ -20,21 +20,8 @@ import { PageHeader } from '../../components/layout/PageHeader'
 import { PageSection } from '../../components/layout/PageSection'
 import { FilterBar } from '../../components/layout/FilterBar'
 import { ApprovalsTable } from './ApprovalsTable'
-import { approvalKey } from './approvalFormat'
-
-type KindFilter = 'all' | 'expenses' | 'payments'
-
-const KIND_FILTERS: KindFilter[] = ['all', 'expenses', 'payments']
-
-function kindFilterOf(value: string | null): KindFilter {
-  return value === 'expenses' || value === 'payments' ? value : 'all'
-}
-
-function matchesKind(item: ApprovalItem, filter: KindFilter) {
-  if (filter === 'expenses') return item.kind === 'EXPENSE'
-  if (filter === 'payments') return item.kind === 'CREDIT_PAYMENT'
-  return true
-}
+import { KIND_FILTERS, approvalKey, kindFilterOf, matchesKind, outcomeName } from './approvalFormat'
+import type { KindFilter } from './approvalFormat'
 
 function outcomeText(t: TFunction<['approvals', 'common']>, action: 'APPROVED' | 'REJECTED', result: ApprovalDecisionResult) {
   const approved = action === 'APPROVED'
@@ -76,15 +63,13 @@ export default function ApprovalsPage() {
         text: outcomeText(t, action, result),
         failures: result.results.filter(item => !item.succeeded).map(item => {
           const source = itemByKey.get(approvalKey(item))
-          const name = source
-            ? t(source.kind === 'EXPENSE' ? 'outcome.expenseName' : 'outcome.paymentName', { amount: formatCurrency(source.amount) })
-            : `#${item.id}`
+          const name = source ? outcomeName(source) : `#${item.id}`
           return `${name}: ${translatedErrorCode(item.code, item.params) ?? item.message ?? t('outcome.notSaved')}`
         }),
       })
       setSelectedKeys(new Set())
       setRejectTargets(null)
-      for (const key of ['approvals', 'expenses', 'credit-pending-payments', 'credit-ledger', 'attention']) {
+      for (const key of ['approvals', 'expenses', 'credit-pending-payments', 'credit-ledger', 'attention', 'readingAdjustments', 'dus']) {
         qc.invalidateQueries({ queryKey: [key] })
       }
     },

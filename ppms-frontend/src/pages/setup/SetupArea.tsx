@@ -8,6 +8,7 @@ import { FuelPricesContent } from './FuelPricesContent'
 import { GstDetailsContent } from './GstDetailsContent'
 import { PumpSettingsContent } from './PumpSettingsContent'
 import { CollectionSettingsForm } from './CollectionSettingsForm'
+import { CreditLimitSettingsForm } from './CreditLimitSettingsForm'
 import { TanksContent } from './TanksContent'
 import { NozzleContent } from './nozzles/NozzleContent'
 import { ShiftDefinitionsContent } from './shiftDefinitions/ShiftDefinitionsContent'
@@ -55,6 +56,7 @@ export function SetupArea({
       <div className="space-y-6">
         <PumpSettingsContent pump={pump} onUpdated={onPumpUpdated} />
         <CollectionSettingsForm pumpId={pump.id} />
+        <CreditLimitSettingsForm pumpId={pump.id} />
       </div>
     ),
   }

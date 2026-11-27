@@ -7,7 +7,9 @@ export interface CreditClient {
   name: string
   phone: string
   notes: string | null
+  /** With unlimited false, 0 means the client may not take credit. Ignored when unlimited. */
   creditLimit: number
+  unlimited: boolean
   outstandingBalance: number
   /** Unpaid interest portion of the outstanding balance (interest-first allocation). Subset of outstandingBalance. */
   outstandingInterest: number
@@ -123,6 +125,26 @@ export interface PaymentReversal {
 
 export interface UpdateCreditLimitRequest {
   creditLimit: number
+  unlimited: boolean
+  reason: string
+}
+
+export interface CreditLimitChange {
+  id: number
+  oldLimit: number
+  newLimit: number
+  oldUnlimited: boolean
+  newUnlimited: boolean
+  reason: string
+  changedByName: string
+  changedAt: string
+}
+
+/** The pump's credit limit rules: what new clients get, how high a manager may go, and when an account is near its limit. */
+export interface CreditLimitSettings {
+  defaultCreditLimit: number
+  managerLimitCap: number
+  nearLimitPercent: number
 }
 
 // ── Credit extensions ─────────────────────────────────────────────────────────
@@ -196,7 +218,7 @@ export interface GenerateAllInvoicesResult {
 }
 
 /** ON_HOLD: overdue for at least the pump's credit hold days; only a credit hold override lifts it. */
-export type CreditStanding = 'OK' | 'OVERDUE' | 'ON_HOLD' | 'OVER_LIMIT' | 'INACTIVE'
+export type CreditStanding = 'OK' | 'NEAR_LIMIT' | 'OVERDUE' | 'ON_HOLD' | 'OVER_LIMIT' | 'INACTIVE'
 
 /** One standalone or parent account; a parent's figures cover its sub-accounts. */
 export interface CreditAgingRow {
@@ -205,8 +227,11 @@ export interface CreditAgingRow {
   phone: string | null
   subAccountCount: number
   billingCycle: 'WEEKLY' | 'MONTHLY'
-  /** 0 = no limit. */
+  /** Ignored when unlimited; 0 otherwise means no credit allowed. */
   creditLimit: number
+  unlimited: boolean
+  /** At or above the pump's near-limit share of the limit, whatever the status. */
+  nearLimit: boolean
   outstanding: number
   upTo30Days: number
   days31To60: number
@@ -277,9 +302,17 @@ export const creditApi = {
     client.post<PaymentReversal>(`/pumps/${pumpId}/credit-ledger/payments/${paymentId}/reverse`, req,
       withIdempotencyKey(idempotencyKey)).then(r => r.data),
 
-  // Updates the credit limit for a client (0 = unlimited)
   updateCreditLimit: (pumpId: number, clientId: number, req: UpdateCreditLimitRequest) =>
     client.patch<CreditClient>(`/pumps/${pumpId}/credit-ledger/clients/${clientId}/credit-limit`, req).then(r => r.data),
+
+  getCreditLimitChanges: (pumpId: number, clientId: number) =>
+    client.get<CreditLimitChange[]>(`/pumps/${pumpId}/credit-ledger/clients/${clientId}/credit-limit-changes`).then(r => r.data),
+
+  getCreditLimitSettings: (pumpId: number) =>
+    client.get<CreditLimitSettings>(`/pumps/${pumpId}/credit-limit-settings`).then(r => r.data),
+
+  updateCreditLimitSettings: (pumpId: number, settings: CreditLimitSettings) =>
+    client.put<CreditLimitSettings>(`/pumps/${pumpId}/credit-limit-settings`, settings).then(r => r.data),
 
   // Updates monthly interest rate and grace days for a client
   updateInterestSettings: (pumpId: number, clientId: number, req: UpdateInterestSettingsRequest) =>

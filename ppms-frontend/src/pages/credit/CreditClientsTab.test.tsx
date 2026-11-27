@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { pumpApi } from '../../api/pumpApi'
 import type { CreditClient } from '../../api/pumpApi'
+import { useAuthStore } from '../../store/authStore'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import { CreditClientsTab } from './CreditClientsTab'
 
@@ -23,7 +24,7 @@ function creditClient(overrides: Partial<CreditClient>): CreditClient {
   return {
     id: 40, pumpId: PUMP_ID, name: 'Acme Transport', phone: '9876543210', notes: null,
     createdAt: '2026-01-01T00:00:00Z', parentClientId: null, parentClientName: null,
-    isParent: false, isActive: true, hasPortalPin: false,
+    isParent: false, isActive: true, hasPortalPin: false, weakPortalPin: false, unlimited: false,
     ...overrides,
   }
 }
@@ -44,6 +45,7 @@ async function openMenuFor(name: string) {
 
 describe('CreditClientsTab', () => {
   beforeEach(() => {
+    useAuthStore.setState({ user: { userId: 1, fullName: 'Owner', role: 'OWNER', assignedPumpId: null }, isAuthenticated: true })
     vi.mocked(pumpApi.getCreditClientAccounts).mockResolvedValue([parent, driver])
     vi.mocked(pumpApi.toggleCreditClientStatus).mockResolvedValue(undefined as never)
     vi.mocked(pumpApi.setCreditClientPortalPin).mockResolvedValue(undefined)
@@ -97,21 +99,45 @@ describe('CreditClientsTab', () => {
     expect(within(menu).queryByRole('menuitem', { name: /Remove PIN/ })).not.toBeInTheDocument()
 
     await user.click(within(menu).getByRole('menuitem', { name: /Set portal PIN/ }))
-    await user.type(screen.getByLabelText('Portal PIN'), '48a21')
+    await user.type(screen.getByLabelText('Portal PIN'), '48a2971')
+    expect(screen.getByText('Good PIN.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Save PIN' }))
 
-    expect(pumpApi.setCreditClientPortalPin).toHaveBeenCalledWith(PUMP_ID, 40, '4821')
+    expect(pumpApi.setCreditClientPortalPin).toHaveBeenCalledWith(PUMP_ID, 40, '482971')
   })
 
-  it('refuses a portal PIN shorter than 4 digits without calling the server', async () => {
+  it.each([
+    ['4821', 'Use exactly 6 digits.'],
+    ['777777', 'Don\'t repeat one digit, like 111111.'],
+    ['345678', 'Don\'t use a run of digits, like 123456 or 654321.'],
+    ['987654', 'Don\'t use a run of digits, like 123456 or 654321.'],
+    ['121212', 'This PIN is too common. Choose another.'],
+  ])('refuses the easy or short portal PIN %s without calling the server', async (pin, message) => {
     const { user, menu } = await openMenuFor('Acme Transport')
 
     await user.click(within(menu).getByRole('menuitem', { name: /Change PIN/ }))
-    await user.type(screen.getByLabelText('Portal PIN'), '123')
+    await user.type(screen.getByLabelText('Portal PIN'), pin)
     await user.click(screen.getByRole('button', { name: 'Save PIN' }))
 
-    expect(screen.getByRole('alert')).toHaveTextContent('PIN must be 4 to 6 digits')
+    expect(screen.getByRole('alert')).toHaveTextContent(message)
     expect(pumpApi.setCreditClientPortalPin).not.toHaveBeenCalled()
+  })
+
+  it('marks a client with a weak PIN so the owner sets a new one', async () => {
+    vi.mocked(pumpApi.getCreditClientAccounts).mockResolvedValue([creditClient({ hasPortalPin: true, weakPortalPin: true })])
+    renderTab()
+
+    expect(await screen.findByText('Weak PIN')).toBeInTheDocument()
+    expect(screen.queryByText('Portal PIN set')).not.toBeInTheDocument()
+  })
+
+  it('leaves enabling a disabled client to an Owner or Admin', async () => {
+    useAuthStore.setState({ user: { userId: 2, fullName: 'Manager', role: 'MANAGER', assignedPumpId: PUMP_ID }, isAuthenticated: true })
+    vi.mocked(pumpApi.getCreditClientAccounts).mockResolvedValue([creditClient({ isActive: false })])
+    renderTab()
+
+    expect(await screen.findByRole('button', { name: 'Actions for Acme Transport' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Enable client Acme Transport' })).not.toBeInTheDocument()
   })
 
   it('enables a disabled client with one visible button', async () => {

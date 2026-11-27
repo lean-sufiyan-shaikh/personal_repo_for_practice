@@ -55,6 +55,7 @@ export function invoiceStatusBadge(status: CreditInvoiceStatus): StatusBadgeSpec
 
 const CREDIT_STANDING: Record<CreditStanding, Omit<StatusBadgeSpec, 'label'>> = {
   OK: { tone: 'ok', icon: Check },
+  NEAR_LIMIT: { tone: 'warn', icon: Gauge },
   OVERDUE: { tone: 'bad', icon: Clock },
   ON_HOLD: { tone: 'bad', icon: Lock },
   OVER_LIMIT: { tone: 'warn', icon: Gauge },
@@ -63,6 +64,10 @@ const CREDIT_STANDING: Record<CreditStanding, Omit<StatusBadgeSpec, 'label'>> = 
 
 export function creditStandingBadge(standing: CreditStanding): StatusBadgeSpec {
   return { ...CREDIT_STANDING[standing], label: codeLabel(standing) }
+}
+
+export function nearLimitBadge(): StatusBadgeSpec {
+  return { ...CREDIT_STANDING.NEAR_LIMIT, label: codeLabel('NEAR_LIMIT') }
 }
 
 export function settlementOverdueBadge(): StatusBadgeSpec {

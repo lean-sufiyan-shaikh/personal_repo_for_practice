@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "मंज़ूरियाँ",
-    "subtitle": "खर्च और क्रेडिट भुगतान जिन्हें गिने जाने से पहले आपके फ़ैसले की ज़रूरत है",
+    "subtitle": "खर्च, क्रेडिट भुगतान और मीटर सुधार जिन्हें गिने जाने से पहले आपके फ़ैसले की ज़रूरत है",
     "noPumpSubtitle": "ऊपर की पट्टी में पंप चुनें।",
     "emptyTitle": "मंज़ूरी के लिए कुछ बाकी नहीं है",
     "emptySubtitle": "आपकी मंज़ूरी सीमा से ज़्यादा के नए खर्च और भुगतान यहाँ दिखेंगे।",
@@ -13,11 +13,13 @@
     "label": "दिखाएँ",
     "all": "सभी",
     "expenses": "खर्च",
-    "payments": "क्रेडिट भुगतान"
+    "payments": "क्रेडिट भुगतान",
+    "meter": "मीटर सुधार"
   },
   "kind": {
     "expense": "खर्च",
-    "creditPayment": "क्रेडिट भुगतान"
+    "creditPayment": "क्रेडिट भुगतान",
+    "meterAdjustment": "मीटर सुधार"
   },
   "selection": {
     "summary": "{{count}} चुने गए · {{amount}}",
@@ -37,7 +39,8 @@
     "notRejected_other": "{{count}} अस्वीकार नहीं हो सके:",
     "expenseName": "खर्च {{amount}}",
     "paymentName": "भुगतान {{amount}}",
-    "notSaved": "सेव नहीं हुआ"
+    "notSaved": "सेव नहीं हुआ",
+    "meterName": "मीटर सुधार {{amount}}"
   },
   "errors": {
     "approveFailed": "चुने हुए आइटम मंज़ूर नहीं हो सके",
@@ -65,7 +68,9 @@
     "note": "नोट",
     "decide": "फ़ैसला",
     "approveItem": "मंज़ूर करें {{name}} {{amount}}",
-    "rejectItem": "अस्वीकार करें {{name}} {{amount}}"
+    "rejectItem": "अस्वीकार करें {{name}} {{amount}}",
+    "meterItem": "{{nozzle}} · {{fuel}} · {{litres}} L बिना बिल",
+    "selectMeter": "मीटर सुधार {{name}} {{amount}} चुनें"
   },
   "waiting": {
     "justNow": "अभी-अभी",

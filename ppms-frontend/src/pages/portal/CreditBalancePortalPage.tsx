@@ -4,25 +4,16 @@ import { useTranslation } from 'react-i18next'
 import { FormField } from '../../components/FormField'
 import { PasswordInput } from '../../components/PasswordInput'
 import { PORTAL_PIN_PATTERN, digitsOnly } from '../../constants/portalPin'
-import { MoneyText } from '../../components/AmountText'
 import { NumericInput } from '../../components/NumericInput'
 import { LoadingButton } from '../../components/LoadingButton'
 import { AuthCard, AuthScreen } from '../auth/AuthCard'
-import { PortalUpiPayment } from './PortalUpiPayment'
-import { PortalVehicleUsage } from './PortalVehicleUsage'
-import type { PortalVehicleMonth } from './PortalVehicleUsage'
+import { PortalBalanceResult } from './PortalBalanceResult'
+import type { PortalBalance } from './PortalBalanceResult'
 
 // Uses a plain axios instance — no auth header, no JWT
 const publicClient = axios.create({ baseURL: '/api' })
 
-interface BalanceResult {
-  outstandingAmount: number
-  creditLimit: number
-  /** upi://pay link for the outstanding; null when the pump takes no UPI payments by link or nothing is owed. */
-  upiPayLink: string | null
-  /** This month and the month before, newest first. */
-  vehicleUsage: PortalVehicleMonth[]
-}
+const DEFAULT_WAIT_MINUTES = 15
 
 /** A reminder links here with ?pump=<id>, so the client only types their phone and PIN. */
 function pumpIdFromLink(): string {
@@ -30,13 +21,18 @@ function pumpIdFromLink(): string {
   return /^\d+$/.test(pump) ? pump : ''
 }
 
-type PortalError = 'incomplete' | 'noMatch' | 'tooManyAttempts' | 'lookupFailed'
+type PortalError =
+  | { kind: 'incomplete' | 'noMatch' | 'lookupFailed' }
+  | { kind: 'tooManyAttempts'; minutes: number }
 
 function lookupError(err: unknown): PortalError {
-  const status = isAxiosError(err) ? err.response?.status : undefined
-  if (status === 429) return 'tooManyAttempts'
-  if (status === 404 || status === 400) return 'noMatch'
-  return 'lookupFailed'
+  const response = isAxiosError(err) ? err.response : undefined
+  if (response?.status === 429) {
+    const minutes = (response.data as { params?: { minutes?: unknown } } | undefined)?.params?.minutes
+    return { kind: 'tooManyAttempts', minutes: typeof minutes === 'number' && minutes > 0 ? minutes : DEFAULT_WAIT_MINUTES }
+  }
+  if (response?.status === 404 || response?.status === 400) return { kind: 'noMatch' }
+  return { kind: 'lookupFailed' }
 }
 
 export default function CreditBalancePortalPage() {
@@ -44,21 +40,21 @@ export default function CreditBalancePortalPage() {
   const [pumpId, setPumpId]   = useState(pumpIdFromLink)
   const [phone, setPhone]     = useState('')
   const [pin, setPin]         = useState('')
-  const [result, setResult]   = useState<BalanceResult | null>(null)
+  const [result, setResult]   = useState<PortalBalance | null>(null)
   const [error, setError]     = useState<PortalError | null>(null)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!pumpId.trim() || !/^\d{10}$/.test(phone) || !PORTAL_PIN_PATTERN.test(pin)) {
-      setError('incomplete')
+      setError({ kind: 'incomplete' })
       return
     }
     setLoading(true)
     setError(null)
     setResult(null)
     try {
-      const res = await publicClient.post<BalanceResult>('/public/credit-balance', {
+      const res = await publicClient.post<PortalBalance>('/public/credit-balance', {
         pumpId: parseInt(pumpId), phone, pin,
       })
       setResult(res.data)
@@ -106,7 +102,9 @@ export default function CreditBalancePortalPage() {
           </FormField>
 
           {error && (
-            <p role="alert" className="ui-alert ui-alert-danger">{t(`errors.${error}`)}</p>
+            <p role="alert" className="ui-alert ui-alert-danger">
+              {error.kind === 'tooManyAttempts' ? t('errors.tooManyAttempts', { minutes: error.minutes }) : t(`errors.${error.kind}`)}
+            </p>
           )}
 
           <LoadingButton type="submit" isLoading={loading} loadingLabel={t('form.checking')} className="ui-btn-primary w-full">
@@ -114,35 +112,7 @@ export default function CreditBalancePortalPage() {
           </LoadingButton>
         </form>
 
-        {result && (
-          <div role="status" className="ui-card-plain ui-card-muted px-4 py-4">
-            <p className="text-xs text-ink-3 mb-3">{t('result.account')}</p>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-ink-3">{t('result.outstanding')}</span>
-                <MoneyText value={result.outstandingAmount} className="text-sm font-bold text-ink" />
-              </div>
-              {result.creditLimit > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-ink-3">{t('result.creditLimit')}</span>
-                  <MoneyText value={result.creditLimit} className="text-sm text-ink" />
-                </div>
-              )}
-            </div>
-
-            {result.outstandingAmount <= 0 && (
-              <p className="text-xs text-ok font-medium mt-2">{t('result.settled')}</p>
-            )}
-            {result.upiPayLink && result.outstandingAmount > 0 && (
-              <PortalUpiPayment link={result.upiPayLink} amount={result.outstandingAmount} />
-            )}
-            {result.vehicleUsage.some((month) => month.vehicles.length > 0) && (
-              <PortalVehicleUsage months={result.vehicleUsage} />
-            )}
-          </div>
-        )}
-
+        {result && <PortalBalanceResult result={result} />}
       </AuthCard>
     </AuthScreen>
   )

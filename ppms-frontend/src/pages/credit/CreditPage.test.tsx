@@ -24,7 +24,7 @@ vi.mock('./ClientDetail', () => ({
 
 function agingRow(overrides: Partial<CreditAgingRow>): CreditAgingRow {
   return {
-    clientId: 1, name: 'Client', phone: '9876543210', subAccountCount: 0, billingCycle: 'MONTHLY', creditLimit: 0,
+    clientId: 1, name: 'Client', phone: '9876543210', subAccountCount: 0, billingCycle: 'MONTHLY', creditLimit: 0, unlimited: true, nearLimit: false,
     outstanding: 0, upTo30Days: 0, days31To60: 0, days61To90: 0, over90Days: 0, oldestUnpaidSaleDate: null,
     lastPaymentDate: null, daysOverdue: 0, creditStatus: 'OK', pendingPaymentCount: 0, pendingPaymentAmount: 0,
     ...overrides,
@@ -41,7 +41,7 @@ const aging: CreditAging = {
 
 function ledgerClient(id: number, name: string, outstandingBalance: number): CreditClient {
   return {
-    id, pumpId: 3, name, phone: '9876543210', notes: null, creditLimit: 0, outstandingBalance, outstandingInterest: 0,
+    id, pumpId: 3, name, phone: '9876543210', notes: null, creditLimit: 0, unlimited: true, outstandingBalance, outstandingInterest: 0,
     totalInterestRecovered: 0, monthlyInterestRate: 0, interestGraceDays: 0, createdAt: '2026-01-01T00:00:00Z',
     parentClientId: null, parentClientName: null, isParent: false,
   }

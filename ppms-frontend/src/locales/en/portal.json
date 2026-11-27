@@ -24,12 +24,16 @@
     "payUpi": "Pay via UPI",
     "scanToPay": "Scan with any UPI app to pay {{amount}}.",
     "qrLabel": "UPI QR code to pay {{amount}}",
-    "confirmNote": "Your payment shows here once the pump records it."
+    "confirmNote": "Your payment shows here once the pump records it.",
+    "subAccount": "Your sub-account",
+    "ownUsage": "Credit used on this account",
+    "noLimit": "No limit",
+    "subAccountNote": "This is a sub-account. The account balance and limit are held on the main account."
   },
   "errors": {
     "incomplete": "Enter the Pump ID, your 10-digit phone number and your 4 to 6 digit PIN.",
     "noMatch": "Details don't match. Check your phone number and PIN, or ask the pump for a PIN.",
-    "tooManyAttempts": "Too many attempts. Please wait 15 minutes and try again.",
+    "tooManyAttempts": "Too many attempts. Please wait {{minutes}} minutes and try again.",
     "lookupFailed": "Could not check your balance. Please try again."
   },
   "footer": "Powered by PPMS — Petrol Pump Management System",

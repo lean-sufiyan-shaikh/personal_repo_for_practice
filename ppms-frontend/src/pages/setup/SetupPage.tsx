@@ -16,6 +16,7 @@ import { SkeletonRows } from '../../components/Skeleton'
 import { StatusBadge } from '../../components/StatusBadge'
 import { DemoBadge } from '../../components/DemoBadge'
 import { FuelPricesContent } from './FuelPricesContent'
+import { ManagerMeterAdjustments } from './nozzles/ManagerMeterAdjustments'
 import { SetupArea } from './SetupArea'
 import { SetupHub } from './SetupHub'
 import { SetupStepper } from './SetupStepper'
@@ -26,7 +27,7 @@ import { useSetupOverview } from './useSetupOverview'
 /** ?action= values the command palette can open Setup with. */
 const ACTION_STEPS: Record<string, SectionKey> = { 'add-staff': 'staff', 'set-fuel-prices': 'prices' }
 
-/** A manager may only keep the daily fuel prices up to date. */
+/** A manager may keep the daily fuel prices up to date and ask for meter adjustments. */
 function ManagerFuelPrices({ pump }: { pump: PumpSummary }) {
   const { t } = useTranslation('setup')
   const { data: currentPrices = [] } = useQuery({
@@ -41,6 +42,9 @@ function ManagerFuelPrices({ pump }: { pump: PumpSummary }) {
       </div>
       <PageSection title={t('steps.names.prices')}>
         <FuelPricesContent pump={pump} currentPrices={currentPrices} />
+      </PageSection>
+      <PageSection title={t('nozzles.reading.managerTitle')}>
+        <ManagerMeterAdjustments pumpId={pump.id} />
       </PageSection>
     </>
   )

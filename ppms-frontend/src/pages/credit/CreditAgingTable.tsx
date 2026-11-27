@@ -1,17 +1,15 @@
 import { useMemo } from 'react'
-import { Hourglass } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import type { CreditAgingRow } from '../../api/creditApi'
-import { formatCurrency } from '../../utils/format'
 import { formatIstDate } from '../../utils/date'
 import { DataTable } from '../../components/DataTable'
 import type { DataTableColumn } from '../../components/DataTable'
 import { MoneyText } from '../../components/AmountText'
-import { StatusBadge } from '../../components/StatusBadge'
-import { creditStandingBadge } from '../../components/statusBadges'
 import { useIsPhone } from '../../hooks/useIsPhone'
+import { agingLimitSuffix } from './creditAging'
 import type { AgingSortKey, SortDirection } from './creditAging'
+import { CreditStandingBadges } from './CreditStandingBadges'
 import { CreditAgingCardRow } from './CreditAgingCardRow'
 
 const SORTABLE_COLUMNS: { key: AgingSortKey; numeric: boolean }[] = [
@@ -87,7 +85,7 @@ export function CreditAgingTable({
             <span className="block text-xs font-normal text-ink-3">
               {row.phone ?? t('aging.noPhone')}
               {row.subAccountCount > 0 && ` · ${t('aging.subAccounts', { count: row.subAccountCount })}`}
-              {row.creditLimit > 0 && ` · ${t('aging.limit', { amount: formatCurrency(row.creditLimit) })}`}
+              {agingLimitSuffix(row)}
             </span>
           </th>
           <td className="text-right font-semibold text-ink"><MoneyText value={row.outstanding} /></td>
@@ -101,10 +99,7 @@ export function CreditAgingTable({
             {row.daysOverdue > 0 ? row.daysOverdue : '—'}
           </td>
           <td className="whitespace-nowrap">
-            <StatusBadge {...creditStandingBadge(row.creditStatus)} />
-            {row.pendingPaymentCount > 0 && (
-              <StatusBadge tone="info" icon={Hourglass} label={t('aging.pendingCount', { count: row.pendingPaymentCount })} className="ml-1" />
-            )}
+            <CreditStandingBadges row={row} className="flex items-center gap-1" />
           </td>
           <td className="whitespace-nowrap text-right">
             {canAdjustLimit && (

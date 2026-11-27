@@ -5,14 +5,12 @@ import { creditApi } from '../../../api/creditApi'
 import type { CreditClient } from '../../../api/creditApi'
 import { renderWithProviders } from '../../../test/renderWithProviders'
 import { RecordPaymentModal } from './RecordPaymentModal'
-import { SetCreditLimitModal } from './SetCreditLimitModal'
 import { SetInterestSettingsModal } from './SetInterestSettingsModal'
 import { GrantExtensionModal } from './GrantExtensionModal'
 
 vi.mock('../../../api/creditApi', () => ({
   creditApi: {
     recordPayment: vi.fn(),
-    updateCreditLimit: vi.fn(),
     updateInterestSettings: vi.fn(),
     createExtension: vi.fn(),
   },
@@ -21,7 +19,7 @@ vi.mock('../../../api/creditApi', () => ({
 const PUMP_ID = 3
 const client: CreditClient = {
   id: 40, pumpId: PUMP_ID, name: 'Acme Transport', phone: '9876543210', notes: null,
-  creditLimit: 50_000, outstandingBalance: 12_000, outstandingInterest: 0, totalInterestRecovered: 0,
+  creditLimit: 50_000, unlimited: false, outstandingBalance: 12_000, outstandingInterest: 0, totalInterestRecovered: 0,
   monthlyInterestRate: 0, interestGraceDays: 1, createdAt: '2026-01-01T00:00:00Z',
   parentClientId: null, parentClientName: null, isParent: false,
 }
@@ -77,42 +75,6 @@ describe('RecordPaymentModal', () => {
 
     expect(creditApi.recordPayment).toHaveBeenCalledWith(PUMP_ID, client.id, expect.objectContaining({ amount: 1000, paymentMode: 'CASH' }),
       expect.any(String))
-  })
-})
-
-describe('SetCreditLimitModal', () => {
-  beforeEach(() => {
-    vi.mocked(creditApi.updateCreditLimit).mockResolvedValue({} as never)
-  })
-
-  it('works out the credit left under the new limit as it is typed', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<SetCreditLimitModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
-
-    const effect = figures('Effect of the new limit')
-    expect(effect.getByText('Credit left').nextSibling).toHaveTextContent('₹38,000.00')
-
-    const limit = screen.getByLabelText('Credit limit')
-    await user.clear(limit)
-    await user.type(limit, '10000')
-
-    expect(effect.getByText('Over the new limit by').nextSibling).toHaveTextContent('₹2,000.00')
-  })
-
-  it('reads 0 as no limit', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<SetCreditLimitModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
-
-    const limit = screen.getByLabelText('Credit limit')
-    await user.clear(limit)
-    await user.type(limit, '0')
-
-    const effect = figures('Effect of the new limit')
-    expect(effect.getByText('New limit').nextSibling).toHaveTextContent('No limit')
-    expect(effect.getByText('Credit left').nextSibling).toHaveTextContent('No limit')
-
-    await user.click(screen.getByRole('button', { name: 'Save limit' }))
-    expect(creditApi.updateCreditLimit).toHaveBeenCalledWith(PUMP_ID, client.id, { creditLimit: 0 })
   })
 })
 

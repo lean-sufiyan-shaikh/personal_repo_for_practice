@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Approvals",
-    "subtitle": "Expenses and credit payments that need your decision before they count",
+    "subtitle": "Expenses, credit payments and meter adjustments that need your decision before they count",
     "noPumpSubtitle": "Choose a pump in the top bar.",
     "emptyTitle": "Nothing is waiting for approval",
     "emptySubtitle": "New expenses and payments above your approval limit will appear here.",
@@ -13,11 +13,13 @@
     "label": "Show",
     "all": "All",
     "expenses": "Expenses",
-    "payments": "Credit payments"
+    "payments": "Credit payments",
+    "meter": "Meter adjustments"
   },
   "kind": {
     "expense": "Expense",
-    "creditPayment": "Credit payment"
+    "creditPayment": "Credit payment",
+    "meterAdjustment": "Meter adjustment"
   },
   "selection": {
     "summary": "{{count}} selected · {{amount}}",
@@ -37,7 +39,8 @@
     "notRejected_other": "{{count}} could not be rejected:",
     "expenseName": "Expense {{amount}}",
     "paymentName": "Payment {{amount}}",
-    "notSaved": "not saved"
+    "notSaved": "not saved",
+    "meterName": "Meter adjustment {{amount}}"
   },
   "errors": {
     "approveFailed": "Could not approve the selected items",
@@ -65,7 +68,9 @@
     "note": "Note",
     "decide": "Decision",
     "approveItem": "Approve {{name}} {{amount}}",
-    "rejectItem": "Reject {{name}} {{amount}}"
+    "rejectItem": "Reject {{name}} {{amount}}",
+    "meterItem": "{{nozzle}} · {{fuel}} · {{litres}} L unbilled",
+    "selectMeter": "Select meter adjustment {{name}} {{amount}}"
   },
   "waiting": {
     "justNow": "just now",

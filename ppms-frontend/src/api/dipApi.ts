@@ -13,7 +13,19 @@ export interface NozzleReadingAdjustment {
   reason: string
   recordedByUserId: number
   createdAt: string
+  /** PENDING_APPROVAL: a manager's forward adjustment waiting for an Owner or Admin; the nozzle is unchanged until then. */
+  status: MeterAdjustmentStatus
+  /** Litres a forward adjustment found dispensed outside any shift; null for other adjustments. */
+  unbilledLitres: number | null
+  /** Those litres at the fuel price when the adjustment was asked for. */
+  unbilledValue: number | null
+  pricePerLitre: number | null
+  reviewedByUserId: number | null
+  reviewedAt: string | null
+  reviewReason: string | null
 }
+
+export type MeterAdjustmentStatus = 'APPLIED' | 'PENDING_APPROVAL' | 'REJECTED'
 
 export interface FuelDipEntry {
   id: number

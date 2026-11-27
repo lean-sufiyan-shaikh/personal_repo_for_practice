@@ -288,7 +288,20 @@
       "reasonPlaceholder": "e.g. Meter replaced after malfunction",
       "reasonHint": "This note is stored with the adjustment log for audit history.",
       "resetSubmit": "Reset to zero",
-      "saveSubmit": "Save reading"
+      "saveSubmit": "Save reading",
+      "unbilledNeedsApproval": "Forward by {{litres}} ≈ {{value}} unbilled at the current price. This needs Owner or Admin approval before the reading changes.",
+      "unbilledDrawn": "Forward by {{litres}} ≈ {{value}} at the current price. These unbilled litres will be taken from tank stock as a loss.",
+      "sentForApproval": "Adjustment sent to an Owner or Admin for approval",
+      "backwardOwnerOnly": "Only an Owner or Admin can move a reading back. You can ask for a higher reading.",
+      "requestSubmit": "Ask for approval",
+      "history": "Recent adjustments",
+      "historyChange": "{{from}} → {{to}}",
+      "historyUnbilled": "{{litres}} L unbilled ({{value}})",
+      "managerTitle": "Meter adjustments",
+      "managerIntro": "If a meter shows more than its last saved reading, fuel left the nozzle outside a shift. Ask for an adjustment here; an Owner or Admin approves it.",
+      "chooseNozzle": "Nozzle",
+      "chooseNozzlePlaceholder": "Choose a nozzle",
+      "nozzleOption": "{{du}} · Nozzle #{{number}} · {{fuel}}"
     },
     "createDu": {
       "created": "DU created successfully",

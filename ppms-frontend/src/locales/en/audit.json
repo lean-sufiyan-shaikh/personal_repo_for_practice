@@ -115,6 +115,14 @@
     "PRODUCTS_IMPORTED": "Products imported",
     "TANK_STOCK_IMPORTED": "Opening tank stock imported",
     "DEMO_PUMP_CREATED": "Demo pump created",
-    "DEMO_PUMP_DELETED": "Demo pump deleted"
+    "DEMO_PUMP_DELETED": "Demo pump deleted",
+    "CREDIT_CLIENT_UPDATED": "Credit customer edited",
+    "CREDIT_CLIENT_STATUS_CHANGED": "Credit customer enabled or disabled",
+    "CREDIT_PORTAL_LOCKED": "Balance page locked after wrong PINs",
+    "CREDIT_CLOSE_BLOCKED_ALLOWED": "Blocked credit allowed at shift close",
+    "METER_READING_ADJUSTED": "Meter reading adjusted",
+    "METER_ADJUSTMENT_REQUESTED": "Meter adjustment requested",
+    "METER_ADJUSTMENT_APPROVED": "Meter adjustment approved",
+    "METER_ADJUSTMENT_REJECTED": "Meter adjustment rejected"
   }
 }

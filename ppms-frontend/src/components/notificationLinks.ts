@@ -40,6 +40,8 @@ export const NOTIFICATION_TYPES: NotificationType[] = [
   'CREDIT_PAYMENT_REVERSED',
   'VEHICLE_CREDIT_FLAGGED',
   'LEAKAGE_RADAR_WEEKLY',
+  'CREDIT_PORTAL_LOCKED',
+  'CREDIT_CLIENT_PHONE_CHANGED',
 ]
 
 /** The type's name in the active language (notifications.json types.<TYPE>); the raw code when the type is new. */

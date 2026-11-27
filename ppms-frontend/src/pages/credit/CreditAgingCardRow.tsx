@@ -1,10 +1,8 @@
-import { Hourglass } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { CreditAgingRow } from '../../api/creditApi'
 import { MoneyText } from '../../components/AmountText'
-import { StatusBadge } from '../../components/StatusBadge'
-import { creditStandingBadge } from '../../components/statusBadges'
-import { formatCurrency } from '../../utils/format'
+import { agingLimitSuffix } from './creditAging'
+import { CreditStandingBadges } from './CreditStandingBadges'
 
 const AGE_BUCKETS = ['upTo30Days', 'days31To60', 'days61To90', 'over90Days'] as const
 
@@ -31,7 +29,7 @@ export function CreditAgingCardRow({ row, canAdjustLimit, onOpenClient, onSetLim
         <span className="block text-xs font-normal text-ink-3">
           {row.phone ?? t('aging.noPhone')}
           {row.subAccountCount > 0 && ` · ${t('aging.subAccounts', { count: row.subAccountCount })}`}
-          {row.creditLimit > 0 && ` · ${t('aging.limit', { amount: formatCurrency(row.creditLimit) })}`}
+          {agingLimitSuffix(row)}
         </span>
       </th>
       <td>
@@ -48,10 +46,7 @@ export function CreditAgingCardRow({ row, canAdjustLimit, onOpenClient, onSetLim
       </td>
       <td>
         <span className="flex flex-wrap items-center gap-1">
-          <StatusBadge {...creditStandingBadge(row.creditStatus)} />
-          {row.pendingPaymentCount > 0 && (
-            <StatusBadge tone="info" icon={Hourglass} label={t('aging.pendingCount', { count: row.pendingPaymentCount })} />
-          )}
+          <CreditStandingBadges row={row} className="contents" />
           {row.daysOverdue > 0 && (
             <span className="text-xs font-semibold text-bad">{t('aging.overdueDays', { count: row.daysOverdue })}</span>
           )}

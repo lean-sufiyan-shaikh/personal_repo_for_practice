@@ -54,6 +54,7 @@ export function useCreditAging(pumpId: number | null) {
   const countByFilter: Record<AgingFilter, number> = {
     'all': allRows.length,
     'overdue': aging?.summary.overdueCount ?? 0,
+    'near-limit': allRows.filter(row => row.nearLimit).length,
     'over-limit': aging?.summary.overLimitCount ?? 0,
     'pending-approval': aging?.summary.pendingApprovalCount ?? 0,
   }
