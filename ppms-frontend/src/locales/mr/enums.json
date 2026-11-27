@@ -270,6 +270,18 @@
     "SAFE_COUNT_VARIANCE": {
       "title": "तिजोरी मोजणीत फरक",
       "message": "{{countedByName}} यांनी तिजोरीत ₹{{countedAmount}} मोजले, अपेक्षित ₹{{expectedAmount}} होते: ₹{{amount}} {{varianceTypeCode}}."
+    },
+    "DAY_CLOSED": {
+      "title": "दिवस बंद झाला",
+      "message": "{{closedByName}} यांनी {{date}} बंद केला. सारांश पाहून मंजूर करा."
+    },
+    "DAY_REOPENED": {
+      "title": "दिवस पुन्हा उघडला",
+      "message": "{{reopenedByName}} यांनी {{date}} पुन्हा उघडला: {{reason}}"
+    },
+    "DAY_CLOSE_COMMENT": {
+      "title": "दिवस बंदवर संदेश",
+      "message": "{{authorName}} यांनी {{date}} बद्दल लिहिले: {{message}}"
     }
   },
   "serverTexts": {
@@ -365,7 +377,9 @@
     "ATTENTION_SHORTAGE_CLAIMS_OPEN_one": "{{count}} कमतरतेचा दावा {{days}} दिवसांपूर्वी केला आणि अजून खुला आहे",
     "ATTENTION_SHORTAGE_CLAIMS_OPEN_other": "{{count}} कमतरतेचे दावे {{days}} दिवसांपूर्वी केले आणि अजून खुले आहेत",
     "ATTENTION_PENDING_CASH_DROPS_one": "{{count}} कॅश ड्रॉप तिजोरीत खात्रीच्या प्रतीक्षेत",
-    "ATTENTION_PENDING_CASH_DROPS_other": "{{count}} कॅश ड्रॉप तिजोरीत खात्रीच्या प्रतीक्षेत"
+    "ATTENTION_PENDING_CASH_DROPS_other": "{{count}} कॅश ड्रॉप तिजोरीत खात्रीच्या प्रतीक्षेत",
+    "ATTENTION_DAY_CLOSES_UNAPPROVED_one": "{{count}} बंद दिवस तुमच्या मंजुरीच्या प्रतीक्षेत",
+    "ATTENTION_DAY_CLOSES_UNAPPROVED_other": "{{count}} बंद दिवस तुमच्या मंजुरीच्या प्रतीक्षेत"
   },
   "WET_STOCK_LOSS": "मर्यादेपेक्षा जास्त इंधन तोटा",
   "RAISED": "दावा केला",
@@ -380,5 +394,9 @@
   "PENDING": "प्रलंबित",
   "PENDING_CASH_DROPS": "खात्रीसाठी कॅश ड्रॉप",
   "CASH_DROP_PENDING": "खात्रीसाठी कॅश ड्रॉप",
-  "SAFE_COUNT_VARIANCE": "तिजोरी मोजणीत फरक"
+  "SAFE_COUNT_VARIANCE": "तिजोरी मोजणीत फरक",
+  "DAY_CLOSES_UNAPPROVED": "मंजुरीसाठी बंद दिवस",
+  "DAY_CLOSED": "दिवस बंद झाला",
+  "DAY_REOPENED": "दिवस पुन्हा उघडला",
+  "DAY_CLOSE_COMMENT": "दिवस बंदवर संदेश"
 }

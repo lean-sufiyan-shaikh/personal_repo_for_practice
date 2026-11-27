@@ -12,6 +12,8 @@ import com.ppms.credit.CreditAgingService;
 import com.ppms.credit.CreditPayment;
 import com.ppms.credit.CreditPaymentRepository;
 import com.ppms.credit.CreditStatus;
+import com.ppms.dayclose.DayCloseRepository;
+import com.ppms.dayclose.DayCloseStatus;
 import com.ppms.document.PumpDocument;
 import com.ppms.document.PumpDocumentRepository;
 import com.ppms.expense.ExpenseApprovalStatus;
@@ -90,6 +92,7 @@ public class AttentionService {
     private static final String INVENTORY_PATH = "/dashboard/inventory";
     private static final String CLAIMS_PATH = "/dashboard/inventory?tab=claims";
     private static final String SAFE_PATH = "/dashboard/cash?tab=safe";
+    private static final String DAY_CLOSE_APPROVALS_PATH = "/dashboard/day-close?view=approvals";
 
     private static final Comparator<AttentionItem> MOST_URGENT_FIRST = Comparator
             .comparing(AttentionItem::severity)
@@ -113,6 +116,7 @@ public class AttentionService {
     private final WetStockLossAlertService wetStockLossAlertService;
     private final ShortageClaimQueryService shortageClaimQueryService;
     private final CashDropService cashDropService;
+    private final DayCloseRepository dayCloseRepository;
     private final BusinessClock businessClock;
 
     @Transactional(readOnly = true)
@@ -144,6 +148,7 @@ public class AttentionService {
         }
         addPendingApprovals(items, item, pump.getId());
         addPendingCashDrops(items, item, pump.getId());
+        addUnapprovedDayCloses(items, item, pump.getId());
         addShortages(items, item, pump.getId());
         addUnsettledPayments(items, item, pump.getId());
         addBalanceSheets(items, item, pump.getId());
@@ -212,6 +217,17 @@ public class AttentionService {
                 counted(ServerTextCodes.ATTENTION_PENDING_CASH_DROPS, pending.getDropCount(),
                         plural(pending.getDropCount(), "cash drop") + " waiting to be confirmed in the safe"),
                 SAFE_PATH));
+    }
+
+    private void addUnapprovedDayCloses(List<AttentionItem> items, Item item, Long pumpId) {
+        long unapproved = dayCloseRepository.countByPumpIdAndStatus(pumpId, DayCloseStatus.CLOSED);
+        if (unapproved == 0) {
+            return;
+        }
+        items.add(item.of(AttentionType.DAY_CLOSES_UNAPPROVED, AttentionSeverity.MEDIUM, unapproved, null,
+                counted(ServerTextCodes.ATTENTION_DAY_CLOSES_UNAPPROVED, unapproved,
+                        plural(unapproved, "closed day") + " waiting for your approval"),
+                DAY_CLOSE_APPROVALS_PATH));
     }
 
     private void addShortages(List<AttentionItem> items, Item item, Long pumpId) {

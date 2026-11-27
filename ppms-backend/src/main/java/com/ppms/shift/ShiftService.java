@@ -11,6 +11,7 @@ import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditInterestService;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.invoice.InvoicedSaleGuard;
 import com.ppms.pump.CurrentShiftWindow;
 import com.ppms.pump.DispensaryUnit;
@@ -74,6 +75,7 @@ public class ShiftService {
     private final InvoicedSaleGuard invoicedSaleGuard;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
     private final CashDropService cashDropService;
+    private final ClosedDayGuard closedDayGuard;
 
     /**
      * Opens a new shift for selected nozzles on a Dispensary Unit.
@@ -108,6 +110,7 @@ public class ShiftService {
 
         CurrentShiftWindow window = lifecycleSupportService.validateShiftCanOpen(du, nozzles, operator);
         PumpShiftDefinition shiftDef = window.definition();
+        closedDayGuard.requireOpen(pumpId, window.shiftDate());
 
         OffsetDateTime now = businessClock.now();
 
@@ -432,6 +435,9 @@ public class ShiftService {
                     "Use WAIVED or PENDING_INVESTIGATION for OVER discrepancies.");
         }
 
+        if (request.resolutionAction() == DiscrepancyResolution.CASH_RECOVERY) {
+            closedDayGuard.requireTodayOpen(shift.getPumpId());
+        }
         shift.setDiscrepancyResolution(request.resolutionAction());
         shift.setDiscrepancyResolutionNote(request.resolutionNote() != null ? request.resolutionNote().trim() : null);
         shift.setDiscrepancyResolvedById(currentUser.getId());

@@ -18,6 +18,9 @@ vi.mock('../../api/pumpApi', () => ({ pumpApi: { getMyPumps: vi.fn(), getCurrent
 vi.mock('../../api/shiftApi', () => ({ shiftApi: { getActiveShifts: vi.fn(), getShiftHistory: vi.fn() } }))
 vi.mock('../../api/inventoryApi', () => ({ inventoryApi: { getTankStocks: vi.fn() } }))
 vi.mock('../../api/attentionApi', () => ({ attentionApi: { getForPump: vi.fn(), getForMyPumps: vi.fn() } }))
+vi.mock('../../api/dayCloseApi', () => ({
+  dayCloseApi: { list: () => Promise.resolve({ content: [], page: 0, pageSize: 10, totalElements: 0, totalPages: 0, hasNext: false, hasPrevious: false }) },
+}))
 vi.mock('./overview/MoneyOverview', () => ({ MoneyOverview: () => null }))
 vi.mock('./overview/RevenueTrendChart', () => ({ RevenueTrendChart: () => null }))
 vi.mock('./overview/TankStockOverview', () => ({ TankStockOverview: () => null }))

@@ -32,5 +32,11 @@ public enum NotificationType {
     /** Fired once per cash drop waiting for a manager to confirm it reached the safe. */
     CASH_DROP_PENDING,
     /** Fired once per safe count that differs from the ledger by more than the pump's tolerance. */
-    SAFE_COUNT_VARIANCE
+    SAFE_COUNT_VARIANCE,
+    /** Fired once per close of a business day, for the owner to approve it. */
+    DAY_CLOSED,
+    /** Fired once per re-open of a closed business day, with the reason. */
+    DAY_REOPENED,
+    /** Fired once per question or reply on a closed business day. */
+    DAY_CLOSE_COMMENT
 }

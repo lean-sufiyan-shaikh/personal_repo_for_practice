@@ -5,6 +5,7 @@ import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.fuel.FuelType;
 import com.ppms.fuel.GlobalFuelPrice;
 import com.ppms.fuel.GlobalFuelPriceRepository;
@@ -62,6 +63,7 @@ public class ShiftBackfillService {
     private final ShiftFuelDeductionService fuelDeductionService;
     private final BusinessClock businessClock;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
+    private final ClosedDayGuard closedDayGuard;
 
     private record StockScope(Long tankId, FuelType fuelType) {}
 
@@ -85,6 +87,7 @@ public class ShiftBackfillService {
     public ShiftResponse backfillShift(Long pumpId, BackfillShiftRequest request, User currentUser) {
         LocalDate shiftDate = request.getShiftDate();
         validateBackfillDate(shiftDate);
+        closedDayGuard.requireOpen(pumpId, shiftDate);
 
         // The definition is only a label and time range for backfill; it need not have been active on shiftDate.
         PumpShiftDefinition shiftDef = shiftDefinitionRepository.findById(request.getShiftDefinitionId())

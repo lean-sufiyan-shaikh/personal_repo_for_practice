@@ -5,6 +5,7 @@ import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.inventory.LotConsumption;
 import com.ppms.inventory.LotConsumptionRepository;
 import com.ppms.inventory.LotConsumptionSource;
@@ -39,6 +40,7 @@ public class NozzleAdjustmentService {
     private final TankLotConsumptionService tankLotConsumptionService;
     private final LotConsumptionRepository lotConsumptionRepository;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
+    private final ClosedDayGuard closedDayGuard;
 
     // ── Meter reading adjustment ──────────────────────────────────────────────
 
@@ -58,6 +60,7 @@ public class NozzleAdjustmentService {
     public NozzleReadingAdjustment recordReadingAdjustment(
             Long pumpId, Long nozzleId, RecordAdjustmentRequest req, User currentUser) {
 
+        closedDayGuard.requireTodayOpen(pumpId);
         Nozzle nozzle = supportService.requireAdjustableNozzle(pumpId, nozzleId);
         String type = supportService.validateAdjustmentType(req.getAdjustmentType());
 
@@ -116,6 +119,8 @@ public class NozzleAdjustmentService {
                     "A drain can only be recorded for today (" + dipDate + "). It takes the fuel out of today's tank " +
                     "stock, so one dated " + req.getDipDate() + " would put the loss on the wrong day.");
         }
+
+        closedDayGuard.requireOpen(pumpId, dipDate);
 
         BigDecimal litresRemoved = req.getLitresRemoved().setScale(3, RoundingMode.HALF_UP);
         BigDecimal stock = tank.getCurrentStock() != null ? tank.getCurrentStock() : BigDecimal.ZERO;

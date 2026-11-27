@@ -48,6 +48,15 @@ class NotificationTargetsTest {
     }
 
     @ParameterizedTest
+    @EnumSource(value = NotificationType.class, names = {"DAY_CLOSED", "DAY_REOPENED", "DAY_CLOSE_COMMENT"})
+    void dayCloseAlertsOpenTheDayNamedInTheirKey(NotificationType type) {
+        assertThat(NotificationTargets.targetOf(type, type + ":date:2026-11-26:7"))
+                .isEqualTo(new NotificationTarget("/dashboard/day-close", Map.of("date", "2026-11-26")));
+        assertThat(NotificationTargets.targetOf(type, null))
+                .isEqualTo(new NotificationTarget("/dashboard/day-close", Map.of()));
+    }
+
+    @ParameterizedTest
     @EnumSource(NotificationType.class)
     void everyTypeHasATargetInsideTheDashboard(NotificationType type) {
         assertThat(NotificationTargets.targetOf(type, type + ":test").route()).startsWith("/dashboard/");

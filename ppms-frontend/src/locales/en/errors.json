@@ -341,5 +341,13 @@
   "DEPOSIT_SLIP_TYPE_NOT_ALLOWED": "The slip must be a JPEG or PNG photo or a PDF.",
   "DEPOSIT_SLIP_TOO_LARGE": "The slip file must be at most {{maxMb}} MB.",
   "DEPOSIT_SLIP_EMPTY": "Choose a photo or PDF of the deposit slip.",
-  "SAFE_COUNT_TOLERANCE_OUT_OF_RANGE": "The safe count tolerance must be between ₹0 and ₹{{max}}."
+  "SAFE_COUNT_TOLERANCE_OUT_OF_RANGE": "The safe count tolerance must be between ₹0 and ₹{{max}}.",
+  "DAY_CLOSED": "{{date}} is closed. An owner or admin must re-open the day before it can be changed.",
+  "DAY_CLOSE_SAFE_COUNT_MISSING": "{{date}} cannot be closed: no safe count was recorded on that day.",
+  "DAY_CLOSE_PRICES_MISSING": "{{date}} cannot be closed: set or confirm the next day's fuel prices first.",
+  "DAY_ALREADY_CLOSED": "{{date}} is already closed ({{statusCode}}).",
+  "DAY_CLOSE_DATE_IN_FUTURE": "{{date}} has not happened yet, so it cannot be closed.",
+  "DAY_CLOSE_NOT_AWAITING_APPROVAL": "{{date}} is not waiting for approval ({{statusCode}}).",
+  "DAY_NOT_CLOSED": "{{date}} is not closed ({{statusCode}}).",
+  "DAY_CLOSE_APPROVE_NOT_ALLOWED": "Only an owner or admin can approve a day."
 }

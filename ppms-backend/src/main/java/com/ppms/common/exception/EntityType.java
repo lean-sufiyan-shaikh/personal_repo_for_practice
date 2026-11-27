@@ -7,6 +7,7 @@ public enum EntityType {
     CASH_DROP,
     CREDIT_CLIENT,
     CREDIT_ENTRY,
+    DAY_CLOSE,
     CREDIT_EXTENSION,
     CREDIT_PAYMENT,
     DELIVERY,

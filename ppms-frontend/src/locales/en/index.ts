@@ -8,6 +8,7 @@ import cash from './cash.json'
 import common from './common.json'
 import credit from './credit.json'
 import dashboard from './dashboard.json'
+import dayclose from './dayclose.json'
 import documents from './documents.json'
 import enums from './enums.json'
 import errors from './errors.json'
@@ -35,6 +36,7 @@ export const enResources = {
   common,
   credit,
   dashboard,
+  dayclose,
   documents,
   enums,
   errors,

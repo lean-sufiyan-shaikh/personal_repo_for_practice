@@ -4,6 +4,7 @@ import { translateKey } from '../i18n'
 import { useAuthStore } from '../store/authStore'
 import { usePumpStore } from '../store/usePumpStore'
 import type { ApiErrorBody } from '../utils/apiError'
+import { offerReopenForClosedDay } from '../utils/closedDayNotice'
 
 // All requests go to /api/* — Vite proxy forwards them to Spring Boot in dev.
 // In production, both frontend and backend run on the same server, same origin.
@@ -146,6 +147,7 @@ apiClient.interceptors.response.use(
     sanitizeErrorMessage(error)
     recordSuspendedPump(error)
     recordPasswordChangeRequired(error)
+    offerReopenForClosedDay(error)
     if (error.response?.status !== 401 || !useAuthStore.getState().isAuthenticated) {
       return Promise.reject(error)
     }

@@ -30,6 +30,9 @@ export const NOTIFICATION_TYPES: NotificationType[] = [
   'DELIVERY_SHORTAGE',
   'CASH_DROP_PENDING',
   'SAFE_COUNT_VARIANCE',
+  'DAY_CLOSED',
+  'DAY_REOPENED',
+  'DAY_CLOSE_COMMENT',
 ]
 
 /** The type's name in the active language (notifications.json types.<TYPE>); the raw code when the type is new. */

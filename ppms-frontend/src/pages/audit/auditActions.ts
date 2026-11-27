@@ -95,4 +95,9 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   SAFE_COUNTED:                       'neutral',
   BANK_DEPOSIT_RECORDED:              'ok',
   DEPOSIT_SLIP_ATTACHED:              'neutral',
+  // Day close
+  DAY_CLOSED:                         'info',
+  DAY_APPROVED:                       'ok',
+  DAY_REOPENED:                       'warn',
+  DAY_CLOSE_COMMENTED:                'neutral',
 }

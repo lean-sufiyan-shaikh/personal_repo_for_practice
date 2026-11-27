@@ -341,5 +341,13 @@
   "DEPOSIT_SLIP_TYPE_NOT_ALLOWED": "पर्ची JPEG या PNG फ़ोटो या PDF होनी चाहिए।",
   "DEPOSIT_SLIP_TOO_LARGE": "पर्ची की फ़ाइल अधिकतम {{maxMb}} MB की हो सकती है।",
   "DEPOSIT_SLIP_EMPTY": "जमा पर्ची की फ़ोटो या PDF चुनें।",
-  "SAFE_COUNT_TOLERANCE_OUT_OF_RANGE": "तिजोरी गिनती की छूट ₹0 से ₹{{max}} के बीच होनी चाहिए।"
+  "SAFE_COUNT_TOLERANCE_OUT_OF_RANGE": "तिजोरी गिनती की छूट ₹0 से ₹{{max}} के बीच होनी चाहिए।",
+  "DAY_CLOSED": "{{date}} बंद है। बदलने से पहले मालिक या एडमिन को दिन दोबारा खोलना होगा।",
+  "DAY_CLOSE_SAFE_COUNT_MISSING": "{{date}} बंद नहीं हो सकता: उस दिन कोई तिजोरी गिनती दर्ज नहीं हुई।",
+  "DAY_CLOSE_PRICES_MISSING": "{{date}} बंद नहीं हो सकता: पहले अगले दिन के ईंधन दाम तय करें या पक्के करें।",
+  "DAY_ALREADY_CLOSED": "{{date}} पहले से बंद है ({{statusCode}})।",
+  "DAY_CLOSE_DATE_IN_FUTURE": "{{date}} अभी आया नहीं है, इसलिए बंद नहीं हो सकता।",
+  "DAY_CLOSE_NOT_AWAITING_APPROVAL": "{{date}} मंज़ूरी के इंतज़ार में नहीं है ({{statusCode}})।",
+  "DAY_NOT_CLOSED": "{{date}} बंद नहीं है ({{statusCode}})।",
+  "DAY_CLOSE_APPROVE_NOT_ALLOWED": "दिन सिर्फ़ मालिक या एडमिन मंज़ूर कर सकते हैं।"
 }

@@ -1,0 +1,249 @@
+{
+  "page": {
+    "title": "Day Close",
+    "subtitle": "Check the day, close it, and send the owner a one-page summary to approve.",
+    "views": "Day close views",
+    "backToDays": "Back to closed days"
+  },
+  "tabs": {
+    "close": "Close a day",
+    "approvals": "Waiting for approval",
+    "days": "All closed days"
+  },
+  "close": {
+    "dayLabel": "Day to close",
+    "dayHint": "Once closed, nothing dated on this day can be added or changed until an owner or admin re-opens it.",
+    "loadFailed": "Could not load the checklist for this day.",
+    "previewTitle": "Summary preview",
+    "previewDescription": "What the owner will see if you close the day now.",
+    "openSummary": "Open the summary",
+    "banner": {
+      "CLOSED": "{{date}} is closed and waiting for the owner's approval.",
+      "APPROVED": "{{date}} is closed and approved.",
+      "REOPENED": "{{date}} was re-opened. Close it again when the changes are done."
+    },
+    "closeDay": "Close {{date}}",
+    "closeAndApprove": "Close and approve",
+    "closing": "Closing the day",
+    "closed": "{{date}} closed. The owner has been asked to approve it.",
+    "closedAndApproved": "{{date}} closed and approved.",
+    "failed": "Could not close the day. Try again."
+  },
+  "checklist": {
+    "title": "Checklist",
+    "description": "Two things must be done before closing. Warnings do not stop the close but are shown to the owner.",
+    "mustDo": "Must be done",
+    "warnings": "Warnings",
+    "noWarnings": "No warnings for this day."
+  },
+  "checks": {
+    "SAFE_COUNT": {
+      "done": "The safe was counted on this day",
+      "missing": "Count the safe — no safe count was recorded on this day"
+    },
+    "NEXT_DAY_PRICES": {
+      "done": "Next day's fuel prices are set or confirmed",
+      "missing": "Set or confirm the next day's fuel prices ({{fuelTypes}})"
+    },
+    "OPEN_SHIFTS_one": "{{count}} shift is still open — it is left out of this day's figures",
+    "OPEN_SHIFTS_other": "{{count}} shifts are still open — they are left out of this day's figures",
+    "TANKS_WITHOUT_DIP_one": "{{count}} active tank has no dip reading on this day",
+    "TANKS_WITHOUT_DIP_other": "{{count}} active tanks have no dip reading on this day",
+    "PENDING_CASH_DROPS_one": "{{count}} cash drop of {{amount}} is still waiting to be confirmed",
+    "PENDING_CASH_DROPS_other": "{{count}} cash drops worth {{amount}} are still waiting to be confirmed",
+    "DELIVERIES_NOT_CHECKED_one": "{{count}} delivery on this day has no receipt check",
+    "DELIVERIES_NOT_CHECKED_other": "{{count}} deliveries on this day have no receipt check",
+    "OPEN_ATTENTION_ITEMS_one": "{{count}} open alert needs attention",
+    "OPEN_ATTENTION_ITEMS_other": "{{count}} open alerts need attention"
+  },
+  "fix": {
+    "SAFE_COUNT": "Count safe",
+    "NEXT_DAY_PRICES": "Set prices",
+    "OPEN_SHIFTS": "See shifts",
+    "TANKS_WITHOUT_DIP": "Take dips",
+    "PENDING_CASH_DROPS": "Confirm drops",
+    "DELIVERIES_NOT_CHECKED": "See deliveries",
+    "OPEN_ATTENTION_ITEMS": "See alerts"
+  },
+  "flags": {
+    "GREEN": "All good",
+    "AMBER": "Check",
+    "RED": "Problem"
+  },
+  "status": {
+    "CLOSED": "Waiting for approval",
+    "APPROVED": "Approved",
+    "REOPENED": "Re-opened"
+  },
+  "reasons": {
+    "SALES_OK": "All {{shiftCount}} shifts of the day are closed and counted",
+    "SALES_NO_CLOSED_SHIFTS": "No closed shifts on this day, so there are no sales figures",
+    "SALES_OPEN_SHIFTS_EXCLUDED": "{{count}} open shift(s) are left out of these figures",
+    "SALES_COST_MISSING": "{{fuelTypeCode}} was sold with no purchase cost, so its margin is too high",
+    "SALES_NEGATIVE_MARGIN": "The day lost {{amount}}: sales were below purchase cost",
+    "CASH_OK": "Cash, payments and the safe all match",
+    "CASH_NO_SAFE_COUNT": "The safe was not counted on this day",
+    "CASH_SAFE_BEYOND_TOLERANCE": "Safe count is {{varianceTypeCode}} by {{amount}}, beyond the {{toleranceAmount}} tolerance",
+    "CASH_SAFE_SMALL_VARIANCE": "Safe count is {{varianceTypeCode}} by {{amount}}, within tolerance",
+    "CASH_SHIFT_SHORTAGES": "{{count}} shift(s) came up short by {{amount}} in total",
+    "CASH_PENDING_DROPS": "{{count}} cash drop(s) of {{amount}} not yet confirmed",
+    "STOCK_OK": "Tanks and deliveries are within limits",
+    "STOCK_TANK_OUTSIDE_TOLERANCE": "Tank {{tankIdentifier}} is off by {{litres}}, outside its tolerance",
+    "STOCK_DELIVERY_SHORT": "Delivery {{invoiceReference}} was short by {{litres}}",
+    "STOCK_DELIVERY_OVER": "Delivery {{invoiceReference}} was over by {{litres}}",
+    "STOCK_TANKS_NOT_DIPPED": "{{count}} tank(s) had no dip on this day",
+    "STOCK_DELIVERIES_NOT_CHECKED": "{{count}} delivery(s) have no receipt check",
+    "STOCK_OPEN_CLAIMS": "{{count}} shortage claim(s) of {{amount}} still open with suppliers",
+    "CREDIT_OK": "No overdue credit and no open alerts",
+    "CREDIT_OVER_LIMIT": "{{count}} credit client(s) are over their credit limit",
+    "CREDIT_OVERDUE": "{{count}} credit client(s) overdue, {{amount}} outstanding",
+    "ALERTS_OPEN": "{{count}} open alert(s) need attention"
+  },
+  "summary": {
+    "overall": "Overall",
+    "builtAt": "Worked out {{time}} from {{closed}} closed shift(s)",
+    "warnings": "Warnings at close"
+  },
+  "sales": {
+    "title": "Sales & margin",
+    "short": "Sales",
+    "byFuel": "Sales by fuel",
+    "fuelMargin": "Margin",
+    "totals": "Sales totals",
+    "fuelLitres": "Fuel sold",
+    "fuelRevenue": "Fuel sales",
+    "fuelCost": "Fuel purchase cost",
+    "productRevenue": "Product sales",
+    "productMargin": "Product margin",
+    "grossMargin": "Gross margin"
+  },
+  "cash": {
+    "title": "Cash & payments",
+    "short": "Cash",
+    "payments": "Payments by type",
+    "cash": "Cash",
+    "upi": "UPI",
+    "card": "Card",
+    "fleetCard": "Fleet card",
+    "credit": "Credit",
+    "shortages_one": "Shortage ({{count}} shift)",
+    "shortages_other": "Shortages ({{count}} shifts)",
+    "overs_one": "Over ({{count}} shift)",
+    "overs_other": "Overs ({{count}} shifts)",
+    "drops_one": "Confirmed drops ({{count}})",
+    "drops_other": "Confirmed drops ({{count}})",
+    "deposits_one": "Bank deposits ({{count}})",
+    "deposits_other": "Bank deposits ({{count}})",
+    "noSafeCount": "The safe was not counted on this day.",
+    "safeMatches": "matches",
+    "safeCount": "Safe counted {{counted}} against {{expected}} expected — {{result}}"
+  },
+  "stock": {
+    "title": "Stock & deliveries",
+    "short": "Stock",
+    "tanks": "Tanks",
+    "deliveries": "Deliveries",
+    "noDeliveries": "No deliveries on this day.",
+    "notDipped": "No dip",
+    "outsideTolerance": "Outside tolerance",
+    "withinTolerance": "Within tolerance",
+    "claims": "Shortage claims",
+    "openClaims_one": "Open shortage claim ({{count}})",
+    "openClaims_other": "Open shortage claims ({{count}})"
+  },
+  "credit": {
+    "title": "Credit & alerts",
+    "short": "Credit",
+    "figures": "Credit figures",
+    "given": "New credit given",
+    "collections": "Collections received",
+    "overdue_one": "Overdue ({{count}} client)",
+    "overdue_other": "Overdue ({{count}} clients)",
+    "overLimit": "Clients over limit",
+    "alerts_one": "{{count}} open alert",
+    "alerts_other": "{{count}} open alerts"
+  },
+  "list": {
+    "comments_one": "{{count}} comment",
+    "comments_other": "{{count}} comments",
+    "revenue": "Fuel sales",
+    "margin": "Margin",
+    "closedBy": "Closed by {{name}}",
+    "loadFailed": "Could not load closed days.",
+    "none": "No days closed yet.",
+    "noneWaiting": "No closed days are waiting for approval."
+  },
+  "detail": {
+    "loadFailed": "Could not load this day.",
+    "closedBy": "Closed by {{name}} on {{time}} (version {{version}})",
+    "approvedBy": "Approved by {{name}} on {{time}}",
+    "balanceSheet": "Open the day's balance sheet",
+    "balanceSheetStale": "It changed after the day was closed.",
+    "print": "Print",
+    "askQuestion": "Ask a question",
+    "reply": "Reply",
+    "reopen": "Re-open day",
+    "approve": "Approve",
+    "approving": "Approving",
+    "approved": "{{date}} approved.",
+    "approveFailed": "Could not approve the day. Try again.",
+    "questionSent": "Question sent to the manager.",
+    "replySent": "Reply sent to the owner.",
+    "commentFailed": "Could not send the message. Try again.",
+    "reopened": "{{date}} re-opened. It can be changed and closed again.",
+    "reopenFailed": "Could not re-open the day. Try again."
+  },
+  "comment": {
+    "questionTitle": "Ask a question",
+    "questionSubtitle": "The manager is notified and can reply here about {{date}}.",
+    "replyTitle": "Reply",
+    "replySubtitle": "The owner is notified of your reply about {{date}}.",
+    "label": "Message",
+    "missing": "Write a message first.",
+    "send": "Send",
+    "sending": "Sending",
+    "threadTitle": "Questions and notes",
+    "none": "No questions or notes yet.",
+    "kind": {
+      "QUESTION": "Question",
+      "REPLY": "Reply",
+      "REOPEN_REASON": "Re-opened"
+    }
+  },
+  "reopen": {
+    "title": "Re-open {{date}}",
+    "subtitle": "Entries on this day can be changed again. The reason is saved in the audit log and the owner is notified.",
+    "label": "Why re-open this day?",
+    "missing": "A reason is required to re-open the day.",
+    "submit": "Re-open day",
+    "submitting": "Re-opening"
+  },
+  "versions": {
+    "title": "Closes of this day",
+    "label": "Version {{version}}",
+    "closedBy": "closed by {{name}} on {{time}}",
+    "current": "Current",
+    "showing": "Showing",
+    "show": "Show",
+    "olderNotice": "You are looking at version {{version}}. The current close is version {{current}}.",
+    "loadFailed": "Could not load this version."
+  },
+  "print": {
+    "title": "Day summary · {{pump}}"
+  },
+  "card": {
+    "label": "Day close",
+    "allClosed": "Yesterday and today are closed",
+    "closeToday": "Close today",
+    "closeYesterday": "Close yesterday",
+    "waiting_one": "{{count}} closed day is waiting for your approval",
+    "waiting_other": "{{count}} closed days are waiting for your approval",
+    "hint": "Check the day and send the owner the summary.",
+    "review": "Review",
+    "open": "Open checklist"
+  },
+  "closedDay": {
+    "toast": "{{date}} is closed. Re-open it to make this change.",
+    "reopen": "Re-open day"
+  }
+}

@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
-  AlertTriangle, BarChart2, CheckCircle2, ClipboardCheck, Clock, CreditCard, Droplets, FileText, Fuel, Gauge, Landmark,
+  AlertTriangle, BarChart2, CalendarCheck, CheckCircle2, ClipboardCheck, Clock, CreditCard, Droplets, FileText, Fuel, Gauge, Landmark,
   Ruler, Search, Settings, Truck, Vault, Wrench, ZapOff, type LucideIcon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -31,6 +31,7 @@ const ICON_BY_TYPE: Record<AttentionType, LucideIcon> = {
   MISSING_DIPS: Ruler,
   SHORTAGE_CLAIMS_OPEN: Truck,
   PENDING_CASH_DROPS: Vault,
+  DAY_CLOSES_UNAPPROVED: CalendarCheck,
 }
 
 const SEVERITY_CHIP: Record<AttentionSeverity, string> = {

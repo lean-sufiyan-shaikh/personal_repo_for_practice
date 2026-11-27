@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useToastStore } from '../store/toastStore'
 import type { Toast, ToastVariant } from '../store/toastStore'
@@ -28,7 +29,12 @@ export function ToastContainer() {
     return (
       <div key={t.id} className={`ui-toast ${border}`}>
         <span aria-hidden="true" className={`ui-toast-icon ${ICON_COLOR[t.variant]}`}>{icon}</span>
-        <span className="ui-toast-msg">{t.message}</span>
+        <span className="ui-toast-msg">
+          {t.message}
+          {t.action && (
+            <Link to={t.action.to} onClick={() => removeToast(t.id)} className="ui-link mt-1 block font-semibold">{t.action.label}</Link>
+          )}
+        </span>
         <IconButton label={translate('actions.dismiss')} icon="×" onClick={() => removeToast(t.id)} className="ui-toast-close" />
       </div>
     )

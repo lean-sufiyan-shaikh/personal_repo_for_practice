@@ -6,6 +6,7 @@ import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.expense.ApprovalPolicy;
 import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.invoice.InvoicedSaleGuard;
@@ -48,6 +49,7 @@ public class CreditLedgerService {
     private final CreditAccountPolicyService creditAccountPolicyService;
     private final UserRepository userRepository;
     private final BusinessClock businessClock;
+    private final ClosedDayGuard closedDayGuard;
 
     /**
      * Records a payment settlement against a client's outstanding balance.
@@ -64,6 +66,7 @@ public class CreditLedgerService {
             throw new ResourceNotFoundException(EntityType.CREDIT_CLIENT, "Client not found");
         }
 
+        closedDayGuard.requireOpen(pumpId, request.getPaidAt());
         creditAccountPolicyService.lockLimitHolder(client);
 
         BigDecimal payable = payableAmount(client);
@@ -266,6 +269,7 @@ public class CreditLedgerService {
                     Map.of("statusCode", payment.getPaymentApprovalStatus().name()),
                     "Payment is already " + payment.getPaymentApprovalStatus() + " — only PENDING_APPROVAL payments can be acted on");
         }
+        closedDayGuard.requireOpen(pumpId, payment.getPaidAt());
         if (payment.getRecordedById().equals(currentUser.getId())) {
             throw new BusinessException(ErrorCodes.CREDIT_PAYMENT_SELF_APPROVAL,
                     Map.of(),

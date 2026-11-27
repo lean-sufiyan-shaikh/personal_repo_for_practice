@@ -222,3 +222,14 @@ Buttons, field names, payment methods and notices that appear on many screens li
 | Quick actions | झटपट काम | झटपट कामे |
 | Density: Comfortable / Compact | घनत्व: आरामदायक / सघन | घनता: आरामदायक / दाट |
 | Back to list | सूची पर वापस | यादीकडे परत |
+
+## Day close
+
+| English | Hindi | Marathi |
+|---|---|---|
+| Day Close / Close a day | दिन बंद / दिन बंद करें | दिवस बंद / दिवस बंद करा |
+| Re-open day | दिन दोबारा खोलें | दिवस पुन्हा उघडा |
+| Waiting for approval | मंज़ूरी बाकी | मंजुरी बाकी |
+| Flags: All good / Check / Problem | सब ठीक / जाँचें / समस्या | सर्व ठीक / तपासा / अडचण |
+| Safe (cash safe) | तिजोरी | तिजोरी |
+| Tolerance (allowed difference) | छूट | सवलत |

@@ -88,7 +88,10 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/safe/ledger", "OWNER", "ACCOUNTANT"),
                 Arguments.of("/api/pumps/{pumpId}/safe/counts", "ADMIN", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/safe/deposits", "MANAGER", "ACCOUNTANT"),
-                Arguments.of("/api/pumps/{pumpId}/cash-drops/pending", "MANAGER", "OPERATOR"));
+                Arguments.of("/api/pumps/{pumpId}/cash-drops/pending", "MANAGER", "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/day-closes", "MANAGER", "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/day-closes", "OWNER", "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/day-closes/preview?date=" + TODAY, "MANAGER", "ACCOUNTANT"));
     }
 
     @ParameterizedTest(name = "{0} allows {1}")
@@ -123,7 +126,12 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/cash-drops/1/reject", Map.of("reason", "Matrix"), "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/safe/counts", Map.of("countedAmount", 1), "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/safe/deposits", Map.of("amount", 1, "bankAccount", "SBI",
-                        "depositDate", TODAY, "slipReference", "M-1"), "ACCOUNTANT"));
+                        "depositDate", TODAY, "slipReference", "M-1"), "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/day-closes/" + TODAY + "/close", Map.of(), "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/day-closes/" + TODAY + "/close", Map.of(), "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/day-closes/" + TODAY + "/approve", Map.of(), "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/day-closes/" + TODAY + "/reopen", Map.of("reason", "Matrix"), "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/day-closes/" + TODAY + "/comments", Map.of("message", "Matrix"), "OPERATOR"));
     }
 
     @ParameterizedTest(name = "{0} refuses {2}")
@@ -140,7 +148,7 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
 
     private MockHttpServletRequestBuilder write(String path, PumpSetup pump) {
         String resolved = path.replace("{pumpId}", pump.pumpId().toString());
-        return path.endsWith("/revoke") || path.contains("/safe/") ? post(resolved) : patch(resolved);
+        return path.endsWith("/revoke") || path.contains("/safe/") || path.contains("/day-closes/") ? post(resolved) : patch(resolved);
     }
 
     private MockHttpServletRequestBuilder request(String path, PumpSetup pump) {

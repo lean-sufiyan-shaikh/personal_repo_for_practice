@@ -5,6 +5,7 @@ import com.ppms.adjustment.FuelDipEntryRepository;
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.report.BalanceSheetStalenessService;
 import com.ppms.report.StaleReasons;
 import com.ppms.shift.Shift;
@@ -40,6 +41,7 @@ public class LotCostCorrectionService {
     private final ShiftRepository shiftRepository;
     private final DipCheckRepository dipCheckRepository;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
+    private final ClosedDayGuard closedDayGuard;
     private final AuditService auditService;
     private final BusinessClock businessClock;
 
@@ -53,6 +55,7 @@ public class LotCostCorrectionService {
         affectedDates.addAll(shiftDatesOf(consumptions));
         affectedDates.addAll(dipCheckDatesOf(consumptions));
         affectedDates.addAll(recostDrains(consumptions));
+        closedDayGuard.requireOpen(pumpId, affectedDates);
 
         BigDecimal litresRecosted = consumptions.stream()
                 .map(LotConsumption::getQuantityConsumed)

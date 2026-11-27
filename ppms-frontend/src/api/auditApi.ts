@@ -87,6 +87,11 @@ export type AuditAction =
   | 'SAFE_COUNTED'
   | 'BANK_DEPOSIT_RECORDED'
   | 'DEPOSIT_SLIP_ATTACHED'
+  // Day close
+  | 'DAY_CLOSED'
+  | 'DAY_APPROVED'
+  | 'DAY_REOPENED'
+  | 'DAY_CLOSE_COMMENTED'
 
 export interface AuditLog {
   id: number

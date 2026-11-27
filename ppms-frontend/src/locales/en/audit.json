@@ -88,6 +88,10 @@
     "CASH_DROP_REJECTED": "Cash drop rejected",
     "SAFE_COUNTED": "Safe counted",
     "BANK_DEPOSIT_RECORDED": "Bank deposit recorded",
-    "DEPOSIT_SLIP_ATTACHED": "Deposit slip attached"
+    "DEPOSIT_SLIP_ATTACHED": "Deposit slip attached",
+    "DAY_CLOSED": "Day closed",
+    "DAY_APPROVED": "Day approved",
+    "DAY_REOPENED": "Day re-opened",
+    "DAY_CLOSE_COMMENTED": "Day close comment added"
   }
 }

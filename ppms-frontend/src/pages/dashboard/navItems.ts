@@ -1,4 +1,4 @@
-import { Bell, Clock, LayoutDashboard, ClipboardCheck, Zap, CalendarDays, Database, CreditCard, ReceiptText, FileText, Wallet, Wrench, HardHat, Package, ClipboardList, Landmark, BarChart2, TrendingUp, Settings, type LucideIcon } from 'lucide-react'
+import { Bell, CalendarCheck, Clock, LayoutDashboard, ClipboardCheck, Zap, CalendarDays, Database, CreditCard, ReceiptText, FileText, Wallet, Wrench, HardHat, Package, ClipboardList, Landmark, BarChart2, TrendingUp, Settings, type LucideIcon } from 'lucide-react'
 import type { UserRole } from '../../types/auth'
 import { canAccessPage } from '../../permissions/permissions'
 import { translateKey } from '../../i18n'
@@ -7,6 +7,7 @@ import { translateKey } from '../../i18n'
 export const ALL_NAV_ITEMS: { path: string; icon: LucideIcon; page: string; bg: string; color: string }[] = [
   { path: '/dashboard/my-shift',       icon: Clock,           page: 'myShift',       bg: 'bg-ok-bg', color: 'text-ok' },
   { path: '/dashboard',                icon: LayoutDashboard, page: 'overview',      bg: 'bg-info-bg',    color: 'text-primary'    },
+  { path: '/dashboard/day-close',      icon: CalendarCheck,   page: 'dayClose',      bg: 'bg-ok-bg',       color: 'text-ok'          },
   { path: '/dashboard/approvals',      icon: ClipboardCheck,  page: 'approvals',     bg: 'bg-warn-bg',     color: 'text-warn'        },
   { path: '/dashboard/shifts',         icon: Zap,             page: 'shifts',        bg: 'bg-ok-bg', color: 'text-ok' },
   { path: '/dashboard/shift-planning', icon: CalendarDays,    page: 'shiftPlanning', bg: 'bg-info-bg',  color: 'text-primary'  },
@@ -33,7 +34,7 @@ export type NavGroupId = 'operations' | 'money' | 'reports' | 'admin'
 /** Sidebar groups in display order; each group's label is nav.json groups.<id>. */
 const NAV_GROUP_PAGES: { id: NavGroupId; pages: string[] }[] = [
   { id: 'operations', pages: ['myShift', 'overview', 'shifts', 'shiftPlanning', 'inventory', 'cashDrawer', 'products', 'calibration', 'documents'] },
-  { id: 'money',      pages: ['credit', 'settlements', 'expenses', 'approvals', 'payroll'] },
+  { id: 'money',      pages: ['dayClose', 'credit', 'settlements', 'expenses', 'approvals', 'payroll'] },
   { id: 'reports',    pages: ['reports', 'balanceSheets', 'auditLog'] },
   { id: 'admin',      pages: ['setup', 'notifications'] },
 ]

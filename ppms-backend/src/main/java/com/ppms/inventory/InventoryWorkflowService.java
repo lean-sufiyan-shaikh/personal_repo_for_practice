@@ -7,6 +7,7 @@ import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.fuel.GlobalFuelPrice;
 import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.pump.PumpLocation;
@@ -65,6 +66,7 @@ public class InventoryWorkflowService {
     private final DeliveryReceiptService deliveryReceiptService;
     private final ShortageClaimService shortageClaimService;
     private final PumpLocationRepository pumpLocationRepository;
+    private final ClosedDayGuard closedDayGuard;
 
     /**
      * Records one tanker delivery: a TankerDelivery row, a FIFO InventoryLot, and the added tank stock. Stock and the
@@ -76,6 +78,7 @@ public class InventoryWorkflowService {
         UndergroundTank tank = tankRepository.findByIdForUpdate(request.getTankId())
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.TANK, "Tank not found"));
         assertTankUsable(tank, pumpId, "recording a delivery");
+        closedDayGuard.requireOpen(pumpId, request.getDeliveryDate());
         DeliveryReceiptService.MeasuredReceipt receipt = deliveryReceiptService.measure(tank, request.getReceiptCheck());
         assertCapacity(tank, receipt.receivedLitres());
 
@@ -115,6 +118,7 @@ public class InventoryWorkflowService {
      */
     @Transactional
     public List<TankerDeliveryResponse> recordBatchDelivery(Long pumpId, RecordBatchDeliveryRequest request, User currentUser) {
+        closedDayGuard.requireOpen(pumpId, request.getDeliveryDate());
         OffsetDateTime deliveryDateTime = startOfBusinessDay(request.getDeliveryDate());
         String invoiceRef = request.getInvoiceReference().trim();
 
@@ -171,6 +175,7 @@ public class InventoryWorkflowService {
         TankerDelivery delivery = tankerDeliveryRepository.findById(deliveryId)
                 .filter(found -> found.getPumpId().equals(pumpId))
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.DELIVERY, "Delivery not found"));
+        closedDayGuard.requireOpen(pumpId, List.of(businessDayOf(delivery.getDeliveryDate()), request.getDeliveryDate()));
 
         UndergroundTank tank = tankRepository.findByIdForUpdate(delivery.getTankId())
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.TANK, "Tank not found"));
@@ -279,6 +284,7 @@ public class InventoryWorkflowService {
                     "reload the delivery history and try again.");
         }
         List<TankerDelivery> toDelete = tankerDeliveryRepository.findByPumpIdAndInvoiceReference(pumpId, invoiceRef);
+        closedDayGuard.requireOpen(pumpId, toDelete.stream().map(delivery -> businessDayOf(delivery.getDeliveryDate())).toList());
         tankRepository.findAllByIdForUpdate(toDelete.stream().map(TankerDelivery::getTankId).toList());
 
         List<InventoryLot> lots = new ArrayList<>();
@@ -340,6 +346,7 @@ public class InventoryWorkflowService {
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.TANK, "Tank not found"));
         assertTankUsable(tank, pumpId, "recording a DIP check");
         assertCheckedToday(request.getCheckedAt());
+        closedDayGuard.requireTodayOpen(pumpId);
 
         if (currentStockOf(tank).compareTo(BigDecimal.ZERO) == 0 && !tankerDeliveryRepository.existsByTankId(tank.getId())) {
             throw new BusinessException(ErrorCodes.TANK_HAS_NO_DELIVERY,
@@ -733,6 +740,10 @@ public class InventoryWorkflowService {
                     "A DIP check can only be recorded for today (" + today + "). A check dated " + checkedOn +
                     " would overwrite today's tank stock with an older measurement.");
         }
+    }
+
+    private LocalDate businessDayOf(OffsetDateTime moment) {
+        return moment.atZoneSameInstant(businessClock.zone()).toLocalDate();
     }
 
     private OffsetDateTime startOfBusinessDay(LocalDate date) {

@@ -74,6 +74,36 @@ public class BalanceSheetService {
 
     @Transactional
     public BalanceSheetDetailResponse generate(Long pumpId, GenerateBalanceSheetRequest req, User generatedBy) {
+        return generateSheet(pumpId, req, generatedBy, false);
+    }
+
+    /**
+     * Generates the DAY sheet of a day being closed, replacing its latest revision. Shifts still open are left out
+     * of the figures, as the day close says, instead of blocking the sheet. Empty when the day has no closed shift.
+     */
+    @Transactional
+    public Optional<Long> refreshDaySheetForDayClose(Long pumpId, LocalDate reportDate, User closedBy) {
+        if (shiftRepository.findClosedShiftsByDate(pumpId, reportDate).isEmpty()) {
+            return Optional.empty();
+        }
+        GenerateBalanceSheetRequest request = new GenerateBalanceSheetRequest();
+        request.setReportType(BalanceSheetReportType.DAY);
+        request.setReportDate(reportDate);
+        balanceSheetRepository.findFirstByPumpIdAndReportDateAndReportTypeOrderByGeneratedAtDesc(
+                pumpId, reportDate, BalanceSheetReportType.DAY).ifPresent(latest -> {
+            request.setNotes(latest.getNotes());
+            balanceSheetRepository.delete(latest);
+            balanceSheetRepository.flush();
+        });
+        request.setForceRegenerate(balanceSheetRepository.countByPumpIdAndReportDateAndReportType(
+                pumpId, reportDate, BalanceSheetReportType.DAY) > 0);
+        Long sheetId = generateSheet(pumpId, request, closedBy, true).getId();
+        log.info("Day sheet refreshed for day close: pump={}, date={}, sheet={}, by={}", pumpId, reportDate, sheetId, closedBy.getId());
+        return Optional.of(sheetId);
+    }
+
+    private BalanceSheetDetailResponse generateSheet(Long pumpId, GenerateBalanceSheetRequest req, User generatedBy,
+                                                     boolean leaveOutOpenShifts) {
         validateRequest(req);
 
         LocalDate reportDate = req.getReportDate();
@@ -95,7 +125,7 @@ public class BalanceSheetService {
                 ? shiftRepository.findOpenShiftsByDefinition(pumpId, reportDate, shiftDef.getId())
                 : shiftRepository.findOpenShiftsByDate(pumpId, reportDate);
         boolean isLiveSheet = reportDate.equals(businessClock.today());
-        if (!openShifts.isEmpty() && !isLiveSheet) {
+        if (!openShifts.isEmpty() && !isLiveSheet && !leaveOutOpenShifts) {
             String listedShifts = listOpenShifts(openShifts);
             throw new BusinessException(ErrorCodes.BALANCE_SHEET_BLOCKED_BY_OPEN_SHIFTS,
                     Map.of("reportDate", reportDate.toString(),

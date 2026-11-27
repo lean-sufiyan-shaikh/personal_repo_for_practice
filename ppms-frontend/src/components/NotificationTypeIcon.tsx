@@ -1,6 +1,6 @@
 import {
   Droplets, AlertTriangle, FileText, Wrench,
-  Clock, TrendingDown, IndianRupee, Package, Lock, Info, Truck, Vault,
+  Clock, TrendingDown, IndianRupee, Package, Lock, Info, Truck, Vault, CalendarCheck, RotateCcw, MessageCircle,
 } from 'lucide-react'
 import type { LucideProps } from 'lucide-react'
 
@@ -20,6 +20,9 @@ export function NotificationTypeIcon({ type }: { type: string }) {
     case 'DELIVERY_SHORTAGE':       return <Truck         {...base} className="text-bad flex-shrink-0 mt-0.5" />
     case 'CASH_DROP_PENDING':       return <Vault         {...base} className="text-warn flex-shrink-0 mt-0.5" />
     case 'SAFE_COUNT_VARIANCE':     return <Vault         {...base} className="text-bad flex-shrink-0 mt-0.5" />
+    case 'DAY_CLOSED':              return <CalendarCheck {...base} className="text-info flex-shrink-0 mt-0.5" />
+    case 'DAY_REOPENED':            return <RotateCcw     {...base} className="text-warn flex-shrink-0 mt-0.5" />
+    case 'DAY_CLOSE_COMMENT':       return <MessageCircle {...base} className="text-info flex-shrink-0 mt-0.5" />
     case 'AUTO_CLOSED_SHIFT':       return <Lock          {...base} className="text-ink-3 flex-shrink-0 mt-0.5" />
     default:                        return <Info          {...base} className="text-ink-3 flex-shrink-0 mt-0.5" />
   }

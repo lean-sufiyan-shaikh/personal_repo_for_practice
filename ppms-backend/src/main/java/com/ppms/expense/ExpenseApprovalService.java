@@ -8,6 +8,7 @@ import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ public class ExpenseApprovalService {
     private final PumpExpenseRepository expenseRepository;
     private final AuditService auditService;
     private final BusinessClock businessClock;
+    private final ClosedDayGuard closedDayGuard;
 
     @Transactional
     public PumpExpense review(Long pumpId, Long expenseId, ExpenseApprovalStatus action, String notes, User reviewer) {
@@ -41,6 +43,7 @@ public class ExpenseApprovalService {
                     "Action must be APPROVED or REJECTED");
         }
 
+        closedDayGuard.requireOpen(pumpId, expense.getExpenseDate());
         String trimmedNotes = notes != null && !notes.isBlank() ? notes.trim() : null;
         expense.setApprovalStatus(action);
         expense.setApprovedByUserId(reviewer.getId());

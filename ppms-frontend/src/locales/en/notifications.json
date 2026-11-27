@@ -33,6 +33,9 @@
     "WET_STOCK_LOSS": "Fuel loss above limit",
     "DELIVERY_SHORTAGE": "Short tanker delivery",
     "CASH_DROP_PENDING": "Cash drop to confirm",
-    "SAFE_COUNT_VARIANCE": "Safe count difference"
+    "SAFE_COUNT_VARIANCE": "Safe count difference",
+    "DAY_CLOSED": "Day closed",
+    "DAY_REOPENED": "Day re-opened",
+    "DAY_CLOSE_COMMENT": "Day close question or reply"
   }
 }

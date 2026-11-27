@@ -4,6 +4,7 @@ import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.Map;
 public class CashDrawerService {
 
     private final CashEventRepository cashEventRepository;
+    private final ClosedDayGuard closedDayGuard;
     private final PumpLocationRepository pumpLocationRepository;
 
     /**
@@ -37,6 +39,7 @@ public class CashDrawerService {
                     Map.of("eventTypeCode", req.getEventType().name()),
                     req.getEventType() + " movements are recorded by confirming a cash drop or recording a bank deposit.");
         }
+        closedDayGuard.requireOpen(pumpId, req.getEventDate());
         BigDecimal amount = req.getAmount().setScale(2, RoundingMode.HALF_UP);
 
         if (req.getEventType() == CashEventType.CASH_OUT) {

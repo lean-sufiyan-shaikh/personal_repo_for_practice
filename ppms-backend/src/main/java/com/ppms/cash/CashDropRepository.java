@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,4 +44,12 @@ public interface CashDropRepository extends JpaRepository<CashDrop, Long> {
             WHERE d.pumpId = :pumpId AND d.status = :status
             """)
     DropTotal totalForPump(@Param("pumpId") Long pumpId, @Param("status") CashDropStatus status);
+
+    @Query("""
+            SELECT COUNT(d) AS dropCount, COALESCE(SUM(d.amount), 0) AS amount
+            FROM CashDrop d
+            WHERE d.pumpId = :pumpId AND d.status = :status AND d.reviewedAt >= :from AND d.reviewedAt < :to
+            """)
+    DropTotal totalReviewedBetween(@Param("pumpId") Long pumpId, @Param("status") CashDropStatus status,
+                                   @Param("from") OffsetDateTime from, @Param("to") OffsetDateTime to);
 }

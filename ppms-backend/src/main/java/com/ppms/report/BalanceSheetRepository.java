@@ -39,6 +39,9 @@ public interface BalanceSheetRepository extends JpaRepository<BalanceSheet, Long
     Optional<BalanceSheet> findFirstByPumpIdAndReportDateAndReportType(
             Long pumpId, LocalDate reportDate, BalanceSheetReportType reportType);
 
+    Optional<BalanceSheet> findFirstByPumpIdAndReportDateAndReportTypeOrderByGeneratedAtDesc(
+            Long pumpId, LocalDate reportDate, BalanceSheetReportType reportType);
+
     /** Count of SHIFT reports for this definition — used to compute revision numbers */
     long countByPumpIdAndReportDateAndShiftDefinitionId(Long pumpId, LocalDate reportDate, Long shiftDefinitionId);
 

@@ -84,7 +84,7 @@ describe('DashboardSidebar groups', () => {
     expect(groupNames()).toEqual(['Operations', 'Money', 'Reports', 'Admin'])
     const money = document.getElementById(screen.getByRole('button', { name: 'Money' }).getAttribute('aria-controls')!)!
     expect(within(money).getAllByRole('link').map((link) => link.textContent))
-      .toEqual(['Credit', 'Settlements', 'Expenses', 'Approvals', 'Payroll'])
+      .toEqual(['Day Close', 'Credit', 'Settlements', 'Expenses', 'Approvals', 'Payroll'])
   })
 
   it('leaves out the pages and groups a role cannot open', () => {

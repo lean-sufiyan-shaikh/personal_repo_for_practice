@@ -3,10 +3,11 @@ package com.ppms.notification;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Decides which page a notification opens, from its type and the shift id kept in its dedup key. */
+/** Decides which page a notification opens, from its type and the shift id or business date kept in its dedup key. */
 public final class NotificationTargets {
 
     private static final Pattern SHIFT_ID = Pattern.compile(":shift:(\\d+)");
+    private static final Pattern BUSINESS_DATE = Pattern.compile(":date:(\\d{4}-\\d{2}-\\d{2})");
 
     private NotificationTargets() {
     }
@@ -23,7 +24,15 @@ public final class NotificationTargets {
             case DOCUMENT_EXPIRING -> NotificationTarget.of("/dashboard/documents");
             case ANCILLARY_LOW_STOCK -> NotificationTarget.of("/dashboard/ancillary");
             case SHIFT_OVERDUE, ZERO_SALE_SHIFT, AUTO_CLOSED_SHIFT, PRICE_CHANGE_OPEN_SHIFT -> shiftTarget(dedupKey);
+            case DAY_CLOSED, DAY_REOPENED, DAY_CLOSE_COMMENT -> dayCloseTarget(dedupKey);
         };
+    }
+
+    private static NotificationTarget dayCloseTarget(String dedupKey) {
+        Matcher matcher = BUSINESS_DATE.matcher(dedupKey == null ? "" : dedupKey);
+        return matcher.find()
+                ? NotificationTarget.of("/dashboard/day-close", "date", matcher.group(1))
+                : NotificationTarget.of("/dashboard/day-close");
     }
 
     private static NotificationTarget shiftTarget(String dedupKey) {

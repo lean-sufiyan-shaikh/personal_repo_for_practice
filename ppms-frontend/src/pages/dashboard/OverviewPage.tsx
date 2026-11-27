@@ -25,6 +25,7 @@ import { Page } from '../../components/layout/Page'
 import { PageSection } from '../../components/layout/PageSection'
 import { DashboardColumns, KpiRow } from '../../components/layout/DashboardGrid'
 import { AttentionInbox } from './overview/AttentionInbox'
+import { DayCloseCard } from './overview/DayCloseCard'
 import { OverviewHeader } from './overview/OverviewHeader'
 import { codeLabel } from '../../constants/labels'
 import { formatDecimal } from '../../utils/format'
@@ -193,6 +194,8 @@ export default function OverviewPage() {
               </div>
             </Link>
           )}
+
+          {pumpId && <DayCloseCard pumpId={pumpId} />}
 
           {/* ── Live stat cards ── */}
           <Reveal delay={150}>

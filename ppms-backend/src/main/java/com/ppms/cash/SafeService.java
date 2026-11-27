@@ -8,6 +8,7 @@ import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.time.DateRangeBounds;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.notification.NotificationDedupService;
 import com.ppms.notification.NotificationType;
 import com.ppms.pump.PumpLocation;
@@ -48,6 +49,7 @@ public class SafeService {
     private final NotificationDedupService dedupService;
     private final AuditService auditService;
     private final BusinessClock businessClock;
+    private final ClosedDayGuard closedDayGuard;
 
     @Transactional(readOnly = true)
     public SafeSummaryResponse summary(Long pumpId) {
@@ -87,6 +89,7 @@ public class SafeService {
     public SafeCountResponse recordCount(Long pumpId, RecordSafeCountRequest request, User currentUser) {
         PumpLocation pump = pumpLocationRepository.findByIdForUpdate(pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found"));
+        closedDayGuard.requireTodayOpen(pumpId);
         BigDecimal counted = request.countedAmount().setScale(2, RoundingMode.HALF_UP);
         CashDenominations.requireMatches(request.denominations(), counted);
 

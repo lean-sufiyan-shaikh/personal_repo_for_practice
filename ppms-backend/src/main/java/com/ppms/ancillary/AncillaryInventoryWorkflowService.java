@@ -13,6 +13,7 @@ import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditClientRepository;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.invoice.GstFields;
 import com.ppms.report.BalanceSheetStalenessService;
 import com.ppms.report.StaleReasons;
@@ -53,6 +54,7 @@ public class AncillaryInventoryWorkflowService {
     private final AuditService auditService;
     private final BusinessClock businessClock;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
+    private final ClosedDayGuard closedDayGuard;
 
     @Transactional
     public AncillaryProduct createProduct(Long pumpId, CreateProductRequest request, User currentUser) {
@@ -134,6 +136,7 @@ public class AncillaryInventoryWorkflowService {
                     "Product '" + product.getName() + "' is INACTIVE. Re-activate it before recording a delivery.");
         }
 
+        closedDayGuard.requireOpen(pumpId, request.getDeliveryDate());
         // Mark as backfilled when the delivery date is before today — historical entry.
         boolean isBackfilled = request.getDeliveryDate().isBefore(businessClock.today());
 
@@ -200,6 +203,7 @@ public class AncillaryInventoryWorkflowService {
 
         BigDecimal sellingPrice = resolveSellingPrice(pumpId, product, request.getSellingPricePerUnit(), currentUser);
         LocalDate today = businessClock.today();
+        closedDayGuard.requireOpen(pumpId, today);
         validateCreditSale(pumpId, creditClient, sellingPrice, request.getQuantityUnits());
 
         AncillarySale sale = saleRepository.save(newSale(pumpId, product, request.getQuantityUnits(), sellingPrice,
@@ -312,6 +316,7 @@ public class AncillaryInventoryWorkflowService {
         Set<LocalDate> saleDates = saleRepository.findAllById(
                         consumptions.stream().map(AncillaryLotConsumption::getSaleId).collect(Collectors.toSet()))
                 .stream().map(AncillarySale::getSaleDate).collect(Collectors.toSet());
+        closedDayGuard.requireOpen(pumpId, saleDates);
         balanceSheetStalenessService.markDaySheetsStale(pumpId, saleDates,
                 StaleReasons.productCostCorrected(product.getName(), oldCost.toString(), newCost.toString()));
 
@@ -343,6 +348,7 @@ public class AncillaryInventoryWorkflowService {
                     Map.of(),
                     "Sale date must be strictly in the past. Use the regular Sell button for today's sales.");
         }
+        closedDayGuard.requireOpen(pumpId, request.getSaleDate());
 
         if (request.getClientId() != null && !creditClientRepository.existsByIdAndPumpId(request.getClientId(), pumpId)) {
             throw new ResourceNotFoundException(EntityType.CREDIT_CLIENT, "Credit client not found");

@@ -9,6 +9,7 @@ import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.time.DateRangeBounds;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
@@ -50,6 +51,7 @@ public class PaymentSettlementService {
     private final PumpLocationRepository         pumpLocationRepository;
     private final AuditService                   auditService;
     private final BusinessClock businessClock;
+    private final ClosedDayGuard closedDayGuard;
 
 
 
@@ -150,6 +152,7 @@ public class PaymentSettlementService {
                     "settlementDate cannot be in the future.");
         }
 
+        closedDayGuard.requireOpen(pumpId, settlementDate);
         BigDecimal amount = req.getAmountReceived().setScale(2, RoundingMode.HALF_UP);
         String bankReference = req.getBankReference() == null || req.getBankReference().isBlank()
                 ? null
@@ -229,6 +232,7 @@ public class PaymentSettlementService {
                     Map.of(),
                     "This settlement is already voided.");
         }
+        closedDayGuard.requireOpen(pumpId, settlement.getSettlementDate());
 
         settlement.setVoidStatus(PaymentSettlement.VOIDED);
         settlement.setVoidReason(req.getReason().trim());

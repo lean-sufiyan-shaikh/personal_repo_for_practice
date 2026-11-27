@@ -10,6 +10,7 @@ import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.time.DateRangeBounds;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
@@ -49,6 +50,7 @@ public class BankDepositService {
     private final UserRepository userRepository;
     private final AuditService auditService;
     private final BusinessClock businessClock;
+    private final ClosedDayGuard closedDayGuard;
 
     /** The pump row is locked, as for a manual cash-out, so two deposits cannot both spend the same balance. */
     @Transactional
@@ -59,6 +61,7 @@ public class BankDepositService {
             throw new BusinessException(ErrorCodes.BANK_DEPOSIT_DATE_IN_FUTURE, Map.of(),
                     "The deposit date cannot be in the future.");
         }
+        closedDayGuard.requireOpen(pumpId, request.depositDate());
         String slipReference = request.slipReference().trim();
         if (depositRepository.existsByPumpIdAndSlipReferenceIgnoreCase(pumpId, slipReference)) {
             throw new BusinessException(ErrorCodes.BANK_DEPOSIT_SLIP_REFERENCE_USED, Map.of("slipReference", slipReference),

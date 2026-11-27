@@ -17,6 +17,9 @@ export type NotificationType =
   | 'DELIVERY_SHORTAGE'
   | 'CASH_DROP_PENDING'
   | 'SAFE_COUNT_VARIANCE'
+  | 'DAY_CLOSED'
+  | 'DAY_REOPENED'
+  | 'DAY_CLOSE_COMMENT'
 
 /** The page a notification opens: an app route and the query parameters that pick what it is about. */
 export interface NotificationTarget {

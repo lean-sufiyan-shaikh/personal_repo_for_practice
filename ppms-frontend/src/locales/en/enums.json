@@ -270,6 +270,18 @@
     "SAFE_COUNT_VARIANCE": {
       "title": "Safe Count Differs",
       "message": "{{countedByName}} counted ₹{{countedAmount}} in the safe against ₹{{expectedAmount}} expected: {{varianceTypeCode}} by ₹{{amount}}."
+    },
+    "DAY_CLOSED": {
+      "title": "Day Closed",
+      "message": "{{closedByName}} closed {{date}}. Review the summary and approve it."
+    },
+    "DAY_REOPENED": {
+      "title": "Day Re-opened",
+      "message": "{{reopenedByName}} re-opened {{date}}: {{reason}}"
+    },
+    "DAY_CLOSE_COMMENT": {
+      "title": "Day Close Message",
+      "message": "{{authorName}} wrote about {{date}}: {{message}}"
     }
   },
   "serverTexts": {
@@ -365,7 +377,9 @@
     "ATTENTION_SHORTAGE_CLAIMS_OPEN_one": "{{count}} shortage claim raised more than {{days}} days ago and still open",
     "ATTENTION_SHORTAGE_CLAIMS_OPEN_other": "{{count}} shortage claims raised more than {{days}} days ago and still open",
     "ATTENTION_PENDING_CASH_DROPS_one": "{{count}} cash drop waiting to be confirmed in the safe",
-    "ATTENTION_PENDING_CASH_DROPS_other": "{{count}} cash drops waiting to be confirmed in the safe"
+    "ATTENTION_PENDING_CASH_DROPS_other": "{{count}} cash drops waiting to be confirmed in the safe",
+    "ATTENTION_DAY_CLOSES_UNAPPROVED_one": "{{count}} closed day waiting for your approval",
+    "ATTENTION_DAY_CLOSES_UNAPPROVED_other": "{{count}} closed days waiting for your approval"
   },
   "WET_STOCK_LOSS": "Fuel loss above limit",
   "RAISED": "Raised",
@@ -380,5 +394,9 @@
   "PENDING": "Pending",
   "PENDING_CASH_DROPS": "Cash drops to confirm",
   "CASH_DROP_PENDING": "Cash drop to confirm",
-  "SAFE_COUNT_VARIANCE": "Safe count difference"
+  "SAFE_COUNT_VARIANCE": "Safe count difference",
+  "DAY_CLOSES_UNAPPROVED": "Closed days to approve",
+  "DAY_CLOSED": "Day closed",
+  "DAY_REOPENED": "Day re-opened",
+  "DAY_CLOSE_COMMENT": "Day close message"
 }

@@ -1,0 +1,249 @@
+{
+  "page": {
+    "title": "दिवस बंद",
+    "subtitle": "दिवस तपासा, बंद करा आणि मालकाला मंजुरीसाठी एका पानाचा सारांश पाठवा.",
+    "views": "दिवस बंदची दृश्ये",
+    "backToDays": "बंद दिवसांकडे परत"
+  },
+  "tabs": {
+    "close": "दिवस बंद करा",
+    "approvals": "मंजुरी बाकी",
+    "days": "सर्व बंद दिवस"
+  },
+  "close": {
+    "dayLabel": "बंद करायचा दिवस",
+    "dayHint": "बंद झाल्यावर मालक किंवा ॲडमिन दिवस पुन्हा उघडेपर्यंत या दिवसाची कोणतीही नोंद जोडता किंवा बदलता येणार नाही.",
+    "loadFailed": "या दिवसाची चेकलिस्ट लोड झाली नाही.",
+    "previewTitle": "सारांशाची झलक",
+    "previewDescription": "आता दिवस बंद केल्यास मालकाला हेच दिसेल.",
+    "openSummary": "सारांश उघडा",
+    "banner": {
+      "CLOSED": "{{date}} बंद आहे आणि मालकाच्या मंजुरीची वाट पाहत आहे.",
+      "APPROVED": "{{date}} बंद आहे आणि मंजूर झाला आहे.",
+      "REOPENED": "{{date}} पुन्हा उघडला आहे. बदल पूर्ण झाल्यावर तो पुन्हा बंद करा."
+    },
+    "closeDay": "{{date}} बंद करा",
+    "closeAndApprove": "बंद करा आणि मंजूर करा",
+    "closing": "दिवस बंद होत आहे",
+    "closed": "{{date}} बंद झाला. मालकाकडे मंजुरी मागितली आहे.",
+    "closedAndApproved": "{{date}} बंद आणि मंजूर झाला.",
+    "failed": "दिवस बंद झाला नाही. पुन्हा प्रयत्न करा."
+  },
+  "checklist": {
+    "title": "चेकलिस्ट",
+    "description": "बंद करण्यापूर्वी दोन कामे आवश्यक आहेत. इशारे बंद करण्यापासून थांबवत नाहीत, पण मालकाला दाखवले जातात.",
+    "mustDo": "आवश्यक कामे",
+    "warnings": "इशारे",
+    "noWarnings": "या दिवसासाठी कोणताही इशारा नाही."
+  },
+  "checks": {
+    "SAFE_COUNT": {
+      "done": "या दिवशी तिजोरी मोजली गेली",
+      "missing": "तिजोरी मोजा — या दिवशी तिजोरी मोजणीची नोंद झाली नाही"
+    },
+    "NEXT_DAY_PRICES": {
+      "done": "पुढच्या दिवसाचे इंधन दर ठरले किंवा पक्के झाले",
+      "missing": "पुढच्या दिवसाचे इंधन दर ठरवा किंवा पक्के करा ({{fuelTypes}})"
+    },
+    "OPEN_SHIFTS_one": "{{count}} शिफ्ट अजून उघडी आहे — ती या दिवसाच्या आकड्यांत धरलेली नाही",
+    "OPEN_SHIFTS_other": "{{count}} शिफ्ट अजून उघड्या आहेत — त्या या दिवसाच्या आकड्यांत धरलेल्या नाहीत",
+    "TANKS_WITHOUT_DIP_one": "{{count}} चालू टाकीचे या दिवशी डिप रीडिंग नाही",
+    "TANKS_WITHOUT_DIP_other": "{{count}} चालू टाक्यांचे या दिवशी डिप रीडिंग नाही",
+    "PENDING_CASH_DROPS_one": "{{amount}} चा {{count}} कॅश ड्रॉप अजून पक्का व्हायचा आहे",
+    "PENDING_CASH_DROPS_other": "{{amount}} चे {{count}} कॅश ड्रॉप अजून पक्के व्हायचे आहेत",
+    "DELIVERIES_NOT_CHECKED_one": "या दिवशीच्या {{count}} डिलिव्हरीची पावती तपासणी झाली नाही",
+    "DELIVERIES_NOT_CHECKED_other": "या दिवशीच्या {{count}} डिलिव्हरींची पावती तपासणी झाली नाही",
+    "OPEN_ATTENTION_ITEMS_one": "{{count}} उघड्या इशाऱ्याकडे लक्ष द्यायचे आहे",
+    "OPEN_ATTENTION_ITEMS_other": "{{count}} उघड्या इशाऱ्यांकडे लक्ष द्यायचे आहे"
+  },
+  "fix": {
+    "SAFE_COUNT": "तिजोरी मोजा",
+    "NEXT_DAY_PRICES": "दर ठरवा",
+    "OPEN_SHIFTS": "शिफ्ट पाहा",
+    "TANKS_WITHOUT_DIP": "डिप घ्या",
+    "PENDING_CASH_DROPS": "ड्रॉप पक्के करा",
+    "DELIVERIES_NOT_CHECKED": "डिलिव्हरी पाहा",
+    "OPEN_ATTENTION_ITEMS": "इशारे पाहा"
+  },
+  "flags": {
+    "GREEN": "सर्व ठीक",
+    "AMBER": "तपासा",
+    "RED": "अडचण"
+  },
+  "status": {
+    "CLOSED": "मंजुरी बाकी",
+    "APPROVED": "मंजूर",
+    "REOPENED": "पुन्हा उघडला"
+  },
+  "reasons": {
+    "SALES_OK": "दिवसातील सर्व {{shiftCount}} शिफ्ट बंद आणि मोजलेल्या आहेत",
+    "SALES_NO_CLOSED_SHIFTS": "या दिवशी एकही शिफ्ट बंद झाली नाही, म्हणून विक्रीचे आकडे नाहीत",
+    "SALES_OPEN_SHIFTS_EXCLUDED": "{{count}} उघड्या शिफ्ट या आकड्यांत धरलेल्या नाहीत",
+    "SALES_COST_MISSING": "{{fuelTypeCode}} खरेदी खर्चाशिवाय विकले, म्हणून त्याचे मार्जिन जास्त दिसते",
+    "SALES_NEGATIVE_MARGIN": "दिवसात {{amount}} तोटा झाला: विक्री खरेदी खर्चापेक्षा कमी होती",
+    "CASH_OK": "रोख, पेमेंट आणि तिजोरी सर्व जुळतात",
+    "CASH_NO_SAFE_COUNT": "या दिवशी तिजोरी मोजली नाही",
+    "CASH_SAFE_BEYOND_TOLERANCE": "तिजोरी मोजणी {{amount}} {{varianceTypeCode}} आहे, {{toleranceAmount}} च्या सवलतीपेक्षा जास्त",
+    "CASH_SAFE_SMALL_VARIANCE": "तिजोरी मोजणी {{amount}} {{varianceTypeCode}} आहे, सवलतीच्या आत",
+    "CASH_SHIFT_SHORTAGES": "{{count}} शिफ्टमध्ये एकूण {{amount}} कमी आले",
+    "CASH_PENDING_DROPS": "{{amount}} चे {{count}} कॅश ड्रॉप अजून पक्के झाले नाहीत",
+    "STOCK_OK": "टाक्या आणि डिलिव्हरी मर्यादेत आहेत",
+    "STOCK_TANK_OUTSIDE_TOLERANCE": "टाकी {{tankIdentifier}} मध्ये {{litres}} फरक आहे, सवलतीबाहेर",
+    "STOCK_DELIVERY_SHORT": "डिलिव्हरी {{invoiceReference}} मध्ये {{litres}} कमी आले",
+    "STOCK_DELIVERY_OVER": "डिलिव्हरी {{invoiceReference}} मध्ये {{litres}} जास्त आले",
+    "STOCK_TANKS_NOT_DIPPED": "{{count}} टाक्यांचे या दिवशी डिप झाले नाही",
+    "STOCK_DELIVERIES_NOT_CHECKED": "{{count}} डिलिव्हरींची पावती तपासणी झाली नाही",
+    "STOCK_OPEN_CLAIMS": "{{amount}} चे {{count}} कमतरता क्लेम पुरवठादाराकडे अजून उघडे आहेत",
+    "CREDIT_OK": "थकीत क्रेडिट नाही आणि उघडे इशारे नाहीत",
+    "CREDIT_OVER_LIMIT": "{{count}} क्रेडिट ग्राहक त्यांच्या क्रेडिट मर्यादेपेक्षा वर आहेत",
+    "CREDIT_OVERDUE": "{{count}} क्रेडिट ग्राहक थकीत, {{amount}} बाकी",
+    "ALERTS_OPEN": "{{count}} उघड्या इशाऱ्यांकडे लक्ष द्यायचे आहे"
+  },
+  "summary": {
+    "overall": "एकूण",
+    "builtAt": "{{time}} ला {{closed}} बंद शिफ्टवरून काढले",
+    "warnings": "बंद करतानाचे इशारे"
+  },
+  "sales": {
+    "title": "विक्री आणि मार्जिन",
+    "short": "विक्री",
+    "byFuel": "इंधनानुसार विक्री",
+    "fuelMargin": "मार्जिन",
+    "totals": "विक्रीची बेरीज",
+    "fuelLitres": "विकलेले इंधन",
+    "fuelRevenue": "इंधन विक्री",
+    "fuelCost": "इंधन खरेदी खर्च",
+    "productRevenue": "वस्तू विक्री",
+    "productMargin": "वस्तू मार्जिन",
+    "grossMargin": "एकूण मार्जिन"
+  },
+  "cash": {
+    "title": "रोख आणि पेमेंट",
+    "short": "रोख",
+    "payments": "पेमेंटचे प्रकार",
+    "cash": "रोख",
+    "upi": "UPI",
+    "card": "कार्ड",
+    "fleetCard": "फ्लीट कार्ड",
+    "credit": "क्रेडिट",
+    "shortages_one": "कमतरता ({{count}} शिफ्ट)",
+    "shortages_other": "कमतरता ({{count}} शिफ्ट)",
+    "overs_one": "जास्त ({{count}} शिफ्ट)",
+    "overs_other": "जास्त ({{count}} शिफ्ट)",
+    "drops_one": "पक्के ड्रॉप ({{count}})",
+    "drops_other": "पक्के ड्रॉप ({{count}})",
+    "deposits_one": "बँक भरणा ({{count}})",
+    "deposits_other": "बँक भरणा ({{count}})",
+    "noSafeCount": "या दिवशी तिजोरी मोजली नाही.",
+    "safeMatches": "जुळते",
+    "safeCount": "तिजोरीत {{counted}} मोजले, अपेक्षित {{expected}} — {{result}}"
+  },
+  "stock": {
+    "title": "स्टॉक आणि डिलिव्हरी",
+    "short": "स्टॉक",
+    "tanks": "टाक्या",
+    "deliveries": "डिलिव्हरी",
+    "noDeliveries": "या दिवशी डिलिव्हरी नाही.",
+    "notDipped": "डिप नाही",
+    "outsideTolerance": "सवलतीबाहेर",
+    "withinTolerance": "सवलतीच्या आत",
+    "claims": "कमतरता क्लेम",
+    "openClaims_one": "उघडा कमतरता क्लेम ({{count}})",
+    "openClaims_other": "उघडे कमतरता क्लेम ({{count}})"
+  },
+  "credit": {
+    "title": "क्रेडिट आणि इशारे",
+    "short": "क्रेडिट",
+    "figures": "क्रेडिटचे आकडे",
+    "given": "नवीन दिलेले क्रेडिट",
+    "collections": "मिळालेली वसुली",
+    "overdue_one": "थकीत ({{count}} ग्राहक)",
+    "overdue_other": "थकीत ({{count}} ग्राहक)",
+    "overLimit": "मर्यादेपेक्षा वरचे ग्राहक",
+    "alerts_one": "{{count}} उघडा इशारा",
+    "alerts_other": "{{count}} उघडे इशारे"
+  },
+  "list": {
+    "comments_one": "{{count}} टिप्पणी",
+    "comments_other": "{{count}} टिप्पण्या",
+    "revenue": "इंधन विक्री",
+    "margin": "मार्जिन",
+    "closedBy": "{{name}} यांनी बंद केला",
+    "loadFailed": "बंद दिवस लोड झाले नाहीत.",
+    "none": "अजून एकही दिवस बंद झाला नाही.",
+    "noneWaiting": "एकही बंद दिवस मंजुरीच्या प्रतीक्षेत नाही."
+  },
+  "detail": {
+    "loadFailed": "हा दिवस लोड झाला नाही.",
+    "closedBy": "{{name}} यांनी {{time}} ला बंद केला (आवृत्ती {{version}})",
+    "approvedBy": "{{name}} यांनी {{time}} ला मंजूर केला",
+    "balanceSheet": "दिवसाची बॅलन्स शीट उघडा",
+    "balanceSheetStale": "दिवस बंद झाल्यानंतर ती बदलली आहे.",
+    "print": "प्रिंट",
+    "askQuestion": "प्रश्न विचारा",
+    "reply": "उत्तर द्या",
+    "reopen": "दिवस पुन्हा उघडा",
+    "approve": "मंजूर करा",
+    "approving": "मंजूर होत आहे",
+    "approved": "{{date}} मंजूर झाला.",
+    "approveFailed": "दिवस मंजूर झाला नाही. पुन्हा प्रयत्न करा.",
+    "questionSent": "प्रश्न मॅनेजरला पाठवला.",
+    "replySent": "उत्तर मालकाला पाठवले.",
+    "commentFailed": "संदेश पाठवता आला नाही. पुन्हा प्रयत्न करा.",
+    "reopened": "{{date}} पुन्हा उघडला. तो बदलता आणि पुन्हा बंद करता येईल.",
+    "reopenFailed": "दिवस पुन्हा उघडता आला नाही. पुन्हा प्रयत्न करा."
+  },
+  "comment": {
+    "questionTitle": "प्रश्न विचारा",
+    "questionSubtitle": "मॅनेजरला सूचना जाईल आणि तो {{date}} बद्दल इथे उत्तर देऊ शकतो.",
+    "replyTitle": "उत्तर द्या",
+    "replySubtitle": "{{date}} बद्दलच्या तुमच्या उत्तराची सूचना मालकाला जाईल.",
+    "label": "संदेश",
+    "missing": "आधी संदेश लिहा.",
+    "send": "पाठवा",
+    "sending": "पाठवत आहे",
+    "threadTitle": "प्रश्न आणि नोंदी",
+    "none": "अजून कोणताही प्रश्न किंवा नोंद नाही.",
+    "kind": {
+      "QUESTION": "प्रश्न",
+      "REPLY": "उत्तर",
+      "REOPEN_REASON": "पुन्हा उघडला"
+    }
+  },
+  "reopen": {
+    "title": "{{date}} पुन्हा उघडा",
+    "subtitle": "या दिवसाच्या नोंदी पुन्हा बदलता येतील. कारण ऑडिट लॉगमध्ये जतन होते आणि मालकाला सूचना जाते.",
+    "label": "हा दिवस पुन्हा का उघडायचा?",
+    "missing": "दिवस पुन्हा उघडण्यासाठी कारण आवश्यक आहे.",
+    "submit": "दिवस पुन्हा उघडा",
+    "submitting": "पुन्हा उघडत आहे"
+  },
+  "versions": {
+    "title": "या दिवसाचे बंद",
+    "label": "आवृत्ती {{version}}",
+    "closedBy": "{{name}} यांनी {{time}} ला बंद केला",
+    "current": "सध्याची",
+    "showing": "दाखवत आहे",
+    "show": "दाखवा",
+    "olderNotice": "तुम्ही आवृत्ती {{version}} पाहत आहात. सध्याचा बंद आवृत्ती {{current}} आहे.",
+    "loadFailed": "ही आवृत्ती लोड झाली नाही."
+  },
+  "print": {
+    "title": "दिवसाचा सारांश · {{pump}}"
+  },
+  "card": {
+    "label": "दिवस बंद",
+    "allClosed": "काल आणि आज दोन्ही बंद आहेत",
+    "closeToday": "आज बंद करा",
+    "closeYesterday": "काल बंद करा",
+    "waiting_one": "{{count}} बंद दिवस तुमच्या मंजुरीची वाट पाहत आहे",
+    "waiting_other": "{{count}} बंद दिवस तुमच्या मंजुरीची वाट पाहत आहेत",
+    "hint": "दिवस तपासा आणि मालकाला सारांश पाठवा.",
+    "review": "पाहा",
+    "open": "चेकलिस्ट उघडा"
+  },
+  "closedDay": {
+    "toast": "{{date}} बंद आहे. हा बदल करण्यासाठी तो पुन्हा उघडा.",
+    "reopen": "दिवस पुन्हा उघडा"
+  }
+}

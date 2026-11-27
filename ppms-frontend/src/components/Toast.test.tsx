@@ -1,5 +1,6 @@
 import { act, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 import { useToastStore } from '../store/toastStore'
 import { ToastContainer } from './Toast'
 
@@ -20,5 +21,14 @@ describe('ToastContainer', () => {
     })
     expect(within(screen.getByRole('status')).getByText('Saved')).toBeInTheDocument()
     expect(within(screen.getByRole('alert')).getByText('Failed to save')).toBeInTheDocument()
+  })
+
+  it('shows a toast\'s link to the page that fixes it', () => {
+    render(<MemoryRouter><ToastContainer /></MemoryRouter>)
+    act(() => {
+      useToastStore.getState().addToast('26 Nov is closed', 'warning', { label: 'Re-open day', to: '/dashboard/day-close?date=2026-11-26' })
+    })
+    expect(within(screen.getByRole('status')).getByRole('link', { name: 'Re-open day' }))
+      .toHaveAttribute('href', '/dashboard/day-close?date=2026-11-26')
   })
 })

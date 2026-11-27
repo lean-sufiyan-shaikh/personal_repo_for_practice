@@ -10,6 +10,7 @@ import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.user.User;
 import com.ppms.user.UserRole;
 import jakarta.validation.Valid;
@@ -34,6 +35,7 @@ public class ExpenseController {
     private final ExpenseApprovalService expenseApprovalService;
     private final AuditService           auditService;
     private final BusinessClock businessClock;
+    private final ClosedDayGuard closedDayGuard;
 
     /**
      * GET /api/pumps/{pumpId}/expenses?page=0&size=50&category=MAINTENANCE&approvalStatus=APPROVED
@@ -99,6 +101,7 @@ public class ExpenseController {
             @PathVariable Long pumpId,
             @Valid @RequestBody CreateExpenseRequest req,
             @AuthenticationPrincipal User currentUser) {
+        closedDayGuard.requireOpen(pumpId, req.getExpenseDate());
         BigDecimal amount = req.getAmount().setScale(2, RoundingMode.HALF_UP);
 
         ExpenseApprovalStatus approvalStatus;
@@ -175,6 +178,7 @@ public class ExpenseController {
                     "Only the expense creator or an Owner/Admin can submit this draft.");
         }
 
+        closedDayGuard.requireOpen(pumpId, expense.getExpenseDate());
         ExpenseApprovalStatus newStatus = approvalPolicy.resolveExpenseStatus(pumpId, currentUser, expense.getAmount(),
                 expense.getCategory(), expense.getExpenseDate());
         expense.setApprovalStatus(newStatus);

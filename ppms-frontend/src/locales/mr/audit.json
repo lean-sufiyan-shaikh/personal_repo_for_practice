@@ -88,6 +88,10 @@
     "CASH_DROP_REJECTED": "कॅश ड्रॉप नाकारला",
     "SAFE_COUNTED": "तिजोरी मोजली",
     "BANK_DEPOSIT_RECORDED": "बँक भरणा नोंदवला",
-    "DEPOSIT_SLIP_ATTACHED": "भरणा पावती जोडली"
+    "DEPOSIT_SLIP_ATTACHED": "भरणा पावती जोडली",
+    "DAY_CLOSED": "दिवस बंद केला",
+    "DAY_APPROVED": "दिवस मंजूर केला",
+    "DAY_REOPENED": "दिवस पुन्हा उघडला",
+    "DAY_CLOSE_COMMENTED": "दिवस बंदवर टिप्पणी जोडली"
   }
 }

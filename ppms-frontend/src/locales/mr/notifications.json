@@ -33,6 +33,9 @@
     "WET_STOCK_LOSS": "मर्यादेपेक्षा जास्त इंधन तोटा",
     "DELIVERY_SHORTAGE": "टँकर डिलिव्हरी कमी",
     "CASH_DROP_PENDING": "खात्रीसाठी कॅश ड्रॉप",
-    "SAFE_COUNT_VARIANCE": "तिजोरी मोजणीत फरक"
+    "SAFE_COUNT_VARIANCE": "तिजोरी मोजणीत फरक",
+    "DAY_CLOSED": "दिवस बंद झाला",
+    "DAY_REOPENED": "दिवस पुन्हा उघडला",
+    "DAY_CLOSE_COMMENT": "दिवस बंदवर प्रश्न किंवा उत्तर"
   }
 }

@@ -5,6 +5,7 @@ import com.ppms.audit.AuditService;
 import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.notification.NotificationDedupService;
 import com.ppms.notification.NotificationType;
 import com.ppms.pump.PumpShiftDefinitionRepository;
@@ -36,6 +37,7 @@ public class FuelPriceService {
     private final NotificationDedupService notificationDedupService;
     private final PumpShiftDefinitionRepository shiftDefinitionRepository;
     private final BusinessClock businessClock;
+    private final ClosedDayGuard closedDayGuard;
 
     @Transactional(readOnly = true)
     public List<GlobalFuelPrice> getCurrentPrices(Long pumpId) {
@@ -74,6 +76,7 @@ public class FuelPriceService {
      */
     @Transactional
     public SetFuelPriceResponse setPrice(Long pumpId, SetFuelPriceRequest request, User currentUser) {
+        closedDayGuard.requireTodayOpen(pumpId);
         requireConfirmationForLargeChange(pumpId, request);
 
         GlobalFuelPrice saved = fuelPriceRepository.save(GlobalFuelPrice.builder()
