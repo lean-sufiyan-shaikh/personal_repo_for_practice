@@ -98,7 +98,7 @@ public class ProfitLossReportService {
         BigDecimal approvedExpenses = approvedExpenses(pumpId, from, to);
         BigDecimal bankCharges = settlementRepository.sumChargesByPumpIdAndSettlementDateBetween(pumpId, from, to)
                 .setScale(2, RoundingMode.HALF_UP);
-        BigDecimal payrollPaid = payrollRepository.sumNetPayPaidBetween(pumpId, from, to).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal payrollPaid = payrollRepository.sumPayPaidBetween(pumpId, from, to).setScale(2, RoundingMode.HALF_UP);
         BigDecimal badDebtWrittenOff = creditAdjustmentRepository.sumWrittenOffBetween(pumpId, from, to)
                 .setScale(2, RoundingMode.HALF_UP);
         BigDecimal chargebacks = chargebackRepository.sumAmountBetween(pumpId, from, to).setScale(2, RoundingMode.HALF_UP);

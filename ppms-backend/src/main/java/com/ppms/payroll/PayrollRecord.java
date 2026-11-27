@@ -105,6 +105,11 @@ public class PayrollRecord {
     @Builder.Default
     private BigDecimal netPay = BigDecimal.ZERO;
 
+    /** Outstanding cash advances taken back from this payroll; already taken off net pay. */
+    @Column(name = "advance_recovered", nullable = false)
+    @Builder.Default
+    private BigDecimal advanceRecovered = BigDecimal.ZERO;
+
     /** Deductions above gross pay that net pay (floored at zero) could not absorb. */
     @Column(name = "uncovered_deductions", nullable = false)
     @Builder.Default

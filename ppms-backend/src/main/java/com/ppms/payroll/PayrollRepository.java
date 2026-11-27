@@ -31,10 +31,10 @@ public interface PayrollRepository extends JpaRepository<PayrollRecord, Long> {
     List<PayrollRecord> findWithUncarriedDeductionsBefore(@Param("pumpId") Long pumpId, @Param("userId") Long userId,
                                                           @Param("periodFrom") LocalDate periodFrom);
 
-    /** Net pay of the payroll paid on a date from {@code from} to {@code to}. */
-    @Query("SELECT COALESCE(SUM(r.netPay), 0) FROM PayrollRecord r"
+    /** Pay of the payroll paid on a date from {@code from} to {@code to}: net pay plus the advances it took back. */
+    @Query("SELECT COALESCE(SUM(r.netPay + r.advanceRecovered), 0) FROM PayrollRecord r"
             + " WHERE r.pumpId = :pumpId AND r.paidDate BETWEEN :from AND :to")
-    BigDecimal sumNetPayPaidBetween(@Param("pumpId") Long pumpId, @Param("from") LocalDate from,
+    BigDecimal sumPayPaidBetween(@Param("pumpId") Long pumpId, @Param("from") LocalDate from,
                                     @Param("to") LocalDate to);
 
     List<PayrollRecord> findByPumpIdAndPaidDateOrderByIdAsc(Long pumpId, LocalDate paidDate);

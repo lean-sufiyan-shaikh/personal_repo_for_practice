@@ -16,6 +16,8 @@ import com.ppms.report.StaleReasons;
 import com.ppms.shift.DiscrepancyResolution;
 import com.ppms.shift.DiscrepancyType;
 import com.ppms.shift.Shift;
+import com.ppms.shift.ShiftOperator;
+import com.ppms.shift.ShiftOperatorRepository;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.shift.ShiftStatus;
 import com.ppms.user.User;
@@ -35,6 +37,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -54,6 +58,8 @@ public class PayrollService {
     private final ClosedDayGuard                 closedDayGuard;
     private final CashDrawerService              cashDrawerService;
     private final BalanceSheetStalenessService   balanceSheetStalenessService;
+    private final StaffAdvanceService            staffAdvanceService;
+    private final ShiftOperatorRepository        shiftOperatorRepository;
 
     /**
      * Resolves the selected discrepancies, computes the draft and saves it in one transaction,
@@ -108,12 +114,23 @@ public class PayrollService {
                 .toList());
         withUncarriedDeductions.forEach(earlier -> earlier.setCarriedToPayrollId(saved.getId()));
         payrollRepository.saveAll(withUncarriedDeductions);
+        recoverAdvances(saved);
 
-        log.info("Payroll generated: pump={} user={} role={} type={} period={}/{} gross={} deductions={} opening={} status=DRAFT",
+        log.info("Payroll generated: pump={} user={} role={} type={} period={}/{} gross={} deductions={} opening={} advances={} status=DRAFT",
                 pumpId, req.getUserId(), staff.getRole(), saved.getSalaryType(),
                 req.getPeriodFrom(), req.getPeriodTo(), saved.getGrossAmount(), saved.getDeductions(),
-                saved.getOpeningDeductions());
+                saved.getOpeningDeductions(), saved.getAdvanceRecovered());
         return saved;
+    }
+
+    /** Outstanding advances come off what is left of the pay after deductions, never taking net pay below zero. */
+    private void recoverAdvances(PayrollRecord payroll) {
+        BigDecimal recovered = staffAdvanceService.recoverForPayroll(payroll, payroll.getNetPay());
+        if (recovered.signum() > 0) {
+            payroll.setAdvanceRecovered(recovered);
+            payroll.setNetPay(payroll.getNetPay().subtract(recovered));
+            payrollRepository.save(payroll);
+        }
     }
 
     /**
@@ -319,6 +336,21 @@ public class PayrollService {
         for (Shift shift : closedShifts) {
             long minutes = Duration.between(shift.getActualStartTime(), shift.getActualEndTime()).toMinutes();
             if (Boolean.TRUE.equals(shift.getIsNightShift())) {
+                shift1Minutes += minutes;
+                shift1Count++;
+            } else {
+                standardMinutes += minutes;
+                standardCount++;
+            }
+        }
+        List<ShiftOperator> otherShiftWork = shiftOperatorRepository.findFinishedWorkOnOtherShifts(
+                pumpId, req.getUserId(), req.getPeriodFrom(), req.getPeriodTo());
+        Map<Long, Shift> otherShiftById = otherShiftWork.isEmpty() ? Map.of()
+                : shiftRepository.findAllById(otherShiftWork.stream().map(ShiftOperator::getShiftId).collect(Collectors.toSet()))
+                        .stream().collect(Collectors.toMap(Shift::getId, Function.identity()));
+        for (ShiftOperator work : otherShiftWork) {
+            long minutes = Duration.between(work.getJoinedAt(), work.getLeftAt()).toMinutes();
+            if (Boolean.TRUE.equals(otherShiftById.get(work.getShiftId()).getIsNightShift())) {
                 shift1Minutes += minutes;
                 shift1Count++;
             } else {
