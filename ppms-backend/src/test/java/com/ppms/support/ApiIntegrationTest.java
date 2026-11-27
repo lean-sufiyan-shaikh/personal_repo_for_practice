@@ -218,7 +218,8 @@ public abstract class ApiIntegrationTest {
     protected User saveUser(UserRole role, Long assignedPumpId) {
         String unique = shortId();
         return userRepository.save(User.builder()
-                .employeeId("EMP-" + unique)
+                // The whole UUID: eight characters collided across the thousands of users the suite creates.
+                .employeeId("EMP-" + UUID.randomUUID())
                 .fullName(role + " " + unique)
                 .phoneNumber(nextPhoneNumber())
                 .passwordHash(passwordEncoder.encode(PASSWORD))
