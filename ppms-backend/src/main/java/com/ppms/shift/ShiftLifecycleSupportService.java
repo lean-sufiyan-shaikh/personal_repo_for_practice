@@ -80,6 +80,7 @@ public class ShiftLifecycleSupportService {
     private final PumpLocationRepository pumpLocationRepository;
     private final ShiftPriceSegmentService priceSegmentService;
     private final CreditInterestService creditInterestService;
+    private final ShiftOperatorRepository shiftOperatorRepository;
 
     public User findOperatorForPump(Long operatorId, Long pumpId) {
         User operator = userRepository.findById(operatorId)
@@ -100,7 +101,7 @@ public class ShiftLifecycleSupportService {
      * 2. All nozzles belong to the specified DU
      * 3. Per nozzle: calibration not overdue, status ACTIVE, not already on an open shift
      * 4. Per nozzle: fuel price set, tank mapped and active
-     * 5. Operator does not already have an open shift
+     * 5. Operator does not already have an open shift, nor works another operator's shift
      * 6. Night-shift consent for female operators
      *
      * Returns the chosen or suggested shift window and the business date of the shift.
@@ -166,11 +167,13 @@ public class ShiftLifecycleSupportService {
             });
         }
 
-        shiftRepository.findOpenShiftByOperator(operator.getId()).ifPresent(existing -> {
-            throw new BusinessException(ErrorCodes.OPERATOR_SHIFT_ALREADY_OPEN,
-                    Map.of("operatorName", operator.getFullName(), "shiftId", existing.getId()),
-                    operator.getFullName() + " already has an open shift (ID " + existing.getId() + ").");
-        });
+        shiftRepository.findOpenShiftByOperator(operator.getId()).map(Shift::getId)
+                .or(() -> shiftOperatorRepository.findByOperatorIdAndLeftAtIsNull(operator.getId()).map(ShiftOperator::getShiftId))
+                .ifPresent(existingShiftId -> {
+                    throw new BusinessException(ErrorCodes.OPERATOR_SHIFT_ALREADY_OPEN,
+                            Map.of("operatorName", operator.getFullName(), "shiftId", existingShiftId),
+                            operator.getFullName() + " already has an open shift (ID " + existingShiftId + ").");
+                });
 
         CurrentShiftWindow window = shiftDefinitionService.windowForOpening(pumpId, request.getShiftDefinitionId(),
                 request.getShiftDate());

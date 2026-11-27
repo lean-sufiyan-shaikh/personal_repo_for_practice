@@ -37,6 +37,7 @@ public class ShiftHandoverService {
     private final ShiftReadModelService shiftReadModelService;
     private final BusinessClock businessClock;
     private final ClosedDayGuard closedDayGuard;
+    private final ShiftOperatorRepository shiftOperatorRepository;
 
     public record HandoverResult(ShiftHandover handover, ShiftResponse closedShift, ShiftResponse openedShift) {}
 
@@ -78,12 +79,16 @@ public class ShiftHandoverService {
                     "Incoming and outgoing operators cannot be the same person");
         }
 
-        shiftRepository.findOpenShiftByOperator(request.incomingOperatorId()).ifPresent(existing -> {
-            throw new BusinessException(ErrorCodes.HANDOVER_OPERATOR_HAS_OPEN_SHIFT,
-                    Map.of("operatorName", incomingOperator.getFullName(), "shiftId", existing.getId()),
-                    incomingOperator.getFullName() + " already has an open shift (ID " + existing.getId() +
-                    "). They must close it before taking a handover.");
-        });
+        shiftRepository.findOpenShiftByOperator(request.incomingOperatorId()).map(Shift::getId)
+                .or(() -> shiftOperatorRepository.findByOperatorIdAndLeftAtIsNull(request.incomingOperatorId())
+                        .filter(member -> !member.getShiftId().equals(outgoingShift.getId()))
+                        .map(ShiftOperator::getShiftId))
+                .ifPresent(existingShiftId -> {
+                    throw new BusinessException(ErrorCodes.HANDOVER_OPERATOR_HAS_OPEN_SHIFT,
+                            Map.of("operatorName", incomingOperator.getFullName(), "shiftId", existingShiftId),
+                            incomingOperator.getFullName() + " already has an open shift (ID " + existingShiftId +
+                            "). They must close it before taking a handover.");
+                });
 
         if (request.closing() == null) {
             throw new BusinessException(ErrorCodes.HANDOVER_CLOSING_REQUIRED, Map.of(),

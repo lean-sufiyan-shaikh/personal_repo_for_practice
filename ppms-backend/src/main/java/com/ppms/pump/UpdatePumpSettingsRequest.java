@@ -20,5 +20,6 @@ public record UpdatePumpSettingsRequest(
         Integer earlyStartGraceMinutes,
         BigDecimal roundingTolerance,
         BigDecimal testVolumeLitres,
-        BigDecimal maxTestLitresPerNozzle
+        BigDecimal maxTestLitresPerNozzle,
+        Boolean blindCashCount
 ) {}

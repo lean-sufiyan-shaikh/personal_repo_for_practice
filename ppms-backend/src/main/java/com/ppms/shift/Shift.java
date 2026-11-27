@@ -107,6 +107,30 @@ public class Shift {
     @Column(name = "cash_denominations", columnDefinition = "jsonb")
     private CashDenominations cashDenominations;
 
+    // ── Blind count: collections counted and locked before the expected amount is shown ──
+
+    @Column(name = "blind_cash_counted")
+    private BigDecimal blindCashCounted;
+
+    @Column(name = "blind_upi_counted")
+    private BigDecimal blindUpiCounted;
+
+    @Column(name = "blind_card_counted")
+    private BigDecimal blindCardCounted;
+
+    @Column(name = "blind_fleet_card_counted")
+    private BigDecimal blindFleetCardCounted;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "blind_cash_denominations", columnDefinition = "jsonb")
+    private CashDenominations blindCashDenominations;
+
+    @Column(name = "blind_counted_at")
+    private OffsetDateTime blindCountedAt;
+
+    @Column(name = "blind_counted_by_user_id")
+    private Long blindCountedByUserId;
+
     // ── Totals computed at close ───────────────────────────────────────────
 
     @Column(name = "total_amount_due")
@@ -194,6 +218,10 @@ public class Shift {
     public BigDecimal shortageNotRecovered() {
         BigDecimal discrepancy = discrepancyAmount != null ? discrepancyAmount : BigDecimal.ZERO;
         return cashRecoveryAmount != null ? discrepancy.subtract(cashRecoveryAmount) : discrepancy;
+    }
+
+    public boolean hasBlindCount() {
+        return blindCountedAt != null;
     }
 
     @PrePersist

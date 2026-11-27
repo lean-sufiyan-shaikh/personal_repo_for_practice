@@ -65,6 +65,7 @@ public class ShiftAmendmentService {
     private final AuditService auditService;
     private final UserRepository userRepository;
     private final BusinessClock businessClock;
+    private final ShiftOperatorShareService operatorShareService;
 
     public record AmendmentResponse(Long id, String reason, Map<String, Object> before, Map<String, Object> after,
                                     String amendedByName, OffsetDateTime amendedAt) {}
@@ -115,6 +116,7 @@ public class ShiftAmendmentService {
         }
         applyAmendedFigures(shift, request, cashDropped, summary);
         shift = shiftRepository.save(shift);
+        operatorShareService.recalculateAfterAmendment(shift, readings, maxMeterByNozzle(nozzleById));
         recordCashCorrection(shift, newBagCash.subtract(oldBagCash), currentUser);
         moveLastReadings(changedNozzles, newEndByNozzle, oldEndByNozzle, nozzleById);
 

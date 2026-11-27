@@ -29,6 +29,12 @@ public enum AuditAction {
     SHIFT_AMENDED,
     DISCREPANCY_RESOLVED,
     DISCREPANCY_INVESTIGATION_STARTED,
+    BLIND_CASH_COUNTED,
+    SHIFT_OPERATOR_ADDED,
+    SHIFT_OPERATOR_REMOVED,
+    NOZZLE_SWAPPED,
+    RELIEF_STARTED,
+    RELIEF_ENDED,
 
     // ── Credit management ─────────────────────────────────────────────────────
     CREDIT_ENTRY_VOIDED,
@@ -72,6 +78,8 @@ public enum AuditAction {
     PAYROLL_DELETED,
     PAYROLL_PAID,
     PAYROLL_RETURNED_TO_DRAFT,
+    STAFF_ADVANCE_GIVEN,
+    STAFF_ADVANCE_VOIDED,
 
     // ── Pump management ───────────────────────────────────────────────────────
     PUMP_CREATED,

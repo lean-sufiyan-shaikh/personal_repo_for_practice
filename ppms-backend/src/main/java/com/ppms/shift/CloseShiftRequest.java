@@ -70,7 +70,25 @@ public class CloseShiftRequest {
     @Size(max = 500, message = "Test litres note must be at most 500 characters")
     private String testLitresNote;
 
+    /** Optional split of the collections by operator; each figure must add up to the shift's own. Cash includes drops. */
+    @Valid
+    private List<OperatorCollectionRequest> operatorCollections = new ArrayList<>();
+
     // ── Inner records ────────────────────────────────────────────────────────
+
+    public record OperatorCollectionRequest(
+            @NotNull(message = "Operator is required") Long operatorId,
+            @NotNull(message = "Cash collected is required")
+            @DecimalMin(value = "0", message = "Cash collected must be >= 0") BigDecimal cashCollected,
+            @NotNull(message = "UPI collected is required")
+            @DecimalMin(value = "0", message = "UPI collected must be >= 0") BigDecimal upiCollected,
+            @NotNull(message = "Card collected is required")
+            @DecimalMin(value = "0", message = "Card collected must be >= 0") BigDecimal cardCollected,
+            @NotNull(message = "Fleet card collected is required")
+            @DecimalMin(value = "0", message = "Fleet card collected must be >= 0") BigDecimal fleetCardCollected,
+            @NotNull(message = "Credit total is required")
+            @DecimalMin(value = "0", message = "Credit total must be >= 0") BigDecimal creditTotal
+    ) {}
 
     /** testLitres left out means none at close, and keeps the recorded test litres on an amendment. */
     public record OutletEndReadingRequest(

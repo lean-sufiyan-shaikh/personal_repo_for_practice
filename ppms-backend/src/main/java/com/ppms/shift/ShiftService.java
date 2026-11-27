@@ -80,6 +80,11 @@ public class ShiftService {
     private final CashDropService cashDropService;
     private final ClosedDayGuard closedDayGuard;
     private final ShiftInvestigationNoteRepository investigationNoteRepository;
+    private final ShiftBlindCountService blindCountService;
+    private final ShiftOperatorService shiftOperatorService;
+    private final ShiftOperatorShareService operatorShareService;
+    private final NozzleTurnService nozzleTurnService;
+    private final ShiftReliefService reliefService;
 
     /**
      * Opens a new shift for selected nozzles on a Dispensary Unit.
@@ -244,6 +249,7 @@ public class ShiftService {
                     "Shift is not open. Current status: " + shift.getStatus());
         }
         closedDayGuard.requireOpen(pumpId, shift.getShiftDate());
+        blindCountService.requireCloseMatchesCount(shift, request);
 
         List<Long> nozzleIds = shiftNozzleRepository.findNozzleIdsByShiftId(shiftId);
         List<Nozzle> nozzles = nozzleRepository.findAllById(nozzleIds);
@@ -255,6 +261,7 @@ public class ShiftService {
 
         CashDenominations.requireMatches(request.getCashDenominations(), request.getCashCollected());
         BigDecimal cashDropped = cashDropService.confirmedTotalForClose(shiftId);
+        operatorShareService.requireCollectionsAddUp(shift, request, cashDropped);
 
         List<ShiftFuelReading> readings = fuelReadingRepository.findByShiftId(shiftId);
         ShiftLifecycleSupportService.ClosingSummary closingSummary =
@@ -269,6 +276,7 @@ public class ShiftService {
 
         applyClosingValues(shift, request, cashDropped, closingSummary, currentUser);
         shift = shiftRepository.save(shift);
+        recordOperatorShares(shift, readings, maxMeterByNozzleId, request, currentUser);
 
         activeNozzleRepository.deleteByShiftId(shiftId);
         balanceSheetStalenessService.markSheetsOfShiftStale(shift.getPumpId(), shift.getShiftDate(),
@@ -292,6 +300,15 @@ public class ShiftService {
         List<ShiftCreditEntry> savedEntries = creditEntryRepository.findByShiftId(shift.getId());
         List<ShiftFuelReading> finalReadings = fuelReadingRepository.findByShiftId(shift.getId());
         return shiftReadModelService.toResponse(shift, du, nozzles, operator, currentUser.getFullName(), finalReadings, savedEntries);
+    }
+
+    /** Running reliefs end with the shift, every turn ends at the closing reading, and each operator's share is saved. */
+    private void recordOperatorShares(Shift shift, List<ShiftFuelReading> readings, Map<Long, BigDecimal> maxMeterByNozzleId,
+                                      CloseShiftRequest request, User closedBy) {
+        reliefService.endActiveReliefsAtClose(shift.getId(), shift.getClosedAt(), closedBy);
+        List<ShiftNozzleTurn> turns = nozzleTurnService.finishTurnsAtClose(shift, readings, maxMeterByNozzleId, shift.getClosedAt());
+        shiftOperatorService.releaseAllAtClose(shift.getId(), shift.getClosedAt());
+        operatorShareService.recordAtClose(shift, readings, turns, maxMeterByNozzleId, request.getOperatorCollections());
     }
 
     private void deductSoldFuel(Shift shift, List<ShiftFuelReading> readings) {
@@ -379,8 +396,7 @@ public class ShiftService {
                     "Cannot add credit entries to a shift that is not open.");
         }
 
-        if (currentUser.getRole() == UserRole.OPERATOR
-                && !currentUser.getId().equals(shift.getOperatorId())) {
+        if (currentUser.getRole() == UserRole.OPERATOR && !shiftOperatorService.isWorking(shift, currentUser.getId())) {
             throw new BusinessException(ErrorCodes.CREDIT_ENTRY_NOT_OWN_SHIFT,
                     Map.of(),
                     "Operators can only add credit entries to their own active shift.");
@@ -691,6 +707,6 @@ public class ShiftService {
     }
 
     private boolean canSeeShift(User currentUser, Shift shift) {
-        return currentUser.getRole() != UserRole.OPERATOR || currentUser.getId().equals(shift.getOperatorId());
+        return currentUser.getRole() != UserRole.OPERATOR || shiftOperatorService.hasWorked(shift, currentUser.getId());
     }
 }

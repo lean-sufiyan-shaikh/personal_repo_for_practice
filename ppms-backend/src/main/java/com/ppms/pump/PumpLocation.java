@@ -70,6 +70,11 @@ public class PumpLocation {
     @Builder.Default
     private BigDecimal roundingTolerance = DEFAULT_ROUNDING_TOLERANCE;
 
+    /** When true the collections are counted and locked before the shift's expected amount is shown. */
+    @Column(name = "blind_cash_count", nullable = false)
+    @Builder.Default
+    private boolean blindCashCount = true;
+
     /** The measure each nozzle is tested with, offered at close as the litres poured back into the tank. */
     @Column(name = "test_volume_litres", nullable = false)
     @Builder.Default

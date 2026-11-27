@@ -33,6 +33,7 @@ public class PumpResponse {
     private BigDecimal roundingTolerance;
     private BigDecimal testVolumeLitres;
     private BigDecimal maxTestLitresPerNozzle;
+    private boolean blindCashCount;
     /** Active Dispensary Units with their nozzles. */
     private List<DUResponse> dus;
 }

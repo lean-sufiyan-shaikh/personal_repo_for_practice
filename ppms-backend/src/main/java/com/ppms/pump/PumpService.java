@@ -161,6 +161,9 @@ public class PumpService {
             pump.setMaxTestLitresPerNozzle(validTestLitres(request.maxTestLitresPerNozzle(), MAX_TEST_LITRES_LIMIT,
                     ErrorCodes.MAX_TEST_LITRES_OUT_OF_RANGE, "Test litres limit"));
         }
+        if (request.blindCashCount() != null) {
+            pump.setBlindCashCount(request.blindCashCount());
+        }
 
         if (request.expenseApprovalThreshold() != null) {
             if (request.expenseApprovalThreshold().compareTo(BigDecimal.ZERO) < 0) {
@@ -201,12 +204,13 @@ public class PumpService {
         pumpLocationRepository.save(pump);
         log.info("Pump {} settings updated by user={}: escalationThreshold={}, expenseApprovalThreshold={}, "
                         + "receiptTolerancePercent={}, densityTolerance={}, safeCountTolerance={}, safeCountCutoffTime={}, "
-                        + "earlyStartGraceMinutes={}, roundingTolerance={}, testVolumeLitres={}, maxTestLitresPerNozzle={}",
+                        + "earlyStartGraceMinutes={}, roundingTolerance={}, testVolumeLitres={}, maxTestLitresPerNozzle={}, "
+                        + "blindCashCount={}",
                 pumpId, currentUser.getId(),
                 pump.getDiscrepancyEscalationThreshold(), pump.getExpenseApprovalThreshold(),
                 pump.getReceiptTolerancePercent(), pump.getDensityTolerance(), pump.getSafeCountTolerance(),
                 pump.getSafeCountCutoffTime(), pump.getEarlyStartGraceMinutes(), pump.getRoundingTolerance(),
-                pump.getTestVolumeLitres(), pump.getMaxTestLitresPerNozzle());
+                pump.getTestVolumeLitres(), pump.getMaxTestLitresPerNozzle(), pump.isBlindCashCount());
 
         return toPumpResponse(pump);
     }
@@ -328,6 +332,7 @@ public class PumpService {
                 .testVolumeLitres(pump.getTestVolumeLitres())
                 .maxTestLitresPerNozzle(pump.getMaxTestLitresPerNozzle())
                 .roundingTolerance(pump.getRoundingTolerance())
+                .blindCashCount(pump.isBlindCashCount())
                 .dus(activeDUs)
                 .build();
     }

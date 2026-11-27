@@ -29,6 +29,8 @@ public class ShiftResponse {
     private Long operatorId;
     private String operatorName;
     private String openedByUserName;
+    /** Operators who worked the shift besides its own operator; active is false once they left. */
+    private List<OtherOperator> otherOperators;
 
     private String shiftWindow;
     private LocalDate shiftDate;
@@ -88,7 +90,24 @@ public class ShiftResponse {
 
     private List<CreditEntryResponse> creditEntries;
 
+    /** True when the pump has the collections counted before the expected amount is shown. */
+    private boolean blindCountRequired;
+    /** The collections counted blind; null until counted. */
+    private BlindCount blindCount;
+
     // ── Inner records ─────────────────────────────────────────────────────────
+
+    public record OtherOperator(Long operatorId, String operatorName, String role, boolean active) {}
+
+    public record BlindCount(
+            BigDecimal cashCollected,
+            CashDenominations cashDenominations,
+            BigDecimal upiCollected,
+            BigDecimal cardCollected,
+            BigDecimal fleetCardCollected,
+            OffsetDateTime countedAt,
+            String countedByName
+    ) {}
 
     public record NozzleSummary(
             Long id,

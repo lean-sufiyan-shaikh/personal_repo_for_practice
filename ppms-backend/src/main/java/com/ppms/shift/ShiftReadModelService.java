@@ -4,6 +4,8 @@ import com.ppms.common.time.BusinessClock;
 import com.ppms.pump.DispensaryUnit;
 import com.ppms.pump.DispensaryUnitRepository;
 import com.ppms.pump.Nozzle;
+import com.ppms.pump.PumpLocation;
+import com.ppms.pump.PumpLocationRepository;
 import com.ppms.pump.NozzleRepository;
 import com.ppms.pump.PumpShiftDefinition;
 import com.ppms.pump.PumpShiftDefinitionRepository;
@@ -38,6 +40,8 @@ public class ShiftReadModelService {
     private final BusinessClock businessClock;
     private final ShiftReadingPriceSegmentRepository priceSegmentRepository;
     private final ShiftInvestigationNoteRepository investigationNoteRepository;
+    private final ShiftOperatorRepository shiftOperatorRepository;
+    private final PumpLocationRepository pumpLocationRepository;
 
     public ShiftResponse toResponseWithLookups(Shift shift) {
         List<Long> nozzleIds = shiftNozzleRepository.findNozzleIdsByShiftId(shift.getId());
@@ -52,7 +56,7 @@ public class ShiftReadModelService {
         String investigatedByName = shift.getInvestigationStartedById() == null ? null
                 : userRepository.findById(shift.getInvestigationStartedById()).map(User::getFullName).orElse(null);
         return toResponse(shift, du, nozzles, operator, openedByName, investigatedByName, readings, entries,
-                computeScheduledEndTime(shift), extrasOf(List.of(shift.getId()), readings));
+                computeScheduledEndTime(shift), extrasOf(List.of(shift), readings));
     }
 
     /** List-page variant of {@link #toResponseWithLookups}: loads every related row for all shifts in one query per table. */
@@ -84,7 +88,7 @@ public class ShiftReadModelService {
                 .collect(Collectors.groupingBy(ShiftFuelReading::getShiftId));
         Map<Long, List<ShiftCreditEntry>> entriesByShiftId = creditEntryRepository.findByShiftIdIn(shiftIds).stream()
                 .collect(Collectors.groupingBy(ShiftCreditEntry::getShiftId));
-        ReadingExtras extras = extrasOf(shiftIds, readingsByShiftId.values().stream().flatMap(List::stream).toList());
+        ReadingExtras extras = extrasOf(shifts, readingsByShiftId.values().stream().flatMap(List::stream).toList());
 
         return shifts.stream()
                 .map(shift -> {
@@ -110,15 +114,22 @@ public class ShiftReadModelService {
                                     User operator, String openedByName,
                                     List<ShiftFuelReading> readings, List<ShiftCreditEntry> entries) {
         return toResponse(shift, du, nozzles, operator, openedByName, null, readings, entries, computeScheduledEndTime(shift),
-                extrasOf(List.of(shift.getId()), readings));
+                extrasOf(List.of(shift), readings));
     }
 
-    /** Price segments by reading and investigation notes by shift, each loaded in one query for all the shifts. */
+    /**
+     * Price segments by reading, investigation notes, other operators and the pump's blind-count setting by shift, each
+     * loaded in one query for all the shifts.
+     */
     private record ReadingExtras(Map<Long, List<ShiftReadingPriceSegment>> segmentsByReadingId,
-                                 Map<Long, List<ShiftResponse.InvestigationNoteResponse>> notesByShiftId) {
+                                 Map<Long, List<ShiftResponse.InvestigationNoteResponse>> notesByShiftId,
+                                 Map<Long, List<ShiftResponse.OtherOperator>> otherOperatorsByShiftId,
+                                 Map<Long, String> nameByUserId,
+                                 Set<Long> blindCountPumpIds) {
     }
 
-    private ReadingExtras extrasOf(List<Long> shiftIds, List<ShiftFuelReading> readings) {
+    private ReadingExtras extrasOf(List<Shift> shifts, List<ShiftFuelReading> readings) {
+        List<Long> shiftIds = shifts.stream().map(Shift::getId).toList();
         Map<Long, List<ShiftReadingPriceSegment>> segments = readings.isEmpty() ? Map.of()
                 : priceSegmentRepository.findByShiftFuelReadingIdInOrderByStartsAtAscIdAsc(
                                 readings.stream().map(ShiftFuelReading::getId).toList()).stream()
@@ -132,7 +143,24 @@ public class ShiftReadModelService {
                         note -> new ShiftResponse.InvestigationNoteResponse(note.getNote(),
                                 writerNameById.get(note.getWrittenByUserId()), note.getWrittenAt()),
                         Collectors.toList())));
-        return new ReadingExtras(segments, notesByShiftId);
+        List<ShiftOperator> members = shiftOperatorRepository.findByShiftIdIn(shiftIds);
+        Set<Long> nameIds = new HashSet<>();
+        members.forEach(member -> nameIds.add(member.getOperatorId()));
+        shifts.stream().map(Shift::getBlindCountedByUserId).filter(Objects::nonNull).forEach(nameIds::add);
+        Map<Long, String> nameByUserId = findAllByIdAsMap(userRepository, nameIds, User::getId).values().stream()
+                .collect(Collectors.toMap(User::getId, User::getFullName));
+        Map<Long, List<ShiftResponse.OtherOperator>> otherOperatorsByShiftId = members.stream()
+                .sorted(Comparator.comparing(ShiftOperator::getJoinedAt).thenComparing(ShiftOperator::getId))
+                .collect(Collectors.groupingBy(ShiftOperator::getShiftId, Collectors.mapping(
+                        member -> new ShiftResponse.OtherOperator(member.getOperatorId(),
+                                nameByUserId.get(member.getOperatorId()), member.getRole().name(), member.isActive()),
+                        Collectors.toList())));
+        Set<Long> blindCountPumpIds = findAllByIdAsMap(pumpLocationRepository,
+                shifts.stream().map(Shift::getPumpId).collect(Collectors.toSet()), PumpLocation::getId).values().stream()
+                .filter(PumpLocation::isBlindCashCount)
+                .map(PumpLocation::getId)
+                .collect(Collectors.toSet());
+        return new ReadingExtras(segments, notesByShiftId, otherOperatorsByShiftId, nameByUserId, blindCountPumpIds);
     }
 
     private static <T> Map<Long, T> findAllByIdAsMap(JpaRepository<T, Long> repository, Set<Long> ids,
@@ -240,6 +268,12 @@ public class ShiftReadModelService {
                 .status(shift.getStatus().name())
                 .isBackfilled(shift.isBackfilled())
                 .creditEntries(creditEntryResponses)
+                .otherOperators(extras.otherOperatorsByShiftId().getOrDefault(shift.getId(), List.of()))
+                .blindCountRequired(extras.blindCountPumpIds().contains(shift.getPumpId()))
+                .blindCount(shift.hasBlindCount() ? new ShiftResponse.BlindCount(shift.getBlindCashCounted(),
+                        shift.getBlindCashDenominations(), shift.getBlindUpiCounted(), shift.getBlindCardCounted(),
+                        shift.getBlindFleetCardCounted(), shift.getBlindCountedAt(),
+                        extras.nameByUserId().get(shift.getBlindCountedByUserId())) : null)
                 .build();
     }
 
