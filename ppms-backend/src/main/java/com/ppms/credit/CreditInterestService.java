@@ -147,29 +147,41 @@ public class CreditInterestService {
     }
 
     /**
-     * Batch version — resolves interest breakdown for all clients in 2 DB queries total.
-     * Uses chronological simulation: processes interest charges and payments in date order
-     * so that a payment made BEFORE an interest charge is NOT counted as recovering that interest.
-     * On the same date, interest charges are processed before payments.
+     * Batch version — resolves the interest breakdown of the given clients in four queries.
+     * Interest is charged on a group's parent, and any account of the group may pay it off, so each group is simulated
+     * as one: the charges of all its accounts against the approved payments of all its accounts (reversed payments
+     * are not approved). The whole group's breakdown is reported on its parent and a sub-account reports zero.
+     * Charges and payments are taken in date order, a charge dated by the last day it covers, so a payment made before
+     * a charge's period ended does not count as recovering it; on the same date the charge comes first.
      */
     public Map<Long, InterestBreakdown> computeInterestBreakdownBatch(Collection<Long> clientIds) {
         if (clientIds.isEmpty()) return Map.of();
 
-        List<CreditInterestCharge> allCharges = interestChargeRepository.findByClientIdInAndVoidedAtIsNull(clientIds);
-        Map<Long, List<CreditInterestCharge>> chargesByClient = allCharges.stream()
-                .collect(Collectors.groupingBy(CreditInterestCharge::getClientId));
-        List<CreditPayment> allPayments = chargesByClient.isEmpty()
-                ? List.of()
-                : paymentRepository.findApprovedByClientIdIn(chargesByClient.keySet());
-        Map<Long, List<CreditPayment>> paymentsByClient = allPayments.stream()
-                .collect(Collectors.groupingBy(CreditPayment::getClientId));
+        List<Long> rootIds = clientRepository.findAllById(clientIds).stream()
+                .filter(client -> client.getParentClientId() == null)
+                .map(CreditClient::getId)
+                .toList();
+        if (rootIds.isEmpty()) {
+            return clientIds.stream().distinct().collect(Collectors.toMap(id -> id, id -> InterestBreakdown.ZERO));
+        }
+        Map<Long, Long> rootIdByClientId = new HashMap<>();
+        rootIds.forEach(id -> rootIdByClientId.put(id, id));
+        clientRepository.findByParentClientIdIn(rootIds)
+                .forEach(child -> rootIdByClientId.put(child.getId(), child.getParentClientId()));
 
-        return clientIds.stream().collect(Collectors.toMap(
+        Map<Long, List<CreditInterestCharge>> chargesByRoot = interestChargeRepository
+                .findByClientIdInAndVoidedAtIsNull(rootIdByClientId.keySet()).stream()
+                .collect(Collectors.groupingBy(charge -> rootIdByClientId.get(charge.getClientId())));
+        Map<Long, List<CreditPayment>> paymentsByRoot = chargesByRoot.isEmpty()
+                ? Map.of()
+                : paymentRepository.findApprovedByClientIdIn(rootIdByClientId.keySet()).stream()
+                        .collect(Collectors.groupingBy(payment -> rootIdByClientId.get(payment.getClientId())));
+
+        return clientIds.stream().distinct().collect(Collectors.toMap(
                 id -> id,
-                id -> simulateInterestFirstAllocation(
-                        chargesByClient.getOrDefault(id, List.of()),
-                        paymentsByClient.getOrDefault(id, List.of())
-                )
+                id -> chargesByRoot.containsKey(id)
+                        ? simulateInterestFirstAllocation(chargesByRoot.get(id), paymentsByRoot.getOrDefault(id, List.of()))
+                        : InterestBreakdown.ZERO
         ));
     }
 
@@ -187,8 +199,7 @@ public class CreditInterestService {
         record Event(LocalDate date, BigDecimal amount, boolean isInterest) {}
 
         List<Event> events = new ArrayList<>();
-        charges.forEach(c -> events.add(new Event(
-                c.getCreatedAt().atZoneSameInstant(businessClock.zone()).toLocalDate(), c.getAmount(), true)));
+        charges.forEach(c -> events.add(new Event(c.getPeriodTo(), c.getAmount(), true)));
         payments.forEach(p -> events.add(new Event(p.getPaidAt(), p.getAmount(), false)));
 
         // Same-date: interest charges before payments so they can be immediately drained
@@ -214,15 +225,12 @@ public class CreditInterestService {
     }
 
     /**
-     * Interest actually paid off by the client and its sub-accounts, using interest-first allocation.
+     * Interest actually paid off by the client's group, using interest-first allocation; zero for a sub-account,
+     * whose group's interest is reported on its parent.
      */
     public BigDecimal computeTotalInterestRecovered(Long clientId) {
-        List<Long> groupIds = new ArrayList<>();
-        groupIds.add(clientId);
-        clientRepository.findByParentClientId(clientId).forEach(child -> groupIds.add(child.getId()));
-        return computeInterestBreakdownBatch(groupIds).values().stream()
-                .map(InterestBreakdown::totalInterestRecovered)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
+        return computeInterestBreakdownBatch(List.of(clientId)).get(clientId)
+                .totalInterestRecovered()
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
@@ -406,6 +414,7 @@ public class CreditInterestService {
             charge.setVoidedAt(waivedAt);
             charge.setVoidedBy(actor.getId());
             charge.setVoidReason(reason);
+            charge.setWaiverKind(InterestWaiverKind.RECALCULATE);
             waivedTotal = waivedTotal.add(charge.getAmount());
         }
         // Waived rows must reach the database before their periods are charged again (unique live period).
@@ -438,6 +447,20 @@ public class CreditInterestService {
                 actor);
         log.info("Interest recalculated: client={}, period={} to {}, waived={}, recharged={}, by={}",
                 root.getId(), firstDay, lastDay, waivedTotal, rechargedTotal, actor.getId());
+    }
+
+    /**
+     * Re-charges the charged periods of every group a credit sale dated {@code saleDate} was added to, once per group.
+     * Nothing changes for a group whose charges all end before the sale date.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recalculateChargedInterestForSales(Collection<Long> clientIds, LocalDate saleDate, String reason,
+                                                   User actor) {
+        clientRepository.findAllById(clientIds).stream()
+                .map(client -> client.getParentClientId() != null ? client.getParentClientId() : client.getId())
+                .distinct()
+                .sorted()
+                .forEach(rootId -> recalculateChargedInterestFrom(rootId, saleDate, reason, actor));
     }
 
     private List<Long> groupClientIds(Long rootId) {

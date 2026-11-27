@@ -21,10 +21,14 @@ public interface CreditInterestChargeRepository extends JpaRepository<CreditInte
     BigDecimal sumAmountByClientId(@Param("clientId") Long clientId);
 
     /**
-     * Last day covered by a live (not waived) charge of any of the given clients; the next chargeable period
-     * starts the day after, so a waived latest charge leaves its period open to be charged again.
+     * Last day covered by a live charge, or by a charge waived without letting its period be charged again, of any of
+     * the given clients; the next chargeable period starts the day after.
      */
-    @Query("SELECT MAX(c.periodTo) FROM CreditInterestCharge c WHERE c.clientId IN :clientIds AND c.voidedAt IS NULL")
+    @Query("""
+            SELECT MAX(c.periodTo) FROM CreditInterestCharge c
+            WHERE c.clientId IN :clientIds
+              AND (c.voidedAt IS NULL OR c.waiverKind = com.ppms.credit.InterestWaiverKind.KEEP_PERIOD_CHARGED)
+            """)
     Optional<LocalDate> findLastPeriodToByClientIds(@Param("clientIds") java.util.Collection<Long> clientIds);
 
     /** Live charges of the given clients whose period ends on or after {@code date}, oldest period first. */

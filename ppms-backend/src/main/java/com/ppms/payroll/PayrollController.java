@@ -1,11 +1,5 @@
 package com.ppms.payroll;
 
-import com.ppms.audit.AuditAction;
-import com.ppms.audit.AuditService;
-import com.ppms.common.exception.BusinessException;
-import com.ppms.common.exception.EntityType;
-import com.ppms.common.exception.ErrorCodes;
-import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.pump.DispensaryUnitRepository;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftRepository;
@@ -32,7 +26,6 @@ public class PayrollController {
     private final PayrollService           payrollService;
     private final ShiftRepository          shiftRepository;
     private final DispensaryUnitRepository duRepository;
-    private final AuditService             auditService;
 
     /** Lightweight summary of a shift with an unresolved discrepancy, returned to the payroll UI. */
     public record PendingDiscrepancy(
@@ -116,64 +109,17 @@ public class PayrollController {
 
     /**
      * PATCH /api/pumps/{pumpId}/payroll/{recordId}/status
-     * Advances the payroll record to the next lifecycle state.
-     * DRAFT → APPROVED → PAID
-     * Only OWNER can approve or mark as paid.
+     * Moves the payroll record along DRAFT → APPROVED → PAID, or back from APPROVED to DRAFT.
+     * Marking it PAID takes the paid date, the payment mode (CASH / BANK / UPI) and an optional reference;
+     * a CASH payment is taken out of the safe on the paid date.
      */
     @PatchMapping("/{pumpId}/payroll/{recordId}/status")
     public PayrollRecord updateStatus(
             @PathVariable Long pumpId,
             @PathVariable Long recordId,
-            @RequestBody Map<String, String> body,
+            @Valid @RequestBody UpdatePayrollStatusRequest request,
             @AuthenticationPrincipal User currentUser) {
-        String statusStr = body.get("status");
-        if (statusStr == null) throw new BusinessException(ErrorCodes.PAYROLL_STATUS_REQUIRED,
-                Map.of(),
-                "status is required");
-
-        PayrollStatus newStatus;
-        try {
-            newStatus = PayrollStatus.valueOf(statusStr.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException(ErrorCodes.PAYROLL_STATUS_INVALID,
-                    Map.of(),
-                    "Invalid status. Allowed: DRAFT, APPROVED, PAID");
-        }
-
-        PayrollRecord record = payrollRepository.findById(recordId)
-                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PAYROLL_RECORD,
-                        "Payroll record not found"));
-
-        if (!record.getPumpId().equals(pumpId)) {
-            throw new ResourceNotFoundException(EntityType.PAYROLL_RECORD, "Payroll record not found");
-        }
-
-        // Enforce the allowed lifecycle transitions
-        boolean valid = (record.getStatus() == PayrollStatus.DRAFT && newStatus == PayrollStatus.APPROVED)
-                     || (record.getStatus() == PayrollStatus.APPROVED && newStatus == PayrollStatus.PAID)
-                     || (record.getStatus() == PayrollStatus.APPROVED && newStatus == PayrollStatus.DRAFT);
-
-        if (!valid) {
-            throw new BusinessException(ErrorCodes.PAYROLL_STATUS_TRANSITION_INVALID,
-                    Map.of("fromStatusCode", record.getStatus().name(), "toStatusCode", newStatus.name()),
-                    "Invalid transition: " + record.getStatus() + " → " + newStatus);
-        }
-
-        record.setStatus(newStatus);
-        if (newStatus == PayrollStatus.APPROVED) {
-            record.setApprovedBy(currentUser.getId());
-        }
-
-        PayrollRecord saved = payrollRepository.save(record);
-
-        if (newStatus == PayrollStatus.APPROVED) {
-            auditService.log(pumpId, AuditAction.PAYROLL_APPROVED,
-                    "PayrollRecord", recordId.toString(),
-                    "Payroll approved: recordId=" + recordId + " grossAmount=₹" + record.getGrossAmount(),
-                    currentUser);
-        }
-
-        return saved;
+        return payrollService.changeStatus(pumpId, recordId, request, currentUser);
     }
 
     /**

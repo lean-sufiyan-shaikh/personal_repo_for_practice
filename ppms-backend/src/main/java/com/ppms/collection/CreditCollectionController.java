@@ -65,6 +65,22 @@ public class CreditCollectionController {
                 .body(promiseService.recordPromise(pumpId, clientId, request, currentUser));
     }
 
+    @PutMapping("/promises/{promiseId}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
+    public PromiseResponse editPromise(@PathVariable Long pumpId, @PathVariable Long promiseId,
+                                       @Valid @RequestBody EditPromiseRequest request,
+                                       @AuthenticationPrincipal User currentUser) {
+        return promiseService.editPromise(pumpId, promiseId, request, currentUser);
+    }
+
+    @PostMapping("/promises/{promiseId}/cancel")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
+    public PromiseResponse cancelPromise(@PathVariable Long pumpId, @PathVariable Long promiseId,
+                                         @Valid @RequestBody CancelPromiseRequest request,
+                                         @AuthenticationPrincipal User currentUser) {
+        return promiseService.cancelPromise(pumpId, promiseId, request, currentUser);
+    }
+
     /** {@code ?month=2026-10} lists the pump's statements of that month; {@code ?clientId=} lists one client's. */
     @GetMapping("/statements")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'ACCOUNTANT')")

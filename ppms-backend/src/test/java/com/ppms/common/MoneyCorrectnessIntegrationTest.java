@@ -19,6 +19,7 @@ import com.ppms.credit.ReassignCreditEntryRequest;
 import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditClientRepository;
 import com.ppms.credit.CreditInterestCharge;
+import com.ppms.credit.InterestWaiverKind;
 import com.ppms.credit.CreditInterestChargeRepository;
 import com.ppms.credit.CreditInterestRunService;
 import com.ppms.credit.CreditInterestService;
@@ -598,7 +599,7 @@ class MoneyCorrectnessIntegrationTest {
         CreditInterestCharge charge = interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).get(0);
         assertThat(interestService.computeOutstanding(client.getId())).isEqualByComparingTo("1040.00");
 
-        ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), "Agreed with the client", owner);
+        ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), "Agreed with the client", InterestWaiverKind.RECALCULATE, owner);
 
         assertThat(interestService.computeOutstanding(client.getId())).isEqualByComparingTo("1000.00");
         CreditInterestCharge waived = interestChargeRepository.findById(charge.getId()).orElseThrow();
@@ -622,10 +623,10 @@ class MoneyCorrectnessIntegrationTest {
         seedChargeEndingOn(client, "40.00", TestDates.today().minusDays(1));
         CreditInterestCharge charge = interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).get(0);
 
-        assertThatThrownBy(() -> ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), " ", owner))
+        assertThatThrownBy(() -> ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), " ", InterestWaiverKind.RECALCULATE, owner))
                 .isInstanceOf(BusinessException.class);
-        ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), "Wrong rate", owner);
-        assertThatThrownBy(() -> ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), "Again", owner))
+        ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), "Wrong rate", InterestWaiverKind.RECALCULATE, owner);
+        assertThatThrownBy(() -> ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), "Again", InterestWaiverKind.RECALCULATE, owner))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("already been waived");
     }
@@ -641,7 +642,7 @@ class MoneyCorrectnessIntegrationTest {
                 interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).get(0);
         assertThat(novemberCharge.getPeriodFrom()).isEqualTo(LocalDate.of(2025, 11, 1));
 
-        ledgerService.waiveInterestCharge(pump.getId(), client.getId(), novemberCharge.getId(), "Rate was wrong", owner);
+        ledgerService.waiveInterestCharge(pump.getId(), client.getId(), novemberCharge.getId(), "Rate was wrong", InterestWaiverKind.RECALCULATE, owner);
         int chargedAgain = interestService.applyToClientGroupInNewTransaction(client.getId(), periodTo, "SCHEDULED", null);
 
         assertThat(chargedAgain).isEqualTo(1);
@@ -655,6 +656,30 @@ class MoneyCorrectnessIntegrationTest {
     }
 
     @Test
+    void periodOfALatestChargeWaivedWithoutRechargeIsNotChargedAgain() {
+        CreditClient client = saveClient(new BigDecimal("3.00"));
+        seedChargeEndingOn(client, "10.00", LocalDate.of(2025, 10, 31));
+        saveCreditSaleOn(client, "30000.00", LocalDate.of(2025, 11, 1));
+        LocalDate periodTo = LocalDate.of(2025, 11, 30);
+        interestService.applyToClientGroupInNewTransaction(client.getId(), periodTo, "SCHEDULED", null);
+        CreditInterestCharge novemberCharge =
+                interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).get(0);
+
+        ledgerService.waiveInterestCharge(pump.getId(), client.getId(), novemberCharge.getId(), "Goodwill",
+                InterestWaiverKind.KEEP_PERIOD_CHARGED, owner);
+        int chargedAgain = interestService.applyToClientGroupInNewTransaction(client.getId(), periodTo, "SCHEDULED", null);
+
+        assertThat(chargedAgain).isZero();
+        assertThat(interestChargeRepository.findById(novemberCharge.getId()).orElseThrow().getWaiverKind())
+                .isEqualTo(InterestWaiverKind.KEEP_PERIOD_CHARGED);
+        assertThat(interestService.computeOutstanding(client.getId())).isEqualByComparingTo("30010.00");
+        // December is charged from the day after the waived period, not from November again.
+        interestService.applyToClientGroupInNewTransaction(client.getId(), LocalDate.of(2025, 12, 31), "SCHEDULED", null);
+        assertThat(interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).get(0).getPeriodFrom())
+                .isEqualTo(LocalDate.of(2025, 12, 1));
+    }
+
+    @Test
     void interestChargeOfAnotherClientCannotBeWaivedThroughThisClient() {
         CreditClient client = saveClient(new BigDecimal("2.00"));
         CreditClient otherClient = saveClient(new BigDecimal("2.00"));
@@ -663,7 +688,7 @@ class MoneyCorrectnessIntegrationTest {
                 interestChargeRepository.findByClientIdOrderByCreatedAtDesc(otherClient.getId()).get(0);
 
         assertThatThrownBy(() -> ledgerService.waiveInterestCharge(
-                pump.getId(), client.getId(), othersCharge.getId(), "Not owed", owner))
+                pump.getId(), client.getId(), othersCharge.getId(), "Not owed", InterestWaiverKind.RECALCULATE, owner))
                 .isInstanceOf(BusinessException.class);
 
         assertThat(interestChargeRepository.findById(othersCharge.getId()).orElseThrow().getVoidedAt()).isNull();

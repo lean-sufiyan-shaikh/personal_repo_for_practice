@@ -12,6 +12,7 @@ import com.ppms.inventory.LotConsumption;
 import com.ppms.inventory.LotConsumptionRepository;
 import com.ppms.inventory.TankerDelivery;
 import com.ppms.inventory.TankerDeliveryRepository;
+import com.ppms.payroll.PayrollRepository;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftFuelReading;
 import com.ppms.shift.ShiftFuelReadingRepository;
@@ -46,6 +47,7 @@ public class ProfitLossReportService {
     private final BusinessClock businessClock;
     private final PumpExpenseRepository expenseRepository;
     private final PaymentSettlementRepository settlementRepository;
+    private final PayrollRepository payrollRepository;
 
     private record CostOfGoods(Map<FuelType, BigDecimal> totalByFuel,
                                Map<FuelType, List<ProfitLossReport.LotCostLine>> lotLinesByFuel) {}
@@ -92,6 +94,7 @@ public class ProfitLossReportService {
         BigDecimal approvedExpenses = approvedExpenses(pumpId, from, to);
         BigDecimal bankCharges = settlementRepository.sumChargesByPumpIdAndSettlementDateBetween(pumpId, from, to)
                 .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal payrollPaid = payrollRepository.sumNetPayPaidBetween(pumpId, from, to).setScale(2, RoundingMode.HALF_UP);
 
         return new ProfitLossReport(pumpId, from, to, shifts.size(),
                 shiftRepository.countAutoClosedShiftsByDateRange(pumpId, from, to),
@@ -100,8 +103,8 @@ public class ProfitLossReportService {
                 grossProfit,
                 cash, upi, card, credit, fleetCard,
                 cash.add(upi).add(card).add(fleetCard).add(credit),
-                approvedExpenses, bankCharges,
-                grossProfit.subtract(approvedExpenses).subtract(bankCharges),
+                approvedExpenses, bankCharges, payrollPaid,
+                grossProfit.subtract(approvedExpenses).subtract(bankCharges).subtract(payrollPaid),
                 lines, dayLines(revenueByDay, cogsByDay(consumptions, dateByShiftId)));
     }
 

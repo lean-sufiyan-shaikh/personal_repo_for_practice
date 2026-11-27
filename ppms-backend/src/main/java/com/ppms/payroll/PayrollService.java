@@ -1,5 +1,7 @@
 package com.ppms.payroll;
 
+import com.ppms.cash.CashDrawerService;
+import com.ppms.cash.CashEvent;
 import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.time.BusinessClock;
@@ -7,7 +9,10 @@ import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.planning.StaffLeaveRepository;
+import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.shift.DiscrepancyResolution;
 import com.ppms.shift.DiscrepancyType;
 import com.ppms.shift.Shift;
@@ -24,9 +29,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Slf4j
@@ -35,6 +42,7 @@ import java.util.Map;
 public class PayrollService {
 
     private static final BigDecimal MINUTES_PER_HOUR = BigDecimal.valueOf(60);
+    private static final String ENTITY_NAME = "PayrollRecord";
 
     private final PayrollRepository              payrollRepository;
     private final PayrollResolvedShiftRepository resolvedShiftRepository;
@@ -43,12 +51,15 @@ public class PayrollService {
     private final StaffLeaveRepository           staffLeaveRepository;
     private final AuditService                   auditService;
     private final BusinessClock businessClock;
-
-    private record ResolvedShifts(BigDecimal outOfPeriodDeductions, List<PayrollResolvedShift> links) {}
+    private final ClosedDayGuard                 closedDayGuard;
+    private final CashDrawerService              cashDrawerService;
+    private final BalanceSheetStalenessService   balanceSheetStalenessService;
 
     /**
      * Resolves the selected discrepancies, computes the draft and saves it in one transaction,
      * so a failure (e.g. a duplicate period) leaves no shift resolved without a payroll record.
+     * The draft takes every salary deduction of the staff member not taken by an earlier payroll, whatever its date,
+     * and the deductions payroll of earlier periods could not take from its pay.
      */
     @Transactional
     public PayrollRecord generate(Long pumpId, GeneratePayrollRequest req, User currentUser) {
@@ -77,26 +88,123 @@ public class PayrollService {
                             + ", which overlaps " + req.getPeriodFrom() + " to " + req.getPeriodTo() + ".");
                 });
 
-        ResolvedShifts resolved = resolveSelectedDiscrepancies(pumpId, req, currentUser);
+        Map<Long, ShiftStatus> previousStatusByShiftId = resolveSelectedDiscrepancies(pumpId, req, currentUser);
+        List<Shift> deductionShifts = shiftRepository.findUntakenSalaryDeductionShifts(pumpId, req.getUserId());
+        List<PayrollRecord> withUncarriedDeductions =
+                payrollRepository.findWithUncarriedDeductionsBefore(pumpId, req.getUserId(), req.getPeriodFrom());
 
         PayrollRecord record = staff.getRole() == UserRole.OPERATOR
                 ? buildHourlyShiftPayroll(pumpId, req, staff)
                 : buildDailyPayroll(pumpId, req, staff);
-        applyDeductions(record, pumpId, req, resolved.outOfPeriodDeductions());
+        applyDeductions(record, deductionShifts, withUncarriedDeductions);
 
         PayrollRecord saved = payrollRepository.save(record);
-        resolved.links().forEach(link -> link.setPayrollId(saved.getId()));
-        resolvedShiftRepository.saveAll(resolved.links());
+        resolvedShiftRepository.saveAll(deductionShifts.stream()
+                .map(shift -> PayrollResolvedShift.builder()
+                        .payrollId(saved.getId())
+                        .shiftId(shift.getId())
+                        .previousStatus(previousStatusByShiftId.get(shift.getId()))
+                        .build())
+                .toList());
+        withUncarriedDeductions.forEach(earlier -> earlier.setCarriedToPayrollId(saved.getId()));
+        payrollRepository.saveAll(withUncarriedDeductions);
 
-        log.info("Payroll generated: pump={} user={} role={} type={} period={}/{} gross={} status=DRAFT",
+        log.info("Payroll generated: pump={} user={} role={} type={} period={}/{} gross={} deductions={} opening={} status=DRAFT",
                 pumpId, req.getUserId(), staff.getRole(), saved.getSalaryType(),
-                req.getPeriodFrom(), req.getPeriodTo(), saved.getGrossAmount());
+                req.getPeriodFrom(), req.getPeriodTo(), saved.getGrossAmount(), saved.getDeductions(),
+                saved.getOpeningDeductions());
         return saved;
     }
 
     /**
+     * Moves a payroll record along DRAFT → APPROVED → PAID, or back from APPROVED to DRAFT, auditing each move.
+     * Marking it PAID records the business date, mode and reference of the payment; a CASH payment is taken out of the
+     * safe on that date. The day must still be open, since its balance sheet counts the payroll paid that day.
+     */
+    @Transactional
+    public PayrollRecord changeStatus(Long pumpId, Long recordId, UpdatePayrollStatusRequest request, User currentUser) {
+        PayrollStatus newStatus = parseStatus(request.status());
+        PayrollRecord record = payrollRepository.findById(recordId)
+                .filter(found -> found.getPumpId().equals(pumpId))
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PAYROLL_RECORD,
+                        "Payroll record not found"));
+
+        boolean valid = (record.getStatus() == PayrollStatus.DRAFT && newStatus == PayrollStatus.APPROVED)
+                     || (record.getStatus() == PayrollStatus.APPROVED && newStatus == PayrollStatus.PAID)
+                     || (record.getStatus() == PayrollStatus.APPROVED && newStatus == PayrollStatus.DRAFT);
+        if (!valid) {
+            throw new BusinessException(ErrorCodes.PAYROLL_STATUS_TRANSITION_INVALID,
+                    Map.of("fromStatusCode", record.getStatus().name(), "toStatusCode", newStatus.name()),
+                    "Invalid transition: " + record.getStatus() + " → " + newStatus);
+        }
+
+        String description;
+        AuditAction action;
+        if (newStatus == PayrollStatus.APPROVED) {
+            record.setApprovedBy(currentUser.getId());
+            action = AuditAction.PAYROLL_APPROVED;
+            description = "Payroll approved: recordId=" + recordId + " grossAmount=₹" + record.getGrossAmount();
+        } else if (newStatus == PayrollStatus.DRAFT) {
+            action = AuditAction.PAYROLL_RETURNED_TO_DRAFT;
+            description = "Payroll returned to draft: recordId=" + recordId + " grossAmount=₹" + record.getGrossAmount();
+        } else {
+            markPaid(record, request, currentUser);
+            action = AuditAction.PAYROLL_PAID;
+            description = "Payroll paid: recordId=" + recordId + " netPay=₹" + record.getNetPay() + " on "
+                    + record.getPaidDate() + " by " + record.getPaymentMode()
+                    + (record.getPaymentReference() != null ? " ref=" + record.getPaymentReference() : "");
+        }
+        record.setStatus(newStatus);
+        PayrollRecord saved = payrollRepository.save(record);
+        auditService.log(pumpId, action, ENTITY_NAME, recordId.toString(), description, currentUser);
+        log.info("Payroll status changed: pump={} record={} status={} by={}", pumpId, recordId, newStatus,
+                currentUser.getId());
+        return saved;
+    }
+
+    private static PayrollStatus parseStatus(String status) {
+        if (status == null || status.isBlank()) {
+            throw new BusinessException(ErrorCodes.PAYROLL_STATUS_REQUIRED, Map.of(), "status is required");
+        }
+        try {
+            return PayrollStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCodes.PAYROLL_STATUS_INVALID, Map.of(),
+                    "Invalid status '" + status + "'. Allowed: DRAFT, APPROVED, PAID");
+        }
+    }
+
+    private void markPaid(PayrollRecord record, UpdatePayrollStatusRequest request, User currentUser) {
+        if (request.paidDate() == null || request.paymentMode() == null) {
+            throw new BusinessException(ErrorCodes.PAYROLL_PAYMENT_DETAILS_REQUIRED, Map.of(),
+                    "Enter the date the salary was paid and how it was paid.");
+        }
+        if (request.paidDate().isAfter(businessClock.today())) {
+            throw new BusinessException(ErrorCodes.PAYROLL_PAID_DATE_IN_FUTURE, Map.of(),
+                    "The paid date cannot be in the future.");
+        }
+        closedDayGuard.requireOpen(record.getPumpId(), request.paidDate());
+
+        record.setPaidDate(request.paidDate());
+        record.setPaymentMode(request.paymentMode());
+        record.setPaymentReference(request.paymentReference() == null || request.paymentReference().isBlank()
+                ? null : request.paymentReference().trim());
+        record.setPaidBy(currentUser.getId());
+        if (request.paymentMode() == PayrollPaymentMode.CASH && record.getNetPay().signum() > 0) {
+            String staffName = userRepository.findById(record.getUserId()).map(User::getFullName).orElse("staff");
+            CashEvent cashOut = cashDrawerService.recordAutomaticCashOut(record.getPumpId(), record.getNetPay(),
+                    request.paidDate(), "Salary paid to " + staffName + " for " + record.getPeriodFrom() + " to "
+                            + record.getPeriodTo() + " (payroll #" + record.getId() + ")", currentUser);
+            record.setCashEventId(cashOut.getId());
+        }
+        balanceSheetStalenessService.markDaySheetsStale(record.getPumpId(), List.of(request.paidDate()),
+                StaleReasons.payrollPaid(record.getId()));
+    }
+
+    /**
      * Deletes a DRAFT payroll and restores the discrepancies it resolved to their earlier pending status,
-     * so the deduction can be taken again in a later pay run.
+     * so the deduction can be taken again in a later pay run. Deductions it took that were chosen on the shift, and
+     * those it brought in from earlier payroll, are left for the next payroll to take.
      */
     @Transactional
     public void deleteDraft(Long pumpId, Long recordId, User currentUser) {
@@ -109,14 +217,22 @@ public class PayrollService {
                     Map.of(),
                     "Only draft payroll records can be deleted.");
         }
+        if (record.getCarriedToPayrollId() != null) {
+            throw new BusinessException(ErrorCodes.PAYROLL_DEDUCTIONS_CARRIED_FORWARD,
+                    Map.of("carriedToPayrollId", record.getCarriedToPayrollId()),
+                    "The deductions this payroll could not take were carried into payroll #"
+                            + record.getCarriedToPayrollId() + ". Delete that draft first.");
+        }
 
         for (PayrollResolvedShift link : resolvedShiftRepository.findByPayrollId(recordId)) {
-            restoreDiscrepancy(link);
+            if (link.getPreviousStatus() != null) {
+                restoreDiscrepancy(link);
+            }
         }
 
         payrollRepository.delete(record);
         auditService.log(pumpId, AuditAction.PAYROLL_DELETED,
-                "PayrollRecord", recordId.toString(),
+                ENTITY_NAME, recordId.toString(),
                 "Payroll draft deleted: recordId=" + recordId + " grossAmount=₹" + record.getGrossAmount(),
                 currentUser);
     }
@@ -140,18 +256,14 @@ public class PayrollService {
         shiftRepository.save(shift);
     }
 
-    /**
-     * Returns the deduction for selected shifts OUTSIDE the period only; shifts inside the period
-     * are picked up by findSalaryDeductionShifts after resolution and must not be counted twice.
-     */
-    private ResolvedShifts resolveSelectedDiscrepancies(Long pumpId, GeneratePayrollRequest req, User resolvedBy) {
+    /** Resolves the selected discrepancies as salary deductions; returns the status each shift had before. */
+    private Map<Long, ShiftStatus> resolveSelectedDiscrepancies(Long pumpId, GeneratePayrollRequest req, User resolvedBy) {
         List<Long> ids = req.getDeductFromSalaryShiftIds();
+        Map<Long, ShiftStatus> previousStatusByShiftId = new HashMap<>();
         if (ids == null || ids.isEmpty()) {
-            return new ResolvedShifts(BigDecimal.ZERO, List.of());
+            return previousStatusByShiftId;
         }
 
-        BigDecimal outOfPeriod = BigDecimal.ZERO;
-        List<PayrollResolvedShift> links = new ArrayList<>();
         for (Long shiftId : ids.stream().distinct().sorted().toList()) {
             Shift shift = shiftRepository.findByIdForUpdate(shiftId)
                     .filter(found -> found.getPumpId().equals(pumpId) && found.getOperatorId().equals(req.getUserId()))
@@ -171,25 +283,15 @@ public class PayrollService {
                         "can be deducted from salary.");
             }
 
-            links.add(PayrollResolvedShift.builder()
-                    .shiftId(shiftId)
-                    .previousStatus(shift.getStatus())
-                    .build());
-
+            previousStatusByShiftId.put(shiftId, shift.getStatus());
             shift.setDiscrepancyResolution(DiscrepancyResolution.SALARY_DEDUCTION);
             shift.setDiscrepancyResolvedById(resolvedBy.getId());
             shift.setDiscrepancyResolvedAt(businessClock.now());
             shift.setStatus(ShiftStatus.CLOSED_DISCREPANCY_RESOLVED);
             shiftRepository.save(shift);
-
-            boolean outsidePeriod = shift.getShiftDate().isBefore(req.getPeriodFrom())
-                    || shift.getShiftDate().isAfter(req.getPeriodTo());
-            if (outsidePeriod) {
-                outOfPeriod = outOfPeriod.add(shift.shortageNotRecovered());
-            }
         }
         shiftRepository.flush();
-        return new ResolvedShifts(outOfPeriod, links);
+        return previousStatusByShiftId;
     }
 
     /** Hourly pay for OPERATOR: worked minutes × shift-window hourly rate, rounded once. */
@@ -277,23 +379,26 @@ public class PayrollService {
                 .build();
     }
 
-    private void applyDeductions(PayrollRecord record, Long pumpId, GeneratePayrollRequest req,
-                                 BigDecimal outOfPeriodDeductions) {
-        BigDecimal periodDeductions = shiftRepository.findSalaryDeductionShifts(
-                        pumpId, req.getUserId(), req.getPeriodFrom(), req.getPeriodTo())
-                .stream()
+    private void applyDeductions(PayrollRecord record, List<Shift> deductionShifts,
+                                 List<PayrollRecord> withUncarriedDeductions) {
+        BigDecimal shiftDeductions = deductionShifts.stream()
                 .map(Shift::shortageNotRecovered)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal deductions = periodDeductions.add(outOfPeriodDeductions).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal openingDeductions = withUncarriedDeductions.stream()
+                .map(PayrollRecord::getUncoveredDeductions)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal deductions = shiftDeductions.add(openingDeductions).setScale(2, RoundingMode.HALF_UP);
         BigDecimal netBeforeFloor = record.getGrossAmount().subtract(deductions);
 
+        record.setOpeningDeductions(openingDeductions);
         record.setDeductions(deductions);
         record.setNetPay(netBeforeFloor.max(BigDecimal.ZERO));
         record.setUncoveredDeductions(netBeforeFloor.negate().max(BigDecimal.ZERO));
 
         if (record.getUncoveredDeductions().signum() > 0) {
-            log.warn("Payroll deductions exceed gross pay: pump={} user={} period={}/{} gross={} deductions={} uncovered={}",
-                    pumpId, req.getUserId(), req.getPeriodFrom(), req.getPeriodTo(),
+            log.warn("Payroll deductions exceed gross pay and carry forward: pump={} user={} period={}/{} gross={} deductions={} uncovered={}",
+                    record.getPumpId(), record.getUserId(), record.getPeriodFrom(), record.getPeriodTo(),
                     record.getGrossAmount(), deductions, record.getUncoveredDeductions());
         }
     }

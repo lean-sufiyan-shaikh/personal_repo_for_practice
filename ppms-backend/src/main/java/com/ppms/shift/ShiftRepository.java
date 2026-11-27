@@ -229,9 +229,9 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
     List<Shift> findByPumpIdAndOperatorIdAndDateRange(Long pumpId, Long operatorId, LocalDate from, LocalDate to);
 
     /**
-     * Returns closed shifts for an operator in a date range where a SHORT discrepancy was resolved
-     * via SALARY_DEDUCTION and no payroll has already taken the deduction (payroll_resolved_shifts).
-     * deductions = SUM(discrepancy_amount) for these shifts.
+     * Returns an operator's shifts, of any date, whose SHORT discrepancy was resolved via SALARY_DEDUCTION and whose
+     * deduction no payroll has taken yet (payroll_resolved_shifts), so a deduction chosen after the payroll of its
+     * period was generated is taken by the next one.
      *
      * Native query required: Hibernate maps the JPQL enum literal to
      * 'SALARY_DEDUCTION'::DiscrepancyResolution (Java class name), but the PostgreSQL
@@ -241,18 +241,15 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
             SELECT * FROM shifts
             WHERE pump_id = :pumpId
               AND operator_id = :operatorId
-              AND shift_date BETWEEN :from AND :to
               AND discrepancy_resolution = 'SALARY_DEDUCTION'::discrepancy_resolution
               AND discrepancy_type = 'SHORT'::discrepancy_type
               AND discrepancy_amount IS NOT NULL
               AND NOT EXISTS (SELECT 1 FROM payroll_resolved_shifts prs WHERE prs.shift_id = shifts.id)
             ORDER BY shift_date ASC
             """, nativeQuery = true)
-    List<Shift> findSalaryDeductionShifts(
+    List<Shift> findUntakenSalaryDeductionShifts(
             @Param("pumpId") Long pumpId,
-            @Param("operatorId") Long operatorId,
-            @Param("from") LocalDate from,
-            @Param("to") LocalDate to);
+            @Param("operatorId") Long operatorId);
 
     // ── Balance sheet queries ─────────────────────────────────────────────────
 

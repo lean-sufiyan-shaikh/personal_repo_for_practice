@@ -27,8 +27,8 @@ public class MonthlyStatementWriter {
     private final CreditStatementRenderer statementRenderer;
 
     /**
-     * False when the month's statement already exists, or when the client had nothing in the month and owes nothing
-     * at its end. The pay link asks for the balance at the end of the month.
+     * False when the month's statement already exists, or when the client owes nothing at the end of the month and
+     * either had nothing in the month or is inactive. The pay link asks for the balance at the end of the month.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean writeInNewTransaction(PumpLocation pump, Long clientId, YearMonth month) {
@@ -41,7 +41,8 @@ public class MonthlyStatementWriter {
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.CREDIT_CLIENT,
                         "Credit client not found: " + clientId));
         CreditStatement statement = ledgerQueryService.getPeriodStatement(client, periodFrom, periodTo);
-        if (statement.transactions().isEmpty() && statement.outstanding().signum() == 0) {
+        boolean closesAtZero = statement.outstanding().signum() == 0;
+        if (closesAtZero && (statement.transactions().isEmpty() || !client.isActive())) {
             return false;
         }
         String html = statementRenderer.render(pump, client, statement, periodFrom, periodTo,

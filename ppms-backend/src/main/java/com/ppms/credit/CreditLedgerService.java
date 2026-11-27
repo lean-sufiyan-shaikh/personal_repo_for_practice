@@ -134,11 +134,12 @@ public class CreditLedgerService {
 
     /**
      * Waives an interest charge: the row stays on the ledger with who waived it and why, but no longer
-     * counts as owed. Waiving the latest charge lets its period be charged again by the next interest run.
+     * counts as owed. With RECALCULATE, waiving the latest charge lets its period be charged again by the next interest
+     * run; with KEEP_PERIOD_CHARGED the period stays counted as charged.
      */
     @Transactional
     public CreditInterestCharge waiveInterestCharge(Long pumpId, Long clientId, Long chargeId,
-                                                    String reason, User currentUser) {
+                                                    String reason, InterestWaiverKind kind, User currentUser) {
         if (reason == null || reason.isBlank()) {
             throw new BusinessException(ErrorCodes.INTEREST_WAIVER_REASON_REQUIRED,
                     Map.of(),
@@ -170,11 +171,12 @@ public class CreditLedgerService {
         charge.setVoidedAt(businessClock.now());
         charge.setVoidedBy(currentUser.getId());
         charge.setVoidReason(reason.trim());
+        charge.setWaiverKind(kind);
         charge = interestChargeRepository.save(charge);
 
-        log.info("Interest charge waived: pump={}, client={}, chargeId={}, amount={}, period={}/{}, waivedBy={}",
+        log.info("Interest charge waived: pump={}, client={}, chargeId={}, amount={}, period={}/{}, kind={}, waivedBy={}",
                 pumpId, clientId, chargeId, charge.getAmount(),
-                charge.getPeriodFrom(), charge.getPeriodTo(), currentUser.getId());
+                charge.getPeriodFrom(), charge.getPeriodTo(), kind, currentUser.getId());
         return charge;
     }
 
@@ -233,6 +235,10 @@ public class CreditLedgerService {
 
         entry.setClientId(request.getToClientId());
         creditEntryRepository.save(entry);
+        if (fromClientId == null && "ACTIVE".equals(entry.getVoidStatus())) {
+            interestService.recalculateChargedInterestFrom(toClient.getId(), entry.getSaleDate(),
+                    "Recalculated after linking a credit sale dated " + entry.getSaleDate(), currentUser);
+        }
 
         log.info("Credit entry {} moved: pump={}, fromClient={}, toClient={}, by={}",
                 entryId, pumpId, fromClientId != null ? fromClientId : "unlinked",

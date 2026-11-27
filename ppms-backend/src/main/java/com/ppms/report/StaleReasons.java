@@ -91,6 +91,11 @@ public final class StaleReasons {
                 "The discrepancy on Shift #" + shiftId + " was resolved" + AFTER_GENERATED);
     }
 
+    public static CodedText payrollPaid(Long payrollId) {
+        return CodedText.of(ServerTextCodes.STALE_PAYROLL_PAID, "payrollId", payrollId,
+                "Payroll #" + payrollId + " was marked paid on this day" + AFTER_GENERATED);
+    }
+
     public static CodedText dayReopened(String date) {
         return CodedText.of(ServerTextCodes.STALE_DAY_REOPENED, "date", date,
                 date + " was re-opened" + AFTER_GENERATED);

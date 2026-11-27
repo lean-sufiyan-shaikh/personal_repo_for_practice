@@ -50,8 +50,10 @@ public interface CreditPaymentRepository extends JpaRepository<CreditPayment, Lo
     @Query("SELECT p FROM CreditPayment p WHERE p.clientId IN :clientIds AND p.paymentApprovalStatus = 'APPROVED'")
     List<CreditPayment> findApprovedByClientIdIn(@Param("clientIds") java.util.Collection<Long> clientIds);
 
-    @Query("SELECT p FROM CreditPayment p WHERE p.clientId IN :clientIds AND p.paymentApprovalStatus = 'APPROVED' AND p.paidAt >= :fromDate")
-    List<CreditPayment> findApprovedByClientIdInPaidFrom(@Param("clientIds") java.util.Collection<Long> clientIds,
+    /** Approved payments and payments awaiting approval of the given clients, dated on or after {@code fromDate}. */
+    @Query("SELECT p FROM CreditPayment p WHERE p.clientId IN :clientIds"
+            + " AND p.paymentApprovalStatus IN ('APPROVED', 'PENDING_APPROVAL') AND p.paidAt >= :fromDate")
+    List<CreditPayment> findApprovedOrPendingByClientIdInPaidFrom(@Param("clientIds") java.util.Collection<Long> clientIds,
                                                          @Param("fromDate") LocalDate fromDate);
 
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM CreditPayment p WHERE p.pumpId = :pumpId AND p.paymentApprovalStatus = 'APPROVED' AND p.paidAt BETWEEN :fromDate AND :toDate")

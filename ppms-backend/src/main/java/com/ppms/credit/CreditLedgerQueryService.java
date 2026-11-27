@@ -10,7 +10,6 @@ import com.ppms.ancillary.AncillarySaleRepository;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.text.CodedText;
 import com.ppms.common.text.ServerTextCodes;
-import com.ppms.common.time.BusinessClock;
 import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.shift.ShiftCreditEntryRepository;
 import com.ppms.transaction.TransactionPaymentMode;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -64,7 +62,6 @@ public class CreditLedgerQueryService {
     private final CreditOpeningBalanceRepository openingBalanceRepository;
     private final CreditInterestService interestService;
     private final UserRepository userRepository;
-    private final BusinessClock businessClock;
     private final VehicleUsageService vehicleUsageService;
 
     public List<CreditClientResponse> getLedgerSummary(Long pumpId) {
@@ -199,10 +196,6 @@ public class CreditLedgerQueryService {
                 .filter(tx -> fromDate == null || !tx.getBusinessDate().isBefore(fromDate))
                 .filter(tx -> toDate == null || !tx.getBusinessDate().isAfter(toDate))
                 .toList();
-    }
-
-    private LocalDate businessDateOf(OffsetDateTime moment) {
-        return moment.atZoneSameInstant(businessClock.zone()).toLocalDate();
     }
 
     public CreditPaymentResponse toPaymentResponse(CreditPayment payment, String recordedByName) {
@@ -340,7 +333,7 @@ public class CreditLedgerQueryService {
                             .detail(String.format("%s – %s", charge.getPeriodFrom(), charge.getPeriodTo()))
                             .amount(charge.getAmount().setScale(2, RoundingMode.HALF_UP))
                             .occurredAt(charge.getCreatedAt())
-                            .businessDate(businessDateOf(charge.getCreatedAt()))
+                            .businessDate(charge.getPeriodTo())
                             .status(charge.getVoidedAt() == null ? ACTIVE : WAIVED)
                             .countedInBalance(charge.getVoidedAt() == null)
                             .build());

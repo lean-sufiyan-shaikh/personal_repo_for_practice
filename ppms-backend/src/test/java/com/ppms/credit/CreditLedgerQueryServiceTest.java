@@ -9,7 +9,6 @@ import com.ppms.common.text.ServerTextCodes;
 import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.shift.ShiftCreditEntryRepository;
 import com.ppms.fleet.VehicleUsageService;
-import com.ppms.support.FixedBusinessClock;
 import com.ppms.transaction.TransactionPaymentMode;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
@@ -38,12 +37,12 @@ class CreditLedgerQueryServiceTest {
     private final AncillaryProductRepository ancillaryProductRepository = mock(AncillaryProductRepository.class);
     private final UserRepository userRepository = mock(UserRepository.class);
     private final CreditPaymentReversalRepository reversalRepository = mock(CreditPaymentReversalRepository.class);
+    private final CreditInterestChargeRepository interestChargeRepository = mock(CreditInterestChargeRepository.class);
 
     private final CreditLedgerQueryService queryService = new CreditLedgerQueryService(
-            mock(CreditClientRepository.class), paymentRepository, reversalRepository, mock(CreditInterestChargeRepository.class),
+            mock(CreditClientRepository.class), paymentRepository, reversalRepository, interestChargeRepository,
             mock(ShiftCreditEntryRepository.class), ancillarySaleRepository, ancillaryProductRepository,
             mock(CreditOpeningBalanceRepository.class), mock(CreditInterestService.class), userRepository,
-            new FixedBusinessClock(NOW),
             mock(VehicleUsageService.class));
 
     @Test
@@ -126,6 +125,21 @@ class CreditLedgerQueryServiceTest {
         assertThat(newestFirst.get(1).getReferenceParams())
                 .isEqualTo(Map.of("paidAt", "2026-03-06", "reason", "Cheque bounced"));
         assertThat(newestFirst.get(0).getReferenceCode()).isEqualTo(ServerTextCodes.BOUNCE_CHARGE_DETAILS);
+    }
+
+    @Test
+    void interestRowIsDatedByTheLastDayItCoversSoItLandsOnThatMonthsStatement() {
+        CreditInterestCharge charge = CreditInterestCharge.builder()
+                .id(7L).clientId(CLIENT_ID).amount(new BigDecimal("90.00")).rateApplied(new BigDecimal("3.00"))
+                .daysApplied(28).periodFrom(LocalDate.of(2026, 2, 1)).periodTo(LocalDate.of(2026, 2, 28))
+                .createdAt(NOW)
+                .build();
+        when(interestChargeRepository.findByClientIdOrderByCreatedAtDesc(CLIENT_ID)).thenReturn(List.of(charge));
+
+        CreditTransactionResponse row = onlyRow();
+
+        assertThat(row.getBusinessDate()).isEqualTo(LocalDate.of(2026, 2, 28));
+        assertThat(row.getOccurredAt()).isEqualTo(NOW);
     }
 
     private CreditTransactionResponse onlyRow() {

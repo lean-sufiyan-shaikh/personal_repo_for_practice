@@ -78,6 +78,11 @@ public class CreditInterestCharge {
     @Column(name = "void_reason")
     private String voidReason;
 
+    /** Set with the waiver; KEEP_PERIOD_CHARGED keeps the waived period counted as charged. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "waiver_kind", length = 20)
+    private InterestWaiverKind waiverKind;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

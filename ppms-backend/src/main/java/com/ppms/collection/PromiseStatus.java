@@ -5,5 +5,7 @@ public enum PromiseStatus {
     /** The client paid at least the promised amount after the promise was recorded. */
     KEPT,
     /** The date passed without the promised amount paid. */
-    MISSED
+    MISSED,
+    /** Withdrawn before it was kept or missed. */
+    CANCELLED
 }

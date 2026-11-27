@@ -301,7 +301,8 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
         perform(delete("/api/pumps/{pumpId}/payroll/{id}", setup.pumpId(), recordId), setup.owner())
                 .andExpect(status().isBadRequest());
         perform(patch("/api/pumps/{pumpId}/payroll/{id}/status", setup.pumpId(), recordId), setup.owner(),
-                Map.of("status", "PAID")).andExpect(status().isOk());
+                Map.of("status", "PAID", "paidDate", TestDates.today().toString(), "paymentMode", "BANK",
+                        "paymentReference", "NEFT-1")).andExpect(status().isOk());
 
         JsonNode list = json(perform(get("/api/pumps/{pumpId}/payroll", setup.pumpId()), setup.owner())
                 .andExpect(status().isOk()));

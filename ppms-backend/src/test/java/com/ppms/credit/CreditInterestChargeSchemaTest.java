@@ -76,6 +76,7 @@ class CreditInterestChargeSchemaTest {
         first.setVoidedAt(OffsetDateTime.now());
         first.setVoidedBy(owner.getId());
         first.setVoidReason("Wrong rate");
+        first.setWaiverKind(InterestWaiverKind.RECALCULATE);
         interestChargeRepository.saveAndFlush(first);
         assertThat(interestChargeRepository.saveAndFlush(charge()).getId()).isNotNull();
         assertThat(interestChargeRepository.sumAmountByClientId(client.getId())).isEqualByComparingTo("40.00");
@@ -87,6 +88,7 @@ class CreditInterestChargeSchemaTest {
         CreditInterestCharge charge = interestChargeRepository.saveAndFlush(charge());
         charge.setVoidedAt(OffsetDateTime.now());
         charge.setVoidedBy(owner.getId());
+        charge.setWaiverKind(InterestWaiverKind.RECALCULATE);
 
         assertThatThrownBy(() -> interestChargeRepository.saveAndFlush(charge))
                 .isInstanceOf(DataIntegrityViolationException.class);

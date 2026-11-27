@@ -70,6 +70,8 @@ public enum AuditAction {
     // ── Payroll ───────────────────────────────────────────────────────────────
     PAYROLL_APPROVED,
     PAYROLL_DELETED,
+    PAYROLL_PAID,
+    PAYROLL_RETURNED_TO_DRAFT,
 
     // ── Pump management ───────────────────────────────────────────────────────
     PUMP_CREATED,
@@ -127,6 +129,8 @@ public enum AuditAction {
     // ── Credit collections ────────────────────────────────────────────────────
     CREDIT_REMINDER_RECORDED,
     CREDIT_PROMISE_RECORDED,
+    CREDIT_PROMISE_EDITED,
+    CREDIT_PROMISE_CANCELLED,
     COLLECTION_SETTINGS_UPDATED,
     CLIENT_VEHICLE_SAVED,
     CLIENT_VEHICLE_STATUS_CHANGED,

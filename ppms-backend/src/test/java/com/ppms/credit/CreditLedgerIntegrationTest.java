@@ -248,10 +248,10 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
         assertThat(outstandingOf(clientId)).isEqualByComparingTo("1040.00");
 
         perform(patch("/api/pumps/{pumpId}/credit-ledger/{clientId}/interest/{chargeId}/waive", setup.pumpId(), clientId, charge.getId()),
-                setup.manager(), Map.of("reason", "Goodwill"))
+                setup.manager(), Map.of("reason", "Goodwill", "kind", "RECALCULATE"))
                 .andExpect(status().isForbidden());
         perform(patch("/api/pumps/{pumpId}/credit-ledger/{clientId}/interest/{chargeId}/waive", setup.pumpId(), clientId, charge.getId()),
-                setup.owner(), Map.of("reason", " "))
+                setup.owner(), Map.of("reason", " ", "kind", "RECALCULATE"))
                 .andExpect(status().isBadRequest());
         perform(delete("/api/pumps/{pumpId}/credit-ledger/{clientId}/interest/{chargeId}", setup.pumpId(), clientId, charge.getId()),
                 setup.owner())
@@ -259,7 +259,7 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
         assertThat(outstandingOf(clientId)).isEqualByComparingTo("1040.00");
 
         perform(patch("/api/pumps/{pumpId}/credit-ledger/{clientId}/interest/{chargeId}/waive", setup.pumpId(), clientId, charge.getId()),
-                setup.owner(), Map.of("reason", "Goodwill"))
+                setup.owner(), Map.of("reason", "Goodwill", "kind", "RECALCULATE"))
                 .andExpect(status().isNoContent());
 
         assertThat(outstandingOf(clientId)).isEqualByComparingTo("1000.00");

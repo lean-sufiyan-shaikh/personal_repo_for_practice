@@ -309,11 +309,11 @@ public class CreditLedgerController {
             @AuthenticationPrincipal User currentUser) {
 
         CreditInterestCharge charge = ledgerService.waiveInterestCharge(
-                pumpId, clientId, chargeId, request.reason(), currentUser);
+                pumpId, clientId, chargeId, request.reason(), request.kind(), currentUser);
         auditService.log(pumpId, AuditAction.INTEREST_CHARGE_WAIVED,
                 "CreditInterestCharge", chargeId.toString(),
                 "Interest ₹" + charge.getAmount() + " for " + charge.getPeriodFrom() + " to " + charge.getPeriodTo()
-                        + " waived for clientId=" + clientId + ", reason=" + charge.getVoidReason(),
+                        + " waived for clientId=" + clientId + " (" + request.kind() + "), reason=" + charge.getVoidReason(),
                 currentUser);
         return ResponseEntity.noContent().build();
     }

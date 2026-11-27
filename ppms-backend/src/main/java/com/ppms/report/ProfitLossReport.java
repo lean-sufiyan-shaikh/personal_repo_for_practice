@@ -25,7 +25,9 @@ public record ProfitLossReport(
         BigDecimal approvedExpenses,
         /** MDR and GST on MDR of settlements that reached the bank in the period. */
         BigDecimal bankCharges,
-        /** grossProfit − approvedExpenses − bankCharges; payroll is not included. */
+        /** Net pay of the payroll paid in the period, by its paid date. */
+        BigDecimal payrollPaid,
+        /** grossProfit − approvedExpenses − bankCharges − payrollPaid. */
         BigDecimal netOperatingProfit,
         List<FuelLine> byFuelType,
         List<DayLine> byDay) {

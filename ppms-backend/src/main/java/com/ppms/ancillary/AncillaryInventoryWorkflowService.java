@@ -17,6 +17,7 @@ import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
 import com.ppms.credit.CreditClientRepository;
+import com.ppms.credit.CreditInterestService;
 import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.invoice.GstFields;
 import com.ppms.report.BalanceSheetStalenessService;
@@ -60,6 +61,7 @@ public class AncillaryInventoryWorkflowService {
     private final BalanceSheetStalenessService balanceSheetStalenessService;
     private final ClosedDayGuard closedDayGuard;
     private final VehicleCreditCheck vehicleCreditCheck;
+    private final CreditInterestService creditInterestService;
 
     @Transactional
     public AncillaryProduct createProduct(Long pumpId, CreateProductRequest request, User currentUser) {
@@ -383,6 +385,10 @@ public class AncillaryInventoryWorkflowService {
         deductFromSpecificLots(historicalLots, sale.getId(), request.getQuantityUnits());
         // Dated to the sale day so that day's cash reconciliation includes it.
         CashEvent cashEvent = reduceStockAndRecordCash(product, sale, "Backfilled sale: ", request.getSaleDate(), currentUser);
+        if (creditClient != null) {
+            creditInterestService.recalculateChargedInterestFrom(creditClient.getId(), request.getSaleDate(),
+                    "Recalculated after a counter sale dated " + request.getSaleDate(), currentUser);
+        }
 
         log.info("Ancillary sale backfilled: pump={}, productId={}, saleId={}, saleDate={}, units={}, price={}, by={}",
                 pumpId, product.getId(), sale.getId(), request.getSaleDate(),

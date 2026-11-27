@@ -147,6 +147,12 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/collections/clients/1/reminders", Map.of("method", "CALL"), "ACCOUNTANT"),
                 Arguments.of("/api/pumps/{pumpId}/collections/clients/1/promises", Map.of("amount", 1,
                         "promisedDate", TODAY), "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/collections/promises/1", Map.of("amount", 1,
+                        "promisedDate", TODAY), "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/collections/promises/1/cancel", Map.of("reason", "Matrix"), "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/collections/promises/1/cancel", Map.of("reason", "Matrix"), "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/payroll/1/status", Map.of("status", "PAID", "paidDate", TODAY,
+                        "paymentMode", "CASH"), "ADMIN"),
                 Arguments.of("/api/pumps/{pumpId}/collection-settings", Map.of("reminderStageDays", List.of(7),
                         "backdatedPaymentApprovalDays", 7), "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/credit-ledger/payments/1/reverse", Map.of("reason", "Matrix"), "MANAGER"),
@@ -174,7 +180,8 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
 
     private MockHttpServletRequestBuilder write(String path, PumpSetup pump) {
         String resolved = path.replace("{pumpId}", pump.pumpId().toString());
-        if (path.endsWith("/collection-settings") || path.endsWith("/credit-limit-settings")) {
+        if (path.endsWith("/collection-settings") || path.endsWith("/credit-limit-settings")
+                || path.matches(".*/collections/promises/\\d+$")) {
             return put(resolved);
         }
         return path.endsWith("/revoke") || path.endsWith("/reverse") || path.contains("/safe/") || path.contains("/day-closes/")

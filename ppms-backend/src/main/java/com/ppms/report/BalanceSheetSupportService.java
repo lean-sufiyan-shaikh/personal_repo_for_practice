@@ -11,6 +11,8 @@ import com.ppms.common.time.BusinessClock;
 import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.expense.PumpExpense;
 import com.ppms.expense.PumpExpenseRepository;
+import com.ppms.payroll.PayrollRecord;
+import com.ppms.payroll.PayrollRepository;
 import com.ppms.fuel.FuelType;
 import com.ppms.inventory.InventoryLot;
 import com.ppms.inventory.InventoryLotRepository;
@@ -33,6 +35,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +45,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class BalanceSheetSupportService {
+
+    static final String PAYROLL_CATEGORY = "PAYROLL";
 
     private final AncillarySaleRepository ancillarySaleRepository;
     private final AncillaryLotConsumptionRepository ancillaryLotConsumptionRepository;
@@ -53,6 +58,7 @@ public class BalanceSheetSupportService {
     private final BusinessClock businessClock;
     private final PaymentSettlementRepository settlementRepository;
     private final ShiftRepository shiftRepository;
+    private final PayrollRepository payrollRepository;
 
     public BalanceSheetDetailResponse.ProductSalesSummary buildProductSalesSummary(Long pumpId, ReportPeriod period) {
         List<AncillarySale> sales = ancillarySaleRepository.findByPumpIdAndDateRange(pumpId, period.reportDate(), period.reportDate());
@@ -124,18 +130,27 @@ public class BalanceSheetSupportService {
                 .build();
     }
 
+    /** Approved expenses of the day, and the payroll paid that day under the PAYROLL category. */
     public BalanceSheetDetailResponse.ExpenseSummary buildExpenseSummary(Long pumpId, ReportPeriod period) {
         List<PumpExpense> expenses = pumpExpenseRepository.findByPumpIdAndExpenseDateAndApprovalStatus(
                 pumpId, period.reportDate(), ExpenseApprovalStatus.APPROVED);
-        if (expenses.isEmpty()) {
+        List<PayrollRecord> payrollPaid = payrollRepository.findByPumpIdAndPaidDateOrderByIdAsc(pumpId, period.reportDate());
+        if (expenses.isEmpty() && payrollPaid.isEmpty()) {
             return null;
         }
 
-        Set<Long> userIds = expenses.stream().map(PumpExpense::getRecordedByUserId).collect(Collectors.toSet());
+        Set<Long> userIds = expenses.stream().map(PumpExpense::getRecordedByUserId)
+                .collect(Collectors.toCollection(HashSet::new));
+        payrollPaid.forEach(payroll -> {
+            userIds.add(payroll.getUserId());
+            if (payroll.getPaidBy() != null) {
+                userIds.add(payroll.getPaidBy());
+            }
+        });
         Map<Long, String> userNames = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, User::getFullName));
 
-        List<BalanceSheetDetailResponse.ExpenseLine> lines = expenses.stream()
+        List<BalanceSheetDetailResponse.ExpenseLine> lines = new ArrayList<>(expenses.stream()
                 .map(expense -> BalanceSheetDetailResponse.ExpenseLine.builder()
                         .id(expense.getId())
                         .category(expense.getCategory().name())
@@ -143,7 +158,15 @@ public class BalanceSheetSupportService {
                         .amount(expense.getAmount().setScale(2, RoundingMode.HALF_UP))
                         .recordedByName(userNames.getOrDefault(expense.getRecordedByUserId(), "Unknown"))
                         .build())
-                .toList();
+                .toList());
+        payrollPaid.forEach(payroll -> lines.add(BalanceSheetDetailResponse.ExpenseLine.builder()
+                .id(payroll.getId())
+                .category(PAYROLL_CATEGORY)
+                .description(userNames.getOrDefault(payroll.getUserId(), "Unknown") + " · "
+                        + payroll.getPeriodFrom() + " – " + payroll.getPeriodTo())
+                .amount(payroll.getNetPay().setScale(2, RoundingMode.HALF_UP))
+                .recordedByName(userNames.getOrDefault(payroll.getPaidBy(), "Unknown"))
+                .build()));
 
         BigDecimal totalAmount = lines.stream()
                 .map(BalanceSheetDetailResponse.ExpenseLine::getAmount)

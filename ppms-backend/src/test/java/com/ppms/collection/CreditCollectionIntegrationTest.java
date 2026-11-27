@@ -348,6 +348,149 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void promiseIsCappedAtNinetyDaysAheadAndAtWhatTheGroupOwes() throws Exception {
+        long parentId = createClient(null);
+        long childId = createClient(parentId);
+        sellOnCredit(parentId, "200.00");
+        sellOnCredit(childId, "100.00");
+
+        recordPromise(childId, "100.00", TestDates.today().plusDays(91))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CREDIT_PROMISE_DATE_TOO_FAR"))
+                .andExpect(jsonPath("$.params.maxDays").value(90));
+        recordPromise(childId, "300.01", TestDates.today().plusDays(5))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CREDIT_PROMISE_EXCEEDS_OUTSTANDING"))
+                .andExpect(jsonPath("$.params.outstanding").value("300.00"));
+        JsonNode promise = json(recordPromise(childId, "300.00", TestDates.today().plusDays(90))
+                .andExpect(status().isCreated()));
+
+        assertThat(promise.get("clientId").asLong()).isEqualTo(parentId);
+    }
+
+    @Test
+    void openPromiseCanBeEditedAndCancelledWithHistoryAndAuditAndThenNoLonger() throws Exception {
+        long clientId = createClient(null);
+        sellOnCredit(clientId, "300.00");
+        long promiseId = json(recordPromise(clientId, "200.00", TestDates.today().plusDays(3))
+                .andExpect(status().isCreated())).get("id").asLong();
+
+        editPromise(promiseId, "400.00", TestDates.today().plusDays(10))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CREDIT_PROMISE_EXCEEDS_OUTSTANDING"));
+        JsonNode edited = json(editPromise(promiseId, "250.00", TestDates.today().plusDays(10))
+                .andExpect(status().isOk()));
+        assertThat(edited.get("amount").decimalValue()).isEqualByComparingTo("250.00");
+        assertThat(edited.get("promisedDate").asText()).isEqualTo(TestDates.today().plusDays(10).toString());
+
+        perform(post("/api/pumps/{pumpId}/collections/promises/{id}/cancel", setup.pumpId(), promiseId), setup.manager(),
+                Map.of("reason", " ")).andExpect(status().isBadRequest());
+        JsonNode cancelled = json(perform(post("/api/pumps/{pumpId}/collections/promises/{id}/cancel", setup.pumpId(),
+                promiseId), setup.manager(), Map.of("reason", "Client disputes the bill")).andExpect(status().isOk()));
+        assertThat(cancelled.get("status").asText()).isEqualTo("CANCELLED");
+
+        editPromise(promiseId, "100.00", TestDates.today().plusDays(4))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CREDIT_PROMISE_NOT_OPEN"));
+        assertThat(jdbcTemplate.queryForList(
+                "SELECT change_type FROM credit_payment_promise_changes WHERE promise_id = ? ORDER BY id", String.class,
+                promiseId)).containsExactly("EDITED", "CANCELLED");
+        assertThat(jdbcTemplate.queryForList(
+                "SELECT action::text FROM audit_logs WHERE pump_id = ? AND entity_id = ?"
+                        + " AND entity_type = 'CreditPaymentPromise' ORDER BY id", String.class,
+                setup.pumpId(), Long.toString(promiseId)))
+                .containsExactly("CREDIT_PROMISE_RECORDED", "CREDIT_PROMISE_EDITED", "CREDIT_PROMISE_CANCELLED");
+        recordPromise(clientId, "100.00", TestDates.today().plusDays(2)).andExpect(status().isCreated());
+    }
+
+    @Test
+    void promiseOfAnotherPumpCannotBeChanged() throws Exception {
+        long clientId = createClient(null);
+        sellOnCredit(clientId, "300.00");
+        long promiseId = json(recordPromise(clientId, "200.00", TestDates.today().plusDays(3))
+                .andExpect(status().isCreated())).get("id").asLong();
+        PumpSetup otherPump = createPumpWithStock("0");
+
+        perform(post("/api/pumps/{pumpId}/collections/promises/{id}/cancel", otherPump.pumpId(), promiseId),
+                otherPump.owner(), Map.of("reason", "Not ours")).andExpect(status().isNotFound());
+        assertThat(jdbcTemplate.queryForObject("SELECT status FROM credit_payment_promises WHERE id = ?",
+                String.class, promiseId)).isEqualTo("OPEN");
+    }
+
+    @Test
+    void promiseIsKeptOnceTheAccountOwesNothingEvenIfPaidBeforeItWasRecorded() throws Exception {
+        long clientId = createClient(null);
+        sellOnCredit(clientId, "300.00");
+        long promiseId = json(recordPromise(clientId, "300.00", TestDates.today().plusDays(3))
+                .andExpect(status().isCreated())).get("id").asLong();
+        jdbcTemplate.update("UPDATE credit_payment_promises SET recorded_on = ? WHERE id = ?",
+                TestDates.today().plusDays(1), promiseId);
+        recordPayment(clientId, "300.00", TestDates.today());
+
+        promiseService.resolvePromises(setup.pumpId());
+
+        assertThat(jdbcTemplate.queryForObject("SELECT status FROM credit_payment_promises WHERE id = ?",
+                String.class, promiseId)).isEqualTo("KEPT");
+    }
+
+    @Test
+    void paymentAwaitingApprovalKeepsAPassedPromiseOpenUntilItIsRejected() throws Exception {
+        long clientId = createClient(null);
+        makeOverdue(sellOnCredit(clientId, "300.00"), 10);
+        long promiseId = json(recordPromise(clientId, "200.00", TestDates.today().plusDays(3))
+                .andExpect(status().isCreated())).get("id").asLong();
+        recordPayment(clientId, "50.00", TestDates.today());
+        long pendingId = savePaymentRow(clientId, "150.00", TestDates.today(), "PENDING_APPROVAL");
+        jdbcTemplate.update("UPDATE credit_payment_promises SET promised_date = ?, recorded_on = ? WHERE id = ?",
+                TestDates.today().minusDays(1), TestDates.today().minusDays(1), promiseId);
+        jdbcTemplate.update("UPDATE credit_payments SET payment_date = payment_date - 1 WHERE client_id = ?", clientId);
+
+        assertThat(promiseService.resolvePromises(setup.pumpId())).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT status FROM credit_payment_promises WHERE id = ?",
+                String.class, promiseId)).isEqualTo("OPEN");
+        assertThat(notificationCount("CREDIT_PROMISE_MISSED")).isZero();
+
+        jdbcTemplate.update("UPDATE credit_payments SET payment_approval_status = 'REJECTED' WHERE id = ?", pendingId);
+        assertThat(promiseService.resolvePromises(setup.pumpId())).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForMap("SELECT status, paid_amount FROM credit_payment_promises WHERE id = ?", promiseId))
+                .containsEntry("status", "MISSED")
+                .satisfies(row -> assertThat((BigDecimal) row.get("paid_amount")).isEqualByComparingTo("50.00"));
+    }
+
+    @Test
+    void inactiveAccountGetsAMonthlyStatementOnlyWhileItStillOwes() throws Exception {
+        long owingId = createClient(null);
+        long settledId = createClient(null);
+        YearMonth lastMonth = YearMonth.from(TestDates.today()).minusMonths(1);
+        jdbcTemplate.update("UPDATE shift_credit_entries SET sale_date = ? WHERE id = ?", lastMonth.atDay(10),
+                sellOnCredit(owingId, "300.00"));
+        jdbcTemplate.update("UPDATE shift_credit_entries SET sale_date = ? WHERE id = ?", lastMonth.atDay(10),
+                sellOnCredit(settledId, "200.00"));
+        savePaymentRow(settledId, "200.00", lastMonth.atDay(20), "APPROVED");
+        jdbcTemplate.update("UPDATE credit_clients SET is_active = FALSE WHERE id IN (?, ?)", owingId, settledId);
+
+        MonthlyStatementService.GenerationResult result = statementService.generateForPump(setup.pumpId(), lastMonth);
+
+        assertThat(result.written()).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForList("SELECT client_id FROM credit_monthly_statements WHERE pump_id = ?",
+                Long.class, setup.pumpId())).containsExactly(owingId);
+    }
+
+    private ResultActions editPromise(long promiseId, String amount, LocalDate promisedDate) throws Exception {
+        return perform(put("/api/pumps/{pumpId}/collections/promises/{id}", setup.pumpId(), promiseId), setup.manager(),
+                Map.of("amount", new BigDecimal(amount), "promisedDate", promisedDate.toString(),
+                        "reason", "Client asked for more time"));
+    }
+
+    private long savePaymentRow(long clientId, String amount, LocalDate paidAt, String approvalStatus) {
+        return jdbcTemplate.queryForObject("INSERT INTO credit_payments (pump_id, client_id, amount, payment_mode, "
+                        + "payment_date, received_by_user_id, payment_approval_status) VALUES (?, ?, ?, 'CASH', ?, ?, "
+                        + "?::expense_approval_status) RETURNING id",
+                Long.class, setup.pumpId(), clientId, new BigDecimal(amount), paidAt, setup.manager().getId(),
+                approvalStatus);
+    }
+
     private String standingOf(long clientId) throws Exception {
         JsonNode standings = json(perform(get("/api/pumps/{pumpId}/credit-clients/credit-standing", setup.pumpId()),
                 setup.operator()).andExpect(status().isOk()));

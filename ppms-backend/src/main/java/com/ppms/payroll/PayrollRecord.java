@@ -139,6 +139,34 @@ public class PayrollRecord {
     @Column(name = "approved_by")
     private Long approvedBy;
 
+    /** Deductions an earlier payroll could not take from its pay, brought into this one; part of deductions. */
+    @Column(name = "opening_deductions", nullable = false)
+    @Builder.Default
+    private BigDecimal openingDeductions = BigDecimal.ZERO;
+
+    /** The payroll this record's uncovered deductions were carried into; null while they are still to be taken. */
+    @Column(name = "carried_to_payroll_id")
+    private Long carriedToPayrollId;
+
+    /** Business date the salary was paid; set only once PAID (dated by the last update for payroll paid earlier). */
+    @Column(name = "paid_date")
+    private LocalDate paidDate;
+
+    /** Null on payroll marked paid before the payment mode was recorded. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_mode", length = 10)
+    private PayrollPaymentMode paymentMode;
+
+    @Column(name = "payment_reference", length = 100)
+    private String paymentReference;
+
+    @Column(name = "paid_by")
+    private Long paidBy;
+
+    /** The cash taken out of the safe for a CASH payment. */
+    @Column(name = "cash_event_id")
+    private Long cashEventId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

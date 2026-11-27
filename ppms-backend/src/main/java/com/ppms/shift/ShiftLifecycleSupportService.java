@@ -15,6 +15,7 @@ import com.ppms.common.time.BusinessClock;
 import com.ppms.credit.CloseCreditOverride;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
+import com.ppms.credit.CreditInterestService;
 import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.fuel.FuelType;
 import com.ppms.fuel.GlobalFuelPriceRepository;
@@ -77,6 +78,7 @@ public class ShiftLifecycleSupportService {
     private final ClosedDayGuard closedDayGuard;
     private final PumpLocationRepository pumpLocationRepository;
     private final ShiftPriceSegmentService priceSegmentService;
+    private final CreditInterestService creditInterestService;
 
     public User findOperatorForPump(Long operatorId, Long pumpId) {
         User operator = userRepository.findById(operatorId)
@@ -383,7 +385,7 @@ public class ShiftLifecycleSupportService {
      */
     public void persistCloseCreditEntries(Long shiftId, Long pumpId, LocalDate saleDate,
                                           List<CloseShiftRequest.CreditEntryRequest> creditEntries,
-                                          CloseCreditOverride override) {
+                                          CloseCreditOverride override, User currentUser) {
         Map<CreditClient, BigDecimal> amountByClient = new LinkedHashMap<>();
         List<CreditClient> clients = new ArrayList<>();
         for (CloseShiftRequest.CreditEntryRequest entry : creditEntries) {
@@ -407,6 +409,9 @@ public class ShiftLifecycleSupportService {
                     entry.amount().setScale(2, RoundingMode.HALF_UP), saleDate, entry.fuelType(), entry.description(), entry.vehicleInput(), priceByFuelType, pendingUsage));
         }
         creditEntryRepository.saveAll(toSave);
+        creditInterestService.recalculateChargedInterestForSales(
+                clients.stream().map(CreditClient::getId).toList(), saleDate,
+                "Recalculated after credit sales dated " + saleDate, currentUser);
     }
 
     /**

@@ -10,6 +10,8 @@ public interface CreditPaymentPromiseRepository extends JpaRepository<CreditPaym
 
     List<CreditPaymentPromise> findByPumpIdAndStatus(Long pumpId, PromiseStatus status);
 
+    Optional<CreditPaymentPromise> findByIdAndPumpId(Long id, Long pumpId);
+
     Optional<CreditPaymentPromise> findByClientIdAndStatus(Long clientId, PromiseStatus status);
 
     List<CreditPaymentPromise> findTop20ByClientIdOrderByRecordedAtDesc(Long clientId);

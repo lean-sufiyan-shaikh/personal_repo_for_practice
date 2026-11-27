@@ -16,8 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Generates each active account's statement for a month and serves the stored copies. A parent account's statement
- * covers its sub-accounts, so only accounts without a parent get one.
+ * Generates each account's statement for a month and serves the stored copies. A parent account's statement covers
+ * its sub-accounts, so only accounts without a parent get one. An inactive account gets one only while it still owes
+ * or is owed money at the end of the month.
  */
 @Slf4j
 @Service
@@ -36,9 +37,7 @@ public class MonthlyStatementService {
     public GenerationResult generateForPump(Long pumpId, YearMonth month) {
         PumpLocation pump = pumpLocationRepository.findById(pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found: " + pumpId));
-        List<CreditClient> accounts = clientRepository.findByPumpIdAndParentClientIdIsNullOrderByNameAsc(pumpId).stream()
-                .filter(CreditClient::isActive)
-                .toList();
+        List<CreditClient> accounts = clientRepository.findByPumpIdAndParentClientIdIsNullOrderByNameAsc(pumpId);
         int written = 0;
         int skipped = 0;
         List<Long> failedClientIds = new ArrayList<>();
