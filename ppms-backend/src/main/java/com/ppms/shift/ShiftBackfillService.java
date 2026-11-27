@@ -61,6 +61,7 @@ public class ShiftBackfillService {
     private final ShiftLifecycleSupportService lifecycleSupportService;
     private final ShiftReadModelService shiftReadModelService;
     private final ShiftFuelDeductionService fuelDeductionService;
+    private final ShiftTestLitresService testLitresService;
     private final BusinessClock businessClock;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
     private final ClosedDayGuard closedDayGuard;
@@ -134,6 +135,8 @@ public class ShiftBackfillService {
 
         BigDecimal totalAmountDue = persistReadingsAndDeduct(
                 shiftId, pumpId, stockAsOf, nozzleReadings, nozzleById, priceByFuelType);
+        testLitresService.requireNoteAndAuditAboveMax(pumpId, shiftId, fuelReadingRepository.findByShiftId(shiftId),
+                request.getTestLitresNote(), currentUser);
         applyDiscrepancy(shift, request, totalAmountDue);
         shift = shiftRepository.save(shift);
 
@@ -279,7 +282,7 @@ public class ShiftBackfillService {
         Map<StockScope, BigDecimal> unitsSoldByScope = new LinkedHashMap<>();
         Map<StockScope, FuelType> fuelTypeByScope = new HashMap<>();
         for (BackfillShiftRequest.NozzleReadingRequest nr : nozzleReadings) {
-            BigDecimal unitsSold = nr.closingReading().subtract(nr.openingReading());
+            BigDecimal unitsSold = nr.closingReading().subtract(nr.openingReading()).subtract(nr.testLitresOrZero());
             if (unitsSold.compareTo(ZERO) <= 0) continue;
 
             Nozzle nozzle = nozzleById.get(nr.nozzleId());
@@ -345,9 +348,8 @@ public class ShiftBackfillService {
         for (BackfillShiftRequest.NozzleReadingRequest nr : nozzleReadings) {
             Nozzle nozzle = nozzleById.get(nr.nozzleId());
             BigDecimal historicalPrice = priceByFuelType.get(nozzle.getFuelType());
-            BigDecimal unitsSold = nr.closingReading().subtract(nr.openingReading()).setScale(3, RoundingMode.HALF_UP);
-
-            readings.add(ShiftFuelReading.builder()
+            BigDecimal meterLitres = nr.closingReading().subtract(nr.openingReading()).setScale(3, RoundingMode.HALF_UP);
+            ShiftFuelReading reading = ShiftFuelReading.builder()
                     .shiftId(shiftId)
                     .nozzleId(nozzle.getId())
                     .fuelType(nozzle.getFuelType())
@@ -355,9 +357,13 @@ public class ShiftBackfillService {
                     .startReading(nr.openingReading())
                     .endReading(nr.closingReading())
                     .priceSnapshot(historicalPrice)
-                    .unitsSold(unitsSold)
-                    .salesAmount(unitsSold.multiply(historicalPrice))
-                    .build());
+                    .build();
+            BigDecimal testLitres = ShiftTestLitresService.validTestLitres(reading, nr.testLitres(), meterLitres);
+            BigDecimal unitsSold = meterLitres.subtract(testLitres);
+            reading.setTestLitres(testLitres);
+            reading.setUnitsSold(unitsSold);
+            reading.setSalesAmount(unitsSold.multiply(historicalPrice));
+            readings.add(reading);
 
             if (unitsSold.compareTo(ZERO) > 0) {
                 fuelDeductionService.deductForBackfill(

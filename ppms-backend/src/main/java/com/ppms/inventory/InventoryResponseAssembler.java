@@ -33,9 +33,9 @@ public class InventoryResponseAssembler {
                 .build();
     }
 
-    /** {@code claim} is the delivery's shortage claim, or null when it has none. */
+    /** {@code claim} is the delivery's shortage claim, or null when it has none; likewise {@code supplierName}. */
     public TankerDeliveryResponse toDeliveryResponse(TankerDelivery delivery, UndergroundTank tank, String loggedByName,
-                                                     ShortageClaim claim) {
+                                                     ShortageClaim claim, String supplierName) {
         BigDecimal totalCost = delivery.getQuantityDelivered()
                 .multiply(delivery.getCostPricePerUnit())
                 .setScale(4, RoundingMode.HALF_UP);
@@ -46,6 +46,8 @@ public class InventoryResponseAssembler {
                 .tankId(delivery.getTankId())
                 .tankIdentifier(tank != null ? tank.getTankIdentifier() : null)
                 .fuelType(delivery.getFuelType().name())
+                .supplierId(delivery.getSupplierId())
+                .supplierName(supplierName)
                 .quantityDelivered(delivery.getQuantityDelivered())
                 .costPricePerUnit(delivery.getCostPricePerUnit())
                 .totalCost(totalCost)

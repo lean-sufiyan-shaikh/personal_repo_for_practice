@@ -168,6 +168,8 @@ public class ShiftReadModelService {
                         r.getEndReading(),
                         r.getPriceSnapshot(),
                         r.getUnitsSold(),
+                        r.getTestLitres(),
+                        r.meterLitres(),
                         maxMeterByNozzleId.get(r.getNozzleId()),
                         r.getSalesAmount(),
                         r.getStockShortfallLitres(),

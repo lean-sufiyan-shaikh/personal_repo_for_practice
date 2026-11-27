@@ -104,6 +104,8 @@ public class ShiftResponse {
             BigDecimal endReading,
             BigDecimal priceSnapshot,
             BigDecimal unitsSold,
+            BigDecimal testLitres,
+            BigDecimal meterLitres,
             BigDecimal maxMeterValue,
             BigDecimal salesAmount,
             BigDecimal stockShortfallLitres,

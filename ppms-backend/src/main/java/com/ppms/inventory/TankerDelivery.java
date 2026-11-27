@@ -28,6 +28,10 @@ public class TankerDelivery {
     @Column(name = "tank_id", nullable = false)
     private Long tankId;
 
+    /** The oil company billed for this delivery; null when unassigned. */
+    @Column(name = "supplier_id")
+    private Long supplierId;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "fuel_type", nullable = false)

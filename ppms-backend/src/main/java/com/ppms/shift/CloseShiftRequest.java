@@ -66,12 +66,23 @@ public class CloseShiftRequest {
 
     private String blockedCreditReason;
 
+    /** Why test litres on a nozzle went above the pump's limit; required only then. */
+    @Size(max = 500, message = "Test litres note must be at most 500 characters")
+    private String testLitresNote;
+
     // ── Inner records ────────────────────────────────────────────────────────
 
+    /** testLitres left out means none at close, and keeps the recorded test litres on an amendment. */
     public record OutletEndReadingRequest(
             @NotNull(message = "Nozzle ID is required") Long nozzleId,
-            @NotNull(message = "End reading is required") BigDecimal endReading
-    ) {}
+            @NotNull(message = "End reading is required") BigDecimal endReading,
+            @DecimalMin(value = "0", message = "Test litres must be >= 0") BigDecimal testLitres
+    ) {
+
+        public OutletEndReadingRequest(Long nozzleId, BigDecimal endReading) {
+            this(nozzleId, endReading, null);
+        }
+    }
 
     public record CreditEntryRequest(
             @NotBlank(message = "Client name is required") String clientName,

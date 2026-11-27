@@ -15,6 +15,9 @@ public class TankerDeliveryResponse {
     private Long tankId;
     private String tankIdentifier;
     private String fuelType;
+    /** Null when the delivery is not booked to a supplier. */
+    private Long supplierId;
+    private String supplierName;
     private BigDecimal quantityDelivered;
     private BigDecimal costPricePerUnit;
     private BigDecimal totalCost;

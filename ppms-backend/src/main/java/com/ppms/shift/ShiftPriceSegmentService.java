@@ -131,11 +131,12 @@ public class ShiftPriceSegmentService {
 
     /**
      * Fills each segment's units up to the next segment's start, the last one up to the closing reading, and returns
-     * what the litres are worth. A closing reading below the last price-change reading is refused unless the meter
-     * rolled over from the top of its range.
+     * what the litres are worth. Test litres are known only at close, so they come off the latest segments first. A
+     * closing reading below the last price-change reading is refused unless the meter rolled over from the top of its
+     * range.
      */
     public BigDecimal priceBySegments(ShiftFuelReading reading, List<ShiftReadingPriceSegment> segments,
-                                      BigDecimal endReading, BigDecimal maxMeter) {
+                                      BigDecimal endReading, BigDecimal maxMeter, BigDecimal testLitres) {
         ShiftReadingPriceSegment last = segments.get(segments.size() - 1);
         if (endReading.compareTo(last.getStartReading()) < 0
                 && !MeterRollover.canRollOverFrom(last.getStartReading(), maxMeter)) {
@@ -147,13 +148,21 @@ public class ShiftPriceSegmentService {
                     last.getStartReading().toPlainString() + " taken for the " + reading.getFuelType() +
                     " nozzle when the price changed. Please verify the meter reading.");
         }
-        BigDecimal amount = BigDecimal.ZERO;
         for (int i = 0; i < segments.size(); i++) {
             ShiftReadingPriceSegment segment = segments.get(i);
             BigDecimal segmentEnd = i + 1 < segments.size() ? segments.get(i + 1).getStartReading() : endReading;
-            BigDecimal units = MeterRollover.unitsBetween(segment.getStartReading(), segmentEnd, maxMeter);
-            segment.setUnitsSold(units);
-            amount = amount.add(units.multiply(segment.getPricePerUnit()));
+            segment.setUnitsSold(MeterRollover.unitsBetween(segment.getStartReading(), segmentEnd, maxMeter));
+        }
+        BigDecimal testLeft = testLitres;
+        for (int i = segments.size() - 1; i >= 0 && testLeft.signum() > 0; i--) {
+            ShiftReadingPriceSegment segment = segments.get(i);
+            BigDecimal taken = segment.getUnitsSold().min(testLeft);
+            segment.setUnitsSold(segment.getUnitsSold().subtract(taken));
+            testLeft = testLeft.subtract(taken);
+        }
+        BigDecimal amount = BigDecimal.ZERO;
+        for (ShiftReadingPriceSegment segment : segments) {
+            amount = amount.add(segment.getUnitsSold().multiply(segment.getPricePerUnit()));
         }
         segmentRepository.saveAll(segments);
         return amount;

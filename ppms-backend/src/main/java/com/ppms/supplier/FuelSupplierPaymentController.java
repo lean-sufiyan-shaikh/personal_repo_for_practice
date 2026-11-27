@@ -14,8 +14,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Payments sent to fuel suppliers, against a tanker delivery or as an advance. Only owners and admins see and record
- * them.
+ * Payments sent to fuel suppliers, against a tanker delivery or as an advance. Managers see them; only owners and
+ * admins record and void them.
  *
  * GET  /api/pumps/{pumpId}/supplier-payments[?supplierId=]   — newest first
  * POST /api/pumps/{pumpId}/supplier-payments                 — record (Idempotency-Key supported)
@@ -30,7 +30,7 @@ public class FuelSupplierPaymentController {
     private final IdempotencyService idempotencyService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
     public ResponseEntity<PagedResponse<SupplierPaymentResponse>> getPayments(
             @PathVariable Long pumpId,
             @RequestParam(required = false) Long supplierId,

@@ -1,5 +1,6 @@
 package com.ppms.ancillary;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -25,4 +26,8 @@ public class RecordStockDeliveryRequest {
     private String invoiceReference;
 
     private String notes;
+
+    /** Left out for a purchase without GST details. */
+    @Valid
+    private PurchaseGstRequest gst;
 }

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -90,6 +91,10 @@ public class BackfillShiftRequest {
     /** Required when actual collected != amount due (i.e. when a discrepancy exists). */
     private String discrepancyReason;
 
+    /** Why test litres on a nozzle went above the pump's limit; required only then. */
+    @Size(max = 500, message = "Test litres note must be at most 500 characters")
+    private String testLitresNote;
+
     /**
      * Optional historical fuel rates to persist before processing this backfill.
      * Required for any fuel type whose price is not recorded in the database on or before shiftDate.
@@ -111,6 +116,16 @@ public class BackfillShiftRequest {
             @NotNull(message = "Opening reading is required")
             @DecimalMin(value = "0", message = "Opening reading must be >= 0") BigDecimal openingReading,
             @NotNull(message = "Closing reading is required")
-            @DecimalMin(value = "0", message = "Closing reading must be >= 0") BigDecimal closingReading
-    ) {}
+            @DecimalMin(value = "0", message = "Closing reading must be >= 0") BigDecimal closingReading,
+            @DecimalMin(value = "0", message = "Test litres must be >= 0") BigDecimal testLitres
+    ) {
+
+        public NozzleReadingRequest(Long nozzleId, BigDecimal openingReading, BigDecimal closingReading) {
+            this(nozzleId, openingReading, closingReading, null);
+        }
+
+        BigDecimal testLitresOrZero() {
+            return testLitres == null ? BigDecimal.ZERO : testLitres;
+        }
+    }
 }

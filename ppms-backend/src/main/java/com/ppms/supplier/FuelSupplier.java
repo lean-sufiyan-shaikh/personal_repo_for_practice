@@ -3,6 +3,8 @@ package com.ppms.supplier;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 /**
@@ -44,6 +46,18 @@ public class FuelSupplier {
 
     @Column(name = "active", nullable = false)
     private boolean active;
+
+    /** What the pump owed this supplier on openingBalanceDate, before any delivery recorded here; negative is an advance. */
+    @Column(name = "opening_balance", nullable = false)
+    @Builder.Default
+    private BigDecimal openingBalance = BigDecimal.ZERO;
+
+    @Column(name = "opening_balance_date")
+    private LocalDate openingBalanceDate;
+
+    /** The supplier a tanker delivery takes when none is picked; at most one per pump. */
+    @Column(name = "is_default", nullable = false)
+    private boolean defaultSupplier;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

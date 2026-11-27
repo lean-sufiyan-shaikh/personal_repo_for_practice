@@ -73,6 +73,7 @@ public class ShiftService {
     private final Counter shiftClosedCounter;
     private final ActiveNozzleAssignmentRepository activeNozzleRepository;
     private final ShiftFuelDeductionService fuelDeductionService;
+    private final ShiftTestLitresService testLitresService;
     private final BusinessClock businessClock;
     private final InvoicedSaleGuard invoicedSaleGuard;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
@@ -258,6 +259,7 @@ public class ShiftService {
         List<ShiftFuelReading> readings = fuelReadingRepository.findByShiftId(shiftId);
         ShiftLifecycleSupportService.ClosingSummary closingSummary =
                 lifecycleSupportService.processClosingReadings(pumpId, maxMeterByNozzleId, request, cashDropped, readings);
+        testLitresService.requireNoteAndAuditAboveMax(pumpId, shiftId, readings, request.getTestLitresNote(), currentUser);
         requireReasonForDiscrepancy(request, closingSummary);
         List<CloseShiftRequest.CreditEntryRequest> creditEntries =
                 lifecycleSupportService.validateCloseCreditEntries(shiftId, request.getCreditTotal(), request.getCreditEntries(),

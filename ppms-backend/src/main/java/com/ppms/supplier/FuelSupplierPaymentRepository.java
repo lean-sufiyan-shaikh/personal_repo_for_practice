@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 public interface FuelSupplierPaymentRepository extends JpaRepository<FuelSupplierPayment, Long> {
@@ -25,6 +26,10 @@ public interface FuelSupplierPaymentRepository extends JpaRepository<FuelSupplie
     boolean existsActiveWithReference(@Param("supplierId") Long supplierId, @Param("referenceNo") String referenceNo);
 
     Optional<FuelSupplierPayment> findByIdAndPumpId(Long id, Long pumpId);
+
+    List<FuelSupplierPayment> findByPumpIdAndVoidStatus(Long pumpId, String voidStatus);
+
+    List<FuelSupplierPayment> findByPumpIdAndSupplierIdAndVoidStatus(Long pumpId, Long supplierId, String voidStatus);
 
     /** Total amount paid to a supplier by a pump, voided payments left out — used for outstanding dues. */
     @Query("""

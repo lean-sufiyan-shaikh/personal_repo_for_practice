@@ -30,6 +30,8 @@ public interface ShortageClaimRepository extends JpaRepository<ShortageClaim, Lo
 
     Optional<ShortageClaim> findByIdAndPumpId(Long id, Long pumpId);
 
+    List<ShortageClaim> findByPumpIdAndStatus(Long pumpId, ShortageClaimStatus status);
+
     Page<ShortageClaim> findByPumpIdOrderByCreatedAtDescIdDesc(Long pumpId, Pageable pageable);
 
     Page<ShortageClaim> findByPumpIdAndStatusOrderByCreatedAtDescIdDesc(Long pumpId, ShortageClaimStatus status,

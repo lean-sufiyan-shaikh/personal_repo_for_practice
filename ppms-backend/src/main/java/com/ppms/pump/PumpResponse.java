@@ -31,6 +31,8 @@ public class PumpResponse {
     private boolean demo;
     private Integer earlyStartGraceMinutes;
     private BigDecimal roundingTolerance;
+    private BigDecimal testVolumeLitres;
+    private BigDecimal maxTestLitresPerNozzle;
     /** Active Dispensary Units with their nozzles. */
     private List<DUResponse> dus;
 }

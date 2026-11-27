@@ -32,6 +32,8 @@ import java.util.Map;
 public class PumpService {
 
     private static final BigDecimal MAX_RECEIPT_TOLERANCE_PERCENT = new BigDecimal("5");
+    private static final BigDecimal MAX_TEST_VOLUME_LITRES = new BigDecimal("100");
+    private static final BigDecimal MAX_TEST_LITRES_LIMIT = new BigDecimal("1000");
     private static final BigDecimal MAX_DENSITY_TOLERANCE = new BigDecimal("50");
     private static final BigDecimal MAX_SAFE_COUNT_TOLERANCE = new BigDecimal("10000");
     private static final BigDecimal MAX_ROUNDING_TOLERANCE = new BigDecimal("100");
@@ -151,6 +153,14 @@ public class PumpService {
         if (request.roundingTolerance() != null) {
             pump.setRoundingTolerance(validRoundingTolerance(request.roundingTolerance()));
         }
+        if (request.testVolumeLitres() != null) {
+            pump.setTestVolumeLitres(validTestLitres(request.testVolumeLitres(), MAX_TEST_VOLUME_LITRES,
+                    ErrorCodes.TEST_VOLUME_OUT_OF_RANGE, "Test volume"));
+        }
+        if (request.maxTestLitresPerNozzle() != null) {
+            pump.setMaxTestLitresPerNozzle(validTestLitres(request.maxTestLitresPerNozzle(), MAX_TEST_LITRES_LIMIT,
+                    ErrorCodes.MAX_TEST_LITRES_OUT_OF_RANGE, "Test litres limit"));
+        }
 
         if (request.expenseApprovalThreshold() != null) {
             if (request.expenseApprovalThreshold().compareTo(BigDecimal.ZERO) < 0) {
@@ -191,13 +201,22 @@ public class PumpService {
         pumpLocationRepository.save(pump);
         log.info("Pump {} settings updated by user={}: escalationThreshold={}, expenseApprovalThreshold={}, "
                         + "receiptTolerancePercent={}, densityTolerance={}, safeCountTolerance={}, safeCountCutoffTime={}, "
-                        + "earlyStartGraceMinutes={}, roundingTolerance={}",
+                        + "earlyStartGraceMinutes={}, roundingTolerance={}, testVolumeLitres={}, maxTestLitresPerNozzle={}",
                 pumpId, currentUser.getId(),
                 pump.getDiscrepancyEscalationThreshold(), pump.getExpenseApprovalThreshold(),
                 pump.getReceiptTolerancePercent(), pump.getDensityTolerance(), pump.getSafeCountTolerance(),
-                pump.getSafeCountCutoffTime(), pump.getEarlyStartGraceMinutes(), pump.getRoundingTolerance());
+                pump.getSafeCountCutoffTime(), pump.getEarlyStartGraceMinutes(), pump.getRoundingTolerance(),
+                pump.getTestVolumeLitres(), pump.getMaxTestLitresPerNozzle());
 
         return toPumpResponse(pump);
+    }
+
+    private static BigDecimal validTestLitres(BigDecimal litres, BigDecimal max, String errorCode, String label) {
+        if (litres.signum() < 0 || litres.compareTo(max) > 0) {
+            throw new BusinessException(errorCode, Map.of("max", max.toPlainString()),
+                    label + " must be between 0 and " + max.toPlainString() + " litres.");
+        }
+        return litres.setScale(2, RoundingMode.HALF_UP);
     }
 
     private static BigDecimal validReceiptTolerance(BigDecimal percent) {
@@ -306,6 +325,8 @@ public class PumpService {
                 .safeCountCutoffTime(pump.getSafeCountCutoffTime())
                 .demo(pump.isDemo())
                 .earlyStartGraceMinutes(pump.getEarlyStartGraceMinutes())
+                .testVolumeLitres(pump.getTestVolumeLitres())
+                .maxTestLitresPerNozzle(pump.getMaxTestLitresPerNozzle())
                 .roundingTolerance(pump.getRoundingTolerance())
                 .dus(activeDUs)
                 .build();

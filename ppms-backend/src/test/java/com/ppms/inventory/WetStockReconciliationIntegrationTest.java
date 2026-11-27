@@ -266,6 +266,26 @@ class WetStockReconciliationIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void testLitresPouredBackAreNotSoldBetweenTheDips() throws Exception {
+        setup = createPumpWithStock("5000");
+        saveDip(YESTERDAY, 23, "5000");
+        long shiftId = json(perform(post("/api/pumps/{pumpId}/shifts/open", setup.pumpId()), setup.manager(),
+                Map.of("duId", setup.du().getId(), "nozzleIds", List.of(setup.nozzle().getId()),
+                        "operatorId", setup.operator().getId())).andExpect(status().isCreated())).get("id").asLong();
+        Map<String, Object> close = closeRequest("1025.000", "2000.00");
+        close.put("fuelReadings", List.of(Map.of("nozzleId", setup.nozzle().getId(),
+                "endReading", new BigDecimal("1025.000"), "testLitres", new BigDecimal("5"))));
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId), setup.manager(), close)
+                .andExpect(status().isOk());
+        saveDipAt(TestDates.now().plusSeconds(1), "4980");
+
+        JsonNode period = reconciliation(TODAY, TODAY).get("tanks").get(0).get("periods").get(0);
+
+        assertThat(period.get("soldLitres").decimalValue()).isEqualByComparingTo("20");
+        assertThat(period.get("varianceLitres").decimalValue()).isEqualByComparingTo("0");
+    }
+
+    @Test
     void amendedClosingReadingIsWhatTheMetersSoldBetweenTheDips() throws Exception {
         PumpSetup stocked = createPumpWithStock("5000");
         setup = stocked;

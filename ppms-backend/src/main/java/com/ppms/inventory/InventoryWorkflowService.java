@@ -12,6 +12,8 @@ import com.ppms.fuel.GlobalFuelPrice;
 import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
+import com.ppms.supplier.FuelSupplier;
+import com.ppms.supplier.SupplierService;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
@@ -69,6 +71,7 @@ public class InventoryWorkflowService {
     private final PumpLocationRepository pumpLocationRepository;
     private final ClosedDayGuard closedDayGuard;
     private final ShiftFuelDeductionService fuelDeductionService;
+    private final SupplierService supplierService;
 
     /**
      * Records one tanker delivery: a TankerDelivery row, a FIFO InventoryLot, and the added tank stock. Stock and the
@@ -94,10 +97,11 @@ public class InventoryWorkflowService {
         }
         BigDecimal costPrice = costPriceForDelivery(tank, request.getCostPricePerUnit(), currentUser);
         validateCostPriceAgainstSellingPrice(pumpId, tank, costPrice);
+        FuelSupplier supplier = supplierService.supplierForDelivery(pumpId, request.getSupplierId());
 
         TankerDelivery delivery = createDeliveryWithLot(pumpId, tank, request.getQuantityDelivered(),
                 costPrice, startOfBusinessDay(request.getDeliveryDate()), invoiceRef,
-                request.getBillTotal(), null, currentUser, receipt, findPump(pumpId));
+                request.getBillTotal(), null, supplier, currentUser, receipt, findPump(pumpId));
         markSheetsStaleForDelivery(pumpId, List.of(request.getDeliveryDate()), invoiceRef);
 
         log.info("Tanker delivery recorded: pump={}, tank={}, fuel={}, qty={}L, received={}L, check={}, invoice={}, by={}",
@@ -112,7 +116,8 @@ public class InventoryWorkflowService {
                 currentUser);
 
         ShortageClaim claim = shortageClaimService.syncWithDelivery(delivery, tank, currentUser);
-        return responseAssembler.toDeliveryResponse(delivery, tank, currentUser.getFullName(), claim);
+        return responseAssembler.toDeliveryResponse(delivery, tank, currentUser.getFullName(), claim,
+                supplier != null ? supplier.getName() : null);
     }
 
     /**
@@ -139,6 +144,7 @@ public class InventoryWorkflowService {
 
         tankRepository.findAllByIdForUpdate(tankIds);
         PumpLocation pump = findPump(pumpId);
+        FuelSupplier supplier = supplierService.supplierForDelivery(pumpId, request.getSupplierId());
 
         List<TankerDeliveryResponse> responses = new ArrayList<>();
         for (RecordBatchDeliveryRequest.LineItem item : request.getItems()) {
@@ -157,14 +163,15 @@ public class InventoryWorkflowService {
             validateCostPriceAgainstSellingPrice(pumpId, tank, costPrice);
 
             TankerDelivery delivery = createDeliveryWithLot(pumpId, tank, item.getQuantityDelivered(), costPrice,
-                    deliveryDateTime, invoiceRef, request.getBillTotal(), tanker, currentUser, receipt, pump);
+                    deliveryDateTime, invoiceRef, request.getBillTotal(), tanker, supplier, currentUser, receipt, pump);
 
             log.info("Batch delivery item recorded: pump={}, tank={}, fuel={}, qty={}L, received={}L, check={}, invoice={}, by={}",
                     pumpId, tank.getId(), tank.getFuelType(), delivery.getQuantityDelivered(), delivery.getReceivedLitres(),
                     delivery.getCheckStatus(), invoiceRef, currentUser.getId());
 
             ShortageClaim claim = shortageClaimService.syncWithDelivery(delivery, tank, currentUser);
-            responses.add(responseAssembler.toDeliveryResponse(delivery, tank, currentUser.getFullName(), claim));
+            responses.add(responseAssembler.toDeliveryResponse(delivery, tank, currentUser.getFullName(), claim,
+                    supplier != null ? supplier.getName() : null));
         }
         markSheetsStaleForDelivery(pumpId, List.of(request.getDeliveryDate()), invoiceRef);
         return responses;
@@ -267,7 +274,8 @@ public class InventoryWorkflowService {
                 currentUser);
 
         ShortageClaim claim = receiptChecked ? shortageClaimService.syncWithDelivery(delivery, tank, currentUser) : null;
-        return responseAssembler.toDeliveryResponse(delivery, tank, currentUser.getFullName(), claim);
+        return responseAssembler.toDeliveryResponse(delivery, tank, currentUser.getFullName(), claim,
+                supplierService.supplierNameOf(delivery.getSupplierId()));
     }
 
     /**
@@ -503,12 +511,14 @@ public class InventoryWorkflowService {
     private TankerDelivery createDeliveryWithLot(Long pumpId, UndergroundTank tank, BigDecimal quantity,
                                                  BigDecimal costPrice, OffsetDateTime deliveryDateTime,
                                                  String invoiceRef, BigDecimal billTotal, Tanker tanker,
-                                                 User currentUser, DeliveryReceiptService.MeasuredReceipt receipt,
+                                                 FuelSupplier supplier, User currentUser,
+                                                 DeliveryReceiptService.MeasuredReceipt receipt,
                                                  PumpLocation pump) {
         BigDecimal qty = quantity.setScale(3, RoundingMode.HALF_UP);
         TankerDelivery delivery = TankerDelivery.builder()
                 .pumpId(pumpId)
                 .tankId(tank.getId())
+                .supplierId(supplier != null ? supplier.getId() : null)
                 .fuelType(tank.getFuelType())
                 .quantityDelivered(qty)
                 .costPricePerUnit(costPrice)

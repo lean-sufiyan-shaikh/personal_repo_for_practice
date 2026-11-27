@@ -29,6 +29,8 @@ public class PumpLocation {
     public static final BigDecimal DEFAULT_ESCALATION_THRESHOLD = new BigDecimal("500.00");
     public static final int DEFAULT_EARLY_START_GRACE_MINUTES = 30;
     public static final BigDecimal DEFAULT_ROUNDING_TOLERANCE = new BigDecimal("1.00");
+    public static final BigDecimal DEFAULT_TEST_VOLUME_LITRES = new BigDecimal("5.00");
+    public static final BigDecimal DEFAULT_MAX_TEST_LITRES_PER_NOZZLE = new BigDecimal("10.00");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -67,6 +69,16 @@ public class PumpLocation {
     @Column(name = "rounding_tolerance", nullable = false)
     @Builder.Default
     private BigDecimal roundingTolerance = DEFAULT_ROUNDING_TOLERANCE;
+
+    /** The measure each nozzle is tested with, offered at close as the litres poured back into the tank. */
+    @Column(name = "test_volume_litres", nullable = false)
+    @Builder.Default
+    private BigDecimal testVolumeLitres = DEFAULT_TEST_VOLUME_LITRES;
+
+    /** Test litres above this on one nozzle in one shift need a note and are audited. */
+    @Column(name = "max_test_litres_per_nozzle", nullable = false)
+    @Builder.Default
+    private BigDecimal maxTestLitresPerNozzle = DEFAULT_MAX_TEST_LITRES_PER_NOZZLE;
 
     /**
      * Expense amount above which an OPERATOR/MANAGER-submitted expense requires Owner/Admin approval.

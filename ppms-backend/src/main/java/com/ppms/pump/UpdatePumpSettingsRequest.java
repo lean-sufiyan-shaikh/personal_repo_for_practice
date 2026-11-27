@@ -18,5 +18,7 @@ public record UpdatePumpSettingsRequest(
         BigDecimal safeCountTolerance,
         LocalTime safeCountCutoffTime,
         Integer earlyStartGraceMinutes,
-        BigDecimal roundingTolerance
+        BigDecimal roundingTolerance,
+        BigDecimal testVolumeLitres,
+        BigDecimal maxTestLitresPerNozzle
 ) {}

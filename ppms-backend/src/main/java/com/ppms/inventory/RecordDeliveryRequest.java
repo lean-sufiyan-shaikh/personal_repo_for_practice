@@ -15,6 +15,9 @@ public class RecordDeliveryRequest {
     @NotNull(message = "Tank is required")
     private Long tankId;
 
+    /** Left out to book the delivery to the pump's default supplier. */
+    private Long supplierId;
+
     @NotNull(message = "Quantity delivered is required")
     @DecimalMin(value = "0.001", message = "Quantity must be greater than 0")
     private BigDecimal quantityDelivered;

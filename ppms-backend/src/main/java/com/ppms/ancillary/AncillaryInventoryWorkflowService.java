@@ -20,6 +20,8 @@ import com.ppms.credit.CreditClientRepository;
 import com.ppms.credit.CreditInterestService;
 import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.invoice.GstFields;
+import com.ppms.pump.PumpLocation;
+import com.ppms.pump.PumpLocationRepository;
 import com.ppms.report.BalanceSheetStalenessService;
 import com.ppms.report.StaleReasons;
 import com.ppms.transaction.TransactionPaymentMode;
@@ -59,6 +61,7 @@ public class AncillaryInventoryWorkflowService {
     private final AuditService auditService;
     private final BusinessClock businessClock;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
+    private final PumpLocationRepository pumpLocationRepository;
     private final ClosedDayGuard closedDayGuard;
     private final VehicleCreditCheck vehicleCreditCheck;
     private final CreditInterestService creditInterestService;
@@ -146,18 +149,26 @@ public class AncillaryInventoryWorkflowService {
         closedDayGuard.requireOpen(pumpId, request.getDeliveryDate());
         // Mark as backfilled when the delivery date is before today — historical entry.
         boolean isBackfilled = request.getDeliveryDate().isBefore(businessClock.today());
+        String invoiceReference = GstFields.trimmedOrNull(request.getInvoiceReference());
+        PurchaseGst purchaseGst = request.getGst() == null ? null : PurchaseGst.of(request.getGst(),
+                pumpLocationRepository.findById(pumpId).map(PumpLocation::getGstin).orElse(null), invoiceReference,
+                businessClock.today());
 
-        AncillaryStockDelivery delivery = deliveryRepository.save(AncillaryStockDelivery.builder()
+        AncillaryStockDelivery newDelivery = AncillaryStockDelivery.builder()
                 .productId(product.getId())
                 .pumpId(pumpId)
                 .quantityUnits(request.getQuantityUnits())
                 .costPricePerUnit(request.getCostPricePerUnit().setScale(2, RoundingMode.HALF_UP))
                 .deliveryDate(request.getDeliveryDate())
-                .invoiceReference(request.getInvoiceReference() != null ? request.getInvoiceReference().trim() : null)
+                .invoiceReference(invoiceReference)
                 .notes(request.getNotes())
                 .loggedByUserId(currentUser.getId())
                 .isBackfilled(isBackfilled)
-                .build());
+                .build();
+        if (purchaseGst != null) {
+            purchaseGst.applyTo(newDelivery);
+        }
+        AncillaryStockDelivery delivery = deliveryRepository.save(newDelivery);
 
         AncillaryStockLot lot = lotRepository.save(AncillaryStockLot.builder()
                 .deliveryId(delivery.getId())
@@ -178,7 +189,8 @@ public class AncillaryInventoryWorkflowService {
                 "AncillaryStockDelivery", delivery.getId().toString(),
                 (delivery.isBackfilled() ? "Backfilled stock delivery: " : "Stock delivery: ")
                 + product.getName() + " × " + request.getQuantityUnits() +
-                " units at ₹" + delivery.getCostPricePerUnit() + "/unit",
+                " units at ₹" + delivery.getCostPricePerUnit() + "/unit"
+                + (purchaseGst != null ? ", GST input ₹" + purchaseGst.totalGst() + " from " + purchaseGst.supplierGstin() : ""),
                 currentUser);
 
         return DeliveryResult.builder()

@@ -8,6 +8,8 @@ import com.ppms.fuel.FuelType;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
+import com.ppms.supplier.FuelSupplier;
+import com.ppms.supplier.FuelSupplierRepository;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ public class InventoryQueryService {
     private final InventoryResponseAssembler responseAssembler;
     private final OpenShiftMeterService openShiftMeterService;
     private final ShortageClaimQueryService shortageClaimQueryService;
+    private final FuelSupplierRepository supplierRepository;
 
     public List<TankStockResponse> getTankStocks(Long pumpId) {
         return tankRepository.findByPumpId(pumpId).stream()
@@ -55,11 +58,12 @@ public class InventoryQueryService {
                 deliveries.getContent().stream().map(TankerDelivery::getLoggedByUserId).collect(Collectors.toSet()));
         Map<Long, ShortageClaim> claimByDeliveryId = shortageClaimQueryService.claimsByDeliveryId(
                 deliveries.getContent().stream().map(TankerDelivery::getId).collect(Collectors.toSet()));
+        Map<Long, String> supplierNameById = findSupplierNamesById(deliveries.getContent());
 
         return PagedResponse.of(deliveries.map(delivery -> responseAssembler.toDeliveryResponse(
                 delivery, tankById.get(delivery.getTankId()),
                 userNameById.getOrDefault(delivery.getLoggedByUserId(), "Unknown"),
-                claimByDeliveryId.get(delivery.getId()))));
+                claimByDeliveryId.get(delivery.getId()), supplierNameById.get(delivery.getSupplierId()))));
     }
 
     /** Every tank line of the most recently entered invoice — the only one that may be deleted. Empty when none exist. */
@@ -74,11 +78,12 @@ public class InventoryQueryService {
                 lines.stream().map(TankerDelivery::getLoggedByUserId).collect(Collectors.toSet()));
         Map<Long, ShortageClaim> claimByDeliveryId = shortageClaimQueryService.claimsByDeliveryId(
                 lines.stream().map(TankerDelivery::getId).collect(Collectors.toSet()));
+        Map<Long, String> supplierNameById = findSupplierNamesById(lines);
         return lines.stream()
                 .map(delivery -> responseAssembler.toDeliveryResponse(
                         delivery, tankById.get(delivery.getTankId()),
                         userNameById.getOrDefault(delivery.getLoggedByUserId(), "Unknown"),
-                        claimByDeliveryId.get(delivery.getId())))
+                        claimByDeliveryId.get(delivery.getId()), supplierNameById.get(delivery.getSupplierId())))
                 .toList();
     }
 
@@ -177,6 +182,13 @@ public class InventoryQueryService {
     private Map<Long, String> findUserNamesById(Set<Long> userIds) {
         return userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, User::getFullName));
+    }
+
+    private Map<Long, String> findSupplierNamesById(List<TankerDelivery> deliveries) {
+        Set<Long> supplierIds = deliveries.stream().map(TankerDelivery::getSupplierId).filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        return supplierRepository.findAllById(supplierIds).stream()
+                .collect(Collectors.toMap(FuelSupplier::getId, FuelSupplier::getName));
     }
 
     private static String nameOrUnknown(Map<Long, String> userNameById, Long userId) {

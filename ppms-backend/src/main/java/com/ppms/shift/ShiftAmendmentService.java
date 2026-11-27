@@ -58,6 +58,7 @@ public class ShiftAmendmentService {
     private final CashEventRepository cashEventRepository;
     private final ShiftLifecycleSupportService lifecycleSupportService;
     private final ShiftFuelDeductionService fuelDeductionService;
+    private final ShiftTestLitresService testLitresService;
     private final ShiftReadModelService shiftReadModelService;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
     private final ClosedDayGuard closedDayGuard;
@@ -85,6 +86,7 @@ public class ShiftAmendmentService {
         Map<String, Object> before = figuresOf(shift, readings, nozzleById);
         Map<Long, BigDecimal> oldEndByNozzle = readings.stream()
                 .collect(Collectors.toMap(ShiftFuelReading::getNozzleId, ShiftFuelReading::getEndReading));
+        Set<Long> changedTestLitres = testLitresChangedNozzles(request, readings);
         Set<Long> changedNozzles = newEndByNozzle.entrySet().stream()
                 .filter(entry -> entry.getValue().compareTo(oldEndByNozzle.get(entry.getKey())) != 0)
                 .map(Map.Entry::getKey)
@@ -92,7 +94,7 @@ public class ShiftAmendmentService {
         BigDecimal cashDropped = orZero(shift.getCashDropped());
         BigDecimal oldBagCash = orZero(shift.getCashCollected()).subtract(cashDropped);
         BigDecimal newBagCash = request.cashCollected().setScale(2, RoundingMode.HALF_UP);
-        if (changedNozzles.isEmpty() && sameAmounts(shift, oldBagCash, request)) {
+        if (changedNozzles.isEmpty() && changedTestLitres.isEmpty() && sameAmounts(shift, oldBagCash, request)) {
             throw new BusinessException(ErrorCodes.SHIFT_AMEND_NO_CHANGE, Map.of(),
                     "The amended figures are the same as the shift's current figures.");
         }
@@ -105,6 +107,9 @@ public class ShiftAmendmentService {
                 .collect(Collectors.toMap(ShiftFuelReading::getNozzleId, reading -> orZero(reading.getUnitsSold())));
         ShiftLifecycleSupportService.ClosingSummary summary = lifecycleSupportService.processClosingReadings(pumpId,
                 maxMeterByNozzle(nozzleById), closeRequestOf(request, shift), cashDropped, readings);
+        if (!changedTestLitres.isEmpty()) {
+            testLitresService.requireNoteAndAuditAboveMax(pumpId, shiftId, readings, request.reason(), currentUser);
+        }
         if (readings.stream().anyMatch(reading -> reading.getUnitsSold().compareTo(oldUnitsByNozzle.get(reading.getNozzleId())) != 0)) {
             deductAgain(shift, readings);
         }
@@ -168,6 +173,16 @@ public class ShiftAmendmentService {
             throw new BusinessException(ErrorCodes.SHIFT_AMEND_DISCREPANCY_SETTLED, Map.of("resolutionCode", resolution.name()),
                     "This shift's discrepancy was settled by " + resolution + ", so its figures can no longer be amended.");
         }
+    }
+
+    private static Set<Long> testLitresChangedNozzles(AmendShiftRequest request, List<ShiftFuelReading> readings) {
+        Map<Long, BigDecimal> oldTestLitresByNozzle = readings.stream()
+                .collect(Collectors.toMap(ShiftFuelReading::getNozzleId, ShiftFuelReading::getTestLitres));
+        return request.fuelReadings().stream()
+                .filter(reading -> reading.testLitres() != null && oldTestLitresByNozzle.containsKey(reading.nozzleId())
+                        && reading.testLitres().compareTo(oldTestLitresByNozzle.get(reading.nozzleId())) != 0)
+                .map(CloseShiftRequest.OutletEndReadingRequest::nozzleId)
+                .collect(Collectors.toSet());
     }
 
     private static Map<Long, BigDecimal> endReadingsOf(AmendShiftRequest request, List<ShiftFuelReading> readings) {

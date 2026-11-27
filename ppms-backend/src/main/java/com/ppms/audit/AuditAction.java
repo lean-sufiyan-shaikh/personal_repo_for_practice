@@ -101,6 +101,9 @@ public enum AuditAction {
     BANK_LINES_AUTO_MATCHED,
     SUPPLIER_PAYMENT_RECORDED,
     SUPPLIER_PAYMENT_VOIDED,
+    SUPPLIER_OPENING_BALANCE_SET,
+    SUPPLIER_DEFAULT_SET,
+    TEST_LITRES_ABOVE_MAX,
     PUMP_CONFIG_UPDATED,
 
     // ── Payment settlements ───────────────────────────────────────────────────

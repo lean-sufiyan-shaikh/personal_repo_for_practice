@@ -12,4 +12,6 @@ public interface FuelSupplierRepository extends JpaRepository<FuelSupplier, Long
     List<FuelSupplier> findByPumpIdOrderByNameAsc(Long pumpId);
 
     Optional<FuelSupplier> findByIdAndPumpId(Long id, Long pumpId);
+
+    Optional<FuelSupplier> findByPumpIdAndDefaultSupplierTrue(Long pumpId);
 }

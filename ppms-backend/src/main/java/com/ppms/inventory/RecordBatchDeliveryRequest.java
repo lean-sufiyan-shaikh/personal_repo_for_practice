@@ -46,6 +46,9 @@ public class RecordBatchDeliveryRequest {
      */
     private Long tankerId;
 
+    /** Left out to book the delivery to the pump's default supplier. */
+    private Long supplierId;
+
     @Data
     public static class LineItem {
 

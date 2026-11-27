@@ -46,6 +46,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -236,6 +237,10 @@ public class ShiftLifecycleSupportService {
                 .collect(Collectors.toMap(
                         CloseShiftRequest.OutletEndReadingRequest::nozzleId,
                         CloseShiftRequest.OutletEndReadingRequest::endReading));
+        Map<Long, BigDecimal> testLitresByNozzleId = new HashMap<>();
+        request.getFuelReadings().stream()
+                .filter(reading -> reading.testLitres() != null)
+                .forEach(reading -> testLitresByNozzleId.put(reading.nozzleId(), reading.testLitres()));
 
         Map<Long, List<ShiftReadingPriceSegment>> segmentsByReading = priceSegmentService.segmentsByReading(readings);
         BigDecimal totalDue = ZERO;
@@ -273,12 +278,16 @@ public class ShiftLifecycleSupportService {
                         " nozzle. Please verify the meter reading.");
             }
 
-            BigDecimal unitsSold = MeterRollover.unitsBetween(reading.getStartReading(), endReading, maxMeter);
+            BigDecimal meterLitres = MeterRollover.unitsBetween(reading.getStartReading(), endReading, maxMeter);
+            BigDecimal testLitres = ShiftTestLitresService.validTestLitres(reading,
+                    testLitresByNozzleId.getOrDefault(reading.getNozzleId(), reading.getTestLitres()), meterLitres);
+            BigDecimal unitsSold = meterLitres.subtract(testLitres);
             List<ShiftReadingPriceSegment> segments = segmentsByReading.get(reading.getId());
             BigDecimal salesAmount = segments == null
                     ? unitsSold.multiply(reading.getPriceSnapshot())
-                    : priceSegmentService.priceBySegments(reading, segments, endReading, maxMeter);
+                    : priceSegmentService.priceBySegments(reading, segments, endReading, maxMeter, testLitres);
             reading.setEndReading(endReading);
+            reading.setTestLitres(testLitres);
             reading.setUnitsSold(unitsSold);
             reading.setSalesAmount(salesAmount);
             totalDue = totalDue.add(salesAmount);
