@@ -8,6 +8,7 @@ import com.ppms.support.TestDates;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -122,6 +123,32 @@ class CreditClientImportIntegrationTest extends ApiIntegrationTest {
         assertThat(clientRepository.findByPumpIdOrderByNameAsc(setup.pumpId())).hasSize(2);
         JsonNode clients = json(perform(get("/api/pumps/{pumpId}/credit-clients", setup.pumpId()), setup.owner()));
         assertThat(outstandingOf(clients, "Repeat Co")).isEqualTo("1000.00");
+    }
+
+    @Test
+    void limitCellTakesAnAmountOrUnlimitedAndBlankTakesThePumpDefaultOnlyWhenItAllowsCredit() throws Exception {
+        PumpSetup setup = createPumpWithStock("0");
+
+        perform(post("/api/pumps/{pumpId}/imports/credit-clients", setup.pumpId()), setup.owner(), rows(
+                row(2, "Trusted Fleet", freePhone(), null, Map.of("credit_limit", "Unlimited")),
+                row(3, "Cash Only", freePhone(), null, Map.of("credit_limit", "0")),
+                row(4, "Default Limit", freePhone(), null, Map.of())))
+                .andExpect(status().isOk());
+
+        assertThat(clientNamed(setup, "Trusted Fleet").isUnlimitedCredit()).isTrue();
+        assertThat(clientNamed(setup, "Cash Only").isUnlimitedCredit()).isFalse();
+        assertThat(clientNamed(setup, "Cash Only").getCreditLimit()).isEqualByComparingTo("0");
+        assertThat(clientNamed(setup, "Default Limit").getCreditLimit()).isEqualByComparingTo(TEST_DEFAULT_CREDIT_LIMIT);
+
+        setup.pump().setDefaultCreditLimit(BigDecimal.ZERO);
+        pumpLocationRepository.save(setup.pump());
+        JsonNode report = json(perform(post("/api/pumps/{pumpId}/imports/credit-clients/preview", setup.pumpId()),
+                setup.owner(), rows(
+                        row(2, "No Limit Given", freePhone(), null, Map.of()),
+                        row(3, "Words", freePhone(), null, Map.of("credit_limit", "lots"))))
+                .andExpect(status().isOk()));
+        assertThat(issues(report, 0)).containsExactly("credit_limit:IMPORT_CREDIT_LIMIT_REQUIRED");
+        assertThat(issues(report, 1)).containsExactly("credit_limit:IMPORT_NUMBER_INVALID");
     }
 
     @Test

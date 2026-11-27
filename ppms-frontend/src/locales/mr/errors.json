@@ -432,6 +432,7 @@
   "IMPORT_PARENT_NOT_FOUND": "या फाइलमध्ये किंवा पंपवर \"{{parentName}}\" नावाचा मुख्य ग्राहक नाही.",
   "IMPORT_PARENT_ROW_HAS_ERRORS": "ओळ {{parentRow}} वरील मुख्य ग्राहकात अडचणी आहेत; आधी ती ओळ दुरुस्त करा.",
   "IMPORT_CREDIT_LIMIT_ON_SUB_ACCOUNT": "सब-अकाउंट मुख्य ग्राहकाची मर्यादा वापरतो. हे रिकामे ठेवा.",
+  "IMPORT_CREDIT_LIMIT_REQUIRED": "क्रेडिट मर्यादा भरा: रक्कम, क्रेडिट नको असल्यास 0, किंवा unlimited. पंपाची नवीन ग्राहकांची मर्यादा ₹0 आहे.",
   "IMPORT_PHONE_IN_OTHER_GROUP": "ओळ {{firstRow}} मध्ये हाच फोन दुसऱ्या ग्राहक गटासाठी आहे.",
   "IMPORT_COST_REQUIRED_FOR_STOCK": "सुरुवातीच्या स्टॉकची प्रति एकक किंमत लिहा.",
   "IMPORT_TANK_NOT_FOUND": "या पंपवर \"{{tankIdentifier}}\" नावाचा टँक नाही.",

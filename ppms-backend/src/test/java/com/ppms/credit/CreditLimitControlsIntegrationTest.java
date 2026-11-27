@@ -2,6 +2,7 @@ package com.ppms.credit;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ppms.support.ApiIntegrationTest;
+import com.ppms.support.TestDates;
 import com.ppms.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CreditLimitControlsIntegrationTest extends ApiIntegrationTest {
 
     @Autowired private CreditClientRepository clientRepository;
+    @Autowired private CreditOpeningBalanceRepository openingBalanceRepository;
 
     private PumpSetup setup;
     private long shiftId;
@@ -148,6 +150,19 @@ class CreditLimitControlsIntegrationTest extends ApiIntegrationTest {
                         "nearLimitPercent", 100))
                 .andExpect(status().isOk());
         assertThat(standingOf(clientId).get("creditStatus").asText()).isEqualTo("OK");
+    }
+
+    @Test
+    void openingBalanceCountsTowardsTheLimitAndNearLimit() throws Exception {
+        long clientId = createClient(null);
+        changeLimit(clientId, "1000", false, setup.owner()).andExpect(status().isOk());
+        openingBalanceRepository.save(CreditOpeningBalance.builder()
+                .pumpId(setup.pumpId()).clientId(clientId).amount(new BigDecimal("950.00"))
+                .asOfDate(TestDates.today()).createdByUserId(setup.owner().getId()).build());
+
+        assertThat(standingOf(clientId).get("creditStatus").asText()).isEqualTo("NEAR_LIMIT");
+        sellOnCredit(clientId, "100.00").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CREDIT_LIMIT_EXCEEDED"));
     }
 
     @Test

@@ -10,6 +10,7 @@ import com.ppms.credit.CreditClientRepository;
 import com.ppms.credit.CreditOpeningBalance;
 import com.ppms.credit.CreditOpeningBalanceRepository;
 import com.ppms.invoice.GstFields;
+import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,8 @@ import java.util.Objects;
  * Imports credit clients with the rules of the Add Client form: a root name is unique in the pump, a sub-account name
  * under its parent, sub-accounts are one level deep, and a phone may be shared only inside one client group.
  * A client that already exists is skipped (with its opening balance), so uploading the same file again adds nothing.
+ * A main client's credit limit is an amount (0 allows no credit) or the word "unlimited"; left blank it takes the
+ * pump's default limit, and when that default is 0 the cell must be filled so no client is cut off by accident.
  */
 @Slf4j
 @Service
@@ -47,6 +50,7 @@ public class CreditClientImportService {
     static final String NOTES = "notes";
 
     private static final BigDecimal MAX_AMOUNT = new BigDecimal("1000000000");
+    private static final String UNLIMITED = "unlimited";
 
     private final CreditClientRepository clientRepository;
     private final CreditOpeningBalanceRepository openingBalanceRepository;
@@ -55,7 +59,7 @@ public class CreditClientImportService {
     private final BusinessClock businessClock;
 
     private record CheckedRow(RowCheck check, String name, String phone, String parentName, BigDecimal creditLimit,
-                              BigDecimal openingBalance, LocalDate openingBalanceDate, String gstin,
+                              boolean unlimitedCredit, BigDecimal openingBalance, LocalDate openingBalanceDate, String gstin,
                               String billingAddress, String notes) {
 
         boolean isSubAccount() {
@@ -163,6 +167,7 @@ public class CreditClientImportService {
                 .phone(row.phone())
                 .notes(row.notes())
                 .creditLimit(row.creditLimit() != null ? row.creditLimit().setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO)
+                .unlimitedCredit(row.unlimitedCredit())
                 .parentClientId(parentClientId)
                 .gstin(row.gstin())
                 .billingAddress(row.billingAddress())
@@ -171,7 +176,10 @@ public class CreditClientImportService {
 
     private List<CheckedRow> checkRows(Long pumpId, List<CreditClientImportRequest.Row> rows) {
         LocalDate today = businessClock.today();
-        List<CheckedRow> checked = rows.stream().map(row -> checkCells(row, today)).toList();
+        BigDecimal defaultLimit = pumpLocationRepository.findById(pumpId)
+                .map(PumpLocation::getDefaultCreditLimit)
+                .orElse(BigDecimal.ZERO);
+        List<CheckedRow> checked = rows.stream().map(row -> checkCells(row, today, defaultLimit)).toList();
         ExistingClients existing = ExistingClients.of(clientRepository.findByPumpIdOrderByNameAsc(pumpId));
 
         Map<String, CheckedRow> rootRowsByName = new HashMap<>();
@@ -264,21 +272,31 @@ public class CreditClientImportService {
         }
     }
 
-    private CheckedRow checkCells(CreditClientImportRequest.Row row, LocalDate today) {
+    private CheckedRow checkCells(CreditClientImportRequest.Row row, LocalDate today, BigDecimal defaultLimit) {
         RowCheck check = new RowCheck(row.rowNumber());
         String name = CellReader.requiredName(check, NAME, row.name(), 100);
         String phone = CellReader.requiredPhone(check, PHONE, row.phone());
         String parentName = CellReader.optionalText(check, PARENT_NAME, row.parentName(), 100);
-        BigDecimal creditLimit = CellReader.decimal(check, CREDIT_LIMIT, row.creditLimit(), false, BigDecimal.ZERO, MAX_AMOUNT, 2);
-        if (parentName != null && creditLimit != null) {
+        String limitCell = CellReader.text(row.creditLimit());
+        boolean unlimitedCredit = UNLIMITED.equalsIgnoreCase(limitCell);
+        BigDecimal creditLimit = unlimitedCredit ? null
+                : CellReader.decimal(check, CREDIT_LIMIT, row.creditLimit(), false, BigDecimal.ZERO, MAX_AMOUNT, 2);
+        if (parentName != null && limitCell != null) {
             check.error(CREDIT_LIMIT, ErrorCodes.IMPORT_CREDIT_LIMIT_ON_SUB_ACCOUNT);
+        } else if (parentName == null && limitCell == null) {
+            if (defaultLimit.signum() > 0) {
+                creditLimit = defaultLimit;
+            } else {
+                check.error(CREDIT_LIMIT, ErrorCodes.IMPORT_CREDIT_LIMIT_REQUIRED);
+            }
         }
         BigDecimal openingBalance = CellReader.decimal(check, OPENING_BALANCE, row.openingBalance(), false, BigDecimal.ZERO, MAX_AMOUNT, 2);
         LocalDate openingBalanceDate = CellReader.date(check, OPENING_BALANCE_DATE, row.openingBalanceDate(), today);
         String gstin = readGstin(check, row.gstin());
         String billingAddress = CellReader.optionalText(check, BILLING_ADDRESS, row.billingAddress(), 500);
         String notes = CellReader.optionalText(check, NOTES, row.notes(), 500);
-        return new CheckedRow(check, name, phone, parentName, creditLimit, openingBalance, openingBalanceDate, gstin,
+        return new CheckedRow(check, name, phone, parentName, creditLimit, unlimitedCredit, openingBalance,
+                openingBalanceDate, gstin,
                 billingAddress, notes);
     }
 

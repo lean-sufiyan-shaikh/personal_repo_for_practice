@@ -722,7 +722,7 @@
       "night_hourly_rate": "Rupees per hour on night shifts, for operators only.",
       "name": "Name of the client or product.",
       "parent_name": "For a sub-account, the name of its main client (in this file or already added). Blank for a main client.",
-      "credit_limit": "Rupees; main clients only. Blank or 0 means no limit.",
+      "credit_limit": "Rupees, or the word unlimited; main clients only. 0 means no credit. Blank takes the pump's limit for new clients, and must be filled when that limit is ₹0.",
       "opening_balance": "Rupees the client already owed on go-live day. Blank or 0 for none.",
       "opening_balance_date": "YYYY-MM-DD the opening balance is dated. Blank means today.",
       "gstin": "15 characters, like 27ABCDE1234F1Z5. Blank for unregistered customers.",

@@ -452,6 +452,7 @@ public final class ErrorCodes {
     public static final String IMPORT_PARENT_NOT_FOUND = "IMPORT_PARENT_NOT_FOUND";
     public static final String IMPORT_PARENT_ROW_HAS_ERRORS = "IMPORT_PARENT_ROW_HAS_ERRORS";
     public static final String IMPORT_CREDIT_LIMIT_ON_SUB_ACCOUNT = "IMPORT_CREDIT_LIMIT_ON_SUB_ACCOUNT";
+    public static final String IMPORT_CREDIT_LIMIT_REQUIRED = "IMPORT_CREDIT_LIMIT_REQUIRED";
     public static final String IMPORT_PHONE_IN_OTHER_GROUP = "IMPORT_PHONE_IN_OTHER_GROUP";
     public static final String IMPORT_COST_REQUIRED_FOR_STOCK = "IMPORT_COST_REQUIRED_FOR_STOCK";
     public static final String IMPORT_TANK_NOT_FOUND = "IMPORT_TANK_NOT_FOUND";

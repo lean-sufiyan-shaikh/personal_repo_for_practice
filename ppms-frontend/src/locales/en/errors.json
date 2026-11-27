@@ -432,6 +432,7 @@
   "IMPORT_PARENT_NOT_FOUND": "No main client named \"{{parentName}}\" in this file or at the pump.",
   "IMPORT_PARENT_ROW_HAS_ERRORS": "The main client on row {{parentRow}} has problems; fix that row first.",
   "IMPORT_CREDIT_LIMIT_ON_SUB_ACCOUNT": "A sub-account shares its main client's limit. Leave this blank.",
+  "IMPORT_CREDIT_LIMIT_REQUIRED": "Enter a credit limit: an amount, 0 for no credit, or unlimited. The pump's limit for new clients is ₹0.",
   "IMPORT_PHONE_IN_OTHER_GROUP": "Row {{firstRow}} uses this phone for a different client group.",
   "IMPORT_COST_REQUIRED_FOR_STOCK": "Enter the cost per unit of the opening stock.",
   "IMPORT_TANK_NOT_FOUND": "No tank named \"{{tankIdentifier}}\" at this pump.",

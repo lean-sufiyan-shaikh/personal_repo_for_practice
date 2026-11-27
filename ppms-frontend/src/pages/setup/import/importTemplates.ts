@@ -58,7 +58,7 @@ export const IMPORT_TEMPLATES: Record<ImportType, ImportTemplate> = {
       text('name', 'name', true, 'Sharma Transport'),
       text('phone', 'phone', true, '9822012345'),
       text('parent_name', 'parentName', false, ''),
-      number('credit_limit', 'creditLimit', false, '50000'),
+      text('credit_limit', 'creditLimit', false, '50000'),
       number('opening_balance', 'openingBalance', false, '12500'),
       date('opening_balance_date', 'openingBalanceDate', '2026-04-01'),
       text('gstin', 'gstin', false, '27ABCDE1234F1Z5'),

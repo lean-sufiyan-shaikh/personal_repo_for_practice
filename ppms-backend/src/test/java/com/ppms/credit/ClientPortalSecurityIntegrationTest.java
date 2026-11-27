@@ -172,7 +172,7 @@ class ClientPortalSecurityIntegrationTest extends ApiIntegrationTest {
     private void saveUpiDetails() throws Exception {
         perform(put("/api/pumps/{pumpId}/collection-settings", setup.pumpId()), setup.owner(),
                 Map.of("reminderStageDays", List.of(7), "creditHoldDays", 45, "upiId", "ramfuels@okaxis",
-                        "upiPayeeName", "Ram Fuels"))
+                        "upiPayeeName", "Ram Fuels", "backdatedPaymentApprovalDays", 7))
                 .andExpect(status().isOk());
     }
 

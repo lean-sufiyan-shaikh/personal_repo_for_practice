@@ -14,7 +14,7 @@ vi.mock('../../../api/creditApi', () => ({
 const PUMP_ID = 3
 const client: CreditClient = {
   id: 40, pumpId: PUMP_ID, name: 'Acme Transport', phone: '9876543210', notes: null,
-  creditLimit: 50_000, outstandingBalance: 12_000, outstandingInterest: 0, totalInterestRecovered: 0,
+  creditLimit: 50_000, unlimited: false, outstandingBalance: 12_000, outstandingInterest: 0, totalInterestRecovered: 0,
   monthlyInterestRate: 0, interestGraceDays: 1, createdAt: '2026-01-01T00:00:00Z',
   parentClientId: null, parentClientName: null, isParent: false,
 }
