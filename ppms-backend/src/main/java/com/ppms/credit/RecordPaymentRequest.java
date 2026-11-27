@@ -3,6 +3,7 @@ package com.ppms.credit;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -22,8 +23,18 @@ public class RecordPaymentRequest {
     @PastOrPresent(message = "Payment date cannot be in the future")
     private LocalDate paidAt;
 
-    /** Optional reference number, e.g. cheque number, NEFT/IMPS ref, UPI transaction ID. */
+    /** Cheque number, NEFT/IMPS ref or UPI transaction ID; required for UPI, BANK_TRANSFER and CHEQUE. */
+    @Size(max = 100, message = "Reference must be at most 100 characters")
     private String referenceNo;
+
+    @Size(max = 100, message = "Bank name must be at most 100 characters")
+    private String chequeBank;
+
+    /** A cheque dated after paidAt is post-dated and waits for approval until this date. */
+    private LocalDate chequeDate;
+
+    /** True once the user has seen the possible-duplicate warning for this reference and still wants to record it. */
+    private boolean confirmDuplicate;
 
     // Optional note, e.g. "Partial payment for March outstanding"
     private String notes;

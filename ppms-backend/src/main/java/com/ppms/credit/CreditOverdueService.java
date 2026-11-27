@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  * Applies the oldest-bills-first rule of {@link CreditBillLedger} to credit accounts. Every caller that needs to know
  * whether an account is overdue reads it here, so the credit status, the hold, the aging and the collections agree.
  * A sub-account's bills and payments count towards its parent's account, judged by the parent's billing cycle.
- * Loads any number of accounts in four queries.
+ * Loads any number of accounts in five queries.
  */
 @Service
 @RequiredArgsConstructor
@@ -32,6 +32,7 @@ public class CreditOverdueService {
     private final AncillarySaleRepository ancillarySaleRepository;
     private final CreditInterestChargeRepository interestChargeRepository;
     private final CreditPaymentRepository paymentRepository;
+    private final CreditPaymentReversalRepository reversalRepository;
 
     /** The standing of each account among the given clients, by the id of the client that holds the account. */
     @Transactional(readOnly = true)
@@ -57,6 +58,9 @@ public class CreditOverdueService {
         interestChargeRepository.findByClientIdInAndVoidedAtIsNull(clientIds).forEach(charge ->
                 billsByHolderId.computeIfAbsent(holderIdByClientId.get(charge.getClientId()), id -> new ArrayList<>())
                         .add(new CreditBillLedger.Bill(charge.getPeriodTo(), charge.getAmount(), false)));
+        reversalRepository.findWithBounceChargeByClientIdIn(clientIds).forEach(reversal ->
+                billsByHolderId.computeIfAbsent(holderIdByClientId.get(reversal.getClientId()), id -> new ArrayList<>())
+                        .add(new CreditBillLedger.Bill(reversal.getReversalDate(), reversal.getBounceCharge(), false)));
         paymentRepository.findApprovedByClientIdIn(clientIds).forEach(payment ->
                 paymentsByHolderId.computeIfAbsent(holderIdByClientId.get(payment.getClientId()), id -> new ArrayList<>())
                         .add(new CreditBillLedger.Payment(payment.getPaidAt(), payment.getAmount())));

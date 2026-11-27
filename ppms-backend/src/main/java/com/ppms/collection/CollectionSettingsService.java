@@ -14,12 +14,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** The pump's reminder stages, credit hold and UPI details. */
+/** The pump's reminder stages, credit hold, UPI details and credit payment approval rules. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -27,6 +29,7 @@ public class CollectionSettingsService {
 
     static final int MAX_STAGES = 10;
     static final int MAX_DAYS = 365;
+    private static final BigDecimal MAX_PAYMENT_THRESHOLD = new BigDecimal("9999999999.99");
 
     private final PumpLocationRepository pumpLocationRepository;
     private final AuditService auditService;
@@ -41,6 +44,8 @@ public class CollectionSettingsService {
         PumpLocation pump = requirePump(pumpId);
         Integer[] stages = validStages(request.reminderStageDays());
         Integer holdDays = validHoldDays(request.creditHoldDays());
+        BigDecimal paymentThreshold = validPaymentThreshold(request.creditPaymentApprovalThreshold());
+        int backdatedDays = validBackdatedDays(request.backdatedPaymentApprovalDays());
         String upiId = trimmedOrNull(request.upiId());
         String payeeName = trimmedOrNull(request.upiPayeeName());
         if ((upiId == null) != (payeeName == null)) {
@@ -60,10 +65,14 @@ public class CollectionSettingsService {
         pump.setCreditHoldDays(holdDays);
         pump.setUpiId(upiId);
         pump.setUpiPayeeName(payeeName);
+        pump.setCreditPaymentApprovalThreshold(paymentThreshold);
+        pump.setBackdatedPaymentApprovalDays(backdatedDays);
         pumpLocationRepository.save(pump);
 
         String description = "Reminder stages=" + Arrays.toString(stages) + ", creditHoldDays="
-                + (holdDays == null ? "off" : holdDays) + ", upiId=" + (upiId == null ? "none" : upiId);
+                + (holdDays == null ? "off" : holdDays) + ", upiId=" + (upiId == null ? "none" : upiId)
+                + ", creditPaymentApprovalThreshold=" + (paymentThreshold == null ? "none" : paymentThreshold)
+                + ", backdatedPaymentApprovalDays=" + backdatedDays;
         auditService.log(pumpId, AuditAction.COLLECTION_SETTINGS_UPDATED, "PumpLocation", pumpId.toString(),
                 description, currentUser);
         log.info("Collection settings of pump={} updated by user={}: {}", pumpId, currentUser.getId(), description);
@@ -91,6 +100,27 @@ public class CollectionSettingsService {
                     "Credit hold days must be from 1 to " + MAX_DAYS + ", or empty to turn the hold off.");
         }
         return holdDays;
+    }
+
+    private static BigDecimal validPaymentThreshold(BigDecimal threshold) {
+        if (threshold == null) {
+            return null;
+        }
+        if (threshold.signum() <= 0 || threshold.scale() > 2 || threshold.compareTo(MAX_PAYMENT_THRESHOLD) > 0) {
+            throw new BusinessException(ErrorCodes.CREDIT_PAYMENT_THRESHOLD_INVALID,
+                    Map.of("maxAmount", MAX_PAYMENT_THRESHOLD.toPlainString()),
+                    "The credit payment approval amount must be more than ₹0 and at most ₹"
+                            + MAX_PAYMENT_THRESHOLD.toPlainString() + ", in rupees and paise, or empty for no limit.");
+        }
+        return threshold.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static int validBackdatedDays(int days) {
+        if (days < 0 || days > MAX_DAYS) {
+            throw new BusinessException(ErrorCodes.BACKDATED_PAYMENT_DAYS_OUT_OF_RANGE, Map.of("maxDays", MAX_DAYS),
+                    "Back-dated payment days must be from 0 to " + MAX_DAYS + ".");
+        }
+        return days;
     }
 
     private static String trimmedOrNull(String text) {

@@ -42,7 +42,7 @@ class ApprovalPolicyTest {
     @Test
     void creditPaymentWithNoThresholdIsApproved() {
         givenThreshold(null);
-        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("50000")))
+        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("50000"), DAY, DAY))
                 .isEqualTo(ExpenseApprovalStatus.APPROVED);
     }
 
@@ -51,7 +51,7 @@ class ApprovalPolicyTest {
         givenThreshold(BigDecimal.ZERO);
         assertThat(approvalPolicy.resolveExpenseStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("10"), ExpenseCategory.MAINTENANCE, DAY))
                 .isEqualTo(ExpenseApprovalStatus.PENDING_APPROVAL);
-        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("10")))
+        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("10"), DAY, DAY))
                 .isEqualTo(ExpenseApprovalStatus.APPROVED);
     }
 
@@ -62,7 +62,7 @@ class ApprovalPolicyTest {
                 .isEqualTo(ExpenseApprovalStatus.PENDING_APPROVAL);
         assertThat(approvalPolicy.resolveExpenseStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("1000"), ExpenseCategory.MAINTENANCE, DAY))
                 .isEqualTo(ExpenseApprovalStatus.APPROVED);
-        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("1000.01")))
+        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("1000.01"), DAY, DAY))
                 .isEqualTo(ExpenseApprovalStatus.PENDING_APPROVAL);
     }
 
@@ -80,7 +80,7 @@ class ApprovalPolicyTest {
             assertThat(approvalPolicy.resolveExpenseStatus(1L, userWithRole(role), new BigDecimal("50000"), ExpenseCategory.MAINTENANCE, DAY))
                     .as("expense by %s", role)
                     .isEqualTo(ExpenseApprovalStatus.APPROVED);
-            assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(role), new BigDecimal("50000")))
+            assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(role), new BigDecimal("50000"), DAY, DAY))
                     .as("credit payment by %s", role)
                     .isEqualTo(ExpenseApprovalStatus.APPROVED);
         }
@@ -115,7 +115,36 @@ class ApprovalPolicyTest {
     @Test
     void creditPaymentEqualToTheThresholdIsApproved() {
         givenThreshold(new BigDecimal("1000"));
-        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("1000.00")))
+        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("1000.00"), DAY, DAY))
+                .isEqualTo(ExpenseApprovalStatus.APPROVED);
+    }
+
+    @Test
+    void creditPaymentUsesItsOwnThresholdRatherThanTheExpenseThreshold() {
+        PumpLocation pump = PumpLocation.builder().id(1L).expenseApprovalThreshold(new BigDecimal("100"))
+                .creditPaymentApprovalThreshold(new BigDecimal("5000")).build();
+        when(pumpLocationRepository.findById(1L)).thenReturn(Optional.of(pump));
+
+        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("4000"), DAY, DAY))
+                .isEqualTo(ExpenseApprovalStatus.APPROVED);
+        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("5000.01"), DAY, DAY))
+                .isEqualTo(ExpenseApprovalStatus.PENDING_APPROVAL);
+    }
+
+    @Test
+    void managersCreditPaymentDatedBeyondTheBackdatedLimitWaitsEvenUnderTheThreshold() {
+        PumpLocation pump = PumpLocation.builder().id(1L).creditPaymentApprovalThreshold(new BigDecimal("5000"))
+                .backdatedPaymentApprovalDays(7).build();
+        when(pumpLocationRepository.findById(1L)).thenReturn(Optional.of(pump));
+
+        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("10"),
+                DAY.minusDays(7), DAY))
+                .isEqualTo(ExpenseApprovalStatus.APPROVED);
+        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.MANAGER), new BigDecimal("10"),
+                DAY.minusDays(8), DAY))
+                .isEqualTo(ExpenseApprovalStatus.PENDING_APPROVAL);
+        assertThat(approvalPolicy.resolveCreditPaymentStatus(1L, userWithRole(UserRole.OWNER), new BigDecimal("10"),
+                DAY.minusDays(30), DAY))
                 .isEqualTo(ExpenseApprovalStatus.APPROVED);
     }
 
@@ -133,7 +162,8 @@ class ApprovalPolicyTest {
     }
 
     private void givenThreshold(BigDecimal threshold) {
-        PumpLocation pump = PumpLocation.builder().id(1L).expenseApprovalThreshold(threshold).build();
+        PumpLocation pump = PumpLocation.builder().id(1L).expenseApprovalThreshold(threshold)
+                .creditPaymentApprovalThreshold(threshold).build();
         when(pumpLocationRepository.findById(1L)).thenReturn(Optional.of(pump));
         when(pumpLocationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(pump));
     }

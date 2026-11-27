@@ -63,6 +63,13 @@ class NotificationTargetsTest {
                 .isEqualTo(new NotificationTarget("/dashboard/credit", Map.of("tab", "collections")));
     }
 
+    @Test
+    void reversedPaymentOpensTheClientsLedger() {
+        assertThat(NotificationTargets.targetOf(NotificationType.CREDIT_PAYMENT_REVERSED,
+                "CREDIT_PAYMENT_REVERSED:client:40:payment:9"))
+                .isEqualTo(new NotificationTarget("/dashboard/credit/40", Map.of()));
+    }
+
     @ParameterizedTest
     @EnumSource(NotificationType.class)
     void everyTypeHasATargetInsideTheDashboard(NotificationType type) {

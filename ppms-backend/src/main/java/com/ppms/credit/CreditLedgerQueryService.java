@@ -39,6 +39,8 @@ public class CreditLedgerQueryService {
     private static final String ACTIVE = "ACTIVE";
     private static final String WAIVED = "WAIVED";
     private static final String COUNTER_SALE = "COUNTER_SALE";
+    private static final String PAYMENT_REVERSAL = "PAYMENT_REVERSAL";
+    private static final String BOUNCE_CHARGE = "BOUNCE_CHARGE";
     static final String UNKNOWN_STAFF_NAME = "Unknown staff";
     private static final Comparator<CreditTransactionResponse> OLDEST_FIRST =
             Comparator.comparing(CreditTransactionResponse::getBusinessDate)
@@ -53,6 +55,7 @@ public class CreditLedgerQueryService {
 
     private final CreditClientRepository clientRepository;
     private final CreditPaymentRepository paymentRepository;
+    private final CreditPaymentReversalRepository reversalRepository;
     private final CreditInterestChargeRepository interestChargeRepository;
     private final ShiftCreditEntryRepository creditEntryRepository;
     private final AncillarySaleRepository ancillarySaleRepository;
@@ -207,6 +210,8 @@ public class CreditLedgerQueryService {
                 .amount(payment.getAmount())
                 .paymentMode(payment.getPaymentMode().name())
                 .referenceNo(payment.getReferenceNo())
+                .chequeBank(payment.getChequeBank())
+                .chequeDate(payment.getChequeDate())
                 .notes(payment.getNotes())
                 .paidAt(payment.getPaidAt())
                 .recordedById(payment.getRecordedById())
@@ -280,6 +285,11 @@ public class CreditLedgerQueryService {
         Map<Long, String> paymentUserNames = loadUserNames(payments.stream()
                 .map(CreditPayment::getRecordedById)
                 .collect(Collectors.toSet()));
+        Map<Long, CreditPayment> paymentsById = payments.stream()
+                .collect(Collectors.toMap(CreditPayment::getId, Function.identity()));
+        List<CreditPaymentReversal> reversals = reversalRepository.findByClientId(clientId);
+        Map<Long, Long> reversalIdByPaymentId = reversals.stream()
+                .collect(Collectors.toMap(CreditPaymentReversal::getPaymentId, CreditPaymentReversal::getId));
         payments.forEach(payment -> {
             String recordedBy = paymentUserNames.get(payment.getRecordedById());
             boolean showsUnknownRecorder = payment.getNotes() == null && recordedBy == null;
@@ -294,9 +304,11 @@ public class CreditLedgerQueryService {
                     .occurredAt(payment.getCreatedAt())
                     .businessDate(payment.getPaidAt())
                     .status(payment.getPaymentApprovalStatus().name())
-                    .countedInBalance(payment.getPaymentApprovalStatus() == ExpenseApprovalStatus.APPROVED)
+                    .countedInBalance(countsInLedgerBalance(payment.getPaymentApprovalStatus()))
+                    .linkedReferenceId(reversalIdByPaymentId.get(payment.getId()))
                     .build());
         });
+        reversals.forEach(reversal -> transactions.addAll(reversalRows(reversal, paymentsById.get(reversal.getPaymentId()))));
 
         interestChargeRepository.findByClientIdOrderByCreatedAtDesc(clientId)
                 .forEach(charge -> {
@@ -319,6 +331,51 @@ public class CreditLedgerQueryService {
                             .build());
                 });
         return transactions;
+    }
+
+    /** A reversed payment stays in the running balance until its reversal row takes it back out. */
+    private static boolean countsInLedgerBalance(ExpenseApprovalStatus status) {
+        return status == ExpenseApprovalStatus.APPROVED || status == ExpenseApprovalStatus.REVERSED;
+    }
+
+    /** The reversal of a payment, and its bounce charge as a separate debit when there is one. */
+    private static List<CreditTransactionResponse> reversalRows(CreditPaymentReversal reversal, CreditPayment payment) {
+        LocalDate paidAt = payment.getPaidAt();
+        List<CreditTransactionResponse> rows = new ArrayList<>();
+        Map<String, Object> reversalParams = new LinkedHashMap<>();
+        reversalParams.put("paidAt", paidAt.toString());
+        reversalParams.put("reason", reversal.getReason());
+        rows.add(CreditTransactionResponse.builder()
+                .type(PAYMENT_REVERSAL)
+                .referenceId(reversal.getId())
+                .reference("Payment of " + paidAt + " reversed: " + reversal.getReason())
+                .referenceCode(ServerTextCodes.PAYMENT_REVERSAL_DETAILS)
+                .referenceParams(reversalParams)
+                .detail(payment.getPaymentMode().name())
+                .amount(reversal.getAmount().setScale(2, RoundingMode.HALF_UP))
+                .occurredAt(reversal.getCreatedAt())
+                .businessDate(reversal.getReversalDate())
+                .status(ACTIVE)
+                .countedInBalance(true)
+                .linkedReferenceId(payment.getId())
+                .build());
+        if (reversal.getBounceCharge() != null) {
+            rows.add(CreditTransactionResponse.builder()
+                    .type(BOUNCE_CHARGE)
+                    .referenceId(reversal.getId())
+                    .reference("Bounce charge for the payment of " + paidAt)
+                    .referenceCode(ServerTextCodes.BOUNCE_CHARGE_DETAILS)
+                    .referenceParams(Map.of("paidAt", paidAt.toString()))
+                    .amount(reversal.getBounceCharge().setScale(2, RoundingMode.HALF_UP))
+                    // Saved with the reversal; a microsecond later keeps it listed after the reversal in both orders.
+                    .occurredAt(reversal.getCreatedAt().plusNanos(1_000))
+                    .businessDate(reversal.getReversalDate())
+                    .status(ACTIVE)
+                    .countedInBalance(true)
+                    .linkedReferenceId(payment.getId())
+                    .build());
+        }
+        return rows;
     }
 
     /** Expects the rows oldest first; rows not counted in the balance carry the balance before them. */

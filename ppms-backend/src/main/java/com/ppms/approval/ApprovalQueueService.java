@@ -73,7 +73,7 @@ public class ApprovalQueueService {
                     expense.getCategory().name(), null, null, expense.getDescription(), null, null, Map.of()));
         }
         for (CreditPayment payment : payments) {
-            boolean ownPayment = payment.getRecordedById().equals(currentUser.getId());
+            boolean ownPayment = payment.getRecordedById().equals(currentUser.getId()) && !payment.isPostDatedCheque();
             items.add(new ApprovalItemResponse(ApprovalKind.CREDIT_PAYMENT, payment.getId(), payment.getAmount(),
                     payment.getPaidAt(), userNameById.get(payment.getRecordedById()), payment.getCreatedAt(),
                     null, payment.getClientId(), clientNameById.get(payment.getClientId()), payment.getNotes(),

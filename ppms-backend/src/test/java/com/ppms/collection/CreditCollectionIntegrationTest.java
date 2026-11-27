@@ -401,6 +401,7 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
         body.put("creditHoldDays", holdDays);
         body.put("upiId", upiId);
         body.put("upiPayeeName", payeeName);
+        body.put("backdatedPaymentApprovalDays", 7);
         return perform(put("/api/pumps/{pumpId}/collection-settings", setup.pumpId()), user, body);
     }
 
@@ -475,7 +476,7 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
     }
 
     private void recordPayment(long clientId, String amount, LocalDate paidAt) throws Exception {
-        perform(post("/api/pumps/{pumpId}/credit-ledger/{clientId}/payments", setup.pumpId(), clientId), setup.manager(),
+        perform(post("/api/pumps/{pumpId}/credit-ledger/{clientId}/payments", setup.pumpId(), clientId), setup.owner(),
                 Map.of("amount", new BigDecimal(amount), "paymentMode", "CASH", "paidAt", paidAt.toString()))
                 .andExpect(status().is2xxSuccessful());
     }

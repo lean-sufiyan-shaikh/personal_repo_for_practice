@@ -12,7 +12,7 @@ import java.util.TreeSet;
 /**
  * The oldest-bills-first rule for one credit account (a standalone client, or a parent with its sub-accounts).
  * Every approved payment clears the oldest bills first, whatever its date, so the balance is made of the newest
- * bills. A bill is a credit sale (fuel or counter) or a live interest charge; it falls due one billing cycle after
+ * bills. A bill is a credit sale (fuel or counter), a live interest charge or a bounce charge; it falls due one billing cycle after
  * its date. The account is overdue while any bill past its due date still has an unpaid part, and its days overdue
  * are how far the oldest such bill is past due. A payment that leaves that bill partly unpaid changes neither.
  */

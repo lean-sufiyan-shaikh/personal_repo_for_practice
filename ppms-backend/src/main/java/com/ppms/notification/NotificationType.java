@@ -50,6 +50,8 @@ public enum NotificationType {
     CREDIT_HOLD_PLACED,
     /** Fired once per promise to pay that passed its date without the promised amount paid. */
     CREDIT_PROMISE_MISSED,
+    /** Fired once per credit payment an Owner or Admin reversed, such as a bounced cheque. */
+    CREDIT_PAYMENT_REVERSED,
     /** Fired once a day per account when a WARN account's credit entry is let through outside its vehicle rules. */
     VEHICLE_CREDIT_FLAGGED,
     /** Fired once a week, for owners and admins only, when the leakage radar has something worth a look. */

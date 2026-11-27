@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,6 +54,7 @@ public class CreditLedgerService {
     private final BusinessClock businessClock;
     private final ClosedDayGuard closedDayGuard;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
+    private final CreditPaymentReferenceCheck referenceCheck;
 
     /**
      * Records a payment settlement against a client's outstanding balance.
@@ -71,6 +73,7 @@ public class CreditLedgerService {
 
         closedDayGuard.requireOpen(pumpId, request.getPaidAt());
         creditAccountPolicyService.lockLimitHolder(client);
+        String referenceNo = referenceCheck.checkedReference(pumpId, request);
 
         BigDecimal payable = payableAmount(client);
         BigDecimal paymentAmount = request.getAmount().setScale(2, RoundingMode.HALF_UP);
@@ -82,7 +85,11 @@ public class CreditLedgerService {
                             + "You cannot over-pay a credit account.");
         }
 
-        ExpenseApprovalStatus approvalStatus = approvalPolicy.resolveCreditPaymentStatus(pumpId, currentUser, paymentAmount);
+        LocalDate today = businessClock.today();
+        boolean chequeNotYetDue = request.getChequeDate() != null && request.getChequeDate().isAfter(today);
+        ExpenseApprovalStatus approvalStatus = chequeNotYetDue
+                ? ExpenseApprovalStatus.PENDING_APPROVAL
+                : approvalPolicy.resolveCreditPaymentStatus(pumpId, currentUser, paymentAmount, request.getPaidAt(), today);
         if (approvalStatus == ExpenseApprovalStatus.PENDING_APPROVAL) {
             log.info("Credit payment set to PENDING_APPROVAL: pumpId={} amount={}", pumpId, paymentAmount);
         }
@@ -92,7 +99,9 @@ public class CreditLedgerService {
                 .clientId(clientId)
                 .amount(paymentAmount)
                 .paymentMode(request.getPaymentMode())
-                .referenceNo(request.getReferenceNo())
+                .referenceNo(referenceNo)
+                .chequeBank(CreditPaymentReferenceCheck.trimmedOrNull(request.getChequeBank()))
+                .chequeDate(request.getChequeDate())
                 .notes(request.getNotes())
                 .paidAt(request.getPaidAt())
                 .recordedById(currentUser.getId())
@@ -242,6 +251,12 @@ public class CreditLedgerService {
             throw new ResourceNotFoundException(EntityType.CREDIT_PAYMENT, "Credit payment not found");
         }
 
+        if (payment.getPaymentApprovalStatus() == ExpenseApprovalStatus.REVERSED) {
+            throw new BusinessException(ErrorCodes.CREDIT_PAYMENT_ALREADY_REVERSED,
+                    Map.of(),
+                    "This payment has been reversed, so it can no longer be changed.");
+        }
+
         if (payment.getClientId().equals(request.getToClientId())) {
             throw new BusinessException(ErrorCodes.CREDIT_PAYMENT_ALREADY_ON_ACCOUNT,
                     Map.of(),
@@ -280,12 +295,19 @@ public class CreditLedgerService {
                     "Payment is already " + payment.getPaymentApprovalStatus() + " — only PENDING_APPROVAL payments can be acted on");
         }
         closedDayGuard.requireOpen(pumpId, payment.getPaidAt());
-        if (payment.getRecordedById().equals(currentUser.getId())) {
+        // An owner's post-dated cheque waits only for its date, so the owner who recorded it may approve it.
+        if (payment.getRecordedById().equals(currentUser.getId()) && !payment.isPostDatedCheque()) {
             throw new BusinessException(ErrorCodes.CREDIT_PAYMENT_SELF_APPROVAL,
                     Map.of(),
                     "You recorded this payment, so another Owner or Admin must approve or reject it.");
         }
 
+        if (newStatus == ExpenseApprovalStatus.APPROVED && payment.getChequeDate() != null
+                && payment.getChequeDate().isAfter(businessClock.today())) {
+            throw new BusinessException(ErrorCodes.CREDIT_PAYMENT_CHEQUE_NOT_DUE,
+                    Map.of("chequeDate", payment.getChequeDate().toString()),
+                    "This cheque is dated " + payment.getChequeDate() + ", so it can be approved from that date.");
+        }
         if (newStatus == ExpenseApprovalStatus.APPROVED) {
             BigDecimal payableIncludingThisPayment = payableAmount(client).add(payment.getAmount());
             if (payment.getAmount().compareTo(payableIncludingThisPayment) > 0) {

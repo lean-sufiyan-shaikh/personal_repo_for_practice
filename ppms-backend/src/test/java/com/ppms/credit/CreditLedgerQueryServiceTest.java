@@ -6,6 +6,7 @@ import com.ppms.ancillary.AncillarySale;
 import com.ppms.ancillary.AncillarySaleRepository;
 import com.ppms.ancillary.UnitOfMeasure;
 import com.ppms.common.text.ServerTextCodes;
+import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.shift.ShiftCreditEntryRepository;
 import com.ppms.fleet.VehicleUsageService;
 import com.ppms.support.FixedBusinessClock;
@@ -36,9 +37,10 @@ class CreditLedgerQueryServiceTest {
     private final AncillarySaleRepository ancillarySaleRepository = mock(AncillarySaleRepository.class);
     private final AncillaryProductRepository ancillaryProductRepository = mock(AncillaryProductRepository.class);
     private final UserRepository userRepository = mock(UserRepository.class);
+    private final CreditPaymentReversalRepository reversalRepository = mock(CreditPaymentReversalRepository.class);
 
     private final CreditLedgerQueryService queryService = new CreditLedgerQueryService(
-            mock(CreditClientRepository.class), paymentRepository, mock(CreditInterestChargeRepository.class),
+            mock(CreditClientRepository.class), paymentRepository, reversalRepository, mock(CreditInterestChargeRepository.class),
             mock(ShiftCreditEntryRepository.class), ancillarySaleRepository, ancillaryProductRepository,
             mock(CreditInterestService.class), userRepository, new FixedBusinessClock(NOW),
             mock(VehicleUsageService.class));
@@ -101,6 +103,30 @@ class CreditLedgerQueryServiceTest {
         assertThat(row.getReferenceCode()).isNull();
     }
 
+    @Test
+    void reversedPaymentStaysListedAndIsTakenBackByItsReversalAndBounceChargeRows() {
+        CreditPayment payment = givenPayment(null);
+        payment.setPaymentApprovalStatus(ExpenseApprovalStatus.REVERSED);
+        when(reversalRepository.findByClientId(CLIENT_ID)).thenReturn(List.of(CreditPaymentReversal.builder()
+                .id(9L).clientId(CLIENT_ID).paymentId(payment.getId()).amount(new BigDecimal("100.00"))
+                .bounceCharge(new BigDecimal("250.00")).reversalDate(LocalDate.of(2026, 3, 9))
+                .reason("Cheque bounced").createdAt(NOW.plusDays(3))
+                .build()));
+
+        List<CreditTransactionResponse> newestFirst = queryService.getTransactions(CLIENT_ID, 0, 10).content();
+
+        assertThat(newestFirst).extracting(CreditTransactionResponse::getType)
+                .containsExactly("BOUNCE_CHARGE", "PAYMENT_REVERSAL", "PAYMENT");
+        assertThat(newestFirst).extracting(CreditTransactionResponse::getRunningBalance)
+                .containsExactly(new BigDecimal("250.00"), new BigDecimal("0.00"), new BigDecimal("-100.00"));
+        assertThat(newestFirst).extracting(CreditTransactionResponse::getLinkedReferenceId).containsExactly(2L, 2L, 9L);
+        assertThat(newestFirst.get(2).getStatus()).isEqualTo("REVERSED");
+        assertThat(newestFirst.get(1).getReferenceCode()).isEqualTo(ServerTextCodes.PAYMENT_REVERSAL_DETAILS);
+        assertThat(newestFirst.get(1).getReferenceParams())
+                .isEqualTo(Map.of("paidAt", "2026-03-06", "reason", "Cheque bounced"));
+        assertThat(newestFirst.get(0).getReferenceCode()).isEqualTo(ServerTextCodes.BOUNCE_CHARGE_DETAILS);
+    }
+
     private CreditTransactionResponse onlyRow() {
         List<CreditTransactionResponse> rows = queryService.getTransactions(CLIENT_ID, 0, 10).content();
         assertThat(rows).hasSize(1);
@@ -122,11 +148,12 @@ class CreditLedgerQueryServiceTest {
         when(ancillaryProductRepository.findAllById(any())).thenReturn(List.of(product));
     }
 
-    private void givenPayment(String notes) {
+    private CreditPayment givenPayment(String notes) {
         CreditPayment payment = CreditPayment.builder()
                 .id(2L).clientId(CLIENT_ID).amount(new BigDecimal("100.00")).paymentMode(PaymentMode.CASH)
                 .notes(notes).recordedById(RECORDER_ID).paidAt(LocalDate.of(2026, 3, 6)).createdAt(NOW)
                 .build();
         when(paymentRepository.findByClientIdOrderByPaidAtDesc(CLIENT_ID)).thenReturn(List.of(payment));
+        return payment;
     }
 }

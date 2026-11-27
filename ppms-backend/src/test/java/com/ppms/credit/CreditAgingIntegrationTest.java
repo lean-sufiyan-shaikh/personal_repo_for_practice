@@ -37,6 +37,9 @@ class CreditAgingIntegrationTest extends ApiIntegrationTest {
                         "operatorId", setup.operator().getId()))
                 .andExpect(status().is2xxSuccessful()));
         shiftId = opened.get("id").asLong();
+        var pump = pumpLocationRepository.findById(setup.pumpId()).orElseThrow();
+        pump.setBackdatedPaymentApprovalDays(365);
+        pumpLocationRepository.save(pump);
     }
 
     @Test
@@ -123,7 +126,7 @@ class CreditAgingIntegrationTest extends ApiIntegrationTest {
         recordPayment(clientId, "20.00", TODAY.minusDays(3));
         setCreditLimit(clientId, "100.00");
         var pump = pumpLocationRepository.findById(setup.pumpId()).orElseThrow();
-        pump.setExpenseApprovalThreshold(new BigDecimal("50.00"));
+        pump.setCreditPaymentApprovalThreshold(new BigDecimal("50.00"));
         pumpLocationRepository.save(pump);
         recordPayment(clientId, "60.00", TODAY);
 

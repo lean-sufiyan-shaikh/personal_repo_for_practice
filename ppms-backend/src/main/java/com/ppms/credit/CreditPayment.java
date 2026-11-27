@@ -14,10 +14,9 @@ import java.time.OffsetDateTime;
  * Records a cash/UPI/bank payment received from a credit client.
  * Payments reduce the client's outstanding balance.
  *
- * High-value payments may require Owner/Admin approval before they are counted
- * in the outstanding balance. The threshold is set on pump_locations.expense_approval_threshold.
- * Payments auto-approved when the recording user is OWNER or ADMIN, or when no threshold is set,
- * or when the amount is at or below the threshold.
+ * A manager's payment waits for Owner/Admin approval when it is above the pump's credit payment threshold or
+ * back-dated beyond the pump's limit; a post-dated cheque waits until its cheque date. A reversed payment keeps its
+ * row, marked REVERSED, and no longer counts in the outstanding balance.
  */
 @Entity
 @Table(name = "credit_payments")
@@ -50,9 +49,15 @@ public class CreditPayment {
     @Column(name = "payment_mode", nullable = false)
     private PaymentMode paymentMode;
 
-    /** Optional reference number (cheque no., NEFT ref, UPI transaction ID). */
+    /** Cheque number, NEFT/IMPS ref or UPI transaction ID; required for UPI, bank transfer and cheque payments. */
     @Column(name = "reference_no", length = 100)
     private String referenceNo;
+
+    @Column(name = "cheque_bank", length = 100)
+    private String chequeBank;
+
+    @Column(name = "cheque_date")
+    private LocalDate chequeDate;
 
     @Column(name = "notes")
     private String notes;
@@ -65,6 +70,7 @@ public class CreditPayment {
      * PENDING_APPROVAL: awaiting Owner/Admin review before counting in outstanding balance.
      * APPROVED: counted in outstanding balance (default for most payments).
      * REJECTED: overturned by Owner/Admin — not counted in outstanding balance.
+     * REVERSED: approved, then reversed — not counted in outstanding balance.
      */
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -80,6 +86,10 @@ public class CreditPayment {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
+
+    public boolean isPostDatedCheque() {
+        return chequeDate != null && chequeDate.isAfter(paidAt);
+    }
 
     @PrePersist
     protected void onCreate() {

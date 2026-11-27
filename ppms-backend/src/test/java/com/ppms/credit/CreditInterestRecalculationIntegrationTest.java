@@ -5,6 +5,7 @@ import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditLogRepository;
 import com.ppms.support.ApiIntegrationTest;
 import com.ppms.support.TestDates;
+import com.ppms.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,14 +77,13 @@ class CreditInterestRecalculationIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void lateApprovalOfAPaymentDatedInsideAChargedPeriodRecalculatesTheInterest() throws Exception {
-        perform(patch("/api/pumps/{pumpId}/settings", setup.pumpId()), setup.owner(),
-                Map.of("expenseApprovalThreshold", new BigDecimal("100.00"))).andExpect(status().isOk());
         long clientId = createClientWithInterest(null);
         backdate(sellOnCredit(clientId, "10000.00"), SALE_DAYS_AGO);
         applyInterest(clientId);
 
-        long paymentId = recordPayment(clientId, "4000.00", TestDates.today().minusDays(PAYMENT_DAYS_AGO))
-                .get("id").asLong();
+        JsonNode payment = recordPayment(clientId, "4000.00", TestDates.today().minusDays(PAYMENT_DAYS_AGO), setup.manager());
+        assertThat(payment.get("paymentApprovalStatus").asText()).isEqualTo("PENDING_APPROVAL");
+        long paymentId = payment.get("id").asLong();
         assertThat(liveInterestOf(clientId)).isEqualByComparingTo("400.00");
 
         perform(patch("/api/pumps/{pumpId}/credit-ledger/payments/{paymentId}/approve", setup.pumpId(), paymentId),
@@ -182,8 +182,12 @@ class CreditInterestRecalculationIntegrationTest extends ApiIntegrationTest {
     }
 
     private JsonNode recordPayment(long clientId, String amount, LocalDate paidAt) throws Exception {
+        return recordPayment(clientId, amount, paidAt, setup.owner());
+    }
+
+    private JsonNode recordPayment(long clientId, String amount, LocalDate paidAt, User recordedBy) throws Exception {
         return json(perform(post("/api/pumps/{pumpId}/credit-ledger/{clientId}/payments", setup.pumpId(), clientId),
-                setup.manager(), Map.of("amount", new BigDecimal(amount), "paymentMode", "CASH", "paidAt", paidAt.toString()))
+                recordedBy, Map.of("amount", new BigDecimal(amount), "paymentMode", "CASH", "paidAt", paidAt.toString()))
                 .andExpect(status().is2xxSuccessful()));
     }
 

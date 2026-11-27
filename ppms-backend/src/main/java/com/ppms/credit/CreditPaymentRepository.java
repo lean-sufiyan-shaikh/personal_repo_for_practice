@@ -24,8 +24,14 @@ public interface CreditPaymentRepository extends JpaRepository<CreditPayment, Lo
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM CreditPayment p WHERE p.clientId = :clientId AND p.paymentApprovalStatus = 'APPROVED'")
     BigDecimal sumAmountByClientId(@Param("clientId") Long clientId);
 
-    // Total APPROVED credit recovered for a pump on a specific date — used in DAY balance sheet
-    @Query("SELECT COALESCE(SUM(p.amount), 0) FROM CreditPayment p WHERE p.pumpId = :pumpId AND p.paidAt = :date AND p.paymentApprovalStatus = 'APPROVED'")
+    /**
+     * Credit recovered by a pump on a date, for the day's figures: payments approved for that date, reversed ones
+     * included, less the payments reversed on that date. A reversal changes the day it is made, not the day paid.
+     */
+    @Query(value = "SELECT COALESCE((SELECT SUM(p.amount) FROM credit_payments p WHERE p.pump_id = :pumpId"
+            + " AND p.payment_date = :date AND p.payment_approval_status IN ('APPROVED', 'REVERSED')), 0)"
+            + " - COALESCE((SELECT SUM(r.amount) FROM credit_payment_reversals r WHERE r.pump_id = :pumpId"
+            + " AND r.reversal_date = :date), 0)", nativeQuery = true)
     BigDecimal sumAmountByPumpIdAndDate(@Param("pumpId") Long pumpId, @Param("date") LocalDate date);
 
     /** Rows of [clientId, latest APPROVED payment date]. */
@@ -62,6 +68,16 @@ public interface CreditPaymentRepository extends JpaRepository<CreditPayment, Lo
     /** Returns all payments pending approval for a pump — for Owner/Admin approval queue. */
     @Query("SELECT p FROM CreditPayment p WHERE p.pumpId = :pumpId AND p.paymentApprovalStatus = 'PENDING_APPROVAL' ORDER BY p.createdAt ASC")
     List<CreditPayment> findPendingApprovalByPumpId(@Param("pumpId") Long pumpId);
+
+    /** Payments of the pump with the same reference, ignoring case, dated on or after fromDate and not rejected; newest first. */
+    @Query("SELECT p FROM CreditPayment p WHERE p.pumpId = :pumpId AND LOWER(p.referenceNo) = LOWER(:referenceNo)"
+            + " AND p.paidAt >= :fromDate AND p.paymentApprovalStatus <> 'REJECTED' ORDER BY p.paidAt DESC, p.id DESC")
+    List<CreditPayment> findSameReferenceSince(@Param("pumpId") Long pumpId, @Param("referenceNo") String referenceNo,
+                                               @Param("fromDate") LocalDate fromDate);
+
+    @Query("SELECT COUNT(l) > 0 FROM BankStatementLine l WHERE l.matchedPaymentId = :paymentId"
+            + " AND l.matchStatus = 'MATCHED'")
+    boolean isMatchedToBankLine(@Param("paymentId") Long paymentId);
 
     boolean existsByClientId(Long clientId);
 

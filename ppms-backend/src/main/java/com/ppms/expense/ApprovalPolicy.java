@@ -15,9 +15,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * Decides whether an expense or credit payment needs Owner/Admin approval, using the pump's
- * expense_approval_threshold. With no threshold set, expenses wait for approval and credit
- * payments do not, matching how each worked before the rule was shared.
+ * Decides whether an expense or credit payment needs Owner/Admin approval. Expenses use the pump's
+ * expense_approval_threshold and wait for approval when none is set. Credit payments use the pump's
+ * credit_payment_approval_threshold (none set lets any amount through) and its back-dated payment limit.
  */
 @Component
 @RequiredArgsConstructor
@@ -44,14 +44,18 @@ public class ApprovalPolicy {
         return statusForAmount(sameDayTotal, pump.getExpenseApprovalThreshold(), ExpenseApprovalStatus.PENDING_APPROVAL);
     }
 
-    public ExpenseApprovalStatus resolveCreditPaymentStatus(Long pumpId, User submittedBy, BigDecimal amount) {
+    /** A payment dated more than the pump's back-dated limit before {@code today} waits whatever its amount. */
+    public ExpenseApprovalStatus resolveCreditPaymentStatus(Long pumpId, User submittedBy, BigDecimal amount,
+                                                            LocalDate paidAt, LocalDate today) {
         if (canApprove(submittedBy)) {
             return ExpenseApprovalStatus.APPROVED;
         }
-        BigDecimal threshold = pumpLocationRepository.findById(pumpId)
-                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found: " + pumpId))
-                .getExpenseApprovalThreshold();
-        return statusForAmount(amount, threshold, ExpenseApprovalStatus.APPROVED);
+        PumpLocation pump = pumpLocationRepository.findById(pumpId)
+                .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found: " + pumpId));
+        if (paidAt.isBefore(today.minusDays(pump.getBackdatedPaymentApprovalDays()))) {
+            return ExpenseApprovalStatus.PENDING_APPROVAL;
+        }
+        return statusForAmount(amount, pump.getCreditPaymentApprovalThreshold(), ExpenseApprovalStatus.APPROVED);
     }
 
     private static ExpenseApprovalStatus statusForAmount(BigDecimal amount, BigDecimal threshold,

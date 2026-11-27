@@ -16,7 +16,7 @@ import java.util.Map;
 @Builder
 public class CreditTransactionResponse {
 
-    // "SALE" (fuel), "COUNTER_SALE" (shop product), "PAYMENT" or "INTEREST"
+    // "SALE" (fuel), "COUNTER_SALE" (shop product), "PAYMENT", "INTEREST", "PAYMENT_REVERSAL" or "BOUNCE_CHARGE"
     private String type;
 
     private Long referenceId;
@@ -44,7 +44,7 @@ public class CreditTransactionResponse {
     // Business (IST) date the transaction belongs to; for payments the date the client paid
     private LocalDate businessDate;
 
-    // ACTIVE / VOIDED for sales, APPROVED / PENDING_APPROVAL / REJECTED for payments, ACTIVE / WAIVED for interest
+    // ACTIVE / VOIDED for sales, APPROVED / PENDING_APPROVAL / REJECTED / REVERSED for payments, ACTIVE / WAIVED for interest
     private String status;
 
     // False for voided sales, non-approved payments and waived interest; such rows are listed but leave the running balance unchanged
@@ -54,4 +54,7 @@ public class CreditTransactionResponse {
     private Long clientId;
 
     private String clientName;
+
+    // For a REVERSED payment the id of its reversal; for a PAYMENT_REVERSAL or BOUNCE_CHARGE row the reversed payment's id
+    private Long linkedReferenceId;
 }

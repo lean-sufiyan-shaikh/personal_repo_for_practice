@@ -36,6 +36,7 @@ class ApprovalQueueIntegrationTest extends ApiIntegrationTest {
         setup = createPumpWithStock("5000");
         var pump = pumpLocationRepository.findById(setup.pumpId()).orElseThrow();
         pump.setExpenseApprovalThreshold(new BigDecimal("100.00"));
+        pump.setCreditPaymentApprovalThreshold(new BigDecimal("100.00"));
         pumpLocationRepository.save(pump);
 
         long shiftId = json(perform(post("/api/pumps/{pumpId}/shifts/open", setup.pumpId()), setup.manager(),

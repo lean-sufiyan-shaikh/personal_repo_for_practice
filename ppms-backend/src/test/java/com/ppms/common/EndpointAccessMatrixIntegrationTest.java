@@ -146,7 +146,10 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/collections/clients/1/reminders", Map.of("method", "CALL"), "ACCOUNTANT"),
                 Arguments.of("/api/pumps/{pumpId}/collections/clients/1/promises", Map.of("amount", 1,
                         "promisedDate", TODAY), "OPERATOR"),
-                Arguments.of("/api/pumps/{pumpId}/collection-settings", Map.of("reminderStageDays", List.of(7)), "MANAGER"));
+                Arguments.of("/api/pumps/{pumpId}/collection-settings", Map.of("reminderStageDays", List.of(7),
+                        "backdatedPaymentApprovalDays", 7), "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/credit-ledger/payments/1/reverse", Map.of("reason", "Matrix"), "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/credit-ledger/payments/1/reverse", Map.of("reason", "Matrix"), "ACCOUNTANT"));
     }
 
     @ParameterizedTest(name = "{0} refuses {2}")
@@ -166,7 +169,7 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
         if (path.endsWith("/collection-settings")) {
             return put(resolved);
         }
-        return path.endsWith("/revoke") || path.contains("/safe/") || path.contains("/day-closes/")
+        return path.endsWith("/revoke") || path.endsWith("/reverse") || path.contains("/safe/") || path.contains("/day-closes/")
                 || path.contains("/collections/") || path.endsWith("/accept-suggestion") || path.endsWith("/auto-match")
                 ? post(resolved) : patch(resolved);
     }

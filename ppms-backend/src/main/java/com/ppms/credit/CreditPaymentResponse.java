@@ -15,6 +15,8 @@ public class CreditPaymentResponse {
     private BigDecimal amount;
     private String paymentMode;
     private String referenceNo;
+    private String chequeBank;
+    private LocalDate chequeDate;
     private String notes;
     private LocalDate paidAt;
     private Long recordedById;

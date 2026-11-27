@@ -8,5 +8,7 @@ public enum ExpenseApprovalStatus {
     /** Approved — included in P&L and balance sheets. */
     APPROVED,
     /** Rejected — excluded from P&L and balance sheets. */
-    REJECTED
+    REJECTED,
+    /** Credit payments only: approved, then reversed by a reversal dated the day it was reversed. */
+    REVERSED
 }

@@ -18,6 +18,7 @@ public class CreditStatementRenderer {
 
     private static final int QR_SIZE_PIXELS = 132;
     private static final String UNASSIGNED_VEHICLE_TITLE = "Unassigned / unknown vehicle";
+    private static final String REVERSED = "REVERSED";
 
     private final BusinessClock businessClock;
 
@@ -157,6 +158,8 @@ public class CreditStatementRenderer {
             }
             if (!tx.isCountedInBalance()) {
                 desc += " <strong>[" + escapeHtml(tx.getStatus()) + " – not in balance]</strong>";
+            } else if (REVERSED.equals(tx.getStatus())) {
+                desc += " <strong>[REVERSED – taken back on a later row]</strong>";
             }
 
             sb.append("<tr class='").append(typeClass).append("'>")

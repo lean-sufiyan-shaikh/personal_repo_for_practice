@@ -23,6 +23,7 @@ public class PumpLocation {
     public static final BigDecimal DEFAULT_SAFE_COUNT_TOLERANCE = new BigDecimal("10.00");
     public static final LocalTime DEFAULT_SAFE_COUNT_CUTOFF_TIME = LocalTime.of(10, 0);
     public static final int DEFAULT_CREDIT_HOLD_DAYS = 45;
+    public static final int DEFAULT_BACKDATED_PAYMENT_APPROVAL_DAYS = 7;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -112,6 +113,15 @@ public class PumpLocation {
     @Column(name = "credit_hold_days")
     @Builder.Default
     private Integer creditHoldDays = DEFAULT_CREDIT_HOLD_DAYS;
+
+    /** A manager's credit payment above this amount waits for Owner/Admin approval; null lets any amount through. */
+    @Column(name = "credit_payment_approval_threshold")
+    private BigDecimal creditPaymentApprovalThreshold;
+
+    /** A manager's credit payment dated more than this many days before today waits for Owner/Admin approval. */
+    @Column(name = "backdated_payment_approval_days", nullable = false)
+    @Builder.Default
+    private Integer backdatedPaymentApprovalDays = DEFAULT_BACKDATED_PAYMENT_APPROVAL_DAYS;
 
     /** Set together with upiPayeeName, or both null when the pump takes no UPI payments by link. */
     @Column(name = "upi_id", length = 100)

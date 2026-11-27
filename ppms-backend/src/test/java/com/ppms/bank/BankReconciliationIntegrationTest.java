@@ -375,7 +375,8 @@ class BankReconciliationIntegrationTest extends ApiIntegrationTest {
                 Map.of("clientName", "Client", "clientId", clientId, "amount", new BigDecimal(amount), "fuelType", "PETROL"))
                 .andExpect(status().is2xxSuccessful());
         return json(perform(post("/api/pumps/{pumpId}/credit-ledger/{clientId}/payments", setup.pumpId(), clientId),
-                setup.owner(), Map.of("amount", new BigDecimal(amount), "paymentMode", "UPI", "paidAt", today))
+                setup.owner(), Map.of("amount", new BigDecimal(amount), "paymentMode", "UPI", "paidAt", today,
+                        "referenceNo", "UTR" + shortId()))
                 .andExpect(status().is2xxSuccessful())).get("id").asLong();
     }
 }

@@ -62,6 +62,7 @@ public class CreditInterestService {
     private final CreditClientRepository clientRepository;
     private final CreditInterestChargeRepository interestChargeRepository;
     private final CreditPaymentRepository paymentRepository;
+    private final CreditPaymentReversalRepository reversalRepository;
     private final ShiftCreditEntryRepository creditEntryRepository;
     private final AncillarySaleRepository ancillarySaleRepository;
     private final AuditService auditService;
@@ -71,14 +72,16 @@ public class CreditInterestService {
 
     /**
      * Computes the true outstanding balance for a client (own transactions only):
-     *   outstanding = sum(fuel credit sales) + sum(credit counter sales) + sum(interest_charges) − sum(payments)
+     *   outstanding = sum(fuel credit sales) + sum(credit counter sales) + sum(interest_charges)
+     *                 + sum(bounce charges) − sum(approved payments)
      */
     public BigDecimal computeOutstanding(Long clientId) {
         BigDecimal fuelSales    = creditEntryRepository.sumAmountByClientId(clientId);
         BigDecimal counterSales = ancillarySaleRepository.sumAmountByClientIdAndPaymentMode(clientId, CREDIT);
         BigDecimal interest     = interestChargeRepository.sumAmountByClientId(clientId);
+        BigDecimal bounce       = reversalRepository.sumBounceChargesByClientId(clientId);
         BigDecimal paid         = paymentRepository.sumAmountByClientId(clientId);
-        return fuelSales.add(counterSales).add(interest).subtract(paid).setScale(2, RoundingMode.HALF_UP);
+        return fuelSales.add(counterSales).add(interest).add(bounce).subtract(paid).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -99,8 +102,8 @@ public class CreditInterestService {
     }
 
     /**
-     * Batch version of computeOutstanding — resolves outstanding balance for all clients in 4 DB
-     * queries total (one per table), instead of 4 queries per client.
+     * Batch version of computeOutstanding — resolves outstanding balance for all clients in 5 DB
+     * queries total (one per table), instead of 5 queries per client.
      */
     public Map<Long, BigDecimal> computeOutstandingBatch(Collection<Long> clientIds) {
         if (clientIds.isEmpty()) return Map.of();
@@ -108,6 +111,7 @@ public class CreditInterestService {
         Map<Long, BigDecimal> fuelSalesMap    = toAmountMap(creditEntryRepository.sumAmountsByClientIds(clientIds));
         Map<Long, BigDecimal> counterSalesMap = toAmountMap(ancillarySaleRepository.sumAmountsByClientIdsAndPaymentMode(clientIds, CREDIT));
         Map<Long, BigDecimal> interestMap     = toAmountMap(interestChargeRepository.sumAmountsByClientIds(clientIds));
+        Map<Long, BigDecimal> bounceMap       = toAmountMap(reversalRepository.sumBounceChargesByClientIds(clientIds));
         Map<Long, BigDecimal> paymentsMap     = toAmountMap(paymentRepository.sumAmountsByClientIds(clientIds));
 
         return clientIds.stream().collect(Collectors.toMap(
@@ -115,6 +119,7 @@ public class CreditInterestService {
                 id -> fuelSalesMap.getOrDefault(id, BigDecimal.ZERO)
                         .add(counterSalesMap.getOrDefault(id, BigDecimal.ZERO))
                         .add(interestMap.getOrDefault(id, BigDecimal.ZERO))
+                        .add(bounceMap.getOrDefault(id, BigDecimal.ZERO))
                         .subtract(paymentsMap.getOrDefault(id, BigDecimal.ZERO))
                         .setScale(2, RoundingMode.HALF_UP)
         ));

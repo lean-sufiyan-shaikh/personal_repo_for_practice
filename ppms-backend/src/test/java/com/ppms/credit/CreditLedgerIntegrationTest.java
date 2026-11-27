@@ -78,7 +78,7 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void paymentAboveTheThresholdWaitsForTheOwnerAndCountsOnlyOnceApproved() throws Exception {
-        setExpenseApprovalThreshold("100.00");
+        setCreditPaymentApprovalThreshold("100.00");
         long clientId = createClient(null);
         sellOnCredit(clientId, "1000.00");
 
@@ -103,7 +103,7 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void rejectedPaymentLeavesTheBalanceUnchanged() throws Exception {
-        setExpenseApprovalThreshold("100.00");
+        setCreditPaymentApprovalThreshold("100.00");
         long clientId = createClient(null);
         sellOnCredit(clientId, "1000.00");
         long paymentId = json(recordPayment(clientId, "500.00")).get("id").asLong();
@@ -123,7 +123,7 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void rejectingASinglePaymentKeepsTheReasonInTheAudit() throws Exception {
-        setExpenseApprovalThreshold("100.00");
+        setCreditPaymentApprovalThreshold("100.00");
         long clientId = createClient(null);
         sellOnCredit(clientId, "1000.00");
         long paymentId = json(recordPayment(clientId, "500.00")).get("id").asLong();
@@ -742,10 +742,10 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
         return Map.of("amount", new BigDecimal(amount), "paymentMode", "CASH", "paidAt", TestDates.today().toString());
     }
 
-    private void setExpenseApprovalThreshold(String threshold) throws Exception {
-        perform(patch("/api/pumps/{pumpId}/settings", setup.pumpId()), setup.owner(),
-                Map.of("expenseApprovalThreshold", new BigDecimal(threshold)))
-                .andExpect(status().isOk());
+    private void setCreditPaymentApprovalThreshold(String threshold) {
+        var pump = pumpLocationRepository.findById(setup.pumpId()).orElseThrow();
+        pump.setCreditPaymentApprovalThreshold(new BigDecimal(threshold));
+        pumpLocationRepository.save(pump);
     }
 
     private BigDecimal outstandingOf(long clientId) throws Exception {

@@ -8,10 +8,13 @@ import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.common.idempotency.IdempotencyService;
+import com.ppms.common.idempotency.IdempotentRequest;
 import com.ppms.common.text.ServerTextCodes;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.user.User;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +47,8 @@ public class CreditLedgerController {
     private final CreditInterestRunService interestRunService;
     private final CreditLedgerService ledgerService;
     private final CreditPaymentApprovalService paymentApprovalService;
+    private final CreditPaymentReversalService paymentReversalService;
+    private final IdempotencyService idempotencyService;
     private final CreditAgingService agingService;
     private final CreditLedgerQueryService queryService;
     private final CreditStatementRenderer statementRenderer;
@@ -107,25 +112,52 @@ public class CreditLedgerController {
     /**
      * POST /api/pumps/{pumpId}/credit-ledger/{clientId}/payments
      * Records a payment settlement against the client's outstanding balance.
-     * Owner/Admin/Manager; payments above the pump's threshold wait for Owner/Admin approval.
+     * Owner/Admin/Manager; a manager's payment above the pump's threshold or back-dated beyond its limit, and a
+     * post-dated cheque, wait for Owner/Admin approval. An Idempotency-Key header makes a resend return the first payment.
      */
     @PostMapping("/{clientId}/payments")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
-    public ResponseEntity<CreditPaymentResponse> recordPayment(
+    public ResponseEntity<?> recordPayment(
             @PathVariable Long pumpId,
             @PathVariable Long clientId,
             @Valid @RequestBody RecordPaymentRequest request,
+            @RequestHeader(value = IdempotencyService.HEADER, required = false) String idempotencyKey,
+            HttpServletRequest httpRequest,
             @AuthenticationPrincipal User currentUser) {
+        return idempotencyService.runOnce(
+                IdempotentRequest.of(currentUser.getId(), idempotencyKey, httpRequest, request),
+                () -> {
+                    CreditPayment payment = ledgerService.recordPayment(pumpId, clientId, request, currentUser);
+                    auditService.log(pumpId, AuditAction.CREDIT_PAYMENT_RECEIVED,
+                            "CreditPayment", payment.getId().toString(),
+                            "Payment ₹" + payment.getAmount() + " (" + payment.getPaymentMode() + ") for clientId="
+                                    + clientId + (request.isConfirmDuplicate()
+                                    ? ", recorded after a possible-duplicate warning for reference " + payment.getReferenceNo()
+                                    : ""),
+                            currentUser);
+                    return ResponseEntity.status(HttpStatus.CREATED)
+                            .body(queryService.toPaymentResponse(payment, currentUser.getFullName()));
+                });
+    }
 
-        CreditPayment payment = ledgerService.recordPayment(pumpId, clientId, request, currentUser);
-
-        auditService.log(pumpId, AuditAction.CREDIT_PAYMENT_RECEIVED,
-                "CreditPayment", payment.getId().toString(),
-                "Payment ₹" + payment.getAmount() + " (" + payment.getPaymentMode() + ") for clientId=" + clientId,
-                currentUser);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(queryService.toPaymentResponse(payment, currentUser.getFullName()));
+    /**
+     * POST /api/pumps/{pumpId}/credit-ledger/payments/{paymentId}/reverse
+     * Reverses an approved payment today, with a reason and an optional bounce charge. Owner/Admin.
+     * An Idempotency-Key header makes a resend return the first reversal.
+     */
+    @PostMapping("/payments/{paymentId}/reverse")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    public ResponseEntity<?> reversePayment(
+            @PathVariable Long pumpId,
+            @PathVariable Long paymentId,
+            @Valid @RequestBody ReversePaymentRequest request,
+            @RequestHeader(value = IdempotencyService.HEADER, required = false) String idempotencyKey,
+            HttpServletRequest httpRequest,
+            @AuthenticationPrincipal User currentUser) {
+        return idempotencyService.runOnce(
+                IdempotentRequest.of(currentUser.getId(), idempotencyKey, httpRequest, request),
+                () -> ResponseEntity.status(HttpStatus.CREATED).body(PaymentReversalResponse.of(
+                        paymentReversalService.reverse(pumpId, paymentId, request, currentUser))));
     }
 
     /**
@@ -385,13 +417,16 @@ public class CreditLedgerController {
      * Approves or rejects a PENDING_APPROVAL credit payment.
      * Accepted status values: APPROVED, REJECTED. The user who recorded the payment cannot act on it.
      * Once approved, the payment is counted in the client's outstanding balance.
+     * An Idempotency-Key header makes a resend return the first decision.
      */
     @PatchMapping("/payments/{paymentId}/approve")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
-    public ResponseEntity<CreditPaymentResponse> approvePayment(
+    public ResponseEntity<?> approvePayment(
             @PathVariable Long pumpId,
             @PathVariable Long paymentId,
             @RequestBody Map<String, String> body,
+            @RequestHeader(value = IdempotencyService.HEADER, required = false) String idempotencyKey,
+            HttpServletRequest httpRequest,
             @AuthenticationPrincipal User currentUser) {
 
         String statusStr = body.get("status");
@@ -409,8 +444,13 @@ public class CreditLedgerController {
                     "Invalid status. Allowed: APPROVED, REJECTED");
         };
 
-        CreditPayment saved = paymentApprovalService.review(pumpId, paymentId, newStatus, body.get("reason"), currentUser);
-        String recordedByName = ledgerService.resolveRecordedByName(saved.getRecordedById());
-        return ResponseEntity.ok(queryService.toPaymentResponse(saved, recordedByName));
+        return idempotencyService.runOnce(
+                IdempotentRequest.of(currentUser.getId(), idempotencyKey, httpRequest, body),
+                () -> {
+                    CreditPayment saved = paymentApprovalService.review(pumpId, paymentId, newStatus, body.get("reason"),
+                            currentUser);
+                    String recordedByName = ledgerService.resolveRecordedByName(saved.getRecordedById());
+                    return ResponseEntity.ok(queryService.toPaymentResponse(saved, recordedByName));
+                });
     }
 }

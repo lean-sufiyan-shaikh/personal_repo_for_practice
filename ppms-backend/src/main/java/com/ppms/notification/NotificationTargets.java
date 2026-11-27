@@ -29,6 +29,7 @@ public final class NotificationTargets {
             case CREDIT_REMINDERS_DUE, CREDIT_HOLD_PLACED, CREDIT_PROMISE_MISSED ->
                     NotificationTarget.of("/dashboard/credit", "tab", "collections");
             case VEHICLE_CREDIT_FLAGGED -> vehiclesTarget(dedupKey);
+            case CREDIT_PAYMENT_REVERSED -> clientLedgerTarget(dedupKey);
             case LEAKAGE_RADAR_WEEKLY -> NotificationTarget.of("/dashboard/radar");
         };
     }
@@ -44,6 +45,13 @@ public final class NotificationTargets {
         Matcher matcher = CLIENT_ID.matcher(dedupKey == null ? "" : dedupKey);
         return matcher.find()
                 ? NotificationTarget.of("/dashboard/credit/" + matcher.group(1), "records", "vehicles")
+                : NotificationTarget.of("/dashboard/credit");
+    }
+
+    private static NotificationTarget clientLedgerTarget(String dedupKey) {
+        Matcher matcher = CLIENT_ID.matcher(dedupKey == null ? "" : dedupKey);
+        return matcher.find()
+                ? NotificationTarget.of("/dashboard/credit/" + matcher.group(1))
                 : NotificationTarget.of("/dashboard/credit");
     }
 
