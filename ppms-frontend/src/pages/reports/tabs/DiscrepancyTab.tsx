@@ -2,7 +2,7 @@ import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { serverMessage } from '../../../utils/apiError'
+import { parseApiError } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
 import { reportApi } from '../../../api/reportApi'
@@ -18,7 +18,7 @@ import type { DateRange } from '../../../utils/datePresets'
 import { discrepanciesUrl, shiftUrl } from '../../../utils/drillDown'
 import { printWhenFontsReady } from '../../../i18n/fonts'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
-import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, ReportFilterBar, ReportSummary, SummaryCard } from '../shared'
+import { AutoClosedNote, DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, ReportFilterBar, ReportSummary, SummaryCard } from '../shared'
 import { PageSection } from '../../../components/layout/PageSection'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
@@ -128,7 +128,8 @@ export function DiscrepancyTab({ pumpId }: { pumpId: number }) {
         <CsvExportButton filename={csvFilename('short-over', query)} columns={CSV_COLUMNS} rows={csvRows} />
       </ReportFilterBar>
 
-      {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
+      {error && <ErrorBox message={parseApiError(error, t('controls.loadFailed'))} />}
+      <AutoClosedNote count={data?.autoClosedShiftCount} />
 
       {showEmptySuggestion && (
         <div className="print:hidden">

@@ -1,5 +1,7 @@
 import type { FuelReading } from '../../../types/shift'
-import { roundToPaise, toPaise, unitsSold } from '../../../utils/money'
+import { roundToMillilitres, roundToPaise, toPaise } from '../../../utils/money'
+import { amountOf, pricedParts } from '../../../utils/priceSegments'
+import type { PricedPart } from '../../../utils/priceSegments'
 import { formatDecimal } from '../../../utils/format'
 import { emptyNum } from '../components/creditRow'
 
@@ -15,27 +17,33 @@ interface TotalsInput {
   newCreditTotal: number
   /** Confirmed drops already in the safe: collected on top of the cash in the bag. */
   cashDropped: number
+  /** A difference up to this many rupees closes the shift balanced, as rounding. */
+  roundingTolerance?: number
 }
 
 export interface FuelSale {
   reading: FuelReading
   sold: number
   value: number
+  /** The litres at each price; more than one when the price changed during the shift. */
+  parts: PricedPart[]
   isBelowStart: boolean
 }
 
-// Mirrors the backend: units rounded to 3 decimals, the total due rounded once to paise.
+// Mirrors the backend: units rounded to 3 decimals and priced per price segment, the total due rounded once to paise.
 export function computeCloseShiftTotals({
   fuelReadings, endReadings, noChangeNozzles, cash, upi, card, fleetCard, preRecordedTotal, newCreditTotal, cashDropped,
+  roundingTolerance = 0,
 }: TotalsInput) {
   const perFuelSales: FuelSale[] = fuelReadings.map((r) => {
     const endRaw = endReadings[r.nozzleId] ?? ''
-    const sold = endRaw !== '' ? unitsSold(r.startReading, Number(endRaw), r.maxMeterValue) : 0
+    const parts = endRaw !== '' ? pricedParts(r, Number(endRaw)) : []
     return {
       reading: r,
-      sold: sold ?? 0,
-      value: (sold ?? 0) * r.priceSnapshot,
-      isBelowStart: sold === null && !noChangeNozzles.has(r.nozzleId),
+      sold: roundToMillilitres((parts ?? []).reduce((sum, part) => sum + part.units, 0)),
+      value: amountOf(parts ?? []),
+      parts: parts ?? [],
+      isBelowStart: parts === null && !noChangeNozzles.has(r.nozzleId),
     }
   })
 
@@ -50,8 +58,9 @@ export function computeCloseShiftTotals({
   // Consider "touched" if any payment field has a value, OR if pre-recorded credit exists
   const paymentTouched   = cash !== '' || upi !== '' || card !== '' || fleetCard !== '' || creditTotal > 0
   const readyToCompare   = readingsComplete && !readingsBelowStart && paymentTouched
-  // The backend flags any paise difference, so a sub-rupee gap is either rounded into cash or explained.
-  const hasDiscrepancy   = readyToCompare && diffPaise !== 0
+  // The backend absorbs a gap up to the pump's rounding tolerance; anything larger needs a reason.
+  const withinRounding   = Math.abs(diffPaise) <= toPaise(roundingTolerance)
+  const hasDiscrepancy   = readyToCompare && !withinRounding
 
   return {
     perFuelSales,
@@ -63,7 +72,9 @@ export function computeCloseShiftTotals({
     readingsComplete,
     readingsBelowStart,
     paymentTouched,
-    isBalanced: readyToCompare && diffPaise === 0,
+    isBalanced: readyToCompare && withinRounding,
+    /** Collected minus due in paise that closes as rounding; zero when there is none. */
+    roundingPaise: readyToCompare && withinRounding ? diffPaise : 0,
     hasDiscrepancy,
     canRoundOff: hasDiscrepancy && Math.abs(diffPaise) < 100,
   }
@@ -77,7 +88,7 @@ export function discrepancyTypeOf(diff: number): 'SHORT' | 'OVER' | null {
 
 /** Whether a gap of this size goes to the owner for approval, mirroring the server's escalation rule. */
 export function needsOwnerApproval(diff: number, escalationThreshold: number | null): boolean {
-  return escalationThreshold !== null && escalationThreshold > 0 && Math.abs(diff) > escalationThreshold
+  return escalationThreshold !== null && Math.abs(diff) > escalationThreshold
 }
 
 /** "12.50 L" or "3.00 kg": the fuel's own unit, which the litre formatter would always print as L. */

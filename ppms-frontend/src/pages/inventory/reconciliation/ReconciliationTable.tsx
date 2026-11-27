@@ -21,6 +21,11 @@ function PeriodCell({ period }: { period: ReconciliationPeriod }) {
     <span className="whitespace-nowrap">
       <span className="block font-medium text-ink">{periodLabel(period)}</span>
       {period.days > 1 && <span className="block text-xs text-ink-3">{t('reconciliation.days', { count: period.days })}</span>}
+      {period.stockShortfallLitres != null && period.stockShortfallLitres > 0 && (
+        <span className="block text-xs font-medium text-warn">
+          {t('reconciliation.stockShortfall', { litres: formatLitres(period.stockShortfallLitres) })}
+        </span>
+      )}
     </span>
   )
 }

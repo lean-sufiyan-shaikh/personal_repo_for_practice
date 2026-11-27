@@ -67,7 +67,8 @@
     "litres": "लीटर",
     "profitLoss": "लाभ/हानि",
     "category": "श्रेणी",
-    "description": "विवरण"
+    "description": "विवरण",
+    "closedAt": "बंद हुई"
   },
   "pl": {
     "totalRevenue": "कुल बिक्री",
@@ -211,5 +212,7 @@
       "totals_other": "{{count}} ऑपरेटरों में {{short}} कम और {{over}} ज़्यादा।",
       "mostShort": "सबसे ज़्यादा कम: {{name}} ({{amount}})।"
     }
-  }
+  },
+  "autoClosedLeftOut_one": "इस अवधि की {{count}} अपने-आप बंद शिफ्ट अंतिम रीडिंग दर्ज होने तक शामिल नहीं है।",
+  "autoClosedLeftOut_other": "इस अवधि की {{count}} अपने-आप बंद शिफ्टें अंतिम रीडिंग दर्ज होने तक शामिल नहीं हैं।"
 }

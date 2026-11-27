@@ -114,7 +114,9 @@
       "listed": "The difference is listed under Discrepancies for a manager to resolve.",
       "openNext": "Open next shift",
       "preparing": "Preparing the report",
-      "print": "Print / share"
+      "print": "Print / share",
+      "priceChanged": "The price changed during this shift",
+      "rounding": "A difference of {{amount}} was within the rounding allowance, so the shift balanced."
     },
     "discrepancy": {
       "short": "Shift is short by ₹{{amount}}",
@@ -282,7 +284,13 @@
     "stillNeededAction": "Resolution action",
     "choosePlaceholder": "Choose an action…",
     "investigationHint": "The shortage stays open: it still shows for payroll and must get a final action later.",
-    "note": "Note"
+    "note": "Note",
+    "recoveredAmount": "Cash recovered",
+    "recoveredHint": "Leave blank for the full {{amount}}. Less leaves the rest to deduct from salary or waive.",
+    "recoveredInvalid": "Enter more than ₹0 and at most {{amount}}.",
+    "alreadyRecovered": "Already recovered",
+    "stillToResolve": "Still to resolve",
+    "cannotWaiveOwnClose": "You closed this shift, so another manager or the owner must waive it."
   },
   "components": {
     "operatorPicker": {
@@ -359,6 +367,12 @@
     "dropCash": "Drop cash to safe"
   },
   "open": {
+    "window": {
+      "heading": "Shift window",
+      "hint": "The next shift starts soon. Choose which window this shift belongs to; it is chosen for you below.",
+      "endsAt": "Now · ends {{end}}",
+      "startsAt": "Starts {{start}} · ends {{end}}"
+    },
     "opened": "Shift opened for {{name}}",
     "failed": "Failed to open shift. Please try again.",
     "validation": {
@@ -630,7 +644,15 @@
   },
   "detail": {
     "nozzles": "Nozzles",
-    "time": "Time"
+    "time": "Time",
+    "investigationHistory": "Investigation notes",
+    "noteBy": "{{name}} · {{at}}",
+    "pricedInParts": "{{nozzle}}: {{parts}} (price changed during the shift)",
+    "rounding": "A difference of {{amount}} was within the rounding allowance and closed as rounding.",
+    "stockShortfall": "The tanks held less fuel than this shift sold. Record the missing delivery to set the stock right.",
+    "partlyRecovered": "{{amount}} recovered in cash; {{remaining}} still to deduct or waive.",
+    "recovered": "{{amount}} recovered in cash.",
+    "closedAt": "Closing readings entered at {{at}}."
   },
   "drops": {
     "title": "Drop cash to safe",

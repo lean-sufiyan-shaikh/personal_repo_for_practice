@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { codeLabel } from '../../../constants/labels'
 import { useTranslation } from 'react-i18next'
 import { printWhenFontsReady } from '../../../i18n/fonts'
-import { serverMessage } from '../../../utils/apiError'
+import { parseApiError } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { reportApi } from '../../../api/reportApi'
 import type { InterestAccrualReport, InterestChargeLine } from '../../../api/reportApi'
@@ -74,7 +74,7 @@ export function InterestAccrualTab({ pumpId }: { pumpId: number }) {
           <CsvExportButton filename={csvFilename('interest-accrual', query)} columns={CSV_COLUMNS} rows={csvRows} />
       </ReportFilterBar>
 
-      {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
+      {error && <ErrorBox message={parseApiError(error, t('controls.loadFailed'))} />}
 
       {data && (
         <div className="flex flex-col gap-(--density-gap)">

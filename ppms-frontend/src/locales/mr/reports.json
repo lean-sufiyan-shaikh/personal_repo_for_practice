@@ -67,7 +67,8 @@
     "litres": "लिटर",
     "profitLoss": "नफा/तोटा",
     "category": "वर्ग",
-    "description": "तपशील"
+    "description": "तपशील",
+    "closedAt": "बंद झाली"
   },
   "pl": {
     "totalRevenue": "एकूण विक्री",
@@ -211,5 +212,7 @@
       "totals_other": "{{count}} ऑपरेटरकडे {{short}} कमी आणि {{over}} जास्त.",
       "mostShort": "सर्वाधिक कमी: {{name}} ({{amount}})."
     }
-  }
+  },
+  "autoClosedLeftOut_one": "या कालावधीतील {{count}} आपोआप बंद झालेली शिफ्ट शेवटचे रीडिंग नोंदवेपर्यंत वगळली आहे.",
+  "autoClosedLeftOut_other": "या कालावधीतील {{count}} आपोआप बंद झालेल्या शिफ्ट शेवटचे रीडिंग नोंदवेपर्यंत वगळल्या आहेत."
 }

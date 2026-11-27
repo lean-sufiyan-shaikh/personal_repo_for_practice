@@ -16,7 +16,6 @@
   "CREDIT_CLIENT_DISABLED": "'{{clientName}}' के लिए क्रेडिट बंद है। क्रेडिट देने से पहले क्रेडिट पेज पर इस ग्राहक को चालू करें।",
   "CREDIT_LIMIT_EXCEEDED": "'{{clientName}}' की क्रेडिट सीमा पार हो गई। बकाया (समूह): {{outstanding}}, यह एंट्री: {{amount}}, सीमा: {{limit}}।",
   "CREDIT_BILLING_CYCLE_OVERDUE": "'{{clientName}}' की क्रेडिट बिक्री रुकी है: बिलिंग चक्र का भुगतान बकाया है। ग्राहक बकाया चुकाए या एडमिन/मालिक क्रेडिट विस्तार दें।",
-  "INSUFFICIENT_FUEL_STOCK": "ईंधन स्टॉक कम है: शिफ्ट में {{litresSold}} L बिक्री दर्ज है, पर स्टॉक में केवल {{litresAvailable}} L है। कृपया मीटर रीडिंग जाँचें या पहले टैंकर डिलीवरी दर्ज करें।",
   "ACCESS_DENIED": "आपको यह काम करने की अनुमति नहीं है",
   "ADJUSTMENT_TYPE_INVALID": "शून्य पर रीसेट या कस्टम रीडिंग में से एक चुनें",
   "APPROVAL_ITEM_NOT_SAVED": "सेव नहीं हो सका। इस आइटम के लिए फिर से कोशिश करें।",
@@ -456,5 +455,17 @@
   "METER_ADJUSTMENT_NOT_PENDING": "यह मीटर सुधार मंज़ूरी का इंतज़ार नहीं कर रहा (यह {{statusCode}} है)।",
   "METER_ADJUSTMENT_READING_MOVED": "सुधार माँगे जाने के बाद नोज़ल की रीडिंग {{expectedReading}} से {{currentReading}} हो गई। नया सुधार माँगें।",
   "METER_ADJUSTMENT_NO_TANK": "यह नोज़ल किसी टैंक से जुड़ा नहीं है, इसलिए इसके बिना बिल के लीटर स्टॉक से नहीं घटाए जा सकते।",
-  "METER_ADJUSTMENT_NO_PRICE": "{{fuelTypeCode}} का कोई मौजूदा दाम नहीं है, इसलिए बिना बिल के लीटर की कीमत नहीं लगाई जा सकती।"
+  "METER_ADJUSTMENT_NO_PRICE": "{{fuelTypeCode}} का कोई मौजूदा दाम नहीं है, इसलिए बिना बिल के लीटर की कीमत नहीं लगाई जा सकती।",
+  "EARLY_START_GRACE_OUT_OF_RANGE": "पहले शुरू करने की छूट 0 से {{max}} मिनट के बीच होनी चाहिए।",
+  "ROUNDING_TOLERANCE_OUT_OF_RANGE": "राउंडिंग की छूट ₹0 से ₹{{max}} के बीच होनी चाहिए।",
+  "SHIFT_WINDOW_NOT_OPENABLE_NOW": "यह शिफ्ट समय अभी नहीं खोला जा सकता। मौजूदा समय चुनें, या अगला समय जब वह पंप की पहले शुरू करने की छूट में शुरू हो।",
+  "PRICE_CHANGE_METER_READINGS_MISSING": "{{fuelTypeCode}} के {{openNozzleCount}} खुले नोज़ल की मौजूदा मीटर रीडिंग चाहिए, ताकि बदलाव से पहले बिके लीटर पुराने दाम पर रहें।",
+  "PRICE_CHANGE_READING_FOR_NOZZLE_WITHOUT_OPEN_SHIFT": "ऐसे नोज़ल की मीटर रीडिंग दी गई जो {{fuelTypeCode}} बेचने वाली खुली शिफ्ट पर नहीं है। शिफ्ट शायद अभी बंद हुई है — पेज दोबारा लोड करके रीडिंग फिर से दर्ज करें।",
+  "PRICE_CHANGE_READING_BELOW_LAST": "नोज़ल #{{nozzleNumber}} की मीटर रीडिंग {{meterReading}} उसकी पिछली ज्ञात रीडिंग {{lastReading}} से कम है।",
+  "CLOSING_READING_BELOW_PRICE_CHANGE": "अंतिम रीडिंग {{closingReading}}, दाम बदलते समय {{fuelTypeCode}} नोज़ल की ली गई रीडिंग {{priceChangeReading}} से कम है। कृपया मीटर रीडिंग जाँचें।",
+  "WAIVER_BY_CLOSER_NOT_ALLOWED": "यह शिफ्ट आपने बंद की थी, इसलिए आप इसका अंतर माफ़ नहीं कर सकते। किसी दूसरे मैनेजर या मालिक से कहें।",
+  "CASH_RECOVERY_AMOUNT_INVALID": "वसूली गई राशि ₹0 से अधिक और कमी के ₹{{maxAmount}} से अधिक नहीं होनी चाहिए।",
+  "CASH_RECOVERY_ALREADY_RECORDED": "इस शिफ्ट के लिए ₹{{amount}} पहले ही वसूल हो चुके हैं। बाकी को वेतन कटौती या माफ़ी से सुलझाएँ।",
+  "OPERATOR_SHIFT_OPENED_CONCURRENTLY": "{{operatorName}} को अभी-अभी दूसरी खुली शिफ्ट दी गई है। देखने के लिए पेज रीफ़्रेश करें।",
+  "BANK_DEPOSIT_LEAVES_SAFE_NEGATIVE": "{{depositDate}} की ₹{{amount}} की जमा राशि से बाद के किसी दिन तिजोरी शून्य से नीचे चली जाएगी, जब उसमें केवल ₹{{lowestBalance}} थे। इसे बाद की तारीख पर दर्ज करें।"
 }

@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { AxiosError, AxiosHeaders } from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { reportApi } from '../../api/reportApi'
 import type { ProfitLossReport } from '../../api/reportApi'
@@ -11,7 +12,7 @@ import ReportsPage from './ReportsPage'
 import { presetRange } from '../../utils/datePresets'
 
 vi.mock('../../api/reportApi', () => ({
-  reportApi: { getProfitLoss: vi.fn(), getExpensesReport: vi.fn().mockResolvedValue([]), getShiftsReport: vi.fn().mockResolvedValue([]) },
+  reportApi: { getProfitLoss: vi.fn(), getExpensesReport: vi.fn().mockResolvedValue([]), getShiftsReport: vi.fn().mockResolvedValue({ shifts: [], autoClosedShiftCount: 0 }) },
 
 }))
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getMyPumps: vi.fn().mockResolvedValue([]) } }))
@@ -19,7 +20,7 @@ vi.mock('../../api/pumpApi', () => ({ pumpApi: { getMyPumps: vi.fn().mockResolve
 const PUMP_ID = 6
 
 const reportWithOneLotAtTwoPrices: ProfitLossReport = {
-  pumpId: PUMP_ID, from: '2026-01-01', to: '2026-01-31', totalShifts: 2,
+  pumpId: PUMP_ID, from: '2026-01-01', to: '2026-01-31', totalShifts: 2, autoClosedShiftCount: 1,
   totalRevenue: 3000, totalCogs: 2700, grossProfit: 300,
   totalCashRevenue: 3000, totalUpiRevenue: 0, totalCardRevenue: 0, totalFleetCardRevenue: 0, totalCreditRevenue: 0, totalCollected: 3000,
   approvedExpenses: 0, bankCharges: 0, netOperatingProfit: 300,
@@ -143,6 +144,23 @@ describe('ReportsPage', () => {
     await waitFor(() => expect(router.state.location.search).toBe(`?tab=pl&from=${lastMonth.from}&to=${lastMonth.to}`))
     expect(screen.getByRole('button', { name: 'Last month' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByLabelText('From')).toHaveValue(lastMonth.from)
+  })
+
+  it('says when the chosen range is longer than the report allows', async () => {
+    vi.mocked(reportApi.getProfitLoss).mockRejectedValue(new AxiosError('Bad Request', 'ERR', undefined, undefined, {
+      status: 400, statusText: '', headers: {}, config: { headers: new AxiosHeaders() },
+      data: { code: 'DATE_RANGE_TOO_LONG', params: { maxDays: 366 }, message: 'Choose a date range of at most 366 days' },
+    }))
+    renderReportsAt('/dashboard/reports?tab=pl&from=2024-01-01&to=2026-01-31')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Choose a date range of at most 366 days')
+  })
+
+  it('says how many auto-closed shifts are left out of the totals', async () => {
+    renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
+
+    expect(await screen.findByText('1 auto-closed shift in this range is left out until its closing readings are entered.'))
+      .toBeInTheDocument()
   })
 
   it('compares the totals with the same-length period before', async () => {

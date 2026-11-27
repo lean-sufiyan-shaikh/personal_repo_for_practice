@@ -27,6 +27,8 @@ import { DiscrepancySection } from './close/DiscrepancySection'
 import { CloseShiftFooter } from './close/CloseShiftFooter'
 import { LateCloseNotice } from './close/LateCloseNotice'
 import { computeCloseShiftTotals, needsOwnerApproval } from './close/closeShiftTotals'
+import { currentPriceOf } from '../../utils/priceSegments'
+import { pricedPartsText } from './components/pricedPartsText'
 import { stillNeededItems, stillNeededLabel } from './close/closeShiftChecklist'
 import { CloseShiftSummaryBar, CloseShiftSummaryPanel } from './close/CloseShiftLiveSummary'
 import type { LiveSummaryFigures, SoldUnits } from './close/CloseShiftLiveSummary'
@@ -123,7 +125,8 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
     queryFn:  pumpApi.getMyPumps,
     staleTime: 5 * 60_000,
   })
-  const escalationThreshold = pumps.find((p) => p.id === shift.pumpId)?.discrepancyEscalationThreshold ?? null
+  const pumpSettings = pumps.find((p) => p.id === shift.pumpId)
+  const escalationThreshold = pumpSettings?.discrepancyEscalationThreshold ?? null
 
   const { data: operators = [] } = useQuery({
     queryKey: ['operators', shift.pumpId],
@@ -182,10 +185,11 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   const newCreditTotal = creditRows.reduce((s, r) => s + emptyNum(r.amount), 0)
   const {
     perFuelSales, totalDue, creditTotal, totalCollected, diffPaise, diff,
-    readingsComplete, readingsBelowStart, paymentTouched, isBalanced, hasDiscrepancy, canRoundOff,
+    readingsComplete, readingsBelowStart, paymentTouched, isBalanced, hasDiscrepancy, canRoundOff, roundingPaise,
   } = computeCloseShiftTotals({
     fuelReadings: shift.fuelReadings, endReadings, noChangeNozzles,
     cash, upi, card, fleetCard, preRecordedTotal, newCreditTotal, cashDropped,
+    roundingTolerance: pumpSettings?.roundingTolerance ?? 0,
   })
   const reasonFilled     = discrepancyReason.trim().length > 0
   const incomingChosen   = !isHandover || handoverDetails.incomingOperatorId !== null
@@ -227,8 +231,10 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
 
   // ── Credit row helpers ──────────────────────────────────────────────────────
 
-  const priceForFuelType = (ft: string): number | null =>
-    shift.fuelReadings.find((r) => r.fuelType === ft)?.priceSnapshot ?? null
+  const priceForFuelType = (ft: string): number | null => {
+    const reading = shift.fuelReadings.find((r) => r.fuelType === ft)
+    return reading ? currentPriceOf(reading) : null
+  }
 
   const toggleNoChange = (nozzleId: number, startReading: number) => {
     const wasNoChange = noChangeNozzles.has(nozzleId)
@@ -466,6 +472,11 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
             diff={reviewedFigures.diff}
             creditEntryCount={reviewedFigures.creditEntryCount}
             isEscalated={closedResult.status === 'CLOSED_DISCREPANCY_PENDING_APPROVAL'}
+            roundingAdjustment={roundingPaise / 100}
+            priceChangeLines={perFuelSales.filter(({ parts }) => parts.length > 1).map(({ reading, parts }) => ({
+              label: t('close.nozzleLine', { number: nozzleNumberById[reading.nozzleId] ?? '?', fuel: codeLabel(reading.fuelType) }),
+              text: pricedPartsText(parts, FUEL_UNIT[reading.fuelType] ?? 'L'),
+            }))}
             printError={printError}
           />
         )}
@@ -492,13 +503,14 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
 
               <Section label="1" title={t('close.sections.endReadings')}>
                 <div className="ui-close-readings">
-                  {perFuelSales.map(({ reading, sold, isBelowStart }, index) => (
+                  {perFuelSales.map(({ reading, sold, parts, isBelowStart }, index) => (
                     <ReadingField
                       key={reading.nozzleId}
                       label={t('close.nozzleLine', { number: nozzleNumberById[reading.nozzleId] ?? '?', fuel: codeLabel(reading.fuelType) })}
                       startValue={reading.startReading}
                       soldUnits={sold}
-                      pricePerUnit={reading.priceSnapshot}
+                      pricePerUnit={currentPriceOf(reading)}
+                      parts={parts}
                       value={endReadings[reading.nozzleId] ?? ''}
                       onChange={(v) => setEndReadings((prev) => ({ ...prev, [reading.nozzleId]: v }))}
                       unitLabel={FUEL_UNIT[reading.fuelType] ?? 'L'}

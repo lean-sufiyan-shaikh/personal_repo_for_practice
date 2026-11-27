@@ -277,7 +277,8 @@
       "variancePercent": "अंतर %",
       "cumulative": "चालू कुल",
       "check": "जाँच"
-    }
+    },
+    "stockShortfall": "शिफ्टों ने बुक स्टॉक से {{litres}} अधिक बेचा — कोई डिलीवरी छूटी हो सकती है"
   },
   "checkStatus": {
     "OK": "जाँच ठीक",

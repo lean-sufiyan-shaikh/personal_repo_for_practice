@@ -29,6 +29,7 @@ const ICON_BY_TYPE: Record<AttentionType, LucideIcon> = {
   SETUP_INCOMPLETE: Settings,
   WET_STOCK_LOSS: Droplets,
   MISSING_DIPS: Ruler,
+  STOCK_SHORTFALL: Truck,
   SHORTAGE_CLAIMS_OPEN: Truck,
   PENDING_CASH_DROPS: Vault,
   DAY_CLOSES_UNAPPROVED: CalendarCheck,

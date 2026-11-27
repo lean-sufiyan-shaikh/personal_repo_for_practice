@@ -13,7 +13,7 @@ import OpenShiftModal from './OpenShiftModal'
 
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getDUs: vi.fn() } }))
 vi.mock('../../api/shiftApi', () => ({ shiftApi: { openShift: vi.fn() } }))
-vi.mock('../../api/shiftDefinitionApi', () => ({ shiftDefinitionApi: { getActive: vi.fn() } }))
+vi.mock('../../api/shiftDefinitionApi', () => ({ shiftDefinitionApi: { getOpenable: vi.fn() } }))
 vi.mock('../../api/userApi', () => ({ userApi: { getOperators: vi.fn() } }))
 
 function nozzle(id: number, nozzleNumber: number, fuelType: NozzleDetail['fuelType'], lastReading = 1000): NozzleDetail {
@@ -47,7 +47,7 @@ function section(name: string) {
 describe('OpenShiftModal', () => {
   beforeEach(() => {
     vi.mocked(userApi.getOperators).mockResolvedValue([operator])
-    vi.mocked(shiftDefinitionApi.getActive).mockResolvedValue([])
+    vi.mocked(shiftDefinitionApi.getOpenable).mockResolvedValue([])
     vi.mocked(shiftApi.openShift).mockResolvedValue({ operatorName: 'Ravi' } as Shift)
     useToastStore.setState({ toasts: [] })
   })
@@ -77,10 +77,61 @@ describe('OpenShiftModal', () => {
     expect(openButton).not.toHaveAccessibleDescription()
     await user.click(openButton)
 
-    expect(shiftApi.openShift).toHaveBeenCalledWith(3, { duId: 1, nozzleIds: [21, 22], operatorId: 9 })
+    expect(shiftApi.openShift).toHaveBeenCalledWith(3, { duId: 1, nozzleIds: [21, 22], operatorId: 9 }, expect.any(String))
     await waitFor(() => expect(useToastStore.getState().toasts).toEqual([
       expect.objectContaining({ message: 'Shift opened for Ravi', variant: 'success' }),
     ]))
+  })
+
+  it('opens a few minutes early for the next window by default and lets the manager keep the ending one', async () => {
+    vi.mocked(shiftDefinitionApi.getOpenable).mockResolvedValue([
+      { definitionId: 5, name: 'Night', shiftDate: '2026-11-26', startTime: '22:00:00', endTime: '06:00:00',
+        isNightShift: true, startsLater: false, suggested: false },
+      { definitionId: 6, name: 'Morning', shiftDate: '2026-11-27', startTime: '06:00:00', endTime: '14:00:00',
+        isNightShift: false, startsLater: true, suggested: true },
+    ])
+    vi.mocked(pumpApi.getDUs).mockResolvedValue([du(1, [nozzle(21, 1, 'PETROL')])])
+    const user = userEvent.setup()
+    renderWithProviders(<OpenShiftModal pumpId={3} activeShifts={[]} onClose={vi.fn()} />)
+
+    const windows = await screen.findByRole('group', { name: 'Shift window' })
+    expect(within(windows).getByRole('radio', { name: /Morning/ })).toBeChecked()
+    expect(within(windows).getByText('Starts 06:00 · ends 14:00')).toBeInTheDocument()
+    await user.click(within(windows).getByRole('radio', { name: /Night/ }))
+    await user.click(await screen.findByRole('button', { name: /Ravi/ }))
+    await user.click(screen.getByLabelText(/I confirm the meter readings above are correct/))
+    await user.click(screen.getByRole('button', { name: 'Open shift' }))
+
+    expect(shiftApi.openShift).toHaveBeenCalledWith(3,
+      { duId: 1, nozzleIds: [21], operatorId: 9, shiftDefinitionId: 5, shiftDate: '2026-11-26' }, expect.any(String))
+  })
+
+  it('sends a retry after a failed open with the same key, so the server returns the shift it already opened', async () => {
+    vi.mocked(pumpApi.getDUs).mockResolvedValue([du(1, [nozzle(21, 1, 'PETROL')])])
+    vi.mocked(shiftApi.openShift).mockRejectedValueOnce(new Error('Network Error'))
+    const user = userEvent.setup()
+    renderWithProviders(<OpenShiftModal pumpId={3} activeShifts={[]} onClose={vi.fn()} />)
+
+    await user.click(await screen.findByRole('button', { name: /Ravi/ }))
+    await user.click(screen.getByLabelText(/I confirm the meter readings above are correct/))
+    await user.click(screen.getByRole('button', { name: 'Open shift' }))
+    await user.click(await screen.findByRole('button', { name: 'Open shift' }))
+
+    const keys = vi.mocked(shiftApi.openShift).mock.calls.map((call) => call[2])
+    expect(keys).toHaveLength(2)
+    expect(keys[1]).toBe(keys[0])
+  })
+
+  it('shows no window choice outside the early start grace', async () => {
+    vi.mocked(shiftDefinitionApi.getOpenable).mockResolvedValue([
+      { definitionId: 6, name: 'Morning', shiftDate: '2026-11-27', startTime: '06:00:00', endTime: '14:00:00',
+        isNightShift: false, startsLater: false, suggested: true },
+    ])
+    vi.mocked(pumpApi.getDUs).mockResolvedValue([du(1, [nozzle(21, 1, 'PETROL')])])
+    renderWithProviders(<OpenShiftModal pumpId={3} activeShifts={[]} onClose={vi.fn()} />)
+
+    expect(await screen.findByRole('button', { name: /Ravi/ })).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Shift window' })).not.toBeInTheDocument()
   })
 
   it('leaves the choice to the user when the pump has several dispensary units', async () => {

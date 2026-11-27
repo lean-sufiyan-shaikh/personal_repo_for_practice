@@ -9,7 +9,10 @@ import { renderWithProviders } from '../../test/renderWithProviders'
 import SetupPage from './SetupPage'
 
 vi.mock('../../api/pumpApi', () => ({
-  pumpApi: { getMyPumps: vi.fn(), getSetupChecklist: vi.fn(), getCurrentPrices: vi.fn(), setFuelPrice: vi.fn() },
+  pumpApi: {
+    getMyPumps: vi.fn(), getSetupChecklist: vi.fn(), getCurrentPrices: vi.fn(), setFuelPrice: vi.fn(),
+    getOpenNozzles: vi.fn().mockResolvedValue([]),
+  },
 }))
 
 const pump: PumpSummary = {
@@ -29,7 +32,7 @@ describe('SetupPage for a manager', () => {
     vi.mocked(pumpApi.getCurrentPrices).mockResolvedValue([
       { id: 1, pumpId: 3, fuelType: 'DIESEL', pricePerUnit: 90, effectiveFrom: new Date().toISOString(), setByUserId: 1 },
     ])
-    vi.mocked(pumpApi.setFuelPrice).mockResolvedValue({ openShiftsWarning: null } as never)
+    vi.mocked(pumpApi.setFuelPrice).mockResolvedValue({ splitNozzleCount: 0 } as never)
   })
 
   it('shows the fuel price cards and lets the manager save a new price', async () => {
@@ -44,7 +47,7 @@ describe('SetupPage for a manager', () => {
     expect(input).toHaveAccessibleDescription('Up ₹1.25 (+1.4%) from ₹90.00')
 
     await user.click(screen.getByRole('button', { name: 'Save prices' }))
-    expect(vi.mocked(pumpApi.setFuelPrice).mock.calls[0][0]).toEqual({ pumpId: 3, fuelType: 'DIESEL', pricePerUnit: 91.25 })
+    expect(vi.mocked(pumpApi.setFuelPrice).mock.calls[0][0]).toEqual({ pumpId: 3, fuelType: 'DIESEL', pricePerUnit: 91.25, openNozzleReadings: [] })
     expect(pumpApi.getSetupChecklist).not.toHaveBeenCalled()
   })
 })

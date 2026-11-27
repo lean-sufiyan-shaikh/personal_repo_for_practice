@@ -8,7 +8,7 @@ import { useToastStore } from '../../store/toastStore'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import { FuelPricesContent } from './FuelPricesContent'
 
-vi.mock('../../api/pumpApi', () => ({ pumpApi: { setFuelPrice: vi.fn() } }))
+vi.mock('../../api/pumpApi', () => ({ pumpApi: { setFuelPrice: vi.fn(), getOpenNozzles: vi.fn() } }))
 
 const pump = {
   id: 3, name: 'Pump 3', address: 'Pune', maxDuCount: 4, ownerId: 1, createdAt: '2026-01-01T00:00:00Z',
@@ -36,7 +36,8 @@ function largeJumpRefusal() {
 describe('FuelPricesContent', () => {
   beforeEach(() => {
     vi.mocked(pumpApi.setFuelPrice).mockReset()
-    vi.mocked(pumpApi.setFuelPrice).mockResolvedValue({ openShiftsWarning: null } as never)
+    vi.mocked(pumpApi.setFuelPrice).mockResolvedValue({ splitNozzleCount: 0 } as never)
+    vi.mocked(pumpApi.getOpenNozzles).mockResolvedValue([])
     useToastStore.setState({ toasts: [] })
   })
 
@@ -86,8 +87,32 @@ describe('FuelPricesContent', () => {
     expect(save).toBeEnabled()
     await user.click(save)
 
-    expect(vi.mocked(pumpApi.setFuelPrice).mock.calls[0][0]).toEqual({ pumpId: 3, fuelType: 'DIESEL', pricePerUnit: 90 })
+    expect(vi.mocked(pumpApi.setFuelPrice).mock.calls[0][0])
+      .toEqual({ pumpId: 3, fuelType: 'DIESEL', pricePerUnit: 90, openNozzleReadings: [] })
     expect(useToastStore.getState().toasts.map((toast) => toast.message)).toContain('Fuel prices updated')
+  })
+
+  it('takes the meter reading of each open nozzle with a price change, prefilled from the last reading', async () => {
+    const user = userEvent.setup()
+    vi.mocked(pumpApi.getOpenNozzles).mockResolvedValue([{
+      shiftId: 70, nozzleId: 11, nozzleNumber: 1, duName: 'DU-1', fuelType: 'PETROL', lastKnownReading: 1000, maxMeterValue: 99_999,
+    }])
+    vi.mocked(pumpApi.setFuelPrice).mockResolvedValue({ splitNozzleCount: 1 } as never)
+    renderWithProviders(<FuelPricesContent pump={pump} currentPrices={currentPrices} />)
+
+    await user.type(screen.getByRole('spinbutton', { name: 'New price (Petrol)' }), '105')
+    const readings = await screen.findByRole('group', { name: 'Meter readings at the price change' })
+    const reading = within(readings).getByRole('spinbutton', { name: 'Petrol nozzle #1 DU-1' })
+    expect(reading).toHaveValue(1000)
+    const save = screen.getByRole('button', { name: 'Save prices' })
+    await user.clear(reading)
+    expect(save).toHaveAccessibleDescription(/A meter reading for every open nozzle/)
+    await user.type(reading, '1012.5')
+    await user.click(save)
+
+    expect(vi.mocked(pumpApi.setFuelPrice).mock.calls[0][0]).toEqual({ pumpId: 3, fuelType: 'PETROL', pricePerUnit: 105,
+      openNozzleReadings: [{ nozzleId: 11, meterReading: 1012.5 }] })
+    expect(await screen.findByText(/1 nozzle on an open shift charges litres after the reading/)).toBeInTheDocument()
   })
 
   it('asks before saving a large jump, and saves it once confirmed', async () => {
@@ -104,7 +129,8 @@ describe('FuelPricesContent', () => {
 
     await user.click(within(dialog).getByRole('button', { name: 'Set new price' }))
 
-    expect(vi.mocked(pumpApi.setFuelPrice).mock.lastCall?.[0]).toEqual({ pumpId: 3, fuelType: 'PETROL', pricePerUnit: 120, confirmed: true })
+    expect(vi.mocked(pumpApi.setFuelPrice).mock.lastCall?.[0])
+      .toEqual({ pumpId: 3, fuelType: 'PETROL', pricePerUnit: 120, confirmed: true, openNozzleReadings: [] })
     expect(useToastStore.getState().toasts.map((toast) => toast.message)).toContain('Fuel prices updated')
   })
 

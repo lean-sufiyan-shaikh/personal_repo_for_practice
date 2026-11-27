@@ -62,11 +62,10 @@
   "settings": {
     "saved": "Settings saved",
     "saveFailed": "Failed to save settings",
-    "invalidAmount": "Enter a valid positive amount, or leave blank to disable escalation.",
-    "explanation": "When a shift closes with a discrepancy above this amount, only Owner or Admin can resolve it. Managers will see it as locked. Leave blank to disable escalation.",
+    "invalidAmount": "Enter an amount of ₹0 or more.",
+    "explanation": "When a shift closes with a discrepancy above this amount, only Owner or Admin can resolve it. Managers will see it as locked. ₹0 sends every discrepancy to the Owner or Admin.",
     "thresholdLabel": "Owner approval limit",
     "effectOn": "Shortages or overages above {{amount}} will need Owner or Admin to resolve.",
-    "effectOff": "Blank: managers can resolve every discrepancy.",
     "save": "Save settings",
     "escalationTitle": "Owner approval for discrepancies",
     "receiptTitle": "Tanker receipt check",
@@ -84,7 +83,18 @@
     "safeToleranceInvalid": "Enter an amount from ₹0 to {{max}}.",
     "safeCutoffLabel": "Cut-off for yesterday's count",
     "safeCutoffEffect": "Until {{time}} a manager may still count the safe for yesterday; after that only an owner or admin can, with a reason.",
-    "safeCutoffInvalid": "Enter a time of day."
+    "safeCutoffInvalid": "Enter a time of day.",
+    "effectAll": "₹0: every shortage or overage needs Owner or Admin to resolve.",
+    "roundingLabel": "Rounding allowance",
+    "roundingEffect": "A shift up to {{amount}} short or over closes balanced; the difference is kept as rounding.",
+    "roundingInvalid": "Enter an amount from ₹0 to {{max}}.",
+    "graceTitle": "Opening a shift early",
+    "graceExplanation": "How long before a shift window starts a shift may already be opened for it, so it is not filed under the window that is ending.",
+    "graceLabel": "Early start grace",
+    "graceEffect_one": "Up to {{count}} minute before a window starts, the open-shift form offers it.",
+    "graceEffect_other": "Up to {{count}} minutes before a window starts, the open-shift form offers it.",
+    "graceInvalid": "Enter whole minutes from 0 to {{max}}.",
+    "minutesUnit": "min"
   },
   "gst": {
     "saved": "GST details saved",
@@ -120,7 +130,7 @@
     "noCurrentPrice": "No price set yet",
     "stillNeededPrice": "A new price for at least one fuel",
     "save": "Save prices",
-    "openShiftsTitle": "Open shifts found",
+    "openShiftsTitle": "Open shifts priced at both prices",
     "dismissWarning": "Dismiss warning",
     "deviation": {
       "title": "Large price change",
@@ -139,6 +149,14 @@
       "up": "Up {{amount}} ({{percent}}) from {{current}}",
       "down": "Down {{amount}} ({{percent}}) from {{current}}",
       "same": "Same as the current {{current}}"
+    },
+    "openShiftsSplit_one": "{{count}} nozzle on an open shift charges litres after the reading you entered at the new price.",
+    "openShiftsSplit_other": "{{count}} nozzles on open shifts charge litres after the readings you entered at the new price.",
+    "openNozzles": {
+      "heading": "Meter readings at the price change",
+      "hint": "These nozzles are on open shifts. Check each reading now: litres up to it keep the old price, litres after it are charged at the new price.",
+      "nozzle": "{{fuel}} nozzle #{{number}} {{du}}",
+      "stillNeeded": "A meter reading for every open nozzle"
     }
   },
   "tanks": {

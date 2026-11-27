@@ -16,6 +16,8 @@ import { FuelPriceCard } from './prices/FuelPriceCard'
 import { PriceDeviationDialog } from './prices/PriceDeviationDialog'
 import type { DeviationWarning } from './prices/PriceDeviationDialog'
 import { StalePricesAlert } from './prices/StalePricesAlert'
+import { OpenNozzleReadingsPanel } from './prices/OpenNozzleReadingsPanel'
+import { useOpenNozzleReadings } from './prices/useOpenNozzleReadings'
 
 export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; currentPrices: FuelPrice[] }) {
   const { t } = useTranslation(['setup', 'common'])
@@ -29,8 +31,8 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
   const [pricesConfirmedToday, setPricesConfirmedToday] = useState(false)
   // 15% deviation warning state — set when backend returns HTTP 409
   const [deviationWarning, setDeviationWarning] = useState<DeviationWarning | null>(null)
-  // P2.3 — open shifts warning shown after a successful price update
-  const [openShiftsWarning, setOpenShiftsWarning] = useState<string | null>(null)
+  // Open nozzles whose litres were split at the readings taken with the price change
+  const [splitNozzleCount, setSplitNozzleCount] = useState(0)
 
   // Derive the unique fuel types across all DU nozzles
   const availableFuelTypes = [...new Set(
@@ -57,22 +59,31 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
     currentPrices.find((p) => p.fuelType === fuelType)?.pricePerUnit
 
   const pricesToSave = availableFuelTypes.filter((ft) => prices[ft] && Number(prices[ft]) > 0)
-  const stillNeeded = pricesToSave.length === 0 ? [t('prices.stillNeededPrice')] : []
+  const changedFuelTypes = pricesToSave.filter((ft) => Number(prices[ft]) !== Number(getCurrentPrice(ft)))
+  const openNozzles = useOpenNozzleReadings(pump.id, changedFuelTypes)
+  const stillNeeded = [
+    pricesToSave.length === 0 && t('prices.stillNeededPrice'),
+    openNozzles.missingReading && t('prices.openNozzles.stillNeeded'),
+  ].filter((item): item is string => typeof item === 'string')
+
+  const afterSave = (results: { splitNozzleCount: number }[]) => {
+    queryClient.invalidateQueries({ queryKey: ['fuelPrices', pump.id] })
+    queryClient.invalidateQueries({ queryKey: ['openNozzles', pump.id] })
+    setPricesConfirmedToday(true)
+    openNozzles.reset()
+    setSplitNozzleCount(results.reduce((sum, result) => sum + (result.splitNozzleCount ?? 0), 0))
+  }
 
   const submit = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(null); setDeviationWarning(null); setOpenShiftsWarning(null)
+    e.preventDefault(); setError(null); setDeviationWarning(null); setSplitNozzleCount(0)
     const tasks = pricesToSave
-      .map((ft) => mutation.mutateAsync({ pumpId: pump.id, fuelType: ft, pricePerUnit: Number(prices[ft]) }))
+      .map((ft) => mutation.mutateAsync({ pumpId: pump.id, fuelType: ft, pricePerUnit: Number(prices[ft]),
+        openNozzleReadings: openNozzles.readingsFor(ft) }))
     if (tasks.length === 0) { setError(t('prices.enterOne')); return }
     try {
-      const results = await Promise.all(tasks)
-      queryClient.invalidateQueries({ queryKey: ['fuelPrices', pump.id] })
+      afterSave(await Promise.all(tasks))
       setPrices({})
-      setPricesConfirmedToday(true)
       addToast(t('prices.updated'), 'success')
-      // Show open-shifts warning if any price update detected open shifts
-      const warning = results.find((r) => r.openShiftsWarning)?.openShiftsWarning ?? null
-      setOpenShiftsWarning(warning)
     } catch { /* error already set by onError */ }
   }
 
@@ -80,17 +91,13 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
   // so the stale alert is dismissed without requiring manual re-entry.
   const [confirmingUnchanged, setConfirmingUnchanged] = useState(false)
   const confirmUnchanged = async () => {
-    setError(null); setOpenShiftsWarning(null); setConfirmingUnchanged(true)
+    setError(null); setSplitNozzleCount(0); setConfirmingUnchanged(true)
     const tasks = currentPrices.map((p) =>
       mutation.mutateAsync({ pumpId: pump.id, fuelType: p.fuelType as FuelType, pricePerUnit: Number(p.pricePerUnit) })
     )
     try {
-      const results = await Promise.all(tasks)
-      queryClient.invalidateQueries({ queryKey: ['fuelPrices', pump.id] })
-      setPricesConfirmedToday(true)
+      afterSave(await Promise.all(tasks))
       addToast(t('prices.confirmedToday'), 'success')
-      const warning = results.find((r) => r.openShiftsWarning)?.openShiftsWarning ?? null
-      setOpenShiftsWarning(warning)
     } catch { /* error already set by onError */ }
     finally { setConfirmingUnchanged(false) }
   }
@@ -104,12 +111,11 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
         fuelType: deviationWarning.fuelType as FuelType,
         pricePerUnit: deviationWarning.newPrice,
         confirmed: true,
+        openNozzleReadings: openNozzles.readingsFor(deviationWarning.fuelType as FuelType),
       })
-      queryClient.invalidateQueries({ queryKey: ['fuelPrices', pump.id] })
+      afterSave([result])
       setPrices({})
-      setPricesConfirmedToday(true)
       addToast(t('prices.updated'), 'success')
-      if (result.openShiftsWarning) setOpenShiftsWarning(result.openShiftsWarning)
     } catch (err) {
       setError(parseApiError(err, t('prices.setFailed')))
     }
@@ -135,6 +141,8 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
               onChange={(value) => setPrices((prev) => ({ ...prev, [ft]: value }))} />
           ))}
         </div>
+        <OpenNozzleReadingsPanel nozzlesByFuel={openNozzles.nozzlesByFuel} valueOf={openNozzles.valueOf}
+          onChange={openNozzles.setReading} />
         {error   && <p role="alert" className="ui-error-text">{error}</p>}
         <div className="flex flex-wrap items-center justify-end gap-3">
           <StillNeeded id={stillNeededId} items={stillNeeded} />
@@ -147,14 +155,14 @@ export function FuelPricesContent({ pump, currentPrices }: { pump: PumpSummary; 
         </div>
       </form>
 
-      {openShiftsWarning && (
+      {splitNozzleCount > 0 && (
         <div role="status" className="ui-alert ui-alert-warning flex items-start gap-2.5">
           <AlertTriangle size={16} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-semibold">{t('prices.openShiftsTitle')}</p>
-            <p className="text-xs mt-0.5">{openShiftsWarning}</p>
+            <p className="text-xs mt-0.5">{t('prices.openShiftsSplit', { count: splitNozzleCount })}</p>
           </div>
-          <IconButton onClick={() => setOpenShiftsWarning(null)} className="ui-btn ui-btn-ghost ui-btn-icon shrink-0"
+          <IconButton onClick={() => setSplitNozzleCount(0)} className="ui-btn ui-btn-ghost ui-btn-icon shrink-0"
             label={t('prices.dismissWarning')}
             icon={'×'}
           />

@@ -13,6 +13,7 @@ import { OpenShiftSection } from './open/OpenShiftSection'
 import { DispenserPicker } from './open/DispenserPicker'
 import { NozzlePicker } from './open/NozzlePicker'
 import { ReadingsConfirmation } from './open/ReadingsConfirmation'
+import { ShiftWindowChoice } from './open/ShiftWindowChoice'
 import { activeNozzlesOf, formatMeterReading } from './open/openShiftNozzles'
 
 interface Props {
@@ -76,6 +77,8 @@ export default function OpenShiftModal({ pumpId, activeShifts, onClose, prefille
         </LoadingButton>
       </>}
     >
+      <ShiftWindowChoice windows={form.openableWindows} selectedKey={form.selectedWindowKey} onSelect={form.chooseWindow} />
+
       <OpenShiftSection step={1} title={t('open.duHeading')} sectionRef={steps.sectionRef('du')}
         isOpen={steps.openStep === 'du'} isDone={doneSteps.du} pendingHint={t('open.notChosen')}
         onOpen={() => steps.reopenStep('du')}

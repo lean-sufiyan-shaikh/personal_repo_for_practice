@@ -252,7 +252,7 @@
     },
     "PRICE_CHANGE_OPEN_SHIFT": {
       "title": "Fuel Price Changed With Open Shifts",
-      "message": "{{fuelTypeCode}} price updated to ₹{{price}} but {{openShiftCount}} shift(s) are still open. They will settle at the old price. Close all open shifts to avoid balance discrepancies."
+      "message": "{{fuelTypeCode}} price updated to ₹{{price}} but {{openShiftCount}} shift(s) are still open. Litres after the meter readings taken at the change are charged at the new price."
     },
     "SETTLEMENT_REMINDER": {
       "title": "{{paymentTypeCode}} Settlement Reminder",
@@ -429,7 +429,9 @@
     "ATTENTION_DAY_CLOSES_UNAPPROVED_other": "{{count}} closed days waiting for your approval",
     "PAYMENT_REVERSAL_DETAILS": "Payment of {{paidAt}} reversed: {{reason}}",
     "BOUNCE_CHARGE_DETAILS": "Bounce charge for the payment of {{paidAt}}",
-    "CREDIT_OPENING_BALANCE": "Opening balance"
+    "CREDIT_OPENING_BALANCE": "Opening balance",
+    "ATTENTION_STOCK_SHORTFALL_one": "Stock went negative: {{count}} shift sold {{litres}} L more than the tanks held — record the missing delivery",
+    "ATTENTION_STOCK_SHORTFALL_other": "Stock went negative: {{count}} shifts sold {{litres}} L more than the tanks held — record the missing delivery"
   },
   "WET_STOCK_LOSS": "Fuel loss above limit",
   "RAISED": "Raised",

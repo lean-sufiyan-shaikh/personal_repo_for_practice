@@ -277,7 +277,8 @@
       "variancePercent": "Variance %",
       "cumulative": "Running total",
       "check": "Check"
-    }
+    },
+    "stockShortfall": "Shifts sold {{litres}} more than book stock — a delivery may be missing"
   },
   "checkStatus": {
     "OK": "Checked OK",

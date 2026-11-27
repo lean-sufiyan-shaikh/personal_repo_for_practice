@@ -9,6 +9,8 @@ export type { CreditEntryInput }
 export interface ResolveDiscrepancyRequest {
   resolutionAction: 'PENDING_INVESTIGATION' | 'SALARY_DEDUCTION' | 'CASH_RECOVERY' | 'WAIVED'
   resolutionNote?: string
+  /** CASH_RECOVERY only: the cash handed back; less than the shortage leaves the rest pending. */
+  recoveredAmount?: number
 }
 
 export interface AmendShiftRequest {
@@ -68,8 +70,8 @@ export const shiftApi = {
   getShift: (pumpId: number, id: number) =>
     client.get<Shift>(`/pumps/${pumpId}/shifts/${id}`).then((r) => r.data),
 
-  openShift: (pumpId: number, request: OpenShiftRequest) =>
-    client.post<Shift>(`/pumps/${pumpId}/shifts/open`, request).then((r) => r.data),
+  openShift: (pumpId: number, request: OpenShiftRequest, idempotencyKey?: string) =>
+    client.post<Shift>(`/pumps/${pumpId}/shifts/open`, request, withIdempotencyKey(idempotencyKey)).then((r) => r.data),
 
   addCreditEntry: (pumpId: number, shiftId: number, entry: CreditEntryInput, idempotencyKey?: string) =>
     client.post<Shift>(`/pumps/${pumpId}/shifts/${shiftId}/credit-entries`, entry, withIdempotencyKey(idempotencyKey))

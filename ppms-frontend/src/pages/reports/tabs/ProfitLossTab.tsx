@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { withToggled } from '../../../utils/setToggle'
-import { serverMessage } from '../../../utils/apiError'
+import { parseApiError } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { reportApi } from '../../../api/reportApi'
@@ -18,7 +18,7 @@ import { shiftsForFuelUrl } from '../../../utils/drillDown'
 import { formatIstDate } from '../../../utils/date'
 import { printWhenFontsReady } from '../../../i18n/fonts'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
-import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, ReportFilterBar, ReportSummary, SummaryCard } from '../shared'
+import { AutoClosedNote, DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, ReportFilterBar, ReportSummary, SummaryCard } from '../shared'
 import { PageSection } from '../../../components/layout/PageSection'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { fmtShortDate } from '../reportFormat'
@@ -178,7 +178,8 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
           />
       </ReportFilterBar>
 
-      {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
+      {error && <ErrorBox message={parseApiError(error, t('controls.loadFailed'))} />}
+      <AutoClosedNote count={data?.autoClosedShiftCount} />
 
       {showEmptySuggestion && (
         <div className="print:hidden">

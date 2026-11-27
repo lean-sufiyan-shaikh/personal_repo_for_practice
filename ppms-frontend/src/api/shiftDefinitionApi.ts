@@ -16,6 +16,18 @@ export interface ShiftDefinition {
   windowLabel: string     // e.g. "10:00 PM – 10:00 AM (+1)"
 }
 
+/** A window a shift can be opened for now; startsLater marks the next window within the early start grace. */
+export interface OpenableShiftWindow {
+  definitionId: number
+  name: string
+  shiftDate: string
+  startTime: string
+  endTime: string
+  isNightShift: boolean
+  startsLater: boolean
+  suggested: boolean
+}
+
 export interface CreateShiftDefinitionRequest {
   name: string
   startTime: string   // "HH:MM"
@@ -32,6 +44,10 @@ export const shiftDefinitionApi = {
   /** All definitions for a pump (all effective-date groups, newest first) */
   getAll: (pumpId: number) =>
     client.get<ShiftDefinition[]>(`/pumps/${pumpId}/shift-definitions`).then(r => r.data),
+
+  /** The current window and, within the pump's early start grace, the next one */
+  getOpenable: (pumpId: number) =>
+    client.get<OpenableShiftWindow[]>(`/pumps/${pumpId}/shift-definitions/openable`).then(r => r.data),
 
   /** Only currently active definitions for a pump (today's date) */
   getActive: (pumpId: number) =>

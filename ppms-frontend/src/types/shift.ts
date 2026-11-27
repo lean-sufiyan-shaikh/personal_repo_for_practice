@@ -38,6 +38,14 @@ export interface DUOption {
 
 // ── Shift fuel reading (one per nozzle) ────────────────────────────────────
 
+/** Litres from one meter reading sold at one price; unitsSold is null until the shift closes. */
+export interface PriceSegment {
+  startReading: number
+  pricePerUnit: number
+  startsAt: string
+  unitsSold: number | null
+}
+
 export interface FuelReading {
   nozzleId: number
   fuelType: FuelType
@@ -46,6 +54,18 @@ export interface FuelReading {
   priceSnapshot: number
   unitsSold: number | null
   maxMeterValue: number | null
+  /** The litres priced per segment, set at close. */
+  salesAmount?: number | null
+  /** Litres sold beyond the tank's book stock, until a delivery covers them. */
+  stockShortfallLitres?: number
+  /** Empty unless the price changed while the shift was open. */
+  priceSegments?: PriceSegment[]
+}
+
+export interface InvestigationNote {
+  note: string
+  writtenByName: string | null
+  writtenAt: string
 }
 
 // ── Shift ──────────────────────────────────────────────────────────────────
@@ -104,6 +124,9 @@ export interface Shift {
   shiftDate: string
   actualStartTime: string
   actualEndTime: string | null
+  /** When the closing readings were really entered; actualEndTime is capped at the scheduled end. */
+  closedAt?: string | null
+  closedByUserId?: number | null
   /**
    * Scheduled end time from the shift's definition (IST, ISO string).
    * Null only for legacy shifts with no linked definition.
@@ -130,8 +153,15 @@ export interface Shift {
   investigationNote: string | null
   investigatedByName: string | null
   investigationStartedAt: string | null
-  /** Non-null when discrepancyResolution = CASH_RECOVERY on a SHORT shift. */
+  /** Every investigation note, oldest first. */
+  investigationHistory?: InvestigationNote[]
+  /** Cash handed back for a SHORT discrepancy, all of it or part; the rest stays pending. */
   cashRecoveryAmount: number | null
+  cashRecoveredAt?: string | null
+  /** Collected minus due absorbed as rounding when the shift closed balanced. */
+  roundingAdjustment?: number | null
+  /** The tanks' book stock could not cover what the shift sold; a delivery may be missing. */
+  stockShortfall?: boolean
   status: ShiftStatus
   /** True when this shift was entered retroactively by Admin/Owner via the backfill flow. */
   isBackfilled: boolean
@@ -144,6 +174,9 @@ export interface OpenShiftRequest {
   duId: number
   nozzleIds: number[]
   operatorId: number
+  /** The chosen shift window and its business date; the server suggests one when absent. */
+  shiftDefinitionId?: number
+  shiftDate?: string
 }
 
 export interface CloseShiftRequest {

@@ -81,6 +81,14 @@ describe('ReconciliationTab', () => {
     expect(within(rows[2]).getByText('−8.00%')).toBeInTheDocument()
   })
 
+  it('flags a period whose shifts sold more than book stock, so the missing delivery gets recorded', async () => {
+    respondWith([{ ...LOSING_TANK, periods: [period({ stockShortfallLitres: 150 })] }])
+    renderWithProviders(<ReconciliationTab pumpId={3} tanks={TANKS} />)
+
+    const table = await screen.findByRole('table', { name: 'Daily reconciliation for P1' })
+    expect(within(table).getByText(/Shifts sold 150(\.00)? L more than book stock/)).toBeInTheDocument()
+  })
+
   it('shows each period as a card with its figures in words on a phone', async () => {
     setScreenWidth(375)
     respondWith([LOSING_TANK])

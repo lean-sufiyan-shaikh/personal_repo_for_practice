@@ -10,7 +10,7 @@ import { printWhenFontsReady } from '../../../i18n/fonts'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
 import { DateRangeInputs, ErrorBox, PrintHeader, ReportFilterBar, ReportSummary, SummaryCard } from '../shared'
 import { PageSection } from '../../../components/layout/PageSection'
-import { serverMessage } from '../../../utils/apiError'
+import { parseApiError } from '../../../utils/apiError'
 import { fmtDateTime, fmtQty } from '../reportFormat'
 import { FUEL_BADGE } from '../../../constants/fuel'
 import { DataTable } from '../../../components/DataTable'
@@ -132,7 +132,7 @@ export function DipPlTab({ pumpId }: { pumpId: number }) {
         <CsvExportButton filename={csvFilename('dip-pl', query)} columns={CSV_COLUMNS} rows={entries} />
       </ReportFilterBar>
 
-      {error && <ErrorBox message={serverMessage(error) ?? t('dip.loadFailed')} />}
+      {error && <ErrorBox message={parseApiError(error, t('dip.loadFailed'))} />}
 
       {data && paged && (
         <div className="flex flex-col gap-(--density-gap) print:hidden">

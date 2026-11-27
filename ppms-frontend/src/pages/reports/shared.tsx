@@ -85,6 +85,13 @@ export function EmptyRangeSuggestion({ message, onShowLastMonth }: { message: st
   )
 }
 
+/** Auto-closed shifts have no closing readings or collections, so reports leave them out until they are entered. */
+export function AutoClosedNote({ count }: { count: number | undefined }) {
+  const { t } = useTranslation('reports')
+  if (!count) return null
+  return <p className="ui-alert ui-alert-warning text-sm" role="status">{t('autoClosedLeftOut', { count })}</p>
+}
+
 export function ErrorBox({ message }: { message: string }) {
   return (
     <div className="ui-alert ui-alert-danger text-sm" role="alert">{message}</div>

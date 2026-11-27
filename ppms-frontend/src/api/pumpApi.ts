@@ -25,6 +25,10 @@ export interface PumpSummary {
   safeCountCutoffTime?: string
   /** A pump of sample data for trying PPMS; left out of all-pump totals. */
   demo?: boolean
+  /** Minutes before a shift window during which a shift may already be opened for it; 30 by default. */
+  earlyStartGraceMinutes?: number
+  /** A shift whose collections differ from the amount due by at most this many rupees closes balanced; ₹1 by default. */
+  roundingTolerance?: number
   dus: DUOption[]
 }
 
@@ -41,6 +45,8 @@ export interface UpdatePumpSettingsRequest {
   safeCountTolerance?: number
   /** "HH:MM" */
   safeCountCutoffTime?: string
+  earlyStartGraceMinutes?: number
+  roundingTolerance?: number
 }
 
 export interface CreatePumpRequest {
@@ -150,6 +156,19 @@ export interface SetFuelPriceRequest {
   pricePerUnit: number
   /** Pass true to bypass the 15% deviation guard (after user confirms). */
   confirmed?: boolean
+  /** The meter reading of every nozzle on an open shift selling this fuel, required when such shifts are open. */
+  openNozzleReadings?: Array<{ nozzleId: number; meterReading: number }>
+}
+
+/** A nozzle on an open shift with the last meter reading known, to prefill the price-change readings. */
+export interface OpenNozzleReading {
+  shiftId: number
+  nozzleId: number
+  nozzleNumber: number
+  duName: string | null
+  fuelType: string
+  lastKnownReading: number
+  maxMeterValue: number
 }
 
 export interface PriceDeviationWarning {
@@ -168,11 +187,10 @@ export interface FuelPrice {
   setByUserId: number
 }
 
-/** Response wrapper for POST /api/pumps/{pumpId}/fuel-prices — includes price + optional open-shifts warning. */
+/** Response of POST /api/pumps/{pumpId}/fuel-prices; splitNozzleCount open nozzles now sell at the new price. */
 export interface SetFuelPriceResponse {
   price: FuelPrice
-  openShiftsCount: number
-  openShiftsWarning: string | null
+  splitNozzleCount: number
 }
 
 /** One pump's figures for today in GET /api/pumps/overview. */
@@ -281,6 +299,9 @@ export const pumpApi = {
   // Returns SetFuelPriceResponse on success (HTTP 201), or throws with response.data = PriceDeviationWarning on HTTP 409
   setFuelPrice: ({ pumpId, ...body }: SetFuelPriceRequest) =>
     client.post<SetFuelPriceResponse>(`/pumps/${pumpId}/fuel-prices`, body).then((r) => r.data),
+
+  getOpenNozzles: (pumpId: number, fuelType: string) =>
+    client.get<OpenNozzleReading[]>(`/pumps/${pumpId}/fuel-prices/open-nozzles`, { params: { fuelType } }).then((r) => r.data),
 
   // ── Credit clients ─────────────────────────────────────────────────────────
 

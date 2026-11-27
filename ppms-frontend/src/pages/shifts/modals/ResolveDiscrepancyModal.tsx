@@ -11,7 +11,12 @@ import { FormField } from '../../../components/FormField'
 import { LiveFigures } from '../../../components/LiveFigures'
 import { LoadingButton } from '../../../components/LoadingButton'
 import { StillNeeded } from '../../../components/StillNeeded'
+import { NumericInput } from '../../../components/NumericInput'
+import { useAuthStore } from '../../../store/authStore'
+import { formatCurrency } from '../../../utils/format'
+import { roundToPaise } from '../../../utils/money'
 import { DiscrepancyBadge } from '../components/DiscrepancyBadge'
+import { InvestigationHistory } from '../components/InvestigationHistory'
 import { investigationLabel, resolutionChoices } from '../shiftLabels'
 
 export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onClose: () => void }) {
@@ -23,6 +28,8 @@ export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onCl
   const [note,   setNote]   = useState('')
   const [noteError, setNoteError] = useState<string | null>(null)
   const [error,  setError]  = useState<string | null>(null)
+  const [recovered, setRecovered] = useState('')
+  const currentUser = useAuthStore((state) => state.user)
 
   const mutation = useMutation({
     mutationFn: (req: ResolveDiscrepancyRequest) => shiftApi.resolveDiscrepancy(shift.pumpId, shift.id, req),
@@ -50,15 +57,27 @@ export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onCl
       setNoteError(t('resolveDiscrepancy.describeInvestigation'))
       return
     }
-    mutation.mutate({ resolutionAction: action, resolutionNote: note.trim() || undefined })
+    const recoveredAmount = action === 'CASH_RECOVERY' && recovered.trim() !== '' ? roundToPaise(Number(recovered)) : undefined
+    if (recoveredAmount !== undefined && !(recoveredAmount > 0 && recoveredAmount <= shortage)) {
+      setError(t('resolveDiscrepancy.recoveredInvalid', { amount: formatCurrency(shortage) }))
+      return
+    }
+    mutation.mutate({ resolutionAction: action, resolutionNote: note.trim() || undefined, recoveredAmount })
   }
 
   const discType  = shift.discrepancyType
   const investigation = investigationLabel(shift)
-  // Salary deduction and cash recovery both take money back from the operator, so they only apply to a shortage.
-  const resolutionOptions = discType === 'SHORT'
-    ? resolutionChoices()
-    : resolutionChoices().filter(option => option.value !== 'SALARY_DEDUCTION' && option.value !== 'CASH_RECOVERY')
+  const shortage = roundToPaise((shift.discrepancyAmount ?? 0) - (shift.cashRecoveryAmount ?? 0))
+  // The person who closed a shift may not waive its discrepancy; an owner or admin may.
+  const closedByMe = currentUser?.userId === shift.closedByUserId && currentUser?.role === 'MANAGER'
+  // Salary deduction and cash recovery both take money back from the operator, so they only apply to a shortage;
+  // cash is recovered once, so after a part recovery the rest is deducted or waived.
+  const resolutionOptions = resolutionChoices().filter((option) => {
+    if (option.value === 'WAIVED') return !closedByMe
+    if (option.value === 'CASH_RECOVERY') return discType === 'SHORT' && shift.cashRecoveryAmount == null
+    if (option.value === 'SALARY_DEDUCTION') return discType === 'SHORT'
+    return true
+  })
   const stillNeeded = action ? [] : [t('resolveDiscrepancy.stillNeededAction')]
 
   return (
@@ -104,6 +123,10 @@ export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onCl
               ...(shift.discrepancyReason
                 ? [{ label: t('resolveDiscrepancy.reasonAtClose'), value: shift.discrepancyReason }]
                 : []),
+              ...(shift.cashRecoveryAmount != null
+                ? [{ label: t('resolveDiscrepancy.alreadyRecovered'), value: formatCurrency(shift.cashRecoveryAmount) },
+                   { label: t('resolveDiscrepancy.stillToResolve'), value: formatCurrency(shortage) }]
+                : []),
             ]}
           />
           {investigation && (
@@ -111,6 +134,7 @@ export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onCl
               {investigation}{shift.investigationNote ? ` — ${shift.investigationNote}` : ''}
             </p>
           )}
+          <InvestigationHistory notes={shift.investigationHistory} />
           <div>
             <span id={actionLabelId} className="ui-label">{t('resolveDiscrepancy.actionLabel')}</span>
             <SearchableSelect aria-labelledby={actionLabelId}
@@ -122,7 +146,15 @@ export function ResolveDiscrepancyModal({ shift, onClose }: { shift: Shift; onCl
             {action === 'PENDING_INVESTIGATION' && (
               <p className="ui-help">{t('resolveDiscrepancy.investigationHint')}</p>
             )}
+            {closedByMe && <p className="ui-help">{t('resolveDiscrepancy.cannotWaiveOwnClose')}</p>}
           </div>
+          {action === 'CASH_RECOVERY' && (
+            <FormField label={t('resolveDiscrepancy.recoveredAmount')}
+              help={t('resolveDiscrepancy.recoveredHint', { amount: formatCurrency(shortage) })}>
+              <NumericInput min="0.01" max={shortage} step="0.01" unit="₹" value={recovered} placeholder={String(shortage)}
+                onChange={(e) => { setRecovered(e.target.value); setError(null) }} />
+            </FormField>
+          )}
           <FormField
             label={noteRequired
               ? t('resolveDiscrepancy.note')

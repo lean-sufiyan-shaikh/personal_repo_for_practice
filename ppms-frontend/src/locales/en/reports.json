@@ -67,7 +67,8 @@
     "litres": "Litres",
     "profitLoss": "P/L",
     "category": "Category",
-    "description": "Description"
+    "description": "Description",
+    "closedAt": "Closed at"
   },
   "pl": {
     "totalRevenue": "Total Revenue",
@@ -211,5 +212,7 @@
       "totals_other": "{{short}} short and {{over}} over across {{count}} operators.",
       "mostShort": "Most short: {{name}} ({{amount}})."
     }
-  }
+  },
+  "autoClosedLeftOut_one": "{{count}} auto-closed shift in this range is left out until its closing readings are entered.",
+  "autoClosedLeftOut_other": "{{count}} auto-closed shifts in this range are left out until their closing readings are entered."
 }

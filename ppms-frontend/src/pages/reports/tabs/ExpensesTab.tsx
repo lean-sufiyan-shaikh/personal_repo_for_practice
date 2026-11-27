@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { serverMessage } from '../../../utils/apiError'
+import { parseApiError } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { reportApi } from '../../../api/reportApi'
 import type { ExpenseReportLine } from '../../../api/reportApi'
@@ -108,7 +108,7 @@ export function ExpensesTab({ pumpId }: { pumpId: number }) {
         <CsvExportButton filename={csvFilename('expenses', query)} columns={CSV_COLUMNS} rows={rows} />
       </ReportFilterBar>
 
-      {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
+      {error && <ErrorBox message={parseApiError(error, t('controls.loadFailed'))} />}
 
       {/* Screen: paginated data */}
       {data && paged && (

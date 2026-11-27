@@ -33,6 +33,8 @@ export interface ProfitLossReport {
   from: string
   to: string
   totalShifts: number
+  /** Auto-closed shifts in the range, left out until their closing readings are entered. */
+  autoClosedShiftCount: number
   totalRevenue: number
   totalCogs: number
   grossProfit: number
@@ -61,6 +63,8 @@ export interface OperatorDutyShiftLine {
   shiftWindow: string | null
   actualStartTime: string | null
   actualEndTime: string | null
+  /** When the closing readings were really entered; actualEndTime is capped at the scheduled end. */
+  closedAt: string | null
   totalAmountDue: number
   cashCollected: number
   upiCollected: number
@@ -111,6 +115,8 @@ export interface OperatorDiscrepancyReport {
   from: string
   to: string
   totalDiscrepancyShifts: number
+  /** Auto-closed shifts in the range, left out until their closing readings are entered. */
+  autoClosedShiftCount: number
   operators: OperatorDiscrepancySummary[]
 }
 
@@ -207,6 +213,12 @@ export interface ShiftReportLine {
   discrepancyType: string | null
 }
 
+/** The closed shifts of a range, and the auto-closed ones left out until their closing readings are entered. */
+export interface ShiftsReport {
+  shifts: ShiftReportLine[]
+  autoClosedShiftCount: number
+}
+
 // ── Expenses Report ────────────────────────────────────────────────────────────
 
 export interface ExpenseReportLine {
@@ -271,7 +283,7 @@ export const reportApi = {
     client.get<DipPlEntry[]>(`/pumps/${pumpId}/reports/dip-pl`, { params: { from, to }, timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
 
   getShiftsReport: (pumpId: number, from: string, to: string) =>
-    client.get<ShiftReportLine[]>(`/pumps/${pumpId}/reports/shifts`, { params: { from, to }, timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
+    client.get<ShiftsReport>(`/pumps/${pumpId}/reports/shifts`, { params: { from, to }, timeout: REPORT_TIMEOUT_MS }).then(r => r.data),
 
   getExpensesReport: (pumpId: number, from: string, to: string) =>
     client.get<ExpenseReportLine[]>(`/pumps/${pumpId}/reports/expenses`, { params: { from, to }, timeout: REPORT_TIMEOUT_MS }).then(r => r.data),

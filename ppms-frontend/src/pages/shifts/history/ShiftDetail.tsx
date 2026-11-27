@@ -16,6 +16,7 @@ import { AmendShiftModal } from '../amend/AmendShiftModal'
 import { canAmendShift } from '../amend/amendFigures'
 import { HandoverReportPanel } from '../modals/HandoverReportPanel'
 import { ResolveDiscrepancyModal } from '../modals/ResolveDiscrepancyModal'
+import { ShiftCloseFacts } from './ShiftCloseFacts'
 import { awaitingOwnerApprovalLabel, discrepancyAction, investigationLabel } from '../shiftLabels'
 
 const TIME = { hour: '2-digit', minute: '2-digit' } as const
@@ -103,6 +104,8 @@ export function ShiftDetail({ pumpId, shiftId }: { pumpId: number; shiftId: numb
           {resolveAction === 'awaiting-owner' && <p className="font-medium text-warn">{awaitingOwnerApprovalLabel()}</p>}
         </section>
       )}
+
+      <ShiftCloseFacts shift={shift} />
 
       {shift.creditEntries.length > 0 && (
         <section aria-labelledby={`shift-credit-${shift.id}`}>

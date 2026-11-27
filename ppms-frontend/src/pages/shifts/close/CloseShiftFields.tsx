@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { NumericInput } from '../../../components/NumericInput'
 import { formatCurrency } from '../../../utils/format'
 import { formatNumberIn } from '../../../i18n/format'
+import type { PricedPart } from '../../../utils/priceSegments'
+import { pricedPartsText } from '../components/pricedPartsText'
 import { formatUnits } from './closeShiftTotals'
 
 export function Section({ label, title, optional = false, children }: {
@@ -25,8 +27,10 @@ export function Section({ label, title, optional = false, children }: {
   )
 }
 
-export function ReadingField({ label, startValue, soldUnits, pricePerUnit, value, onChange, unitLabel, isInvalid, noChange, onNoChangeToggle, focusOnOpen = false }: {
+export function ReadingField({ label, startValue, soldUnits, pricePerUnit, parts, value, onChange, unitLabel, isInvalid, noChange, onNoChangeToggle, focusOnOpen = false }: {
   label: string; startValue: number; soldUnits: number; pricePerUnit: number;
+  /** The litres at each price; more than one when the price changed during the shift. */
+  parts?: PricedPart[];
   value: string; onChange: (v: string) => void; unitLabel: string; isInvalid?: boolean
   noChange?: boolean; onNoChangeToggle?: () => void; focusOnOpen?: boolean
 }) {
@@ -39,6 +43,13 @@ export function ReadingField({ label, startValue, soldUnits, pricePerUnit, value
     result = <span className="text-ink-3">{t('close.fields.unchanged', { unit: unitLabel })}</span>
   } else if (isInvalid) {
     result = <span role="alert" className="font-medium text-bad">{t('close.fields.belowStart', { start: startValue })}</span>
+  } else if (value !== '' && parts && parts.length > 1) {
+    result = (
+      <span className="tabular-nums text-ink-2">
+        = {pricedPartsText(parts, unitLabel)} ={' '}
+        <span className="font-semibold text-ink">{formatCurrency(parts.reduce((sum, part) => sum + part.units * part.pricePerUnit, 0))}</span>
+      </span>
+    )
   } else if (value !== '') {
     result = (
       <span className="tabular-nums text-ink-2">

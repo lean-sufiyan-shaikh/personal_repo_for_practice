@@ -16,7 +16,6 @@
   "CREDIT_CLIENT_DISABLED": "Credit is disabled for '{{clientName}}'. Enable the client on the Credit page before giving it credit.",
   "CREDIT_LIMIT_EXCEEDED": "Credit limit exceeded for '{{clientName}}'. Outstanding (group): {{outstanding}}, this entry: {{amount}}, limit: {{limit}}.",
   "CREDIT_BILLING_CYCLE_OVERDUE": "Credit sales blocked for '{{clientName}}': billing cycle overdue. The client must settle their outstanding balance or an Admin/Owner must grant a Credit Extension.",
-  "INSUFFICIENT_FUEL_STOCK": "Insufficient fuel stock: shift recorded {{litresSold}} L sold but only {{litresAvailable}} L is available in inventory. Please verify the meter readings or record a tanker delivery first.",
   "ACCESS_DENIED": "You do not have permission to perform this action",
   "ADJUSTMENT_TYPE_INVALID": "Choose either reset to zero or a custom reading.",
   "APPROVAL_ITEM_NOT_SAVED": "Could not be saved. Try this item again.",
@@ -456,5 +455,17 @@
   "METER_ADJUSTMENT_NOT_PENDING": "This meter adjustment is not waiting for approval (it is {{statusCode}}).",
   "METER_ADJUSTMENT_READING_MOVED": "The nozzle's reading changed from {{expectedReading}} to {{currentReading}} since this adjustment was asked for. Ask for a new adjustment.",
   "METER_ADJUSTMENT_NO_TANK": "This nozzle is not linked to a tank, so its unbilled litres cannot be taken from stock.",
-  "METER_ADJUSTMENT_NO_PRICE": "There is no current price for {{fuelTypeCode}}, so the unbilled litres cannot be valued."
+  "METER_ADJUSTMENT_NO_PRICE": "There is no current price for {{fuelTypeCode}}, so the unbilled litres cannot be valued.",
+  "EARLY_START_GRACE_OUT_OF_RANGE": "Early start grace must be between 0 and {{max}} minutes.",
+  "ROUNDING_TOLERANCE_OUT_OF_RANGE": "Rounding allowance must be between ₹0 and ₹{{max}}.",
+  "SHIFT_WINDOW_NOT_OPENABLE_NOW": "That shift window cannot be opened now. Choose the current window, or the next one when it starts within the pump's early start grace.",
+  "PRICE_CHANGE_METER_READINGS_MISSING": "{{openNozzleCount}} open {{fuelTypeCode}} nozzle(s) need their current meter reading, so the litres sold before the change keep the old price.",
+  "PRICE_CHANGE_READING_FOR_NOZZLE_WITHOUT_OPEN_SHIFT": "A meter reading was entered for a nozzle that is not on an open shift selling {{fuelTypeCode}}. The shift may have just closed — reload and enter the readings again.",
+  "PRICE_CHANGE_READING_BELOW_LAST": "Meter reading {{meterReading}} for nozzle #{{nozzleNumber}} is below its last known reading {{lastReading}}.",
+  "CLOSING_READING_BELOW_PRICE_CHANGE": "Closing reading {{closingReading}} is below the reading {{priceChangeReading}} taken for the {{fuelTypeCode}} nozzle when the price changed. Please verify the meter reading.",
+  "WAIVER_BY_CLOSER_NOT_ALLOWED": "You closed this shift, so you cannot waive its discrepancy. Ask another manager or the owner.",
+  "CASH_RECOVERY_AMOUNT_INVALID": "The amount recovered must be more than ₹0 and at most the shortage of ₹{{maxAmount}}.",
+  "CASH_RECOVERY_ALREADY_RECORDED": "₹{{amount}} was already recovered for this shift. Resolve the rest by salary deduction or waiver.",
+  "OPERATOR_SHIFT_OPENED_CONCURRENTLY": "{{operatorName}} was just given another open shift. Refresh the page to see it.",
+  "BANK_DEPOSIT_LEAVES_SAFE_NEGATIVE": "A deposit of ₹{{amount}} dated {{depositDate}} would leave the safe below zero on a later day, when it held only ₹{{lowestBalance}}. Record it on a later date."
 }

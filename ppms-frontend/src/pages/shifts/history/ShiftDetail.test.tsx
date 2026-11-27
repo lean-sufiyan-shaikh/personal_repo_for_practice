@@ -71,4 +71,25 @@ describe('ShiftDetail', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Shift #999 could not be found at this pump.')
   })
+  it('shows litres priced at two prices, the rounding, a stock shortfall, a part recovery and every investigation note', async () => {
+    vi.mocked(shiftApi.getShift).mockResolvedValue({
+      ...shortShift,
+      nozzles: [{ id: 3, nozzleNumber: 1, fuelType: 'PETROL' }],
+      fuelReadings: [{ nozzleId: 3, fuelType: 'PETROL', startReading: 1000, endReading: 1030, priceSnapshot: 100, unitsSold: 30,
+        maxMeterValue: 999_999, priceSegments: [
+          { startReading: 1000, pricePerUnit: 100, startsAt: '2026-11-20T03:30:00Z', unitsSold: 10 },
+          { startReading: 1010, pricePerUnit: 110, startsAt: '2026-11-20T06:00:00Z', unitsSold: 20 },
+        ] }],
+      roundingAdjustment: -0.5, stockShortfall: true, cashRecoveryAmount: 200,
+      investigationHistory: [{ note: 'Checking CCTV', writtenByName: 'Meera', writtenAt: '2026-11-21T04:00:00Z' }],
+    } as Shift)
+    renderWithProviders(<ShiftDetail pumpId={4} shiftId={77} />)
+
+    const detail = await screen.findByRole('article', { name: 'Shift #77' })
+    expect(within(detail).getByText(/Nozzle #1 · Petrol: 10.00 L × ₹100.00 \+ 20.00 L × ₹110.00/)).toBeInTheDocument()
+    expect(within(detail).getByText(/A difference of ₹0.50 was within the rounding allowance/)).toBeInTheDocument()
+    expect(within(detail).getByText(/Record the missing delivery/)).toBeInTheDocument()
+    expect(within(detail).getByText('₹200.00 recovered in cash; ₹300.00 still to deduct or waive.')).toBeInTheDocument()
+    expect(within(detail).getByText('Checking CCTV')).toBeInTheDocument()
+  })
 })

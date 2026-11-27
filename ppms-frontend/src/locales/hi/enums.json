@@ -252,7 +252,7 @@
     },
     "PRICE_CHANGE_OPEN_SHIFT": {
       "title": "शिफ्ट चालू रहते ईंधन कीमत बदली",
-      "message": "{{fuelTypeCode}} की कीमत ₹{{price}} हो गई, पर {{openShiftCount}} शिफ्ट अभी चालू हैं। उनका हिसाब पुरानी कीमत पर होगा। बैलेंस में अंतर से बचने के लिए सभी चालू शिफ्ट बंद करें।"
+      "message": "{{fuelTypeCode}} की कीमत ₹{{price}} हो गई, पर {{openShiftCount}} शिफ्ट अभी चालू हैं। बदलाव के समय ली गई मीटर रीडिंग के बाद के लीटर नए दाम पर लगेंगे।"
     },
     "SETTLEMENT_REMINDER": {
       "title": "{{paymentTypeCode}} सेटलमेंट रिमाइंडर",
@@ -429,7 +429,9 @@
     "ATTENTION_DAY_CLOSES_UNAPPROVED_other": "{{count}} बंद दिन आपकी मंज़ूरी के इंतज़ार में",
     "PAYMENT_REVERSAL_DETAILS": "{{paidAt}} का भुगतान उलटाया: {{reason}}",
     "BOUNCE_CHARGE_DETAILS": "{{paidAt}} के भुगतान का बाउंस शुल्क",
-    "CREDIT_OPENING_BALANCE": "शुरुआती बकाया"
+    "CREDIT_OPENING_BALANCE": "शुरुआती बकाया",
+    "ATTENTION_STOCK_SHORTFALL_one": "स्टॉक शून्य से नीचे गया: {{count}} शिफ्ट ने टैंकों से {{litres}} L अधिक बेचा — छूटी हुई डिलीवरी दर्ज करें",
+    "ATTENTION_STOCK_SHORTFALL_other": "स्टॉक शून्य से नीचे गया: {{count}} शिफ्टों ने टैंकों से {{litres}} L अधिक बेचा — छूटी हुई डिलीवरी दर्ज करें"
   },
   "WET_STOCK_LOSS": "सीमा से ज़्यादा ईंधन नुकसान",
   "RAISED": "दावा किया",

@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { serverMessage } from '../../../utils/apiError'
+import { parseApiError } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { reportApi } from '../../../api/reportApi'
-import type { ShiftReportLine } from '../../../api/reportApi'
+import type { ShiftReportLine, ShiftsReport } from '../../../api/reportApi'
 import { Pagination } from '../../../components/Pagination'
 import { pageSlice } from '../../../utils/pageSlice'
 import { Link } from 'react-router-dom'
@@ -16,7 +16,7 @@ import type { DateRange } from '../../../utils/datePresets'
 import { shiftUrl } from '../../../utils/drillDown'
 import { printWhenFontsReady } from '../../../i18n/fonts'
 import { useReportRange, yesterdayToTodayRange } from '../useReportRange'
-import { DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, ReportFilterBar } from '../shared'
+import { AutoClosedNote, DateRangeInputs, EmptyRangeSuggestion, ErrorBox, PrintHeader, ReportFilterBar } from '../shared'
 import { PageSection } from '../../../components/layout/PageSection'
 import { discrepancyTypeLabel } from '../reportFormat'
 import { DataTable } from '../../../components/DataTable'
@@ -81,11 +81,12 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
   const [page, setPage]   = useState(0)
   const [pageSize, setPageSize] = useState(10)
 
-  const { data, isFetching, error } = useQuery<ShiftReportLine[]>({
+  const { data: report, isFetching, error } = useQuery<ShiftsReport>({
     queryKey: ['report-shifts', pumpId, query.from, query.to],
     queryFn:  () => reportApi.getShiftsReport(pumpId, query.from, query.to),
   })
 
+  const data  = report?.shifts
   const rows  = data ?? []
   const paged = data ? pageSlice(rows, page, pageSize) : null
 
@@ -117,7 +118,8 @@ export function ShiftsTab({ pumpId }: { pumpId: number }) {
         <CsvExportButton filename={csvFilename('shifts', query)} columns={CSV_COLUMNS} rows={rows} />
       </ReportFilterBar>
 
-      {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
+      {error && <ErrorBox message={parseApiError(error, t('controls.loadFailed'))} />}
+      <AutoClosedNote count={report?.autoClosedShiftCount} />
 
       {/* Screen: paginated data */}
       {data && paged && (

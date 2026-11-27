@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FuelReading } from '../../../types/shift'
-import { computeCloseShiftTotals } from './closeShiftTotals'
+import { computeCloseShiftTotals, needsOwnerApproval } from './closeShiftTotals'
 
 function reading(overrides: Partial<FuelReading> = {}): FuelReading {
   return {
@@ -22,6 +22,37 @@ function totals(input: Partial<Parameters<typeof computeCloseShiftTotals>[0]> = 
 }
 
 describe('computeCloseShiftTotals', () => {
+  it('prices litres before a price change at the old price and after it at the new one', () => {
+    const changed = reading({ priceSegments: [
+      { startReading: 1000, pricePerUnit: 100, startsAt: '2026-11-27T06:00:00+05:30', unitsSold: null },
+      { startReading: 1010, pricePerUnit: 110, startsAt: '2026-11-27T10:00:00+05:30', unitsSold: null },
+    ] })
+    const result = totals({ fuelReadings: [changed], endReadings: { 1: '1030' }, cash: '3200' })
+
+    expect(result.perFuelSales[0].parts).toEqual([{ units: 10, pricePerUnit: 100 }, { units: 20, pricePerUnit: 110 }])
+    expect(result.perFuelSales[0].sold).toBe(30)
+    expect(result.totalDue).toBe(3200)
+    expect(result.isBalanced).toBe(true)
+    expect(totals({ fuelReadings: [changed], endReadings: { 1: '1005' } }).readingsBelowStart).toBe(true)
+  })
+
+  it('closes a gap within the rounding allowance as balanced and keeps it as rounding', () => {
+    const withinRounding = totals({ cash: '999.50', roundingTolerance: 1 })
+    expect(withinRounding.isBalanced).toBe(true)
+    expect(withinRounding.hasDiscrepancy).toBe(false)
+    expect(withinRounding.roundingPaise).toBe(-50)
+
+    const beyond = totals({ cash: '998.99', roundingTolerance: 1 })
+    expect(beyond.hasDiscrepancy).toBe(true)
+    expect(beyond.roundingPaise).toBe(0)
+  })
+
+  it('sends every difference to the owner when the approval limit is zero', () => {
+    expect(needsOwnerApproval(-0.5, 0)).toBe(true)
+    expect(needsOwnerApproval(-500, 500)).toBe(false)
+    expect(needsOwnerApproval(-500.01, 500)).toBe(true)
+  })
+
   it('counts confirmed drops as collected, so only the bag is compared with what is left', () => {
     const balanced = totals({ cash: '400', cashDropped: 600 })
     expect(balanced.totalCollected).toBe(1000)

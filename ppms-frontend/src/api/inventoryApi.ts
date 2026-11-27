@@ -247,6 +247,8 @@ export interface ReconciliationPeriod {
   withinTolerance: boolean | null
   cumulativeVarianceLitres: number | null
   cumulativeVariancePercent: number | null
+  /** Litres shifts closed in the period sold beyond book stock: a delivery may not be recorded yet. */
+  stockShortfallLitres?: number | null
 }
 
 export type ReconciliationStatus = 'WITHIN_LIMITS' | 'LOSS_ABOVE_LIMIT' | 'GAIN_ABOVE_LIMIT' | 'NO_DATA'

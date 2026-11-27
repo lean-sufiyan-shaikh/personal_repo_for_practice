@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { ShieldCheck, Truck, Vault } from 'lucide-react'
+import { Clock, ShieldCheck, Truck, Vault } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { parseApiError } from '../../utils/apiError'
 import { pumpApi } from '../../api/pumpApi'
@@ -17,12 +17,20 @@ import { SetupSaveBar } from './SetupSaveBar'
 const MAX_RECEIPT_TOLERANCE_PERCENT = 5
 const MAX_DENSITY_TOLERANCE = 50
 const MAX_SAFE_COUNT_TOLERANCE = 10_000
+const MAX_ESCALATION_THRESHOLD = 10_000_000
+const MAX_ROUNDING_TOLERANCE = 100
+const MAX_EARLY_START_GRACE_MINUTES = 120
+const DEFAULT_ESCALATION_THRESHOLD = 500
+const DEFAULT_ROUNDING_TOLERANCE = 1
+const DEFAULT_EARLY_START_GRACE_MINUTES = 30
 const DEFAULT_SAFE_COUNT_TOLERANCE = 10
 const DEFAULT_SAFE_COUNT_CUTOFF = '10:00'
 const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d$/
 
 interface SettingsText {
   threshold: string
+  roundingTolerance: string
+  earlyStartGrace: string
   receiptTolerance: string
   densityTolerance: string
   safeCountTolerance: string
@@ -31,7 +39,9 @@ interface SettingsText {
 
 function textOf(pump: PumpSummary): SettingsText {
   return {
-    threshold: pump.discrepancyEscalationThreshold?.toString() ?? '',
+    threshold: String(pump.discrepancyEscalationThreshold ?? DEFAULT_ESCALATION_THRESHOLD),
+    roundingTolerance: String(pump.roundingTolerance ?? DEFAULT_ROUNDING_TOLERANCE),
+    earlyStartGrace: String(pump.earlyStartGraceMinutes ?? DEFAULT_EARLY_START_GRACE_MINUTES),
     receiptTolerance: String(pump.receiptTolerancePercent ?? DEFAULT_RECEIPT_TOLERANCE_PERCENT),
     densityTolerance: String(pump.densityTolerance ?? DEFAULT_DENSITY_TOLERANCE),
     safeCountTolerance: String(pump.safeCountTolerance ?? DEFAULT_SAFE_COUNT_TOLERANCE),
@@ -54,7 +64,6 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
   const { addToast } = useToastStore()
   const [saved, setSaved] = useState<SettingsText>(() => textOf(pump))
   const [values, setValues] = useState<SettingsText>(saved)
-  const [fieldError, setFieldError] = useState<string | null>(null)
   const [error, setError]         = useState<string | null>(null)
 
   const mutation = useMutation({
@@ -70,27 +79,26 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
 
   const change = (field: keyof SettingsText, value: string) => {
     setValues(prev => ({ ...prev, [field]: value }))
-    if (field === 'threshold') setFieldError(null)
     setError(null)
   }
 
+  const thresholdValid = inRangeFromZero(values.threshold, MAX_ESCALATION_THRESHOLD)
+  const roundingValid = inRangeFromZero(values.roundingTolerance, MAX_ROUNDING_TOLERANCE)
+  const graceValid = inRangeFromZero(values.earlyStartGrace, MAX_EARLY_START_GRACE_MINUTES)
+    && Number.isInteger(Number(values.earlyStartGrace))
   const receiptToleranceValid = inRange(values.receiptTolerance, MAX_RECEIPT_TOLERANCE_PERCENT)
   const densityToleranceValid = inRange(values.densityTolerance, MAX_DENSITY_TOLERANCE)
   const safeToleranceValid = inRangeFromZero(values.safeCountTolerance, MAX_SAFE_COUNT_TOLERANCE)
   const safeCutoffValid = TIME_OF_DAY.test(values.safeCountCutoff)
+  const allValid = thresholdValid && roundingValid && graceValid && receiptToleranceValid && densityToleranceValid
+    && safeToleranceValid && safeCutoffValid
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
     const req: UpdatePumpSettingsRequest = {}
-    const threshold = values.threshold.trim()
-    if (threshold !== saved.threshold.trim()) {
-      const num = threshold === '' ? null : parseFloat(threshold)
-      if (num !== null && (isNaN(num) || num < 0)) {
-        setFieldError(t('settings.invalidAmount'))
-        return
-      }
-      req.discrepancyEscalationThreshold = num
-    }
+    if (values.threshold !== saved.threshold) req.discrepancyEscalationThreshold = Number(values.threshold)
+    if (values.roundingTolerance !== saved.roundingTolerance) req.roundingTolerance = Number(values.roundingTolerance)
+    if (values.earlyStartGrace !== saved.earlyStartGrace) req.earlyStartGraceMinutes = Number(values.earlyStartGrace)
     if (values.receiptTolerance !== saved.receiptTolerance) req.receiptTolerancePercent = Number(values.receiptTolerance)
     if (values.densityTolerance !== saved.densityTolerance) req.densityTolerance = Number(values.densityTolerance)
     if (values.safeCountTolerance !== saved.safeCountTolerance) req.safeCountTolerance = Number(values.safeCountTolerance)
@@ -99,26 +107,37 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
   }
 
   const typedLimit = Number(values.threshold)
-  const effect = values.threshold.trim() === ''
-    ? t('settings.effectOff')
-    : Number.isFinite(typedLimit) && typedLimit >= 0
-    ? t('settings.effectOn', { amount: formatCurrency(typedLimit) })
-    : null
-  const hasChanges = values.threshold.trim() !== saved.threshold.trim()
-    || values.receiptTolerance !== saved.receiptTolerance || values.densityTolerance !== saved.densityTolerance
-    || values.safeCountTolerance !== saved.safeCountTolerance || values.safeCountCutoff !== saved.safeCountCutoff
+  const thresholdEffect = typedLimit === 0
+    ? t('settings.effectAll')
+    : t('settings.effectOn', { amount: formatCurrency(typedLimit) })
+  const hasChanges = (Object.keys(values) as Array<keyof SettingsText>).some((field) => values[field] !== saved[field])
 
   return (
     <form onSubmit={handleSave} className="space-y-4">
       <SetupFormGroup icon={ShieldCheck} title={t('settings.escalationTitle')} hint={t('settings.explanation')}>
         <FormGrid>
-          <FormField
-            label={<>{t('settings.thresholdLabel')} <span className="text-ink-3 font-normal">{t('common:fields.optionalSuffix')}</span></>}
-            help={effect ?? undefined}
-            error={fieldError ?? undefined}
-          >
+          <FormField label={t('settings.thresholdLabel')}
+            help={thresholdValid ? thresholdEffect : undefined}
+            error={thresholdValid ? undefined : t('settings.invalidAmount')}>
             <NumericInput min="0" step="1" unit="₹" value={values.threshold}
               onChange={(e) => change('threshold', e.target.value)} />
+          </FormField>
+          <FormField label={t('settings.roundingLabel')}
+            help={roundingValid ? t('settings.roundingEffect', { amount: formatCurrency(Number(values.roundingTolerance)) }) : undefined}
+            error={roundingValid ? undefined : t('settings.roundingInvalid', { max: formatCurrency(MAX_ROUNDING_TOLERANCE) })}>
+            <NumericInput min="0" max={MAX_ROUNDING_TOLERANCE} step="0.01" unit="₹" value={values.roundingTolerance}
+              onChange={(e) => change('roundingTolerance', e.target.value)} />
+          </FormField>
+        </FormGrid>
+      </SetupFormGroup>
+
+      <SetupFormGroup icon={Clock} title={t('settings.graceTitle')} hint={t('settings.graceExplanation')}>
+        <FormGrid>
+          <FormField label={t('settings.graceLabel')}
+            help={graceValid ? t('settings.graceEffect', { count: Number(values.earlyStartGrace) }) : undefined}
+            error={graceValid ? undefined : t('settings.graceInvalid', { max: MAX_EARLY_START_GRACE_MINUTES })}>
+            <NumericInput min="0" max={MAX_EARLY_START_GRACE_MINUTES} step="1" unit={t('settings.minutesUnit')}
+              value={values.earlyStartGrace} onChange={(e) => change('earlyStartGrace', e.target.value)} />
           </FormField>
         </FormGrid>
       </SetupFormGroup>
@@ -164,7 +183,7 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
         </FormGrid>
       </SetupFormGroup>
 
-      <SetupSaveBar hasChanges={hasChanges && receiptToleranceValid && densityToleranceValid && safeToleranceValid && safeCutoffValid} isSaving={mutation.isPending}
+      <SetupSaveBar hasChanges={hasChanges && allValid} isSaving={mutation.isPending}
         saveLabel={t('settings.save')} error={error} />
     </form>
   )

@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { serverMessage } from '../../../utils/apiError'
+import { parseApiError } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { reportApi } from '../../../api/reportApi'
@@ -187,7 +187,7 @@ export function InventoryLotsTab({ pumpId }: { pumpId: number }) {
         </p>
       )}
 
-      {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
+      {error && <ErrorBox message={parseApiError(error, t('controls.loadFailed'))} />}
 
       {/* Single-tank view */}
       {data && paged && query !== '' && (

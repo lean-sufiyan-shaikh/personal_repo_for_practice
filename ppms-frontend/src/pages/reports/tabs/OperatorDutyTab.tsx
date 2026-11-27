@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { serverMessage } from '../../../utils/apiError'
+import { parseApiError } from '../../../utils/apiError'
 import { useQuery } from '@tanstack/react-query'
 import { userApi } from '../../../api/userApi'
 import { reportApi } from '../../../api/reportApi'
@@ -27,11 +27,15 @@ import { shiftUrl } from '../../../utils/drillDown'
 import { codeLabel } from '../../../constants/labels'
 import { printWhenFontsReady } from '../../../i18n/fonts'
 import { discrepancyTypeLabel } from '../reportFormat'
+import { formatIstDateTime } from '../../../utils/date'
+
+const CLOSE_TIME = { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' } as const
 
 const CSV_COLUMNS: CsvColumn<OperatorDutyShiftLine>[] = [
   { header: 'Shift', value: (row) => row.shiftId, kind: 'number' },
   { header: 'Date', value: (row) => row.shiftDate, kind: 'date' },
   { header: 'Window', value: (row) => row.shiftWindow },
+  { header: 'Closed at', value: (row) => (row.closedAt ? formatIstDateTime(row.closedAt) : '') },
   { header: 'Amount due', value: (row) => row.totalAmountDue, kind: 'money' },
   { header: 'Cash', value: (row) => row.cashCollected, kind: 'money' },
   { header: 'UPI', value: (row) => row.upiCollected, kind: 'money' },
@@ -47,6 +51,10 @@ function dutyColumns(t: TFunction<['reports', 'common']>): DataTableColumn<Opera
     { key: 'shift', header: t('columns.shift'), cell: (s) => <Link to={shiftUrl(s.shiftId)} className="ui-link">{t('common:shiftNumber', { id: s.shiftId })}</Link> },
     { key: 'date', header: t('columns.date'), cell: (s) => <span className="text-ink-2">{s.shiftDate}</span> },
     { key: 'window', header: t('columns.window'), cell: (s) => <span className="text-ink-3">{s.shiftWindow}</span> },
+    {
+      key: 'closed', header: t('columns.closedAt'),
+      cell: (s) => <span className="text-ink-3 tabular-nums">{s.closedAt ? formatIstDateTime(s.closedAt, CLOSE_TIME) : '—'}</span>,
+    },
     { key: 'due', header: t('columns.amountDue'), numeric: true, cell: (s) => <MoneyText value={s.totalAmountDue} className="font-medium text-ink" /> },
     { key: 'cash', header: t('common:paymentMethods.CASH'), numeric: true, cell: (s) => <MoneyText value={s.cashCollected} className="text-ink-2" /> },
     { key: 'credit', header: t('common:paymentMethods.CREDIT'), numeric: true, cell: (s) => <MoneyText value={s.creditTotal} tone="warn" /> },
@@ -130,7 +138,7 @@ export function OperatorDutyTab({ pumpId }: { pumpId: number }) {
         />
       </ReportFilterBar>
 
-      {error && <ErrorBox message={serverMessage(error) ?? t('controls.loadFailed')} />}
+      {error && <ErrorBox message={parseApiError(error, t('controls.loadFailed'))} />}
 
       {/* Screen: paginated data */}
       {data && paged && (

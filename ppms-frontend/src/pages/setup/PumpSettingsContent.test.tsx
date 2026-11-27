@@ -39,6 +39,40 @@ describe('PumpSettingsContent', () => {
     expect(save).toBeDisabled()
   })
 
+  it('treats a limit of ₹0 as sending every discrepancy to the owner and refuses a blank limit', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PumpSettingsContent pump={pump} onUpdated={vi.fn()} />)
+
+    const limit = screen.getByRole('spinbutton', { name: /Owner approval limit/ })
+    await user.clear(limit)
+    expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled()
+    await user.type(limit, '0')
+
+    expect(limit).toHaveAccessibleDescription(/every shortage or overage needs Owner or Admin/)
+  })
+
+  it('saves the rounding allowance and the early start grace, starting from ₹1 and 30 minutes', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PumpSettingsContent pump={pump} onUpdated={vi.fn()} />)
+
+    const rounding = screen.getByRole('spinbutton', { name: 'Rounding allowance' })
+    const grace = screen.getByRole('spinbutton', { name: 'Early start grace' })
+    expect(rounding).toHaveValue(1)
+    expect(grace).toHaveValue(30)
+    expect(grace).toHaveAccessibleDescription(/Up to 30 minutes before a window starts/)
+
+    await user.clear(grace)
+    await user.type(grace, '121')
+    expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled()
+    await user.clear(grace)
+    await user.type(grace, '15')
+    await user.clear(rounding)
+    await user.type(rounding, '2')
+    await user.click(screen.getByRole('button', { name: 'Save settings' }))
+
+    expect(pumpApi.updatePumpSettings).toHaveBeenCalledWith(3, { roundingTolerance: 2, earlyStartGraceMinutes: 15 })
+  })
+
   it('saves the receipt and density tolerances, starting from the defaults', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PumpSettingsContent pump={pump} onUpdated={vi.fn()} />)

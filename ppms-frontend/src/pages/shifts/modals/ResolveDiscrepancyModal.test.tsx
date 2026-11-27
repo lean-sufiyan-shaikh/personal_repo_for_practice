@@ -2,6 +2,7 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { shiftApi } from '../../../api/shiftApi'
+import { useAuthStore } from '../../../store/authStore'
 import { renderWithProviders } from '../../../test/renderWithProviders'
 import type { Shift } from '../../../types/shift'
 import { ResolveDiscrepancyModal } from './ResolveDiscrepancyModal'
@@ -97,5 +98,45 @@ describe('ResolveDiscrepancyModal', () => {
     })
 
     expect(screen.getByText(/Under investigation by Meera since/)).toHaveTextContent('Checking CCTV')
+  })
+  it('recovers part of a shortage in cash, leaving the rest to resolve another way', async () => {
+    const user = userEvent.setup()
+    renderModal(shortShift)
+
+    await chooseAction(user, 'Cash Recovery')
+    const amount = screen.getByRole('spinbutton', { name: 'Cash recovered' })
+    expect(amount).toHaveAccessibleDescription(/Leave blank for the full ₹200.00/)
+    await user.type(amount, '250')
+    await user.click(screen.getByRole('button', { name: 'Resolve' }))
+    expect(shiftApi.resolveDiscrepancy).not.toHaveBeenCalled()
+
+    await user.clear(amount)
+    await user.type(amount, '80')
+    await user.click(screen.getByRole('button', { name: 'Resolve' }))
+    expect(shiftApi.resolveDiscrepancy).toHaveBeenCalledWith(3, 11, { resolutionAction: 'CASH_RECOVERY', recoveredAmount: 80 })
+  })
+
+  it('after a part recovery offers only deduction or waiver for the rest and shows the notes so far', async () => {
+    const user = userEvent.setup()
+    renderModal({ ...shortShift, cashRecoveryAmount: 80, investigationHistory: [
+      { note: 'Checking CCTV', writtenByName: 'Meera', writtenAt: '2026-03-15T10:00:00Z' },
+      { note: 'Operator agreed to pay', writtenByName: 'Owner', writtenAt: '2026-03-16T10:00:00Z' },
+    ] })
+
+    expect(screen.getByText('Still to resolve').nextSibling).toHaveTextContent('₹120.00')
+    expect(screen.getByText('Operator agreed to pay')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^Resolution action/ }))
+    expect(screen.queryByRole('option', { name: 'Cash Recovery' })).not.toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Salary Deduction' })).toBeInTheDocument()
+  })
+
+  it('does not offer a waiver to the manager who closed the shift', async () => {
+    useAuthStore.setState({ user: { userId: 44, fullName: 'Manager', role: 'MANAGER', assignedPumpId: 3 }, isAuthenticated: true })
+    const user = userEvent.setup()
+    renderModal({ ...shortShift, closedByUserId: 44 })
+
+    expect(screen.getByText(/You closed this shift/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^Resolution action/ }))
+    expect(screen.queryByRole('option', { name: 'Waived' })).not.toBeInTheDocument()
   })
 })

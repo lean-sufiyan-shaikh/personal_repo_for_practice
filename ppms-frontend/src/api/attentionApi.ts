@@ -19,6 +19,7 @@ export type AttentionType =
   | 'SHORTAGE_CLAIMS_OPEN'
   | 'PENDING_CASH_DROPS'
   | 'DAY_CLOSES_UNAPPROVED'
+  | 'STOCK_SHORTFALL'
 
 /** Most urgent first; the server already returns items in this order. */
 export type AttentionSeverity = 'HIGH' | 'MEDIUM' | 'LOW'

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { LoadingButton } from '../../../components/LoadingButton'
 import { MoneyText } from '../../../components/AmountText'
 import { DiscrepancyBadge } from '../components/DiscrepancyBadge'
+import { formatCurrency } from '../../../utils/format'
 import { discrepancyTypeOf } from './closeShiftTotals'
 
 interface Props {
@@ -14,14 +15,19 @@ interface Props {
   creditEntryCount: number
   isEscalated: boolean
   printError: string | null
+  /** Collected minus due that closed as rounding; zero when there was none. */
+  roundingAdjustment: number
+  /** Nozzles whose litres were priced at the old and the new price after a price change. */
+  priceChangeLines: Array<{ label: string; text: string }>
 }
 
 /** The one confirmation after a shift is closed or handed over, with what to do next. */
 export function CloseShiftSummary({
-  incomingOperatorName, totalDue, totalCollected, diff, creditEntryCount, isEscalated, printError,
+  incomingOperatorName, totalDue, totalCollected, diff, creditEntryCount, isEscalated, printError, roundingAdjustment,
+  priceChangeLines,
 }: Props) {
   const { t } = useTranslation(['shifts', 'common'])
-  const discrepancyType = discrepancyTypeOf(diff)
+  const discrepancyType = roundingAdjustment !== 0 ? null : discrepancyTypeOf(diff)
   const figures: Array<[string, ReactNode]> = [
     [t('close.summary.totalDue'), <MoneyText value={totalDue} />],
     [t('close.summary.collected'), <MoneyText value={totalCollected} />],
@@ -42,6 +48,17 @@ export function CloseShiftSummary({
           </div>
         ))}
       </dl>
+      {priceChangeLines.length > 0 && (
+        <div className="ui-card-plain space-y-1 px-3 py-2 text-sm">
+          <p className="font-medium text-ink">{t('close.summary.priceChanged')}</p>
+          {priceChangeLines.map((line) => (
+            <p key={line.label} className="text-ink-2 tabular-nums">{line.label}: {line.text}</p>
+          ))}
+        </div>
+      )}
+      {roundingAdjustment !== 0 && (
+        <p className="text-ink-2">{t('close.summary.rounding', { amount: formatCurrency(Math.abs(roundingAdjustment)) })}</p>
+      )}
       {incomingOperatorName && (
         <p className="ui-alert ui-alert-success">{t('close.summary.newShiftOpen', { name: incomingOperatorName })}</p>
       )}
