@@ -26,6 +26,7 @@ import settlements from './settlements.json'
 import setup from './setup.json'
 import shifts from './shifts.json'
 import superadmin from './superadmin.json'
+import suppliers from './suppliers.json'
 
 /** Bundled with the app: the source of every key, the fallback for missing translations, and what tests render. */
 export const enResources = {
@@ -57,4 +58,5 @@ export const enResources = {
   setup,
   shifts,
   superadmin,
+  suppliers,
 }

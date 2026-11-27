@@ -13,7 +13,7 @@ vi.mock('../../../api/shiftApi', () => ({ shiftApi: { backfillShift: vi.fn() } }
 vi.mock('../../../api/shiftDefinitionApi', () => ({ shiftDefinitionApi: { getForDate: vi.fn() } }))
 vi.mock('../../../api/userApi', () => ({ userApi: { getOperators: vi.fn() } }))
 vi.mock('../../../api/fuelPriceApi', () => ({ fuelPriceApi: { getForDate: vi.fn() } }))
-vi.mock('../../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn(), getDUs: vi.fn() } }))
+vi.mock('../../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn(), getDUs: vi.fn(), getMyPumps: vi.fn().mockResolvedValue([]) } }))
 
 const du: DUOption = {
   id: 5, pumpId: 3, duNumber: 1, name: 'DU 1', status: 'ACTIVE',
@@ -48,6 +48,7 @@ describe('useBackfillForm totals', () => {
     vi.mocked(shiftDefinitionApi.getForDate).mockResolvedValue([])
     vi.mocked(userApi.getOperators).mockResolvedValue([])
     vi.mocked(pumpApi.getCreditClients).mockResolvedValue([])
+    vi.mocked(pumpApi.getMyPumps).mockResolvedValue([])
     vi.mocked(fuelPriceApi.getForDate).mockResolvedValue([
       { fuelType: 'PETROL', pricePerUnit: 100 },
       { fuelType: 'DIESEL', pricePerUnit: null },
@@ -95,5 +96,23 @@ describe('useBackfillForm totals', () => {
     act(() => result.current.setClosingReadings({ 1: '999', 2: '505' }))
     expect(result.current.litersForNozzle(1)).toBeNull()
     expect(result.current.totalExpected).toBeNull()
+  })
+
+  it('leaves test litres out of the litres sold and the amount expected', async () => {
+    const { result } = await renderFilledForm()
+    act(() => result.current.setTestLitres({ 1: '5' }))
+    expect(result.current.meterLitresForNozzle(1)).toBe(10)
+    expect(result.current.litersForNozzle(1)).toBe(5)
+    expect(result.current.nozzleExpected).toEqual({ 1: 500, 2: 450 })
+    expect(result.current.totalExpected).toBe(950)
+  })
+
+  it('flags test litres above the meter litres and asks for a note above the pump limit', async () => {
+    vi.mocked(pumpApi.getMyPumps).mockResolvedValue([{ id: 3, maxTestLitresPerNozzle: 4 } as Awaited<ReturnType<typeof pumpApi.getMyPumps>>[number]])
+    const { result } = await renderFilledForm()
+    act(() => result.current.setTestLitres({ 2: '6' }))
+    expect(result.current.testLitresInvalidFor(2)).toBe(true)
+    act(() => result.current.setTestLitres({ 1: '4.5' }))
+    await waitFor(() => expect(result.current.testLitresNoteNeeded).toBe(true))
   })
 })

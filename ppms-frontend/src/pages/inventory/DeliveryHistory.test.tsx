@@ -12,7 +12,7 @@ vi.mock('../../api/inventoryApi', () => ({
 
 function delivery(id: number, invoiceReference: string, deliveryDate: string, createdAt: string): TankerDelivery {
   return {
-    id, pumpId: 6, tankId: 1, tankIdentifier: 'T1', fuelType: 'PETROL', quantityDelivered: 100,
+    id, pumpId: 6, tankId: 1, tankIdentifier: 'T1', fuelType: 'PETROL', supplierId: null, supplierName: null, quantityDelivered: 100,
     costPricePerUnit: 90, totalCost: 9000, billTotal: null, tankerName: null, deliveryDate,
     invoiceReference, loggedByUserName: 'Owner', createdAt, checkStatus: 'NOT_CHECKED', densityFlagged: false,
     receiptCheck: null, shortageClaimId: null, shortageClaimStatus: null,

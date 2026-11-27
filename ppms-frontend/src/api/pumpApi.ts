@@ -29,6 +29,10 @@ export interface PumpSummary {
   earlyStartGraceMinutes?: number
   /** A shift whose collections differ from the amount due by at most this many rupees closes balanced; ₹1 by default. */
   roundingTolerance?: number
+  /** The measure each nozzle is tested with each day, offered at close; 5 L by default. */
+  testVolumeLitres?: number
+  /** Test litres above this on one nozzle in one shift need a note; 10 L by default. */
+  maxTestLitresPerNozzle?: number
   dus: DUOption[]
 }
 
@@ -47,6 +51,8 @@ export interface UpdatePumpSettingsRequest {
   safeCountCutoffTime?: string
   earlyStartGraceMinutes?: number
   roundingTolerance?: number
+  testVolumeLitres?: number
+  maxTestLitresPerNozzle?: number
 }
 
 export interface CreatePumpRequest {

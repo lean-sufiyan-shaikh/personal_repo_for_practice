@@ -15,6 +15,9 @@ export interface CloseShiftDraft {
   card: string
   fleetCard: string
   discrepancyReason: string
+  /** Missing in drafts saved before test litres could be entered. */
+  testLitres?: Record<number, string>
+  testLitresNote?: string
   handoverDetails: HandoverDetails
   creditRows: CreditRow[]
   submitAttempt: SubmitAttempt | null

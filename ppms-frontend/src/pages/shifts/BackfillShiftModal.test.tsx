@@ -14,7 +14,7 @@ vi.mock('../../api/shiftApi', () => ({ shiftApi: { backfillShift: vi.fn() } }))
 vi.mock('../../api/shiftDefinitionApi', () => ({ shiftDefinitionApi: { getForDate: vi.fn() } }))
 vi.mock('../../api/userApi', () => ({ userApi: { getOperators: vi.fn() } }))
 vi.mock('../../api/fuelPriceApi', () => ({ fuelPriceApi: { getForDate: vi.fn() } }))
-vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn(), getDUs: vi.fn() } }))
+vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn(), getDUs: vi.fn(), getMyPumps: vi.fn().mockResolvedValue([]) } }))
 
 const du: DUOption = {
   id: 5, pumpId: 3, duNumber: 1, name: 'DU 1', status: 'ACTIVE',

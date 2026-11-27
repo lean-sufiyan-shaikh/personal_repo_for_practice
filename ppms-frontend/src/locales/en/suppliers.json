@@ -1,0 +1,117 @@
+{
+  "page": {
+    "title": "Suppliers",
+    "subtitle": "What the pump owes each oil company for tanker deliveries, and the payments made to them.",
+    "noPump": "Select a pump to see its suppliers.",
+    "add": "Add supplier"
+  },
+  "balances": {
+    "title": "Supplier balances",
+    "description": "Unpaid invoices are aged from the delivery date; payments clear the oldest first.",
+    "supplier": "Supplier",
+    "outstanding": "Outstanding",
+    "advance": "Advance paid",
+    "lastDelivery": "Last delivery",
+    "default": "Default",
+    "inactive": "Inactive",
+    "total": "Total",
+    "unassigned_one": "{{count}} tanker invoice worth {{amount}} is not booked to any supplier, so it is in no balance below.",
+    "unassigned_other": "{{count}} tanker invoices worth {{amount}} are not booked to any supplier, so they are in no balance below.",
+    "empty": "No suppliers yet",
+    "emptyHint": "Add the oil companies that deliver fuel to this pump."
+  },
+  "aging": {
+    "days0To15": "0–15 days",
+    "days16To30": "16–30 days",
+    "days31To60": "31–60 days",
+    "over60Days": "Over 60 days"
+  },
+  "detail": {
+    "loading": "Supplier",
+    "back": "All suppliers",
+    "summary": "Balance summary",
+    "edit": "Edit",
+    "makeDefault": "Make default",
+    "defaultSet": "{{name}} is now the default supplier for deliveries.",
+    "defaultFailed": "Could not make this the default supplier.",
+    "asOf": "As of {{date}}",
+    "openingBalanceNote": "includes the opening balance of {{date}}"
+  },
+  "ledger": {
+    "title": "Ledger",
+    "description": "Deliveries add to what the pump owes; payments and credit notes from settled shortage claims reduce it.",
+    "date": "Date",
+    "type": "Entry",
+    "reference": "Reference",
+    "details": "Details",
+    "debit": "Owed",
+    "credit": "Paid / credited",
+    "balance": "Balance",
+    "total": "Total",
+    "empty": "Nothing recorded for this supplier yet",
+    "creditNoteFor": "Shortage claim on invoice {{invoice}}",
+    "types": {
+      "OPENING_BALANCE": "Opening balance",
+      "DELIVERY": "Tanker invoice",
+      "CREDIT_NOTE": "Credit note",
+      "PAYMENT": "Payment"
+    }
+  },
+  "payments": {
+    "title": "Payments",
+    "date": "Date",
+    "mode": "Mode",
+    "reference": "Reference",
+    "recordedBy": "Recorded by",
+    "amount": "Amount",
+    "status": "Status",
+    "active": "Counted",
+    "voided": "Voided: {{reason}}",
+    "actions": "Actions",
+    "empty": "No payments recorded yet"
+  },
+  "payment": {
+    "record": "Record payment",
+    "title": "Record supplier payment",
+    "subtitle": "{{name}} · outstanding {{amount}}",
+    "amount": "Amount paid",
+    "date": "Payment date",
+    "mode": "Payment mode",
+    "reference": "Reference / UTR",
+    "chequeNumber": "Cheque number",
+    "cashNote": "A cash payment is taken out of the safe.",
+    "saving": "Recording…",
+    "saved": "{{amount}} paid to {{name}} recorded.",
+    "failed": "Could not record the payment."
+  },
+  "void": {
+    "action": "Void",
+    "title": "Void payment",
+    "voiding": "Voiding…",
+    "explanation": "The payment stops counting towards the supplier's balance. It stays listed with your reason.",
+    "explanationCash": "The payment stops counting towards the supplier's balance and its cash goes back into the safe. It stays listed with your reason.",
+    "needReason": "A reason",
+    "voided": "Payment voided.",
+    "failed": "Could not void the payment."
+  },
+  "form": {
+    "addTitle": "Add supplier",
+    "editTitle": "Edit supplier",
+    "name": "Supplier name",
+    "contactName": "Contact person",
+    "phone": "Phone",
+    "email": "Email",
+    "openingBalance": "Opening balance",
+    "openingBalanceHelp": "What the pump owed this supplier before the deliveries recorded here; enter a negative amount for an advance.",
+    "openingBalanceDate": "Opening balance as of",
+    "save": "Save supplier",
+    "saving": "Saving…",
+    "saved": "{{name}} saved.",
+    "failed": "Could not save the supplier."
+  },
+  "delivery": {
+    "supplier": "Supplier",
+    "unassigned": "Not assigned",
+    "unassignedHint": "Book the delivery to the oil company that billed it, so it shows in that supplier's balance."
+  }
+}

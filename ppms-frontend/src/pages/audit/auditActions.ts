@@ -93,6 +93,9 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   BANK_LINES_AUTO_MATCHED:            'ok',
   SUPPLIER_PAYMENT_RECORDED:          'ok',
   SUPPLIER_PAYMENT_VOIDED:            'bad',
+  SUPPLIER_OPENING_BALANCE_SET:       'warn',
+  SUPPLIER_DEFAULT_SET:               'neutral',
+  TEST_LITRES_ABOVE_MAX:              'warn',
   PUMP_CONFIG_UPDATED:                'neutral',
   // Payment settlements
   SETTLEMENT_RECORDED:                'ok',

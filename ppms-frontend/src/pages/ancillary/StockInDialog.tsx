@@ -17,6 +17,10 @@ import { StillNeeded } from '../../components/StillNeeded'
 import { parseApiError } from '../../utils/apiError'
 import { ReviewList, ReviewRow } from './ReviewRow'
 import { fmtCurrency, fmtDate } from './ancillaryFormat'
+import { PurchaseGstFields } from './PurchaseGstFields'
+import { PurchaseGstReviewRows } from './PurchaseGstReviewRows'
+import { emptyPurchaseGstForm, missingPurchaseGstFields, taxableValueOf, toPurchaseGstRequest } from './purchaseGst'
+import type { PurchaseGstForm } from './purchaseGst'
 
 interface FieldErrors {
   product?: string
@@ -46,6 +50,7 @@ export function StockInDialog({
     deliveryDate: today,
     invoiceReference: '',
   })
+  const [gstForm, setGstForm] = useState<PurchaseGstForm>(() => emptyPurchaseGstForm(today))
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -68,6 +73,8 @@ export function StockInDialog({
   const totalCost = hasQuantity && form.costPricePerUnit > 0
     ? form.quantityUnits * form.costPricePerUnit
     : null
+  const gstTaxableValue = taxableValueOf(gstForm, totalCost)
+  const missingGst = missingPurchaseGstFields(gstForm, gstTaxableValue, form.invoiceReference ?? '')
 
   const validate = (): FieldErrors => {
     const errors: FieldErrors = {}
@@ -88,7 +95,7 @@ export function StockInDialog({
   }
 
   const handleSubmit = () => {
-    if (Object.keys(validate()).length > 0) {
+    if (Object.keys(validate()).length > 0 || missingGst.length > 0) {
       setStep('form')
       return
     }
@@ -99,6 +106,7 @@ export function StockInDialog({
         costPricePerUnit: form.costPricePerUnit,
         deliveryDate: form.deliveryDate,
         invoiceReference: form.invoiceReference?.trim() || undefined,
+        gst: toPurchaseGstRequest(gstForm, gstTaxableValue),
       },
     })
   }
@@ -108,6 +116,7 @@ export function StockInDialog({
     ...(hasQuantity ? [] : [t('stockIn.needQuantity')]),
     ...(form.costPricePerUnit > 0 ? [] : [t('stockIn.needCost')]),
     ...(form.deliveryDate ? [] : [t('stockIn.needDate')]),
+    ...missingGst.map(field => t(`stockIn.gst.need.${field}`)),
   ]
 
   const stockAfter = selectedProduct && hasQuantity ? selectedProduct.currentStockUnits + form.quantityUnits : null
@@ -196,6 +205,17 @@ export function StockInDialog({
               </FormField>
             </FormGrid>
 
+            <label className="flex min-h-11 items-center gap-2 text-sm text-ink-2 select-none">
+              <input type="checkbox" checked={gstForm.enabled}
+                onChange={e => setGstForm(g => ({ ...g, enabled: e.target.checked }))}
+                className="rounded accent-primary w-4 h-4" />
+              {t('stockIn.gst.toggle')}
+            </label>
+            {gstForm.enabled && (
+              <PurchaseGstFields pumpId={pumpId} form={gstForm} taxableValue={gstTaxableValue}
+                onChange={changes => setGstForm(g => ({ ...g, ...changes }))} />
+            )}
+
             <LiveFigures
               label={t('stockIn.totalCost')}
               figures={[
@@ -235,6 +255,7 @@ export function StockInDialog({
               {stockAfter != null && <ReviewRow label={t('stockIn.stockAfter')} value={t('fields.quantityUnits', { count: stockAfter })} />}
               <ReviewRow label={t('stockIn.totalCost')} value={<MoneyText value={totalCost} />} isResult />
             </ReviewList>
+            {gstForm.enabled && <PurchaseGstReviewRows pumpId={pumpId} form={gstForm} taxableValue={gstTaxableValue} />}
             {serverError && <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>}
           </>
         )}

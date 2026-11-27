@@ -123,6 +123,9 @@ export interface TankerDelivery {
   tankId: number
   tankIdentifier: string
   fuelType: string
+  /** Null when the delivery is booked to no supplier. */
+  supplierId: number | null
+  supplierName: string | null
   quantityDelivered: number
   costPricePerUnit: number
   totalCost: number
@@ -144,6 +147,8 @@ export interface TankerDelivery {
 
 export interface RecordDeliveryRequest {
   tankId: number
+  /** Left out to book the delivery to the pump's default supplier. */
+  supplierId?: number | null
   quantityDelivered: number
   costPricePerUnit: number
   deliveryDate: string   // YYYY-MM-DD
@@ -166,6 +171,8 @@ export interface RecordBatchDeliveryRequest {
   billTotal?: number | null
   /** ID of the tanker (truck) that made this delivery. Required when tanker selection is enforced. */
   tankerId?: number | null
+  /** Null books the delivery to the pump's default supplier, if it has one. */
+  supplierId?: number | null
   items: Array<{
     tankId: number
     quantityDelivered: number

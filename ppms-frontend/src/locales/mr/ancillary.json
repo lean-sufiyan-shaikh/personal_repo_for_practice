@@ -200,7 +200,32 @@
     "needProduct": "उत्पादन",
     "needQuantity": "संख्या",
     "needCost": "खरेदी दर",
-    "needDate": "डिलिव्हरीची तारीख"
+    "needDate": "डिलिव्हरीची तारीख",
+    "gst": {
+      "toggle": "या बिलावर GST आहे (इनपुट टॅक्स क्लेम करा)",
+      "pumpGstinMissing": "खरेदीवर GST नोंदवण्यापूर्वी सेटअप → GST तपशील मध्ये पंपाचा GSTIN जोडा.",
+      "supplierName": "पुरवठादाराचे नाव",
+      "supplierGstin": "पुरवठादार GSTIN",
+      "invoiceDate": "बिलाची तारीख",
+      "taxableValue": "करपात्र मूल्य",
+      "taxableValueHelp": "GST आधीचे मूल्य. रिकामे ठेवल्यास एकूण खर्च घेतला जातो.",
+      "rate": "GST दर",
+      "rateOption": "{{rate}}%",
+      "taxTitle": "या बिलावरील GST",
+      "cgst": "CGST",
+      "sgst": "SGST",
+      "igst": "IGST",
+      "billTotal": "GST सह बिल एकूण",
+      "sameStateNote": "पुरवठादार पंपाच्याच राज्यात आहे, म्हणून GST, CGST आणि SGST मध्ये विभागला जातो.",
+      "otherStateNote": "पुरवठादार दुसऱ्या राज्यात आहे, म्हणून GST हा IGST आहे.",
+      "need": {
+        "supplierName": "पुरवठादाराचे नाव",
+        "supplierGstin": "योग्य पुरवठादार GSTIN",
+        "invoiceDate": "बिलाची तारीख",
+        "taxableValue": "करपात्र मूल्य",
+        "invoiceNumber": "इनव्हॉइस संदर्भ (बिल क्रमांक)"
+      }
+    }
   },
   "stockInTab": {
     "costPerUnit": "खरेदी/नग",

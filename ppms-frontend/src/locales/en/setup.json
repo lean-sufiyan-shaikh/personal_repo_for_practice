@@ -94,7 +94,14 @@
     "graceEffect_one": "Up to {{count}} minute before a window starts, the open-shift form offers it.",
     "graceEffect_other": "Up to {{count}} minutes before a window starts, the open-shift form offers it.",
     "graceInvalid": "Enter whole minutes from 0 to {{max}}.",
-    "minutesUnit": "min"
+    "minutesUnit": "min",
+    "testLitresTitle": "Daily nozzle test",
+    "testLitresExplanation": "Fuel dispensed into the test measure and poured back into the tank is not a sale. At close the operator enters it per nozzle, so it is not charged and stays in stock.",
+    "testVolumeLabel": "Test measure",
+    "testVolumeEffect": "The close form offers {{litres}} L as the test litres of a nozzle.",
+    "maxTestLitresLabel": "Test litres needing a note",
+    "maxTestLitresEffect": "More than {{litres}} L returned on one nozzle in a shift needs a note and is logged.",
+    "testLitresInvalid": "Enter litres from 0 to {{max}}."
   },
   "gst": {
     "saved": "GST details saved",

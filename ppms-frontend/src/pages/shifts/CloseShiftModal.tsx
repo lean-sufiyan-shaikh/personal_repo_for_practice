@@ -33,6 +33,8 @@ import { stillNeededItems, stillNeededLabel } from './close/closeShiftChecklist'
 import { CloseShiftSummaryBar, CloseShiftSummaryPanel } from './close/CloseShiftLiveSummary'
 import type { LiveSummaryFigures, SoldUnits } from './close/CloseShiftLiveSummary'
 import { buildCloseShiftRequest } from './close/closeShiftRequest'
+import { TestLitresFields } from './components/TestLitresFields'
+import { anyAboveTestLimit } from '../../utils/testLitres'
 import { useCloseShiftCreditRows } from './close/useCloseShiftCreditRows'
 import { HandoverFields } from './close/HandoverFields'
 import { EMPTY_HANDOVER_DETAILS } from './close/handoverDetails'
@@ -103,6 +105,8 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   const [card,              setCard]              = useState(() => restoredDraft?.values.card ?? '')
   const [fleetCard,         setFleetCard]         = useState(() => restoredDraft?.values.fleetCard ?? '')
   const [discrepancyReason, setDiscrepancyReason] = useState(() => restoredDraft?.values.discrepancyReason ?? '')
+  const [testLitres,        setTestLitres]        = useState<Record<number, string>>(() => restoredDraft?.values.testLitres ?? {})
+  const [testLitresNote,    setTestLitresNote]    = useState(() => restoredDraft?.values.testLitresNote ?? '')
   const [handoverDetails,   setHandoverDetails]   = useState(() => restoredDraft?.values.handoverDetails ?? EMPTY_HANDOVER_DETAILS)
   const [submitAttempt,     setSubmitAttempt]     = useState<SubmitAttempt | null>(() => restoredDraft?.values.submitAttempt ?? null)
   const [reviewedRequest,   setReviewedRequest]   = useState<CloseShiftRequest | null>(null)
@@ -191,30 +195,34 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   const newCreditTotal = creditRows.reduce((s, r) => s + emptyNum(r.amount), 0)
   const {
     perFuelSales, totalDue, creditTotal, totalCollected, diffPaise, diff,
-    readingsComplete, readingsBelowStart, paymentTouched, isBalanced, hasDiscrepancy, canRoundOff, roundingPaise,
+    readingsComplete, readingsBelowStart, testLitresInvalid, paymentTouched, isBalanced, hasDiscrepancy, canRoundOff,
+    roundingPaise,
   } = computeCloseShiftTotals({
-    fuelReadings: shift.fuelReadings, endReadings, noChangeNozzles,
+    fuelReadings: shift.fuelReadings, endReadings, testLitres, noChangeNozzles,
     cash, upi, card, fleetCard, preRecordedTotal, newCreditTotal, cashDropped,
     roundingTolerance: pumpSettings?.roundingTolerance ?? 0,
   })
   const reasonFilled     = discrepancyReason.trim().length > 0
+  const testLitresNoteNeeded = anyAboveTestLimit(perFuelSales.map((sale) => sale.testLitres), pumpSettings?.maxTestLitresPerNozzle)
   const incomingChosen   = !isHandover || handoverDetails.incomingOperatorId !== null
   const missingReadingCount = shift.fuelReadings.filter((r) => (endReadings[r.nozzleId] ?? '') === '').length
   const stillNeeded = stillNeededItems({
     isHandover, incomingChosen, missingReadingCount, readingsBelowStart, paymentTouched,
     creditRows, hasDiscrepancy, reasonFilled, pendingDropCount: pendingDrops.length,
+    testLitresInvalid, testLitresNoteMissing: testLitresNoteNeeded && testLitresNote.trim() === '',
   }).map((item) => stillNeededLabel(item, t))
   const canClose = stillNeeded.length === 0
   const hasUnsavedChanges = Object.values(endReadings).some(v => v !== '')
     || cash !== '' || upi !== '' || card !== '' || fleetCard !== ''
     || creditRows.length > 0 || discrepancyReason.trim() !== ''
+    || Object.values(testLitres).some(v => v !== '')
     || handoverDetails.incomingOperatorId !== null || handoverDetails.notes.trim() !== ''
 
   // ── Draft kept on this device ───────────────────────────────────────────────
 
   const draftValues: CloseShiftDraft = {
     endReadings, noChangeNozzleIds: [...noChangeNozzles], cash, cashCounts, upi, card, fleetCard, discrepancyReason,
-    handoverDetails, creditRows, submitAttempt,
+    testLitres, testLitresNote, handoverDetails, creditRows, submitAttempt,
   }
   useSaveDraft(draftName, draftValues, hasUnsavedChanges && closedResult === null)
 
@@ -222,6 +230,8 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
     removeDraft(draftName)
     setRestoredDraft(null)
     setEndReadings(emptyEndReadings(shift))
+    setTestLitres({})
+    setTestLitresNote('')
     setNoChangeNozzles(new Set())
     setCash('')
     setCashCounts(EMPTY_COUNTS)
@@ -306,6 +316,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
       fuelReadings: shift.fuelReadings, endReadings, readingsBelowStart, creditRows,
       cash, cashDenominations: cashCounts ? toDenominations(cashCounts) : undefined,
       upi, card, fleetCard, creditTotal, discrepancyReason,
+      testLitres, testLitresNote: testLitresNoteNeeded ? testLitresNote : '',
     })
     if ('error' in result) {
       setServerError(result.error)
@@ -538,6 +549,21 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
                     />
                   ))}
                 </div>
+                <TestLitresFields
+                  nozzles={perFuelSales.map(({ reading, meterLitres, testLitresInvalid: invalid }) => ({
+                    nozzleId: reading.nozzleId,
+                    label: t('close.nozzleLine', { number: nozzleNumberById[reading.nozzleId] ?? '?', fuel: codeLabel(reading.fuelType) }),
+                    meterLitres: (endReadings[reading.nozzleId] ?? '') === '' ? null : meterLitres,
+                    invalid,
+                  }))}
+                  values={testLitres}
+                  onChange={(nozzleId, value) => setTestLitres((prev) => ({ ...prev, [nozzleId]: value }))}
+                  testVolume={pumpSettings?.testVolumeLitres}
+                  maxTestLitres={pumpSettings?.maxTestLitresPerNozzle}
+                  noteNeeded={testLitresNoteNeeded}
+                  note={testLitresNote}
+                  onNoteChange={setTestLitresNote}
+                />
               </Section>
 
               <CreditSalesSection

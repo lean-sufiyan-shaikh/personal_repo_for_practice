@@ -14,6 +14,7 @@ import { roundToMillilitres, roundToPaise, toPaise } from '../../../utils/money'
 import { pumpApi } from '../../../api/pumpApi'
 import { codeLabel } from '../../../constants/labels'
 import { maxDate, safeParse, newCreditRow } from './backfillHelpers'
+import { anyAboveTestLimit, isTestLitresValid, parseTestLitres } from '../../../utils/testLitres'
 import type { CreditRow, BackfillShiftModalProps } from './backfillHelpers'
 
 export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
@@ -28,6 +29,8 @@ export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
   const [selectedNozzleIds, setSelectedNozzleIds] = useState<Set<number>>(new Set())
   const [openingReadings,   setOpeningReadings]   = useState<Record<number, string>>({})
   const [closingReadings,   setClosingReadings]   = useState<Record<number, string>>({})
+  const [testLitres,        setTestLitres]        = useState<Record<number, string>>({})
+  const [testLitresNote,    setTestLitresNote]    = useState('')
 
   // Manual fuel rate inputs — for fuel types with no DB price, or when overriding a DB price
   const [fuelRateInputs,  setFuelRateInputs]  = useState<Record<string, string>>({})
@@ -54,6 +57,9 @@ export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
   useOnValuesChange([definitionsData], () => {
     setShiftDefinitionId(definitionsData?.length === 1 ? definitionsData[0].id : null)
   })
+
+  const { data: pumps = [] } = useQuery({ queryKey: ['myPumps'], queryFn: pumpApi.getMyPumps, staleTime: 5 * 60_000 })
+  const pumpSettings = pumps.find((pump) => pump.id === pumpId)
 
   const { data: dus = [], isLoading: dusLoading } = useQuery({
     queryKey: ['dus', pumpId],
@@ -112,6 +118,7 @@ export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
     setSelectedNozzleIds(new Set())
     setOpeningReadings({})
     setClosingReadings({})
+    setTestLitres({})
   }
 
   const filteredOperators = operators.filter((op) =>
@@ -130,6 +137,7 @@ export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
         next.delete(id)
         setOpeningReadings((r) => { const n = { ...r }; delete n[id]; return n })
         setClosingReadings((r) => { const n = { ...r }; delete n[id]; return n })
+        setTestLitres((r) => { const n = { ...r }; delete n[id]; return n })
       } else {
         next.add(id)
       }
@@ -137,13 +145,28 @@ export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
     })
   }
 
-  function litersForNozzle(nozzleId: number): number | null {
+  function meterLitresForNozzle(nozzleId: number): number | null {
     const o = parseFloat(openingReadings[nozzleId] ?? '')
     const c = parseFloat(closingReadings[nozzleId] ?? '')
     if (!isFinite(o) || !isFinite(c)) return null
     const diff = c - o
     return diff >= 0 ? roundToMillilitres(diff) : null
   }
+
+  function testLitresInvalidFor(nozzleId: number): boolean {
+    const meter = meterLitresForNozzle(nozzleId)
+    return meter !== null && !isTestLitresValid(parseTestLitres(testLitres[nozzleId]), meter)
+  }
+
+  /** Litres sold: the meter litres less the test litres poured back into the tank. */
+  function litersForNozzle(nozzleId: number): number | null {
+    const meter = meterLitresForNozzle(nozzleId)
+    if (meter === null || testLitresInvalidFor(nozzleId)) return meter
+    return roundToMillilitres(meter - parseTestLitres(testLitres[nozzleId]))
+  }
+
+  const testLitresNoteNeeded = anyAboveTestLimit(
+    [...selectedNozzleIds].map((nozzleId) => parseTestLitres(testLitres[nozzleId])), pumpSettings?.maxTestLitresPerNozzle)
 
   // Effective rate: DB price if available, else manual input
   function getEffectiveRate(fuelType: string): number | null {
@@ -232,8 +255,13 @@ export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
         return setError(t('backfill.errors.closingRequired', { number: nozzle?.nozzleNumber ?? nozzleId }))
       if (closing < opening)
         return setError(t('backfill.errors.closingBelowOpening', { number: nozzle?.nozzleNumber ?? nozzleId }))
-      nozzleReadings.push({ nozzleId, openingReading: opening, closingReading: closing })
+      if (testLitresInvalidFor(nozzleId))
+        return setError(t('testLitres.errors.aboveMeter', { number: nozzle?.nozzleNumber ?? nozzleId }))
+      const test = parseTestLitres(testLitres[nozzleId])
+      nozzleReadings.push({ nozzleId, openingReading: opening, closingReading: closing, ...(test > 0 && { testLitres: test }) })
     }
+
+    if (testLitresNoteNeeded && testLitresNote.trim() === '') return setError(t('testLitres.errors.noteRequired'))
 
     const creditEntries: CreditEntryInput[] = []
     for (const row of creditRows) {
@@ -270,6 +298,7 @@ export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
       duId:              selectedDU.id,
       operatorId,
       nozzleReadings,
+      ...(testLitresNoteNeeded && { testLitresNote: testLitresNote.trim() }),
       cashCollected:      safeParse(cashCollected),
       upiCollected:       safeParse(upiCollected),
       cardCollected:      safeParse(cardCollected),
@@ -305,6 +334,14 @@ export function useBackfillForm({ pumpId, onClose }: BackfillShiftModalProps) {
     setOpeningReadings,
     closingReadings,
     setClosingReadings,
+    testLitres,
+    setTestLitres,
+    testLitresNote,
+    setTestLitresNote,
+    testLitresNoteNeeded,
+    testLitresInvalidFor,
+    meterLitresForNozzle,
+    pumpSettings,
     fuelRateInputs,
     setFuelRateInputs,
     cashCollected,

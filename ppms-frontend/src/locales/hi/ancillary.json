@@ -200,7 +200,32 @@
     "needProduct": "उत्पाद",
     "needQuantity": "मात्रा",
     "needCost": "खरीद दर",
-    "needDate": "डिलीवरी की तारीख"
+    "needDate": "डिलीवरी की तारीख",
+    "gst": {
+      "toggle": "इस बिल पर GST है (इनपुट टैक्स क्लेम करें)",
+      "pumpGstinMissing": "खरीद पर GST दर्ज करने से पहले सेटअप → GST विवरण में पंप का GSTIN जोड़ें।",
+      "supplierName": "सप्लायर का नाम",
+      "supplierGstin": "सप्लायर GSTIN",
+      "invoiceDate": "बिल की तारीख",
+      "taxableValue": "कर योग्य मूल्य",
+      "taxableValueHelp": "GST से पहले का मूल्य। खाली छोड़ने पर कुल लागत ली जाती है।",
+      "rate": "GST दर",
+      "rateOption": "{{rate}}%",
+      "taxTitle": "इस बिल पर GST",
+      "cgst": "CGST",
+      "sgst": "SGST",
+      "igst": "IGST",
+      "billTotal": "GST सहित बिल कुल",
+      "sameStateNote": "सप्लायर पंप वाले राज्य में है, इसलिए GST, CGST और SGST में बँटता है।",
+      "otherStateNote": "सप्लायर दूसरे राज्य में है, इसलिए GST, IGST है।",
+      "need": {
+        "supplierName": "सप्लायर का नाम",
+        "supplierGstin": "सही सप्लायर GSTIN",
+        "invoiceDate": "बिल की तारीख",
+        "taxableValue": "कर योग्य मूल्य",
+        "invoiceNumber": "इनवॉइस संदर्भ (बिल नंबर)"
+      }
+    }
   },
   "stockInTab": {
     "costPerUnit": "लागत/नग",

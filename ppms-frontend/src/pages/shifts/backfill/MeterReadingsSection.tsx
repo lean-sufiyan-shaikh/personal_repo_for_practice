@@ -4,10 +4,11 @@ import { FormGrid } from '../../../components/layout/FormGrid'
 import { NumericInput } from '../../../components/NumericInput'
 import { FUEL_UNIT } from '../../../constants/fuel'
 import { codeLabel } from '../../../constants/labels'
-import { formatCurrency } from '../../../utils/format'
+import { formatCurrency, formatDecimal } from '../../../utils/format'
 import { roundToPaise } from '../../../utils/money'
 import { formatUnits } from '../close/closeShiftTotals'
 import type { BackfillForm } from './useBackfillForm'
+import { BackfillTestLitresFooter } from './BackfillTestLitresFooter'
 
 function ReadingResult({ form, nozzleId, unit }: { form: BackfillForm; nozzleId: number; unit: string }) {
   const { t } = useTranslation('shifts')
@@ -16,6 +17,11 @@ function ReadingResult({ form, nozzleId, unit }: { form: BackfillForm; nozzleId:
   const closing = parseFloat(closingReadings[nozzleId] ?? '')
   if (isFinite(opening) && isFinite(closing) && closing < opening) {
     return <span role="alert" className="font-medium text-bad">{t('backfill.meter.closingBelowOpening')}</span>
+  }
+  if (form.testLitresInvalidFor(nozzleId)) {
+    return <span role="alert" className="font-medium text-bad">
+      {t('testLitres.aboveMeter', { litres: formatDecimal(form.meterLitresForNozzle(nozzleId) ?? 0) })}
+    </span>
   }
   const liters = litersForNozzle(nozzleId)
   if (liters === null) return null
@@ -60,11 +66,18 @@ export function MeterReadingsSection({ form }: { form: BackfillForm }) {
                   value={closingReadings[nozzleId] ?? ''}
                   onChange={(e) => setClosingReadings((r) => ({ ...r, [nozzleId]: e.target.value }))} />
               </FormField>
+              <FormField label={t('testLitres.returnedLabel')}>
+                <NumericInput min="0" step="0.01" unit={unit} placeholder="0"
+                  aria-label={t('testLitres.returnedAria', { nozzle: name })}
+                  value={form.testLitres[nozzleId] ?? ''}
+                  onChange={(e) => form.setTestLitres((r) => ({ ...r, [nozzleId]: e.target.value }))} />
+              </FormField>
             </FormGrid>
             <p className="text-xs"><ReadingResult form={form} nozzleId={nozzleId} unit={unit} /></p>
           </div>
         )
       })}
+      <BackfillTestLitresFooter form={form} />
     </div>
   )
 }

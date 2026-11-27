@@ -700,5 +700,28 @@
     "enterNumber": "Enter a number, zero or more.",
     "save": "Save amendment",
     "failed": "Could not amend the shift. Try again."
+  },
+  "testLitres": {
+    "title": "Test litres returned to tank",
+    "explanation": "Fuel dispensed into the test measure and poured back into the tank. It is not charged and stays in stock.",
+    "fillAll": "Fill {{litres}} L on each nozzle",
+    "nozzleLabel": "{{label}} – test litres",
+    "returnedLabel": "Test litres returned",
+    "returnedAria": "Test litres returned for {{nozzle}}",
+    "soldHelp": "Meter {{meter}} L, sold {{sold}} L",
+    "aboveMeter": "Test litres must be between 0 and the {{litres}} L the meter moved.",
+    "noteLabel": "Why more than {{litres}} L of test fuel on a nozzle?",
+    "stillNeeded": {
+      "invalid": "Valid test litres",
+      "note": "Note on the test litres"
+    },
+    "errors": {
+      "aboveMeter": "Test litres for nozzle #{{number}} are more than its meter moved.",
+      "noteRequired": "Say why a nozzle returned more test litres than the pump allows."
+    },
+    "detail": {
+      "title": "Litres by nozzle",
+      "line": "Meter {{meter}} · Test returned {{test}} · Sold {{sold}}"
+    }
   }
 }

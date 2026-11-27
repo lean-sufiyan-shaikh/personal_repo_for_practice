@@ -3,6 +3,7 @@ import { vehicleRequestFields } from '../../credit/vehicles/vehicleEntry'
 import type { CashDenominations } from '../../../api/cashApi'
 import i18n from '../../../i18n'
 import { emptyNum } from '../components/creditRow'
+import { parseTestLitres } from '../../../utils/testLitres'
 import type { CreditRow } from '../components/creditRow'
 
 /** Parses a numeric string, returns null if the result is NaN, Infinity, or negative. */
@@ -25,11 +26,14 @@ interface CloseFormValues {
   fleetCard: string
   creditTotal: number
   discrepancyReason: string
+  testLitres?: Record<number, string>
+  testLitresNote?: string
 }
 
 export function buildCloseShiftRequest(values: CloseFormValues): { request: CloseShiftRequest } | { error: string } {
   const {
     fuelReadings, endReadings, readingsBelowStart, creditRows, cash, cashDenominations, upi, card, fleetCard, creditTotal, discrepancyReason,
+    testLitres = {}, testLitresNote = '',
   } = values
 
   if (readingsBelowStart) {
@@ -73,10 +77,15 @@ export function buildCloseShiftRequest(values: CloseFormValues): { request: Clos
 
   return {
     request: {
-      fuelReadings: fuelReadings.map((r) => ({
-        nozzleId:   r.nozzleId,
-        endReading: Number(endReadings[r.nozzleId]),
-      })),
+      fuelReadings: fuelReadings.map((r) => {
+        const test = parseTestLitres(testLitres[r.nozzleId])
+        return {
+          nozzleId:   r.nozzleId,
+          endReading: Number(endReadings[r.nozzleId]),
+          ...(test > 0 && { testLitres: test }),
+        }
+      }),
+      ...(testLitresNote.trim() && { testLitresNote: testLitresNote.trim() }),
       cashCollected:      emptyNum(cash),
       ...(cashDenominations && { cashDenominations }),
       upiCollected:       emptyNum(upi),

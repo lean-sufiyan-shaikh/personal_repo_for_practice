@@ -1,4 +1,5 @@
 import { Truck } from 'lucide-react'
+import { DeliverySupplierTag } from './DeliverySupplierTag'
 import { useTranslation } from 'react-i18next'
 import type { TankerDelivery } from '../../api/inventoryApi'
 import { LitresText, MoneyText } from '../../components/AmountText'
@@ -31,6 +32,7 @@ export function InvoiceDetailsPanel({ invoiceLabel, rows, pumpId, isOwnerOrAdmin
               · <Truck size={12} strokeWidth={2} aria-hidden="true" />{first.tankerName}
             </span>
           )}
+          <span>· <DeliverySupplierTag supplierName={first.supplierName} /></span>
           <span>· {t('deliveries.loggedBy', { name: first.loggedByUserName })}</span>
         </span>
       }

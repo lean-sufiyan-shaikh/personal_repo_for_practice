@@ -52,7 +52,12 @@ export interface FuelReading {
   startReading: number
   endReading: number | null
   priceSnapshot: number
+  /** Litres sold: the meter litres less the test litres poured back into the tank. */
   unitsSold: number | null
+  /** Litres dispensed for the nozzle's test and poured back into the tank; 0 when none. */
+  testLitres?: number
+  /** Litres the meter moved; null while the shift is open. */
+  meterLitres?: number | null
   maxMeterValue: number | null
   /** The litres priced per segment, set at close. */
   salesAmount?: number | null
@@ -183,7 +188,11 @@ export interface CloseShiftRequest {
   fuelReadings: Array<{
     nozzleId: number
     endReading: number
+    /** Test litres poured back into the tank; left out means none. */
+    testLitres?: number
   }>
+  /** Why a nozzle's test litres went above the pump's limit; required only then. */
+  testLitresNote?: string
   /** Cash counted in the bag; the server adds the confirmed drops to give the shift's cash. */
   cashCollected: number
   /** Sent only when the bag was counted note by note; must add up to cashCollected. */
@@ -231,6 +240,8 @@ export interface BackfillNozzleReading {
   nozzleId: number
   openingReading: number
   closingReading: number
+  /** Test litres poured back into the tank; left out means none. */
+  testLitres?: number
 }
 
 export interface BackfillShiftRequest {
@@ -239,6 +250,8 @@ export interface BackfillShiftRequest {
   shiftDate: string
   duId: number
   operatorId: number
+  /** Why a nozzle's test litres went above the pump's limit; required only then. */
+  testLitresNote?: string
   nozzleReadings: BackfillNozzleReading[]
   cashCollected: number
   upiCollected: number

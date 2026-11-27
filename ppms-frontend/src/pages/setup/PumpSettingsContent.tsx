@@ -13,6 +13,10 @@ import { formatCurrency, formatDecimal } from '../../utils/format'
 import { DEFAULT_DENSITY_TOLERANCE, DEFAULT_RECEIPT_TOLERANCE_PERCENT } from '../inventory/record-delivery/receiptCheck'
 import { SetupFormGroup } from './SetupFormGroup'
 import { SetupSaveBar } from './SetupSaveBar'
+import { TestLitresSettingsGroup } from './TestLitresSettingsGroup'
+import {
+  DEFAULT_MAX_TEST_LITRES_PER_NOZZLE, DEFAULT_TEST_VOLUME_LITRES, MAX_TEST_LITRES_LIMIT, MAX_TEST_VOLUME_LITRES, litresInRange,
+} from './testLitresSettings'
 
 const MAX_RECEIPT_TOLERANCE_PERCENT = 5
 const MAX_DENSITY_TOLERANCE = 50
@@ -35,6 +39,8 @@ interface SettingsText {
   densityTolerance: string
   safeCountTolerance: string
   safeCountCutoff: string
+  testVolume: string
+  maxTestLitres: string
 }
 
 function textOf(pump: PumpSummary): SettingsText {
@@ -46,6 +52,8 @@ function textOf(pump: PumpSummary): SettingsText {
     densityTolerance: String(pump.densityTolerance ?? DEFAULT_DENSITY_TOLERANCE),
     safeCountTolerance: String(pump.safeCountTolerance ?? DEFAULT_SAFE_COUNT_TOLERANCE),
     safeCountCutoff: pump.safeCountCutoffTime?.slice(0, 5) ?? DEFAULT_SAFE_COUNT_CUTOFF,
+    testVolume: String(pump.testVolumeLitres ?? DEFAULT_TEST_VOLUME_LITRES),
+    maxTestLitres: String(pump.maxTestLitresPerNozzle ?? DEFAULT_MAX_TEST_LITRES_PER_NOZZLE),
   }
 }
 
@@ -91,7 +99,8 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
   const safeToleranceValid = inRangeFromZero(values.safeCountTolerance, MAX_SAFE_COUNT_TOLERANCE)
   const safeCutoffValid = TIME_OF_DAY.test(values.safeCountCutoff)
   const allValid = thresholdValid && roundingValid && graceValid && receiptToleranceValid && densityToleranceValid
-    && safeToleranceValid && safeCutoffValid
+    && safeToleranceValid && safeCutoffValid && litresInRange(values.testVolume, MAX_TEST_VOLUME_LITRES)
+    && litresInRange(values.maxTestLitres, MAX_TEST_LITRES_LIMIT)
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
@@ -103,6 +112,8 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
     if (values.densityTolerance !== saved.densityTolerance) req.densityTolerance = Number(values.densityTolerance)
     if (values.safeCountTolerance !== saved.safeCountTolerance) req.safeCountTolerance = Number(values.safeCountTolerance)
     if (values.safeCountCutoff !== saved.safeCountCutoff) req.safeCountCutoffTime = values.safeCountCutoff
+    if (values.testVolume !== saved.testVolume) req.testVolumeLitres = Number(values.testVolume)
+    if (values.maxTestLitres !== saved.maxTestLitres) req.maxTestLitresPerNozzle = Number(values.maxTestLitres)
     mutation.mutate(req)
   }
 
@@ -141,6 +152,10 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
           </FormField>
         </FormGrid>
       </SetupFormGroup>
+
+      <TestLitresSettingsGroup testVolume={values.testVolume} maxTestLitres={values.maxTestLitres}
+        onTestVolumeChange={(value) => change('testVolume', value)}
+        onMaxTestLitresChange={(value) => change('maxTestLitres', value)} />
 
       <SetupFormGroup icon={Truck} title={t('settings.receiptTitle')} hint={t('settings.receiptExplanation')}>
         <FormGrid>

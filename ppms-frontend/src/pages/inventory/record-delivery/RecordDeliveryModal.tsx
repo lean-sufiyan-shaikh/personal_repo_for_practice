@@ -28,6 +28,8 @@ import type { ReceiptCheckInput, ReceiptField, ReceiptTolerances } from './recei
 import { DeliveryRowEditor } from './DeliveryRowEditor'
 import { DeliveryHeaderFields } from './DeliveryHeaderFields'
 import { DeliveryReviewDialog } from './DeliveryReviewDialog'
+import { DeliverySupplierField } from './DeliverySupplierField'
+import { useDeliverySupplier } from './useDeliverySupplier'
 import { NumericInput } from '../../../components/NumericInput'
 import { formatNumberIn } from '../../../i18n/format'
 import { formatDecimal } from '../../../utils/format'
@@ -83,6 +85,7 @@ export function RecordDeliveryModal({
     densityTolerance: pump?.densityTolerance ?? DEFAULT_DENSITY_TOLERANCE,
   }
   const nozzlesForTank = (tankId: number) => receiptNozzles.filter(n => n.tankId === tankId)
+  const deliverySupplier = useDeliverySupplier(pumpId)
 
   const [selectedTankerId,  setSelectedTankerId]  = useState<number | null>(
     () => tankers.find(t => t.defaultTanker)?.id ?? null
@@ -94,6 +97,7 @@ export function RecordDeliveryModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tankStocks', pumpId] })
       queryClient.invalidateQueries({ queryKey: ['deliveries', pumpId] })
+      queryClient.invalidateQueries({ queryKey: ['supplier-balances', pumpId] })
       addToast(t('recordDelivery.recorded'), 'success')
       onClose()
     },
@@ -172,6 +176,7 @@ export function RecordDeliveryModal({
       invoiceReference: invoice.trim(),
       billTotal: canSetBillTotal && billTotalNum > 0 ? billTotalNum : null,
       tankerId: selectedTankerId ?? null,
+      supplierId: deliverySupplier.supplierId,
       items: items.map(item => ({
         tankId: item.tankId,
         quantityDelivered: item.quantityDelivered,
@@ -253,6 +258,8 @@ export function RecordDeliveryModal({
         tankerRemaining={tankerRemaining}
         totalEnteredQty={totalEnteredQty}
       />
+      <DeliverySupplierField suppliers={deliverySupplier.suppliers} supplierId={deliverySupplier.supplierId}
+        onChange={deliverySupplier.choose} />
 
       {rows.map((row, idx) => (
         <DeliveryRowEditor

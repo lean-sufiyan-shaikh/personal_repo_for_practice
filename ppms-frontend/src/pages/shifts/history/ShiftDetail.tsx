@@ -17,6 +17,7 @@ import { canAmendShift } from '../amend/amendFigures'
 import { HandoverReportPanel } from '../modals/HandoverReportPanel'
 import { ResolveDiscrepancyModal } from '../modals/ResolveDiscrepancyModal'
 import { ShiftCloseFacts } from './ShiftCloseFacts'
+import { ShiftLitresByNozzle } from './ShiftLitresByNozzle'
 import { awaitingOwnerApprovalLabel, discrepancyAction, investigationLabel } from '../shiftLabels'
 
 const TIME = { hour: '2-digit', minute: '2-digit' } as const
@@ -93,6 +94,8 @@ export function ShiftDetail({ pumpId, shiftId }: { pumpId: number; shiftId: numb
           </div>
         </div>
       </section>
+
+      <ShiftLitresByNozzle shift={shift} />
 
       {shift.discrepancyAmount != null && (
         <section aria-labelledby={`shift-discrepancy-${shift.id}`} className="space-y-1">

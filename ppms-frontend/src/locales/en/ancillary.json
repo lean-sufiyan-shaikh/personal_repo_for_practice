@@ -200,7 +200,32 @@
     "needProduct": "Product",
     "needQuantity": "Quantity",
     "needCost": "Cost price",
-    "needDate": "Delivery date"
+    "needDate": "Delivery date",
+    "gst": {
+      "toggle": "This bill shows GST (claim input tax)",
+      "pumpGstinMissing": "Add the pump's GSTIN in Setup → GST details before recording GST on a purchase.",
+      "supplierName": "Supplier name",
+      "supplierGstin": "Supplier GSTIN",
+      "invoiceDate": "Bill date",
+      "taxableValue": "Taxable value",
+      "taxableValueHelp": "The value before GST. Left empty, it is the total cost.",
+      "rate": "GST rate",
+      "rateOption": "{{rate}}%",
+      "taxTitle": "GST on this bill",
+      "cgst": "CGST",
+      "sgst": "SGST",
+      "igst": "IGST",
+      "billTotal": "Bill total with GST",
+      "sameStateNote": "Supplier is in the same state as the pump, so the GST splits into CGST and SGST.",
+      "otherStateNote": "Supplier is in another state, so the GST is IGST.",
+      "need": {
+        "supplierName": "Supplier name",
+        "supplierGstin": "Valid supplier GSTIN",
+        "invoiceDate": "Bill date",
+        "taxableValue": "Taxable value",
+        "invoiceNumber": "Invoice reference (bill number)"
+      }
+    }
   },
   "stockInTab": {
     "costPerUnit": "Cost/Unit",

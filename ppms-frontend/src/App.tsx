@@ -38,6 +38,7 @@ const RadarPage = lazy(pageLoaders.radar)
 const PayrollPage = lazy(pageLoaders.payroll)
 const AncillaryProductsPage = lazy(pageLoaders.ancillary)
 const PaymentSettlementsPage = lazy(pageLoaders.settlements)
+const SuppliersPage = lazy(pageLoaders.suppliers)
 const BankReconciliationPage = lazy(pageLoaders.bankReconciliation)
 const NotificationsPage = lazy(pageLoaders.notifications)
 const CreditBalancePortalPage = lazy(() => import('./pages/portal/CreditBalancePortalPage'))
@@ -234,6 +235,14 @@ export default function App() {
               element={withPageSuspense(
                 <ProtectedRoute page="settlements">
                   <PaymentSettlementsPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="suppliers"
+              element={withPageSuspense(
+                <ProtectedRoute page="suppliers">
+                  <SuppliersPage />
                 </ProtectedRoute>
               )}
             />

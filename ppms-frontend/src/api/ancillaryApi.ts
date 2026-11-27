@@ -59,6 +59,15 @@ export interface AncillaryStockDelivery {
   /** True when the delivery was recorded with a past date (historical stock entry). */
   isBackfilled: boolean
   createdAt: string
+  /** GST input from the supplier's bill; all null when the purchase carries no GST details. */
+  gstSupplierName: string | null
+  gstSupplierGstin: string | null
+  gstInvoiceDate: string | null
+  gstTaxableValue: number | null
+  gstRatePercent: number | null
+  cgstAmount: number | null
+  sgstAmount: number | null
+  igstAmount: number | null
 }
 
 export interface AncillarySale {
@@ -111,6 +120,16 @@ export interface RecordStockDeliveryRequest {
   deliveryDate: string   // YYYY-MM-DD
   invoiceReference?: string
   notes?: string
+  /** The bill's GST; the invoice reference is then required as the bill number. */
+  gst?: PurchaseGstRequest
+}
+
+export interface PurchaseGstRequest {
+  supplierName: string
+  supplierGstin: string
+  invoiceDate: string
+  taxableValue: number
+  gstRatePercent: number
 }
 
 export interface AncillaryLotDetail {

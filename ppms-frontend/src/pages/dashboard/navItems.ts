@@ -1,4 +1,4 @@
-import { Bell, CalendarCheck, Clock, LayoutDashboard, ClipboardCheck, Zap, CalendarDays, Database, CreditCard, ReceiptText, FileText, Wallet, Wrench, HardHat, Package, ClipboardList, Landmark, ListChecks, BarChart2, TrendingUp, Radar, Settings, type LucideIcon } from 'lucide-react'
+import { Bell, Truck, CalendarCheck, Clock, LayoutDashboard, ClipboardCheck, Zap, CalendarDays, Database, CreditCard, ReceiptText, FileText, Wallet, Wrench, HardHat, Package, ClipboardList, Landmark, ListChecks, BarChart2, TrendingUp, Radar, Settings, type LucideIcon } from 'lucide-react'
 import type { UserRole } from '../../types/auth'
 import { canAccessPage } from '../../permissions/permissions'
 import { translateKey } from '../../i18n'
@@ -21,6 +21,7 @@ export const ALL_NAV_ITEMS: { path: string; icon: LucideIcon; page: string; bg: 
   { path: '/dashboard/ancillary',      icon: Package,         page: 'products',      bg: 'bg-ok-bg',    color: 'text-ok'    },
   { path: '/dashboard/audit',          icon: ClipboardList,   page: 'auditLog',      bg: 'bg-surface-sunken',    color: 'text-ink-3'    },
   { path: '/dashboard/settlements',    icon: Landmark,        page: 'settlements',   bg: 'bg-info-bg',  color: 'text-primary'  },
+  { path: '/dashboard/suppliers',      icon: Truck,           page: 'suppliers',     bg: 'bg-warn-bg',  color: 'text-warn'  },
   { path: '/dashboard/bank-reconciliation', icon: ListChecks,   page: 'bankReconciliation', bg: 'bg-ok-bg', color: 'text-ok' },
   { path: '/dashboard/balance-sheets', icon: BarChart2,       page: 'balanceSheets', bg: 'bg-info-bg',     color: 'text-primary'     },
   { path: '/dashboard/reports',        icon: TrendingUp,      page: 'reports',       bg: 'bg-ok-bg',   color: 'text-ok'   },
@@ -36,7 +37,7 @@ export type NavGroupId = 'operations' | 'money' | 'reports' | 'admin'
 /** Sidebar groups in display order; each group's label is nav.json groups.<id>. */
 const NAV_GROUP_PAGES: { id: NavGroupId; pages: string[] }[] = [
   { id: 'operations', pages: ['myShift', 'overview', 'shifts', 'shiftPlanning', 'inventory', 'cashDrawer', 'products', 'calibration', 'documents'] },
-  { id: 'money',      pages: ['dayClose', 'credit', 'settlements', 'bankReconciliation', 'expenses', 'approvals', 'payroll'] },
+  { id: 'money',      pages: ['dayClose', 'credit', 'settlements', 'suppliers', 'bankReconciliation', 'expenses', 'approvals', 'payroll'] },
   { id: 'reports',    pages: ['reports', 'radar', 'balanceSheets', 'auditLog'] },
   { id: 'admin',      pages: ['setup', 'notifications'] },
 ]

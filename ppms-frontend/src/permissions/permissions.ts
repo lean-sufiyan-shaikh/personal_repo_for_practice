@@ -34,6 +34,7 @@ export const PAGE_PERMISSIONS: Record<string, UserRole[]> = {
   reports:         ['OWNER', 'ADMIN', 'MANAGER'],
   setup:           ['OWNER', 'ADMIN', 'MANAGER'],
   settlements:     ['OWNER', 'ADMIN', 'MANAGER'],
+  suppliers:       ['OWNER', 'ADMIN', 'MANAGER'],
   bankReconciliation: ['OWNER', 'ADMIN'],
   notifications:   ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR', 'ACCOUNTANT'],
 }
@@ -59,6 +60,7 @@ const PAGE_PATHS: Record<string, string> = {
   reports:       '/dashboard/reports',
   setup:         '/dashboard/setup',
   settlements:   '/dashboard/settlements',
+  suppliers:     '/dashboard/suppliers',
   bankReconciliation: '/dashboard/bank-reconciliation',
   notifications: '/dashboard/notifications',
 }
@@ -147,6 +149,11 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'settlement:write':              ['OWNER', 'ADMIN', 'MANAGER'],
   'settlement:configure':          ['OWNER', 'ADMIN'],
   'settlement:void':               ['OWNER', 'ADMIN'],
+
+  // Fuel suppliers
+  'supplier:manage':               ['OWNER', 'ADMIN'],
+  'supplier:record-payment':       ['OWNER', 'ADMIN'],
+  'supplier:void-payment':         ['OWNER', 'ADMIN'],
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

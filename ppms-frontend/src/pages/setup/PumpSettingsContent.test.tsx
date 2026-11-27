@@ -73,6 +73,28 @@ describe('PumpSettingsContent', () => {
     expect(pumpApi.updatePumpSettings).toHaveBeenCalledWith(3, { roundingTolerance: 2, earlyStartGraceMinutes: 15 })
   })
 
+  it('saves the nozzle test measure and the test litres needing a note, starting from 5 L and 10 L', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PumpSettingsContent pump={pump} onUpdated={vi.fn()} />)
+
+    const measure = screen.getByRole('spinbutton', { name: 'Test measure' })
+    const limit = screen.getByRole('spinbutton', { name: 'Test litres needing a note' })
+    expect(measure).toHaveValue(5)
+    expect(limit).toHaveValue(10)
+    expect(limit).toHaveAccessibleDescription(/More than 10\.00 L returned on one nozzle/)
+
+    await user.clear(measure)
+    await user.type(measure, '101')
+    expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled()
+    await user.clear(measure)
+    await user.type(measure, '10')
+    await user.clear(limit)
+    await user.type(limit, '20')
+    await user.click(screen.getByRole('button', { name: 'Save settings' }))
+
+    expect(pumpApi.updatePumpSettings).toHaveBeenCalledWith(3, { testVolumeLitres: 10, maxTestLitresPerNozzle: 20 })
+  })
+
   it('saves the receipt and density tolerances, starting from the defaults', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PumpSettingsContent pump={pump} onUpdated={vi.fn()} />)

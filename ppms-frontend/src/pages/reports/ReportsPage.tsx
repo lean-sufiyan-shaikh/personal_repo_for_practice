@@ -16,10 +16,11 @@ import { OperatorDutyTab } from './tabs/OperatorDutyTab'
 import { ProfitLossTab } from './tabs/ProfitLossTab'
 import { ShiftsTab } from './tabs/ShiftsTab'
 import { fmtDateTime } from './reportFormat'
+import { GstSummaryTab } from './gst/GstSummaryTab'
 
-type Tab = 'pl' | 'duty' | 'discrepancy' | 'inventory' | 'dip' | 'shifts' | 'expenses' | 'interest'
+type Tab = 'pl' | 'duty' | 'discrepancy' | 'inventory' | 'dip' | 'shifts' | 'expenses' | 'interest' | 'gst'
 
-const ALL_TAB_IDS: Tab[] = ['pl', 'duty', 'discrepancy', 'inventory', 'dip', 'shifts', 'expenses', 'interest']
+const ALL_TAB_IDS: Tab[] = ['pl', 'duty', 'discrepancy', 'inventory', 'dip', 'shifts', 'expenses', 'interest', 'gst']
 const MANAGER_TAB_IDS: Tab[] = ['duty', 'discrepancy', 'shifts']
 
 export default function ReportsPage() {
@@ -77,6 +78,7 @@ export default function ReportsPage() {
           {activeTab === 'shifts'      && <ShiftsTab              pumpId={pumpId} />}
           {activeTab === 'expenses'    && <ExpensesTab            pumpId={pumpId} />}
           {activeTab === 'interest'    && <InterestAccrualTab     pumpId={pumpId} />}
+          {activeTab === 'gst'         && <GstSummaryTab          pumpId={pumpId} />}
         </div>
       )}
     </Page>

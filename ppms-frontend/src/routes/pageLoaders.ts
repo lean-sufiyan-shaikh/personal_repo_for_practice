@@ -21,6 +21,7 @@ export const pageLoaders = {
   payroll:        () => import('../pages/payroll/PayrollPage'),
   ancillary:      () => import('../pages/ancillary/AncillaryProductsPage'),
   settlements:    () => import('../pages/settlements/PaymentSettlementsPage'),
+  suppliers:      () => import('../pages/suppliers/SuppliersPage'),
   bankReconciliation: () => import('../pages/reconciliation/BankReconciliationPage'),
   notifications:  () => import('../pages/notifications/NotificationsPage'),
 }
@@ -42,6 +43,7 @@ const PAGE_BY_PATH: Record<string, keyof typeof pageLoaders> = {
   '/dashboard/ancillary':      'ancillary',
   '/dashboard/audit':          'audit',
   '/dashboard/settlements':    'settlements',
+  '/dashboard/suppliers':      'suppliers',
   '/dashboard/bank-reconciliation': 'bankReconciliation',
   '/dashboard/notifications':  'notifications',
   '/dashboard/balance-sheets': 'balanceSheets',

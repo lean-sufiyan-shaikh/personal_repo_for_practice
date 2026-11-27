@@ -11,7 +11,8 @@
       "dip": "Dip P/L",
       "shifts": "Shifts",
       "expenses": "Expenses",
-      "interest": "Interest Accrual"
+      "interest": "Interest Accrual",
+      "gst": "GST summary"
     },
     "tabsLabel": "Report types"
   },
@@ -214,5 +215,48 @@
     }
   },
   "autoClosedLeftOut_one": "{{count}} auto-closed shift in this range is left out until its closing readings are entered.",
-  "autoClosedLeftOut_other": "{{count}} auto-closed shifts in this range are left out until their closing readings are entered."
+  "autoClosedLeftOut_other": "{{count}} auto-closed shifts in this range are left out until their closing readings are entered.",
+  "gst": {
+    "month": "Month",
+    "accountantBanner": "For your accountant — verify these figures against your books and bills before filing GSTR-3B.",
+    "noPumpGstin": "The pump has no GSTIN in Setup → GST details, so purchases with GST cannot be recorded.",
+    "outputTax": "Output tax",
+    "inputTax": "Input tax credit",
+    "netPayable": "Net tax payable",
+    "creditCarriedForward": "Credit carried forward",
+    "bucketsTitle": "GSTR-3B style buckets",
+    "bucketsCaption": "GST for the month by return section",
+    "buckets": {
+      "outward": "Outward taxable supplies (counter products)",
+      "fromInvoices": "of which on credit invoices issued this month",
+      "fromCounterSales": "of which counter sales paid on the spot",
+      "nonGstFuel": "Non-GST outward supplies (petrol and diesel)",
+      "input": "Input tax credit (counter-product purchases)",
+      "net": "Net: output tax less input tax"
+    },
+    "notes": {
+      "creditSales": "Counter products sold on credit count in the month their credit invoice is issued.",
+      "fuel": "Petrol and diesel are outside GST, so fuel sales carry no tax and fuel deliveries no input credit.",
+      "zeroRated_one": "{{count}} counter sale this month was at 0% GST, so it shows no tax.",
+      "zeroRated_other": "{{count}} counter sales this month were at 0% GST, so they show no tax."
+    },
+    "registerTitle": "GST input register",
+    "registerCaption": "Counter-product purchase bills with GST",
+    "noPurchases": "No counter-product purchases with GST this month.",
+    "ratePercent": "{{rate}}%",
+    "columns": {
+      "section": "Section",
+      "description": "Description",
+      "taxableValue": "Taxable value",
+      "cgst": "CGST",
+      "sgst": "SGST",
+      "igst": "IGST",
+      "invoiceDate": "Bill date",
+      "invoiceNumber": "Bill no.",
+      "supplier": "Supplier",
+      "product": "Product",
+      "rate": "Rate",
+      "total": "Total"
+    }
+  }
 }

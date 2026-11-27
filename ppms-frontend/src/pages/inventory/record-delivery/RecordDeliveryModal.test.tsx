@@ -6,6 +6,8 @@ import type { ReceiptNozzle, TankStock } from '../../../api/inventoryApi'
 import { pumpApi } from '../../../api/pumpApi'
 import type { PumpSummary } from '../../../api/pumpApi'
 import { tankerApi } from '../../../api/tankerApi'
+import { supplierApi } from '../../../api/supplierApi'
+import type { Supplier } from '../../../api/supplierApi'
 import { useToastStore } from '../../../store/toastStore'
 import { renderWithProviders } from '../../../test/renderWithProviders'
 import { RecordDeliveryModal } from './RecordDeliveryModal'
@@ -13,12 +15,20 @@ import { RecordDeliveryModal } from './RecordDeliveryModal'
 vi.mock('../../../api/inventoryApi', () => ({ inventoryApi: { recordBatchDelivery: vi.fn(), getReceiptNozzles: vi.fn() } }))
 vi.mock('../../../api/tankerApi', () => ({ tankerApi: { getTankers: vi.fn() } }))
 vi.mock('../../../api/pumpApi', () => ({ pumpApi: { getMyPumps: vi.fn() } }))
+vi.mock('../../../api/supplierApi', () => ({ supplierApi: { list: vi.fn() } }))
 
 const tank: TankStock = {
   tankId: 1, tankIdentifier: 'T1', fuelType: 'PETROL', capacity: 10_000, currentStock: 1_000,
   stockPercentage: 10, lowStock: true, dipTolerance: 50, pumpId: 6,
 }
 const bigTank: TankStock = { ...tank, capacity: 30_000 }
+
+function supplier(id: number, name: string, defaultSupplier = false): Supplier {
+  return {
+    id, pumpId: 6, name, contactName: null, phone: null, email: null, notes: null, active: true,
+    openingBalance: 0, openingBalanceDate: null, defaultSupplier, createdAt: '2026-01-01T00:00:00Z',
+  }
+}
 
 const nozzle: ReceiptNozzle = {
   nozzleId: 11, nozzleNumber: 1, duName: 'DU-1', tankId: 1, fuelType: 'PETROL', lastReading: 1000, maxMeterValue: 99_999_999.999,
@@ -37,6 +47,7 @@ async function enterReceiptCheck(user: ReturnType<typeof userEvent.setup>, dipBe
 describe('RecordDeliveryModal', () => {
   beforeEach(() => {
     vi.mocked(tankerApi.getTankers).mockResolvedValue([])
+    vi.mocked(supplierApi.list).mockResolvedValue([])
     vi.mocked(inventoryApi.recordBatchDelivery).mockResolvedValue({} as never)
     vi.mocked(inventoryApi.getReceiptNozzles).mockResolvedValue([nozzle])
     vi.mocked(pumpApi.getMyPumps).mockResolvedValue([
@@ -74,6 +85,37 @@ describe('RecordDeliveryModal', () => {
     expect(useToastStore.getState().toasts).toEqual([
       expect.objectContaining({ message: 'Tanker delivery recorded', variant: 'success' }),
     ])
+  })
+
+  it('books the delivery to the default supplier unless another one, or none, is picked', async () => {
+    vi.mocked(supplierApi.list).mockResolvedValue([supplier(4, 'IOCL'), supplier(5, 'BPCL', true)])
+    const user = userEvent.setup()
+    renderWithProviders(
+      <RecordDeliveryModal pumpId={6} tanks={[tank]} isOwnerOrAdmin={false} canSetBillTotal={false} onClose={vi.fn()} />,
+    )
+
+    const picker = await screen.findByLabelText('Supplier')
+    await waitFor(() => expect(picker).toHaveValue('5'))
+    await user.selectOptions(picker, 'Not assigned')
+    expect(picker).toHaveValue('')
+    expect(screen.getByText(/so it shows in that supplier's balance/)).toBeInTheDocument()
+  })
+
+  it('preselects the only supplier and sends it with the delivery', async () => {
+    vi.mocked(supplierApi.list).mockResolvedValue([supplier(4, 'IOCL')])
+    const user = userEvent.setup()
+    renderWithProviders(
+      <RecordDeliveryModal pumpId={6} tanks={[tank]} isOwnerOrAdmin={false} canSetBillTotal={false} onClose={vi.fn()} />,
+    )
+
+    await waitFor(() => expect(screen.getByLabelText('Supplier')).toHaveValue('4'))
+    await user.type(screen.getByLabelText('Invoice / bill no.'), 'INV-2')
+    await user.type(screen.getByLabelText('Invoice quantity'), '5000')
+    await enterReceiptCheck(user, '1000', '6000', '1000')
+    await user.click(screen.getByRole('button', { name: 'Review' }))
+    await user.click(await screen.findByRole('button', { name: 'Confirm delivery' }))
+
+    await waitFor(() => expect(inventoryApi.recordBatchDelivery).toHaveBeenCalledWith(6, expect.objectContaining({ supplierId: 4 })))
   })
 
   it('lists the missing receipt-check readings under Still needed and keeps Review unavailable', async () => {
