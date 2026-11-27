@@ -171,6 +171,141 @@ export interface Shift {
   /** True when this shift was entered retroactively by Admin/Owner via the backfill flow. */
   isBackfilled: boolean
   creditEntries: CreditEntry[]
+  /** Operators who worked the shift besides its own operator; active is false once they left. */
+  otherOperators?: OtherOperator[]
+  /** True when the pump has the collections counted before the expected amount is shown. */
+  blindCountRequired?: boolean
+  /** The collections counted blind; null until counted. */
+  blindCount?: BlindCount | null
+}
+
+export interface OtherOperator {
+  operatorId: number
+  operatorName: string | null
+  role: 'ADDITIONAL' | 'RELIEF'
+  active: boolean
+}
+
+export interface BlindCount {
+  cashCollected: number
+  cashDenominations: CashDenominations | null
+  upiCollected: number
+  cardCollected: number
+  fleetCardCollected: number
+  countedAt: string
+  countedByName: string | null
+}
+
+export interface RecordBlindCountRequest {
+  cashCollected: number
+  cashDenominations?: CashDenominations
+  upiCollected: number
+  cardCollected: number
+  fleetCardCollected: number
+}
+
+export interface NozzleMeterReading {
+  nozzleId: number
+  meterReading: number
+}
+
+export interface SwapNozzleRequest {
+  nozzleId: number
+  toOperatorId: number
+  meterReading: number
+  note?: string
+}
+
+export interface StartReliefRequest {
+  relievedOperatorId: number
+  reliefOperatorId: number
+  readings: NozzleMeterReading[]
+  cashHandedOver?: number
+  note?: string
+}
+
+export interface EndReliefRequest {
+  readings: NozzleMeterReading[]
+  cashHandedBack?: number
+  note?: string
+}
+
+export interface OperatorOnShift {
+  operatorId: number
+  operatorName: string | null
+  /** SHIFT_OPERATOR for the one the shift was opened for. */
+  role: 'SHIFT_OPERATOR' | 'ADDITIONAL' | 'RELIEF'
+  joinedAt: string
+  leftAt: string | null
+  active: boolean
+  onBreak: boolean
+  nozzleIds: number[]
+}
+
+export interface ShiftRelief {
+  id: number
+  relievedOperatorId: number
+  relievedOperatorName: string | null
+  reliefOperatorId: number
+  reliefOperatorName: string | null
+  startedAt: string
+  endedAt: string | null
+  cashHandedOver: number | null
+  cashHandedBack: number | null
+  note: string | null
+  active: boolean
+}
+
+/** The collection figures and difference are null when the close did not split the collections by operator. */
+export interface OperatorShare {
+  operatorId: number
+  operatorName: string | null
+  litresSold: number
+  amountDue: number
+  cashCollected: number | null
+  upiCollected: number | null
+  cardCollected: number | null
+  fleetCardCollected: number | null
+  creditTotal: number | null
+  collected: number | null
+  difference: number | null
+}
+
+export type TimelineEventType =
+  | 'SHIFT_OPENED'
+  | 'OPERATOR_JOINED'
+  | 'OPERATOR_LEFT'
+  | 'NOZZLE_SWAPPED'
+  | 'RELIEF_STARTED'
+  | 'RELIEF_ENDED'
+  | 'BLIND_COUNTED'
+  | 'SHIFT_CLOSED'
+
+export interface TimelineEvent {
+  at: string
+  type: TimelineEventType
+  operatorName: string | null
+  otherOperatorName: string | null
+  role: string | null
+  readings: Array<{ nozzleId: number; nozzleNumber: number | null; meterReading: number }>
+  amount: number | null
+  note: string | null
+}
+
+export interface ShiftOperations {
+  operators: OperatorOnShift[]
+  reliefs: ShiftRelief[]
+  operatorShares: OperatorShare[]
+  timeline: TimelineEvent[]
+}
+
+export interface OperatorCollection {
+  operatorId: number
+  cashCollected: number
+  upiCollected: number
+  cardCollected: number
+  fleetCardCollected: number
+  creditTotal: number
 }
 
 // ── API Request types ───────────────────────────────────────────────────────
@@ -208,6 +343,8 @@ export interface CloseShiftRequest {
   /** Owner/Admin only: lets credit for over-limit, on-hold or overdue clients through, with the reason recorded. */
   allowBlockedCredit?: boolean
   blockedCreditReason?: string
+  /** Optional split of the collections by operator; each figure must add up to the shift's. Cash includes drops. */
+  operatorCollections?: OperatorCollection[]
 }
 
 export interface CreateHandoverRequest {

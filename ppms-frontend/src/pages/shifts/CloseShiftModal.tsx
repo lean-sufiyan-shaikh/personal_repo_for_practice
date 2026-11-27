@@ -51,6 +51,11 @@ import { CashDropsAtClose } from './close/CashDropsAtClose'
 import { useShiftCashDrops } from './drops/useShiftCashDrops'
 import { EMPTY_COUNTS, toDenominations } from '../../components/cash/denominations'
 import type { DenominationCounts } from '../../components/cash/denominations'
+import { BlindCountForm } from './operations/BlindCountForm'
+import { BlindCountSection } from './operations/BlindCountSection'
+import { OperatorCollectionsSection } from './operations/OperatorCollectionsSection'
+import type { OperatorCollectionRows } from './operations/operatorCollections'
+import { operatorCollectionsOf } from './operations/operatorCollections'
 
 interface Props {
   shift: Shift
@@ -158,6 +163,19 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
 
   const { drops, confirmedTotal: cashDropped, pendingDrops } = useShiftCashDrops(shift.pumpId, shift.id, closedResult === null)
 
+  // A blind count locks the collections: they are counted before any expected figure is shown, then used as they are.
+  const blindCount = latestShift.blindCount ?? null
+  const needsBlindCount = (latestShift.blindCountRequired ?? false) && blindCount === null
+  useEffect(() => {
+    if (!blindCount) return
+    setCash(String(blindCount.cashCollected))
+    setCashCounts(null)
+    setUpi(String(blindCount.upiCollected))
+    setCard(String(blindCount.cardCollected))
+    setFleetCard(String(blindCount.fleetCardCollected))
+  }, [blindCount])
+  const [operatorSplit, setOperatorSplit] = useState<OperatorCollectionRows>({})
+
   const availableFuelTypes = shift.fuelReadings.map((r) => r.fuelType)
   const {
     creditRows, expandedRowId, setExpandedRowId, clearCreditRows,
@@ -211,7 +229,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
     creditRows, hasDiscrepancy, reasonFilled, pendingDropCount: pendingDrops.length,
     testLitresInvalid, testLitresNoteMissing: testLitresNoteNeeded && testLitresNote.trim() === '',
   }).map((item) => stillNeededLabel(item, t))
-  const canClose = stillNeeded.length === 0
+  const canClose = stillNeeded.length === 0 && !needsBlindCount
   const hasUnsavedChanges = Object.values(endReadings).some(v => v !== '')
     || cash !== '' || upi !== '' || card !== '' || fleetCard !== ''
     || creditRows.length > 0 || discrepancyReason.trim() !== ''
@@ -314,7 +332,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
 
     const result = buildCloseShiftRequest({
       fuelReadings: shift.fuelReadings, endReadings, readingsBelowStart, creditRows,
-      cash, cashDenominations: cashCounts ? toDenominations(cashCounts) : undefined,
+      cash, cashDenominations: blindCount ? blindCount.cashDenominations ?? undefined : cashCounts ? toDenominations(cashCounts) : undefined,
       upi, card, fleetCard, creditTotal, discrepancyReason,
       testLitres, testLitresNote: testLitresNoteNeeded ? testLitresNote : '',
     })
@@ -322,7 +340,8 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
       setServerError(result.error)
       return
     }
-    setReviewedRequest(result.request)
+    const operatorCollections = operatorCollectionsOf(operatorSplit)
+    setReviewedRequest(operatorCollections.length > 0 ? { ...result.request, operatorCollections } : result.request)
     setReviewedFigures({ totalDue, totalCollected, diff, creditEntryCount: preRecordedEntries.length + creditRows.length })
     setStep('review')
   }
@@ -429,7 +448,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
 
   const footer = step === 'form' ? (
     <>
-      {!summaryBesideForm && (
+      {!summaryBesideForm && !needsBlindCount && (
         <CloseShiftSummaryBar figures={summaryFigures} stillNeeded={stillNeeded} stillNeededId={stillNeededId} />
       )}
       <CloseShiftFooter canReview={canClose} isHandover={isHandover} stillNeededId={stillNeededId} onCancel={requestClose} />
@@ -529,6 +548,13 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
                 />
               )}
 
+              {needsBlindCount && (
+                <Section label="1" title={t('blindCount.title')}>
+                  <BlindCountForm shift={latestShift} onCounted={() => reloadShift()} />
+                </Section>
+              )}
+
+              {!needsBlindCount && (<>
               <Section label="1" title={t('close.sections.endReadings')}>
                 <div className="ui-close-readings">
                   {perFuelSales.map(({ reading, sold, parts, isBelowStart }, index) => (
@@ -588,31 +614,41 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
 
               <CashDropsAtClose pumpId={shift.pumpId} drops={drops} confirmedTotal={cashDropped} />
 
-              <PaymentSection
-                cash={cash} cashCounts={cashCounts} upi={upi} card={card} fleetCard={fleetCard}
-                onCashChange={setCash} onCashCountsChange={setCashCounts}
-                onUpiChange={setUpi} onCardChange={setCard} onFleetCardChange={setFleetCard}
-                restInCashPaise={restInCashPaise}
-                cashDropped={cashDropped}
-                creditTotal={creditTotal}
-              />
+              {blindCount ? (
+                <BlindCountSection count={blindCount} creditTotal={creditTotal} />
+              ) : (
+                <PaymentSection
+                  cash={cash} cashCounts={cashCounts} upi={upi} card={card} fleetCard={fleetCard}
+                  onCashChange={setCash} onCashCountsChange={setCashCounts}
+                  onUpiChange={setUpi} onCardChange={setCard} onFleetCardChange={setFleetCard}
+                  restInCashPaise={restInCashPaise}
+                  cashDropped={cashDropped}
+                  creditTotal={creditTotal}
+                />
+              )}
+
+              {(latestShift.otherOperators ?? []).length > 0 && (
+                <OperatorCollectionsSection shift={latestShift} rows={operatorSplit} onChange={setOperatorSplit} />
+              )}
 
               {hasDiscrepancy && (
                 <DiscrepancySection
                   diff={diff}
-                  canRoundOff={canRoundOff}
+                  canRoundOff={canRoundOff && blindCount === null}
                   onRoundOff={handleRoundOff}
                   reason={discrepancyReason}
                   onReasonChange={setDiscrepancyReason}
                 />
               )}
 
+              </>)}
+
               {serverError && (
                 <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>
               )}
             </div>
 
-            {summaryBesideForm && (
+            {summaryBesideForm && !needsBlindCount && (
               <CloseShiftSummaryPanel figures={summaryFigures} stillNeeded={stillNeeded} stillNeededId={stillNeededId} />
             )}
           </div>

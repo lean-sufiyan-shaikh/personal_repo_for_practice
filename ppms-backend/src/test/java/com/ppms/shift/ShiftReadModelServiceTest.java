@@ -2,6 +2,7 @@ package com.ppms.shift;
 
 import com.ppms.fuel.FuelType;
 import com.ppms.pump.Nozzle;
+import com.ppms.pump.PumpLocationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import com.ppms.user.UserRepository;
@@ -20,6 +21,8 @@ class ShiftReadModelServiceTest {
     @Mock private ShiftReadingPriceSegmentRepository priceSegmentRepository;
     @Mock private ShiftInvestigationNoteRepository investigationNoteRepository;
     @Mock private UserRepository userRepository;
+    @Mock private ShiftOperatorRepository shiftOperatorRepository;
+    @Mock private PumpLocationRepository pumpLocationRepository;
     @InjectMocks private ShiftReadModelService service;
 
     @Test

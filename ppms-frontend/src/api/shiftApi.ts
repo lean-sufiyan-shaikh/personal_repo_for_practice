@@ -2,6 +2,7 @@ import client from './client'
 import type { SpringPage } from '../types/paged'
 import type {
   Shift, OpenShiftRequest, CloseShiftRequest, CreditEntryInput, BackfillShiftRequest, CreateHandoverRequest, HandoverResponse,
+  ShiftOperations, RecordBlindCountRequest, SwapNozzleRequest, StartReliefRequest, EndReliefRequest,
 } from '../types/shift'
 
 export type { CreditEntryInput }
@@ -96,4 +97,25 @@ export const shiftApi = {
 
   backfillShift: (pumpId: number, request: BackfillShiftRequest) =>
     client.post<Shift>(`/pumps/${pumpId}/shifts/backfill`, request).then((r) => r.data),
+
+  getOperations: (pumpId: number, shiftId: number) =>
+    client.get<ShiftOperations>(`/pumps/${pumpId}/shifts/${shiftId}/operations`).then((r) => r.data),
+
+  recordBlindCount: (pumpId: number, shiftId: number, request: RecordBlindCountRequest) =>
+    client.post<Shift>(`/pumps/${pumpId}/shifts/${shiftId}/blind-count`, request).then((r) => r.data),
+
+  addOperator: (pumpId: number, shiftId: number, operatorId: number) =>
+    client.post<Shift>(`/pumps/${pumpId}/shifts/${shiftId}/operators`, { operatorId }).then((r) => r.data),
+
+  removeOperator: (pumpId: number, shiftId: number, operatorId: number) =>
+    client.delete<Shift>(`/pumps/${pumpId}/shifts/${shiftId}/operators/${operatorId}`).then((r) => r.data),
+
+  swapNozzle: (pumpId: number, shiftId: number, request: SwapNozzleRequest) =>
+    client.post<Shift>(`/pumps/${pumpId}/shifts/${shiftId}/nozzle-swaps`, request).then((r) => r.data),
+
+  startRelief: (pumpId: number, shiftId: number, request: StartReliefRequest) =>
+    client.post<Shift>(`/pumps/${pumpId}/shifts/${shiftId}/reliefs`, request).then((r) => r.data),
+
+  endRelief: (pumpId: number, shiftId: number, reliefId: number, request: EndReliefRequest) =>
+    client.post<Shift>(`/pumps/${pumpId}/shifts/${shiftId}/reliefs/${reliefId}/end`, request).then((r) => r.data),
 }
