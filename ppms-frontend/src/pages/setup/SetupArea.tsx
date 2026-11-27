@@ -13,6 +13,7 @@ import { NozzleContent } from './nozzles/NozzleContent'
 import { ShiftDefinitionsContent } from './shiftDefinitions/ShiftDefinitionsContent'
 import { StaffContent } from './staff/StaffContent'
 import { TankersContent } from './tankers/TankersContent'
+import { ImportDataContent } from './import/ImportDataContent'
 import type { SectionKey } from './sectionKey'
 
 export interface SetupAreaProps {
@@ -48,6 +49,7 @@ export function SetupArea({
         <Link to="/dashboard/credit" className="ui-btn ui-btn-secondary inline-flex">{t('steps.credit.open')}</Link>
       </div>
     ),
+    import: <ImportDataContent pumpId={pump.id} />,
     tankers: <TankersContent pumpId={pump.id} />,
     settings: (
       <div className="space-y-6">

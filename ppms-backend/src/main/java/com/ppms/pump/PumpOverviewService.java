@@ -56,6 +56,7 @@ public class PumpOverviewService {
                             pump.getId(),
                             pump.getName(),
                             pump.isEnabled(),
+                            pump.isDemo(),
                             salesByPump.getOrDefault(pump.getId(), BigDecimal.ZERO),
                             openShifts.values().stream().mapToLong(Long::longValue).sum(),
                             openShifts.getOrDefault(ShiftStatus.OPEN_OVERDUE, 0L),
@@ -100,7 +101,8 @@ public class PumpOverviewService {
                         .isBefore(today));
     }
 
-    private PumpOverviewTotals totalsOf(List<PumpOverviewSummary> summaries) {
+    private PumpOverviewTotals totalsOf(List<PumpOverviewSummary> allSummaries) {
+        List<PumpOverviewSummary> summaries = allSummaries.stream().filter(summary -> !summary.demo()).toList();
         return new PumpOverviewTotals(
                 summaries.stream().map(PumpOverviewSummary::todaySales).reduce(BigDecimal.ZERO, BigDecimal::add),
                 summaries.stream().mapToLong(PumpOverviewSummary::openShiftCount).sum(),

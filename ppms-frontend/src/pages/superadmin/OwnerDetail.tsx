@@ -9,6 +9,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { formatIstDate } from '../../utils/date'
 import { parseApiError } from '../../utils/apiError'
 import { AddPumpForm } from './AddPumpForm'
+import { OwnerDemoPumpActions } from './OwnerDemoPumpActions'
 import { PumpCard } from './PumpCard'
 import { ownerStatusLabel } from './ownerStatus'
 
@@ -63,6 +64,7 @@ export function OwnerDetail({ owner }: { owner: OwnerSummary }) {
           <button type="button" onClick={() => setIsResetOpen(true)} className="ui-btn ui-btn-secondary ui-btn-compact inline-flex items-center gap-1">
             <KeyRound size={12} strokeWidth={2} aria-hidden="true" />{t('owners.resetPassword')}
           </button>
+          <OwnerDemoPumpActions owner={owner} />
           {!isAddPumpOpen && (
             <button
               type="button"

@@ -18,6 +18,7 @@ export const SETUP_STEPS: readonly SetupStepDefinition[] = [
   { key: 'staff',    checklistStep: 'STAFF' },
   { key: 'gst',      checklistStep: 'GST_DETAILS' },
   { key: 'credit',   checklistStep: 'CREDIT_CLIENTS' },
+  { key: 'import' },
   { key: 'tankers' },
   { key: 'settings' },
 ]

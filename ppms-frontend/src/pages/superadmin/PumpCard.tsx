@@ -3,6 +3,7 @@ import { AlertTriangle, Check, Fuel, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { PumpSummary, UpdatePumpRequest } from '../../api/superAdminApi'
 import { StatusBadge } from '../../components/StatusBadge'
+import { DemoBadge } from '../../components/DemoBadge'
 import { EditPumpForm } from './EditPumpForm'
 
 interface PumpCardProps {
@@ -39,6 +40,7 @@ export function PumpCard({ pump, isEditOpen, onToggleEdit, onToggleEnabled, isSa
               {!pump.enabled && (
                 <StatusBadge tone="bad" label={t('pump.disabled')} />
               )}
+              {pump.demo && <DemoBadge />}
             </div>
             <p className="text-ink-3 mt-0.5">{pump.pumpAddress}</p>
             <div className="mt-1 flex flex-wrap gap-1.5">

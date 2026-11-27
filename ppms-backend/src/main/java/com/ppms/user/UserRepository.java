@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +26,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmployeeId(String employeeId);
 
+    List<User> findByPhoneNumberIn(Collection<String> phoneNumbers);
+
+    List<User> findByEmployeeIdIn(Collection<String> employeeIds);
+
     List<User> findByAssignedPumpIdAndRoleAndStatus(Long pumpId, UserRole role, UserStatus status);
 
     List<User> findByAssignedPumpIdAndStatus(Long pumpId, UserStatus status);
@@ -40,6 +45,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /** Count of users with a given role — used by SUPER_ADMIN analytics. */
     long countByRole(UserRole role);
+
+    /** Staff with one of the roles who work at a real pump; demo pump staff are sample data. */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role IN :roles AND NOT EXISTS "
+            + "(SELECT p.id FROM PumpLocation p WHERE p.id = u.assignedPumpId AND p.demo = true)")
+    long countByRoleInOutsideDemoPumps(@Param("roles") Collection<UserRole> roles);
 
     /** Batch staff count per pump — returns [pumpId, count] pairs. Avoids N+1 when building owner summary. */
     @Query("SELECT u.assignedPumpId, COUNT(u) FROM User u WHERE u.assignedPumpId IN :pumpIds GROUP BY u.assignedPumpId")

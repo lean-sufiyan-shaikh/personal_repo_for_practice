@@ -24,6 +24,7 @@ public class CreditClientService {
     private final CreditExtensionRepository extensionRepository;
     private final CreditEntryReassignmentRepository reassignmentRepository;
     private final AncillarySaleRepository ancillarySaleRepository;
+    private final CreditOpeningBalanceRepository openingBalanceRepository;
     private final PasswordEncoder passwordEncoder;
 
     /** Only a client with no ledger history can be removed; anyone else is deactivated so the history stays intact. */
@@ -65,6 +66,7 @@ public class CreditClientService {
                 || interestChargeRepository.existsByClientId(clientId)
                 || extensionRepository.existsByClientId(clientId)
                 || reassignmentRepository.existsByFromClientIdOrToClientId(clientId, clientId)
-                || ancillarySaleRepository.existsByClientId(clientId);
+                || ancillarySaleRepository.existsByClientId(clientId)
+                || openingBalanceRepository.existsByClientId(clientId);
     }
 }

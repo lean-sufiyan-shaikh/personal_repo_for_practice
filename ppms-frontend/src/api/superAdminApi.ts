@@ -1,4 +1,5 @@
 import client from './client'
+import { DEMO_PUMP_TIMEOUT_MS, type DemoPump } from './demoPumpApi'
 
 // ── Onboard Owner ─────────────────────────────────────────────────────────────
 
@@ -28,6 +29,7 @@ export interface PumpSummary {
   pumpName: string
   pumpAddress: string
   enabled: boolean
+  demo?: boolean
   staffCount: number
   setupDoneCount: number
   setupRequiredCount: number
@@ -73,4 +75,10 @@ export const superAdminApi = {
 
   updatePump: (pumpId: number, request: UpdatePumpRequest) =>
     client.patch<OwnerSummary>(`/super-admin/pumps/${pumpId}`, request).then(r => r.data),
+
+  createDemoPump: (ownerId: number) =>
+    client.post<DemoPump>(`/super-admin/owners/${ownerId}/demo-pump`, undefined, { timeout: DEMO_PUMP_TIMEOUT_MS }).then(r => r.data),
+
+  deleteDemoPump: (ownerId: number) =>
+    client.delete(`/super-admin/owners/${ownerId}/demo-pump`, { timeout: DEMO_PUMP_TIMEOUT_MS }).then(() => undefined),
 }

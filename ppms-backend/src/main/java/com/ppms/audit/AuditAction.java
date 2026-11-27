@@ -130,5 +130,13 @@ public enum AuditAction {
     COLLECTION_SETTINGS_UPDATED,
     CLIENT_VEHICLE_SAVED,
     CLIENT_VEHICLE_STATUS_CHANGED,
-    VEHICLE_CHECK_CHANGED
+    VEHICLE_CHECK_CHANGED,
+
+    // ── Onboarding ────────────────────────────────────────────────────────────
+    STAFF_IMPORTED,
+    CREDIT_CLIENTS_IMPORTED,
+    PRODUCTS_IMPORTED,
+    TANK_STOCK_IMPORTED,
+    DEMO_PUMP_CREATED,
+    DEMO_PUMP_DELETED
 }

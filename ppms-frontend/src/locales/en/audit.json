@@ -109,6 +109,12 @@
     "CLIENT_VEHICLE_SAVED": "Credit vehicle saved",
     "CLIENT_VEHICLE_STATUS_CHANGED": "Credit vehicle activated or deactivated",
     "VEHICLE_CHECK_CHANGED": "Vehicle check changed",
-    "CREDIT_PAYMENT_REVERSED": "Credit payment reversed"
+    "CREDIT_PAYMENT_REVERSED": "Credit payment reversed",
+    "STAFF_IMPORTED": "Staff imported",
+    "CREDIT_CLIENTS_IMPORTED": "Credit clients imported",
+    "PRODUCTS_IMPORTED": "Products imported",
+    "TANK_STOCK_IMPORTED": "Opening tank stock imported",
+    "DEMO_PUMP_CREATED": "Demo pump created",
+    "DEMO_PUMP_DELETED": "Demo pump deleted"
   }
 }

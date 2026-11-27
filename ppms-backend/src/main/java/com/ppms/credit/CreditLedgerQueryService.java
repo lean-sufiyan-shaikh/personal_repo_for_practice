@@ -42,6 +42,7 @@ public class CreditLedgerQueryService {
     private static final String PAYMENT_REVERSAL = "PAYMENT_REVERSAL";
     private static final String BOUNCE_CHARGE = "BOUNCE_CHARGE";
     static final String UNKNOWN_STAFF_NAME = "Unknown staff";
+    private static final String OPENING_BALANCE_LABEL = "Opening balance";
     private static final Comparator<CreditTransactionResponse> OLDEST_FIRST =
             Comparator.comparing(CreditTransactionResponse::getBusinessDate)
                     .thenComparing(CreditTransactionResponse::getOccurredAt)
@@ -60,6 +61,7 @@ public class CreditLedgerQueryService {
     private final ShiftCreditEntryRepository creditEntryRepository;
     private final AncillarySaleRepository ancillarySaleRepository;
     private final AncillaryProductRepository ancillaryProductRepository;
+    private final CreditOpeningBalanceRepository openingBalanceRepository;
     private final CreditInterestService interestService;
     private final UserRepository userRepository;
     private final BusinessClock businessClock;
@@ -245,6 +247,19 @@ public class CreditLedgerQueryService {
 
     private List<CreditTransactionResponse> collectTransactions(Long clientId) {
         List<CreditTransactionResponse> transactions = new ArrayList<>();
+
+        openingBalanceRepository.findByClientIdIn(List.of(clientId))
+                .forEach(balance -> transactions.add(CreditTransactionResponse.builder()
+                        .type("OPENING_BALANCE")
+                        .referenceId(balance.getId())
+                        .reference(OPENING_BALANCE_LABEL)
+                        .referenceCode(ServerTextCodes.CREDIT_OPENING_BALANCE)
+                        .amount(balance.getAmount().setScale(2, RoundingMode.HALF_UP))
+                        .occurredAt(balance.getCreatedAt())
+                        .businessDate(balance.getAsOfDate())
+                        .status(ACTIVE)
+                        .countedInBalance(true)
+                        .build()));
 
         creditEntryRepository.findByClientIdOrderByCreatedAtDesc(clientId)
                 .forEach(sale -> transactions.add(CreditTransactionResponse.builder()

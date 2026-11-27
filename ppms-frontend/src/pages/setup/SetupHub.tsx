@@ -1,7 +1,8 @@
 import { useId, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
-  AlertTriangle, Building2, Check, ChevronDown, ChevronRight, Clock, Cylinder, Fuel, HandCoins, IndianRupee, Receipt, Truck, Users,
+  AlertTriangle, Building2, Check, ChevronDown, ChevronRight, Clock, Cylinder, FileSpreadsheet, Fuel, HandCoins, IndianRupee, Receipt,
+  Truck, Users,
   type LucideIcon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -22,6 +23,7 @@ const HUB_CARDS: readonly { key: SectionKey; icon: LucideIcon }[] = [
   { key: 'staff', icon: Users },
   { key: 'tankers', icon: Truck },
   { key: 'credit', icon: HandCoins },
+  { key: 'import', icon: FileSpreadsheet },
 ]
 
 interface SetupHubProps {

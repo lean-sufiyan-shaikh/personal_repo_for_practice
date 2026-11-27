@@ -76,7 +76,12 @@
     "selectOwner": "Choose an owner to see their pumps and setup progress.",
     "notFound": "This owner is not in the list.",
     "pumpsTitle": "Pumps",
-    "setupDone": "{{done}} of {{total}} pumps set up"
+    "setupDone": "{{done}} of {{total}} pumps set up",
+    "createDemo": "Create demo pump",
+    "creatingDemo": "Creating demo pump…",
+    "deleteDemo": "Delete demo pump",
+    "deleteDemoPrompt": "Delete this owner's demo pump and its sample data?",
+    "demoFailed": "The demo pump could not be changed."
   },
   "addPump": {
     "title": "Add a new pump for {{name}}",

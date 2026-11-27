@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { PumpSummary } from '../../../api/pumpApi'
 import { usePumpStore } from '../../../store/usePumpStore'
+import { DemoBadge } from '../../../components/DemoBadge'
 
 export function PumpSwitcher({ pumps, variant = 'topbar' }: { pumps: PumpSummary[]; variant?: 'topbar' | 'drawer' }) {
   const { t } = useTranslation('nav')
@@ -18,6 +19,7 @@ export function PumpSwitcher({ pumps, variant = 'topbar' }: { pumps: PumpSummary
           className={`ui-dashboard-pump-chip cursor-pointer ${selectedPumpId === pump.id ? 'ui-dashboard-pump-chip--active' : ''}`}
         >
           {pump.name}
+          {pump.demo && <DemoBadge className="ml-1.5" />}
         </button>
       ))}
     </div>

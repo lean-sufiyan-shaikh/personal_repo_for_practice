@@ -420,7 +420,8 @@
     "ATTENTION_DAY_CLOSES_UNAPPROVED_one": "{{count}} closed day waiting for your approval",
     "ATTENTION_DAY_CLOSES_UNAPPROVED_other": "{{count}} closed days waiting for your approval",
     "PAYMENT_REVERSAL_DETAILS": "Payment of {{paidAt}} reversed: {{reason}}",
-    "BOUNCE_CHARGE_DETAILS": "Bounce charge for the payment of {{paidAt}}"
+    "BOUNCE_CHARGE_DETAILS": "Bounce charge for the payment of {{paidAt}}",
+    "CREDIT_OPENING_BALANCE": "Opening balance"
   },
   "WET_STOCK_LOSS": "Fuel loss above limit",
   "RAISED": "Raised",

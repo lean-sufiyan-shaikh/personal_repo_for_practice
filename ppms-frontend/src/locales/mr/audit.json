@@ -109,6 +109,12 @@
     "CLIENT_VEHICLE_SAVED": "क्रेडिट वाहन जतन केले",
     "CLIENT_VEHICLE_STATUS_CHANGED": "क्रेडिट वाहन सुरू किंवा बंद केले",
     "VEHICLE_CHECK_CHANGED": "वाहन तपासणी बदलली",
-    "CREDIT_PAYMENT_REVERSED": "क्रेडिट पेमेंट उलटवले"
+    "CREDIT_PAYMENT_REVERSED": "क्रेडिट पेमेंट उलटवले",
+    "STAFF_IMPORTED": "कर्मचारी आयात केले",
+    "CREDIT_CLIENTS_IMPORTED": "क्रेडिट ग्राहक आयात केले",
+    "PRODUCTS_IMPORTED": "उत्पादने आयात केली",
+    "TANK_STOCK_IMPORTED": "सुरुवातीचा टँक स्टॉक आयात केला",
+    "DEMO_PUMP_CREATED": "डेमो पंप तयार केला",
+    "DEMO_PUMP_DELETED": "डेमो पंप हटवला"
   }
 }

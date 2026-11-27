@@ -38,7 +38,7 @@ import java.util.stream.Stream;
  *
  * Interest model:
  *   - Simple interest on principal only: earlier interest charges are never charged interest.
- *   - Principal on a day = ACTIVE fuel credit sales + credit counter sales up to that day
+ *   - Principal on a day = opening balance + ACTIVE fuel credit sales + credit counter sales up to that day
  *     − APPROVED payments up to that day, each dated by its business date.
  *   - Each day of the period is charged on that day's principal:
  *     amount = Σ principal(day) × (monthly rate / 100) / 30
@@ -65,6 +65,7 @@ public class CreditInterestService {
     private final CreditPaymentReversalRepository reversalRepository;
     private final ShiftCreditEntryRepository creditEntryRepository;
     private final AncillarySaleRepository ancillarySaleRepository;
+    private final CreditOpeningBalanceRepository openingBalanceRepository;
     private final AuditService auditService;
     private final BusinessClock businessClock;
 
@@ -72,16 +73,17 @@ public class CreditInterestService {
 
     /**
      * Computes the true outstanding balance for a client (own transactions only):
-     *   outstanding = sum(fuel credit sales) + sum(credit counter sales) + sum(interest_charges)
+     *   outstanding = opening balance + sum(fuel credit sales) + sum(credit counter sales) + sum(interest_charges)
      *                 + sum(bounce charges) − sum(approved payments)
      */
     public BigDecimal computeOutstanding(Long clientId) {
+        BigDecimal opening      = openingBalanceRepository.sumAmountByClientId(clientId);
         BigDecimal fuelSales    = creditEntryRepository.sumAmountByClientId(clientId);
         BigDecimal counterSales = ancillarySaleRepository.sumAmountByClientIdAndPaymentMode(clientId, CREDIT);
         BigDecimal interest     = interestChargeRepository.sumAmountByClientId(clientId);
         BigDecimal bounce       = reversalRepository.sumBounceChargesByClientId(clientId);
         BigDecimal paid         = paymentRepository.sumAmountByClientId(clientId);
-        return fuelSales.add(counterSales).add(interest).add(bounce).subtract(paid).setScale(2, RoundingMode.HALF_UP);
+        return opening.add(fuelSales).add(counterSales).add(interest).add(bounce).subtract(paid).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -108,6 +110,7 @@ public class CreditInterestService {
     public Map<Long, BigDecimal> computeOutstandingBatch(Collection<Long> clientIds) {
         if (clientIds.isEmpty()) return Map.of();
 
+        Map<Long, BigDecimal> openingMap      = toAmountMap(openingBalanceRepository.findAmountsByClientIds(clientIds));
         Map<Long, BigDecimal> fuelSalesMap    = toAmountMap(creditEntryRepository.sumAmountsByClientIds(clientIds));
         Map<Long, BigDecimal> counterSalesMap = toAmountMap(ancillarySaleRepository.sumAmountsByClientIdsAndPaymentMode(clientIds, CREDIT));
         Map<Long, BigDecimal> interestMap     = toAmountMap(interestChargeRepository.sumAmountsByClientIds(clientIds));
@@ -116,7 +119,8 @@ public class CreditInterestService {
 
         return clientIds.stream().collect(Collectors.toMap(
                 id -> id,
-                id -> fuelSalesMap.getOrDefault(id, BigDecimal.ZERO)
+                id -> openingMap.getOrDefault(id, BigDecimal.ZERO)
+                        .add(fuelSalesMap.getOrDefault(id, BigDecimal.ZERO))
                         .add(counterSalesMap.getOrDefault(id, BigDecimal.ZERO))
                         .add(interestMap.getOrDefault(id, BigDecimal.ZERO))
                         .add(bounceMap.getOrDefault(id, BigDecimal.ZERO))
@@ -233,11 +237,15 @@ public class CreditInterestService {
         return map;
     }
 
-    /** Business date of the oldest active credit sale (fuel or counter) of the given clients. */
+    /** Business date of the oldest active credit sale (fuel or counter) or opening balance of the given clients. */
     public Optional<LocalDate> findOldestCreditSaleDate(Collection<Long> clientIds) {
         Optional<LocalDate> oldestFuelSale = creditEntryRepository.findOldestSaleDateByClientIds(clientIds);
         Optional<LocalDate> oldestCounterSale = ancillarySaleRepository.findOldestSaleDateByClientIdsAndPaymentMode(clientIds, CREDIT);
-        return Stream.of(oldestFuelSale, oldestCounterSale)
+        Optional<LocalDate> oldestOpeningBalance = clientIds.isEmpty() ? Optional.empty()
+                : openingBalanceRepository.findByClientIdIn(clientIds).stream()
+                        .map(CreditOpeningBalance::getAsOfDate)
+                        .min(Comparator.naturalOrder());
+        return Stream.of(oldestFuelSale, oldestCounterSale, oldestOpeningBalance)
                 .flatMap(Optional::stream)
                 .min(Comparator.naturalOrder());
     }
@@ -450,6 +458,9 @@ public class CreditInterestService {
 
     private DailyPrincipal loadDailyPrincipal(Collection<Long> clientIds) {
         Map<LocalDate, BigDecimal> changes = new HashMap<>();
+        for (CreditOpeningBalance balance : openingBalanceRepository.findByClientIdIn(clientIds)) {
+            changes.merge(balance.getAsOfDate(), balance.getAmount(), BigDecimal::add);
+        }
         for (var entry : creditEntryRepository.findActiveByClientIdIn(clientIds)) {
             changes.merge(entry.getSaleDate(), entry.getAmount(), BigDecimal::add);
         }

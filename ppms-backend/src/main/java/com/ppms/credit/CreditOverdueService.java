@@ -21,7 +21,8 @@ import java.util.stream.Collectors;
  * Applies the oldest-bills-first rule of {@link CreditBillLedger} to credit accounts. Every caller that needs to know
  * whether an account is overdue reads it here, so the credit status, the hold, the aging and the collections agree.
  * A sub-account's bills and payments count towards its parent's account, judged by the parent's billing cycle.
- * Loads any number of accounts in five queries.
+ * An opening balance is a bill like a credit sale, dated the day the pump went live.
+ * Loads any number of accounts in six queries.
  */
 @Service
 @RequiredArgsConstructor
@@ -33,6 +34,7 @@ public class CreditOverdueService {
     private final CreditInterestChargeRepository interestChargeRepository;
     private final CreditPaymentRepository paymentRepository;
     private final CreditPaymentReversalRepository reversalRepository;
+    private final CreditOpeningBalanceRepository openingBalanceRepository;
 
     /** The standing of each account among the given clients, by the id of the client that holds the account. */
     @Transactional(readOnly = true)
@@ -49,6 +51,9 @@ public class CreditOverdueService {
 
         Map<Long, List<CreditBillLedger.Bill>> billsByHolderId = new HashMap<>();
         Map<Long, List<CreditBillLedger.Payment>> paymentsByHolderId = new HashMap<>();
+        openingBalanceRepository.findByClientIdIn(clientIds).forEach(balance ->
+                billsByHolderId.computeIfAbsent(holderIdByClientId.get(balance.getClientId()), id -> new ArrayList<>())
+                        .add(new CreditBillLedger.Bill(balance.getAsOfDate(), balance.getAmount(), true)));
         creditEntryRepository.findActiveByClientIdIn(clientIds).forEach(entry ->
                 billsByHolderId.computeIfAbsent(holderIdByClientId.get(entry.getClientId()), id -> new ArrayList<>())
                         .add(new CreditBillLedger.Bill(entry.getSaleDate(), entry.getAmount(), true)));

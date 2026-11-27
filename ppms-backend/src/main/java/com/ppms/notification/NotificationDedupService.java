@@ -2,6 +2,7 @@ package com.ppms.notification;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ppms.pump.PumpLocationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.Map;
 public class NotificationDedupService {
 
     private final NotificationRepository notificationRepository;
+    private final PumpLocationRepository pumpLocationRepository;
     private final ObjectMapper objectMapper;
 
     /**
@@ -32,6 +34,9 @@ public class NotificationDedupService {
     @Transactional
     public void maybeInsert(Long pumpId, NotificationType type, String dedupKey, String title, String message,
                             Map<String, Object> params) {
+        if (pumpLocationRepository.existsByIdAndDemoTrue(pumpId)) {
+            return;
+        }
         notificationRepository.insertIfNotExists(pumpId, type.name(), title, message, dedupKey, toJson(params));
         log.debug("Notification upsert attempted: pump={} type={} key={}", pumpId, type, dedupKey);
     }
@@ -44,6 +49,9 @@ public class NotificationDedupService {
     @Transactional
     public void insertDaily(Long pumpId, NotificationType type, String seriesKey, LocalDate day,
                             String title, String message, Map<String, Object> params) {
+        if (pumpLocationRepository.existsByIdAndDemoTrue(pumpId)) {
+            return;
+        }
         String dedupKey = seriesKey + ":" + day;
         if (notificationRepository.insertIfNotExists(pumpId, type.name(), title, message, dedupKey, toJson(params)) == 0) {
             return;

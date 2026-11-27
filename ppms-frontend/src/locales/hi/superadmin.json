@@ -76,7 +76,12 @@
     "selectOwner": "पंप और सेटअप की प्रगति देखने के लिए एक मालिक चुनें।",
     "notFound": "यह मालिक सूची में नहीं है।",
     "pumpsTitle": "पंप",
-    "setupDone": "{{total}} में से {{done}} पंप सेट"
+    "setupDone": "{{total}} में से {{done}} पंप सेट",
+    "createDemo": "डेमो पंप बनाएँ",
+    "creatingDemo": "डेमो पंप बन रहा है…",
+    "deleteDemo": "डेमो पंप हटाएँ",
+    "deleteDemoPrompt": "इस मालिक का डेमो पंप और उसका नमूना डेटा हटाएँ?",
+    "demoFailed": "डेमो पंप बदला नहीं जा सका।"
   },
   "addPump": {
     "title": "{{name}} के लिए नया पंप जोड़ें",

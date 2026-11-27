@@ -29,6 +29,7 @@ vi.mock('./staff/StaffContent', () => ({
 vi.mock('./GstDetailsContent', () => ({ GstDetailsContent: () => <p>GST editor</p> }))
 vi.mock('./tankers/TankersContent', () => ({ TankersContent: () => <p>Tanker editor</p> }))
 vi.mock('./PumpSettingsContent', () => ({ PumpSettingsContent: () => <p>Settings editor</p> }))
+vi.mock('./import/ImportDataContent', () => ({ ImportDataContent: () => <p>Import editor</p> }))
 
 const nozzle = (id: number, tankId: number | null) =>
   ({ id, nozzleNumber: id, fuelType: 'PETROL' as const, lastReading: 0, maxMeterValue: 99999, tankId, status: 'ACTIVE' })
@@ -92,7 +93,7 @@ describe('SetupPage', () => {
       const steps = within(await screen.findByRole('navigation', { name: 'Setup steps' })).getAllByRole('link')
       expect(steps.map((link) => link.textContent)).toEqual([
         'Dispensers & nozzlesDone', 'Tanks & mappingDone', '3Fuel pricesTo do', '4Shift timingsTo do', '5StaffTo do',
-        '6GST detailsTo do', '7Credit clientsOptional', '8TankersOptional', '9Pump settingsOptional',
+        '6GST detailsTo do', '7Credit clientsOptional', '8Import dataOptional', '9TankersOptional', '10Pump settingsOptional',
       ])
       expect(steps[0].closest('ol')).not.toBeNull()
     })
@@ -170,7 +171,7 @@ describe('SetupPage', () => {
 
       const allSteps = await screen.findByRole('button', { name: 'All steps' })
       expect(allSteps).toHaveAttribute('aria-expanded', 'false')
-      expect(screen.getByText('Step 6 of 9')).toBeInTheDocument()
+      expect(screen.getByText('Step 6 of 10')).toBeInTheDocument()
 
       await user.click(allSteps)
       expect(allSteps).toHaveAttribute('aria-expanded', 'true')
@@ -210,6 +211,24 @@ describe('SetupPage', () => {
       vi.mocked(pumpApi.getSetupChecklist).mockResolvedValue(completeChecklist)
     })
 
+    it('marks a demo pump with a badge and a note that its data is sample data', async () => {
+      vi.mocked(pumpApi.getMyPumps).mockResolvedValue([{ ...pump, demo: true }])
+      renderSetup()
+
+      expect(await screen.findByText('This is a demo pump filled with sample data. Nothing here affects your real pumps.')).toBeInTheDocument()
+      expect(screen.getByText('Demo')).toBeInTheDocument()
+    })
+
+    it('opens the import area from its hub card', async () => {
+      const user = userEvent.setup()
+      renderSetup()
+
+      await user.click(await screen.findByRole('link', { name: /Import data/ }))
+
+      expect(screen.getByText('Import editor')).toBeInTheDocument()
+      expect(screen.getByLabelText('Address search')).toHaveTextContent('?section=import')
+    })
+
     it('opens as a settings hub with a card per area and no stepper', async () => {
       vi.mocked(pumpApi.getCurrentPrices).mockResolvedValue([priceSetOn(new Date().toISOString())])
       renderSetup()
@@ -224,7 +243,7 @@ describe('SetupPage', () => {
       expect(screen.getByRole('link', { name: /Fuel prices.*Prices updated today/ })).not.toHaveTextContent('Not updated today')
       expect(screen.getByRole('link', { name: /Staff.*1 active staff member/ })).toBeInTheDocument()
       expect(screen.getByRole('link', { name: /GST details.*GSTIN 27AAAAA0000A1Z5/ })).toBeInTheDocument()
-      expect(screen.getAllByRole('listitem').filter((entry) => entry.querySelector('.ui-hub-card'))).toHaveLength(9)
+      expect(screen.getAllByRole('listitem').filter((entry) => entry.querySelector('.ui-hub-card'))).toHaveLength(10)
     })
 
     it('flags prices that were not updated today', async () => {

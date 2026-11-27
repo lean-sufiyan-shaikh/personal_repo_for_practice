@@ -92,6 +92,7 @@ export function useSetupOverview(pump: PumpSummary, checklist: SetupChecklist | 
     staff: { text: activeStaff > 0 ? t('sections.staff.active', { count: activeStaff }) : t('sections.staff.noneAdded') },
     gst: { text: pump.gstin ? t('sections.gst.summary', { gstin: pump.gstin }) : t('sections.notConfigured') },
     credit: { text: checklistDetail('CREDIT_CLIENTS') ?? t('steps.credit.body') },
+    import: { text: t('sections.import.summary') },
     tankers: { text: t('sections.tankers.summary') },
     settings: {
       text: pump.discrepancyEscalationThreshold

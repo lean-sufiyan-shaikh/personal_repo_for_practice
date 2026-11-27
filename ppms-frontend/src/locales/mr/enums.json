@@ -420,7 +420,8 @@
     "ATTENTION_DAY_CLOSES_UNAPPROVED_one": "{{count}} बंद दिवस तुमच्या मंजुरीच्या प्रतीक्षेत",
     "ATTENTION_DAY_CLOSES_UNAPPROVED_other": "{{count}} बंद दिवस तुमच्या मंजुरीच्या प्रतीक्षेत",
     "PAYMENT_REVERSAL_DETAILS": "{{paidAt}} चे पेमेंट उलटवले: {{reason}}",
-    "BOUNCE_CHARGE_DETAILS": "{{paidAt}} च्या पेमेंटचे बाउन्स शुल्क"
+    "BOUNCE_CHARGE_DETAILS": "{{paidAt}} च्या पेमेंटचे बाउन्स शुल्क",
+    "CREDIT_OPENING_BALANCE": "सुरुवातीची थकबाकी"
   },
   "WET_STOCK_LOSS": "मर्यादेपेक्षा जास्त इंधन तोटा",
   "RAISED": "दावा केला",

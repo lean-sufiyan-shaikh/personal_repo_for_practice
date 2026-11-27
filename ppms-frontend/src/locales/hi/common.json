@@ -133,7 +133,9 @@
     "overdue": "समय पार",
     "reversed": "उलटाया गया",
     "paymentReversal": "भुगतान उलटाया",
-    "bounceCharge": "बाउंस शुल्क"
+    "bounceCharge": "बाउंस शुल्क",
+    "demo": "डेमो",
+    "openingBalance": "शुरुआती बकाया"
   },
   "passwordInput": {
     "show": "पासवर्ड दिखाएँ"

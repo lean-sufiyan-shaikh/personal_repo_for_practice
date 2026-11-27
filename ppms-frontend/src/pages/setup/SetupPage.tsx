@@ -14,6 +14,7 @@ import { PageSection } from '../../components/layout/PageSection'
 import { useUrlParam } from '../../components/layout/useUrlParam'
 import { SkeletonRows } from '../../components/Skeleton'
 import { StatusBadge } from '../../components/StatusBadge'
+import { DemoBadge } from '../../components/DemoBadge'
 import { FuelPricesContent } from './FuelPricesContent'
 import { SetupArea } from './SetupArea'
 import { SetupHub } from './SetupHub'
@@ -122,6 +123,7 @@ export default function SetupPage() {
         backLink={isAreaOfHub ? { to: `${pathname}${searchForHub(searchParams)}`, label: t('hub.backLink') } : undefined}
         badges={pump && (
           <>
+            {pump.demo && <DemoBadge />}
             {checklist && (complete
               ? <StatusBadge tone="ok" icon={Check} label={t('steps.complete')} />
               : <StatusBadge tone="warn" label={t('checklist.doneCount', { done: checklist.doneCount, required: checklist.requiredCount })} />
@@ -132,6 +134,8 @@ export default function SetupPage() {
           </>
         )}
       />
+
+      {pump?.demo && <p className="ui-alert text-sm border border-info bg-info-bg text-info">{t('demo.banner')}</p>}
 
       {!isLoading && pumps.length === 0 ? (
         <p className="ui-empty">{t('page.noPumps')}</p>

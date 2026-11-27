@@ -23,6 +23,8 @@ export interface PumpSummary {
   safeCountTolerance?: number
   /** "HH:MM:SS": until then a manager may still count the safe for yesterday; 10:00 by default. */
   safeCountCutoffTime?: string
+  /** A pump of sample data for trying PPMS; left out of all-pump totals. */
+  demo?: boolean
   dus: DUOption[]
 }
 
@@ -175,6 +177,8 @@ export interface PumpOverviewSummary {
   pumpId: number
   name: string
   enabled: boolean
+  /** Shown with a Demo badge and left out of the totals. */
+  demo?: boolean
   todaySales: number
   openShiftCount: number
   overdueShiftCount: number

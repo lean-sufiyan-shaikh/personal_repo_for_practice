@@ -119,4 +119,10 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   CLIENT_VEHICLE_SAVED:               'info',
   CLIENT_VEHICLE_STATUS_CHANGED:      'neutral',
   VEHICLE_CHECK_CHANGED:              'warn',
+  STAFF_IMPORTED:                     'ok',
+  CREDIT_CLIENTS_IMPORTED:            'ok',
+  PRODUCTS_IMPORTED:                  'ok',
+  TANK_STOCK_IMPORTED:                'ok',
+  DEMO_PUMP_CREATED:                  'info',
+  DEMO_PUMP_DELETED:                  'neutral',
 }

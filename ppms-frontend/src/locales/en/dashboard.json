@@ -103,6 +103,7 @@
     "loadError": "Figures for your pumps could not be loaded. Refresh to try again.",
     "loading": "Loading all pumps",
     "pumps": "Pumps",
-    "selectHint": "Select a pump to open its overview"
+    "selectHint": "Select a pump to open its overview",
+    "demoNotCounted": "Demo pumps are not counted in these totals."
   }
 }

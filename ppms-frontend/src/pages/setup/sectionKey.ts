@@ -1,1 +1,1 @@
-export type SectionKey = 'nozzles' | 'tanks' | 'prices' | 'shifts' | 'staff' | 'gst' | 'credit' | 'tankers' | 'settings'
+export type SectionKey = 'nozzles' | 'tanks' | 'prices' | 'shifts' | 'staff' | 'gst' | 'credit' | 'import' | 'tankers' | 'settings'

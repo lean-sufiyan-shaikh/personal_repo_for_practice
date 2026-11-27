@@ -420,7 +420,8 @@
     "ATTENTION_DAY_CLOSES_UNAPPROVED_one": "{{count}} बंद दिन आपकी मंज़ूरी के इंतज़ार में",
     "ATTENTION_DAY_CLOSES_UNAPPROVED_other": "{{count}} बंद दिन आपकी मंज़ूरी के इंतज़ार में",
     "PAYMENT_REVERSAL_DETAILS": "{{paidAt}} का भुगतान उलटाया: {{reason}}",
-    "BOUNCE_CHARGE_DETAILS": "{{paidAt}} के भुगतान का बाउंस शुल्क"
+    "BOUNCE_CHARGE_DETAILS": "{{paidAt}} के भुगतान का बाउंस शुल्क",
+    "CREDIT_OPENING_BALANCE": "शुरुआती बकाया"
   },
   "WET_STOCK_LOSS": "सीमा से ज़्यादा ईंधन नुकसान",
   "RAISED": "दावा किया",

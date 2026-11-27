@@ -29,9 +29,10 @@ export interface CreditClient {
 export interface CreditTransaction {
   /**
    * SALE is fuel on credit; COUNTER_SALE is a shop product sold on credit. PAYMENT_REVERSAL takes a reversed payment
-   * back onto the account on the day it was reversed; BOUNCE_CHARGE is the charge added with that reversal.
+   * back onto the account on the day it was reversed; BOUNCE_CHARGE is the charge added with that reversal;
+   * OPENING_BALANCE is what was owed at go-live.
    */
-  type: 'SALE' | 'COUNTER_SALE' | 'PAYMENT' | 'INTEREST' | 'PAYMENT_REVERSAL' | 'BOUNCE_CHARGE'
+  type: 'SALE' | 'COUNTER_SALE' | 'PAYMENT' | 'INTEREST' | 'PAYMENT_REVERSAL' | 'BOUNCE_CHARGE' | 'OPENING_BALANCE'
   referenceId: number
   reference: string | null
   /** Set when the server wrote the reference (COUNTER_SALE and INTEREST rows, a payment by unknown staff), for translated screens. */

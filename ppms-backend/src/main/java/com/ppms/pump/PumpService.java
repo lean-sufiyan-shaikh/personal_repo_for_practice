@@ -271,6 +271,7 @@ public class PumpService {
                 .densityTolerance(pump.getDensityTolerance())
                 .safeCountTolerance(pump.getSafeCountTolerance())
                 .safeCountCutoffTime(pump.getSafeCountCutoffTime())
+                .demo(pump.isDemo())
                 .dus(activeDUs)
                 .build();
     }

@@ -81,5 +81,6 @@ export function creditTransactionBadge(tx: Pick<CreditTransaction, 'type' | 'sta
   if (tx.type === 'SALE') return { label: i18n.t('badges.sale'), tone: 'warn', icon: ArrowUp }
   if (tx.type === 'COUNTER_SALE') return { label: i18n.t('badges.shopSale'), tone: 'warn', icon: ArrowUp }
   if (tx.type === 'INTEREST') return { label: i18n.t('badges.interest'), tone: 'info', icon: Percent }
+  if (tx.type === 'OPENING_BALANCE') return { label: i18n.t('badges.openingBalance'), tone: 'warn', icon: ArrowUp }
   return { label: i18n.t('badges.paid'), tone: 'ok', icon: ArrowDown }
 }

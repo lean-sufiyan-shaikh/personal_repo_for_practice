@@ -133,7 +133,9 @@
     "overdue": "Overdue",
     "reversed": "Reversed",
     "paymentReversal": "Payment reversed",
-    "bounceCharge": "Bounce charge"
+    "bounceCharge": "Bounce charge",
+    "demo": "Demo",
+    "openingBalance": "Opening balance"
   },
   "passwordInput": {
     "show": "Show password"

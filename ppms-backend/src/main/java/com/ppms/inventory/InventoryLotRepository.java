@@ -103,6 +103,8 @@ public interface InventoryLotRepository extends JpaRepository<InventoryLot, Long
             """)
     List<InventoryLot> findAllByTankIdOrdered(Long tankId);
 
+    boolean existsByTankId(Long tankId);
+
     /** Lots for the all-tanks report: every ACTIVE lot plus lots delivered in [from, to), ordered by tank then delivery. */
     @Query("""
             SELECT l FROM InventoryLot l

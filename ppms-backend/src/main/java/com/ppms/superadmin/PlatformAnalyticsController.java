@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -29,10 +30,9 @@ public class PlatformAnalyticsController {
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Map<String, Object> getPlatformAnalytics() {
         long totalOwners    = userRepository.countByRole(UserRole.OWNER);
-        long totalPumps     = pumpLocationRepository.count();
-        long totalStaff     = userRepository.countByRole(UserRole.OPERATOR)
-                            + userRepository.countByRole(UserRole.ADMIN)
-                            + userRepository.countByRole(UserRole.MANAGER);
+        long totalPumps     = pumpLocationRepository.countByDemoFalse();
+        long totalStaff     = userRepository.countByRoleInOutsideDemoPumps(
+                List.of(UserRole.OPERATOR, UserRole.ADMIN, UserRole.MANAGER));
 
         return Map.of(
                 "totalOwners", totalOwners,

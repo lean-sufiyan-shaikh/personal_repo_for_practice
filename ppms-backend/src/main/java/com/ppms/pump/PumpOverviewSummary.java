@@ -6,6 +6,7 @@ public record PumpOverviewSummary(
         Long pumpId,
         String name,
         boolean enabled,
+        boolean demo,
         BigDecimal todaySales,
         long openShiftCount,
         long overdueShiftCount,

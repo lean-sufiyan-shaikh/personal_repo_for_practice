@@ -29,6 +29,7 @@ public class OwnerSummaryResponse {
         private String pumpName;
         private String pumpAddress;
         private boolean enabled;
+        private boolean demo;
         private long staffCount;
         /** Required setup steps done, out of {@link #setupRequiredCount}; see SetupChecklistService. */
         private int setupDoneCount;

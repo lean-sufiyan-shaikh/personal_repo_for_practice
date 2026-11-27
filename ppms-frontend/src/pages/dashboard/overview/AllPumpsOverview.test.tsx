@@ -36,6 +36,21 @@ describe('AllPumpsOverview', () => {
     expect(within(statCard('Stale Fuel Prices')).getByText('Pumps to update in Setup')).toBeInTheDocument()
   })
 
+  it('badges a demo pump and says demo pumps are left out of the totals', async () => {
+    vi.mocked(pumpApi.getPumpsOverview).mockResolvedValue({
+      ...overview,
+      pumps: [...overview.pumps, { pumpId: 3, name: 'Demo Pump', enabled: true, demo: true, todaySales: 0, openShiftCount: 0,
+        overdueShiftCount: 0, lowStockTankCount: 0, fuelPricesStale: false }],
+    })
+    renderWithProviders(<AllPumpsOverview onPumpSelected={vi.fn()} />)
+
+    const demo = await screen.findByRole('button', { name: /Demo Pump/ })
+    expect(within(demo).getByText('Demo')).toBeInTheDocument()
+    expect(within(screen.getByRole('button', { name: /North Pump/ })).queryByText('Demo')).not.toBeInTheDocument()
+    expect(screen.getByText(/Demo pumps are not counted in these totals/)).toBeInTheDocument()
+    expect(within(statCard("Today's Revenue")).getByText('Across 2 pumps')).toBeInTheDocument()
+  })
+
   it('shows a row per pump with its own figures', async () => {
     renderWithProviders(<AllPumpsOverview onPumpSelected={vi.fn()} />)
 

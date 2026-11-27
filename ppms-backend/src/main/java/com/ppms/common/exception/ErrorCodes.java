@@ -414,6 +414,37 @@ public final class ErrorCodes {
     public static final String SUPPLIER_PAYMENT_REFERENCE_DUPLICATE = "SUPPLIER_PAYMENT_REFERENCE_DUPLICATE";
     public static final String SUPPLIER_PAYMENT_ALREADY_VOIDED = "SUPPLIER_PAYMENT_ALREADY_VOIDED";
 
+    public static final String IMPORT_NO_ROWS = "IMPORT_NO_ROWS";
+    public static final String IMPORT_TOO_MANY_ROWS = "IMPORT_TOO_MANY_ROWS";
+    public static final String IMPORT_FILE_HAS_ERRORS = "IMPORT_FILE_HAS_ERRORS";
+    public static final String IMPORT_VALUE_REQUIRED = "IMPORT_VALUE_REQUIRED";
+    public static final String IMPORT_VALUE_TOO_LONG = "IMPORT_VALUE_TOO_LONG";
+    public static final String IMPORT_NUMBER_INVALID = "IMPORT_NUMBER_INVALID";
+    public static final String IMPORT_NUMBER_TOO_SMALL = "IMPORT_NUMBER_TOO_SMALL";
+    public static final String IMPORT_NUMBER_TOO_LARGE = "IMPORT_NUMBER_TOO_LARGE";
+    public static final String IMPORT_TOO_MANY_DECIMALS = "IMPORT_TOO_MANY_DECIMALS";
+    public static final String IMPORT_WHOLE_NUMBER_REQUIRED = "IMPORT_WHOLE_NUMBER_REQUIRED";
+    public static final String IMPORT_DATE_INVALID = "IMPORT_DATE_INVALID";
+    public static final String IMPORT_DATE_IN_FUTURE = "IMPORT_DATE_IN_FUTURE";
+    public static final String IMPORT_CHOICE_INVALID = "IMPORT_CHOICE_INVALID";
+    public static final String IMPORT_YES_NO_INVALID = "IMPORT_YES_NO_INVALID";
+    public static final String IMPORT_PHONE_INVALID = "IMPORT_PHONE_INVALID";
+    public static final String IMPORT_TEXT_HAS_ANGLE_BRACKETS = "IMPORT_TEXT_HAS_ANGLE_BRACKETS";
+    public static final String IMPORT_DUPLICATE_IN_FILE = "IMPORT_DUPLICATE_IN_FILE";
+    public static final String IMPORT_ALREADY_EXISTS = "IMPORT_ALREADY_EXISTS";
+    public static final String IMPORT_RATE_NOT_FOR_ROLE = "IMPORT_RATE_NOT_FOR_ROLE";
+    public static final String IMPORT_PARENT_NOT_FOUND = "IMPORT_PARENT_NOT_FOUND";
+    public static final String IMPORT_PARENT_ROW_HAS_ERRORS = "IMPORT_PARENT_ROW_HAS_ERRORS";
+    public static final String IMPORT_CREDIT_LIMIT_ON_SUB_ACCOUNT = "IMPORT_CREDIT_LIMIT_ON_SUB_ACCOUNT";
+    public static final String IMPORT_PHONE_IN_OTHER_GROUP = "IMPORT_PHONE_IN_OTHER_GROUP";
+    public static final String IMPORT_COST_REQUIRED_FOR_STOCK = "IMPORT_COST_REQUIRED_FOR_STOCK";
+    public static final String IMPORT_TANK_NOT_FOUND = "IMPORT_TANK_NOT_FOUND";
+    public static final String IMPORT_TANK_NOT_ACTIVE = "IMPORT_TANK_NOT_ACTIVE";
+    public static final String IMPORT_TANK_ALREADY_HAS_STOCK = "IMPORT_TANK_ALREADY_HAS_STOCK";
+    public static final String DEMO_PUMP_ALREADY_EXISTS = "DEMO_PUMP_ALREADY_EXISTS";
+    public static final String DEMO_PUMP_NOT_FOUND = "DEMO_PUMP_NOT_FOUND";
+    public static final String DEMO_PUMP_DELETE_BLOCKED = "DEMO_PUMP_DELETE_BLOCKED";
+
     private ErrorCodes() {
     }
 }

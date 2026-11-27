@@ -149,7 +149,12 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/collection-settings", Map.of("reminderStageDays", List.of(7),
                         "backdatedPaymentApprovalDays", 7), "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/credit-ledger/payments/1/reverse", Map.of("reason", "Matrix"), "MANAGER"),
-                Arguments.of("/api/pumps/{pumpId}/credit-ledger/payments/1/reverse", Map.of("reason", "Matrix"), "ACCOUNTANT"));
+                Arguments.of("/api/pumps/{pumpId}/credit-ledger/payments/1/reverse", Map.of("reason", "Matrix"), "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/imports/staff/preview", Map.of("rows", List.of()), "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/imports/staff", Map.of("rows", List.of()), "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/imports/credit-clients", Map.of("rows", List.of()), "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/imports/products", Map.of("rows", List.of()), "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/imports/tank-stock", Map.of("rows", List.of()), "MANAGER"));
     }
 
     @ParameterizedTest(name = "{0} refuses {2}")
@@ -171,6 +176,7 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
         }
         return path.endsWith("/revoke") || path.endsWith("/reverse") || path.contains("/safe/") || path.contains("/day-closes/")
                 || path.contains("/collections/") || path.endsWith("/accept-suggestion") || path.endsWith("/auto-match")
+                || path.contains("/imports/")
                 ? post(resolved) : patch(resolved);
     }
 

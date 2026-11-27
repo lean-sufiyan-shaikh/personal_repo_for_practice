@@ -7,6 +7,7 @@ import { Reveal } from '../../../components/Reveal'
 import { SkeletonRows, SkeletonStat } from '../../../components/Skeleton'
 import { MoneyText } from '../../../components/AmountText'
 import { StatusBadge } from '../../../components/StatusBadge'
+import { DemoBadge } from '../../../components/DemoBadge'
 import { DashboardColumns, KpiRow } from '../../../components/layout/DashboardGrid'
 import { PageSection } from '../../../components/layout/PageSection'
 import { usePumpStore } from '../../../store/usePumpStore'
@@ -55,6 +56,7 @@ function PumpRow({ pump, onSelect }: { pump: PumpOverviewSummary; onSelect: (pum
       <div className="ui-record-row__main">
         <div className="ui-record-row__title">
           <span className="text-sm font-semibold text-ink">{pump.name}</span>
+          {pump.demo && <DemoBadge />}
           {pump.overdueShiftCount > 0 && (
             <StatusBadge tone="warn" icon={Clock} label={t('allPumps.overdueShifts', { count: pump.overdueShiftCount })} />
           )}
@@ -121,6 +123,7 @@ export function AllPumpsOverview({ onPumpSelected, attention }: { onPumpSelected
   }
 
   const { totals, pumps } = overview
+  const hasDemoPump = pumps.some((pump) => pump.demo)
 
   return (
     <>
@@ -138,7 +141,7 @@ export function AllPumpsOverview({ onPumpSelected, attention }: { onPumpSelected
             label={t('stats.todaysRevenue')}
             value={totals.todaySales}
             money
-            sub={t('stats.acrossPumps', { count: pumps.length })}
+            sub={t('stats.acrossPumps', { count: pumps.filter((pump) => !pump.demo).length })}
             color="bg-primary"
             icon={IndianRupee}
           />
@@ -164,7 +167,11 @@ export function AllPumpsOverview({ onPumpSelected, attention }: { onPumpSelected
       <DashboardColumns>
         {attention}
         <Reveal delay={195}>
-          <PageSection title={t('allPumps.pumps')} description={t('allPumps.selectHint')} flush>
+          <PageSection
+            title={t('allPumps.pumps')}
+            description={hasDemoPump ? `${t('allPumps.selectHint')} ${t('allPumps.demoNotCounted')}` : t('allPumps.selectHint')}
+            flush
+          >
             <div className="ui-record-list">
               {pumps.map(pump => (
                 <PumpRow key={pump.pumpId} pump={pump} onSelect={selectPump} />

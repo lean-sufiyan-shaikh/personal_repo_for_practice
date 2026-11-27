@@ -54,6 +54,7 @@ public class OwnerSummaryAssembler {
                         .pumpName(pump.getName())
                         .pumpAddress(pump.getAddress())
                         .enabled(pump.isEnabled())
+                        .demo(pump.isDemo())
                         .staffCount(staffCounts.getOrDefault(pump.getId(), 0L))
                         .setupDoneCount(checklists.get(pump.getId()).doneCount())
                         .setupRequiredCount(checklists.get(pump.getId()).requiredCount())

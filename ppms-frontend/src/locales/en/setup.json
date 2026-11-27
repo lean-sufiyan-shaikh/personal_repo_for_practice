@@ -54,6 +54,9 @@
     },
     "gst": {
       "summary": "GSTIN {{gstin}}"
+    },
+    "import": {
+      "summary": "Bring in staff, credit clients, products and tank stock from Excel"
     }
   },
   "settings": {
@@ -544,7 +547,8 @@
       "gst": "GST details",
       "credit": "Credit clients",
       "tankers": "Tankers",
-      "settings": "Pump settings"
+      "settings": "Pump settings",
+      "import": "Import data"
     },
     "credit": {
       "body": "Customers who buy fuel on credit are added on the Credit page. Skip this step if you do not sell on credit.",
@@ -567,5 +571,175 @@
   },
   "saveBar": {
     "unsaved": "Unsaved changes"
+  },
+  "import": {
+    "typeLabel": "What to import",
+    "types": {
+      "staff": "Staff",
+      "credit-clients": "Credit clients",
+      "products": "Counter products",
+      "tank-stock": "Opening tank stock"
+    },
+    "typeHelp": {
+      "staff": "Each new staff member gets a temporary password and must change it at first sign-in.",
+      "credit-clients": "A sub-account names its main client. An opening balance is what the client owed on go-live day.",
+      "products": "Opening stock is recorded at the cost you enter, dated today.",
+      "tank-stock": "Litres in each tank today and what they cost per litre. Add the tanks first."
+    },
+    "stepDownload": "1. Download the template",
+    "stepUpload": "2. Fill it in and upload it",
+    "stepCheck": "3. Check and import",
+    "downloadTemplate": "Download template",
+    "downloadFailed": "The template could not be created. Try again.",
+    "chooseFile": "Choose Excel file",
+    "fileHint": "Excel .xlsx, up to 2 MB and {{maxRows}} rows. Keep the column headings as they are.",
+    "reading": "Checking the file…",
+    "problems": {
+      "tooBig": "The file is larger than 2 MB. Split it into smaller files.",
+      "notXlsx": "Choose an Excel file saved as .xlsx.",
+      "unreadable": "This file could not be read. Save it again as an Excel workbook (.xlsx) and retry.",
+      "noRows": "The file has no rows to import below the headings.",
+      "missingColumns": "The file is missing these columns: {{columns}}. Download the template to see the headings.",
+      "tooManyRows": "A file can hold at most {{maxRows}} rows. Split it into smaller files."
+    },
+    "counts": {
+      "create": "To add: {{count}}",
+      "skip": "Already here: {{count}}",
+      "error": "With problems: {{count}}"
+    },
+    "outcomes": {
+      "CREATE": "Will be added",
+      "SKIP": "Already here",
+      "ERROR": "Fix this row"
+    },
+    "doneOutcomes": {
+      "CREATE": "Added",
+      "SKIP": "Skipped",
+      "ERROR": "Not imported"
+    },
+    "table": {
+      "caption": "Rows in the file",
+      "row": "Row",
+      "status": "Status",
+      "details": "Details"
+    },
+    "wholeRow": "Row",
+    "fixAndRetry": "Fix the rows marked below in Excel, then upload the file again. Nothing is imported until every row is right.",
+    "nothingToAdd": "Everything in this file is already here.",
+    "confirm_one": "Import {{count}} row",
+    "confirm_other": "Import {{count}} rows",
+    "importing": "Importing…",
+    "chooseAnother": "Choose another file",
+    "done": {
+      "title": "Import complete",
+      "summary": "{{created}} added, {{skipped}} skipped because they were already here.",
+      "another": "Import another file"
+    },
+    "credentials": {
+      "title": "Sign-in details for new staff",
+      "body": "Each person signs in with their phone number and this temporary password, and must choose a new password at first sign-in. The passwords are shown only now: download the sheet and give each person only their own row.",
+      "download": "Download sign-in sheet",
+      "downloaded": "Sheet downloaded. Keep it private and delete it once everyone has signed in.",
+      "sheet": "Sign-in details",
+      "warning": "Temporary passwords: give each person only their own row, then delete this file.",
+      "name": "Name",
+      "phone": "Phone",
+      "employeeId": "Employee ID",
+      "password": "Temporary password",
+      "downloadFailed": "The sign-in sheet could not be created. Try again."
+    },
+    "template": {
+      "dataSheet": "Data",
+      "instructionsSheet": "Instructions",
+      "intro1": "Fill in one row per record on the Data sheet, under the headings.",
+      "intro2": "Keep the headings as they are; extra columns are ignored. The example row is ignored if left unchanged.",
+      "intro3": "Write dates as YYYY-MM-DD and amounts as plain numbers without ₹.",
+      "column": "Column",
+      "required": "Required",
+      "help": "What to enter",
+      "allowed": "Allowed values"
+    },
+    "columns": {
+      "full_name": "Full name",
+      "phone": "Phone",
+      "role": "Role",
+      "gender": "Gender",
+      "employee_id": "Employee ID",
+      "date_of_joining": "Date of joining",
+      "night_shift_consent": "Night shift consent",
+      "address": "Address",
+      "language": "Language",
+      "daily_rate": "Daily rate",
+      "day_hourly_rate": "Day hourly rate",
+      "night_hourly_rate": "Night hourly rate",
+      "name": "Name",
+      "parent_name": "Parent client",
+      "credit_limit": "Credit limit",
+      "opening_balance": "Opening balance",
+      "opening_balance_date": "Opening balance date",
+      "gstin": "GSTIN",
+      "billing_address": "Billing address",
+      "notes": "Notes",
+      "unit": "Unit",
+      "package_size": "Pack size",
+      "brand": "Brand",
+      "variant": "Variant",
+      "gst_rate": "GST rate",
+      "hsn_code": "HSN code",
+      "selling_price": "Selling price",
+      "low_stock_threshold": "Low stock alert",
+      "opening_stock": "Opening stock",
+      "opening_cost": "Opening cost per unit",
+      "tank": "Tank",
+      "litres": "Litres",
+      "cost_per_litre": "Cost per litre"
+    },
+    "columnHelp": {
+      "full_name": "Name as it should appear on shifts and payslips.",
+      "phone": "10-digit mobile number. Staff sign in with it, so it must be unique.",
+      "role": "One of the allowed values.",
+      "gender": "One of the allowed values.",
+      "employee_id": "Leave blank to number them automatically.",
+      "date_of_joining": "YYYY-MM-DD. Blank means today.",
+      "night_shift_consent": "Only for women operators: yes if she agrees to night shifts.",
+      "address": "Optional, up to 200 characters.",
+      "language": "Language of their screens: en, hi or mr. Blank means English.",
+      "daily_rate": "Rupees per day, for managers, admins and accountants. Leave blank for operators.",
+      "day_hourly_rate": "Rupees per hour on day shifts, for operators only.",
+      "night_hourly_rate": "Rupees per hour on night shifts, for operators only.",
+      "name": "Name of the client or product.",
+      "parent_name": "For a sub-account, the name of its main client (in this file or already added). Blank for a main client.",
+      "credit_limit": "Rupees; main clients only. Blank or 0 means no limit.",
+      "opening_balance": "Rupees the client already owed on go-live day. Blank or 0 for none.",
+      "opening_balance_date": "YYYY-MM-DD the opening balance is dated. Blank means today.",
+      "gstin": "15 characters, like 27ABCDE1234F1Z5. Blank for unregistered customers.",
+      "billing_address": "Printed on credit invoices.",
+      "notes": "Anything worth remembering about the client.",
+      "unit": "How the pack is measured.",
+      "package_size": "Quantity in one pack, e.g. 1 for a 1 litre bottle.",
+      "brand": "Optional.",
+      "variant": "Optional, e.g. 20W-40.",
+      "gst_rate": "Percent, 0 to 100. Blank means 18.",
+      "hsn_code": "4 to 8 digits, printed on tax invoices.",
+      "selling_price": "Rupees per pack. Without it the product cannot be sold yet.",
+      "low_stock_threshold": "Warn when stock falls to this many packs.",
+      "opening_stock": "Whole packs in stock today.",
+      "opening_cost": "Rupees you paid per pack; needed when there is opening stock.",
+      "tank": "Tank name exactly as set up in Tanks & mapping.",
+      "litres": "Litres in the tank today; not more than its capacity.",
+      "cost_per_litre": "Rupees per litre you paid for this fuel."
+    }
+  },
+  "demo": {
+    "title": "Try PPMS with a demo pump",
+    "body": "Creates a separate Demo Pump with two weeks of sample shifts, sales, credit, deliveries and expenses. It is marked Demo everywhere, is left out of your totals and sends no alerts.",
+    "create": "Create demo pump",
+    "creating": "Creating the demo pump. This takes a few seconds…",
+    "created": "Demo pump created. Pick it from the pump list to explore.",
+    "existing": "Your demo pump: {{name}}",
+    "delete": "Delete demo pump",
+    "deletePrompt": "Delete the demo pump and all its sample data?",
+    "deleted": "Demo pump deleted.",
+    "banner": "This is a demo pump filled with sample data. Nothing here affects your real pumps."
   }
 }

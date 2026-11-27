@@ -60,12 +60,33 @@ class PumpOverviewServiceTest {
         PumpOverviewResponse overview = overviewService.getOverview(OWNER);
 
         assertThat(overview.pumps()).containsExactly(
-                new PumpOverviewSummary(10L, "North", true, new BigDecimal("1500.50"), 3, 1, 1, false),
-                new PumpOverviewSummary(20L, "South", true, new BigDecimal("499.50"), 1, 0, 1, true));
+                new PumpOverviewSummary(10L, "North", true, false, new BigDecimal("1500.50"), 3, 1, 1, false),
+                new PumpOverviewSummary(20L, "South", true, false, new BigDecimal("499.50"), 1, 0, 1, true));
         assertThat(overview.totals().todaySales()).isEqualByComparingTo("2000.00");
         assertThat(overview.totals().openShiftCount()).isEqualTo(4);
         assertThat(overview.totals().overdueShiftCount()).isEqualTo(1);
         assertThat(overview.totals().lowStockTankCount()).isEqualTo(2);
+        assertThat(overview.totals().stalePricePumpCount()).isEqualTo(1);
+    }
+
+    @Test
+    void demoPumpIsListedButLeftOutOfTheTotals() {
+        PumpLocation demo = pump(20L, "Demo");
+        demo.setDemo(true);
+        when(pumpService.findMyPumps(OWNER)).thenReturn(List.of(pump(10L, "North"), demo));
+        List<Long> pumpIds = List.of(10L, 20L);
+        when(shiftRepository.sumAmountDueByPumpForDate(pumpIds, TODAY)).thenReturn(List.<Object[]>of(
+                new Object[]{10L, new BigDecimal("100.00")},
+                new Object[]{20L, new BigDecimal("900.00")}));
+        when(shiftRepository.countOpenShiftsByPumpAndStatus(pumpIds)).thenReturn(List.<Object[]>of(
+                new Object[]{20L, ShiftStatus.OPEN_OVERDUE, 2L}));
+
+        PumpOverviewResponse overview = overviewService.getOverview(OWNER);
+
+        assertThat(overview.pumps()).extracting(PumpOverviewSummary::demo).containsExactly(false, true);
+        assertThat(overview.totals().todaySales()).isEqualByComparingTo("100.00");
+        assertThat(overview.totals().openShiftCount()).isZero();
+        assertThat(overview.totals().overdueShiftCount()).isZero();
         assertThat(overview.totals().stalePricePumpCount()).isEqualTo(1);
     }
 

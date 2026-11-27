@@ -134,6 +134,10 @@ public class PumpLocation {
     @Builder.Default
     private boolean enabled = true;
 
+    /** A pump of sample data for trying PPMS: left out of all-pump totals and kept quiet by jobs and alerts. */
+    @Column(name = "is_demo", nullable = false)
+    private boolean demo;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
