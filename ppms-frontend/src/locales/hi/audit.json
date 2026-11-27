@@ -141,6 +141,13 @@
     "CREDIT_ACCOUNT_REOPENED": "उधार खाता फिर खुला",
     "CREDIT_CLIENTS_MERGED": "दोहरे ग्राहक मिलाए गए",
     "CREDIT_DISPUTE_RAISED": "रकम पर विवाद",
-    "CREDIT_DISPUTE_RESOLVED": "विवाद सुलझा"
+    "CREDIT_DISPUTE_RESOLVED": "विवाद सुलझा",
+    "EXPENSE_VOIDED": "खर्च रद्द",
+    "PETTY_CASH_SETTINGS_UPDATED": "छोटी नकदी की तय रकम बदली",
+    "PETTY_CASH_TOPPED_UP": "छोटी नकदी भरी",
+    "PETTY_CASH_COUNTED": "छोटी नकदी गिनी",
+    "CHARGEBACK_RECORDED": "चार्जबैक दर्ज",
+    "MONTH_CLOSED": "महीना बंद हुआ",
+    "MONTH_REOPENED": "महीना फिर खुला"
   }
 }

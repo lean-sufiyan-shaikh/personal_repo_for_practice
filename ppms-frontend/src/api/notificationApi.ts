@@ -29,6 +29,7 @@ export type NotificationType =
   | 'LEAKAGE_RADAR_WEEKLY'
   | 'CREDIT_PORTAL_LOCKED'
   | 'CREDIT_CLIENT_PHONE_CHANGED'
+  | 'PETTY_CASH_COUNT_VARIANCE'
 
 /** The page a notification opens: an app route and the query parameters that pick what it is about. */
 export interface NotificationTarget {

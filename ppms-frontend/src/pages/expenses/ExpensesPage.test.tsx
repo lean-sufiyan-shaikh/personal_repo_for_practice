@@ -48,29 +48,35 @@ describe('ExpensesPage entry from the address', () => {
     const form = await screen.findByRole('dialog', { name: 'Record expense' })
     await user.type(within(form).getByLabelText('Amount'), '450')
     await user.type(within(form).getByLabelText('Description'), 'Generator diesel')
+    await user.click(within(form).getByRole('button', { name: /^Paid from/ }))
+    await user.click(screen.getByRole('option', { name: 'Petty cash' }))
     await user.click(within(form).getByRole('button', { name: 'Review' }))
 
     const review = await screen.findByRole('dialog', { name: 'Review expense' })
     expect(within(review).getByText('₹450.00')).toBeInTheDocument()
+    expect(within(review).getByText('Once approved, this amount is taken out of Petty cash.')).toBeInTheDocument()
     await user.click(within(review).getByRole('button', { name: 'Save expense' }))
 
-    expect(expenseApi.createExpense).toHaveBeenCalledWith(3, expect.objectContaining({ amount: 450, description: 'Generator diesel' }))
+    expect(expenseApi.createExpense).toHaveBeenCalledWith(3,
+      expect.objectContaining({ amount: 450, description: 'Generator diesel', paidFrom: 'PETTY_CASH' }), expect.any(String))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(screen.getByRole('status', { name: 'Address' })).toBeEmptyDOMElement()
   })
 
-  it('keeps Review disabled and lists what is still needed until amount and description are in', async () => {
+  it('keeps Review disabled and lists what is still needed until amount, description and source are in', async () => {
     const user = userEvent.setup()
     renderWithProviders(<ExpensesPage />, { route: '/dashboard/expenses?action=add-expense' })
 
     const form = await screen.findByRole('dialog', { name: 'Record expense' })
     const review = within(form).getByRole('button', { name: 'Review' })
     expect(review).toBeDisabled()
-    expect(review).toHaveAccessibleDescription('Still needed Amount Description')
+    expect(review).toHaveAccessibleDescription('Still needed Amount Description Paid from')
 
     await user.type(within(form).getByLabelText('Description'), 'Generator diesel')
-    expect(review).toHaveAccessibleDescription('Still needed Amount')
     await user.type(within(form).getByLabelText('Amount'), '450')
+    expect(review).toHaveAccessibleDescription('Still needed Paid from')
+    await user.click(within(form).getByRole('button', { name: /^Paid from/ }))
+    await user.click(screen.getByRole('option', { name: 'Bank' }))
     expect(review).toBeEnabled()
   })
 

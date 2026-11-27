@@ -28,7 +28,7 @@ function line(overrides: Partial<StatementLine>): StatementLine {
   return {
     id: 1, importId: 12, txnDate: '2026-11-20', narration: 'NEFT CR', debitAmount: null, creditAmount: 1000, balance: null,
     utrReference: null, matchStatus: 'UNMATCHED', matchedShiftId: null, matchedAncillarySaleId: null, matchedPaymentId: null,
-    matchedSettlementId: null, matchedDepositId: null, matchedSupplierPaymentId: null, matchedRecord: null, matchNotes: null,
+    matchedSettlementId: null, matchedDepositId: null, matchedSupplierPaymentId: null, matchedChargebackId: null, matchedRecord: null, matchNotes: null,
     createdAt: '2026-11-25T05:00:00Z', ...overrides,
   }
 }

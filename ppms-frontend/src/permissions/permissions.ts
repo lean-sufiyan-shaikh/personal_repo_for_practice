@@ -36,6 +36,7 @@ export const PAGE_PERMISSIONS: Record<string, UserRole[]> = {
   settlements:     ['OWNER', 'ADMIN', 'MANAGER'],
   suppliers:       ['OWNER', 'ADMIN', 'MANAGER'],
   bankReconciliation: ['OWNER', 'ADMIN'],
+  monthClose:      ['OWNER', 'ADMIN'],
   notifications:   ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR', 'ACCOUNTANT'],
 }
 
@@ -62,6 +63,7 @@ const PAGE_PATHS: Record<string, string> = {
   settlements:   '/dashboard/settlements',
   suppliers:     '/dashboard/suppliers',
   bankReconciliation: '/dashboard/bank-reconciliation',
+  monthClose:    '/dashboard/month-close',
   notifications: '/dashboard/notifications',
 }
 
@@ -121,6 +123,7 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'expense:create':                ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR'],
   'expense:approve':               ['OWNER', 'ADMIN'],
   'expense:delete':                ['OWNER'],
+  'expense:void':                  ['OWNER', 'ADMIN'],
 
   // Cash Drawer
   'cash:record-event':             ['OWNER', 'ADMIN', 'MANAGER'],
@@ -128,6 +131,7 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'cash:back-date-safe-count':     ['OWNER', 'ADMIN'],
   'cash:record-opening-balance':   ['OWNER', 'ADMIN'],
   'cash:reverse-event':            ['OWNER', 'ADMIN'],
+  'cash:set-petty-float':          ['OWNER', 'ADMIN'],
 
   // Calibration
   'calibration:add':               ['OWNER', 'ADMIN'],
@@ -158,11 +162,15 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'settlement:write':              ['OWNER', 'ADMIN', 'MANAGER'],
   'settlement:configure':          ['OWNER', 'ADMIN'],
   'settlement:void':               ['OWNER', 'ADMIN'],
+  'settlement:record-chargeback':  ['OWNER', 'ADMIN'],
 
   // Fuel suppliers
   'supplier:manage':               ['OWNER', 'ADMIN'],
   'supplier:record-payment':       ['OWNER', 'ADMIN'],
   'supplier:void-payment':         ['OWNER', 'ADMIN'],
+
+  // Month close
+  'monthClose:reopen':             ['OWNER'],
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

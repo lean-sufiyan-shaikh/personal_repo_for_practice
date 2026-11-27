@@ -45,6 +45,7 @@
     "LEAKAGE_RADAR_WEEKLY": "Radar: worth a look",
     "CREDIT_PAYMENT_REVERSED": "Credit payment reversed",
     "CREDIT_PORTAL_LOCKED": "Balance page locked",
-    "CREDIT_CLIENT_PHONE_CHANGED": "Client phone changed"
+    "CREDIT_CLIENT_PHONE_CHANGED": "Client phone changed",
+    "PETTY_CASH_COUNT_VARIANCE": "Petty cash count difference"
   }
 }

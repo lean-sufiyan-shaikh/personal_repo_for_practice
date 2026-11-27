@@ -322,6 +322,10 @@
     "CREDIT_CLIENT_PHONE_CHANGED": {
       "title": "Client Phone Changed",
       "message": "The phone number of {{clientName}} was changed. Their balance page is off until a new PIN is set."
+    },
+    "PETTY_CASH_COUNT_VARIANCE": {
+      "title": "Petty Cash Count Differs",
+      "message": "{{countedByName}} counted ₹{{countedAmount}} in petty cash against ₹{{expectedAmount}} expected: {{varianceTypeCode}} by ₹{{amount}}."
     }
   },
   "serverTexts": {
@@ -434,7 +438,9 @@
     "CREDIT_OPENING_BALANCE": "Opening balance",
     "ATTENTION_STOCK_SHORTFALL_one": "Stock went negative: {{count}} shift sold {{litres}} L more than the tanks held — record the missing delivery",
     "ATTENTION_STOCK_SHORTFALL_other": "Stock went negative: {{count}} shifts sold {{litres}} L more than the tanks held — record the missing delivery",
-    "STALE_CREDIT_ACCOUNT_CHANGED": "A credit note, write-off, deposit or advance refund was recorded for credit client #{{clientId}} after this sheet was generated."
+    "STALE_CREDIT_ACCOUNT_CHANGED": "A credit note, write-off, deposit or advance refund was recorded for credit client #{{clientId}} after this sheet was generated.",
+    "STALE_EXPENSE_VOIDED": "Expense #{{expenseId}} was voided after this sheet was generated.",
+    "STALE_CHARGEBACK_RECORDED": "Chargeback or refund #{{chargebackId}} was recorded after this sheet was generated."
   },
   "WET_STOCK_LOSS": "Fuel loss above limit",
   "RAISED": "Raised",
@@ -476,5 +482,14 @@
   "CREDIT_PORTAL_LOCKED": "Balance page locked",
   "CREDIT_CLIENT_PHONE_CHANGED": "Client phone changed",
   "CREDIT_DISPUTE": "Dispute",
-  "CREDIT_NOTE": "Credit note"
+  "CREDIT_NOTE": "Credit note",
+  "SAFE": "Safe",
+  "PETTY_CASH": "Petty cash",
+  "BANK": "Bank",
+  "OWNER_POCKET": "Owner's pocket",
+  "VOIDED": "Voided",
+  "CHARGEBACK": "Chargeback",
+  "REFUND": "Refund",
+  "MONTH_CLOSE": "Month close",
+  "PETTY_CASH_COUNT_VARIANCE": "Petty cash count difference"
 }

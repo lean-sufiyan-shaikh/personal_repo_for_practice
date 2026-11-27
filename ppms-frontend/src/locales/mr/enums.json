@@ -322,6 +322,10 @@
     "CREDIT_CLIENT_PHONE_CHANGED": {
       "title": "ग्राहकाचा फोन बदलला",
       "message": "{{clientName}} यांचा फोन नंबर बदलला. नवीन PIN सेट होईपर्यंत त्यांचे शिल्लक पान बंद आहे."
+    },
+    "PETTY_CASH_COUNT_VARIANCE": {
+      "title": "किरकोळ रोख मोजणी वेगळी",
+      "message": "{{countedByName}} यांनी किरकोळ रोखीत अपेक्षित ₹{{expectedAmount}} विरुद्ध ₹{{countedAmount}} मोजले: ₹{{amount}} {{varianceTypeCode}}."
     }
   },
   "serverTexts": {
@@ -434,7 +438,9 @@
     "CREDIT_OPENING_BALANCE": "सुरुवातीची थकबाकी",
     "ATTENTION_STOCK_SHORTFALL_one": "स्टॉक शून्याखाली गेला: {{count}} शिफ्टने टाक्यांपेक्षा {{litres}} L जास्त विकले — राहिलेली डिलिव्हरी नोंदवा",
     "ATTENTION_STOCK_SHORTFALL_other": "स्टॉक शून्याखाली गेला: {{count}} शिफ्टनी टाक्यांपेक्षा {{litres}} L जास्त विकले — राहिलेली डिलिव्हरी नोंदवा",
-    "STALE_CREDIT_ACCOUNT_CHANGED": "ही शीट बनल्यानंतर उधार ग्राहक #{{clientId}} साठी क्रेडिट नोट, निर्लेखन, डिपॉझिट किंवा ॲडव्हान्स परतावा नोंदवला."
+    "STALE_CREDIT_ACCOUNT_CHANGED": "ही शीट बनल्यानंतर उधार ग्राहक #{{clientId}} साठी क्रेडिट नोट, निर्लेखन, डिपॉझिट किंवा ॲडव्हान्स परतावा नोंदवला.",
+    "STALE_EXPENSE_VOIDED": "ही शीट बनल्यानंतर खर्च #{{expenseId}} रद्द केला.",
+    "STALE_CHARGEBACK_RECORDED": "ही शीट बनल्यानंतर चार्जबॅक किंवा परतावा #{{chargebackId}} नोंदवला."
   },
   "WET_STOCK_LOSS": "मर्यादेपेक्षा जास्त इंधन तोटा",
   "RAISED": "दावा केला",
@@ -476,5 +482,14 @@
   "CREDIT_PORTAL_LOCKED": "शिल्लक पान लॉक झाले",
   "CREDIT_CLIENT_PHONE_CHANGED": "ग्राहकाचा फोन बदलला",
   "CREDIT_DISPUTE": "वाद",
-  "CREDIT_NOTE": "क्रेडिट नोट"
+  "CREDIT_NOTE": "क्रेडिट नोट",
+  "SAFE": "तिजोरी",
+  "PETTY_CASH": "किरकोळ रोख",
+  "BANK": "बँक",
+  "OWNER_POCKET": "मालकाचा खिसा",
+  "VOIDED": "रद्द",
+  "CHARGEBACK": "चार्जबॅक",
+  "REFUND": "परतावा",
+  "MONTH_CLOSE": "महिना बंद",
+  "PETTY_CASH_COUNT_VARIANCE": "किरकोळ रोख मोजणीतील फरक"
 }

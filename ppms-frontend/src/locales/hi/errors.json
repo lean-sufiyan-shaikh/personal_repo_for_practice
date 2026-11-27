@@ -516,5 +516,21 @@
   "INVOICE_HAS_CREDIT_NOTES": "बिल {{invoiceNumber}} पर GST क्रेडिट नोट हैं, इसलिए यह रद्द नहीं हो सकता।",
   "PORTAL_SESSION_EXPIRED": "आपका सत्र खत्म हो गया। फ़ोन और PIN से बकाया फिर देखें।",
   "TOO_MANY_STATEMENT_DOWNLOADS": "{{minutes}} मिनट में ज़्यादा से ज़्यादा {{count}} स्टेटमेंट डाउनलोड हो सकते हैं।",
-  "PORTAL_STATEMENT_MONTH_NOT_ALLOWED": "सिर्फ़ इस महीने या पिछले महीने का स्टेटमेंट डाउनलोड हो सकता है।"
+  "PORTAL_STATEMENT_MONTH_NOT_ALLOWED": "सिर्फ़ इस महीने या पिछले महीने का स्टेटमेंट डाउनलोड हो सकता है।",
+  "EXPENSE_DATE_IN_FUTURE": "खर्च की तारीख भविष्य की नहीं हो सकती।",
+  "EXPENSE_NOT_VOIDABLE": "केवल मंज़ूर खर्च रद्द हो सकता है (यह {{statusCode}} है)।",
+  "PETTY_CASH_BALANCE_TOO_LOW": "छोटी नकदी में ₹{{balance}} हैं, इस खर्च के ₹{{amount}} से कम। पहले उसे भरें।",
+  "PETTY_CASH_DATE_IN_FUTURE": "छोटी नकदी भविष्य की तारीख पर न भरी जा सकती है न गिनी।",
+  "CHARGEBACK_DATE_IN_FUTURE": "चार्जबैक की तारीख भविष्य की नहीं हो सकती।",
+  "CHARGEBACK_LINK_REQUIRED": "वह सेटलमेंट चुनें जिससे पैसा लिया गया, या भुगतान प्रकार और वसूली का दिन।",
+  "CHARGEBACK_SETTLEMENT_VOIDED": "सेटलमेंट #{{settlementId}} रद्द है; इस पर चार्जबैक नहीं लिया जा सकता।",
+  "CHARGEBACK_EXCEEDS_SETTLEMENT": "₹{{amount}} पिछले चार्जबैक के बाद इस सेटलमेंट में बचे ₹{{remaining}} से ज़्यादा है।",
+  "CHARGEBACK_PAYMENT_TYPE_MISMATCH": "वह सेटलमेंट {{settlementPaymentTypeCode}} है, {{paymentTypeCode}} नहीं।",
+  "CHARGEBACK_REFERENCE_DUPLICATE": "संदर्भ {{reference}} वाला चार्जबैक या रिफ़ंड पहले से दर्ज है।",
+  "MONTH_NOT_OVER": "{{month}} अभी खत्म नहीं हुआ; महीना अगले महीने के पहले दिन से बंद हो सकता है।",
+  "MONTH_ALREADY_CLOSED": "{{month}} पहले से बंद है।",
+  "MONTH_NOT_CLOSED": "{{month}} बंद नहीं है।",
+  "MONTH_DAYS_NOT_READY": "{{month}} के {{count}} दिन बंद और मंज़ूर नहीं हैं। उन्हें बंद व मंज़ूर करें या हर एक का कारण दें।",
+  "MONTH_EXCEPTION_NOT_IN_MONTH": "{{date}} {{month}} का कारोबारी दिन नहीं है।",
+  "MONTH_CLOSED": "{{month}} बंद है। इसके किसी दिन को बदलने से पहले मालिक को महीना फिर खोलना होगा।"
 }

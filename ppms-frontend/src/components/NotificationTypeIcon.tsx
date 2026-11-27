@@ -20,6 +20,7 @@ export function NotificationTypeIcon({ type }: { type: string }) {
     case 'WET_STOCK_LOSS':          return <Droplets      {...base} className="text-bad flex-shrink-0 mt-0.5" />
     case 'DELIVERY_SHORTAGE':       return <Truck         {...base} className="text-bad flex-shrink-0 mt-0.5" />
     case 'CASH_DROP_PENDING':       return <Vault         {...base} className="text-warn flex-shrink-0 mt-0.5" />
+    case 'PETTY_CASH_COUNT_VARIANCE':
     case 'SAFE_COUNT_VARIANCE':     return <Vault         {...base} className="text-bad flex-shrink-0 mt-0.5" />
     case 'DAY_CLOSED':              return <CalendarCheck {...base} className="text-info flex-shrink-0 mt-0.5" />
     case 'DAY_REOPENED':            return <RotateCcw     {...base} className="text-warn flex-shrink-0 mt-0.5" />

@@ -110,7 +110,8 @@
     "bankCharges": "MDR / bank charges",
     "dipPl": "Dip P/L",
     "netProfit": "Net Profit",
-    "ownerOnly": "Financial details (cost, profit, P/L) are visible to Owner and Admin only."
+    "ownerOnly": "Financial details (cost, profit, P/L) are visible to Owner and Admin only.",
+    "chargebacks": "Chargebacks & refunds"
   },
   "fuel": {
     "title": "Fuel Breakdown",
@@ -208,6 +209,7 @@
     "recordedOnDate": "Recorded on this date",
     "recordedBy": "by {{name}}",
     "chargesAndNet": "· charges {{charges}} · net {{net}}",
-    "bankChargesOnDate": "MDR / bank charges on these settlements:"
+    "bankChargesOnDate": "MDR / bank charges on these settlements:",
+    "chargebacksOnDate": "Chargebacks & refunds on this day:"
   }
 }

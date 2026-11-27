@@ -96,7 +96,8 @@
     "bankCharges": "MDR / बँक शुल्क",
     "payrollPaid": "दिलेला पगार",
     "netOperatingProfit": "निव्वळ परिचालन नफा",
-    "badDebtWrittenOff": "बुडीत कर्ज निर्लेखित"
+    "badDebtWrittenOff": "बुडीत कर्ज निर्लेखित",
+    "chargebacks": "चार्जबॅक व परतावे"
   },
   "duty": {
     "operator": "ऑपरेटर",

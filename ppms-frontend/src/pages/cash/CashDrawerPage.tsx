@@ -14,10 +14,11 @@ import { CashEntryDialog } from './CashEntryDialog'
 import { CashEventList } from './CashEventList'
 import { useCashEvents } from './useCashEvents'
 import { SafeTab } from './safe/SafeTab'
+import { PettyCashTab } from './petty/PettyCashTab'
 
-const TAB_IDS = ['movements', 'safe'] as const
+const TAB_IDS = ['movements', 'safe', 'petty'] as const
 
-/** The pump safe's balance and every cash movement, plus the Safe tab; ?action=cash-entry opens the entry form. */
+/** The pump safe's balance and every cash movement, plus the Safe and Petty cash tabs; ?action=cash-entry opens the entry form. */
 export default function CashDrawerPage() {
   const { t } = useTranslation(['cash', 'common'])
   const { user } = useAuthStore()
@@ -26,6 +27,7 @@ export default function CashDrawerPage() {
   const canManageSafe = canPerformAction('cash:manage-safe', user?.role)
   const canBackDateSafeCount = canPerformAction('cash:back-date-safe-count', user?.role)
   const canReverse = canPerformAction('cash:reverse-event', user?.role)
+  const canSetPettyFloat = canPerformAction('cash:set-petty-float', user?.role)
   const entryAction = useUrlParam('action')
   const activeTab = useActiveTab(TAB_IDS, 'movements')
   const showEntry = entryAction.value === 'cash-entry' && canRecord && pumpId !== null
@@ -36,6 +38,7 @@ export default function CashDrawerPage() {
   const tabs = [
     { id: 'movements', label: t('page.tabMovements') },
     { id: 'safe', label: t('page.tabSafe') },
+    { id: 'petty', label: t('page.tabPetty') },
   ]
 
   return (
@@ -57,6 +60,10 @@ export default function CashDrawerPage() {
 
       {pumpId === null ? (
         <div className="ui-card text-center text-sm text-ink-3">{t('common:notices.noPump')}</div>
+      ) : activeTab === 'petty' ? (
+        <div key={activeTab} className="ui-tab-content">
+          <PettyCashTab pumpId={pumpId} canManage={canManageSafe} canSetFloat={canSetPettyFloat} />
+        </div>
       ) : activeTab === 'safe' ? (
         <div key={activeTab} className="ui-tab-content">
           <SafeTab pumpId={pumpId} canManage={canManageSafe} canBackDate={canBackDateSafeCount} />

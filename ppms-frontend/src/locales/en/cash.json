@@ -17,7 +17,8 @@
     "eventCount_other": "{{count}} events",
     "views": "Cash views",
     "tabMovements": "Movements",
-    "tabSafe": "Safe"
+    "tabSafe": "Safe",
+    "tabPetty": "Petty cash"
   },
   "list": {
     "title": "Cash Events",
@@ -191,5 +192,50 @@
     "failed": "Could not reverse the movement. Try again.",
     "reversedBadge": "Reversed",
     "reversalBadge": "Reversal"
+  },
+  "petty": {
+    "loadFailed": "Could not load petty cash. Check your connection and refresh.",
+    "balance": "In petty cash",
+    "float": "Float {{amount}}",
+    "suggestedTopUp": "Top up {{amount}} to bring it back to the float",
+    "latestCount": "Latest count",
+    "short": "Short {{amount}}",
+    "over": "Over {{amount}}",
+    "countedAgainst": "{{date}}: counted {{counted}} against {{expected}} expected",
+    "noCount": "Petty cash has not been counted yet.",
+    "topUp": "Top up from safe",
+    "count": "Count petty cash",
+    "settings": "Float and tolerance",
+    "ledgerTitle": "Petty cash ledger",
+    "ledgerEmpty": "No petty cash movements yet",
+    "entryTypes": {
+      "TOP_UP": "Top-up",
+      "EXPENSE": "Expense",
+      "REVERSAL": "Reversal"
+    },
+    "topUpTitle": "Top up petty cash",
+    "topUpSubtitle": "The cash leaves the safe and goes into the petty cash box together.",
+    "amount": "Amount",
+    "date": "Date",
+    "figuresLabel": "Petty cash after the top-up",
+    "afterTopUp": "After top-up",
+    "needAmount": "Amount",
+    "needDate": "Date",
+    "topUpSaved": "Petty cash topped up",
+    "topUpFailed": "Could not top up petty cash",
+    "countTitle": "Count petty cash",
+    "countSubtitle": "Compare the cash in the box with what its ledger expects.",
+    "countFor": "Count for",
+    "counted": "Cash counted",
+    "pastDayHint": "A count for an earlier day is compared with the ledger at the end of that day.",
+    "countSaved": "Petty cash count saved",
+    "countFailed": "Could not save the petty cash count",
+    "settingsTitle": "Petty cash float",
+    "settingsSubtitle": "The amount the box is topped up to, and how far a count may differ before the owner is told.",
+    "floatLabel": "Float",
+    "floatHelp": "Set 0 to stop suggesting top-ups.",
+    "toleranceLabel": "Count tolerance",
+    "settingsSaved": "Petty cash float saved",
+    "settingsFailed": "Could not save the petty cash float"
   }
 }

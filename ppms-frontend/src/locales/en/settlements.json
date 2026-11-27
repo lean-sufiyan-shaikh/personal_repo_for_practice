@@ -47,7 +47,8 @@
     "void": "Void",
     "filtersLabel": "Settlement history filters",
     "details": "Details",
-    "detailsOf": "Details of {{type}} settlement of {{amount}}"
+    "detailsOf": "Details of {{type}} settlement of {{amount}}",
+    "chargebacks": "Chargebacks {{amount}} · {{net}} left in the bank"
   },
   "alerts": {
     "intro": "Set the time for each payment type's daily reminder to record its settlement, and the bank's MDR and GST on MDR used to split each settlement into gross and net. Reminders arrive as in-app notifications — once per day, after the configured time.",
@@ -101,7 +102,9 @@
     "voidReason": "Reason for voiding",
     "voidedAt": "Voided at",
     "counted": "Counted as settled",
-    "covers": "Collection days covered"
+    "covers": "Collection days covered",
+    "chargebacks": "Chargebacks and refunds",
+    "netAfterChargebacks": "Left in the bank"
   },
   "charges": {
     "basisLabel": "The amount entered is",
@@ -128,5 +131,26 @@
     "gstPercent": "{{type}} GST on MDR %",
     "gstPercentHelp": "Usually 18 %.",
     "gstPercentRange": "Enter a GST rate between 0 and 100 %."
+  },
+  "chargeback": {
+    "title": "Chargeback or refund",
+    "subtitle": "Money the bank took back from card, UPI or fleet card collections.",
+    "againstSettlement": "{{type}} settlement of {{date}} · {{net}} still in the bank",
+    "explanation": "It lowers what reached the bank and shows as a cost of its day in the day sheet and P&L. Collections waiting for settlement are not changed.",
+    "kind": "Kind",
+    "date": "Date the bank took it",
+    "collectionDate": "Collected on",
+    "amount": "Amount",
+    "overRemaining": "At most {{amount}} is left of this settlement",
+    "needAmount": "Amount",
+    "needReason": "Reason",
+    "needCollectionDate": "Collection date",
+    "save": "Record",
+    "saved": "Chargeback recorded",
+    "failed": "Could not record the chargeback",
+    "listTitle": "Chargebacks and refunds",
+    "empty": "No chargebacks or refunds recorded",
+    "settlementRef": "settlement #{{id}}",
+    "collectedOn": "collected {{date}}"
   }
 }

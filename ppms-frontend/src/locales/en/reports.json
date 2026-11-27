@@ -96,7 +96,8 @@
     "bankCharges": "MDR / bank charges",
     "payrollPaid": "Payroll paid",
     "netOperatingProfit": "Net operating profit",
-    "badDebtWrittenOff": "Bad debt written off"
+    "badDebtWrittenOff": "Bad debt written off",
+    "chargebacks": "Chargebacks & refunds"
   },
   "duty": {
     "operator": "Operator",

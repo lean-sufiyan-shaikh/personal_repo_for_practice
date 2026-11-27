@@ -39,6 +39,11 @@ export function SettlementRecordRow({ settlement: s, canVoid, onVoid, onOpenDeta
             {t('history.netAfterCharges', { net: fmtAmt(s.netAmount), charges: fmtAmt(s.chargesAmount) })}
           </p>
         )}
+        {s.chargebacksAmount > 0 && (
+          <p className="text-xs text-bad mt-0.5">
+            {t('history.chargebacks', { amount: fmtAmt(s.chargebacksAmount), net: fmtAmt(s.netAfterChargebacks) })}
+          </p>
+        )}
         {isVoided && s.voidReason && (
           <p className="text-xs text-bad mt-0.5">{t('history.voidReason', { reason: s.voidReason })}</p>
         )}

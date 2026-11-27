@@ -516,5 +516,21 @@
   "INVOICE_HAS_CREDIT_NOTES": "बिल {{invoiceNumber}} वर GST क्रेडिट नोट्स आहेत, त्यामुळे ते रद्द होऊ शकत नाही.",
   "PORTAL_SESSION_EXPIRED": "तुमचे सत्र संपले. फोन आणि PIN ने थकबाकी पुन्हा पहा.",
   "TOO_MANY_STATEMENT_DOWNLOADS": "{{minutes}} मिनिटांत जास्तीत जास्त {{count}} स्टेटमेंट डाउनलोड करता येतात.",
-  "PORTAL_STATEMENT_MONTH_NOT_ALLOWED": "फक्त या महिन्याचे किंवा मागील महिन्याचे स्टेटमेंट डाउनलोड करता येते."
+  "PORTAL_STATEMENT_MONTH_NOT_ALLOWED": "फक्त या महिन्याचे किंवा मागील महिन्याचे स्टेटमेंट डाउनलोड करता येते.",
+  "EXPENSE_DATE_IN_FUTURE": "खर्चाची तारीख भविष्यातील असू शकत नाही.",
+  "EXPENSE_NOT_VOIDABLE": "फक्त मंजूर खर्च रद्द करता येतो (हा {{statusCode}} आहे).",
+  "PETTY_CASH_BALANCE_TOO_LOW": "किरकोळ रोखीत ₹{{balance}} आहेत, या खर्चाच्या ₹{{amount}} पेक्षा कमी. आधी ती भरा.",
+  "PETTY_CASH_DATE_IN_FUTURE": "किरकोळ रोख भविष्यातील तारखेला भरता किंवा मोजता येत नाही.",
+  "CHARGEBACK_DATE_IN_FUTURE": "चार्जबॅकची तारीख भविष्यातील असू शकत नाही.",
+  "CHARGEBACK_LINK_REQUIRED": "ज्या सेटलमेंटमधून पैसे घेतले ते निवडा, किंवा पेमेंट प्रकार व वसुलीचा दिवस.",
+  "CHARGEBACK_SETTLEMENT_VOIDED": "सेटलमेंट #{{settlementId}} रद्द आहे; त्यावर चार्जबॅक घेता येत नाही.",
+  "CHARGEBACK_EXCEEDS_SETTLEMENT": "₹{{amount}} हे आधीच्या चार्जबॅकनंतर या सेटलमेंटमध्ये उरलेल्या ₹{{remaining}} पेक्षा जास्त आहे.",
+  "CHARGEBACK_PAYMENT_TYPE_MISMATCH": "ते सेटलमेंट {{settlementPaymentTypeCode}} आहे, {{paymentTypeCode}} नाही.",
+  "CHARGEBACK_REFERENCE_DUPLICATE": "संदर्भ {{reference}} असलेला चार्जबॅक किंवा परतावा आधीच नोंदलेला आहे.",
+  "MONTH_NOT_OVER": "{{month}} अजून संपलेला नाही; महिना पुढच्या महिन्याच्या पहिल्या दिवसापासून बंद करता येतो.",
+  "MONTH_ALREADY_CLOSED": "{{month}} आधीच बंद आहे.",
+  "MONTH_NOT_CLOSED": "{{month}} बंद नाही.",
+  "MONTH_DAYS_NOT_READY": "{{month}} चे {{count}} दिवस बंद व मंजूर नाहीत. ते बंद व मंजूर करा किंवा प्रत्येकाचे कारण द्या.",
+  "MONTH_EXCEPTION_NOT_IN_MONTH": "{{date}} हा {{month}} चा व्यवसाय दिवस नाही.",
+  "MONTH_CLOSED": "{{month}} बंद आहे. त्यातील कोणताही दिवस बदलण्यापूर्वी मालकाने महिना पुन्हा उघडावा."
 }

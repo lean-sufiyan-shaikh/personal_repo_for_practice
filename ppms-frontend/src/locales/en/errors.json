@@ -516,5 +516,21 @@
   "INVOICE_HAS_CREDIT_NOTES": "Invoice {{invoiceNumber}} has GST credit notes against it, so it cannot be cancelled.",
   "PORTAL_SESSION_EXPIRED": "Your session has ended. Check your balance again with your phone and PIN.",
   "TOO_MANY_STATEMENT_DOWNLOADS": "At most {{count}} statements can be downloaded in {{minutes}} minutes.",
-  "PORTAL_STATEMENT_MONTH_NOT_ALLOWED": "Only this month's or last month's statement can be downloaded."
+  "PORTAL_STATEMENT_MONTH_NOT_ALLOWED": "Only this month's or last month's statement can be downloaded.",
+  "EXPENSE_DATE_IN_FUTURE": "An expense cannot be dated in the future.",
+  "EXPENSE_NOT_VOIDABLE": "Only an approved expense can be voided (it is {{statusCode}}).",
+  "PETTY_CASH_BALANCE_TOO_LOW": "Petty cash holds ₹{{balance}}, less than the ₹{{amount}} this expense needs. Top it up first.",
+  "PETTY_CASH_DATE_IN_FUTURE": "Petty cash cannot be moved or counted on a future date.",
+  "CHARGEBACK_DATE_IN_FUTURE": "A chargeback cannot be dated in the future.",
+  "CHARGEBACK_LINK_REQUIRED": "Pick the settlement the money was taken from, or the payment type and the day it was collected.",
+  "CHARGEBACK_SETTLEMENT_VOIDED": "Settlement #{{settlementId}} is voided; a chargeback cannot be taken against it.",
+  "CHARGEBACK_EXCEEDS_SETTLEMENT": "₹{{amount}} is more than the ₹{{remaining}} left of this settlement after earlier chargebacks.",
+  "CHARGEBACK_PAYMENT_TYPE_MISMATCH": "That settlement is {{settlementPaymentTypeCode}}, not {{paymentTypeCode}}.",
+  "CHARGEBACK_REFERENCE_DUPLICATE": "A chargeback or refund with reference {{reference}} is already recorded.",
+  "MONTH_NOT_OVER": "{{month}} is not over yet; a month can be closed from the first day of the next month.",
+  "MONTH_ALREADY_CLOSED": "{{month}} is already closed.",
+  "MONTH_NOT_CLOSED": "{{month}} is not closed.",
+  "MONTH_DAYS_NOT_READY": "{{count}} day(s) of {{month}} are not closed and approved. Close and approve them or give each a reason.",
+  "MONTH_EXCEPTION_NOT_IN_MONTH": "{{date}} is not a business day of {{month}}.",
+  "MONTH_CLOSED": "{{month}} is closed. The owner must re-open the month before any of its days can be changed."
 }

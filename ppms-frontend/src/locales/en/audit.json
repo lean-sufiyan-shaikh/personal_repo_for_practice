@@ -141,6 +141,13 @@
     "CREDIT_ACCOUNT_REOPENED": "Credit account reopened",
     "CREDIT_CLIENTS_MERGED": "Duplicate credit clients merged",
     "CREDIT_DISPUTE_RAISED": "Debit disputed",
-    "CREDIT_DISPUTE_RESOLVED": "Dispute resolved"
+    "CREDIT_DISPUTE_RESOLVED": "Dispute resolved",
+    "EXPENSE_VOIDED": "Expense voided",
+    "PETTY_CASH_SETTINGS_UPDATED": "Petty cash float changed",
+    "PETTY_CASH_TOPPED_UP": "Petty cash topped up",
+    "PETTY_CASH_COUNTED": "Petty cash counted",
+    "CHARGEBACK_RECORDED": "Chargeback recorded",
+    "MONTH_CLOSED": "Month closed",
+    "MONTH_REOPENED": "Month re-opened"
   }
 }

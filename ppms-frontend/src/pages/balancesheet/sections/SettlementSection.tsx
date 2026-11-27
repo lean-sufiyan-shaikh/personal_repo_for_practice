@@ -86,6 +86,12 @@ export function SettlementSection({ summary }: { summary: SettlementSummary }) {
           {t('settlements.bankChargesOnDate')} <MoneyText value={summary.bankChargesOnDate} tone="bad" className="font-semibold" />
         </p>
       )}
+      {summary.chargebacksOnDate > 0 && (
+        <p className="text-xs text-ink-2">
+          {t('settlements.chargebacksOnDate')} <MoneyText value={summary.chargebacksOnDate} tone="bad" className="font-semibold" />
+          {' '}({summary.chargebackLines.map(line => `${paymentTypeLabel(t, line.paymentType)} ${line.reason}`).join('; ')})
+        </p>
+      )}
       {summary.settlementsOnDate.length > 0 && (
         <div className="ui-card-plain ui-card-muted p-3 text-sm">
           <p className="ui-kpi-label mb-2">{t('settlements.recordedOnDate')}</p>

@@ -141,6 +141,13 @@
     "CREDIT_ACCOUNT_REOPENED": "उधारी खाते पुन्हा उघडले",
     "CREDIT_CLIENTS_MERGED": "दुहेरी ग्राहक विलीन केले",
     "CREDIT_DISPUTE_RAISED": "रकमेवर वाद नोंदवला",
-    "CREDIT_DISPUTE_RESOLVED": "वाद मिटवला"
+    "CREDIT_DISPUTE_RESOLVED": "वाद मिटवला",
+    "EXPENSE_VOIDED": "खर्च रद्द",
+    "PETTY_CASH_SETTINGS_UPDATED": "किरकोळ रोखीची ठरलेली रक्कम बदलली",
+    "PETTY_CASH_TOPPED_UP": "किरकोळ रोख भरली",
+    "PETTY_CASH_COUNTED": "किरकोळ रोख मोजली",
+    "CHARGEBACK_RECORDED": "चार्जबॅक नोंदवला",
+    "MONTH_CLOSED": "महिना बंद झाला",
+    "MONTH_REOPENED": "महिना पुन्हा उघडला"
   }
 }

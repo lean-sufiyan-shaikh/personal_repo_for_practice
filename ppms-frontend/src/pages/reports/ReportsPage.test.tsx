@@ -23,7 +23,7 @@ const reportWithOneLotAtTwoPrices: ProfitLossReport = {
   pumpId: PUMP_ID, from: '2026-01-01', to: '2026-01-31', totalShifts: 2, autoClosedShiftCount: 1,
   totalRevenue: 3000, totalCogs: 2700, grossProfit: 300,
   totalCashRevenue: 3000, totalUpiRevenue: 0, totalCardRevenue: 0, totalFleetCardRevenue: 0, totalCreditRevenue: 0, totalCollected: 3000,
-  approvedExpenses: 0, bankCharges: 0, payrollPaid: 0, netOperatingProfit: 300,
+  approvedExpenses: 0, bankCharges: 0, payrollPaid: 0, chargebacks: 0, netOperatingProfit: 300,
   byFuelType: [{
     fuelType: 'PETROL', revenue: 3000, cogs: 2700, grossProfit: 300, grossMarginPerLitre: 10,
     lotCostLines: [

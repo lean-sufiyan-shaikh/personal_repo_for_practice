@@ -41,6 +41,7 @@ const APPROVAL_STATUS: Record<ExpenseApprovalStatus, Omit<StatusBadgeSpec, 'labe
   PENDING_APPROVAL: { tone: 'warn', icon: Hourglass },
   APPROVED: { tone: 'ok', icon: Check },
   REJECTED: { tone: 'bad', icon: X },
+  VOIDED: { tone: 'neutral', icon: X },
 }
 
 export function approvalStatusBadge(status: ExpenseApprovalStatus): StatusBadgeSpec {

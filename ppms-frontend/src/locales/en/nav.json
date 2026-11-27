@@ -22,7 +22,8 @@
     "reports": "Reports",
     "radar": "Radar",
     "setup": "Setup",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "monthClose": "Month Close"
   },
   "bottomTabs": {
     "label": "Quick",

@@ -71,7 +71,8 @@
       "missing_other": "{{count}} credit payments worth {{amount}} dated this day are waiting for approval"
     },
     "PENDING_CREDIT_PAYMENTS_one": "{{count}} credit payment of {{amount}} dated this day is waiting for approval",
-    "PENDING_CREDIT_PAYMENTS_other": "{{count}} credit payments worth {{amount}} dated this day are waiting for approval"
+    "PENDING_CREDIT_PAYMENTS_other": "{{count}} credit payments worth {{amount}} dated this day are waiting for approval",
+    "PETTY_CASH_NOT_COUNTED": "Petty cash was not counted on this day"
   },
   "fix": {
     "SAFE_COUNT": "Count safe",
@@ -82,7 +83,8 @@
     "DELIVERIES_NOT_CHECKED": "See deliveries",
     "OPEN_ATTENTION_ITEMS": "See alerts",
     "PENDING_EXPENSES": "Review expenses",
-    "PENDING_CREDIT_PAYMENTS": "Review payments"
+    "PENDING_CREDIT_PAYMENTS": "Review payments",
+    "PETTY_CASH_NOT_COUNTED": "Count petty cash"
   },
   "flags": {
     "GREEN": "All good",
@@ -264,5 +266,69 @@
   "closedDay": {
     "toast": "{{date}} is closed. Re-open it to make this change.",
     "reopen": "Re-open day"
+  },
+  "month": {
+    "title": "Month Close",
+    "subtitle": "Close a month once every day of it is approved, and keep its summary.",
+    "pick": "Month",
+    "printTitle": "Month summary · {{month}}",
+    "loadFailed": "Could not load the month. Check your connection and refresh.",
+    "statusClosed": "Closed · version {{version}}",
+    "statusReopened": "Re-opened · version {{version}}",
+    "daysTitle": "Days of the month",
+    "daysSummary": "{{approved}} of {{total}} days approved",
+    "allApproved": "Every day of the month is closed and approved.",
+    "dayStatus": {
+      "NOT_CLOSED": "Not closed",
+      "CLOSED": "Waiting for approval",
+      "REOPENED": "Re-opened",
+      "APPROVED": "Approved"
+    },
+    "openDay": "Open day",
+    "exceptionReason": "Reason to close the month without it",
+    "exceptionReasonFor": "Reason for {{date}}",
+    "notOver": "This month is not over yet.",
+    "reasonsNeeded_one": "Give a reason for {{count}} day not approved.",
+    "reasonsNeeded_other": "Give a reason for {{count}} days not approved.",
+    "close": "Close month",
+    "closing": "Closing…",
+    "closed": "Month closed",
+    "closeFailed": "Could not close the month",
+    "reopen": "Re-open month",
+    "reopening": "Re-opening…",
+    "reopenTitle": "Re-open {{month}}",
+    "reopenSubtitle": "Its days take changes again until the month is closed again as a new version.",
+    "reopened": "Month re-opened",
+    "reopenFailed": "Could not re-open the month",
+    "history": "Closes of this month",
+    "versionLine": "Version {{version}} · closed by {{name}} · {{time}}",
+    "reopenedLine": "Re-opened by {{name}} · {{time}}: {{reason}}",
+    "show": "Show",
+    "showing": "Shown",
+    "sales": "Sales",
+    "margin": "margin",
+    "fuelTotal": "All fuel · {{litres}}",
+    "products": "Counter products",
+    "grossProfit": "Gross profit",
+    "payments": "How it was paid",
+    "collectedTotal": "Total collected",
+    "costs": "Costs and net profit",
+    "expenses": "Expenses",
+    "payroll": "Payroll paid",
+    "bankCharges": "MDR / bank charges",
+    "chargebacks": "Chargebacks & refunds",
+    "otherCosts": "Other costs",
+    "netProfit": "Net profit",
+    "creditAndCash": "Credit and cash",
+    "creditGiven": "Credit given",
+    "creditCollected": "Credit collected",
+    "creditOutstanding": "Credit outstanding when closed",
+    "safeClosing": "Safe at month end",
+    "pettyCashClosing": "Petty cash at month end",
+    "stock": "Tank stock at the last dip",
+    "notDipped": "Not dipped this month",
+    "closingDip": "{{litres}} on {{date}}",
+    "exceptions": "Days closed as exceptions",
+    "badDebt": "Bad debt written off"
   }
 }

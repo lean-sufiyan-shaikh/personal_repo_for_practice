@@ -43,6 +43,7 @@ export function matchLinkFor(record: MatchedRecord): Partial<UpdateStatementLine
     case 'DEPOSIT':          return { matchedDepositId: record.id }
     case 'CREDIT_PAYMENT':   return { matchedPaymentId: record.id }
     case 'SUPPLIER_PAYMENT': return { matchedSupplierPaymentId: record.id }
+    case 'CHARGEBACK':       return { matchedChargebackId: record.id }
     case 'SHIFT':            return { matchedShiftId: record.id }
     case 'ANCILLARY_SALE':   return { matchedSaleId: record.id }
   }

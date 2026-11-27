@@ -40,6 +40,7 @@ const AncillaryProductsPage = lazy(pageLoaders.ancillary)
 const PaymentSettlementsPage = lazy(pageLoaders.settlements)
 const SuppliersPage = lazy(pageLoaders.suppliers)
 const BankReconciliationPage = lazy(pageLoaders.bankReconciliation)
+const MonthClosePage = lazy(pageLoaders.monthClose)
 const NotificationsPage = lazy(pageLoaders.notifications)
 const CreditBalancePortalPage = lazy(() => import('./pages/portal/CreditBalancePortalPage'))
 
@@ -251,6 +252,14 @@ export default function App() {
               element={withPageSuspense(
                 <ProtectedRoute page="bankReconciliation">
                   <BankReconciliationPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="month-close"
+              element={withPageSuspense(
+                <ProtectedRoute page="monthClose">
+                  <MonthClosePage />
                 </ProtectedRoute>
               )}
             />

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Landmark, ListChecks } from 'lucide-react'
+import { Landmark, ListChecks, Undo2 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { paymentSettlementApi } from '../../api/paymentSettlementApi'
@@ -23,6 +23,8 @@ import { RecordSettlementDialog } from './RecordSettlementDialog'
 import { VoidSettlementDialog } from './VoidSettlementDialog'
 import { PendingByAgeCard } from './PendingByAgeCard'
 import { SettlementDetailsPanel } from './SettlementDetailsPanel'
+import { RecordChargebackDialog } from './RecordChargebackDialog'
+import { ChargebackList } from './ChargebackList'
 
 const TAB_IDS = ['records', 'config'] as const
 
@@ -39,12 +41,14 @@ export default function PaymentSettlementsPage() {
   const canConfigure = canPerformAction('settlement:configure', user?.role)
   const canVoid      = canPerformAction('settlement:void', user?.role)
   const canReconcile = canAccessPage('bankReconciliation', user?.role)
+  const canRecordChargeback = canPerformAction('settlement:record-chargeback', user?.role)
 
   const activeTab = useActiveTab(TAB_IDS, 'records')
   const recordAction = useUrlParam('action')
   const openSettlement = useUrlParam('settlement')
   const [recordType, setRecordType] = useState<SettlementPaymentType>('UPI')
   const [voidTarget, setVoidTarget] = useState<Settlement | null>(null)
+  const [chargebackFor, setChargebackFor] = useState<{ settlement: Settlement | null } | null>(null)
 
   const history = useSettlementHistory(pumpId)
   const { data: wallet, isLoading: loadingWallet } = useQuery({
@@ -76,6 +80,10 @@ export default function PaymentSettlementsPage() {
     openSettlement.remove()
     setVoidTarget(settlement)
   }
+  const startChargeback = (settlement: Settlement | null) => {
+    openSettlement.remove()
+    setChargebackFor({ settlement })
+  }
   const shownSettlement = history.dailySummary
     .flatMap(entry => entry.settlements)
     .find(settlement => String(settlement.id) === openSettlement.value)
@@ -86,12 +94,20 @@ export default function PaymentSettlementsPage() {
       <PageHeader
         title={t('page.title')}
         description={t('page.subtitle')}
-        secondaryActions={canReconcile && (
-          <Link to="/dashboard/bank-reconciliation" className="ui-btn ui-btn-secondary">
-            <ListChecks size={16} strokeWidth={2} aria-hidden="true" />
-            {t('page.reconcile')}
-          </Link>
-        )}
+        secondaryActions={<>
+          {canRecordChargeback && (
+            <button type="button" onClick={() => startChargeback(null)} className="ui-btn ui-btn-secondary">
+              <Undo2 size={16} strokeWidth={2} aria-hidden="true" />
+              {t('chargeback.title')}
+            </button>
+          )}
+          {canReconcile && (
+            <Link to="/dashboard/bank-reconciliation" className="ui-btn ui-btn-secondary">
+              <ListChecks size={16} strokeWidth={2} aria-hidden="true" />
+              {t('page.reconcile')}
+            </Link>
+          )}
+        </>}
         primaryAction={canWrite && (
           <button type="button" onClick={() => openRecordForm('UPI')} className="ui-btn ui-btn-primary">
             <Landmark size={16} strokeWidth={2} aria-hidden="true" />
@@ -107,6 +123,7 @@ export default function PaymentSettlementsPage() {
           <PendingByAgeCard ranges={pendingByAge.data} isLoading={pendingByAge.isLoading} error={pendingByAge.error} />
           <SettlementRecordsTab history={history} canVoid={canVoid} onVoid={startVoid}
             onOpenDetails={settlement => openSettlement.set(String(settlement.id))} />
+          <ChargebackList pumpId={pumpId} />
         </>
       ) : (
         <PageSection title={t('page.alertsTab')} description={t('alerts.intro')}>
@@ -125,7 +142,12 @@ export default function PaymentSettlementsPage() {
       )}
 
       {shownSettlement && (
-        <SettlementDetailsPanel settlement={shownSettlement} canVoid={canVoid} onVoid={startVoid} onClose={openSettlement.remove} />
+        <SettlementDetailsPanel settlement={shownSettlement} canVoid={canVoid} onVoid={startVoid}
+          canRecordChargeback={canRecordChargeback} onRecordChargeback={startChargeback} onClose={openSettlement.remove} />
+      )}
+
+      {chargebackFor && (
+        <RecordChargebackDialog pumpId={pumpId} settlement={chargebackFor.settlement} onClose={() => setChargebackFor(null)} />
       )}
 
       {voidTarget && (

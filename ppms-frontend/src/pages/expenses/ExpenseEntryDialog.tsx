@@ -2,19 +2,19 @@ import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { expenseApi } from '../../api/expenseApi'
-import type { ExpenseCategory, CreateExpenseRequest } from '../../api/expenseApi'
+import type { ExpenseCategory, ExpensePaidFrom, CreateExpenseRequest } from '../../api/expenseApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { localDateInputValue } from '../../utils/date'
 import { useToastStore } from '../../store/toastStore'
 import { Modal } from '../../components/Modal'
 import { parseApiError } from '../../utils/apiError'
-import { StatusBadge } from '../../components/StatusBadge'
-import { MoneyText } from '../../components/AmountText'
 import { NumericInput } from '../../components/NumericInput'
 import { FormField } from '../../components/FormField'
-import { LoadingButton } from '../../components/LoadingButton'
 import { StillNeeded } from '../../components/StillNeeded'
-import { CATEGORIES, fmtDate } from './expenseFormat'
+import { CATEGORIES, PAID_FROM } from './expenseFormat'
+import { ExpenseReviewStep } from './ExpenseReviewStep'
+import { attemptFor } from '../../utils/idempotencyKey'
+import type { SubmitAttempt } from '../../utils/idempotencyKey'
 import { codeLabel } from '../../constants/labels'
 import { FormGrid, FormGridFullRow } from '../../components/layout/FormGrid'
 
@@ -23,9 +23,12 @@ interface ExpenseEntryDialogProps {
   onClose: () => void
 }
 
+type ExpenseForm = Omit<CreateExpenseRequest, 'paidFrom'> & { paidFrom: ExpensePaidFrom | '' }
+
 interface FieldErrors {
   amount?: string
   description?: string
+  expenseDate?: string
 }
 
 /** Records an expense: the entry form, then a review step before saving. */
@@ -35,21 +38,27 @@ export function ExpenseEntryDialog({ pumpId, onClose }: ExpenseEntryDialogProps)
   const { addToast } = useToastStore()
   const stillNeededId = useId()
   const categoryLabelId = useId()
-  const [form, setForm] = useState<CreateExpenseRequest>({
+  const paidFromLabelId = useId()
+  const [today] = useState(localDateInputValue)
+  const [form, setForm] = useState<ExpenseForm>({
     category: 'MAINTENANCE',
     amount: 0,
     description: '',
-    expenseDate: localDateInputValue(),
+    expenseDate: today,
+    paidFrom: '',
     saveDraft: false,
   })
+  const [submitAttempt, setSubmitAttempt] = useState<SubmitAttempt | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [serverError, setServerError] = useState<string | null>(null)
   const [reviewing, setReviewing] = useState(false)
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateExpenseRequest) => expenseApi.createExpense(pumpId, data),
+    mutationFn: ({ data, key }: { data: CreateExpenseRequest; key: string }) => expenseApi.createExpense(pumpId, data, key),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['expenses', pumpId] })
+      qc.invalidateQueries({ queryKey: ['safe', pumpId] })
+      qc.invalidateQueries({ queryKey: ['pettyCash', pumpId] })
       addToast(t('form.recorded'), 'success')
       onClose()
     },
@@ -64,6 +73,7 @@ export function ExpenseEntryDialog({ pumpId, onClose }: ExpenseEntryDialogProps)
     const errors: FieldErrors = {}
     if (!form.description.trim()) errors.description = t('form.descriptionRequired')
     if (form.amount <= 0) errors.amount = t('form.amountPositive')
+    if (form.expenseDate > today) errors.expenseDate = t('form.dateInFuture')
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -74,63 +84,24 @@ export function ExpenseEntryDialog({ pumpId, onClose }: ExpenseEntryDialogProps)
     if (validateForm()) setReviewing(true)
   }
 
-  if (reviewing) {
+  if (reviewing && form.paidFrom !== '') {
+    const data: CreateExpenseRequest = { ...form, paidFrom: form.paidFrom }
     return (
-      <Modal
-        tone="info"
-        title={t('review.title')}
-        subtitle={`${codeLabel(form.category)} · ${fmtDate(form.expenseDate)}`}
-        size="md-wide"
-        onClose={onClose}
-        canClose={!createMutation.isPending}
-        bodyClassName="space-y-4"
-        footer={<>
-          <button type="button" onClick={() => setReviewing(false)} disabled={createMutation.isPending} className="ui-btn ui-btn-secondary">
-            {t('common:actions.edit')}
-          </button>
-          <LoadingButton
-            type="button"
-            isLoading={createMutation.isPending}
-            loadingLabel={t('common:actions.saving')}
-            onClick={() => { if (validateForm()) createMutation.mutate(form) }}
-            className="ui-btn-primary"
-          >
-            {t('review.add')}
-          </LoadingButton>
-        </>}
-      >
-        {serverError && <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>}
-        <dl className="ui-card-plain ui-card-muted divide-y divide-border overflow-hidden text-sm">
-          <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-            <dt className="text-ink-2">{t('form.category')}</dt>
-            <dd><StatusBadge tone="neutral" label={codeLabel(form.category)} /></dd>
-          </div>
-          <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-            <dt className="text-ink-2">{t('form.amount')}</dt>
-            <dd><MoneyText value={form.amount} className="font-semibold text-ink" /></dd>
-          </div>
-          <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-            <dt className="text-ink-2">{t('form.description')}</dt>
-            <dd className="text-right font-medium text-ink break-words">{form.description.trim()}</dd>
-          </div>
-          <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-            <dt className="text-ink-2">{t('form.expenseDate')}</dt>
-            <dd className="font-medium text-ink">{fmtDate(form.expenseDate)}</dd>
-          </div>
-          {form.saveDraft && (
-            <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-              <dt className="text-ink-2">{t('review.savedAs')}</dt>
-              <dd><StatusBadge tone="neutral" label={t('list.statusDraft')} /></dd>
-            </div>
-          )}
-        </dl>
-      </Modal>
+      <ExpenseReviewStep form={data} isPending={createMutation.isPending} serverError={serverError}
+        onBack={() => setReviewing(false)} onClose={onClose}
+        onSave={() => {
+          if (!validateForm()) return
+          const attempt = attemptFor(submitAttempt, data)
+          setSubmitAttempt(attempt)
+          createMutation.mutate({ data, key: attempt.key })
+        }} />
     )
   }
 
   const stillNeeded = [
     ...(form.amount > 0 ? [] : [t('form.needAmount')]),
     ...(form.description.trim() ? [] : [t('form.needDescription')]),
+    ...(form.paidFrom ? [] : [t('form.needPaidFrom')]),
   ]
 
   return (
@@ -186,9 +157,21 @@ export function ExpenseEntryDialog({ pumpId, onClose }: ExpenseEntryDialogProps)
           />
         </FormField>
 
-        <FormField label={t('form.expenseDate')}>
+        <div>
+          <span id={paidFromLabelId} className="ui-label">{t('form.paidFrom')}</span>
+          <SearchableSelect
+            value={form.paidFrom}
+            onChange={v => setForm(f => ({ ...f, paidFrom: v as ExpensePaidFrom }))}
+            options={[{ value: '', label: t('form.choosePaidFrom') }, ...PAID_FROM.map(p => ({ value: p, label: codeLabel(p) }))]}
+            aria-labelledby={paidFromLabelId}
+          />
+          <p className="mt-1 text-xs text-ink-3">{t('form.paidFromHint')}</p>
+        </div>
+
+        <FormField label={t('form.expenseDate')} error={fieldErrors.expenseDate}>
           <input
             type="date"
+            max={today}
             value={form.expenseDate}
             onChange={e => setForm(f => ({ ...f, expenseDate: e.target.value }))}
             required

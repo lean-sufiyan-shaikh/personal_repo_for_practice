@@ -4,7 +4,7 @@ export type StatementDateFormat = 'AUTO' | 'DAY_FIRST' | 'MONTH_FIRST'
 
 export type StatementLineStatus = 'UNMATCHED' | 'SUGGESTED' | 'MATCHED' | 'IGNORED'
 
-export type MatchedRecordType = 'SETTLEMENT' | 'DEPOSIT' | 'CREDIT_PAYMENT' | 'SUPPLIER_PAYMENT' | 'SHIFT' | 'ANCILLARY_SALE'
+export type MatchedRecordType = 'SETTLEMENT' | 'DEPOSIT' | 'CREDIT_PAYMENT' | 'SUPPLIER_PAYMENT' | 'CHARGEBACK' | 'SHIFT' | 'ANCILLARY_SALE'
 
 export interface StatementImportSummary {
   id: number
@@ -55,6 +55,7 @@ export interface StatementLine {
   matchedSettlementId: number | null
   matchedDepositId: number | null
   matchedSupplierPaymentId: number | null
+  matchedChargebackId: number | null
   /** The linked record when MATCHED, the suggestion when SUGGESTED, otherwise null. */
   matchedRecord: MatchedRecord | null
   matchNotes: string | null
@@ -81,6 +82,7 @@ export interface UpdateStatementLineRequest {
   matchedDepositId?: number
   matchedPaymentId?: number
   matchedSupplierPaymentId?: number
+  matchedChargebackId?: number
   matchedShiftId?: number
   matchedSaleId?: number
   matchNotes?: string

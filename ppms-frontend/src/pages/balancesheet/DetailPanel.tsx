@@ -295,6 +295,13 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
                 accent="red"
               />
             )}
+            {detail.reportType === 'DAY' && detail.totalChargebacksAmount > 0 && (
+              <SummaryTile
+                label={t('summary.chargebacks')}
+                value={<MoneyText value={-detail.totalChargebacksAmount} showSign />}
+                accent="red"
+              />
+            )}
             {isOwnerOrAdmin && detail.dipPlEntries?.length > 0 && (
               <SummaryTile
                 label={t('summary.dipPl')}

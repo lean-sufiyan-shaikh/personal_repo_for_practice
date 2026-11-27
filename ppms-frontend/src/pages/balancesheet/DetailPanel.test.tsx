@@ -22,7 +22,7 @@ const detail = {
   ...summary, pumpId: 3, notes: null,
   totalCashCollected: 2000, totalUpiCollected: 0, totalCardCollected: 0, totalFleetCardCollected: 0,
   totalCreditSold: 0, totalCreditRecovered: 0, totalCashRecovery: 0, totalLitresDelivered: 0, totalCostOfGoods: 1800,
-  totalDipNetAmount: 0, totalBankChargesAmount: 0, totalNetProfit: 200, linesChangedSinceGenerated: false,
+  totalDipNetAmount: 0, totalBankChargesAmount: 0, totalChargebacksAmount: 0, totalNetProfit: 200, linesChangedSinceGenerated: false,
   fuelLines: [], shiftLines: [], meterAmendments: [], dipPlEntries: [],
   productSales: null, expenses: null, settlementSummary: null, includedShiftNames: [],
 } as BalanceSheetDetail

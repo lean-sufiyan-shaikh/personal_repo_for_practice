@@ -71,7 +71,8 @@
       "missing_other": "इस दिन के {{amount}} के {{count}} उधार भुगतान मंज़ूरी की राह देख रहे हैं"
     },
     "PENDING_CREDIT_PAYMENTS_one": "इस दिन का {{amount}} का {{count}} उधार भुगतान मंज़ूरी की राह देख रहा है",
-    "PENDING_CREDIT_PAYMENTS_other": "इस दिन के {{amount}} के {{count}} उधार भुगतान मंज़ूरी की राह देख रहे हैं"
+    "PENDING_CREDIT_PAYMENTS_other": "इस दिन के {{amount}} के {{count}} उधार भुगतान मंज़ूरी की राह देख रहे हैं",
+    "PETTY_CASH_NOT_COUNTED": "इस दिन छोटी नकदी नहीं गिनी गई"
   },
   "fix": {
     "SAFE_COUNT": "तिजोरी गिनें",
@@ -82,7 +83,8 @@
     "DELIVERIES_NOT_CHECKED": "डिलीवरी देखें",
     "OPEN_ATTENTION_ITEMS": "चेतावनियाँ देखें",
     "PENDING_EXPENSES": "खर्च देखें",
-    "PENDING_CREDIT_PAYMENTS": "भुगतान देखें"
+    "PENDING_CREDIT_PAYMENTS": "भुगतान देखें",
+    "PETTY_CASH_NOT_COUNTED": "छोटी नकदी गिनें"
   },
   "flags": {
     "GREEN": "सब ठीक",
@@ -264,5 +266,69 @@
   "closedDay": {
     "toast": "{{date}} बंद है। यह बदलाव करने के लिए इसे दोबारा खोलें।",
     "reopen": "दिन दोबारा खोलें"
+  },
+  "month": {
+    "title": "महीना बंद",
+    "subtitle": "हर दिन मंज़ूर होने पर महीना बंद करें और उसका सारांश रखें।",
+    "pick": "महीना",
+    "printTitle": "महीने का सारांश · {{month}}",
+    "loadFailed": "महीना लोड नहीं हो सका। कनेक्शन जाँचकर रिफ्रेश करें।",
+    "statusClosed": "बंद · संस्करण {{version}}",
+    "statusReopened": "फिर खुला · संस्करण {{version}}",
+    "daysTitle": "महीने के दिन",
+    "daysSummary": "{{total}} में से {{approved}} दिन मंज़ूर",
+    "allApproved": "महीने का हर दिन बंद और मंज़ूर है।",
+    "dayStatus": {
+      "NOT_CLOSED": "बंद नहीं",
+      "CLOSED": "मंज़ूरी बाकी",
+      "REOPENED": "फिर खुला",
+      "APPROVED": "मंज़ूर"
+    },
+    "openDay": "दिन खोलें",
+    "exceptionReason": "इसके बिना महीना बंद करने का कारण",
+    "exceptionReasonFor": "{{date}} का कारण",
+    "notOver": "यह महीना अभी खत्म नहीं हुआ।",
+    "reasonsNeeded_one": "मंज़ूर न हुए {{count}} दिन का कारण दें।",
+    "reasonsNeeded_other": "मंज़ूर न हुए {{count}} दिनों का कारण दें।",
+    "close": "महीना बंद करें",
+    "closing": "बंद हो रहा है…",
+    "closed": "महीना बंद हुआ",
+    "closeFailed": "महीना बंद नहीं हो सका",
+    "reopen": "महीना फिर खोलें",
+    "reopening": "फिर खुल रहा है…",
+    "reopenTitle": "{{month}} फिर खोलें",
+    "reopenSubtitle": "जब तक महीना नए संस्करण के रूप में फिर बंद न हो, इसके दिन बदले जा सकते हैं।",
+    "reopened": "महीना फिर खुला",
+    "reopenFailed": "महीना फिर नहीं खुल सका",
+    "history": "इस महीने के बंद",
+    "versionLine": "संस्करण {{version}} · {{name}} ने बंद किया · {{time}}",
+    "reopenedLine": "{{name}} ने फिर खोला · {{time}}: {{reason}}",
+    "show": "दिखाएँ",
+    "showing": "दिख रहा है",
+    "sales": "बिक्री",
+    "margin": "मार्जिन",
+    "fuelTotal": "सारा ईंधन · {{litres}}",
+    "products": "काउंटर सामान",
+    "grossProfit": "सकल लाभ",
+    "payments": "भुगतान कैसे हुआ",
+    "collectedTotal": "कुल वसूली",
+    "costs": "खर्च और शुद्ध लाभ",
+    "expenses": "खर्च",
+    "payroll": "दिया गया वेतन",
+    "bankCharges": "MDR / बैंक शुल्क",
+    "chargebacks": "चार्जबैक और रिफ़ंड",
+    "otherCosts": "अन्य खर्च",
+    "netProfit": "शुद्ध लाभ",
+    "creditAndCash": "उधार और नकदी",
+    "creditGiven": "दिया गया उधार",
+    "creditCollected": "उधार की वसूली",
+    "creditOutstanding": "बंद करते समय बकाया उधार",
+    "safeClosing": "महीने के अंत में तिजोरी",
+    "pettyCashClosing": "महीने के अंत में छोटी नकदी",
+    "stock": "आखिरी डिप पर टैंक स्टॉक",
+    "notDipped": "इस महीने डिप नहीं हुआ",
+    "closingDip": "{{date}} को {{litres}}",
+    "exceptions": "अपवाद के रूप में बंद दिन",
+    "badDebt": "बट्टे खाते डाला कर्ज़"
   }
 }

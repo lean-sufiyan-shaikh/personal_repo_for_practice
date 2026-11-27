@@ -21,12 +21,18 @@
     "recorded": "Expense recorded successfully",
     "recordFailed": "Failed to record expense",
     "descriptionRequired": "Description is required",
-    "amountPositive": "Amount must be greater than zero"
+    "amountPositive": "Amount must be greater than zero",
+    "paidFrom": "Paid from",
+    "choosePaidFrom": "Choose where the money came from",
+    "paidFromHint": "Safe and petty cash are taken out once the expense is approved; bank and owner's pocket move no cash.",
+    "needPaidFrom": "Paid from",
+    "dateInFuture": "An expense cannot be dated in the future"
   },
   "review": {
     "title": "Review expense",
     "add": "Save expense",
-    "savedAs": "Saved as"
+    "savedAs": "Saved as",
+    "cashMoves": "Once approved, this amount is taken out of {{source}}."
   },
   "list": {
     "title": "All Expenses",
@@ -45,7 +51,14 @@
     "deleteExpense": "Delete expense",
     "rejectTitle": "Reject Expense",
     "rejectedWithNotes": "{{label}}: {{notes}}",
-    "filtersLabel": "Expense filters"
+    "filtersLabel": "Expense filters",
+    "paidFrom": "Paid from {{source}}",
+    "statusVoided": "Voided",
+    "void": "Void",
+    "voiding": "Voiding…",
+    "voidTitle": "Void expense",
+    "voidHelp": "Voided expenses stay in the list but count nowhere. Record it again if it was entered wrong.",
+    "voidHelpCash": "The cash it took from {{source}} goes back. Record it again if it was entered wrong."
   },
   "toast": {
     "submitted": "Expense submitted for approval",
@@ -54,7 +67,9 @@
     "deleteFailed": "Failed to delete expense",
     "approved": "Expense approved",
     "rejected": "Expense rejected",
-    "updateFailed": "Failed to update expense"
+    "updateFailed": "Failed to update expense",
+    "voided": "Expense voided",
+    "voidFailed": "Failed to void expense"
   },
   "csv": {
     "date": "Date",

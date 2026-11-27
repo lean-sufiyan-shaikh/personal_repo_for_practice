@@ -31,7 +31,7 @@ export function RevenueBreakdown({ report, className }: { report: ProfitLossRepo
   )
 }
 
-/** Gross profit less approved expenses, bank charges and the payroll paid in the period. */
+/** Gross profit less approved expenses, bank charges, the payroll paid and chargebacks in the period. */
 export function OperatingProfitSection({ report, className = '' }: { report: ProfitLossReport; className?: string }) {
   const { t } = useTranslation('reports')
   const titleId = useId()
@@ -41,6 +41,7 @@ export function OperatingProfitSection({ report, className = '' }: { report: Pro
     { key: 'charges', label: t('pl.bankCharges'), value: -report.bankCharges, showSign: true },
     { key: 'payroll', label: t('pl.payrollPaid'), value: -report.payrollPaid, showSign: true },
     { key: 'badDebt', label: t('pl.badDebtWrittenOff'), value: -(report.badDebtWrittenOff ?? 0), showSign: true },
+    { key: 'chargebacks', label: t('pl.chargebacks'), value: -report.chargebacks, showSign: true },
   ]
   return (
     <section aria-labelledby={titleId} className={`ui-card ui-card-muted p-3 ${className}`}>

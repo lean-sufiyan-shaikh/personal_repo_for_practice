@@ -3,6 +3,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
+import { canPerformAction } from '../../permissions/permissions'
 import { expenseApi } from '../../api/expenseApi'
 import type { ExpenseCategory, ApproveExpenseRequest, ExpenseApprovalStatus, PumpExpense } from '../../api/expenseApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
@@ -12,12 +13,10 @@ import { EmptyState } from '../../components/EmptyState'
 import { useToastStore } from '../../store/toastStore'
 import { parseApiError } from '../../utils/apiError'
 import { formatCurrency } from '../../utils/format'
-import { ConfirmButton } from '../../components/ConfirmButton'
 import { RejectReasonDialog } from '../../components/RejectReasonDialog'
-import { StatusBadge } from '../../components/StatusBadge'
-import { approvalStatusBadge } from '../../components/statusBadges'
-import { MoneyText } from '../../components/AmountText'
-import { CATEGORIES, fmtDate } from './expenseFormat'
+import { CATEGORIES } from './expenseFormat'
+import { ExpenseRow } from './ExpenseRow'
+import { VoidExpenseDialog } from './VoidExpenseDialog'
 import type { ExpenseListState } from './useExpenseList'
 import { codeLabel } from '../../constants/labels'
 import { CsvExportButton } from '../../components/CsvExportButton'
@@ -35,15 +34,6 @@ function csvColumns(t: TFunction<['expenses', 'common']>): CsvColumn<PumpExpense
     { header: t('csv.status'), value: (row) => codeLabel(row.approvalStatus) },
     { header: t('csv.approvalNotes'), value: (row) => row.approvalNotes },
   ]
-}
-
-function ApprovalBadge({ expense }: { expense: PumpExpense }) {
-  const { t } = useTranslation(['expenses', 'common'])
-  const badge = approvalStatusBadge(expense.approvalStatus)
-  const label = expense.approvalStatus === 'REJECTED' && expense.approvalNotes
-    ? t('list.rejectedWithNotes', { label: badge.label, notes: expense.approvalNotes })
-    : badge.label
-  return <StatusBadge {...badge} label={label} wrap />
 }
 
 interface ExpenseListProps {
@@ -100,6 +90,8 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
     },
   })
 
+  const [voidingExpense, setVoidingExpense] = useState<PumpExpense | null>(null)
+
   const openRejectDialog = (expense: PumpExpense) => {
     setRejectError(null)
     setRejectingExpense(expense)
@@ -108,6 +100,7 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
   const isOwner        = user?.role === 'OWNER'
   const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN'
   const isAccountant   = user?.role === 'ACCOUNTANT'
+  const canVoid        = canPerformAction('expense:void', user?.role)
 
   const clearFilters = () => { setCategoryFilter(''); setStatusFilter(''); setPage(0) }
 
@@ -124,6 +117,9 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
         })}
         onClose={() => setRejectingExpense(null)}
       />
+    )}
+    {voidingExpense && pumpId && (
+      <VoidExpenseDialog pumpId={pumpId} expense={voidingExpense} onClose={() => setVoidingExpense(null)} />
     )}
     <PageSection
       title={t('list.title')}
@@ -155,6 +151,7 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
               { value: 'PENDING_APPROVAL', label: t('list.statusPendingApproval') },
               { value: 'APPROVED',         label: t('list.statusApproved') },
               { value: 'REJECTED',         label: t('list.statusRejected') },
+              { value: 'VOIDED',           label: t('list.statusVoided') },
             ]}
             size="sm"
           />
@@ -173,61 +170,18 @@ export function ExpenseList({ pumpId, list }: ExpenseListProps) {
         <>
         <div className="divide-y divide-border">
           {expenses.map(e => (
-            <div key={e.id} className="px-5 py-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
-                <StatusBadge tone="neutral" label={codeLabel(e.category)} className="flex-shrink-0" />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                    <p className="text-sm text-ink break-words sm:truncate">{e.description}</p>
-                    <ApprovalBadge expense={e} />
-                  </div>
-                  <p className="text-xs text-ink-3">{fmtDate(e.expenseDate)}</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0">
-                <MoneyText
-                  value={e.amount}
-                  className={`text-sm font-semibold mr-auto sm:mr-0 ${e.approvalStatus === 'REJECTED' ? 'text-ink-3 line-through' : 'text-ink'}`}
-                />
-                {/* Submit — shown on DRAFT expenses to the creator or OWNER/ADMIN */}
-                {e.approvalStatus === 'DRAFT' && (isOwnerOrAdmin || e.recordedByUserId === user?.userId) && (
-                  <button
-                    onClick={() => submitMutation.mutate(e.id)}
-                    disabled={submitMutation.isPending}
-                    className="ui-btn ui-btn-primary ui-btn-compact"
-                  >
-                    {t('common:actions.submit')}
-                  </button>
-                )}
-                {/* Approve/Reject — only for Owner/Admin on pending expenses */}
-                {isOwnerOrAdmin && e.approvalStatus === 'PENDING_APPROVAL' && (
-                  <>
-                    <button
-                      onClick={() => approveMutation.mutate({ expenseId: e.id, data: { action: 'APPROVED' } })}
-                      disabled={approveMutation.isPending}
-                      className="ui-btn ui-btn-primary ui-btn-compact"
-                    >
-                      {t('common:actions.approve')}
-                    </button>
-                    <button
-                      onClick={() => openRejectDialog(e)}
-                      disabled={approveMutation.isPending}
-                      className="ui-btn ui-btn-danger ui-btn-compact"
-                    >
-                      {t('common:actions.reject')}
-                    </button>
-                  </>
-                )}
-                {/* Delete — DRAFT only, backend enforces this; OWNER only */}
-                {isOwner && e.approvalStatus === 'DRAFT' && (
-                  <ConfirmButton
-                    onConfirm={() => deleteMutation.mutate(e.id)}
-                    disabled={deleteMutation.isPending}
-                    triggerAriaLabel={t('list.deleteExpense')}
-                  />
-                )}
-              </div>
-            </div>
+            <ExpenseRow key={e.id} expense={e} actions={{
+              canSubmit: e.approvalStatus === 'DRAFT' && (isOwnerOrAdmin || e.recordedByUserId === user?.userId),
+              canReview: isOwnerOrAdmin && e.approvalStatus === 'PENDING_APPROVAL',
+              canDelete: isOwner && e.approvalStatus === 'DRAFT',
+              canVoid: canVoid && e.approvalStatus === 'APPROVED',
+              busy: submitMutation.isPending || approveMutation.isPending || deleteMutation.isPending,
+              onSubmit: () => submitMutation.mutate(e.id),
+              onApprove: () => approveMutation.mutate({ expenseId: e.id, data: { action: 'APPROVED' } }),
+              onReject: () => openRejectDialog(e),
+              onDelete: () => deleteMutation.mutate(e.id),
+              onVoid: () => setVoidingExpense(e),
+            }} />
           ))}
         </div>
         {expensesPage && (

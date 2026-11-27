@@ -15,7 +15,7 @@ vi.mock('../../api/paymentSettlementApi', () => ({
 
 const settlement: Settlement = {
   id: 31, pumpId: 3, paymentType: 'CARD', settlementDate: '2026-11-21', amountReceived: 4500, notes: 'Morning batch',
-  grossAmount: 4500, mdrAmount: 81, gstOnMdrAmount: 14.58, chargesAmount: 95.58, netAmount: 4404.42,
+  grossAmount: 4500, mdrAmount: 81, gstOnMdrAmount: 14.58, chargesAmount: 95.58, netAmount: 4404.42, chargebacksAmount: 0, netAfterChargebacks: 4404.42,
   coversFromDate: '2026-11-19', coversToDate: '2026-11-20',
   bankReference: 'UTR778812', recordedByUserName: 'Ravi Manager', createdAt: '2026-11-21T06:30:00Z',
   pendingAtRecordTime: 5000, isPartial: true, voidStatus: 'ACTIVE', voidReason: null, voidedAt: null,

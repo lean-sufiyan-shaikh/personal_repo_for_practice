@@ -152,4 +152,12 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   CREDIT_CLIENTS_MERGED:              'warn',
   CREDIT_DISPUTE_RAISED:              'warn',
   CREDIT_DISPUTE_RESOLVED:            'info',
+  // Money operations
+  EXPENSE_VOIDED:                     'warn',
+  PETTY_CASH_SETTINGS_UPDATED:        'neutral',
+  PETTY_CASH_TOPPED_UP:               'info',
+  PETTY_CASH_COUNTED:                 'info',
+  CHARGEBACK_RECORDED:                'bad',
+  MONTH_CLOSED:                       'ok',
+  MONTH_REOPENED:                     'warn',
 }

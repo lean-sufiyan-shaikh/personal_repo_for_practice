@@ -153,7 +153,19 @@ export interface SettlementSummary {
   walletFleetCardPending: number
   /** MDR plus GST on MDR of the settlements recorded on the date. */
   bankChargesOnDate: number
+  /** Chargebacks and refunds the bank took on the date. */
+  chargebacksOnDate: number
+  chargebackLines: ChargebackLine[]
   settlementsOnDate: SettlementLine[]
+}
+
+export interface ChargebackLine {
+  id: number
+  kind: 'CHARGEBACK' | 'REFUND'
+  paymentType: string
+  amount: number
+  reference: string | null
+  reason: string
 }
 
 export interface BalanceSheetDetail {
@@ -186,6 +198,8 @@ export interface BalanceSheetDetail {
   totalDipNetAmount: number
   /** MDR plus GST on MDR deducted by the bank from settlements recorded on the date. */
   totalBankChargesAmount: number
+  /** Chargebacks and refunds taken on the date; subtracted in net profit. */
+  totalChargebacksAmount: number
   /** Net profit = fuel gross profit + dip net + ancillary product gross profit (DAY only) − approved expenses (DAY only) − bank charges. */
   totalNetProfit: number
   /** True when the dip, product or expense lines below no longer add up to the totals saved at generation. */

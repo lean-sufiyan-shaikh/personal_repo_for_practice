@@ -148,7 +148,7 @@ describe('RecordSettlementDialog', () => {
 describe('VoidSettlementDialog', () => {
   const settlement = {
     id: 31, pumpId: 3, paymentType: 'UPI', settlementDate: '2026-11-20', amountReceived: 4500, notes: null,
-    grossAmount: 4500, mdrAmount: 0, gstOnMdrAmount: 0, chargesAmount: 0, netAmount: 4500, coversFromDate: null, coversToDate: null,
+    grossAmount: 4500, mdrAmount: 0, gstOnMdrAmount: 0, chargesAmount: 0, netAmount: 4500, chargebacksAmount: 0, netAfterChargebacks: 4500, coversFromDate: null, coversToDate: null,
     bankReference: 'UTR1', recordedByUserName: 'Ravi', createdAt: '2026-11-20T10:00:00Z', pendingAtRecordTime: 5000,
     isPartial: true, voidStatus: 'ACTIVE', voidReason: null, voidedAt: null,
   } as Settlement

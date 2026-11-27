@@ -20,6 +20,10 @@ export interface Settlement {
   gstOnMdrAmount: number
   chargesAmount: number
   netAmount: number
+  /** Chargebacks and refunds taken against this settlement. */
+  chargebacksAmount: number
+  /** netAmount less chargebacksAmount: what the settlement finally left in the bank. */
+  netAfterChargebacks: number
   /** First and last collection day this settlement reached, oldest first; null for legacy entries. */
   coversFromDate: string | null
   coversToDate: string | null
@@ -115,6 +119,38 @@ export interface DailySummaryEntry {
   settlements: Settlement[]     // individual records for this date
 }
 
+/** CHARGEBACK: the bank took a disputed payment back. REFUND: the pump returned a payment to the customer. */
+export type ChargebackKind = 'CHARGEBACK' | 'REFUND'
+
+export interface Chargeback {
+  id: number
+  kind: ChargebackKind
+  paymentType: SettlementPaymentType
+  chargebackDate: string
+  amount: number
+  reference: string | null
+  reason: string
+  settlementId: number | null
+  collectionDate: string | null
+  recordedByUserName: string
+  createdAt: string
+}
+
+/** Linked to a settlement (its payment type is taken from it) or to a payment type and the day it was collected. */
+export interface RecordChargebackRequest {
+  kind: ChargebackKind
+  paymentType?: SettlementPaymentType
+  chargebackDate: string
+  amount: number
+  reference?: string
+  reason: string
+  settlementId?: number
+  collectionDate?: string
+}
+
+const withIdempotencyKey = (idempotencyKey?: string) =>
+  idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : undefined
+
 // ── API ──────────────────────────────────────────────────────────────────
 
 export const paymentSettlementApi = {
@@ -136,6 +172,14 @@ export const paymentSettlementApi = {
   /** Void a recorded settlement (Owner/Admin). The reason is required and kept on the record. */
   voidSettlement: (pumpId: number, settlementId: number, reason: string): Promise<Settlement> =>
     client.post(`/pumps/${pumpId}/settlements/${settlementId}/void`, { reason }).then(r => r.data),
+
+  /** Chargebacks and refunds, newest first. */
+  listChargebacks: (pumpId: number, page = 0, size = 20): Promise<PagedResponse<Chargeback>> =>
+    client.get(`/pumps/${pumpId}/chargebacks`, { params: { page, size } }).then(r => r.data),
+
+  /** Owner/Admin: records a chargeback or refund; it lowers net received and is a cost of its day. */
+  recordChargeback: (pumpId: number, data: RecordChargebackRequest, idempotencyKey?: string): Promise<Chargeback> =>
+    client.post(`/pumps/${pumpId}/chargebacks`, data, withIdempotencyKey(idempotencyKey)).then(r => r.data),
 
   /** Current wallet balance per payment type. */
   getWallet: (pumpId: number): Promise<WalletSummary> =>

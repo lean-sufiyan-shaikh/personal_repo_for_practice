@@ -13,11 +13,13 @@ interface SettlementDetailsPanelProps {
   settlement: Settlement
   canVoid: boolean
   onVoid: (settlement: Settlement) => void
+  canRecordChargeback: boolean
+  onRecordChargeback: (settlement: Settlement) => void
   onClose: () => void
 }
 
 /** Everything recorded about one bank credit, including the reference and why it was voided. */
-export function SettlementDetailsPanel({ settlement, canVoid, onVoid, onClose }: SettlementDetailsPanelProps) {
+export function SettlementDetailsPanel({ settlement, canVoid, onVoid, canRecordChargeback, onRecordChargeback, onClose }: SettlementDetailsPanelProps) {
   const { t } = useTranslation(['settlements', 'common'])
   const isVoided = settlement.voidStatus === 'VOIDED'
   const covers = coverageLabel(settlement)
@@ -29,6 +31,8 @@ export function SettlementDetailsPanel({ settlement, canVoid, onVoid, onClose }:
     [t('charges.gst'), <MoneyText key="gst" value={settlement.gstOnMdrAmount} />],
     [t('charges.total'), <MoneyText key="charges" value={settlement.chargesAmount} />],
     [t('charges.net'), <MoneyText key="net" value={settlement.netAmount} />],
+    [t('details.chargebacks'), <MoneyText key="chargebacks" value={settlement.chargebacksAmount} />],
+    [t('details.netAfterChargebacks'), <MoneyText key="netAfter" value={settlement.netAfterChargebacks} />],
     [t('record.date'), fmtDate(settlement.settlementDate)],
     [t('record.bankReference'), settlement.bankReference || '—'],
     [t('common:fields.notes'), settlement.notes || '—'],
@@ -50,10 +54,19 @@ export function SettlementDetailsPanel({ settlement, canVoid, onVoid, onClose }:
       subtitle={`${typeLabel(settlement.paymentType)} · ${fmtAmt(settlement.grossAmount)}`}
       onClose={onClose}
       bodyClassName="space-y-4 text-sm"
-      footer={canVoid && !isVoided && (
-        <button type="button" onClick={() => onVoid(settlement)} className="ui-btn ui-btn-danger">
-          {t('history.void')}
-        </button>
+      footer={!isVoided && (canVoid || canRecordChargeback) && (
+        <>
+          {canRecordChargeback && settlement.netAfterChargebacks > 0 && (
+            <button type="button" onClick={() => onRecordChargeback(settlement)} className="ui-btn ui-btn-secondary">
+              {t('chargeback.title')}
+            </button>
+          )}
+          {canVoid && (
+            <button type="button" onClick={() => onVoid(settlement)} className="ui-btn ui-btn-danger">
+              {t('history.void')}
+            </button>
+          )}
+        </>
       )}
     >
       <div>
