@@ -1,5 +1,7 @@
 package com.ppms.credit;
 
+import com.ppms.fleet.VehicleUsageGroup;
+import com.ppms.fleet.VehicleUsageService;
 import com.ppms.ancillary.AncillaryProduct;
 import com.ppms.ancillary.AncillaryProductQueryService;
 import com.ppms.ancillary.AncillaryProductRepository;
@@ -58,6 +60,7 @@ public class CreditLedgerQueryService {
     private final CreditInterestService interestService;
     private final UserRepository userRepository;
     private final BusinessClock businessClock;
+    private final VehicleUsageService vehicleUsageService;
 
     public List<CreditClientResponse> getLedgerSummary(Long pumpId) {
         List<CreditClient> clients = clientRepository.findByPumpIdOrderByNameAsc(pumpId);
@@ -129,10 +132,11 @@ public class CreditLedgerQueryService {
         return transactions;
     }
 
+    /** The period's rows and today's outstanding, with the credit of the period grouped by vehicle. */
     public CreditStatement getStatement(CreditClient client, LocalDate fromDate, LocalDate toDate) {
         CreditStatement allRows = statementOfAllRows(client);
         return new CreditStatement(filterByDate(allRows.transactions(), fromDate, toDate), allRows.outstanding(),
-                allRows.subAccountNames());
+                allRows.subAccountNames(), vehicleUsageOf(client, fromDate, toDate));
     }
 
     /** A closed period's statement, whose outstanding is the balance at the end of its last day rather than today's. */
@@ -144,7 +148,16 @@ public class CreditLedgerQueryService {
                 .map(CreditTransactionResponse::getRunningBalance)
                 .orElse(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
         return new CreditStatement(filterByDate(allRows.transactions(), fromDate, toDate), closingBalance,
-                allRows.subAccountNames());
+                allRows.subAccountNames(), vehicleUsageOf(client, fromDate, toDate));
+    }
+
+    private List<VehicleUsageGroup> vehicleUsageOf(CreditClient client, LocalDate fromDate, LocalDate toDate) {
+        List<CreditClient> accounts = new ArrayList<>();
+        accounts.add(client);
+        if (client.getParentClientId() == null) {
+            accounts.addAll(clientRepository.findByParentClientId(client.getId()));
+        }
+        return vehicleUsageService.usageByVehicle(accounts, fromDate, toDate);
     }
 
     private CreditStatement statementOfAllRows(CreditClient client) {
@@ -153,7 +166,7 @@ public class CreditLedgerQueryService {
                 : List.of();
         if (subAccounts.isEmpty()) {
             return new CreditStatement(buildTransactionList(client.getId()),
-                    interestService.computeOutstanding(client.getId()), List.of());
+                    interestService.computeOutstanding(client.getId()), List.of(), List.of());
         }
 
         List<CreditClient> group = new ArrayList<>();
@@ -172,7 +185,7 @@ public class CreditLedgerQueryService {
         applyRunningBalance(transactions);
         return new CreditStatement(transactions,
                 interestService.computeOutstandingWithChildren(client.getId()),
-                subAccounts.stream().map(CreditClient::getName).toList());
+                subAccounts.stream().map(CreditClient::getName).toList(), List.of());
     }
 
     private static List<CreditTransactionResponse> filterByDate(List<CreditTransactionResponse> transactions,

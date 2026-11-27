@@ -1,6 +1,7 @@
 import type { SubmitAttempt } from '../../../utils/idempotencyKey'
 import type { DenominationCounts } from '../../../components/cash/denominations'
 import type { CreditRow } from '../components/creditRow'
+import { EMPTY_VEHICLE_ENTRY } from '../../credit/vehicles/vehicleEntry'
 import type { HandoverDetails } from './handoverDetails'
 
 /** What the close / handover form keeps on this device until the shift is closed or the entries are discarded. */
@@ -24,5 +25,5 @@ export function closeShiftDraftName(shiftId: number, isHandover: boolean): strin
 }
 
 export function restoredCreditRows(draft: CloseShiftDraft | undefined): CreditRow[] {
-  return (draft?.creditRows ?? []).map((row) => ({ ...row, showDropdown: false }))
+  return (draft?.creditRows ?? []).map((row) => ({ ...row, showDropdown: false, vehicle: row.vehicle ?? EMPTY_VEHICLE_ENTRY }))
 }

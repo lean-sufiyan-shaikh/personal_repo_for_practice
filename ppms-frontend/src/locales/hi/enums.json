@@ -294,6 +294,10 @@
     "CREDIT_PROMISE_MISSED": {
       "title": "भुगतान का वादा चूका",
       "message": "{{clientName}} ने {{promisedDate}} तक ₹{{amount}} का वादा किया था पर ₹{{paidAmount}} दिए। याद दिलाना फिर शुरू हो गया है।"
+    },
+    "VEHICLE_CREDIT_FLAGGED": {
+      "title": "क्रेडिट वाहन चिह्नित",
+      "message": "{{clientName}} का क्रेडिट आज नियम से बाहर वाहन ({{registration}}) को दिया गया। ग्राहक का वाहन टैब देखें।"
     }
   },
   "serverTexts": {
@@ -416,5 +420,7 @@
   "CREDIT_STATEMENT": "क्रेडिट स्टेटमेंट",
   "CREDIT_REMINDERS_DUE": "क्रेडिट याद दिलाना बाकी",
   "CREDIT_HOLD_PLACED": "क्रेडिट रोका गया",
-  "CREDIT_PROMISE_MISSED": "भुगतान का वादा चूका"
+  "CREDIT_PROMISE_MISSED": "भुगतान का वादा चूका",
+  "VEHICLE": "वाहन",
+  "VEHICLE_CREDIT_FLAGGED": "क्रेडिट वाहन चिह्नित"
 }

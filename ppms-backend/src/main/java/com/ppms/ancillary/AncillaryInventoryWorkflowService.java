@@ -1,5 +1,9 @@
 package com.ppms.ancillary;
 
+import com.ppms.fleet.PendingVehicleUsage;
+import com.ppms.fleet.VehicleCreditCheck;
+import com.ppms.fleet.VehicleCreditDecision;
+import com.ppms.fleet.VehicleCreditInput;
 import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.time.BusinessClock;
@@ -55,6 +59,7 @@ public class AncillaryInventoryWorkflowService {
     private final BusinessClock businessClock;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
     private final ClosedDayGuard closedDayGuard;
+    private final VehicleCreditCheck vehicleCreditCheck;
 
     @Transactional
     public AncillaryProduct createProduct(Long pumpId, CreateProductRequest request, User currentUser) {
@@ -205,10 +210,13 @@ public class AncillaryInventoryWorkflowService {
         LocalDate today = businessClock.today();
         closedDayGuard.requireOpen(pumpId, today);
         validateCreditSale(pumpId, creditClient, sellingPrice, request.getQuantityUnits());
+        VehicleCreditDecision vehicle = checkVehicle(creditClient, new VehicleCreditInput(request.getVehicleId(),
+                request.getVehicleRegistration(), request.getDriverName(), request.getDriverPhone()),
+                sellingPrice, request.getQuantityUnits(), today);
 
-        AncillarySale sale = saleRepository.save(newSale(pumpId, product, request.getQuantityUnits(), sellingPrice,
-                request.getPaymentMode(), clientNameOf(creditClient, request.getClientName()), request.getBillNo(),
-                request.getNotes(), currentUser)
+        AncillarySale sale = saleRepository.save(withVehicle(newSale(pumpId, product, request.getQuantityUnits(),
+                sellingPrice, request.getPaymentMode(), clientNameOf(creditClient, request.getClientName()),
+                request.getBillNo(), request.getNotes(), currentUser), vehicle)
                 .clientId(request.getClientId())
                 .saleDate(today)
                 .build());
@@ -360,10 +368,13 @@ public class AncillaryInventoryWorkflowService {
         BigDecimal sellingPrice = priceOnDate(product, request.getSaleDate());
         List<AncillaryStockLot> historicalLots = lotsCoveringBackfill(product, request);
         validateCreditSale(pumpId, creditClient, sellingPrice, request.getQuantityUnits());
+        VehicleCreditDecision vehicle = checkVehicle(creditClient, new VehicleCreditInput(request.getVehicleId(),
+                request.getVehicleRegistration(), request.getDriverName(), request.getDriverPhone()),
+                sellingPrice, request.getQuantityUnits(), request.getSaleDate());
 
-        AncillarySale sale = saleRepository.save(newSale(pumpId, product, request.getQuantityUnits(), sellingPrice,
-                request.getPaymentMode(), clientNameOf(creditClient, request.getClientName()), request.getBillNo(),
-                request.getNotes(), currentUser)
+        AncillarySale sale = saleRepository.save(withVehicle(newSale(pumpId, product, request.getQuantityUnits(),
+                sellingPrice, request.getPaymentMode(), clientNameOf(creditClient, request.getClientName()),
+                request.getBillNo(), request.getNotes(), currentUser), vehicle)
                 .clientId(request.getClientId())
                 .saleDate(request.getSaleDate())
                 .isBackfilled(true)
@@ -445,6 +456,28 @@ public class AncillaryInventoryWorkflowService {
             return;
         }
         creditAccountPolicyService.validateCreditSaleAllowed(pumpId, creditClient, saleTotal(sellingPrice, quantityUnits));
+    }
+
+    /** Counter sales have no fuel, so only the approved list and the monthly rupee limit apply. Null for a non-credit sale. */
+    private VehicleCreditDecision checkVehicle(CreditClient creditClient, VehicleCreditInput input,
+                                               BigDecimal sellingPrice, int quantityUnits, LocalDate saleDate) {
+        if (creditClient == null) {
+            return null;
+        }
+        return vehicleCreditCheck.check(creditClient, input, null, saleTotal(sellingPrice, quantityUnits), null,
+                saleDate, new PendingVehicleUsage());
+    }
+
+    private static AncillarySale.AncillarySaleBuilder withVehicle(AncillarySale.AncillarySaleBuilder sale,
+                                                                  VehicleCreditDecision vehicle) {
+        if (vehicle == null) {
+            return sale;
+        }
+        return sale.vehicleId(vehicle.vehicleId())
+                .vehicleRegistration(vehicle.registration())
+                .driverName(vehicle.driverName())
+                .driverPhone(vehicle.driverPhone())
+                .vehicleFlag(vehicle.flag());
     }
 
     private static String clientNameOf(CreditClient creditClient, String requestedName) {

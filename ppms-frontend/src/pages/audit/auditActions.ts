@@ -106,4 +106,8 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   CREDIT_REMINDER_RECORDED:           'neutral',
   CREDIT_PROMISE_RECORDED:            'info',
   COLLECTION_SETTINGS_UPDATED:        'neutral',
+  // Fleet vehicles
+  CLIENT_VEHICLE_SAVED:               'info',
+  CLIENT_VEHICLE_STATUS_CHANGED:      'neutral',
+  VEHICLE_CHECK_CHANGED:              'warn',
 }

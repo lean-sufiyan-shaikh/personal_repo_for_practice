@@ -118,5 +118,8 @@ public enum AuditAction {
     // ── Credit collections ────────────────────────────────────────────────────
     CREDIT_REMINDER_RECORDED,
     CREDIT_PROMISE_RECORDED,
-    COLLECTION_SETTINGS_UPDATED
+    COLLECTION_SETTINGS_UPDATED,
+    CLIENT_VEHICLE_SAVED,
+    CLIENT_VEHICLE_STATUS_CHANGED,
+    VEHICLE_CHECK_CHANGED
 }

@@ -97,6 +97,9 @@
     "DAY_CLOSE_COMMENTED": "दिन बंद पर टिप्पणी जोड़ी",
     "CREDIT_REMINDER_RECORDED": "क्रेडिट याद दिलाना दर्ज",
     "CREDIT_PROMISE_RECORDED": "भुगतान का वादा दर्ज",
-    "COLLECTION_SETTINGS_UPDATED": "वसूली सेटिंग बदली"
+    "COLLECTION_SETTINGS_UPDATED": "वसूली सेटिंग बदली",
+    "CLIENT_VEHICLE_SAVED": "क्रेडिट वाहन सहेजा",
+    "CLIENT_VEHICLE_STATUS_CHANGED": "क्रेडिट वाहन चालू या बंद किया",
+    "VEHICLE_CHECK_CHANGED": "वाहन जाँच बदली"
   }
 }

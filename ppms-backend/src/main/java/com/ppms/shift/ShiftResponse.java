@@ -107,6 +107,11 @@ public class ShiftResponse {
             String voidStatus,
             String voidReason,
             String vehicleRegistration,
-            String driverName
+            String driverName,
+            Long vehicleId,
+            String driverPhone,
+            BigDecimal litres,
+            /* UNKNOWN_VEHICLE, FUEL_NOT_ALLOWED or OVER_MONTHLY_LIMIT when a WARN account's entry was let through */
+            String vehicleFlag
     ) {}
 }

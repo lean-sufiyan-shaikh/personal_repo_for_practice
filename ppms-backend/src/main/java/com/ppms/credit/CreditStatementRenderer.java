@@ -2,6 +2,7 @@ package com.ppms.credit;
 
 import com.ppms.collection.QrCodeSvg;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.fleet.VehicleUsageGroup;
 import com.ppms.pump.PumpLocation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,7 @@ import java.util.List;
 public class CreditStatementRenderer {
 
     private static final int QR_SIZE_PIXELS = 132;
+    private static final String UNASSIGNED_VEHICLE_TITLE = "Unassigned / unknown vehicle";
 
     private final BusinessClock businessClock;
 
@@ -44,6 +46,10 @@ public class CreditStatementRenderer {
             sb.append("<p><em>No transactions found for the selected period.</em></p>");
         } else {
             appendTransactionTable(sb, statement.transactions(), statement.coversSubAccounts());
+        }
+
+        if (!statement.vehicleUsage().isEmpty()) {
+            appendVehicleUsage(sb, statement.vehicleUsage(), statement.coversSubAccounts());
         }
 
         sb.append("<div class='summary'>")
@@ -89,6 +95,9 @@ public class CreditStatementRenderer {
                   .outstanding { font-size: 14px; font-weight: bold; }
                   .upi { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 12px; }
                   .upi p { margin: 2px 0; text-align: right; }
+                  h3.vehicles { font-size: 13px; margin: 20px 0 0; }
+                  .vehicle-head td { background: #f7f7f7; font-weight: bold; }
+                  .vehicle-total td { font-weight: bold; border-top: 2px solid #ccc; }
                   .no-print { margin-top: 20px; }
                   @media print { .no-print { display: none; } }
                 </style>
@@ -159,6 +168,42 @@ public class CreditStatementRenderer {
                     .append("<td class='amount'>").append(credit).append("</td>")
                     .append("<td class='balance'>").append(tx.getRunningBalance().toPlainString()).append("</td>")
                     .append("</tr>");
+        }
+        sb.append("</tbody></table>");
+    }
+
+    /** The period's credit grouped by vehicle, each group with its litres and rupee subtotal. */
+    private void appendVehicleUsage(StringBuilder sb, List<VehicleUsageGroup> groups, boolean showAccount) {
+        int columns = showAccount ? 6 : 5;
+        sb.append("<h3 class='vehicles'>Usage by vehicle</h3><table><thead><tr>")
+                .append("<th>Date</th>")
+                .append(showAccount ? "<th>Account</th>" : "")
+                .append("<th>Item</th><th>Driver</th>")
+                .append("<th class='amount'>Litres</th><th class='amount'>Amount (₹)</th>")
+                .append("</tr></thead><tbody>");
+        for (VehicleUsageGroup group : groups) {
+            String title = group.isUnassigned() ? UNASSIGNED_VEHICLE_TITLE : group.registration();
+            sb.append("<tr class='vehicle-head'><td colspan='").append(columns).append("'>")
+                    .append(escapeHtml(title)).append("</td></tr>");
+            for (VehicleUsageGroup.Line line : group.lines()) {
+                String item = escapeHtml(line.item());
+                if (group.isUnassigned() && line.enteredRegistration() != null) {
+                    item += " <span style='color:#888;'>(" + escapeHtml(line.enteredRegistration()) + ")</span>";
+                }
+                sb.append("<tr>")
+                        .append("<td>").append(line.date()).append("</td>")
+                        .append(showAccount ? "<td>" + escapeHtml(line.accountName()) + "</td>" : "")
+                        .append("<td>").append(item).append("</td>")
+                        .append("<td>").append(escapeHtml(line.driverName())).append("</td>")
+                        .append("<td class='amount'>").append(line.litres() != null ? line.litres().toPlainString() : "")
+                        .append("</td>")
+                        .append("<td class='amount'>").append(line.amount().setScale(2, RoundingMode.HALF_UP).toPlainString())
+                        .append("</td></tr>");
+            }
+            sb.append("<tr class='vehicle-total'><td colspan='").append(columns - 2).append("'>Subtotal ")
+                    .append(escapeHtml(title)).append("</td>")
+                    .append("<td class='amount'>").append(group.litres().toPlainString()).append("</td>")
+                    .append("<td class='amount'>").append(group.amount().toPlainString()).append("</td></tr>");
         }
         sb.append("</tbody></table>");
     }

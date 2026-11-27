@@ -1,5 +1,6 @@
 package com.ppms.shift;
 
+import com.ppms.fleet.VehicleFlag;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -58,6 +59,22 @@ public class ShiftCreditEntry {
     // Optional driver name — useful for fleet/company accounts with multiple drivers
     @Column(name = "driver_name", length = 100)
     private String driverName;
+
+    @Column(name = "driver_phone", length = 15)
+    private String driverPhone;
+
+    /** The client's approved vehicle the entry was for; null for an unknown or unrecorded vehicle. */
+    @Column(name = "vehicle_id")
+    private Long vehicleId;
+
+    /** Fuel the amount bought at the shift's price; null when the shift had no price for the fuel. */
+    @Column(name = "litres")
+    private BigDecimal litres;
+
+    /** Why a WARN account's entry was let through; null when nothing was flagged. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "vehicle_flag", length = 20)
+    private VehicleFlag vehicleFlag;
 
     // ── Void support (spec Section 3.7, Business Rule 7) ──────────────────────
     // ACTIVE by default; set to VOIDED by the void endpoint while shift is still OPEN.

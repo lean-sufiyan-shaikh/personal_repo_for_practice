@@ -97,6 +97,9 @@
     "DAY_CLOSE_COMMENTED": "Day close comment added",
     "CREDIT_REMINDER_RECORDED": "Credit reminder recorded",
     "CREDIT_PROMISE_RECORDED": "Promise to pay recorded",
-    "COLLECTION_SETTINGS_UPDATED": "Collection settings updated"
+    "COLLECTION_SETTINGS_UPDATED": "Collection settings updated",
+    "CLIENT_VEHICLE_SAVED": "Credit vehicle saved",
+    "CLIENT_VEHICLE_STATUS_CHANGED": "Credit vehicle activated or deactivated",
+    "VEHICLE_CHECK_CHANGED": "Vehicle check changed"
   }
 }

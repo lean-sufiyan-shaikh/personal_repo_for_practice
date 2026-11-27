@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { CreditRow } from '../components/creditRow'
 import { isCreditRowComplete, stillNeededItems } from './closeShiftChecklist'
+import { EMPTY_VEHICLE_ENTRY } from '../../credit/vehicles/vehicleEntry'
 
 const completeRow: CreditRow = {
   id: 1, clientId: 3, clientName: 'Acme', clientSearch: 'Acme', showDropdown: false,
   subAccountId: null, subAccountName: '', fuelType: 'PETROL', billNo: '', amount: '200', liters: '',
-  inputMode: 'amount', description: '', replacesEntryId: null,
+  inputMode: 'amount', description: '', replacesEntryId: null, vehicle: EMPTY_VEHICLE_ENTRY,
 }
 
 const ready = {

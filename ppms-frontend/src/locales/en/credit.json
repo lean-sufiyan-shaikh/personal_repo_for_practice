@@ -417,7 +417,8 @@
       "ledger": "Ledger",
       "invoices": "Invoices",
       "followUp": "Follow-up",
-      "statements": "Statements"
+      "statements": "Statements",
+      "vehicles": "Vehicles"
     },
     "ownTransactions": "own transactions",
     "noOwnTransactions": "No own transactions yet.",
@@ -455,5 +456,82 @@
     "sgst": "SGST",
     "igst": "IGST",
     "grandTotal": "Grand total"
+  },
+  "vehicles": {
+    "title": "Approved vehicles",
+    "add": "Add vehicle",
+    "addTitle": "Add a vehicle",
+    "editTitle": "Edit {{registration}}",
+    "edit": "Edit",
+    "editAria": "Edit vehicle {{registration}}",
+    "deactivate": "Deactivate",
+    "deactivateAria": "Deactivate vehicle {{registration}}",
+    "reactivate": "Reactivate",
+    "reactivateAria": "Reactivate vehicle {{registration}}",
+    "save": "Save vehicle",
+    "saving": "Saving…",
+    "saved": "Vehicle {{registration}} saved",
+    "deactivated": "Vehicle {{registration}} deactivated",
+    "reactivated": "Vehicle {{registration}} reactivated",
+    "saveFailed": "Could not save the vehicle.",
+    "loadFailed": "Could not load the vehicles.",
+    "empty": "No vehicles listed for this account yet.",
+    "inactive": "Inactive",
+    "owner": "Belongs to {{name}}",
+    "anyFuel": "Any fuel",
+    "usedThisMonth": "This month: {{litres}} · {{amount}}",
+    "noLimit": "No monthly limit",
+    "litreLimit": "{{left}} left of {{limit}}",
+    "amountLimit": "{{left}} left of {{limit}}",
+    "driver": "Driver: {{name}}",
+    "fields": {
+      "registration": "Registration number",
+      "registrationHelp": "Spaces and dashes are removed, e.g. MH 12 AB 1234 becomes MH12AB1234.",
+      "registrationPlaceholder": "MH12AB1234",
+      "allowedFuels": "Fuels it may take",
+      "allowedFuelsHelp": "Tick none to allow every fuel.",
+      "litreLimit": "Monthly litre limit",
+      "amountLimit": "Monthly amount limit (₹)",
+      "driverName": "Usual driver",
+      "driverPhone": "Driver phone"
+    },
+    "check": {
+      "label": "Vehicle check",
+      "hint": "Applies to credit for this account and its sub-accounts, at the shift, at shift close and at the counter.",
+      "onParent": "The vehicle check is set on the parent account {{name}}: {{mode}}.",
+      "saved": "Vehicle check set to {{mode}}",
+      "saveFailed": "Could not change the vehicle check.",
+      "modes": {
+        "OFF": "Off",
+        "WARN": "Warn",
+        "BLOCK": "Block"
+      },
+      "descriptions": {
+        "OFF": "Any vehicle may take credit, as before.",
+        "WARN": "Credit outside the rules is allowed but flagged, and managers are told once a day.",
+        "BLOCK": "Only listed vehicles, with their fuels and monthly limits, may take credit."
+      }
+    }
+  },
+  "vehicleEntry": {
+    "vehicle": "Vehicle",
+    "pickPlaceholder": "Pick a listed vehicle",
+    "typePlaceholder": "Pick or type the registration",
+    "summary": "{{fuels}}",
+    "summaryWithLimit": "{{fuels}} · Left this month: {{left}}",
+    "driverName": "Driver who filled",
+    "driverPhone": "Driver phone",
+    "blockNoVehicles": "This client takes credit only for listed vehicles, and none is listed. A manager can add one on the client's Vehicles tab.",
+    "blockPick": "Pick one of the client's listed vehicles.",
+    "unknownFlagged": "This vehicle is not on the client's list. The entry will be flagged as Unknown vehicle and the managers told.",
+    "fuelRefused": "{{registration}} may not take {{fuel}}, so the entry will be refused.",
+    "fuelFlagged": "{{registration}} may not take {{fuel}}. The entry will be flagged.",
+    "limitRefused": "This is more than the {{left}} left for {{registration}} this month, so the entry will be refused.",
+    "limitFlagged": "This is more than the {{left}} left for {{registration}} this month. The entry will be flagged.",
+    "flags": {
+      "UNKNOWN_VEHICLE": "Unknown vehicle",
+      "FUEL_NOT_ALLOWED": "Fuel not allowed",
+      "OVER_MONTHLY_LIMIT": "Over monthly limit"
+    }
   }
 }

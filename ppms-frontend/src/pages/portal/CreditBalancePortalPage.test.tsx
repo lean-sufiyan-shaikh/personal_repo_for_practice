@@ -36,7 +36,7 @@ describe('CreditBalancePortalPage', () => {
   it('shows a UPI QR code for the balance and, on a phone, a Pay via UPI button', async () => {
     setScreenWidth(390)
     const link = 'upi://pay?pa=ramfuels@okaxis&pn=Ram%20Fuels&am=1250.50&cu=INR&tn=Acme'
-    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: 0, upiPayLink: link } })
+    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: 0, upiPayLink: link, vehicleUsage: [] } })
     await lookUp()
 
     expect(await screen.findByRole('link', { name: 'Pay via UPI' })).toHaveAttribute('href', link)
@@ -46,7 +46,7 @@ describe('CreditBalancePortalPage', () => {
 
   it('keeps the pay button off a desktop and shows nothing to pay when the pump has no UPI details', async () => {
     setScreenWidth(1280)
-    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: 0, upiPayLink: null } })
+    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: 0, upiPayLink: null, vehicleUsage: [] } })
     await lookUp()
 
     expect(await screen.findByText('₹1,250.50')).toBeInTheDocument()
@@ -62,13 +62,29 @@ describe('CreditBalancePortalPage', () => {
   })
 
   it('looks the balance up with pump, phone and PIN and shows the amounts without a name', async () => {
-    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: 50000 } })
+    post.mockResolvedValue({ data: { outstandingAmount: 1250.5, creditLimit: 50000, upiPayLink: null, vehicleUsage: [] } })
     await lookUp()
 
     expect(post).toHaveBeenCalledWith('/public/credit-balance', { pumpId: 3, phone: '9876543210', pin: '4821' })
     expect(await screen.findByText('₹1,250.50')).toBeInTheDocument()
     expect(screen.getByText('₹50,000.00')).toBeInTheDocument()
     expect(screen.queryByText(/Account found for/)).not.toBeInTheDocument()
+  })
+
+  it('shows the fuel each vehicle took this month and last month, with credit for unknown vehicles apart', async () => {
+    setScreenWidth(390)
+    post.mockResolvedValue({ data: { outstandingAmount: 500, creditLimit: 0, upiPayLink: null, vehicleUsage: [
+      { month: '2026-11', vehicles: [{ registration: 'MH12AB1234', litres: 30, amount: 3000, entryCount: 2 }] },
+      { month: '2026-10', vehicles: [{ registration: null, litres: 0, amount: 450, entryCount: 1 }] },
+    ] } })
+    await lookUp()
+
+    expect(await screen.findByRole('heading', { name: 'Credit by vehicle' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'November 2026' })).toBeInTheDocument()
+    expect(screen.getByText('MH12AB1234')).toBeInTheDocument()
+    expect(screen.getByText('30.00 L · ₹3,000.00')).toBeInTheDocument()
+    expect(screen.getByText('Unknown or unrecorded vehicle')).toBeInTheDocument()
+    expect(screen.getByText('₹450.00')).toBeInTheDocument()
   })
 
   it('masks the PIN and asks for digits', () => {

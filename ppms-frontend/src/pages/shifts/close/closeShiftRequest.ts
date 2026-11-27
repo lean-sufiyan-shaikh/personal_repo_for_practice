@@ -1,4 +1,5 @@
 import type { CloseShiftRequest, CreditEntryInput, FuelReading } from '../../../types/shift'
+import { vehicleRequestFields } from '../../credit/vehicles/vehicleEntry'
 import type { CashDenominations } from '../../../api/cashApi'
 import i18n from '../../../i18n'
 import { emptyNum } from '../components/creditRow'
@@ -67,6 +68,7 @@ export function buildCloseShiftRequest(values: CloseFormValues): { request: Clos
     amount:      emptyNum(r.amount),
     fuelType:    r.fuelType || undefined,
     description: r.description.trim() || undefined,
+    ...vehicleRequestFields(r.vehicle),
   }))
 
   return {

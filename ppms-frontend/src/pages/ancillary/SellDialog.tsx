@@ -23,6 +23,9 @@ import { PAYMENT_MODES, fmtCurrency, parseSellingPrice, paymentModeBadge } from 
 import { ReviewList, ReviewRow } from './ReviewRow'
 import { codeLabel } from '../../constants/labels'
 import { priceHistoryKey, useSetSellingPrice } from './useSetSellingPrice'
+import { VehicleDriverFields } from '../credit/vehicles/VehicleDriverFields'
+import { EMPTY_VEHICLE_ENTRY, vehicleRequestFields } from '../credit/vehicles/vehicleEntry'
+import type { VehicleEntryValue } from '../credit/vehicles/vehicleEntry'
 
 /**
  * Computes the projected total profit for a sale by walking through active FIFO lots
@@ -108,7 +111,7 @@ export function SellDialog({
   onClose: () => void
   onSuccess: () => void
 }) {
-  const { t } = useTranslation(['ancillary', 'common', 'shifts'])
+  const { t } = useTranslation(['ancillary', 'common', 'shifts', 'credit'])
   const { addToast } = useToastStore()
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
@@ -125,6 +128,7 @@ export function SellDialog({
   })
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [serverError, setServerError] = useState<string | null>(null)
+  const [vehicle, setVehicle] = useState<VehicleEntryValue>(EMPTY_VEHICLE_ENTRY)
 
   // Sales must use the configured price; only Owner/Admin may change it for a single sale.
   // The server stamps prices with its own clock, so the newest row is current whatever the browser clock says.
@@ -288,7 +292,7 @@ export function SellDialog({
             type="button"
             isLoading={saleMutation.isPending}
             loadingLabel={t('actions.recording')}
-            onClick={() => saleMutation.mutate(form)}
+            onClick={() => saleMutation.mutate(form.paymentMode === 'CREDIT' ? { ...form, ...vehicleRequestFields(vehicle) } : form)}
             className="ui-btn-primary"
           >
             {t('sell.confirm')}
@@ -339,12 +343,15 @@ export function SellDialog({
                 <span className="ui-label">{t('fields.paymentMode')}</span>
                 <SearchableSelect label={t('fields.paymentMode')}
                   value={form.paymentMode}
-                  onChange={v => setForm(f => ({
+                  onChange={v => {
+                    setVehicle(EMPTY_VEHICLE_ENTRY)
+                    setForm(f => ({
                     ...f,
                     paymentMode: v as AncillaryPaymentMode,
                     clientId: v !== 'CREDIT' ? undefined : f.clientId,
                     clientName: v !== 'CREDIT' ? undefined : f.clientName,
-                  }))}
+                  }))
+                  }}
                   options={PAYMENT_MODES.map(m => ({ value: m, label: codeLabel(m) }))}
                 />
               </div>
@@ -357,6 +364,7 @@ export function SellDialog({
                     onChange={v => {
                       const client = creditClients.find(c => c.id === parseInt(v))
                       setForm(f => ({ ...f, clientId: client?.id, clientName: client?.name }))
+                      setVehicle(EMPTY_VEHICLE_ENTRY)
                     }}
                     placeholder={t('fields.searchClient')}
                     options={creditClients.map(c => ({
@@ -367,6 +375,13 @@ export function SellDialog({
                   {fieldErrors.client && <p role="alert" className="ui-error-text">{fieldErrors.client}</p>}
                   {selectedClientHeld && <p role="alert" className="ui-error-text">{t('shifts:clientSearch.blocked.onHold')}</p>}
                 </div>
+              )}
+
+              {form.paymentMode === 'CREDIT' && form.clientId != null && (
+                <FormGridFullRow>
+                  <VehicleDriverFields pumpId={pumpId} clientId={form.clientId} value={vehicle} onChange={setVehicle}
+                    fuelType={null} amount={totalAmount ?? 0} litres={null} />
+                </FormGridFullRow>
               )}
 
               <FormField label={<>{t('fields.billNo')} <span className="font-normal text-ink-3">{t('common:fields.optionalSuffix')}</span></>}>
@@ -394,6 +409,9 @@ export function SellDialog({
               <ReviewRow label={t('sell.paymentModeRow')} value={<StatusBadge {...paymentModeBadge(form.paymentMode)} />} />
               {form.paymentMode === 'CREDIT' && selectedClient && (
                 <ReviewRow label={t('fields.client')} value={selectedClient.name} />
+              )}
+              {form.paymentMode === 'CREDIT' && vehicle.registration && (
+                <ReviewRow label={t('credit:vehicleEntry.vehicle')} value={vehicle.registration} />
               )}
               {form.billNo && <ReviewRow label={t('fields.billNo')} value={form.billNo} />}
               <ReviewRow label={t('common:fields.total')} value={<MoneyText value={totalAmount} />} isResult />

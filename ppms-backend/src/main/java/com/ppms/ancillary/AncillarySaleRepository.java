@@ -44,6 +44,13 @@ public interface AncillarySaleRepository extends JpaRepository<AncillarySale, Lo
     List<AncillarySale> findByClientIdsAndPaymentMode(@Param("clientIds") Collection<Long> clientIds,
                                                       @Param("paymentMode") TransactionPaymentMode paymentMode);
 
+    @Query("SELECT s FROM AncillarySale s WHERE s.clientId IN :clientIds AND s.paymentMode = :paymentMode "
+            + "AND s.saleDate BETWEEN :fromDate AND :toDate ORDER BY s.saleDate ASC, s.id ASC")
+    List<AncillarySale> findByClientIdsAndPaymentModeAndSaleDateBetween(@Param("clientIds") Collection<Long> clientIds,
+                                                                       @Param("paymentMode") TransactionPaymentMode paymentMode,
+                                                                       @Param("fromDate") LocalDate fromDate,
+                                                                       @Param("toDate") LocalDate toDate);
+
     @Query("SELECT MIN(s.saleDate) FROM AncillarySale s WHERE s.clientId IN :clientIds AND s.paymentMode = :paymentMode")
     Optional<LocalDate> findOldestSaleDateByClientIdsAndPaymentMode(@Param("clientIds") Collection<Long> clientIds,
                                                                     @Param("paymentMode") TransactionPaymentMode paymentMode);

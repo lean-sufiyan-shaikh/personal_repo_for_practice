@@ -36,6 +36,7 @@ export const NOTIFICATION_TYPES: NotificationType[] = [
   'CREDIT_REMINDERS_DUE',
   'CREDIT_HOLD_PLACED',
   'CREDIT_PROMISE_MISSED',
+  'VEHICLE_CREDIT_FLAGGED',
 ]
 
 /** The type's name in the active language (notifications.json types.<TYPE>); the raw code when the type is new. */

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ancillaryApi } from '../../api/ancillaryApi'
 import { pumpApi } from '../../api/pumpApi'
+import { vehicleApi } from '../../api/vehicleApi'
 import type { CreditClient } from '../../api/pumpApi'
 import type { AncillaryProduct } from '../../api/ancillaryApi'
 import { useAuthStore } from '../../store/authStore'
@@ -11,6 +12,7 @@ import { SellDialog } from './SellDialog'
 
 vi.mock('../../api/ancillaryApi', () => ({ ancillaryApi: { getPriceHistory: vi.fn(), recordSale: vi.fn(), setPrice: vi.fn() } }))
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn().mockResolvedValue([]), getCreditStanding: vi.fn().mockResolvedValue([]) } }))
+vi.mock('../../api/vehicleApi', () => ({ vehicleApi: { getVehiclePicker: vi.fn() } }))
 
 function product(lots: AncillaryProduct['activeFifoLots']): AncillaryProduct {
   return {
@@ -171,6 +173,29 @@ describe('SellDialog credit sale', () => {
     ])
     vi.mocked(pumpApi.getCreditClients).mockResolvedValue([acme])
     vi.mocked(ancillaryApi.recordSale).mockResolvedValue({} as Awaited<ReturnType<typeof ancillaryApi.recordSale>>)
+    vi.mocked(vehicleApi.getVehiclePicker).mockResolvedValue({
+      vehicleCheck: 'WARN', checkClientId: 41, checkClientName: 'Acme Transport', vehicles: [],
+    })
+  })
+
+  it('sends a typed vehicle with the credit sale and says an unlisted one will be flagged', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<SellDialog pumpId={3} product={product([{ remainingQuantity: 5, originalQuantity: 5, costPricePerUnit: 100 }])} onClose={vi.fn()} onSuccess={vi.fn()} />)
+    await screen.findByDisplayValue('120')
+    await user.click(screen.getByRole('button', { name: /Payment mode/i }))
+    await user.click(await screen.findByRole('option', { name: 'Credit' }))
+    await user.click(await screen.findByRole('button', { name: /^Client/ }))
+    await user.click(await screen.findByRole('option', { name: 'Acme Transport' }))
+
+    await user.type(await screen.findByRole('combobox', { name: 'Vehicle (optional)' }), 'KA01ZZ9999')
+    expect(screen.getByRole('alert')).toHaveTextContent('flagged as Unknown vehicle')
+    await user.click(screen.getByRole('button', { name: 'Review' }))
+    expect(await screen.findByText('KA01ZZ9999')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Record sale' }))
+
+    await vi.waitFor(() => expect(ancillaryApi.recordSale).toHaveBeenCalledWith(3, expect.objectContaining({
+      paymentMode: 'CREDIT', clientId: 41, vehicleRegistration: 'KA01ZZ9999',
+    })))
   })
 
   it('lets a manager pick a credit client and refreshes the credit ledger, products and sales after the sale', async () => {

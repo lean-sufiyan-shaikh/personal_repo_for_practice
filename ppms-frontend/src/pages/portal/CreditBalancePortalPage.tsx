@@ -9,6 +9,8 @@ import { NumericInput } from '../../components/NumericInput'
 import { LoadingButton } from '../../components/LoadingButton'
 import { AuthCard, AuthScreen } from '../auth/AuthCard'
 import { PortalUpiPayment } from './PortalUpiPayment'
+import { PortalVehicleUsage } from './PortalVehicleUsage'
+import type { PortalVehicleMonth } from './PortalVehicleUsage'
 
 // Uses a plain axios instance — no auth header, no JWT
 const publicClient = axios.create({ baseURL: '/api' })
@@ -18,6 +20,8 @@ interface BalanceResult {
   creditLimit: number
   /** upi://pay link for the outstanding; null when the pump takes no UPI payments by link or nothing is owed. */
   upiPayLink: string | null
+  /** This month and the month before, newest first. */
+  vehicleUsage: PortalVehicleMonth[]
 }
 
 /** A reminder links here with ?pump=<id>, so the client only types their phone and PIN. */
@@ -132,6 +136,9 @@ export default function CreditBalancePortalPage() {
             )}
             {result.upiPayLink && result.outstandingAmount > 0 && (
               <PortalUpiPayment link={result.upiPayLink} amount={result.outstandingAmount} />
+            )}
+            {result.vehicleUsage.some((month) => month.vehicles.length > 0) && (
+              <PortalVehicleUsage months={result.vehicleUsage} />
             )}
           </div>
         )}

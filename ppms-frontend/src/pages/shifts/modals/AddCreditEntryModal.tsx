@@ -27,6 +27,11 @@ import { LoadingButton } from '../../../components/LoadingButton'
 import { attemptFor } from '../../../utils/idempotencyKey'
 import { formatCurrency } from '../../../utils/format'
 import type { SubmitAttempt } from '../../../utils/idempotencyKey'
+import { VehicleDriverFields } from '../../credit/vehicles/VehicleDriverFields'
+import { EMPTY_VEHICLE_ENTRY, vehicleRequestFields } from '../../credit/vehicles/vehicleEntry'
+import type { VehicleEntryValue } from '../../credit/vehicles/vehicleEntry'
+import { VehicleFlagBadge } from '../../credit/vehicles/VehicleFlagBadge'
+import { entryLitres } from '../components/entryLitres'
 
 interface CreditEntryDraft {
   clientSearch: string
@@ -39,6 +44,8 @@ interface CreditEntryDraft {
   inputMode: 'amount' | 'liters'
   billNo: string
   description: string
+  /** Missing in drafts saved before vehicles could be picked. */
+  vehicle?: VehicleEntryValue
   submitAttempt: SubmitAttempt | null
 }
 
@@ -78,11 +85,13 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
   const [inputMode,      setInputMode]      = useState<'amount' | 'liters'>(() => draft?.inputMode ?? 'amount')
   const [billNo,         setBillNo]         = useState(() => draft?.billNo ?? '')
   const [description,    setDescription]    = useState(() => draft?.description ?? '')
+  const [vehicle,        setVehicle]        = useState<VehicleEntryValue>(() => draft?.vehicle ?? EMPTY_VEHICLE_ENTRY)
   const [submitAttempt,  setSubmitAttempt]  = useState<SubmitAttempt | null>(() => draft?.submitAttempt ?? null)
   const [error,          setError]          = useState<string | null>(null)
 
   const draftValues: CreditEntryDraft = {
-    clientSearch, clientName, clientId, subAccountId, fuelType, amount, liters, inputMode, billNo, description, submitAttempt,
+    clientSearch, clientName, clientId, subAccountId, fuelType, amount, liters, inputMode, billNo, description, vehicle,
+    submitAttempt,
   }
   const hasEntries = clientSearch.trim() !== '' || amount !== '' || liters !== '' || billNo.trim() !== '' || description.trim() !== ''
   useSaveDraft(draftName, draftValues, hasEntries)
@@ -100,6 +109,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
     setInputMode('amount')
     setBillNo('')
     setDescription('')
+    setVehicle(EMPTY_VEHICLE_ENTRY)
     setSubmitAttempt(null)
     setError(null)
   }
@@ -157,6 +167,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
       amount: amt,
       billNo:      billNo.trim() || undefined,
       description: description.trim() || undefined,
+      ...vehicleRequestFields(vehicle),
     }
     // Saved before sending, so a resend after a timeout (even after a reload) reuses the key.
     const attempt = attemptFor(submitAttempt, entry)
@@ -216,6 +227,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
               setClientName(text)
               setClientId(null)
               setSubAccountId(null)
+              setVehicle(EMPTY_VEHICLE_ENTRY)
               setShowDropdown(true)
             }}
             onShowDropdownChange={setShowDropdown}
@@ -224,6 +236,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
               setClientName(c.name)
               setClientId(c.id)
               setSubAccountId(null)
+              setVehicle(EMPTY_VEHICLE_ENTRY)
               setShowDropdown(false)
             }}
             inputClassName="text-sm"
@@ -238,7 +251,7 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
               </span>
               <SearchableSelect aria-labelledby={`${stillNeededId}-sub-account`}
                 value={subAccountId != null ? subAccountId.toString() : ''}
-                onChange={v => setSubAccountId(v === '' ? null : Number(v))}
+                onChange={v => { setSubAccountId(v === '' ? null : Number(v)); setVehicle(EMPTY_VEHICLE_ENTRY) }}
                 placeholder={t('creditEntry.billToParentOption', { name: clientName })}
                 options={subAccounts.map(s => ({ value: s.id.toString(), label: s.name }))}
               />
@@ -291,6 +304,16 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
             </FormField>
           </FormGrid>
 
+          <VehicleDriverFields
+            pumpId={shift.pumpId}
+            clientId={subAccountId ?? clientId}
+            value={vehicle}
+            onChange={setVehicle}
+            fuelType={fuelType || null}
+            amount={amountValue}
+            litres={entryLitres(inputMode, liters, amountValue, priceForFuelType(fuelType))}
+          />
+
           {availableCredit !== null && (
             <LiveFigures
               label={t('creditEntry.creditLimit')}
@@ -324,8 +347,10 @@ export function AddCreditEntryModal({ shift, onClose }: { shift: Shift; onClose:
                       <p className="text-xs text-ink-3">
                         {formatCurrency(entry.amount)}
                         {entry.fuelType && ` · ${codeLabel(entry.fuelType)}`}
+                        {entry.vehicleRegistration && ` · ${entry.vehicleRegistration}`}
                       </p>
                     </div>
+                    {entry.vehicleFlag && <VehicleFlagBadge flag={entry.vehicleFlag} />}
                     {entry.voidStatus === 'VOIDED' && <StatusBadge tone="neutral" label={t('common:badges.voided')} />}
                     {canVoidEntry && entry.voidStatus !== 'VOIDED' && voidTargetId !== entry.id && (
                       <button

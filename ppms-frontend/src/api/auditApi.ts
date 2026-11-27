@@ -98,6 +98,10 @@ export type AuditAction =
   | 'CREDIT_REMINDER_RECORDED'
   | 'CREDIT_PROMISE_RECORDED'
   | 'COLLECTION_SETTINGS_UPDATED'
+  // Fleet vehicles
+  | 'CLIENT_VEHICLE_SAVED'
+  | 'CLIENT_VEHICLE_STATUS_CHANGED'
+  | 'VEHICLE_CHECK_CHANGED'
 
 export interface AuditLog {
   id: number

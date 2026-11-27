@@ -361,5 +361,16 @@
   "UPI_PAYEE_NAME_INVALID": "The payee name can use letters, digits, spaces and . & ' - only, up to 100 characters.",
   "CREDIT_REMINDER_CLIENT_NOT_OVERDUE": "'{{clientName}}' is not overdue, so there is nothing to remind them of.",
   "CREDIT_PROMISE_ALREADY_OPEN": "'{{clientName}}' already promised ₹{{amount}} by {{promisedDate}}. Wait until that promise is kept or missed.",
-  "CREDIT_PROMISE_DATE_IN_PAST": "The promised date cannot be before today."
+  "CREDIT_PROMISE_DATE_IN_PAST": "The promised date cannot be before today.",
+  "VEHICLE_REGISTRATION_INVALID": "'{{registration}}' is not a vehicle registration number. Use letters and digits, e.g. MH12AB1234.",
+  "VEHICLE_REGISTRATION_TAKEN": "Vehicle {{registration}} is already listed as an active vehicle at this pump.",
+  "VEHICLE_FUEL_TYPE_INVALID": "'{{fuelType}}' is not a fuel type.",
+  "VEHICLE_CHECK_ON_SUB_ACCOUNT": "The vehicle check of sub-account '{{clientName}}' is set on its parent account.",
+  "VEHICLE_NOT_ON_ACCOUNT": "That vehicle is not one of '{{clientName}}''s vehicles. Pick it again.",
+  "VEHICLE_INACTIVE": "Vehicle {{registration}} is deactivated and cannot take credit.",
+  "VEHICLE_REQUIRED_FOR_CREDIT": "'{{clientName}}' gives credit only to its listed vehicles. Pick the vehicle.",
+  "VEHICLE_NOT_APPROVED": "Vehicle {{registration}} is not on '{{clientName}}''s approved list, so it cannot take credit. Ask a manager to add it on the client's Vehicles tab.",
+  "VEHICLE_FUEL_NOT_ALLOWED": "Vehicle {{registration}} may not take {{fuelType}} on credit.",
+  "VEHICLE_MONTHLY_LITRE_LIMIT_EXCEEDED": "Vehicle {{registration}} has used {{used}} L of its monthly limit of {{limit}} L; this entry of {{requested}} L is more than the {{left}} L left.",
+  "VEHICLE_MONTHLY_AMOUNT_LIMIT_EXCEEDED": "Vehicle {{registration}} has used ₹{{used}} of its monthly limit of ₹{{limit}}; this entry of ₹{{requested}} is more than the ₹{{left}} left."
 }

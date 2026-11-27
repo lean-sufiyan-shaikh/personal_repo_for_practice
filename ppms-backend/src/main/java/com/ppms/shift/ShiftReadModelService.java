@@ -156,7 +156,11 @@ public class ShiftReadModelService {
                         entry.getVoidStatus(),
                         entry.getVoidReason(),
                         entry.getVehicleRegistration(),
-                        entry.getDriverName()))
+                        entry.getDriverName(),
+                        entry.getVehicleId(),
+                        entry.getDriverPhone(),
+                        entry.getLitres(),
+                        entry.getVehicleFlag() != null ? entry.getVehicleFlag().name() : null))
                 .toList();
 
         return ShiftResponse.builder()

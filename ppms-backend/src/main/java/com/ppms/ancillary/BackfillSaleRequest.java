@@ -3,6 +3,8 @@ package com.ppms.ancillary;
 import com.ppms.transaction.TransactionPaymentMode;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -48,4 +50,17 @@ public class BackfillSaleRequest {
     private String billNo;
 
     private String notes;
+
+    /** The client's approved vehicle; preferred over vehicleRegistration when both are sent. */
+    private Long vehicleId;
+
+    /** A registration typed in when the vehicle is not picked from the client's list. */
+    @Size(max = 30, message = "Vehicle registration must be at most 30 characters")
+    private String vehicleRegistration;
+
+    @Size(max = 100, message = "Driver name must be at most 100 characters")
+    private String driverName;
+
+    @Pattern(regexp = "\\d{10}", message = "Driver phone must be exactly 10 digits")
+    private String driverPhone;
 }

@@ -39,6 +39,7 @@
     "DAY_CLOSE_COMMENT": "Day close question or reply",
     "CREDIT_REMINDERS_DUE": "Credit reminders due",
     "CREDIT_HOLD_PLACED": "Credit put on hold",
-    "CREDIT_PROMISE_MISSED": "Promise to pay missed"
+    "CREDIT_PROMISE_MISSED": "Promise to pay missed",
+    "VEHICLE_CREDIT_FLAGGED": "Credit vehicle flagged"
   }
 }

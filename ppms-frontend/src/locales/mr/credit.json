@@ -417,7 +417,8 @@
       "ledger": "लेजर",
       "invoices": "इनव्हॉइस",
       "followUp": "पाठपुरावा",
-      "statements": "स्टेटमेंट"
+      "statements": "स्टेटमेंट",
+      "vehicles": "वाहने"
     },
     "ownTransactions": "स्वतःचे व्यवहार",
     "noOwnTransactions": "अजून स्वतःचे व्यवहार नाहीत.",
@@ -455,5 +456,82 @@
     "sgst": "SGST",
     "igst": "IGST",
     "grandTotal": "एकूण रक्कम"
+  },
+  "vehicles": {
+    "title": "मंजूर वाहने",
+    "add": "वाहन जोडा",
+    "addTitle": "वाहन जोडा",
+    "editTitle": "{{registration}} बदला",
+    "edit": "बदला",
+    "editAria": "वाहन {{registration}} बदला",
+    "deactivate": "बंद करा",
+    "deactivateAria": "वाहन {{registration}} बंद करा",
+    "reactivate": "पुन्हा सुरू करा",
+    "reactivateAria": "वाहन {{registration}} पुन्हा सुरू करा",
+    "save": "वाहन जतन करा",
+    "saving": "जतन करत आहे…",
+    "saved": "वाहन {{registration}} जतन केले",
+    "deactivated": "वाहन {{registration}} बंद केले",
+    "reactivated": "वाहन {{registration}} पुन्हा सुरू केले",
+    "saveFailed": "वाहन जतन करता आले नाही.",
+    "loadFailed": "वाहने लोड करता आली नाहीत.",
+    "empty": "या खात्यासाठी अजून कोणतेही वाहन नोंदवलेले नाही.",
+    "inactive": "बंद",
+    "owner": "{{name}} चे",
+    "anyFuel": "कोणतेही इंधन",
+    "usedThisMonth": "या महिन्यात: {{litres}} · {{amount}}",
+    "noLimit": "मासिक मर्यादा नाही",
+    "litreLimit": "{{limit}} पैकी {{left}} शिल्लक",
+    "amountLimit": "{{limit}} पैकी {{left}} शिल्लक",
+    "driver": "चालक: {{name}}",
+    "fields": {
+      "registration": "नोंदणी क्रमांक",
+      "registrationHelp": "स्पेस आणि डॅश काढले जातात, उदा. MH 12 AB 1234 चे MH12AB1234 होते.",
+      "registrationPlaceholder": "MH12AB1234",
+      "allowedFuels": "कोणते इंधन घेऊ शकते",
+      "allowedFuelsHelp": "सर्व इंधनांना परवानगीसाठी काहीही निवडू नका.",
+      "litreLimit": "मासिक लिटर मर्यादा",
+      "amountLimit": "मासिक रक्कम मर्यादा (₹)",
+      "driverName": "नेहमीचा चालक",
+      "driverPhone": "चालकाचा फोन"
+    },
+    "check": {
+      "label": "वाहन तपासणी",
+      "hint": "या खात्याच्या आणि त्याच्या उप-खात्यांच्या क्रेडिटला लागू — शिफ्टमध्ये, शिफ्ट बंद करताना आणि काउंटरवर.",
+      "onParent": "वाहन तपासणी मुख्य खाते {{name}} वर ठरवली आहे: {{mode}}.",
+      "saved": "वाहन तपासणी {{mode}} केली",
+      "saveFailed": "वाहन तपासणी बदलता आली नाही.",
+      "modes": {
+        "OFF": "बंद",
+        "WARN": "इशारा",
+        "BLOCK": "अडवा"
+      },
+      "descriptions": {
+        "OFF": "कोणतेही वाहन पूर्वीप्रमाणे क्रेडिट घेऊ शकते.",
+        "WARN": "नियमाबाहेरील क्रेडिटला परवानगी आहे पण ते चिन्हांकित होते, आणि व्यवस्थापकांना दिवसातून एकदा कळवले जाते.",
+        "BLOCK": "फक्त यादीतील वाहने, त्यांच्या इंधन आणि मासिक मर्यादेत, क्रेडिट घेऊ शकतात."
+      }
+    }
+  },
+  "vehicleEntry": {
+    "vehicle": "वाहन",
+    "pickPlaceholder": "यादीतील वाहन निवडा",
+    "typePlaceholder": "नोंदणी क्रमांक निवडा किंवा लिहा",
+    "summary": "{{fuels}}",
+    "summaryWithLimit": "{{fuels}} · या महिन्यात शिल्लक: {{left}}",
+    "driverName": "इंधन भरणारा चालक",
+    "driverPhone": "चालकाचा फोन",
+    "blockNoVehicles": "हा ग्राहक फक्त यादीतील वाहनांसाठी क्रेडिट घेतो, आणि यादीत एकही वाहन नाही. व्यवस्थापक ग्राहकाच्या वाहने टॅबवर वाहन जोडू शकतात.",
+    "blockPick": "ग्राहकाच्या यादीतील एक वाहन निवडा.",
+    "unknownFlagged": "हे वाहन ग्राहकाच्या यादीत नाही. नोंद \"अज्ञात वाहन\" म्हणून चिन्हांकित होईल आणि व्यवस्थापकांना कळवले जाईल.",
+    "fuelRefused": "{{registration}} ला {{fuel}} घेता येत नाही, म्हणून नोंद नाकारली जाईल.",
+    "fuelFlagged": "{{registration}} ला {{fuel}} घेता येत नाही. नोंद चिन्हांकित होईल.",
+    "limitRefused": "हे या महिन्यात {{registration}} साठी शिल्लक {{left}} पेक्षा जास्त आहे, म्हणून नोंद नाकारली जाईल.",
+    "limitFlagged": "हे या महिन्यात {{registration}} साठी शिल्लक {{left}} पेक्षा जास्त आहे. नोंद चिन्हांकित होईल.",
+    "flags": {
+      "UNKNOWN_VEHICLE": "अज्ञात वाहन",
+      "FUEL_NOT_ALLOWED": "इंधनाला परवानगी नाही",
+      "OVER_MONTHLY_LIMIT": "मासिक मर्यादेपेक्षा जास्त"
+    }
   }
 }

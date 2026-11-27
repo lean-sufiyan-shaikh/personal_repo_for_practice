@@ -104,6 +104,12 @@ public class CreditClient {
     @Column(name = "billing_address")
     private String billingAddress;
 
+    /** Read from the parent for a sub-account: the whole group follows one check. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "vehicle_check", nullable = false)
+    @Builder.Default
+    private VehicleCheckMode vehicleCheck = VehicleCheckMode.OFF;
+
     @JsonIgnore
     @Column(name = "portal_pin_hash")
     private String portalPinHash;

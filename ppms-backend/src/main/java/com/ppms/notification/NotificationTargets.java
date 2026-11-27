@@ -8,6 +8,7 @@ public final class NotificationTargets {
 
     private static final Pattern SHIFT_ID = Pattern.compile(":shift:(\\d+)");
     private static final Pattern BUSINESS_DATE = Pattern.compile(":date:(\\d{4}-\\d{2}-\\d{2})");
+    private static final Pattern CLIENT_ID = Pattern.compile(":client:(\\d+)");
 
     private NotificationTargets() {
     }
@@ -27,6 +28,7 @@ public final class NotificationTargets {
             case DAY_CLOSED, DAY_REOPENED, DAY_CLOSE_COMMENT -> dayCloseTarget(dedupKey);
             case CREDIT_REMINDERS_DUE, CREDIT_HOLD_PLACED, CREDIT_PROMISE_MISSED ->
                     NotificationTarget.of("/dashboard/credit", "tab", "collections");
+            case VEHICLE_CREDIT_FLAGGED -> vehiclesTarget(dedupKey);
         };
     }
 
@@ -35,6 +37,13 @@ public final class NotificationTargets {
         return matcher.find()
                 ? NotificationTarget.of("/dashboard/day-close", "date", matcher.group(1))
                 : NotificationTarget.of("/dashboard/day-close");
+    }
+
+    private static NotificationTarget vehiclesTarget(String dedupKey) {
+        Matcher matcher = CLIENT_ID.matcher(dedupKey == null ? "" : dedupKey);
+        return matcher.find()
+                ? NotificationTarget.of("/dashboard/credit/" + matcher.group(1), "records", "vehicles")
+                : NotificationTarget.of("/dashboard/credit");
     }
 
     private static NotificationTarget shiftTarget(String dedupKey) {

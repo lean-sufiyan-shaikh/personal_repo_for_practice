@@ -7,6 +7,7 @@ import com.ppms.ancillary.AncillarySaleRepository;
 import com.ppms.ancillary.UnitOfMeasure;
 import com.ppms.common.text.ServerTextCodes;
 import com.ppms.shift.ShiftCreditEntryRepository;
+import com.ppms.fleet.VehicleUsageService;
 import com.ppms.support.FixedBusinessClock;
 import com.ppms.transaction.TransactionPaymentMode;
 import com.ppms.user.User;
@@ -39,7 +40,8 @@ class CreditLedgerQueryServiceTest {
     private final CreditLedgerQueryService queryService = new CreditLedgerQueryService(
             mock(CreditClientRepository.class), paymentRepository, mock(CreditInterestChargeRepository.class),
             mock(ShiftCreditEntryRepository.class), ancillarySaleRepository, ancillaryProductRepository,
-            mock(CreditInterestService.class), userRepository, new FixedBusinessClock(NOW));
+            mock(CreditInterestService.class), userRepository, new FixedBusinessClock(NOW),
+            mock(VehicleUsageService.class));
 
     @Test
     void counterSaleRowCarriesCodeAndParamsWithBillNumber() {

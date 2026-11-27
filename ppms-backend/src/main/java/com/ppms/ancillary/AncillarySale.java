@@ -1,6 +1,7 @@
 package com.ppms.ancillary;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ppms.fleet.VehicleFlag;
 import com.ppms.transaction.TransactionPaymentMode;
 import jakarta.persistence.*;
 import lombok.*;
@@ -81,6 +82,24 @@ public class AncillarySale {
 
     @Column(name = "bill_no", length = 50)
     private String billNo;
+
+    /** The client's approved vehicle the credit sale was for; null for an unknown or unrecorded vehicle. */
+    @Column(name = "vehicle_id")
+    private Long vehicleId;
+
+    @Column(name = "vehicle_registration", length = 20)
+    private String vehicleRegistration;
+
+    @Column(name = "driver_name", length = 100)
+    private String driverName;
+
+    @Column(name = "driver_phone", length = 15)
+    private String driverPhone;
+
+    /** Why a WARN account's sale was let through; null when nothing was flagged. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "vehicle_flag", length = 20)
+    private VehicleFlag vehicleFlag;
 
     @Column(name = "notes")
     private String notes;

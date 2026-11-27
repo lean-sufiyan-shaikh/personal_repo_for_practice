@@ -32,5 +32,10 @@
     "tooManyAttempts": "Too many attempts. Please wait 15 minutes and try again.",
     "lookupFailed": "Could not check your balance. Please try again."
   },
-  "footer": "Powered by PPMS — Petrol Pump Management System"
+  "footer": "Powered by PPMS — Petrol Pump Management System",
+  "usage": {
+    "title": "Credit by vehicle",
+    "none": "No credit this month.",
+    "unassigned": "Unknown or unrecorded vehicle"
+  }
 }

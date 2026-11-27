@@ -361,5 +361,16 @@
   "UPI_PAYEE_NAME_INVALID": "प्राप्तकर्त्याच्या नावात फक्त अक्षरे, अंक, स्पेस आणि . & ' - चालतात, जास्तीत जास्त 100 अक्षरे.",
   "CREDIT_REMINDER_CLIENT_NOT_OVERDUE": "'{{clientName}}' चे काहीही थकीत नाही, त्यामुळे आठवण करून देण्यासारखे काही नाही.",
   "CREDIT_PROMISE_ALREADY_OPEN": "'{{clientName}}' ने आधीच {{promisedDate}} पर्यंत ₹{{amount}} भरण्याचे वचन दिले आहे. ते वचन पूर्ण किंवा चुकेपर्यंत थांबा.",
-  "CREDIT_PROMISE_DATE_IN_PAST": "वचनाची तारीख आजच्या आधीची असू शकत नाही."
+  "CREDIT_PROMISE_DATE_IN_PAST": "वचनाची तारीख आजच्या आधीची असू शकत नाही.",
+  "VEHICLE_REGISTRATION_INVALID": "'{{registration}}' हा वाहन नोंदणी क्रमांक नाही. अक्षरे आणि अंक लिहा, उदा. MH12AB1234.",
+  "VEHICLE_REGISTRATION_TAKEN": "वाहन {{registration}} या पंपावर आधीच चालू वाहन म्हणून नोंदवलेले आहे.",
+  "VEHICLE_FUEL_TYPE_INVALID": "'{{fuelType}}' हा इंधन प्रकार नाही.",
+  "VEHICLE_CHECK_ON_SUB_ACCOUNT": "उप-खाते '{{clientName}}' ची वाहन तपासणी त्याच्या मुख्य खात्यावर ठरते.",
+  "VEHICLE_NOT_ON_ACCOUNT": "हे वाहन '{{clientName}}' च्या वाहनांपैकी नाही. पुन्हा निवडा.",
+  "VEHICLE_INACTIVE": "वाहन {{registration}} बंद आहे आणि क्रेडिट घेऊ शकत नाही.",
+  "VEHICLE_REQUIRED_FOR_CREDIT": "'{{clientName}}' फक्त यादीतील वाहनांना क्रेडिट देतो. वाहन निवडा.",
+  "VEHICLE_NOT_APPROVED": "वाहन {{registration}} '{{clientName}}' च्या मंजूर यादीत नाही, म्हणून क्रेडिट घेऊ शकत नाही. व्यवस्थापकाला ते ग्राहकाच्या वाहने टॅबवर जोडायला सांगा.",
+  "VEHICLE_FUEL_NOT_ALLOWED": "वाहन {{registration}} ला क्रेडिटवर {{fuelType}} घेता येत नाही.",
+  "VEHICLE_MONTHLY_LITRE_LIMIT_EXCEEDED": "वाहन {{registration}} ने आपल्या {{limit}} L मासिक मर्यादेपैकी {{used}} L वापरले आहे; ही {{requested}} L ची नोंद शिल्लक {{left}} L पेक्षा जास्त आहे.",
+  "VEHICLE_MONTHLY_AMOUNT_LIMIT_EXCEEDED": "वाहन {{registration}} ने आपल्या ₹{{limit}} मासिक मर्यादेपैकी ₹{{used}} वापरले आहे; ही ₹{{requested}} ची नोंद शिल्लक ₹{{left}} पेक्षा जास्त आहे."
 }

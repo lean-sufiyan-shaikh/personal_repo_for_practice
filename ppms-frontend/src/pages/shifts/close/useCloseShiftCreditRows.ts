@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { CreditClientSummary } from '../../../api/pumpApi'
 import type { CreditEntry } from '../../../types/shift'
 import type { CreditRow } from '../components/creditRow'
+import { EMPTY_VEHICLE_ENTRY } from '../../credit/vehicles/vehicleEntry'
 
 function emptyRow(id: number, fuelType: string): CreditRow {
   return {
@@ -11,6 +12,7 @@ function emptyRow(id: number, fuelType: string): CreditRow {
     subAccountId: null, subAccountName: '',
     fuelType,
     billNo: '', amount: '', liters: '', inputMode: 'amount', description: '',
+    vehicle: EMPTY_VEHICLE_ENTRY,
     replacesEntryId: null,
   }
 }
@@ -36,7 +38,8 @@ export function useCloseShiftCreditRows(availableFuelTypes: string[], creditClie
   const selectClient = (rowId: number, clientId: number, clientName: string) =>
     setCreditRows((rows) => rows.map((r) =>
       r.id === rowId
-        ? { ...r, clientId, clientName, clientSearch: clientName, showDropdown: false, subAccountId: null, subAccountName: '' }
+        ? { ...r, clientId, clientName, clientSearch: clientName, showDropdown: false, subAccountId: null, subAccountName: '',
+            vehicle: EMPTY_VEHICLE_ENTRY }
         : r
     ))
 
@@ -64,6 +67,12 @@ export function useCloseShiftCreditRows(availableFuelTypes: string[], creditClie
       billNo: entry.billNo ?? '',
       amount: String(entry.amount),
       description: entry.description ?? '',
+      vehicle: {
+        vehicleId: entry.vehicleId ?? null,
+        registration: entry.vehicleRegistration ?? '',
+        driverName: entry.driverName ?? '',
+        driverPhone: entry.driverPhone ?? '',
+      },
       replacesEntryId: entry.id,
     }])
     setExpandedRowId(newId)

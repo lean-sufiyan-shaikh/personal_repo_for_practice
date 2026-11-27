@@ -1,4 +1,5 @@
 import { formatDecimal } from '../../../utils/format'
+import type { VehicleEntryValue } from '../../credit/vehicles/vehicleEntry'
 
 export interface CreditRow {
   id: number
@@ -14,6 +15,7 @@ export interface CreditRow {
   liters: string
   inputMode: 'amount' | 'liters'
   description: string
+  vehicle: VehicleEntryValue
   /** Set when this row corrects a pre-recorded entry; that entry is voided only when the shift is closed. */
   replacesEntryId: number | null
 }

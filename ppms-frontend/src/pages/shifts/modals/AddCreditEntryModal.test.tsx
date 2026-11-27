@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { pumpApi } from '../../../api/pumpApi'
 import type { CreditClient } from '../../../api/pumpApi'
 import { shiftApi } from '../../../api/shiftApi'
+import { vehicleApi } from '../../../api/vehicleApi'
 import { useAuthStore } from '../../../store/authStore'
 import { useToastStore } from '../../../store/toastStore'
 import { renderWithProviders } from '../../../test/renderWithProviders'
@@ -13,6 +14,7 @@ import { AddCreditEntryModal } from './AddCreditEntryModal'
 
 vi.mock('../../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn(), getCreditStanding: vi.fn() } }))
 vi.mock('../../../api/shiftApi', () => ({ shiftApi: { addCreditEntry: vi.fn(), voidCreditEntry: vi.fn() } }))
+vi.mock('../../../api/vehicleApi', () => ({ vehicleApi: { getVehiclePicker: vi.fn() } }))
 
 const shift: Shift = {
   id: 11, pumpId: 3, duId: 5, duNumber: 1, duName: 'DU 1',
@@ -41,7 +43,35 @@ describe('AddCreditEntryModal', () => {
     vi.mocked(pumpApi.getCreditClients).mockResolvedValue([fleetClient])
     vi.mocked(pumpApi.getCreditStanding).mockResolvedValue([{ clientId: 40, creditStatus: 'OK', availableCredit: 1000 }])
     vi.mocked(shiftApi.addCreditEntry).mockResolvedValue({} as never)
+    vi.mocked(vehicleApi.getVehiclePicker).mockResolvedValue({
+      vehicleCheck: 'OFF', checkClientId: 40, checkClientName: 'Fleet Co', vehicles: [],
+    })
     useToastStore.setState({ toasts: [] })
+  })
+
+  it('sends the listed vehicle picked by its registration, with its usual driver filled in', async () => {
+    vi.mocked(vehicleApi.getVehiclePicker).mockResolvedValue({
+      vehicleCheck: 'WARN', checkClientId: 40, checkClientName: 'Fleet Co',
+      vehicles: [{
+        id: 7, clientId: 40, clientName: 'Fleet Co', registration: 'MH12AB1234', allowedFuelTypes: ['PETROL'],
+        monthlyLitreLimit: 100, monthlyAmountLimit: null, defaultDriverName: 'Suresh', defaultDriverPhone: '9876543210',
+        active: true, litresThisMonth: 40, amountThisMonth: 4000, litresLeft: 60, amountLeft: null,
+      }],
+    })
+    const user = userEvent.setup()
+    renderWithProviders(<AddCreditEntryModal shift={shift} onClose={vi.fn()} />)
+    await user.type(screen.getByPlaceholderText('Search client name…'), 'Fleet')
+    fireEvent.mouseDown(await screen.findByRole('option', { name: /Fleet Co/ }))
+    await user.type(screen.getByLabelText('Amount'), '250')
+    await user.type(await screen.findByLabelText('Vehicle (optional)'), 'mh 12 ab 1234')
+
+    expect(screen.getByText('Petrol · Left this month: 60.00 L')).toBeInTheDocument()
+    expect(screen.getByLabelText('Driver who filled (optional)')).toHaveValue('Suresh')
+    await user.click(screen.getByRole('button', { name: 'Save credit sale' }))
+
+    expect(shiftApi.addCreditEntry).toHaveBeenCalledWith(3, 11, expect.objectContaining({
+      clientId: 40, vehicleId: 7, vehicleRegistration: undefined, driverName: 'Suresh', driverPhone: '9876543210',
+    }), expect.any(String))
   })
 
   it('cannot save credit for a typed name that is not a client and saves once a client is picked', async () => {

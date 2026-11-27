@@ -1,11 +1,14 @@
 package com.ppms.shift;
 
 import com.ppms.cash.CashDenominations;
+import com.ppms.fleet.VehicleCreditInput;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -75,9 +78,20 @@ public class CloseShiftRequest {
             BigDecimal amount,
             String fuelType,
             String description,
-            /** Optional vehicle registration number, e.g. "MH12AB1234" */
+            /** Optional vehicle registration number typed in when the vehicle is not picked, e.g. "MH12AB1234" */
+            @Size(max = 30, message = "Vehicle registration must be at most 30 characters")
             String vehicleRegistration,
-            /** Optional driver name for fleet/company accounts */
-            String driverName
-    ) {}
+            /** Optional driver who filled; defaults to the picked vehicle's driver */
+            @Size(max = 100, message = "Driver name must be at most 100 characters")
+            String driverName,
+            /** Optional — the client's approved vehicle; preferred over vehicleRegistration */
+            Long vehicleId,
+            @Pattern(regexp = "\\d{10}", message = "Driver phone must be exactly 10 digits")
+            String driverPhone
+    ) {
+
+        public VehicleCreditInput vehicleInput() {
+            return new VehicleCreditInput(vehicleId, vehicleRegistration, driverName, driverPhone);
+        }
+    }
 }

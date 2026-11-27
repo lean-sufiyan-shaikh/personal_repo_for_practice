@@ -294,6 +294,10 @@
     "CREDIT_PROMISE_MISSED": {
       "title": "भरण्याचे वचन चुकले",
       "message": "{{clientName}} ने {{promisedDate}} पर्यंत ₹{{amount}} चे वचन दिले होते पण ₹{{paidAmount}} भरले. आठवण पुन्हा सुरू झाली आहे."
+    },
+    "VEHICLE_CREDIT_FLAGGED": {
+      "title": "क्रेडिट वाहन चिन्हांकित",
+      "message": "{{clientName}} चे क्रेडिट आज नियमाबाहेरील वाहनाला ({{registration}}) दिले गेले. ग्राहकाचा वाहने टॅब पहा."
     }
   },
   "serverTexts": {
@@ -416,5 +420,7 @@
   "CREDIT_STATEMENT": "क्रेडिट स्टेटमेंट",
   "CREDIT_REMINDERS_DUE": "क्रेडिट आठवण बाकी",
   "CREDIT_HOLD_PLACED": "क्रेडिट थांबवले",
-  "CREDIT_PROMISE_MISSED": "भरण्याचे वचन चुकले"
+  "CREDIT_PROMISE_MISSED": "भरण्याचे वचन चुकले",
+  "VEHICLE": "वाहन",
+  "VEHICLE_CREDIT_FLAGGED": "क्रेडिट वाहन चिन्हांकित"
 }

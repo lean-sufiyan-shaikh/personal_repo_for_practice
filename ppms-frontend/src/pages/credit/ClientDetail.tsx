@@ -36,12 +36,13 @@ import { ClientSummaryCards } from './ClientSummaryCards'
 import { ClientInvoicesTab } from './ClientInvoicesTab'
 import { ClientFollowUpTab } from './collections/ClientFollowUpTab'
 import { ClientStatementsTab } from './collections/ClientStatementsTab'
+import { ClientVehiclesTab } from './vehicles/ClientVehiclesTab'
 import { formatCurrency, formatCurrencyOrDash } from '../../utils/format'
 import { PageTabs } from '../../components/layout/PageTabs'
 import { useActiveTab } from '../../components/layout/useActiveTab'
 import { useUrlParam } from '../../components/layout/useUrlParam'
 
-const RECORD_TABS = ['ledger', 'invoices', 'followUp', 'statements'] as const
+const RECORD_TABS = ['ledger', 'invoices', 'followUp', 'statements', 'vehicles'] as const
 
 interface ClientDetailProps {
   clientId: number
@@ -85,6 +86,7 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const canWaiveInterest   = canPerformAction('credit:waive-interest', role)
   const canManageExtensions = canPerformAction('credit:grant-extension', role)
   const canIssueInvoices   = canPerformAction('credit:issue-invoice', role)
+  const canManageVehicles  = canPerformAction('credit:manage-client', role)
   const activeTab = useActiveTab(RECORD_TABS, 'ledger', 'records')
   const [txPage, setTxPage] = useState(0)
   const [txPageSize, setTxPageSize] = useState(10)
@@ -334,7 +336,8 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
       <div className="mb-4">
         <PageTabs
           label={t('detail.recordsLabel')}
-          tabs={RECORD_TABS.map(tab => ({ id: tab, label: t(`detail.tabs.${tab}`) }))}
+          tabs={RECORD_TABS.filter(tab => tab !== 'vehicles' || canManageVehicles)
+            .map(tab => ({ id: tab, label: t(`detail.tabs.${tab}`) }))}
           activeTab={activeTab}
           param="records"
           resetParams={['invoice']}
@@ -359,6 +362,8 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
       ))}
 
       {activeTab === 'statements' && <ClientStatementsTab pumpId={pumpId} clientId={clientId} />}
+
+      {activeTab === 'vehicles' && canManageVehicles && <ClientVehiclesTab pumpId={pumpId} clientId={clientId} />}
 
       {/* Transaction ledger */}
       {activeTab === 'ledger' && (

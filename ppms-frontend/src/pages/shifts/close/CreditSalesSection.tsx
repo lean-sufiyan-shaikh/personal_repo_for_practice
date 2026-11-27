@@ -54,6 +54,7 @@ export function CreditSalesSection({
             {creditRows.map((row, idx) => (
               <CreditEntryForm
                 key={row.id}
+                pumpId={shift.pumpId}
                 row={row}
                 rowNumber={idx + 1}
                 isExpanded={expandedRowId === row.id}

@@ -1,5 +1,7 @@
 package com.ppms.credit;
 
+import com.ppms.fleet.VehicleUsageGroup;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -8,9 +10,11 @@ import java.util.List;
  * each row carrying the name of the account it belongs to; otherwise they cover the client alone.
  *
  * @param subAccountNames empty unless the client is a parent account
+ * @param vehicleUsage    the period's credit grouped by vehicle, unknown vehicles last; empty when the statement
+ *                        shows no vehicles
  */
 public record CreditStatement(List<CreditTransactionResponse> transactions, BigDecimal outstanding,
-                              List<String> subAccountNames) {
+                              List<String> subAccountNames, List<VehicleUsageGroup> vehicleUsage) {
 
     public boolean coversSubAccounts() {
         return !subAccountNames.isEmpty();

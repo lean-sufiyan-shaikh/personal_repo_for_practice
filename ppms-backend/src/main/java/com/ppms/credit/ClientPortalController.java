@@ -4,6 +4,8 @@ import com.ppms.auth.ClientIpResolver;
 import com.ppms.collection.UpiPaymentLink;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
+import com.ppms.common.time.BusinessClock;
+import com.ppms.fleet.VehicleUsageService;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,6 +39,8 @@ public class ClientPortalController {
     private final CreditBalanceLookupLimiter lookupLimiter;
     private final ClientIpResolver clientIpResolver;
     private final PasswordEncoder passwordEncoder;
+    private final VehicleUsageService vehicleUsageService;
+    private final BusinessClock businessClock;
     // Compared against when no client matches, so a wrong phone takes as long as a wrong PIN.
     private volatile String unusedPinHash;
 
@@ -52,7 +58,26 @@ public class ClientPortalController {
         String upiPayLink = pumpLocationRepository.findById(lookup.pumpId())
                 .map(pump -> UpiPaymentLink.forPump(pump, outstanding, client.getName()))
                 .orElse(null);
-        return new CreditBalanceLookupResponse(outstanding, client.getCreditLimit(), upiPayLink);
+        return new CreditBalanceLookupResponse(outstanding, client.getCreditLimit(), upiPayLink, vehicleUsageOf(client));
+    }
+
+    /** A parent sees the vehicles of its whole group; a standalone client or a sub-account sees its own credit. */
+    private List<CreditBalanceLookupResponse.VehicleMonth> vehicleUsageOf(CreditClient client) {
+        List<CreditClient> accounts = new ArrayList<>();
+        accounts.add(client);
+        if (client.getParentClientId() == null) {
+            accounts.addAll(creditClientRepository.findByParentClientId(client.getId()));
+        }
+        YearMonth thisMonth = YearMonth.from(businessClock.today());
+        return List.of(monthOf(accounts, thisMonth), monthOf(accounts, thisMonth.minusMonths(1)));
+    }
+
+    private CreditBalanceLookupResponse.VehicleMonth monthOf(List<CreditClient> accounts, YearMonth month) {
+        return new CreditBalanceLookupResponse.VehicleMonth(month,
+                vehicleUsageService.usageByVehicle(accounts, month.atDay(1), month.atEndOfMonth()).stream()
+                        .map(group -> new CreditBalanceLookupResponse.VehicleTotal(group.registration(), group.litres(),
+                                group.amount(), group.lines().size()))
+                        .toList());
     }
 
     private Optional<CreditClient> findClientWithPin(CreditBalanceLookupRequest lookup) {

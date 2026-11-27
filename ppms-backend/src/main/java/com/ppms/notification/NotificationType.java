@@ -44,5 +44,7 @@ public enum NotificationType {
     /** Fired once per overdue episode when a client's credit goes on hold. */
     CREDIT_HOLD_PLACED,
     /** Fired once per promise to pay that passed its date without the promised amount paid. */
-    CREDIT_PROMISE_MISSED
+    CREDIT_PROMISE_MISSED,
+    /** Fired once a day per account when a WARN account's credit entry is let through outside its vehicle rules. */
+    VEHICLE_CREDIT_FLAGGED
 }

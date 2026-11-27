@@ -39,6 +39,7 @@
     "DAY_CLOSE_COMMENT": "दिन बंद पर सवाल या जवाब",
     "CREDIT_REMINDERS_DUE": "क्रेडिट याद दिलाना बाकी",
     "CREDIT_HOLD_PLACED": "क्रेडिट रोका गया",
-    "CREDIT_PROMISE_MISSED": "भुगतान का वादा चूका"
+    "CREDIT_PROMISE_MISSED": "भुगतान का वादा चूका",
+    "VEHICLE_CREDIT_FLAGGED": "क्रेडिट वाहन चिह्नित"
   }
 }

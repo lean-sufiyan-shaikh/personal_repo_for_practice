@@ -41,6 +41,15 @@ public interface ShiftCreditEntryRepository extends JpaRepository<ShiftCreditEnt
     @Query("SELECT e FROM ShiftCreditEntry e WHERE e.clientId IN :clientIds AND e.voidStatus = 'ACTIVE'")
     List<ShiftCreditEntry> findActiveByClientIdIn(@Param("clientIds") java.util.Collection<Long> clientIds);
 
+    @Query("""
+            SELECT e FROM ShiftCreditEntry e
+            WHERE e.clientId IN :clientIds AND e.voidStatus = 'ACTIVE' AND e.saleDate BETWEEN :fromDate AND :toDate
+            ORDER BY e.saleDate ASC, e.id ASC
+            """)
+    List<ShiftCreditEntry> findActiveByClientIdInAndSaleDateBetween(@Param("clientIds") java.util.Collection<Long> clientIds,
+                                                                    @Param("fromDate") LocalDate fromDate,
+                                                                    @Param("toDate") LocalDate toDate);
+
     /**
      * Sale date of the oldest ACTIVE (non-voided) credit entry of the given clients, where the interest grace
      * period starts. A voided first entry was never owed, so it does not start the clock.

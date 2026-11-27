@@ -11,10 +11,14 @@ import type { CreditClientSummary } from '../../../api/pumpApi'
 import { CreditClientSearch } from './CreditClientSearch'
 import { CreditAmountField } from './CreditAmountField'
 import { emptyNum } from './creditRow'
+import { EMPTY_VEHICLE_ENTRY } from '../../credit/vehicles/vehicleEntry'
 import { MoneyText } from '../../../components/AmountText'
 import type { CreditRow } from './creditRow'
+import { VehicleDriverFields } from '../../credit/vehicles/VehicleDriverFields'
+import { entryLitres } from './entryLitres'
 
 interface Props {
+  pumpId: number
   row: CreditRow
   rowNumber: number
   isExpanded: boolean
@@ -29,7 +33,7 @@ interface Props {
 }
 
 export function CreditEntryForm({
-  row, rowNumber, isExpanded, onExpandedChange, creditClients, availableFuelTypes, priceForFuelType,
+  pumpId, row, rowNumber, isExpanded, onExpandedChange, creditClients, availableFuelTypes, priceForFuelType,
   onUpdate, onUpdateMulti, onSelectClient, onRemove,
 }: Props) {
   const { t } = useTranslation(['shifts', 'common'])
@@ -122,7 +126,7 @@ export function CreditEntryForm({
                 {/* "Bill to parent" option */}
                 <button
                   type="button"
-                  onClick={() => onUpdateMulti({ subAccountId: null, subAccountName: '' })}
+                  onClick={() => onUpdateMulti({ subAccountId: null, subAccountName: '', vehicle: EMPTY_VEHICLE_ENTRY })}
                   className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors text-left ${
                     row.subAccountId === null ? 'bg-info-bg' : 'hover:bg-bg'
                   }`}
@@ -148,7 +152,7 @@ export function CreditEntryForm({
                     <button
                       key={s.id}
                       type="button"
-                      onClick={() => onUpdateMulti({ subAccountId: s.id, subAccountName: s.name })}
+                      onClick={() => onUpdateMulti({ subAccountId: s.id, subAccountName: s.name, vehicle: EMPTY_VEHICLE_ENTRY })}
                       className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors text-left ${
                         isSelected ? 'bg-info-bg' : 'hover:bg-bg'
                       }`}
@@ -228,6 +232,16 @@ export function CreditEntryForm({
                 placeholder={t('creditEntry.descriptionPlaceholder')} />
             </FormField>
           </FormGrid>
+
+          <VehicleDriverFields
+            pumpId={pumpId}
+            clientId={row.subAccountId ?? row.clientId}
+            value={row.vehicle}
+            onChange={(vehicle) => onUpdate('vehicle', vehicle)}
+            fuelType={row.fuelType || null}
+            amount={emptyNum(row.amount)}
+            litres={entryLitres(row.inputMode, row.liters, emptyNum(row.amount), priceForFuelType(row.fuelType))}
+          />
 
           {/* Add / Cancel actions */}
           <div className="flex items-center justify-end gap-2 pt-1">

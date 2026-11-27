@@ -39,6 +39,7 @@
     "DAY_CLOSE_COMMENT": "दिवस बंदवर प्रश्न किंवा उत्तर",
     "CREDIT_REMINDERS_DUE": "क्रेडिट आठवण बाकी",
     "CREDIT_HOLD_PLACED": "क्रेडिट थांबवले",
-    "CREDIT_PROMISE_MISSED": "भरण्याचे वचन चुकले"
+    "CREDIT_PROMISE_MISSED": "भरण्याचे वचन चुकले",
+    "VEHICLE_CREDIT_FLAGGED": "क्रेडिट वाहन चिन्हांकित"
   }
 }

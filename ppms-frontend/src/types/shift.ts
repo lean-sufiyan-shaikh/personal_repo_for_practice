@@ -1,3 +1,4 @@
+import type { VehicleFlag } from '../api/vehicleApi'
 import type { CashDenominations } from '../api/cashApi'
 export type FuelType = 'PETROL' | 'SPEED_PETROL' | 'DIESEL' | 'SPEED_DIESEL' | 'CNG'
 
@@ -59,6 +60,13 @@ export interface CreditEntry {
   description: string | null
   voidStatus: 'ACTIVE' | 'VOIDED'
   voidReason: string | null
+  vehicleRegistration?: string | null
+  driverName?: string | null
+  /** The client's listed vehicle the entry was for; null for an unknown or unrecorded vehicle. */
+  vehicleId?: number | null
+  driverPhone?: string | null
+  /** Why a WARN account's entry was let through outside its vehicle rules. */
+  vehicleFlag?: VehicleFlag | null
 }
 
 export interface CreditEntryInput {
@@ -69,6 +77,11 @@ export interface CreditEntryInput {
   amount: number
   fuelType?: string
   description?: string
+  /** A listed vehicle; preferred over vehicleRegistration. */
+  vehicleId?: number
+  vehicleRegistration?: string
+  driverName?: string
+  driverPhone?: string
 }
 
 export interface NozzleSummary {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { EMPTY_VEHICLE_ENTRY } from '../../credit/vehicles/vehicleEntry'
 import type { FuelReading } from '../../../types/shift'
 import type { CreditRow } from '../components/creditRow'
 import { buildCloseShiftRequest } from './closeShiftRequest'
@@ -12,7 +13,7 @@ function creditRow(overrides: Partial<CreditRow> = {}): CreditRow {
   return {
     id: 1, clientId: 3, clientName: ' Acme ', clientSearch: '', showDropdown: false,
     subAccountId: null, subAccountName: '', fuelType: 'DIESEL', billNo: ' B1 ', amount: '90',
-    liters: '', inputMode: 'amount', description: '', replacesEntryId: null, ...overrides,
+    liters: '', inputMode: 'amount', description: '', replacesEntryId: null, vehicle: EMPTY_VEHICLE_ENTRY, ...overrides,
   }
 }
 
@@ -38,6 +39,14 @@ describe('buildCloseShiftRequest', () => {
     expect('request' in result && result.request.creditEntries).toEqual([
       { clientId: 9, clientName: 'Acme', billNo: 'B1', amount: 90, fuelType: 'DIESEL', description: undefined },
     ])
+  })
+
+  it('sends the picked vehicle and the driver who filled with each credit entry', () => {
+    const vehicle = { vehicleId: 7, registration: 'MH12AB1234', driverName: 'Suresh', driverPhone: '9876543210' }
+    const result = buildCloseShiftRequest({ ...base, creditRows: [creditRow({ vehicle })], creditTotal: 90 })
+    expect('request' in result && result.request.creditEntries[0]).toEqual(expect.objectContaining({
+      vehicleId: 7, vehicleRegistration: undefined, driverName: 'Suresh', driverPhone: '9876543210',
+    }))
   })
 
   it('refuses readings below the start reading', () => {

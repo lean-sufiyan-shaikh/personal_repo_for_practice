@@ -1,5 +1,9 @@
 package com.ppms.shift;
 
+import com.ppms.fleet.PendingVehicleUsage;
+import com.ppms.fleet.VehicleCreditCheck;
+import com.ppms.fleet.VehicleCreditDecision;
+import com.ppms.fleet.VehicleCreditInput;
 import com.ppms.cash.CashEvent;
 import com.ppms.cash.CashEventRepository;
 import com.ppms.cash.CashEventType;
@@ -37,6 +41,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -65,6 +70,7 @@ public class ShiftLifecycleSupportService {
     private final UserRepository userRepository;
     private final BusinessClock businessClock;
     private final InvoicedSaleGuard invoicedSaleGuard;
+    private final VehicleCreditCheck vehicleCreditCheck;
 
     public User findOperatorForPump(Long operatorId, Long pumpId) {
         User operator = userRepository.findById(operatorId)
@@ -357,28 +363,65 @@ public class ShiftLifecycleSupportService {
 
     public void persistCloseCreditEntries(Long shiftId, Long pumpId, LocalDate saleDate,
                                           List<CloseShiftRequest.CreditEntryRequest> creditEntries) {
-        List<ShiftCreditEntry> toSave = new ArrayList<>();
         Map<CreditClient, BigDecimal> amountByClient = new LinkedHashMap<>();
+        List<CreditClient> clients = new ArrayList<>();
         for (CloseShiftRequest.CreditEntryRequest entry : creditEntries) {
             CreditClient matchedClient = creditAccountPolicyService.requireClientForCreditEntry(
                     pumpId, entry.clientId(), entry.clientName());
             amountByClient.merge(matchedClient, entry.amount(), BigDecimal::add);
-
-            toSave.add(ShiftCreditEntry.builder()
-                    .shiftId(shiftId)
-                    .clientId(matchedClient.getId())
-                    .clientName(entry.clientName())
-                    .billNo(entry.billNo())
-                    .amount(entry.amount())
-                    .saleDate(saleDate)
-                    .fuelType(entry.fuelType())
-                    .description(entry.description())
-                    .vehicleRegistration(entry.vehicleRegistration())
-                    .driverName(entry.driverName())
-                    .build());
+            clients.add(matchedClient);
         }
         creditAccountPolicyService.validateCreditLimits(amountByClient);
+
+        Map<String, BigDecimal> priceByFuelType = creditPricesOf(shiftId);
+        PendingVehicleUsage pendingUsage = new PendingVehicleUsage();
+        List<ShiftCreditEntry> toSave = new ArrayList<>();
+        for (int i = 0; i < creditEntries.size(); i++) {
+            CloseShiftRequest.CreditEntryRequest entry = creditEntries.get(i);
+            toSave.add(buildCreditEntry(shiftId, clients.get(i), entry.clientName(), entry.billNo(), entry.amount(),
+                    saleDate, entry.fuelType(), entry.description(), entry.vehicleInput(), priceByFuelType, pendingUsage));
+        }
         creditEntryRepository.saveAll(toSave);
+    }
+
+    /**
+     * A credit entry with its vehicle checked and its litres worked out at the shift's price. The caller holds the
+     * client group's limit-holder lock.
+     */
+    public ShiftCreditEntry buildCreditEntry(Long shiftId, CreditClient client, String clientName, String billNo,
+                                             BigDecimal amount, LocalDate saleDate, String fuelType, String description,
+                                             VehicleCreditInput vehicleInput, Map<String, BigDecimal> priceByFuelType,
+                                             PendingVehicleUsage pendingUsage) {
+        BigDecimal price = fuelType != null ? priceByFuelType.get(fuelType) : null;
+        BigDecimal litres = price != null && price.signum() > 0
+                ? amount.divide(price, 2, RoundingMode.HALF_UP)
+                : null;
+        VehicleCreditDecision vehicle = vehicleCreditCheck.check(client, vehicleInput, fuelType, amount, litres,
+                saleDate, pendingUsage);
+        return ShiftCreditEntry.builder()
+                .shiftId(shiftId)
+                .clientId(client.getId())
+                .clientName(clientName)
+                .billNo(billNo)
+                .amount(amount)
+                .saleDate(saleDate)
+                .fuelType(fuelType)
+                .description(description)
+                .litres(litres)
+                .vehicleId(vehicle.vehicleId())
+                .vehicleRegistration(vehicle.registration())
+                .driverName(vehicle.driverName())
+                .driverPhone(vehicle.driverPhone())
+                .vehicleFlag(vehicle.flag())
+                .build();
+    }
+
+    /** The price each fuel of the shift was sold at, by fuel type name. */
+    public Map<String, BigDecimal> creditPricesOf(Long shiftId) {
+        Map<String, BigDecimal> priceByFuelType = new HashMap<>();
+        fuelReadingRepository.findByShiftId(shiftId).forEach(reading ->
+                priceByFuelType.merge(reading.getFuelType().name(), reading.getPriceSnapshot(), BigDecimal::max));
+        return priceByFuelType;
     }
 
     /** Only the bag cash enters the safe here: confirmed drops already did when they were confirmed. */

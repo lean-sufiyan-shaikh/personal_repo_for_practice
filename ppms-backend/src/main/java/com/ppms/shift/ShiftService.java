@@ -1,5 +1,7 @@
 package com.ppms.shift;
 
+import com.ppms.fleet.PendingVehicleUsage;
+import com.ppms.fleet.VehicleCreditInput;
 import com.ppms.cash.CashDenominations;
 import com.ppms.cash.CashDropService;
 import com.ppms.common.exception.EntityType;
@@ -365,18 +367,17 @@ public class ShiftService {
                 shift.getPumpId(), request.getClientId(), request.getClientName());
         creditAccountPolicyService.validateCreditSaleAllowed(shift.getPumpId(), matchedClient, request.getAmount());
 
-        creditEntryRepository.save(ShiftCreditEntry.builder()
-                .shiftId(shiftId)
-                .clientId(matchedClient.getId())
-                .clientName(request.getClientName().trim())
-                .billNo(request.getBillNo() != null ? request.getBillNo().trim() : null)
-                .amount(request.getAmount().setScale(2, RoundingMode.HALF_UP))
-                .saleDate(businessClock.today())
-                .fuelType(request.getFuelType())
-                .description(request.getDescription() != null ? request.getDescription().trim() : null)
-                .vehicleRegistration(request.getVehicleRegistration() != null ? request.getVehicleRegistration().trim() : null)
-                .driverName(request.getDriverName() != null ? request.getDriverName().trim() : null)
-                .build());
+        creditEntryRepository.save(lifecycleSupportService.buildCreditEntry(shiftId, matchedClient,
+                request.getClientName().trim(),
+                request.getBillNo() != null ? request.getBillNo().trim() : null,
+                request.getAmount().setScale(2, RoundingMode.HALF_UP),
+                businessClock.today(),
+                request.getFuelType(),
+                request.getDescription() != null ? request.getDescription().trim() : null,
+                new VehicleCreditInput(request.getVehicleId(), request.getVehicleRegistration(), request.getDriverName(),
+                        request.getDriverPhone()),
+                lifecycleSupportService.creditPricesOf(shiftId),
+                new PendingVehicleUsage()));
 
         log.info("Credit entry added mid-shift: shiftId={}, client={}, amount={}, by={}",
                 shiftId, request.getClientName(), request.getAmount(), currentUser.getId());

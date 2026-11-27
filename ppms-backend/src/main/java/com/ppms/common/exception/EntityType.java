@@ -41,5 +41,6 @@ public enum EntityType {
     SUPPLIER,
     TANK,
     TANKER,
-    USER
+    USER,
+    VEHICLE
 }

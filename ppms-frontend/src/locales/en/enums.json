@@ -294,6 +294,10 @@
     "CREDIT_PROMISE_MISSED": {
       "title": "Promise to Pay Missed",
       "message": "{{clientName}} promised ₹{{amount}} by {{promisedDate}} but paid ₹{{paidAmount}}. Reminders have resumed."
+    },
+    "VEHICLE_CREDIT_FLAGGED": {
+      "title": "Credit Vehicle Flagged",
+      "message": "Credit for {{clientName}} was given today to a vehicle outside its rules ({{registration}}). Check the client's Vehicles tab."
     }
   },
   "serverTexts": {
@@ -416,5 +420,7 @@
   "CREDIT_STATEMENT": "Credit statement",
   "CREDIT_REMINDERS_DUE": "Credit reminders due",
   "CREDIT_HOLD_PLACED": "Credit put on hold",
-  "CREDIT_PROMISE_MISSED": "Promise to pay missed"
+  "CREDIT_PROMISE_MISSED": "Promise to pay missed",
+  "VEHICLE": "Vehicle",
+  "VEHICLE_CREDIT_FLAGGED": "Credit vehicle flagged"
 }

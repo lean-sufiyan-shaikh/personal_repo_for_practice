@@ -142,6 +142,11 @@ export interface RecordAncillarySaleRequest {
   clientName?: string
   billNo?: string
   notes?: string
+  /** A listed vehicle of the credit client; preferred over vehicleRegistration. */
+  vehicleId?: number
+  vehicleRegistration?: string
+  driverName?: string
+  driverPhone?: string
 }
 
 /**
