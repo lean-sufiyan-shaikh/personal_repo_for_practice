@@ -195,7 +195,8 @@ public class BalanceSheetService {
         BalanceSheet bs = balanceSheetRepository.save(buildSheet(pumpId, req, shiftDef, generatedBy,
                 buildPeriodLabel(req, pumpId, shiftDef, period),
                 shifts, fuelSales, costOfGoods, deliveries, recoveries.creditRecovered(), recoveries.cashRecovery(),
-                dipLosses, dipNetAmount, productSalesSummary, expenseSummary, openShifts.size()));
+                dipLosses, dipNetAmount, productSalesSummary, expenseSummary,
+                settlementSummary != null ? settlementSummary.getBankChargesOnDate() : BigDecimal.ZERO, openShifts.size()));
 
         List<BsFuelLine> fuelLines = BalanceSheetFuelLineBuilder.build(bs.getId(), fuelSales, costOfGoods, deliveries,
                 stock, dipLosses, priceMap, creditByFuel, dipVarianceByFuel);
@@ -299,7 +300,7 @@ public class BalanceSheetService {
                                     DipLosses dipLosses, BigDecimal dipNetAmount,
                                     BalanceSheetDetailResponse.ProductSalesSummary productSalesSummary,
                                     BalanceSheetDetailResponse.ExpenseSummary expenseSummary,
-                                    int openShiftCount) {
+                                    BigDecimal bankChargesAmount, int openShiftCount) {
         BigDecimal totalCash      = sumShiftAmounts(shifts, Shift::getCashCollected);
         BigDecimal totalUpi       = sumShiftAmounts(shifts, Shift::getUpiCollected);
         BigDecimal totalCard      = sumShiftAmounts(shifts, Shift::getCardCollected);
@@ -346,6 +347,7 @@ public class BalanceSheetService {
                         ? supportService.orZero(productSalesSummary.getGrossProfit()) : BigDecimal.ZERO)
                 .totalExpensesAmount(expenseSummary != null
                         ? supportService.orZero(expenseSummary.getTotalAmount()) : BigDecimal.ZERO)
+                .totalBankChargesAmount(bankChargesAmount)
                 .openShiftCount(openShiftCount)
                 .build();
     }

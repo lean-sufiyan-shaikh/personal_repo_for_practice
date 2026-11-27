@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import java.util.List;
@@ -85,6 +86,23 @@ public class PaymentSettlementController {
             @Valid @RequestBody RecordSettlementRequest req,
             @AuthenticationPrincipal User currentUser) {
         return service.record(pumpId, req, currentUser);
+    }
+
+    /**
+     * GET /api/pumps/{pumpId}/settlements/charges?paymentType=CARD&amount=1000&amountBasis=NET
+     * The gross, MDR, GST on MDR and net that recording this amount would store. Optional mdrAmount and
+     * gstOnMdrAmount replace the pump's MDR percentages, as they do when recording.
+     */
+    @GetMapping("/{pumpId}/settlements/charges")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
+    public SettlementChargesResponse previewCharges(
+            @PathVariable Long pumpId,
+            @RequestParam SettlementPaymentType paymentType,
+            @RequestParam BigDecimal amount,
+            @RequestParam(defaultValue = "GROSS") SettlementAmountBasis amountBasis,
+            @RequestParam(required = false) BigDecimal mdrAmount,
+            @RequestParam(required = false) BigDecimal gstOnMdrAmount) {
+        return service.previewCharges(pumpId, paymentType, amount, amountBasis, mdrAmount, gstOnMdrAmount);
     }
 
     /**

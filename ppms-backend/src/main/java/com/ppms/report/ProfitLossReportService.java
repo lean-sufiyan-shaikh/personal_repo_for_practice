@@ -1,7 +1,11 @@
 package com.ppms.report;
 
 import com.ppms.common.time.BusinessClock;
+import com.ppms.expense.ExpenseApprovalStatus;
+import com.ppms.expense.PumpExpense;
+import com.ppms.expense.PumpExpenseRepository;
 import com.ppms.fuel.FuelType;
+import com.ppms.settlement.PaymentSettlementRepository;
 import com.ppms.inventory.InventoryLot;
 import com.ppms.inventory.InventoryLotRepository;
 import com.ppms.inventory.LotConsumption;
@@ -40,6 +44,8 @@ public class ProfitLossReportService {
     private final InventoryLotRepository inventoryLotRepository;
     private final TankerDeliveryRepository tankerDeliveryRepository;
     private final BusinessClock businessClock;
+    private final PumpExpenseRepository expenseRepository;
+    private final PaymentSettlementRepository settlementRepository;
 
     private record CostOfGoods(Map<FuelType, BigDecimal> totalByFuel,
                                Map<FuelType, List<ProfitLossReport.LotCostLine>> lotLinesByFuel) {}
@@ -76,14 +82,34 @@ public class ProfitLossReportService {
         List<ProfitLossReport.FuelLine> lines = fuelLines(revenueByFuel, unitsSoldByFuel, costOfGoods(consumptions));
         BigDecimal totalRevenue = lines.stream().map(ProfitLossReport.FuelLine::revenue).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalCogs = lines.stream().map(ProfitLossReport.FuelLine::cogs).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal grossProfit = totalRevenue.subtract(totalCogs).setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal cash = total(shifts, Shift::getCashCollected);
+        BigDecimal upi = total(shifts, Shift::getUpiCollected);
+        BigDecimal card = total(shifts, Shift::getCardCollected);
+        BigDecimal credit = total(shifts, Shift::getCreditTotal);
+        BigDecimal fleetCard = total(shifts, Shift::getFleetCardCollected);
+        BigDecimal approvedExpenses = approvedExpenses(pumpId, from, to);
+        BigDecimal bankCharges = settlementRepository.sumChargesByPumpIdAndSettlementDateBetween(pumpId, from, to)
+                .setScale(2, RoundingMode.HALF_UP);
 
         return new ProfitLossReport(pumpId, from, to, shifts.size(),
                 totalRevenue.setScale(2, RoundingMode.HALF_UP),
                 totalCogs.setScale(2, RoundingMode.HALF_UP),
-                totalRevenue.subtract(totalCogs).setScale(2, RoundingMode.HALF_UP),
-                total(shifts, Shift::getCashCollected), total(shifts, Shift::getUpiCollected),
-                total(shifts, Shift::getCardCollected), total(shifts, Shift::getCreditTotal),
+                grossProfit,
+                cash, upi, card, credit, fleetCard,
+                cash.add(upi).add(card).add(fleetCard).add(credit),
+                approvedExpenses, bankCharges,
+                grossProfit.subtract(approvedExpenses).subtract(bankCharges),
                 lines, dayLines(revenueByDay, cogsByDay(consumptions, dateByShiftId)));
+    }
+
+    private BigDecimal approvedExpenses(Long pumpId, LocalDate from, LocalDate to) {
+        return expenseRepository.findByPumpIdAndExpenseDateBetweenOrderByExpenseDateDescCreatedAtDesc(pumpId, from, to).stream()
+                .filter(expense -> expense.getApprovalStatus() == ExpenseApprovalStatus.APPROVED)
+                .map(PumpExpense::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private Map<LocalDate, BigDecimal> cogsByDay(List<LotConsumption> consumptions, Map<Long, LocalDate> dateByShiftId) {

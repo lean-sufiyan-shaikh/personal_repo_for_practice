@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.LocalTime;
 
 /**
@@ -46,4 +47,28 @@ public class PaymentSettlementConfig {
     @Column(name = "is_enabled", nullable = false)
     @Builder.Default
     private boolean enabled = true;
+
+    /** Bank's merchant discount rate, as a percent of the gross settled. */
+    @Column(name = "mdr_percent", nullable = false)
+    private BigDecimal mdrPercent;
+
+    /** GST charged on the MDR, as a percent of the MDR. */
+    @Column(name = "gst_on_mdr_percent", nullable = false)
+    @Builder.Default
+    private BigDecimal gstOnMdrPercent = DEFAULT_GST_ON_MDR_PERCENT;
+
+    public static final BigDecimal DEFAULT_GST_ON_MDR_PERCENT = new BigDecimal("18.00");
+
+    /** UPI and fleet cards carry no MDR for the merchant by default; cards default to 1.8 %. */
+    public static BigDecimal defaultMdrPercent(SettlementPaymentType type) {
+        return type == SettlementPaymentType.CARD ? new BigDecimal("1.800") : new BigDecimal("0.000");
+    }
+
+    public static PaymentSettlementConfig defaultsFor(Long pumpId, SettlementPaymentType type) {
+        return PaymentSettlementConfig.builder()
+                .pumpId(pumpId)
+                .paymentType(type)
+                .mdrPercent(defaultMdrPercent(type))
+                .build();
+    }
 }

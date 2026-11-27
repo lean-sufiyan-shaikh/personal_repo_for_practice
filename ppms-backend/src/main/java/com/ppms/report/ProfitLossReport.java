@@ -16,6 +16,15 @@ public record ProfitLossReport(
         BigDecimal totalUpiRevenue,
         BigDecimal totalCardRevenue,
         BigDecimal totalCreditRevenue,
+        BigDecimal totalFleetCardRevenue,
+        /** Cash + UPI + card + fleet card + credit of the closed shifts. */
+        BigDecimal totalCollected,
+        /** Expenses dated in the period and approved. */
+        BigDecimal approvedExpenses,
+        /** MDR and GST on MDR of settlements that reached the bank in the period. */
+        BigDecimal bankCharges,
+        /** grossProfit − approvedExpenses − bankCharges; payroll is not included. */
+        BigDecimal netOperatingProfit,
         List<FuelLine> byFuelType,
         List<DayLine> byDay) {
 

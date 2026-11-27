@@ -25,6 +25,11 @@ public enum NotificationType {
      * Dedup key format: SETTLEMENT_REMINDER:{type}:{pumpId}:{date}
      */
     SETTLEMENT_REMINDER,
+    /**
+     * Fired once a day per pump and payment type while collections older than T+2 are still not in the bank.
+     * Dedup key format: SETTLEMENT_OVERDUE:{type}:{pumpId}:{date}
+     */
+    SETTLEMENT_OVERDUE,
     /** Fired once per tank and day while the tank's 7-day reconciled loss is above its loss alert limit. */
     WET_STOCK_LOSS,
     /** Fired once per delivery whose receipt check found it short beyond the pump's tolerance. */

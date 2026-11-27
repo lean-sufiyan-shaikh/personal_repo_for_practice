@@ -290,6 +290,10 @@ public class BalanceSheetSupportService {
                         .id(s.getId())
                         .paymentType(s.getPaymentType().name())
                         .amountReceived(s.getAmountReceived())
+                        .grossAmount(s.getAmountReceived())
+                        .mdrAmount(s.getMdrAmount())
+                        .gstOnMdrAmount(s.getGstOnMdrAmount())
+                        .netAmount(s.getNetAmount())
                         .notes(s.getNotes())
                         .recordedByUserName(recorderNames.getOrDefault(s.getRecordedByUserId(), "Unknown"))
                         .createdAt(s.getCreatedAt())
@@ -303,6 +307,8 @@ public class BalanceSheetSupportService {
                 .walletUpiPending(upiPending)
                 .walletCardPending(cardPending)
                 .walletFleetCardPending(fleetPending)
+                .bankChargesOnDate(onDate.stream().map(PaymentSettlement::chargesAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP))
                 .settlementsOnDate(lines)
                 .build();
     }

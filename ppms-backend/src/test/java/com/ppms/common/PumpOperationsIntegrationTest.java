@@ -80,8 +80,8 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
         assertThat(lineList.get(1).get("debitAmount").decimalValue()).isEqualByComparingTo("25.00");
         assertThat(lineList.get(1).get("creditAmount").decimalValue()).isEqualByComparingTo("0");
 
-        perform(patch("/api/pumps/{pumpId}/bank-reconciliation/lines/{lineId}", setup.pumpId(), lineList.get(0).get("id").asLong()),
-                setup.owner(), Map.of("status", "IGNORED"))
+        perform(patch("/api/pumps/{pumpId}/bank-reconciliation/lines/{lineId}", setup.pumpId(), lineList.get(1).get("id").asLong()),
+                setup.owner(), Map.of("status", "IGNORED", "matchNotes", "Bank charges"))
                 .andExpect(status().isOk());
 
         PumpSetup otherPump = createPumpWithStock("500");
@@ -89,8 +89,8 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
         perform(patch("/api/pumps/{pumpId}/bank-reconciliation/lines/{lineId}", setup.pumpId(), lineList.get(1).get("id").asLong()),
                 setup.owner(), Map.of("status", "MATCHED", "matchedShiftId", otherPumpShiftId))
                 .andExpect(status().isNotFound());
-        perform(patch("/api/pumps/{pumpId}/bank-reconciliation/lines/{lineId}", setup.pumpId(), lineList.get(1).get("id").asLong()),
-                setup.owner(), Map.of("status", "MATCHED", "matchedShiftId", openShift()))
+        perform(patch("/api/pumps/{pumpId}/bank-reconciliation/lines/{lineId}", setup.pumpId(), lineList.get(0).get("id").asLong()),
+                setup.owner(), Map.of("status", "MATCHED", "matchedShiftId", openShift(), "matchNotes", "Shift still open"))
                 .andExpect(status().isOk());
         mockMvc.perform(multipart("/api/pumps/{pumpId}/bank-reconciliation/import", setup.pumpId())
                         .file(file).param("bankName", "HDFC").cookie(loginAs(setup.manager())))

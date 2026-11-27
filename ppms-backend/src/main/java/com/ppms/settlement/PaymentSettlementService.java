@@ -2,6 +2,7 @@ package com.ppms.settlement;
 
 import com.ppms.audit.AuditAction;
 import com.ppms.audit.AuditService;
+import com.ppms.bank.BankLineLinks;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.EntityType;
@@ -55,6 +56,7 @@ public class PaymentSettlementService {
     private final BusinessClock businessClock;
     private final ClosedDayGuard closedDayGuard;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
+    private final BankLineLinks bankLineLinks;
 
 
 
@@ -74,19 +76,7 @@ public class PaymentSettlementService {
                         .collect(Collectors.toMap(PaymentSettlementConfig::getPaymentType, c -> c));
 
         return Arrays.stream(SettlementPaymentType.values())
-                .map(type -> {
-                    PaymentSettlementConfig cfg = existing.get(type);
-                    if (cfg == null) {
-                        // Not yet saved — return defaults without persisting
-                        return ConfigResponse.builder()
-                                .id(null)
-                                .paymentType(type.name())
-                                .alertTime("18:00")
-                                .enabled(true)
-                                .build();
-                    }
-                    return toConfigResponse(cfg);
-                })
+                .map(type -> toConfigResponse(existing.getOrDefault(type, PaymentSettlementConfig.defaultsFor(pumpId, type))))
                 .toList();
     }
 
@@ -100,24 +90,26 @@ public class PaymentSettlementService {
         SettlementPaymentType type = parsePaymentType(paymentTypeStr);
         LocalTime alertTime = req.getAlertTime();
 
-        PaymentSettlementConfig cfg = configRepository
-                .findByPumpIdAndPaymentType(pumpId, type)
-                .orElseGet(() -> PaymentSettlementConfig.builder()
-                        .pumpId(pumpId)
-                        .paymentType(type)
-                        .build());
+        PaymentSettlementConfig cfg = configFor(pumpId, type);
 
         cfg.setAlertTime(alertTime);
         cfg.setEnabled(req.isEnabled());
+        if (req.getMdrPercent() != null) {
+            cfg.setMdrPercent(req.getMdrPercent().setScale(3, RoundingMode.HALF_UP));
+        }
+        if (req.getGstOnMdrPercent() != null) {
+            cfg.setGstOnMdrPercent(req.getGstOnMdrPercent().setScale(2, RoundingMode.HALF_UP));
+        }
         cfg = configRepository.save(cfg);
 
         auditService.log(pumpId, AuditAction.SETTLEMENT_CONFIG_UPDATED,
                 "PaymentSettlementConfig", cfg.getId().toString(),
-                "Updated " + type.name() + " settlement config: alertTime=" + alertTime + ", enabled=" + req.isEnabled(),
+                "Updated " + type.name() + " settlement config: alertTime=" + alertTime + ", enabled=" + req.isEnabled()
+                        + ", mdrPercent=" + cfg.getMdrPercent() + ", gstOnMdrPercent=" + cfg.getGstOnMdrPercent(),
                 currentUser);
 
-        log.info("Settlement config updated: pump={} type={} alertTime={} enabled={}",
-                pumpId, type, alertTime, req.isEnabled());
+        log.info("Settlement config updated: pump={} type={} alertTime={} enabled={} mdrPercent={} gstOnMdrPercent={}",
+                pumpId, type, alertTime, req.isEnabled(), cfg.getMdrPercent(), cfg.getGstOnMdrPercent());
         return toConfigResponse(cfg);
     }
 
@@ -156,12 +148,14 @@ public class PaymentSettlementService {
         }
 
         closedDayGuard.requireOpen(pumpId, settlementDate);
-        BigDecimal amount = req.getAmountReceived().setScale(2, RoundingMode.HALF_UP);
         String bankReference = req.getBankReference() == null || req.getBankReference().isBlank()
                 ? null
                 : req.getBankReference().trim();
 
         lockPump(pumpId);
+        SettlementCharges charges = chargesFor(configFor(pumpId, type), req.getAmountReceived(),
+                req.getAmountBasis(), req.getMdrAmount(), req.getGstOnMdrAmount());
+        BigDecimal amount = charges.grossAmount();
         if (bankReference != null && settlementRepository.existsActiveWithBankReference(pumpId, bankReference)) {
             throw new BusinessException(ErrorCodes.SETTLEMENT_BANK_REFERENCE_DUPLICATE,
                     Map.of("bankReference", bankReference),
@@ -193,12 +187,19 @@ public class PaymentSettlementService {
                     + pendingAtRecordTime.max(BigDecimal.ZERO) + " still pending for " + type.name()
                     + ". Check the amount, or close the shifts whose collections it covers first.");
         }
+        SettlementCoverage coverage = SettlementCoverage.of(unsettledDays(pumpId, type), amount);
 
         PaymentSettlement settlement = PaymentSettlement.builder()
                 .pumpId(pumpId)
                 .paymentType(type)
                 .settlementDate(settlementDate)
                 .amountReceived(amount)
+                .mdrAmount(charges.mdrAmount())
+                .gstOnMdrAmount(charges.gstOnMdrAmount())
+                .netAmount(charges.netAmount())
+                .coversFromDate(coverage.fromDate())
+                .coversToDate(coverage.toDate())
+                .partial(coverage.partial())
                 .notes(req.getNotes())
                 .bankReference(bankReference)
                 .recordedByUserId(currentUser.getId())
@@ -211,14 +212,26 @@ public class PaymentSettlementService {
         auditService.log(pumpId, AuditAction.SETTLEMENT_RECORDED,
                 "PaymentSettlement", settlement.getId().toString(),
                 "Recorded " + type.name() + " settlement of ₹" + amount + " on " + settlementDate
+                        + " (charges ₹" + charges.chargesAmount() + ", net ₹" + charges.netAmount() + ")"
                         + (bankReference != null ? " (bank reference " + bankReference + ")" : ""),
                 currentUser);
 
-        log.info("Settlement recorded: pump={} type={} amount={} date={} by={}",
-                pumpId, type, amount, settlementDate, currentUser.getId());
+        log.info("Settlement recorded: pump={} type={} gross={} charges={} net={} date={} by={}",
+                pumpId, type, amount, charges.chargesAmount(), charges.netAmount(), settlementDate, currentUser.getId());
 
         Map<Long, String> names = Map.of(currentUser.getId(), currentUser.getFullName());
         return toResponse(settlement, names);
+    }
+
+    /** The charges recording this amount would carry, from the pump's MDR settings or the typed charges. */
+    @Transactional(readOnly = true)
+    public SettlementChargesResponse previewCharges(Long pumpId, SettlementPaymentType type, BigDecimal amount,
+                                                    SettlementAmountBasis basis, BigDecimal mdrAmount,
+                                                    BigDecimal gstOnMdrAmount) {
+        PaymentSettlementConfig config = configFor(pumpId, type);
+        SettlementCharges charges = chargesFor(config, amount, basis, mdrAmount, gstOnMdrAmount);
+        return new SettlementChargesResponse(charges.grossAmount(), charges.mdrAmount(), charges.gstOnMdrAmount(),
+                charges.chargesAmount(), charges.netAmount(), config.getMdrPercent(), config.getGstOnMdrPercent());
     }
 
     /**
@@ -237,6 +250,7 @@ public class PaymentSettlementService {
                     "This settlement is already voided.");
         }
         closedDayGuard.requireOpen(pumpId, settlement.getSettlementDate());
+        bankLineLinks.releaseSettlementBeforeVoid(settlementId);
 
         settlement.setVoidStatus(PaymentSettlement.VOIDED);
         settlement.setVoidReason(req.getReason().trim());
@@ -419,21 +433,59 @@ public class PaymentSettlementService {
         }
     }
 
+    private PaymentSettlementConfig configFor(Long pumpId, SettlementPaymentType type) {
+        return configRepository.findByPumpIdAndPaymentType(pumpId, type)
+                .orElseGet(() -> PaymentSettlementConfig.defaultsFor(pumpId, type));
+    }
+
+    private SettlementCharges chargesFor(PaymentSettlementConfig config, BigDecimal amount, SettlementAmountBasis basis,
+                                         BigDecimal mdrAmount, BigDecimal gstOnMdrAmount) {
+        SettlementAmountBasis typedAs = basis != null ? basis : SettlementAmountBasis.GROSS;
+        if (mdrAmount == null && gstOnMdrAmount != null) {
+            throw new BusinessException(ErrorCodes.SETTLEMENT_GST_WITHOUT_MDR, Map.of(),
+                    "Enter the MDR amount along with the GST on it.");
+        }
+        if (mdrAmount == null) {
+            return SettlementCharges.fromRates(amount, typedAs, config.getMdrPercent(), config.getGstOnMdrPercent());
+        }
+        BigDecimal gst = gstOnMdrAmount != null ? gstOnMdrAmount : SettlementCharges.gstOn(mdrAmount, config.getGstOnMdrPercent());
+        return SettlementCharges.fromAmounts(amount, typedAs, mdrAmount, gst);
+    }
+
+    private List<PendingSettlementRange.Day> unsettledDays(Long pumpId, SettlementPaymentType type) {
+        return getPendingByAge(pumpId).stream()
+                .filter(range -> range.paymentType() == type)
+                .flatMap(range -> range.days().stream())
+                .toList();
+    }
+
+    private static boolean isPartial(PaymentSettlement s) {
+        if (s.getPartial() != null) {
+            return s.getPartial();
+        }
+        return s.getPendingAtRecordTime() != null && s.getAmountReceived().compareTo(s.getPendingAtRecordTime()) < 0;
+    }
+
     private SettlementResponse toResponse(PaymentSettlement s, Map<Long, String> userNames) {
-        boolean partial = s.getPendingAtRecordTime() != null
-                && s.getAmountReceived().compareTo(s.getPendingAtRecordTime()) < 0;
         return SettlementResponse.builder()
                 .id(s.getId())
                 .pumpId(s.getPumpId())
                 .paymentType(s.getPaymentType().name())
                 .settlementDate(s.getSettlementDate().toString())
                 .amountReceived(s.getAmountReceived())
+                .grossAmount(s.getAmountReceived())
+                .mdrAmount(s.getMdrAmount())
+                .gstOnMdrAmount(s.getGstOnMdrAmount())
+                .chargesAmount(s.chargesAmount())
+                .netAmount(s.getNetAmount())
+                .coversFromDate(s.getCoversFromDate() != null ? s.getCoversFromDate().toString() : null)
+                .coversToDate(s.getCoversToDate() != null ? s.getCoversToDate().toString() : null)
                 .notes(s.getNotes())
                 .bankReference(s.getBankReference())
                 .recordedByUserName(userNames.getOrDefault(s.getRecordedByUserId(), "Unknown"))
                 .createdAt(s.getCreatedAt() != null ? s.getCreatedAt().toString() : null)
                 .pendingAtRecordTime(s.getPendingAtRecordTime())
-                .isPartial(partial)
+                .isPartial(isPartial(s))
                 .voidStatus(s.getVoidStatus())
                 .voidReason(s.getVoidReason())
                 .voidedAt(s.getVoidedAt() != null ? s.getVoidedAt().toString() : null)
@@ -446,6 +498,8 @@ public class PaymentSettlementService {
                 .paymentType(cfg.getPaymentType().name())
                 .alertTime(String.format("%02d:%02d", cfg.getAlertTime().getHour(), cfg.getAlertTime().getMinute()))
                 .enabled(cfg.isEnabled())
+                .mdrPercent(cfg.getMdrPercent())
+                .gstOnMdrPercent(cfg.getGstOnMdrPercent())
                 .build();
     }
 

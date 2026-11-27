@@ -54,6 +54,7 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/notifications", "OPERATOR", null),
                 Arguments.of("/api/pumps/{pumpId}/notifications/history", "ACCOUNTANT", null),
                 Arguments.of("/api/pumps/{pumpId}/settlements/pending-by-age", "MANAGER", "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/settlements/charges?paymentType=CARD&amount=100&amountBasis=NET", "MANAGER", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/setup-checklist", "ADMIN", "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/audit-logs/actors", "OWNER", "ACCOUNTANT"),
                 Arguments.of("/api/pumps/{pumpId}/handovers", "MANAGER", "OPERATOR"),
@@ -127,6 +128,8 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
         return Stream.of(
                 Arguments.of("/api/pumps/{pumpId}/credit-clients/1/extensions/1/revoke", Map.of("reason", "Matrix"), "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/bank-reconciliation/lines/1", Map.of("status", "IGNORED"), "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/bank-reconciliation/lines/1/accept-suggestion", Map.of(), "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/bank-reconciliation/imports/1/auto-match", Map.of(), "ACCOUNTANT"),
                 Arguments.of("/api/inventory/{pumpId}/shortage-claims/1/settle", Map.of("creditNoteAmount", 1,
                         "creditNoteReference", "CN", "creditNoteDate", TODAY), "MANAGER"),
                 Arguments.of("/api/inventory/{pumpId}/shortage-claims/1/reject", Map.of("reason", "Matrix"), "MANAGER"),
@@ -164,7 +167,8 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
             return put(resolved);
         }
         return path.endsWith("/revoke") || path.contains("/safe/") || path.contains("/day-closes/")
-                || path.contains("/collections/") ? post(resolved) : patch(resolved);
+                || path.contains("/collections/") || path.endsWith("/accept-suggestion") || path.endsWith("/auto-match")
+                ? post(resolved) : patch(resolved);
     }
 
     private MockHttpServletRequestBuilder request(String path, PumpSetup pump) {

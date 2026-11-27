@@ -68,6 +68,8 @@ public class BalanceSheetDetailResponse {
      * totalDipNetAmount is signed: negative reduces profit (losses), positive increases it (gains).
      */
     private BigDecimal totalNetProfit;
+    /** MDR and GST on MDR of settlements that reached the bank on the report date; subtracted in net profit. */
+    private BigDecimal totalBankChargesAmount;
     /**
      * True when the dip, product-sales or expense line items listed below no longer add up to the totals
      * stored at generation (e.g. an expense approved later). Net profit always uses the stored totals.
@@ -175,6 +177,8 @@ public class BalanceSheetDetailResponse {
         private java.math.BigDecimal walletUpiPending;
         private java.math.BigDecimal walletCardPending;
         private java.math.BigDecimal walletFleetCardPending;
+        /** MDR and GST on MDR of the settlements that reached the bank on the report date. */
+        private java.math.BigDecimal bankChargesOnDate;
         /** Individual settlement entries recorded for the report date — for drill-down. */
         private java.util.List<SettlementLine> settlementsOnDate;
     }
@@ -185,6 +189,10 @@ public class BalanceSheetDetailResponse {
         private Long   id;
         private String paymentType;
         private java.math.BigDecimal amountReceived;
+        private java.math.BigDecimal grossAmount;
+        private java.math.BigDecimal mdrAmount;
+        private java.math.BigDecimal gstOnMdrAmount;
+        private java.math.BigDecimal netAmount;
         private String notes;
         private String recordedByUserName;
         private java.time.OffsetDateTime createdAt;

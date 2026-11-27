@@ -74,6 +74,17 @@ public interface PaymentSettlementRepository extends JpaRepository<PaymentSettle
             @Param("paymentType") SettlementPaymentType paymentType,
             @Param("asOf") LocalDate asOf);
 
+    /** MDR and GST on MDR of ACTIVE settlements that reached the bank within [from, to]. */
+    @Query("""
+            SELECT COALESCE(SUM(ps.mdrAmount + ps.gstOnMdrAmount), 0)
+            FROM PaymentSettlement ps
+            WHERE ps.pumpId = :pumpId AND ps.settlementDate BETWEEN :from AND :to AND ps.voidStatus = 'ACTIVE'
+            """)
+    BigDecimal sumChargesByPumpIdAndSettlementDateBetween(
+            @Param("pumpId") Long pumpId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
+
     /** Detects a double submission: the same ACTIVE settlement recorded again shortly after the first. */
     @Query("""
             SELECT COUNT(ps) > 0 FROM PaymentSettlement ps

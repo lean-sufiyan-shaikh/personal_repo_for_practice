@@ -22,6 +22,11 @@ public class StatementLineResponse {
     Long matchedShiftId;
     Long matchedAncillarySaleId;
     Long matchedPaymentId;
+    Long matchedSettlementId;
+    Long matchedDepositId;
+    Long matchedSupplierPaymentId;
+    /** The matched record, or for a SUGGESTED line the suggested one; null when the line links to none. */
+    MatchCandidate matchedRecord;
     String matchNotes;
     OffsetDateTime createdAt;
 }

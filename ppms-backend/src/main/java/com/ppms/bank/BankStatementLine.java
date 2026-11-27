@@ -72,11 +72,68 @@ public class BankStatementLine {
     @Column(name = "matched_payment_id")
     private Long matchedPaymentId;
 
+    /** FK to payment_settlements — a UPI, card or fleet card settlement credit (its net amount). */
+    @Column(name = "matched_settlement_id")
+    private Long matchedSettlementId;
+
+    /** FK to bank_deposits — cash taken from the safe and deposited. */
+    @Column(name = "matched_deposit_id")
+    private Long matchedDepositId;
+
+    /** FK to fuel_supplier_payments — a debit paying a fuel supplier. */
+    @Column(name = "matched_supplier_payment_id")
+    private Long matchedSupplierPaymentId;
+
     @Column(name = "match_notes")
     private String matchNotes;
 
+    /** SHA-256 of the line's date, narration, amounts, balance and UTR; a later import skips the same line. */
+    @Column(name = "line_hash", length = 64)
+    private String lineHash;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
+
+    public boolean isCredit() {
+        return creditAmount.signum() > 0;
+    }
+
+    /** The money the line moved, whichever side of the statement it is on. */
+    public BigDecimal amount() {
+        return isCredit() ? creditAmount : debitAmount;
+    }
+
+    public void clearLinks() {
+        matchedShiftId = null;
+        matchedAncillarySaleId = null;
+        matchedPaymentId = null;
+        matchedSettlementId = null;
+        matchedDepositId = null;
+        matchedSupplierPaymentId = null;
+    }
+
+    public void link(BankMatchRecordType type, Long recordId) {
+        clearLinks();
+        switch (type) {
+            case SETTLEMENT -> matchedSettlementId = recordId;
+            case DEPOSIT -> matchedDepositId = recordId;
+            case SUPPLIER_PAYMENT -> matchedSupplierPaymentId = recordId;
+            case CREDIT_PAYMENT -> matchedPaymentId = recordId;
+            case SHIFT -> matchedShiftId = recordId;
+            case ANCILLARY_SALE -> matchedAncillarySaleId = recordId;
+        }
+    }
+
+    /** The linked record, or null when the line links to none. */
+    public BankMatchRef linkedRecord() {
+        if (matchedSettlementId != null) return new BankMatchRef(BankMatchRecordType.SETTLEMENT, matchedSettlementId);
+        if (matchedDepositId != null) return new BankMatchRef(BankMatchRecordType.DEPOSIT, matchedDepositId);
+        if (matchedSupplierPaymentId != null) return new BankMatchRef(BankMatchRecordType.SUPPLIER_PAYMENT, matchedSupplierPaymentId);
+        if (matchedPaymentId != null) return new BankMatchRef(BankMatchRecordType.CREDIT_PAYMENT, matchedPaymentId);
+        if (matchedShiftId != null) return new BankMatchRef(BankMatchRecordType.SHIFT, matchedShiftId);
+        if (matchedAncillarySaleId != null) return new BankMatchRef(BankMatchRecordType.ANCILLARY_SALE, matchedAncillarySaleId);
+        return null;
+    }
 
     @PrePersist
     protected void onCreate() {

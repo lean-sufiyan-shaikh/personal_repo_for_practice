@@ -1,5 +1,6 @@
 package com.ppms.settlement;
 
+import java.math.BigDecimal;
 import lombok.Builder;
 import lombok.Data;
 
@@ -9,4 +10,6 @@ public class ConfigResponse {
     private String paymentType;
     private String alertTime;   // HH:mm
     private boolean enabled;
+    private BigDecimal mdrPercent;
+    private BigDecimal gstOnMdrPercent;
 }

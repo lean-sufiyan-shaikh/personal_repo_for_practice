@@ -15,7 +15,7 @@ public final class NotificationTargets {
 
     public static NotificationTarget targetOf(NotificationType type, String dedupKey) {
         return switch (type) {
-            case SETTLEMENT_REMINDER -> NotificationTarget.of("/dashboard/settlements");
+            case SETTLEMENT_REMINDER, SETTLEMENT_OVERDUE ->NotificationTarget.of("/dashboard/settlements");
             case LOW_STOCK -> NotificationTarget.of("/dashboard/inventory");
             case WET_STOCK_LOSS -> NotificationTarget.of("/dashboard/inventory", "tab", "reconciliation");
             case DELIVERY_SHORTAGE -> NotificationTarget.of("/dashboard/inventory", "tab", "claims");
