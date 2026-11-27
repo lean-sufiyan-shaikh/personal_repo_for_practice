@@ -135,6 +135,10 @@ export interface SettlementLine {
   id: number
   paymentType: 'UPI' | 'CARD' | 'FLEET_CARD'
   amountReceived: number
+  grossAmount: number
+  mdrAmount: number
+  gstOnMdrAmount: number
+  netAmount: number
   notes: string | null
   recordedByUserName: string
   createdAt: string
@@ -147,6 +151,8 @@ export interface SettlementSummary {
   walletUpiPending: number
   walletCardPending: number
   walletFleetCardPending: number
+  /** MDR plus GST on MDR of the settlements recorded on the date. */
+  bankChargesOnDate: number
   settlementsOnDate: SettlementLine[]
 }
 
@@ -178,7 +184,9 @@ export interface BalanceSheetDetail {
   totalGrossProfit: number
   /** Net Dip P/L: negative = net loss, positive = net gain. Includes DIP_CHECK + MAINTENANCE_REMOVAL. */
   totalDipNetAmount: number
-  /** Net profit = fuel gross profit + dip net + ancillary product gross profit (DAY only) − approved expenses (DAY only). */
+  /** MDR plus GST on MDR deducted by the bank from settlements recorded on the date. */
+  totalBankChargesAmount: number
+  /** Net profit = fuel gross profit + dip net + ancillary product gross profit (DAY only) − approved expenses (DAY only) − bank charges. */
   totalNetProfit: number
   /** True when the dip, product or expense lines below no longer add up to the totals saved at generation. */
   linesChangedSinceGenerated: boolean

@@ -76,7 +76,7 @@
     "dailyTable": "रोजच्या आकड्यांचा तक्ता",
     "dailyCaption": "दिवसानुसार विक्री, मालाचा खर्च आणि ढोबळ नफा",
     "dailyRegion": "रोजचे आकडे",
-    "revenueBreakdown": "विक्रीचा तपशील (रोख / UPI / कार्ड / क्रेडिट)",
+    "revenueBreakdown": "उत्पन्नाची विभागणी (रोख / UPI / कार्ड / फ्लीट कार्ड / क्रेडिट)",
     "creditSales": "क्रेडिट विक्री",
     "byFuelCaption": "इंधनानुसार नफा-तोटा",
     "byFuelPrintCaption": "इंधनानुसार नफा-तोटा, प्रिंट",
@@ -87,7 +87,13 @@
     "fuelOnlyNote": "ढोबळ नफा फक्त इंधन विक्रीचा आहे. चालवण्याचा खर्च (पगार, दुरुस्ती) यात धरलेला नाही.",
     "closedShiftsInRange_one": "या कालावधीत {{count}} बंद शिफ्ट.",
     "closedShiftsInRange_other": "या कालावधीत {{count}} बंद शिफ्ट.",
-    "printTitle": "नफा-तोटा रिपोर्ट"
+    "printTitle": "नफा-तोटा रिपोर्ट",
+    "totalCollected": "एकूण वसुली",
+    "operatingTitle": "परिचालन",
+    "approvedExpenses": "मंजूर खर्च",
+    "bankCharges": "MDR / बँक शुल्क",
+    "netOperatingProfit": "निव्वळ परिचालन नफा",
+    "payrollNotIncluded": "पगार अजून यात धरलेला नाही."
   },
   "duty": {
     "operator": "ऑपरेटर",

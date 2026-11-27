@@ -288,6 +288,13 @@ export function DetailPanel({ pumpId, reportId, onClose, canDelete, onDelete, on
                 accent="red"
               />
             )}
+            {detail.reportType === 'DAY' && detail.totalBankChargesAmount != null && (
+              <SummaryTile
+                label={t('summary.bankCharges')}
+                value={<MoneyText value={-detail.totalBankChargesAmount} showSign />}
+                accent="red"
+              />
+            )}
             {isOwnerOrAdmin && detail.dipPlEntries?.length > 0 && (
               <SummaryTile
                 label={t('summary.dipPl')}

@@ -5,19 +5,31 @@ import type { PagedResponse } from '../types/paged'
 
 export type SettlementPaymentType = 'UPI' | 'CARD' | 'FLEET_CARD'
 
+/** NET: the amount is what reached the bank after charges. GROSS: the amount settled against collections, before charges. */
+export type SettlementAmountBasis = 'GROSS' | 'NET'
+
 export interface Settlement {
   id: number
   pumpId: number
   paymentType: SettlementPaymentType
   settlementDate: string   // YYYY-MM-DD
+  /** Equals grossAmount: what this settlement clears against collections. */
   amountReceived: number
+  grossAmount: number
+  mdrAmount: number
+  gstOnMdrAmount: number
+  chargesAmount: number
+  netAmount: number
+  /** First and last collection day this settlement reached, oldest first; null for legacy entries. */
+  coversFromDate: string | null
+  coversToDate: string | null
   notes: string | null
   bankReference: string | null
   recordedByUserName: string
   createdAt: string
   /** Wallet balance at the time of recording. Null for legacy entries. */
   pendingAtRecordTime: number | null
-  /** True when amountReceived < pendingAtRecordTime (partial settlement). */
+  /** True when the last collection day this settlement reached is only partly cleared. */
   isPartial: boolean
   /** VOIDED settlements are listed for the record but no longer count towards settled amounts. */
   voidStatus: 'ACTIVE' | 'VOIDED'
@@ -30,6 +42,8 @@ export interface SettlementConfig {
   paymentType: SettlementPaymentType
   alertTime: string        // HH:mm
   enabled: boolean
+  mdrPercent: number
+  gstOnMdrPercent: number
 }
 
 export interface WalletSummary {
@@ -43,6 +57,10 @@ export interface RecordSettlementRequest {
   paymentType: SettlementPaymentType
   settlementDate: string   // YYYY-MM-DD
   amountReceived: number
+  amountBasis: SettlementAmountBasis
+  /** Send both charges when the user overrides them; left out, the server works them out from the configured rates. */
+  mdrAmount?: number
+  gstOnMdrAmount?: number
   notes?: string
   bankReference?: string
 }
@@ -50,6 +68,29 @@ export interface RecordSettlementRequest {
 export interface UpdateConfigRequest {
   alertTime: string        // HH:mm
   enabled: boolean
+  /** 0–10; left out, the saved rate stays. */
+  mdrPercent?: number
+  /** 0–100; left out, the saved rate stays. */
+  gstOnMdrPercent?: number
+}
+
+export interface SettlementChargesQuery {
+  paymentType: SettlementPaymentType
+  amount: number
+  amountBasis: SettlementAmountBasis
+  mdrAmount?: number
+  gstOnMdrAmount?: number
+}
+
+/** The server's split of a settlement into gross, MDR, GST on MDR and net; it owns the rounding. */
+export interface SettlementCharges {
+  grossAmount: number
+  mdrAmount: number
+  gstOnMdrAmount: number
+  chargesAmount: number
+  netAmount: number
+  mdrPercent: number
+  gstOnMdrPercent: number
 }
 
 /** Consecutive collection days of one type whose money has not reached the bank; overdue once past T+2. */
@@ -84,9 +125,13 @@ export const paymentSettlementApi = {
     return client.get(`/pumps/${pumpId}/settlements`, { params }).then(r => r.data)
   },
 
-  /** Record a new settlement (amount received in bank). */
+  /** Record a new settlement; amountBasis says whether amountReceived is before or after bank charges. */
   record: (pumpId: number, data: RecordSettlementRequest): Promise<Settlement> =>
     client.post(`/pumps/${pumpId}/settlements`, data).then(r => r.data),
+
+  /** Gross, charges and net for an amount, before it is recorded. */
+  getCharges: (pumpId: number, query: SettlementChargesQuery): Promise<SettlementCharges> =>
+    client.get(`/pumps/${pumpId}/settlements/charges`, { params: query }).then(r => r.data),
 
   /** Void a recorded settlement (Owner/Admin). The reason is required and kept on the record. */
   voidSettlement: (pumpId: number, settlementId: number, reason: string): Promise<Settlement> =>
@@ -100,7 +145,7 @@ export const paymentSettlementApi = {
   getConfigs: (pumpId: number): Promise<SettlementConfig[]> =>
     client.get(`/pumps/${pumpId}/settlement-configs`).then(r => r.data),
 
-  /** Create or update alert config for one payment type. */
+  /** Create or update the alert and charge rates for one payment type. */
   upsertConfig: (pumpId: number, paymentType: SettlementPaymentType, data: UpdateConfigRequest): Promise<SettlementConfig> =>
     client.put(`/pumps/${pumpId}/settlement-configs/${paymentType}`, data).then(r => r.data),
 

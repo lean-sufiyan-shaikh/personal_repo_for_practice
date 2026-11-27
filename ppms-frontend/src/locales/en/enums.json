@@ -8,6 +8,7 @@
   "AMOUNT_EXTENSION": "Amount extension",
   "ANCILLARY": "Ancillary",
   "ANCILLARY_LOW_STOCK": "Ancillary low stock",
+  "ANCILLARY_SALE": "Product sale",
   "APPROVED": "Approved",
   "AUTO_CLOSED_OVERDUE": "Auto closed overdue",
   "AUTO_CLOSED_SHIFT": "Auto closed shift",
@@ -171,6 +172,7 @@
   "SELLING_PRICE_PER_UNIT": "Selling price per unit",
   "SETTLEMENT": "Settlement",
   "SETTLEMENT_DATE": "Settlement date",
+  "SETTLEMENT_OVERDUE": "Settlement overdue",
   "SETTLEMENT_REMINDER": "Settlement reminder",
   "SETUP_INCOMPLETE": "Setup incomplete",
   "SHIFT": "Shift",
@@ -254,7 +256,11 @@
     },
     "SETTLEMENT_REMINDER": {
       "title": "{{paymentTypeCode}} Settlement Reminder",
-      "message": "Record today's {{paymentTypeCode}} settlement — amount received in bank account. Go to Settlements to log the credit."
+      "message": "Record today's {{paymentTypeCode}} settlement — ₹{{pendingAmount}} pending. Go to Settlements to log the credit."
+    },
+    "SETTLEMENT_OVERDUE": {
+      "title": "{{paymentTypeCode}} settlement overdue",
+      "message": "₹{{amount}} of {{paymentTypeCode}} collections since {{fromDate}} is past T+2 and not in the bank yet. Record the settlement or follow up with the bank."
     },
     "WET_STOCK_LOSS": {
       "title": "Fuel Loss Above Limit",
@@ -417,6 +423,7 @@
   "SHORTAGE_CLAIM": "Shortage claim",
   "SHORTAGE_CLAIMS_OPEN": "Open shortage claims",
   "DELIVERY_SHORTAGE": "Short delivery",
+  "DEPOSIT": "Bank deposit",
   "BANK_DEPOSIT": "Bank deposit",
   "CASH_DROP": "Cash drop",
   "CASH_EVENT": "Cash movement",

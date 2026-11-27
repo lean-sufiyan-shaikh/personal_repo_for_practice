@@ -7,6 +7,7 @@ import { MoneyText } from '../../components/AmountText'
 import { StatusBadge } from '../../components/StatusBadge'
 import { formatIstDateTime } from '../../utils/date'
 import { fmtAmt, fmtDate, typeLabel } from './settlementFormat'
+import { coverageLabel, partialLabel } from './settlementCoverage'
 
 interface SettlementDetailsPanelProps {
   settlement: Settlement
@@ -19,19 +20,22 @@ interface SettlementDetailsPanelProps {
 export function SettlementDetailsPanel({ settlement, canVoid, onVoid, onClose }: SettlementDetailsPanelProps) {
   const { t } = useTranslation(['settlements', 'common'])
   const isVoided = settlement.voidStatus === 'VOIDED'
-  const shortfall = settlement.isPartial && settlement.pendingAtRecordTime != null
-    ? settlement.pendingAtRecordTime - settlement.amountReceived
-    : 0
+  const covers = coverageLabel(settlement)
 
   const rows: [string, ReactNode][] = [
     [t('details.paymentType'), typeLabel(settlement.paymentType)],
-    [t('details.amountReceived'), <MoneyText key="amount" value={settlement.amountReceived} />],
+    [t('charges.gross'), <MoneyText key="gross" value={settlement.grossAmount} />],
+    [t('charges.mdr'), <MoneyText key="mdr" value={settlement.mdrAmount} />],
+    [t('charges.gst'), <MoneyText key="gst" value={settlement.gstOnMdrAmount} />],
+    [t('charges.total'), <MoneyText key="charges" value={settlement.chargesAmount} />],
+    [t('charges.net'), <MoneyText key="net" value={settlement.netAmount} />],
     [t('record.date'), fmtDate(settlement.settlementDate)],
     [t('record.bankReference'), settlement.bankReference || '—'],
     [t('common:fields.notes'), settlement.notes || '—'],
     [t('details.recordedBy'), settlement.recordedByUserName],
     [t('details.recordedAt'), formatIstDateTime(settlement.createdAt)],
   ]
+  if (covers) rows.push([t('details.covers'), covers])
   if (settlement.pendingAtRecordTime != null) {
     rows.push([t('details.pendingAtRecord'), <MoneyText key="pending" value={settlement.pendingAtRecordTime} />])
   }
@@ -43,7 +47,7 @@ export function SettlementDetailsPanel({ settlement, canVoid, onVoid, onClose }:
   return (
     <SidePanel
       title={t('details.title')}
-      subtitle={`${typeLabel(settlement.paymentType)} · ${fmtAmt(settlement.amountReceived)}`}
+      subtitle={`${typeLabel(settlement.paymentType)} · ${fmtAmt(settlement.grossAmount)}`}
       onClose={onClose}
       bodyClassName="space-y-4 text-sm"
       footer={canVoid && !isVoided && (
@@ -56,7 +60,7 @@ export function SettlementDetailsPanel({ settlement, canVoid, onVoid, onClose }:
         {isVoided ? (
           <StatusBadge tone="bad" icon={Ban} label={t('history.voided')} />
         ) : settlement.isPartial ? (
-          <StatusBadge tone="warn" icon={AlertTriangle} label={t('history.partialShort', { amount: fmtAmt(shortfall) })} />
+          <StatusBadge tone="warn" icon={AlertTriangle} label={partialLabel(settlement)} />
         ) : (
           <StatusBadge tone="ok" icon={CheckCircle2} label={t('details.counted')} />
         )}

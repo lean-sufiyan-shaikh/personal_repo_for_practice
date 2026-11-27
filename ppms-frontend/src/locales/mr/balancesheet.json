@@ -107,6 +107,7 @@
     "grossProfit": "ढोबळ नफा",
     "productSalesProfit": "उत्पादन विक्री नफा",
     "expenses": "खर्च",
+    "bankCharges": "MDR / बँक शुल्क",
     "dipPl": "डिप नफा/तोटा",
     "netProfit": "निव्वळ नफा",
     "ownerOnly": "हिशोबाचा तपशील (खर्च, नफा, नफा/तोटा) फक्त मालक आणि ॲडमिन पाहू शकतात."
@@ -205,6 +206,8 @@
     "caption": "डिजिटल पेमेंट सेटलमेंट",
     "settled": "सेटल",
     "recordedOnDate": "या तारखेला नोंदवले",
-    "recordedBy": "{{name}} यांनी"
+    "recordedBy": "{{name}} यांनी",
+    "chargesAndNet": "· शुल्क {{charges}} · निव्वळ {{net}}",
+    "bankChargesOnDate": "या सेटलमेंटवरील MDR / बँक शुल्क:"
   }
 }

@@ -30,6 +30,7 @@
     "ANCILLARY_LOW_STOCK": "Low product stock",
     "AUTO_CLOSED_SHIFT": "Shift force-closed",
     "SETTLEMENT_REMINDER": "Settlement reminder",
+    "SETTLEMENT_OVERDUE": "Settlement overdue",
     "WET_STOCK_LOSS": "Fuel loss above limit",
     "DELIVERY_SHORTAGE": "Short tanker delivery",
     "CASH_DROP_PENDING": "Cash drop to confirm",

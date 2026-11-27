@@ -1,0 +1,127 @@
+{
+  "page": {
+    "title": "बँक जुळवणी",
+    "subtitle": "तुमचे बँक स्टेटमेंट इम्पोर्ट करा आणि प्रत्येक जमा व खर्च सेटलमेंट, जमा आणि पेमेंटशी जुळवा."
+  },
+  "import": {
+    "title": "बँक स्टेटमेंट इम्पोर्ट करा",
+    "description": "Date, Narration, Debit, Credit, Balance, UTR कॉलम असलेली CSV फाइल. आधी इम्पोर्ट झालेल्या ओळी वगळल्या जातात.",
+    "file": "स्टेटमेंट फाइल (.csv)",
+    "fileHelp": "नेट बँकिंगमधून स्टेटमेंट CSV मध्ये डाउनलोड करा.",
+    "notCsv": ".csv फाइल निवडा.",
+    "bankName": "बँकेचे नाव",
+    "accountNumber": "खाते क्रमांक",
+    "dateFormat": "तारखेचा फॉरमॅट",
+    "dateFormatHelp": "तारखा चुकीच्या दिसत नाहीत तोपर्यंत आपोआप वर ठेवा.",
+    "dateFormats": {
+      "AUTO": "आपोआप",
+      "DAY_FIRST": "आधी दिवस (31/12/2026)",
+      "MONTH_FIRST": "आधी महिना (12/31/2026)"
+    },
+    "submit": "स्टेटमेंट इम्पोर्ट करा",
+    "importing": "इम्पोर्ट होत आहे…",
+    "failed": "स्टेटमेंट इम्पोर्ट करता आले नाही."
+  },
+  "result": {
+    "importedTitle": "स्टेटमेंट इम्पोर्ट झाले",
+    "autoMatchTitle": "आपोआप जुळवणी पूर्ण झाली",
+    "lines_one": "{{count}} ओळ जोडली",
+    "lines_other": "{{count}} ओळी जोडल्या",
+    "autoMatched_one": "{{count}} जुळली",
+    "autoMatched_other": "{{count}} जुळल्या",
+    "autoSuggested_one": "{{count}} सूचना",
+    "autoSuggested_other": "{{count}} सूचना",
+    "duplicates_one": "{{count}} ओळ आधीच इम्पोर्ट होती, वगळली",
+    "duplicates_other": "{{count}} ओळी आधीच इम्पोर्ट होत्या, वगळल्या",
+    "invalid_one": "{{count}} न वाचता येणारी ओळ वगळली",
+    "invalid_other": "{{count}} न वाचता येणाऱ्या ओळी वगळल्या",
+    "dismiss": "बंद करा"
+  },
+  "imports": {
+    "title": "इम्पोर्ट झालेली स्टेटमेंट",
+    "importedAt": "{{when}} ला इम्पोर्ट",
+    "matchedOf": "{{total}} पैकी {{matched}} जुळल्या",
+    "empty": "अजून एकही स्टेटमेंट इम्पोर्ट झालेले नाही",
+    "emptyHint": "जुळवणी सुरू करण्यासाठी वर CSV स्टेटमेंट इम्पोर्ट करा."
+  },
+  "summary": {
+    "label": "जुळवणीचा सारांश",
+    "matchedPercent": "जुळलेला वाटा",
+    "unmatchedCredit": "न जुळलेले येणारे पैसे",
+    "unmatchedDebit": "न जुळलेले जाणारे पैसे"
+  },
+  "status": {
+    "UNMATCHED": "न जुळलेली",
+    "SUGGESTED": "सूचना",
+    "MATCHED": "जुळली",
+    "IGNORED": "वगळली"
+  },
+  "lines": {
+    "title": "स्टेटमेंटच्या ओळी",
+    "caption": "बँक स्टेटमेंटच्या ओळी",
+    "filtersLabel": "स्टेटमेंट ओळींचे फिल्टर",
+    "status": "स्थिती",
+    "all": "सर्व",
+    "shownCount_one": "{{count}} ओळ",
+    "shownCount_other": "{{count}} ओळी",
+    "empty": "या स्टेटमेंटमध्ये एकही ओळ नाही.",
+    "emptyForStatus": "या स्थितीची एकही ओळ नाही.",
+    "date": "तारीख",
+    "narration": "तपशील",
+    "amount": "रक्कम",
+    "matchedTo": "कशाशी जुळली",
+    "actions": "कृती",
+    "utr": "UTR {{utr}}",
+    "reference": "रेफ {{reference}}",
+    "suggestion": "सूचना: {{record}}",
+    "note": "नोंद: {{note}}",
+    "lineName": "{{date}} ची {{amount}} ची ओळ",
+    "autoMatch": "आपोआप जुळवा",
+    "autoMatching": "जुळवत आहे…",
+    "autoMatchFailed": "आपोआप जुळवणी झाली नाही."
+  },
+  "actions": {
+    "accept": "सूचना स्वीकारा",
+    "acceptFor": "सूचना स्वीकारा: {{line}}",
+    "match": "जुळवा",
+    "matchFor": "जुळवा: {{line}}",
+    "matchOther": "दुसरे जुळवा",
+    "matchOtherFor": "दुसरे जुळवा: {{line}}",
+    "ignore": "वगळा",
+    "ignoreFor": "वगळा: {{line}}",
+    "unmatch": "जुळवणी काढा",
+    "unmatchFor": "जुळवणी काढा: {{line}}",
+    "restore": "परत आणा",
+    "restoreFor": "परत आणा: {{line}}",
+    "accepted": "सूचना स्वीकारली",
+    "matched": "ओळ जुळवली",
+    "unmatched": "ओळ पुन्हा न जुळलेल्यांत आली",
+    "ignored": "ओळ वगळली",
+    "failed": "ओळ बदलता आली नाही."
+  },
+  "match": {
+    "title": "बँक ओळ जुळवा",
+    "subtitleCredit": "{{date}} ला आलेले पैसे: {{amount}}",
+    "subtitleDebit": "{{date}} ला गेलेले पैसे: {{amount}}",
+    "search": "रक्कम किंवा रेफरन्सने शोधा",
+    "searchHelp": "उदा. 4500 किंवा एखादा UTR.",
+    "defaultWindow": "तारखा न भरल्यास ओळीच्या 7 दिवस आधीपासून 3 दिवस नंतरपर्यंतच्या नोंदी दिसतात.",
+    "candidates": "जुळू शकणाऱ्या नोंदी",
+    "noCandidates": "न जुळलेली एकही नोंद सापडली नाही. शोध किंवा तारखा बदला.",
+    "loadFailed": "जुळणाऱ्या नोंदी लोड करता आल्या नाहीत.",
+    "differentAmount": "वेगळी रक्कम",
+    "noteRequired": "रक्कम वेगळी का आहे",
+    "noteOptional": "नोंद (ऐच्छिक)",
+    "amountDiffers": "ओळ {{line}} ची आहे पण नोंद {{record}} ची आहे.",
+    "missingNote": "रक्कम वेगळी का आहे ते सांगा.",
+    "confirm": "ओळ जुळवा"
+  },
+  "ignore": {
+    "title": "बँक ओळ वगळा",
+    "subtitle": "{{date}} · {{amount}}",
+    "help": "उदा. बँक शुल्क किंवा स्वतःच्याच खात्यांमधील ट्रान्सफर.",
+    "missingReason": "ही ओळ का वगळली ते सांगा.",
+    "confirm": "ओळ वगळा",
+    "saving": "वगळत आहे…"
+  }
+}

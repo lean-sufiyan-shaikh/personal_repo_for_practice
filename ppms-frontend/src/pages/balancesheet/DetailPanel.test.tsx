@@ -22,7 +22,7 @@ const detail = {
   ...summary, pumpId: 3, notes: null,
   totalCashCollected: 2000, totalUpiCollected: 0, totalCardCollected: 0, totalFleetCardCollected: 0,
   totalCreditSold: 0, totalCreditRecovered: 0, totalCashRecovery: 0, totalLitresDelivered: 0, totalCostOfGoods: 1800,
-  totalDipNetAmount: 0, totalNetProfit: 200, linesChangedSinceGenerated: false,
+  totalDipNetAmount: 0, totalBankChargesAmount: 0, totalNetProfit: 200, linesChangedSinceGenerated: false,
   fuelLines: [], shiftLines: [], meterAmendments: [], dipPlEntries: [],
   productSales: null, expenses: null, settlementSummary: null, includedShiftNames: [],
 } as BalanceSheetDetail
@@ -85,5 +85,19 @@ describe('Balance sheet staleness', () => {
 
     expect(await screen.findByText('2 shifts still open — this sheet covers only closed shifts.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Regenerate' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Balance sheet bank charges', () => {
+  beforeEach(() => {
+    useAuthStore.setState({ user: { userId: 1, fullName: 'Owner', role: 'OWNER', assignedPumpId: null }, isAuthenticated: true })
+  })
+
+  it('takes MDR and bank charges off the day next to expenses', async () => {
+    vi.mocked(balanceSheetApi.getById).mockResolvedValue({ ...detail, stale: false, staleReason: null, totalBankChargesAmount: 21.24, totalNetProfit: 178.76 })
+    renderPanel()
+
+    expect(await screen.findByText('MDR / bank charges')).toBeInTheDocument()
+    expect(screen.getByText('−₹21.24')).toBeInTheDocument()
   })
 })

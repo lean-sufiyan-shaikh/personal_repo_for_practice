@@ -1,0 +1,127 @@
+{
+  "page": {
+    "title": "बैंक मिलान",
+    "subtitle": "अपना बैंक स्टेटमेंट इम्पोर्ट करें और हर जमा व निकासी को सेटलमेंट, जमा और भुगतान से मिलाएँ।"
+  },
+  "import": {
+    "title": "बैंक स्टेटमेंट इम्पोर्ट करें",
+    "description": "Date, Narration, Debit, Credit, Balance, UTR कॉलम वाली CSV फ़ाइल। पहले इम्पोर्ट हुई पंक्तियाँ छोड़ दी जाती हैं।",
+    "file": "स्टेटमेंट फ़ाइल (.csv)",
+    "fileHelp": "नेट बैंकिंग से स्टेटमेंट CSV में डाउनलोड करें।",
+    "notCsv": ".csv फ़ाइल चुनें।",
+    "bankName": "बैंक का नाम",
+    "accountNumber": "खाता नंबर",
+    "dateFormat": "तारीख का फ़ॉर्मेट",
+    "dateFormatHelp": "जब तक तारीखें गलत न दिखें, अपने-आप पर रहने दें।",
+    "dateFormats": {
+      "AUTO": "अपने-आप",
+      "DAY_FIRST": "पहले दिन (31/12/2026)",
+      "MONTH_FIRST": "पहले महीना (12/31/2026)"
+    },
+    "submit": "स्टेटमेंट इम्पोर्ट करें",
+    "importing": "इम्पोर्ट हो रहा है…",
+    "failed": "स्टेटमेंट इम्पोर्ट नहीं हो सका।"
+  },
+  "result": {
+    "importedTitle": "स्टेटमेंट इम्पोर्ट हो गया",
+    "autoMatchTitle": "अपने-आप मिलान पूरा हुआ",
+    "lines_one": "{{count}} पंक्ति जोड़ी गई",
+    "lines_other": "{{count}} पंक्तियाँ जोड़ी गईं",
+    "autoMatched_one": "{{count}} मिलीं",
+    "autoMatched_other": "{{count}} मिलीं",
+    "autoSuggested_one": "{{count}} सुझाव",
+    "autoSuggested_other": "{{count}} सुझाव",
+    "duplicates_one": "{{count}} पंक्ति पहले से इम्पोर्ट थी, छोड़ी गई",
+    "duplicates_other": "{{count}} पंक्तियाँ पहले से इम्पोर्ट थीं, छोड़ी गईं",
+    "invalid_one": "{{count}} न पढ़ी जा सकने वाली पंक्ति छोड़ी गई",
+    "invalid_other": "{{count}} न पढ़ी जा सकने वाली पंक्तियाँ छोड़ी गईं",
+    "dismiss": "बंद करें"
+  },
+  "imports": {
+    "title": "इम्पोर्ट हुए स्टेटमेंट",
+    "importedAt": "{{when}} को इम्पोर्ट",
+    "matchedOf": "{{total}} में से {{matched}} मिलीं",
+    "empty": "अभी कोई स्टेटमेंट इम्पोर्ट नहीं हुआ",
+    "emptyHint": "मिलान शुरू करने के लिए ऊपर CSV स्टेटमेंट इम्पोर्ट करें।"
+  },
+  "summary": {
+    "label": "मिलान का सारांश",
+    "matchedPercent": "मिलान का हिस्सा",
+    "unmatchedCredit": "बिना मिलान आया पैसा",
+    "unmatchedDebit": "बिना मिलान गया पैसा"
+  },
+  "status": {
+    "UNMATCHED": "मिलान नहीं",
+    "SUGGESTED": "सुझाव",
+    "MATCHED": "मिलान हुआ",
+    "IGNORED": "छोड़ी गई"
+  },
+  "lines": {
+    "title": "स्टेटमेंट की पंक्तियाँ",
+    "caption": "बैंक स्टेटमेंट की पंक्तियाँ",
+    "filtersLabel": "स्टेटमेंट पंक्ति के फ़िल्टर",
+    "status": "स्थिति",
+    "all": "सभी",
+    "shownCount_one": "{{count}} पंक्ति",
+    "shownCount_other": "{{count}} पंक्तियाँ",
+    "empty": "इस स्टेटमेंट में कोई पंक्ति नहीं है।",
+    "emptyForStatus": "इस स्थिति की कोई पंक्ति नहीं।",
+    "date": "तारीख",
+    "narration": "विवरण",
+    "amount": "राशि",
+    "matchedTo": "किससे मिला",
+    "actions": "कार्रवाई",
+    "utr": "UTR {{utr}}",
+    "reference": "रेफ़ {{reference}}",
+    "suggestion": "सुझाव: {{record}}",
+    "note": "नोट: {{note}}",
+    "lineName": "{{date}} की {{amount}} की पंक्ति",
+    "autoMatch": "अपने-आप मिलान करें",
+    "autoMatching": "मिलान हो रहा है…",
+    "autoMatchFailed": "अपने-आप मिलान नहीं हो सका।"
+  },
+  "actions": {
+    "accept": "सुझाव मानें",
+    "acceptFor": "सुझाव मानें: {{line}}",
+    "match": "मिलाएँ",
+    "matchFor": "मिलाएँ: {{line}}",
+    "matchOther": "दूसरा मिलाएँ",
+    "matchOtherFor": "दूसरा मिलाएँ: {{line}}",
+    "ignore": "छोड़ें",
+    "ignoreFor": "छोड़ें: {{line}}",
+    "unmatch": "मिलान हटाएँ",
+    "unmatchFor": "मिलान हटाएँ: {{line}}",
+    "restore": "वापस लाएँ",
+    "restoreFor": "वापस लाएँ: {{line}}",
+    "accepted": "सुझाव मान लिया गया",
+    "matched": "पंक्ति मिला दी गई",
+    "unmatched": "पंक्ति फिर बिना मिलान में आ गई",
+    "ignored": "पंक्ति छोड़ दी गई",
+    "failed": "पंक्ति बदली नहीं जा सकी।"
+  },
+  "match": {
+    "title": "बैंक पंक्ति मिलाएँ",
+    "subtitleCredit": "{{date}} को आया पैसा: {{amount}}",
+    "subtitleDebit": "{{date}} को गया पैसा: {{amount}}",
+    "search": "राशि या रेफ़रेंस से खोजें",
+    "searchHelp": "जैसे 4500 या कोई UTR।",
+    "defaultWindow": "तारीख न डालने पर पंक्ति से 7 दिन पहले से 3 दिन बाद तक के रिकॉर्ड दिखते हैं।",
+    "candidates": "मिल सकने वाले रिकॉर्ड",
+    "noCandidates": "बिना मिलान का कोई रिकॉर्ड नहीं मिला। खोज या तारीखें बदलें।",
+    "loadFailed": "मिलने वाले रिकॉर्ड लोड नहीं हो सके।",
+    "differentAmount": "अलग राशि",
+    "noteRequired": "राशि अलग क्यों है",
+    "noteOptional": "नोट (वैकल्पिक)",
+    "amountDiffers": "पंक्ति {{line}} की है पर रिकॉर्ड {{record}} का है।",
+    "missingNote": "बताएँ कि राशि अलग क्यों है।",
+    "confirm": "पंक्ति मिलाएँ"
+  },
+  "ignore": {
+    "title": "बैंक पंक्ति छोड़ें",
+    "subtitle": "{{date}} · {{amount}}",
+    "help": "जैसे बैंक शुल्क या अपने ही खातों के बीच ट्रांसफ़र।",
+    "missingReason": "बताएँ कि यह पंक्ति क्यों छोड़ी जा रही है।",
+    "confirm": "पंक्ति छोड़ें",
+    "saving": "छोड़ी जा रही है…"
+  }
+}

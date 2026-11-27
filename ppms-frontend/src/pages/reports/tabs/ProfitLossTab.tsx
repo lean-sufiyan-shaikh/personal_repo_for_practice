@@ -26,6 +26,7 @@ import { ProfitLossDailyChart } from '../charts/ProfitLossDailyChart'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { LitresText, MoneyText } from '../../../components/AmountText'
+import { OperatingProfitSection, RevenueBreakdown } from './ProfitLossBreakdowns'
 import { codeLabel } from '../../../constants/labels'
 
 // CSV headers stay in English: the files are shared with accountants.
@@ -115,26 +116,6 @@ function FuelFigureCells({ row }: { row: ProfitLossFuelLine }) {
         {row.grossMarginPerLitre != null ? <><MoneyText value={row.grossMarginPerLitre} />/L</> : '—'}
       </td>
     </>
-  )
-}
-
-function RevenueBreakdown({ report, className }: { report: ProfitLossReport; className: string }) {
-  const { t } = useTranslation(['reports', 'common'])
-  const figures = [
-    { key: 'cash', label: t('common:paymentMethods.CASH'), value: report.totalCashRevenue, tone: undefined },
-    { key: 'upi', label: t('common:paymentMethods.UPI'), value: report.totalUpiRevenue, tone: undefined },
-    { key: 'card', label: t('common:paymentMethods.CARD'), value: report.totalCardRevenue, tone: undefined },
-    { key: 'credit', label: t('pl.creditSales'), value: report.totalCreditRevenue, tone: 'warn' as const },
-  ]
-  return (
-    <div className={`grid grid-cols-4 gap-3 ${className}`}>
-      {figures.map((figure) => (
-        <div key={figure.key}>
-          <p className="ui-kpi-label">{figure.label}</p>
-          <MoneyText value={figure.value} tone={figure.tone} className={`mt-0.5 block text-sm font-semibold ${figure.tone ? '' : 'text-ink'}`} />
-        </div>
-      ))}
-    </div>
   )
 }
 
@@ -256,6 +237,8 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
             {showRevBreakdown && <RevenueBreakdown report={data} className="mt-3" />}
           </div>
 
+          <OperatingProfitSection report={data} />
+
           <PageSection
             title={t('pl.byFuelCaption')}
             titleMeta={<StatusBadge tone="neutral" label={t('pl.closedShiftsInRange', { count: data.totalShifts })} />}
@@ -323,6 +306,7 @@ export function ProfitLossTab({ pumpId }: { pumpId: number }) {
           </div>
           {/* Revenue breakdown — always expanded in print */}
           <RevenueBreakdown report={data} className="mb-2" />
+          <OperatingProfitSection report={data} className="mb-2" />
           <DataTable
             caption={t('pl.byFuelPrintCaption')}
             captionHidden

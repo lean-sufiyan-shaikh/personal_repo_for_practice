@@ -12,10 +12,15 @@ interface RejectReasonDialogProps {
   error: string | null
   onConfirm: (reason: string) => void
   onClose: () => void
+  /** For a reason asked for something other than a rejection, e.g. "Ignore line". */
+  confirmLabel?: string
+  pendingLabel?: string
+  help?: string
+  missingReasonMessage?: string
 }
 
-/** Asks why something is being rejected; the reason is required and is saved with the rejection. */
-export function RejectReasonDialog({ title, subtitle, isPending, error, onConfirm, onClose }: RejectReasonDialogProps) {
+/** Asks why something is being rejected or set aside; the reason is required and is saved with it. */
+export function RejectReasonDialog({ title, subtitle, isPending, error, onConfirm, onClose, confirmLabel, pendingLabel, help, missingReasonMessage }: RejectReasonDialogProps) {
   const { t } = useTranslation()
   const [reason, setReason] = useState('')
   const [missingReason, setMissingReason] = useState(false)
@@ -43,14 +48,14 @@ export function RejectReasonDialog({ title, subtitle, isPending, error, onConfir
       footer={
         <>
           <button type="button" onClick={onClose} disabled={isPending} className="ui-btn ui-btn-secondary">{t('actions.cancel')}</button>
-          <LoadingButton type="submit" isLoading={isPending} loadingLabel={t('actions.rejecting')} className="ui-btn-danger">
-            {t('actions.reject')}
+          <LoadingButton type="submit" isLoading={isPending} loadingLabel={pendingLabel ?? t('actions.rejecting')} className="ui-btn-danger">
+            {confirmLabel ?? t('actions.reject')}
           </LoadingButton>
         </>
       }
     >
-      <FormField label={t('rejectDialog.reason')} help={t('rejectDialog.help')}
-        error={missingReason ? t('rejectDialog.missingReason') : undefined}>
+      <FormField label={t('rejectDialog.reason')} help={help ?? t('rejectDialog.help')}
+        error={missingReason ? missingReasonMessage ?? t('rejectDialog.missingReason') : undefined}>
         <textarea
           value={reason}
           onChange={(event) => { setReason(event.target.value); if (event.target.value.trim()) setMissingReason(false) }}

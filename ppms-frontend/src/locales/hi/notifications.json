@@ -30,6 +30,7 @@
     "ANCILLARY_LOW_STOCK": "उत्पाद स्टॉक कम",
     "AUTO_CLOSED_SHIFT": "शिफ्ट ज़बरदस्ती बंद हुई",
     "SETTLEMENT_REMINDER": "सेटलमेंट रिमाइंडर",
+    "SETTLEMENT_OVERDUE": "सेटलमेंट समय पार",
     "WET_STOCK_LOSS": "सीमा से ज़्यादा ईंधन नुकसान",
     "DELIVERY_SHORTAGE": "टैंकर डिलीवरी कम",
     "CASH_DROP_PENDING": "पुष्टि के लिए कैश ड्रॉप",

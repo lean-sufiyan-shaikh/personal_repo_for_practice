@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Landmark } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Landmark, ListChecks } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { usePumpStore } from '../../store/usePumpStore'
 import { paymentSettlementApi } from '../../api/paymentSettlementApi'
 import type { Settlement, SettlementPaymentType } from '../../api/paymentSettlementApi'
 import { EmptyState } from '../../components/EmptyState'
-import { canPerformAction } from '../../permissions/permissions'
+import { canAccessPage, canPerformAction } from '../../permissions/permissions'
 import { Page } from '../../components/layout/Page'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { PageSection } from '../../components/layout/PageSection'
@@ -37,6 +38,7 @@ export default function PaymentSettlementsPage() {
   const canWrite     = canPerformAction('settlement:write', user?.role)
   const canConfigure = canPerformAction('settlement:configure', user?.role)
   const canVoid      = canPerformAction('settlement:void', user?.role)
+  const canReconcile = canAccessPage('bankReconciliation', user?.role)
 
   const activeTab = useActiveTab(TAB_IDS, 'records')
   const recordAction = useUrlParam('action')
@@ -84,6 +86,12 @@ export default function PaymentSettlementsPage() {
       <PageHeader
         title={t('page.title')}
         description={t('page.subtitle')}
+        secondaryActions={canReconcile && (
+          <Link to="/dashboard/bank-reconciliation" className="ui-btn ui-btn-secondary">
+            <ListChecks size={16} strokeWidth={2} aria-hidden="true" />
+            {t('page.reconcile')}
+          </Link>
+        )}
         primaryAction={canWrite && (
           <button type="button" onClick={() => openRecordForm('UPI')} className="ui-btn ui-btn-primary">
             <Landmark size={16} strokeWidth={2} aria-hidden="true" />

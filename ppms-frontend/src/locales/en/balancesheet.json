@@ -107,6 +107,7 @@
     "grossProfit": "Gross Profit",
     "productSalesProfit": "Product Sales Profit",
     "expenses": "Expenses",
+    "bankCharges": "MDR / bank charges",
     "dipPl": "Dip P/L",
     "netProfit": "Net Profit",
     "ownerOnly": "Financial details (cost, profit, P/L) are visible to Owner and Admin only."
@@ -205,6 +206,8 @@
     "caption": "Digital payment settlements",
     "settled": "Settled",
     "recordedOnDate": "Recorded on this date",
-    "recordedBy": "by {{name}}"
+    "recordedBy": "by {{name}}",
+    "chargesAndNet": "· charges {{charges}} · net {{net}}",
+    "bankChargesOnDate": "MDR / bank charges on these settlements:"
   }
 }

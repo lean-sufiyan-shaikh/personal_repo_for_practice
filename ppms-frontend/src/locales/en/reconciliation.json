@@ -1,0 +1,127 @@
+{
+  "page": {
+    "title": "Bank Reconciliation",
+    "subtitle": "Import your bank statement and match each credit and debit to settlements, deposits and payments."
+  },
+  "import": {
+    "title": "Import bank statement",
+    "description": "A CSV with the columns Date, Narration, Debit, Credit, Balance, UTR. Lines imported before are skipped.",
+    "file": "Statement file (.csv)",
+    "fileHelp": "Download the statement from net banking as CSV.",
+    "notCsv": "Choose a .csv file.",
+    "bankName": "Bank name",
+    "accountNumber": "Account number",
+    "dateFormat": "Date format",
+    "dateFormatHelp": "Leave on Automatic unless the dates come out wrong.",
+    "dateFormats": {
+      "AUTO": "Automatic",
+      "DAY_FIRST": "Day first (31/12/2026)",
+      "MONTH_FIRST": "Month first (12/31/2026)"
+    },
+    "submit": "Import statement",
+    "importing": "Importing…",
+    "failed": "Could not import the statement."
+  },
+  "result": {
+    "importedTitle": "Statement imported",
+    "autoMatchTitle": "Auto-match finished",
+    "lines_one": "{{count}} line added",
+    "lines_other": "{{count}} lines added",
+    "autoMatched_one": "{{count}} matched",
+    "autoMatched_other": "{{count}} matched",
+    "autoSuggested_one": "{{count}} suggested",
+    "autoSuggested_other": "{{count}} suggested",
+    "duplicates_one": "{{count}} line already imported, skipped",
+    "duplicates_other": "{{count}} lines already imported, skipped",
+    "invalid_one": "{{count}} unreadable row skipped",
+    "invalid_other": "{{count}} unreadable rows skipped",
+    "dismiss": "Dismiss"
+  },
+  "imports": {
+    "title": "Imported statements",
+    "importedAt": "imported {{when}}",
+    "matchedOf": "{{matched}} of {{total}} matched",
+    "empty": "No statements imported yet",
+    "emptyHint": "Import a CSV statement above to start matching."
+  },
+  "summary": {
+    "label": "Reconciliation summary",
+    "matchedPercent": "Share matched",
+    "unmatchedCredit": "Unmatched money in",
+    "unmatchedDebit": "Unmatched money out"
+  },
+  "status": {
+    "UNMATCHED": "Unmatched",
+    "SUGGESTED": "Suggested",
+    "MATCHED": "Matched",
+    "IGNORED": "Ignored"
+  },
+  "lines": {
+    "title": "Statement lines",
+    "caption": "Bank statement lines",
+    "filtersLabel": "Statement line filters",
+    "status": "Status",
+    "all": "All",
+    "shownCount_one": "{{count}} line",
+    "shownCount_other": "{{count}} lines",
+    "empty": "This statement has no lines.",
+    "emptyForStatus": "No lines with this status.",
+    "date": "Date",
+    "narration": "Narration",
+    "amount": "Amount",
+    "matchedTo": "Matched to",
+    "actions": "Actions",
+    "utr": "UTR {{utr}}",
+    "reference": "Ref {{reference}}",
+    "suggestion": "Suggested: {{record}}",
+    "note": "Note: {{note}}",
+    "lineName": "line of {{date}} for {{amount}}",
+    "autoMatch": "Run auto-match",
+    "autoMatching": "Matching…",
+    "autoMatchFailed": "Auto-match failed."
+  },
+  "actions": {
+    "accept": "Accept suggestion",
+    "acceptFor": "Accept suggestion for {{line}}",
+    "match": "Match",
+    "matchFor": "Match {{line}}",
+    "matchOther": "Match another",
+    "matchOtherFor": "Match another record to {{line}}",
+    "ignore": "Ignore",
+    "ignoreFor": "Ignore {{line}}",
+    "unmatch": "Unmatch",
+    "unmatchFor": "Unmatch {{line}}",
+    "restore": "Restore",
+    "restoreFor": "Restore {{line}}",
+    "accepted": "Suggestion accepted",
+    "matched": "Line matched",
+    "unmatched": "Line moved back to unmatched",
+    "ignored": "Line ignored",
+    "failed": "Could not update the line."
+  },
+  "match": {
+    "title": "Match bank line",
+    "subtitleCredit": "Money in on {{date}}: {{amount}}",
+    "subtitleDebit": "Money out on {{date}}: {{amount}}",
+    "search": "Search by amount or reference",
+    "searchHelp": "For example 4500 or a UTR.",
+    "defaultWindow": "Without dates, records from 7 days before to 3 days after the line are shown.",
+    "candidates": "Records that could match",
+    "noCandidates": "No unmatched record found. Change the search or the dates.",
+    "loadFailed": "Could not load matching records.",
+    "differentAmount": "Different amount",
+    "noteRequired": "Why the amounts differ",
+    "noteOptional": "Note (optional)",
+    "amountDiffers": "The line is {{line}} but the record is {{record}}.",
+    "missingNote": "Say why the amounts differ.",
+    "confirm": "Match line"
+  },
+  "ignore": {
+    "title": "Ignore bank line",
+    "subtitle": "{{date}} · {{amount}}",
+    "help": "For example bank charges or a transfer between your own accounts.",
+    "missingReason": "Say why this line is ignored.",
+    "confirm": "Ignore line",
+    "saving": "Ignoring…"
+  }
+}

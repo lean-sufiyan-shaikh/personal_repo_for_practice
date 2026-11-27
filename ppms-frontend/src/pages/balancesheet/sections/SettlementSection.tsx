@@ -7,6 +7,7 @@ import { bsColumn } from '../bsFormat'
 import { DataTable } from '../../../components/DataTable'
 import type { DataTableColumn } from '../../../components/DataTable'
 import { MoneyText } from '../../../components/AmountText'
+import { formatCurrency } from '../../../utils/format'
 
 type BalanceSheetT = TFunction<['balancesheet', 'common']>
 
@@ -80,14 +81,24 @@ export function SettlementSection({ summary }: { summary: SettlementSummary }) {
           </tr>
         }
       />
+      {summary.bankChargesOnDate > 0 && (
+        <p className="text-xs text-ink-2">
+          {t('settlements.bankChargesOnDate')} <MoneyText value={summary.bankChargesOnDate} tone="bad" className="font-semibold" />
+        </p>
+      )}
       {summary.settlementsOnDate.length > 0 && (
         <div className="ui-card-plain ui-card-muted p-3 text-sm">
           <p className="ui-kpi-label mb-2">{t('settlements.recordedOnDate')}</p>
           <div className="space-y-1">
             {summary.settlementsOnDate.map(s => (
-              <div key={s.id} className="flex items-center gap-3 text-xs text-ink-2">
+              <div key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-ink-2">
                 <span className="font-medium">{paymentTypeLabel(t, s.paymentType)}</span>
-                <MoneyText value={s.amountReceived} tone="ok" className="font-semibold" />
+                <MoneyText value={s.grossAmount} tone="ok" className="font-semibold" />
+                {s.mdrAmount + s.gstOnMdrAmount > 0 && (
+                  <span className="text-ink-3">
+                    {t('settlements.chargesAndNet', { charges: formatCurrency(s.mdrAmount + s.gstOnMdrAmount), net: formatCurrency(s.netAmount) })}
+                  </span>
+                )}
                 {s.notes && <span className="text-ink-3">· {s.notes}</span>}
                 <span className="text-ink-3 ml-auto">{t('settlements.recordedBy', { name: s.recordedByUserName })}</span>
               </div>

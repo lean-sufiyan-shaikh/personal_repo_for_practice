@@ -8,6 +8,7 @@
   "AMOUNT_EXTENSION": "सीमा विस्तार",
   "ANCILLARY": "उत्पाद",
   "ANCILLARY_LOW_STOCK": "उत्पाद का स्टॉक कम",
+  "ANCILLARY_SALE": "प्रोडक्ट बिक्री",
   "APPROVED": "मंज़ूर",
   "AUTO_CLOSED_OVERDUE": "समय पार, अपने-आप बंद",
   "AUTO_CLOSED_SHIFT": "शिफ्ट अपने-आप बंद",
@@ -171,6 +172,7 @@
   "SELLING_PRICE_PER_UNIT": "प्रति यूनिट बिक्री दर",
   "SETTLEMENT": "सेटलमेंट",
   "SETTLEMENT_DATE": "सेटलमेंट की तारीख",
+  "SETTLEMENT_OVERDUE": "सेटलमेंट समय पार",
   "SETTLEMENT_REMINDER": "सेटलमेंट याद दिलाना",
   "SETUP_INCOMPLETE": "सेटअप अधूरा",
   "SHIFT": "शिफ्ट",
@@ -254,7 +256,11 @@
     },
     "SETTLEMENT_REMINDER": {
       "title": "{{paymentTypeCode}} सेटलमेंट रिमाइंडर",
-      "message": "आज का {{paymentTypeCode}} सेटलमेंट दर्ज करें — बैंक खाते में आई राशि। सेटलमेंट पेज पर जाकर दर्ज करें।"
+      "message": "आज का {{paymentTypeCode}} सेटलमेंट दर्ज करें — ₹{{pendingAmount}} बाकी। सेटलमेंट पेज पर जाकर दर्ज करें।"
+    },
+    "SETTLEMENT_OVERDUE": {
+      "title": "{{paymentTypeCode}} सेटलमेंट समय पार",
+      "message": "{{fromDate}} से {{paymentTypeCode}} की ₹{{amount}} वसूली T+2 के बाद भी बैंक में नहीं आई। सेटलमेंट दर्ज करें या बैंक से पूछें।"
     },
     "WET_STOCK_LOSS": {
       "title": "सीमा से ज़्यादा ईंधन नुकसान",
@@ -417,6 +423,7 @@
   "SHORTAGE_CLAIM": "कमी का दावा",
   "SHORTAGE_CLAIMS_OPEN": "खुले कमी के दावे",
   "DELIVERY_SHORTAGE": "कम डिलीवरी",
+  "DEPOSIT": "बैंक जमा",
   "BANK_DEPOSIT": "बैंक जमा",
   "CASH_DROP": "कैश ड्रॉप",
   "CASH_EVENT": "नकद एंट्री",

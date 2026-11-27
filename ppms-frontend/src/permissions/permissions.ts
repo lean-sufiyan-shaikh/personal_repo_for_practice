@@ -34,6 +34,7 @@ export const PAGE_PERMISSIONS: Record<string, UserRole[]> = {
   reports:         ['OWNER', 'ADMIN', 'MANAGER'],
   setup:           ['OWNER', 'ADMIN', 'MANAGER'],
   settlements:     ['OWNER', 'ADMIN', 'MANAGER'],
+  bankReconciliation: ['OWNER', 'ADMIN'],
   notifications:   ['OWNER', 'ADMIN', 'MANAGER', 'OPERATOR', 'ACCOUNTANT'],
 }
 
@@ -58,6 +59,7 @@ const PAGE_PATHS: Record<string, string> = {
   reports:       '/dashboard/reports',
   setup:         '/dashboard/setup',
   settlements:   '/dashboard/settlements',
+  bankReconciliation: '/dashboard/bank-reconciliation',
   notifications: '/dashboard/notifications',
 }
 

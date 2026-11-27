@@ -39,7 +39,16 @@ export interface ProfitLossReport {
   totalCashRevenue: number
   totalUpiRevenue: number
   totalCardRevenue: number
+  totalFleetCardRevenue: number
   totalCreditRevenue: number
+  /** Cash + UPI + card + fleet card + credit. */
+  totalCollected: number
+  /** Expenses approved for dates in the range. */
+  approvedExpenses: number
+  /** MDR plus GST on MDR deducted from settlements recorded in the range. */
+  bankCharges: number
+  /** grossProfit − approvedExpenses − bankCharges; payroll is not deducted yet. */
+  netOperatingProfit: number
   byFuelType: ProfitLossFuelLine[]
   byDay: ProfitLossDayLine[]
 }

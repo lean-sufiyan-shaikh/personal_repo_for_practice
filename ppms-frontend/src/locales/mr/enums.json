@@ -8,6 +8,7 @@
   "AMOUNT_EXTENSION": "मर्यादा वाढ",
   "ANCILLARY": "उत्पादने",
   "ANCILLARY_LOW_STOCK": "उत्पादनांचा स्टॉक कमी",
+  "ANCILLARY_SALE": "प्रॉडक्ट विक्री",
   "APPROVED": "मंजूर",
   "AUTO_CLOSED_OVERDUE": "वेळ उलटली, आपोआप बंद",
   "AUTO_CLOSED_SHIFT": "शिफ्ट आपोआप बंद",
@@ -171,6 +172,7 @@
   "SELLING_PRICE_PER_UNIT": "प्रति युनिट विक्री दर",
   "SETTLEMENT": "सेटलमेंट",
   "SETTLEMENT_DATE": "सेटलमेंटची तारीख",
+  "SETTLEMENT_OVERDUE": "सेटलमेंटची वेळ उलटली",
   "SETTLEMENT_REMINDER": "सेटलमेंट आठवण",
   "SETUP_INCOMPLETE": "सेटअप अपूर्ण",
   "SHIFT": "शिफ्ट",
@@ -191,7 +193,7 @@
   "SUNDAY": "रविवार",
   "SUPER_ADMIN": "सुपर ॲडमिन",
   "SUPPLIER": "पुरवठादार",
-  "SUPPLIER_PAYMENT": "पुरवठादार भरणा",
+  "SUPPLIER_PAYMENT": "पुरवठादार पेमेंट",
   "TANK": "टँक",
   "TANKER": "टँकर",
   "TANK_ID": "टँक",
@@ -254,7 +256,11 @@
     },
     "SETTLEMENT_REMINDER": {
       "title": "{{paymentTypeCode}} सेटलमेंट आठवण",
-      "message": "आजचे {{paymentTypeCode}} सेटलमेंट नोंदवा — बँक खात्यात आलेली रक्कम. सेटलमेंट पानावर जाऊन नोंदवा."
+      "message": "आजचे {{paymentTypeCode}} सेटलमेंट नोंदवा — ₹{{pendingAmount}} प्रलंबित. सेटलमेंट पानावर जाऊन नोंदवा."
+    },
+    "SETTLEMENT_OVERDUE": {
+      "title": "{{paymentTypeCode}} सेटलमेंटची वेळ उलटली",
+      "message": "{{fromDate}} पासूनची {{paymentTypeCode}} ची ₹{{amount}} वसुली T+2 नंतरही बँकेत आलेली नाही. सेटलमेंट नोंदवा किंवा बँकेकडे विचारणा करा."
     },
     "WET_STOCK_LOSS": {
       "title": "मर्यादेपेक्षा जास्त इंधन तोटा",
@@ -417,6 +423,7 @@
   "SHORTAGE_CLAIM": "कमतरतेचा दावा",
   "SHORTAGE_CLAIMS_OPEN": "खुले कमतरतेचे दावे",
   "DELIVERY_SHORTAGE": "कमी डिलिव्हरी",
+  "DEPOSIT": "बँक जमा",
   "BANK_DEPOSIT": "बँक भरणा",
   "CASH_DROP": "कॅश ड्रॉप",
   "CASH_EVENT": "रोख नोंद",

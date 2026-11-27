@@ -4,8 +4,9 @@
     "subtitle": "Track when UPI, Card & Fleet Card payments arrive in your bank account.",
     "noPump": "Select a pump to view settlement records.",
     "record": "Record Settlement",
+    "reconcile": "Bank reconciliation",
     "historyTab": "Settlement History",
-    "alertsTab": "Alert Settings",
+    "alertsTab": "Alerts & Charges",
     "views": "Settlement views"
   },
   "wallet": {
@@ -37,9 +38,11 @@
     "collected": "Collected",
     "pending": "Pending",
     "voided": "Voided",
-    "partialShort": "Partial · {{amount}} short",
+    "partial": "Partial",
+    "partlyCleared": "{{date}} partly cleared",
+    "covers": "Covers {{days}}",
+    "netAfterCharges": "Net {{net}} after {{charges}} bank charges",
     "by": "by {{name}}",
-    "expectedReceived": "Expected {{expected}} · received {{received}}",
     "voidReason": "Reason: {{reason}}",
     "void": "Void",
     "filtersLabel": "Settlement history filters",
@@ -47,7 +50,7 @@
     "detailsOf": "Details of {{type}} settlement of {{amount}}"
   },
   "alerts": {
-    "intro": "Set the time when you want to receive a daily reminder to record each payment type's settlement. Alerts arrive as in-app notifications — once per day, after the configured time.",
+    "intro": "Set the time for each payment type's daily reminder to record its settlement, and the bank's MDR and GST on MDR used to split each settlement into gross and net. Reminders arrive as in-app notifications — once per day, after the configured time.",
     "dailyReminder": "Daily reminder at this time (IST)",
     "reminderTime": "{{type}} reminder time",
     "enabled": "Enabled",
@@ -61,7 +64,7 @@
     "recorded": "Settlement recorded successfully",
     "failed": "Failed to record settlement",
     "dateRequired": "Settlement date is required",
-    "amountPositive": "Amount must be greater than zero",
+    "amountPositive": "Amount must be at least ₹0.01",
     "amountTooHigh": "Amount is more than the {{pending}} still pending for {{type}}",
     "title": "Record settlement",
     "paymentType": "Payment type",
@@ -97,6 +100,33 @@
     "pendingAtRecord": "Pending when recorded",
     "voidReason": "Reason for voiding",
     "voidedAt": "Voided at",
-    "counted": "Counted as settled"
+    "counted": "Counted as settled",
+    "covers": "Collection days covered"
+  },
+  "charges": {
+    "basisLabel": "The amount entered is",
+    "basisNet": "Net — what reached the bank",
+    "basisGross": "Gross — before bank charges",
+    "amountHelpNet": "What was credited to the bank, after charges.",
+    "amountHelpGross": "The amount settled against collections, before charges.",
+    "figuresLabel": "Bank charges on this settlement",
+    "mdr": "MDR",
+    "mdrAt": "MDR ({{percent}}%)",
+    "gst": "GST on MDR",
+    "gstAt": "GST on MDR ({{percent}}%)",
+    "total": "Total bank charges",
+    "gross": "Gross amount",
+    "net": "Net to bank",
+    "edit": "Edit charges",
+    "useStandard": "Use the standard rates",
+    "mdrAmount": "MDR charged",
+    "gstAmount": "GST on MDR charged",
+    "loadFailed": "Could not work out the bank charges.",
+    "mdrPercent": "{{type}} MDR %",
+    "mdrPercentHelp": "The bank's merchant discount rate, 0–10 %.",
+    "mdrPercentRange": "Enter an MDR between 0 and 10 %.",
+    "gstPercent": "{{type}} GST on MDR %",
+    "gstPercentHelp": "Usually 18 %.",
+    "gstPercentRange": "Enter a GST rate between 0 and 100 %."
   }
 }

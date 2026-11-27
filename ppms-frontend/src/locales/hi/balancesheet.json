@@ -107,6 +107,7 @@
     "grossProfit": "सकल लाभ",
     "productSalesProfit": "उत्पाद बिक्री लाभ",
     "expenses": "खर्च",
+    "bankCharges": "MDR / बैंक शुल्क",
     "dipPl": "डिप लाभ/हानि",
     "netProfit": "शुद्ध लाभ",
     "ownerOnly": "हिसाब का विवरण (लागत, लाभ, लाभ/हानि) सिर्फ़ मालिक और एडमिन देख सकते हैं।"
@@ -205,6 +206,8 @@
     "caption": "डिजिटल भुगतान सेटलमेंट",
     "settled": "सेटल",
     "recordedOnDate": "इस तारीख को दर्ज",
-    "recordedBy": "{{name}} द्वारा"
+    "recordedBy": "{{name}} द्वारा",
+    "chargesAndNet": "· शुल्क {{charges}} · शुद्ध {{net}}",
+    "bankChargesOnDate": "इन सेटलमेंट पर MDR / बैंक शुल्क:"
   }
 }
