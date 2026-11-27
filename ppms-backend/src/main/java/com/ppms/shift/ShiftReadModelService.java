@@ -36,6 +36,8 @@ public class ShiftReadModelService {
     private final ShiftNozzleRepository shiftNozzleRepository;
     private final PumpShiftDefinitionRepository shiftDefinitionRepository;
     private final BusinessClock businessClock;
+    private final ShiftReadingPriceSegmentRepository priceSegmentRepository;
+    private final ShiftInvestigationNoteRepository investigationNoteRepository;
 
     public ShiftResponse toResponseWithLookups(Shift shift) {
         List<Long> nozzleIds = shiftNozzleRepository.findNozzleIdsByShiftId(shift.getId());
@@ -50,7 +52,7 @@ public class ShiftReadModelService {
         String investigatedByName = shift.getInvestigationStartedById() == null ? null
                 : userRepository.findById(shift.getInvestigationStartedById()).map(User::getFullName).orElse(null);
         return toResponse(shift, du, nozzles, operator, openedByName, investigatedByName, readings, entries,
-                computeScheduledEndTime(shift));
+                computeScheduledEndTime(shift), extrasOf(List.of(shift.getId()), readings));
     }
 
     /** List-page variant of {@link #toResponseWithLookups}: loads every related row for all shifts in one query per table. */
@@ -82,6 +84,7 @@ public class ShiftReadModelService {
                 .collect(Collectors.groupingBy(ShiftFuelReading::getShiftId));
         Map<Long, List<ShiftCreditEntry>> entriesByShiftId = creditEntryRepository.findByShiftIdIn(shiftIds).stream()
                 .collect(Collectors.groupingBy(ShiftCreditEntry::getShiftId));
+        ReadingExtras extras = extrasOf(shiftIds, readingsByShiftId.values().stream().flatMap(List::stream).toList());
 
         return shifts.stream()
                 .map(shift -> {
@@ -97,7 +100,8 @@ public class ShiftReadModelService {
                             investigatedBy != null ? investigatedBy.getFullName() : null,
                             readingsByShiftId.getOrDefault(shift.getId(), List.of()),
                             entriesByShiftId.getOrDefault(shift.getId(), List.of()),
-                            definition != null ? definition.scheduledEnd(shift.getShiftDate(), businessClock.zone()) : null);
+                            definition != null ? definition.scheduledEnd(shift.getShiftDate(), businessClock.zone()) : null,
+                            extras);
                 })
                 .toList();
     }
@@ -105,7 +109,30 @@ public class ShiftReadModelService {
     public ShiftResponse toResponse(Shift shift, DispensaryUnit du, List<Nozzle> nozzles,
                                     User operator, String openedByName,
                                     List<ShiftFuelReading> readings, List<ShiftCreditEntry> entries) {
-        return toResponse(shift, du, nozzles, operator, openedByName, null, readings, entries, computeScheduledEndTime(shift));
+        return toResponse(shift, du, nozzles, operator, openedByName, null, readings, entries, computeScheduledEndTime(shift),
+                extrasOf(List.of(shift.getId()), readings));
+    }
+
+    /** Price segments by reading and investigation notes by shift, each loaded in one query for all the shifts. */
+    private record ReadingExtras(Map<Long, List<ShiftReadingPriceSegment>> segmentsByReadingId,
+                                 Map<Long, List<ShiftResponse.InvestigationNoteResponse>> notesByShiftId) {
+    }
+
+    private ReadingExtras extrasOf(List<Long> shiftIds, List<ShiftFuelReading> readings) {
+        Map<Long, List<ShiftReadingPriceSegment>> segments = readings.isEmpty() ? Map.of()
+                : priceSegmentRepository.findByShiftFuelReadingIdInOrderByStartsAtAscIdAsc(
+                                readings.stream().map(ShiftFuelReading::getId).toList()).stream()
+                        .collect(Collectors.groupingBy(ShiftReadingPriceSegment::getShiftFuelReadingId));
+        List<ShiftInvestigationNote> notes = investigationNoteRepository.findByShiftIdInOrderByWrittenAtAscIdAsc(shiftIds);
+        Map<Long, String> writerNameById = findAllByIdAsMap(userRepository,
+                notes.stream().map(ShiftInvestigationNote::getWrittenByUserId).collect(Collectors.toSet()), User::getId)
+                .values().stream().collect(Collectors.toMap(User::getId, User::getFullName));
+        Map<Long, List<ShiftResponse.InvestigationNoteResponse>> notesByShiftId = notes.stream()
+                .collect(Collectors.groupingBy(ShiftInvestigationNote::getShiftId, Collectors.mapping(
+                        note -> new ShiftResponse.InvestigationNoteResponse(note.getNote(),
+                                writerNameById.get(note.getWrittenByUserId()), note.getWrittenAt()),
+                        Collectors.toList())));
+        return new ReadingExtras(segments, notesByShiftId);
     }
 
     private static <T> Map<Long, T> findAllByIdAsMap(JpaRepository<T, Long> repository, Set<Long> ids,
@@ -119,7 +146,7 @@ public class ShiftReadModelService {
     private ShiftResponse toResponse(Shift shift, DispensaryUnit du, List<Nozzle> nozzles,
                                      User operator, String openedByName, String investigatedByName,
                                      List<ShiftFuelReading> readings, List<ShiftCreditEntry> entries,
-                                     OffsetDateTime scheduledEndTime) {
+                                     OffsetDateTime scheduledEndTime, ReadingExtras extras) {
 
         List<ShiftResponse.NozzleSummary> nozzleSummaries = nozzles.stream()
                 .sorted(Comparator.comparing(Nozzle::getNozzleNumber, Comparator.nullsLast(Comparator.naturalOrder())))
@@ -141,7 +168,13 @@ public class ShiftReadModelService {
                         r.getEndReading(),
                         r.getPriceSnapshot(),
                         r.getUnitsSold(),
-                        maxMeterByNozzleId.get(r.getNozzleId())))
+                        maxMeterByNozzleId.get(r.getNozzleId()),
+                        r.getSalesAmount(),
+                        r.getStockShortfallLitres(),
+                        extras.segmentsByReadingId().getOrDefault(r.getId(), List.of()).stream()
+                                .map(segment -> new ShiftResponse.PriceSegmentResponse(segment.getStartReading(),
+                                        segment.getPricePerUnit(), segment.getStartsAt(), segment.getUnitsSold()))
+                                .toList()))
                 .toList();
 
         List<ShiftResponse.CreditEntryResponse> creditEntryResponses = entries.stream()
@@ -177,6 +210,8 @@ public class ShiftReadModelService {
                 .shiftDate(shift.getShiftDate())
                 .actualStartTime(shift.getActualStartTime())
                 .actualEndTime(shift.getActualEndTime())
+                .closedAt(shift.getClosedAt())
+                .closedByUserId(shift.getClosedByUserId())
                 .scheduledEndTime(scheduledEndTime)
                 .fuelReadings(fuelReadingResponses)
                 .totalAmountDue(shift.getTotalAmountDue())
@@ -195,7 +230,11 @@ public class ShiftReadModelService {
                 .investigationNote(shift.getInvestigationNote())
                 .investigatedByName(investigatedByName)
                 .investigationStartedAt(shift.getInvestigationStartedAt())
+                .investigationHistory(extras.notesByShiftId().getOrDefault(shift.getId(), List.of()))
                 .cashRecoveryAmount(shift.getCashRecoveryAmount())
+                .cashRecoveredAt(shift.getCashRecoveredAt())
+                .roundingAdjustment(shift.getRoundingAdjustment())
+                .stockShortfall(shift.isStockShortfall())
                 .status(shift.getStatus().name())
                 .isBackfilled(shift.isBackfilled())
                 .creditEntries(creditEntryResponses)

@@ -1,10 +1,13 @@
 package com.ppms.export;
 
+import com.ppms.common.time.DateRangeBounds;
 import com.ppms.expense.PumpExpense;
 import com.ppms.expense.PumpExpenseRepository;
+import com.ppms.report.ReportController;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
+import com.ppms.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -18,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Provides CSV download endpoints for key data exports.
@@ -36,6 +41,7 @@ public class CsvExportController {
 
     private final ShiftRepository       shiftRepository;
     private final PumpExpenseRepository expenseRepository;
+    private final UserRepository        userRepository;
 
     /**
      * GET /api/pumps/{pumpId}/export/shifts
@@ -48,16 +54,20 @@ public class CsvExportController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @AuthenticationPrincipal User currentUser) {
+        DateRangeBounds.requireRangeOfAtMost(from, to, ReportController.MAX_SUMMARY_RANGE_DAYS);
         List<Shift> shifts = shiftRepository.findClosedShiftsByDateRange(pumpId, from, to);
+        Map<Long, String> operatorNameById = userRepository.findAllById(
+                        shifts.stream().map(Shift::getOperatorId).collect(Collectors.toSet())).stream()
+                .collect(Collectors.toMap(User::getId, User::getFullName));
 
         StringBuilder csv = new StringBuilder();
-        csv.append("Shift ID,Date,Operator ID,Window,Status,Total Amount Due,Cash Collected,UPI Collected,"
-                + "Card Collected,Fleet Card Collected,Credit Total,Discrepancy\n");
+        csv.append("Shift ID,Date,Operator,Window,Status,Total Amount Due,Cash Collected,UPI Collected,"
+                + "Card Collected,Fleet Card Collected,Credit Total,Discrepancy,Short/Over\n");
 
         for (Shift s : shifts) {
             csv.append(s.getId()).append(',')
                .append(CsvCells.text(s.getShiftDate())).append(',')
-               .append(CsvCells.number(s.getOperatorId())).append(',')
+               .append(CsvCells.text(operatorNameById.get(s.getOperatorId()))).append(',')
                .append(CsvCells.text(s.getShiftName())).append(',')
                .append(CsvCells.text(s.getStatus())).append(',')
                .append(CsvCells.number(s.getTotalAmountDue())).append(',')
@@ -66,7 +76,8 @@ public class CsvExportController {
                .append(CsvCells.number(s.getCardCollected())).append(',')
                .append(CsvCells.number(s.getFleetCardCollected())).append(',')
                .append(CsvCells.number(s.getCreditTotal())).append(',')
-               .append(CsvCells.number(s.getDiscrepancyAmount())).append('\n');
+               .append(CsvCells.number(s.getDiscrepancyAmount())).append(',')
+               .append(CsvCells.text(s.getDiscrepancyType())).append('\n');
         }
 
         byte[] bytes = csv.toString().getBytes(StandardCharsets.UTF_8);
@@ -92,6 +103,7 @@ public class CsvExportController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @AuthenticationPrincipal User currentUser) {
+        DateRangeBounds.requireRangeOfAtMost(from, to, ReportController.MAX_SUMMARY_RANGE_DAYS);
         List<PumpExpense> expenses =
                 expenseRepository.findByPumpIdAndExpenseDateBetweenOrderByExpenseDateDescCreatedAtDesc(pumpId, from, to);
 

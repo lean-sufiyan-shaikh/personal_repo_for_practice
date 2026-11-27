@@ -1,5 +1,6 @@
 package com.ppms.fuel;
 
+import com.ppms.shift.OpenNozzleReadingResponse;
 import com.ppms.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,15 @@ public class FuelPriceController {
             @RequestParam LocalDate date,
             @RequestParam(required = false) Long shiftDefinitionId) {
         return ResponseEntity.ok(fuelPriceService.getPricesForDate(pumpId, date, shiftDefinitionId));
+    }
+
+    /** Nozzles on open shifts selling the fuel, with their last known meter reading, for the price-change form. */
+    @GetMapping("/open-nozzles")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
+    public ResponseEntity<List<OpenNozzleReadingResponse>> getOpenNozzles(
+            @PathVariable Long pumpId,
+            @RequestParam FuelType fuelType) {
+        return ResponseEntity.ok(fuelPriceService.getOpenNozzles(pumpId, fuelType));
     }
 
     @PostMapping

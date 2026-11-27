@@ -83,11 +83,11 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
         assertThat(closed.get("discrepancyType").asText()).isEqualTo("SHORT");
 
         perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
-                setup.manager(), Map.of("resolutionAction", "WAIVED"))
+                setup.owner(), Map.of("resolutionAction", "WAIVED"))
                 .andExpect(status().isBadRequest());
 
         JsonNode resolved = json(perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
-                setup.manager(), Map.of("resolutionAction", "WAIVED", "resolutionNote", "Owner agreed"))
+                setup.owner(), Map.of("resolutionAction", "WAIVED", "resolutionNote", "Owner agreed"))
                 .andExpect(status().is2xxSuccessful()));
         assertThat(resolved.get("status").asText()).isEqualTo("CLOSED_DISCREPANCY_RESOLVED");
         assertThat(resolved.get("discrepancyResolution").asText()).isEqualTo("WAIVED");

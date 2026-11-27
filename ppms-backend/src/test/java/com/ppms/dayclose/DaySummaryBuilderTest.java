@@ -269,7 +269,7 @@ class DaySummaryBuilderTest {
         return new WetStockReconciliationResponse.Period(end, end, 1, WetStockReconciliationResponse.PeriodStatus.RECONCILED,
                 new BigDecimal("5000"), BigDecimal.ZERO, new BigDecimal("1000"), BigDecimal.ZERO, new BigDecimal("4000"),
                 new BigDecimal("4000").add(new BigDecimal(variance)), new BigDecimal(variance), new BigDecimal("-8.00"), within,
-                new BigDecimal(variance), new BigDecimal("-8.00"));
+                new BigDecimal(variance), new BigDecimal("-8.00"), null);
     }
 
     private static WetStockReconciliationResponse reconciliation(WetStockReconciliationResponse.Period... periods) {

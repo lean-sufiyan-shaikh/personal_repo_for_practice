@@ -68,12 +68,7 @@ public class BankDepositService {
                     "A deposit with slip reference '" + slipReference + "' is already recorded.");
         }
         BigDecimal amount = request.amount().setScale(2, RoundingMode.HALF_UP);
-        BigDecimal balance = cashEventRepository.computeBalance(pumpId).setScale(2, RoundingMode.HALF_UP);
-        if (amount.compareTo(balance) > 0) {
-            throw new BusinessException(ErrorCodes.BANK_DEPOSIT_EXCEEDS_SAFE_BALANCE,
-                    Map.of("amount", amount.toPlainString(), "balance", balance.toPlainString()),
-                    "A deposit of ₹" + amount + " is more than the ₹" + balance + " the safe holds.");
-        }
+        requireSafeCovers(pumpId, request.depositDate(), amount);
         String bankAccount = request.bankAccount().trim();
         CashEvent event = cashEventRepository.save(CashEvent.builder()
                 .pumpId(pumpId)
@@ -99,6 +94,29 @@ public class BankDepositService {
                 currentUser);
         log.info("Bank deposit recorded: pump={}, deposit={}, amount={}, by={}", pumpId, deposit.getId(), amount, currentUser.getId());
         return toResponse(deposit, false, currentUser.getFullName());
+    }
+
+    /**
+     * The cash must be in the safe at the end of the deposit date, and taking it out then must not leave any later day
+     * ending below zero, so a back-dated deposit cannot spend cash that only arrived afterwards.
+     */
+    private void requireSafeCovers(Long pumpId, LocalDate depositDate, BigDecimal amount) {
+        BigDecimal balanceThatDay = cashEventRepository.computeBalanceAtEndOf(pumpId, depositDate).setScale(2, RoundingMode.HALF_UP);
+        if (amount.compareTo(balanceThatDay) > 0) {
+            throw new BusinessException(ErrorCodes.BANK_DEPOSIT_EXCEEDS_SAFE_BALANCE,
+                    Map.of("amount", amount.toPlainString(), "balance", balanceThatDay.toPlainString()),
+                    "A deposit of ₹" + amount + " is more than the ₹" + balanceThatDay + " the safe held at the end of "
+                            + depositDate + ".");
+        }
+        BigDecimal lowestLater = cashEventRepository.findLowestEndOfDayBalanceFrom(pumpId, depositDate);
+        if (lowestLater != null && amount.compareTo(lowestLater) > 0) {
+            BigDecimal lowest = lowestLater.setScale(2, RoundingMode.HALF_UP);
+            throw new BusinessException(ErrorCodes.BANK_DEPOSIT_LEAVES_SAFE_NEGATIVE,
+                    Map.of("amount", amount.toPlainString(), "lowestBalance", lowest.toPlainString(),
+                            "depositDate", depositDate.toString()),
+                    "A deposit of ₹" + amount + " dated " + depositDate + " would leave the safe below zero on a later "
+                            + "day, when it held only ₹" + lowest + ". Record it on a later date.");
+        }
     }
 
     @Transactional(readOnly = true)

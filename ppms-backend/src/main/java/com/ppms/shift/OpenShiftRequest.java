@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -30,4 +31,12 @@ public class OpenShiftRequest {
 
     @NotNull(message = "Operator ID is required")
     private Long operatorId;
+
+    /**
+     * The shift window chosen by the manager, with its business date; when absent the server takes the window the
+     * open-shift form suggests. Only the current window, or the next one within the pump's early start grace, is allowed.
+     */
+    private Long shiftDefinitionId;
+
+    private LocalDate shiftDate;
 }

@@ -95,6 +95,29 @@ class SafeIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void backDatedDepositMustFitTheSafeOnItsDateAndLeaveNoLaterDayBelowZero() throws Exception {
+        putCashInSafe("1000.00");
+        perform(post("/api/pumps/{pumpId}/cash-events", setup.pumpId()), setup.manager(),
+                Map.of("eventType", "CASH_OUT", "amount", new BigDecimal("800.00"), "description", "Supplier paid",
+                        "eventDate", TestDates.today().minusDays(1).toString()))
+                .andExpect(status().isCreated());
+
+        recordDeposit(deposit("100.00", "B-0", "SBI ••1234", TestDates.today().minusDays(6)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BANK_DEPOSIT_EXCEEDS_SAFE_BALANCE"))
+                .andExpect(jsonPath("$.params.balance").value("0.00"));
+        recordDeposit(deposit("500.00", "B-1", "SBI ••1234", TestDates.today().minusDays(3)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BANK_DEPOSIT_LEAVES_SAFE_NEGATIVE"))
+                .andExpect(jsonPath("$.params.lowestBalance").value("200.00"));
+        recordDeposit(deposit("200.00", "B-2", "SBI ••1234", TestDates.today().minusDays(3)))
+                .andExpect(status().isCreated());
+        recordDeposit(deposit("0.01", "B-3", "SBI ••1234", TestDates.today()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BANK_DEPOSIT_EXCEEDS_SAFE_BALANCE"));
+    }
+
+    @Test
     void depositListFiltersByDateAndAccountAndTotalsEveryMatch() throws Exception {
         putCashInSafe("1000.00");
         recordDeposit(deposit("100.00", "A-1", "SBI ••1234", TestDates.today().minusDays(3))).andExpect(status().isCreated());

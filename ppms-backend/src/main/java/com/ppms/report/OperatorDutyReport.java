@@ -22,6 +22,8 @@ public record OperatorDutyReport(
             String shiftWindow,
             java.time.OffsetDateTime actualStartTime,
             java.time.OffsetDateTime actualEndTime,
+            /* When the closing readings were really entered; actualEndTime is capped at the scheduled end. */
+            java.time.OffsetDateTime closedAt,
             BigDecimal totalAmountDue,
             BigDecimal cashCollected,
             BigDecimal upiCollected,

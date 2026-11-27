@@ -5,8 +5,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Daily wet-stock reconciliation of each tank over a date range. Litres are ambient (no temperature correction),
- * so variances include the effect of temperature on fuel volume.
+ * Dip-to-dip wet-stock reconciliation of each tank over a date range, one period per day with a dip. Litres are
+ * ambient (no temperature correction), so variances include the effect of temperature on fuel volume.
  */
 public record WetStockReconciliationResponse(LocalDate from, LocalDate to, List<TankReconciliation> tanks) {
 
@@ -25,12 +25,15 @@ public record WetStockReconciliationResponse(LocalDate from, LocalDate to, List<
     /**
      * One reconciled stretch ending on a day with a dip. Days without a dip are merged into the next day that has one,
      * so a period can span several days. A NEEDS_OPENING_DIP period has only its closing dip; every other figure is null.
+     * stockShortfallLitres are litres shifts closed in the period sold beyond the tank's book stock, a sign of a
+     * delivery not yet recorded; null when there were none.
      */
     public record Period(LocalDate periodStart, LocalDate periodEnd, int days, PeriodStatus status,
                          BigDecimal openingLitres, BigDecimal deliveredLitres, BigDecimal soldLitres,
                          BigDecimal removedLitres, BigDecimal expectedClosingLitres, BigDecimal closingLitres,
                          BigDecimal varianceLitres, BigDecimal variancePercent, Boolean withinTolerance,
-                         BigDecimal cumulativeVarianceLitres, BigDecimal cumulativeVariancePercent) {
+                         BigDecimal cumulativeVarianceLitres, BigDecimal cumulativeVariancePercent,
+                         BigDecimal stockShortfallLitres) {
     }
 
     public enum PeriodStatus {

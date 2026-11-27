@@ -29,6 +29,7 @@ import com.ppms.user.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import io.micrometer.core.instrument.Counter;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -54,6 +55,7 @@ import java.util.stream.Collectors;
 public class ShiftService {
 
     private static final BigDecimal ZERO = BigDecimal.ZERO;
+    private static final String OPERATOR_OPEN_SHIFT_INDEX = "uq_shift_one_open_per_operator";
 
     private final ShiftRepository shiftRepository;
     private final ShiftNozzleRepository shiftNozzleRepository;
@@ -76,6 +78,7 @@ public class ShiftService {
     private final BalanceSheetStalenessService balanceSheetStalenessService;
     private final CashDropService cashDropService;
     private final ClosedDayGuard closedDayGuard;
+    private final ShiftInvestigationNoteRepository investigationNoteRepository;
 
     /**
      * Opens a new shift for selected nozzles on a Dispensary Unit.
@@ -108,7 +111,7 @@ public class ShiftService {
 
         User operator = lifecycleSupportService.findOperatorForPump(request.getOperatorId(), pumpId);
 
-        CurrentShiftWindow window = lifecycleSupportService.validateShiftCanOpen(du, nozzles, operator);
+        CurrentShiftWindow window = lifecycleSupportService.validateShiftCanOpen(du, nozzles, operator, request);
         PumpShiftDefinition shiftDef = window.definition();
         closedDayGuard.requireOpen(pumpId, window.shiftDate());
 
@@ -164,7 +167,7 @@ public class ShiftService {
 
     private ShiftResponse startShift(Shift shift, DispensaryUnit du, List<Nozzle> nozzles, User operator, User currentUser) {
         Long pumpId = shift.getPumpId();
-        shift = shiftRepository.save(shift);
+        shift = saveNewShiftForOperator(shift, operator);
         final Long shiftId = shift.getId();
 
         // Persist nozzle assignments in the join table (batch insert)
@@ -197,6 +200,25 @@ public class ShiftService {
 
         List<ShiftFuelReading> readings = fuelReadingRepository.findByShiftId(shiftId);
         return shiftReadModelService.toResponse(shift, du, nozzles, operator, currentUser.getFullName(), readings, Collections.emptyList());
+    }
+
+    /**
+     * The unique index on an operator's open shift is the final guard when two opens for the same operator race past
+     * the check in validateShiftCanOpen.
+     */
+    private Shift saveNewShiftForOperator(Shift shift, User operator) {
+        try {
+            return shiftRepository.saveAndFlush(shift);
+        } catch (DataIntegrityViolationException e) {
+            String cause = String.valueOf(e.getMostSpecificCause().getMessage());
+            if (!cause.contains(OPERATOR_OPEN_SHIFT_INDEX)) {
+                throw e;
+            }
+            log.warn("Concurrent open refused for operator {}: {}", operator.getId(), cause);
+            throw new BusinessException(ErrorCodes.OPERATOR_SHIFT_OPENED_CONCURRENTLY,
+                    Map.of("operatorName", operator.getFullName()),
+                    operator.getFullName() + " was just given another open shift. Refresh the page to see it.");
+        }
     }
 
     /**
@@ -235,7 +257,8 @@ public class ShiftService {
 
         List<ShiftFuelReading> readings = fuelReadingRepository.findByShiftId(shiftId);
         ShiftLifecycleSupportService.ClosingSummary closingSummary =
-                lifecycleSupportService.processClosingReadings(shiftId, maxMeterByNozzleId, request, cashDropped, readings);
+                lifecycleSupportService.processClosingReadings(pumpId, maxMeterByNozzleId, request, cashDropped, readings);
+        requireReasonForDiscrepancy(request, closingSummary);
         List<CloseShiftRequest.CreditEntryRequest> creditEntries =
                 lifecycleSupportService.validateCloseCreditEntries(shiftId, request.getCreditTotal(), request.getCreditEntries(),
                         request.getReplacedCreditEntryIds());
@@ -274,19 +297,36 @@ public class ShiftService {
                 readings.stream().filter(reading -> reading.getTankId() == null).map(ShiftFuelReading::getFuelType).toList());
         for (ShiftFuelReading reading : readings) {
             if (reading.getUnitsSold() != null && reading.getUnitsSold().compareTo(ZERO) > 0) {
-                fuelDeductionService.deductForShiftClose(shift.getId(), shift.getPumpId(), reading.getFuelType(),
-                        reading.getTankId(), reading.getUnitsSold(), shift.getActualStartTime());
+                reading.setStockShortfallLitres(fuelDeductionService.deductForShiftClose(shift.getId(), shift.getPumpId(),
+                        reading.getFuelType(), reading.getTankId(), reading.getUnitsSold(), shift.getActualStartTime()));
             }
+        }
+        fuelReadingRepository.saveAll(readings);
+        shift.setStockShortfall(readings.stream().anyMatch(reading -> reading.getStockShortfallLitres().signum() > 0));
+    }
+
+    /** Mirrors the close form: an operator must say why the cash does not match whenever it is short or over. */
+    private static void requireReasonForDiscrepancy(CloseShiftRequest request,
+                                                    ShiftLifecycleSupportService.ClosingSummary closingSummary) {
+        if (closingSummary.getDiscrepancyType() != null
+                && (request.getDiscrepancyReason() == null || request.getDiscrepancyReason().isBlank())) {
+            throw new BusinessException(ErrorCodes.DISCREPANCY_REASON_REQUIRED,
+                    Map.of("expectedAmount", closingSummary.getTotalDue().toPlainString(),
+                            "collectedAmount", closingSummary.getTotalCollected().toPlainString()),
+                    "A discrepancy reason is required when the collected amount does not match the expected amount. " +
+                    "Expected: ₹" + closingSummary.getTotalDue() + ", Collected: ₹" + closingSummary.getTotalCollected() + ".");
         }
     }
 
     private void applyClosingValues(Shift shift, CloseShiftRequest request, BigDecimal cashDropped,
                                     ShiftLifecycleSupportService.ClosingSummary closingSummary, User closedBy) {
         // A late close is recorded at the scheduled end, so DAY balance-sheet windows stay aligned
-        // with the shift definition; an early or on-time close keeps the real time.
+        // with the shift definition; the real close time is kept separately.
         OffsetDateTime scheduledEnd = shiftReadModelService.computeScheduledEndTime(shift);
         OffsetDateTime closeTime = businessClock.now();
         shift.setActualEndTime(scheduledEnd != null && closeTime.isAfter(scheduledEnd) ? scheduledEnd : closeTime);
+        shift.setClosedAt(closeTime);
+        shift.setRoundingAdjustment(closingSummary.getRoundingAdjustment());
         shift.setClosedByUserId(closedBy.getId());
         shift.setTotalAmountDue(closingSummary.getTotalDue());
         shift.setCashCollected(request.getCashCollected().add(cashDropped));
@@ -299,7 +339,8 @@ public class ShiftService {
         shift.setDiscrepancyAmount(closingSummary.getDiscrepancyAmount().compareTo(ZERO) > 0
                 ? closingSummary.getDiscrepancyAmount() : null);
         shift.setDiscrepancyType(closingSummary.getDiscrepancyType());
-        shift.setDiscrepancyReason(request.getDiscrepancyReason());
+        shift.setDiscrepancyReason(request.getDiscrepancyReason() != null && !request.getDiscrepancyReason().isBlank()
+                ? request.getDiscrepancyReason().trim() : null);
         shift.setStatus(lifecycleSupportService.escalateStatusIfNeeded(closingSummary.getStatus(),
                 closingSummary.getDiscrepancyAmount(), shift.getPumpId()));
     }
@@ -381,8 +422,7 @@ public class ShiftService {
         }
 
         if (isPendingApproval) {
-            UserRole role = currentUser.getRole();
-            if (role != UserRole.OWNER && role != UserRole.ADMIN && role != UserRole.SUPER_ADMIN) {
+            if (!isOwnerOrAdmin(currentUser)) {
                 throw new BusinessException(ErrorCodes.ESCALATED_DISCREPANCY_NEEDS_OWNER, Map.of(),
                         "This discrepancy exceeds the escalation threshold and requires Owner or Admin approval. " +
                         "Managers cannot resolve escalated discrepancies.");
@@ -397,6 +437,11 @@ public class ShiftService {
                 && (request.resolutionNote() == null || request.resolutionNote().isBlank())) {
             throw new BusinessException(ErrorCodes.WAIVER_REASON_REQUIRED, Map.of(),
                     "A mandatory reason is required when waiving a discrepancy (Business Rule 19).");
+        }
+        if (request.resolutionAction() == DiscrepancyResolution.WAIVED
+                && currentUser.getId().equals(shift.getClosedByUserId()) && !isOwnerOrAdmin(currentUser)) {
+            throw new BusinessException(ErrorCodes.WAIVER_BY_CLOSER_NOT_ALLOWED, Map.of(),
+                    "You closed this shift, so you cannot waive its discrepancy. Ask another manager or the owner.");
         }
 
         // CASH_RECOVERY only makes sense for SHORT discrepancies — the operator
@@ -418,24 +463,20 @@ public class ShiftService {
 
         if (request.resolutionAction() == DiscrepancyResolution.CASH_RECOVERY) {
             closedDayGuard.requireTodayOpen(shift.getPumpId());
+            BigDecimal recovered = recordCashRecovery(shift, request.recoveredAmount(), currentUser);
+            if (recovered.compareTo(shift.getDiscrepancyAmount()) < 0) {
+                log.info("Part of discrepancy recovered: shiftId={}, recovered={}, remaining={}, by={}",
+                        shiftId, recovered, shift.shortageNotRecovered(), currentUser.getId());
+                return shiftReadModelService.toResponseWithLookups(shift);
+            }
         }
         shift.setDiscrepancyResolution(request.resolutionAction());
         shift.setDiscrepancyResolutionNote(request.resolutionNote() != null ? request.resolutionNote().trim() : null);
         shift.setDiscrepancyResolvedById(currentUser.getId());
         shift.setDiscrepancyResolvedAt(businessClock.now());
         shift.setStatus(ShiftStatus.CLOSED_DISCREPANCY_RESOLVED);
-
-        // Record the physically received cash so balance sheets can include it
-        // as a separate inflow on the day the recovery was made.
-        if (request.resolutionAction() == DiscrepancyResolution.CASH_RECOVERY) {
-            shift.setCashRecoveryAmount(shift.getDiscrepancyAmount());
-        }
         shift = shiftRepository.save(shift);
-        if (request.resolutionAction() == DiscrepancyResolution.CASH_RECOVERY) {
-            lifecycleSupportService.createCashRecoveryEvent(shift, currentUser);
-            balanceSheetStalenessService.markDaySheetsStale(shift.getPumpId(), List.of(businessClock.today()),
-                    StaleReasons.cashRecovered(shift.getId()));
-        } else {
+        if (request.resolutionAction() != DiscrepancyResolution.CASH_RECOVERY) {
             balanceSheetStalenessService.markSheetsOfShiftStale(shift.getPumpId(), shift.getShiftDate(),
                     shift.getShiftDefinitionId(), StaleReasons.discrepancyResolved(shift.getId()));
         }
@@ -446,15 +487,59 @@ public class ShiftService {
         return shiftReadModelService.toResponseWithLookups(shift);
     }
 
-    /** Records who is investigating and why; the shift stays pending until a final action is taken. */
+    /**
+     * The operator hands back cash for a SHORT discrepancy, all of it or part. It enters the safe today; a part leaves
+     * the rest pending, to be deducted from salary or waived. Only one recovery is recorded per shift.
+     */
+    private BigDecimal recordCashRecovery(Shift shift, BigDecimal requestedAmount, User currentUser) {
+        if (shift.getCashRecoveryAmount() != null) {
+            throw new BusinessException(ErrorCodes.CASH_RECOVERY_ALREADY_RECORDED,
+                    Map.of("amount", shift.getCashRecoveryAmount().toPlainString()),
+                    "₹" + shift.getCashRecoveryAmount() + " was already recovered for this shift. Resolve the rest by "
+                            + "salary deduction or waiver.");
+        }
+        BigDecimal amount = (requestedAmount != null ? requestedAmount : shift.getDiscrepancyAmount())
+                .setScale(2, RoundingMode.HALF_UP);
+        if (amount.signum() <= 0 || amount.compareTo(shift.getDiscrepancyAmount()) > 0) {
+            throw new BusinessException(ErrorCodes.CASH_RECOVERY_AMOUNT_INVALID,
+                    Map.of("amount", amount.toPlainString(), "maxAmount", shift.getDiscrepancyAmount().toPlainString()),
+                    "The amount recovered must be more than ₹0 and at most the shortage of ₹" + shift.getDiscrepancyAmount() + ".");
+        }
+        shift.setCashRecoveryAmount(amount);
+        shift.setCashRecoveredAt(businessClock.now());
+        shiftRepository.save(shift);
+        lifecycleSupportService.createCashRecoveryEvent(shift, currentUser);
+        balanceSheetStalenessService.markDaySheetsStale(shift.getPumpId(), List.of(businessClock.today()),
+                StaleReasons.cashRecovered(shift.getId()));
+        return amount;
+    }
+
+    private static boolean isOwnerOrAdmin(User user) {
+        UserRole role = user.getRole();
+        return role == UserRole.OWNER || role == UserRole.ADMIN || role == UserRole.SUPER_ADMIN;
+    }
+
+    /**
+     * Records who is investigating and why; the shift stays pending until a final action is taken. Every note is kept
+     * in the history; the shift shows the latest and when the investigation first started.
+     */
     private ShiftResponse startInvestigation(Shift shift, String note, User currentUser) {
         if (note == null || note.isBlank()) {
             throw new BusinessException(ErrorCodes.INVESTIGATION_NOTE_REQUIRED, Map.of(),
                     "A note is required when putting a discrepancy under investigation.");
         }
+        OffsetDateTime now = businessClock.now();
+        investigationNoteRepository.save(ShiftInvestigationNote.builder()
+                .shiftId(shift.getId())
+                .note(note.trim())
+                .writtenByUserId(currentUser.getId())
+                .writtenAt(now)
+                .build());
         shift.setInvestigationNote(note.trim());
-        shift.setInvestigationStartedById(currentUser.getId());
-        shift.setInvestigationStartedAt(businessClock.now());
+        if (shift.getInvestigationStartedAt() == null) {
+            shift.setInvestigationStartedById(currentUser.getId());
+            shift.setInvestigationStartedAt(now);
+        }
         shift = shiftRepository.save(shift);
 
         log.info("Discrepancy put under investigation: shiftId={}, status={}, by={}",

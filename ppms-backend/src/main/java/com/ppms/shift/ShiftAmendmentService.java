@@ -103,7 +103,7 @@ public class ShiftAmendmentService {
 
         Map<Long, BigDecimal> oldUnitsByNozzle = readings.stream()
                 .collect(Collectors.toMap(ShiftFuelReading::getNozzleId, reading -> orZero(reading.getUnitsSold())));
-        ShiftLifecycleSupportService.ClosingSummary summary = lifecycleSupportService.processClosingReadings(shiftId,
+        ShiftLifecycleSupportService.ClosingSummary summary = lifecycleSupportService.processClosingReadings(pumpId,
                 maxMeterByNozzle(nozzleById), closeRequestOf(request, shift), cashDropped, readings);
         if (readings.stream().anyMatch(reading -> reading.getUnitsSold().compareTo(oldUnitsByNozzle.get(reading.getNozzleId())) != 0)) {
             deductAgain(shift, readings);
@@ -159,7 +159,12 @@ public class ShiftAmendmentService {
                     "Only a closed shift can be amended; close it instead.");
         }
         DiscrepancyResolution resolution = shift.getDiscrepancyResolution();
-        if (resolution == DiscrepancyResolution.CASH_RECOVERY || resolution == DiscrepancyResolution.SALARY_DEDUCTION) {
+        if (shift.getCashRecoveryAmount() != null) {
+            throw new BusinessException(ErrorCodes.SHIFT_AMEND_DISCREPANCY_SETTLED,
+                    Map.of("resolutionCode", DiscrepancyResolution.CASH_RECOVERY.name()),
+                    "Cash was already recovered for this shift's discrepancy, so its figures can no longer be amended.");
+        }
+        if (resolution == DiscrepancyResolution.SALARY_DEDUCTION) {
             throw new BusinessException(ErrorCodes.SHIFT_AMEND_DISCREPANCY_SETTLED, Map.of("resolutionCode", resolution.name()),
                     "This shift's discrepancy was settled by " + resolution + ", so its figures can no longer be amended.");
         }
@@ -228,11 +233,14 @@ public class ShiftAmendmentService {
                 readings.stream().filter(reading -> reading.getTankId() == null).map(ShiftFuelReading::getFuelType).toList());
         fuelDeductionService.restoreShiftCloseConsumption(shift.getId());
         for (ShiftFuelReading reading : readings) {
-            if (reading.getUnitsSold().signum() > 0) {
-                fuelDeductionService.deductForShiftClose(shift.getId(), shift.getPumpId(), reading.getFuelType(),
-                        reading.getTankId(), reading.getUnitsSold(), shift.getActualStartTime());
-            }
+            reading.setStockShortfallLitres(reading.getUnitsSold().signum() > 0
+                    ? fuelDeductionService.deductForShiftClose(shift.getId(), shift.getPumpId(), reading.getFuelType(),
+                            reading.getTankId(), reading.getUnitsSold(), shift.getActualStartTime())
+                    : BigDecimal.ZERO);
         }
+        fuelReadingRepository.saveAll(readings);
+        shift.setStockShortfall(shift.isStockShortfall()
+                || readings.stream().anyMatch(reading -> reading.getStockShortfallLitres().signum() > 0));
     }
 
     /** A changed discrepancy needs deciding again, so an earlier waiver or investigation no longer applies. */
@@ -242,6 +250,7 @@ public class ShiftAmendmentService {
         boolean discrepancyChanged = summary.getDiscrepancyType() != shift.getDiscrepancyType()
                 || orZero(newDiscrepancy).compareTo(orZero(shift.getDiscrepancyAmount())) != 0;
         shift.setTotalAmountDue(summary.getTotalDue());
+        shift.setRoundingAdjustment(summary.getRoundingAdjustment());
         shift.setCashCollected(request.cashCollected().setScale(2, RoundingMode.HALF_UP).add(cashDropped));
         shift.setCashDenominations(null);
         shift.setUpiCollected(request.upiCollected().setScale(2, RoundingMode.HALF_UP));

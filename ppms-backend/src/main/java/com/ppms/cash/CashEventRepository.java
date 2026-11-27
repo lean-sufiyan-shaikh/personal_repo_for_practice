@@ -59,6 +59,24 @@ public interface CashEventRepository extends JpaRepository<CashEvent, Long> {
     BigDecimal computeBalanceAtEndOf(@Param("pumpId") Long pumpId, @Param("businessDate") LocalDate businessDate);
 
     /**
+     * The lowest balance the safe ends a day with, over the days from the given business day on that have movements;
+     * null when none of them do.
+     */
+    @Query(value = """
+            SELECT MIN(daily.balance_after) FROM (
+                SELECT e.event_date,
+                       SUM(SUM(CASE WHEN e.event_type IN ('CASH_OUT', 'BANK_DEPOSIT') THEN -e.amount ELSE e.amount END))
+                           OVER (ORDER BY e.event_date) AS balance_after
+                FROM cash_events e
+                WHERE e.pump_id = :pumpId
+                  AND e.event_type IN ('OPENING_BALANCE', 'CASH_IN', 'CASH_OUT', 'CASH_DROP', 'BANK_DEPOSIT')
+                GROUP BY e.event_date
+            ) daily
+            WHERE daily.event_date >= :businessDate
+            """, nativeQuery = true)
+    BigDecimal findLowestEndOfDayBalanceFrom(@Param("pumpId") Long pumpId, @Param("businessDate") LocalDate businessDate);
+
+    /**
      * Ids of the safe's money movements, newest first, each with the balance right after it. The running balance is
      * taken over every movement of the pump before the date filter, so the newest row matches computeBalance.
      */

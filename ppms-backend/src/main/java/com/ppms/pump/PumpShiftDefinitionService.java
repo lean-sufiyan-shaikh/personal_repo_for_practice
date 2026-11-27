@@ -14,9 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.lang.Nullable;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,6 +34,7 @@ public class PumpShiftDefinitionService {
     private final ShiftRepository               shiftRepository;
     private final PumpShiftDefinitionSupportService supportService;
     private final BusinessClock businessClock;
+    private final PumpLocationRepository pumpLocationRepository;
 
     // ── Query ─────────────────────────────────────────────────────────────────
 
@@ -99,33 +102,125 @@ public class PumpShiftDefinitionService {
      */
     public CurrentShiftWindow detectCurrentShift(Long pumpId) {
         OffsetDateTime now = businessClock.now();
-        LocalDate today = now.toLocalDate();
-        LocalTime time = now.toLocalTime();
-        LocalDate yesterday = today.minusDays(1);
+        requireScheduleConfigured(pumpId, now.toLocalDate());
+        return findCurrentShift(pumpId, now).orElseThrow(() -> outsideWindows(now));
+    }
 
-        List<PumpShiftDefinition> todaysDefinitions = repository.findActiveForPumpOnDate(pumpId, today);
-        List<PumpShiftDefinition> yesterdaysDefinitions = repository.findActiveForPumpOnDate(pumpId, yesterday);
-        if (todaysDefinitions.isEmpty() && yesterdaysDefinitions.isEmpty()) {
+    /**
+     * The windows a shift can be opened for now: the current one, then one starting within the pump's early-start
+     * grace. A shift opened a few minutes early for the next window must not land in the window that is ending.
+     */
+    public List<OpenableShiftWindowResponse> getOpenableWindows(Long pumpId) {
+        OpenableWindows windows = openableWindows(pumpId);
+        CurrentShiftWindow suggested = windows.suggested();
+        return windows.all().stream()
+                .map(window -> OpenableShiftWindowResponse.of(window, window != windows.current(), window == suggested))
+                .toList();
+    }
+
+    /**
+     * The window a shift opened now belongs to. Without a choice it is the upcoming window when one starts within the
+     * grace, else the current one; a chosen window must be one of those two.
+     */
+    public CurrentShiftWindow windowForOpening(Long pumpId, @Nullable Long definitionId, @Nullable LocalDate shiftDate) {
+        OpenableWindows windows = openableWindows(pumpId);
+        if (definitionId == null) {
+            return windows.suggested();
+        }
+        return windows.all().stream()
+                .filter(window -> window.definition().getId().equals(definitionId))
+                .filter(window -> shiftDate == null || window.shiftDate().equals(shiftDate))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ErrorCodes.SHIFT_WINDOW_NOT_OPENABLE_NOW,
+                        Map.of("definitionId", definitionId),
+                        "That shift window cannot be opened now. Choose the current window, or the next one when it "
+                                + "starts within the pump's early start grace."));
+    }
+
+    private record OpenableWindows(@Nullable CurrentShiftWindow current, @Nullable CurrentShiftWindow upcoming) {
+        List<CurrentShiftWindow> all() {
+            List<CurrentShiftWindow> windows = new ArrayList<>();
+            if (current != null) {
+                windows.add(current);
+            }
+            if (upcoming != null) {
+                windows.add(upcoming);
+            }
+            return windows;
+        }
+
+        CurrentShiftWindow suggested() {
+            return upcoming != null ? upcoming : current;
+        }
+    }
+
+    private OpenableWindows openableWindows(Long pumpId) {
+        OffsetDateTime now = businessClock.now();
+        requireScheduleConfigured(pumpId, now.toLocalDate());
+        int graceMinutes = pumpLocationRepository.findById(pumpId)
+                .map(PumpLocation::getEarlyStartGraceMinutes)
+                .orElse(PumpLocation.DEFAULT_EARLY_START_GRACE_MINUTES);
+        CurrentShiftWindow current = findCurrentShift(pumpId, now).orElse(null);
+        CurrentShiftWindow upcoming = findWindowStartingWithin(pumpId, now, graceMinutes).orElse(null);
+        if (current == null && upcoming == null) {
+            throw outsideWindows(now);
+        }
+        return new OpenableWindows(current, upcoming);
+    }
+
+    private void requireScheduleConfigured(Long pumpId, LocalDate today) {
+        if (repository.findActiveForPumpOnDate(pumpId, today).isEmpty()
+                && repository.findActiveForPumpOnDate(pumpId, today.minusDays(1)).isEmpty()) {
             throw new BusinessException(ErrorCodes.SHIFT_SCHEDULE_NOT_CONFIGURED, Map.of(),
                     "No shift schedule has been configured for this pump. " +
                     "Ask an admin to set up shift definitions under Pump Settings.");
         }
+    }
 
-        Optional<PumpShiftDefinition> continuingNightShift = yesterdaysDefinitions.stream()
+    private Optional<CurrentShiftWindow> findCurrentShift(Long pumpId, OffsetDateTime now) {
+        LocalDate today = now.toLocalDate();
+        LocalTime time = now.toLocalTime();
+        LocalDate yesterday = today.minusDays(1);
+
+        Optional<PumpShiftDefinition> continuingNightShift = repository.findActiveForPumpOnDate(pumpId, yesterday).stream()
                 .filter(d -> d.isInAfterMidnightPart(time))
                 .findFirst();
         if (continuingNightShift.isPresent()) {
-            return new CurrentShiftWindow(continuingNightShift.get(), yesterday);
+            return Optional.of(new CurrentShiftWindow(continuingNightShift.get(), yesterday));
         }
-
-        return todaysDefinitions.stream()
+        return repository.findActiveForPumpOnDate(pumpId, today).stream()
                 .filter(d -> d.containsTime(time) && !d.isInAfterMidnightPart(time))
                 .findFirst()
-                .map(d -> new CurrentShiftWindow(d, today))
-                .orElseThrow(() -> new BusinessException(ErrorCodes.CURRENT_TIME_OUTSIDE_SHIFT_WINDOWS,
-                        Map.of("time", time.withSecond(0).withNano(0).toString()),
-                        "The current time (" + time.withSecond(0).withNano(0) + ") does not fall within any configured " +
-                        "shift window for this pump. Ask an admin to review the shift definitions."));
+                .map(d -> new CurrentShiftWindow(d, today));
+    }
+
+    /** The earliest window starting after now and no later than the grace from now, today's or tomorrow's. */
+    private Optional<CurrentShiftWindow> findWindowStartingWithin(Long pumpId, OffsetDateTime now, int graceMinutes) {
+        if (graceMinutes <= 0) {
+            return Optional.empty();
+        }
+        LocalDateTime localNow = now.toLocalDateTime();
+        LocalDateTime latestStart = localNow.plusMinutes(graceMinutes);
+        List<CurrentShiftWindow> starting = new ArrayList<>();
+        for (LocalDate day = localNow.toLocalDate(); !day.isAfter(latestStart.toLocalDate()); day = day.plusDays(1)) {
+            LocalDate shiftDate = day;
+            repository.findActiveForPumpOnDate(pumpId, shiftDate).stream()
+                    .filter(d -> {
+                        LocalDateTime start = LocalDateTime.of(shiftDate, d.getStartTime());
+                        return start.isAfter(localNow) && !start.isAfter(latestStart);
+                    })
+                    .forEach(d -> starting.add(new CurrentShiftWindow(d, shiftDate)));
+        }
+        return starting.stream()
+                .min(Comparator.comparing(window -> LocalDateTime.of(window.shiftDate(), window.definition().getStartTime())));
+    }
+
+    private static BusinessException outsideWindows(OffsetDateTime now) {
+        LocalTime time = now.toLocalTime().withSecond(0).withNano(0);
+        return new BusinessException(ErrorCodes.CURRENT_TIME_OUTSIDE_SHIFT_WINDOWS,
+                Map.of("time", time.toString()),
+                "The current time (" + time + ") does not fall within any configured " +
+                "shift window for this pump. Ask an admin to review the shift definitions.");
     }
 
     /**

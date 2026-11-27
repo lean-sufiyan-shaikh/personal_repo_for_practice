@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -168,15 +169,42 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
 
     // ── Report queries ────────────────────────────────────────────────────────
 
-    /** Closed shifts for a pump within a date range (inclusive). Used by P&L and discrepancy reports. */
+    /**
+     * Closed shifts for a pump within a date range (inclusive), as the balance sheet counts them: an auto-closed shift
+     * has no closing readings or collections yet, so it is left out. Used by P&L, shift and discrepancy reports.
+     */
     @Query("""
             SELECT s FROM Shift s
             WHERE s.pumpId = :pumpId
               AND s.shiftDate BETWEEN :from AND :to
-              AND s.status NOT IN ('OPEN', 'OPEN_OVERDUE')
+              AND s.status NOT IN ('OPEN', 'OPEN_OVERDUE', 'AUTO_CLOSED_OVERDUE')
             ORDER BY s.shiftDate ASC, s.actualStartTime ASC
             """)
     List<Shift> findClosedShiftsByDateRange(Long pumpId, LocalDate from, LocalDate to);
+
+    /** Auto-closed shifts in the date range still waiting for their closing readings to be entered. */
+    @Query("""
+            SELECT COUNT(s) FROM Shift s
+            WHERE s.pumpId = :pumpId
+              AND s.shiftDate BETWEEN :from AND :to
+              AND s.status = 'AUTO_CLOSED_OVERDUE'
+            """)
+    long countAutoClosedShiftsByDateRange(Long pumpId, LocalDate from, LocalDate to);
+
+    /** Moves the pump's pending discrepancies to or from owner approval for a changed escalation threshold. */
+    @Modifying(flushAutomatically = true)
+    @Query(value = """
+            UPDATE shifts
+            SET status = CASE WHEN discrepancy_amount > :threshold
+                                  THEN 'CLOSED_DISCREPANCY_PENDING_APPROVAL'::shift_status
+                              ELSE 'CLOSED_DISCREPANCY_PENDING'::shift_status
+                         END,
+                updated_at = NOW()
+            WHERE pump_id = :pumpId
+              AND status IN ('CLOSED_DISCREPANCY_PENDING', 'CLOSED_DISCREPANCY_PENDING_APPROVAL')
+              AND discrepancy_amount IS NOT NULL
+            """, nativeQuery = true)
+    int reEscalatePendingDiscrepancies(@Param("pumpId") Long pumpId, @Param("threshold") BigDecimal threshold);
 
     /**
      * All shifts (open and closed) for a pump within a date range.
@@ -401,18 +429,15 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
             @Param("pumpId") Long pumpId, @Param("operatorId") Long operatorId);
 
     /**
-     * Total cash recoveries for SHORT discrepancies resolved via CASH_RECOVERY on a given IST calendar date.
-     * Used by DAY balance sheets to show inbound cash from operator repayments on the resolution day.
-     * Native query required to avoid Hibernate's NAMED_ENUM type-cast issue (see findSalaryDeductionShifts).
+     * Total cash recovered from operators for SHORT discrepancies on a given IST calendar date, part recoveries included.
+     * Used by DAY balance sheets to show inbound cash from operator repayments on the day it was received.
      */
     @Query(value = """
             SELECT COALESCE(SUM(cash_recovery_amount), 0)
             FROM shifts
             WHERE pump_id = :pumpId
-              AND discrepancy_resolution = 'CASH_RECOVERY'::discrepancy_resolution
               AND cash_recovery_amount IS NOT NULL
-              AND cash_recovery_amount > 0
-              AND DATE(discrepancy_resolved_at AT TIME ZONE 'Asia/Kolkata') = :date
+              AND DATE(cash_recovered_at AT TIME ZONE 'Asia/Kolkata') = :date
             """, nativeQuery = true)
     BigDecimal sumCashRecoveriesOnDate(@Param("pumpId") Long pumpId, @Param("date") LocalDate date);
 

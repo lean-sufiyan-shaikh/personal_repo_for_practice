@@ -39,6 +39,7 @@ import com.ppms.report.BalanceSheetRepository;
 import com.ppms.settlement.PaymentSettlementRepository;
 import com.ppms.settlement.SettlementPaymentType;
 import com.ppms.shift.Shift;
+import com.ppms.shift.ShiftFuelReadingRepository;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.shift.ShiftStatus;
 import com.ppms.user.User;
@@ -113,6 +114,7 @@ public class AttentionService {
     private final UndergroundTankRepository tankRepository;
     private final PumpShiftDefinitionRepository shiftDefinitionRepository;
     private final DipCheckRepository dipCheckRepository;
+    private final ShiftFuelReadingRepository fuelReadingRepository;
     private final WetStockLossAlertService wetStockLossAlertService;
     private final ShortageClaimQueryService shortageClaimQueryService;
     private final CashDropService cashDropService;
@@ -398,6 +400,19 @@ public class AttentionService {
                     new CodedText(ServerTextCodes.ATTENTION_WET_STOCK_LOSS, params("count", tanksLosing, "days", days),
                             plural(tanksLosing, "tank") + " losing more fuel than its limit over the last " + days + " days"),
                     RECONCILIATION_PATH));
+        }
+        Object[] shortfall = fuelReadingRepository.summariseUncoveredShortfallsByPumpId(pumpId).get(0);
+        long shiftsShort = (Long) shortfall[0];
+        if (shiftsShort > 0) {
+            BigDecimal litres = ((BigDecimal) shortfall[1]).setScale(2, RoundingMode.HALF_UP);
+            Map<String, Object> shortfallParams = new LinkedHashMap<>();
+            shortfallParams.put("count", shiftsShort);
+            shortfallParams.put("litres", litres.toPlainString());
+            items.add(item.of(AttentionType.STOCK_SHORTFALL, AttentionSeverity.HIGH, shiftsShort, null,
+                    new CodedText(ServerTextCodes.ATTENTION_STOCK_SHORTFALL, shortfallParams,
+                            "Stock went negative: " + plural(shiftsShort, "shift") + " sold " + litres.toPlainString()
+                                    + " L more than the tanks held — record the missing delivery"),
+                    INVENTORY_PATH));
         }
         long tanksWithoutDip = tanksWithoutDipYesterday(pumpId);
         if (tanksWithoutDip > 0) {

@@ -72,7 +72,7 @@ class TankScorerTest {
         for (int i = 0; i < variances.length; i++) {
             LocalDate day = LAST_DAY.minusDays(7L * (variances.length - 1 - i));
             periods.add(new Period(day, day, 1, PeriodStatus.RECONCILED, null, null, new BigDecimal("1000"), null, null,
-                    null, new BigDecimal(variances[i]), null, true, null, null));
+                    null, new BigDecimal(variances[i]), null, true, null, null, null));
         }
         return periods;
     }

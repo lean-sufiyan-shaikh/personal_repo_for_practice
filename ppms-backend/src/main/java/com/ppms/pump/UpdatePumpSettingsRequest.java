@@ -16,5 +16,7 @@ public record UpdatePumpSettingsRequest(
         BigDecimal receiptTolerancePercent,
         BigDecimal densityTolerance,
         BigDecimal safeCountTolerance,
-        LocalTime safeCountCutoffTime
+        LocalTime safeCountCutoffTime,
+        Integer earlyStartGraceMinutes,
+        BigDecimal roundingTolerance
 ) {}

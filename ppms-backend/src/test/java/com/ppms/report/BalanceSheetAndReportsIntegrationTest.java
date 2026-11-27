@@ -6,6 +6,9 @@ import com.ppms.fuel.FuelType;
 import com.ppms.inventory.InventoryLot;
 import com.ppms.inventory.InventoryLotRepository;
 import com.ppms.inventory.LotStatus;
+import com.ppms.shift.Shift;
+import com.ppms.shift.ShiftRepository;
+import com.ppms.shift.ShiftStatus;
 import com.ppms.support.ApiIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,11 +24,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
 
     @Autowired private InventoryLotRepository inventoryLotRepository;
+    @Autowired private ShiftRepository shiftRepository;
 
     private PumpSetup setup;
     private long shiftId;
@@ -218,12 +223,14 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
         JsonNode tankLots = json(perform(get("/api/pumps/{pumpId}/reports/inventory-lots", setup.pumpId())
                 .param("tankId", setup.tank().getId().toString()), setup.owner()).andExpect(status().isOk()));
 
-        assertThat(shifts).hasSize(1);
-        assertThat(shifts.get(0).get("id").asLong()).isEqualTo(shiftId);
-        assertThat(shifts.get(0).get("totalAmountDue").decimalValue()).isEqualByComparingTo("2000.00");
-        assertThat(shifts.get(0).get("cashCollected").decimalValue()).isEqualByComparingTo("1900.00");
-        assertThat(shifts.get(0).get("discrepancyAmount").decimalValue()).isEqualByComparingTo("100.00");
-        assertThat(shifts.get(0).get("discrepancyType").asText()).isEqualTo("SHORT");
+        JsonNode lines = shifts.get("shifts");
+        assertThat(lines).hasSize(1);
+        assertThat(lines.get(0).get("id").asLong()).isEqualTo(shiftId);
+        assertThat(lines.get(0).get("totalAmountDue").decimalValue()).isEqualByComparingTo("2000.00");
+        assertThat(lines.get(0).get("cashCollected").decimalValue()).isEqualByComparingTo("1900.00");
+        assertThat(lines.get(0).get("discrepancyAmount").decimalValue()).isEqualByComparingTo("100.00");
+        assertThat(lines.get(0).get("discrepancyType").asText()).isEqualTo("SHORT");
+        assertThat(shifts.get("autoClosedShiftCount").asLong()).isZero();
         assertThat(tankLots.get("totalRemaining").decimalValue()).isEqualByComparingTo("4980");
     }
 
@@ -273,12 +280,76 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
         String csv = perform(get("/api/pumps/{pumpId}/export/shifts", setup.pumpId())
                 .param("from", today).param("to", today), setup.owner())
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        assertThat(csv).contains("UPI Collected").contains("," + setup.operator().getId() + ",All day,CLOSED_DISCREPANCY_PENDING,2000.00,1900.00");
+        assertThat(csv).contains("UPI Collected").contains(",Operator,Window,").contains(",Discrepancy,Short/Over\n")
+                .contains("," + setup.operator().getFullName() + ",All day,CLOSED_DISCREPANCY_PENDING,2000.00,1900.00")
+                .contains(",100.00,SHORT\n");
 
         perform(get("/api/pumps/{pumpId}/export/expenses", setup.pumpId())
                 .param("from", today).param("to", today), setup.owner()).andExpect(status().isOk());
         perform(get("/api/pumps/{pumpId}/export/shifts", setup.pumpId())
                 .param("from", today).param("to", today), setup.manager()).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void autoClosedShiftsWithoutClosingReadingsAreLeftOutOfReportsAndCountedSeparately() throws Exception {
+        Shift autoClosed = shiftRepository.save(Shift.builder()
+                .pumpId(setup.pumpId())
+                .duId(setup.du().getId())
+                .operatorId(setup.operator().getId())
+                .openedByUserId(setup.manager().getId())
+                .shiftDate(TestDates.today())
+                .actualStartTime(TestDates.now().minusHours(9))
+                .actualEndTime(TestDates.now().minusHours(1))
+                .status(ShiftStatus.AUTO_CLOSED_OVERDUE)
+                .build());
+
+        JsonNode profitLoss = json(perform(get("/api/pumps/{pumpId}/reports/profit-loss", setup.pumpId())
+                .param("from", today).param("to", today), setup.owner()).andExpect(status().isOk()));
+        JsonNode shifts = json(perform(get("/api/pumps/{pumpId}/reports/shifts", setup.pumpId())
+                .param("from", today).param("to", today), setup.owner()).andExpect(status().isOk()));
+        JsonNode discrepancy = json(perform(get("/api/pumps/{pumpId}/reports/operator-discrepancy", setup.pumpId())
+                .param("from", today).param("to", today), setup.owner()).andExpect(status().isOk()));
+        String csv = perform(get("/api/pumps/{pumpId}/export/shifts", setup.pumpId())
+                .param("from", today).param("to", today), setup.owner())
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+
+        assertThat(profitLoss.get("totalShifts").asInt()).isEqualTo(1);
+        assertThat(profitLoss.get("autoClosedShiftCount").asLong()).isEqualTo(1);
+        assertThat(shifts.get("shifts")).extracting(line -> line.get("id").asLong()).containsExactly(shiftId);
+        assertThat(shifts.get("autoClosedShiftCount").asLong()).isEqualTo(1);
+        assertThat(discrepancy.get("totalDiscrepancyShifts").asInt()).isEqualTo(1);
+        assertThat(discrepancy.get("autoClosedShiftCount").asLong()).isEqualTo(1);
+        assertThat(csv).doesNotContain("\n" + autoClosed.getId() + ",");
+    }
+
+    @Test
+    void reportRangesMustRunForwardsAndStayWithinTheirLimit() throws Exception {
+        String yesterday = TestDates.today().minusDays(1).toString();
+        String yearAgo = TestDates.today().minusDays(366).toString();
+        String quarterAgo = TestDates.today().minusDays(92).toString();
+
+        perform(get("/api/pumps/{pumpId}/reports/profit-loss", setup.pumpId())
+                .param("from", today).param("to", yesterday), setup.owner())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DATE_RANGE_START_AFTER_END"));
+        perform(get("/api/pumps/{pumpId}/reports/profit-loss", setup.pumpId())
+                .param("from", yearAgo).param("to", today), setup.owner())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DATE_RANGE_TOO_LONG"))
+                .andExpect(jsonPath("$.params.maxDays").value(366));
+        perform(get("/api/pumps/{pumpId}/reports/profit-loss", setup.pumpId())
+                .param("from", TestDates.today().minusDays(365).toString()).param("to", today), setup.owner())
+                .andExpect(status().isOk());
+        perform(get("/api/pumps/{pumpId}/export/shifts", setup.pumpId())
+                .param("from", yearAgo).param("to", today), setup.owner())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DATE_RANGE_TOO_LONG"));
+        for (String report : List.of("shifts", "operator-discrepancy", "dip-pl", "expenses")) {
+            perform(get("/api/pumps/{pumpId}/reports/" + report, setup.pumpId())
+                    .param("from", quarterAgo).param("to", today), setup.owner())
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.params.maxDays").value(92));
+        }
     }
 
     private JsonNode generate(String type, Long shiftDefinitionId) throws Exception {

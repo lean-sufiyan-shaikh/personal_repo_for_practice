@@ -52,8 +52,8 @@ class BalanceSheetInputsCollector {
                              BigDecimal totalAmount) {}
 
     /**
-     * Litres sold and expected revenue per fuel type. Revenue uses each reading's price snapshot so it matches
-     * the shifts' totalAmountDue even after a price change.
+     * Litres sold and expected revenue per fuel type. Revenue uses each reading's segment-priced amount so it matches
+     * the shifts' totalAmountDue, including litres sold after a price change during the shift.
      */
     FuelSales sumFuelSales(List<Long> shiftIds) {
         List<ShiftFuelReading> readings = shiftFuelReadingRepository.findByShiftIdIn(shiftIds);
@@ -62,8 +62,8 @@ class BalanceSheetInputsCollector {
         for (ShiftFuelReading r : readings) {
             BigDecimal units = r.getUnitsSold() != null ? r.getUnitsSold() : BigDecimal.ZERO;
             litresByFuel.merge(r.getFuelType(), units, BigDecimal::add);
-            if (r.getPriceSnapshot() != null && units.compareTo(BigDecimal.ZERO) > 0) {
-                expectedRevByFuel.merge(r.getFuelType(), units.multiply(r.getPriceSnapshot()), BigDecimal::add);
+            if (units.compareTo(BigDecimal.ZERO) > 0) {
+                expectedRevByFuel.merge(r.getFuelType(), r.amountDue(), BigDecimal::add);
             }
         }
         return new FuelSales(litresByFuel, expectedRevByFuel,

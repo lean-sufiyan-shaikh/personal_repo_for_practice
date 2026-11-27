@@ -355,6 +355,7 @@ public class ShiftBackfillService {
                     .endReading(nr.closingReading())
                     .priceSnapshot(historicalPrice)
                     .unitsSold(unitsSold)
+                    .salesAmount(unitsSold.multiply(historicalPrice))
                     .build());
 
             if (unitsSold.compareTo(ZERO) > 0) {

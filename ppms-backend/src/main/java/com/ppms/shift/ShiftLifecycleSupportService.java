@@ -22,6 +22,7 @@ import com.ppms.pump.CurrentShiftWindow;
 import com.ppms.pump.DispensaryUnit;
 import com.ppms.pump.Nozzle;
 import com.ppms.pump.NozzleStatus;
+import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.pump.PumpShiftDefinitionService;
 import com.ppms.pump.TankStatus;
@@ -43,7 +44,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -75,6 +75,7 @@ public class ShiftLifecycleSupportService {
     private final VehicleCreditCheck vehicleCreditCheck;
     private final ClosedDayGuard closedDayGuard;
     private final PumpLocationRepository pumpLocationRepository;
+    private final ShiftPriceSegmentService priceSegmentService;
 
     public User findOperatorForPump(Long operatorId, Long pumpId) {
         User operator = userRepository.findById(operatorId)
@@ -98,9 +99,10 @@ public class ShiftLifecycleSupportService {
      * 5. Operator does not already have an open shift
      * 6. Night-shift consent for female operators
      *
-     * Returns the matching shift definition and the business date of the shift.
+     * Returns the chosen or suggested shift window and the business date of the shift.
      */
-    public CurrentShiftWindow validateShiftCanOpen(DispensaryUnit du, List<Nozzle> nozzles, User operator) {
+    public CurrentShiftWindow validateShiftCanOpen(DispensaryUnit du, List<Nozzle> nozzles, User operator,
+                                                   OpenShiftRequest request) {
         Long pumpId = du.getPumpId();
 
         pumpClosureRepository.findByPumpIdAndClosureDate(pumpId, businessClock.today())
@@ -166,7 +168,8 @@ public class ShiftLifecycleSupportService {
                     operator.getFullName() + " already has an open shift (ID " + existing.getId() + ").");
         });
 
-        CurrentShiftWindow window = shiftDefinitionService.detectCurrentShift(pumpId);
+        CurrentShiftWindow window = shiftDefinitionService.windowForOpening(pumpId, request.getShiftDefinitionId(),
+                request.getShiftDate());
         rejectNightShiftWithoutConsent(window.definition().isNightShift(), operator);
         return window;
     }
@@ -213,12 +216,14 @@ public class ShiftLifecycleSupportService {
     }
 
     /**
-     * Processes end readings for all nozzles in the shift.
+     * Processes end readings for all nozzles in the shift. Litres are priced per price segment when the price changed
+     * while the shift was open. A difference between collected and due within the pump's rounding tolerance closes
+     * the shift balanced and is kept as a rounding adjustment instead of a discrepancy.
      *
      * @param maxMeterByNozzleId maps nozzleId → its maxMeterValue for rollover detection
      * @param cashDropped        confirmed drops already in the safe, collected on top of the cash in the bag
      */
-    public ClosingSummary processClosingReadings(Long shiftId, Map<Long, BigDecimal> maxMeterByNozzleId,
+    public ClosingSummary processClosingReadings(Long pumpId, Map<Long, BigDecimal> maxMeterByNozzleId,
                                                   CloseShiftRequest request, BigDecimal cashDropped,
                                                   List<ShiftFuelReading> readings) {
         rejectDuplicateNozzles(request.getFuelReadings().stream()
@@ -229,6 +234,7 @@ public class ShiftLifecycleSupportService {
                         CloseShiftRequest.OutletEndReadingRequest::nozzleId,
                         CloseShiftRequest.OutletEndReadingRequest::endReading));
 
+        Map<Long, List<ShiftReadingPriceSegment>> segmentsByReading = priceSegmentService.segmentsByReading(readings);
         BigDecimal totalDue = ZERO;
         for (ShiftFuelReading reading : readings) {
             if (!endReadingByNozzleId.containsKey(reading.getNozzleId())) {
@@ -265,9 +271,14 @@ public class ShiftLifecycleSupportService {
             }
 
             BigDecimal unitsSold = MeterRollover.unitsBetween(reading.getStartReading(), endReading, maxMeter);
+            List<ShiftReadingPriceSegment> segments = segmentsByReading.get(reading.getId());
+            BigDecimal salesAmount = segments == null
+                    ? unitsSold.multiply(reading.getPriceSnapshot())
+                    : priceSegmentService.priceBySegments(reading, segments, endReading, maxMeter);
             reading.setEndReading(endReading);
             reading.setUnitsSold(unitsSold);
-            totalDue = totalDue.add(unitsSold.multiply(reading.getPriceSnapshot()));
+            reading.setSalesAmount(salesAmount);
+            totalDue = totalDue.add(salesAmount);
         }
         fuelReadingRepository.saveAll(readings);
 
@@ -280,23 +291,21 @@ public class ShiftLifecycleSupportService {
                 .add(request.getCreditTotal())
                 .setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal discrepancyAmount = totalCollected.subtract(roundedTotalDue).abs().setScale(2, RoundingMode.HALF_UP);
-        DiscrepancyType discrepancyType = null;
-        ShiftStatus newStatus = ShiftStatus.CLOSED_BALANCED;
-        if (totalCollected.compareTo(roundedTotalDue) < 0) {
-            discrepancyType = DiscrepancyType.SHORT;
-            newStatus = ShiftStatus.CLOSED_DISCREPANCY_PENDING;
-        } else if (totalCollected.compareTo(roundedTotalDue) > 0) {
-            discrepancyType = DiscrepancyType.OVER;
-            newStatus = ShiftStatus.CLOSED_DISCREPANCY_PENDING;
-        }
-
-        return ClosingSummary.builder()
+        BigDecimal difference = totalCollected.subtract(roundedTotalDue).setScale(2, RoundingMode.HALF_UP);
+        ClosingSummary.ClosingSummaryBuilder summary = ClosingSummary.builder()
                 .totalDue(roundedTotalDue)
-                .totalCollected(totalCollected)
-                .discrepancyAmount(discrepancyAmount)
-                .discrepancyType(discrepancyType)
-                .status(newStatus)
+                .totalCollected(totalCollected);
+        if (difference.signum() == 0 || difference.abs().compareTo(roundingToleranceOf(pumpId)) <= 0) {
+            return summary
+                    .discrepancyAmount(ZERO.setScale(2))
+                    .roundingAdjustment(difference.signum() == 0 ? null : difference)
+                    .status(ShiftStatus.CLOSED_BALANCED)
+                    .build();
+        }
+        return summary
+                .discrepancyAmount(difference.abs())
+                .discrepancyType(difference.signum() < 0 ? DiscrepancyType.SHORT : DiscrepancyType.OVER)
+                .status(ShiftStatus.CLOSED_DISCREPANCY_PENDING)
                 .build();
     }
 
@@ -373,7 +382,7 @@ public class ShiftLifecycleSupportService {
         for (CloseShiftRequest.CreditEntryRequest entry : creditEntries) {
             CreditClient matchedClient = creditAccountPolicyService.requireClientForCreditEntry(
                     pumpId, entry.clientId(), entry.clientName());
-            amountByClient.merge(matchedClient, entry.amount(), BigDecimal::add);
+            amountByClient.merge(matchedClient, entry.amount().setScale(2, RoundingMode.HALF_UP), BigDecimal::add);
             clients.add(matchedClient);
         }
         creditAccountPolicyService.validateCreditLimits(amountByClient);
@@ -383,8 +392,8 @@ public class ShiftLifecycleSupportService {
         List<ShiftCreditEntry> toSave = new ArrayList<>();
         for (int i = 0; i < creditEntries.size(); i++) {
             CloseShiftRequest.CreditEntryRequest entry = creditEntries.get(i);
-            toSave.add(buildCreditEntry(shiftId, clients.get(i), entry.clientName(), entry.billNo(), entry.amount(),
-                    saleDate, entry.fuelType(), entry.description(), entry.vehicleInput(), priceByFuelType, pendingUsage));
+            toSave.add(buildCreditEntry(shiftId, clients.get(i), entry.clientName(), entry.billNo(),
+                    entry.amount().setScale(2, RoundingMode.HALF_UP), saleDate, entry.fuelType(), entry.description(), entry.vehicleInput(), priceByFuelType, pendingUsage));
         }
         creditEntryRepository.saveAll(toSave);
     }
@@ -421,12 +430,9 @@ public class ShiftLifecycleSupportService {
                 .build();
     }
 
-    /** The price each fuel of the shift was sold at, by fuel type name. */
+    /** The price each fuel of the shift sells at now, by fuel type name. */
     public Map<String, BigDecimal> creditPricesOf(Long shiftId) {
-        Map<String, BigDecimal> priceByFuelType = new HashMap<>();
-        fuelReadingRepository.findByShiftId(shiftId).forEach(reading ->
-                priceByFuelType.merge(reading.getFuelType().name(), reading.getPriceSnapshot(), BigDecimal::max));
-        return priceByFuelType;
+        return priceSegmentService.currentPricesOf(fuelReadingRepository.findByShiftId(shiftId));
     }
 
     /**
@@ -468,22 +474,16 @@ public class ShiftLifecycleSupportService {
     }
 
     /**
-     * If the initial status is CLOSED_DISCREPANCY_PENDING and the pump has a configured
-     * escalation threshold that the discrepancy exceeds, upgrades the status to
-     * CLOSED_DISCREPANCY_PENDING_APPROVAL so only OWNER/ADMIN can resolve it.
+     * A pending discrepancy above the pump's escalation threshold becomes CLOSED_DISCREPANCY_PENDING_APPROVAL,
+     * so only OWNER/ADMIN can resolve it.
      */
     public ShiftStatus escalateStatusIfNeeded(ShiftStatus base, BigDecimal discrepancyAmount, Long pumpId) {
         if (base != ShiftStatus.CLOSED_DISCREPANCY_PENDING) return base;
         if (discrepancyAmount == null || discrepancyAmount.compareTo(ZERO) <= 0) return base;
         return pumpLocationRepository.findById(pumpId)
-                .map(pump -> {
-                    BigDecimal threshold = pump.getDiscrepancyEscalationThreshold();
-                    if (threshold != null && threshold.compareTo(ZERO) > 0
-                            && discrepancyAmount.compareTo(threshold) > 0) {
-                        return ShiftStatus.CLOSED_DISCREPANCY_PENDING_APPROVAL;
-                    }
-                    return base;
-                })
+                .map(pump -> discrepancyAmount.compareTo(pump.getDiscrepancyEscalationThreshold()) > 0
+                        ? ShiftStatus.CLOSED_DISCREPANCY_PENDING_APPROVAL
+                        : base)
                 .orElse(base);
     }
 
@@ -502,6 +502,12 @@ public class ShiftLifecycleSupportService {
                 .orElse(null);
     }
 
+    private BigDecimal roundingToleranceOf(Long pumpId) {
+        return pumpLocationRepository.findById(pumpId)
+                .map(PumpLocation::getRoundingTolerance)
+                .orElse(PumpLocation.DEFAULT_ROUNDING_TOLERANCE);
+    }
+
     @Getter
     @Builder
     public static class ClosingSummary {
@@ -510,5 +516,7 @@ public class ShiftLifecycleSupportService {
         private BigDecimal discrepancyAmount;
         private DiscrepancyType discrepancyType;
         private ShiftStatus status;
+        /** Collected minus due when that difference was absorbed as rounding; null otherwise. */
+        private BigDecimal roundingAdjustment;
     }
 }

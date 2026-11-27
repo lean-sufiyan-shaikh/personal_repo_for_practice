@@ -185,7 +185,7 @@ public class PayrollService {
             boolean outsidePeriod = shift.getShiftDate().isBefore(req.getPeriodFrom())
                     || shift.getShiftDate().isAfter(req.getPeriodTo());
             if (outsidePeriod) {
-                outOfPeriod = outOfPeriod.add(amountOrZero(shift.getDiscrepancyAmount()));
+                outOfPeriod = outOfPeriod.add(shift.shortageNotRecovered());
             }
         }
         shiftRepository.flush();
@@ -282,7 +282,7 @@ public class PayrollService {
         BigDecimal periodDeductions = shiftRepository.findSalaryDeductionShifts(
                         pumpId, req.getUserId(), req.getPeriodFrom(), req.getPeriodTo())
                 .stream()
-                .map(shift -> amountOrZero(shift.getDiscrepancyAmount()))
+                .map(Shift::shortageNotRecovered)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal deductions = periodDeductions.add(outOfPeriodDeductions).setScale(2, RoundingMode.HALF_UP);
         BigDecimal netBeforeFloor = record.getGrossAmount().subtract(deductions);
@@ -300,9 +300,5 @@ public class PayrollService {
 
     private static BigDecimal toHours(long minutes) {
         return BigDecimal.valueOf(minutes).divide(MINUTES_PER_HOUR, 2, RoundingMode.HALF_UP);
-    }
-
-    private static BigDecimal amountOrZero(BigDecimal amount) {
-        return amount != null ? amount : BigDecimal.ZERO;
     }
 }

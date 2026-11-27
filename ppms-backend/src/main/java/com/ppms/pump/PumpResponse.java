@@ -29,6 +29,8 @@ public class PumpResponse {
     private BigDecimal safeCountTolerance;
     private LocalTime safeCountCutoffTime;
     private boolean demo;
+    private Integer earlyStartGraceMinutes;
+    private BigDecimal roundingTolerance;
     /** Active Dispensary Units with their nozzles. */
     private List<DUResponse> dus;
 }

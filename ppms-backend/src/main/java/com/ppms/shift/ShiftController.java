@@ -111,19 +111,27 @@ public class ShiftController {
     /**
      * POST /api/pumps/{pumpId}/shifts/open
      * Opens a new shift. The authenticated user becomes the "opened by" user.
+     * An Idempotency-Key header makes a resend after a timeout return the opened shift instead of
+     * refusing it because its nozzles are now in use.
      */
     @PostMapping("/open")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER')")
-    public ResponseEntity<ShiftResponse> openShift(
+    public ResponseEntity<?> openShift(
             @PathVariable Long pumpId,
             @Valid @RequestBody OpenShiftRequest request,
+            @RequestHeader(value = IdempotencyService.HEADER, required = false) String idempotencyKey,
+            HttpServletRequest httpRequest,
             @AuthenticationPrincipal User currentUser) {
-        ShiftResponse response = shiftService.openShift(pumpId, request, currentUser);
-        auditService.log(response.getPumpId(), AuditAction.SHIFT_OPENED,
-                "Shift", response.getId().toString(),
-                "Shift opened on DU #" + response.getDuNumber() + " by operator " + response.getOperatorName(),
-                currentUser);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return idempotencyService.runOnce(
+                IdempotentRequest.of(currentUser.getId(), idempotencyKey, httpRequest, request),
+                () -> {
+                    ShiftResponse response = shiftService.openShift(pumpId, request, currentUser);
+                    auditService.log(response.getPumpId(), AuditAction.SHIFT_OPENED,
+                            "Shift", response.getId().toString(),
+                            "Shift opened on DU #" + response.getDuNumber() + " by operator " + response.getOperatorName(),
+                            currentUser);
+                    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+                });
     }
 
     /**

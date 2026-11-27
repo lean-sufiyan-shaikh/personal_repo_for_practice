@@ -2,6 +2,7 @@ package com.ppms.shift;
 
 import com.ppms.common.exception.BusinessException;
 import com.ppms.fuel.FuelType;
+import com.ppms.pump.PumpLocationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,6 +25,8 @@ class ShiftClosingReadingsTest {
 
     @Mock private ShiftFuelReadingRepository fuelReadingRepository;
     @Mock private ShiftCreditEntryRepository creditEntryRepository;
+    @Mock private ShiftPriceSegmentService priceSegmentService;
+    @Mock private PumpLocationRepository pumpLocationRepository;
     @InjectMocks private ShiftLifecycleSupportService lifecycleSupportService;
 
     @Test
@@ -80,6 +83,33 @@ class ShiftClosingReadingsTest {
                 1L, Map.of(NOZZLE_ID, roundMaxMeter), closeRequest("5.000", "0.00"), BigDecimal.ZERO, List.of(reading)))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("is below the opening reading");
+    }
+
+    @Test
+    void differenceWithinTheRoundingToleranceClosesBalancedAndIsKeptAsRounding() {
+        ShiftFuelReading reading = readingStartingAt("5000.000");
+
+        ShiftLifecycleSupportService.ClosingSummary summary = lifecycleSupportService.processClosingReadings(
+                1L, Map.of(NOZZLE_ID, MAX_METER), closeRequest("5010.005", "999.50"), BigDecimal.ZERO, List.of(reading));
+
+        assertThat(summary.getTotalDue()).isEqualByComparingTo("1000.50");
+        assertThat(summary.getStatus()).isEqualTo(ShiftStatus.CLOSED_BALANCED);
+        assertThat(summary.getDiscrepancyType()).isNull();
+        assertThat(summary.getDiscrepancyAmount()).isEqualByComparingTo("0");
+        assertThat(summary.getRoundingAdjustment()).isEqualByComparingTo("-1.00");
+    }
+
+    @Test
+    void differenceBeyondTheRoundingToleranceIsAPendingDiscrepancy() {
+        ShiftFuelReading reading = readingStartingAt("5000.000");
+
+        ShiftLifecycleSupportService.ClosingSummary summary = lifecycleSupportService.processClosingReadings(
+                1L, Map.of(NOZZLE_ID, MAX_METER), closeRequest("5010.000", "998.99"), BigDecimal.ZERO, List.of(reading));
+
+        assertThat(summary.getStatus()).isEqualTo(ShiftStatus.CLOSED_DISCREPANCY_PENDING);
+        assertThat(summary.getDiscrepancyType()).isEqualTo(DiscrepancyType.SHORT);
+        assertThat(summary.getDiscrepancyAmount()).isEqualByComparingTo("1.01");
+        assertThat(summary.getRoundingAdjustment()).isNull();
     }
 
     @Test

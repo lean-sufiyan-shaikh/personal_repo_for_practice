@@ -69,8 +69,13 @@ public class Shift {
     @Column(name = "actual_start_time", nullable = false)
     private OffsetDateTime actualStartTime;
 
+    /** Capped at the scheduled end for a late close, so DAY balance-sheet windows stay aligned with the definition. */
     @Column(name = "actual_end_time")
     private OffsetDateTime actualEndTime;
+
+    /** When the closing readings were really entered; null for shifts closed before it was recorded. */
+    @Column(name = "closed_at")
+    private OffsetDateTime closedAt;
 
     // ── Payment breakdown (reported by operator at close) ──────────────────
 
@@ -144,12 +149,23 @@ public class Shift {
     private OffsetDateTime investigationStartedAt;
 
     /**
-     * Amount physically returned as cash when a SHORT discrepancy is resolved via CASH_RECOVERY.
-     * Always equals discrepancyAmount for that resolution. Null for all other cases.
-     * Used by the balance sheet to show inbound cash on the day the recovery was made.
+     * Cash the operator returned for a SHORT discrepancy, at most the discrepancy; any rest is resolved another way.
+     * The balance sheet shows it as inbound cash on the day it was recovered.
      */
     @Column(name = "cash_recovery_amount")
     private BigDecimal cashRecoveryAmount;
+
+    @Column(name = "cash_recovered_at")
+    private OffsetDateTime cashRecoveredAt;
+
+    /** Collected minus due when the difference was within the pump's rounding tolerance and the shift balanced. */
+    @Column(name = "rounding_adjustment")
+    private BigDecimal roundingAdjustment;
+
+    /** True when the tanks' book stock could not cover what the shift sold at close. */
+    @Column(name = "stock_shortfall", nullable = false)
+    @Builder.Default
+    private boolean stockShortfall = false;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -173,6 +189,12 @@ public class Shift {
 
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    /** The shortage still to be settled by salary deduction or waiver once any cash recovery is taken off. */
+    public BigDecimal shortageNotRecovered() {
+        BigDecimal discrepancy = discrepancyAmount != null ? discrepancyAmount : BigDecimal.ZERO;
+        return cashRecoveryAmount != null ? discrepancy.subtract(cashRecoveryAmount) : discrepancy;
+    }
 
     @PrePersist
     protected void onCreate() {

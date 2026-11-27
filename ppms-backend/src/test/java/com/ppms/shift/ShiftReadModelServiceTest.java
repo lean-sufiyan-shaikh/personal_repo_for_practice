@@ -4,7 +4,9 @@ import com.ppms.fuel.FuelType;
 import com.ppms.pump.Nozzle;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.ppms.user.UserRepository;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -15,6 +17,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(MockitoExtension.class)
 class ShiftReadModelServiceTest {
 
+    @Mock private ShiftReadingPriceSegmentRepository priceSegmentRepository;
+    @Mock private ShiftInvestigationNoteRepository investigationNoteRepository;
+    @Mock private UserRepository userRepository;
     @InjectMocks private ShiftReadModelService service;
 
     @Test

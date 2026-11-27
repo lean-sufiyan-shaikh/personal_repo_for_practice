@@ -130,6 +130,15 @@ public class PumpController {
     }
 
     /**
+     * GET /api/pumps/{pumpId}/shift-definitions/openable
+     * The windows a shift can be opened for now: the current one and, within the pump's early start grace, the next.
+     */
+    @GetMapping("/{pumpId}/shift-definitions/openable")
+    public ResponseEntity<List<OpenableShiftWindowResponse>> getOpenableShiftWindows(@PathVariable Long pumpId) {
+        return ResponseEntity.ok(shiftDefinitionService.getOpenableWindows(pumpId));
+    }
+
+    /**
      * GET /api/pumps/{pumpId}/shift-definitions/for-date?date=YYYY-MM-DD
      * Returns the shift definitions that were active for a pump on a given historical date.
      * Used by the backfill modal to populate the shift window selector.

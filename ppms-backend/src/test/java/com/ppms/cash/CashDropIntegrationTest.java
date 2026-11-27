@@ -195,7 +195,9 @@ class CashDropIntegrationTest extends ApiIntegrationTest {
         perform(patch("/api/pumps/{pumpId}/cash-drops/{dropId}/confirm", setup.pumpId(), dropId), setup.manager())
                 .andExpect(status().isOk());
 
-        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId), setup.manager(), closing("350.00", null))
+        Map<String, Object> shortClose = closing("350.00", null);
+        shortClose.put("discrepancyReason", "Bag counted short");
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId), setup.manager(), shortClose)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.discrepancyType").value("SHORT"))
                 .andExpect(jsonPath("$.discrepancyAmount").value(50.00));

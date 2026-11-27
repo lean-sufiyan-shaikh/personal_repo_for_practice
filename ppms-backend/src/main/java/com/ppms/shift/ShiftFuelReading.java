@@ -59,4 +59,21 @@ public class ShiftFuelReading {
     /** Computed at shift close: handles meter rollover (end < start). */
     @Column(name = "units_sold")
     private BigDecimal unitsSold;
+
+    /** Units sold priced per price segment, unrounded; set at close. */
+    @Column(name = "sales_amount")
+    private BigDecimal salesAmount;
+
+    /** Litres sold at close that the tank's book stock did not hold, until a later delivery covers them. */
+    @Column(name = "stock_shortfall_litres", nullable = false)
+    @Builder.Default
+    private BigDecimal stockShortfallLitres = BigDecimal.ZERO;
+
+    /** What the litres sold are worth: the segment-priced amount, or units at the opening price for older rows. */
+    public BigDecimal amountDue() {
+        if (salesAmount != null) {
+            return salesAmount;
+        }
+        return unitsSold != null ? unitsSold.multiply(priceSnapshot) : BigDecimal.ZERO;
+    }
 }

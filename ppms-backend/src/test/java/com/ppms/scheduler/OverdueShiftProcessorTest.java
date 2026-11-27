@@ -67,6 +67,17 @@ class OverdueShiftProcessorTest {
     }
 
     @Test
+    void shiftOpenedEarlyForTheNextWindowIsNotOverdueWhenTheEndingWindowCloses() {
+        Shift shift = givenShift(ShiftStatus.OPEN);
+        shift.setActualStartTime(istTime(SHIFT_DATE, "08:50"));
+        givenDefinition("09:00", "16:59", false);
+
+        assertThat(processor.process(SHIFT_ID, istTime(SHIFT_DATE, "09:05"))).isEqualTo(Outcome.UNCHANGED);
+        assertThat(processor.process(SHIFT_ID, istTime(SHIFT_DATE, "16:30"))).isEqualTo(Outcome.UNCHANGED);
+        assertThat(shift.getStatus()).isEqualTo(ShiftStatus.OPEN);
+    }
+
+    @Test
     void shiftAlreadyClosedByHandIsNotTouchedEvenLongAfterItsEnd() {
         Shift shift = givenShift(ShiftStatus.CLOSED_BALANCED);
         givenDefinition("09:00", "16:59", false);

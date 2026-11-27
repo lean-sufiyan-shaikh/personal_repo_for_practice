@@ -57,6 +57,7 @@ public class ReportService {
                 s.getShiftName(),
                 s.getActualStartTime(),
                 s.getActualEndTime(),
+                s.getClosedAt() != null ? s.getClosedAt() : s.getActualEndTime(),
                 s.getTotalAmountDue() != null ? s.getTotalAmountDue() : BigDecimal.ZERO,
                 s.getCashCollected() != null ? s.getCashCollected() : BigDecimal.ZERO,
                 s.getUpiCollected() != null ? s.getUpiCollected() : BigDecimal.ZERO,
@@ -132,13 +133,14 @@ public class ReportService {
                     unresolvedCount, lines));
         }
 
-        return new OperatorDiscrepancyReport(pumpId, from, to, shifts.size(), summaries);
+        return new OperatorDiscrepancyReport(pumpId, from, to, shifts.size(),
+                shiftRepository.countAutoClosedShiftsByDateRange(pumpId, from, to), summaries);
     }
 
 
 
-    public List<ReportController.ShiftReportLine> buildShiftReportLines(Long pumpId, LocalDate from, LocalDate to) {
-        return shiftRepository.findClosedShiftsByDateRange(pumpId, from, to).stream()
+    public ReportController.ShiftsReport buildShiftReportLines(Long pumpId, LocalDate from, LocalDate to) {
+        List<ReportController.ShiftReportLine> lines = shiftRepository.findClosedShiftsByDateRange(pumpId, from, to).stream()
                 .map(shift -> new ReportController.ShiftReportLine(
                         shift.getId(),
                         shift.getShiftDate(),
@@ -153,6 +155,7 @@ public class ReportService {
                         shift.getDiscrepancyType() != null ? shift.getDiscrepancyType().name() : null
                 ))
                 .toList();
+        return new ReportController.ShiftsReport(lines, shiftRepository.countAutoClosedShiftsByDateRange(pumpId, from, to));
     }
 
     public List<ReportController.ExpenseReportLine> buildExpenseReportLines(Long pumpId, LocalDate from, LocalDate to) {

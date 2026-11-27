@@ -10,6 +10,7 @@ import com.ppms.pump.UndergroundTank;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,8 +18,9 @@ import java.util.Map;
 import java.util.NavigableMap;
 
 /**
- * Reconciles one tank day by day: opening (previous closing dip) + deliveries − sales − removals = expected closing,
- * compared with the last dip of the closing day.
+ * Reconciles one tank from dip to dip: opening (the previous closing dip) + deliveries − meter sales − removals =
+ * expected closing, compared with the last dip of the closing day. Deliveries and meter sales count between the two
+ * dips' exact moments; removals, recorded by day only, count over the days after the opening dip's day.
  */
 final class WetStockReconciliationCalculator {
 
@@ -29,38 +31,47 @@ final class WetStockReconciliationCalculator {
     private WetStockReconciliationCalculator() {
     }
 
-    /**
-     * Litres per business day for one tank. closingDipByDay holds the last dip of each day and may start before
-     * the range, so the first period in the range has its opening dip.
-     */
-    record TankDailyFigures(NavigableMap<LocalDate, BigDecimal> closingDipByDay,
-                            Map<LocalDate, BigDecimal> deliveredByDay,
-                            Map<LocalDate, BigDecimal> soldByDay,
-                            Map<LocalDate, BigDecimal> removedByDay) {
+    record Dip(OffsetDateTime checkedAt, BigDecimal litres) {
     }
 
-    static TankReconciliation reconcile(UndergroundTank tank, TankDailyFigures figures, LocalDate from, LocalDate to) {
+    record TimedLitres(OffsetDateTime at, BigDecimal litres) {
+    }
+
+    /**
+     * One tank's figures. closingDipByDay holds the last dip of each business day and may start before the range,
+     * so the first period in the range has its opening dip. stockShortfalls are litres shifts sold beyond book stock.
+     */
+    record TankFigures(NavigableMap<LocalDate, Dip> closingDipByDay,
+                       List<TimedLitres> deliveries,
+                       Map<LocalDate, BigDecimal> removedByDay,
+                       TankMeterSales meterSales,
+                       List<TimedLitres> stockShortfalls) {
+    }
+
+    static TankReconciliation reconcile(UndergroundTank tank, TankFigures figures, LocalDate from, LocalDate to) {
         var openingDip = figures.closingDipByDay().lowerEntry(from);
         LocalDate previousDipDay = openingDip != null ? openingDip.getKey() : null;
-        BigDecimal previousDip = openingDip != null ? openingDip.getValue() : null;
+        Dip previousDip = openingDip != null ? openingDip.getValue() : null;
 
         List<Period> periods = new ArrayList<>();
         BigDecimal cumulativeVariance = BigDecimal.ZERO;
         BigDecimal cumulativeSold = BigDecimal.ZERO;
         int flagged = 0;
         int reconciled = 0;
-        for (var dip : figures.closingDipByDay().subMap(from, true, to, true).entrySet()) {
-            LocalDate dipDay = dip.getKey();
-            BigDecimal closing = dip.getValue();
+        for (var entry : figures.closingDipByDay().subMap(from, true, to, true).entrySet()) {
+            LocalDate dipDay = entry.getKey();
+            Dip closing = entry.getValue();
             if (previousDipDay == null) {
-                periods.add(needsOpeningDip(dipDay, closing));
+                periods.add(needsOpeningDip(dipDay, closing.litres()));
             } else {
-                LocalDate periodStart = previousDipDay.plusDays(1);
-                BigDecimal delivered = sumOver(figures.deliveredByDay(), periodStart, dipDay);
-                BigDecimal sold = sumOver(figures.soldByDay(), periodStart, dipDay);
-                BigDecimal removed = sumOver(figures.removedByDay(), periodStart, dipDay);
-                BigDecimal expected = previousDip.add(delivered).subtract(sold).subtract(removed);
-                BigDecimal variance = closing.subtract(expected);
+                OffsetDateTime openedAt = previousDip.checkedAt();
+                OffsetDateTime closedAt = closing.checkedAt();
+                BigDecimal delivered = sumBetween(figures.deliveries(), openedAt, closedAt);
+                BigDecimal sold = figures.meterSales().soldBetween(openedAt, closedAt);
+                BigDecimal removed = sumOver(figures.removedByDay(), previousDipDay.plusDays(1), dipDay);
+                BigDecimal shortfall = sumBetween(figures.stockShortfalls(), openedAt, closedAt);
+                BigDecimal expected = previousDip.litres().add(delivered).subtract(sold).subtract(removed);
+                BigDecimal variance = closing.litres().subtract(expected);
                 boolean withinTolerance = variance.abs().compareTo(tank.getDipTolerance()) <= 0;
                 cumulativeVariance = cumulativeVariance.add(variance);
                 cumulativeSold = cumulativeSold.add(sold);
@@ -68,10 +79,11 @@ final class WetStockReconciliationCalculator {
                 if (!withinTolerance) {
                     flagged++;
                 }
-                periods.add(new Period(periodStart, dipDay, (int) ChronoUnit.DAYS.between(previousDipDay, dipDay),
-                        PeriodStatus.RECONCILED, litres(previousDip), litres(delivered), litres(sold), litres(removed),
-                        litres(expected), litres(closing), litres(variance), percentOf(variance, sold), withinTolerance,
-                        litres(cumulativeVariance), percentOf(cumulativeVariance, cumulativeSold)));
+                periods.add(new Period(previousDipDay.plusDays(1), dipDay, (int) ChronoUnit.DAYS.between(previousDipDay, dipDay),
+                        PeriodStatus.RECONCILED, litres(previousDip.litres()), litres(delivered), litres(sold),
+                        litres(removed), litres(expected), litres(closing.litres()), litres(variance),
+                        percentOf(variance, sold), withinTolerance, litres(cumulativeVariance),
+                        percentOf(cumulativeVariance, cumulativeSold), shortfall.signum() > 0 ? litres(shortfall) : null));
             }
             previousDipDay = dipDay;
             previousDip = closing;
@@ -86,7 +98,7 @@ final class WetStockReconciliationCalculator {
 
     private static Period needsOpeningDip(LocalDate dipDay, BigDecimal closing) {
         return new Period(dipDay, dipDay, 1, PeriodStatus.NEEDS_OPENING_DIP, null, null, null, null, null,
-                litres(closing), null, null, null, null, null);
+                litres(closing), null, null, null, null, null, null);
     }
 
     private static SummaryStatus summaryStatus(int reconciled, BigDecimal variancePercent, BigDecimal limitPercent) {
@@ -97,6 +109,14 @@ final class WetStockReconciliationCalculator {
             return SummaryStatus.WITHIN_LIMITS;
         }
         return variancePercent.signum() < 0 ? SummaryStatus.LOSS_ABOVE_LIMIT : SummaryStatus.GAIN_ABOVE_LIMIT;
+    }
+
+    /** Litres timed after the opening dip and up to and including the closing dip. */
+    private static BigDecimal sumBetween(List<TimedLitres> timed, OffsetDateTime after, OffsetDateTime upTo) {
+        return timed.stream()
+                .filter(item -> item.at().isAfter(after) && !item.at().isAfter(upTo))
+                .map(TimedLitres::litres)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private static BigDecimal sumOver(Map<LocalDate, BigDecimal> byDay, LocalDate first, LocalDate last) {

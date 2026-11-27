@@ -85,7 +85,7 @@ public class PayrollController {
                     du != null ? du.getDuNumber() : null,
                     du != null ? du.getName()     : null,
                     s.getDiscrepancyType() != null ? s.getDiscrepancyType().name() : null,
-                    s.getDiscrepancyAmount(),
+                    s.shortageNotRecovered(),
                     s.getDiscrepancyReason()
             );
         }).toList();

@@ -26,6 +26,9 @@ public class PumpLocation {
     public static final int DEFAULT_BACKDATED_PAYMENT_APPROVAL_DAYS = 7;
     public static final BigDecimal DEFAULT_MANAGER_CREDIT_LIMIT_CAP = new BigDecimal("50000.00");
     public static final int DEFAULT_NEAR_LIMIT_PERCENT = 90;
+    public static final BigDecimal DEFAULT_ESCALATION_THRESHOLD = new BigDecimal("500.00");
+    public static final int DEFAULT_EARLY_START_GRACE_MINUTES = 30;
+    public static final BigDecimal DEFAULT_ROUNDING_TOLERANCE = new BigDecimal("1.00");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,13 +53,20 @@ public class PumpLocation {
     @Column(name = "admin_id")
     private Long adminId;
 
-    /**
-     * Discrepancy amount above which the resolution requires Owner approval.
-     * If null, any role with permission may resolve discrepancies without restriction.
-     * Configured per-pump in Setup.
-     */
-    @Column(name = "discrepancy_escalation_threshold")
-    private BigDecimal discrepancyEscalationThreshold;
+    /** Discrepancy amount above which the resolution requires Owner approval; zero escalates every discrepancy. */
+    @Column(name = "discrepancy_escalation_threshold", nullable = false)
+    @Builder.Default
+    private BigDecimal discrepancyEscalationThreshold = DEFAULT_ESCALATION_THRESHOLD;
+
+    /** Minutes before a shift window starts during which a shift may already be opened for that window. */
+    @Column(name = "early_start_grace_minutes", nullable = false)
+    @Builder.Default
+    private int earlyStartGraceMinutes = DEFAULT_EARLY_START_GRACE_MINUTES;
+
+    /** A shift whose collections differ from the amount due by at most this many rupees closes balanced. */
+    @Column(name = "rounding_tolerance", nullable = false)
+    @Builder.Default
+    private BigDecimal roundingTolerance = DEFAULT_ROUNDING_TOLERANCE;
 
     /**
      * Expense amount above which an OPERATOR/MANAGER-submitted expense requires Owner/Admin approval.

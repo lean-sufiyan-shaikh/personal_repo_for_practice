@@ -155,9 +155,7 @@ public class BalanceSheetDetailAssembler {
                         .nozzleNumber(nozzleNumberById.getOrDefault(r.getNozzleId(), 0))
                         .fuelType(r.getFuelType().name())
                         .litresSold(r.getUnitsSold().setScale(3, RoundingMode.HALF_UP))
-                        .expectedRevenue(r.getUnitsSold()
-                                .multiply(r.getPriceSnapshot())
-                                .setScale(2, RoundingMode.HALF_UP))
+                        .expectedRevenue(r.amountDue().setScale(2, RoundingMode.HALF_UP))
                         .build())
                 .toList();
         return BsShiftLineResponse.builder()

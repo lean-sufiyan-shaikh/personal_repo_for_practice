@@ -7,6 +7,7 @@ import com.ppms.shift.ShiftRepository;
 import com.ppms.shift.ShiftStatus;
 import com.ppms.support.ApiIntegrationTest;
 import com.ppms.support.TestDates;
+import com.ppms.user.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +44,8 @@ class PumpOverviewIntegrationTest extends ApiIntegrationTest {
         saveShift(setup.pumpId(), setup.du().getId(), TestDates.today(), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "300.00");
         saveShift(setup.pumpId(), setup.du().getId(), TestDates.today().minusDays(1), ShiftStatus.CLOSED_BALANCED, "999.00");
         saveShift(setup.pumpId(), setup.du().getId(), TestDates.today(), ShiftStatus.OPEN, null);
-        saveShift(secondPump.getId(), secondPumpDu.getId(), TestDates.today(), ShiftStatus.OPEN_OVERDUE, null);
+        saveShift(secondPump.getId(), secondPumpDu.getId(), TestDates.today(), ShiftStatus.OPEN_OVERDUE, null,
+                saveUser(UserRole.OPERATOR, secondPump.getId()).getId());
         saveShift(otherOwnersPump.pumpId(), otherOwnersPump.du().getId(), TestDates.today(), ShiftStatus.CLOSED_BALANCED, "5000.00");
 
         JsonNode overview = json(perform(get("/api/pumps/overview"), setup.owner()).andExpect(status().isOk()));
@@ -126,10 +128,15 @@ class PumpOverviewIntegrationTest extends ApiIntegrationTest {
     }
 
     private void saveShift(Long pumpId, Long duId, LocalDate shiftDate, ShiftStatus status, String totalAmountDue) {
+        saveShift(pumpId, duId, shiftDate, status, totalAmountDue, setup.operator().getId());
+    }
+
+    private void saveShift(Long pumpId, Long duId, LocalDate shiftDate, ShiftStatus status, String totalAmountDue,
+                           Long operatorId) {
         shiftRepository.save(Shift.builder()
                 .pumpId(pumpId)
                 .duId(duId)
-                .operatorId(setup.operator().getId())
+                .operatorId(operatorId)
                 .openedByUserId(setup.manager().getId())
                 .shiftDate(shiftDate)
                 .actualStartTime(shiftDate.atStartOfDay(TestDates.BUSINESS_ZONE).toOffsetDateTime().plusHours(6))

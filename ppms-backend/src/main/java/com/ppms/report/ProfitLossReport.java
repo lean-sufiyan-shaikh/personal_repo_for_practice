@@ -9,6 +9,8 @@ public record ProfitLossReport(
         LocalDate from,
         LocalDate to,
         int totalShifts,
+        /** Auto-closed shifts in the range, left out until their closing readings are entered. */
+        long autoClosedShiftCount,
         BigDecimal totalRevenue,
         BigDecimal totalCogs,
         BigDecimal grossProfit,

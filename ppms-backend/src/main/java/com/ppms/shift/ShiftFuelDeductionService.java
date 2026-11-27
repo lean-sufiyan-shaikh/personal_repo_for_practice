@@ -1,8 +1,6 @@
 package com.ppms.shift;
 
 import com.ppms.common.time.BusinessClock;
-import com.ppms.common.exception.BusinessException;
-import com.ppms.common.exception.ErrorCodes;
 import com.ppms.fuel.FuelType;
 import com.ppms.inventory.InventoryLot;
 import com.ppms.inventory.InventoryLotRepository;
@@ -48,6 +46,7 @@ public class ShiftFuelDeductionService {
     private final LotConsumptionRepository lotConsumptionRepository;
     private final UndergroundTankRepository tankRepository;
     private final BusinessClock businessClock;
+    private final ShiftFuelReadingRepository fuelReadingRepository;
 
     /**
      * Locks, in one id-ordered query, every tank a FIFO deduction can touch, so concurrent deliveries,
@@ -66,10 +65,11 @@ public class ShiftFuelDeductionService {
 
     /**
      * Deducts a live shift's sales from the oldest active lots. When tankId is set (frozen at shift open)
-     * only that tank's lots are used, matching the physical pipe connection.
+     * only that tank's lots are used, matching the physical pipe connection. The meters are the truth, so litres the
+     * book stock cannot cover do not block the close: they are returned as the shortfall, for a later delivery to cover.
      */
-    public void deductForShiftClose(Long shiftId, Long pumpId, FuelType fuelType, Long tankId,
-                                    BigDecimal unitsToDeduct, OffsetDateTime shiftStart) {
+    public BigDecimal deductForShiftClose(Long shiftId, Long pumpId, FuelType fuelType, Long tankId,
+                                          BigDecimal unitsToDeduct, OffsetDateTime shiftStart) {
         List<InventoryLot> lots = tankId != null
                 ? inventoryLotRepository.findActiveLotsByTankFifo(tankId)
                 : inventoryLotRepository.findActiveLotsByPumpAndFuelTypeFifo(pumpId, fuelType);
@@ -81,16 +81,35 @@ public class ShiftFuelDeductionService {
         BigDecimal totalAvailable = lots.stream()
                 .map(InventoryLot::getRemainingQuantity)
                 .reduce(ZERO, BigDecimal::add);
-        if (unitsToDeduct.compareTo(totalAvailable) > 0) {
-            throw new BusinessException(ErrorCodes.INSUFFICIENT_FUEL_STOCK,
-                    Map.of("litresSold", unitsToDeduct.setScale(2, RoundingMode.HALF_UP).toPlainString(),
-                            "litresAvailable", totalAvailable.setScale(2, RoundingMode.HALF_UP).toPlainString()),
-                    "Insufficient fuel stock: shift recorded " + unitsToDeduct.setScale(2, RoundingMode.HALF_UP) +
-                    " L sold but only " + totalAvailable.setScale(2, RoundingMode.HALF_UP) +
-                    " L is available in inventory. Please verify the meter readings or record a tanker delivery first.");
+        BigDecimal deducted = unitsToDeduct.min(totalAvailable);
+        consumeOldestFirst(shiftId, lots, deducted);
+        BigDecimal shortfall = unitsToDeduct.subtract(deducted).setScale(3, RoundingMode.HALF_UP);
+        if (shortfall.signum() > 0) {
+            log.warn("Shift {} sold {}L of {} from tank {} but book stock held only {}L; shortfall {}L awaits a delivery",
+                    shiftId, unitsToDeduct, fuelType, tankId, totalAvailable, shortfall);
         }
+        return shortfall;
+    }
 
-        consumeOldestFirst(shiftId, lots, unitsToDeduct);
+    /**
+     * Takes litres shifts sold beyond the tank's book stock from a newly recorded delivery's lot, oldest shift first,
+     * so tank stock and the lot ledger agree again. The caller has locked the tank.
+     */
+    public void coverShortfallsFromDelivery(Long tankId, InventoryLot lot) {
+        List<ShiftFuelReading> uncovered = fuelReadingRepository.findUncoveredShortfallsByTankId(tankId);
+        List<ShiftFuelReading> covered = new ArrayList<>();
+        for (ShiftFuelReading reading : uncovered) {
+            if (lot.getRemainingQuantity().signum() <= 0) {
+                break;
+            }
+            BigDecimal take = reading.getStockShortfallLitres().min(lot.getRemainingQuantity());
+            consumeOldestFirst(reading.getShiftId(), List.of(lot), take);
+            reading.setStockShortfallLitres(reading.getStockShortfallLitres().subtract(take).setScale(3, RoundingMode.HALF_UP));
+            covered.add(reading);
+            log.info("Delivery lot {} covered {}L of shift {}'s stock shortfall on tank {}", lot.getId(), take,
+                    reading.getShiftId(), tankId);
+        }
+        fuelReadingRepository.saveAll(covered);
     }
 
     /**

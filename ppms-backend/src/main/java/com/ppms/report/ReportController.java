@@ -1,5 +1,6 @@
 package com.ppms.report;
 
+import com.ppms.common.time.DateRangeBounds;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,10 @@ import java.util.List;
 @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN', 'OWNER')")
 public class ReportController {
 
+    /** Summary reports and CSV exports may cover a year; reports listing every shift or entry a quarter. */
+    public static final int MAX_SUMMARY_RANGE_DAYS = 366;
+    public static final int MAX_DETAIL_RANGE_DAYS = 92;
+
     private final ReportService         reportService;
     private final ProfitLossReportService profitLossReportService;
     private final InventoryReportService inventoryReportService;
@@ -38,6 +43,7 @@ public class ReportController {
             @PathVariable Long pumpId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        DateRangeBounds.requireRangeOfAtMost(from, to, MAX_SUMMARY_RANGE_DAYS);
         return ResponseEntity.ok(profitLossReportService.buildProfitLossReport(pumpId, from, to));
     }
 
@@ -52,6 +58,7 @@ public class ReportController {
             @RequestParam Long operatorId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        DateRangeBounds.requireRangeOfAtMost(from, to, MAX_DETAIL_RANGE_DAYS);
         return ResponseEntity.ok(reportService.buildOperatorDutyReport(pumpId, operatorId, from, to));
     }
 
@@ -66,6 +73,7 @@ public class ReportController {
             @PathVariable Long pumpId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        DateRangeBounds.requireRangeOfAtMost(from, to, MAX_DETAIL_RANGE_DAYS);
         return ResponseEntity.ok(reportService.buildOperatorDiscrepancyReport(pumpId, from, to));
     }
 
@@ -111,20 +119,22 @@ public class ReportController {
             @PathVariable Long pumpId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        DateRangeBounds.requireRangeOfAtMost(from, to, MAX_DETAIL_RANGE_DAYS);
         return ResponseEntity.ok(balanceSheetService.getDipPl(pumpId, from, to));
     }
 
     /**
      * GET /api/pumps/{pumpId}/reports/shifts?from=&to=
      *
-     * Returns closed shift summaries for the date range as JSON.
-     * Same data as the CSV export but in a structured format for on-screen display and PDF print.
+     * Returns closed shift summaries for the date range as JSON, and how many auto-closed shifts in the range are left
+     * out until their closing readings are entered. Same rows as the CSV export.
      */
     @GetMapping("/shifts")
-    public ResponseEntity<List<ShiftReportLine>> getShiftsReport(
+    public ResponseEntity<ShiftsReport> getShiftsReport(
             @PathVariable Long pumpId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        DateRangeBounds.requireRangeOfAtMost(from, to, MAX_DETAIL_RANGE_DAYS);
         return ResponseEntity.ok(reportService.buildShiftReportLines(pumpId, from, to));
     }
 
@@ -139,6 +149,7 @@ public class ReportController {
             @PathVariable Long pumpId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        DateRangeBounds.requireRangeOfAtMost(from, to, MAX_DETAIL_RANGE_DAYS);
         return ResponseEntity.ok(reportService.buildExpenseReportLines(pumpId, from, to));
     }
 
@@ -156,10 +167,14 @@ public class ReportController {
             @PathVariable Long pumpId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        DateRangeBounds.requireRangeOfAtMost(from, to, MAX_SUMMARY_RANGE_DAYS);
         return ResponseEntity.ok(reportService.buildInterestAccrualReport(pumpId, from, to));
     }
 
     // ── Report line records ───────────────────────────────────────────────────
+
+    /** autoClosedShiftCount: auto-closed shifts in the range, left out until their closing readings are entered. */
+    public record ShiftsReport(List<ShiftReportLine> shifts, long autoClosedShiftCount) {}
 
     public record ShiftReportLine(
             Long id,

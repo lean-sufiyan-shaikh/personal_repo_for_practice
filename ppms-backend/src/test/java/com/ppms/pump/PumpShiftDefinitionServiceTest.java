@@ -12,6 +12,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,9 +31,70 @@ class PumpShiftDefinitionServiceTest {
 
     private final PumpShiftDefinitionRepository repository = mock(PumpShiftDefinitionRepository.class);
     private final PumpShiftDefinitionSupportService supportService = mock(PumpShiftDefinitionSupportService.class);
+    private final PumpLocationRepository pumpLocationRepository = mock(PumpLocationRepository.class);
 
     private final PumpShiftDefinition night = definition("Night", "21:00", "08:59", true, LocalDate.of(2026, 1, 1), null);
     private final PumpShiftDefinition morning = definition("Morning", "09:00", "20:59", false, LocalDate.of(2026, 1, 1), null);
+
+    @Test
+    void openingTenMinutesBeforeTheNextWindowSuggestsTheNextWindowSoTheShiftIsNotInTheEndingOne() {
+        CurrentShiftWindow window = serviceAt("08:50").windowForOpening(PUMP_ID, null, null);
+
+        assertThat(window.definition()).isSameAs(morning);
+        assertThat(window.shiftDate()).isEqualTo(TODAY);
+    }
+
+    @Test
+    void withinTheGraceTheManagerMayStillChooseTheEndingWindow() {
+        CurrentShiftWindow window = serviceAt("08:50").windowForOpening(PUMP_ID, night.getId(), TODAY.minusDays(1));
+
+        assertThat(window.definition()).isSameAs(night);
+        assertThat(window.shiftDate()).isEqualTo(TODAY.minusDays(1));
+    }
+
+    @Test
+    void bothWindowsAreOfferedWithinTheGraceWithTheNextOneSuggested() {
+        List<OpenableShiftWindowResponse> windows = serviceAt("08:50").getOpenableWindows(PUMP_ID);
+
+        assertThat(windows).extracting(OpenableShiftWindowResponse::name).containsExactly("Night", "Morning");
+        assertThat(windows).extracting(OpenableShiftWindowResponse::startsLater).containsExactly(false, true);
+        assertThat(windows).extracting(OpenableShiftWindowResponse::suggested).containsExactly(false, true);
+        assertThat(windows.get(1).endTime()).isEqualTo(LocalTime.parse("21:00"));
+    }
+
+    @Test
+    void theNextWindowCannotBeChosenBeforeTheGraceStarts() {
+        PumpShiftDefinitionService service = serviceAt("08:20");
+
+        assertThat(service.windowForOpening(PUMP_ID, null, null).definition()).isSameAs(night);
+        assertThatThrownBy(() -> service.windowForOpening(PUMP_ID, morning.getId(), TODAY))
+                .isInstanceOf(BusinessException.class)
+                .extracting("code").isEqualTo("SHIFT_WINDOW_NOT_OPENABLE_NOW");
+    }
+
+    @Test
+    void theGraceIsSetPerPumpAndZeroOffersOnlyTheCurrentWindow() {
+        PumpShiftDefinitionService service = serviceAt("08:50");
+        when(pumpLocationRepository.findById(PUMP_ID)).thenReturn(Optional.of(PumpLocation.builder()
+                .id(PUMP_ID).earlyStartGraceMinutes(0).build()));
+
+        assertThat(service.getOpenableWindows(PUMP_ID)).extracting(OpenableShiftWindowResponse::name).containsExactly("Night");
+        assertThat(service.windowForOpening(PUMP_ID, null, null).definition()).isSameAs(night);
+    }
+
+    @Test
+    void aGapBeforeTheNextWindowOpensTheNextWindowWithinTheGrace() {
+        PumpShiftDefinition day = definition("Day", "06:00", "13:59", false, LocalDate.of(2026, 1, 1), null);
+        when(repository.findActiveForPumpOnDate(eq(PUMP_ID), any())).thenReturn(List.of(day));
+        OffsetDateTime early = LocalDateTime.of(TODAY, LocalTime.parse("05:45")).atZone(IST).toOffsetDateTime();
+        PumpShiftDefinitionService service = new PumpShiftDefinitionService(repository, mock(ShiftRepository.class),
+                supportService, fixedClock(early), pumpLocationRepository);
+
+        CurrentShiftWindow window = service.windowForOpening(PUMP_ID, null, null);
+
+        assertThat(window.definition()).isSameAs(day);
+        assertThat(window.shiftDate()).isEqualTo(TODAY);
+    }
 
     @Test
     void nightShiftOpenedAfterMidnightBelongsToThePreviousDay() {
@@ -75,7 +137,8 @@ class PumpShiftDefinitionServiceTest {
         when(repository.findActiveForPumpOnDate(PUMP_ID, TODAY)).thenReturn(List.of(todaysNight, todaysDay));
         OffsetDateTime sixThirty = LocalDateTime.of(TODAY, LocalTime.parse("06:30")).atZone(IST).toOffsetDateTime();
         PumpShiftDefinitionService service =
-                new PumpShiftDefinitionService(repository, mock(ShiftRepository.class), supportService, fixedClock(sixThirty));
+                new PumpShiftDefinitionService(repository, mock(ShiftRepository.class), supportService, fixedClock(sixThirty),
+                        pumpLocationRepository);
 
         assertThatThrownBy(() -> service.detectCurrentShift(PUMP_ID))
                 .isInstanceOf(BusinessException.class)
@@ -133,7 +196,8 @@ class PumpShiftDefinitionServiceTest {
     private PumpShiftDefinitionService serviceAt(String time) {
         when(repository.findActiveForPumpOnDate(eq(PUMP_ID), any())).thenReturn(List.of(night, morning));
         OffsetDateTime now = LocalDateTime.of(TODAY, LocalTime.parse(time)).atZone(IST).toOffsetDateTime();
-        return new PumpShiftDefinitionService(repository, mock(ShiftRepository.class), supportService, fixedClock(now));
+        return new PumpShiftDefinitionService(repository, mock(ShiftRepository.class), supportService, fixedClock(now),
+                pumpLocationRepository);
     }
 
     private BusinessClock fixedClock(OffsetDateTime now) {
@@ -148,6 +212,7 @@ class PumpShiftDefinitionServiceTest {
     private PumpShiftDefinition definition(String name, String start, String end, boolean crossesMidnight,
                                            LocalDate effectiveFrom, LocalDate effectiveTo) {
         return PumpShiftDefinition.builder()
+                .id((long) name.hashCode())
                 .pumpId(PUMP_ID)
                 .name(name)
                 .startTime(LocalTime.parse(start))

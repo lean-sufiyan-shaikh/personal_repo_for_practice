@@ -34,6 +34,8 @@ public class PumpService {
     private static final BigDecimal MAX_RECEIPT_TOLERANCE_PERCENT = new BigDecimal("5");
     private static final BigDecimal MAX_DENSITY_TOLERANCE = new BigDecimal("50");
     private static final BigDecimal MAX_SAFE_COUNT_TOLERANCE = new BigDecimal("10000");
+    private static final BigDecimal MAX_ROUNDING_TOLERANCE = new BigDecimal("100");
+    private static final int MAX_EARLY_START_GRACE_MINUTES = 120;
     private static final String HAS_DATA_MESSAGE =
             "This pump has recorded data and cannot be deleted. Ask the Super Admin to suspend it instead.";
 
@@ -120,7 +122,10 @@ public class PumpService {
         return toPumpResponse(pump);
     }
 
-    /** A threshold of zero clears it; a missing value is left as it is; an empty GST value clears it. */
+    /**
+     * A missing value is left as it is; an empty GST value clears it. An escalation threshold of zero sends every
+     * discrepancy to the owner, and a changed threshold re-decides which pending discrepancies need the owner.
+     */
     @Transactional
     public PumpResponse updatePumpSettings(Long pumpId, UpdatePumpSettingsRequest request, User currentUser) {
 
@@ -132,10 +137,19 @@ public class PumpService {
                 throw new BusinessException(ErrorCodes.DISCREPANCY_THRESHOLD_NEGATIVE, Map.of(),
                         "Discrepancy escalation threshold cannot be negative.");
             }
-            pump.setDiscrepancyEscalationThreshold(
-                    request.discrepancyEscalationThreshold().compareTo(BigDecimal.ZERO) == 0
-                    ? null
-                    : request.discrepancyEscalationThreshold().setScale(2, RoundingMode.HALF_UP));
+            BigDecimal threshold = request.discrepancyEscalationThreshold().setScale(2, RoundingMode.HALF_UP);
+            if (threshold.compareTo(pump.getDiscrepancyEscalationThreshold()) != 0) {
+                pump.setDiscrepancyEscalationThreshold(threshold);
+                int moved = shiftRepository.reEscalatePendingDiscrepancies(pumpId, threshold);
+                log.info("Pump {} escalation threshold changed to {}: {} pending discrepancies re-escalated", pumpId,
+                        threshold, moved);
+            }
+        }
+        if (request.earlyStartGraceMinutes() != null) {
+            pump.setEarlyStartGraceMinutes(validEarlyStartGrace(request.earlyStartGraceMinutes()));
+        }
+        if (request.roundingTolerance() != null) {
+            pump.setRoundingTolerance(validRoundingTolerance(request.roundingTolerance()));
         }
 
         if (request.expenseApprovalThreshold() != null) {
@@ -176,11 +190,12 @@ public class PumpService {
 
         pumpLocationRepository.save(pump);
         log.info("Pump {} settings updated by user={}: escalationThreshold={}, expenseApprovalThreshold={}, "
-                        + "receiptTolerancePercent={}, densityTolerance={}, safeCountTolerance={}, safeCountCutoffTime={}",
+                        + "receiptTolerancePercent={}, densityTolerance={}, safeCountTolerance={}, safeCountCutoffTime={}, "
+                        + "earlyStartGraceMinutes={}, roundingTolerance={}",
                 pumpId, currentUser.getId(),
                 pump.getDiscrepancyEscalationThreshold(), pump.getExpenseApprovalThreshold(),
                 pump.getReceiptTolerancePercent(), pump.getDensityTolerance(), pump.getSafeCountTolerance(),
-                pump.getSafeCountCutoffTime());
+                pump.getSafeCountCutoffTime(), pump.getEarlyStartGraceMinutes(), pump.getRoundingTolerance());
 
         return toPumpResponse(pump);
     }
@@ -199,6 +214,24 @@ public class PumpService {
                     "Density tolerance must be more than 0 and at most " + MAX_DENSITY_TOLERANCE + " kg/m³.");
         }
         return tolerance.setScale(1, RoundingMode.HALF_UP);
+    }
+
+    private static int validEarlyStartGrace(int minutes) {
+        if (minutes < 0 || minutes > MAX_EARLY_START_GRACE_MINUTES) {
+            throw new BusinessException(ErrorCodes.EARLY_START_GRACE_OUT_OF_RANGE,
+                    Map.of("max", MAX_EARLY_START_GRACE_MINUTES),
+                    "Early start grace must be between 0 and " + MAX_EARLY_START_GRACE_MINUTES + " minutes.");
+        }
+        return minutes;
+    }
+
+    private static BigDecimal validRoundingTolerance(BigDecimal tolerance) {
+        if (tolerance.signum() < 0 || tolerance.compareTo(MAX_ROUNDING_TOLERANCE) > 0) {
+            throw new BusinessException(ErrorCodes.ROUNDING_TOLERANCE_OUT_OF_RANGE,
+                    Map.of("max", MAX_ROUNDING_TOLERANCE.toPlainString()),
+                    "Rounding tolerance must be between ₹0 and ₹" + MAX_ROUNDING_TOLERANCE + ".");
+        }
+        return tolerance.setScale(2, RoundingMode.HALF_UP);
     }
 
     private static BigDecimal validSafeCountTolerance(BigDecimal tolerance) {
@@ -272,6 +305,8 @@ public class PumpService {
                 .safeCountTolerance(pump.getSafeCountTolerance())
                 .safeCountCutoffTime(pump.getSafeCountCutoffTime())
                 .demo(pump.isDemo())
+                .earlyStartGraceMinutes(pump.getEarlyStartGraceMinutes())
+                .roundingTolerance(pump.getRoundingTolerance())
                 .dus(activeDUs)
                 .build();
     }

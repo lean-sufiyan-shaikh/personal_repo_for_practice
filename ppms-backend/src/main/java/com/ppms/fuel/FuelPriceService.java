@@ -9,7 +9,8 @@ import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.notification.NotificationDedupService;
 import com.ppms.notification.NotificationType;
 import com.ppms.pump.PumpShiftDefinitionRepository;
-import com.ppms.shift.ShiftRepository;
+import com.ppms.shift.OpenNozzleReadingResponse;
+import com.ppms.shift.ShiftPriceSegmentService;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,7 +33,7 @@ public class FuelPriceService {
     private static final BigDecimal MAX_UNCONFIRMED_DEVIATION_PERCENT = new BigDecimal("15");
 
     private final GlobalFuelPriceRepository fuelPriceRepository;
-    private final ShiftRepository shiftRepository;
+    private final ShiftPriceSegmentService priceSegmentService;
     private final AuditService auditService;
     private final NotificationDedupService notificationDedupService;
     private final PumpShiftDefinitionRepository shiftDefinitionRepository;
@@ -73,11 +74,17 @@ public class FuelPriceService {
     /**
      * Each price is a new record; earlier prices stay as history. A change of more than 15% from the
      * last price needs confirmed=true, otherwise PriceDeviationException (409) asks the caller to confirm.
+     * A changed price splits the open shifts selling the fuel at the meter readings sent with it; re-saving the same
+     * price only confirms it for today.
      */
     @Transactional
     public SetFuelPriceResponse setPrice(Long pumpId, SetFuelPriceRequest request, User currentUser) {
         closedDayGuard.requireTodayOpen(pumpId);
         requireConfirmationForLargeChange(pumpId, request);
+        BigDecimal previousPrice = fuelPriceRepository
+                .findFirstByPumpIdAndFuelTypeOrderByEffectiveFromDesc(pumpId, request.getFuelType())
+                .map(GlobalFuelPrice::getPricePerUnit)
+                .orElse(null);
 
         GlobalFuelPrice saved = fuelPriceRepository.save(GlobalFuelPrice.builder()
                 .pumpId(pumpId)
@@ -91,18 +98,22 @@ public class FuelPriceService {
                 "Fuel price updated: " + saved.getFuelType() + " → ₹" + saved.getPricePerUnit(),
                 currentUser);
 
-        int openShiftsCount = shiftRepository.findActiveShiftsByPump(pumpId).size();
-        if (openShiftsCount > 0) {
-            warnAboutOpenShifts(pumpId, saved, openShiftsCount);
+        List<ShiftPriceSegmentService.NozzleMeterReading> readings = request.getOpenNozzleReadings() == null ? List.of()
+                : request.getOpenNozzleReadings().stream()
+                        .map(reading -> new ShiftPriceSegmentService.NozzleMeterReading(reading.nozzleId(), reading.meterReading()))
+                        .toList();
+        boolean priceChanged = previousPrice == null || previousPrice.compareTo(saved.getPricePerUnit()) != 0;
+        int splitNozzleCount = priceChanged
+                ? priceSegmentService.splitOpenShiftsAtPriceChange(pumpId, saved.getFuelType(), saved.getPricePerUnit(),
+                        readings, currentUser)
+                : 0;
+        if (splitNozzleCount > 0) {
+            notifyOpenShiftsSplit(pumpId, saved, splitNozzleCount);
         }
 
         return SetFuelPriceResponse.builder()
                 .price(saved)
-                .openShiftsCount(openShiftsCount)
-                .openShiftsWarning(openShiftsCount > 0
-                        ? openShiftsCount + " shift(s) are currently open at this pump. They will settle at the OLD price. " +
-                          "Close all open shifts before the new price takes effect to avoid balance discrepancies."
-                        : null)
+                .splitNozzleCount(splitNozzleCount)
                 .build();
     }
 
@@ -122,16 +133,21 @@ public class FuelPriceService {
                 });
     }
 
-    // Open shifts keep the price snapshotted when they opened; one notification per pump per day.
-    private void warnAboutOpenShifts(Long pumpId, GlobalFuelPrice saved, int openShiftsCount) {
+    /** One notification per pump per day; the split itself is already recorded on each shift. */
+    private void notifyOpenShiftsSplit(Long pumpId, GlobalFuelPrice saved, int splitNozzleCount) {
         String dedupKey = "PRICE_CHANGE_OPEN_SHIFT:" + businessClock.today() + ":" + pumpId;
         notificationDedupService.maybeInsert(pumpId,
                 NotificationType.PRICE_CHANGE_OPEN_SHIFT, dedupKey,
                 "Fuel Price Changed With Open Shifts",
-                saved.getFuelType() + " price updated to ₹" + saved.getPricePerUnit() +
-                " but " + openShiftsCount + " shift(s) are still open. They will settle at the old price. " +
-                "Close all open shifts to avoid balance discrepancies.",
+                saved.getFuelType() + " price updated to ₹" + saved.getPricePerUnit() + " while " + splitNozzleCount +
+                " nozzle(s) were on open shifts. Litres after the meter readings taken at the change are charged at "
+                        + "the new price.",
                 Map.of("fuelTypeCode", saved.getFuelType().name(), "price", saved.getPricePerUnit().toPlainString(),
-                        "openShiftCount", openShiftsCount));
+                        "openShiftCount", splitNozzleCount));
+    }
+
+    @Transactional(readOnly = true)
+    public List<OpenNozzleReadingResponse> getOpenNozzles(Long pumpId, FuelType fuelType) {
+        return priceSegmentService.openNozzlesSelling(pumpId, fuelType);
     }
 }

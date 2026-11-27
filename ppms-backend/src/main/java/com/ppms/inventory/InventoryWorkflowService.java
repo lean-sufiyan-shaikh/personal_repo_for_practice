@@ -17,6 +17,7 @@ import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
 import com.ppms.report.BalanceSheetStalenessService;
 import com.ppms.report.StaleReasons;
+import com.ppms.shift.ShiftFuelDeductionService;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
@@ -67,6 +68,7 @@ public class InventoryWorkflowService {
     private final ShortageClaimService shortageClaimService;
     private final PumpLocationRepository pumpLocationRepository;
     private final ClosedDayGuard closedDayGuard;
+    private final ShiftFuelDeductionService fuelDeductionService;
 
     /**
      * Records one tanker delivery: a TankerDelivery row, a FIFO InventoryLot, and the added tank stock. Stock and the
@@ -522,7 +524,7 @@ public class InventoryWorkflowService {
         deliveryReceiptService.saveReadings(delivery, receipt);
 
         BigDecimal received = delivery.getReceivedLitres();
-        inventoryLotRepository.save(InventoryLot.builder()
+        InventoryLot lot = inventoryLotRepository.save(InventoryLot.builder()
                 .tankerDeliveryId(delivery.getId())
                 .tankId(tank.getId())
                 .fuelType(tank.getFuelType())
@@ -537,6 +539,7 @@ public class InventoryWorkflowService {
 
         tank.setCurrentStock(currentStockOf(tank).add(received).setScale(3, RoundingMode.HALF_UP));
         tankRepository.save(tank);
+        fuelDeductionService.coverShortfallsFromDelivery(tank.getId(), lot);
         return delivery;
     }
 

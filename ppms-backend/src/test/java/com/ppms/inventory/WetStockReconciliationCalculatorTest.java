@@ -1,7 +1,9 @@
 package com.ppms.inventory;
 
 import com.ppms.fuel.FuelType;
-import com.ppms.inventory.WetStockReconciliationCalculator.TankDailyFigures;
+import com.ppms.inventory.WetStockReconciliationCalculator.Dip;
+import com.ppms.inventory.WetStockReconciliationCalculator.TankFigures;
+import com.ppms.inventory.WetStockReconciliationCalculator.TimedLitres;
 import com.ppms.inventory.WetStockReconciliationResponse.Period;
 import com.ppms.inventory.WetStockReconciliationResponse.PeriodStatus;
 import com.ppms.inventory.WetStockReconciliationResponse.SummaryStatus;
@@ -12,12 +14,17 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/** Dips are taken at 21:00, deliveries arrive at 11:00 and a day's sales are one shift from 08:00 to 16:00. */
 class WetStockReconciliationCalculatorTest {
 
     private static final LocalDate DAY_1 = LocalDate.of(2026, 11, 1);
@@ -29,6 +36,9 @@ class WetStockReconciliationCalculatorTest {
     private final Map<LocalDate, BigDecimal> delivered = new HashMap<>();
     private final Map<LocalDate, BigDecimal> sold = new HashMap<>();
     private final Map<LocalDate, BigDecimal> removed = new HashMap<>();
+    private final List<TankMeterSales.MeterTimeline> extraTimelines = new ArrayList<>();
+    private final List<TimedLitres> shortfalls = new ArrayList<>();
+    private final Map<LocalDate, OffsetDateTime> dipTimes = new HashMap<>();
 
     @Test
     void normalDayExpectsOpeningLessSalesAndReportsTheVarianceAsShareOfSales() {
@@ -155,8 +165,64 @@ class WetStockReconciliationCalculatorTest {
         assertThat(result.summary().variancePercent()).isNull();
     }
 
+    @Test
+    void dipTakenMidShiftWithItsMeterSnapshotSplitsTheShiftsSalesWithoutFalseGainOrLoss() {
+        dips.put(DAY_1, litres("10000"));
+        dipTimes.put(DAY_2, at(DAY_2, 12));
+        dips.put(DAY_2, litres("9600"));
+        extraTimelines.add(new TankMeterSales.MeterTimeline(at(DAY_2, 8))
+                .knownAt(at(DAY_2, 12), litres("400"))
+                .knownAt(at(DAY_3, 2), litres("1000")));
+        dips.put(DAY_3, litres("9000"));
+
+        TankReconciliation result = reconcile(tank("20", null), DAY_2, DAY_3);
+
+        assertThat(result.periods()).extracting(Period::soldLitres)
+                .usingElementComparator(BigDecimal::compareTo)
+                .containsExactly(litres("400"), litres("600"));
+        assertThat(result.periods()).extracting(Period::varianceLitres)
+                .usingElementComparator(BigDecimal::compareTo)
+                .containsExactly(litres("0"), litres("0"));
+    }
+
+    @Test
+    void shiftStillOpenAtTheClosingDipWithoutSnapshotCountsOnlyWhatWasKnownByThen() {
+        dips.put(DAY_1, litres("10000"));
+        extraTimelines.add(new TankMeterSales.MeterTimeline(at(DAY_2, 8)));
+        dips.put(DAY_2, litres("10000"));
+
+        Period period = onlyPeriod(reconcile(tank("20", null), DAY_2, DAY_2));
+
+        assertThat(period.soldLitres()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void stockShortfallOfAShiftClosedInThePeriodIsShownOnThePeriod() {
+        dips.put(DAY_1, litres("10000"));
+        sold.put(DAY_2, litres("1000"));
+        shortfalls.add(new TimedLitres(at(DAY_2, 16), litres("150")));
+        dips.put(DAY_2, litres("9000"));
+        dips.put(DAY_3, litres("9000"));
+
+        TankReconciliation result = reconcile(tank("20", null), DAY_2, DAY_3);
+
+        assertThat(result.periods().get(0).stockShortfallLitres()).isEqualByComparingTo("150");
+        assertThat(result.periods().get(1).stockShortfallLitres()).isNull();
+    }
+
     private TankReconciliation reconcile(UndergroundTank tank, LocalDate from, LocalDate to) {
-        return WetStockReconciliationCalculator.reconcile(tank, new TankDailyFigures(dips, delivered, sold, removed), from, to);
+        TreeMap<LocalDate, Dip> dipsAtTime = new TreeMap<>();
+        dips.forEach((day, litres) -> dipsAtTime.put(day, new Dip(dipTimes.getOrDefault(day, at(day, 21)), litres)));
+        List<TimedLitres> deliveries = new ArrayList<>();
+        delivered.forEach((day, litres) -> deliveries.add(new TimedLitres(at(day, 11), litres)));
+        List<TankMeterSales.MeterTimeline> timelines = new ArrayList<>(extraTimelines);
+        sold.forEach((day, litres) -> timelines.add(new TankMeterSales.MeterTimeline(at(day, 8)).knownAt(at(day, 16), litres)));
+        return WetStockReconciliationCalculator.reconcile(tank, new TankFigures(dipsAtTime, deliveries, removed,
+                new TankMeterSales(timelines), shortfalls), from, to);
+    }
+
+    private static OffsetDateTime at(LocalDate day, int hour) {
+        return day.atTime(hour, 0).atOffset(ZoneOffset.ofHoursMinutes(5, 30));
     }
 
     private static Period onlyPeriod(TankReconciliation result) {

@@ -9,6 +9,8 @@ public record OperatorDiscrepancyReport(
         LocalDate from,
         LocalDate to,
         int totalDiscrepancyShifts,
+        /* Auto-closed shifts in the range, left out until their closing readings are entered. */
+        long autoClosedShiftCount,
         List<OperatorSummary> operators) {
 
     public record OperatorSummary(

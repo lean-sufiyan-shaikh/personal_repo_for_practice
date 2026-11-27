@@ -53,7 +53,7 @@ public class ProfitLossReportService {
     private record LotPrice(Long lotId, BigDecimal costPricePerUnit) {}
 
     /**
-     * Revenue is units sold × price snapshot from closed shift readings; cost of goods is quantity
+     * Revenue is each closed shift reading's litres priced per price segment; cost of goods is quantity
      * consumed × lot cost for those shifts, DIP adjustments included because they are real stock loss.
      */
     public ProfitLossReport buildProfitLossReport(Long pumpId, LocalDate from, LocalDate to) {
@@ -73,7 +73,7 @@ public class ProfitLossReportService {
         Map<LocalDate, BigDecimal> revenueByDay = new TreeMap<>();
         for (ShiftFuelReading reading : readings) {
             if (reading.getUnitsSold() == null) continue;
-            BigDecimal revenue = reading.getUnitsSold().multiply(reading.getPriceSnapshot()).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal revenue = reading.amountDue().setScale(2, RoundingMode.HALF_UP);
             revenueByFuel.merge(reading.getFuelType(), revenue, BigDecimal::add);
             unitsSoldByFuel.merge(reading.getFuelType(), reading.getUnitsSold(), BigDecimal::add);
             revenueByDay.merge(dateByShiftId.get(reading.getShiftId()), revenue, BigDecimal::add);
@@ -94,6 +94,7 @@ public class ProfitLossReportService {
                 .setScale(2, RoundingMode.HALF_UP);
 
         return new ProfitLossReport(pumpId, from, to, shifts.size(),
+                shiftRepository.countAutoClosedShiftsByDateRange(pumpId, from, to),
                 totalRevenue.setScale(2, RoundingMode.HALF_UP),
                 totalCogs.setScale(2, RoundingMode.HALF_UP),
                 grossProfit,

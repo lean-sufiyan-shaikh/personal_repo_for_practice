@@ -34,6 +34,9 @@ public class ShiftResponse {
     private LocalDate shiftDate;
     private OffsetDateTime actualStartTime;
     private OffsetDateTime actualEndTime;
+    /** When the closing readings were really entered; actualEndTime is capped at the scheduled end. */
+    private OffsetDateTime closedAt;
+    private Long closedByUserId;
 
     /**
      * Scheduled end time derived from the linked shift definition.
@@ -67,8 +70,15 @@ public class ShiftResponse {
     private String investigationNote;
     private String investigatedByName;
     private OffsetDateTime investigationStartedAt;
-    /** Non-null only when discrepancyResolution = CASH_RECOVERY on a SHORT shift. */
+    /** Every investigation note, oldest first. */
+    private List<InvestigationNoteResponse> investigationHistory;
+    /** Cash handed back for a SHORT discrepancy, all of it or part; null when none. */
     private BigDecimal cashRecoveryAmount;
+    private OffsetDateTime cashRecoveredAt;
+    /** Collected minus due absorbed as rounding when the shift closed balanced; null when there was none. */
+    private BigDecimal roundingAdjustment;
+    /** True when the tanks' book stock could not cover what the shift sold; a delivery may be missing. */
+    private boolean stockShortfall;
 
     private String status;
 
@@ -86,6 +96,7 @@ public class ShiftResponse {
             String fuelType
     ) {}
 
+    /** priceSegments is empty unless the price changed while the shift was open; salesAmount is set at close. */
     public record FuelReadingResponse(
             Long nozzleId,
             FuelType fuelType,
@@ -93,7 +104,24 @@ public class ShiftResponse {
             BigDecimal endReading,
             BigDecimal priceSnapshot,
             BigDecimal unitsSold,
-            BigDecimal maxMeterValue
+            BigDecimal maxMeterValue,
+            BigDecimal salesAmount,
+            BigDecimal stockShortfallLitres,
+            List<PriceSegmentResponse> priceSegments
+    ) {}
+
+    /** Litres between two meter readings sold at one price; unitsSold is null until the shift closes. */
+    public record PriceSegmentResponse(
+            BigDecimal startReading,
+            BigDecimal pricePerUnit,
+            OffsetDateTime startsAt,
+            BigDecimal unitsSold
+    ) {}
+
+    public record InvestigationNoteResponse(
+            String note,
+            String writtenByName,
+            OffsetDateTime writtenAt
     ) {}
 
     public record CreditEntryResponse(

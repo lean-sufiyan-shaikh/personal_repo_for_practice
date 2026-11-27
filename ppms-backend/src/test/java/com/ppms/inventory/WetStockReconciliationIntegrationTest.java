@@ -27,6 +27,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -49,6 +50,7 @@ class WetStockReconciliationIntegrationTest extends ApiIntegrationTest {
     @Autowired private NotificationRepository notificationRepository;
     @Autowired private WetStockLossAlertJob alertJob;
     @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired private DipCheckNozzleReadingRepository dipSnapshotRepository;
 
     private PumpSetup setup;
 
@@ -198,6 +200,152 @@ class WetStockReconciliationIntegrationTest extends ApiIntegrationTest {
                 .param("from", TODAY.minusDays(60).toString()).param("to", TODAY.toString()), setup.manager());
 
         assertThat(longRange).isEqualTo(shortRange);
+    }
+
+    @Test
+    void dipTakenMidShiftCountsOnlyWhatItsMeterSnapshotShowsSoNeitherDayShowsAFalseGainOrLoss() throws Exception {
+        saveDip(OPENING_DAY, 21, "10000");
+        Shift shift = saveShift(FULL_DAY, atHour(FULL_DAY, 8), atHour(NO_DIP_DAY, 2), "0", "1000", "1000");
+        DipCheck midShiftDip = saveDipAt(atHour(FULL_DAY, 12), "9600");
+        saveSnapshot(midShiftDip, shift, "0", "400", "400");
+        saveDip(NO_DIP_DAY, 21, "9000");
+
+        JsonNode periods = reconciliation(FULL_DAY, NO_DIP_DAY).get("tanks").get(0).get("periods");
+
+        assertThat(periods).extracting(period -> period.get("soldLitres").decimalValue())
+                .usingElementComparator(BigDecimal::compareTo)
+                .containsExactly(new BigDecimal("400"), new BigDecimal("600"));
+        assertThat(periods).extracting(period -> period.get("varianceLitres").decimalValue())
+                .usingElementComparator(BigDecimal::compareTo)
+                .containsExactly(BigDecimal.ZERO, BigDecimal.ZERO);
+    }
+
+    @Test
+    void meterThatRolledOverBetweenTwoDipsCountsOnlyTheLitresDispensed() throws Exception {
+        saveDip(OPENING_DAY, 21, "10000");
+        Shift shift = saveShift(FULL_DAY, atHour(FULL_DAY, 8), atHour(FULL_DAY, 20), "99999990.000", "10.000", "20.000");
+        DipCheck midShiftDip = saveDipAt(atHour(FULL_DAY, 12), "9995");
+        saveSnapshot(midShiftDip, shift, "99999990.000", "99999995.000", "5.000");
+        saveDip(FULL_DAY, 21, "9980");
+
+        JsonNode tank = reconciliation(FULL_DAY, FULL_DAY).get("tanks").get(0);
+
+        assertThat(tank.get("summary").get("salesLitres").decimalValue()).isEqualByComparingTo("20");
+        assertThat(tank.get("periods").get(0).get("varianceLitres").decimalValue()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void litresSoldWhileADeliveryWasUnloadedAreInBothTheReceivedLitresAndTheMetersSoTheyCancelOut() throws Exception {
+        saveDip(OPENING_DAY, 21, "2000");
+        TankerDelivery delivery = deliveryRepository.save(TankerDelivery.builder()
+                .pumpId(setup.pumpId())
+                .tankId(setup.tank().getId())
+                .fuelType(FuelType.PETROL)
+                .quantityDelivered(new BigDecimal("8000"))
+                .costPricePerUnit(new BigDecimal("90"))
+                .deliveryDate(atHour(FULL_DAY, 11))
+                .invoiceReference("INV-" + shortId())
+                .loggedByUserId(setup.manager().getId())
+                .dipBeforeLitres(new BigDecimal("1500"))
+                .dipAfterLitres(new BigDecimal("9500"))
+                .soldBetweenLitres(new BigDecimal("100"))
+                .receivedLitres(new BigDecimal("8100"))
+                .varianceLitres(new BigDecimal("100"))
+                .receiptTolerancePercent(new BigDecimal("0.20"))
+                .densityTolerance(new BigDecimal("3.0"))
+                .checkStatus(DeliveryCheckStatus.OVER)
+                .build());
+        saveShift(FULL_DAY, atHour(FULL_DAY, 8), atHour(FULL_DAY, 20), "0", "1000", "1000");
+        saveDip(FULL_DAY, 21, "9100");
+
+        JsonNode period = reconciliation(FULL_DAY, FULL_DAY).get("tanks").get(0).get("periods").get(0);
+
+        assertThat(period.get("deliveredLitres").decimalValue()).isEqualByComparingTo(delivery.getReceivedLitres());
+        assertThat(period.get("soldLitres").decimalValue()).isEqualByComparingTo("1000");
+        assertThat(period.get("varianceLitres").decimalValue()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void amendedClosingReadingIsWhatTheMetersSoldBetweenTheDips() throws Exception {
+        PumpSetup stocked = createPumpWithStock("5000");
+        setup = stocked;
+        saveDip(YESTERDAY, 23, "5000");
+        long shiftId = json(perform(post("/api/pumps/{pumpId}/shifts/open", setup.pumpId()), setup.manager(),
+                Map.of("duId", setup.du().getId(), "nozzleIds", List.of(setup.nozzle().getId()),
+                        "operatorId", setup.operator().getId())).andExpect(status().isCreated())).get("id").asLong();
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId), setup.manager(),
+                closeRequest("1010.000", "1000.00")).andExpect(status().isOk());
+        Map<String, Object> amendment = closeRequest("1020.000", "2000.00");
+        amendment.put("reason", "Closing reading was misread");
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/amend", setup.pumpId(), shiftId), setup.owner(), amendment)
+                .andExpect(status().isOk());
+        saveDipAt(TestDates.now().plusSeconds(1), "4980");
+
+        JsonNode period = reconciliation(TODAY, TODAY).get("tanks").get(0).get("periods").get(0);
+
+        assertThat(period.get("soldLitres").decimalValue()).isEqualByComparingTo("20");
+        assertThat(period.get("varianceLitres").decimalValue()).isEqualByComparingTo("0");
+    }
+
+    private Map<String, Object> closeRequest(String endReading, String cash) {
+        Map<String, Object> request = new java.util.HashMap<>();
+        request.put("fuelReadings", List.of(Map.of("nozzleId", setup.nozzle().getId(), "endReading", new BigDecimal(endReading))));
+        request.put("cashCollected", new BigDecimal(cash));
+        request.put("upiCollected", BigDecimal.ZERO);
+        request.put("cardCollected", BigDecimal.ZERO);
+        request.put("fleetCardCollected", BigDecimal.ZERO);
+        request.put("creditTotal", BigDecimal.ZERO);
+        request.put("creditEntries", List.of());
+        return request;
+    }
+
+    private DipCheck saveDipAt(OffsetDateTime checkedAt, String litres) {
+        return dipCheckRepository.save(DipCheck.builder()
+                .pumpId(setup.pumpId())
+                .tankId(setup.tank().getId())
+                .measuredQuantity(new BigDecimal(litres))
+                .systemStock(new BigDecimal(litres))
+                .checkedAt(checkedAt)
+                .loggedByUserId(setup.manager().getId())
+                .status(DipCheckStatus.WITHIN_TOLERANCE)
+                .build());
+    }
+
+    private void saveSnapshot(DipCheck dip, Shift shift, String opening, String meter, String unitsSold) {
+        dipSnapshotRepository.save(DipCheckNozzleReading.builder()
+                .dipCheckId(dip.getId())
+                .shiftId(shift.getId())
+                .nozzleId(setup.nozzle().getId())
+                .openingReading(new BigDecimal(opening))
+                .meterReading(new BigDecimal(meter))
+                .unitsSold(new BigDecimal(unitsSold))
+                .build());
+    }
+
+    private Shift saveShift(LocalDate day, OffsetDateTime openedAt, OffsetDateTime closedAt, String start, String end,
+                            String unitsSold) {
+        Shift shift = shiftRepository.save(Shift.builder()
+                .pumpId(setup.pumpId())
+                .duId(setup.du().getId())
+                .operatorId(setup.operator().getId())
+                .openedByUserId(setup.manager().getId())
+                .shiftDate(day)
+                .actualStartTime(openedAt)
+                .actualEndTime(closedAt)
+                .closedAt(closedAt)
+                .status(ShiftStatus.CLOSED_BALANCED)
+                .build());
+        fuelReadingRepository.save(ShiftFuelReading.builder()
+                .shiftId(shift.getId())
+                .nozzleId(setup.nozzle().getId())
+                .tankId(setup.tank().getId())
+                .fuelType(FuelType.PETROL)
+                .startReading(new BigDecimal(start))
+                .endReading(new BigDecimal(end))
+                .unitsSold(new BigDecimal(unitsSold))
+                .priceSnapshot(new BigDecimal("100"))
+                .build());
+        return shift;
     }
 
     private void seedFourDays(String yesterdaysClosingDip) {
