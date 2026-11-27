@@ -21,7 +21,7 @@ describe('collection settings rules', () => {
   })
 
   it('needs a UPI ID like name@bank together with a payee name', () => {
-    const base = { stages: '7', holdDays: '45', upiId: '', payeeName: '', paymentThreshold: '', backdatedDays: '7' }
+    const base = { stages: '7', holdDays: '45', upiId: '', payeeName: '', paymentThreshold: '', backdatedDays: '7', groupInvoice: 'false' }
     expect(problemsOf(base)).toEqual({})
     expect(problemsOf({ ...base, upiId: 'ramfuels' }).upiId).toBe('settings.upiIdInvalid')
     expect(problemsOf({ ...base, upiId: 'ramfuels@okaxis' }).payeeName).toBe('settings.upiIncomplete')
@@ -30,7 +30,7 @@ describe('collection settings rules', () => {
   })
 
   it('takes an approval amount above zero in rupees and paise, and back-dated days from 0 to 365', () => {
-    const base = { stages: '7', holdDays: '45', upiId: '', payeeName: '', paymentThreshold: '', backdatedDays: '0' }
+    const base = { stages: '7', holdDays: '45', upiId: '', payeeName: '', paymentThreshold: '', backdatedDays: '0', groupInvoice: 'false' }
     expect(problemsOf(base)).toEqual({})
     expect(problemsOf({ ...base, paymentThreshold: '5000.50' })).toEqual({})
     expect(problemsOf({ ...base, paymentThreshold: '0' }).paymentThreshold).toBe('settings.paymentThresholdInvalid')
@@ -64,7 +64,7 @@ describe('CollectionSettingsForm', () => {
 
     expect(collectionApi.updateSettings).toHaveBeenCalledWith(3, {
       reminderStageDays: [10, 20], creditHoldDays: null, upiId: 'ramfuels@okaxis', upiPayeeName: 'Ram Fuels',
-      creditPaymentApprovalThreshold: null, backdatedPaymentApprovalDays: 7,
+      creditPaymentApprovalThreshold: null, backdatedPaymentApprovalDays: 7, groupInvoiceByDefault: false,
     })
   })
 
@@ -82,6 +82,16 @@ describe('CollectionSettingsForm', () => {
     expect(collectionApi.updateSettings).toHaveBeenCalledWith(3, expect.objectContaining({
       creditPaymentApprovalThreshold: 5000, backdatedPaymentApprovalDays: 3,
     }))
+  })
+
+  it('saves invoicing a parent once for its whole group as the pump default', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<CollectionSettingsForm pumpId={3} />)
+
+    await user.click(await screen.findByRole('checkbox', { name: /One invoice for a parent and its sub-accounts/ }))
+    await user.click(screen.getByRole('button', { name: 'Save collection settings' }))
+
+    expect(collectionApi.updateSettings).toHaveBeenCalledWith(3, expect.objectContaining({ groupInvoiceByDefault: true }))
   })
 
   it('shows what is wrong instead of saving an invalid UPI ID', async () => {

@@ -41,6 +41,21 @@ describe('RecordPaymentModal references and cheques', () => {
     vi.mocked(creditApi.recordPayment).mockResolvedValue({} as never)
   })
 
+  it('refuses paying more than owed until the extra is kept as an advance', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<RecordPaymentModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('Amount'), '15000')
+    await user.click(screen.getByRole('button', { name: 'Record payment' }))
+    expect(creditApi.recordPayment).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('checkbox', { name: /Keep the extra ₹3,000.00 as an advance/ }))
+    await user.click(screen.getByRole('button', { name: 'Record payment' }))
+
+    expect(creditApi.recordPayment).toHaveBeenCalledWith(PUMP_ID, client.id,
+      expect.objectContaining({ amount: 15000, recordAsAdvance: true }), expect.any(String))
+  })
+
   it('needs the reference of a UPI payment before it can be recorded', async () => {
     const user = userEvent.setup()
     renderWithProviders(<RecordPaymentModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)

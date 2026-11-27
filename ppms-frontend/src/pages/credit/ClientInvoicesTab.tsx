@@ -17,16 +17,19 @@ import { formatIstDate } from '../../utils/date'
 import { CancelInvoiceModal } from './modals/CancelInvoiceModal'
 import { InvoiceDetailsPanel } from './InvoiceDetailsPanel'
 import { useUrlParam } from '../../components/layout/useUrlParam'
+import { ClientGstCreditNotes } from './desk/ClientGstCreditNotes'
 
 interface ClientInvoicesTabProps {
   pumpId: number
   clientId: number
   canIssueInvoices: boolean
+  /** A parent can be invoiced once for its whole group. */
+  hasSubAccounts?: boolean
 }
 
 const shortDate = (date: string) => formatIstDate(date, { day: '2-digit', month: 'short', year: 'numeric' })
 
-export function ClientInvoicesTab({ pumpId, clientId, canIssueInvoices }: ClientInvoicesTabProps) {
+export function ClientInvoicesTab({ pumpId, clientId, canIssueInvoices, hasSubAccounts = false }: ClientInvoicesTabProps) {
   const { t } = useTranslation(['credit', 'common'])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
@@ -62,8 +65,10 @@ export function ClientInvoicesTab({ pumpId, clientId, canIssueInvoices }: Client
 
       {canIssueInvoices && defaultPeriod && (
         <GenerateInvoiceForm pumpId={pumpId} clientId={clientId} defaultPeriod={defaultPeriod}
-          onGenerated={() => setPage(0)} />
+          hasSubAccounts={hasSubAccounts} onGenerated={() => setPage(0)} />
       )}
+
+      <ClientGstCreditNotes pumpId={pumpId} clientId={clientId} />
 
       {isLoading ? (
         <SkeletonRows count={3} />
@@ -132,19 +137,23 @@ interface GenerateInvoiceFormProps {
   pumpId: number
   clientId: number
   defaultPeriod: InvoicePeriod
+  hasSubAccounts: boolean
   onGenerated: () => void
 }
 
-function GenerateInvoiceForm({ pumpId, clientId, defaultPeriod, onGenerated }: GenerateInvoiceFormProps) {
+function GenerateInvoiceForm({ pumpId, clientId, defaultPeriod, hasSubAccounts, onGenerated }: GenerateInvoiceFormProps) {
   const { t } = useTranslation(['credit', 'common'])
   const qc = useQueryClient()
   const { addToast } = useToastStore()
   const [periodFrom, setPeriodFrom] = useState(defaultPeriod.periodFrom)
   const [periodTo, setPeriodTo] = useState(defaultPeriod.periodTo)
   const [error, setError] = useState<string | null>(null)
+  const [coverSubAccounts, setCoverSubAccounts] = useState<boolean | undefined>(undefined)
 
   const mutation = useMutation({
-    mutationFn: () => creditApi.generateInvoice(pumpId, clientId, { periodFrom, periodTo }),
+    mutationFn: () => hasSubAccounts
+      ? creditApi.generateInvoice(pumpId, clientId, { periodFrom, periodTo }, coverSubAccounts)
+      : creditApi.generateInvoice(pumpId, clientId, { periodFrom, periodTo }),
     onSuccess: (invoice) => {
       setError(null)
       qc.invalidateQueries({ queryKey: ['credit-invoices', pumpId] })
@@ -180,6 +189,18 @@ function GenerateInvoiceForm({ pumpId, clientId, defaultPeriod, onGenerated }: G
             onChange={e => setPeriodTo(e.target.value)} />
         </label>
       </FormGrid>
+      {hasSubAccounts && (
+        <fieldset className="space-y-1">
+          <legend className="ui-label">{t('invoices.groupInvoice.label')}</legend>
+          {([undefined, true, false] as const).map(option => (
+            <label key={String(option)} className="flex items-center gap-2 text-sm text-ink">
+              <input type="radio" name="coverSubAccounts" checked={coverSubAccounts === option}
+                onChange={() => setCoverSubAccounts(option)} />
+              {t(`invoices.groupInvoice.${option === undefined ? 'pumpDefault' : option ? 'wholeGroup' : 'thisAccount'}`)}
+            </label>
+          ))}
+        </fieldset>
+      )}
       {error && <p role="alert" className="ui-error-text">{error}</p>}
       <LoadingButton type="submit" isLoading={mutation.isPending} loadingLabel={t('common:actions.generating')} className="ui-btn-primary">
         {t('invoices.generateButton')}

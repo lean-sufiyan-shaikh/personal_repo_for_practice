@@ -473,5 +473,7 @@
   "NEAR_LIMIT": "सीमा के पास",
   "APPLIED": "लागू",
   "CREDIT_PORTAL_LOCKED": "बैलेंस पेज लॉक हुआ",
-  "CREDIT_CLIENT_PHONE_CHANGED": "ग्राहक का फ़ोन बदला"
+  "CREDIT_CLIENT_PHONE_CHANGED": "ग्राहक का फ़ोन बदला",
+  "CREDIT_DISPUTE": "विवाद",
+  "CREDIT_NOTE": "क्रेडिट नोट"
 }

@@ -40,6 +40,7 @@ export function OperatingProfitSection({ report, className = '' }: { report: Pro
     { key: 'expenses', label: t('pl.approvedExpenses'), value: -report.approvedExpenses, showSign: true },
     { key: 'charges', label: t('pl.bankCharges'), value: -report.bankCharges, showSign: true },
     { key: 'payroll', label: t('pl.payrollPaid'), value: -report.payrollPaid, showSign: true },
+    { key: 'badDebt', label: t('pl.badDebtWrittenOff'), value: -(report.badDebtWrittenOff ?? 0), showSign: true },
   ]
   return (
     <section aria-labelledby={titleId} className={`ui-card ui-card-muted p-3 ${className}`}>

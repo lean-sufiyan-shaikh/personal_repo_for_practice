@@ -135,7 +135,11 @@
     "paymentReversal": "पेमेंट उलटवले",
     "bounceCharge": "बाउन्स शुल्क",
     "demo": "डेमो",
-    "openingBalance": "सुरुवातीची थकबाकी"
+    "openingBalance": "सुरुवातीची थकबाकी",
+    "creditNote": "क्रेडिट नोट",
+    "writeOff": "निर्लेखित",
+    "depositApplied": "डिपॉझिट वापरले",
+    "advanceRefund": "ॲडव्हान्स परतावा"
   },
   "passwordInput": {
     "show": "पासवर्ड दाखवा"

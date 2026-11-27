@@ -130,6 +130,17 @@
     "METER_READING_ADJUSTED": "मीटर रीडिंग दुरुस्त केले",
     "METER_ADJUSTMENT_REQUESTED": "मीटर दुरुस्ती मागितली",
     "METER_ADJUSTMENT_APPROVED": "मीटर दुरुस्ती मंजूर झाली",
-    "METER_ADJUSTMENT_REJECTED": "मीटर दुरुस्ती नामंजूर झाली"
+    "METER_ADJUSTMENT_REJECTED": "मीटर दुरुस्ती नामंजूर झाली",
+    "CREDIT_NOTE_ISSUED": "क्रेडिट नोट जारी झाली",
+    "CREDIT_ADVANCE_REFUNDED": "ॲडव्हान्स परत केला",
+    "CREDIT_DEPOSIT_RECEIVED": "सिक्युरिटी डिपॉझिट मिळाले",
+    "CREDIT_DEPOSIT_APPLIED": "सिक्युरिटी डिपॉझिट थकबाकीत वापरले",
+    "CREDIT_DEPOSIT_REFUNDED": "सिक्युरिटी डिपॉझिट परत केले",
+    "CREDIT_WRITTEN_OFF": "बुडीत कर्ज निर्लेखित केले",
+    "CREDIT_ACCOUNT_CLOSED": "उधारी खाते बंद केले",
+    "CREDIT_ACCOUNT_REOPENED": "उधारी खाते पुन्हा उघडले",
+    "CREDIT_CLIENTS_MERGED": "दुहेरी ग्राहक विलीन केले",
+    "CREDIT_DISPUTE_RAISED": "रकमेवर वाद नोंदवला",
+    "CREDIT_DISPUTE_RESOLVED": "वाद मिटवला"
   }
 }

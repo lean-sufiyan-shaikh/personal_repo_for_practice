@@ -165,6 +165,8 @@
     "paymentThresholdInvalid": "Enter an amount above ₹0 with at most 2 decimals, or leave empty.",
     "backdatedDays": "Back-dated payments allowed (days)",
     "backdatedDaysHelp": "A manager's payment dated more days back than this waits for approval, whatever its amount.",
-    "backdatedDaysInvalid": "Use a whole number from 0 to 365."
+    "backdatedDaysInvalid": "Use a whole number from 0 to 365.",
+    "groupInvoice": "One invoice for a parent and its sub-accounts",
+    "groupInvoiceHelp": "Used when invoices are issued for all clients, and as the usual choice for a parent."
   }
 }

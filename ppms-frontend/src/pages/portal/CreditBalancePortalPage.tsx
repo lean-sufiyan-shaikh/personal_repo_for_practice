@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import axios, { isAxiosError } from 'axios'
+import { isAxiosError } from 'axios'
 import { useTranslation } from 'react-i18next'
 import { FormField } from '../../components/FormField'
 import { PasswordInput } from '../../components/PasswordInput'
@@ -9,9 +9,7 @@ import { LoadingButton } from '../../components/LoadingButton'
 import { AuthCard, AuthScreen } from '../auth/AuthCard'
 import { PortalBalanceResult } from './PortalBalanceResult'
 import type { PortalBalance } from './PortalBalanceResult'
-
-// Uses a plain axios instance — no auth header, no JWT
-const publicClient = axios.create({ baseURL: '/api' })
+import { publicClient } from './portalClient'
 
 const DEFAULT_WAIT_MINUTES = 15
 

@@ -11,6 +11,7 @@ const actions: LedgerRowActions = {
   canMoveEntries: false, canWaiveInterest: false, canApprovePayments: false, canReversePayments: false, currentUserId: 1,
   pendingPaymentRecorders: new Map(), approvePayment: vi.fn(), onRejectPayment: vi.fn(), isApproving: false,
   onMove: vi.fn(), onWaiveInterest: vi.fn(), onReversePayment: vi.fn(),
+  canIssueCreditNote: false, canRaiseDispute: false, canResolveDispute: false, onCreditNote: vi.fn(), onDispute: vi.fn(),
 }
 
 function row(overrides: Partial<CreditTransaction>): CreditTransaction {
@@ -185,6 +186,31 @@ describe('LedgerWeekGroups payment reversal', () => {
     render(<LedgerWeekGroups srcClientId={7} actions={actions} groups={[{ label: 'Week', items: reversedPaymentRows }]} />)
 
     expect(screen.queryByRole('button', { name: 'Reverse this payment' })).not.toBeInTheDocument()
+  })
+})
+
+describe('LedgerWeekGroups credit desk', () => {
+  it('shows a credit note as lowering the balance and badges a disputed sale that can only be resolved', async () => {
+    const user = userEvent.setup()
+    const onDispute = vi.fn()
+    const onCreditNote = vi.fn()
+    render(
+      <LedgerWeekGroups srcClientId={7}
+        actions={{ ...actions, canIssueCreditNote: true, canRaiseDispute: true, canResolveDispute: true, onDispute, onCreditNote }}
+        groups={[{ label: 'Week', items: [
+          row({ referenceId: 1, openDisputeId: 9 }),
+          row({ referenceId: 2, type: 'CREDIT_NOTE', reference: 'Short delivery', amount: 40 }),
+          row({ referenceId: 3, detail: 'DIESEL' }),
+        ] }]} />,
+    )
+
+    expect(screen.getByText('Disputed')).toBeInTheDocument()
+    expect(screen.getByText('−₹40.00').closest('td')).toHaveClass('text-ok')
+    expect(screen.getAllByRole('button', { name: 'Credit note' })).toHaveLength(1)
+    await user.click(screen.getByRole('button', { name: 'Resolve dispute' }))
+    expect(onDispute).toHaveBeenCalledWith(expect.objectContaining({ referenceId: 1 }))
+    await user.click(screen.getByRole('button', { name: 'Credit note' }))
+    expect(onCreditNote).toHaveBeenCalledWith(expect.objectContaining({ referenceId: 3 }), 7)
   })
 })
 

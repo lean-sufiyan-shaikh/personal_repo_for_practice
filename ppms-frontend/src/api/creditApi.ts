@@ -26,6 +26,15 @@ export interface CreditClient {
   parentClientName: string | null
   /** True if this root account has sub-accounts under it. */
   isParent: boolean
+  /** What a main account has paid ahead of its bills; new bills use it up first. */
+  advance?: number
+  /** Security deposit held; not part of the outstanding balance until an owner applies it. */
+  depositHeld?: number
+  closedAt?: string | null
+  closeReason?: string | null
+  mergedIntoClientId?: number | null
+  /** First day of a bad-debt write-off (YYYY-MM-DD); null when never written off. */
+  writtenOffOn?: string | null
 }
 
 export interface CreditTransaction {
@@ -35,6 +44,7 @@ export interface CreditTransaction {
    * OPENING_BALANCE is what was owed at go-live.
    */
   type: 'SALE' | 'COUNTER_SALE' | 'PAYMENT' | 'INTEREST' | 'PAYMENT_REVERSAL' | 'BOUNCE_CHARGE' | 'OPENING_BALANCE'
+    | 'CREDIT_NOTE' | 'WRITE_OFF' | 'DEPOSIT_APPLIED' | 'ADVANCE_REFUND'
   referenceId: number
   reference: string | null
   /** Set when the server wrote the reference (COUNTER_SALE and INTEREST rows, a payment by unknown staff), for translated screens. */
@@ -56,6 +66,10 @@ export interface CreditTransaction {
   clientName?: string
   /** For a REVERSED payment its reversal's id; for a PAYMENT_REVERSAL or BOUNCE_CHARGE row the reversed payment's id. */
   linkedReferenceId?: number | null
+  /** For a CREDIT_NOTE naming a debit, that debit's type. */
+  linkedReferenceType?: string | null
+  /** The open dispute on this debit; null when it is not disputed. */
+  openDisputeId?: number | null
 }
 
 export interface UpdateInterestSettingsRequest {
@@ -106,6 +120,8 @@ export interface RecordPaymentRequest {
   chequeDate?: string
   /** Sent after the user has seen the possible-duplicate warning for this reference. */
   confirmDuplicate?: boolean
+  /** The user agreed to keep what is paid above the balance as an advance. */
+  recordAsAdvance?: boolean
   notes?: string
 }
 
@@ -206,6 +222,8 @@ export interface CreditInvoice {
   cancelReason: string | null
   cancelledAt: string | null
   createdAt: string
+  /** One invoice for a parent and its sub-accounts. */
+  coversSubAccounts?: boolean
 }
 
 export interface InvoicePeriod {
@@ -371,8 +389,8 @@ export const creditApi = {
   getDefaultInvoicePeriod: (pumpId: number, clientId: number) =>
     client.get<InvoicePeriod>(`/pumps/${pumpId}/credit-invoices/default-period`, { params: { clientId } }).then(r => r.data),
 
-  generateInvoice: (pumpId: number, clientId: number, period: InvoicePeriod) =>
-    client.post<CreditInvoice>(`/pumps/${pumpId}/credit-invoices`, { clientId, ...period }).then(r => r.data),
+  generateInvoice: (pumpId: number, clientId: number, period: InvoicePeriod, coverSubAccounts?: boolean) =>
+    client.post<CreditInvoice>(`/pumps/${pumpId}/credit-invoices`, { clientId, ...period, coverSubAccounts }).then(r => r.data),
 
   previewInvoicesForAllClients: (pumpId: number, period: InvoicePeriod) =>
     client.get<InvoiceRunPreview>(`/pumps/${pumpId}/credit-invoices/generate-all/preview`, { params: period }).then(r => r.data),

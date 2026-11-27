@@ -28,7 +28,8 @@
     "subAccount": "Your sub-account",
     "ownUsage": "Credit used on this account",
     "noLimit": "No limit",
-    "subAccountNote": "This is a sub-account. The account balance and limit are held on the main account."
+    "subAccountNote": "This is a sub-account. The account balance and limit are held on the main account.",
+    "advance": "Paid ahead (advance)"
   },
   "errors": {
     "incomplete": "Enter the Pump ID, your 10-digit phone number and your 4 to 6 digit PIN.",
@@ -41,5 +42,29 @@
     "title": "Credit by vehicle",
     "none": "No credit this month.",
     "unassigned": "Unknown or unrecorded vehicle"
+  },
+  "history": {
+    "show": "Recent transactions",
+    "thisMonth": "This month's statement",
+    "lastMonth": "Last month's statement",
+    "title": "Last 90 days",
+    "empty": "Nothing in the last 90 days.",
+    "disputed": "Disputed",
+    "sessionEnded": "Your session has ended. Check your balance again.",
+    "tooMany": "Too many statements downloaded. Please wait a few minutes.",
+    "failed": "Could not load. Please try again.",
+    "types": {
+      "SALE": "Fuel",
+      "COUNTER_SALE": "Shop purchase",
+      "PAYMENT": "Payment",
+      "INTEREST": "Interest",
+      "PAYMENT_REVERSAL": "Payment reversed",
+      "BOUNCE_CHARGE": "Bounce charge",
+      "CREDIT_NOTE": "Credit note",
+      "WRITE_OFF": "Written off",
+      "DEPOSIT_APPLIED": "Deposit applied",
+      "ADVANCE_REFUND": "Advance refunded",
+      "OPENING_BALANCE": "Opening balance"
+    }
   }
 }

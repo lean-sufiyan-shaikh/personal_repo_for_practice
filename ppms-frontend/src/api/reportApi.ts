@@ -51,7 +51,9 @@ export interface ProfitLossReport {
   bankCharges: number
   /** Net pay of the payroll paid in the period, by its paid date. */
   payrollPaid: number
-  /** grossProfit − approvedExpenses − bankCharges − payrollPaid. */
+  /** Bad debt written off on credit accounts in the period. */
+  badDebtWrittenOff?: number
+  /** grossProfit − approvedExpenses − bankCharges − payrollPaid − badDebtWrittenOff. */
   netOperatingProfit: number
   byFuelType: ProfitLossFuelLine[]
   byDay: ProfitLossDayLine[]

@@ -48,6 +48,7 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
   const [amountError, setAmountError] = useState<string | undefined>()
   const [serverError, setServerError] = useState<string | null>(null)
   const [targetClientId, setTargetClientId] = useState<number>(client.id)
+  const [keepAsAdvance, setKeepAsAdvance] = useState(false)
   const stillNeededId = useId()
   const modeLabelId = useId()
   const recordForLabelId = useId()
@@ -103,7 +104,7 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
       setAmountError(t('recordPayment.invalidAmount'))
       return
     }
-    if (amt > outstandingBalance) {
+    if (amt > outstandingBalance && !keepAsAdvance) {
       setAmountError(t('recordPayment.exceedsOutstanding', { amount: formatCurrency(outstandingBalance) }))
       return
     }
@@ -111,6 +112,7 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
     const request: RecordPaymentRequest = {
       amount: amt, paymentMode, paidAt, ...referenceFieldsOf(paymentMode, reference),
       confirmDuplicate: confirmDuplicate || undefined, notes: notes.trim() || undefined,
+      recordAsAdvance: (amt > outstandingBalance && keepAsAdvance) || undefined,
     }
     const attempt = attemptFor(submitAttempt, { targetClientId, request })
     setSubmitAttempt(attempt)
@@ -202,6 +204,14 @@ export function RecordPaymentModal({ client, pumpId, outstandingBalanceOverride,
             : { label: t('recordPayment.remainingAfter'), value: <MoneyText value={balanceAfterPaise === null ? null : balanceAfterPaise / 100} />, isResult: true },
         ]}
       />
+
+      {isOverpaid && (
+        <label className="flex items-start gap-2 text-sm text-ink">
+          <input type="checkbox" checked={keepAsAdvance}
+            onChange={e => { setKeepAsAdvance(e.target.checked); setAmountError(undefined) }} />
+          <span>{t('recordPayment.keepAsAdvance', { amount: formatCurrency(Math.abs(balanceAfterPaise) / 100) })}</span>
+        </label>
+      )}
 
       {duplicateWarning && (
         <PossibleDuplicateWarning message={duplicateWarning} isPending={mutation.isPending} onConfirm={() => submit(true)} />

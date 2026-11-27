@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { creditApi } from '../../api/creditApi'
+import { creditDeskApi } from '../../api/creditDeskApi'
 import type { CreditInvoice } from '../../api/creditApi'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import type { PagedResponse } from '../../types/paged'
@@ -14,6 +15,13 @@ vi.mock('../../api/creditApi', () => ({
     generateInvoice: vi.fn(),
     cancelInvoice: vi.fn(),
     invoicePrintUrl: (pumpId: number, invoiceId: number) => `/api/pumps/${pumpId}/credit-invoices/${invoiceId}/print`,
+  },
+}))
+
+vi.mock('../../api/creditDeskApi', () => ({
+  creditDeskApi: {
+    listGstCreditNotes: vi.fn(),
+    gstCreditNotePrintUrl: (pumpId: number, id: number) => `/api/pumps/${pumpId}/credit-invoices/credit-notes/${id}/print`,
   },
 }))
 
@@ -42,6 +50,19 @@ describe('ClientInvoicesTab', () => {
     vi.mocked(creditApi.getDefaultInvoicePeriod).mockResolvedValue({ periodFrom: '2026-10-01', periodTo: '2026-10-31' })
     vi.mocked(creditApi.generateInvoice).mockResolvedValue({ ...issued, id: 8, invoiceNumber: 'PMP3/26-27/0003' })
     vi.mocked(creditApi.cancelInvoice).mockResolvedValue({ ...issued, status: 'CANCELLED' })
+    vi.mocked(creditDeskApi.listGstCreditNotes).mockResolvedValue([])
+  })
+
+  it('lists the GST credit notes with a print link next to the invoices', async () => {
+    vi.mocked(creditDeskApi.listGstCreditNotes).mockResolvedValue([{
+      id: 5, clientId: CLIENT_ID, creditNoteNumber: 'CN/26-27/0001', issuedOn: '2026-11-02', invoiceId: 7,
+      invoiceNumber: 'PMP3/26-27/0001', reason: 'Returned', description: 'Engine oil', quantity: 1, taxableValue: 100,
+      cgst: 9, sgst: 9, igst: 0, total: 118,
+    }])
+    renderWithProviders(<ClientInvoicesTab pumpId={PUMP_ID} clientId={CLIENT_ID} canIssueInvoices />)
+
+    expect(await screen.findByRole('link', { name: 'View or print credit note CN/26-27/0001' }))
+      .toHaveAttribute('href', `/api/pumps/${PUMP_ID}/credit-invoices/credit-notes/5/print`)
   })
 
   it('lists invoices with their status and a print link', async () => {

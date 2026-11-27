@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { CreditTransaction } from '../../api/creditApi'
+import { DEBIT_TYPES } from '../../api/creditDeskApi'
 
 export interface LedgerRowActions {
   canMoveEntries: boolean
@@ -14,6 +15,11 @@ export interface LedgerRowActions {
   onMove: (entryId: number, sourceClientId: number, type: 'SALE' | 'PAYMENT') => void
   onWaiveInterest: (charge: CreditTransaction, sourceClientId: number) => void
   onReversePayment: (payment: CreditTransaction) => void
+  canIssueCreditNote: boolean
+  canRaiseDispute: boolean
+  canResolveDispute: boolean
+  onCreditNote: (debit: CreditTransaction, sourceClientId: number) => void
+  onDispute: (debit: CreditTransaction) => void
 }
 
 /** Approve, reject or reverse a payment, move an entry, or waive an interest charge — whichever the entry and role allow. */
@@ -22,8 +28,11 @@ export function LedgerEntryActions({ tx, srcClientId, actions }: { tx: CreditTra
   const {
     canMoveEntries, canWaiveInterest, canApprovePayments, canReversePayments, currentUserId, pendingPaymentRecorders,
     approvePayment, onRejectPayment, isApproving, onMove, onWaiveInterest, onReversePayment,
+    canIssueCreditNote, canRaiseDispute, canResolveDispute, onCreditNote, onDispute,
   } = actions
   const isReversedPayment = tx.type === 'PAYMENT' && tx.status === 'REVERSED'
+  const isLiveDebit = DEBIT_TYPES.includes(tx.type) && tx.countedInBalance
+  const isDisputed = tx.openDisputeId != null
 
   return (
     <>
@@ -66,6 +75,18 @@ export function LedgerEntryActions({ tx, srcClientId, actions }: { tx: CreditTra
           title={tx.type === 'PAYMENT' ? t('ledger.movePaymentTitle') : t('ledger.moveEntryTitle')}
         >
           {t('ledger.move')}
+        </button>
+      )}
+      {canIssueCreditNote && isLiveDebit && !isDisputed && (
+        <button type="button" onClick={() => onCreditNote(tx, srcClientId)}
+          className="ui-btn ui-btn-ghost min-h-6 px-1 text-xs text-primary mr-1">
+          {t('ledger.creditNote')}
+        </button>
+      )}
+      {((canRaiseDispute && isLiveDebit && !isDisputed) || (canResolveDispute && isDisputed)) && (
+        <button type="button" onClick={() => onDispute(tx)}
+          className="ui-btn ui-btn-ghost min-h-6 px-1 text-xs text-warn mr-1">
+          {isDisputed ? t('ledger.resolveDispute') : t('ledger.dispute')}
         </button>
       )}
       {canWaiveInterest && tx.type === 'INTEREST' && tx.status !== 'WAIVED' && (

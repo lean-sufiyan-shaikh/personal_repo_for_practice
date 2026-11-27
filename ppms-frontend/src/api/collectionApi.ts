@@ -107,6 +107,8 @@ export interface CollectionSettings {
   creditPaymentApprovalThreshold: number | null
   /** A manager's credit payment dated more days back than this waits for approval. */
   backdatedPaymentApprovalDays: number
+  /** A parent's invoice covers its sub-accounts unless chosen otherwise when issuing it. */
+  groupInvoiceByDefault?: boolean
 }
 
 export interface RecordPromiseRequest {

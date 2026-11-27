@@ -13,6 +13,8 @@ export interface CollectionSettingsText {
   payeeName: string
   paymentThreshold: string
   backdatedDays: string
+  /** 'true' or 'false' */
+  groupInvoice: string
 }
 
 export type CollectionSettingsField = keyof CollectionSettingsText
@@ -29,6 +31,7 @@ export function textOf(settings: CollectionSettings): CollectionSettingsText {
     payeeName: settings.upiPayeeName ?? '',
     paymentThreshold: settings.creditPaymentApprovalThreshold?.toString() ?? '',
     backdatedDays: settings.backdatedPaymentApprovalDays.toString(),
+    groupInvoice: String(settings.groupInvoiceByDefault ?? false),
   }
 }
 
@@ -74,5 +77,6 @@ export function settingsOf(text: CollectionSettingsText): CollectionSettings {
     upiPayeeName: text.payeeName.trim() || null,
     creditPaymentApprovalThreshold: text.paymentThreshold.trim() === '' ? null : Number(text.paymentThreshold.trim()),
     backdatedPaymentApprovalDays: Number(text.backdatedDays.trim()),
+    groupInvoiceByDefault: text.groupInvoice === 'true',
   }
 }

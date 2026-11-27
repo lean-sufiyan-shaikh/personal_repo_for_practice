@@ -130,6 +130,17 @@
     "METER_READING_ADJUSTED": "Meter reading adjusted",
     "METER_ADJUSTMENT_REQUESTED": "Meter adjustment requested",
     "METER_ADJUSTMENT_APPROVED": "Meter adjustment approved",
-    "METER_ADJUSTMENT_REJECTED": "Meter adjustment rejected"
+    "METER_ADJUSTMENT_REJECTED": "Meter adjustment rejected",
+    "CREDIT_NOTE_ISSUED": "Credit note issued",
+    "CREDIT_ADVANCE_REFUNDED": "Advance refunded",
+    "CREDIT_DEPOSIT_RECEIVED": "Security deposit received",
+    "CREDIT_DEPOSIT_APPLIED": "Security deposit applied to dues",
+    "CREDIT_DEPOSIT_REFUNDED": "Security deposit refunded",
+    "CREDIT_WRITTEN_OFF": "Bad debt written off",
+    "CREDIT_ACCOUNT_CLOSED": "Credit account closed",
+    "CREDIT_ACCOUNT_REOPENED": "Credit account reopened",
+    "CREDIT_CLIENTS_MERGED": "Duplicate credit clients merged",
+    "CREDIT_DISPUTE_RAISED": "Debit disputed",
+    "CREDIT_DISPUTE_RESOLVED": "Dispute resolved"
   }
 }

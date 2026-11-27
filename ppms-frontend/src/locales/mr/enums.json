@@ -473,5 +473,7 @@
   "NEAR_LIMIT": "मर्यादेजवळ",
   "APPLIED": "लागू",
   "CREDIT_PORTAL_LOCKED": "शिल्लक पान लॉक झाले",
-  "CREDIT_CLIENT_PHONE_CHANGED": "ग्राहकाचा फोन बदलला"
+  "CREDIT_CLIENT_PHONE_CHANGED": "ग्राहकाचा फोन बदलला",
+  "CREDIT_DISPUTE": "वाद",
+  "CREDIT_NOTE": "क्रेडिट नोट"
 }

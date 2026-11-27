@@ -120,7 +120,9 @@
     "ratePerMonth": "{{rate}}%/mo",
     "graceDays": "{{days}}d grace",
     "clickToSet": "Click to set",
-    "transactions": "Transactions"
+    "transactions": "Transactions",
+    "advance": "Advance {{amount}}",
+    "depositHeld": "Deposit held {{amount}}"
   },
   "statement": {
     "whatsappMessage": "Namaste {{clientName}}, your credit statement for {{fromDate}} to {{toDate}} is ready. Outstanding balance today: {{outstanding}}. Please contact us to settle or to get the printed statement.",
@@ -318,7 +320,8 @@
     "chequeDate": "Cheque date",
     "chequeDateHelp": "A cheque dated after today waits for approval until that date.",
     "duplicateTitle": "Possible duplicate",
-    "recordAnyway": "Record anyway"
+    "recordAnyway": "Record anyway",
+    "keepAsAdvance": "Keep the extra {{amount}} as an advance for future bills"
   },
   "ledger": {
     "history": "Ledger History",
@@ -356,7 +359,11 @@
     "waive": "Waive",
     "filtersLabel": "Ledger filters",
     "reverse": "Reverse",
-    "reverseLabel": "Reverse this payment"
+    "reverseLabel": "Reverse this payment",
+    "creditNote": "Credit note",
+    "dispute": "Dispute",
+    "resolveDispute": "Resolve dispute",
+    "disputed": "Disputed"
   },
   "clientForm": {
     "updateFailed": "Failed to update client",
@@ -386,7 +393,13 @@
     "startAfterEnd": "The period start must be on or before its end.",
     "generateHeading": "Generate invoice",
     "generateHelp": "Bills every credit sale in the period that is not already on an invoice. Interest is not included.",
-    "generateButton": "Generate invoice"
+    "generateButton": "Generate invoice",
+    "groupInvoice": {
+      "label": "Invoice for",
+      "pumpDefault": "The pump's usual choice",
+      "wholeGroup": "This account and its sub-accounts on one invoice",
+      "thisAccount": "This account only"
+    }
   },
   "page": {
     "titleLedger": "Credit Ledger",
@@ -615,5 +628,105 @@
     "saved": "Credit limit settings saved",
     "saveFailed": "Could not save the credit limit settings",
     "loadFailed": "Could not load the credit limit settings"
+  },
+  "desk": {
+    "menuLabel": "More account actions",
+    "failed": "That didn't work. Please try again.",
+    "invalidAmount": "Enter an amount above ₹0 in rupees and paise.",
+    "reasonRequired": "Give a reason.",
+    "available": "Available:",
+    "amount": "Amount",
+    "amountOptional": "Amount (leave empty for everything owed)",
+    "returnedQuantity": "Litres or units returned",
+    "paymentMode": "Paid by",
+    "reference": "Reference",
+    "date": "Date received",
+    "reason": "Reason",
+    "reopened": "Account reopened",
+    "closedNote": "This account is closed: {{reason}}",
+    "mergedNote": "This client was merged into another client. Its history is kept here.",
+    "writtenOffNote": "Written off as a bad debt on {{date}}: no interest, reminders or new credit.",
+    "creditNote": {
+      "title": "Credit note",
+      "hint": "Lower the balance for a return or a wrong bill",
+      "help": "A credit note naming a sale clears that sale first; otherwise it clears the oldest bills. Interest is recalculated from today. A sale on an issued GST invoice also gets a GST credit note.",
+      "confirm": "Issue credit note",
+      "done": "Credit note issued"
+    },
+    "refundAdvance": {
+      "title": "Refund advance",
+      "hint": "Pay back money paid ahead",
+      "help": "Pays back part of what the client paid ahead of its bills. A cash refund leaves the safe.",
+      "confirm": "Refund",
+      "done": "Advance refunded"
+    },
+    "receiveDeposit": {
+      "title": "Security deposit received",
+      "hint": "Hold a deposit apart from the balance",
+      "help": "The deposit is held apart and never used on its own. Cash goes into the safe.",
+      "confirm": "Record deposit",
+      "done": "Deposit recorded"
+    },
+    "applyDeposit": {
+      "title": "Apply deposit to dues",
+      "hint": "Pay part of the balance from the deposit",
+      "help": "Lowers the balance by part of the deposit held, today.",
+      "confirm": "Apply deposit",
+      "done": "Deposit applied to the dues"
+    },
+    "refundDeposit": {
+      "title": "Refund deposit",
+      "hint": "Give the deposit back",
+      "help": "Gives back part or all of the deposit held. A cash refund leaves the safe.",
+      "confirm": "Refund deposit",
+      "done": "Deposit refunded"
+    },
+    "writeOff": {
+      "title": "Write off bad debt",
+      "hint": "Owner only: stop chasing what cannot be recovered",
+      "help": "Writes off the amount as a bad debt. From today the account gets no interest, reminders or new credit, and the amount shows in the P&L.",
+      "confirm": "Write off",
+      "done": "Bad debt written off"
+    },
+    "closeAccount": {
+      "title": "Close account",
+      "hint": "Owner only: needs nothing owed, no advance or deposit",
+      "help": "Closes the account and its sub-accounts. Their history is kept, and an owner can reopen it later.",
+      "confirm": "Close account",
+      "done": "Account closed"
+    },
+    "reopen": {
+      "title": "Reopen account",
+      "hint": "Owner only: allow credit again"
+    },
+    "merge": {
+      "title": "Merge into another client",
+      "hint": "Owner only: for a duplicate client",
+      "help": "Moves every sale, payment, charge, note, promise, reminder, vehicle and deposit of {{name}} to the client you pick, then closes {{name}} as merged. Issued invoices keep their buyer details.",
+      "target": "Merge into",
+      "confirm": "Merge",
+      "done": "Clients merged",
+      "noTargets": "No other open client at the same level to merge into."
+    },
+    "dispute": {
+      "raiseTitle": "Dispute this debit",
+      "resolveTitle": "Resolve dispute",
+      "raise": "Mark disputed",
+      "resolve": "Resolve",
+      "raiseHelp": "While disputed, this debit is not chased, not counted as overdue and bears no interest.",
+      "resolveHelp": "Accepted puts the debit back with its interest. Credited issues a credit note for it.",
+      "resolution": "Resolution",
+      "ACCEPTED": "Accepted: the debit stands",
+      "CREDITED": "Credited: issue a credit note",
+      "creditAmount": "Amount to credit",
+      "creditAmountHelp": "Leave empty to credit all of the disputed amount.",
+      "note": "Note",
+      "done": "Dispute saved"
+    }
+  },
+  "gstCreditNotes": {
+    "title": "GST credit notes",
+    "against": "Against {{invoice}} · {{date}}",
+    "printLabel": "View or print credit note {{number}}"
   }
 }

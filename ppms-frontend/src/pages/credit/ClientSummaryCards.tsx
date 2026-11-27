@@ -37,6 +37,12 @@ export function ClientSummaryCards({
         {hasSubAccounts && (
           <p className="text-xs text-ink-3 mt-0.5">{t('summaryCards.parentAndSubAccounts')}</p>
         )}
+        {(client.advance ?? 0) > 0 && (
+          <p className="text-xs font-medium text-ok mt-0.5">{t('summaryCards.advance', { amount: formatCurrency(client.advance ?? 0) })}</p>
+        )}
+        {(client.depositHeld ?? 0) > 0 && (
+          <p className="text-xs text-ink-3 mt-0.5">{t('summaryCards.depositHeld', { amount: formatCurrency(client.depositHeld ?? 0) })}</p>
+        )}
       </div>
       <div className={`ui-card ${outstandingInterest > 0 ? 'border-info/30 bg-info-bg' : ''}`}>
         <p className="ui-kpi-label mb-1">{t('summaryCards.interestDue')}</p>

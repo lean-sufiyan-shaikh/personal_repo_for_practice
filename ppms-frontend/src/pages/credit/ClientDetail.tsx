@@ -20,6 +20,10 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { MoneyText } from '../../components/AmountText'
 import { codeLabel } from '../../constants/labels'
 import { ClientActions } from './ClientActions'
+import { ClientDeskMenu } from './desk/ClientDeskMenu'
+import { DeskActionModal } from './desk/DeskActionModal'
+import { DisputeModal } from './desk/DisputeModal'
+import type { CreditDebitType } from '../../api/creditDeskApi'
 import { ActiveExtensionBanners } from './ActiveExtensionBanners'
 import { GrantExtensionModal } from './modals/GrantExtensionModal'
 import { RevokeExtensionModal } from './modals/RevokeExtensionModal'
@@ -73,6 +77,8 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const [rejectError, setRejectError] = useState<string | null>(null)
   const [waivingInterest, setWaivingInterest] = useState<{ charge: CreditTransaction; sourceClientId: number } | null>(null)
   const [reversingPayment, setReversingPayment] = useState<CreditTransaction | null>(null)
+  const [creditNoteFor, setCreditNoteFor] = useState<{ debit: CreditTransaction; sourceClientId: number } | null>(null)
+  const [disputing, setDisputing] = useState<CreditTransaction | null>(null)
   const decisionAttempt = useRef<SubmitAttempt | null>(null)
   // Tracks which sections are expanded in the parent ledger view.
   // 'own' (parent's own transactions) starts expanded; sub-account sections start collapsed.
@@ -158,10 +164,8 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
   const effectiveOutstandingBalance = client
     ? Math.max(0, Math.round((client.outstandingBalance - pendingPaymentTotal) * 100) / 100)
     : 0
-  const canRecordPayment = !!client && canPerformAction('credit:record-payment', role) && (
-    effectiveOutstandingBalance > 0 ||
-    (client.isParent && childClients.length > 0)
-  )
+  // A payment above the balance is kept as an advance, so any open account can take one.
+  const canRecordPayment = !!client && client.closedAt == null && canPerformAction('credit:record-payment', role)
 
   const rowActions: LedgerRowActions = {
     canMoveEntries,
@@ -183,6 +187,11 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
     },
     onWaiveInterest: (charge, sourceClientId) => setWaivingInterest({ charge, sourceClientId }),
     onReversePayment: setReversingPayment,
+    canIssueCreditNote: canPerformAction('credit:issue-credit-note', role),
+    canRaiseDispute: canPerformAction('credit:raise-dispute', role),
+    canResolveDispute: canPerformAction('credit:resolve-dispute', role),
+    onCreditNote: (debit, sourceClientId) => setCreditNoteFor({ debit, sourceClientId }),
+    onDispute: setDisputing,
   }
 
   const showPaymentModal = paymentAction.value === 'record-payment' && canRecordPayment
@@ -243,6 +252,18 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
           onClose={() => setReversingPayment(null)}
         />
       )}
+      {creditNoteFor && (
+        <DeskActionModal kind="creditNote" pumpId={pumpId} clientId={creditNoteFor.sourceClientId}
+          clientName={client.name} available={creditNoteFor.debit.amount}
+          debit={{ type: creditNoteFor.debit.type as CreditDebitType, id: creditNoteFor.debit.referenceId, amount: creditNoteFor.debit.amount }}
+          onDone={() => { invalidateLedger(); addToast(t('desk.creditNote.done'), 'success') }}
+          onClose={() => setCreditNoteFor(null)} />
+      )}
+      {disputing && (
+        <DisputeModal pumpId={pumpId} debit={disputing}
+          onDone={() => { invalidateLedger(); addToast(t('desk.dispute.done'), 'success') }}
+          onClose={() => setDisputing(null)} />
+      )}
       {rejectingPayment && (
         <RejectReasonDialog
           title={t('detail.rejectPayment')}
@@ -299,7 +320,17 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
             onRecordPayment={() => paymentAction.set('record-payment')}
             onOpenStatement={() => setShowStatementModal(true)}
           />
+          <ClientDeskMenu pumpId={pumpId} client={client} allClients={allClients} userRole={role} />
         </div>
+
+        {client.closedAt != null && (
+          <p className="mt-3 ui-alert ui-alert-info text-sm">
+            {client.mergedIntoClientId != null ? t('desk.mergedNote') : t('desk.closedNote', { reason: client.closeReason ?? '' })}
+          </p>
+        )}
+        {client.closedAt == null && client.writtenOffOn != null && (
+          <p className="mt-3 ui-alert ui-alert-info text-sm">{t('desk.writtenOffNote', { date: client.writtenOffOn })}</p>
+        )}
 
         {canManageInterestForRole && isSubAccount && (
           <p className="mt-3 ui-card-plain px-4 py-2.5 text-sm text-ink-3">
@@ -364,7 +395,8 @@ export function ClientDetail({ clientId, pumpId, onBack }: ClientDetailProps) {
 
       {activeTab === 'invoices' && (
         <div>
-          <ClientInvoicesTab pumpId={pumpId} clientId={clientId} canIssueInvoices={canIssueInvoices} />
+          <ClientInvoicesTab pumpId={pumpId} clientId={clientId} canIssueInvoices={canIssueInvoices}
+            hasSubAccounts={client.isParent && childClients.length > 0} />
         </div>
       )}
 

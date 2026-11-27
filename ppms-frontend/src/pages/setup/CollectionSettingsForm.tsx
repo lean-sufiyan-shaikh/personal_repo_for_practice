@@ -93,6 +93,11 @@ function CollectionSettingsFields({ pumpId, saved }: { pumpId: number; saved: Co
               onChange={(e) => change('backdatedDays', e.target.value)} />
           </FormField>
         </FormGrid>
+        <label className="mt-3 flex items-start gap-2 text-sm text-ink">
+          <input type="checkbox" checked={values.groupInvoice === 'true'}
+            onChange={(e) => change('groupInvoice', String(e.target.checked))} />
+          <span>{t('settings.groupInvoice')}<span className="block text-xs text-ink-3">{t('settings.groupInvoiceHelp')}</span></span>
+        </label>
       </SetupFormGroup>
       {serverError && <p role="alert" className="ui-alert ui-alert-danger">{serverError}</p>}
       <div className="flex justify-end">

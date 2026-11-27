@@ -105,6 +105,15 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   'credit:waive-interest':         ['OWNER', 'ADMIN'],
   'credit:manage-portal-pin':      ['OWNER', 'ADMIN'],
   'credit:issue-invoice':          ['OWNER', 'ADMIN'],
+  'credit:issue-credit-note':      ['OWNER', 'ADMIN'],
+  'credit:record-deposit':         ['OWNER', 'ADMIN', 'MANAGER'],
+  'credit:manage-deposit':         ['OWNER', 'ADMIN'],
+  'credit:refund-advance':         ['OWNER', 'ADMIN'],
+  'credit:write-off':              ['OWNER'],
+  'credit:close-account':          ['OWNER'],
+  'credit:merge-clients':          ['OWNER'],
+  'credit:raise-dispute':          ['OWNER', 'ADMIN', 'MANAGER'],
+  'credit:resolve-dispute':        ['OWNER', 'ADMIN'],
 
   // Expenses
   // MANAGER and OPERATOR can create expenses (subject to approval threshold).

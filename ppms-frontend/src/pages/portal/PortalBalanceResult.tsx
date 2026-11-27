@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { MoneyText } from '../../components/AmountText'
 import { PortalUpiPayment } from './PortalUpiPayment'
 import { PortalVehicleUsage } from './PortalVehicleUsage'
+import { PortalHistory } from './PortalHistory'
 import type { PortalVehicleMonth } from './PortalVehicleUsage'
 
 export interface PortalBalance {
@@ -16,6 +17,10 @@ export interface PortalBalance {
   upiPayLink: string | null
   /** This month and the month before, newest first. */
   vehicleUsage: PortalVehicleMonth[]
+  /** What the group has paid ahead of its bills; zero for a sub-account. */
+  advance?: number
+  /** Opens the recent transactions and statements for a few minutes. */
+  sessionToken?: string
 }
 
 /** What the client sees once the balance page recognises their phone and PIN. */
@@ -30,6 +35,12 @@ export function PortalBalanceResult({ result }: { result: PortalBalance }) {
           <span className="text-xs text-ink-3">{result.subAccount ? t('result.ownUsage') : t('result.outstanding')}</span>
           <MoneyText value={result.outstandingAmount} className="text-sm font-bold text-ink" />
         </div>
+        {(result.advance ?? 0) > 0 && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-ink-3">{t('result.advance')}</span>
+            <MoneyText value={result.advance ?? 0} className="text-sm font-bold text-ok" />
+          </div>
+        )}
         {!result.subAccount && (
           <div className="flex items-center justify-between">
             <span className="text-xs text-ink-3">{t('result.creditLimit')}</span>
@@ -51,6 +62,7 @@ export function PortalBalanceResult({ result }: { result: PortalBalance }) {
       {result.vehicleUsage.some((month) => month.vehicles.length > 0) && (
         <PortalVehicleUsage months={result.vehicleUsage} />
       )}
+      {result.sessionToken && <PortalHistory sessionToken={result.sessionToken} />}
     </div>
   )
 }

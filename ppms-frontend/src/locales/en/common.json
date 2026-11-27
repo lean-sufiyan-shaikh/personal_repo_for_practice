@@ -135,7 +135,11 @@
     "paymentReversal": "Payment reversed",
     "bounceCharge": "Bounce charge",
     "demo": "Demo",
-    "openingBalance": "Opening balance"
+    "openingBalance": "Opening balance",
+    "creditNote": "Credit note",
+    "writeOff": "Written off",
+    "depositApplied": "Deposit applied",
+    "advanceRefund": "Advance refund"
   },
   "passwordInput": {
     "show": "Show password"

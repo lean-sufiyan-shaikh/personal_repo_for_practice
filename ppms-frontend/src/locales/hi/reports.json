@@ -95,7 +95,8 @@
     "approvedExpenses": "मंज़ूर खर्च",
     "bankCharges": "MDR / बैंक शुल्क",
     "payrollPaid": "दिया गया वेतन",
-    "netOperatingProfit": "शुद्ध परिचालन लाभ"
+    "netOperatingProfit": "शुद्ध परिचालन लाभ",
+    "badDebtWrittenOff": "डूबत कर्ज़ बट्टे खाते"
   },
   "duty": {
     "operator": "ऑपरेटर",

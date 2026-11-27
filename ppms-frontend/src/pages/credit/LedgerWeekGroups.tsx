@@ -45,6 +45,7 @@ function LedgerEntryCard({ tx, srcClientId, actions }: { tx: CreditTransaction; 
         <div className="min-w-0 space-y-1">
           <p className="text-xs text-ink-3">{formatDate(tx.businessDate)}</p>
           <StatusBadge {...creditTransactionBadge(tx)} />
+          {tx.openDisputeId != null && <StatusBadge tone="warn" label={t('ledger.disputed')} />}
           <p className="break-words text-xs text-ink-3">{entryDescription(tx)}</p>
           {!tx.countedInBalance && <p className="text-xs font-medium text-ink-2">{t('ledger.notCounted')}</p>}
         </div>
@@ -104,6 +105,7 @@ export function LedgerWeekGroups({ groups, srcClientId, actions }: LedgerWeekGro
                 </td>
                 <td className="px-2 py-2.5 w-40">
                   <StatusBadge {...creditTransactionBadge(tx)} />
+                  {tx.openDisputeId != null && <StatusBadge tone="warn" label={t('ledger.disputed')} />}
                 </td>
                 <td className="px-2 py-2.5 text-xs">
                   <span className="text-ink-3 truncate block">{entryDescription(tx)}</span>

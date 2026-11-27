@@ -35,12 +35,19 @@ export function entryDescription(tx: CreditTransaction): string {
   return (tx.reference && serverText(tx.referenceCode, tx.referenceParams, tx.reference)) || detailText(tx)
 }
 
+const CREDIT_TYPES: readonly string[] = ['PAYMENT', 'CREDIT_NOTE', 'WRITE_OFF', 'DEPOSIT_APPLIED']
+
+/** Payments, credit notes, write-offs and applied deposits lower the balance; every other row raises it. */
+export function isCreditEntry(tx: CreditTransaction): boolean {
+  return CREDIT_TYPES.includes(tx.type)
+}
+
 export function signedEntryAmount(tx: CreditTransaction): number {
-  return tx.type === 'PAYMENT' ? -tx.amount : tx.amount
+  return isCreditEntry(tx) ? -tx.amount : tx.amount
 }
 
 export function entryAmountClass(tx: CreditTransaction): string {
-  if (tx.type === 'PAYMENT') return 'text-ok'
+  if (isCreditEntry(tx)) return 'text-ok'
   if (tx.type === 'INTEREST') return 'text-info'
   return tx.type === 'PAYMENT_REVERSAL' || tx.type === 'BOUNCE_CHARGE' ? 'text-bad' : 'text-warn'
 }

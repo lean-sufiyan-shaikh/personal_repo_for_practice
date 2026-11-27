@@ -95,7 +95,8 @@
     "approvedExpenses": "Approved expenses",
     "bankCharges": "MDR / bank charges",
     "payrollPaid": "Payroll paid",
-    "netOperatingProfit": "Net operating profit"
+    "netOperatingProfit": "Net operating profit",
+    "badDebtWrittenOff": "Bad debt written off"
   },
   "duty": {
     "operator": "Operator",
