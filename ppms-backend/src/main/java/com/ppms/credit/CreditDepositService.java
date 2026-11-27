@@ -6,6 +6,8 @@ import com.ppms.cash.CashDrawerService;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.dayclose.ClosedDayGuard;
+import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +37,7 @@ public class CreditDepositService {
     private final ClosedDayGuard closedDayGuard;
     private final AuditService auditService;
     private final BusinessClock businessClock;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
 
     @Transactional
     public CreditDeposit receive(Long pumpId, Long clientId, MoneyMovementRequest request, User receivedBy) {
@@ -61,6 +64,8 @@ public class CreditDepositService {
                 .cashEventId(cashEventId)
                 .createdBy(receivedBy.getId())
                 .build());
+        balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(receivedOn),
+                StaleReasons.creditAccountChanged(clientId));
         auditService.log(pumpId, AuditAction.CREDIT_DEPOSIT_RECEIVED, "CreditDeposit", deposit.getId().toString(),
                 "Security deposit ₹" + amount + " received from clientId=" + clientId + " by " + mode + " on " + receivedOn,
                 receivedBy);
@@ -103,6 +108,8 @@ public class CreditDepositService {
                 .build());
         interestService.recalculateChargedInterestFrom(clientId, today,
                 "Recalculated after the security deposit was applied on " + today, appliedBy);
+        balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(today),
+                StaleReasons.creditAccountChanged(clientId));
         auditService.log(pumpId, AuditAction.CREDIT_DEPOSIT_APPLIED, "CreditDeposit", movement.getId().toString(),
                 "Security deposit ₹" + amount + " applied to the dues of clientId=" + clientId + ", reason=" + reason,
                 appliedBy);
@@ -137,6 +144,8 @@ public class CreditDepositService {
                 .cashEventId(cashEventId)
                 .createdBy(refundedBy.getId())
                 .build());
+        balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(today),
+                StaleReasons.creditAccountChanged(clientId));
         auditService.log(pumpId, AuditAction.CREDIT_DEPOSIT_REFUNDED, "CreditDeposit", movement.getId().toString(),
                 "Security deposit ₹" + amount + " refunded to clientId=" + clientId + " by " + mode + ", reason=" + reason,
                 refundedBy);

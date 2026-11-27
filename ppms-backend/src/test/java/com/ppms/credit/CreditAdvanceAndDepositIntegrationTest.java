@@ -65,6 +65,24 @@ class CreditAdvanceAndDepositIntegrationTest extends CreditDeskTestSupport {
     }
 
     @Test
+    void depositsRefundsAndCreditNotesMarkTheDaySheetOfTheirDateStale() throws Exception {
+        long sheetId = jdbcTemplate.queryForObject("INSERT INTO balance_sheets (pump_id, report_type, report_date,"
+                + " generated_by_user_id) VALUES (?, 'DAY', ?, ?) RETURNING id", Long.class,
+                setup.pumpId(), TODAY, setup.owner().getId());
+
+        desk("deposits", clientId, setup.manager(), Map.of("amount", new BigDecimal("100.00"), "paymentMode", "CASH"))
+                .andExpect(status().isCreated());
+
+        assertThat(jdbcTemplate.queryForObject("SELECT stale AND stale_reason_code = 'STALE_CREDIT_ACCOUNT_CHANGED'"
+                + " FROM balance_sheets WHERE id = ?", Boolean.class, sheetId)).isTrue();
+        jdbcTemplate.update("UPDATE balance_sheets SET stale = FALSE, stale_reason = NULL, stale_reason_code = NULL,"
+                + " stale_reason_params = NULL WHERE id = ?", sheetId);
+        creditNote(clientId, setup.owner(), "10.00", null, null).andExpect(status().isCreated());
+        assertThat(jdbcTemplate.queryForObject("SELECT stale FROM balance_sheets WHERE id = ?", Boolean.class, sheetId))
+                .isTrue();
+    }
+
+    @Test
     void depositIsHeldApartUntilAppliedToTheDuesAndCashMovesThroughTheSafe() throws Exception {
         desk("deposits", clientId, setup.manager(), Map.of("amount", new BigDecimal("5000.00"), "paymentMode", "CASH",
                 "date", TODAY.toString())).andExpect(status().isCreated());

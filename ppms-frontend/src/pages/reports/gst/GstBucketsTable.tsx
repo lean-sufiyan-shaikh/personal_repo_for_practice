@@ -19,6 +19,8 @@ export function GstBucketsTable({ summary }: { summary: GstSummary }) {
     { key: 'outward', section: '3.1(a)', label: t('gst.buckets.outward'), bucket: summary.outwardTaxable },
     { key: 'invoices', section: '', label: t('gst.buckets.fromInvoices'), bucket: summary.outwardFromInvoices },
     { key: 'counter', section: '', label: t('gst.buckets.fromCounterSales'), bucket: summary.outwardFromCounterSales },
+    ...(summary.outwardCreditNotes ? [{ key: 'creditNotes', section: '', label: t('gst.buckets.lessCreditNotes'),
+      bucket: summary.outwardCreditNotes }] : []),
     { key: 'fuel', section: '3.1(e)', label: t('gst.buckets.nonGstFuel'), bucket: null, value: summary.nonGstOutwardFuel },
     { key: 'input', section: '4(A)(5)', label: t('gst.buckets.input'), bucket: summary.inputTax },
     { key: 'net', section: '', label: t('gst.buckets.net'), bucket: summary.netTax },

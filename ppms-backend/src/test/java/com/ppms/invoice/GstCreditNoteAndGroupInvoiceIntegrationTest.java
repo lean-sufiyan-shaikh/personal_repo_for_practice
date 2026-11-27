@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +90,12 @@ class GstCreditNoteAndGroupInvoiceIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("CREDIT NOTE")))
                 .andExpect(content().string(containsString("PMP3/" + FINANCIAL_YEAR + "/0001")));
+        JsonNode gst = json(perform(get("/api/pumps/{pumpId}/reports/gst-summary", setup.pumpId())
+                .param("month", YearMonth.from(TODAY).toString()), setup.accountant()).andExpect(status().isOk()));
+        assertThat(gst.get("outwardCreditNotes").get("taxableValue").decimalValue()).isEqualByComparingTo("150.00");
+        assertThat(gst.get("outwardCreditNotes").get("cgst").decimalValue()).isEqualByComparingTo("13.50");
+        assertThat(gst.get("outwardTaxable").get("taxableValue").decimalValue()).isEqualByComparingTo("50.00");
+        assertThat(gst.get("outwardTaxable").get("cgst").decimalValue()).isEqualByComparingTo("4.50");
         perform(post("/api/pumps/{pumpId}/credit-invoices/{id}/cancel", setup.pumpId(), invoiceId), setup.owner(),
                 Map.of("reason", "Wrong client"))
                 .andExpect(status().isBadRequest())

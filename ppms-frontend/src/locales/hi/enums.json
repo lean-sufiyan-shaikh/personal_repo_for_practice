@@ -433,7 +433,8 @@
     "BOUNCE_CHARGE_DETAILS": "{{paidAt}} के भुगतान का बाउंस शुल्क",
     "CREDIT_OPENING_BALANCE": "शुरुआती बकाया",
     "ATTENTION_STOCK_SHORTFALL_one": "स्टॉक शून्य से नीचे गया: {{count}} शिफ्ट ने टैंकों से {{litres}} L अधिक बेचा — छूटी हुई डिलीवरी दर्ज करें",
-    "ATTENTION_STOCK_SHORTFALL_other": "स्टॉक शून्य से नीचे गया: {{count}} शिफ्टों ने टैंकों से {{litres}} L अधिक बेचा — छूटी हुई डिलीवरी दर्ज करें"
+    "ATTENTION_STOCK_SHORTFALL_other": "स्टॉक शून्य से नीचे गया: {{count}} शिफ्टों ने टैंकों से {{litres}} L अधिक बेचा — छूटी हुई डिलीवरी दर्ज करें",
+    "STALE_CREDIT_ACCOUNT_CHANGED": "यह शीट बनने के बाद उधार ग्राहक #{{clientId}} के लिए क्रेडिट नोट, बट्टे खाते, डिपॉज़िट या एडवांस वापसी दर्ज हुई।"
   },
   "WET_STOCK_LOSS": "सीमा से ज़्यादा ईंधन नुकसान",
   "RAISED": "दावा किया",

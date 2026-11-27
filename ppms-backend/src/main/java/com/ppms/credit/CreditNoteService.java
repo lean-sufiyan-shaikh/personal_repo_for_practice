@@ -8,6 +8,8 @@ import com.ppms.common.time.BusinessClock;
 import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.invoice.GstCreditNote;
 import com.ppms.invoice.GstCreditNoteService;
+import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -41,6 +44,7 @@ public class CreditNoteService {
     private final ClosedDayGuard closedDayGuard;
     private final AuditService auditService;
     private final BusinessClock businessClock;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
 
     public record IssuedCreditNote(CreditAdjustment adjustment, Optional<GstCreditNote> gstCreditNote) {}
 
@@ -102,6 +106,8 @@ public class CreditNoteService {
         Optional<GstCreditNote> gstCreditNote = debit != null
                 ? gstCreditNoteService.issueIfInvoiced(note, issuedBy) : Optional.empty();
 
+        balanceSheetStalenessService.markDaySheetsStale(client.getPumpId(), List.of(today),
+                StaleReasons.creditAccountChanged(note.getClientId()));
         auditService.log(client.getPumpId(), AuditAction.CREDIT_NOTE_ISSUED, "CreditAdjustment", note.getId().toString(),
                 "Credit note ₹" + amount + " for clientId=" + note.getClientId()
                         + (debit != null ? " against " + debit.type() + " #" + debit.id() : " against the oldest bills")

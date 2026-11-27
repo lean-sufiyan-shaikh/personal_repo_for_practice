@@ -96,6 +96,13 @@ public final class StaleReasons {
                 "Payroll #" + payrollId + " was marked paid on this day" + AFTER_GENERATED);
     }
 
+    /** A credit note, write-off, security deposit or advance refund that changes the day's credit or cash. */
+    public static CodedText creditAccountChanged(Long clientId) {
+        return CodedText.of(ServerTextCodes.STALE_CREDIT_ACCOUNT_CHANGED, "clientId", clientId,
+                "A credit note, write-off, deposit or advance refund was recorded for credit client #" + clientId
+                        + AFTER_GENERATED);
+    }
+
     public static CodedText dayReopened(String date) {
         return CodedText.of(ServerTextCodes.STALE_DAY_REOPENED, "date", date,
                 date + " was re-opened" + AFTER_GENERATED);

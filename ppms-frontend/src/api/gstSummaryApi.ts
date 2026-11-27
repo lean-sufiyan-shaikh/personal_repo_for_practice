@@ -31,6 +31,8 @@ export interface GstSummary {
   outwardTaxable: GstTaxBucket
   outwardFromInvoices: GstTaxBucket
   outwardFromCounterSales: GstTaxBucket
+  /** GST credit notes issued in the month; already taken off outwardTaxable. */
+  outwardCreditNotes?: GstTaxBucket
   nonGstOutwardFuel: number
   inputTax: GstTaxBucket
   netTax: GstTaxBucket

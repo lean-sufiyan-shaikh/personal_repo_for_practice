@@ -16,6 +16,8 @@ public record GstSummaryResponse(
         TaxBucket outwardTaxable,
         TaxBucket outwardFromInvoices,
         TaxBucket outwardFromCounterSales,
+        /** GST credit notes issued in the month against counter-product invoice lines; already taken off outwardTaxable. */
+        TaxBucket outwardCreditNotes,
         BigDecimal nonGstOutwardFuel,
         TaxBucket inputTax,
         TaxBucket netTax,
@@ -35,6 +37,11 @@ public record GstSummaryResponse(
         TaxBucket plus(TaxBucket other) {
             return new TaxBucket(taxableValue.add(other.taxableValue), cgst.add(other.cgst), sgst.add(other.sgst),
                     igst.add(other.igst));
+        }
+
+        TaxBucket minus(TaxBucket other) {
+            return new TaxBucket(taxableValue.subtract(other.taxableValue), cgst.subtract(other.cgst),
+                    sgst.subtract(other.sgst), igst.subtract(other.igst));
         }
 
         TaxBucket minusTax(TaxBucket other) {

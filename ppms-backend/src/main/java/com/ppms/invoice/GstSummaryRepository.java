@@ -25,6 +25,17 @@ public interface GstSummaryRepository extends Repository<CreditInvoice, Long> {
     List<Object[]> sumInvoicedCounterProductTax(@Param("pumpId") Long pumpId, @Param("from") LocalDate from,
                                                 @Param("to") LocalDate to);
 
+    /** [taxable value, CGST, SGST, IGST] of GST credit notes issued in the period for counter-product lines. */
+    @Query("""
+            SELECT COALESCE(SUM(n.taxableValue), 0), COALESCE(SUM(n.cgst), 0), COALESCE(SUM(n.sgst), 0),
+                   COALESCE(SUM(n.igst), 0)
+            FROM GstCreditNote n
+            WHERE n.pumpId = :pumpId AND n.issuedOn BETWEEN :from AND :to
+              AND n.lineType = com.ppms.invoice.InvoiceLineType.ANCILLARY
+            """)
+    List<Object[]> sumCreditNoteCounterProductTax(@Param("pumpId") Long pumpId, @Param("from") LocalDate from,
+                                                  @Param("to") LocalDate to);
+
     /** Counter sales paid on the spot; credit sales are taxed through the invoice that bills them. */
     @Query("""
             SELECT s FROM AncillarySale s

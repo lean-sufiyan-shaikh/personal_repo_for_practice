@@ -76,6 +76,7 @@ public final class ServerTextCodes {
     public static final String STALE_DAY_REOPENED = "STALE_DAY_REOPENED";
     public static final String STALE_SHIFT_AMENDED = "STALE_SHIFT_AMENDED";
     public static final String STALE_PAYROLL_PAID = "STALE_PAYROLL_PAID";
+    public static final String STALE_CREDIT_ACCOUNT_CHANGED = "STALE_CREDIT_ACCOUNT_CHANGED";
 
     public static final String PERIOD_DAY_END = "PERIOD_DAY_END";
     public static final String PERIOD_DAY_END_UP_TO = "PERIOD_DAY_END_UP_TO";

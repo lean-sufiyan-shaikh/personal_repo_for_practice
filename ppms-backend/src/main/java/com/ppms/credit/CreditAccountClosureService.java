@@ -6,6 +6,8 @@ import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.dayclose.ClosedDayGuard;
+import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +41,7 @@ public class CreditAccountClosureService {
     private final ClosedDayGuard closedDayGuard;
     private final AuditService auditService;
     private final BusinessClock businessClock;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
 
     /** @param amount null writes off all the group owes */
     @Transactional
@@ -71,6 +74,8 @@ public class CreditAccountClosureService {
                 .build());
         interestService.recalculateChargedInterestFrom(holder.getId(), today,
                 "Recalculated after a bad-debt write-off on " + today, writtenOffBy);
+        balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(today),
+                StaleReasons.creditAccountChanged(holder.getId()));
         auditService.log(pumpId, AuditAction.CREDIT_WRITTEN_OFF, "CreditAdjustment", writeOff.getId().toString(),
                 "Bad debt ₹" + writtenOff + " written off for clientId=" + holder.getId() + " (owed ₹"
                         + CreditDeskRules.money(owed) + "), reason=" + trimmedReason, writtenOffBy);

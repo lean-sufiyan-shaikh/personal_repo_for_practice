@@ -39,6 +39,8 @@ export function gstCsvRows(summary: GstSummary): GstCsvRow[] {
     bucketRow('3.1(a)', 'Outward taxable supplies (counter products)', summary.outwardTaxable),
     bucketRow('3.1(a)', 'of which on credit invoices issued', summary.outwardFromInvoices),
     bucketRow('3.1(a)', 'of which counter sales paid on the spot', summary.outwardFromCounterSales),
+    ...(summary.outwardCreditNotes
+      ? [bucketRow('3.1(a)', 'less GST credit notes issued', summary.outwardCreditNotes)] : []),
     { section: '3.1(e)', label: 'Non-GST outward supplies (petrol and diesel)', taxableValue: summary.nonGstOutwardFuel },
     bucketRow('4(A)(5)', 'Input tax credit (counter-product purchases)', summary.inputTax),
     { ...bucketRow('Net', 'Output tax less input tax (negative = credit carried forward)', summary.netTax), taxableValue: undefined },

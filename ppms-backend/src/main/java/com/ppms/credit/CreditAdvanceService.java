@@ -7,6 +7,8 @@ import com.ppms.common.exception.BusinessException;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.time.BusinessClock;
 import com.ppms.dayclose.ClosedDayGuard;
+import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.report.StaleReasons;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,6 +37,7 @@ public class CreditAdvanceService {
     private final ClosedDayGuard closedDayGuard;
     private final AuditService auditService;
     private final BusinessClock businessClock;
+    private final BalanceSheetStalenessService balanceSheetStalenessService;
 
     @Transactional
     public CreditAdjustment refundAdvance(Long pumpId, Long clientId, MoneyMovementRequest request, User refundedBy) {
@@ -65,6 +69,8 @@ public class CreditAdvanceService {
                 .build());
         interestService.recalculateChargedInterestFrom(holder.getId(), today,
                 "Recalculated after an advance refund dated " + today, refundedBy);
+        balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(today),
+                StaleReasons.creditAccountChanged(holder.getId()));
         auditService.log(pumpId, AuditAction.CREDIT_ADVANCE_REFUNDED, "CreditAdjustment", refund.getId().toString(),
                 "Advance ₹" + amount + " refunded to clientId=" + holder.getId() + " by " + mode + ", reason=" + reason,
                 refundedBy);

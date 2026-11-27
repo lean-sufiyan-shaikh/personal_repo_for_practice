@@ -233,7 +233,8 @@
       "fromCounterSales": "of which counter sales paid on the spot",
       "nonGstFuel": "Non-GST outward supplies (petrol and diesel)",
       "input": "Input tax credit (counter-product purchases)",
-      "net": "Net: output tax less input tax"
+      "net": "Net: output tax less input tax",
+      "lessCreditNotes": "less GST credit notes issued"
     },
     "notes": {
       "creditSales": "Counter products sold on credit count in the month their credit invoice is issued.",

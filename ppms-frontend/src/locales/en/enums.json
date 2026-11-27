@@ -433,7 +433,8 @@
     "BOUNCE_CHARGE_DETAILS": "Bounce charge for the payment of {{paidAt}}",
     "CREDIT_OPENING_BALANCE": "Opening balance",
     "ATTENTION_STOCK_SHORTFALL_one": "Stock went negative: {{count}} shift sold {{litres}} L more than the tanks held — record the missing delivery",
-    "ATTENTION_STOCK_SHORTFALL_other": "Stock went negative: {{count}} shifts sold {{litres}} L more than the tanks held — record the missing delivery"
+    "ATTENTION_STOCK_SHORTFALL_other": "Stock went negative: {{count}} shifts sold {{litres}} L more than the tanks held — record the missing delivery",
+    "STALE_CREDIT_ACCOUNT_CHANGED": "A credit note, write-off, deposit or advance refund was recorded for credit client #{{clientId}} after this sheet was generated."
   },
   "WET_STOCK_LOSS": "Fuel loss above limit",
   "RAISED": "Raised",

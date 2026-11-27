@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 /**
  * A month's GST: output tax on counter products (from invoices issued in the month and from counter sales paid on the
- * spot, which are sold within the pump's state), fuel sales as non-GST supplies, and input tax from counter-product
+ * spot, which are sold within the pump's state, less GST credit notes issued in the month), fuel sales as non-GST supplies, and input tax from counter-product
  * purchase bills dated in the month.
  */
 @Service
@@ -58,7 +58,8 @@ public class GstSummaryService {
         TaxBucket fromCounterSales = counterSales.stream().map(GstSummaryService::taxOf)
                 .reduce(TaxBucket.NONE, TaxBucket::plus);
         int salesWithoutGst = (int) counterSales.stream().filter(sale -> sale.getGstRatePercent().signum() == 0).count();
-        TaxBucket outward = fromInvoices.plus(fromCounterSales);
+        TaxBucket creditNotes = invoicedTax(summaryRepository.sumCreditNoteCounterProductTax(pumpId, from, to));
+        TaxBucket outward = fromInvoices.plus(fromCounterSales).minus(creditNotes);
 
         List<AncillaryStockDelivery> purchases = summaryRepository.findPurchasesWithGst(pumpId, from, to);
         List<PurchaseLine> purchaseLines = purchaseLinesOf(purchases);
@@ -67,7 +68,7 @@ public class GstSummaryService {
                 .reduce(TaxBucket.NONE, TaxBucket::plus);
 
         return new GstSummaryResponse(yearMonth.toString(), from, to, pump.getGstin(), outward, fromInvoices,
-                fromCounterSales, money(summaryRepository.sumFuelSales(pumpId, from, to)), input,
+                fromCounterSales, creditNotes, money(summaryRepository.sumFuelSales(pumpId, from, to)), input,
                 outward.minusTax(input), salesWithoutGst, purchaseLines);
     }
 
