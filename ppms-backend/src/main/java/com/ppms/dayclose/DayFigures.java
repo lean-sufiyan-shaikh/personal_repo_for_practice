@@ -38,7 +38,9 @@ record DayFigures(
         List<AttentionItem> attentionItems,
         boolean pastDay,
         Total pendingExpenses,
-        Total pendingCreditPayments) {
+        Total pendingCreditPayments,
+        boolean pettyCashInUse,
+        boolean pettyCashCounted) {
 
     record Total(long count, BigDecimal amount) {}
 

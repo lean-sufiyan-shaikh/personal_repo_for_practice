@@ -59,6 +59,7 @@ public class BalanceSheetDetailAssembler {
                 .add(productSalesGrossProfit)
                 .subtract(totalExpensesAmount)
                 .subtract(supportService.orZero(balanceSheet.getTotalBankChargesAmount()))
+                .subtract(supportService.orZero(balanceSheet.getTotalChargebacksAmount()))
                 .setScale(2, RoundingMode.HALF_UP);
 
         List<Long> shiftIds = shiftLines.stream().map(BsShiftLine::getShiftId).toList();
@@ -109,6 +110,7 @@ public class BalanceSheetDetailAssembler {
                 .totalDipNetAmount(totalDipNetAmount)
                 .totalNetProfit(totalNetProfit)
                 .totalBankChargesAmount(supportService.orZero(balanceSheet.getTotalBankChargesAmount()))
+                .totalChargebacksAmount(supportService.orZero(balanceSheet.getTotalChargebacksAmount()))
                 .linesChangedSinceGenerated(linesChangedSinceGenerated)
                 .dipNetChangeSinceGenerated(liveDipNetAmount.subtract(totalDipNetAmount))
                 .productSalesProfitChangeSinceGenerated(liveProductSalesGrossProfit.subtract(productSalesGrossProfit))

@@ -129,7 +129,7 @@ class SettlementChargesIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.chargesAmount").value(12.74));
         perform(post("/api/pumps/{pumpId}/expenses", setup.pumpId()), setup.owner(),
-                Map.of("category", "MAINTENANCE", "amount", new BigDecimal("100.00"), "description", "Repair",
+                Map.of("paidFrom", "BANK", "category", "MAINTENANCE", "amount", new BigDecimal("100.00"), "description", "Repair",
                         "expenseDate", today, "saveDraft", false))
                 .andExpect(status().is2xxSuccessful());
 

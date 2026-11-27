@@ -15,7 +15,8 @@ import com.ppms.common.exception.BusinessException;
 import com.ppms.expense.CreateExpenseRequest;
 import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.expense.ExpenseCategory;
-import com.ppms.expense.ExpenseController;
+import com.ppms.expense.ExpensePaidFrom;
+import com.ppms.expense.ExpenseService;
 import com.ppms.expense.PumpExpense;
 import com.ppms.expense.PumpExpenseRepository;
 import com.ppms.fuel.FuelType;
@@ -100,7 +101,7 @@ class ConcurrentUpdateIntegrationTest {
     @Autowired private AncillaryProductRepository ancillaryProductRepository;
     @Autowired private AncillaryStockLotRepository ancillaryLotRepository;
     @Autowired private AncillaryProductPriceRepository ancillaryPriceRepository;
-    @Autowired private ExpenseController expenseController;
+    @Autowired private ExpenseService expenseService;
     @Autowired private PumpExpenseRepository expenseRepository;
 
     private User owner;
@@ -267,11 +268,12 @@ class ConcurrentUpdateIntegrationTest {
         expense.setAmount(new BigDecimal("600.00"));
         expense.setDescription("Nozzle repair");
         expense.setExpenseDate(TestDates.today());
+        expense.setPaidFrom(ExpensePaidFrom.BANK);
 
         CompetitorResult<PumpExpense> second = runWhileRowIsLocked(
                 () -> pumpLocationRepository.findByIdForUpdate(pump.getId()).orElseThrow(),
-                () -> actingAs(manager, () -> expenseController.createExpense(pump.getId(), expense, manager)),
-                () -> actingAs(manager, () -> expenseController.createExpense(pump.getId(), expense, manager)));
+                () -> actingAs(manager, () -> expenseService.create(pump.getId(), expense, manager)),
+                () -> actingAs(manager, () -> expenseService.create(pump.getId(), expense, manager)));
 
         assertThat(second.failure()).isNull();
         assertThat(second.value().getApprovalStatus()).isEqualTo(ExpenseApprovalStatus.PENDING_APPROVAL);

@@ -18,6 +18,10 @@ public class SettlementResponse {
     private BigDecimal gstOnMdrAmount;
     private BigDecimal chargesAmount;
     private BigDecimal netAmount;
+    /** Chargebacks and refunds taken against this settlement. */
+    private BigDecimal chargebacksAmount;
+    /** netAmount less chargebacksAmount: what this settlement finally left in the bank. */
+    private BigDecimal netAfterChargebacks;
     /** First and last collection day this settlement cleared, oldest first. Null for older settlements. */
     private String coversFromDate;
     private String coversToDate;

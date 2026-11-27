@@ -8,6 +8,8 @@ public enum BankMatchRecordType {
     DEPOSIT,
     /** A payment to a fuel supplier; a debit line. */
     SUPPLIER_PAYMENT,
+    /** Money the bank took back from card or UPI collections; a debit line. */
+    CHARGEBACK,
     /** A credit customer's payment; a credit line. */
     CREDIT_PAYMENT,
     SHIFT,

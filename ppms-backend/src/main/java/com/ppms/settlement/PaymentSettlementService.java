@@ -57,6 +57,7 @@ public class PaymentSettlementService {
     private final ClosedDayGuard closedDayGuard;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
     private final BankLineLinks bankLineLinks;
+    private final ChargebackService chargebackService;
 
 
 
@@ -134,7 +135,9 @@ public class PaymentSettlementService {
         Map<Long, String> names = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, User::getFullName));
 
-        return PagedResponse.of(page.map(s -> toResponse(s, names)));
+        Map<Long, BigDecimal> chargebacks = chargebackService.totalsBySettlement(
+                page.getContent().stream().map(PaymentSettlement::getId).toList());
+        return PagedResponse.of(page.map(s -> toResponse(s, names, chargebacks)));
     }
 
     @Transactional
@@ -220,7 +223,7 @@ public class PaymentSettlementService {
                 pumpId, type, amount, charges.chargesAmount(), charges.netAmount(), settlementDate, currentUser.getId());
 
         Map<Long, String> names = Map.of(currentUser.getId(), currentUser.getFullName());
-        return toResponse(settlement, names);
+        return toResponse(settlement, names, Map.of());
     }
 
     /** The charges recording this amount would carry, from the pump's MDR settings or the typed charges. */
@@ -269,7 +272,7 @@ public class PaymentSettlementService {
 
         Map<Long, String> names = userRepository.findAllById(Set.of(settlement.getRecordedByUserId())).stream()
                 .collect(Collectors.toMap(User::getId, User::getFullName));
-        return toResponse(settlement, names);
+        return toResponse(settlement, names, chargebackService.totalsBySettlement(List.of(settlementId)));
     }
 
     // ── Wallet summary ────────────────────────────────────────────────────────
@@ -350,6 +353,8 @@ public class PaymentSettlementService {
                 allDates, collected, collectedAsOf(pumpId, dayBefore), settledAsOf(pumpId, dayBefore), activeSettlements);
 
         Map<Long, String> names = recorderNames(allSettlements);
+        Map<Long, BigDecimal> chargebacks = chargebackService.totalsBySettlement(
+                allSettlements.stream().map(PaymentSettlement::getId).toList());
         List<DailySummaryEntry> newestFirst = new ArrayList<>();
         for (LocalDate date : allDates.descendingSet()) {
             Map<SettlementPaymentType, BigDecimal> dayCollected =
@@ -364,7 +369,7 @@ public class PaymentSettlementService {
                     .cardSettled(money(daySettled.get(SettlementPaymentType.CARD)))
                     .fleetCardSettled(money(daySettled.get(SettlementPaymentType.FLEET_CARD)))
                     .settlements(settlementsByDate.getOrDefault(date, List.of()).stream()
-                            .map(s -> toResponse(s, names))
+                            .map(s -> toResponse(s, names, chargebacks))
                             .toList())
                     .build());
         }
@@ -466,7 +471,9 @@ public class PaymentSettlementService {
         return s.getPendingAtRecordTime() != null && s.getAmountReceived().compareTo(s.getPendingAtRecordTime()) < 0;
     }
 
-    private SettlementResponse toResponse(PaymentSettlement s, Map<Long, String> userNames) {
+    private SettlementResponse toResponse(PaymentSettlement s, Map<Long, String> userNames,
+                                          Map<Long, BigDecimal> chargebacksBySettlement) {
+        BigDecimal chargebacks = chargebacksBySettlement.getOrDefault(s.getId(), BigDecimal.ZERO.setScale(2));
         return SettlementResponse.builder()
                 .id(s.getId())
                 .pumpId(s.getPumpId())
@@ -478,6 +485,8 @@ public class PaymentSettlementService {
                 .gstOnMdrAmount(s.getGstOnMdrAmount())
                 .chargesAmount(s.chargesAmount())
                 .netAmount(s.getNetAmount())
+                .chargebacksAmount(chargebacks)
+                .netAfterChargebacks(s.getNetAmount().subtract(chargebacks))
                 .coversFromDate(s.getCoversFromDate() != null ? s.getCoversFromDate().toString() : null)
                 .coversToDate(s.getCoversToDate() != null ? s.getCoversToDate().toString() : null)
                 .notes(s.getNotes())

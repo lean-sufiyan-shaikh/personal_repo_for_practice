@@ -187,6 +187,22 @@ class DaySummaryBuilderTest {
     }
 
     @Test
+    void pettyCashInUseButNotCountedThatDayIsAWarningThatNeverBlocks() {
+        List<ChecklistItem> uncounted = DayChecklist.checksFor(figures().pettyCash(true, false).build());
+        assertThat(uncounted).filteredOn(check -> check.code().equals(ChecklistItem.PETTY_CASH_NOT_COUNTED))
+                .singleElement()
+                .satisfies(check -> {
+                    assertThat(check.blocking()).isFalse();
+                    assertThat(check.fixPath()).isEqualTo("/dashboard/cash?tab=petty&action=count-petty&countFor=" + DAY);
+                });
+
+        assertThat(DayChecklist.checksFor(figures().pettyCash(true, true).build()))
+                .noneMatch(check -> check.code().equals(ChecklistItem.PETTY_CASH_NOT_COUNTED));
+        assertThat(DayChecklist.checksFor(figures().pettyCash(false, false).build()))
+                .noneMatch(check -> check.code().equals(ChecklistItem.PETTY_CASH_NOT_COUNTED));
+    }
+
+    @Test
     void checklistBlocksOnAMissingSafeCountAndMissingNextDayPrices() {
         List<ChecklistItem> checks = DayChecklist.checksFor(figures()
                 .safeCount(Optional.empty())
@@ -298,8 +314,11 @@ class DaySummaryBuilderTest {
         private boolean pastDay = false;
         private DayFigures.Total pendingExpenses = new DayFigures.Total(0, new BigDecimal("0.00"));
         private DayFigures.Total pendingCreditPayments = new DayFigures.Total(0, new BigDecimal("0.00"));
+        private boolean pettyCashInUse;
+        private boolean pettyCashCounted;
 
         FiguresBuilder pastDay(boolean value) { pastDay = value; return this; }
+        FiguresBuilder pettyCash(boolean inUse, boolean counted) { pettyCashInUse = inUse; pettyCashCounted = counted; return this; }
         FiguresBuilder pendingExpenses(DayFigures.Total value) { pendingExpenses = value; return this; }
         FiguresBuilder pendingCreditPayments(DayFigures.Total value) { pendingCreditPayments = value; return this; }
         FiguresBuilder businessDate(LocalDate value) { businessDate = value; return this; }
@@ -320,7 +339,7 @@ class DaySummaryBuilderTest {
             return new DayFigures(businessDate, closedShifts, openShifts, safeCount, fuelTypesWithoutNextDayPrice, pendingDrops,
                     new DayFigures.Total(1, new BigDecimal("700.00")), new DayFigures.Total(1, new BigDecimal("5000.00")),
                     deliveries, openClaims, tanksToDip, Set.of(1L), reconciliation, sales, new BigDecimal("300.00"), credit,
-                    attentionItems, pastDay, pendingExpenses, pendingCreditPayments);
+                    attentionItems, pastDay, pendingExpenses, pendingCreditPayments, pettyCashInUse, pettyCashCounted);
         }
     }
 }

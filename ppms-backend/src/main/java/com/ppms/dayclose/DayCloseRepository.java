@@ -16,6 +16,8 @@ public interface DayCloseRepository extends JpaRepository<DayClose, Long> {
 
     Optional<DayClose> findByPumpIdAndBusinessDate(Long pumpId, LocalDate businessDate);
 
+    List<DayClose> findByPumpIdAndBusinessDateBetween(Long pumpId, LocalDate from, LocalDate to);
+
     @Query("""
             SELECT d.businessDate FROM DayClose d
             WHERE d.pumpId = :pumpId AND d.businessDate IN :dates AND d.status IN :statuses

@@ -76,7 +76,8 @@ final class BankAutoMatcher {
     }
 
     static boolean fitsSide(BankStatementLine line, MatchCandidate candidate) {
-        boolean debitRecord = candidate.type() == BankMatchRecordType.SUPPLIER_PAYMENT;
+        boolean debitRecord = candidate.type() == BankMatchRecordType.SUPPLIER_PAYMENT
+                || candidate.type() == BankMatchRecordType.CHARGEBACK;
         return line.isCredit() != debitRecord;
     }
 

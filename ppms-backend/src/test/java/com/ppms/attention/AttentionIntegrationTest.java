@@ -231,7 +231,7 @@ class AttentionIntegrationTest extends ApiIntegrationTest {
 
     private void recordExpense(String amount) throws Exception {
         perform(post("/api/pumps/{pumpId}/expenses", setup.pumpId()), setup.manager(),
-                Map.of("category", "MAINTENANCE", "amount", new BigDecimal(amount),
+                Map.of("paidFrom", "BANK", "category", "MAINTENANCE", "amount", new BigDecimal(amount),
                         "description", "Compressor repair", "expenseDate", TODAY.toString()))
                 .andExpect(status().isCreated());
     }

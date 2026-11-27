@@ -168,5 +168,14 @@ public enum AuditAction {
     CREDIT_ACCOUNT_REOPENED,
     CREDIT_CLIENTS_MERGED,
     CREDIT_DISPUTE_RAISED,
-    CREDIT_DISPUTE_RESOLVED
+    CREDIT_DISPUTE_RESOLVED,
+
+    // ── Money operations ──────────────────────────────────────────────────────
+    EXPENSE_VOIDED,
+    PETTY_CASH_SETTINGS_UPDATED,
+    PETTY_CASH_TOPPED_UP,
+    PETTY_CASH_COUNTED,
+    CHARGEBACK_RECORDED,
+    MONTH_CLOSED,
+    MONTH_REOPENED
 }

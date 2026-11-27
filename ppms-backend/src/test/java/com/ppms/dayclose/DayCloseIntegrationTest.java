@@ -377,7 +377,7 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
 
     private long pendingExpense(LocalDate date) throws Exception {
         return json(perform(post("/api/pumps/{pumpId}/expenses", setup.pumpId()), setup.manager(),
-                Map.of("category", "MAINTENANCE", "amount", new BigDecimal("5000.00"), "description", "Pump motor rewinding",
+                Map.of("paidFrom", "BANK", "category", "MAINTENANCE", "amount", new BigDecimal("5000.00"), "description", "Pump motor rewinding",
                         "expenseDate", date.toString()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.approvalStatus").value("PENDING_APPROVAL"))).get("id").asLong();

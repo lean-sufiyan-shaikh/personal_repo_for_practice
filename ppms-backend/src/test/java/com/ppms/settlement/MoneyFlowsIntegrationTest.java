@@ -343,7 +343,7 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
 
     private ResultActions createExpense(User user, String amount, boolean saveDraft) throws Exception {
         return perform(post("/api/pumps/{pumpId}/expenses", setup.pumpId()), user,
-                Map.of("category", "MAINTENANCE", "amount", new BigDecimal(amount), "description", "Pump repair",
+                Map.of("paidFrom", "BANK", "category", "MAINTENANCE", "amount", new BigDecimal(amount), "description", "Pump repair",
                         "expenseDate", TestDates.today().toString(), "saveDraft", saveDraft));
     }
 

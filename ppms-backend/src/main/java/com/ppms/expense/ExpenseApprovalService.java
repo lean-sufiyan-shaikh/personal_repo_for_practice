@@ -18,7 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Approves or rejects one pending expense and records the decision in the audit log, in one transaction. */
+/**
+ * Approves or rejects one pending expense and records the decision in the audit log, in one transaction. Approval
+ * takes an expense paid from the safe or petty cash out of it.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,7 @@ public class ExpenseApprovalService {
     private final BusinessClock businessClock;
     private final ClosedDayGuard closedDayGuard;
     private final BalanceSheetStalenessService balanceSheetStalenessService;
+    private final ExpenseCashMovements cashMovements;
 
     @Transactional
     public PumpExpense review(Long pumpId, Long expenseId, ExpenseApprovalStatus action, String notes, User reviewer) {
@@ -53,6 +57,9 @@ public class ExpenseApprovalService {
         expense.setApprovedByUserId(reviewer.getId());
         expense.setApprovedAt(businessClock.now());
         expense.setApprovalNotes(trimmedNotes);
+        if (action == ExpenseApprovalStatus.APPROVED) {
+            cashMovements.payOut(expense, reviewer);
+        }
         PumpExpense saved = expenseRepository.save(expense);
         balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(saved.getExpenseDate()),
                 StaleReasons.expenseChanged(expenseId));

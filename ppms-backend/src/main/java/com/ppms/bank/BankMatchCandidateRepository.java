@@ -4,6 +4,7 @@ import com.ppms.cash.BankDeposit;
 import com.ppms.credit.CreditPayment;
 import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.settlement.PaymentSettlement;
+import com.ppms.settlement.SettlementChargeback;
 import com.ppms.supplier.FuelSupplierPayment;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
@@ -51,6 +52,17 @@ public interface BankMatchCandidateRepository extends Repository<BankStatementLi
     List<FuelSupplierPayment> findOpenSupplierPayments(@Param("pumpId") Long pumpId, @Param("from") LocalDate from,
                                                        @Param("to") LocalDate to,
                                                        @Param("claimingStatuses") Collection<BankLineMatchStatus> claimingStatuses);
+
+    @Query("""
+            SELECT c FROM SettlementChargeback c
+            WHERE c.pumpId = :pumpId AND c.chargebackDate BETWEEN :from AND :to
+              AND NOT EXISTS (SELECT l.id FROM BankStatementLine l
+                              WHERE l.matchedChargebackId = c.id AND l.matchStatus IN :claimingStatuses)
+            ORDER BY c.chargebackDate, c.id
+            """)
+    List<SettlementChargeback> findOpenChargebacks(@Param("pumpId") Long pumpId, @Param("from") LocalDate from,
+                                                   @Param("to") LocalDate to,
+                                                   @Param("claimingStatuses") Collection<BankLineMatchStatus> claimingStatuses);
 
     @Query("""
             SELECT p FROM CreditPayment p

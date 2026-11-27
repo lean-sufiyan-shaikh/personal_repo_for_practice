@@ -21,6 +21,8 @@ import com.ppms.inventory.LotConsumptionRepository;
 import com.ppms.inventory.DipCheck;
 import com.ppms.settlement.PaymentSettlement;
 import com.ppms.settlement.PaymentSettlementRepository;
+import com.ppms.settlement.SettlementChargeback;
+import com.ppms.settlement.SettlementChargebackRepository;
 import com.ppms.settlement.SettlementPaymentType;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.user.User;
@@ -58,6 +60,7 @@ public class BalanceSheetSupportService {
     private final BusinessClock businessClock;
     private final PaymentSettlementRepository settlementRepository;
     private final ShiftRepository shiftRepository;
+    private final SettlementChargebackRepository chargebackRepository;
     private final PayrollRepository payrollRepository;
 
     public BalanceSheetDetailResponse.ProductSalesSummary buildProductSalesSummary(Long pumpId, ReportPeriod period) {
@@ -323,6 +326,8 @@ public class BalanceSheetSupportService {
                         .build())
                 .toList();
 
+        List<SettlementChargeback> chargebacks =
+                chargebackRepository.findByPumpIdAndChargebackDateOrderByIdAsc(pumpId, reportDate);
         return BalanceSheetDetailResponse.SettlementSummary.builder()
                 .upiSettledOnDate(upiOnDate.setScale(2, RoundingMode.HALF_UP))
                 .cardSettledOnDate(cardOnDate.setScale(2, RoundingMode.HALF_UP))
@@ -332,6 +337,18 @@ public class BalanceSheetSupportService {
                 .walletFleetCardPending(fleetPending)
                 .bankChargesOnDate(onDate.stream().map(PaymentSettlement::chargesAmount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP))
+                .chargebacksOnDate(chargebacks.stream().map(SettlementChargeback::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP))
+                .chargebackLines(chargebacks.stream()
+                        .map(c -> BalanceSheetDetailResponse.ChargebackLine.builder()
+                                .id(c.getId())
+                                .kind(c.getKind().name())
+                                .paymentType(c.getPaymentType().name())
+                                .amount(c.getAmount())
+                                .reference(c.getReference())
+                                .reason(c.getReason())
+                                .build())
+                        .toList())
                 .settlementsOnDate(lines)
                 .build();
     }

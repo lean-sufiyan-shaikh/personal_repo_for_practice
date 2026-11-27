@@ -48,6 +48,7 @@ public class DayCloseService {
     private final NotificationDedupService dedupService;
     private final AuditService auditService;
     private final BusinessClock businessClock;
+    private final ClosedDayGuard closedDayGuard;
 
     /** The pump row is locked so two closes of the same day cannot both pass the checks and save a version. */
     @Transactional
@@ -58,6 +59,7 @@ public class DayCloseService {
                     "Only an owner or admin can approve a day while closing it.");
         }
         requireNotInFuture(date, businessClock.today());
+        closedDayGuard.requireMonthOpen(pumpId, List.of(date));
         pumpLocationRepository.findByIdForUpdate(pumpId)
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.PUMP, "Pump not found"));
         DayClose existing = dayCloseRepository.findByPumpIdAndBusinessDate(pumpId, date).orElse(null);
@@ -148,6 +150,7 @@ public class DayCloseService {
     @Transactional
     public DayCloseDetailResponse reopen(Long pumpId, LocalDate date, ReopenDayRequest request, User currentUser) {
         DayClose close = queryService.findDayClose(pumpId, date);
+        closedDayGuard.requireMonthOpen(pumpId, List.of(date));
         if (!close.getStatus().isLocked()) {
             throw new BusinessException(ErrorCodes.DAY_NOT_CLOSED,
                     Map.of("date", date.toString(), "statusCode", close.getStatus().name()),

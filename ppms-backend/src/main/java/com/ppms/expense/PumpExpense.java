@@ -52,6 +52,7 @@ public class PumpExpense {
      * PENDING_APPROVAL — submitted by MANAGER/OPERATOR, waiting for Owner/Admin review.
      * APPROVED     — auto-approved (OWNER/ADMIN submission or amount ≤ threshold) or manually approved.
      * REJECTED     — declined by reviewer; excluded from all financial calculations.
+     * VOIDED       — approved, then voided by an Owner or Admin; its cash movement is reversed.
      */
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -77,6 +78,24 @@ public class PumpExpense {
 
     @Column(name = "submitted_at")
     private OffsetDateTime submittedAt;
+
+    /** Null for expenses recorded before the source was asked for. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "paid_from")
+    private ExpensePaidFrom paidFrom;
+
+    /** The safe's cash-out made when an expense paid from the safe was approved. */
+    @Column(name = "cash_event_id")
+    private Long cashEventId;
+
+    @Column(name = "void_reason")
+    private String voidReason;
+
+    @Column(name = "voided_by_user_id")
+    private Long voidedByUserId;
+
+    @Column(name = "voided_at")
+    private OffsetDateTime voidedAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

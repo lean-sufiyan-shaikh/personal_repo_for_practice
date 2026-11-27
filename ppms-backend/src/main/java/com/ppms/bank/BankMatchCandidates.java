@@ -10,6 +10,8 @@ import com.ppms.credit.CreditPaymentRepository;
 import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.settlement.PaymentSettlement;
 import com.ppms.settlement.PaymentSettlementRepository;
+import com.ppms.settlement.SettlementChargeback;
+import com.ppms.settlement.SettlementChargebackRepository;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftRepository;
 import com.ppms.supplier.FuelSupplier;
@@ -44,12 +46,16 @@ class BankMatchCandidates {
     private final CreditPaymentRepository creditPaymentRepository;
     private final ShiftRepository shiftRepository;
     private final AncillarySaleRepository ancillarySaleRepository;
+    private final SettlementChargebackRepository chargebackRepository;
 
-    /** Settlements, deposits and credit payments for credit lines; supplier payments for debit lines. */
+    /** Settlements, deposits and credit payments for credit lines; supplier payments and chargebacks for debit lines. */
     List<MatchCandidate> open(Long pumpId, boolean creditSide, LocalDate from, LocalDate to,
                               Collection<BankLineMatchStatus> claimingStatuses) {
         if (!creditSide) {
-            return supplierPayments(candidateRepository.findOpenSupplierPayments(pumpId, from, to, claimingStatuses));
+            List<MatchCandidate> debits = new ArrayList<>(
+                    supplierPayments(candidateRepository.findOpenSupplierPayments(pumpId, from, to, claimingStatuses)));
+            candidateRepository.findOpenChargebacks(pumpId, from, to, claimingStatuses).forEach(c -> debits.add(chargeback(c)));
+            return debits;
         }
         List<MatchCandidate> candidates = new ArrayList<>();
         candidateRepository.findOpenSettlements(pumpId, from, to, claimingStatuses).forEach(s -> candidates.add(settlement(s)));
@@ -77,6 +83,8 @@ class BankMatchCandidates {
                     .stream().map(this::deposit).toList();
             case SUPPLIER_PAYMENT -> supplierPayments(owned(supplierPaymentRepository.findAllById(ids),
                     FuelSupplierPayment::getPumpId, pumpId));
+            case CHARGEBACK -> owned(chargebackRepository.findAllById(ids), SettlementChargeback::getPumpId, pumpId)
+                    .stream().map(this::chargeback).toList();
             case CREDIT_PAYMENT -> owned(creditPaymentRepository.findAllById(ids), CreditPayment::getPumpId, pumpId)
                     .stream().map(this::creditPayment).toList();
             case SHIFT -> owned(shiftRepository.findAllById(ids), Shift::getPumpId, pumpId).stream().map(this::shift).toList();
@@ -101,6 +109,11 @@ class BankMatchCandidates {
     private MatchCandidate deposit(BankDeposit d) {
         return new MatchCandidate(BankMatchRecordType.DEPOSIT, d.getId(), d.getDepositDate(), money(d.getAmount()),
                 d.getSlipReference(), d.getBankAccount());
+    }
+
+    private MatchCandidate chargeback(SettlementChargeback c) {
+        return new MatchCandidate(BankMatchRecordType.CHARGEBACK, c.getId(), c.getChargebackDate(), money(c.getAmount()),
+                c.getReference(), c.getKind() + " " + c.getPaymentType());
     }
 
     private MatchCandidate creditPayment(CreditPayment p) {
@@ -130,6 +143,7 @@ class BankMatchCandidates {
             case SETTLEMENT -> EntityType.SETTLEMENT;
             case DEPOSIT -> EntityType.BANK_DEPOSIT;
             case SUPPLIER_PAYMENT -> EntityType.PAYMENT;
+            case CHARGEBACK -> EntityType.CHARGEBACK;
             case CREDIT_PAYMENT -> EntityType.CREDIT_PAYMENT;
             case SHIFT -> EntityType.SHIFT;
             case ANCILLARY_SALE -> EntityType.SALE;

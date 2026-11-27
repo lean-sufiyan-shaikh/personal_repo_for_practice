@@ -87,6 +87,7 @@ class BankReconciliationViews {
                 .matchedSettlementId(l.getMatchedSettlementId())
                 .matchedDepositId(l.getMatchedDepositId())
                 .matchedSupplierPaymentId(l.getMatchedSupplierPaymentId())
+                .matchedChargebackId(l.getMatchedChargebackId())
                 .matchedRecord(ref != null ? records.get(ref) : null)
                 .matchNotes(l.getMatchNotes())
                 .createdAt(l.getCreatedAt())

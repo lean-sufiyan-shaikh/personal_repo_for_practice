@@ -138,7 +138,7 @@ class ClosedDayGuardIntegrationTest extends ApiIntegrationTest {
 
     private ResultActions expense(LocalDate date) throws Exception {
         return perform(post("/api/pumps/{pumpId}/expenses", setup.pumpId()), setup.owner(),
-                Map.of("category", "MAINTENANCE", "amount", new BigDecimal("250.00"), "description", "Hose repair",
+                Map.of("paidFrom", "BANK", "category", "MAINTENANCE", "amount", new BigDecimal("250.00"), "description", "Hose repair",
                         "expenseDate", date.toString()));
     }
 

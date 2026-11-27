@@ -524,6 +524,23 @@ public final class ErrorCodes {
     public static final String TOO_MANY_STATEMENT_DOWNLOADS = "TOO_MANY_STATEMENT_DOWNLOADS";
     public static final String PORTAL_STATEMENT_MONTH_NOT_ALLOWED = "PORTAL_STATEMENT_MONTH_NOT_ALLOWED";
 
+    public static final String EXPENSE_DATE_IN_FUTURE = "EXPENSE_DATE_IN_FUTURE";
+    public static final String EXPENSE_NOT_VOIDABLE = "EXPENSE_NOT_VOIDABLE";
+    public static final String PETTY_CASH_BALANCE_TOO_LOW = "PETTY_CASH_BALANCE_TOO_LOW";
+    public static final String PETTY_CASH_DATE_IN_FUTURE = "PETTY_CASH_DATE_IN_FUTURE";
+    public static final String CHARGEBACK_DATE_IN_FUTURE = "CHARGEBACK_DATE_IN_FUTURE";
+    public static final String CHARGEBACK_LINK_REQUIRED = "CHARGEBACK_LINK_REQUIRED";
+    public static final String CHARGEBACK_SETTLEMENT_VOIDED = "CHARGEBACK_SETTLEMENT_VOIDED";
+    public static final String CHARGEBACK_EXCEEDS_SETTLEMENT = "CHARGEBACK_EXCEEDS_SETTLEMENT";
+    public static final String CHARGEBACK_PAYMENT_TYPE_MISMATCH = "CHARGEBACK_PAYMENT_TYPE_MISMATCH";
+    public static final String CHARGEBACK_REFERENCE_DUPLICATE = "CHARGEBACK_REFERENCE_DUPLICATE";
+    public static final String MONTH_NOT_OVER = "MONTH_NOT_OVER";
+    public static final String MONTH_ALREADY_CLOSED = "MONTH_ALREADY_CLOSED";
+    public static final String MONTH_NOT_CLOSED = "MONTH_NOT_CLOSED";
+    public static final String MONTH_DAYS_NOT_READY = "MONTH_DAYS_NOT_READY";
+    public static final String MONTH_EXCEPTION_NOT_IN_MONTH = "MONTH_EXCEPTION_NOT_IN_MONTH";
+    public static final String MONTH_CLOSED = "MONTH_CLOSED";
+
     private ErrorCodes() {
     }
 }

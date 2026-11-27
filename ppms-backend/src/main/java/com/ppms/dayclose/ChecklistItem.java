@@ -21,6 +21,7 @@ public record ChecklistItem(String code, boolean blocking, boolean done, Map<Str
     public static final String OPEN_ATTENTION_ITEMS = "OPEN_ATTENTION_ITEMS";
     public static final String PENDING_EXPENSES = "PENDING_EXPENSES";
     public static final String PENDING_CREDIT_PAYMENTS = "PENDING_CREDIT_PAYMENTS";
+    public static final String PETTY_CASH_NOT_COUNTED = "PETTY_CASH_NOT_COUNTED";
 
     static ChecklistItem warning(String code, Map<String, Object> params, String text, String fixPath) {
         return new ChecklistItem(code, false, false, params, text, fixPath);

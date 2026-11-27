@@ -84,6 +84,10 @@ public class BankStatementLine {
     @Column(name = "matched_supplier_payment_id")
     private Long matchedSupplierPaymentId;
 
+    /** FK to settlement_chargebacks — a debit taking back card or UPI money. */
+    @Column(name = "matched_chargeback_id")
+    private Long matchedChargebackId;
+
     @Column(name = "match_notes")
     private String matchNotes;
 
@@ -110,6 +114,7 @@ public class BankStatementLine {
         matchedSettlementId = null;
         matchedDepositId = null;
         matchedSupplierPaymentId = null;
+        matchedChargebackId = null;
     }
 
     public void link(BankMatchRecordType type, Long recordId) {
@@ -118,6 +123,7 @@ public class BankStatementLine {
             case SETTLEMENT -> matchedSettlementId = recordId;
             case DEPOSIT -> matchedDepositId = recordId;
             case SUPPLIER_PAYMENT -> matchedSupplierPaymentId = recordId;
+            case CHARGEBACK -> matchedChargebackId = recordId;
             case CREDIT_PAYMENT -> matchedPaymentId = recordId;
             case SHIFT -> matchedShiftId = recordId;
             case ANCILLARY_SALE -> matchedAncillarySaleId = recordId;
@@ -129,6 +135,7 @@ public class BankStatementLine {
         if (matchedSettlementId != null) return new BankMatchRef(BankMatchRecordType.SETTLEMENT, matchedSettlementId);
         if (matchedDepositId != null) return new BankMatchRef(BankMatchRecordType.DEPOSIT, matchedDepositId);
         if (matchedSupplierPaymentId != null) return new BankMatchRef(BankMatchRecordType.SUPPLIER_PAYMENT, matchedSupplierPaymentId);
+        if (matchedChargebackId != null) return new BankMatchRef(BankMatchRecordType.CHARGEBACK, matchedChargebackId);
         if (matchedPaymentId != null) return new BankMatchRef(BankMatchRecordType.CREDIT_PAYMENT, matchedPaymentId);
         if (matchedShiftId != null) return new BankMatchRef(BankMatchRecordType.SHIFT, matchedShiftId);
         if (matchedAncillarySaleId != null) return new BankMatchRef(BankMatchRecordType.ANCILLARY_SALE, matchedAncillarySaleId);

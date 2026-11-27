@@ -154,7 +154,7 @@ class ApprovalQueueIntegrationTest extends ApiIntegrationTest {
     void anotherPumpsItemsCannotBeDecided() throws Exception {
         PumpSetup otherPump = createPumpWithStock("0");
         long otherExpense = json(perform(post("/api/pumps/{pumpId}/expenses", otherPump.pumpId()), otherPump.manager(),
-                Map.of("category", "MAINTENANCE", "amount", new BigDecimal("500.00"),
+                Map.of("paidFrom", "BANK", "category", "MAINTENANCE", "amount", new BigDecimal("500.00"),
                         "description", "Compressor repair", "expenseDate", TODAY.toString()))
                 .andExpect(status().isCreated())).get("id").asLong();
 
@@ -188,7 +188,7 @@ class ApprovalQueueIntegrationTest extends ApiIntegrationTest {
 
     private long recordExpense(User user, String category, String amount) throws Exception {
         return json(perform(post("/api/pumps/{pumpId}/expenses", setup.pumpId()), user,
-                Map.of("category", category, "amount", new BigDecimal(amount),
+                Map.of("paidFrom", "BANK", "category", category, "amount", new BigDecimal(amount),
                         "description", "Compressor repair", "expenseDate", TODAY.toString()))
                 .andExpect(status().isCreated())).get("id").asLong();
     }

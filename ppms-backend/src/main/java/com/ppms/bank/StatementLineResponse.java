@@ -25,6 +25,7 @@ public class StatementLineResponse {
     Long matchedSettlementId;
     Long matchedDepositId;
     Long matchedSupplierPaymentId;
+    Long matchedChargebackId;
     /** The matched record, or for a SUGGESTED line the suggested one; null when the line links to none. */
     MatchCandidate matchedRecord;
     String matchNotes;

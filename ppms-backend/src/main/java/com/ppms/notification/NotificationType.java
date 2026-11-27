@@ -59,5 +59,7 @@ public enum NotificationType {
     /** Fired once per lockout of the credit balance page after too many wrong PINs, for owners and admins only. */
     CREDIT_PORTAL_LOCKED,
     /** Fired once per change of a credit client's phone, which turns off its balance-page PIN; owners and admins only. */
-    CREDIT_CLIENT_PHONE_CHANGED
+    CREDIT_CLIENT_PHONE_CHANGED,
+    /** Fired once per petty cash count whose difference from the petty cash ledger is beyond the box's tolerance. */
+    PETTY_CASH_COUNT_VARIANCE
 }

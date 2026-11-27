@@ -10,7 +10,8 @@ import java.util.Map;
 /**
  * What must be done before a day can be closed (a safe count that day, the next day's fuel prices, every shift of the
  * day closed, and for a past day every expense and credit payment of it decided) and what the owner should know about
- * it (undipped tanks, pending drops, unchecked deliveries, open alerts, today's undecided approvals).
+ * it (undipped tanks, pending drops, unchecked deliveries, petty cash not counted, open alerts, today's undecided
+ * approvals).
  *
  * Open shifts always block: once the day is closed every write on its shifts is refused, so a shift left open could
  * not be closed without re-opening the day. Undecided expenses and credit payments block a past day, which has had
@@ -24,6 +25,7 @@ final class DayChecklist {
     private static final String SHIFTS_PATH = "/dashboard/shifts";
     private static final String PENDING_EXPENSES_PATH = "/dashboard/approvals?kind=expenses";
     private static final String PENDING_PAYMENTS_PATH = "/dashboard/approvals?kind=payments";
+    private static final String PETTY_CASH_COUNT_PATH = "/dashboard/cash?tab=petty&action=count-petty&countFor=";
 
     private DayChecklist() {
     }
@@ -77,6 +79,11 @@ final class DayChecklist {
             warnings.add(ChecklistItem.warning(ChecklistItem.DELIVERIES_NOT_CHECKED, counted(uncheckedDeliveries),
                     plural(uncheckedDeliveries, "delivery", "deliveries") + " of this day not checked against the invoice",
                     "/dashboard/inventory"));
+        }
+        if (figures.pettyCashInUse() && !figures.pettyCashCounted()) {
+            warnings.add(ChecklistItem.warning(ChecklistItem.PETTY_CASH_NOT_COUNTED, Map.of(),
+                    "Petty cash was not counted on " + figures.businessDate(),
+                    PETTY_CASH_COUNT_PATH + figures.businessDate()));
         }
         int attentionItems = figures.attentionItems().size();
         if (attentionItems > 0) {

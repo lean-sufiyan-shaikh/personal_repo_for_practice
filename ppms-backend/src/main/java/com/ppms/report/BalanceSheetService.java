@@ -196,7 +196,8 @@ public class BalanceSheetService {
                 buildPeriodLabel(req, pumpId, shiftDef, period),
                 shifts, fuelSales, costOfGoods, deliveries, recoveries.creditRecovered(), recoveries.cashRecovery(),
                 dipLosses, dipNetAmount, productSalesSummary, expenseSummary,
-                settlementSummary != null ? settlementSummary.getBankChargesOnDate() : BigDecimal.ZERO, openShifts.size()));
+                settlementSummary != null ? settlementSummary.getBankChargesOnDate() : BigDecimal.ZERO,
+                settlementSummary != null ? settlementSummary.getChargebacksOnDate() : BigDecimal.ZERO, openShifts.size()));
 
         List<BsFuelLine> fuelLines = BalanceSheetFuelLineBuilder.build(bs.getId(), fuelSales, costOfGoods, deliveries,
                 stock, dipLosses, priceMap, creditByFuel, dipVarianceByFuel);
@@ -300,7 +301,7 @@ public class BalanceSheetService {
                                     DipLosses dipLosses, BigDecimal dipNetAmount,
                                     BalanceSheetDetailResponse.ProductSalesSummary productSalesSummary,
                                     BalanceSheetDetailResponse.ExpenseSummary expenseSummary,
-                                    BigDecimal bankChargesAmount, int openShiftCount) {
+                                    BigDecimal bankChargesAmount, BigDecimal chargebacksAmount, int openShiftCount) {
         BigDecimal totalCash      = sumShiftAmounts(shifts, Shift::getCashCollected);
         BigDecimal totalUpi       = sumShiftAmounts(shifts, Shift::getUpiCollected);
         BigDecimal totalCard      = sumShiftAmounts(shifts, Shift::getCardCollected);
@@ -348,6 +349,7 @@ public class BalanceSheetService {
                 .totalExpensesAmount(expenseSummary != null
                         ? supportService.orZero(expenseSummary.getTotalAmount()) : BigDecimal.ZERO)
                 .totalBankChargesAmount(bankChargesAmount)
+                .totalChargebacksAmount(chargebacksAmount)
                 .openShiftCount(openShiftCount)
                 .build();
     }

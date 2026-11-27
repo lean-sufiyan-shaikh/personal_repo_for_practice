@@ -20,6 +20,7 @@ public final class NotificationTargets {
             case WET_STOCK_LOSS -> NotificationTarget.of("/dashboard/inventory", "tab", "reconciliation");
             case DELIVERY_SHORTAGE -> NotificationTarget.of("/dashboard/inventory", "tab", "claims");
             case CASH_DROP_PENDING, SAFE_COUNT_VARIANCE -> NotificationTarget.of("/dashboard/cash", "tab", "safe");
+            case PETTY_CASH_COUNT_VARIANCE -> NotificationTarget.of("/dashboard/cash", "tab", "petty");
             case PRICE_STALE -> NotificationTarget.of("/dashboard/setup", "section", "prices");
             case CALIBRATION_DUE, CALIBRATION_DUE_SOON -> NotificationTarget.of("/dashboard/calibration");
             case DOCUMENT_EXPIRING -> NotificationTarget.of("/dashboard/documents");

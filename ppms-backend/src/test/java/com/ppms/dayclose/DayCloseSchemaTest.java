@@ -1,6 +1,7 @@
 package com.ppms.dayclose;
 
 import com.ppms.common.time.DefaultBusinessClock;
+import com.ppms.monthclose.MonthCloseRepository;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.support.PostgresTestContainerConfig;
@@ -35,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class DayCloseSchemaTest {
 
     @Autowired private UserRepository userRepository;
+    @Autowired private MonthCloseRepository monthCloseRepository;
     @Autowired private PumpLocationRepository pumpLocationRepository;
     @Autowired private DayCloseRepository dayCloseRepository;
     @Autowired private DayCloseVersionRepository versionRepository;
@@ -121,7 +123,8 @@ class DayCloseSchemaTest {
         LocalDate reopenedDay = TestDates.today().minusDays(9);
         dayCloseRepository.saveAndFlush(close(closedDay, DayCloseStatus.CLOSED));
         dayCloseRepository.saveAndFlush(close(reopenedDay, DayCloseStatus.REOPENED));
-        ClosedDayGuard closedDayGuard = new ClosedDayGuard(dayCloseRepository, new DefaultBusinessClock("Asia/Kolkata"));
+        ClosedDayGuard closedDayGuard = new ClosedDayGuard(dayCloseRepository, monthCloseRepository,
+                new DefaultBusinessClock("Asia/Kolkata"));
 
         closedDayGuard.requireOpen(pump.getId(), List.of(reopenedDay, TestDates.today().minusDays(10)));
         assertThatThrownBy(() -> closedDayGuard.requireOpen(pump.getId(), List.of(reopenedDay, closedDay)))

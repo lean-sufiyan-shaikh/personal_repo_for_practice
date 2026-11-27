@@ -201,7 +201,7 @@ public class BankLineMatchService {
         if (links.size() != 1) {
             throw new BusinessException(ErrorCodes.BANK_LINE_MATCH_TARGET_REQUIRED, Map.of(),
                     "A matched line must be linked to exactly one record: a settlement, deposit, supplier payment, "
-                    + "credit payment, shift or sale.");
+                    + "chargeback, credit payment, shift or sale.");
         }
         BankMatchRef ref = links.getFirst();
         MatchCandidate record = candidates.require(pumpId, ref);
@@ -209,7 +209,8 @@ public class BankLineMatchService {
             throw new BusinessException(ErrorCodes.BANK_LINE_DIRECTION_MISMATCH,
                     Map.of("recordTypeCode", ref.type().name()),
                     "A " + ref.type() + " cannot be matched to a " + (line.isCredit() ? "credit" : "debit")
-                    + " line: money in matches settlements, deposits and customer payments, money out matches supplier payments.");
+                    + " line: money in matches settlements, deposits and customer payments, money out matches supplier payments"
+                    + " and chargebacks.");
         }
         Optional<BankStatementLine> holder = otherLineHolding(ref, line.getId());
         if (holder.isPresent() && holder.get().getMatchStatus() == BankLineMatchStatus.MATCHED) {
@@ -239,6 +240,7 @@ public class BankLineMatchService {
             case SETTLEMENT -> lineRepository.findByMatchedSettlementId(ref.id());
             case DEPOSIT -> lineRepository.findByMatchedDepositId(ref.id());
             case SUPPLIER_PAYMENT -> lineRepository.findByMatchedSupplierPaymentId(ref.id());
+            case CHARGEBACK -> lineRepository.findByMatchedChargebackId(ref.id());
             case CREDIT_PAYMENT -> lineRepository.findByMatchedPaymentId(ref.id());
             case SHIFT, ANCILLARY_SALE -> Optional.empty();
         };

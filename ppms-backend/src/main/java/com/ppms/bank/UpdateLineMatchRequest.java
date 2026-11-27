@@ -20,6 +20,7 @@ public class UpdateLineMatchRequest {
     private Long matchedSettlementId;
     private Long matchedDepositId;
     private Long matchedSupplierPaymentId;
+    private Long matchedChargebackId;
     @Size(max = 500, message = "matchNotes must be at most 500 characters.")
     private String matchNotes;
 
@@ -31,6 +32,7 @@ public class UpdateLineMatchRequest {
         addIfPresent(links, BankMatchRecordType.SETTLEMENT, matchedSettlementId);
         addIfPresent(links, BankMatchRecordType.DEPOSIT, matchedDepositId);
         addIfPresent(links, BankMatchRecordType.SUPPLIER_PAYMENT, matchedSupplierPaymentId);
+        addIfPresent(links, BankMatchRecordType.CHARGEBACK, matchedChargebackId);
         return links;
     }
 

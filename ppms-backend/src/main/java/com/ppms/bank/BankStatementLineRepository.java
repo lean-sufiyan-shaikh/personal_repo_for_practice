@@ -58,6 +58,8 @@ public interface BankStatementLineRepository extends JpaRepository<BankStatement
 
     Optional<BankStatementLine> findByMatchedSupplierPaymentId(Long supplierPaymentId);
 
+    Optional<BankStatementLine> findByMatchedChargebackId(Long chargebackId);
+
     Optional<BankStatementLine> findByMatchedPaymentId(Long paymentId);
 
     /** Moves lines linked to a settlement in {@code fromStatus} to {@code toStatus} without the link. */

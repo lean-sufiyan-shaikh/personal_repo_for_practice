@@ -144,6 +144,10 @@ public class BalanceSheet {
     @Column(name = "total_bank_charges_amount")
     private BigDecimal totalBankChargesAmount;
 
+    /** Chargebacks and refunds taken on the report date, stored at generation. DAY only. */
+    @Column(name = "total_chargebacks_amount")
+    private BigDecimal totalChargebacksAmount;
+
     /** Sum of cash physically returned by operators for SHORT discrepancies resolved via CASH_RECOVERY on the report date. DAY reports only; always 0 for SHIFT reports. */
     @Column(name = "total_cash_recovery", nullable = false)
     @Builder.Default

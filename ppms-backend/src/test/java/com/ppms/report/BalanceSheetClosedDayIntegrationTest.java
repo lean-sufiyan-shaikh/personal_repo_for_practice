@@ -53,7 +53,7 @@ class BalanceSheetClosedDayIntegrationTest extends ApiIntegrationTest {
         sheetId = expectStaleThenRegenerate(sheetId, "STALE_DELIVERY_CHANGED");
 
         perform(post("/api/pumps/{pumpId}/expenses", setup.pumpId()), setup.owner(),
-                Map.of("category", "MAINTENANCE", "amount", new BigDecimal("250.00"), "description", "Hose repair",
+                Map.of("paidFrom", "BANK", "category", "MAINTENANCE", "amount", new BigDecimal("250.00"), "description", "Hose repair",
                         "expenseDate", TODAY)).andExpect(status().isCreated());
         perform(get("/api/pumps/{pumpId}/balance-sheets/{id}", setup.pumpId(), sheetId), setup.owner())
                 .andExpect(jsonPath("$.linesChangedSinceGenerated").value(true))

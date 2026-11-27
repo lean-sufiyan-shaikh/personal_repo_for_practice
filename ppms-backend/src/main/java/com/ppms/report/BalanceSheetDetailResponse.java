@@ -70,6 +70,8 @@ public class BalanceSheetDetailResponse {
     private BigDecimal totalNetProfit;
     /** MDR and GST on MDR of settlements that reached the bank on the report date; subtracted in net profit. */
     private BigDecimal totalBankChargesAmount;
+    /** Chargebacks and refunds taken on the report date; subtracted in net profit. */
+    private BigDecimal totalChargebacksAmount;
     /**
      * True when the dip, product-sales or expense line items listed below no longer add up to the totals
      * stored at generation (e.g. an expense approved later). Net profit always uses the stored totals.
@@ -179,8 +181,22 @@ public class BalanceSheetDetailResponse {
         private java.math.BigDecimal walletFleetCardPending;
         /** MDR and GST on MDR of the settlements that reached the bank on the report date. */
         private java.math.BigDecimal bankChargesOnDate;
+        /** Chargebacks and refunds the bank took on the report date. */
+        private java.math.BigDecimal chargebacksOnDate;
+        private java.util.List<ChargebackLine> chargebackLines;
         /** Individual settlement entries recorded for the report date — for drill-down. */
         private java.util.List<SettlementLine> settlementsOnDate;
+    }
+
+    @Data
+    @Builder
+    public static class ChargebackLine {
+        private Long   id;
+        private String kind;
+        private String paymentType;
+        private java.math.BigDecimal amount;
+        private String reference;
+        private String reason;
     }
 
     @Data

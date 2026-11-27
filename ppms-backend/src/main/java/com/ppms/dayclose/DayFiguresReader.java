@@ -18,6 +18,10 @@ import com.ppms.inventory.ShortageClaimRepository;
 import com.ppms.inventory.ShortageClaimStatus;
 import com.ppms.inventory.TankerDeliveryRepository;
 import com.ppms.inventory.WetStockReconciliationService;
+import com.ppms.pettycash.PettyCashBox;
+import com.ppms.pettycash.PettyCashBoxRepository;
+import com.ppms.pettycash.PettyCashCountRepository;
+import com.ppms.pettycash.PettyCashEntryRepository;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTank;
 import com.ppms.pump.UndergroundTankRepository;
@@ -58,6 +62,9 @@ class DayFiguresReader {
     private final CreditAgingService creditAgingService;
     private final AttentionService attentionService;
     private final DayPendingApprovalRepository pendingApprovalRepository;
+    private final PettyCashBoxRepository pettyCashBoxRepository;
+    private final PettyCashEntryRepository pettyCashEntryRepository;
+    private final PettyCashCountRepository pettyCashCountRepository;
     private final BusinessClock businessClock;
 
     DayFigures read(Long pumpId, LocalDate date, User currentUser) {
@@ -96,7 +103,17 @@ class DayFiguresReader {
                         .toList(),
                 date.isBefore(businessClock.today()),
                 total(pendingApprovalRepository.pendingExpensesOn(pumpId, date)),
-                total(pendingApprovalRepository.pendingCreditPaymentsOn(pumpId, date)));
+                total(pendingApprovalRepository.pendingCreditPaymentsOn(pumpId, date)),
+                pettyCashInUse(pumpId),
+                pettyCashCountRepository.existsByPumpIdAndCountForDate(pumpId, date));
+    }
+
+    private boolean pettyCashInUse(Long pumpId) {
+        boolean hasFloat = pettyCashBoxRepository.findById(pumpId)
+                .map(PettyCashBox::getFloatAmount)
+                .filter(amount -> amount.signum() > 0)
+                .isPresent();
+        return hasFloat || pettyCashEntryRepository.existsByPumpId(pumpId);
     }
 
     /**

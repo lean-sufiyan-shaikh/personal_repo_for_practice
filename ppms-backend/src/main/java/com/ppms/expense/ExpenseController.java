@@ -1,32 +1,25 @@
 package com.ppms.expense;
 
-import java.util.Map;
-import com.ppms.common.exception.EntityType;
-import com.ppms.common.exception.ErrorCodes;
-import com.ppms.common.time.BusinessClock;
 import com.ppms.common.dto.PageRequests;
-import com.ppms.audit.AuditAction;
-import com.ppms.audit.AuditService;
 import com.ppms.common.dto.PagedResponse;
 import com.ppms.common.exception.BusinessException;
+import com.ppms.common.exception.EntityType;
+import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
-import com.ppms.dayclose.ClosedDayGuard;
-import com.ppms.report.BalanceSheetStalenessService;
-import com.ppms.report.StaleReasons;
+import com.ppms.common.idempotency.IdempotencyService;
+import com.ppms.common.idempotency.IdempotentRequest;
 import com.ppms.user.User;
-import com.ppms.user.UserRole;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.OffsetDateTime;
-import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/pumps")
@@ -34,12 +27,9 @@ import java.util.List;
 public class ExpenseController {
 
     private final PumpExpenseRepository  expenseRepository;
-    private final ApprovalPolicy         approvalPolicy;
+    private final ExpenseService         expenseService;
     private final ExpenseApprovalService expenseApprovalService;
-    private final AuditService           auditService;
-    private final BusinessClock businessClock;
-    private final ClosedDayGuard closedDayGuard;
-    private final BalanceSheetStalenessService balanceSheetStalenessService;
+    private final IdempotencyService     idempotencyService;
 
     /**
      * GET /api/pumps/{pumpId}/expenses?page=0&size=50&category=MAINTENANCE&approvalStatus=APPROVED
@@ -87,115 +77,48 @@ public class ExpenseController {
 
     /**
      * POST /api/pumps/{pumpId}/expenses
-     * Records a new expense entry.
-     *
-     * When saveDraft=true (request body flag): saves as DRAFT — approval workflow not triggered.
-     * The user must call PATCH .../submit later to submit it for approval.
-     *
-     * When saveDraft=false (default):
-     * - OWNER/ADMIN: always auto-APPROVED regardless of amount
-     * - MANAGER/OPERATOR: auto-APPROVED if amount <= pump's expense_approval_threshold
-     * - MANAGER/OPERATOR: PENDING_APPROVAL if amount > threshold (or threshold is not set)
+     * Records an expense with where it was paid from. saveDraft=true keeps it as a DRAFT until submitted; otherwise
+     * OWNER/ADMIN entries and amounts within the pump's threshold are approved at once and move their cash.
+     * An Idempotency-Key header makes a resend after a timeout return the first expense instead of recording two.
      */
     @PostMapping("/{pumpId}/expenses")
-    @Transactional
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'OPERATOR')")
-    @ResponseStatus(HttpStatus.CREATED)
-    public PumpExpense createExpense(
+    public ResponseEntity<?> createExpense(
             @PathVariable Long pumpId,
             @Valid @RequestBody CreateExpenseRequest req,
+            @RequestHeader(value = IdempotencyService.HEADER, required = false) String idempotencyKey,
+            HttpServletRequest httpRequest,
             @AuthenticationPrincipal User currentUser) {
-        closedDayGuard.requireOpen(pumpId, req.getExpenseDate());
-        BigDecimal amount = req.getAmount().setScale(2, RoundingMode.HALF_UP);
-
-        ExpenseApprovalStatus approvalStatus;
-        Long submittedByUserId = null;
-        OffsetDateTime submittedAt = null;
-
-        if (req.isSaveDraft()) {
-            // Explicit DRAFT save — skip approval flow until submitted
-            approvalStatus = ExpenseApprovalStatus.DRAFT;
-        } else {
-            // Immediate submission — auto-approve or queue for review
-            approvalStatus = approvalPolicy.resolveExpenseStatus(pumpId, currentUser, amount, req.getCategory(), req.getExpenseDate());
-            submittedByUserId = currentUser.getId();
-            submittedAt = businessClock.now();
-        }
-
-        PumpExpense expense = PumpExpense.builder()
-                .pumpId(pumpId)
-                .category(req.getCategory())
-                .amount(amount)
-                .description(req.getDescription().trim())
-                .expenseDate(req.getExpenseDate())
-                .recordedByUserId(currentUser.getId())
-                .approvalStatus(approvalStatus)
-                .submittedByUserId(submittedByUserId)
-                .submittedAt(submittedAt)
-                .build();
-
-        PumpExpense saved = expenseRepository.save(expense);
-        if (approvalStatus != ExpenseApprovalStatus.DRAFT) {
-            balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(saved.getExpenseDate()),
-                    StaleReasons.expenseChanged(saved.getId()));
-        }
-
-        auditService.log(pumpId, AuditAction.EXPENSE_RECORDED, "PumpExpense",
-                saved.getId().toString(),
-                req.getCategory() + " expense ₹" + saved.getAmount() + " recorded: " + req.getDescription() +
-                " (status: " + approvalStatus + ")",
-                currentUser);
-
-        return saved;
+        return idempotencyService.runOnce(
+                IdempotentRequest.of(currentUser.getId(), idempotencyKey, httpRequest, req),
+                () -> ResponseEntity.status(HttpStatus.CREATED).body(expenseService.create(pumpId, req, currentUser)));
     }
 
     /**
      * PATCH /api/pumps/{pumpId}/expenses/{expenseId}/submit
-     * Submits a DRAFT expense for approval, transitioning it to PENDING_APPROVAL or APPROVED
-     * based on the same auto-approval rules applied at creation time.
-     * Only the person who created the expense or an OWNER/ADMIN can submit it.
+     * Submits a DRAFT expense, applying the same approval rules as at creation.
      */
     @PatchMapping("/{pumpId}/expenses/{expenseId}/submit")
-    @Transactional
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'MANAGER', 'OPERATOR')")
     public PumpExpense submitExpense(
             @PathVariable Long pumpId,
             @PathVariable Long expenseId,
             @AuthenticationPrincipal User currentUser) {
+        return expenseService.submit(pumpId, expenseId, currentUser);
+    }
 
-        PumpExpense expense = expenseRepository.findById(expenseId)
-                .orElseThrow(() -> new ResourceNotFoundException(EntityType.EXPENSE, "Expense not found"));
-
-        if (!expense.getPumpId().equals(pumpId)) {
-            throw new ResourceNotFoundException(EntityType.EXPENSE, "Expense not found");
-        }
-
-        if (expense.getApprovalStatus() != ExpenseApprovalStatus.DRAFT) {
-            throw new BusinessException(ErrorCodes.EXPENSE_SUBMIT_NOT_DRAFT,
-                    Map.of("statusCode", expense.getApprovalStatus().name()),
-                    "Only DRAFT expenses can be submitted (current status: " + expense.getApprovalStatus() + ")");
-        }
-
-        // Only the creator or OWNER/ADMIN may submit a draft
-        boolean isOwnerOrAdmin = currentUser.getRole() == UserRole.OWNER
-                || currentUser.getRole() == UserRole.ADMIN
-                || currentUser.getRole() == UserRole.SUPER_ADMIN;
-        if (!isOwnerOrAdmin && !expense.getRecordedByUserId().equals(currentUser.getId())) {
-            throw new BusinessException(ErrorCodes.EXPENSE_SUBMIT_NOT_ALLOWED,
-                    Map.of(),
-                    "Only the expense creator or an Owner/Admin can submit this draft.");
-        }
-
-        closedDayGuard.requireOpen(pumpId, expense.getExpenseDate());
-        ExpenseApprovalStatus newStatus = approvalPolicy.resolveExpenseStatus(pumpId, currentUser, expense.getAmount(),
-                expense.getCategory(), expense.getExpenseDate());
-        expense.setApprovalStatus(newStatus);
-        expense.setSubmittedByUserId(currentUser.getId());
-        expense.setSubmittedAt(businessClock.now());
-        balanceSheetStalenessService.markDaySheetsStale(pumpId, List.of(expense.getExpenseDate()),
-                StaleReasons.expenseChanged(expenseId));
-
-        return expenseRepository.save(expense);
+    /**
+     * POST /api/pumps/{pumpId}/expenses/{expenseId}/void
+     * Voids an approved expense with a reason and reverses the cash it took from the safe or petty cash.
+     */
+    @PostMapping("/{pumpId}/expenses/{expenseId}/void")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    public PumpExpense voidExpense(
+            @PathVariable Long pumpId,
+            @PathVariable Long expenseId,
+            @Valid @RequestBody VoidExpenseRequest req,
+            @AuthenticationPrincipal User currentUser) {
+        return expenseService.voidExpense(pumpId, expenseId, req.reason(), currentUser);
     }
 
     /**

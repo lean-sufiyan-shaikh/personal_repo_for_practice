@@ -6,6 +6,7 @@ import com.ppms.expense.PumpExpense;
 import com.ppms.expense.PumpExpenseRepository;
 import com.ppms.fuel.FuelType;
 import com.ppms.settlement.PaymentSettlementRepository;
+import com.ppms.settlement.SettlementChargebackRepository;
 import com.ppms.inventory.InventoryLot;
 import com.ppms.inventory.InventoryLotRepository;
 import com.ppms.inventory.LotConsumption;
@@ -50,6 +51,7 @@ public class ProfitLossReportService {
     private final PaymentSettlementRepository settlementRepository;
     private final PayrollRepository payrollRepository;
     private final CreditAdjustmentRepository creditAdjustmentRepository;
+    private final SettlementChargebackRepository chargebackRepository;
 
     private record CostOfGoods(Map<FuelType, BigDecimal> totalByFuel,
                                Map<FuelType, List<ProfitLossReport.LotCostLine>> lotLinesByFuel) {}
@@ -99,6 +101,7 @@ public class ProfitLossReportService {
         BigDecimal payrollPaid = payrollRepository.sumNetPayPaidBetween(pumpId, from, to).setScale(2, RoundingMode.HALF_UP);
         BigDecimal badDebtWrittenOff = creditAdjustmentRepository.sumWrittenOffBetween(pumpId, from, to)
                 .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal chargebacks = chargebackRepository.sumAmountBetween(pumpId, from, to).setScale(2, RoundingMode.HALF_UP);
 
         return new ProfitLossReport(pumpId, from, to, shifts.size(),
                 shiftRepository.countAutoClosedShiftsByDateRange(pumpId, from, to),
@@ -107,9 +110,9 @@ public class ProfitLossReportService {
                 grossProfit,
                 cash, upi, card, credit, fleetCard,
                 cash.add(upi).add(card).add(fleetCard).add(credit),
-                approvedExpenses, bankCharges, payrollPaid, badDebtWrittenOff,
+                approvedExpenses, bankCharges, payrollPaid, badDebtWrittenOff, chargebacks,
                 grossProfit.subtract(approvedExpenses).subtract(bankCharges).subtract(payrollPaid)
-                        .subtract(badDebtWrittenOff),
+                        .subtract(badDebtWrittenOff).subtract(chargebacks),
                 lines, dayLines(revenueByDay, cogsByDay(consumptions, dateByShiftId)));
     }
 

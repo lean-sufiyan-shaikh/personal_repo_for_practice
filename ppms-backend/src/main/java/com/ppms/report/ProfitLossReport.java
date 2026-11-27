@@ -29,7 +29,9 @@ public record ProfitLossReport(
         BigDecimal payrollPaid,
         /** Bad debt written off on credit accounts in the period, by its write-off date. */
         BigDecimal badDebtWrittenOff,
-        /** grossProfit − approvedExpenses − bankCharges − payrollPaid − badDebtWrittenOff. */
+        /** Chargebacks and refunds the bank took in the period, by their date. */
+        BigDecimal chargebacks,
+        /** grossProfit − approvedExpenses − bankCharges − payrollPaid − badDebtWrittenOff − chargebacks. */
         BigDecimal netOperatingProfit,
         List<FuelLine> byFuelType,
         List<DayLine> byDay) {

@@ -103,6 +103,16 @@ public final class StaleReasons {
                         + AFTER_GENERATED);
     }
 
+    public static CodedText expenseVoided(Long expenseId) {
+        return CodedText.of(ServerTextCodes.STALE_EXPENSE_VOIDED, "expenseId", expenseId,
+                "Expense #" + expenseId + " was voided" + AFTER_GENERATED);
+    }
+
+    public static CodedText chargebackRecorded(Long chargebackId) {
+        return CodedText.of(ServerTextCodes.STALE_CHARGEBACK_RECORDED, "chargebackId", chargebackId,
+                "Chargeback or refund #" + chargebackId + " was recorded" + AFTER_GENERATED);
+    }
+
     public static CodedText dayReopened(String date) {
         return CodedText.of(ServerTextCodes.STALE_DAY_REOPENED, "date", date,
                 date + " was re-opened" + AFTER_GENERATED);
