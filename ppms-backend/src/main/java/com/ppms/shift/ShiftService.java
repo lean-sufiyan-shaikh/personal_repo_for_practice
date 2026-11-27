@@ -266,6 +266,7 @@ public class ShiftService {
         List<ShiftFuelReading> readings = fuelReadingRepository.findByShiftId(shiftId);
         ShiftLifecycleSupportService.ClosingSummary closingSummary =
                 lifecycleSupportService.processClosingReadings(pumpId, maxMeterByNozzleId, request, cashDropped, readings);
+        nozzleTurnService.requireClosingReadingsAfterTurns(shift, readings, maxMeterByNozzleId);
         testLitresService.requireNoteAndAuditAboveMax(pumpId, shiftId, readings, request.getTestLitresNote(), currentUser);
         requireReasonForDiscrepancy(request, closingSummary);
         List<CloseShiftRequest.CreditEntryRequest> creditEntries =
@@ -306,7 +307,7 @@ public class ShiftService {
     private void recordOperatorShares(Shift shift, List<ShiftFuelReading> readings, Map<Long, BigDecimal> maxMeterByNozzleId,
                                       CloseShiftRequest request, User closedBy) {
         reliefService.endActiveReliefsAtClose(shift.getId(), shift.getClosedAt(), closedBy);
-        List<ShiftNozzleTurn> turns = nozzleTurnService.finishTurnsAtClose(shift, readings, maxMeterByNozzleId, shift.getClosedAt());
+        List<ShiftNozzleTurn> turns = nozzleTurnService.finishTurnsAtClose(shift, readings, shift.getClosedAt());
         shiftOperatorService.releaseAllAtClose(shift.getId(), shift.getClosedAt());
         operatorShareService.recordAtClose(shift, readings, turns, maxMeterByNozzleId, request.getOperatorCollections());
     }

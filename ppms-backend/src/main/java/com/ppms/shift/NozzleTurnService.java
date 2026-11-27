@@ -123,17 +123,12 @@ public class NozzleTurnService {
     }
 
     /**
-     * Ends every open turn at the closing reading. The closing reading must not be below the reading the last turn
-     * started from, unless the meter rolled over from the top of its range.
+     * The closing reading of a nozzle must not be below the reading its last turn started from, unless the meter rolled
+     * over from the top of its range.
      */
-    List<ShiftNozzleTurn> finishTurnsAtClose(Shift shift, List<ShiftFuelReading> readings, Map<Long, BigDecimal> maxMeterByNozzleId,
-                                             OffsetDateTime closedAt) {
-        List<ShiftNozzleTurn> openTurns = turnRepository.findByShiftIdAndEndedAtIsNull(shift.getId());
-        for (ShiftNozzleTurn turn : openTurns) {
-            ShiftFuelReading reading = readings.stream()
-                    .filter(found -> found.getNozzleId().equals(turn.getNozzleId()))
-                    .findFirst()
-                    .orElseThrow(() -> notInShift(turn.getNozzleId()));
+    void requireClosingReadingsAfterTurns(Shift shift, List<ShiftFuelReading> readings, Map<Long, BigDecimal> maxMeterByNozzleId) {
+        for (ShiftNozzleTurn turn : turnRepository.findByShiftIdAndEndedAtIsNull(shift.getId())) {
+            ShiftFuelReading reading = readingOf(readings, turn.getNozzleId());
             BigDecimal maxMeter = maxMeterByNozzleId.get(turn.getNozzleId());
             if (reading.getEndReading().compareTo(turn.getStartReading()) < 0
                     && !MeterRollover.canRollOverFrom(turn.getStartReading(), maxMeter)) {
@@ -145,11 +140,25 @@ public class NozzleTurnService {
                                 + turn.getStartReading().toPlainString() + " taken when the " + reading.getFuelType()
                                 + " nozzle last changed hands.");
             }
-            turn.setEndReading(reading.getEndReading());
+        }
+    }
+
+    /** Ends every open turn at the closing reading; returns all the shift's turns, oldest first. */
+    List<ShiftNozzleTurn> finishTurnsAtClose(Shift shift, List<ShiftFuelReading> readings, OffsetDateTime closedAt) {
+        List<ShiftNozzleTurn> openTurns = turnRepository.findByShiftIdAndEndedAtIsNull(shift.getId());
+        for (ShiftNozzleTurn turn : openTurns) {
+            turn.setEndReading(readingOf(readings, turn.getNozzleId()).getEndReading());
             turn.setEndedAt(closedAt);
         }
         turnRepository.saveAll(openTurns);
         return turnRepository.findByShiftIdOrderByStartedAtAscIdAsc(shift.getId());
+    }
+
+    private static ShiftFuelReading readingOf(List<ShiftFuelReading> readings, Long nozzleId) {
+        return readings.stream()
+                .filter(found -> found.getNozzleId().equals(nozzleId))
+                .findFirst()
+                .orElseThrow(() -> notInShift(nozzleId));
     }
 
     /** The open turns of the nozzles an operator works now. */
