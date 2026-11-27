@@ -93,20 +93,6 @@ public class PumpShiftDefinitionService {
     // ── Detect current shift at shift-open time ───────────────────────────────
 
     /**
-     * Determines which shift definition matches the current time for the given pump, and the
-     * business date of that shift. A night shift opened after midnight belongs to the previous day,
-     * so only the definitions in force on that previous day can match its after-midnight part; a
-     * definition that starts today has not begun its own night yet.
-     *
-     * @throws BusinessException if no active definition covers the current time
-     */
-    public CurrentShiftWindow detectCurrentShift(Long pumpId) {
-        OffsetDateTime now = businessClock.now();
-        requireScheduleConfigured(pumpId, now.toLocalDate());
-        return findCurrentShift(pumpId, now).orElseThrow(() -> outsideWindows(now));
-    }
-
-    /**
      * The windows a shift can be opened for now: the current one, then one starting within the pump's early-start
      * grace. A shift opened a few minutes early for the next window must not land in the window that is ending.
      */
@@ -177,6 +163,11 @@ public class PumpShiftDefinitionService {
         }
     }
 
+    /**
+     * The definition covering the current time and the business date of that shift. A night shift opened after midnight
+     * belongs to the previous day, so only the definitions in force on that previous day can match its after-midnight
+     * part; a definition that starts today has not begun its own night yet.
+     */
     private Optional<CurrentShiftWindow> findCurrentShift(Long pumpId, OffsetDateTime now) {
         LocalDate today = now.toLocalDate();
         LocalTime time = now.toLocalTime();
@@ -380,7 +371,7 @@ public class PumpShiftDefinitionService {
     /**
      * Disables the open-ended (active) shift definition group for a pump on the given effectiveFrom date.
      * Sets effectiveTo = disableDate on every open-ended definition in that group.
-     * After disableDate, detectCurrentShift() will find no active definition and prevent new shift opens.
+     * After disableDate, windowForOpening() will find no active definition and prevent new shift opens.
      *
      * Multiple groups can share the same effectiveFrom (e.g. a disabled group and a new active one).
      * Only the open-ended definitions are targeted here — disabled definitions are left unchanged.

@@ -98,7 +98,7 @@ class PumpShiftDefinitionServiceTest {
 
     @Test
     void nightShiftOpenedAfterMidnightBelongsToThePreviousDay() {
-        CurrentShiftWindow window = serviceAt("00:30").detectCurrentShift(PUMP_ID);
+        CurrentShiftWindow window = currentWindowAt("00:30");
 
         assertThat(window.definition()).isSameAs(night);
         assertThat(window.shiftDate()).isEqualTo(TODAY.minusDays(1));
@@ -106,7 +106,7 @@ class PumpShiftDefinitionServiceTest {
 
     @Test
     void nightShiftOpenedBeforeMidnightBelongsToToday() {
-        CurrentShiftWindow window = serviceAt("22:15").detectCurrentShift(PUMP_ID);
+        CurrentShiftWindow window = currentWindowAt("22:15");
 
         assertThat(window.definition()).isSameAs(night);
         assertThat(window.shiftDate()).isEqualTo(TODAY);
@@ -114,7 +114,7 @@ class PumpShiftDefinitionServiceTest {
 
     @Test
     void theMinuteBeforeTheBoundaryStillOpensTheEndingShift() {
-        CurrentShiftWindow window = serviceAt("08:59:30").detectCurrentShift(PUMP_ID);
+        CurrentShiftWindow window = currentWindowAt("08:59:30");
 
         assertThat(window.definition()).isSameAs(night);
         assertThat(window.shiftDate()).isEqualTo(TODAY.minusDays(1));
@@ -122,7 +122,7 @@ class PumpShiftDefinitionServiceTest {
 
     @Test
     void theBoundaryMinuteOpensTheNextShift() {
-        CurrentShiftWindow window = serviceAt("09:00").detectCurrentShift(PUMP_ID);
+        CurrentShiftWindow window = currentWindowAt("09:00");
 
         assertThat(window.definition()).isSameAs(morning);
         assertThat(window.shiftDate()).isEqualTo(TODAY);
@@ -139,8 +139,10 @@ class PumpShiftDefinitionServiceTest {
         PumpShiftDefinitionService service =
                 new PumpShiftDefinitionService(repository, mock(ShiftRepository.class), supportService, fixedClock(sixThirty),
                         pumpLocationRepository);
+        when(pumpLocationRepository.findById(PUMP_ID)).thenReturn(Optional.of(PumpLocation.builder()
+                .id(PUMP_ID).earlyStartGraceMinutes(0).build()));
 
-        assertThatThrownBy(() -> service.detectCurrentShift(PUMP_ID))
+        assertThatThrownBy(() -> service.windowForOpening(PUMP_ID, null, null))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("does not fall within any configured shift window");
     }
@@ -191,6 +193,14 @@ class PumpShiftDefinitionServiceTest {
         when(supportService.maxShiftsPerPump()).thenReturn(4);
         when(supportService.resolveEffectiveFrom(anyList())).thenReturn(effectiveFrom);
         when(supportService.resolveEffectiveTo(anyList())).thenReturn(effectiveTo);
+    }
+
+    /** The window a shift opened at this time belongs to when the pump allows no early start. */
+    private CurrentShiftWindow currentWindowAt(String time) {
+        PumpShiftDefinitionService service = serviceAt(time);
+        when(pumpLocationRepository.findById(PUMP_ID)).thenReturn(Optional.of(PumpLocation.builder()
+                .id(PUMP_ID).earlyStartGraceMinutes(0).build()));
+        return service.windowForOpening(PUMP_ID, null, null);
     }
 
     private PumpShiftDefinitionService serviceAt(String time) {

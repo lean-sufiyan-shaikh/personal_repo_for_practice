@@ -87,6 +87,16 @@ class ShiftCloseControlsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void reSavingTheSamePriceWhileShiftsAreOpenOnlyConfirmsItForToday() throws Exception {
+        openShift();
+
+        perform(post("/api/pumps/{pumpId}/fuel-prices", setup.pumpId()), setup.owner(),
+                Map.of("fuelType", "PETROL", "pricePerUnit", new BigDecimal("100.00"), "confirmed", true))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.splitNozzleCount").value(0));
+    }
+
+    @Test
     void managerWhoClosedTheShiftCannotWaiveItsDiscrepancyButTheOwnerCan() throws Exception {
         long shiftId = closeShort("200.00");
 
