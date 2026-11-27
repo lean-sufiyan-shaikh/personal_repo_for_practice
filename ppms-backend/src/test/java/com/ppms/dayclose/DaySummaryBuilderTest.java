@@ -172,7 +172,7 @@ class DaySummaryBuilderTest {
         assertThat(checks).filteredOn(ChecklistItem::isMissingBlockingItem).extracting(ChecklistItem::code)
                 .containsExactly(ChecklistItem.SAFE_COUNT, ChecklistItem.NEXT_DAY_PRICES);
         assertThat(checks.get(1).params()).containsEntry("fuelTypeCodes", List.of("DIESEL"));
-        assertThat(checks.get(0).fixPath()).isEqualTo("/dashboard/cash?tab=safe");
+        assertThat(checks.get(0).fixPath()).isEqualTo("/dashboard/cash?tab=safe&action=count-safe&countFor=" + DAY);
         assertThat(checks.get(1).fixPath()).isEqualTo("/dashboard/setup?section=prices");
     }
 

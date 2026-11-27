@@ -21,6 +21,8 @@ export interface PumpSummary {
   densityTolerance?: number
   /** A safe count further from the ledger than this many rupees notifies the owner; ₹10 by default. */
   safeCountTolerance?: number
+  /** "HH:MM:SS": until then a manager may still count the safe for yesterday; 10:00 by default. */
+  safeCountCutoffTime?: string
   dus: DUOption[]
 }
 
@@ -35,6 +37,8 @@ export interface UpdatePumpSettingsRequest {
   receiptTolerancePercent?: number
   densityTolerance?: number
   safeCountTolerance?: number
+  /** "HH:MM" */
+  safeCountCutoffTime?: string
 }
 
 export interface CreatePumpRequest {

@@ -81,4 +81,20 @@ describe('PumpSettingsContent', () => {
 
     expect(pumpApi.updatePumpSettings).toHaveBeenCalledWith(3, { safeCountTolerance: 0 })
   })
+
+  it("saves the cut-off for yesterday's safe count, starting from 10:00", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PumpSettingsContent pump={pump} onUpdated={vi.fn()} />)
+
+    const cutoff = screen.getByLabelText("Cut-off for yesterday's count")
+    expect(cutoff).toHaveValue('10:00')
+    expect(cutoff).toHaveAccessibleDescription(/Until 10:00 a manager may still count the safe for yesterday/)
+
+    await user.clear(cutoff)
+    expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled()
+    await user.type(cutoff, '08:30')
+    await user.click(screen.getByRole('button', { name: 'Save settings' }))
+
+    expect(pumpApi.updatePumpSettings).toHaveBeenCalledWith(3, { safeCountCutoffTime: '08:30' })
+  })
 })

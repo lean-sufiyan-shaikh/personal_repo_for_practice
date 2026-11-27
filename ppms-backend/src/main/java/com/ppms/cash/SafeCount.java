@@ -7,11 +7,13 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 /**
- * A physical count of the safe compared with the ledger balance at that moment. A count only records the difference;
- * it never moves money, so a shortage stays visible until someone records the matching cash movement.
+ * A physical count of the safe compared with the ledger balance at that moment, or at the end of countForDate when the
+ * count is recorded late for an earlier business day. A count only records the difference; it never moves money, so a
+ * shortage stays visible until someone records the matching cash movement.
  */
 @Entity
 @Table(name = "safe_counts")
@@ -59,4 +61,15 @@ public class SafeCount {
 
     @Column(name = "counted_at", nullable = false)
     private OffsetDateTime countedAt;
+
+    @Column(name = "count_for_date", nullable = false)
+    private LocalDate countForDate;
+
+    /** True when recorded after countForDate had ended: the next morning, or back-dated by an owner or admin. */
+    @Column(name = "late", nullable = false)
+    private boolean late;
+
+    /** Only set on a count back-dated by an owner or admin after the morning cut-off. */
+    @Column(name = "back_date_reason", length = 500)
+    private String backDateReason;
 }

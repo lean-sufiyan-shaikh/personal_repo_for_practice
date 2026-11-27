@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Landmark, Vault } from 'lucide-react'
 import { cashApi } from '../../../api/cashApi'
@@ -14,11 +15,28 @@ import { BankDepositDialog } from './BankDepositDialog'
 
 const COUNT_ACTION = 'count-safe'
 const DEPOSIT_ACTION = 'bank-deposit'
+const COUNT_FOR_PARAM = 'countFor'
 
-/** The safe: its balance and last count, drops to confirm, the ledger and bank deposits. */
-export function SafeTab({ pumpId, canManage }: { pumpId: number; canManage: boolean }) {
+interface Props {
+  pumpId: number
+  canManage: boolean
+  canBackDate: boolean
+}
+
+/**
+ * The safe: its balance and last count, drops to confirm, the ledger and bank deposits.
+ * ?action=count-safe&countFor=YYYY-MM-DD opens the count for that business day.
+ */
+export function SafeTab({ pumpId, canManage, canBackDate }: Props) {
   const { t } = useTranslation('cash')
   const action = useUrlParam('action')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const closeCount = () => setSearchParams((params) => {
+    const updated = new URLSearchParams(params)
+    updated.delete('action')
+    updated.delete(COUNT_FOR_PARAM)
+    return updated
+  }, { replace: true })
   const { data: summary, isLoading, isError, refetch } = useQuery({
     queryKey: ['safe', pumpId],
     queryFn: () => cashApi.getSafe(pumpId),
@@ -52,7 +70,8 @@ export function SafeTab({ pumpId, canManage }: { pumpId: number; canManage: bool
       <DepositList pumpId={pumpId} canAttach={canManage} />
 
       {summary && canManage && action.value === COUNT_ACTION && (
-        <CountSafeDialog pumpId={pumpId} summary={summary} onClose={action.remove} />
+        <CountSafeDialog pumpId={pumpId} summary={summary} canBackDate={canBackDate}
+          initialDate={searchParams.get(COUNT_FOR_PARAM)} onClose={closeCount} />
       )}
       {summary && canManage && action.value === DEPOSIT_ACTION && (
         <BankDepositDialog pumpId={pumpId} balance={summary.balance} onClose={action.remove} />

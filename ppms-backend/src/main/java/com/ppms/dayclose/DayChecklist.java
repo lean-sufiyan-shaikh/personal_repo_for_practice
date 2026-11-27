@@ -14,6 +14,7 @@ import java.util.Map;
 final class DayChecklist {
 
     private static final String SAFE_PATH = "/dashboard/cash?tab=safe";
+    private static final String SAFE_COUNT_PATH = SAFE_PATH + "&action=count-safe&countFor=";
     private static final String PRICES_PATH = "/dashboard/setup?section=prices";
 
     private DayChecklist() {
@@ -25,7 +26,7 @@ final class DayChecklist {
                 figures.safeCount().isPresent()
                         ? "The safe was counted on " + figures.businessDate()
                         : "Count the safe on " + figures.businessDate() + " before closing the day",
-                SAFE_PATH));
+                SAFE_COUNT_PATH + figures.businessDate()));
         List<String> missingFuelTypes = figures.fuelTypesWithoutNextDayPrice().stream().map(FuelType::name).toList();
         checks.add(new ChecklistItem(ChecklistItem.NEXT_DAY_PRICES, true, missingFuelTypes.isEmpty(),
                 Map.of("fuelTypeCodes", missingFuelTypes),

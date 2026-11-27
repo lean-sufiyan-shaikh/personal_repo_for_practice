@@ -87,6 +87,8 @@
     "CASH_DROP_CONFIRMED": "कैश ड्रॉप की पुष्टि",
     "CASH_DROP_REJECTED": "कैश ड्रॉप अस्वीकृत",
     "SAFE_COUNTED": "तिजोरी गिनी गई",
+    "SAFE_COUNTED_LATE": "तिजोरी देर से गिनी गई",
+    "SAFE_COUNT_BACK_DATED": "तिजोरी गिनती पिछली तारीख पर दर्ज",
     "BANK_DEPOSIT_RECORDED": "बैंक जमा दर्ज",
     "DEPOSIT_SLIP_ATTACHED": "जमा पर्ची जोड़ी गई",
     "DAY_CLOSED": "दिन बंद किया",

@@ -4,7 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDate;
 import java.util.Optional;
 
 public interface SafeCountRepository extends JpaRepository<SafeCount, Long> {
@@ -13,6 +13,5 @@ public interface SafeCountRepository extends JpaRepository<SafeCount, Long> {
 
     Optional<SafeCount> findFirstByPumpIdOrderByCountedAtDescIdDesc(Long pumpId);
 
-    Optional<SafeCount> findFirstByPumpIdAndCountedAtGreaterThanEqualAndCountedAtLessThanOrderByCountedAtDescIdDesc(
-            Long pumpId, OffsetDateTime from, OffsetDateTime to);
+    Optional<SafeCount> findFirstByPumpIdAndCountForDateOrderByCountedAtDescIdDesc(Long pumpId, LocalDate countForDate);
 }

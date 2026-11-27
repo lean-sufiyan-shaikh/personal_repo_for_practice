@@ -4,7 +4,14 @@ import { MoneyText } from '../../../components/AmountText'
 import { StatusBadge } from '../../../components/StatusBadge'
 import { codeLabel } from '../../../constants/labels'
 import { formatCurrency } from '../../../utils/format'
-import { formatIstDateTime } from '../../../utils/date'
+import { formatIstDate, formatIstDateTime } from '../../../utils/date'
+
+/** Late: counted the next morning for yesterday. Back-dated: counted later still by an owner or admin, with a reason. */
+function LateBadge({ count }: { count: SafeCount }) {
+  const { t } = useTranslation('cash')
+  if (!count.late) return null
+  return <StatusBadge tone="warn" label={count.backDateReason ? t('safe.backDatedBadge') : t('safe.lateBadge')} />
+}
 
 function LatestCount({ count }: { count: SafeCount }) {
   const { t } = useTranslation('cash')
@@ -19,11 +26,14 @@ function LatestCount({ count }: { count: SafeCount }) {
           <StatusBadge tone={count.varianceType === 'SHORT' ? 'bad' : 'warn'}
             label={`${codeLabel(count.varianceType)} ${formatCurrency(Math.abs(count.varianceAmount))}`} />
         )}
+        <LateBadge count={count} />
       </div>
+      {count.late && <p className="text-sm text-ink-2">{t('safe.countedFor', { date: formatIstDate(count.countForDate) })}</p>}
       <p className="text-sm text-ink-2">
         {t('safe.countedAgainst', { counted: formatCurrency(count.countedAmount), expected: formatCurrency(count.expectedAmount) })}
       </p>
       <p className="text-xs text-ink-3">{t('safe.countedBy', { name: count.countedByName, time })}</p>
+      {count.backDateReason && <p className="text-xs text-ink-3">{t('safe.backDateReason', { reason: count.backDateReason })}</p>}
       {count.beyondTolerance && (
         <p className="ui-alert ui-alert-warning px-3 py-2 text-xs">
           {t('safe.beyondTolerance', { amount: formatCurrency(count.toleranceAmount) })}

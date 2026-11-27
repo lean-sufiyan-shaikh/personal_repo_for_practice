@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -26,6 +27,7 @@ public class PumpResponse {
     private BigDecimal receiptTolerancePercent;
     private BigDecimal densityTolerance;
     private BigDecimal safeCountTolerance;
+    private LocalTime safeCountCutoffTime;
     /** Active Dispensary Units with their nozzles. */
     private List<DUResponse> dus;
 }

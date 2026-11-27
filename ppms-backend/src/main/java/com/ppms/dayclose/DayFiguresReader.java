@@ -74,8 +74,7 @@ class DayFiguresReader {
                 date,
                 closedShifts,
                 shiftRepository.findOpenShiftsByDate(pumpId, date),
-                safeCountRepository.findFirstByPumpIdAndCountedAtGreaterThanEqualAndCountedAtLessThanOrderByCountedAtDescIdDesc(
-                        pumpId, dayStart, nextDayStart),
+                safeCountRepository.findFirstByPumpIdAndCountForDateOrderByCountedAtDescIdDesc(pumpId, date),
                 fuelTypesWithoutNextDayPrice(pumpId, date, activeTanks),
                 new DayFigures.Total(pending.getDropCount(), money(pending.getAmount())),
                 new DayFigures.Total(confirmed.getDropCount(), money(confirmed.getAmount())),

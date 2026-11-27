@@ -24,6 +24,7 @@ export default function CashDrawerPage() {
   const { selectedPumpId: pumpId } = usePumpStore()
   const canRecord = canPerformAction('cash:record-event', user?.role)
   const canManageSafe = canPerformAction('cash:manage-safe', user?.role)
+  const canBackDateSafeCount = canPerformAction('cash:back-date-safe-count', user?.role)
   const entryAction = useUrlParam('action')
   const activeTab = useActiveTab(TAB_IDS, 'movements')
   const showEntry = entryAction.value === 'cash-entry' && canRecord && pumpId !== null
@@ -50,14 +51,14 @@ export default function CashDrawerPage() {
             {t('form.title')}
           </button>
         )}
-        tabs={pumpId !== null && <PageTabs label={t('page.views')} tabs={tabs} activeTab={activeTab} resetParams={['action']} />}
+        tabs={pumpId !== null && <PageTabs label={t('page.views')} tabs={tabs} activeTab={activeTab} resetParams={['action', 'countFor']} />}
       />
 
       {pumpId === null ? (
         <div className="ui-card text-center text-sm text-ink-3">{t('common:notices.noPump')}</div>
       ) : activeTab === 'safe' ? (
         <div key={activeTab} className="ui-tab-content">
-          <SafeTab pumpId={pumpId} canManage={canManageSafe} />
+          <SafeTab pumpId={pumpId} canManage={canManageSafe} canBackDate={canBackDateSafeCount} />
         </div>
       ) : (
         <div key={activeTab} className="ui-tab-content space-y-(--density-gap)">

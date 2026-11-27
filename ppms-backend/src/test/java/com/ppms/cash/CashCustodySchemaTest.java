@@ -94,6 +94,7 @@ class CashCustodySchemaTest {
                 .toleranceAmount(BigDecimal.TEN)
                 .countedByUserId(owner.getId())
                 .countedAt(TestDates.now())
+                .countForDate(TestDates.today())
                 .build();
         assertThatThrownBy(() -> safeCountRepository.saveAndFlush(count)).isInstanceOf(DataIntegrityViolationException.class);
 

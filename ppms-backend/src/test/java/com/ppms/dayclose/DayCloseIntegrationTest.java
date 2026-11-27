@@ -23,12 +23,15 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -60,6 +63,7 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.status").doesNotExist())
                 .andExpect(jsonPath("$.checks[0].code").value("SAFE_COUNT"))
                 .andExpect(jsonPath("$.checks[0].done").value(false))
+                .andExpect(jsonPath("$.checks[0].fixPath").value("/dashboard/cash?tab=safe&action=count-safe&countFor=" + TODAY))
                 .andExpect(jsonPath("$.checks[1].code").value("NEXT_DAY_PRICES"))
                 .andExpect(jsonPath("$.checks[1].done").value(true))
                 .andExpect(jsonPath("$.summary.cash.flag.colour").value("RED"));
@@ -91,6 +95,23 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.balanceSheetId").doesNotExist())
                 .andExpect(jsonPath("$.summary.closedShiftCount").value(0))
                 .andExpect(jsonPath("$.summary.sales.flag.reasons[0].code").value("SALES_NO_CLOSED_SHIFTS"));
+    }
+
+    @Test
+    void safeCountedNextMorningForYesterdayLetsYesterdayClose() throws Exception {
+        assumeTrue(TestDates.now().toLocalTime().isBefore(LocalTime.of(23, 59)), "needs a minute before the cut-off");
+        perform(patch("/api/pumps/{pumpId}/settings", setup.pumpId()), setup.owner(), Map.of("safeCountCutoffTime", "23:59"))
+                .andExpect(status().isOk());
+        perform(post("/api/pumps/{pumpId}/safe/counts", setup.pumpId()), setup.manager(),
+                Map.of("countedAmount", BigDecimal.ZERO, "countForDate", YESTERDAY.toString()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.late").value(true));
+
+        perform(get("/api/pumps/{pumpId}/day-closes/preview", setup.pumpId()).param("date", TODAY.toString()), setup.manager())
+                .andExpect(jsonPath("$.checks[0].done").value(false));
+        closeDay(YESTERDAY, setup.manager())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED"));
     }
 
     @Test
@@ -289,6 +310,7 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
                 .toleranceAmount(BigDecimal.TEN)
                 .countedByUserId(setup.manager().getId())
                 .countedAt(day.atTime(20, 0).atZone(TestDates.BUSINESS_ZONE).toOffsetDateTime())
+                .countForDate(day)
                 .build());
     }
 

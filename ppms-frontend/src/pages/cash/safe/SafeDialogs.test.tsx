@@ -4,14 +4,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { cashApi } from '../../../api/cashApi'
 import type { BankDeposit, SafeSummary } from '../../../api/cashApi'
 import { renderWithProviders } from '../../../test/renderWithProviders'
+import { localDateInputValue } from '../../../utils/date'
 import { CountSafeDialog } from './CountSafeDialog'
 import { BankDepositDialog } from './BankDepositDialog'
 
 vi.mock('../../../api/cashApi', () => ({
-  cashApi: { recordSafeCount: vi.fn(), recordDeposit: vi.fn(), attachDepositSlip: vi.fn() },
+  cashApi: { recordSafeCount: vi.fn(), getSafeExpectedBalance: vi.fn(), recordDeposit: vi.fn(), attachDepositSlip: vi.fn() },
 }))
 
-const summary: SafeSummary = { balance: 1000, pendingDropCount: 0, pendingDropAmount: 0, countTolerance: 10, latestCount: null }
+const summary: SafeSummary = {
+  balance: 1000, pendingDropCount: 0, pendingDropAmount: 0, countTolerance: 10, latestCount: null,
+  countCutoffTime: '10:00:00', yesterdayCountOpen: true,
+}
 const deposit = { id: 12, amount: 400 } as BankDeposit
 
 function figure(dialog: HTMLElement, label: string) {
@@ -57,6 +61,77 @@ describe('Count safe dialog', () => {
 
     await user.click(within(dialog).getByRole('button', { name: 'Save count' }))
     expect(cashApi.recordSafeCount).toHaveBeenCalledWith(3, { countedAmount: 1005, denominations: undefined, notes: undefined })
+  })
+})
+
+describe('Count safe dialog for an earlier day', () => {
+  const yesterday = localDateInputValue(-1)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(cashApi.recordSafeCount).mockResolvedValue({} as Awaited<ReturnType<typeof cashApi.recordSafeCount>>)
+    vi.mocked(cashApi.getSafeExpectedBalance).mockImplementation((_pumpId, date) => Promise.resolve({ date, balance: 800 }))
+  })
+
+  async function typeTotal(dialog: HTMLElement, total: string) {
+    const user = userEvent.setup()
+    await user.click(within(dialog).getByRole('button', { name: 'Just type the total' }))
+    await user.type(within(dialog).getByLabelText('Cash in the safe'), total)
+    return user
+  }
+
+  it('lets a manager count for yesterday before the cut-off, against the balance at the end of yesterday', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<CountSafeDialog pumpId={3} summary={summary} onClose={vi.fn()} />)
+    const dialog = screen.getByRole('dialog', { name: 'Count safe' })
+    expect(within(dialog).queryByRole('button', { name: 'An earlier day' })).not.toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole('button', { name: /^Yesterday/ }))
+    expect(within(dialog).getByText(/recorded late, before the 10:00 cut-off/)).toBeInTheDocument()
+    expect(within(dialog).queryByLabelText('Reason for back-dating')).not.toBeInTheDocument()
+    await typeTotal(dialog, '790')
+    expect(await within(dialog).findByText('₹800.00')).toBeInTheDocument()
+    expect(figure(dialog, 'Difference')).toHaveTextContent('−₹10.00')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Save count' }))
+    expect(cashApi.getSafeExpectedBalance).toHaveBeenCalledWith(3, yesterday)
+    expect(cashApi.recordSafeCount).toHaveBeenCalledWith(3, {
+      countedAmount: 790, denominations: undefined, notes: undefined, countForDate: yesterday, backDateReason: undefined,
+    })
+  })
+
+  it('tells a manager that only an owner or admin can count for yesterday after the cut-off', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<CountSafeDialog pumpId={3} summary={{ ...summary, yesterdayCountOpen: false }} onClose={vi.fn()} />)
+    const dialog = screen.getByRole('dialog', { name: 'Count safe' })
+
+    await user.click(within(dialog).getByRole('button', { name: /^Yesterday/ }))
+    await typeTotal(dialog, '800')
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('past the 10:00 cut-off, so only an owner or admin')
+    expect(within(dialog).getByRole('button', { name: 'Save count' })).toBeDisabled()
+    expect(cashApi.getSafeExpectedBalance).not.toHaveBeenCalled()
+  })
+
+  it('needs a reason before an owner back-dates a count to the day it was opened for', async () => {
+    const earlier = localDateInputValue(-3)
+    renderWithProviders(
+      <CountSafeDialog pumpId={3} summary={summary} canBackDate initialDate={earlier} onClose={vi.fn()} />,
+    )
+    const dialog = screen.getByRole('dialog', { name: 'Count safe' })
+    expect(within(dialog).getByRole('button', { name: 'An earlier day' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(dialog).getByLabelText('Business day')).toHaveValue(earlier)
+    expect(within(dialog).getByText(/This count is back-dated/)).toBeInTheDocument()
+
+    const user = await typeTotal(dialog, '800')
+    const save = within(dialog).getByRole('button', { name: 'Save count' })
+    expect(save).toBeDisabled()
+    expect(within(dialog).getByText('Reason for back-dating', { selector: 'li' })).toBeInTheDocument()
+
+    await user.type(within(dialog).getByLabelText('Reason for back-dating'), 'Count sheet found')
+    await user.click(save)
+    expect(cashApi.recordSafeCount).toHaveBeenCalledWith(3, {
+      countedAmount: 800, denominations: undefined, notes: undefined, countForDate: earlier, backDateReason: 'Count sheet found',
+    })
   })
 })
 

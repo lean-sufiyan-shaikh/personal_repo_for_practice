@@ -93,6 +93,8 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, StatusTone> = {
   CASH_DROP_CONFIRMED:                'ok',
   CASH_DROP_REJECTED:                 'bad',
   SAFE_COUNTED:                       'neutral',
+  SAFE_COUNTED_LATE:                  'warn',
+  SAFE_COUNT_BACK_DATED:              'warn',
   BANK_DEPOSIT_RECORDED:              'ok',
   DEPOSIT_SLIP_ATTACHED:              'neutral',
   // Day close

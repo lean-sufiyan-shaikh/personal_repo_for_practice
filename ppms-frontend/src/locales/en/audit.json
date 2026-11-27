@@ -87,6 +87,8 @@
     "CASH_DROP_CONFIRMED": "Cash drop confirmed",
     "CASH_DROP_REJECTED": "Cash drop rejected",
     "SAFE_COUNTED": "Safe counted",
+    "SAFE_COUNTED_LATE": "Safe counted late",
+    "SAFE_COUNT_BACK_DATED": "Safe count back-dated",
     "BANK_DEPOSIT_RECORDED": "Bank deposit recorded",
     "DEPOSIT_SLIP_ATTACHED": "Deposit slip attached",
     "DAY_CLOSED": "Day closed",

@@ -18,12 +18,15 @@ const MAX_RECEIPT_TOLERANCE_PERCENT = 5
 const MAX_DENSITY_TOLERANCE = 50
 const MAX_SAFE_COUNT_TOLERANCE = 10_000
 const DEFAULT_SAFE_COUNT_TOLERANCE = 10
+const DEFAULT_SAFE_COUNT_CUTOFF = '10:00'
+const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d$/
 
 interface SettingsText {
   threshold: string
   receiptTolerance: string
   densityTolerance: string
   safeCountTolerance: string
+  safeCountCutoff: string
 }
 
 function textOf(pump: PumpSummary): SettingsText {
@@ -32,6 +35,7 @@ function textOf(pump: PumpSummary): SettingsText {
     receiptTolerance: String(pump.receiptTolerancePercent ?? DEFAULT_RECEIPT_TOLERANCE_PERCENT),
     densityTolerance: String(pump.densityTolerance ?? DEFAULT_DENSITY_TOLERANCE),
     safeCountTolerance: String(pump.safeCountTolerance ?? DEFAULT_SAFE_COUNT_TOLERANCE),
+    safeCountCutoff: pump.safeCountCutoffTime?.slice(0, 5) ?? DEFAULT_SAFE_COUNT_CUTOFF,
   }
 }
 
@@ -73,6 +77,7 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
   const receiptToleranceValid = inRange(values.receiptTolerance, MAX_RECEIPT_TOLERANCE_PERCENT)
   const densityToleranceValid = inRange(values.densityTolerance, MAX_DENSITY_TOLERANCE)
   const safeToleranceValid = inRangeFromZero(values.safeCountTolerance, MAX_SAFE_COUNT_TOLERANCE)
+  const safeCutoffValid = TIME_OF_DAY.test(values.safeCountCutoff)
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
@@ -89,6 +94,7 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
     if (values.receiptTolerance !== saved.receiptTolerance) req.receiptTolerancePercent = Number(values.receiptTolerance)
     if (values.densityTolerance !== saved.densityTolerance) req.densityTolerance = Number(values.densityTolerance)
     if (values.safeCountTolerance !== saved.safeCountTolerance) req.safeCountTolerance = Number(values.safeCountTolerance)
+    if (values.safeCountCutoff !== saved.safeCountCutoff) req.safeCountCutoffTime = values.safeCountCutoff
     mutation.mutate(req)
   }
 
@@ -100,7 +106,7 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
     : null
   const hasChanges = values.threshold.trim() !== saved.threshold.trim()
     || values.receiptTolerance !== saved.receiptTolerance || values.densityTolerance !== saved.densityTolerance
-    || values.safeCountTolerance !== saved.safeCountTolerance
+    || values.safeCountTolerance !== saved.safeCountTolerance || values.safeCountCutoff !== saved.safeCountCutoff
 
   return (
     <form onSubmit={handleSave} className="space-y-4">
@@ -148,10 +154,17 @@ export function PumpSettingsContent({ pump, onUpdated }: { pump: PumpSummary; on
             <NumericInput min="0" max={MAX_SAFE_COUNT_TOLERANCE} step="1" unit="₹" value={values.safeCountTolerance}
               onChange={(e) => change('safeCountTolerance', e.target.value)} />
           </FormField>
+          <FormField
+            label={t('settings.safeCutoffLabel')}
+            help={safeCutoffValid ? t('settings.safeCutoffEffect', { time: values.safeCountCutoff }) : undefined}
+            error={safeCutoffValid ? undefined : t('settings.safeCutoffInvalid')}
+          >
+            <input type="time" step="60" value={values.safeCountCutoff} onChange={(e) => change('safeCountCutoff', e.target.value)} />
+          </FormField>
         </FormGrid>
       </SetupFormGroup>
 
-      <SetupSaveBar hasChanges={hasChanges && receiptToleranceValid && densityToleranceValid && safeToleranceValid} isSaving={mutation.isPending}
+      <SetupSaveBar hasChanges={hasChanges && receiptToleranceValid && densityToleranceValid && safeToleranceValid && safeCutoffValid} isSaving={mutation.isPending}
         saveLabel={t('settings.save')} error={error} />
     </form>
   )

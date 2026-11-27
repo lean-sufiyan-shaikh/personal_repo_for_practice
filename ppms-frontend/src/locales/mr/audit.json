@@ -87,6 +87,8 @@
     "CASH_DROP_CONFIRMED": "कॅश ड्रॉपची खात्री",
     "CASH_DROP_REJECTED": "कॅश ड्रॉप नाकारला",
     "SAFE_COUNTED": "तिजोरी मोजली",
+    "SAFE_COUNTED_LATE": "तिजोरी उशिरा मोजली",
+    "SAFE_COUNT_BACK_DATED": "तिजोरी मोजणी मागील तारखेला नोंदवली",
     "BANK_DEPOSIT_RECORDED": "बँक भरणा नोंदवला",
     "DEPOSIT_SLIP_ATTACHED": "भरणा पावती जोडली",
     "DAY_CLOSED": "दिवस बंद केला",

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 
 @Entity
@@ -18,6 +19,7 @@ public class PumpLocation {
     public static final BigDecimal DEFAULT_RECEIPT_TOLERANCE_PERCENT = new BigDecimal("0.20");
     public static final BigDecimal DEFAULT_DENSITY_TOLERANCE = new BigDecimal("3.0");
     public static final BigDecimal DEFAULT_SAFE_COUNT_TOLERANCE = new BigDecimal("10.00");
+    public static final LocalTime DEFAULT_SAFE_COUNT_CUTOFF_TIME = LocalTime.of(10, 0);
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -91,6 +93,11 @@ public class PumpLocation {
     @Column(name = "safe_count_tolerance", nullable = false)
     @Builder.Default
     private BigDecimal safeCountTolerance = DEFAULT_SAFE_COUNT_TOLERANCE;
+
+    /** Until this time of the morning a manager may still record a safe count for yesterday. */
+    @Column(name = "safe_count_cutoff_time", nullable = false)
+    @Builder.Default
+    private LocalTime safeCountCutoffTime = DEFAULT_SAFE_COUNT_CUTOFF_TIME;
 
     @Column(name = "enabled", nullable = false)
     @Builder.Default

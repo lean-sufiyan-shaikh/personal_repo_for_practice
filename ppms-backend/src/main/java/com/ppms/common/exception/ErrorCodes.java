@@ -345,6 +345,9 @@ public final class ErrorCodes {
     public static final String DEPOSIT_SLIP_TOO_LARGE = "DEPOSIT_SLIP_TOO_LARGE";
     public static final String DEPOSIT_SLIP_EMPTY = "DEPOSIT_SLIP_EMPTY";
     public static final String SAFE_COUNT_TOLERANCE_OUT_OF_RANGE = "SAFE_COUNT_TOLERANCE_OUT_OF_RANGE";
+    public static final String SAFE_COUNT_DATE_IN_FUTURE = "SAFE_COUNT_DATE_IN_FUTURE";
+    public static final String SAFE_COUNT_BACK_DATE_NOT_ALLOWED = "SAFE_COUNT_BACK_DATE_NOT_ALLOWED";
+    public static final String SAFE_COUNT_BACK_DATE_REASON_REQUIRED = "SAFE_COUNT_BACK_DATE_REASON_REQUIRED";
     public static final String DAY_CLOSED = "DAY_CLOSED";
     public static final String DAY_CLOSE_SAFE_COUNT_MISSING = "DAY_CLOSE_SAFE_COUNT_MISSING";
     public static final String DAY_CLOSE_PRICES_MISSING = "DAY_CLOSE_PRICES_MISSING";

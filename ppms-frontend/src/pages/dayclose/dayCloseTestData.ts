@@ -1,7 +1,7 @@
 import type { ChecklistItem, DayCloseDetail, DayCloseListItem, DayClosePreview, DaySummary } from '../../api/dayCloseApi'
 
 export const safeCountDone: ChecklistItem = {
-  code: 'SAFE_COUNT', blocking: true, done: true, params: {}, text: 'Safe counted', fixPath: '/dashboard/cash?tab=safe',
+  code: 'SAFE_COUNT', blocking: true, done: true, params: {}, text: 'Safe counted', fixPath: '/dashboard/cash?tab=safe&action=count-safe&countFor=2026-11-26',
 }
 export const safeCountMissing: ChecklistItem = { ...safeCountDone, done: false, text: 'No safe count' }
 export const pricesDone: ChecklistItem = {

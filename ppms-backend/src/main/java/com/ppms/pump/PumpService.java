@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -169,13 +170,17 @@ public class PumpService {
         if (request.safeCountTolerance() != null) {
             pump.setSafeCountTolerance(validSafeCountTolerance(request.safeCountTolerance()));
         }
+        if (request.safeCountCutoffTime() != null) {
+            pump.setSafeCountCutoffTime(request.safeCountCutoffTime().truncatedTo(ChronoUnit.MINUTES));
+        }
 
         pumpLocationRepository.save(pump);
         log.info("Pump {} settings updated by user={}: escalationThreshold={}, expenseApprovalThreshold={}, "
-                        + "receiptTolerancePercent={}, densityTolerance={}, safeCountTolerance={}",
+                        + "receiptTolerancePercent={}, densityTolerance={}, safeCountTolerance={}, safeCountCutoffTime={}",
                 pumpId, currentUser.getId(),
                 pump.getDiscrepancyEscalationThreshold(), pump.getExpenseApprovalThreshold(),
-                pump.getReceiptTolerancePercent(), pump.getDensityTolerance(), pump.getSafeCountTolerance());
+                pump.getReceiptTolerancePercent(), pump.getDensityTolerance(), pump.getSafeCountTolerance(),
+                pump.getSafeCountCutoffTime());
 
         return toPumpResponse(pump);
     }
@@ -265,6 +270,7 @@ public class PumpService {
                 .receiptTolerancePercent(pump.getReceiptTolerancePercent())
                 .densityTolerance(pump.getDensityTolerance())
                 .safeCountTolerance(pump.getSafeCountTolerance())
+                .safeCountCutoffTime(pump.getSafeCountCutoffTime())
                 .dus(activeDUs)
                 .build();
     }

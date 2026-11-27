@@ -44,6 +44,18 @@ public interface CashEventRepository extends JpaRepository<CashEvent, Long> {
             """)
     BigDecimal computeBalance(@Param("pumpId") Long pumpId);
 
+    /** The safe's balance once every movement dated up to and including that business day is in. */
+    @Query("""
+            SELECT COALESCE(SUM(
+                CASE WHEN e.eventType IN ('CASH_OUT', 'BANK_DEPOSIT') THEN -e.amount ELSE e.amount END
+            ), 0)
+            FROM CashEvent e
+            WHERE e.pumpId = :pumpId
+              AND e.eventType IN ('OPENING_BALANCE', 'CASH_IN', 'CASH_OUT', 'CASH_DROP', 'BANK_DEPOSIT')
+              AND e.eventDate <= :businessDate
+            """)
+    BigDecimal computeBalanceAtEndOf(@Param("pumpId") Long pumpId, @Param("businessDate") LocalDate businessDate);
+
     /**
      * Ids of the safe's money movements, newest first, each with the balance right after it. The running balance is
      * taken over every movement of the pump before the date filter, so the newest row matches computeBalance.

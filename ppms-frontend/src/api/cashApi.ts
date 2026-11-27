@@ -77,6 +77,12 @@ export interface SafeCount {
   notes: string | null
   countedByName: string
   countedAt: string
+  /** The business day (YYYY-MM-DD) the count is for. */
+  countForDate: string
+  /** Recorded after countForDate had ended: the next morning, or back-dated by an owner or admin. */
+  late: boolean
+  /** Only on a count back-dated after the morning cut-off. */
+  backDateReason: string | null
 }
 
 export interface SafeSummary {
@@ -85,6 +91,14 @@ export interface SafeSummary {
   pendingDropAmount: number
   countTolerance: number
   latestCount: SafeCount | null
+  /** "HH:MM:SS": until then a manager may still count the safe for yesterday. */
+  countCutoffTime: string
+  yesterdayCountOpen: boolean
+}
+
+export interface SafeDayBalance {
+  date: string
+  balance: number
 }
 
 export interface SafeLedgerEntry {
@@ -102,6 +116,9 @@ export interface RecordSafeCountRequest {
   countedAmount: number
   denominations?: CashDenominations
   notes?: string
+  /** Left out for today. */
+  countForDate?: string
+  backDateReason?: string
 }
 
 export interface BankDeposit {
@@ -177,6 +194,9 @@ export const cashApi = {
 
   getSafeCounts: (pumpId: number, page = 0, size = 10): Promise<PagedResponse<SafeCount>> =>
     client.get(`/pumps/${pumpId}/safe/counts`, { params: { page, size } }).then(r => r.data),
+
+  getSafeExpectedBalance: (pumpId: number, date: string): Promise<SafeDayBalance> =>
+    client.get(`/pumps/${pumpId}/safe/expected-balance`, { params: { date } }).then(r => r.data),
 
   recordSafeCount: (pumpId: number, request: RecordSafeCountRequest): Promise<SafeCount> =>
     client.post(`/pumps/${pumpId}/safe/counts`, request).then(r => r.data),

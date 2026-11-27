@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { cashApi } from '../../../api/cashApi'
 import type { RecordSafeCountRequest, SafeSummary } from '../../../api/cashApi'
@@ -15,16 +15,27 @@ import type { DenominationCounts } from '../../../components/cash/denominations'
 import { parseApiError } from '../../../utils/apiError'
 import { roundToPaise } from '../../../utils/money'
 import { formatCurrency } from '../../../utils/format'
+import { addDays, formatIstDate, istDateString } from '../../../utils/date'
 import { useToastStore } from '../../../store/toastStore'
+import { SafeCountDayField } from './SafeCountDayField'
+import { countDayOf, countTimingOf, shortTime } from './safeCountDate'
+import type { CountDay } from './safeCountDate'
 
 interface Props {
   pumpId: number
   summary: SafeSummary
+  /** Owners and admins may count for any open earlier day, with a reason. */
+  canBackDate?: boolean
+  /** The business day to start on, e.g. the day the Day Close checklist is closing. */
+  initialDate?: string | null
   onClose: () => void
 }
 
-/** Counts the safe, by note or as one total, against the ledger balance; a big difference notifies the owner. */
-export function CountSafeDialog({ pumpId, summary, onClose }: Props) {
+/**
+ * Counts the safe, by note or as one total, against the ledger balance; a big difference notifies the owner. A count for
+ * an earlier day is compared with the balance at the end of that day.
+ */
+export function CountSafeDialog({ pumpId, summary, canBackDate = false, initialDate, onClose }: Props) {
   const { t } = useTranslation(['cash', 'common'])
   const queryClient = useQueryClient()
   const { addToast } = useToastStore()
@@ -33,12 +44,30 @@ export function CountSafeDialog({ pumpId, summary, onClose }: Props) {
   const [counts, setCounts] = useState<DenominationCounts | null>(EMPTY_COUNTS)
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [today] = useState(istDateString)
+  const [day, setDay] = useState<CountDay>(() => countDayOf(initialDate, today))
+  const [earlierDate, setEarlierDate] = useState(() => (countDayOf(initialDate, today) === 'earlier' && initialDate) || '')
+  const [reason, setReason] = useState('')
+
+  const date = day === 'today' ? today : day === 'yesterday' ? addDays(today, -1) : earlierDate
+  const timing = countTimingOf(date || today, today, summary.yesterdayCountOpen)
+  const isPastDay = date !== '' && timing !== 'ON_THE_DAY'
+  const allowed = timing !== 'BACK_DATED' || canBackDate
+  const needsReason = timing === 'BACK_DATED' && reason.trim() === ''
+
+  const dayBalance = useQuery({
+    queryKey: ['safeExpected', pumpId, date],
+    queryFn: () => cashApi.getSafeExpectedBalance(pumpId, date),
+    enabled: isPastDay && allowed,
+  })
+  const expected = isPastDay ? dayBalance.data?.balance ?? null : summary.balance
 
   const mutation = useMutation({
     mutationFn: (request: RecordSafeCountRequest) => cashApi.recordSafeCount(pumpId, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['safe', pumpId] })
       queryClient.invalidateQueries({ queryKey: ['safeCounts', pumpId] })
+      queryClient.invalidateQueries({ queryKey: ['dayClosePreview', pumpId] })
       addToast(t('safe.count.saved'), 'success')
       onClose()
     },
@@ -46,10 +75,15 @@ export function CountSafeDialog({ pumpId, summary, onClose }: Props) {
   })
 
   const counted = amount.trim() === '' ? null : Number(amount)
-  const isValid = counted !== null && Number.isFinite(counted) && counted >= 0
-  const difference = isValid ? roundToPaise(counted - summary.balance) : null
+  const isAmountValid = counted !== null && Number.isFinite(counted) && counted >= 0
+  const difference = isAmountValid && expected !== null ? roundToPaise(counted - expected) : null
   const beyondTolerance = difference !== null && Math.abs(difference) > summary.countTolerance
-  const stillNeeded = isValid ? [] : [t('safe.count.needAmount')]
+  const stillNeeded = [
+    ...(isAmountValid ? [] : [t('safe.count.needAmount')]),
+    ...(date === '' ? [t('safe.count.needDate')] : []),
+    ...(allowed && date !== '' && needsReason ? [t('safe.count.needReason')] : []),
+  ]
+  const isValid = isAmountValid && allowed && stillNeeded.length === 0
 
   const submit = () => {
     if (!isValid) return
@@ -58,13 +92,15 @@ export function CountSafeDialog({ pumpId, summary, onClose }: Props) {
       countedAmount: counted,
       denominations: counts ? toDenominations(counts) : undefined,
       notes: notes.trim() || undefined,
+      countForDate: timing === 'ON_THE_DAY' ? undefined : date,
+      backDateReason: timing === 'BACK_DATED' ? reason.trim() : undefined,
     })
   }
 
   return (
     <Modal
       title={t('safe.count.title')}
-      subtitle={t('safe.count.subtitle')}
+      subtitle={isPastDay ? t('safe.count.subtitleFor', { date: formatIstDate(date) }) : t('safe.count.subtitle')}
       tone="info"
       size="md-wide"
       fullScreenOnPhone
@@ -85,14 +121,21 @@ export function CountSafeDialog({ pumpId, summary, onClose }: Props) {
         </>
       }
     >
+      <SafeCountDayField today={today} day={day} onDayChange={setDay} earlierDate={earlierDate}
+        onEarlierDateChange={setEarlierDate} date={date} timing={timing} canBackDate={canBackDate}
+        cutoffTime={shortTime(summary.countCutoffTime)} reason={reason} onReasonChange={setReason} />
+
       <CashCountField label={t('safe.count.amountLabel')} amount={amount} onAmountChange={setAmount}
         counts={counts} onCountsChange={setCounts} />
 
       <LiveFigures
         label={t('safe.count.figuresLabel')}
         figures={[
-          { label: t('safe.count.expected'), value: <MoneyText value={summary.balance} /> },
-          { label: t('safe.count.counted'), value: <MoneyText value={isValid ? counted : null} /> },
+          {
+            label: isPastDay ? t('safe.count.expectedEndOfDay', { date: formatIstDate(date) }) : t('safe.count.expected'),
+            value: <MoneyText value={expected} />,
+          },
+          { label: t('safe.count.counted'), value: <MoneyText value={isAmountValid ? counted : null} /> },
           {
             label: t('safe.count.difference'),
             value: <MoneyText value={difference} showSign tone={difference === null || difference === 0 ? undefined : difference < 0 ? 'bad' : 'warn'} />,
@@ -100,6 +143,7 @@ export function CountSafeDialog({ pumpId, summary, onClose }: Props) {
           },
         ]}
       />
+      {dayBalance.isError && <p role="alert" className="ui-alert ui-alert-danger text-sm">{t('safe.count.expectedLoadFailed')}</p>}
       {beyondTolerance && (
         <p className="ui-alert ui-alert-warning text-sm">{t('safe.count.notifyOwner', { amount: formatCurrency(summary.countTolerance) })}</p>
       )}

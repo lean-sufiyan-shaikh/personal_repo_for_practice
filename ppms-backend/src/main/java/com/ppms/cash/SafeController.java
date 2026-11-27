@@ -57,7 +57,18 @@ public class SafeController {
         return safeService.counts(pumpId, page, size);
     }
 
-    /** POST /api/pumps/{pumpId}/safe/counts — records a count against the ledger balance right now. */
+    /** GET /api/pumps/{pumpId}/safe/expected-balance?date= — the balance at the end of that day, or right now for today. */
+    @GetMapping("/expected-balance")
+    public SafeDayBalanceResponse expectedBalance(
+            @PathVariable Long pumpId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return safeService.expectedBalance(pumpId, date);
+    }
+
+    /**
+     * POST /api/pumps/{pumpId}/safe/counts — records a count for today, or for countForDate: yesterday until the
+     * pump's morning cut-off, any earlier open day by an owner or admin with a reason.
+     */
     @PostMapping("/counts")
     @ResponseStatus(HttpStatus.CREATED)
     public SafeCountResponse recordCount(

@@ -46,7 +46,8 @@ describe('Day close — closing a day', () => {
     const mustDo = await screen.findByRole('list', { name: 'Must be done' })
     expect(within(mustDo).getByText('Count the safe — no safe count was recorded on this day')).toBeInTheDocument()
     expect(within(mustDo).getByText('Set or confirm the next day\'s fuel prices (Petrol, Diesel)')).toBeInTheDocument()
-    expect(within(mustDo).getByRole('link', { name: 'Count safe' })).toHaveAttribute('href', '/dashboard/cash?tab=safe')
+    expect(within(mustDo).getByRole('link', { name: 'Count safe' }))
+      .toHaveAttribute('href', '/dashboard/cash?tab=safe&action=count-safe&countFor=2026-11-26')
     expect(within(mustDo).getByRole('link', { name: 'Set prices' })).toHaveAttribute('href', '/dashboard/setup?section=prices')
 
     const warnings = screen.getByRole('list', { name: 'Warnings' })

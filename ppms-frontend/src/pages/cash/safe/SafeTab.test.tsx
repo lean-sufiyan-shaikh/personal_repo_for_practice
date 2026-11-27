@@ -7,13 +7,14 @@ import { useAuthStore } from '../../../store/authStore'
 import { usePumpStore } from '../../../store/usePumpStore'
 import { renderWithProviders } from '../../../test/renderWithProviders'
 import { resetScreenWidthAfterEach, setScreenWidth } from '../../../test/screenWidth'
+import { localDateInputValue } from '../../../utils/date'
 import CashDrawerPage from '../CashDrawerPage'
 
 vi.mock('../../../api/cashApi', () => ({
   cashApi: {
     getCashEvents: vi.fn(), recordCashEvent: vi.fn(), getSafe: vi.fn(), getPendingDrops: vi.fn(), confirmDrop: vi.fn(),
     rejectDrop: vi.fn(), getSafeLedger: vi.fn(), getDeposits: vi.fn(), recordSafeCount: vi.fn(), recordDeposit: vi.fn(),
-    attachDepositSlip: vi.fn(), getDepositSlip: vi.fn(),
+    attachDepositSlip: vi.fn(), getDepositSlip: vi.fn(), getSafeExpectedBalance: vi.fn(),
   },
 }))
 
@@ -27,7 +28,10 @@ const summary: SafeSummary = {
   latestCount: {
     id: 4, countedAmount: 4980, expectedAmount: 5000, varianceAmount: -20, varianceType: 'SHORT', toleranceAmount: 10,
     beyondTolerance: true, denominations: null, notes: null, countedByName: 'Meena', countedAt: '2026-11-26T10:00:00Z',
+    countForDate: '2026-11-26', late: false, backDateReason: null,
   },
+  countCutoffTime: '10:00:00',
+  yesterdayCountOpen: true,
 }
 
 const drop: CashDrop = {
@@ -35,8 +39,8 @@ const drop: CashDrop = {
   recordedByName: 'Ravi', recordedAt: '2026-11-27T08:30:00Z', reviewedByName: null, reviewedAt: null, rejectionReason: null,
 }
 
-function renderSafe(action?: string) {
-  renderWithProviders(<CashDrawerPage />, { route: `/dashboard/cash?tab=safe${action ? `&action=${action}` : ''}` })
+function renderSafe(action?: string, extraParams = '') {
+  renderWithProviders(<CashDrawerPage />, { route: `/dashboard/cash?tab=safe${action ? `&action=${action}` : ''}${extraParams}` })
 }
 
 describe('Safe tab', () => {
@@ -72,6 +76,32 @@ describe('Safe tab', () => {
     expect(screen.getByText('Counted ₹4,980.00 against ₹5,000.00 expected')).toBeInTheDocument()
     expect(screen.getByText(/Beyond the ₹10.00 tolerance/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Safe' })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('marks a late count and a back-dated count with the day it was for', async () => {
+    vi.mocked(cashApi.getSafe).mockResolvedValue({
+      ...summary, latestCount: { ...summary.latestCount!, countForDate: '2026-11-25', late: true, backDateReason: 'Manager on leave' },
+    })
+    renderSafe()
+    expect(await screen.findByText('Back-dated')).toBeInTheDocument()
+    expect(screen.getByText('For 25 Nov 2026')).toBeInTheDocument()
+    expect(screen.getByText('Reason: Manager on leave')).toBeInTheDocument()
+  })
+
+  it('marks a count made the next morning as late', async () => {
+    vi.mocked(cashApi.getSafe).mockResolvedValue({ ...summary, latestCount: { ...summary.latestCount!, countForDate: '2026-11-25', late: true } })
+    renderSafe()
+    expect(await screen.findByText('Late count')).toBeInTheDocument()
+    expect(screen.queryByText('Back-dated')).not.toBeInTheDocument()
+  })
+
+  it('opens the count for the day the Day Close checklist links to', async () => {
+    vi.mocked(cashApi.getSafeExpectedBalance).mockResolvedValue({ date: localDateInputValue(-1), balance: 4200 })
+    renderSafe('count-safe', `&countFor=${localDateInputValue(-1)}`)
+    const dialog = await screen.findByRole('dialog', { name: 'Count safe' })
+    expect(within(dialog).getByRole('button', { name: /^Yesterday/ })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(dialog).getByText(/recorded late, before the 10:00 cut-off/)).toBeInTheDocument()
+    expect(await within(dialog).findByText('₹4,200.00')).toBeInTheDocument()
   })
 
   it('confirms a waiting drop', async () => {

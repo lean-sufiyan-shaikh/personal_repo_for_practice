@@ -3,6 +3,7 @@ package com.ppms.pump;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.time.LocalTime;
 
 /** A missing value is left unchanged; an empty GST text value clears it. */
 public record UpdatePumpSettingsRequest(
@@ -14,5 +15,6 @@ public record UpdatePumpSettingsRequest(
         String invoicePrefix,
         BigDecimal receiptTolerancePercent,
         BigDecimal densityTolerance,
-        BigDecimal safeCountTolerance
+        BigDecimal safeCountTolerance,
+        LocalTime safeCountCutoffTime
 ) {}
