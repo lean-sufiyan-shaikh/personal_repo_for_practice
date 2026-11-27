@@ -41,6 +41,10 @@ import type { CloseShiftDraft } from './close/closeShiftDraft'
 import { CloseShiftReview, CloseShiftReviewActions } from './close/CloseShiftReview'
 import { CloseShiftSummary, CloseShiftSummaryActions } from './close/CloseShiftSummary'
 import { HandoverReportPanel } from './modals/HandoverReportPanel'
+import { BlockedCreditPanel } from './close/BlockedCreditPanel'
+import { blockedCreditOf } from './close/blockedCredit'
+import type { BlockedCreditClients } from './close/blockedCredit'
+import { useAuthStore } from '../../store/authStore'
 import { CashDropsAtClose } from './close/CashDropsAtClose'
 import { useShiftCashDrops } from './drops/useShiftCashDrops'
 import { EMPTY_COUNTS, toDenominations } from '../../components/cash/denominations'
@@ -84,6 +88,8 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   const [restoredDraft, setRestoredDraft] = useState(() => readDraft<CloseShiftDraft>(draftName))
   const [step, setStep] = useState<Step>('form')
   const [serverError, setServerError] = useState<string | null>(null)
+  const [blockedCredit, setBlockedCredit] = useState<BlockedCreditClients | null>(null)
+  const role = useAuthStore((state) => state.user?.role)
   const [noChangeNozzles, setNoChangeNozzles] = useState<Set<number>>(() => new Set(restoredDraft?.values.noChangeNozzleIds))
 
   /** Per-nozzle end readings: nozzleId → raw string input */
@@ -258,7 +264,9 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   }
 
   const showSubmitError = (fallback: string) => (err: unknown) => {
-    setServerError(parseApiError(err, fallback))
+    const blocked = blockedCreditOf(err)
+    setBlockedCredit(blocked)
+    setServerError(blocked ? null : parseApiError(err, fallback))
     reloadShift()
     queryClient.invalidateQueries({ queryKey: ['cashDrops', shift.pumpId, shift.id] })
   }
@@ -316,9 +324,13 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
     return attempt.key
   }
 
-  const confirmClose = () => {
+  const confirmClose = (blockedCreditReason?: string) => {
     if (!reviewedRequest) return
     setServerError(null)
+    setBlockedCredit(null)
+    const closing: CloseShiftRequest = blockedCreditReason
+      ? { ...reviewedRequest, allowBlockedCredit: true, blockedCreditReason }
+      : reviewedRequest
     if (isHandover && handoverDetails.incomingOperatorId !== null) {
       const request: CreateHandoverRequest = {
         outgoingShiftId: shift.id,
@@ -326,16 +338,17 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
         physicalCashVerified: handoverDetails.physicalCashVerified,
         meterReadingsVerified: handoverDetails.meterReadingsVerified,
         notes: handoverDetails.notes.trim() || undefined,
-        closing: reviewedRequest,
+        closing,
       }
       handoverMutation.mutate({ request, idempotencyKey: keyFor(request) })
       return
     }
-    closeMutation.mutate({ request: reviewedRequest, idempotencyKey: keyFor(reviewedRequest) })
+    closeMutation.mutate({ request: closing, idempotencyKey: keyFor(closing) })
   }
 
   const backToForm = () => {
     setServerError(null)
+    setBlockedCredit(null)
     setStep('form')
   }
 
@@ -411,7 +424,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
       <CloseShiftFooter canReview={canClose} isHandover={isHandover} stillNeededId={stillNeededId} onCancel={requestClose} />
     </>
   ) : step === 'review' && reviewedFigures ? (
-    <CloseShiftReviewActions isHandover={isHandover} isSubmitting={isSubmitting} onConfirm={confirmClose} onEdit={backToForm} />
+    <CloseShiftReviewActions isHandover={isHandover} isSubmitting={isSubmitting} onConfirm={() => confirmClose()} onEdit={backToForm} />
   ) : step === 'done' && reviewedFigures && closedResult ? (
     <CloseShiftSummaryActions
       isPreparingPrint={printMutation.isPending}
@@ -462,6 +475,10 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
             escalationThreshold={escalationThreshold}
             serverError={serverError}
           />
+        )}
+        {step === 'review' && blockedCredit && (
+          <BlockedCreditPanel clients={blockedCredit} canAllow={role === 'OWNER' || role === 'ADMIN'}
+            isSubmitting={isSubmitting} onAllow={confirmClose} />
         )}
 
         {step === 'done' && reviewedFigures && closedResult && (

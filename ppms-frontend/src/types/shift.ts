@@ -196,6 +196,9 @@ export interface CloseShiftRequest {
   /** Pre-recorded entries corrected in the close form; the backend voids them in the same transaction as the close. */
   replacedCreditEntryIds: number[]
   discrepancyReason?: string
+  /** Owner/Admin only: lets credit for over-limit, on-hold or overdue clients through, with the reason recorded. */
+  allowBlockedCredit?: boolean
+  blockedCreditReason?: string
 }
 
 export interface CreateHandoverRequest {

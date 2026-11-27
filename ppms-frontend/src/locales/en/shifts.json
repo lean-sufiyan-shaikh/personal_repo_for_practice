@@ -151,6 +151,17 @@
       "droppedToSafe": "Dropped to safe",
       "expectedInBag": "Expected in bag",
       "bagFigures": "Cash in the safe and in the bag"
+    },
+    "blockedCredit": {
+      "title": "Credit for these clients is blocked",
+      "overLimitClients": "Over limit: {{names}}",
+      "onHoldClients": "On hold: {{names}}",
+      "overdueClients": "Overdue: {{names}}",
+      "reason": "Reason for allowing this credit",
+      "reasonRequired": "Give a reason to allow the credit.",
+      "allow": "Allow and close",
+      "allowing": "Closing the shift",
+      "askOwner": "Ask the owner to approve, or go back and remove the entry."
     }
   },
   "handover": {

@@ -61,6 +61,11 @@ public class CloseShiftRequest {
 
     private String discrepancyReason;
 
+    /** Owner/Admin only: lets credit for over-limit, on-hold or overdue clients through, recorded with the reason. */
+    private Boolean allowBlockedCredit;
+
+    private String blockedCreditReason;
+
     // ── Inner records ────────────────────────────────────────────────────────
 
     public record OutletEndReadingRequest(

@@ -151,6 +151,17 @@
       "droppedToSafe": "तिजोरीत टाकले",
       "expectedInBag": "बॅगेत असायला हवे",
       "bagFigures": "तिजोरी आणि बॅगेतील रोख"
+    },
+    "blockedCredit": {
+      "title": "या ग्राहकांचे उधार थांबवले आहे",
+      "overLimitClients": "मर्यादेपेक्षा जास्त: {{names}}",
+      "onHoldClients": "थांबवलेले: {{names}}",
+      "overdueClients": "थकीत: {{names}}",
+      "reason": "हे उधार देण्याचे कारण",
+      "reasonRequired": "उधार देण्याचे कारण लिहा.",
+      "allow": "परवानगी द्या आणि बंद करा",
+      "allowing": "शिफ्ट बंद होत आहे",
+      "askOwner": "मालकाची मंजुरी घ्या, किंवा मागे जाऊन नोंद काढा."
     }
   },
   "handover": {

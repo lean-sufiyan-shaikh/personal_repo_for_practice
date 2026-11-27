@@ -12,6 +12,7 @@ import com.ppms.common.exception.EntityType;
 import com.ppms.common.exception.ErrorCodes;
 import com.ppms.common.exception.ResourceNotFoundException;
 import com.ppms.common.time.BusinessClock;
+import com.ppms.credit.CloseCreditOverride;
 import com.ppms.credit.CreditAccountPolicyService;
 import com.ppms.credit.CreditClient;
 import com.ppms.dayclose.ClosedDayGuard;
@@ -375,8 +376,14 @@ public class ShiftLifecycleSupportService {
         creditEntryRepository.saveAll(replaced);
     }
 
+    /**
+     * Saves the credit entries captured at close after checking each client's limit, hold and billing cycle. With an
+     * override, blocked clients are let through; the credit policy accepts it only from an Owner/Admin with a reason
+     * and records each one.
+     */
     public void persistCloseCreditEntries(Long shiftId, Long pumpId, LocalDate saleDate,
-                                          List<CloseShiftRequest.CreditEntryRequest> creditEntries) {
+                                          List<CloseShiftRequest.CreditEntryRequest> creditEntries,
+                                          CloseCreditOverride override) {
         Map<CreditClient, BigDecimal> amountByClient = new LinkedHashMap<>();
         List<CreditClient> clients = new ArrayList<>();
         for (CloseShiftRequest.CreditEntryRequest entry : creditEntries) {
@@ -385,7 +392,11 @@ public class ShiftLifecycleSupportService {
             amountByClient.merge(matchedClient, entry.amount().setScale(2, RoundingMode.HALF_UP), BigDecimal::add);
             clients.add(matchedClient);
         }
-        creditAccountPolicyService.validateCreditLimits(amountByClient);
+        if (override != null) {
+            creditAccountPolicyService.validateCreditLimits(amountByClient, override);
+        } else {
+            creditAccountPolicyService.validateCreditLimits(amountByClient);
+        }
 
         Map<String, BigDecimal> priceByFuelType = creditPricesOf(shiftId);
         PendingVehicleUsage pendingUsage = new PendingVehicleUsage();
@@ -428,6 +439,13 @@ public class ShiftLifecycleSupportService {
                 .driverPhone(vehicle.driverPhone())
                 .vehicleFlag(vehicle.flag())
                 .build();
+    }
+
+    /** The Owner/Admin override asked for with the close, or null when credit for blocked clients is not allowed. */
+    public static CloseCreditOverride closeCreditOverrideOf(CloseShiftRequest request, Long shiftId, User currentUser) {
+        return Boolean.TRUE.equals(request.getAllowBlockedCredit())
+                ? new CloseCreditOverride(shiftId, request.getBlockedCreditReason(), currentUser)
+                : null;
     }
 
     /** The price each fuel of the shift sells at now, by fuel type name. */

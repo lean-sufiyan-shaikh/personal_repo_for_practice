@@ -281,7 +281,8 @@ public class ShiftService {
 
         lifecycleSupportService.createCashCollectionEvent(shift, currentUser, nozzles);
         lifecycleSupportService.voidReplacedCreditEntries(shift.getPumpId(), request.getReplacedCreditEntryIds(), currentUser);
-        lifecycleSupportService.persistCloseCreditEntries(shift.getId(), shift.getPumpId(), shift.getShiftDate(), creditEntries);
+        lifecycleSupportService.persistCloseCreditEntries(shift.getId(), shift.getPumpId(), shift.getShiftDate(), creditEntries,
+                ShiftLifecycleSupportService.closeCreditOverrideOf(request, shift.getId(), currentUser));
 
         User operator = userRepository.findById(shift.getOperatorId())
                 .orElseThrow(() -> new ResourceNotFoundException(EntityType.OPERATOR, "Operator not found"));

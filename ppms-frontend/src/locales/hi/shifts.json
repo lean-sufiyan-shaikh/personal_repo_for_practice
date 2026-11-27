@@ -151,6 +151,17 @@
       "droppedToSafe": "तिजोरी में डाला",
       "expectedInBag": "बैग में होना चाहिए",
       "bagFigures": "तिजोरी और बैग में नकद"
+    },
+    "blockedCredit": {
+      "title": "इन ग्राहकों का उधार रोका गया है",
+      "overLimitClients": "सीमा से ऊपर: {{names}}",
+      "onHoldClients": "रोका गया: {{names}}",
+      "overdueClients": "बकाया: {{names}}",
+      "reason": "यह उधार देने का कारण",
+      "reasonRequired": "उधार देने का कारण लिखें।",
+      "allow": "अनुमति दें और बंद करें",
+      "allowing": "शिफ्ट बंद हो रही है",
+      "askOwner": "मालिक से मंज़ूरी लें, या वापस जाकर एंट्री हटाएँ।"
     }
   },
   "handover": {

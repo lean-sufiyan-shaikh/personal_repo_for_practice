@@ -13,6 +13,8 @@ import com.ppms.expense.ExpenseCategory;
 import com.ppms.expense.PumpExpense;
 import com.ppms.expense.PumpExpenseRepository;
 import com.ppms.inventory.DipCheck;
+import com.ppms.inventory.DipCheckNozzleReading;
+import com.ppms.inventory.DipCheckNozzleReadingRepository;
 import com.ppms.inventory.DipCheckRepository;
 import com.ppms.inventory.DipCheckStatus;
 import com.ppms.inventory.InventoryWorkflowService;
@@ -26,6 +28,7 @@ import com.ppms.pump.UndergroundTankRepository;
 import com.ppms.shift.BackfillShiftRequest;
 import com.ppms.shift.CloseShiftRequest;
 import com.ppms.shift.ShiftBackfillService;
+import com.ppms.shift.ShiftResponse;
 import com.ppms.transaction.TransactionPaymentMode;
 import com.ppms.user.User;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +58,8 @@ class DemoActivityBuilder {
     static final int DAYS = 14;
     private static final int DELIVERY_DAYS_AGO = 7;
     private static final int SHORT_SHIFT_DAYS_AGO = 3;
+    /** The night shift runs 18:00 to 06:00, so by the 23:00 dip it has sold five twelfths of its litres. */
+    private static final BigDecimal NIGHT_SOLD_BY_CLOSING_DIP = new BigDecimal("5").divide(new BigDecimal("12"), 6, RoundingMode.HALF_UP);
 
     private final ShiftBackfillService shiftBackfillService;
     private final InventoryWorkflowService inventoryWorkflowService;
@@ -62,6 +67,7 @@ class DemoActivityBuilder {
     private final CreditLedgerService creditLedgerService;
     private final PumpExpenseRepository expenseRepository;
     private final DipCheckRepository dipCheckRepository;
+    private final DipCheckNozzleReadingRepository dipSnapshotRepository;
     private final NozzleRepository nozzleRepository;
     private final UndergroundTankRepository tankRepository;
     private final BusinessClock businessClock;
@@ -81,23 +87,24 @@ class DemoActivityBuilder {
                 recordDelivery(layout, layout.petrolTank(), "8000", "97.10", day, readingByNozzleId, actor);
                 recordDelivery(layout, layout.dieselTank(), "10000", "84.35", day, readingByNozzleId, actor);
             }
+            List<ShiftResponse> nightShifts = new ArrayList<>();
             for (int index = 0; index < layout.dispensers().size(); index++) {
                 DemoPumpLayout.DemoDispenser dispenser = layout.dispensers().get(index);
                 backfillShift(layout, dispenser, layout.dayShift(), layout.dayOperators().get(index), day,
                         index == 0 && daysAgo % 2 == 0 ? layout.fleetClient() : null, false, random, readingByNozzleId, actor);
-                backfillShift(layout, dispenser, layout.nightShift(), layout.nightOperators().get(index), day,
+                nightShifts.add(backfillShift(layout, dispenser, layout.nightShift(), layout.nightOperators().get(index), day,
                         index == 1 && daysAgo % 3 == 0 ? layout.busDepotClient() : null,
-                        index == 1 && daysAgo == SHORT_SHIFT_DAYS_AGO, random, readingByNozzleId, actor);
+                        index == 1 && daysAgo == SHORT_SHIFT_DAYS_AGO, random, readingByNozzleId, actor));
             }
             sellCounterProducts(layout, day, daysAgo, random, actor);
             recordExpenses(layout, day, daysAgo, actor);
-            recordClosingDips(layout, day);
+            recordClosingDips(layout, day, nightShifts);
         }
         recordClientPayment(layout, today.minusDays(2), actor);
         saveMeterReadings(layout, readingByNozzleId);
     }
 
-    private void backfillShift(DemoPumpLayout layout, DemoPumpLayout.DemoDispenser dispenser, PumpShiftDefinition shift,
+    private ShiftResponse backfillShift(DemoPumpLayout layout, DemoPumpLayout.DemoDispenser dispenser, PumpShiftDefinition shift,
                                User operator, LocalDate day, CreditClient creditClient, boolean cashShort,
                                Random random, Map<Long, BigDecimal> readingByNozzleId, User actor) {
         BigDecimal petrolLitres = BigDecimal.valueOf(180 + random.nextInt(121));
@@ -136,7 +143,7 @@ class DemoActivityBuilder {
         if (cashShort) {
             request.setDiscrepancyReason("Cash counted short at handover");
         }
-        shiftBackfillService.backfillShift(layout.pumpId(), request, actor);
+        return shiftBackfillService.backfillShift(layout.pumpId(), request, actor);
     }
 
     private static BackfillShiftRequest.NozzleReadingRequest readingFor(Nozzle nozzle, BigDecimal litres,
@@ -217,21 +224,48 @@ class DemoActivityBuilder {
                 .build();
     }
 
-    /** The closing dip matches the book stock, so the wet-stock check shows a clean fortnight to compare against. */
-    private void recordClosingDips(DemoPumpLayout layout, LocalDate day) {
+    /**
+     * The closing dip is taken at 23:00 while the night shifts are open, with their meters read as a real dip check
+     * does. Book stock already has the whole night taken off, so the tank holds it plus what the night has still to
+     * sell; the wet-stock check then shows a clean fortnight to compare against.
+     */
+    private void recordClosingDips(DemoPumpLayout layout, LocalDate day, List<ShiftResponse> nightShifts) {
+        Map<Long, Long> tankIdByNozzleId = new HashMap<>();
+        layout.dispensers().forEach(dispenser -> Stream.of(dispenser.petrolNozzle(), dispenser.dieselNozzle())
+                .forEach(nozzle -> tankIdByNozzleId.put(nozzle.getId(), nozzle.getTankId())));
         for (UndergroundTank tank : List.of(layout.petrolTank(), layout.dieselTank())) {
-            BigDecimal stock = tankRepository.findById(tank.getId()).orElseThrow().getCurrentStock();
-            dipCheckRepository.save(DipCheck.builder()
+            List<DipCheckNozzleReading> snapshots = new ArrayList<>();
+            BigDecimal stillToSell = BigDecimal.ZERO;
+            for (ShiftResponse night : nightShifts) {
+                for (ShiftResponse.FuelReadingResponse reading : night.getFuelReadings()) {
+                    if (!tank.getId().equals(tankIdByNozzleId.get(reading.nozzleId()))) {
+                        continue;
+                    }
+                    BigDecimal soldByDip = reading.unitsSold().multiply(NIGHT_SOLD_BY_CLOSING_DIP).setScale(3, RoundingMode.HALF_UP);
+                    stillToSell = stillToSell.add(reading.unitsSold().subtract(soldByDip));
+                    snapshots.add(DipCheckNozzleReading.builder()
+                            .shiftId(night.getId())
+                            .nozzleId(reading.nozzleId())
+                            .openingReading(reading.startReading())
+                            .meterReading(reading.startReading().add(soldByDip))
+                            .unitsSold(soldByDip)
+                            .build());
+                }
+            }
+            BigDecimal measured = tankRepository.findById(tank.getId()).orElseThrow().getCurrentStock().add(stillToSell);
+            DipCheck dip = dipCheckRepository.save(DipCheck.builder()
                     .pumpId(layout.pumpId())
                     .tankId(tank.getId())
-                    .measuredQuantity(stock)
-                    .systemStock(stock)
+                    .measuredQuantity(measured)
+                    .systemStock(measured)
                     .notes("Closing dip")
                     .checkedAt(businessClock.startOfDay(day).with(LocalTime.of(23, 0)))
                     .loggedByUserId(layout.manager().getId())
                     .checkedByUserId(layout.nightOperators().get(0).getId())
                     .status(DipCheckStatus.WITHIN_TOLERANCE)
                     .build());
+            snapshots.forEach(snapshot -> snapshot.setDipCheckId(dip.getId()));
+            dipSnapshotRepository.saveAll(snapshots);
         }
     }
 

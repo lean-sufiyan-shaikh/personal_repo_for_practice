@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Credit captured at shift close is checked like a credit sale during the shift, with an audited Owner/Admin override. */
@@ -115,6 +116,49 @@ class CloseShiftCreditCheckIntegrationTest extends ApiIntegrationTest {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM audit_logs WHERE pump_id = ? AND action = 'CREDIT_CLOSE_BLOCKED_ALLOWED'",
                 Long.class, setup.pumpId())).isEqualTo(1L);
+    }
+
+    @Test
+    void ownerOrAdminClosesWithBlockedCreditGivingAReasonWhileAManagerIsRefused() throws Exception {
+        long clientId = createClient("Late Co");
+        backdate(sellOnCredit(clientId, "100.00"), 40);
+        String path = "/api/pumps/{pumpId}/shifts/{id}/close";
+
+        perform(post(path, setup.pumpId(), shiftId), setup.manager(), closeWithCredit(clientId, null, null))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CREDIT_CLOSE_BLOCKED_CLIENTS"));
+        perform(post(path, setup.pumpId(), shiftId), setup.manager(), closeWithCredit(clientId, true, "Will pay tomorrow"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CREDIT_CLOSE_OVERRIDE_OWNER_ONLY"));
+        perform(post(path, setup.pumpId(), shiftId), setup.admin(), closeWithCredit(clientId, true, " "))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CREDIT_CLOSE_OVERRIDE_REASON_REQUIRED"));
+
+        perform(post(path, setup.pumpId(), shiftId), setup.admin(), closeWithCredit(clientId, true, "Will pay tomorrow"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED_BALANCED"));
+        assertThat(closeExceptionRepository.findAll()).filteredOn(exception -> exception.getClientId() == clientId)
+                .singleElement()
+                .satisfies(exception -> {
+                    assertThat(exception.getShiftId()).isEqualTo(shiftId);
+                    assertThat(exception.getAllowedByUserId()).isEqualTo(setup.admin().getId());
+                    assertThat(exception.getReason()).isEqualTo("Will pay tomorrow");
+                });
+    }
+
+    private Map<String, Object> closeWithCredit(long clientId, Boolean allowBlockedCredit, String reason) {
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("fuelReadings", List.of(Map.of("nozzleId", setup.nozzle().getId(), "endReading", new BigDecimal("1010.000"))));
+        request.put("cashCollected", new BigDecimal("850.00"));
+        request.put("upiCollected", BigDecimal.ZERO);
+        request.put("cardCollected", BigDecimal.ZERO);
+        request.put("fleetCardCollected", BigDecimal.ZERO);
+        request.put("creditTotal", new BigDecimal("150.00"));
+        request.put("creditEntries", List.of(Map.of("clientName", "Late Co", "clientId", clientId,
+                "amount", new BigDecimal("50.00"), "fuelType", "PETROL")));
+        request.put("allowBlockedCredit", allowBlockedCredit);
+        request.put("blockedCreditReason", reason);
+        return request;
     }
 
     private void checkAtClose(Map<Long, String> amountByClientId, CloseCreditOverride override) {

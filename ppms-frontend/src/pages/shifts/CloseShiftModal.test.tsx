@@ -9,6 +9,7 @@ import { cashApi } from '../../api/cashApi'
 import type { CashDrop } from '../../api/cashApi'
 import type { StaffMember } from '../../api/userApi'
 import type { PumpSummary } from '../../api/pumpApi'
+import { useAuthStore } from '../../store/authStore'
 import { renderWithProviders } from '../../test/renderWithProviders'
 import { resetScreenWidthAfterEach, setScreenWidth } from '../../test/screenWidth'
 import type { Shift } from '../../types/shift'
@@ -42,6 +43,14 @@ function operator(id: number, fullName: string): StaffMember {
     id, employeeId: `E${id}`, fullName, phoneNumber: null, gender: null, nightShiftConsent: false, role: 'OPERATOR',
     assignedPumpId: 3, status: 'ACTIVE', dailyRate: null, shift1HourlyRate: null, standardHourlyRate: null,
   }
+}
+
+function blockedCreditRefusal() {
+  return new AxiosError('Request failed', 'ERR_BAD_REQUEST', undefined, undefined, {
+    status: 400, statusText: 'Bad Request', headers: {}, config: { headers: new AxiosHeaders() },
+    data: { code: 'CREDIT_CLOSE_BLOCKED_CLIENTS', message: 'Blocked',
+      params: { overLimitClients: 'Fleet Co', onHoldClients: '—', overdueClients: 'Late Co' } },
+  })
 }
 
 const endReading = () => screen.getByLabelText('Nozzle #1 · Petrol end reading')
@@ -233,6 +242,38 @@ describe('CloseShiftModal', () => {
 
     expect(shiftApi.closeShift).toHaveBeenCalledWith(3, 11, expect.objectContaining({ creditTotal: 250 }), expect.any(String))
     expect(await screen.findByRole('alert')).toHaveTextContent('Sum of all credit entries does not match the credit total.')
+  })
+
+  it('lets an owner close with blocked credit after giving a reason, resending with the override', async () => {
+    useAuthStore.setState({ user: { userId: 1, fullName: 'Owner', role: 'OWNER', assignedPumpId: null }, isAuthenticated: true })
+    vi.mocked(shiftApi.closeShift).mockRejectedValueOnce(blockedCreditRefusal()).mockResolvedValueOnce({} as never)
+    const user = await fillShift('1000')
+    await user.click(screen.getByRole('button', { name: 'Review close' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm close' }))
+
+    const blocked = await screen.findByRole('alert', { name: 'Credit for these clients is blocked' })
+    expect(blocked).toHaveTextContent('Over limit: Fleet Co')
+    expect(blocked).toHaveTextContent('Overdue: Late Co')
+    expect(blocked).not.toHaveTextContent('On hold')
+    await user.click(within(blocked).getByRole('button', { name: 'Allow and close' }))
+    expect(within(blocked).getByText('Give a reason to allow the credit.')).toBeInTheDocument()
+    await user.type(within(blocked).getByRole('textbox', { name: /Reason for allowing/ }), 'Paying by cheque tomorrow')
+    await user.click(within(blocked).getByRole('button', { name: 'Allow and close' }))
+
+    expect(shiftApi.closeShift).toHaveBeenLastCalledWith(3, 11,
+      expect.objectContaining({ allowBlockedCredit: true, blockedCreditReason: 'Paying by cheque tomorrow' }), expect.any(String))
+  })
+
+  it('tells a manager to ask the owner when credit is blocked, with no way to allow it', async () => {
+    useAuthStore.setState({ user: { userId: 2, fullName: 'Manager', role: 'MANAGER', assignedPumpId: 3 }, isAuthenticated: true })
+    vi.mocked(shiftApi.closeShift).mockRejectedValueOnce(blockedCreditRefusal())
+    const user = await fillShift('1000')
+    await user.click(screen.getByRole('button', { name: 'Review close' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm close' }))
+
+    const blocked = await screen.findByRole('alert', { name: 'Credit for these clients is blocked' })
+    expect(blocked).toHaveTextContent('Ask the owner to approve, or go back and remove the entry.')
+    expect(within(blocked).queryByRole('button', { name: 'Allow and close' })).not.toBeInTheDocument()
   })
 
   it('lists what is still needed and points the disabled Review button at that list', async () => {
