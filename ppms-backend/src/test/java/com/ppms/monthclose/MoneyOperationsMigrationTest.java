@@ -24,7 +24,7 @@ class MoneyOperationsMigrationTest {
             postgres.start();
             SingleConnectionDataSource dataSource = new SingleConnectionDataSource(
                     postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword(), true);
-            migrate(dataSource, "54");
+            migrate(dataSource, "55");
             JdbcTemplate db = new JdbcTemplate(dataSource);
             Long ownerId = db.queryForObject("""
                     INSERT INTO users (employee_id, full_name, phone_number, password_hash, role, status, date_of_joining)
