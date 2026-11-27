@@ -23,12 +23,6 @@ class ReminderScheduleTest {
     }
 
     @Test
-    void episodeStartStaysTheSameDayAsTheDaysOverdueGrow() {
-        assertThat(ReminderSchedule.overdueSince(TODAY, 1)).isEqualTo(TODAY);
-        assertThat(ReminderSchedule.overdueSince(TODAY.plusDays(9), 10)).isEqualTo(TODAY);
-    }
-
-    @Test
     void eachStageIsDueOnceAndAReminderAtAStageCoversTheEarlierOnes() {
         CreditReminder atSeven = reminderAt(7);
         CreditReminder atFifteen = reminderAt(15);

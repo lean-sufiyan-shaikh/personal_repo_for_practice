@@ -237,17 +237,6 @@ public class CreditInterestService {
                 .min(Comparator.naturalOrder());
     }
 
-    /** Business date of each client's oldest active credit sale (fuel or counter); clients without one are left out. */
-    public Map<Long, LocalDate> findOldestCreditSaleDates(Collection<Long> clientIds) {
-        if (clientIds.isEmpty()) return Map.of();
-        Map<Long, LocalDate> oldestByClient = new HashMap<>();
-        Stream.concat(creditEntryRepository.findOldestSaleDatesByClientIds(clientIds).stream(),
-                        ancillarySaleRepository.findOldestSaleDatesByClientIdsAndPaymentMode(clientIds, CREDIT).stream())
-                .forEach(row -> oldestByClient.merge((Long) row[0], (LocalDate) row[1],
-                        (first, second) -> first.isBefore(second) ? first : second));
-        return oldestByClient;
-    }
-
     // ── Manual application (triggered by owner/admin via API) ──────────────────
 
     /**

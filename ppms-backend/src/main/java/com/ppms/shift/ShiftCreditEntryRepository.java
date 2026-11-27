@@ -48,10 +48,6 @@ public interface ShiftCreditEntryRepository extends JpaRepository<ShiftCreditEnt
     @Query("SELECT MIN(e.saleDate) FROM ShiftCreditEntry e WHERE e.clientId IN :clientIds AND e.voidStatus = 'ACTIVE'")
     Optional<LocalDate> findOldestSaleDateByClientIds(@Param("clientIds") java.util.Collection<Long> clientIds);
 
-    /** Rows of [clientId, oldest ACTIVE sale date]. */
-    @Query("SELECT e.clientId, MIN(e.saleDate) FROM ShiftCreditEntry e WHERE e.clientId IN :clientIds AND e.voidStatus = 'ACTIVE' GROUP BY e.clientId")
-    List<Object[]> findOldestSaleDatesByClientIds(@Param("clientIds") java.util.Collection<Long> clientIds);
-
     boolean existsByClientId(Long clientId);
 
     /** Waits for an invoice being issued that includes this entry, so the invoice check after it is reliable. */

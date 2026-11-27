@@ -127,14 +127,17 @@ class CreditClientStandingIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void recentPaymentOnAnyAccountOfTheGroupKeepsItCurrent() throws Exception {
+    void paymentOnAnyAccountOfTheGroupClearsTheGroupsOldestBillOnlyWhenItCoversIt() throws Exception {
         long parentId = createClient(null);
         long childId = createClient(parentId);
         long oldEntryId = sellOnCredit(parentId, "500.00");
         sellOnCredit(childId, "200.00");
         backdateCreditEntry(oldEntryId, 40);
-        recordPayment(childId, "50.00");
 
+        recordPayment(childId, "50.00");
+        assertThat(standingOf(parentId, setup.manager()).get("creditStatus").asText()).isEqualTo("OVERDUE");
+
+        recordPayment(parentId, "450.00");
         assertThat(standingOf(parentId, setup.manager()).get("creditStatus").asText()).isEqualTo("OK");
     }
 

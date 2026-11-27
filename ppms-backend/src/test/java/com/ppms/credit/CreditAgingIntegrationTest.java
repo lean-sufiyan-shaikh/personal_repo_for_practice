@@ -61,7 +61,35 @@ class CreditAgingIntegrationTest extends ApiIntegrationTest {
         assertThat(row.get("over90Days").decimalValue()).isEqualByComparingTo("0.00");
         assertThat(row.get("oldestUnpaidSaleDate").asText()).isEqualTo(TODAY.minusDays(75).toString());
         assertThat(row.get("lastPaymentDate").asText()).isEqualTo(TODAY.minusDays(40).toString());
+        assertThat(row.get("daysOverdue").asLong()).isEqualTo(45);
+        assertThat(row.get("overdueSince").asText()).isEqualTo(TODAY.minusDays(69).toString());
+    }
+
+    @Test
+    void paymentCoveringOnlyTheOldestBillMovesTheDaysOverdueToTheNextBillAndKeepsTheOverdueSpell() throws Exception {
+        long clientId = createClient(null);
+        long fiftyDays = sellOnCredit(clientId, "100.00");
+        long fortyDays = sellOnCredit(clientId, "200.00");
+        backdate(sellOnCredit(clientId, "300.00"), 5);
+        backdate(fiftyDays, 50);
+        backdate(fortyDays, 40);
+        assertThat(rowOf(clientId).get("daysOverdue").asLong()).isEqualTo(20);
+
+        recordPayment(clientId, "100.00", TODAY);
+        JsonNode row = rowOf(clientId);
+
         assertThat(row.get("daysOverdue").asLong()).isEqualTo(10);
+        assertThat(row.get("oldestUnpaidSaleDate").asText()).isEqualTo(TODAY.minusDays(40).toString());
+        assertThat(row.get("overdueSince").asText()).isEqualTo(TODAY.minusDays(19).toString());
+        assertThat(row.get("days31To60").decimalValue()).isEqualByComparingTo("200.00");
+        assertThat(row.get("upTo30Days").decimalValue()).isEqualByComparingTo("300.00");
+
+        recordPayment(clientId, "200.00", TODAY);
+        row = rowOf(clientId);
+        assertThat(row.get("daysOverdue").asLong()).isZero();
+        assertThat(row.get("overdueSince").isNull()).isTrue();
+        assertThat(row.get("creditStatus").asText()).isEqualTo("OK");
+        assertThat(row.get("days31To60").decimalValue()).isEqualByComparingTo("0.00");
     }
 
     @Test
@@ -89,7 +117,7 @@ class CreditAgingIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void recentPaymentKeepsTheAccountCurrentAndPendingPaymentsAndLimitsAreShown() throws Exception {
+    void recentTokenPaymentDoesNotMakeTheAccountCurrentAndPendingPaymentsAndLimitsAreShown() throws Exception {
         long clientId = createClient(null);
         backdate(sellOnCredit(clientId, "300.00"), 50);
         recordPayment(clientId, "20.00", TODAY.minusDays(3));
@@ -102,7 +130,7 @@ class CreditAgingIntegrationTest extends ApiIntegrationTest {
         JsonNode aging = aging();
         JsonNode row = rowOf(aging, clientId);
 
-        assertThat(row.get("daysOverdue").asLong()).isZero();
+        assertThat(row.get("daysOverdue").asLong()).isEqualTo(20);
         assertThat(row.get("creditStatus").asText()).isEqualTo("OVER_LIMIT");
         assertThat(row.get("pendingPaymentCount").asInt()).isEqualTo(1);
         assertThat(row.get("pendingPaymentAmount").decimalValue()).isEqualByComparingTo("60.00");

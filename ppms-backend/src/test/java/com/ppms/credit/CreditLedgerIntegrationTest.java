@@ -190,7 +190,7 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void recentPaymentOnASubAccountKeepsTheWholeGroupOutOfTheOverdueBlock() throws Exception {
+    void paymentOnASubAccountThatClearsTheGroupsOldestBillLiftsTheOverdueBlock() throws Exception {
         long parentId = createClient(null);
         long childId = createClient(parentId);
         long oldEntryId = sellOnCredit(parentId, "500.00");
@@ -200,9 +200,14 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
 
         perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId), setup.operator(),
                 creditEntry(parentId, "100.00"))
+                .andExpect(status().isBadRequest());
+
+        recordPayment(parentId, "350.00").andExpect(status().is2xxSuccessful());
+        perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId), setup.operator(),
+                creditEntry(parentId, "100.00"))
                 .andExpect(status().is2xxSuccessful());
 
-        assertThat(outstandingOf(parentId)).isEqualByComparingTo("650.00");
+        assertThat(outstandingOf(parentId)).isEqualByComparingTo("300.00");
     }
 
     @Test

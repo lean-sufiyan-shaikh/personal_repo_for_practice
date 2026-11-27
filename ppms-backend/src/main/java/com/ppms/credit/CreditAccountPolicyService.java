@@ -15,15 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -35,7 +31,7 @@ public class CreditAccountPolicyService {
     private final CreditClientRepository creditClientRepository;
     private final CreditInterestService creditInterestService;
     private final CreditExtensionRepository creditExtensionRepository;
-    private final CreditPaymentRepository creditPaymentRepository;
+    private final CreditOverdueService creditOverdueService;
     private final PumpLocationRepository pumpLocationRepository;
     private final BusinessClock businessClock;
     private final EntityManager entityManager;
@@ -221,25 +217,9 @@ public class CreditAccountPolicyService {
         }
     }
 
-    /**
-     * The whole group counts: sub-account sales make the group owe, and a payment on any account of
-     * the group keeps it current.
-     */
+    /** Sub-account sales make the group owe, and a payment on any account of the group clears its oldest bills. */
     private long groupDaysOverdue(CreditClient limitHolder) {
-        BigDecimal groupOutstanding = creditInterestService.computeOutstandingWithChildren(limitHolder.getId());
-        if (groupOutstanding.compareTo(BigDecimal.ZERO) <= 0) {
-            return 0;
-        }
-
-        List<Long> groupClientIds = new ArrayList<>();
-        groupClientIds.add(limitHolder.getId());
-        creditClientRepository.findByParentClientId(limitHolder.getId())
-                .forEach(child -> groupClientIds.add(child.getId()));
-
-        return daysOverdue(limitHolder.getBillingCycle(), groupOutstanding,
-                creditPaymentRepository.findLastPaymentDateByClientIds(groupClientIds).orElse(null),
-                creditInterestService.findOldestCreditSaleDate(groupClientIds).orElse(null),
-                businessClock.today());
+        return creditOverdueService.standingOfAccount(limitHolder, businessClock.today()).daysOverdue();
     }
 
     /** Null when the pump holds no credit for being overdue. */
@@ -266,29 +246,28 @@ public class CreditAccountPolicyService {
         if (clients.isEmpty()) {
             return Map.of();
         }
-        List<Long> clientIds = clients.stream().map(CreditClient::getId).toList();
+        return creditStandingOfPumpClients(pumpId, clients,
+                creditOverdueService.standingByHolderId(clients, businessClock.today()));
+    }
+
+    /** As above, for the pump's clients and their accounts' overdue standing already loaded. */
+    Map<Long, CreditClientStandingResponse> creditStandingOfPumpClients(
+            Long pumpId, List<CreditClient> clients, Map<Long, CreditBillLedger.Standing> overdueByHolderId) {
         Map<Long, CreditClient> clientById = clients.stream()
                 .collect(Collectors.toMap(CreditClient::getId, Function.identity()));
-        Map<Long, List<Long>> groupIdsByHolderId = clients.stream()
-                .collect(Collectors.groupingBy(this::limitHolderId,
-                        Collectors.mapping(CreditClient::getId, Collectors.toList())));
+        Set<Long> holderIds = clients.stream().map(this::limitHolderId).collect(Collectors.toSet());
 
-        Map<Long, BigDecimal> outstandingById = creditInterestService.computeOutstandingBatch(clientIds);
-        Map<Long, LocalDate> lastPaymentById = toDateMap(creditPaymentRepository.findLastPaymentDatesByClientIds(clientIds));
-        Map<Long, LocalDate> oldestSaleById = creditInterestService.findOldestCreditSaleDates(clientIds);
         Map<Long, List<CreditExtension>> extensionsByClientId = creditExtensionRepository
                 .findInEffectAtPump(pumpId, businessClock.today()).stream()
                 .collect(Collectors.groupingBy(CreditExtension::getClientId));
         Integer holdDays = creditHoldDaysOf(pumpId);
 
         Map<Long, CreditClientStandingResponse> groupStandingByHolderId = new HashMap<>();
-        groupIdsByHolderId.forEach((holderId, groupIds) -> {
+        holderIds.forEach(holderId -> {
             CreditClient holder = clientById.get(holderId);
             List<CreditExtension> extensions = extensionsByClientId.getOrDefault(holderId, List.of());
-            BigDecimal groupOutstanding = groupIds.stream()
-                    .map(id -> outstandingById.getOrDefault(id, BigDecimal.ZERO))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add)
-                    .setScale(2, RoundingMode.HALF_UP);
+            CreditBillLedger.Standing overdue = overdueByHolderId.getOrDefault(holderId, CreditBillLedger.Standing.NOTHING_OWED);
+            BigDecimal groupOutstanding = overdue.outstanding();
             BigDecimal availableCredit = null;
             CreditStatus status = CreditStatus.OK;
             if (holder.getCreditLimit().compareTo(BigDecimal.ZERO) > 0) {
@@ -298,8 +277,7 @@ public class CreditAccountPolicyService {
                     availableCredit = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
                 }
             }
-            long daysOverdue = daysOverdue(holder.getBillingCycle(), groupOutstanding,
-                    latestDate(groupIds, lastPaymentById), earliestDate(groupIds, oldestSaleById), businessClock.today());
+            long daysOverdue = overdue.daysOverdue();
             if (isOnHold(holdDays, daysOverdue, extensions)) {
                 status = CreditStatus.ON_HOLD;
             } else if (status == CreditStatus.OK && !hasCycleWaiver(extensions) && daysOverdue > 0) {
@@ -335,32 +313,5 @@ public class CreditAccountPolicyService {
                 extension.getExtensionType() == CreditExtensionType.BILLING_CYCLE_EXTENSION
                         || extension.getExtensionType() == CreditExtensionType.OVERDUE_BLOCK_WAIVER
                         || extension.getExtensionType() == CreditExtensionType.CREDIT_HOLD_OVERRIDE);
-    }
-
-    /** Days a group with a balance is past one billing cycle since its last payment, or else its oldest sale; 0 when current. */
-    public static long daysOverdue(BillingCycle billingCycle, BigDecimal groupOutstanding,
-                            LocalDate lastPaymentDate, LocalDate oldestSaleDate, LocalDate today) {
-        LocalDate countedFrom = lastPaymentDate != null ? lastPaymentDate : oldestSaleDate;
-        if (groupOutstanding.compareTo(BigDecimal.ZERO) <= 0 || countedFrom == null) {
-            return 0;
-        }
-        long cycleDays = billingCycle == BillingCycle.WEEKLY ? 7 : 30;
-        return Math.max(0, ChronoUnit.DAYS.between(countedFrom, today) - cycleDays);
-    }
-
-    private static LocalDate latestDate(List<Long> clientIds, Map<Long, LocalDate> dateById) {
-        return clientIds.stream().map(dateById::get).filter(Objects::nonNull).max(Comparator.naturalOrder()).orElse(null);
-    }
-
-    private static LocalDate earliestDate(List<Long> clientIds, Map<Long, LocalDate> dateById) {
-        return clientIds.stream().map(dateById::get).filter(Objects::nonNull).min(Comparator.naturalOrder()).orElse(null);
-    }
-
-    private static Map<Long, LocalDate> toDateMap(List<Object[]> rows) {
-        Map<Long, LocalDate> dateById = new HashMap<>();
-        for (Object[] row : rows) {
-            dateById.put((Long) row[0], (LocalDate) row[1]);
-        }
-        return dateById;
     }
 }

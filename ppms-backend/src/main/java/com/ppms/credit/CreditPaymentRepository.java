@@ -28,10 +28,6 @@ public interface CreditPaymentRepository extends JpaRepository<CreditPayment, Lo
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM CreditPayment p WHERE p.pumpId = :pumpId AND p.paidAt = :date AND p.paymentApprovalStatus = 'APPROVED'")
     BigDecimal sumAmountByPumpIdAndDate(@Param("pumpId") Long pumpId, @Param("date") LocalDate date);
 
-    // Most recent APPROVED payment date across a client group — used for billing cycle overdue detection
-    @Query("SELECT MAX(p.paidAt) FROM CreditPayment p WHERE p.clientId IN :clientIds AND p.paymentApprovalStatus = 'APPROVED'")
-    Optional<LocalDate> findLastPaymentDateByClientIds(@Param("clientIds") java.util.Collection<Long> clientIds);
-
     /** Rows of [clientId, latest APPROVED payment date]. */
     @Query("SELECT p.clientId, MAX(p.paidAt) FROM CreditPayment p WHERE p.clientId IN :clientIds AND p.paymentApprovalStatus = 'APPROVED' GROUP BY p.clientId")
     List<Object[]> findLastPaymentDatesByClientIds(@Param("clientIds") java.util.Collection<Long> clientIds);

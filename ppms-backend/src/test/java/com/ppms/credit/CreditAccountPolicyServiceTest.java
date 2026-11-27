@@ -23,7 +23,7 @@ class CreditAccountPolicyServiceTest {
     private final CreditClientRepository clientRepository = mock(CreditClientRepository.class);
 
     private final CreditAccountPolicyService policyService = new CreditAccountPolicyService(clientRepository,
-            mock(CreditInterestService.class), mock(CreditExtensionRepository.class), mock(CreditPaymentRepository.class),
+            mock(CreditInterestService.class), mock(CreditExtensionRepository.class), mock(CreditOverdueService.class),
             mock(PumpLocationRepository.class),
             new FixedBusinessClock(OffsetDateTime.parse("2026-03-06T10:00:00+05:30")),
             mock(EntityManager.class));

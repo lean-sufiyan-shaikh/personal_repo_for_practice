@@ -1,13 +1,12 @@
 package com.ppms.collection;
 
-import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 
 /**
- * When an overdue client is due a reminder. An overdue episode runs from the first overdue day until a payment makes
- * the client current again; within it, each stage (days overdue) needs one reminder, and a reminder at a later stage
+ * When an overdue client is due a reminder. An overdue episode runs from the first day a bill is unpaid past its due
+ * date until payments clear every past-due bill (a token payment that leaves the oldest bill unpaid does not end it); within it, each stage (days overdue) needs one reminder, and a reminder at a later stage
  * also covers the earlier ones.
  */
 public final class ReminderSchedule {
@@ -22,11 +21,6 @@ public final class ReminderSchedule {
                 .filter(stage -> stage <= daysOverdue)
                 .max(Integer::compareTo)
                 .orElse(null);
-    }
-
-    /** First overdue day of the running episode; stays the same day after day until a payment ends the episode. */
-    public static LocalDate overdueSince(LocalDate today, long daysOverdue) {
-        return today.minusDays(daysOverdue - 1);
     }
 
     /** @param episodeReminders reminders already given in the running episode */

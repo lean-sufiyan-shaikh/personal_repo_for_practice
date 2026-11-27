@@ -101,19 +101,22 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void paymentEndsTheOverdueEpisodeAndReleasesTheHold() throws Exception {
+    void tokenPaymentKeepsTheHoldAndPayingTheOldBillReleasesIt() throws Exception {
         long clientId = createClient(null);
         makeOverdue(sellOnCredit(clientId, "300.00"), 60);
         assertThat(standingOf(clientId)).isEqualTo("ON_HOLD");
 
         recordPayment(clientId, "100.00", TestDates.today());
+        assertThat(standingOf(clientId)).isEqualTo("ON_HOLD");
+        trySellOnCredit(clientId, "50.00").andExpect(jsonPath("$.code").value("CREDIT_ON_HOLD"));
 
+        recordPayment(clientId, "200.00", TestDates.today());
         assertThat(standingOf(clientId)).isEqualTo("OK");
         trySellOnCredit(clientId, "50.00").andExpect(status().is2xxSuccessful());
     }
 
     @Test
-    void eachStageIsDueOncePerEpisodeAndTheStagesStartOverAfterAPayment() throws Exception {
+    void eachStageIsDueOncePerEpisodeATokenPaymentKeepsTheEpisodeAndClearingTheBillsStartsANewOne() throws Exception {
         long clientId = createClient(null);
         long entryId = sellOnCredit(clientId, "300.00");
         makeOverdue(entryId, 10);
@@ -134,9 +137,19 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
         markReminded(clientId, "IN_PERSON", null).andExpect(status().isCreated());
         assertThat(dueOrNull(clientId)).isNull();
 
-        recordPayment(clientId, "50.00", TestDates.today().minusDays(MONTHLY_CYCLE_DAYS + 8));
+        LocalDate episodeStart = TestDates.today().minusDays(19);
+        assertThat(followUpOf(clientId).get("overdueSince").asText()).isEqualTo(episodeStart.toString());
+        recordPayment(clientId, "50.00", TestDates.today().minusDays(12));
+        assertThat(dueOrNull(clientId)).isNull();
+        assertThat(followUpOf(clientId).get("daysOverdue").asLong()).isEqualTo(20);
+        assertThat(followUpOf(clientId).get("overdueSince").asText()).isEqualTo(episodeStart.toString());
+
+        recordPayment(clientId, "250.00", TestDates.today().minusDays(10));
+        assertThat(followUpOf(clientId).get("daysOverdue").asLong()).isZero();
+        makeOverdue(sellOnCredit(clientId, "100.00"), 8);
 
         assertThat(dueFor(clientId).get("stageDays").asInt()).isEqualTo(7);
+        assertThat(dueFor(clientId).get("overdueSince").asText()).isEqualTo(TestDates.today().minusDays(7).toString());
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM audit_logs WHERE pump_id = ? AND action = 'CREDIT_REMINDER_RECORDED'",
                 Integer.class, setup.pumpId())).isEqualTo(2);

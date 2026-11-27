@@ -73,7 +73,7 @@ public class CreditFollowUpService {
                 .filter(promise -> !promise.getPromisedDate().isBefore(today))
                 .map(CreditPaymentPromise::getClientId)
                 .collect(Collectors.toSet());
-        Map<Long, List<CreditReminder>> remindersByClientId = episodeReminders(overdue, today);
+        Map<Long, List<CreditReminder>> remindersByClientId = episodeReminders(overdue);
 
         List<ReminderDueResponse> due = new ArrayList<>();
         for (CreditAgingResponse.Row account : overdue) {
@@ -84,7 +84,7 @@ public class CreditFollowUpService {
             }
             CreditReminder last = given.stream().max(Comparator.comparing(CreditReminder::getRemindedAt)).orElse(null);
             due.add(new ReminderDueResponse(account.clientId(), account.name(), account.phone(), account.outstanding(),
-                    account.daysOverdue(), ReminderSchedule.overdueSince(today, account.daysOverdue()), stage,
+                    account.daysOverdue(), account.overdueSince(), stage,
                     account.creditStatus() == CreditStatus.ON_HOLD,
                     last != null ? last.getRemindedAt() : null, last != null ? last.getMethod() : null,
                     UpiPaymentLink.forPump(pump, account.outstanding(), account.name())));
@@ -114,8 +114,7 @@ public class CreditFollowUpService {
                 .toList();
         for (CreditAgingResponse.Row account : onHold) {
             notificationDedupService.maybeInsert(pumpId, NotificationType.CREDIT_HOLD_PLACED,
-                    "CREDIT_HOLD_PLACED:client:" + account.clientId() + ":"
-                            + ReminderSchedule.overdueSince(today, account.daysOverdue()),
+                    "CREDIT_HOLD_PLACED:client:" + account.clientId() + ":" + account.overdueSince(),
                     "Credit Put on Hold",
                     account.name() + " is " + account.daysOverdue() + " days overdue, so new credit is on hold until they pay.",
                     Map.of("clientName", account.name(), "daysOverdue", account.daysOverdue(),
@@ -146,7 +145,7 @@ public class CreditFollowUpService {
         CreditReminder reminder = reminderRepository.save(CreditReminder.builder()
                 .pumpId(pumpId)
                 .clientId(account.clientId())
-                .overdueSince(ReminderSchedule.overdueSince(businessClock.today(), account.daysOverdue()))
+                .overdueSince(account.overdueSince())
                 .stageDays(stage != null ? stage : (int) account.daysOverdue())
                 .daysOverdue((int) account.daysOverdue())
                 .outstanding(account.outstanding())
@@ -174,7 +173,7 @@ public class CreditFollowUpService {
                 .filter(promise -> !promise.getPromisedDate().isBefore(today))
                 .isPresent();
         boolean reminderDue = overdue && !paused && ReminderSchedule.isDue(stage,
-                episodeReminders(List.of(account), today).getOrDefault(account.clientId(), List.of()));
+                episodeReminders(List.of(account)).getOrDefault(account.clientId(), List.of()));
 
         List<CreditPaymentPromise> promises = promiseRepository.findTop20ByClientIdOrderByRecordedAtDesc(account.clientId());
         List<CreditReminder> reminders = reminderRepository.findTop20ByClientIdOrderByRemindedAtDesc(account.clientId());
@@ -184,7 +183,7 @@ public class CreditFollowUpService {
         Map<Long, String> nameById = userNames(userIds);
 
         return new ClientFollowUpResponse(account.clientId(), account.outstanding(), account.daysOverdue(),
-                overdue ? ReminderSchedule.overdueSince(today, account.daysOverdue()) : null, stage, reminderDue,
+                account.overdueSince(), stage, reminderDue,
                 pump.getCreditHoldDays(), account.creditStatus() == CreditStatus.ON_HOLD,
                 UpiPaymentLink.forPump(pump, account.outstanding(), account.name()),
                 promises.stream().map(promise -> PromiseResponse.of(promise, account.name(),
@@ -218,11 +217,10 @@ public class CreditFollowUpService {
     }
 
     /** The reminders of each account's running episode, in one query. */
-    private Map<Long, List<CreditReminder>> episodeReminders(List<CreditAgingResponse.Row> overdue, LocalDate today) {
+    private Map<Long, List<CreditReminder>> episodeReminders(List<CreditAgingResponse.Row> overdue) {
         Map<Long, LocalDate> overdueSinceById = overdue.stream()
                 .filter(row -> row.daysOverdue() > 0)
-                .collect(Collectors.toMap(CreditAgingResponse.Row::clientId,
-                        row -> ReminderSchedule.overdueSince(today, row.daysOverdue())));
+                .collect(Collectors.toMap(CreditAgingResponse.Row::clientId, CreditAgingResponse.Row::overdueSince));
         if (overdueSinceById.isEmpty()) {
             return Map.of();
         }

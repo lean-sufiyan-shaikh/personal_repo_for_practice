@@ -19,13 +19,15 @@ public record CreditAgingResponse(Summary summary, List<Row> clients) {
 
     /**
      * @param oldestUnpaidSaleDate earliest sale still carrying part of the balance, payments covering the oldest first
-     * @param daysOverdue          days past the billing cycle since the last payment, or since the oldest sale
-     *                             when nothing was ever paid; 0 when not overdue
+     * @param daysOverdue          days the oldest unpaid bill is past its due date (one billing cycle after it);
+     *                             0 when no unpaid bill is past due
+     * @param overdueSince         first day of the unbroken spell in which some bill has been unpaid past its due
+     *                             date; null when not overdue. Collections keys its reminder episodes on it.
      * @param creditStatus         whether the account can take a credit sale now, as the client picker shows it
      */
     public record Row(Long clientId, String name, String phone, int subAccountCount, BillingCycle billingCycle,
                       BigDecimal creditLimit, BigDecimal outstanding,
                       BigDecimal upTo30Days, BigDecimal days31To60, BigDecimal days61To90, BigDecimal over90Days,
-                      LocalDate oldestUnpaidSaleDate, LocalDate lastPaymentDate, long daysOverdue,
+                      LocalDate oldestUnpaidSaleDate, LocalDate lastPaymentDate, long daysOverdue, LocalDate overdueSince,
                       CreditStatus creditStatus, int pendingPaymentCount, BigDecimal pendingPaymentAmount) {}
 }
