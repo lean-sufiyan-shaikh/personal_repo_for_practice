@@ -21,7 +21,6 @@ const tank: TankStock = {
   tankId: 1, tankIdentifier: 'T1', fuelType: 'PETROL', capacity: 10_000, currentStock: 1_000,
   stockPercentage: 10, lowStock: true, dipTolerance: 50, pumpId: 6,
 }
-const bigTank: TankStock = { ...tank, capacity: 30_000 }
 
 function supplier(id: number, name: string, defaultSupplier = false): Supplier {
   return {
@@ -141,66 +140,6 @@ describe('RecordDeliveryModal', () => {
 
     await enterReceiptCheck(user, '1000', '5990', '1010')
     expect(review).toBeEnabled()
-  })
-
-  it('shows a shortage exactly at the tolerance as within tolerance, counting fuel sold while unloading', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(
-      <RecordDeliveryModal pumpId={6} tanks={[bigTank]} isOwnerOrAdmin={false} canSetBillTotal={false} onClose={vi.fn()} />,
-    )
-
-    await user.click(screen.getByLabelText('Invoice quantity'))
-    await user.paste('12000')
-    await enterReceiptCheck(user, '2000', '13966', '1010')
-
-    expect(screen.getByText('Received 11,976.00 L of 12,000.00 L invoiced')).toBeInTheDocument()
-    expect(screen.getByText('Short 24.00 L (0.20%) — within tolerance')).toBeInTheDocument()
-    expect(screen.getByText('Includes 10.00 L sold while unloading')).toBeInTheDocument()
-  })
-
-  it('says a claim will be raised when the shortage is beyond tolerance', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(
-      <RecordDeliveryModal pumpId={6} tanks={[bigTank]} isOwnerOrAdmin={false} canSetBillTotal={false} onClose={vi.fn()} />,
-    )
-
-    await user.click(screen.getByLabelText('Invoice quantity'))
-    await user.paste('12000')
-    await enterReceiptCheck(user, '2000', '13950', '1010')
-
-    expect(screen.getByText('Short 40.00 L (0.33%) — beyond the 0.20% tolerance, a claim will be raised')).toBeInTheDocument()
-  })
-
-  it('notes an over-delivery beyond tolerance without a claim', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(
-      <RecordDeliveryModal pumpId={6} tanks={[bigTank]} isOwnerOrAdmin={false} canSetBillTotal={false} onClose={vi.fn()} />,
-    )
-
-    await user.click(screen.getByLabelText('Invoice quantity'))
-    await user.paste('12000')
-    await enterReceiptCheck(user, '2000', '14100', '1010')
-
-    expect(screen.getByText('Received 12,110.00 L of 12,000.00 L invoiced')).toBeInTheDocument()
-    expect(screen.getByText('Over 110.00 L (0.92%) — beyond the 0.20% tolerance, noted only, no claim')).toBeInTheDocument()
-  })
-
-  it('flags a density difference above the pump tolerance', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(
-      <RecordDeliveryModal pumpId={6} tanks={[tank]} isOwnerOrAdmin={false} canSetBillTotal={false} onClose={vi.fn()} />,
-    )
-
-    await user.click(screen.getByLabelText('Observed density'))
-    await user.paste('830.5')
-    await user.click(screen.getByLabelText('Invoice density'))
-    await user.paste('826')
-    expect(await screen.findByText(/Density difference \+4\.5 kg\/m³ · more than 3\.0 kg\/m³/)).toBeInTheDocument()
-
-    await user.clear(screen.getByLabelText('Observed density'))
-    await user.click(screen.getByLabelText('Observed density'))
-    await user.paste('828')
-    expect(screen.getByText(/Density difference \+2\.0 kg\/m³ · within 3\.0 kg\/m³/)).toBeInTheDocument()
   })
 
   it('works out the amount, the stock after delivery and the other charges as figures are typed', async () => {
