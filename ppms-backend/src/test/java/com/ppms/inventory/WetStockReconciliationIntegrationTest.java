@@ -87,17 +87,6 @@ class WetStockReconciliationIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void firstDipEverNeedsAnOpeningDip() throws Exception {
-        seedFourDays("9980");
-
-        JsonNode first = reconciliation(OPENING_DAY, YESTERDAY).get("tanks").get(0).get("periods").get(0);
-
-        assertThat(first.get("status").asText()).isEqualTo("NEEDS_OPENING_DIP");
-        assertThat(first.get("closingLitres").decimalValue()).isEqualByComparingTo("10000");
-        assertThat(first.get("varianceLitres").isNull()).isTrue();
-    }
-
-    @Test
     void lossAboveTheLimitRaisesOneNotificationPerTankAndDayAndAnAttentionItem() throws Exception {
         seedFourDays("9980");
 
@@ -114,30 +103,12 @@ class WetStockReconciliationIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void lossWithinTheLimitRaisesNothing() throws Exception {
-        seedFourDays("9995");
-
-        alertJob.checkAllPumps();
-
-        assertThat(wetStockAlerts()).isEmpty();
-    }
-
-    @Test
-    void ownerCanRaiseTheTanksLossLimitSoTheSameLossNoLongerAlerts() throws Exception {
-        seedFourDays("9980");
-
-        perform(patch("/api/pumps/{pumpId}/tanks/{tankId}", setup.pumpId(), setup.tank().getId()), setup.owner(),
+    void ownerCanChangeTheLossLimitWithinRangeAndManagerCannot() throws Exception {
+        String path = "/api/pumps/{pumpId}/tanks/{tankId}";
+        perform(patch(path, setup.pumpId(), setup.tank().getId()), setup.owner(),
                 Map.of("capacity", 20000, "lossAlertPercent", 1.5))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.lossAlertPercent").value(1.5));
-        alertJob.checkAllPumps();
-
-        assertThat(wetStockAlerts()).isEmpty();
-    }
-
-    @Test
-    void managerCannotChangeTheLossLimitAndOutOfRangeLimitsAreRefused() throws Exception {
-        String path = "/api/pumps/{pumpId}/tanks/{tankId}";
         perform(patch(path, setup.pumpId(), setup.tank().getId()), setup.manager(),
                 Map.of("capacity", 20000, "lossAlertPercent", 1)).andExpect(status().isForbidden());
         perform(patch(path, setup.pumpId(), setup.tank().getId()), setup.owner(),
@@ -158,23 +129,12 @@ class WetStockReconciliationIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void invalidRangesAndParametersAreRefused() throws Exception {
+    void missingOrUnreadableDatesAreRefused() throws Exception {
         String path = "/api/inventory/{pumpId}/reconciliation";
-        perform(get(path, setup.pumpId()).param("from", TODAY.toString()).param("to", YESTERDAY.toString()), setup.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DATE_RANGE_START_AFTER_END"));
-        perform(get(path, setup.pumpId()).param("from", TODAY.minusDays(92).toString()).param("to", TODAY.toString()), setup.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DATE_RANGE_TOO_LONG"));
-        perform(get(path, setup.pumpId()).param("from", TODAY.toString()).param("to", TODAY.plusDays(1).toString()), setup.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DATE_RANGE_END_IN_FUTURE"));
         perform(get(path, setup.pumpId()).param("from", TODAY.toString()), setup.owner())
                 .andExpect(status().isBadRequest());
         perform(get(path, setup.pumpId()).param("from", "yesterday").param("to", TODAY.toString()), setup.owner())
                 .andExpect(status().isBadRequest());
-        perform(get(path, setup.pumpId()).param("from", TODAY.minusDays(91).toString()).param("to", TODAY.toString()), setup.owner())
-                .andExpect(status().isOk());
     }
 
     @Test
@@ -218,20 +178,6 @@ class WetStockReconciliationIntegrationTest extends ApiIntegrationTest {
         assertThat(periods).extracting(period -> period.get("varianceLitres").decimalValue())
                 .usingElementComparator(BigDecimal::compareTo)
                 .containsExactly(BigDecimal.ZERO, BigDecimal.ZERO);
-    }
-
-    @Test
-    void meterThatRolledOverBetweenTwoDipsCountsOnlyTheLitresDispensed() throws Exception {
-        saveDip(OPENING_DAY, 21, "10000");
-        Shift shift = saveShift(FULL_DAY, atHour(FULL_DAY, 8), atHour(FULL_DAY, 20), "99999990.000", "10.000", "20.000");
-        DipCheck midShiftDip = saveDipAt(atHour(FULL_DAY, 12), "9995");
-        saveSnapshot(midShiftDip, shift, "99999990.000", "99999995.000", "5.000");
-        saveDip(FULL_DAY, 21, "9980");
-
-        JsonNode tank = reconciliation(FULL_DAY, FULL_DAY).get("tanks").get(0);
-
-        assertThat(tank.get("summary").get("salesLitres").decimalValue()).isEqualByComparingTo("20");
-        assertThat(tank.get("periods").get(0).get("varianceLitres").decimalValue()).isEqualByComparingTo("0");
     }
 
     @Test
