@@ -25,16 +25,11 @@ class AuditLogFilterIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void signInsCanBeHiddenWhileEverythingElseStays() throws Exception {
+    void logCanHideSignInsAndBeNarrowedToOneActionOneUserAndADateRange() throws Exception {
         assertThat(actions(auditLogs())).contains("LOGIN", "FUEL_PRICE_UPDATED");
-
         assertThat(actions(auditLogs().param("hideSignIns", "true")))
                 .doesNotContain("LOGIN")
                 .contains("FUEL_PRICE_UPDATED");
-    }
-
-    @Test
-    void logCanBeNarrowedToOneActionAndOneUser() throws Exception {
         assertThat(actions(auditLogs().param("action", "FUEL_PRICE_UPDATED"))).containsOnly("FUEL_PRICE_UPDATED");
 
         JsonNode managerEvents = json(perform(auditLogs().param("actorId", setup.manager().getId().toString()),
@@ -42,10 +37,7 @@ class AuditLogFilterIntegrationTest extends ApiIntegrationTest {
         assertThat(managerEvents.get("content")).isNotEmpty();
         managerEvents.get("content").forEach(event ->
                 assertThat(event.get("actorId").asLong()).isEqualTo(setup.manager().getId()));
-    }
 
-    @Test
-    void dateFiltersStillApply() throws Exception {
         String tomorrow = TestDates.today().plusDays(1).toString();
         assertThat(actions(auditLogs().param("from", tomorrow).param("to", tomorrow))).isEmpty();
         assertThat(actions(auditLogs().param("from", TestDates.today().toString()))).contains("FUEL_PRICE_UPDATED");
