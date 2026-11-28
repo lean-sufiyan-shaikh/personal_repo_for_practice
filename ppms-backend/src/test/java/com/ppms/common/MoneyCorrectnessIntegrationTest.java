@@ -33,7 +33,6 @@ import com.ppms.credit.PaymentMode;
 import com.ppms.expense.ExpenseApprovalStatus;
 import com.ppms.payroll.GeneratePayrollRequest;
 import com.ppms.payroll.PayrollRecord;
-import com.ppms.payroll.PayrollRepository;
 import com.ppms.payroll.PayrollService;
 import com.ppms.pump.DispensaryUnit;
 import com.ppms.pump.DispensaryUnitRepository;
@@ -92,7 +91,6 @@ class MoneyCorrectnessIntegrationTest {
     @Autowired private CreditPaymentRepository paymentRepository;
     @Autowired private CreditInterestChargeRepository interestChargeRepository;
     @Autowired private JdbcTemplate jdbcTemplate;
-    @Autowired private PayrollRepository payrollRepository;
     @Autowired private AncillaryProductRepository ancillaryProductRepository;
     @Autowired private AncillaryProductPriceRepository ancillaryPriceRepository;
     @Autowired private AncillarySaleRepository ancillarySaleRepository;
@@ -161,32 +159,6 @@ class MoneyCorrectnessIntegrationTest {
     }
 
     @Test
-    void secondPayrollForTheSamePeriodIsRefusedWithoutResolvingMoreDiscrepancies() {
-        payrollService.generate(pump.getId(), payrollRequest(null), owner);
-        Shift discrepancy = saveClosedShift(TestDates.today().minusDays(2), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "50.00");
-
-        assertThatThrownBy(() -> payrollService.generate(pump.getId(), payrollRequest(discrepancy), owner))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("already covers");
-
-        assertThat(shiftRepository.findById(discrepancy.getId()).orElseThrow().getStatus())
-                .isEqualTo(ShiftStatus.CLOSED_DISCREPANCY_PENDING);
-    }
-
-    @Test
-    void payrollPeriodThatOverlapsAnEarlierOneIsRefused() {
-        payrollService.generate(pump.getId(), payrollRequest(null), owner);
-
-        GeneratePayrollRequest overlapping = payrollRequest(null);
-        overlapping.setPeriodFrom(TestDates.today().minusDays(2));
-        overlapping.setPeriodTo(TestDates.today().plusDays(5));
-
-        assertThatThrownBy(() -> payrollService.generate(pump.getId(), overlapping, owner))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("overlaps");
-    }
-
-    @Test
     void discrepancyDeductedByOnePayrollIsNotDeductedAgainByAnother() {
         Shift lastMonth = saveClosedShift(TestDates.today().minusDays(20), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "500.00");
         PayrollRecord current = payrollService.generate(pump.getId(), payrollRequest(lastMonth), owner);
@@ -198,20 +170,6 @@ class MoneyCorrectnessIntegrationTest {
         PayrollRecord earlierPayroll = payrollService.generate(pump.getId(), earlier, owner);
 
         assertThat(earlierPayroll.getDeductions()).isEqualByComparingTo("0.00");
-    }
-
-    @Test
-    void overDiscrepancyCannotBeDeductedFromSalaryByPayroll() {
-        Shift over = saveOverDiscrepancy(ShiftStatus.CLOSED_DISCREPANCY_PENDING, null);
-
-        assertThatThrownBy(() -> payrollService.generate(pump.getId(), payrollRequest(over), owner))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("only SHORT discrepancies");
-
-        Shift reloaded = shiftRepository.findById(over.getId()).orElseThrow();
-        assertThat(reloaded.getStatus()).isEqualTo(ShiftStatus.CLOSED_DISCREPANCY_PENDING);
-        assertThat(reloaded.getDiscrepancyResolution()).isNull();
-        assertThat(payrollRepository.findAll()).noneMatch(record -> record.getPumpId().equals(pump.getId()));
     }
 
     @Test
@@ -258,35 +216,6 @@ class MoneyCorrectnessIntegrationTest {
         assertThatThrownBy(() -> ledgerService.recordPayment(pump.getId(), child.getId(), request, owner))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("exceeds the amount still payable");
-    }
-
-    @Test
-    void deletingPayrollDraftRestoresTheDiscrepanciesItResolved() {
-        Shift discrepancy = saveClosedShift(TestDates.today().minusDays(2), ShiftStatus.CLOSED_DISCREPANCY_PENDING, "50.00");
-        PayrollRecord draft = payrollService.generate(pump.getId(), payrollRequest(discrepancy), owner);
-        assertThat(draft.getDeductions()).isEqualByComparingTo("50.00");
-        assertThat(shiftRepository.findById(discrepancy.getId()).orElseThrow().getStatus())
-                .isEqualTo(ShiftStatus.CLOSED_DISCREPANCY_RESOLVED);
-
-        payrollService.deleteDraft(pump.getId(), draft.getId(), owner);
-
-        Shift restored = shiftRepository.findById(discrepancy.getId()).orElseThrow();
-        assertThat(restored.getStatus()).isEqualTo(ShiftStatus.CLOSED_DISCREPANCY_PENDING);
-        assertThat(restored.getDiscrepancyResolution()).isNull();
-        assertThat(payrollRepository.findById(draft.getId())).isEmpty();
-    }
-
-    @Test
-    void payrollPaysWorkedMinutesAtTheHourlyRateRoundedOnce() {
-        Shift shift = saveClosedShift(TestDates.today().minusDays(1), ShiftStatus.CLOSED_BALANCED, null);
-        shift.setActualStartTime(TestDates.now().minusDays(1).withHour(8).withMinute(0));
-        shift.setActualEndTime(shift.getActualStartTime().plusMinutes(100));
-        shiftRepository.save(shift);
-
-        PayrollRecord draft = payrollService.generate(pump.getId(), payrollRequest(null), owner);
-
-        // 100 min × ₹80/h = ₹133.333… → ₹133.33 (rounding hours first would give 1.67 h × 80 = ₹133.60)
-        assertThat(draft.getGrossAmount()).isEqualByComparingTo("133.33");
     }
 
     @Test

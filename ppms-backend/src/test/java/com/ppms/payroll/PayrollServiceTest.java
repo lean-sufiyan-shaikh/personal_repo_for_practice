@@ -10,11 +10,13 @@ import com.ppms.common.time.BusinessClock;
 import com.ppms.dayclose.ClosedDayGuard;
 import com.ppms.planning.StaffLeaveRepository;
 import com.ppms.report.BalanceSheetStalenessService;
+import com.ppms.shift.DiscrepancyResolution;
 import com.ppms.shift.DiscrepancyType;
 import com.ppms.shift.Shift;
 import com.ppms.shift.ShiftOperator;
 import com.ppms.shift.ShiftOperatorRepository;
 import com.ppms.shift.ShiftRepository;
+import com.ppms.shift.ShiftStatus;
 import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import com.ppms.user.UserRole;
@@ -56,7 +58,9 @@ class PayrollServiceTest {
     private final StaffAdvanceService staffAdvanceService = mock(StaffAdvanceService.class);
     private final ShiftOperatorRepository shiftOperatorRepository = mock(ShiftOperatorRepository.class);
 
-    private final PayrollService service = new PayrollService(payrollRepository, mock(PayrollResolvedShiftRepository.class),
+    private final PayrollResolvedShiftRepository resolvedShiftRepository = mock(PayrollResolvedShiftRepository.class);
+
+    private final PayrollService service = new PayrollService(payrollRepository, resolvedShiftRepository,
             userRepository, shiftRepository, staffLeaveRepository, auditService, businessClock, closedDayGuard,
             cashDrawerService, mock(BalanceSheetStalenessService.class), staffAdvanceService, shiftOperatorRepository);
 
@@ -255,6 +259,80 @@ class PayrollServiceTest {
         assertThat(record.getCashEventId()).isNull();
         verify(closedDayGuard).requireOpen(PUMP_ID, TODAY);
         verify(cashDrawerService, never()).recordAutomaticCashOut(any(), any(), any(), anyString(), any());
+    }
+
+    @Test
+    void workedMinutesArePaidAtTheHourlyRateRoundedOnce() {
+        when(shiftRepository.findByPumpIdAndOperatorIdAndDateRange(PUMP_ID, STAFF_ID, TODAY.minusDays(1), TODAY))
+                .thenReturn(List.of(shift(1L, 100, false)));
+
+        PayrollRecord record = service.generate(PUMP_ID, request(TODAY.minusDays(1), TODAY), owner);
+
+        assertThat(record.getGrossAmount()).isEqualByComparingTo("133.33");
+    }
+
+    @Test
+    void periodOverlappingAnEarlierPayrollIsRefusedBeforeAnyDiscrepancyIsResolved() {
+        GeneratePayrollRequest request = request(TODAY.minusDays(2), TODAY.plusDays(5));
+        request.setDeductFromSalaryShiftIds(List.of(2L));
+        when(payrollRepository.findFirstByPumpIdAndUserIdAndPeriodFromLessThanEqualAndPeriodToGreaterThanEqual(
+                PUMP_ID, STAFF_ID, TODAY.plusDays(5), TODAY.minusDays(2)))
+                .thenReturn(Optional.of(PayrollRecord.builder().periodFrom(TODAY.minusDays(7)).periodTo(TODAY).build()));
+
+        assertThatThrownBy(() -> service.generate(PUMP_ID, request, owner))
+                .isInstanceOfSatisfying(BusinessException.class, error -> {
+                    assertThat(error.getCode()).isEqualTo(ErrorCodes.PAYROLL_PERIOD_OVERLAPS);
+                    assertThat(error.getMessage()).contains("already covers", "overlaps");
+                });
+        verify(shiftRepository, never()).findByIdForUpdate(any());
+        verify(payrollRepository, never()).save(any());
+    }
+
+    @Test
+    void overDiscrepancyCannotBeDeductedFromSalary() {
+        Shift over = shift(2L, 0, false);
+        over.setStatus(ShiftStatus.CLOSED_DISCREPANCY_PENDING);
+        over.setDiscrepancyType(DiscrepancyType.OVER);
+        when(shiftRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(over));
+        GeneratePayrollRequest request = request(TODAY.minusDays(1), TODAY);
+        request.setDeductFromSalaryShiftIds(List.of(2L));
+
+        assertThatThrownBy(() -> service.generate(PUMP_ID, request, owner))
+                .isInstanceOfSatisfying(BusinessException.class, error -> {
+                    assertThat(error.getCode()).isEqualTo(ErrorCodes.PAYROLL_SHIFT_DISCREPANCY_IS_OVER);
+                    assertThat(error.getMessage()).contains("only SHORT discrepancies");
+                });
+        assertThat(over.getStatus()).isEqualTo(ShiftStatus.CLOSED_DISCREPANCY_PENDING);
+        assertThat(over.getDiscrepancyResolution()).isNull();
+        verify(payrollRepository, never()).save(any());
+    }
+
+    @Test
+    void chosenShortageIsResolvedAsASalaryDeductionAndDeletingTheDraftRestoresIt() {
+        Shift shortShift = shift(2L, 0, false);
+        shortShift.setStatus(ShiftStatus.CLOSED_DISCREPANCY_PENDING);
+        shortShift.setDiscrepancyType(DiscrepancyType.SHORT);
+        shortShift.setDiscrepancyAmount(new BigDecimal("50.00"));
+        when(shiftRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(shortShift));
+        GeneratePayrollRequest request = request(TODAY.minusDays(1), TODAY);
+        request.setDeductFromSalaryShiftIds(List.of(2L));
+
+        service.generate(PUMP_ID, request, owner);
+
+        assertThat(shortShift.getStatus()).isEqualTo(ShiftStatus.CLOSED_DISCREPANCY_RESOLVED);
+        assertThat(shortShift.getDiscrepancyResolution()).isEqualTo(DiscrepancyResolution.SALARY_DEDUCTION);
+
+        PayrollRecord draft = PayrollRecord.builder().id(90L).pumpId(PUMP_ID).userId(STAFF_ID).status(PayrollStatus.DRAFT).build();
+        when(payrollRepository.findById(90L)).thenReturn(Optional.of(draft));
+        when(resolvedShiftRepository.findByPayrollId(90L)).thenReturn(List.of(PayrollResolvedShift.builder()
+                .payrollId(90L).shiftId(2L).previousStatus(ShiftStatus.CLOSED_DISCREPANCY_PENDING).build()));
+
+        service.deleteDraft(PUMP_ID, 90L, owner);
+
+        assertThat(shortShift.getStatus()).isEqualTo(ShiftStatus.CLOSED_DISCREPANCY_PENDING);
+        assertThat(shortShift.getDiscrepancyResolution()).isNull();
+        verify(payrollRepository).delete(draft);
+        verify(auditService).log(eq(PUMP_ID), eq(AuditAction.PAYROLL_DELETED), anyString(), eq("90"), anyString(), eq(owner));
     }
 
     private PayrollRecord approvedRecord(String netPay) {
