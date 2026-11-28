@@ -11,6 +11,7 @@ import com.ppms.planning.ShiftPlanningService;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import com.ppms.shift.ShiftRepository;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -285,6 +286,94 @@ class UserServiceTest {
         assertThat(manager.getTokenVersion()).isEqualTo(1);
         verify(auditService).log(eq(PUMP_ID), eq(AuditAction.USER_PUMP_CHANGED), eq("User"), eq("2"), anyString(), eq(owner));
         verify(auditService).log(eq(9L), eq(AuditAction.USER_PUMP_CHANGED), eq("User"), eq("2"), anyString(), eq(owner));
+    }
+
+    @Test
+    void adminResetsOperatorsAndAccountantsOfTheirPump() {
+        User admin = user(1L, UserRole.ADMIN, PUMP_ID);
+        User operator = user(2L, UserRole.OPERATOR, PUMP_ID);
+        User accountant = user(3L, UserRole.ACCOUNTANT, PUMP_ID);
+        when(userRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(operator));
+        when(userRepository.findByIdForUpdate(3L)).thenReturn(Optional.of(accountant));
+
+        userService.resetPassword(2L, resetRequest(), admin);
+        userService.resetPassword(3L, resetRequest(), admin);
+
+        assertThat(operator.isMustChangePassword()).isTrue();
+        assertThat(accountant.isMustChangePassword()).isTrue();
+    }
+
+    @Test
+    void adminCannotFindTheOwnerToResetTheirPassword() {
+        User admin = user(1L, UserRole.ADMIN, PUMP_ID);
+        when(userRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(user(2L, UserRole.OWNER, null)));
+
+        assertThatThrownBy(() -> userService.resetPassword(2L, resetRequest(), admin))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void ownerResetsTheirAdmin() {
+        User owner = user(1L, UserRole.OWNER, null);
+        User admin = user(2L, UserRole.ADMIN, PUMP_ID);
+        when(userRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(admin));
+        when(pumpLocationRepository.existsByIdAndOwnerId(PUMP_ID, 1L)).thenReturn(true);
+
+        userService.resetPassword(2L, resetRequest(), owner);
+
+        assertThat(admin.isMustChangePassword()).isTrue();
+    }
+
+    @Test
+    void superAdminCannotResetTheirOwnPassword() {
+        User superAdmin = user(1L, UserRole.SUPER_ADMIN, null);
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(superAdmin));
+
+        assertThatThrownBy(() -> userService.resetPassword(1L, resetRequest(), superAdmin))
+                .isInstanceOf(BusinessException.class)
+                .extracting("code").isEqualTo(ErrorCodes.RESET_OWN_PASSWORD_NOT_ALLOWED);
+    }
+
+    @Test
+    void weakTemporaryPasswordFailsValidation() {
+        ResetPasswordRequest weak = new ResetPasswordRequest();
+        weak.setTemporaryPassword("simple");
+
+        assertThat(Validation.buildDefaultValidatorFactory().getValidator().validate(weak)).hasSize(1);
+        assertThat(Validation.buildDefaultValidatorFactory().getValidator().validate(resetRequest())).isEmpty();
+    }
+
+    @Test
+    void staffCreatedByTheOwnerWithoutALanguageMustChangeTheirPasswordAndGetsEnglish() {
+        User owner = user(1L, UserRole.OWNER, null);
+        CreateUserRequest request = new CreateUserRequest();
+        request.setFullName("New Operator");
+        request.setPhoneNumber("9876500003");
+        request.setPassword("Staff@1234");
+        request.setRole(UserRole.OPERATOR);
+        request.setGender(UserGender.MALE);
+        request.setAssignedPumpId(PUMP_ID);
+        when(pumpLocationRepository.existsByIdAndOwnerId(PUMP_ID, 1L)).thenReturn(true);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0);
+            saved.setId(9L);
+            return saved;
+        });
+
+        userService.createUser(request, owner);
+
+        ArgumentCaptor<User> created = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(created.capture());
+        assertThat(created.getValue().isMustChangePassword()).isTrue();
+        assertThat(created.getValue().getPreferredLanguage()).isEqualTo(UserLanguage.DEFAULT);
+    }
+
+    @Test
+    void staffDetailsWithAnUnsupportedLanguageFailValidation() {
+        UpdateStaffDetailsRequest request = new UpdateStaffDetailsRequest();
+        request.setPreferredLanguage("gu");
+
+        assertThat(Validation.buildDefaultValidatorFactory().getValidator().validate(request)).hasSize(1);
     }
 
     private void givenOwnerManages(User staff) {
