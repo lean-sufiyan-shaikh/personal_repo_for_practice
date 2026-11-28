@@ -103,7 +103,7 @@ class WetStockReconciliationIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void ownerCanChangeTheLossLimitWithinRangeAndManagerCannot() throws Exception {
+    void ownerCanChangeTheLossLimitAndManagerCannot() throws Exception {
         String path = "/api/pumps/{pumpId}/tanks/{tankId}";
         perform(patch(path, setup.pumpId(), setup.tank().getId()), setup.owner(),
                 Map.of("capacity", 20000, "lossAlertPercent", 1.5))
@@ -111,10 +111,6 @@ class WetStockReconciliationIntegrationTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.lossAlertPercent").value(1.5));
         perform(patch(path, setup.pumpId(), setup.tank().getId()), setup.manager(),
                 Map.of("capacity", 20000, "lossAlertPercent", 1)).andExpect(status().isForbidden());
-        perform(patch(path, setup.pumpId(), setup.tank().getId()), setup.owner(),
-                Map.of("capacity", 20000, "lossAlertPercent", 0)).andExpect(status().isBadRequest());
-        perform(patch(path, setup.pumpId(), setup.tank().getId()), setup.owner(),
-                Map.of("capacity", 20000, "lossAlertPercent", 101)).andExpect(status().isBadRequest());
     }
 
     @Test

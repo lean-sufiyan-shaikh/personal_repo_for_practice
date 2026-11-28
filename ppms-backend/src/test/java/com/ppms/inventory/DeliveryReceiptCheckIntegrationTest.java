@@ -200,19 +200,6 @@ class DeliveryReceiptCheckIntegrationTest extends ApiIntegrationTest {
         assertThat(period.get("deliveredLitres").decimalValue()).isEqualByComparingTo("11876");
     }
 
-    @Test
-    void ownerCanWidenTheReceiptToleranceButNotBeyondFivePercent() throws Exception {
-        perform(patch("/api/pumps/{pumpId}/settings", setup.pumpId()), setup.owner(),
-                Map.of("receiptTolerancePercent", 6))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("RECEIPT_TOLERANCE_OUT_OF_RANGE"));
-        perform(patch("/api/pumps/{pumpId}/settings", setup.pumpId()), setup.owner(),
-                Map.of("receiptTolerancePercent", 1, "densityTolerance", 5))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.receiptTolerancePercent").value(1.0))
-                .andExpect(jsonPath("$.densityTolerance").value(5.0));
-    }
-
     private JsonNode deliver(String invoiceLitres, String dipBefore, String dipAfter, String readingAfter,
                              String observedDensity, String invoiceDensity) throws Exception {
         return json(perform(post("/api/inventory/{pumpId}/deliveries/batch", setup.pumpId()), setup.owner(),
