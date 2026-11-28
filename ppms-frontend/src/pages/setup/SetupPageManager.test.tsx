@@ -35,12 +35,15 @@ describe('SetupPage for a manager', () => {
     vi.mocked(pumpApi.setFuelPrice).mockResolvedValue({ splitNozzleCount: 0 } as never)
   })
 
-  it('shows the fuel price cards and lets the manager save a new price', async () => {
+  it('shows only the fuel price cards, without steps, hub or staff, and lets the manager save a new price', async () => {
     const user = userEvent.setup()
-    renderWithProviders(<SetupPage />, { route: '/dashboard/setup' })
+    renderWithProviders(<SetupPage />, { route: '/dashboard/setup?action=add-staff' })
 
     const diesel = await screen.findByRole('article', { name: 'Diesel' })
     expect(await within(diesel).findByText('₹90.00')).toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Setup steps' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'All settings' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Staff' })).not.toBeInTheDocument()
 
     const input = within(diesel).getByRole('spinbutton', { name: 'New price (Diesel)' })
     await user.type(input, '91.25')

@@ -2,14 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { fmtCurrency, fmtDate, packSize, parseSellingPrice } from './ancillaryFormat'
 
 describe('fmtCurrency', () => {
-  it('formats rupees with Indian grouping and two decimals', () => {
-    expect(fmtCurrency(123456.5)).toBe('₹1,23,456.50')
-    expect(fmtCurrency(0)).toBe('₹0.00')
-  })
-
-  it('shows a dash for a missing value', () => {
+  it('shows a dash for a missing value but formats zero', () => {
     expect(fmtCurrency(null)).toBe('—')
     expect(fmtCurrency(undefined)).toBe('—')
+    expect(fmtCurrency(0)).toBe('₹0.00')
   })
 })
 

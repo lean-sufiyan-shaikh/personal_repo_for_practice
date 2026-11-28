@@ -310,15 +310,4 @@ describe('SetupPage', () => {
       expect(screen.queryByRole('link', { name: 'All settings' })).not.toBeInTheDocument()
     })
   })
-
-  it('shows a manager only the fuel prices, without steps or hub', async () => {
-    useAuthStore.setState({ user: { userId: 2, fullName: 'Manager', role: 'MANAGER', assignedPumpId: 3 }, isAuthenticated: true })
-    renderSetup('/dashboard/setup?action=add-staff')
-
-    expect(await screen.findByText('Price editor')).toBeInTheDocument()
-    expect(screen.queryByRole('navigation', { name: 'Setup steps' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'All settings' })).not.toBeInTheDocument()
-    expect(screen.queryByText('Staff list')).not.toBeInTheDocument()
-    expect(pumpApi.getSetupChecklist).not.toHaveBeenCalled()
-  })
 })

@@ -47,19 +47,6 @@ describe('RecordPaymentModal', () => {
     expect(after.getByText('Balance after payment').nextSibling).toHaveTextContent('₹9,500.00')
   })
 
-  it('says how much a payment is over the outstanding balance and refuses it next to the field', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<RecordPaymentModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
-
-    await user.type(screen.getByLabelText('Amount'), '12500')
-    expect(figures('After this payment').getByText('More than owed by').nextSibling).toHaveTextContent('₹500.00')
-
-    await user.click(screen.getByRole('button', { name: 'Record payment' }))
-
-    expect(screen.getByLabelText('Amount')).toHaveAccessibleDescription(/cannot exceed outstanding balance/)
-    expect(creditApi.recordPayment).not.toHaveBeenCalled()
-  })
-
   it('keeps Record payment disabled until an amount is entered and says what is missing', async () => {
     const user = userEvent.setup()
     renderWithProviders(<RecordPaymentModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)

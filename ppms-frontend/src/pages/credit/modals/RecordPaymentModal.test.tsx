@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AxiosError, AxiosHeaders } from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -46,7 +46,9 @@ describe('RecordPaymentModal references and cheques', () => {
     renderWithProviders(<RecordPaymentModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
 
     await user.type(screen.getByLabelText('Amount'), '15000')
+    expect(within(screen.getByLabelText('After this payment')).getByText('More than owed by').nextSibling).toHaveTextContent('₹3,000.00')
     await user.click(screen.getByRole('button', { name: 'Record payment' }))
+    expect(screen.getByLabelText('Amount')).toHaveAccessibleDescription(/cannot exceed outstanding balance/)
     expect(creditApi.recordPayment).not.toHaveBeenCalled()
 
     await user.click(screen.getByRole('checkbox', { name: /Keep the extra ₹3,000.00 as an advance/ }))

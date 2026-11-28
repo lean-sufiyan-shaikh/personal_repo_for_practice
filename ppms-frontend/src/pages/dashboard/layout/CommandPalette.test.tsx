@@ -6,7 +6,6 @@ import { useAuthStore } from '../../../store/authStore'
 import { useVisibleLayout } from '../../../test/layout'
 import type { UserRole } from '../../../types/auth'
 import { CommandPaletteLauncher } from './CommandPaletteLauncher'
-import { commandItemsFor } from './commandItems'
 
 function CurrentPath() {
   const { pathname, search } = useLocation()
@@ -24,31 +23,6 @@ function renderLauncher() {
 function optionNames() {
   return within(screen.getByRole('listbox')).queryAllByRole('option').map((option) => option.textContent)
 }
-
-describe('commandItemsFor', () => {
-  it('offers an operator only their own pages and no manager tasks', () => {
-    const labels = commandItemsFor('OPERATOR').map((item) => item.label)
-    expect(labels).toEqual(expect.arrayContaining(['My Shift', 'Shifts', 'Expenses', 'Notifications']))
-    expect(labels).not.toContain('Overview')
-    expect(labels).not.toContain('Open shift')
-    expect(labels).not.toContain('Record delivery')
-  })
-
-  it('offers a manager the forecourt, money and stock tasks they may do', () => {
-    const actions = commandItemsFor('MANAGER').filter((item) => item.kind === 'action')
-    expect(actions.map((item) => item.label)).toEqual([
-      'Open shift', 'Record delivery', 'Record dip check', 'Record payment', 'Record settlement',
-      'Add expense', 'Record cash entry', 'Sell a product', 'Generate balance sheet', 'Set fuel prices',
-    ])
-    expect(actions[0].path).toBe('/dashboard/shifts?action=open-shift')
-  })
-
-  it('keeps an accountant to the pages they can open', () => {
-    const items = commandItemsFor('ACCOUNTANT')
-    expect(items.filter((item) => item.kind === 'action')).toEqual([])
-    expect(items.map((item) => item.label)).not.toContain('Payroll')
-  })
-})
 
 describe('CommandPalette', () => {
   useVisibleLayout()

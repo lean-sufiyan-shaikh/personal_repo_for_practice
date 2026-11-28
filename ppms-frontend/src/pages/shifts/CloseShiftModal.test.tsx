@@ -392,33 +392,7 @@ describe('CloseShiftModal', () => {
     expect(cashApi.confirmDrop).toHaveBeenCalledWith(3, 7)
   })
 
-  it('shows Balanced and closes the shift when collection matches the meter', async () => {
-    const user = await fillShift('1000')
-    expect(screen.getByText('Balanced')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Review close' }))
-    await user.click(screen.getByRole('button', { name: 'Confirm close' }))
-    expect(shiftApi.closeShift).toHaveBeenCalledWith(3, 11, expect.objectContaining({
-      fuelReadings: [{ nozzleId: 21, endReading: 1010 }],
-      cashCollected: 1000,
-      discrepancyReason: undefined,
-    }), expect.any(String))
-    expect(await screen.findByRole('heading', { name: 'Shift closed' })).toBeInTheDocument()
-  })
-
-  it('shows Short and requires a reason, with no round off for a gap of a rupee or more', async () => {
-    const user = await fillShift('900')
-    expect(screen.getByText('Short ₹100.00')).toBeInTheDocument()
-    expect(screen.getByText('Shift is short by ₹100.00')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Round off/ })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Review close' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Review close' })).toHaveAccessibleDescription('Still needed Reason for the difference')
-
-    await user.type(screen.getByRole('textbox'), 'Customer paid later')
-    await user.click(screen.getByRole('button', { name: 'Review close' }))
-    await user.click(screen.getByRole('button', { name: 'Confirm close' }))
-    expect(shiftApi.closeShift).toHaveBeenCalledWith(3, 11, expect.objectContaining({ discrepancyReason: 'Customer paid later' }), expect.any(String))
-  })
 
   it('rounds a gap under one rupee into cash so the shift balances', async () => {
     const user = await fillShift('999.40')
@@ -462,8 +436,14 @@ describe('CloseShiftModal', () => {
     }), expect.any(String))
   })
 
-  it('reviews every figure before closing and goes back to the form on Edit', async () => {
+  it('needs a reason for a shortage, reviews every figure, goes back on Edit and closes with the reason', async () => {
     const user = await fillShift('900')
+    expect(screen.getByText('Short ₹100.00')).toBeInTheDocument()
+    expect(screen.getByText('Shift is short by ₹100.00')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Round off/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Review close' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Review close' })).toHaveAccessibleDescription('Still needed Reason for the difference')
+
     await user.type(screen.getByRole('textbox'), 'Customer paid later')
     await user.click(screen.getByRole('button', { name: 'Review close' }))
 
@@ -484,6 +464,10 @@ describe('CloseShiftModal', () => {
     expect(screen.getByLabelText('Cash (₹)')).toHaveValue(900)
     expect(screen.getByRole('dialog', { name: 'Close Shift' }).querySelector('.ui-modal-backdrop'))
       .not.toHaveClass('ui-modal-backdrop--fullscreen')
+
+    await user.click(screen.getByRole('button', { name: 'Review close' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm close' }))
+    expect(shiftApi.closeShift).toHaveBeenCalledWith(3, 11, expect.objectContaining({ discrepancyReason: 'Customer paid later' }), expect.any(String))
   })
 
   it('after closing shows one summary instead of a toast, and offers the next shift, print and done', async () => {
@@ -495,8 +479,14 @@ describe('CloseShiftModal', () => {
     renderWithProviders(<CloseShiftModal shift={shift} onClose={onClose} onOpenNextShift={onOpenNextShift} />)
     await user.type(endReading(), '1010')
     await user.type(await cashTotalField(user), '1000')
+    expect(screen.getByText('Balanced')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Review close' }))
     await user.click(screen.getByRole('button', { name: 'Confirm close' }))
+    expect(shiftApi.closeShift).toHaveBeenCalledWith(3, 11, expect.objectContaining({
+      fuelReadings: [{ nozzleId: 21, endReading: 1010 }],
+      cashCollected: 1000,
+      discrepancyReason: undefined,
+    }), expect.any(String))
 
     const summary = await screen.findByRole('dialog', { name: 'Shift closed' })
     expect(within(summary).getByText('Balanced')).toBeInTheDocument()
