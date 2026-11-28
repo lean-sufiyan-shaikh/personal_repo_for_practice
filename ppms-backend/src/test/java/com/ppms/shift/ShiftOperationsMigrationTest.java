@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * V58 on a database that already holds a pump and an open shift: the pump counts blind by default, and the new shift
+ * V58 on a database at V57 that already holds a pump and an open shift: the pump counts blind by default, and the new shift
  * operation and staff advance tables refuse rows that break their rules. Runs on its own container so it does not take
  * connections from the shared one.
  */
@@ -46,7 +46,7 @@ class ShiftOperationsMigrationTest {
 
     @Test
     void existingPumpCountsBlindAndNewTablesGuardTheirRows() {
-        migrate("55");
+        migrate("57");
         Long ownerId = user("OWNER");
         Long operatorId = user("OPERATOR");
         Long pumpId = db.queryForObject("INSERT INTO pump_locations (owner_id, name, address) VALUES (?, 'Pump', 'Road') RETURNING id",
