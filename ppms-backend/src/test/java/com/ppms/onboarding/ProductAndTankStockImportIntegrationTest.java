@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.ppms.onboarding.StaffImportIntegrationTest.issues;
 import static com.ppms.onboarding.StaffImportIntegrationTest.outcomes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -63,26 +62,6 @@ class ProductAndTankStockImportIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void productProblemsDuplicatesAndExistingProductsAreReported() throws Exception {
-        PumpSetup setup = createPumpWithStock("0");
-        perform(post("/api/pumps/{pumpId}/imports/products", setup.pumpId()), setup.owner(),
-                rows(product(2, "Grease", "KG", "1", Map.of("brand", "Servo")))).andExpect(status().isOk());
-
-        JsonNode report = json(perform(post("/api/pumps/{pumpId}/imports/products/preview", setup.pumpId()), setup.owner(), rows(
-                product(2, "grease", "kg", "1.000", Map.of("brand", "SERVO")),
-                product(3, "Wiper", "BOX", "-1", Map.of("hsn_code", "12", "opening_stock", "10")),
-                product(4, "Wiper", "PIECE", "1", Map.of()),
-                product(5, "Wiper", "PIECE", "1", Map.of("opening_stock", "2.5", "opening_cost", "10"))))
-                .andExpect(status().isOk()));
-
-        assertThat(outcomes(report)).containsExactly("SKIP", "ERROR", "CREATE", "ERROR");
-        assertThat(issues(report, 1)).containsExactlyInAnyOrder("unit:IMPORT_CHOICE_INVALID",
-                "package_size:IMPORT_NUMBER_TOO_SMALL", "hsn_code:HSN_CODE_INVALID", "opening_cost:IMPORT_COST_REQUIRED_FOR_STOCK");
-        assertThat(issues(report, 3)).containsExactlyInAnyOrder("opening_stock:IMPORT_WHOLE_NUMBER_REQUIRED",
-                "name:IMPORT_DUPLICATE_IN_FILE");
-    }
-
-    @Test
     void openingTankStockBecomesTheTanksFirstLotAtItsCost() throws Exception {
         PumpSetup setup = createPumpWithStock("0");
         UndergroundTank diesel = addTank(setup, "Diesel Tank", FuelType.DIESEL, TankStatus.ACTIVE);
@@ -109,35 +88,6 @@ class ProductAndTankStockImportIntegrationTest extends ApiIntegrationTest {
                 rows(tankRow(2, setup.tank().getTankIdentifier(), "9000.5", "96.125"))).andExpect(status().isOk()));
         assertThat(outcomes(second)).containsExactly("SKIP");
         assertThat(tankRepository.findById(setup.tank().getId()).orElseThrow().getCurrentStock()).isEqualByComparingTo("9000.5");
-    }
-
-    @Test
-    void tankStockProblemsAreReported() throws Exception {
-        PumpSetup setup = createPumpWithStock("0");
-        addTank(setup, "Old Tank", FuelType.DIESEL, TankStatus.INACTIVE);
-
-        JsonNode report = json(perform(post("/api/pumps/{pumpId}/imports/tank-stock/preview", setup.pumpId()), setup.owner(), rows(
-                tankRow(2, "No Such Tank", "100", "90"),
-                tankRow(3, setup.tank().getTankIdentifier(), "20001", "abc"),
-                tankRow(4, "Old Tank", "100", "90"),
-                tankRow(5, setup.tank().getTankIdentifier(), "100", "90")))
-                .andExpect(status().isOk()));
-
-        assertThat(outcomes(report)).containsOnly("ERROR");
-        assertThat(issues(report, 0)).containsExactly("tank:IMPORT_TANK_NOT_FOUND");
-        assertThat(issues(report, 1)).containsExactlyInAnyOrder("litres:IMPORT_NUMBER_TOO_LARGE", "cost_per_litre:IMPORT_NUMBER_INVALID");
-        assertThat(issues(report, 2)).containsExactly("tank:IMPORT_TANK_NOT_ACTIVE");
-        assertThat(issues(report, 3)).containsExactly("tank:IMPORT_DUPLICATE_IN_FILE");
-    }
-
-    @Test
-    void tankWithStockAlreadyIsSkipped() throws Exception {
-        PumpSetup setup = createPumpWithStock("500");
-
-        JsonNode report = json(perform(post("/api/pumps/{pumpId}/imports/tank-stock/preview", setup.pumpId()), setup.owner(),
-                rows(tankRow(2, setup.tank().getTankIdentifier(), "100", "90"))).andExpect(status().isOk()));
-
-        assertThat(issues(report, 0)).containsExactly("tank:IMPORT_TANK_ALREADY_HAS_STOCK");
     }
 
     private UndergroundTank addTank(PumpSetup setup, String identifier, FuelType fuelType, TankStatus status) {

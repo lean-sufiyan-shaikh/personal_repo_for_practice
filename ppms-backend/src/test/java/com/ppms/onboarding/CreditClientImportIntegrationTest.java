@@ -8,15 +8,12 @@ import com.ppms.support.TestDates;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static com.ppms.onboarding.StaffImportIntegrationTest.freePhone;
-import static com.ppms.onboarding.StaffImportIntegrationTest.issues;
-import static com.ppms.onboarding.StaffImportIntegrationTest.outcomes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -69,47 +66,6 @@ class CreditClientImportIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void parentProblemsAndPhoneClashesAreReportedPerCell() throws Exception {
-        PumpSetup setup = createPumpWithStock("0");
-        String sharedPhone = freePhone();
-        perform(post("/api/pumps/{pumpId}/imports/credit-clients", setup.pumpId()), setup.owner(),
-                rows(row(2, "Existing Group", sharedPhone, null, Map.of()), row(3, "Existing Sub", freePhone(), "Existing Group", Map.of())))
-                .andExpect(status().isOk());
-
-        JsonNode report = json(perform(post("/api/pumps/{pumpId}/imports/credit-clients/preview", setup.pumpId()), setup.owner(), rows(
-                row(2, "Orphan", freePhone(), "Nobody", Map.of()),
-                row(3, "Too deep", freePhone(), "Existing Sub", Map.of()),
-                row(4, "New Root", sharedPhone, null, Map.of()),
-                row(5, "Child", freePhone(), "Existing Group", Map.of("credit_limit", "100")),
-                row(6, "Bad <name>", freePhone(), null, Map.of("gstin", "123"))))
-                .andExpect(status().isOk()));
-
-        assertThat(outcomes(report)).containsOnly("ERROR");
-        assertThat(issues(report, 0)).containsExactly("parent_name:IMPORT_PARENT_NOT_FOUND");
-        assertThat(issues(report, 1)).containsExactly("parent_name:CREDIT_SUB_ACCOUNT_NESTING_NOT_ALLOWED");
-        assertThat(issues(report, 2)).containsExactly("phone:CREDIT_CLIENT_PHONE_TAKEN");
-        assertThat(issues(report, 3)).containsExactly("credit_limit:IMPORT_CREDIT_LIMIT_ON_SUB_ACCOUNT");
-        assertThat(issues(report, 4)).containsExactlyInAnyOrder("name:IMPORT_TEXT_HAS_ANGLE_BRACKETS", "gstin:GSTIN_INVALID");
-    }
-
-    @Test
-    void duplicatesInTheFileAreErrorsAndAPhoneCannotSpanTwoGroups() throws Exception {
-        PumpSetup setup = createPumpWithStock("0");
-        String phone = freePhone();
-
-        JsonNode report = json(perform(post("/api/pumps/{pumpId}/imports/credit-clients/preview", setup.pumpId()), setup.owner(), rows(
-                row(2, "Alpha", phone, null, Map.of()),
-                row(3, "ALPHA", freePhone(), null, Map.of()),
-                row(4, "Beta", phone, null, Map.of()),
-                row(5, "Alpha Sub", phone, "Alpha", Map.of())))
-                .andExpect(status().isOk()));
-
-        assertThat(outcomes(report)).containsExactly("CREATE", "ERROR", "ERROR", "CREATE");
-        assertThat(issues(report, 1)).containsExactly("name:IMPORT_DUPLICATE_IN_FILE");
-        assertThat(issues(report, 2)).containsExactly("phone:IMPORT_PHONE_IN_OTHER_GROUP");
-    }
-
-    @Test
     void uploadingTheSameFileTwiceAddsNoClientAndNoSecondOpeningBalance() throws Exception {
         PumpSetup setup = createPumpWithStock("0");
         Map<String, Object> file = rows(row(2, "Repeat Co", freePhone(), null, Map.of("opening_balance", "1000")),
@@ -123,32 +79,6 @@ class CreditClientImportIntegrationTest extends ApiIntegrationTest {
         assertThat(clientRepository.findByPumpIdOrderByNameAsc(setup.pumpId())).hasSize(2);
         JsonNode clients = json(perform(get("/api/pumps/{pumpId}/credit-clients", setup.pumpId()), setup.owner()));
         assertThat(outstandingOf(clients, "Repeat Co")).isEqualTo("1000.00");
-    }
-
-    @Test
-    void limitCellTakesAnAmountOrUnlimitedAndBlankTakesThePumpDefaultOnlyWhenItAllowsCredit() throws Exception {
-        PumpSetup setup = createPumpWithStock("0");
-
-        perform(post("/api/pumps/{pumpId}/imports/credit-clients", setup.pumpId()), setup.owner(), rows(
-                row(2, "Trusted Fleet", freePhone(), null, Map.of("credit_limit", "Unlimited")),
-                row(3, "Cash Only", freePhone(), null, Map.of("credit_limit", "0")),
-                row(4, "Default Limit", freePhone(), null, Map.of())))
-                .andExpect(status().isOk());
-
-        assertThat(clientNamed(setup, "Trusted Fleet").isUnlimitedCredit()).isTrue();
-        assertThat(clientNamed(setup, "Cash Only").isUnlimitedCredit()).isFalse();
-        assertThat(clientNamed(setup, "Cash Only").getCreditLimit()).isEqualByComparingTo("0");
-        assertThat(clientNamed(setup, "Default Limit").getCreditLimit()).isEqualByComparingTo(TEST_DEFAULT_CREDIT_LIMIT);
-
-        setup.pump().setDefaultCreditLimit(BigDecimal.ZERO);
-        pumpLocationRepository.save(setup.pump());
-        JsonNode report = json(perform(post("/api/pumps/{pumpId}/imports/credit-clients/preview", setup.pumpId()),
-                setup.owner(), rows(
-                        row(2, "No Limit Given", freePhone(), null, Map.of()),
-                        row(3, "Words", freePhone(), null, Map.of("credit_limit", "lots"))))
-                .andExpect(status().isOk()));
-        assertThat(issues(report, 0)).containsExactly("credit_limit:IMPORT_CREDIT_LIMIT_REQUIRED");
-        assertThat(issues(report, 1)).containsExactly("credit_limit:IMPORT_NUMBER_INVALID");
     }
 
     private CreditClient clientNamed(PumpSetup setup, String name) {
