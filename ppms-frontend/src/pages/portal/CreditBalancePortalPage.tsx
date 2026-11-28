@@ -1,36 +1,21 @@
 import { useState } from 'react'
-import { isAxiosError } from 'axios'
 import { useTranslation } from 'react-i18next'
 import { FormField } from '../../components/FormField'
 import { PasswordInput } from '../../components/PasswordInput'
-import { PORTAL_PIN_PATTERN, digitsOnly } from '../../constants/portalPin'
+import { digitsOnly } from '../../constants/portalPin'
 import { NumericInput } from '../../components/NumericInput'
 import { LoadingButton } from '../../components/LoadingButton'
 import { AuthCard, AuthScreen } from '../auth/AuthCard'
 import { PortalBalanceResult } from './PortalBalanceResult'
 import type { PortalBalance } from './PortalBalanceResult'
 import { publicClient } from './portalClient'
-
-const DEFAULT_WAIT_MINUTES = 15
+import { isLookupComplete, lookupError } from './portalLookup'
+import type { PortalError } from './portalLookup'
 
 /** A reminder links here with ?pump=<id>, so the client only types their phone and PIN. */
 function pumpIdFromLink(): string {
   const pump = new URLSearchParams(window.location.search).get('pump') ?? ''
   return /^\d+$/.test(pump) ? pump : ''
-}
-
-type PortalError =
-  | { kind: 'incomplete' | 'noMatch' | 'lookupFailed' }
-  | { kind: 'tooManyAttempts'; minutes: number }
-
-function lookupError(err: unknown): PortalError {
-  const response = isAxiosError(err) ? err.response : undefined
-  if (response?.status === 429) {
-    const minutes = (response.data as { params?: { minutes?: unknown } } | undefined)?.params?.minutes
-    return { kind: 'tooManyAttempts', minutes: typeof minutes === 'number' && minutes > 0 ? minutes : DEFAULT_WAIT_MINUTES }
-  }
-  if (response?.status === 404 || response?.status === 400) return { kind: 'noMatch' }
-  return { kind: 'lookupFailed' }
 }
 
 export default function CreditBalancePortalPage() {
@@ -44,7 +29,7 @@ export default function CreditBalancePortalPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!pumpId.trim() || !/^\d{10}$/.test(phone) || !PORTAL_PIN_PATTERN.test(pin)) {
+    if (!isLookupComplete(pumpId, phone, pin)) {
       setError({ kind: 'incomplete' })
       return
     }
