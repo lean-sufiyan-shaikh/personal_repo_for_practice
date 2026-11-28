@@ -32,16 +32,19 @@ ALTER TABLE shifts
     ADD COLUMN closed_at            TIMESTAMPTZ,
     ADD COLUMN rounding_adjustment  NUMERIC(12,2),
     ADD COLUMN stock_shortfall      BOOLEAN       NOT NULL DEFAULT FALSE,
-    ADD COLUMN cash_recovered_at    TIMESTAMPTZ,
-    ADD CONSTRAINT chk_shift_cash_recovery_positive CHECK (cash_recovery_amount IS NULL OR cash_recovery_amount > 0),
-    ADD CONSTRAINT chk_shift_cash_recovery_fields CHECK ((cash_recovery_amount IS NULL) = (cash_recovered_at IS NULL)),
-    ADD CONSTRAINT chk_shift_cash_recovery_within_discrepancy
-        CHECK (cash_recovery_amount IS NULL OR cash_recovery_amount <= discrepancy_amount);
+    ADD COLUMN cash_recovered_at    TIMESTAMPTZ;
 
 UPDATE shifts SET cash_recovery_amount = NULL WHERE cash_recovery_amount IS NOT NULL AND cash_recovery_amount <= 0;
 UPDATE shifts
 SET cash_recovered_at = COALESCE(discrepancy_resolved_at, updated_at)
 WHERE cash_recovery_amount IS NOT NULL;
+
+-- Added after the backfill above, so shifts that already recorded a recovery satisfy them.
+ALTER TABLE shifts
+    ADD CONSTRAINT chk_shift_cash_recovery_positive CHECK (cash_recovery_amount IS NULL OR cash_recovery_amount > 0),
+    ADD CONSTRAINT chk_shift_cash_recovery_fields CHECK ((cash_recovery_amount IS NULL) = (cash_recovered_at IS NULL)),
+    ADD CONSTRAINT chk_shift_cash_recovery_within_discrepancy
+        CHECK (cash_recovery_amount IS NULL OR cash_recovery_amount <= discrepancy_amount);
 
 -- 3. Litres a shift sold that the tank's book stock could not cover at close; cleared as later deliveries cover them.
 ALTER TABLE shift_fuel_readings
