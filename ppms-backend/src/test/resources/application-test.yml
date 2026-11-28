@@ -5,6 +5,8 @@ ppms:
     secret: test-only-jwt-secret-that-is-at-least-thirty-two-bytes-long
   cookie:
     secure: false
+  security:
+    password-hash-strength: 4
 
 SUPER_ADMIN_PASSWORD: Test@Admin123
 

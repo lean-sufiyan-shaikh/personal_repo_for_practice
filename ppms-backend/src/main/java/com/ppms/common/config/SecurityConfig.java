@@ -41,6 +41,10 @@ public class SecurityConfig {
     @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://localhost:8080}")
     private String corsAllowedOrigins;
 
+    // Tests lower it: hashing every test user at full strength took a large share of the suite's time
+    @Value("${ppms.security.password-hash-strength:10}")
+    private int passwordHashStrength;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -97,7 +101,7 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(passwordHashStrength);
     }
 
     private AuthenticationProvider authenticationProvider() {
