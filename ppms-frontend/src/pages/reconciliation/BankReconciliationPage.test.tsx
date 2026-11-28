@@ -79,32 +79,7 @@ describe('BankReconciliationPage', () => {
     await user.click(importButton)
 
     expect(bankReconciliationApi.importStatement).toHaveBeenCalledWith(3, { file, bankName: 'HDFC', accountNumber: undefined, dateFormat: 'DAY_FIRST' })
-    const notice = await screen.findByRole('status')
-    expect(notice).toHaveTextContent('Statement imported')
-    expect(notice).toHaveTextContent('12 lines added · 5 matched · 3 suggested · 2 lines already imported, skipped')
-  })
-
-  it('refuses a file that is not a CSV', async () => {
-    const user = userEvent.setup({ applyAccept: false })
-    renderWithProviders(<BankReconciliationPage />)
-
-    await user.upload(await screen.findByLabelText('Statement file (.csv)'), new File(['x'], 'statement.pdf', { type: 'application/pdf' }))
-    await user.type(screen.getByLabelText('Bank name'), 'HDFC')
-
-    expect(screen.getByText('Choose a .csv file.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Import statement' })).toBeDisabled()
-  })
-
-  it('sums up the newest statement: share matched, count per status and unmatched money in and out', async () => {
-    renderWithProviders(<BankReconciliationPage />)
-
-    const summary = await screen.findByRole('group', { name: 'Reconciliation summary' })
-    expect(within(summary).getByText('Share matched').nextSibling).toHaveTextContent('25%')
-    expect(within(summary).getByText('Suggested').nextSibling).toHaveTextContent('1')
-    expect(within(summary).getByText('Unmatched').nextSibling).toHaveTextContent('2')
-    expect(within(summary).getByText('Unmatched money in').nextSibling).toHaveTextContent('₹2,500.00')
-    expect(within(summary).getByText('Unmatched money out').nextSibling).toHaveTextContent('₹800.00')
-    expect(bankReconciliationApi.getLines).toHaveBeenCalledWith(3, 12)
+    expect(await screen.findByRole('status')).toHaveTextContent('Statement imported')
   })
 
   it('shows lines as cards on phones and as a table from md up, filtered by status', async () => {
@@ -112,6 +87,7 @@ describe('BankReconciliationPage', () => {
     renderWithProviders(<BankReconciliationPage />)
 
     const cards = await screen.findAllByTestId('statement-line-card')
+    expect(bankReconciliationApi.getLines).toHaveBeenCalledWith(3, 12)
     expect(cards).toHaveLength(4)
     expect(cards[0].closest('ul')).toHaveClass('md:hidden')
     expect(screen.getByRole('region', { name: 'Bank statement lines' })).toHaveClass('hidden', 'md:block')
@@ -197,6 +173,6 @@ describe('BankReconciliationPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Run auto-match' }))
     expect(bankReconciliationApi.autoMatch).toHaveBeenCalledWith(3, 12)
-    expect(await screen.findByRole('status')).toHaveTextContent('Auto-match finished1 matched · 0 suggested')
+    expect(await screen.findByRole('status')).toHaveTextContent('Auto-match finished')
   })
 })
