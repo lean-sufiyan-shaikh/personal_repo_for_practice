@@ -29,14 +29,11 @@ class UserLanguageIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void newUserSignsInWithEnglish() throws Exception {
+    void newUserSignsInWithEnglishThenChoosesMarathiAndItComesBackOnSignInAndRefresh() throws Exception {
         login(setup.operator().getPhoneNumber())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.preferredLanguage").value("en"));
-    }
 
-    @Test
-    void userChoosesMarathiAndItComesBackOnSignInAndRefresh() throws Exception {
         perform(patch("/api/users/me/language"), setup.operator(), Map.of("language", "mr"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.preferredLanguage").value("mr"));

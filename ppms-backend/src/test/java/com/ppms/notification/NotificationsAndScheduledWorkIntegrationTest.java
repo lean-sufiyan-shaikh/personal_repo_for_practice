@@ -101,26 +101,16 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void readingANotificationClearsItOnlyForTheReader() throws Exception {
-        long lowStockId = insertNotification(NotificationType.LOW_STOCK);
-
-        perform(post("/api/pumps/{pumpId}/notifications/mark-read", setup.pumpId()), setup.manager(),
-                Map.of("ids", List.of(lowStockId)))
-                .andExpect(status().is2xxSuccessful());
-
-        assertThat(notificationIds(setup.manager())).doesNotContain(lowStockId);
-        assertThat(notificationIds(setup.owner())).contains(lowStockId);
-        assertThat(notificationIds(setup.operator())).contains(lowStockId);
-    }
-
-    @Test
-    void historyListsReadAndUnreadNotificationsWithTheReadersOwnReadState() throws Exception {
+    void readingANotificationClearsItOnlyForTheReaderAndHistoryKeepsEachReadersOwnReadState() throws Exception {
         long readId = insertNotification(NotificationType.LOW_STOCK);
         long unreadId = insertNotification(NotificationType.LOW_STOCK);
         perform(post("/api/pumps/{pumpId}/notifications/mark-read", setup.pumpId()), setup.manager(),
                 Map.of("ids", List.of(readId)))
                 .andExpect(status().is2xxSuccessful());
 
+        assertThat(notificationIds(setup.manager())).doesNotContain(readId);
+        assertThat(notificationIds(setup.owner())).contains(readId);
+        assertThat(notificationIds(setup.operator())).contains(readId);
         JsonNode managerHistory = history(setup.manager(), null);
         assertThat(readStateById(managerHistory)).containsEntry(readId, true).containsEntry(unreadId, false);
         assertThat(readStateById(history(setup.owner(), null))).containsEntry(readId, false);
@@ -128,10 +118,13 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void notificationsCarryThePageTheyOpen() throws Exception {
+    void notificationsCarryThePageTheyOpenAndTheCodeAndParamsTheirTextWasBuiltFrom() throws Exception {
         notificationDedupService.maybeInsert(setup.pumpId(), NotificationType.ZERO_SALE_SHIFT,
                 "ZERO_SALE_SHIFT:shift:4242", "Zero-Sale Shift Detected", "Shift #4242 recorded nothing",
                 Map.of("shiftName", "Morning", "shiftId", 4242));
+        notificationDedupService.maybeInsert(setup.pumpId(), NotificationType.DOCUMENT_EXPIRING,
+                "DOCUMENT_EXPIRING:doc:77:2026-01-01:EXPIRED", "Document Expired", "Licence (LICENCE) expired on 2026-01-01",
+                Map.of("documentName", "Licence", "documentType", "LICENCE", "expiryDate", "2026-01-01"));
 
         JsonNode unread = json(perform(get("/api/pumps/{pumpId}/notifications", setup.pumpId()), setup.manager())
                 .andExpect(status().isOk()));
@@ -140,16 +133,6 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
         assertThat(zeroSale.get("target").get("params").get("shift").asText()).isEqualTo("4242");
         assertThat(zeroSale.get("read").asBoolean()).isFalse();
         assertThat(zeroSale.has("createdAt")).isTrue();
-    }
-
-    @Test
-    void notificationsCarryTheCodeAndParamsTheirTextWasBuiltFrom() throws Exception {
-        notificationDedupService.maybeInsert(setup.pumpId(), NotificationType.DOCUMENT_EXPIRING,
-                "DOCUMENT_EXPIRING:doc:77:2026-01-01:EXPIRED", "Document Expired", "Licence (LICENCE) expired on 2026-01-01",
-                Map.of("documentName", "Licence", "documentType", "LICENCE", "expiryDate", "2026-01-01"));
-
-        JsonNode unread = json(perform(get("/api/pumps/{pumpId}/notifications", setup.pumpId()), setup.manager())
-                .andExpect(status().isOk()));
         JsonNode expired = findByType(unread.get("notifications"), "DOCUMENT_EXPIRING");
         assertThat(expired.get("code").asText()).isEqualTo("DOCUMENT_EXPIRED");
         assertThat(expired.get("params").get("documentName").asText()).isEqualTo("Licence");

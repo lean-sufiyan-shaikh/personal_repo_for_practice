@@ -104,27 +104,7 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void rejectedPaymentLeavesTheBalanceUnchanged() throws Exception {
-        setCreditPaymentApprovalThreshold("100.00");
-        long clientId = createClient(null);
-        sellOnCredit(clientId, "1000.00");
-        long paymentId = json(recordPayment(clientId, "500.00")).get("id").asLong();
-
-        perform(patch("/api/pumps/{pumpId}/credit-ledger/payments/{paymentId}/approve", setup.pumpId(), paymentId),
-                setup.owner(), Map.of("status", "REJECTED"))
-                .andExpect(status().isOk());
-
-        assertThat(outstandingOf(clientId)).isEqualByComparingTo("1000.00");
-        JsonNode transactions = json(perform(get("/api/pumps/{pumpId}/credit-ledger/{clientId}/transactions", setup.pumpId(), clientId),
-                setup.owner()).andExpect(status().isOk()));
-        assertThat(transactions.get("content")).anySatisfy(row -> {
-            assertThat(row.get("type").asText()).isEqualTo("PAYMENT");
-            assertThat(row.get("countedInBalance").asBoolean()).isFalse();
-        });
-    }
-
-    @Test
-    void rejectingASinglePaymentKeepsTheReasonInTheAudit() throws Exception {
+    void rejectedPaymentLeavesTheBalanceUnchangedAndKeepsTheReasonInTheAudit() throws Exception {
         setCreditPaymentApprovalThreshold("100.00");
         long clientId = createClient(null);
         sellOnCredit(clientId, "1000.00");
@@ -135,6 +115,13 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paymentApprovalStatus").value("REJECTED"));
 
+        assertThat(outstandingOf(clientId)).isEqualByComparingTo("1000.00");
+        JsonNode transactions = json(perform(get("/api/pumps/{pumpId}/credit-ledger/{clientId}/transactions", setup.pumpId(), clientId),
+                setup.owner()).andExpect(status().isOk()));
+        assertThat(transactions.get("content")).anySatisfy(row -> {
+            assertThat(row.get("type").asText()).isEqualTo("PAYMENT");
+            assertThat(row.get("countedInBalance").asBoolean()).isFalse();
+        });
         assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(setup.pumpId()))
                 .filteredOn(log -> log.getEntityId().equals(String.valueOf(paymentId)))
                 .anySatisfy(log -> assertThat(log.getDescription()).contains("REJECTED").contains("reason=Cheque bounced"));
@@ -325,7 +312,7 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void reassigningACreditEntryMovesItsAmountToAnotherSubAccountOfTheSameGroup() throws Exception {
+    void reassigningACreditEntryMovesItsAmountToAnotherSubAccountOfTheSameGroupAndIsAudited() throws Exception {
         long parent = createClient(null);
         long fromClient = createClient(parent);
         long toClient = createClient(parent);
@@ -338,6 +325,13 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
         assertThat(outstandingOf(fromClient)).isEqualByComparingTo("0");
         assertThat(outstandingOf(toClient)).isEqualByComparingTo("220.00");
         assertThat(outstandingOf(parent)).isEqualByComparingTo("220.00");
+        assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(setup.pumpId()))
+                .filteredOn(log -> log.getAction() == AuditAction.CREDIT_ENTRY_REASSIGNED)
+                .singleElement()
+                .satisfies(log -> {
+                    assertThat(log.getEntityId()).isEqualTo(String.valueOf(entryId));
+                    assertThat(log.getDescription()).contains("clientId=" + toClient).contains("Billed to wrong vehicle");
+                });
     }
 
     @Test
@@ -689,26 +683,6 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
                 .satisfies(log -> {
                     assertThat(log.getActorId()).isEqualTo(setup.admin().getId());
                     assertThat(log.getDescription()).contains("Missed payment");
-                });
-    }
-
-    @Test
-    void movingACreditEntryToAnotherAccountIsAudited() throws Exception {
-        long parent = createClient(null);
-        long fromClient = createClient(parent);
-        long toClient = createClient(parent);
-        long entryId = sellOnCredit(fromClient, "220.00");
-
-        perform(post("/api/pumps/{pumpId}/credit-ledger/entries/{entryId}/reassign", setup.pumpId(), entryId),
-                setup.manager(), Map.of("toClientId", toClient, "reason", "Billed to wrong vehicle"))
-                .andExpect(status().is2xxSuccessful());
-
-        assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(setup.pumpId()))
-                .filteredOn(log -> log.getAction() == AuditAction.CREDIT_ENTRY_REASSIGNED)
-                .singleElement()
-                .satisfies(log -> {
-                    assertThat(log.getEntityId()).isEqualTo(String.valueOf(entryId));
-                    assertThat(log.getDescription()).contains("clientId=" + toClient).contains("Billed to wrong vehicle");
                 });
     }
 

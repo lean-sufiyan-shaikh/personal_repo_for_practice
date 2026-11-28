@@ -166,7 +166,7 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void profitAndLossShowsOneLotLineWhenSeveralShiftsDrawFromTheSameLot() throws Exception {
+    void profitAndLossShowsOneLotLineForShiftsDrawingFromTheSameLotAndSplitsRevenueAndCostByShiftDay() throws Exception {
         String yesterday = TestDates.today().minusDays(1).toString();
         perform(post("/api/pumps/{pumpId}/shifts/backfill", setup.pumpId()), setup.owner(), backfillRequest(yesterday))
                 .andExpect(status().is2xxSuccessful());
@@ -178,16 +178,6 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
         assertThat(lotLines).hasSize(1);
         assertThat(lotLines.get(0).get("quantityConsumed").decimalValue()).isEqualByComparingTo("30");
         assertThat(lotLines.get(0).get("lotCost").decimalValue()).isEqualByComparingTo("2700.00");
-    }
-
-    @Test
-    void profitAndLossSplitsRevenueAndCostOfGoodsByShiftDay() throws Exception {
-        String yesterday = TestDates.today().minusDays(1).toString();
-        perform(post("/api/pumps/{pumpId}/shifts/backfill", setup.pumpId()), setup.owner(), backfillRequest(yesterday))
-                .andExpect(status().is2xxSuccessful());
-
-        JsonNode report = json(perform(get("/api/pumps/{pumpId}/reports/profit-loss", setup.pumpId())
-                .param("from", yesterday).param("to", today), setup.manager()).andExpect(status().isOk()));
 
         JsonNode days = report.get("byDay");
         assertThat(days).hasSize(2);

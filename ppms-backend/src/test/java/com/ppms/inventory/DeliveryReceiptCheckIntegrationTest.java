@@ -68,8 +68,9 @@ class DeliveryReceiptCheckIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void shortBeyondToleranceRaisesOneClaimAndNotificationAndTheLotKeepsTheInvoiceValue() throws Exception {
-        JsonNode line = deliver("12000", "2000", "13800", "1076", null, null);
+    void shortBeyondToleranceRaisesOneClaimCarryingEverythingTheClaimNoteNeedsAndTheLotKeepsTheInvoiceValue()
+            throws Exception {
+        JsonNode line = deliver("12000", "2000", "13800", "1076", "741.0", "745.0");
         long deliveryId = line.get("id").asLong();
 
         assertThat(line.get("checkStatus").asText()).isEqualTo("SHORT");
@@ -85,6 +86,17 @@ class DeliveryReceiptCheckIntegrationTest extends ApiIntegrationTest {
                 .satisfies(notification -> assertThat(notification.getDedupKey())
                         .isEqualTo("DELIVERY_SHORTAGE:delivery:" + deliveryId));
         assertThat(auditActions()).contains(AuditAction.SHORTAGE_CLAIM_RAISED);
+
+        JsonNode claimNote = json(perform(get(claimPath(claim.getId())), setup.manager()).andExpect(status().isOk()));
+        assertThat(claimNote.get("shortLitres").decimalValue()).isEqualByComparingTo("124");
+        assertThat(claimNote.get("shortPercent").decimalValue()).isEqualByComparingTo("1.03");
+        assertThat(claimNote.get("dipBeforeLitres").decimalValue()).isEqualByComparingTo("2000");
+        assertThat(claimNote.get("densityFlagged").asBoolean()).isTrue();
+        assertThat(claimNote.get("nozzleReadings")).singleElement().satisfies(reading -> {
+            assertThat(reading.get("readingAfter").decimalValue()).isEqualByComparingTo("1076");
+            assertThat(reading.get("litresSold").decimalValue()).isEqualByComparingTo("76");
+        });
+        assertThat(claimNote.get("pump").get("name").asText()).isEqualTo(setup.pump().getName());
     }
 
     @Test
@@ -195,23 +207,6 @@ class DeliveryReceiptCheckIntegrationTest extends ApiIntegrationTest {
         assertThat(totals.get("settledCount").asLong()).isEqualTo(1);
         assertThat(totals.get("settledAmount").decimalValue()).isEqualByComparingTo("800.00");
         assertThat(totals.get("rejectedCount").asLong()).isEqualTo(1);
-    }
-
-    @Test
-    void oneClaimCarriesEverythingTheClaimNoteNeeds() throws Exception {
-        long claimId = claimIdOf(deliver("12000", "2000", "13800", "1076", "741.0", "745.0"));
-
-        JsonNode claim = json(perform(get(claimPath(claimId)), setup.manager()).andExpect(status().isOk()));
-
-        assertThat(claim.get("shortLitres").decimalValue()).isEqualByComparingTo("124");
-        assertThat(claim.get("shortPercent").decimalValue()).isEqualByComparingTo("1.03");
-        assertThat(claim.get("dipBeforeLitres").decimalValue()).isEqualByComparingTo("2000");
-        assertThat(claim.get("densityFlagged").asBoolean()).isTrue();
-        assertThat(claim.get("nozzleReadings")).singleElement().satisfies(reading -> {
-            assertThat(reading.get("readingAfter").decimalValue()).isEqualByComparingTo("1076");
-            assertThat(reading.get("litresSold").decimalValue()).isEqualByComparingTo("76");
-        });
-        assertThat(claim.get("pump").get("name").asText()).isEqualTo(setup.pump().getName());
     }
 
     @Test
