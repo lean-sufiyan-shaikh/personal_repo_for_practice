@@ -39,7 +39,10 @@ class CashEventReversalIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void openingBalanceIsOncePerPumpUntilReversed() throws Exception {
+    void openingBalanceIsOwnerOrAdminOnlyAndOncePerPumpUntilReversed() throws Exception {
+        record(setup.manager(), "OPENING_BALANCE", "5000.00", "Float from the owner")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CASH_OPENING_BALANCE_OWNER_ONLY"));
         long opening = id(record(setup.owner(), "OPENING_BALANCE", "5000.00", "Float from the owner")
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.recordedByHand").value(true)));

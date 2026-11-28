@@ -239,6 +239,20 @@ class ShiftCloseControlsIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void managerWhoClosedTheShiftCannotWaiveItsDiscrepancyButTheOwnerCan() throws Exception {
+        long shiftId = closeShort("200.00");
+
+        perform(patch(RESOLVE_PATH, setup.pumpId(), shiftId), setup.manager(),
+                Map.of("resolutionAction", "WAIVED", "resolutionNote", "Small amount"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("WAIVER_BY_CLOSER_NOT_ALLOWED"));
+        perform(patch(RESOLVE_PATH, setup.pumpId(), shiftId), setup.owner(),
+                Map.of("resolutionAction", "WAIVED", "resolutionNote", "Small amount"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED_DISCREPANCY_RESOLVED"));
+    }
+
     private List<String> attentionTypes() throws Exception {
         return json(perform(get("/api/pumps/{pumpId}/attention", setup.pumpId()), setup.owner())
                 .andExpect(status().isOk())).findValuesAsText("type");

@@ -84,6 +84,19 @@ class LateSafeCountIntegrationTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.varianceType").doesNotExist());
     }
 
+    @Test
+    void managerCannotCountForYesterdayAfterTheCutoff() throws Exception {
+        setCutoff("00:00");
+        perform(get("/api/pumps/{pumpId}/safe", setup.pumpId()), setup.manager())
+                .andExpect(jsonPath("$.yesterdayCountOpen").value(false));
+
+        recordCount(setup.manager(), count("1000.00", YESTERDAY, "Forgot to count"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("SAFE_COUNT_BACK_DATE_NOT_ALLOWED"))
+                .andExpect(jsonPath("$.params.date").value(YESTERDAY.toString()))
+                .andExpect(jsonPath("$.params.cutoffTime").value("00:00"));
+    }
+
     private ResultActions setCutoff(String time) throws Exception {
         return perform(patch("/api/pumps/{pumpId}/settings", setup.pumpId()), setup.owner(), Map.of("safeCountCutoffTime", time))
                 .andExpect(status().isOk());

@@ -138,7 +138,7 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void escalatedShortageBlocksDeactivatingTheOperatorUntilTheOwnerResolvesIt() throws Exception {
+    void escalatedShortageBlocksDeactivatingTheOperatorAndOnlyTheOwnerResolvesIt() throws Exception {
         PumpLocation pump = setup.pump();
         pump.setDiscrepancyEscalationThreshold(new BigDecimal("100.00"));
         pumpLocationRepository.save(pump);
@@ -148,6 +148,9 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().is2xxSuccessful()));
         assertThat(closed.get("status").asText()).isEqualTo("CLOSED_DISCREPANCY_PENDING_APPROVAL");
         perform(patch("/api/users/{userId}/status", setup.operator().getId()), setup.owner(), Map.of("status", "INACTIVE"))
+                .andExpect(status().isBadRequest());
+        perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
+                setup.manager(), Map.of("resolutionAction", "WAIVED", "resolutionNote", "Let it go"))
                 .andExpect(status().isBadRequest());
 
         JsonNode resolved = json(perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),

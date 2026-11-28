@@ -7,6 +7,7 @@ import com.ppms.shift.ShiftRepository;
 import com.ppms.shift.ShiftStatus;
 import com.ppms.support.ApiIntegrationTest;
 import com.ppms.user.User;
+import com.ppms.user.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -137,6 +138,37 @@ class CashDropIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("DENOMINATIONS_TOTAL_MISMATCH"));
         assertThat(shiftRepository.findById(shiftId).orElseThrow().getStatus()).isEqualTo(ShiftStatus.OPEN);
+    }
+
+    @Test
+    void operatorCannotConfirmOrRejectAndCannotDropFromAnotherOperatorsShift() throws Exception {
+        long dropId = recordedDropId(setup.operator(), "600.00");
+        perform(patch("/api/pumps/{pumpId}/cash-drops/{dropId}/confirm", setup.pumpId(), dropId), setup.operator())
+                .andExpect(status().isForbidden());
+        perform(patch("/api/pumps/{pumpId}/cash-drops/{dropId}/reject", setup.pumpId(), dropId), setup.operator(),
+                Map.of("reason", "No"))
+                .andExpect(status().isForbidden());
+        perform(get("/api/pumps/{pumpId}/cash-drops/pending", setup.pumpId()), setup.operator()).andExpect(status().isForbidden());
+
+        User otherOperator = saveUser(UserRole.OPERATOR, setup.pumpId());
+        recordDrop(otherOperator, Map.of("amount", new BigDecimal("100.00")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CASH_DROP_NOT_OWN_SHIFT"));
+        perform(get("/api/pumps/{pumpId}/shifts/{shiftId}/cash-drops", setup.pumpId(), shiftId), otherOperator)
+                .andExpect(status().isNotFound());
+        perform(get("/api/pumps/{pumpId}/shifts/{shiftId}/cash-drops", setup.pumpId(), shiftId), setup.operator())
+                .andExpect(jsonPath("$.length()").value(1));
+    }
+
+    @Test
+    void personWhoRecordedADropCannotConfirmIt() throws Exception {
+        long dropId = recordedDropId(setup.manager(), "300.00");
+
+        perform(patch("/api/pumps/{pumpId}/cash-drops/{dropId}/confirm", setup.pumpId(), dropId), setup.manager())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CASH_DROP_SELF_CONFIRMATION"));
+        perform(patch("/api/pumps/{pumpId}/cash-drops/{dropId}/confirm", setup.pumpId(), dropId), setup.owner())
+                .andExpect(status().isOk());
     }
 
     private ResultActions recordDrop(User user, Map<String, Object> body) throws Exception {

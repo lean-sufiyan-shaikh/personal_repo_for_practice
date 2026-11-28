@@ -21,6 +21,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Several operators on one DU shift, nozzle swaps and relief breaks: who sold which litres, without closing the shift. */
@@ -91,6 +92,10 @@ class ShiftOperationsIntegrationTest extends ApiIntegrationTest {
     void reliefOperatorSellsDuringTheBreakAndTheOperatorTakesTheNozzlesBack() throws Exception {
         long shiftId = openShift();
 
+        perform(post(SHIFT_PATH + "/reliefs", setup.pumpId(), shiftId), second,
+                relief(reliever, List.of(reading(setup.nozzle(), "1003.000"), reading(secondNozzle, "2002.000")), null))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("RELIEF_NOT_OWN_SHIFT"));
         perform(post(SHIFT_PATH + "/reliefs", setup.pumpId(), shiftId), setup.operator(),
                 relief(reliever, List.of(reading(setup.nozzle(), "1003.000"), reading(secondNozzle, "2002.000")),
                         new BigDecimal("200.00")))

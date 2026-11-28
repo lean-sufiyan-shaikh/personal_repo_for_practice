@@ -2,6 +2,8 @@ package com.ppms.shift;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ppms.support.ApiIntegrationTest;
+import com.ppms.user.User;
+import com.ppms.user.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,6 +61,18 @@ class BlindCashCountIntegrationTest extends ApiIntegrationTest {
         assertThat(closed.get("discrepancyType").asText()).isEqualTo("SHORT");
         assertThat(closed.get("discrepancyAmount").decimalValue()).isEqualByComparingTo("100.00");
         assertThat(auditCount(shiftId, "BLIND_CASH_COUNTED")).isEqualTo(1);
+    }
+
+    @Test
+    void anOperatorCountsOnlyAShiftTheyWork() throws Exception {
+        long shiftId = openShift();
+        User otherOperator = saveUser(UserRole.OPERATOR, setup.pumpId());
+
+        perform(post(COUNT_PATH, setup.pumpId(), shiftId), otherOperator, count("100.00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BLIND_COUNT_NOT_OWN_SHIFT"));
+        perform(post(COUNT_PATH, setup.pumpId(), shiftId), setup.accountant(), count("100.00"))
+                .andExpect(status().isForbidden());
     }
 
     private long openShift() throws Exception {
