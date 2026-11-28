@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class CreditLimitControlsIntegrationTest extends ApiIntegrationTest {
 
+    @Autowired private CreditClientRepository clientRepository;
     @Autowired private CreditOpeningBalanceRepository openingBalanceRepository;
 
     private PumpSetup setup;
@@ -56,6 +57,25 @@ class CreditLimitControlsIntegrationTest extends ApiIntegrationTest {
         sellOnCredit(childId, "2000.00").andExpect(status().is2xxSuccessful());
         assertThat(standingOf(childId).get("creditStatus").asText()).isEqualTo("NEAR_LIMIT");
         assertThat(standingOf(childId).get("availableCredit").decimalValue()).isEqualByComparingTo("500.00");
+    }
+
+    @Test
+    void managerRaisesUpToTheCapButNotBeyondItAndCannotGiveUnlimitedCredit() throws Exception {
+        long clientId = createClient(null);
+
+        changeLimit(clientId, "50000", false, setup.manager()).andExpect(status().isOk());
+        changeLimit(clientId, "50000.01", false, setup.manager()).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CREDIT_LIMIT_ABOVE_MANAGER_CAP"))
+                .andExpect(jsonPath("$.params.cap").value("50000.00"));
+        changeLimit(clientId, "0", true, setup.manager()).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CREDIT_LIMIT_UNLIMITED_OWNER_ONLY"));
+
+        changeLimit(clientId, "80000", false, setup.admin()).andExpect(status().isOk());
+        changeLimit(clientId, "60000", false, setup.manager()).andExpect(status().isOk());
+        changeLimit(clientId, "0", true, setup.owner()).andExpect(status().isOk());
+        changeLimit(clientId, "70000", false, setup.manager()).andExpect(status().isOk());
+
+        assertThat(clientRepository.findById(clientId).orElseThrow().getCreditLimit()).isEqualByComparingTo("70000");
     }
 
     @Test

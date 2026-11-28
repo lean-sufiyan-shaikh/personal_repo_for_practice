@@ -65,6 +65,16 @@ class CreditPaymentRecordingIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void managersBackDatedPaymentWaitsForApprovalByThePumpsLimit() throws Exception {
+        assertThat(statusOf(record(setup.manager(), payment("100.00", "CASH", TODAY.minusDays(7), null)))).isEqualTo("APPROVED");
+        assertThat(statusOf(record(setup.manager(), payment("100.00", "CASH", TODAY.minusDays(8), null)))).isEqualTo("PENDING_APPROVAL");
+        assertThat(statusOf(record(setup.owner(), payment("100.00", "CASH", TODAY.minusDays(30), null)))).isEqualTo("APPROVED");
+
+        saveSettings(null, 30).andExpect(status().isOk());
+        assertThat(statusOf(record(setup.manager(), payment("100.00", "CASH", TODAY.minusDays(8), null)))).isEqualTo("APPROVED");
+    }
+
+    @Test
     void resendWithTheSameIdempotencyKeyRecordsAndApprovesOnce() throws Exception {
         String recordKey = "record-" + shortId();
         Map<String, Object> body = payment("700.00", "CASH", TODAY.minusDays(10), null);
@@ -104,6 +114,19 @@ class CreditPaymentRecordingIntegrationTest extends ApiIntegrationTest {
     private ResultActions approveWithKey(long paymentId, String key) throws Exception {
         return perform(patch("/api/pumps/{pumpId}/credit-ledger/payments/{paymentId}/approve", setup.pumpId(), paymentId)
                 .header("Idempotency-Key", key), setup.owner(), Map.of("status", "APPROVED"));
+    }
+
+    private ResultActions saveSettings(BigDecimal threshold, int backdatedDays) throws Exception {
+        Map<String, Object> body = new HashMap<>();
+        body.put("reminderStageDays", List.of(7, 15, 30));
+        body.put("creditHoldDays", 45);
+        body.put("creditPaymentApprovalThreshold", threshold);
+        body.put("backdatedPaymentApprovalDays", backdatedDays);
+        return perform(put("/api/pumps/{pumpId}/collection-settings", setup.pumpId()), setup.owner(), body);
+    }
+
+    private String statusOf(ResultActions result) throws Exception {
+        return json(result.andExpect(status().isCreated())).get("paymentApprovalStatus").asText();
     }
 
     private static Map<String, Object> payment(String amount, String mode, LocalDate paidAt, String referenceNo) {
