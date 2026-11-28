@@ -223,6 +223,9 @@
                     <!-- UTC JVM zone proves the code and tests rely on the IST business clock, not the machine zone -->
                     <argLine>@{argLine} -Duser.timezone=UTC</argLine>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <!-- Two JVMs, each with its own Spring context and Postgres container; a third saved only ~4% more -->
+                    <forkCount>2</forkCount>
+                    <reuseForks>true</reuseForks>
                 </configuration>
             </plugin>
         </plugins>
