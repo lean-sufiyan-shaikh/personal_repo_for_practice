@@ -98,17 +98,6 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void fuelDipLossIsRecordedAndListed() throws Exception {
-        perform(post("/api/pumps/{pumpId}/fuel-dips", setup.pumpId()), setup.owner(),
-                Map.of("tankId", setup.tank().getId(), "litresRemoved", new BigDecimal("2.5"), "reason", "Quality sample",
-                        "dipDate", TestDates.today().toString()))
-                .andExpect(status().is2xxSuccessful());
-
-        assertThat(json(perform(get("/api/pumps/{pumpId}/fuel-dips", setup.pumpId()), setup.owner())
-                .andExpect(status().isOk())).toString()).contains("Quality sample");
-    }
-
-    @Test
     void backDatedDrainIsRefusedAndLeavesTheTankUntouched() throws Exception {
         BigDecimal stockBefore = tankRepository.findById(setup.tank().getId()).orElseThrow().getCurrentStock();
 
@@ -125,7 +114,7 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void drainedFuelLeavesTheTankAtLotCostAndALaterDipCheckFindsNoExtraLoss() throws Exception {
+    void drainedFuelIsListedLeavesTheTankAtLotCostAndALaterDipCheckFindsNoExtraLoss() throws Exception {
         recordDelivery(setup, "100", "95.00", TestDates.today());
 
         JsonNode entry = json(perform(post("/api/pumps/{pumpId}/fuel-dips", setup.pumpId()), setup.owner(),
@@ -133,6 +122,8 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().is2xxSuccessful()));
 
         assertThat(entry.get("fuelType").asText()).isEqualTo("PETROL");
+        assertThat(json(perform(get("/api/pumps/{pumpId}/fuel-dips", setup.pumpId()), setup.owner())
+                .andExpect(status().isOk())).toString()).contains("Tank cleaning");
         assertThat(entry.get("monetaryLoss").decimalValue()).isEqualByComparingTo("90950.00");
         assertThat(entry.get("pricePerUnit").decimalValue()).isEqualByComparingTo("90.050");
         assertThat(tankRepository.findById(setup.tank().getId()).orElseThrow().getCurrentStock()).isEqualByComparingTo("90");
