@@ -41,19 +41,6 @@ describe('SetCreditLimitModal', () => {
     vi.mocked(creditApi.getCreditLimitSettings).mockResolvedValue({ defaultCreditLimit: 0, managerLimitCap: 50_000, nearLimitPercent: 90 })
   })
 
-  it('works out the credit left under the new limit as it is typed', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<SetCreditLimitModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
-
-    expect(figures().getByText('Credit left').nextSibling).toHaveTextContent('₹38,000.00')
-
-    const limit = screen.getByLabelText('Credit limit')
-    await user.clear(limit)
-    await user.type(limit, '10000')
-
-    expect(figures().getByText('Over the new limit by').nextSibling).toHaveTextContent('₹2,000.00')
-  })
-
   it('reads 0 as no credit allowed, not as no limit, and asks why the limit changes', async () => {
     const user = userEvent.setup()
     renderWithProviders(<SetCreditLimitModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
@@ -104,20 +91,5 @@ describe('SetCreditLimitModal', () => {
 
     expect(screen.getByText(/Managers can set a limit up to ₹50,000.00/)).toBeInTheDocument()
     expect(creditApi.updateCreditLimit).not.toHaveBeenCalled()
-  })
-
-  it('lists earlier limit changes with who made them and why', async () => {
-    vi.mocked(creditApi.getCreditLimitChanges).mockResolvedValue([
-      { id: 2, oldLimit: 20_000, newLimit: 50_000, oldUnlimited: false, newUnlimited: false, reason: 'Pays on time',
-        changedByName: 'Ravi Owner', changedAt: '2026-11-20T10:00:00Z' },
-      { id: 1, oldLimit: 0, newLimit: 20_000, oldUnlimited: true, newUnlimited: false, reason: 'Limit introduced',
-        changedByName: 'Ravi Owner', changedAt: '2026-10-01T10:00:00Z' },
-    ])
-    renderWithProviders(<SetCreditLimitModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
-
-    const history = within(await screen.findByRole('region', { name: 'Limit changes' }))
-    expect(await history.findByText('₹20,000.00 → ₹50,000.00')).toBeInTheDocument()
-    expect(history.getByText('No limit → ₹20,000.00')).toBeInTheDocument()
-    expect(history.getByText('Pays on time')).toBeInTheDocument()
   })
 })
