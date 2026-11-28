@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuthUser } from '../types/auth'
 import { queryClient } from '../queryClient'
-import { useAuthStore } from './authStore'
+import { reloadWhenAnotherTabChangesUser, useAuthStore } from './authStore'
 import { usePumpStore } from './usePumpStore'
 
 const owner: AuthUser = { userId: 1, fullName: 'Owner One', role: 'OWNER', assignedPumpId: null }
@@ -16,8 +16,10 @@ function dispatchStorage(key: string, newValue: string | null) {
 
 describe('authStore', () => {
   const reload = vi.fn()
+  let stopListening: () => void
 
   beforeEach(() => {
+    stopListening = reloadWhenAnotherTabChangesUser()
     vi.stubGlobal('location', { ...window.location, reload })
     reload.mockReset()
     useAuthStore.setState({ user: null, isAuthenticated: false })
@@ -26,6 +28,7 @@ describe('authStore', () => {
   })
 
   afterEach(() => {
+    stopListening()
     vi.unstubAllGlobals()
   })
 

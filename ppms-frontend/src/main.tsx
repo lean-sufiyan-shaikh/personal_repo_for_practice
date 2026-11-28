@@ -4,10 +4,11 @@ import './index.css'
 import App from './App.tsx'
 import { initI18n } from './i18n'
 import { browserLanguages, detectLanguage, readStoredLanguage } from './i18n/detectLanguage'
-import { useAuthStore } from './store/authStore'
+import { reloadWhenAnotherTabChangesUser, useAuthStore } from './store/authStore'
 import { applyDensity, readStoredDensity } from './utils/density'
 
 applyDensity(readStoredDensity())
+reloadWhenAnotherTabChangesUser()
 
 const startLanguage = detectLanguage(useAuthStore.getState().user?.preferredLanguage, readStoredLanguage(), browserLanguages())
 

@@ -64,8 +64,8 @@ export const useAuthStore = create<AuthState>()(
 
 // Another tab logging out or signing in as someone else would otherwise leave this tab
 // showing the old user's pages while sending the new user's cookie.
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (event) => {
+export function reloadWhenAnotherTabChangesUser(): () => void {
+  const onStorage = (event: StorageEvent) => {
     if (event.key !== AUTH_STORAGE_KEY) return
     const currentUserId = useAuthStore.getState().user?.userId ?? null
     let storedUserId: number | null = null
@@ -77,5 +77,7 @@ if (typeof window !== 'undefined') {
     if (storedUserId !== currentUserId) {
       window.location.reload()
     }
-  })
+  }
+  window.addEventListener('storage', onStorage)
+  return () => window.removeEventListener('storage', onStorage)
 }
