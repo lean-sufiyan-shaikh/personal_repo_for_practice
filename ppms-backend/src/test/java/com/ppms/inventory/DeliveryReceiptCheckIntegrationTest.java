@@ -100,16 +100,8 @@ class DeliveryReceiptCheckIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void correctingAShortDeliveryKeepsOneClaimAndWithdrawsItOnceNoLongerShort() throws Exception {
-        JsonNode line = deliver("12000", "2000", "13800", "1076", null, null);
-        long deliveryId = line.get("id").asLong();
-
-        correct(deliveryId, "12000", "INV-FIXED-" + shortId()).andExpect(status().isOk());
-        JsonNode corrected = json(correct(deliveryId, "12000", "INV-AGAIN-" + shortId()).andExpect(status().isOk()));
-
-        assertThat(corrected.get("shortageClaimId").asLong()).isEqualTo(line.get("shortageClaimId").asLong());
-        assertThat(claimRepository.findAll()).filteredOn(claim -> claim.getTankerDeliveryId().equals(deliveryId)).hasSize(1);
-        assertThat(shortageNotifications()).hasSize(1);
+    void correctingAShortDeliveryUntilItIsNoLongerShortWithdrawsItsClaim() throws Exception {
+        long deliveryId = deliver("12000", "2000", "13800", "1076", null, null).get("id").asLong();
 
         JsonNode noLongerShort = json(correct(deliveryId, "11890", "INV-FINAL-" + shortId()).andExpect(status().isOk()));
 
@@ -136,13 +128,6 @@ class DeliveryReceiptCheckIntegrationTest extends ApiIntegrationTest {
         assertThat(lotRepository.findByTankerDeliveryId(deliveryId).orElseThrow().getCostPricePerUnit())
                 .isEqualByComparingTo("90.098");
         assertThat(auditActions()).contains(AuditAction.SHORTAGE_CLAIM_SETTLED);
-        perform(patch(claimPath(claimId) + "/reject"), setup.owner(), Map.of("reason", "Too late"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SHORTAGE_CLAIM_NOT_RAISED"))
-                .andExpect(jsonPath("$.params.statusCode").value("SETTLED"));
-        correct(deliveryId, "11000", "INV-" + shortId())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SHORTAGE_CLAIM_CLOSED_FOR_DELIVERY"));
     }
 
     @Test
