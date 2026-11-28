@@ -6,6 +6,7 @@ import com.ppms.fuel.FuelType;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTank;
 import com.ppms.support.ApiIntegrationTest;
+import com.ppms.user.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -289,6 +290,17 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
         JsonNode reviewed = json(perform(patch("/api/inventory/{pumpId}/dip-checks/{id}/review", setup.pumpId(), dip.get("id").asLong()),
                 setup.owner()).andExpect(status().isOk()));
         assertThat(reviewed.get("status").asText()).isEqualTo("REVIEWED");
+    }
+
+    @Test
+    void dipCheckNamingStaffOfAnotherPumpIsRefused() throws Exception {
+        var outsider = saveUser(UserRole.OPERATOR, null);
+
+        perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
+                Map.of("tankId", setup.tank().getId(), "measuredQuantity", new BigDecimal("990"),
+                        "checkedAt", TestDates.today().toString(), "checkedByUserId", outsider.getId()))
+                .andExpect(status().is4xxClientError());
+        assertThat(currentStock()).isEqualByComparingTo("1000");
     }
 
     @Test

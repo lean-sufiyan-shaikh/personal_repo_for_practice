@@ -76,11 +76,13 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void ownerCreatesStaffForTheirPumpButAManagerCannot() throws Exception {
+    void ownerCreatesStaffForTheirPumpButAdminCannotCreateAnOwner() throws Exception {
         JsonNode created = json(perform(post("/api/users", ""), setup.owner(), newUser(UserRole.OPERATOR))
                 .andExpect(status().is2xxSuccessful()));
         assertThat(created.get("role").asText()).isEqualTo("OPERATOR");
 
+        perform(post("/api/users", ""), setup.admin(), newUser(UserRole.OWNER))
+                .andExpect(status().is4xxClientError());
         perform(post("/api/users", ""), setup.manager(), newUser(UserRole.OPERATOR))
                 .andExpect(status().isForbidden());
 
@@ -279,6 +281,21 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
         assertThat(json(perform(get("/api/super-admin/owners"), superAdmin).andExpect(status().isOk())).toString())
                 .contains("New Owner");
         perform(get("/api/super-admin/analytics"), superAdmin).andExpect(status().isOk());
+    }
+
+    @Test
+    void staffListHidesPhoneNumbersAndPayRatesFromManagers() throws Exception {
+        JsonNode forOwner = json(perform(get("/api/users/staff").param("pumpId", setup.pumpId().toString()), setup.owner())
+                .andExpect(status().isOk()));
+        JsonNode forManager = json(perform(get("/api/users/staff").param("pumpId", setup.pumpId().toString()), setup.manager())
+                .andExpect(status().isOk()));
+
+        assertThat(forOwner.get(0).get("phoneNumber").isNull()).isFalse();
+        for (JsonNode member : forManager) {
+            assertThat(member.get("phoneNumber").isNull()).isTrue();
+            assertThat(member.get("dailyRate").isNull()).isTrue();
+            assertThat(member.get("standardHourlyRate").isNull()).isTrue();
+        }
     }
 
     @Test

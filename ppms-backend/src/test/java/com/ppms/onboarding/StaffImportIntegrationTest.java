@@ -105,7 +105,7 @@ class StaffImportIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void onlyOwnersAndAdminsOfThePumpImport() throws Exception {
+    void onlyOwnersAndAdminsOfThePumpImportAndNoRowMayNameAnotherPumpsStaffOrAnAdmin() throws Exception {
         PumpSetup setup = createPumpWithStock("0");
         PumpSetup otherPump = createPumpWithStock("0");
         Map<String, Object> file = rows(row(2, "Ravi", freePhone(), "ADMIN", "MALE", Map.of()));
@@ -113,7 +113,13 @@ class StaffImportIntegrationTest extends ApiIntegrationTest {
         perform(post("/api/pumps/{pumpId}/imports/staff", setup.pumpId()), setup.manager(), file).andExpect(status().isForbidden());
         perform(post("/api/pumps/{pumpId}/imports/staff", setup.pumpId()), setup.accountant(), file).andExpect(status().isForbidden());
         perform(post("/api/pumps/{pumpId}/imports/staff", setup.pumpId()), otherPump.owner(), file).andExpect(status().isForbidden());
-        perform(post("/api/pumps/{pumpId}/imports/staff/preview", setup.pumpId()), setup.admin(), file).andExpect(status().isOk());
+        JsonNode adminPreview = json(perform(post("/api/pumps/{pumpId}/imports/staff/preview", setup.pumpId()), setup.admin(),
+                rows(row(2, "Ravi", freePhone(), "ADMIN", "MALE", Map.of()),
+                        row(3, "Works elsewhere", otherPump.operator().getPhoneNumber(), "OPERATOR", "MALE", Map.of())))
+                .andExpect(status().isOk()));
+        assertThat(outcomes(adminPreview)).containsExactly("ERROR", "ERROR");
+        assertThat(adminPreview.get("rows").get(0).get("issues").get(0).get("code").asText()).isEqualTo("ROLE_NOT_ASSIGNABLE");
+        assertThat(adminPreview.get("rows").get(1).get("issues").get(0).get("code").asText()).isEqualTo("USER_PHONE_ALREADY_EXISTS");
     }
 
     @SafeVarargs

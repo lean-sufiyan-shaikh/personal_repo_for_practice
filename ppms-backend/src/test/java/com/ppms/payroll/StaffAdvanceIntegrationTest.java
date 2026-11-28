@@ -58,6 +58,11 @@ class StaffAdvanceIntegrationTest extends ApiIntegrationTest {
         perform(delete("/api/pumps/{pumpId}/payroll/{id}", setup.pumpId(), second.get("id").asLong()), setup.owner())
                 .andExpect(status().isNoContent());
         assertThat(outstandingOfAccountant()).isEqualByComparingTo("700.00");
+
+        perform(post(ADVANCES_PATH, setup.pumpId()), setup.manager(),
+                Map.of("staffUserId", createPumpWithStock("0").operator().getId(), "amount", new BigDecimal("10.00"),
+                        "advanceDate", TODAY.toString()))
+                .andExpect(status().isNotFound());
     }
 
     private ResultActions give(String amount, LocalDate date) throws Exception {

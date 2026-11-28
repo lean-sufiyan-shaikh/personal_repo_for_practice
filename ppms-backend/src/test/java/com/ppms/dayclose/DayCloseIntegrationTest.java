@@ -178,6 +178,7 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.comments[1].authorName").value(setup.manager().getFullName()));
         assertThat(notificationsOf(NotificationType.DAY_CLOSE_COMMENT)).hasSize(2);
 
+        approve(setup.manager()).andExpect(status().isForbidden());
         approve(setup.owner())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APPROVED"))
@@ -189,10 +190,17 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void reopenedDayClosedAgainKeepsBothVersions() throws Exception {
+    void reopenedDayClosedAgainKeepsBothVersionsAndOnlyAnOwnerOrAdminReopens() throws Exception {
         countSafe();
+        perform(get("/api/pumps/{pumpId}/day-closes/{date}", setup.pumpId(), TODAY), setup.owner())
+                .andExpect(status().isNotFound());
+        perform(post("/api/pumps/{pumpId}/day-closes/{date}/close", setup.pumpId(), TODAY), setup.manager(),
+                Map.of("approve", true))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DAY_CLOSE_APPROVE_NOT_ALLOWED"));
         closeDay(TODAY, setup.manager()).andExpect(status().isOk());
 
+        reopen(setup.manager(), "Late expense").andExpect(status().isForbidden());
         reopen(setup.owner(), "  ").andExpect(status().isBadRequest());
         reopen(setup.owner(), "Late expense bill arrived")
                 .andExpect(status().isOk())

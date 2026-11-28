@@ -209,6 +209,20 @@ class PumpSetupRulesIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
+    void adminCannotRaiseStaffAboveThemAndOwnerAccountsCannotBeEditedAsStaff() throws Exception {
+        for (String role : List.of("ADMIN", "OWNER", "SUPER_ADMIN")) {
+            perform(patch("/api/users/{userId}/details", setup.operator().getId()), setup.admin(), Map.of("role", role))
+                    .andExpect(status().isBadRequest());
+        }
+        perform(patch("/api/users/{userId}/details", setup.owner().getId()), setup.owner(), Map.of("fullName", "Renamed"))
+                .andExpect(status().is4xxClientError());
+
+        assertThat(userRepository.findById(setup.operator().getId()).orElseThrow().getRole()).isEqualTo(UserRole.OPERATOR);
+        assertThat(userRepository.findById(setup.owner().getId()).orElseThrow().getFullName())
+                .isEqualTo(setup.owner().getFullName());
+    }
+
+    @Test
     void tankWithStockButNoLotsGetsOneLotForItsStockWhenAShiftCloses() throws Exception {
         PumpSetup noLots = createPumpWithStock("0");
         UndergroundTank tank = tankRepository.findById(noLots.tank().getId()).orElseThrow();

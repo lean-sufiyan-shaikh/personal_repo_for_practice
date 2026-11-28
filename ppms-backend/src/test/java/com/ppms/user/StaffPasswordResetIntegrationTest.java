@@ -120,6 +120,35 @@ class StaffPasswordResetIntegrationTest extends ApiIntegrationTest {
         }
     }
 
+    @Test
+    void adminAndSuperAdminResetOnlyThoseBelowThemAndAWeakTemporaryPasswordIsRejected() throws Exception {
+        User admin = saveUser(UserRole.ADMIN, setup.pumpId());
+        User superAdmin = saveUser(UserRole.SUPER_ADMIN, null);
+
+        resetPassword(admin, setup.operator()).andExpect(status().isNoContent());
+        resetPassword(admin, setup.accountant()).andExpect(status().isNoContent());
+        resetPassword(admin, setup.admin()).andExpect(status().isForbidden());
+        resetPassword(admin, setup.owner()).andExpect(status().isNotFound());
+        resetPassword(superAdmin, setup.owner()).andExpect(status().isNoContent());
+        resetPassword(superAdmin, setup.manager()).andExpect(status().isForbidden());
+        resetPassword(superAdmin, superAdmin).andExpect(status().isBadRequest());
+        assertThat(userRepository.findById(setup.owner().getId()).orElseThrow().isMustChangePassword()).isTrue();
+        perform(post("/api/users/{userId}/reset-password", setup.operator().getId()), admin,
+                Map.of("temporaryPassword", "simple"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void staffCreatedByTheOwnerMustChangeTheirPasswordButSeededUsersNeedNot() throws Exception {
+        String phone = "7" + String.format("%09d", System.nanoTime() % 1_000_000_000L);
+        perform(post("/api/users"), setup.owner(), Map.of("fullName", "New Operator", "phoneNumber", phone,
+                "password", "Staff@1234", "role", "OPERATOR", "gender", "MALE", "assignedPumpId", setup.pumpId()))
+                .andExpect(status().isCreated());
+
+        assertThat(userRepository.findByPhoneNumber(phone).orElseThrow().isMustChangePassword()).isTrue();
+        assertThat(userRepository.findById(setup.operator().getId()).orElseThrow().isMustChangePassword()).isFalse();
+    }
+
     private ResultActions resetPassword(User caller, User target) throws Exception {
         return perform(post("/api/users/{userId}/reset-password", target.getId()), caller,
                 Map.of("temporaryPassword", TEMPORARY_PASSWORD));
