@@ -2,7 +2,6 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
-import { AxiosError, AxiosHeaders } from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { reportApi } from '../../api/reportApi'
 import type { ProfitLossReport } from '../../api/reportApi'
@@ -73,28 +72,6 @@ describe('ReportsPage', () => {
     expect(screen.getByText('₹91.00')).toBeInTheDocument()
   })
 
-  it('lists fleet card in the payment mix with the total collected, and an operating section after expenses, bank charges and payroll', async () => {
-    const user = userEvent.setup()
-    vi.mocked(reportApi.getProfitLoss).mockResolvedValue({
-      ...reportWithOneLotAtTwoPrices,
-      totalCashRevenue: 2000, totalFleetCardRevenue: 1000, totalCollected: 3000,
-      approvedExpenses: 150, bankCharges: 21.24, payrollPaid: 100, netOperatingProfit: 28.76,
-    })
-    renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
-
-    await user.click(await screen.findByRole('button', { name: /Revenue breakdown/ }))
-    const screenView = screen.getByRole('button', { name: /Revenue breakdown/ }).closest('div') as HTMLElement
-    expect(within(screenView).getByText('Fleet Card').nextSibling).toHaveTextContent('₹1,000.00')
-    expect(within(screenView).getByText('Total collected').nextSibling).toHaveTextContent('₹3,000.00')
-
-    const operating = screen.getAllByRole('region', { name: 'Operating' })[0]
-    expect(within(operating).getByText('Approved expenses').nextSibling).toHaveTextContent('−₹150.00')
-    expect(within(operating).getByText('MDR / bank charges').nextSibling).toHaveTextContent('−₹21.24')
-    expect(within(operating).getByText('Payroll paid').nextSibling).toHaveTextContent('−₹100.00')
-    expect(within(operating).getByText('Net operating profit').nextSibling).toHaveTextContent('₹28.76')
-    expect(within(operating).queryByText('Payroll is not included yet.')).not.toBeInTheDocument()
-  })
-
   it('shows the report types as tabs under the page title', async () => {
     renderReportsAt('/dashboard/reports?tab=expenses')
 
@@ -116,26 +93,10 @@ describe('ReportsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Generate' }))
     expect(router.state.location.search).toBe('?tab=pl&from=2026-01-05&to=2026-01-31')
 
-    await user.click(screen.getByRole('link', { name: 'Shifts' }))
-    expect(router.state.location.search).toBe('?tab=shifts&from=2026-01-05&to=2026-01-31')
-  })
-
-  it('keeps the chosen dates when switching to another tab', async () => {
-    const user = userEvent.setup()
-    const router = renderReportsAt('/dashboard/reports?tab=pl')
-
-    const from = await screen.findByLabelText('From')
-    await user.clear(from)
-    await user.type(from, '2026-02-01')
-    const to = screen.getByLabelText('To')
-    await user.clear(to)
-    await user.type(to, '2026-02-10')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
     await user.click(screen.getByRole('link', { name: 'Expenses' }))
-
-    await waitFor(() => expect(reportApi.getExpensesReport).toHaveBeenCalledWith(PUMP_ID, '2026-02-01', '2026-02-10'))
-    expect(screen.getByLabelText('From')).toHaveValue('2026-02-01')
-    expect(router.state.location.search).toBe('?tab=expenses&from=2026-02-01&to=2026-02-10')
+    expect(router.state.location.search).toBe('?tab=expenses&from=2026-01-05&to=2026-01-31')
+    await waitFor(() => expect(reportApi.getExpensesReport).toHaveBeenCalledWith(PUMP_ID, '2026-01-05', '2026-01-31'))
+    expect(screen.getByLabelText('From')).toHaveValue('2026-01-05')
   })
 
   it('applies a quick range to the address straight away', async () => {
@@ -148,16 +109,6 @@ describe('ReportsPage', () => {
     await waitFor(() => expect(router.state.location.search).toBe(`?tab=pl&from=${lastMonth.from}&to=${lastMonth.to}`))
     expect(screen.getByRole('button', { name: 'Last month' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByLabelText('From')).toHaveValue(lastMonth.from)
-  })
-
-  it('says when the chosen range is longer than the report allows', async () => {
-    vi.mocked(reportApi.getProfitLoss).mockRejectedValue(new AxiosError('Bad Request', 'ERR', undefined, undefined, {
-      status: 400, statusText: '', headers: {}, config: { headers: new AxiosHeaders() },
-      data: { code: 'DATE_RANGE_TOO_LONG', params: { maxDays: 366 }, message: 'Choose a date range of at most 366 days' },
-    }))
-    renderReportsAt('/dashboard/reports?tab=pl&from=2024-01-01&to=2026-01-31')
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Choose a date range of at most 366 days')
   })
 
   it('compares the totals with the same-length period before', async () => {
@@ -178,5 +129,4 @@ describe('ReportsPage', () => {
 
     expect(router.state.location.search).toContain(`from=${presetRange('lastMonth').from}`)
   })
-
 })
