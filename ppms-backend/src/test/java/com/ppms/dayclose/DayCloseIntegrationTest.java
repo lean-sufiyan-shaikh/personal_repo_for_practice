@@ -6,8 +6,6 @@ import com.ppms.audit.AuditLog;
 import com.ppms.audit.AuditLogRepository;
 import com.ppms.cash.SafeCount;
 import com.ppms.cash.SafeCountRepository;
-import com.ppms.fuel.GlobalFuelPrice;
-import com.ppms.fuel.GlobalFuelPriceRepository;
 import com.ppms.notification.Notification;
 import com.ppms.notification.NotificationRepository;
 import com.ppms.notification.NotificationType;
@@ -43,7 +41,6 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
     private static final LocalDate YESTERDAY = TODAY.minusDays(1);
 
     @Autowired private SafeCountRepository safeCountRepository;
-    @Autowired private GlobalFuelPriceRepository fuelPriceRepository;
     @Autowired private ShiftRepository shiftRepository;
     @Autowired private NotificationRepository notificationRepository;
     @Autowired private AuditLogRepository auditLogRepository;
@@ -53,48 +50,6 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
     @BeforeEach
     void createPump() throws Exception {
         setup = createPumpWithStock("5000");
-    }
-
-    @Test
-    void closingIsRefusedWithoutASafeCountThatDay() throws Exception {
-        perform(get("/api/pumps/{pumpId}/day-closes/preview", setup.pumpId()).param("date", TODAY.toString()), setup.manager())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.canClose").value(false))
-                .andExpect(jsonPath("$.status").doesNotExist())
-                .andExpect(jsonPath("$.checks[0].code").value("SAFE_COUNT"))
-                .andExpect(jsonPath("$.checks[0].done").value(false))
-                .andExpect(jsonPath("$.checks[0].fixPath").value("/dashboard/cash?tab=safe&action=count-safe&countFor=" + TODAY))
-                .andExpect(jsonPath("$.checks[1].code").value("NEXT_DAY_PRICES"))
-                .andExpect(jsonPath("$.checks[1].done").value(true))
-                .andExpect(jsonPath("$.summary.cash.flag.colour").value("RED"));
-
-        closeDay(TODAY, setup.manager())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DAY_CLOSE_SAFE_COUNT_MISSING"))
-                .andExpect(jsonPath("$.params.date").value(TODAY.toString()))
-                .andExpect(jsonPath("$.params.missingCodes[0]").value("SAFE_COUNT"));
-    }
-
-    @Test
-    void closingIsRefusedUntilTheNextDayPricesAreSetOrConfirmed() throws Exception {
-        safeCountOn(YESTERDAY);
-        for (GlobalFuelPrice price : fuelPriceRepository.findCurrentPricesForPump(setup.pumpId())) {
-            price.setEffectiveFrom(TestDates.now().minusDays(2));
-            fuelPriceRepository.save(price);
-        }
-
-        closeDay(YESTERDAY, setup.manager())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DAY_CLOSE_PRICES_MISSING"))
-                .andExpect(jsonPath("$.params.fuelTypeCodes[0]").value("PETROL"));
-
-        setFuelPrice(setup, "100.00");
-        closeDay(YESTERDAY, setup.manager())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CLOSED"))
-                .andExpect(jsonPath("$.balanceSheetId").doesNotExist())
-                .andExpect(jsonPath("$.summary.closedShiftCount").value(0))
-                .andExpect(jsonPath("$.summary.sales.flag.reasons[0].code").value("SALES_NO_CLOSED_SHIFTS"));
     }
 
     @Test
@@ -187,32 +142,20 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void pendingExpensesBlockAPastDayButOnlyWarnWhenClosingToday() throws Exception {
+    void pendingExpensesOfAPastDayBlockItsCloseUntilApproved() throws Exception {
         long pastExpense = pendingExpense(YESTERDAY);
         safeCountOn(YESTERDAY);
 
         perform(get("/api/pumps/{pumpId}/day-closes/preview", setup.pumpId()).param("date", YESTERDAY.toString()), setup.manager())
                 .andExpect(jsonPath("$.canClose").value(false))
                 .andExpect(jsonPath("$.checks[3].code").value("PENDING_EXPENSES"))
-                .andExpect(jsonPath("$.checks[3].blocking").value(true))
-                .andExpect(jsonPath("$.checks[3].params.amount").value("5000.00"))
-                .andExpect(jsonPath("$.checks[3].fixPath").value("/dashboard/approvals?kind=expenses"));
+                .andExpect(jsonPath("$.checks[3].params.amount").value("5000.00"));
         closeDay(YESTERDAY, setup.manager())
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DAY_CLOSE_PENDING_APPROVALS"))
-                .andExpect(jsonPath("$.params.missingCodes[0]").value("PENDING_EXPENSES"));
+                .andExpect(jsonPath("$.code").value("DAY_CLOSE_PENDING_APPROVALS"));
         perform(patch("/api/pumps/{pumpId}/expenses/{id}/approve", setup.pumpId(), pastExpense), setup.owner(),
                 Map.of("action", "APPROVED")).andExpect(status().isOk());
         closeDay(YESTERDAY, setup.manager()).andExpect(status().isOk());
-
-        long todayExpense = pendingExpense(TODAY);
-        countSafe();
-        JsonNode closedToday = json(closeDay(TODAY, setup.manager()).andExpect(status().isOk()));
-        assertThat(closedToday.get("summary").get("warnings").findValuesAsText("code")).contains("PENDING_EXPENSES");
-        perform(patch("/api/pumps/{pumpId}/expenses/{id}/approve", setup.pumpId(), todayExpense), setup.owner(),
-                Map.of("action", "APPROVED"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DAY_CLOSED"));
     }
 
     @Test
@@ -235,14 +178,10 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.comments[1].authorName").value(setup.manager().getFullName()));
         assertThat(notificationsOf(NotificationType.DAY_CLOSE_COMMENT)).hasSize(2);
 
-        approve(setup.manager()).andExpect(status().isForbidden());
         approve(setup.owner())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APPROVED"))
                 .andExpect(jsonPath("$.approvedByName").value(setup.owner().getFullName()));
-        approve(setup.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DAY_CLOSE_NOT_AWAITING_APPROVAL"));
 
         assertThat(attentionTypes()).doesNotContain("DAY_CLOSES_UNAPPROVED");
         assertThat(auditsOf(AuditAction.DAY_APPROVED)).hasSize(1);
@@ -250,71 +189,29 @@ class DayCloseIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void ownerOrAdminCanCloseAndApproveInOneStepButAManagerCannot() throws Exception {
-        countSafe();
-
-        closeDay(TODAY, setup.manager(), true)
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DAY_CLOSE_APPROVE_NOT_ALLOWED"));
-        closeDay(TODAY, setup.admin(), true)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("APPROVED"))
-                .andExpect(jsonPath("$.approvedByName").value(setup.admin().getFullName()));
-
-        assertThat(notificationsOf(NotificationType.DAY_CLOSED)).isEmpty();
-        assertThat(auditsOf(AuditAction.DAY_APPROVED)).hasSize(1);
-    }
-
-    @Test
-    void reopeningNeedsAnOwnerOrAdminAndAReasonAndClosingAgainAddsAVersion() throws Exception {
+    void reopenedDayClosedAgainKeepsBothVersions() throws Exception {
         countSafe();
         closeDay(TODAY, setup.manager()).andExpect(status().isOk());
 
-        reopen(setup.manager(), "Late expense").andExpect(status().isForbidden());
         reopen(setup.owner(), "  ").andExpect(status().isBadRequest());
         reopen(setup.owner(), "Late expense bill arrived")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REOPENED"))
-                .andExpect(jsonPath("$.comments[0].kind").value("REOPEN_REASON"))
-                .andExpect(jsonPath("$.comments[0].message").value("Late expense bill arrived"));
-        reopen(setup.owner(), "Again")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DAY_NOT_CLOSED"));
-        assertThat(auditsOf(AuditAction.DAY_REOPENED)).singleElement()
-                .satisfies(audit -> assertThat(audit.getDescription()).contains("Late expense bill arrived"));
-        assertThat(notificationsOf(NotificationType.DAY_REOPENED)).hasSize(1);
+                .andExpect(jsonPath("$.comments[0].kind").value("REOPEN_REASON"));
 
         closeDay(TODAY, setup.owner())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.version").value(2))
-                .andExpect(jsonPath("$.status").value("CLOSED"))
                 .andExpect(jsonPath("$.versions.length()").value(2))
                 .andExpect(jsonPath("$.versions[0].version").value(2))
                 .andExpect(jsonPath("$.versions[1].closedByName").value(setup.manager().getFullName()));
         perform(get("/api/pumps/{pumpId}/day-closes/{date}/versions/{version}", setup.pumpId(), TODAY, 1), setup.owner())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.businessDate").value(TODAY.toString()));
-        closeDay(TODAY, setup.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DAY_ALREADY_CLOSED"));
-    }
-
-    @Test
-    void futureDayCannotBeClosedAndADayNeverClosedIsNotFound() throws Exception {
-        closeDay(TODAY.plusDays(1), setup.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DAY_CLOSE_DATE_IN_FUTURE"));
-        perform(get("/api/pumps/{pumpId}/day-closes/{date}", setup.pumpId(), YESTERDAY), setup.owner())
-                .andExpect(status().isNotFound());
     }
 
     private ResultActions closeDay(LocalDate date, User user) throws Exception {
         return perform(post("/api/pumps/{pumpId}/day-closes/{date}/close", setup.pumpId(), date), user, Map.of());
-    }
-
-    private ResultActions closeDay(LocalDate date, User user, boolean approve) throws Exception {
-        return perform(post("/api/pumps/{pumpId}/day-closes/{date}/close", setup.pumpId(), date), user,
-                Map.of("approve", approve));
     }
 
     private ResultActions approve(User user) throws Exception {

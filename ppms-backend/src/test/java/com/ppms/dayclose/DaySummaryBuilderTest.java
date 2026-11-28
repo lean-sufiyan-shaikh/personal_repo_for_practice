@@ -229,7 +229,7 @@ class DaySummaryBuilderTest {
         return flag.reasons().stream().map(SectionFlag.Reason::code).toList();
     }
 
-    private static FiguresBuilder figures() {
+    static FiguresBuilder figures() {
         return new FiguresBuilder();
     }
 
@@ -294,7 +294,7 @@ class DaySummaryBuilderTest {
     }
 
     /** A quiet day: two balanced shifts, a matching safe count, every tank dipped, nothing open. */
-    private static final class FiguresBuilder {
+    static final class FiguresBuilder {
         private LocalDate businessDate = DAY;
         private List<Shift> closedShifts = List.of(shift(null, null), shift(null, null));
         private List<Shift> openShifts = List.of();

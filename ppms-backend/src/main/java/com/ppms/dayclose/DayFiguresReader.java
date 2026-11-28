@@ -122,8 +122,13 @@ class DayFiguresReader {
      */
     private List<FuelType> fuelTypesWithoutNextDayPrice(Long pumpId, LocalDate date, List<UndergroundTank> activeTanks) {
         LocalDate earliestDay = date.isBefore(businessClock.today()) ? date.plusDays(1) : date;
-        OffsetDateTime setFrom = businessClock.startOfDay(earliestDay);
-        Map<FuelType, GlobalFuelPrice> priceByFuel = fuelPriceRepository.findCurrentPricesForPump(pumpId).stream()
+        return fuelTypesWithoutPriceSetFrom(activeTanks, fuelPriceRepository.findCurrentPricesForPump(pumpId),
+                businessClock.startOfDay(earliestDay));
+    }
+
+    static List<FuelType> fuelTypesWithoutPriceSetFrom(List<UndergroundTank> activeTanks, List<GlobalFuelPrice> currentPrices,
+                                                       OffsetDateTime setFrom) {
+        Map<FuelType, GlobalFuelPrice> priceByFuel = currentPrices.stream()
                 .collect(Collectors.toMap(GlobalFuelPrice::getFuelType, Function.identity(), (first, second) -> first));
         return activeTanks.stream()
                 .map(UndergroundTank::getFuelType)
