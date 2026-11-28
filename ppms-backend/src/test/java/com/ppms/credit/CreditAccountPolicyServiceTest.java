@@ -250,6 +250,27 @@ class CreditAccountPolicyServiceTest {
     }
 
     @Test
+    void clientWithALimitOfZeroIsOverLimitAndRefusedAnyCredit() {
+        CreditClient client = limited(1L, "0");
+        givenHolder(client, "0.00", 0);
+
+        assertThat(standingsOf(List.of(client), Map.of()).get(1L).creditStatus()).isEqualTo(CreditStatus.OVER_LIMIT);
+        assertThatThrownBy(() -> policyService.validateCreditSaleAllowed(PUMP_ID, client, new BigDecimal("100.00")))
+                .isInstanceOf(BusinessException.class)
+                .extracting("code").isEqualTo("CREDIT_LIMIT_EXCEEDED");
+    }
+
+    @Test
+    void unlimitedClientTakesAnyAmount() {
+        CreditClient client = client(1L, PUMP_ID, null, true);
+        client.setUnlimitedCredit(true);
+        givenHolder(client, "100000.00", 0);
+
+        assertThatNoException().isThrownBy(
+                () -> policyService.validateCreditSaleAllowed(PUMP_ID, client, new BigDecimal("90000.00")));
+    }
+
+    @Test
     void creditSaleOfAnOverdueGroupIsRefusedUnlessACycleWaiverOrHoldOverrideIsInEffect() {
         CreditClient client = limited(1L, "5000.00");
         givenHolder(client, "300.00", 50);

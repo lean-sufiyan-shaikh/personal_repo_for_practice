@@ -8,6 +8,7 @@ import com.ppms.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -68,6 +69,24 @@ class CollectionSettingsServiceTest {
     }
 
     @Test
+    void creditPaymentThresholdOfZeroAndBackdatedDaysAboveAYearAreRefused() {
+        assertThatThrownBy(() -> save(List.of(7), 45, BigDecimal.ZERO, 7))
+                .isInstanceOf(BusinessException.class)
+                .extracting("code").isEqualTo("CREDIT_PAYMENT_THRESHOLD_INVALID");
+        assertThatThrownBy(() -> save(List.of(7), 45, new BigDecimal("1000.00"), 366))
+                .isInstanceOf(BusinessException.class)
+                .extracting("code").isEqualTo("BACKDATED_PAYMENT_DAYS_OUT_OF_RANGE");
+    }
+
+    @Test
+    void creditPaymentThresholdAndBackdatedDaysAreSaved() {
+        CollectionSettingsResponse saved = save(List.of(7), 45, new BigDecimal("1000.00"), 30);
+
+        assertThat(saved.creditPaymentApprovalThreshold()).isEqualByComparingTo("1000.00");
+        assertThat(saved.backdatedPaymentApprovalDays()).isEqualTo(30);
+    }
+
+    @Test
     void validSettingsAreSavedWithStagesInOrderAndTheUpiIdTrimmed() {
         CollectionSettingsResponse saved = save(List.of(30, 10), 60, " ramfuels@okaxis ", "Ram Fuels");
 
@@ -77,9 +96,18 @@ class CollectionSettingsServiceTest {
     }
 
     private CollectionSettingsResponse save(List<Integer> stages, Integer holdDays, String upiId, String payeeName) {
+        return update(new UpdateCollectionSettingsRequest(stages, holdDays, upiId, payeeName, null, 3, null));
+    }
+
+    private CollectionSettingsResponse save(List<Integer> stages, Integer holdDays, BigDecimal paymentThreshold,
+                                            int backdatedDays) {
+        return update(new UpdateCollectionSettingsRequest(stages, holdDays, null, null, paymentThreshold,
+                backdatedDays, null));
+    }
+
+    private CollectionSettingsResponse update(UpdateCollectionSettingsRequest request) {
         User owner = new User();
         owner.setId(3L);
-        return settingsService.update(PUMP_ID,
-                new UpdateCollectionSettingsRequest(stages, holdDays, upiId, payeeName, null, 3, null), owner);
+        return settingsService.update(PUMP_ID, request, owner);
     }
 }

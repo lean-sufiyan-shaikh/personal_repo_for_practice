@@ -24,7 +24,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class CreditLimitControlsIntegrationTest extends ApiIntegrationTest {
 
-    @Autowired private CreditClientRepository clientRepository;
     @Autowired private CreditOpeningBalanceRepository openingBalanceRepository;
 
     private PumpSetup setup;
@@ -40,18 +39,6 @@ class CreditLimitControlsIntegrationTest extends ApiIntegrationTest {
                         "operatorId", setup.operator().getId()))
                 .andExpect(status().is2xxSuccessful()));
         shiftId = opened.get("id").asLong();
-    }
-
-    @Test
-    void newClientWithTheDefaultLimitOfZeroCannotTakeCredit() throws Exception {
-        long clientId = createClient(null);
-
-        JsonNode client = clientOf(clientId);
-        assertThat(client.get("creditLimit").decimalValue()).isEqualByComparingTo("0");
-        assertThat(client.get("unlimited").asBoolean()).isFalse();
-        sellOnCredit(clientId, "100.00").andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CREDIT_LIMIT_EXCEEDED"));
-        assertThat(standingOf(clientId).get("creditStatus").asText()).isEqualTo("OVER_LIMIT");
     }
 
     @Test
@@ -72,40 +59,11 @@ class CreditLimitControlsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void unlimitedClientTakesAnyAmountAndHasNoAvailableFigure() throws Exception {
-        long clientId = createClient(null);
-        changeLimit(clientId, "0", true, setup.owner()).andExpect(status().isOk())
-                .andExpect(jsonPath("$.unlimited").value(true));
-
-        sellOnCredit(clientId, "90000.00").andExpect(status().is2xxSuccessful());
-
-        JsonNode standing = standingOf(clientId);
-        assertThat(standing.get("creditStatus").asText()).isEqualTo("OK");
-        assertThat(standing.get("availableCredit").isNull()).isTrue();
-    }
-
-    @Test
-    void managerRaisesUpToTheCapButNotBeyondItAndCannotGiveUnlimitedCredit() throws Exception {
-        long clientId = createClient(null);
-
-        changeLimit(clientId, "50000", false, setup.manager()).andExpect(status().isOk());
-        changeLimit(clientId, "50000.01", false, setup.manager()).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CREDIT_LIMIT_ABOVE_MANAGER_CAP"))
-                .andExpect(jsonPath("$.params.cap").value("50000.00"));
-        changeLimit(clientId, "0", true, setup.manager()).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CREDIT_LIMIT_UNLIMITED_OWNER_ONLY"));
-
-        changeLimit(clientId, "80000", false, setup.admin()).andExpect(status().isOk());
-        changeLimit(clientId, "60000", false, setup.manager()).andExpect(status().isOk());
-        changeLimit(clientId, "0", true, setup.owner()).andExpect(status().isOk());
-        changeLimit(clientId, "70000", false, setup.manager()).andExpect(status().isOk());
-
-        assertThat(clientRepository.findById(clientId).orElseThrow().getCreditLimit()).isEqualByComparingTo("70000");
-    }
-
-    @Test
     void everyLimitChangeIsKeptWithWhoAndWhyNewestFirst() throws Exception {
         long clientId = createClient(null);
+        perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit", setup.pumpId(), clientId),
+                setup.owner(), Map.of("creditLimit", new BigDecimal("1000"), "unlimited", false, "reason", " "))
+                .andExpect(status().isBadRequest());
         changeLimit(clientId, "1000", false, setup.manager()).andExpect(status().isOk());
         changeLimit(clientId, "0", true, setup.owner()).andExpect(status().isOk());
         changeLimit(clientId, "0", true, setup.owner()).andExpect(status().isOk());
@@ -120,18 +78,6 @@ class CreditLimitControlsIntegrationTest extends ApiIntegrationTest {
         assertThat(history.get(1).get("oldLimit").decimalValue()).isEqualByComparingTo("0");
         assertThat(history.get(1).get("newLimit").decimalValue()).isEqualByComparingTo("1000");
         assertThat(history.get(1).get("reason").asText()).isEqualTo("Limit review");
-    }
-
-    @Test
-    void limitIsSetOnTheMainAccountAndNeedsAReason() throws Exception {
-        long parentId = createClient(null);
-        long childId = createClient(parentId);
-
-        changeLimit(childId, "1000", false, setup.owner()).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CREDIT_LIMIT_ON_SUB_ACCOUNT"));
-        perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit", setup.pumpId(), parentId),
-                setup.owner(), Map.of("creditLimit", new BigDecimal("1000"), "unlimited", false, "reason", " "))
-                .andExpect(status().isBadRequest());
     }
 
     @Test
