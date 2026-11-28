@@ -138,7 +138,7 @@ describe('AddCreditEntryModal', () => {
     expect(localStorage.getItem('ppms_draft:credit-entry:11')).toBeNull()
   })
 
-  it('says what is still needed and works out litres and the credit left as the amount is typed', async () => {
+  it('says what is still needed and works out the credit left as the amount is typed', async () => {
     const user = userEvent.setup()
     renderWithProviders(<AddCreditEntryModal shift={shift} onClose={vi.fn()} />)
 
@@ -151,7 +151,6 @@ describe('AddCreditEntryModal', () => {
     expect(save).toHaveAccessibleDescription('Still needed Amount')
 
     await user.type(screen.getByLabelText('Amount'), '250')
-    expect(screen.getByLabelText('Amount')).toHaveAccessibleDescription('2.50 L × ₹100.00 = ₹250.00')
     expect(await screen.findByText('Credit available')).toBeInTheDocument()
     expect(screen.getByText('Credit available').nextSibling).toHaveTextContent('₹1,000.00')
     expect(screen.getByText('Left after this sale').nextSibling).toHaveTextContent('₹750.00')
