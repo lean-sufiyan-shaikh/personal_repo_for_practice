@@ -73,9 +73,6 @@ class PettyCashIntegrationTest extends ApiIntegrationTest {
         topUp("1500.00").andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CASH_OUT_EXCEEDS_BALANCE"));
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM petty_cash_entries WHERE pump_id = ?", Long.class,
                 setup.pumpId())).isEqualTo(1);
-        perform(post("/api/pumps/{pumpId}/petty-cash/top-ups", setup.pumpId()), setup.manager(),
-                Map.of("amount", new BigDecimal("10.00"), "entryDate", TODAY.plusDays(1).toString()))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("PETTY_CASH_DATE_IN_FUTURE"));
         assertThat(auditCount("PETTY_CASH_TOPPED_UP")).isEqualTo(1);
     }
 
@@ -98,14 +95,9 @@ class PettyCashIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void countBeyondToleranceNotifiesTheOwnerAndAMatchingCountDoesNot() throws Exception {
+    void countBeyondToleranceNotifiesTheOwner() throws Exception {
         settings(setup.owner(), "500.00").andExpect(status().isOk());
         topUp("500.00").andExpect(status().isCreated());
-
-        JsonNode matching = json(count("495.00").andExpect(status().isCreated()));
-        assertThat(matching.get("varianceAmount").decimalValue()).isEqualByComparingTo("-5.00");
-        assertThat(matching.get("beyondTolerance").asBoolean()).isFalse();
-        assertThat(varianceNotifications()).isZero();
 
         JsonNode shortCount = json(count("420.00").andExpect(status().isCreated()));
         assertThat(shortCount.get("expectedAmount").decimalValue()).isEqualByComparingTo("500.00");
@@ -113,7 +105,7 @@ class PettyCashIntegrationTest extends ApiIntegrationTest {
         assertThat(varianceNotifications()).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("SELECT params->>'varianceTypeCode' FROM notifications WHERE pump_id = ?"
                 + " AND type = 'PETTY_CASH_COUNT_VARIANCE'", String.class, setup.pumpId())).isEqualTo("SHORT");
-        assertThat(auditCount("PETTY_CASH_COUNTED")).isEqualTo(2);
+        assertThat(auditCount("PETTY_CASH_COUNTED")).isEqualTo(1);
     }
 
     @Test

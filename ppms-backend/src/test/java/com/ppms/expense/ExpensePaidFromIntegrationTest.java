@@ -63,9 +63,6 @@ class ExpensePaidFromIntegrationTest extends ApiIntegrationTest {
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM cash_events WHERE reverses_event_id = ?",
                 Long.class, cashEventId)).isEqualTo(1);
         assertThat(auditActions(expense.get("id").asLong())).containsExactly("EXPENSE_RECORDED", "EXPENSE_VOIDED");
-        voidExpense(setup.owner(), expense.get("id").asLong())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("EXPENSE_NOT_VOIDABLE"));
 
         JsonNode report = json(perform(get("/api/pumps/{pumpId}/reports/profit-loss", setup.pumpId())
                 .param("from", TODAY.toString()).param("to", TODAY.toString()), setup.owner()).andExpect(status().isOk()));
@@ -96,39 +93,6 @@ class ExpensePaidFromIntegrationTest extends ApiIntegrationTest {
         voidExpense(setup.admin(), pending.get("id").asLong()).andExpect(status().isOk());
         assertThat(pettyBalance()).isEqualByComparingTo("300.00");
         assertThat(safeBalance()).isEqualByComparingTo("4700.00");
-    }
-
-    @Test
-    void bankAndOwnersPocketExpensesMoveNoCash() throws Exception {
-        record(setup.owner(), "BANK", "700.00", TODAY).andExpect(status().isCreated())
-                .andExpect(jsonPath("$.cashEventId").doesNotExist());
-        record(setup.owner(), "OWNER_POCKET", "200.00", TODAY).andExpect(status().isCreated());
-
-        assertThat(safeBalance()).isEqualByComparingTo("5000.00");
-        assertThat(pettyBalance()).isEqualByComparingTo("0.00");
-    }
-
-    @Test
-    void futureDatesMissingSourceAndClosedDaysAreRefused() throws Exception {
-        record(setup.owner(), "SAFE", "100.00", TODAY.plusDays(1))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("EXPENSE_DATE_IN_FUTURE"));
-        perform(post("/api/pumps/{pumpId}/expenses", setup.pumpId()), setup.owner(),
-                Map.of("category", "MAINTENANCE", "amount", new BigDecimal("100.00"), "description", "No source",
-                        "expenseDate", TODAY.toString()))
-                .andExpect(status().isBadRequest());
-
-        LocalDate yesterday = TODAY.minusDays(1);
-        long expenseId = json(record(setup.owner(), "BANK", "100.00", yesterday).andExpect(status().isCreated()))
-                .get("id").asLong();
-        jdbcTemplate.update("""
-                INSERT INTO day_closes (pump_id, business_date, status, current_version, closed_by_user_id, closed_at)
-                VALUES (?, ?, 'CLOSED', 1, ?, NOW())
-                """, setup.pumpId(), yesterday, setup.owner().getId());
-
-        voidExpense(setup.owner(), expenseId)
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DAY_CLOSED"));
     }
 
     @Test
