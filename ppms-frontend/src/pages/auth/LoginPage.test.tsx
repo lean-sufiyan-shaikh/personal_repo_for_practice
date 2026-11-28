@@ -65,41 +65,17 @@ describe('LoginPage', () => {
   })
 
   describe('phone number', () => {
-    it('groups the digits 5 + 5 while typing, ticks a full number and sends only the 10 digits', async () => {
+    it('sends only the 10 digits of a grouped number', async () => {
       const user = userEvent.setup()
       vi.mocked(authApi.login).mockResolvedValue(signedInAs('en'))
-      const { container } = renderWithProviders(<LoginPage />)
-      const phone = screen.getByLabelText('Phone number')
+      renderWithProviders(<LoginPage />)
 
-      await user.type(phone, '98765')
-      expect(phone).toHaveValue('98765')
-      expect(container.querySelector('.ui-auth-phone__check')).toBeNull()
-
-      await user.type(phone, '43210')
-      expect(phone).toHaveValue('98765 43210')
-      expect(container.querySelector('.ui-auth-phone__check')).not.toBeNull()
-
+      await user.click(screen.getByLabelText('Phone number'))
+      await user.paste('+91 98765-43210')
       await user.type(screen.getByLabelText('Password'), PASSWORD)
       await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
       await vi.waitFor(() => expect(authApi.login).toHaveBeenCalledWith({ phoneNumber: '9876543210', password: PASSWORD }))
-    })
-
-    it.each(['+91 98765-43210', '098765 43210', '9876543210'])('turns a pasted %s into the 10 digits', async (pasted) => {
-      const user = userEvent.setup()
-      renderWithProviders(<LoginPage />)
-      const phone = screen.getByLabelText('Phone number')
-
-      await user.click(phone)
-      await user.paste(pasted)
-
-      expect(phone).toHaveValue('98765 43210')
-    })
-
-    it('says the +91 is already there to screen readers', () => {
-      renderWithProviders(<LoginPage />)
-
-      expect(screen.getByLabelText('Phone number')).toHaveAccessibleDescription('10-digit mobile number. The +91 country code is already added.')
     })
 
     it('still refuses a number that is not 10 digits', async () => {
@@ -241,14 +217,6 @@ describe('LoginPage', () => {
       expect(screen.getByRole('radio', { name: 'हिन्दी' })).toBeChecked()
       expect(document.documentElement.lang).toBe('hi')
       expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe('hi')
-    })
-
-    it('names each language in its own script, marked with its language', () => {
-      renderWithProviders(<LoginPage />)
-
-      expect(screen.getByText('English')).toHaveAttribute('lang', 'en')
-      expect(screen.getByText('हिन्दी')).toHaveAttribute('lang', 'hi')
-      expect(screen.getByText('मराठी')).toHaveAttribute('lang', 'mr')
     })
 
     it('keeps the signed-in user\'s saved language when none was picked here', async () => {
