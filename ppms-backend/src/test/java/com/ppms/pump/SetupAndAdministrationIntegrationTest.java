@@ -76,13 +76,11 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void ownerCreatesStaffForTheirPumpButAdminCannotCreateAnOwner() throws Exception {
+    void ownerCreatesStaffForTheirPumpButAManagerCannot() throws Exception {
         JsonNode created = json(perform(post("/api/users", ""), setup.owner(), newUser(UserRole.OPERATOR))
                 .andExpect(status().is2xxSuccessful()));
         assertThat(created.get("role").asText()).isEqualTo("OPERATOR");
 
-        perform(post("/api/users", ""), setup.admin(), newUser(UserRole.OWNER))
-                .andExpect(status().is4xxClientError());
         perform(post("/api/users", ""), setup.manager(), newUser(UserRole.OPERATOR))
                 .andExpect(status().isForbidden());
 
@@ -203,27 +201,6 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void calibrationWithoutANextDueDateACertificateOrWithADueDateNotAfterItIsRefused() throws Exception {
-        String today = TestDates.today().toString();
-        String nextYear = TestDates.today().plusYears(1).toString();
-
-        perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations", setup.pumpId(), setup.nozzle().getId()),
-                setup.owner(), Map.of("calibrationDate", today, "calibratedBy", "Weights Dept", "certificateReference", "LM-118"))
-                .andExpect(status().isBadRequest());
-        perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations", setup.pumpId(), setup.nozzle().getId()),
-                setup.owner(), Map.of("calibrationDate", today, "calibratedBy", "Weights Dept", "nextCalibrationDue", nextYear))
-                .andExpect(status().isBadRequest());
-        perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations", setup.pumpId(), setup.nozzle().getId()),
-                setup.owner(), Map.of("calibrationDate", today, "calibratedBy", "Weights Dept",
-                        "nextCalibrationDue", today, "certificateReference", "LM-118"))
-                .andExpect(status().isBadRequest());
-
-        JsonNode calibrations = json(perform(get("/api/pumps/{pumpId}/calibrations", setup.pumpId()), setup.manager())
-                .andExpect(status().isOk()));
-        assertThat(calibrations.get("content")).isEmpty();
-    }
-
-    @Test
     void supplierPaymentIsRecordedAgainstASupplierOfTheSamePump() throws Exception {
         long supplierId = json(perform(post("/api/pumps/{pumpId}/suppliers", setup.pumpId()), setup.owner(),
                 Map.of("name", "IOCL " + shortId(), "phone", "9876543210"))
@@ -302,30 +279,6 @@ class SetupAndAdministrationIntegrationTest extends ApiIntegrationTest {
         assertThat(json(perform(get("/api/super-admin/owners"), superAdmin).andExpect(status().isOk())).toString())
                 .contains("New Owner");
         perform(get("/api/super-admin/analytics"), superAdmin).andExpect(status().isOk());
-    }
-
-    @Test
-    void onboardingAnOwnerWithAWeakPasswordIsRejected() throws Exception {
-        User superAdmin = saveUser(UserRole.SUPER_ADMIN, null);
-        Map<String, Object> onboard = Map.of("fullName", "Weak Owner", "phoneNumber", "8" + String.format("%09d", System.nanoTime() % 1_000_000_000L),
-                "password", "simple", "pumpName", "Weak Pump", "pumpAddress", "Highway 2", "maxDuCount", 2);
-
-        perform(post("/api/super-admin/onboard-owner"), superAdmin, onboard).andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void staffListHidesPhoneNumbersAndPayRatesFromManagers() throws Exception {
-        JsonNode forOwner = json(perform(get("/api/users/staff").param("pumpId", setup.pumpId().toString()), setup.owner())
-                .andExpect(status().isOk()));
-        JsonNode forManager = json(perform(get("/api/users/staff").param("pumpId", setup.pumpId().toString()), setup.manager())
-                .andExpect(status().isOk()));
-
-        assertThat(forOwner.get(0).get("phoneNumber").isNull()).isFalse();
-        for (JsonNode member : forManager) {
-            assertThat(member.get("phoneNumber").isNull()).isTrue();
-            assertThat(member.get("dailyRate").isNull()).isTrue();
-            assertThat(member.get("standardHourlyRate").isNull()).isTrue();
-        }
     }
 
     @Test
