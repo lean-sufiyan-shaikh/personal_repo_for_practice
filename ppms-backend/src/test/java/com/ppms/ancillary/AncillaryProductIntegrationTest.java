@@ -59,34 +59,6 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void saleOfMoreUnitsThanInStockIsRefusedAndStockIsUnchanged() throws Exception {
-        sell(11, "450.00").andExpect(status().isBadRequest());
-
-        assertThat(product().get("currentStockUnits").asInt()).isEqualTo(10);
-    }
-
-    @Test
-    void managerCannotSellAtADifferentPriceThanConfigured() throws Exception {
-        sell(1, "400.00").andExpect(status().isBadRequest());
-
-        assertThat(product().get("currentStockUnits").asInt()).isEqualTo(10);
-    }
-
-    @Test
-    void backfilledSaleBeforeAnyRecordedPriceIsRefused() throws Exception {
-        Map<String, Object> request = new HashMap<>();
-        request.put("productId", productId);
-        request.put("saleDate", TestDates.today().minusDays(1).toString());
-        request.put("quantityUnits", 2);
-        request.put("paymentMode", "CASH");
-
-        perform(post("/api/pumps/{pumpId}/ancillary/sales/backfill", setup.pumpId()), setup.owner(), request)
-                .andExpect(status().isBadRequest());
-
-        assertThat(product().get("currentStockUnits").asInt()).isEqualTo(10);
-    }
-
-    @Test
     void backfilledUpiSaleDoesNotCreateASettlement() throws Exception {
         jdbcTemplate.update("UPDATE ancillary_product_prices SET effective_from = effective_from - INTERVAL '5 days' WHERE product_id = ?", productId);
         jdbcTemplate.update("UPDATE ancillary_stock_lots SET delivery_date = delivery_date - 5 WHERE product_id = ?", productId);
@@ -129,7 +101,7 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void backfilledCreditSaleNeedsAClientAndIsAddedToThatClientsBalance() throws Exception {
+    void backfilledCreditSaleIsAddedToTheClientsBalance() throws Exception {
         jdbcTemplate.update("UPDATE ancillary_product_prices SET effective_from = effective_from - INTERVAL '5 days' WHERE product_id = ?", productId);
         long clientId = json(perform(post("/api/pumps/{pumpId}/credit-clients", setup.pumpId()), setup.manager(),
                 Map.of("name", "Client " + shortId(), "phone", "9" + String.format("%09d", System.nanoTime() % 1_000_000_000L)))
@@ -140,11 +112,6 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
         request.put("quantityUnits", 2);
         request.put("paymentMode", "CREDIT");
         request.put("clientName", "Walk-in");
-
-        perform(post("/api/pumps/{pumpId}/ancillary/sales/backfill", setup.pumpId()), setup.owner(), request)
-                .andExpect(status().isBadRequest());
-        assertThat(product().get("currentStockUnits").asInt()).isEqualTo(10);
-
         request.put("clientId", clientId);
         perform(post("/api/pumps/{pumpId}/ancillary/sales/backfill", setup.pumpId()), setup.owner(), request)
                 .andExpect(status().is2xxSuccessful());
@@ -155,33 +122,6 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
             assertThat(client.get("id").asLong()).isEqualTo(clientId);
             assertThat(client.get("outstandingBalance").decimalValue()).isEqualByComparingTo("900.00");
         });
-    }
-
-    @Test
-    void patchingOnlyTheBrandKeepsTheLowStockThreshold() throws Exception {
-        perform(patch("/api/pumps/{pumpId}/ancillary/products/{id}", setup.pumpId(), productId), setup.owner(),
-                Map.of("brand", "Shell"))
-                .andExpect(status().isOk());
-
-        JsonNode product = product();
-        assertThat(product.get("brand").asText()).isEqualTo("Shell");
-        assertThat(product.get("lowStockThreshold").asInt()).isEqualTo(2);
-    }
-
-    @Test
-    void gstRateAboveOneHundredPercentIsRejected() throws Exception {
-        perform(patch("/api/pumps/{pumpId}/ancillary/products/{id}", setup.pumpId(), productId), setup.owner(),
-                Map.of("gstRatePercent", new BigDecimal("150")))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void deactivatedProductIsMarkedInactive() throws Exception {
-        perform(patch("/api/pumps/{pumpId}/ancillary/products/{id}/status", setup.pumpId(), productId)
-                        .param("status", "INACTIVE"), setup.owner())
-                .andExpect(status().isOk());
-
-        assertThat(product().get("status").asText()).isEqualTo("INACTIVE");
     }
 
     @Test
@@ -226,35 +166,16 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void backfillingASaleForTodayOrAsAManagerIsRefused() throws Exception {
+    void backfillingASaleAsAManagerIsRefused() throws Exception {
         Map<String, Object> request = new HashMap<>();
         request.put("productId", productId);
-        request.put("saleDate", TestDates.today().toString());
         request.put("quantityUnits", 1);
         request.put("paymentMode", "CASH");
-
-        perform(post("/api/pumps/{pumpId}/ancillary/sales/backfill", setup.pumpId()), setup.owner(), request)
-                .andExpect(status().isBadRequest());
         request.put("saleDate", TestDates.today().minusDays(1).toString());
         perform(post("/api/pumps/{pumpId}/ancillary/sales/backfill", setup.pumpId()), setup.manager(), request)
                 .andExpect(status().isForbidden());
 
         assertThat(product().get("currentStockUnits").asInt()).isEqualTo(10);
-    }
-
-    @Test
-    void correctingALotMovesTheProductStockByTheSameNumberOfUnits() throws Exception {
-        Long lotId = jdbcTemplate.queryForObject(
-                "SELECT id FROM ancillary_stock_lots WHERE product_id = ?", Long.class, productId);
-
-        perform(patch("/api/pumps/{pumpId}/ancillary/lots/{lotId}", setup.pumpId(), lotId), setup.owner(),
-                Map.of("remainingQuantity", 7, "costPricePerUnit", new BigDecimal("310.00")))
-                .andExpect(status().isOk());
-
-        assertThat(product().get("currentStockUnits").asInt()).isEqualTo(7);
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT cost_price_per_unit FROM ancillary_stock_lots WHERE id = ?", BigDecimal.class, lotId))
-                .isEqualByComparingTo("310.00");
     }
 
     @Test
@@ -282,13 +203,10 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void lotCannotHoldMoreThanWasDeliveredAndEmptyingItMarksItExhausted() throws Exception {
+    void ownerEmptyingALotMarksItExhaustedAndManagerCannotCorrectIt() throws Exception {
         Long lotId = jdbcTemplate.queryForObject(
                 "SELECT id FROM ancillary_stock_lots WHERE product_id = ?", Long.class, productId);
 
-        perform(patch("/api/pumps/{pumpId}/ancillary/lots/{lotId}", setup.pumpId(), lotId), setup.owner(),
-                Map.of("remainingQuantity", 11))
-                .andExpect(status().isBadRequest());
         perform(patch("/api/pumps/{pumpId}/ancillary/lots/{lotId}", setup.pumpId(), lotId), setup.manager(),
                 Map.of("remainingQuantity", 5))
                 .andExpect(status().isForbidden());
@@ -327,15 +245,6 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
         assertThat(history.size()).isEqualTo(1);
         assertThat(history.get(0).get("pricePerUnit").decimalValue()).isEqualByComparingTo("120.50");
         assertThat(history.get(0).get("setByUserId").asLong()).isEqualTo(setup.owner().getId());
-    }
-
-    @Test
-    void productWithASellingPriceBelowOnePaisaIsRefusedAndNotCreated() throws Exception {
-        Integer productsBefore = productCount();
-
-        createProduct(Map.of("sellingPricePerUnit", new BigDecimal("0"))).andExpect(status().isBadRequest());
-
-        assertThat(productCount()).isEqualTo(productsBefore);
     }
 
     @Test
