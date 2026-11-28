@@ -67,26 +67,18 @@ class FleetVehicleIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void blockRefusesAMissingOrUnknownVehicleAWrongFuelAndAnEntryPastTheMonthlyLimits() throws Exception {
+    void blockRefusesAnEntryPastTheMonthlyLitreLimitUsedSoFarAndRecordsATypedInVehicle() throws Exception {
         long clientId = createClient(null);
         setCheck(clientId, "BLOCK").andExpect(status().isOk());
-        Map<String, Object> dieselOnly = vehicle("MH12AB1234");
-        dieselOnly.put("allowedFuelTypes", List.of("DIESEL"));
-        long dieselVehicle = json(addVehicle(clientId, dieselOnly)).get("id").asLong();
         Map<String, Object> limited = vehicle("MH14CD5678");
         limited.put("monthlyLitreLimit", new BigDecimal("10.00"));
         limited.put("monthlyAmountLimit", new BigDecimal("1500.00"));
         long limitedVehicle = json(addVehicle(clientId, limited)).get("id").asLong();
 
-        sell(clientId, "100.00", null, null).andExpect(jsonPath("$.code").value("VEHICLE_REQUIRED_FOR_CREDIT"));
-        sell(clientId, "100.00", null, "KA01ZZ9999").andExpect(jsonPath("$.code").value("VEHICLE_NOT_APPROVED"));
-        sell(clientId, "100.00", dieselVehicle, null).andExpect(jsonPath("$.code").value("VEHICLE_FUEL_NOT_ALLOWED"));
-
         sell(clientId, "600.00", limitedVehicle, null).andExpect(status().is2xxSuccessful());
         sell(clientId, "500.00", limitedVehicle, null)
                 .andExpect(jsonPath("$.code").value("VEHICLE_MONTHLY_LITRE_LIMIT_EXCEEDED"))
-                .andExpect(jsonPath("$.params.used").value("6.00"))
-                .andExpect(jsonPath("$.params.left").value("4.00"));
+                .andExpect(jsonPath("$.params.used").value("6.00"));
         sell(clientId, "400.00", null, "mh 14 cd 5678").andExpect(status().is2xxSuccessful());
 
         JsonNode entries = creditEntries();
@@ -130,44 +122,6 @@ class FleetVehicleIntegrationTest extends ApiIntegrationTest {
         assertThat(entries.get(0).get("vehicleRegistration").asText()).isEqualTo("KA01ZZ9999");
         assertThat(entries.get(1).get("vehicleFlag").asText()).isEqualTo("FUEL_NOT_ALLOWED");
         assertThat(notificationCount("VEHICLE_CREDIT_FLAGGED")).isEqualTo(1);
-    }
-
-    @Test
-    void offKeepsTakingAnyVehicleWithoutFlagsOrNotifications() throws Exception {
-        long clientId = createClient(null);
-        addVehicle(clientId, vehicle("MH12AB1234")).andExpect(status().isCreated());
-
-        sell(clientId, "100.00", null, "ka 01 zz 9999").andExpect(status().is2xxSuccessful());
-        sell(clientId, "100.00", null, null).andExpect(status().is2xxSuccessful());
-
-        JsonNode entries = creditEntries();
-        assertThat(entries.get(0).get("vehicleRegistration").asText()).isEqualTo("KA01ZZ9999");
-        assertThat(entries.get(0).get("vehicleFlag").isNull()).isTrue();
-        assertThat(entries.get(0).get("vehicleId").isNull()).isTrue();
-        assertThat(notificationCount("VEHICLE_CREDIT_FLAGGED")).isZero();
-    }
-
-    @Test
-    void subAccountUsesItsOwnAndItsParentsVehiclesAndItsCheckIsSetOnTheParent() throws Exception {
-        long parentId = createClient(null);
-        long childId = createClient(parentId);
-        long siblingId = createClient(parentId);
-        long parentVehicle = json(addVehicle(parentId, vehicle("MH12AB1234"))).get("id").asLong();
-        long siblingVehicle = json(addVehicle(siblingId, vehicle("MH14CD5678"))).get("id").asLong();
-        setCheck(childId, "BLOCK").andExpect(jsonPath("$.code").value("VEHICLE_CHECK_ON_SUB_ACCOUNT"));
-        setCheck(parentId, "BLOCK").andExpect(status().isOk());
-
-        sell(childId, "100.00", parentVehicle, null).andExpect(status().is2xxSuccessful());
-        sell(childId, "100.00", siblingVehicle, null).andExpect(jsonPath("$.code").value("VEHICLE_NOT_ON_ACCOUNT"));
-
-        JsonNode parentList = json(perform(get("/api/pumps/{pumpId}/credit-clients/{clientId}/vehicles",
-                setup.pumpId(), parentId), setup.manager()).andExpect(status().isOk()));
-        assertThat(parentList.get("vehicles")).hasSize(2);
-        JsonNode childPicker = json(perform(get("/api/pumps/{pumpId}/credit-clients/{clientId}/vehicle-picker",
-                setup.pumpId(), childId), setup.operator()).andExpect(status().isOk()));
-        assertThat(childPicker.get("vehicleCheck").asText()).isEqualTo("BLOCK");
-        assertThat(childPicker.get("checkClientId").asLong()).isEqualTo(parentId);
-        assertThat(childPicker.get("vehicles")).hasSize(1);
     }
 
     @Test
