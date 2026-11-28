@@ -20,6 +20,7 @@ export default mergeConfig(
             name: 'node',
             include: ['src/**/*.test.ts'],
             environment: 'node',
+            isolate: false,
             setupFiles: ['./src/test/setup.node.ts'],
           },
         },
@@ -29,6 +30,9 @@ export default mergeConfig(
             name: 'dom',
             include: ['src/**/*.test.tsx'],
             environment: 'jsdom',
+            isolate: false,
+            // Loaded through the module registry so each test file gets its own i18next instance.
+            server: { deps: { inline: ['i18next', 'react-i18next', 'i18next-resources-to-backend'] } },
             setupFiles: ['./src/test/setup.ts'],
           },
         },

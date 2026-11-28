@@ -1,9 +1,12 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
-import { initI18n } from '../i18n'
+import { afterEach, vi } from 'vitest'
+
+// Test files share one browser environment per worker; a fresh module registry keeps mocks and module state from leaking between files.
+vi.resetModules()
 
 // Tests render the real English resources, so text and role-name queries match what English users see.
+const { initI18n } = await import('../i18n')
 await initI18n('en')
 
 // jsdom does not implement scrolling.
