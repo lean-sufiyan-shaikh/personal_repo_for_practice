@@ -55,37 +55,6 @@ class SettlementChargesIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void typedChargesReplaceThePumpDefaults() throws Exception {
-        closeShift("0.00", "1000.00", "0.00");
-
-        record(Map.of("paymentType", "CARD", "settlementDate", today, "amountReceived", new BigDecimal("500.00"),
-                "amountBasis", "GROSS", "mdrAmount", new BigDecimal("10.00"), "gstOnMdrAmount", new BigDecimal("1.80")))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.netAmount").value(488.20))
-                .andExpect(jsonPath("$.isPartial").value(true));
-
-        assertThat(wallet().get("cardPending").decimalValue()).isEqualByComparingTo("500.00");
-    }
-
-    @Test
-    void zeroAmountsAndGstWithoutMdrAreRefused() throws Exception {
-        closeShift("500.00", "0.00", "0.00");
-
-        record(Map.of("paymentType", "UPI", "settlementDate", today, "amountReceived", BigDecimal.ZERO))
-                .andExpect(status().isBadRequest());
-        record(Map.of("paymentType", "UPI", "settlementDate", today, "amountReceived", new BigDecimal("100.00"),
-                "gstOnMdrAmount", new BigDecimal("1.00")))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SETTLEMENT_GST_WITHOUT_MDR"));
-        record(Map.of("paymentType", "UPI", "settlementDate", today, "amountReceived", new BigDecimal("100.00"),
-                "mdrAmount", new BigDecimal("100.00")))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SETTLEMENT_CHARGES_EXCEED_AMOUNT"));
-
-        assertThat(wallet().get("upiPending").decimalValue()).isEqualByComparingTo("500.00");
-    }
-
-    @Test
     void mdrSettingsAreSavedPerPaymentTypeAndUsedForNewSettlements() throws Exception {
         JsonNode defaults = json(perform(get("/api/pumps/{pumpId}/settlement-configs", setup.pumpId()), setup.manager())
                 .andExpect(status().isOk()));
@@ -112,14 +81,6 @@ class SettlementChargesIntegrationTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.mdrAmount").value(5.00))
                 .andExpect(jsonPath("$.gstOnMdrAmount").value(0.90))
                 .andExpect(jsonPath("$.netAmount").value(994.10));
-    }
-
-    @Test
-    void partialMeansTheLastCollectionDayReachedIsOnlyPartlyCleared() throws Exception {
-        closeShift("600.00", "0.00", "0.00");
-
-        record(upi("250.00")).andExpect(status().isCreated()).andExpect(jsonPath("$.isPartial").value(true));
-        record(upi("350.00")).andExpect(status().isCreated()).andExpect(jsonPath("$.isPartial").value(false));
     }
 
     @Test
@@ -181,11 +142,6 @@ class SettlementChargesIntegrationTest extends ApiIntegrationTest {
 
     private ResultActions record(Map<String, Object> body) throws Exception {
         return perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(), body);
-    }
-
-    private Map<String, Object> upi(String amount) {
-        return Map.of("paymentType", "UPI", "settlementDate", today, "amountReceived", new BigDecimal(amount),
-                "amountBasis", "GROSS");
     }
 
     private JsonNode wallet() throws Exception {

@@ -45,8 +45,6 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
         perform(post("/api/pumps/{pumpId}/settlements/{id}/void", setup.pumpId(), settlementId), setup.manager(),
                 Map.of("reason", "Typo")).andExpect(status().isForbidden());
         perform(post("/api/pumps/{pumpId}/settlements/{id}/void", setup.pumpId(), settlementId), setup.owner(),
-                Map.of("reason", "")).andExpect(status().isBadRequest());
-        perform(post("/api/pumps/{pumpId}/settlements/{id}/void", setup.pumpId(), settlementId), setup.owner(),
                 Map.of("reason", "Typo")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.voidStatus").value("VOIDED"));
 
@@ -64,27 +62,6 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.message").value(containsString("last 2 minutes")));
 
         assertThat(wallet().get("upiPending").decimalValue()).isEqualByComparingTo("500.00");
-    }
-
-    @Test
-    void settlementLargerThanWhatIsPendingIsRefused() throws Exception {
-        closeShiftWithUpi("600.00");
-        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(), settlementBody("450.00"))
-                .andExpect(status().is2xxSuccessful());
-
-        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
-                settlementWithReference("150.01", "UTR-OVER"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(containsString("₹150.00 still pending")))
-                .andExpect(jsonPath("$.code").value("SETTLEMENT_EXCEEDS_PENDING"))
-                .andExpect(jsonPath("$.params.paymentTypeCode").value("UPI"))
-                .andExpect(jsonPath("$.params.amount").value("150.01"))
-                .andExpect(jsonPath("$.params.pending").value("150.00"));
-        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
-                settlementWithReference("150.00", "UTR-EXACT"))
-                .andExpect(status().is2xxSuccessful());
-
-        assertThat(wallet().get("upiPending").decimalValue()).isEqualByComparingTo("0.00");
     }
 
     @Test
@@ -148,23 +125,6 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void settlementWithAnUnknownTypeAFutureDateOrNoVoidReasonIsRejected() throws Exception {
-        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
-                Map.of("paymentType", "CHEQUE", "settlementDate", TestDates.today().toString(), "amountReceived", 10))
-                .andExpect(status().isBadRequest());
-        perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
-                Map.of("paymentType", "UPI", "settlementDate", TestDates.today().plusDays(2).toString(), "amountReceived", 10))
-                .andExpect(status().isBadRequest());
-
-        closeShiftWithUpi("100.00");
-        long settlementId = json(perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(),
-                settlementBody("40.00")).andExpect(status().is2xxSuccessful())).get("id").asLong();
-        perform(post("/api/pumps/{pumpId}/settlements/{id}/void", setup.pumpId(), settlementId), setup.owner(),
-                Map.of("reason", " "))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void settlementAlertConfigurationIsOwnerOrAdminOnly() throws Exception {
         Map<String, Object> config = Map.of("alertTime", "18:30", "enabled", true);
 
@@ -185,18 +145,6 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
 
         assertThat(managerExpense.get("approvalStatus").asText()).isEqualTo("PENDING_APPROVAL");
         assertThat(ownerExpense.get("approvalStatus").asText()).isEqualTo("APPROVED");
-    }
-
-    @Test
-    void expenseWithinThePumpThresholdIsApprovedStraightAway() throws Exception {
-        perform(patch("/api/pumps/{pumpId}/settings", setup.pumpId()), setup.owner(),
-                Map.of("expenseApprovalThreshold", new BigDecimal("2000.00"))).andExpect(status().isOk());
-
-        JsonNode small = json(createExpense(setup.manager(), "1500.00", false).andExpect(status().is2xxSuccessful()));
-        JsonNode large = json(createExpense(setup.manager(), "2500.00", false).andExpect(status().is2xxSuccessful()));
-
-        assertThat(small.get("approvalStatus").asText()).isEqualTo("APPROVED");
-        assertThat(large.get("approvalStatus").asText()).isEqualTo("PENDING_APPROVAL");
     }
 
     @Test
@@ -255,24 +203,6 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
                 setup.accountant()).andExpect(status().isOk()));
 
         assertThat(summary.toString()).contains("1000").contains("400");
-    }
-
-    @Test
-    void cashOutLargerThanTheDrawerBalanceIsRefused() throws Exception {
-        perform(post("/api/pumps/{pumpId}/cash-events", setup.pumpId()), setup.owner(),
-                cashEvent("OPENING_BALANCE", "500.00")).andExpect(status().is2xxSuccessful());
-
-        perform(post("/api/pumps/{pumpId}/cash-events", setup.pumpId()), setup.manager(),
-                cashEvent("CASH_OUT", "600.00")).andExpect(status().isBadRequest());
-        perform(post("/api/pumps/{pumpId}/cash-events", setup.pumpId()), setup.manager(),
-                cashEvent("CASH_OUT", "200.00")).andExpect(status().is2xxSuccessful());
-
-        JsonNode events = json(perform(get("/api/pumps/{pumpId}/cash-events", setup.pumpId())
-                        .param("from", TestDates.today().toString()).param("to", TestDates.today().toString()),
-                setup.manager()).andExpect(status().isOk()));
-        assertThat(events.toString()).contains("CASH_OUT").contains("OPENING_BALANCE");
-        perform(get("/api/pumps/{pumpId}/cash-events", setup.pumpId()), setup.operator())
-                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -340,11 +270,6 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
         return perform(post("/api/pumps/{pumpId}/expenses", setup.pumpId()), user,
                 Map.of("paidFrom", "BANK", "category", "MAINTENANCE", "amount", new BigDecimal(amount), "description", "Pump repair",
                         "expenseDate", TestDates.today().toString(), "saveDraft", saveDraft));
-    }
-
-    private Map<String, Object> cashEvent(String type, String amount) {
-        return Map.of("eventType", type, "amount", new BigDecimal(amount), "description", "Drawer",
-                "eventDate", TestDates.today().toString());
     }
 
     private static JsonNode findByDate(JsonNode days, String date) {

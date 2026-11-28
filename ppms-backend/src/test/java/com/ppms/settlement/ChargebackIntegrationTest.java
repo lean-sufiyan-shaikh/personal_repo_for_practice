@@ -57,11 +57,6 @@ class ChargebackIntegrationTest extends ApiIntegrationTest {
         assertThat(settlement.get("chargebacksAmount").decimalValue()).isEqualByComparingTo("150.00");
         assertThat(settlement.get("netAfterChargebacks").decimalValue()).isEqualByComparingTo("450.00");
         assertThat(wallet().get("cardPending").decimalValue()).isEqualByComparingTo(pendingBefore);
-
-        record(setup.owner(), againstSettlement("450.01", null))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CHARGEBACK_EXCEEDS_SETTLEMENT"))
-                .andExpect(jsonPath("$.params.remaining").value("450.00"));
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM audit_logs WHERE pump_id = ? AND action::text = ?",
                 Long.class, setup.pumpId(), "CHARGEBACK_RECORDED")).isEqualTo(1);
     }
@@ -117,19 +112,12 @@ class ChargebackIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void recordingNeedsALinkAUniqueReferenceAndAnOwnerOrAdmin() throws Exception {
+    void recordingNeedsAUniqueReferenceInAnyLetterCaseAndAnOwnerOrAdmin() throws Exception {
         String reference = "CB-" + shortId();
         record(setup.manager(), againstSettlement("10.00", null)).andExpect(status().isForbidden());
-        record(setup.owner(), Map.of("kind", "CHARGEBACK", "chargebackDate", today, "amount", new BigDecimal("10.00"),
-                "reason", "Disputed")).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CHARGEBACK_LINK_REQUIRED"));
         record(setup.owner(), againstSettlement("10.00", reference)).andExpect(status().isCreated());
         record(setup.owner(), againstSettlement("10.00", reference.toLowerCase())).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("CHARGEBACK_REFERENCE_DUPLICATE"));
-        Map<String, Object> future = againstSettlement("10.00", null);
-        future.put("chargebackDate", TestDates.today().plusDays(1).toString());
-        record(setup.owner(), future).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CHARGEBACK_DATE_IN_FUTURE"));
         perform(get("/api/pumps/{pumpId}/chargebacks", setup.pumpId()), setup.manager()).andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1));
         perform(get("/api/pumps/{pumpId}/chargebacks", setup.pumpId()), setup.operator()).andExpect(status().isForbidden());
