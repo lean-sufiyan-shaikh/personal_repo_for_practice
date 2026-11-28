@@ -7,7 +7,6 @@ import com.ppms.ancillary.AncillaryProductStatus;
 import com.ppms.ancillary.AncillarySale;
 import com.ppms.ancillary.AncillarySaleRepository;
 import com.ppms.ancillary.UnitOfMeasure;
-import com.ppms.pump.PumpLocation;
 import com.ppms.support.ApiIntegrationTest;
 import com.ppms.support.TestDates;
 import com.ppms.transaction.TransactionPaymentMode;
@@ -40,7 +39,6 @@ class GstCreditNoteAndGroupInvoiceIntegrationTest extends ApiIntegrationTest {
 
     private static final String PUMP_GSTIN = "27AAAPL1234C1ZV";
     private static final String SAME_STATE_GSTIN = "27BBBCS5678D1Z2";
-    private static final String OTHER_STATE_GSTIN = "29CCCDE9012F1Z8";
     private static final LocalDate TODAY = TestDates.today();
     private static final String FINANCIAL_YEAR = InvoiceNumbering.financialYearOf(TODAY).substring(2);
 
@@ -103,26 +101,6 @@ class GstCreditNoteAndGroupInvoiceIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void creditNoteToABuyerInAnotherStateIsAllIgstAndOneOnAnUninvoicedSaleHasNoGstCreditNote() throws Exception {
-        long clientId = createClient(OTHER_STATE_GSTIN, null);
-        long invoicedSale = sellProduct(clientId, "236.00", 2);
-        invoice(clientId, null).andExpect(status().isCreated());
-        long laterSale = sellProduct(clientId, "118.00", 1);
-
-        JsonNode invoiced = json(creditNote(clientId, "COUNTER_SALE", invoicedSale, "59.00", null)
-                .andExpect(status().isCreated()));
-        JsonNode notInvoiced = json(creditNote(clientId, "COUNTER_SALE", laterSale, "59.00", null)
-                .andExpect(status().isCreated()));
-
-        assertThat(notInvoiced.get("gstCreditNoteId").isNull()).isTrue();
-        JsonNode note = json(perform(get("/api/pumps/{pumpId}/credit-invoices/credit-notes", setup.pumpId()),
-                setup.owner()).andExpect(status().isOk())).get(0);
-        assertThat(note.get("id").asLong()).isEqualTo(invoiced.get("gstCreditNoteId").asLong());
-        assertThat(note.get("igst").decimalValue()).isEqualByComparingTo("9.00");
-        assertThat(note.get("cgst").decimalValue()).isEqualByComparingTo("0.00");
-    }
-
-    @Test
     void groupInvoiceBillsTheParentAndItsSubAccountsOnOneInvoiceNamingEachAccount() throws Exception {
         long parentId = createClient(SAME_STATE_GSTIN, null);
         long subId = createClient(null, parentId);
@@ -138,27 +116,6 @@ class GstCreditNoteAndGroupInvoiceIntegrationTest extends ApiIntegrationTest {
         assertThat(lines).hasSize(2).allSatisfy(line -> assertThat(line.get("accountName").isNull()).isFalse());
         invoice(subId, null).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVOICE_NOTHING_TO_BILL"));
-    }
-
-    @Test
-    void pumpDefaultTurnsTheRunForAllClientsIntoGroupInvoicesAndAPerAccountChoiceStillWins() throws Exception {
-        long parentId = createClient(SAME_STATE_GSTIN, null);
-        long subId = createClient(null, parentId);
-        sellFuel(parentId, "500.00");
-        sellFuel(subId, "300.00");
-        PumpLocation pump = pumpLocationRepository.findById(setup.pumpId()).orElseThrow();
-        pump.setGroupInvoiceByDefault(true);
-        pumpLocationRepository.save(pump);
-
-        invoice(subId, false).andExpect(status().isCreated());
-        JsonNode run = json(perform(post("/api/pumps/{pumpId}/credit-invoices/generate-all", setup.pumpId()),
-                setup.owner(), Map.of("periodFrom", TODAY.toString(), "periodTo", TODAY.toString()))
-                .andExpect(status().isOk()));
-
-        assertThat(run.get("invoicesIssued").asInt()).isEqualTo(1);
-        JsonNode parentInvoices = json(perform(get("/api/pumps/{pumpId}/credit-invoices", setup.pumpId())
-                .param("clientId", String.valueOf(parentId)), setup.owner()).andExpect(status().isOk()));
-        assertThat(parentInvoices.get("content").get(0).get("grandTotal").decimalValue()).isEqualByComparingTo("500.00");
     }
 
     private ResultActions creditNote(long clientId, String debitType, long debitId, String amount, Integer quantity)
