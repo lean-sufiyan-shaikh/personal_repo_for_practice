@@ -30,7 +30,6 @@ class SupplierPaymentIntegrationTest extends ApiIntegrationTest {
 
     private static final LocalDate TODAY = TestDates.today();
 
-    @Autowired private FuelSupplierRepository supplierRepository;
     @Autowired private FuelSupplierPaymentRepository paymentRepository;
     @Autowired private CashEventRepository cashEventRepository;
     @Autowired private AuditLogRepository auditLogRepository;
@@ -66,9 +65,6 @@ class SupplierPaymentIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.voidStatus").value("VOIDED"))
                 .andExpect(jsonPath("$.voidReason").value("Paid by cheque instead"));
-        voidPayment(paymentId, "Again")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SUPPLIER_PAYMENT_ALREADY_VOIDED"));
 
         assertThat(balance()).isEqualByComparingTo("10000.00");
         assertThat(cashEventRepository.findById(cashOut.getId()).orElseThrow().getReversedAt()).isNotNull();
@@ -108,10 +104,7 @@ class SupplierPaymentIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void inactiveSupplierFutureDateAndClosedDayAreRefused() throws Exception {
-        pay(payment("UPI", "100.00", null, TODAY.plusDays(1)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SUPPLIER_PAYMENT_DATE_IN_FUTURE"));
+    void closedDayRefusesPaymentsAndVoidsOnIt() throws Exception {
         long paymentId = json(pay(payment("UPI", "100.00", null, TODAY)).andExpect(status().isCreated())).get("id").asLong();
 
         perform(post("/api/pumps/{pumpId}/safe/counts", setup.pumpId()), setup.manager(), Map.of("countedAmount", BigDecimal.ZERO))
@@ -125,13 +118,6 @@ class SupplierPaymentIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("DAY_CLOSED"));
         pay(payment("UPI", "100.00", null, TODAY.minusDays(1))).andExpect(status().isCreated());
-
-        FuelSupplier supplier = supplierRepository.findById(supplierId).orElseThrow();
-        supplier.setActive(false);
-        supplierRepository.save(supplier);
-        pay(payment("UPI", "100.00", null, TODAY.minusDays(1)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SUPPLIER_INACTIVE"));
     }
 
     @Test

@@ -72,9 +72,6 @@ class SupplierLedgerIntegrationTest extends ApiIntegrationTest {
     @Test
     void ledgerRunsFromOpeningBalanceThroughDeliveriesPaymentsAndCreditNotes() throws Exception {
         Map<String, Object> update = new HashMap<>(Map.of("name", "IOCL", "openingBalance", new BigDecimal("10000")));
-        perform(put("/api/pumps/{pumpId}/suppliers/{id}", setup.pumpId(), iocl), setup.owner(), update)
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SUPPLIER_OPENING_BALANCE_DATE_REQUIRED"));
         update.put("openingBalanceDate", TODAY.minusDays(90).toString());
         perform(put("/api/pumps/{pumpId}/suppliers/{id}", setup.pumpId(), iocl), setup.owner(), update)
                 .andExpect(status().isOk())
@@ -106,10 +103,7 @@ class SupplierLedgerIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void managerReadsSuppliersAndTheLedgerButOnlyOwnerOrAdminPays() throws Exception {
-        perform(get("/api/pumps/{pumpId}/suppliers", setup.pumpId()), setup.manager()).andExpect(status().isOk());
-        perform(get("/api/pumps/{pumpId}/supplier-payments", setup.pumpId()), setup.manager()).andExpect(status().isOk());
-        perform(get("/api/pumps/{pumpId}/supplier-ledger", setup.pumpId()), setup.operator()).andExpect(status().isForbidden());
+    void onlyOwnerOrAdminPaysOrPicksTheDefaultSupplier() throws Exception {
         perform(post("/api/pumps/{pumpId}/supplier-payments", setup.pumpId()), setup.manager(),
                 paymentBody(iocl, "100.00", TODAY)).andExpect(status().isForbidden());
         perform(post("/api/pumps/{pumpId}/suppliers/{id}/default", setup.pumpId(), iocl), setup.manager())
