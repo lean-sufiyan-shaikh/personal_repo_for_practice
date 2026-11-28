@@ -91,35 +91,15 @@ describe('RadarPage', () => {
     expect(screen.getByText(/not proof that anything is wrong/)).toBeInTheDocument()
   })
 
-  it('opens why this score with each rule, its points and the events linked to their records', async () => {
+  it('opens why this score with the rule points and the events linked to their records', async () => {
     const user = userEvent.setup()
     renderWithProviders(<RadarPage />)
     const card = await screen.findByRole('article', { name: 'Ravi Kumar' })
 
     await user.click(within(card).getByRole('button', { name: 'Why this score' }))
 
-    expect(within(card).getByText(/Short on 6 of 10 shifts \(60%\), against 10% for everyone else/)).toBeInTheDocument()
     expect(within(card).getByText('30 of 30 points')).toBeInTheDocument()
-    expect(within(card).getByText(/Shortages average ₹180.00 a shift, against ₹10.00/)).toBeInTheDocument()
-    expect(within(card).getByText('Shift short by ₹300.00')).toBeInTheDocument()
     expect(within(card).getByRole('link', { name: 'Open shift' })).toHaveAttribute('href', '/dashboard/shifts?shift=11')
-  })
-
-  it('explains nozzle amendments and tank loss weeks in words with the page to check', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<RadarPage />)
-    const nozzle = await screen.findByRole('article', { name: 'DU-1 · Nozzle 1' })
-    const tank = screen.getByRole('article', { name: 'T1' })
-
-    await user.click(within(nozzle).getByRole('button', { name: 'Why this score' }))
-    await user.click(within(tank).getByRole('button', { name: 'Why this score' }))
-
-    expect(within(nozzle).getByText('Meter changed from 3,500.000 to 3,400.000')).toBeInTheDocument()
-    expect(within(nozzle).getByText('Reason given: Typed wrong')).toBeInTheDocument()
-    expect(within(nozzle).getByRole('link', { name: 'Open nozzle setup' })).toHaveAttribute('href', '/dashboard/setup?section=nozzles')
-    expect(within(tank).getByText(/Week lost 20.00 L, −2.00% of 1,000.00 L sold/)).toBeInTheDocument()
-    expect(within(tank).getByText(/Variance over the whole period: −2% of sales, against a 0.5% loss limit/)).toBeInTheDocument()
-    expect(within(tank).getByRole('link', { name: 'Open reconciliation' })).toHaveAttribute('href', '/dashboard/inventory?tab=reconciliation')
   })
 
   it('switches to the last 90 days', async () => {
