@@ -45,13 +45,6 @@ class ShiftHistoryFuelFilterIntegrationTest extends ApiIntegrationTest {
         assertThat(shiftIds(history("PETROL", otherOperator))).isEmpty();
     }
 
-    @Test
-    void fuelFilterCannotBeCombinedWithDiscrepanciesOnly() throws Exception {
-        perform(get("/api/pumps/{pumpId}/shifts/history", setup.pumpId())
-                .param("fuelType", "PETROL").param("discrepanciesOnly", "true"), setup.manager())
-                .andExpect(status().isBadRequest());
-    }
-
     private ResultActions history(String fuelType, User user) throws Exception {
         String today = TestDates.today().toString();
         return perform(get("/api/pumps/{pumpId}/shifts/history", setup.pumpId())

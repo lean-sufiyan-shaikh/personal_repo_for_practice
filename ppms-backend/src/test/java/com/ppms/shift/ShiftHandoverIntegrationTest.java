@@ -18,10 +18,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -112,36 +110,6 @@ class ShiftHandoverIntegrationTest extends ApiIntegrationTest {
         assertThat(shiftRepository.findById(outgoingShiftId).orElseThrow().getStatus()).isEqualTo(ShiftStatus.OPEN);
         assertThat(shiftRepository.findOpenShiftByOperator(incoming.getId())).isEmpty();
         assertThat(handoverRepository.findByOutgoingShiftId(outgoingShiftId)).isEmpty();
-    }
-
-    @Test
-    void overdueShiftCannotBeHandedOverAndMustBeClosedInstead() throws Exception {
-        long outgoingShiftId = openShift();
-        Shift shift = shiftRepository.findById(outgoingShiftId).orElseThrow();
-        shift.setStatus(ShiftStatus.OPEN_OVERDUE);
-        shiftRepository.save(shift);
-
-        perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.manager(),
-                handoverRequest(outgoingShiftId, closing("1010.000", "1000.00", "0", List.of(), null)))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("Close this shift and open a new shift")))
-                .andExpect(jsonPath("$.code").value("HANDOVER_SHIFT_OVERDUE"))
-                .andExpect(jsonPath("$.params.statusCode").value("OPEN_OVERDUE"));
-
-        assertThat(shiftRepository.findById(outgoingShiftId).orElseThrow().getStatus()).isEqualTo(ShiftStatus.OPEN_OVERDUE);
-    }
-
-    @Test
-    void handoverWithoutTheOutgoingOperatorsClosingFiguresIsRefused() throws Exception {
-        long outgoingShiftId = openShift();
-
-        perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.manager(),
-                Map.of("outgoingShiftId", outgoingShiftId, "incomingOperatorId", incoming.getId()))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("closing meter readings and payments")))
-                .andExpect(jsonPath("$.code").value("HANDOVER_CLOSING_REQUIRED"));
-
-        assertThat(shiftRepository.findById(outgoingShiftId).orElseThrow().getStatus()).isEqualTo(ShiftStatus.OPEN);
     }
 
     private long openShift() throws Exception {

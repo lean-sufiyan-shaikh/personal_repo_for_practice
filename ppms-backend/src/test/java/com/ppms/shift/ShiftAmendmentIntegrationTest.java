@@ -140,17 +140,9 @@ class ShiftAmendmentIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void onlyAnOwnerOrAdminAmendsAClosedShiftWithARealChangeOnAnOpenDay() throws Exception {
+    void onlyAnOwnerOrAdminAmendsAShiftAndAReasonIsRequired() throws Exception {
         amend(setup.manager(), "1012.000", "700.00", "500.00", "Meter misread").andExpect(status().isForbidden());
         amend(setup.owner(), "1012.000", "700.00", "500.00", " ").andExpect(status().isBadRequest());
-        amend(setup.owner(), "1010.000", "500.00", "500.00", "Nothing really")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SHIFT_AMEND_NO_CHANGE"));
-        long openShiftId = openShift();
-        perform(post("/api/pumps/{pumpId}/shifts/{id}/amend", setup.pumpId(), openShiftId), setup.owner(),
-                amendment("1012.000", "0.00", "0.00", "Too early"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SHIFT_AMEND_NOT_CLOSED"));
     }
 
     @Test

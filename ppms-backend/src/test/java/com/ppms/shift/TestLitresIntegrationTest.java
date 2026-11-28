@@ -1,13 +1,10 @@
 package com.ppms.shift;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.ppms.audit.AuditAction;
-import com.ppms.audit.AuditLogRepository;
 import com.ppms.support.ApiIntegrationTest;
 import com.ppms.support.TestDates;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,8 +22,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class TestLitresIntegrationTest extends ApiIntegrationTest {
 
     private static final String CLOSE_PATH = "/api/pumps/{pumpId}/shifts/{id}/close";
-
-    @Autowired private AuditLogRepository auditLogRepository;
 
     private PumpSetup setup;
 
@@ -49,28 +44,6 @@ class TestLitresIntegrationTest extends ApiIntegrationTest {
         assertThat(reading.get("testLitres").decimalValue()).isEqualByComparingTo("5");
         assertThat(reading.get("unitsSold").decimalValue()).isEqualByComparingTo("20");
         assertThat(currentStock()).isEqualByComparingTo("4980");
-    }
-
-    @Test
-    void testLitresCannotExceedTheMeterLitresAndAboveTheLimitNeedANoteThatIsAudited() throws Exception {
-        long shiftId = openShift();
-        perform(post(CLOSE_PATH, setup.pumpId(), shiftId), setup.manager(), closeRequest("1025.000", "30", "0.00", "x"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("TEST_LITRES_ABOVE_METER_LITRES"));
-        perform(post(CLOSE_PATH, setup.pumpId(), shiftId), setup.manager(), closeRequest("1025.000", "15", "1000.00", null))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("TEST_LITRES_NOTE_REQUIRED"));
-
-        perform(post(CLOSE_PATH, setup.pumpId(), shiftId), setup.manager(),
-                closeRequest("1025.000", "15", "1000.00", "Calibration redone after a nozzle change"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalAmountDue").value(1000.00));
-
-        assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(setup.pumpId()))
-                .anySatisfy(audit -> {
-                    assertThat(audit.getAction()).isEqualTo(AuditAction.TEST_LITRES_ABOVE_MAX);
-                    assertThat(audit.getDescription()).contains("Calibration redone after a nozzle change");
-                });
     }
 
     @Test

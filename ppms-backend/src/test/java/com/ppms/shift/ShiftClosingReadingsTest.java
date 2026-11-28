@@ -101,6 +101,23 @@ class ShiftClosingReadingsTest {
     }
 
     @Test
+    void testLitresComeOffTheLitresSoldAndTheAmountDue() {
+        ShiftFuelReading reading = readingStartingAt("1000.000");
+        CloseShiftRequest request = closeRequest("1025.000", "2000.00");
+        request.setFuelReadings(List.of(new CloseShiftRequest.OutletEndReadingRequest(NOZZLE_ID, new BigDecimal("1025.000"),
+                new BigDecimal("5"))));
+
+        ShiftLifecycleSupportService.ClosingSummary summary = lifecycleSupportService.processClosingReadings(
+                1L, Map.of(NOZZLE_ID, MAX_METER), request, BigDecimal.ZERO, List.of(reading));
+
+        assertThat(reading.meterLitres()).isEqualByComparingTo("25");
+        assertThat(reading.getTestLitres()).isEqualByComparingTo("5");
+        assertThat(reading.getUnitsSold()).isEqualByComparingTo("20");
+        assertThat(summary.getTotalDue()).isEqualByComparingTo("2000.00");
+        assertThat(summary.getStatus()).isEqualTo(ShiftStatus.CLOSED_BALANCED);
+    }
+
+    @Test
     void differenceWithinTheRoundingToleranceClosesBalancedAndIsKeptAsRounding() {
         ShiftFuelReading reading = readingStartingAt("5000.000");
 
