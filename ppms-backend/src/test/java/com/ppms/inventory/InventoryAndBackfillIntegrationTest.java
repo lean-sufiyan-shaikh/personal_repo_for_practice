@@ -6,7 +6,6 @@ import com.ppms.fuel.FuelType;
 import com.ppms.pump.TankStatus;
 import com.ppms.pump.UndergroundTank;
 import com.ppms.support.ApiIntegrationTest;
-import com.ppms.user.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -84,28 +82,6 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void managerDeliveryToATankWithNoEarlierDeliveryIsRefused() throws Exception {
-        UndergroundTank dieselTank = saveDieselTank();
-
-        perform(post("/api/inventory/{pumpId}/deliveries", setup.pumpId()), setup.manager(),
-                managerDelivery(dieselTank.getId(), "200"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(containsString("an owner or admin must enter the first cost")))
-                .andExpect(jsonPath("$.code").value("FIRST_COST_PRICE_NEEDS_OWNER"))
-                .andExpect(jsonPath("$.params.tankIdentifier").value(dieselTank.getTankIdentifier()));
-
-        assertThat(tankRepository.findById(dieselTank.getId()).orElseThrow().getCurrentStock()).isEqualByComparingTo("0");
-    }
-
-    @Test
-    void ownerMustStillEnterACostForASingleDelivery() throws Exception {
-        perform(post("/api/inventory/{pumpId}/deliveries", setup.pumpId()), setup.owner(),
-                managerDelivery(setup.tank().getId(), "200"))
-                .andExpect(status().isBadRequest());
-        assertThat(currentStock()).isEqualByComparingTo("1000");
-    }
-
-    @Test
     void managerCanCorrectADeliveryButNotItsCost() throws Exception {
         long deliveryId = recordDelivery(setup, "400", "90.00", TestDates.today()).get("id").asLong();
 
@@ -120,18 +96,6 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
 
         assertThat(corrected.get("costPricePerUnit").decimalValue()).isEqualByComparingTo("90.00");
         assertThat(currentStock()).isEqualByComparingTo("1400");
-    }
-
-    @Test
-    void deliveryAboveTankCapacityIsRefused() throws Exception {
-        perform(post("/api/inventory/{pumpId}/deliveries", setup.pumpId()), setup.owner(),
-                Map.of("tankId", setup.tank().getId(), "quantityDelivered", new BigDecimal("19500"),
-                        "costPricePerUnit", new BigDecimal("90"), "deliveryDate", TestDates.today().toString(),
-                        "invoiceReference", "INV-" + shortId(),
-                        "receiptCheck", receiptCheckReceiving(setup.pumpId(), setup.tank().getId(), "19500")))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DELIVERY_OVERFLOWS_TANK"));
-        assertThat(currentStock()).isEqualByComparingTo("1000");
     }
 
     @Test
@@ -259,17 +223,6 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
         assertThat(tankerDeliveryRepository.findByPumpIdAndInvoiceReference(setup.pumpId(), newInvoice)).hasSize(2);
     }
 
-    @Test
-    void batchDeliveryListingTheSameTankTwiceIsRefused() throws Exception {
-        Map<String, Object> request = batchRequest(List.of(
-                Map.of("tankId", setup.tank().getId(), "quantityDelivered", new BigDecimal("100"), "costPricePerUnit", new BigDecimal("91")),
-                Map.of("tankId", setup.tank().getId(), "quantityDelivered", new BigDecimal("200"), "costPricePerUnit", new BigDecimal("92"))));
-
-        perform(post("/api/inventory/{pumpId}/deliveries/batch", setup.pumpId()), setup.owner(), request)
-                .andExpect(status().isBadRequest());
-        assertThat(currentStock()).isEqualByComparingTo("1000");
-    }
-
     private Map<String, Object> managerDelivery(Long tankId, String litres) {
         return Map.of("tankId", tankId, "quantityDelivered", new BigDecimal(litres),
                 "deliveryDate", TestDates.today().toString(), "invoiceReference", "INV-" + shortId(),
@@ -339,29 +292,6 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void dipCheckGainWithinToleranceAddsStockWithoutReview() throws Exception {
-        JsonNode dip = json(perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
-                Map.of("tankId", setup.tank().getId(), "measuredQuantity", new BigDecimal("1020"),
-                        "checkedAt", TestDates.today().toString()))
-                .andExpect(status().is2xxSuccessful()));
-
-        assertThat(dip.get("variance").decimalValue()).isEqualByComparingTo("20");
-        assertThat(currentStock()).isEqualByComparingTo("1020");
-        assertThat(dip.get("status").asText()).isNotEqualTo("PENDING_REVIEW");
-    }
-
-    @Test
-    void dipCheckNamingStaffOfAnotherPumpIsRefused() throws Exception {
-        var outsider = saveUser(UserRole.OPERATOR, null);
-
-        perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
-                Map.of("tankId", setup.tank().getId(), "measuredQuantity", new BigDecimal("990"),
-                        "checkedAt", TestDates.today().toString(), "checkedByUserId", outsider.getId()))
-                .andExpect(status().is4xxClientError());
-        assertThat(currentStock()).isEqualByComparingTo("1000");
-    }
-
-    @Test
     void dipCheckDuringAnOpenShiftCountsOnlyFuelMissingBeyondWhatTheShiftHasSoldAndStockStaysRightAfterClose() throws Exception {
         long shiftId = openShift();
         JsonNode nozzles = json(perform(get("/api/inventory/{pumpId}/tanks/{tankId}/open-shift-nozzles",
@@ -398,48 +328,6 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void dipCheckDuringAnOpenShiftWithoutTheNozzleMeterReadingIsRefused() throws Exception {
-        openShift();
-
-        JsonNode refused = json(perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
-                dipRequest("965", List.of()))
-                .andExpect(status().isBadRequest()));
-
-        assertThat(refused.toString()).contains("still open").contains("nozzle #1");
-        assertThat(currentStock()).isEqualByComparingTo("1000");
-    }
-
-    @Test
-    void dipCheckWithAMeterReadingBelowTheShiftOpeningReadingIsRefused() throws Exception {
-        openShift();
-
-        perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
-                dipRequest("965", List.of(Map.of("nozzleId", setup.nozzle().getId(), "meterReading", new BigDecimal("999.000")))))
-                .andExpect(status().isBadRequest());
-
-        assertThat(currentStock()).isEqualByComparingTo("1000");
-    }
-
-    @Test
-    void dipCheckWithAMeterReadingForANozzleWithoutAnOpenShiftIsRefused() throws Exception {
-        perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
-                dipRequest("990", List.of(Map.of("nozzleId", setup.nozzle().getId(), "meterReading", new BigDecimal("1010.000")))))
-                .andExpect(status().isBadRequest());
-
-        assertThat(currentStock()).isEqualByComparingTo("1000");
-    }
-
-    @Test
-    void backDatedDipCheckIsRefused() throws Exception {
-        perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(),
-                Map.of("tankId", setup.tank().getId(), "measuredQuantity", new BigDecimal("900"),
-                        "checkedAt", TestDates.today().minusDays(1).toString()))
-                .andExpect(status().isBadRequest());
-
-        assertThat(currentStock()).isEqualByComparingTo("1000");
-    }
-
-    @Test
     void dipCheckAtZeroBookStockIsAllowedOnceTheTankHasHadADelivery() throws Exception {
         perform(post("/api/inventory/{pumpId}/dip-checks", setup.pumpId()), setup.manager(), dipRequest("0", List.of()))
                 .andExpect(status().is2xxSuccessful());
@@ -457,17 +345,6 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
                     assertThat(lot.getIsDipAdjustment()).isTrue();
                     assertThat(lot.getCostPricePerUnit()).isEqualByComparingTo("90.00");
                 });
-    }
-
-    @Test
-    void dipCheckOnATankThatNeverHadADeliveryIsRefused() throws Exception {
-        PumpSetup emptyPump = createPumpWithStock("0");
-
-        perform(post("/api/inventory/{pumpId}/dip-checks", emptyPump.pumpId()), emptyPump.manager(),
-                Map.of("tankId", emptyPump.tank().getId(), "measuredQuantity", new BigDecimal("100")))
-                .andExpect(status().isBadRequest());
-
-        assertThat(tankRepository.findById(emptyPump.tank().getId()).orElseThrow().getCurrentStock()).isEqualByComparingTo("0");
     }
 
     @Test

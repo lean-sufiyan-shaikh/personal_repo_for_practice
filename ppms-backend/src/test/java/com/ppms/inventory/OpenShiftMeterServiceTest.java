@@ -79,6 +79,35 @@ class OpenShiftMeterServiceTest {
     }
 
     @Test
+    void openShiftNozzleWithoutAMeterReadingIsRefused() {
+        openShiftStartingAt("1000.000");
+
+        assertThatThrownBy(() -> openShiftMeterService.salesSinceShiftOpen(tank, List.of()))
+                .isInstanceOfSatisfying(BusinessException.class, refusal -> {
+                    assertThat(refusal.getCode()).isEqualTo("OPEN_SHIFT_METER_READINGS_MISSING");
+                    assertThat(refusal.getMessage()).contains("still open").contains("nozzle #2");
+                });
+    }
+
+    @Test
+    void meterReadingBelowTheShiftOpeningReadingIsRefused() {
+        openShiftStartingAt("1000.000");
+
+        assertThatThrownBy(() -> openShiftMeterService.salesSinceShiftOpen(tank, List.of(reading("999.000"))))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        refusal -> assertThat(refusal.getCode()).isEqualTo("METER_READING_BELOW_SHIFT_OPENING"));
+    }
+
+    @Test
+    void meterReadingForANozzleWithoutAnOpenShiftIsRefused() {
+        when(fuelReadingRepository.findOpenShiftReadingsByTankId(TANK_ID)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> openShiftMeterService.salesSinceShiftOpen(tank, List.of(reading("1010.000"))))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        refusal -> assertThat(refusal.getCode()).isEqualTo("METER_READING_FOR_NOZZLE_WITHOUT_OPEN_SHIFT"));
+    }
+
+    @Test
     void noOpenShiftAndNoReadingsMeansNothingWasSoldSinceAShiftOpened() {
         when(fuelReadingRepository.findOpenShiftReadingsByTankId(TANK_ID)).thenReturn(List.of());
 

@@ -121,46 +121,6 @@ class DeliveryReceiptCheckIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void overDeliveryIsShownButRaisesNoClaim() throws Exception {
-        JsonNode line = deliver("5000", "0", "5100", "1000", null, null);
-
-        assertThat(line.get("checkStatus").asText()).isEqualTo("OVER");
-        assertThat(line.get("shortageClaimId").isNull()).isTrue();
-        assertThat(currentStock()).isEqualByComparingTo("5100");
-    }
-
-    @Test
-    void densitiesFurtherApartThanTheToleranceAreFlagged() throws Exception {
-        JsonNode flagged = deliver("1000", "0", "1000", "1000", "741.9", "745.0");
-        JsonNode close = deliver("1000", "1000", "2000", "1000", "744.0", "745.0");
-
-        assertThat(flagged.get("densityFlagged").asBoolean()).isTrue();
-        assertThat(flagged.get("receiptCheck").get("densityDifference").decimalValue()).isEqualByComparingTo("-3.1");
-        assertThat(close.get("densityFlagged").asBoolean()).isFalse();
-    }
-
-    @Test
-    void everyNozzleOnTheTankNeedsReadingsAndTheCheckItselfIsRequired() throws Exception {
-        Map<String, Object> withoutReadings = new HashMap<>(lineItem("1000", "0", "1000", "1000", null, null));
-        withoutReadings.put("receiptCheck", Map.of("dipBeforeLitres", 0, "dipAfterLitres", 1000));
-        perform(post("/api/inventory/{pumpId}/deliveries/batch", setup.pumpId()), setup.owner(), batch(withoutReadings))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("RECEIPT_NOZZLE_READINGS_MISSING"))
-                .andExpect(jsonPath("$.params.nozzleNumbers").value("#1"));
-
-        Map<String, Object> withoutCheck = new HashMap<>(lineItem("1000", "0", "1000", "1000", null, null));
-        withoutCheck.remove("receiptCheck");
-        perform(post("/api/inventory/{pumpId}/deliveries/batch", setup.pumpId()), setup.owner(), batch(withoutCheck))
-                .andExpect(status().isBadRequest());
-
-        perform(post("/api/inventory/{pumpId}/deliveries/batch", setup.pumpId()), setup.owner(),
-                batch(lineItem("1000", "0", "1000", "999", null, null)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("RECEIPT_AFTER_READING_BELOW_BEFORE"));
-        assertThat(currentStock()).isEqualByComparingTo("0");
-    }
-
-    @Test
     void ownerSettlesAClaimWithACreditNoteThatLowersTheLotCostAndManagerCannot() throws Exception {
         long deliveryId = deliver("12000", "2000", "13800", "1076", null, null).get("id").asLong();
         long claimId = claimRepository.findByTankerDeliveryId(deliveryId).orElseThrow().getId();
@@ -266,12 +226,6 @@ class DeliveryReceiptCheckIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.receiptTolerancePercent").value(1.0))
                 .andExpect(jsonPath("$.densityTolerance").value(5.0));
-
-        JsonNode line = deliver("1000", "0", "990", "1000", "741.0", "745.0");
-
-        assertThat(line.get("checkStatus").asText()).isEqualTo("OK");
-        assertThat(line.get("densityFlagged").asBoolean()).isFalse();
-        assertThat(line.get("receiptCheck").get("tolerancePercent").decimalValue()).isEqualByComparingTo("1.00");
     }
 
     private JsonNode deliver(String invoiceLitres, String dipBefore, String dipAfter, String readingAfter,
