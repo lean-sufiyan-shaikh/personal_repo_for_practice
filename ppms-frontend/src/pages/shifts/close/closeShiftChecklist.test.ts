@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CreditRow } from '../components/creditRow'
-import { isCreditRowComplete, stillNeededItems } from './closeShiftChecklist'
+import i18n from '../../../i18n'
+import { isCreditRowComplete, stillNeededItems, stillNeededLabel } from './closeShiftChecklist'
 import { EMPTY_VEHICLE_ENTRY } from '../../credit/vehicles/vehicleEntry'
 
 const completeRow: CreditRow = {
@@ -51,5 +52,19 @@ describe('isCreditRowComplete', () => {
     expect(isCreditRowComplete({ ...completeRow, clientName: ' ' })).toBe(false)
     expect(isCreditRowComplete({ ...completeRow, fuelType: '' })).toBe(false)
     expect(isCreditRowComplete({ ...completeRow, amount: '0' })).toBe(false)
+  })
+})
+
+describe('stillNeededLabel', () => {
+  const t = i18n.getFixedT<['shifts', 'common']>('en', ['shifts', 'common'])
+
+  it('names each missing thing in words, with its count', () => {
+    expect(stillNeededLabel({ kind: 'endReadings', count: 1 }, t)).toBe('End reading for 1 nozzle')
+    expect(stillNeededLabel({ kind: 'readingsBelowStart' }, t)).toBe('Fix end readings below the start')
+    expect(stillNeededLabel({ kind: 'creditEntries', count: 1 }, t)).toBe('Finish 1 credit entry')
+    expect(stillNeededLabel({ kind: 'pendingDrops', count: 1 }, t)).toBe('Confirm or reject 1 cash drop')
+    expect(stillNeededLabel({ kind: 'incomingOperator' }, t)).toBe('Choose the incoming operator')
+    expect(stillNeededLabel({ kind: 'payments' }, t)).toBe('Payments collected')
+    expect(stillNeededLabel({ kind: 'reason' }, t)).toBe('Reason for the difference')
   })
 })

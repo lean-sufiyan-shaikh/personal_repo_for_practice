@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FuelReading } from '../../../types/shift'
-import { computeCloseShiftTotals, needsOwnerApproval } from './closeShiftTotals'
+import { cashStillDuePaise, computeCloseShiftTotals, needsOwnerApproval, roundedOffCashPaise } from './closeShiftTotals'
 
 function reading(overrides: Partial<FuelReading> = {}): FuelReading {
   return {
@@ -168,5 +168,34 @@ describe('computeCloseShiftTotals', () => {
     })
     expect(result.diffPaise).toBe(0)
     expect(result.isBalanced).toBe(true)
+  })
+})
+
+describe('cashStillDuePaise', () => {
+  const nothingCollected = { totalDue: 1000, cashDropped: 0, upi: '', card: '', fleetCard: '', creditTotal: 0 }
+
+  it('is what is still due after drops, UPI, card, fleet card and credit', () => {
+    expect(cashStillDuePaise({ ...nothingCollected, upi: '300', card: '50.50', fleetCard: '20', creditTotal: 100 })).toBe(52950)
+    expect(cashStillDuePaise({ ...nothingCollected, cashDropped: 600 })).toBe(40000)
+  })
+
+  it('is the whole amount due before anything is collected', () => {
+    expect(cashStillDuePaise(nothingCollected)).toBe(100000)
+  })
+
+  it('never goes below zero when more than the amount due came in other ways', () => {
+    expect(cashStillDuePaise({ ...nothingCollected, upi: '1200' })).toBe(0)
+  })
+})
+
+describe('roundedOffCashPaise', () => {
+  it('adds a shortage to the cash and takes an excess off it', () => {
+    expect(roundedOffCashPaise('999.40', -60)).toBe(100000)
+    expect(roundedOffCashPaise('1000.50', 50)).toBe(100000)
+  })
+
+  it('refuses to take off more cash than was entered', () => {
+    expect(roundedOffCashPaise('0.20', 50)).toBeNull()
+    expect(roundedOffCashPaise('0.50', 50)).toBe(0)
   })
 })

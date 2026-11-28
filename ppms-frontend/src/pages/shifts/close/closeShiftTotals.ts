@@ -96,6 +96,27 @@ export function computeCloseShiftTotals({
   }
 }
 
+interface CashStillDueInput {
+  totalDue: number
+  cashDropped: number
+  upi: string
+  card: string
+  fleetCard: string
+  creditTotal: number
+}
+
+/** What the bag must hold for the shift to balance after drops, UPI, card, fleet card and credit; never below zero. */
+export function cashStillDuePaise({ totalDue, cashDropped, upi, card, fleetCard, creditTotal }: CashStillDueInput): number {
+  return Math.max(0,
+    toPaise(totalDue) - toPaise(cashDropped) - toPaise(emptyNum(upi)) - toPaise(emptyNum(card)) - toPaise(emptyNum(fleetCard)) - toPaise(creditTotal))
+}
+
+/** The cash in paise that closes the gap exactly; null when the gap is larger than the cash entered. */
+export function roundedOffCashPaise(cash: string, diffPaise: number): number | null {
+  const newCashPaise = toPaise(emptyNum(cash)) - diffPaise
+  return newCashPaise < 0 ? null : newCashPaise
+}
+
 export function discrepancyTypeOf(diff: number): 'SHORT' | 'OVER' | null {
   if (diff < 0) return 'SHORT'
   if (diff > 0) return 'OVER'

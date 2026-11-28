@@ -13,7 +13,6 @@ import { useConfirmDiscard } from '../../hooks/useConfirmDiscard'
 import { readDraft, removeDraft, useSaveDraft, writeDraft } from '../../hooks/useSaveDraft'
 import { DiscardChangesDialog } from '../../components/DiscardChangesDialog'
 import { DraftRestoredNotice } from '../../components/DraftRestoredNotice'
-import { toPaise } from '../../utils/money'
 import { attemptFor } from '../../utils/idempotencyKey'
 import type { SubmitAttempt } from '../../utils/idempotencyKey'
 import { FUEL_UNIT } from '../../constants/fuel'
@@ -26,7 +25,7 @@ import { PaymentSection } from './close/PaymentSection'
 import { DiscrepancySection } from './close/DiscrepancySection'
 import { CloseShiftFooter } from './close/CloseShiftFooter'
 import { LateCloseNotice } from './close/LateCloseNotice'
-import { computeCloseShiftTotals, needsOwnerApproval } from './close/closeShiftTotals'
+import { cashStillDuePaise, computeCloseShiftTotals, needsOwnerApproval, roundedOffCashPaise } from './close/closeShiftTotals'
 import { currentPriceOf } from '../../utils/priceSegments'
 import { pricedPartsText } from './components/pricedPartsText'
 import { stillNeededItems, stillNeededLabel } from './close/closeShiftChecklist'
@@ -385,8 +384,8 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
   }
 
   const handleRoundOff = () => {
-    const newCashPaise = toPaise(emptyNum(cash)) - diffPaise
-    if (newCashPaise < 0) {
+    const newCashPaise = roundedOffCashPaise(cash, diffPaise)
+    if (newCashPaise === null) {
       setServerError(t('close.errors.roundOffNegative'))
       return
     }
@@ -394,8 +393,7 @@ export default function CloseShiftModal({ shift, onClose, onOpenNextShift, hando
     setCash(newCashPaise === 0 ? '' : (newCashPaise / 100).toFixed(2))
   }
 
-  const restInCashPaise = Math.max(0,
-    toPaise(totalDue) - toPaise(cashDropped) - toPaise(emptyNum(upi)) - toPaise(emptyNum(card)) - toPaise(emptyNum(fleetCard)) - toPaise(creditTotal))
+  const restInCashPaise = cashStillDuePaise({ totalDue, cashDropped, upi, card, fleetCard, creditTotal })
 
   const soldByUnit = perFuelSales
     .filter(({ reading }) => (endReadings[reading.nozzleId] ?? '') !== '')

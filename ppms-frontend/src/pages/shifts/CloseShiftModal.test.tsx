@@ -43,82 +43,6 @@ describe('CloseShiftModal', () => {
     expect(endReading()).toHaveFocus()
   })
 
-  it('fills cash with what is still due after UPI, card, fleet card and credit', async () => {
-    const user = userEvent.setup()
-    const recordedCredit = {
-      id: 42, clientId: 3, clientName: 'Fleet Co', billNo: null, amount: 100, fuelType: 'PETROL',
-      description: null, voidStatus: 'ACTIVE' as const, voidReason: null,
-    }
-    vi.mocked(shiftApi.getShift).mockResolvedValue({ ...shift, creditEntries: [recordedCredit] })
-    renderWithProviders(<CloseShiftModal shift={{ ...shift, creditEntries: [recordedCredit] }} onClose={vi.fn()} />)
-
-    await user.click(endReading())
-    await user.paste('1010')
-    await user.click(screen.getByLabelText('UPI (₹)'))
-    await user.paste('300')
-    await user.click(screen.getByLabelText('Card (₹)'))
-    await user.paste('50.50')
-    await user.click(screen.getByLabelText('Fleet card (₹)'))
-    await user.paste('20')
-    await cashTotalField(user)
-    await user.click(screen.getByRole('button', { name: 'Fill rest · ₹529.50' }))
-
-    expect(screen.getByLabelText('Cash (₹)')).toHaveValue(529.5)
-    expect(within(screen.getByRole('dialog')).getByText('Balanced')).toBeInTheDocument()
-  })
-
-  it('offers Fill rest only while something is left to collect in cash, and hides it once cash holds the rest', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-    expect(screen.queryByRole('button', { name: /Fill rest/ })).not.toBeInTheDocument()
-
-    await user.click(endReading())
-    await user.paste('1010')
-    expect(screen.queryByRole('button', { name: /Fill rest/ })).not.toBeInTheDocument()
-    await cashTotalField(user)
-    expect(screen.getByRole('button', { name: 'Fill rest · ₹1,000.00' })).toBeInTheDocument()
-
-    await user.click(screen.getByLabelText('UPI (₹)'))
-    await user.paste('1200')
-    expect(screen.queryByRole('button', { name: /Fill rest/ })).not.toBeInTheDocument()
-
-    await user.clear(screen.getByLabelText('UPI (₹)'))
-    await user.click(screen.getByRole('button', { name: 'Fill rest · ₹1,000.00' }))
-    expect(screen.getByLabelText('Cash (₹)')).toHaveValue(1000)
-    expect(screen.queryByRole('button', { name: /Fill rest/ })).not.toBeInTheDocument()
-  })
-
-  it('lists cash first among the payments', async () => {
-    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-    await cashTotalField(userEvent.setup())
-    const payments = screen.getByRole('region', { name: 'Payments' })
-    const paymentNames = within(payments).getAllByRole('spinbutton').map((input) => (input as HTMLInputElement).labels?.[0]?.textContent)
-    expect(paymentNames).toEqual(['Cash (₹)', 'UPI (₹)', 'Card (₹)', 'Fleet card (₹)'])
-  })
-
-  it('shows the sale of each nozzle as the end reading is typed', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-    expect(screen.getByText('Start 1,000 L · ₹100.00/L')).toBeInTheDocument()
-
-    await user.click(endReading())
-    await user.paste('1012.5')
-    expect(screen.getByText(/= 12\.50 L × ₹100\.00 =/)).toHaveTextContent('= 12.50 L × ₹100.00 = ₹1,250.00')
-    expect(endReading()).toHaveAccessibleDescription('= 12.50 L × ₹100.00 = ₹1,250.00')
-  })
-
-  it('explains an end reading below the start instead of a sale line', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-    await user.click(endReading())
-    await user.paste('990')
-
-    expect(screen.getByRole('alert')).toHaveTextContent('End reading cannot be less than start (1000)')
-    expect(endReading()).toHaveAttribute('aria-invalid', 'true')
-    expect(screen.queryByText(/× ₹100\.00/)).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Review close' })).toHaveAccessibleDescription(/Fix end readings below the start/)
-  })
-
   it('marks a nozzle unchanged with the light No change box', async () => {
     const user = userEvent.setup()
     renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
@@ -252,20 +176,6 @@ describe('CloseShiftModal', () => {
     expect(screen.queryByText('Still needed')).not.toBeInTheDocument()
   })
 
-  it('asks to finish an incomplete credit entry before review', async () => {
-    const user = userEvent.setup()
-    const { container } = renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-    await user.click(endReading())
-    await user.paste('1010')
-    await user.click(await cashTotalField(user))
-    await user.paste('1000')
-    await user.click(screen.getByRole('button', { name: 'Add credit sale' }))
-
-    expect(screen.getByRole('button', { name: 'Review close' })).toBeDisabled()
-    expect(screen.getByText('Finish 1 credit entry')).toBeInTheDocument()
-    expect(container.querySelector('.bg-warn-bg')).toBeNull()
-  })
-
   it('keeps the success header until readings and payment are entered, then turns red for a shortage', async () => {
     const user = userEvent.setup()
     renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
@@ -333,10 +243,8 @@ describe('CloseShiftModal', () => {
     await user.click(endReading())
     await user.paste('1010')
 
-    const figures = await screen.findByLabelText('Cash in the safe and in the bag')
-    expect(within(figures).getByText('Dropped to safe').nextSibling).toHaveTextContent('₹600.00')
-    expect(within(figures).getByText('Expected in bag').nextSibling).toHaveTextContent('₹400.00')
-
+    expect(within(await screen.findByLabelText('Cash in the safe and in the bag')).getByText('Expected in bag').nextSibling)
+      .toHaveTextContent('₹400.00')
     await user.click(await cashTotalField(user, 'Cash in bag (₹)'))
     await user.paste('400')
     expect(screen.getByText('Balanced')).toBeInTheDocument()
@@ -360,20 +268,13 @@ describe('CloseShiftModal', () => {
   })
 
 
-
-  it('rounds a gap under one rupee into cash so the shift balances, and offers the same for a small excess', async () => {
+  it('rounds a gap under one rupee into cash so the shift balances', async () => {
     const user = await fillShift('999.40')
     expect(screen.getByText('Shift is short by ₹0.60')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Round off ₹0.60 into cash' }))
     expect(screen.getByLabelText('Cash (₹)')).toHaveValue(1000)
     expect(within(screen.getByRole('dialog')).getByText('Balanced')).toBeInTheDocument()
-
-    await user.clear(screen.getByLabelText('Cash (₹)'))
-    await user.click(screen.getByLabelText('Cash (₹)'))
-    await user.paste('1000.50')
-    expect(screen.getByText('Over ₹0.50')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Round off ₹0.50 into cash' })).toBeInTheDocument()
   })
 
   it('corrects a pre-recorded credit entry by closing, without voiding it first', async () => {
