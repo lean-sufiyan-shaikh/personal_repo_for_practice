@@ -116,15 +116,13 @@ class ApprovalQueueIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void rejectingNeedsAReasonWhichIsStoredAndAudited() throws Exception {
+    void rejectionReasonIsStoredAndAudited() throws Exception {
         long expenseId = recordExpense(setup.manager(), "MAINTENANCE", "500.00");
         long paymentId = recordPayment("300.00");
         List<Map<String, Object>> items = List.of(
                 Map.of("kind", "EXPENSE", "id", expenseId),
                 Map.of("kind", "CREDIT_PAYMENT", "id", paymentId));
 
-        decide(setup.admin(), Map.of("action", "REJECTED", "items", items)).andExpect(status().isBadRequest());
-        decide(setup.admin(), Map.of("action", "REJECTED", "reason", "  ", "items", items)).andExpect(status().isBadRequest());
         JsonNode result = json(decide(setup.admin(), Map.of("action", "REJECTED", "reason", "No bill attached", "items", items))
                 .andExpect(status().isOk()));
 

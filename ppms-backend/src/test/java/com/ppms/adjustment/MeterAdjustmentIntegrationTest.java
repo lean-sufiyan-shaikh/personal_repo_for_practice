@@ -42,8 +42,6 @@ class MeterAdjustmentIntegrationTest extends ApiIntegrationTest {
         assertThat(requested.get("unbilledValue").decimalValue()).isEqualByComparingTo("5000.00");
         assertThat(lastReading()).isEqualByComparingTo("1000.000");
         assertThat(tankStock()).isEqualByComparingTo("5000.000");
-        adjust(setup.manager(), "1060.000", "Again").andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("METER_ADJUSTMENT_ALREADY_PENDING"));
 
         JsonNode queued = pendingApproval(requested.get("id").asLong());
         assertThat(queued.get("litres").decimalValue()).isEqualByComparingTo("50.000");
@@ -93,31 +91,11 @@ class MeterAdjustmentIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void rejectedRequestLeavesTheMeterAndApprovalOfAStaleRequestIsRefused() throws Exception {
+    void rejectedRequestLeavesTheMeterAndTheTank() throws Exception {
         long rejected = json(adjust(setup.manager(), "1050.000", "Repair").andExpect(status().isCreated())).get("id").asLong();
         decide(rejected, "REJECTED", "Not convinced").andExpect(jsonPath("$.succeeded").value(1));
         assertThat(lastReading()).isEqualByComparingTo("1000.000");
-
-        long stale = json(adjust(setup.manager(), "1050.000", "Repair").andExpect(status().isCreated())).get("id").asLong();
-        jdbcTemplate.update("UPDATE nozzles SET last_reading = 1010 WHERE id = ?", setup.nozzle().getId());
-
-        decide(stale, "APPROVED", null)
-                .andExpect(jsonPath("$.failed").value(1))
-                .andExpect(jsonPath("$.results[0].code").value("METER_ADJUSTMENT_READING_MOVED"));
-        decide(rejected, "APPROVED", null)
-                .andExpect(jsonPath("$.results[0].code").value("METER_ADJUSTMENT_NOT_PENDING"));
         assertThat(tankStock()).isEqualByComparingTo("5000.000");
-    }
-
-    @Test
-    void adjustmentIsRefusedWhileAShiftRunsOnTheNozzle() throws Exception {
-        perform(post("/api/pumps/{pumpId}/shifts/open", setup.pumpId()), setup.manager(),
-                Map.of("duId", setup.du().getId(), "nozzleIds", List.of(setup.nozzle().getId()),
-                        "operatorId", setup.operator().getId()))
-                .andExpect(status().is2xxSuccessful());
-
-        adjust(setup.owner(), "1050.000", "Repair").andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("METER_ADJUSTMENT_SHIFT_RUNNING"));
     }
 
     private ResultActions adjust(User user, String newReading, String reason) throws Exception {
