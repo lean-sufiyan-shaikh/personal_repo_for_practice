@@ -1,6 +1,6 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { bankReconciliationApi } from '../../api/bankReconciliationApi'
 import type { MatchedRecord, StatementImportSummary, StatementLine } from '../../api/bankReconciliationApi'
 import { useAuthStore } from '../../store/authStore'
@@ -48,6 +48,8 @@ function cardFor(narration: string): HTMLElement {
 }
 
 describe('BankReconciliationPage', () => {
+  afterEach(() => vi.useRealTimers())
+
   beforeEach(() => {
     vi.clearAllMocks()
     useAuthStore.setState({ user: { userId: 1, fullName: 'Owner', role: 'OWNER', assignedPumpId: null }, isAuthenticated: true })
@@ -136,7 +138,8 @@ describe('BankReconciliationPage', () => {
   })
 
   it('matches a line by hand from the candidates and asks why when the amounts differ', async () => {
-    const user = userEvent.setup()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     const deposit: MatchedRecord = { type: 'DEPOSIT', id: 5, date: '2026-11-19', amount: 2400, reference: 'SLIP-9', description: 'HDFC 0042' }
     vi.mocked(bankReconciliationApi.getCandidates).mockResolvedValue([deposit])
     renderWithProviders(<BankReconciliationPage />)
@@ -149,6 +152,7 @@ describe('BankReconciliationPage', () => {
     await waitFor(() => expect(bankReconciliationApi.getCandidates).toHaveBeenCalledWith(3, 2, { search: undefined, from: undefined, to: undefined }))
 
     await user.type(within(dialog).getByLabelText('Search by amount or reference'), 'SLIP')
+    await act(() => vi.advanceTimersByTimeAsync(300))
     await waitFor(() => expect(bankReconciliationApi.getCandidates).toHaveBeenLastCalledWith(3, 2, { search: 'SLIP', from: undefined, to: undefined }))
 
     await user.click(await within(dialog).findByRole('radio', { name: /Bank deposit/ }))
@@ -157,7 +161,8 @@ describe('BankReconciliationPage', () => {
     expect(within(dialog).getByText('Say why the amounts differ.')).toBeInTheDocument()
     expect(bankReconciliationApi.updateLine).not.toHaveBeenCalled()
 
-    await user.type(within(dialog).getByLabelText('Why the amounts differ'), 'Bank took ₹100 cash handling')
+    await user.click(within(dialog).getByLabelText('Why the amounts differ'))
+    await user.paste('Bank took ₹100 cash handling')
     await user.click(within(dialog).getByRole('button', { name: 'Match line' }))
     expect(bankReconciliationApi.updateLine).toHaveBeenCalledWith(3, 2, {
       status: 'MATCHED', matchedDepositId: 5, matchNotes: 'Bank took ₹100 cash handling',

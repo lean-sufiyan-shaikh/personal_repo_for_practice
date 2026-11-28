@@ -55,7 +55,8 @@ describe('Count safe dialog', () => {
     const dialog = screen.getByRole('dialog', { name: 'Count safe' })
 
     await user.click(within(dialog).getByRole('button', { name: 'Just type the total' }))
-    await user.type(within(dialog).getByLabelText('Cash in the safe'), '1005')
+    await user.click(within(dialog).getByLabelText('Cash in the safe'))
+    await user.paste('1005')
     expect(figure(dialog, 'Difference')).toHaveTextContent('+₹5.00')
     expect(within(dialog).queryByText(/owner will be notified/)).not.toBeInTheDocument()
 
@@ -127,7 +128,8 @@ describe('Count safe dialog for an earlier day', () => {
     expect(save).toBeDisabled()
     expect(within(dialog).getByText('Reason for back-dating', { selector: 'li' })).toBeInTheDocument()
 
-    await user.type(within(dialog).getByLabelText('Reason for back-dating'), 'Count sheet found')
+    await user.click(within(dialog).getByLabelText('Reason for back-dating'))
+    await user.paste('Count sheet found')
     await user.click(save)
     expect(cashApi.recordSafeCount).toHaveBeenCalledWith(3, {
       countedAmount: 800, denominations: undefined, notes: undefined, countForDate: earlier, backDateReason: 'Count sheet found',
@@ -145,7 +147,8 @@ describe('Bank deposit dialog', () => {
   async function fillDeposit(dialog: HTMLElement, amount: string) {
     const user = userEvent.setup()
     await user.type(within(dialog).getByLabelText('Amount'), amount)
-    await user.type(within(dialog).getByLabelText('Bank account'), 'SBI ••1234')
+    await user.click(within(dialog).getByLabelText('Bank account'))
+    await user.paste('SBI ••1234')
     return user
   }
 
@@ -156,7 +159,8 @@ describe('Bank deposit dialog', () => {
     const user = await fillDeposit(dialog, '1200')
 
     expect(save).toHaveAccessibleDescription('Still needed Slip reference')
-    await user.type(within(dialog).getByLabelText('Slip reference'), 'S-9')
+    await user.click(within(dialog).getByLabelText('Slip reference'))
+    await user.paste('S-9')
     expect(within(dialog).getByText('The safe holds only ₹1,000.00.')).toBeInTheDocument()
     expect(figure(dialog, 'In the safe after this')).toHaveTextContent('−₹200.00')
     expect(save).toBeDisabled()
@@ -167,7 +171,8 @@ describe('Bank deposit dialog', () => {
     renderWithProviders(<BankDepositDialog pumpId={3} balance={1000} onClose={onClose} />)
     const dialog = screen.getByRole('dialog', { name: 'Record bank deposit' })
     const user = await fillDeposit(dialog, '400')
-    await user.type(within(dialog).getByLabelText('Slip reference'), ' S-9 ')
+    await user.click(within(dialog).getByLabelText('Slip reference'))
+    await user.paste(' S-9 ')
     const slip = new File(['%PDF-'], 'slip.pdf', { type: 'application/pdf' })
     await user.upload(within(dialog).getByLabelText(/Slip photo or PDF/), slip)
     expect(figure(dialog, 'In the safe after this')).toHaveTextContent('₹600.00')

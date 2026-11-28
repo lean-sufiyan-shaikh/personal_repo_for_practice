@@ -17,8 +17,10 @@ describe('AddProductDialog HSN code', () => {
     const user = userEvent.setup()
     renderWithProviders(<AddProductDialog pumpId={3} onClose={vi.fn()} onSuccess={vi.fn()} />)
 
-    await user.type(screen.getByLabelText('Product name'), 'Engine Oil')
-    await user.type(screen.getByLabelText('Selling price per unit'), '450')
+    await user.click(screen.getByLabelText('Product name'))
+    await user.paste('Engine Oil')
+    await user.click(screen.getByLabelText('Selling price per unit'))
+    await user.paste('450')
     await user.type(screen.getByLabelText(/^HSN code/), '2710 1980')
     await user.click(screen.getByRole('button', { name: 'Review' }))
     expect(screen.getByText('27101980')).toBeInTheDocument()
@@ -31,9 +33,12 @@ describe('AddProductDialog HSN code', () => {
     const user = userEvent.setup()
     renderWithProviders(<AddProductDialog pumpId={3} onClose={vi.fn()} onSuccess={vi.fn()} />)
 
-    await user.type(screen.getByLabelText('Product name'), 'Engine Oil')
-    await user.type(screen.getByLabelText('Selling price per unit'), '450')
-    await user.type(screen.getByLabelText(/^HSN code/), '271')
+    await user.click(screen.getByLabelText('Product name'))
+    await user.paste('Engine Oil')
+    await user.click(screen.getByLabelText('Selling price per unit'))
+    await user.paste('450')
+    await user.click(screen.getByLabelText(/^HSN code/))
+    await user.paste('271')
     await user.click(screen.getByRole('button', { name: 'Review' }))
 
     expect(screen.getByRole('alert')).toHaveTextContent('HSN code must be 4 to 8 digits')
@@ -50,10 +55,12 @@ describe('AddProductDialog required fields', () => {
     expect(review).toBeDisabled()
     expect(review).toHaveAccessibleDescription('Still needed Product name Selling price')
 
-    await user.type(screen.getByLabelText('Product name'), 'Engine Oil')
+    await user.click(screen.getByLabelText('Product name'))
+    await user.paste('Engine Oil')
     expect(review).toHaveAccessibleDescription('Still needed Selling price')
 
-    await user.type(screen.getByLabelText('Selling price per unit'), '450')
+    await user.click(screen.getByLabelText('Selling price per unit'))
+    await user.paste('450')
     expect(review).toBeEnabled()
   })
 })
@@ -67,8 +74,10 @@ describe('AddProductDialog selling price', () => {
     const user = userEvent.setup()
     renderWithProviders(<AddProductDialog pumpId={3} onClose={vi.fn()} onSuccess={vi.fn()} />)
 
-    await user.type(screen.getByLabelText('Product name'), 'Engine Oil')
-    await user.type(screen.getByLabelText('Selling price per unit'), '450.5')
+    await user.click(screen.getByLabelText('Product name'))
+    await user.paste('Engine Oil')
+    await user.click(screen.getByLabelText('Selling price per unit'))
+    await user.paste('450.5')
     await user.click(screen.getByRole('button', { name: 'Review' }))
     expect(screen.getByText('₹450.50')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Add product' }))
@@ -80,7 +89,8 @@ describe('AddProductDialog selling price', () => {
     const user = userEvent.setup()
     renderWithProviders(<AddProductDialog pumpId={3} onClose={vi.fn()} onSuccess={vi.fn()} />)
 
-    await user.type(screen.getByLabelText('Product name'), 'Engine Oil')
+    await user.click(screen.getByLabelText('Product name'))
+    await user.paste('Engine Oil')
     await user.type(screen.getByLabelText('Selling price per unit'), '0')
     await user.click(screen.getByRole('button', { name: 'Review' }))
 

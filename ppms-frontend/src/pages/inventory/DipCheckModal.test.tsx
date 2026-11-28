@@ -41,8 +41,10 @@ describe('DipCheckModal', () => {
 
     const reading = await screen.findByLabelText('Nozzle #1 · DU-1 meter reading')
     expect(reading).toHaveAccessibleDescription('Opened at 1,000')
-    await user.type(reading, '1030')
-    await user.type(screen.getByLabelText('Dipstick reading'), '965')
+    await user.click(reading)
+    await user.paste('1030')
+    await user.click(screen.getByLabelText('Dipstick reading'))
+    await user.paste('965')
 
     await user.click(screen.getByRole('button', { name: 'Save dip check' }))
     expect(inventoryApi.recordDipCheck).toHaveBeenCalledWith(6, {
@@ -64,8 +66,10 @@ describe('DipCheckModal', () => {
     expect(figure('Expected in tank')).toHaveTextContent('—')
     expect(figure('Variance')).toHaveTextContent('—')
 
-    await user.type(reading, '1030')
-    await user.type(screen.getByLabelText('Dipstick reading'), '965')
+    await user.click(reading)
+    await user.paste('1030')
+    await user.click(screen.getByLabelText('Dipstick reading'))
+    await user.paste('965')
 
     expect(figure('Sold on open shifts')).toHaveTextContent('30.00 L')
     expect(figure('Expected in tank')).toHaveTextContent('970.00 L')
@@ -79,7 +83,8 @@ describe('DipCheckModal', () => {
     const user = userEvent.setup()
     renderWithProviders(<DipCheckModal pumpId={6} tank={tank} onClose={vi.fn()} />)
 
-    await user.type(await screen.findByLabelText('Dipstick reading'), '900')
+    await user.click(await screen.findByLabelText('Dipstick reading'))
+    await user.paste('900')
 
     expect(figure('Variance')).toHaveTextContent('−100.00 L')
     expect(figure('Variance')).toHaveTextContent('Shortage detected')
@@ -95,10 +100,12 @@ describe('DipCheckModal', () => {
     expect(save).toBeDisabled()
     expect(save).toHaveAccessibleDescription(/Still needed\s*Dipstick reading\s*Meter reading for 1 nozzle/)
 
-    await user.type(screen.getByLabelText('Dipstick reading'), '965')
+    await user.click(screen.getByLabelText('Dipstick reading'))
+    await user.paste('965')
     expect(save).toHaveAccessibleDescription(/Meter reading for 1 nozzle/)
 
-    await user.type(screen.getByLabelText('Nozzle #1 · DU-1 meter reading'), '1030')
+    await user.click(screen.getByLabelText('Nozzle #1 · DU-1 meter reading'))
+    await user.paste('1030')
     expect(save).toBeEnabled()
     expect(save).not.toHaveAccessibleDescription()
   })

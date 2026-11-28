@@ -29,7 +29,8 @@ describe('PumpSettingsContent', () => {
 
     const limit = screen.getByRole('spinbutton', { name: /Owner approval limit/ })
     await user.clear(limit)
-    await user.type(limit, '750')
+    await user.click(limit)
+    await user.paste('750')
     expect(limit).toHaveAccessibleDescription(/above ₹750\.00/)
     expect(save).toBeEnabled()
     await user.click(save)
@@ -62,10 +63,12 @@ describe('PumpSettingsContent', () => {
     expect(grace).toHaveAccessibleDescription(/Up to 30 minutes before a window starts/)
 
     await user.clear(grace)
-    await user.type(grace, '121')
+    await user.click(grace)
+    await user.paste('121')
     expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled()
     await user.clear(grace)
-    await user.type(grace, '15')
+    await user.click(grace)
+    await user.paste('15')
     await user.clear(rounding)
     await user.type(rounding, '2')
     await user.click(screen.getByRole('button', { name: 'Save settings' }))
@@ -84,12 +87,15 @@ describe('PumpSettingsContent', () => {
     expect(limit).toHaveAccessibleDescription(/More than 10\.00 L returned on one nozzle/)
 
     await user.clear(measure)
-    await user.type(measure, '101')
+    await user.click(measure)
+    await user.paste('101')
     expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled()
     await user.clear(measure)
-    await user.type(measure, '10')
+    await user.click(measure)
+    await user.paste('10')
     await user.clear(limit)
-    await user.type(limit, '20')
+    await user.click(limit)
+    await user.paste('20')
     await user.click(screen.getByRole('button', { name: 'Save settings' }))
 
     expect(pumpApi.updatePumpSettings).toHaveBeenCalledWith(3, { testVolumeLitres: 10, maxTestLitresPerNozzle: 20 })
@@ -111,9 +117,11 @@ describe('PumpSettingsContent', () => {
     expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled()
 
     await user.clear(tolerance)
-    await user.type(tolerance, '0.3')
+    await user.click(tolerance)
+    await user.paste('0.3')
     await user.clear(density)
-    await user.type(density, '2.5')
+    await user.click(density)
+    await user.paste('2.5')
     await user.click(screen.getByRole('button', { name: 'Save settings' }))
 
     expect(pumpApi.updatePumpSettings).toHaveBeenCalledWith(3, { receiptTolerancePercent: 0.3, densityTolerance: 2.5 })
@@ -128,7 +136,8 @@ describe('PumpSettingsContent', () => {
     expect(tolerance).toHaveAccessibleDescription(/more than ₹10.00 short or over/)
 
     await user.clear(tolerance)
-    await user.type(tolerance, '10001')
+    await user.click(tolerance)
+    await user.paste('10001')
     expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled()
 
     await user.clear(tolerance)
@@ -148,7 +157,8 @@ describe('PumpSettingsContent', () => {
 
     await user.clear(cutoff)
     expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled()
-    await user.type(cutoff, '08:30')
+    await user.click(cutoff)
+    await user.paste('08:30')
     await user.click(screen.getByRole('button', { name: 'Save settings' }))
 
     expect(pumpApi.updatePumpSettings).toHaveBeenCalledWith(3, { safeCountCutoffTime: '08:30' })

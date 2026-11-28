@@ -26,7 +26,8 @@ function signedInAs(preferredLanguage: string): LoginResponse {
 }
 
 async function signIn(user: ReturnType<typeof userEvent.setup>, labels = { phone: 'Phone number', password: 'Password', button: 'Sign in' }) {
-  await user.type(screen.getByLabelText(labels.phone), '9876543210')
+  await user.click(screen.getByLabelText(labels.phone))
+  await user.paste('9876543210')
   await user.type(screen.getByLabelText(labels.password), PASSWORD)
   await user.click(screen.getByRole('button', { name: labels.button }))
 }
@@ -53,8 +54,10 @@ describe('LoginPage', () => {
     vi.mocked(authApi.login).mockRejectedValue(new AxiosError('Network Error', 'ERR_NETWORK'))
     renderWithProviders(<LoginPage />)
 
-    await user.type(screen.getByLabelText('Phone number'), '9999999999')
-    await user.type(screen.getByLabelText('Password'), 'secret')
+    await user.click(screen.getByLabelText('Phone number'))
+    await user.paste('9999999999')
+    await user.click(screen.getByLabelText('Password'))
+    await user.paste('secret')
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
     expect(await screen.findByText(NO_CONNECTION_MESSAGE)).toBeInTheDocument()
@@ -103,7 +106,8 @@ describe('LoginPage', () => {
       const user = userEvent.setup()
       renderWithProviders(<LoginPage />)
 
-      await user.type(screen.getByLabelText('Phone number'), '98765')
+      await user.click(screen.getByLabelText('Phone number'))
+      await user.paste('98765')
       await user.type(screen.getByLabelText('Password'), PASSWORD)
       await user.click(screen.getByRole('button', { name: 'Sign in' }))
 

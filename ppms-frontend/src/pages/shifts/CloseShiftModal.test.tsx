@@ -6,14 +6,11 @@ import { pumpApi } from '../../api/pumpApi'
 import { shiftApi } from '../../api/shiftApi'
 import { userApi } from '../../api/userApi'
 import { cashApi } from '../../api/cashApi'
-import type { CashDrop } from '../../api/cashApi'
-import type { StaffMember } from '../../api/userApi'
 import type { PumpSummary } from '../../api/pumpApi'
 import { useAuthStore } from '../../store/authStore'
 import { renderWithProviders } from '../../test/renderWithProviders'
-import { resetScreenWidthAfterEach, setScreenWidth } from '../../test/screenWidth'
-import type { Shift } from '../../types/shift'
 import CloseShiftModal from './CloseShiftModal'
+import { cashTotalField, drop, endReading, fillShift, operator, shift } from './closeShiftModalTestData'
 
 vi.mock('../../api/pumpApi', () => ({ pumpApi: { getCreditClients: vi.fn(), getMyPumps: vi.fn() } }))
 vi.mock('../../api/shiftApi', () => ({
@@ -22,60 +19,12 @@ vi.mock('../../api/shiftApi', () => ({
 vi.mock('../../api/userApi', () => ({ userApi: { getOperators: vi.fn() } }))
 vi.mock('../../api/cashApi', () => ({ cashApi: { getShiftDrops: vi.fn(), confirmDrop: vi.fn(), rejectDrop: vi.fn() } }))
 
-const shift: Shift = {
-  id: 11, pumpId: 3, duId: 5, duNumber: 1, duName: 'DU 1',
-  nozzles: [{ id: 21, nozzleNumber: 1, fuelType: 'PETROL' }],
-  operatorId: 9, operatorName: 'Ravi', openedByUserName: 'Owner', shiftWindow: 'MORNING',
-  shiftDate: '2026-03-15', actualStartTime: '2026-03-15T00:30:00Z', actualEndTime: null, scheduledEndTime: null,
-  fuelReadings: [{
-    nozzleId: 21, fuelType: 'PETROL', startReading: 1000, endReading: null,
-    priceSnapshot: 100, unitsSold: null, maxMeterValue: 999_999,
-  }],
-  totalAmountDue: null, cashCollected: null, upiCollected: null, cardCollected: null, fleetCardCollected: null,
-  creditTotal: null, cashDropped: null, cashDenominations: null, discrepancyAmount: null, discrepancyType: null, discrepancyReason: null,
-  discrepancyResolution: null, discrepancyResolutionNote: null,
-  investigationNote: null, investigatedByName: null, investigationStartedAt: null, cashRecoveryAmount: null,
-  status: 'OPEN', isBackfilled: false, creditEntries: [],
-}
-
-function operator(id: number, fullName: string): StaffMember {
-  return {
-    id, employeeId: `E${id}`, fullName, phoneNumber: null, gender: null, nightShiftConsent: false, role: 'OPERATOR',
-    assignedPumpId: 3, status: 'ACTIVE', dailyRate: null, shift1HourlyRate: null, standardHourlyRate: null,
-  }
-}
-
 function blockedCreditRefusal() {
   return new AxiosError('Request failed', 'ERR_BAD_REQUEST', undefined, undefined, {
     status: 400, statusText: 'Bad Request', headers: {}, config: { headers: new AxiosHeaders() },
     data: { code: 'CREDIT_CLOSE_BLOCKED_CLIENTS', message: 'Blocked',
       params: { overLimitClients: 'Fleet Co', onHoldClients: '—', overdueClients: 'Late Co' } },
   })
-}
-
-const endReading = () => screen.getByLabelText('Nozzle #1 · Petrol end reading')
-
-/** Cash is counted by note by default; these tests type the total, as staff can with "Just type the total". */
-async function cashTotalField(user: ReturnType<typeof userEvent.setup>, label = 'Cash (₹)') {
-  const typeTotal = screen.queryByRole('button', { name: 'Just type the total' })
-  if (typeTotal) await user.click(typeTotal)
-  return screen.getByLabelText(label)
-}
-
-function drop(overrides: Partial<CashDrop>): CashDrop {
-  return {
-    id: 1, shiftId: 11, operatorId: 9, operatorName: 'Ravi', amount: 100, denominations: null, status: 'PENDING',
-    recordedByName: 'Ravi', recordedAt: '2026-03-15T03:00:00Z', reviewedByName: null, reviewedAt: null,
-    rejectionReason: null, ...overrides,
-  }
-}
-
-async function fillShift(cash: string) {
-  const user = userEvent.setup()
-  renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-  await user.type(endReading(), '1010')
-  await user.type(await cashTotalField(user), cash)
-  return user
 }
 
 describe('CloseShiftModal', () => {
@@ -103,10 +52,14 @@ describe('CloseShiftModal', () => {
     vi.mocked(shiftApi.getShift).mockResolvedValue({ ...shift, creditEntries: [recordedCredit] })
     renderWithProviders(<CloseShiftModal shift={{ ...shift, creditEntries: [recordedCredit] }} onClose={vi.fn()} />)
 
-    await user.type(endReading(), '1010')
-    await user.type(screen.getByLabelText('UPI (₹)'), '300')
-    await user.type(screen.getByLabelText('Card (₹)'), '50.50')
-    await user.type(screen.getByLabelText('Fleet card (₹)'), '20')
+    await user.click(endReading())
+    await user.paste('1010')
+    await user.click(screen.getByLabelText('UPI (₹)'))
+    await user.paste('300')
+    await user.click(screen.getByLabelText('Card (₹)'))
+    await user.paste('50.50')
+    await user.click(screen.getByLabelText('Fleet card (₹)'))
+    await user.paste('20')
     await cashTotalField(user)
     await user.click(screen.getByRole('button', { name: 'Fill rest · ₹529.50' }))
 
@@ -119,12 +72,14 @@ describe('CloseShiftModal', () => {
     renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
     expect(screen.queryByRole('button', { name: /Fill rest/ })).not.toBeInTheDocument()
 
-    await user.type(endReading(), '1010')
+    await user.click(endReading())
+    await user.paste('1010')
     expect(screen.queryByRole('button', { name: /Fill rest/ })).not.toBeInTheDocument()
     await cashTotalField(user)
     expect(screen.getByRole('button', { name: 'Fill rest · ₹1,000.00' })).toBeInTheDocument()
 
-    await user.type(screen.getByLabelText('UPI (₹)'), '1200')
+    await user.click(screen.getByLabelText('UPI (₹)'))
+    await user.paste('1200')
     expect(screen.queryByRole('button', { name: /Fill rest/ })).not.toBeInTheDocument()
 
     await user.clear(screen.getByLabelText('UPI (₹)'))
@@ -146,7 +101,8 @@ describe('CloseShiftModal', () => {
     renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
     expect(screen.getByText('Start 1,000 L · ₹100.00/L')).toBeInTheDocument()
 
-    await user.type(endReading(), '1012.5')
+    await user.click(endReading())
+    await user.paste('1012.5')
     expect(screen.getByText(/= 12\.50 L × ₹100\.00 =/)).toHaveTextContent('= 12.50 L × ₹100.00 = ₹1,250.00')
     expect(endReading()).toHaveAccessibleDescription('= 12.50 L × ₹100.00 = ₹1,250.00')
   })
@@ -154,7 +110,8 @@ describe('CloseShiftModal', () => {
   it('explains an end reading below the start instead of a sale line', async () => {
     const user = userEvent.setup()
     renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-    await user.type(endReading(), '990')
+    await user.click(endReading())
+    await user.paste('990')
 
     expect(screen.getByRole('alert')).toHaveTextContent('End reading cannot be less than start (1000)')
     expect(endReading()).toHaveAttribute('aria-invalid', 'true')
@@ -184,15 +141,18 @@ describe('CloseShiftModal', () => {
     expect(screen.getByText('Choose Incoming Operator')).toBeInTheDocument()
     expect(screen.queryByText('Assign Operator')).not.toBeInTheDocument()
 
-    await user.type(endReading(), '1010')
-    await user.type(await cashTotalField(user), '1000')
+    await user.click(endReading())
+    await user.paste('1010')
+    await user.click(await cashTotalField(user))
+    await user.paste('1000')
     const review = screen.getByRole('button', { name: 'Review handover' })
     expect(review).toBeDisabled()
     expect(review).toHaveAccessibleDescription('Still needed Choose the incoming operator')
 
     await user.click(screen.getByRole('button', { name: /Sita/ }))
     await user.click(screen.getByLabelText('Cash counted with the incoming operator'))
-    await user.type(screen.getByLabelText('Handover notes (optional)'), 'Lunch break')
+    await user.click(screen.getByLabelText('Handover notes (optional)'))
+    await user.paste('Lunch break')
     await user.click(screen.getByRole('button', { name: 'Review handover' }))
     expect(screen.getByRole('heading', { name: 'Check before handing over' })).toHaveFocus()
     expect(within(screen.getByText('Incoming operator').parentElement as HTMLElement).getByText('Sita')).toBeInTheDocument()
@@ -229,8 +189,10 @@ describe('CloseShiftModal', () => {
     renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
 
     expect(await screen.findByText('Fleet Co')).toBeInTheDocument()
-    await user.type(endReading(), '1010')
-    await user.type(await cashTotalField(user), '750')
+    await user.click(endReading())
+    await user.paste('1010')
+    await user.click(await cashTotalField(user))
+    await user.paste('750')
     await user.click(screen.getByRole('button', { name: 'Review close' }))
     await user.click(screen.getByRole('button', { name: 'Confirm close' }))
 
@@ -251,7 +213,8 @@ describe('CloseShiftModal', () => {
     expect(blocked).not.toHaveTextContent('On hold')
     await user.click(within(blocked).getByRole('button', { name: 'Allow and close' }))
     expect(within(blocked).getByText('Give a reason to allow the credit.')).toBeInTheDocument()
-    await user.type(within(blocked).getByRole('textbox', { name: /Reason for allowing/ }), 'Paying by cheque tomorrow')
+    await user.click(within(blocked).getByRole('textbox', { name: /Reason for allowing/ }))
+    await user.paste('Paying by cheque tomorrow')
     await user.click(within(blocked).getByRole('button', { name: 'Allow and close' }))
 
     expect(shiftApi.closeShift).toHaveBeenLastCalledWith(3, 11,
@@ -278,10 +241,12 @@ describe('CloseShiftModal', () => {
     expect(review).toBeDisabled()
     expect(review).toHaveAccessibleDescription('Still needed End reading for 1 nozzle Payments collected')
 
-    await user.type(endReading(), '1010')
+    await user.click(endReading())
+    await user.paste('1010')
     expect(review).toHaveAccessibleDescription('Still needed Payments collected')
 
-    await user.type(await cashTotalField(user), '1000')
+    await user.click(await cashTotalField(user))
+    await user.paste('1000')
     expect(review).toBeEnabled()
     expect(review).not.toHaveAttribute('aria-describedby')
     expect(screen.queryByText('Still needed')).not.toBeInTheDocument()
@@ -290,8 +255,10 @@ describe('CloseShiftModal', () => {
   it('asks to finish an incomplete credit entry before review', async () => {
     const user = userEvent.setup()
     const { container } = renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-    await user.type(endReading(), '1010')
-    await user.type(await cashTotalField(user), '1000')
+    await user.click(endReading())
+    await user.paste('1010')
+    await user.click(await cashTotalField(user))
+    await user.paste('1000')
     await user.click(screen.getByRole('button', { name: 'Add credit sale' }))
 
     expect(screen.getByRole('button', { name: 'Review close' })).toBeDisabled()
@@ -304,10 +271,12 @@ describe('CloseShiftModal', () => {
     renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
     const header = screen.getByRole('heading', { name: 'Close Shift' }).closest('.ui-modal-header')
     expect(header).toHaveClass('ui-modal-header--success')
-    await user.type(endReading(), '1010')
+    await user.click(endReading())
+    await user.paste('1010')
     expect(header).toHaveClass('ui-modal-header--success')
 
-    await user.type(await cashTotalField(user), '900')
+    await user.click(await cashTotalField(user))
+    await user.paste('900')
     expect(header).toHaveClass('ui-modal-header--danger')
   })
 
@@ -316,7 +285,8 @@ describe('CloseShiftModal', () => {
     const browserConfirm = vi.spyOn(window, 'confirm')
     const user = userEvent.setup()
     renderWithProviders(<CloseShiftModal shift={shift} onClose={onClose} />)
-    await user.type(endReading(), '1010')
+    await user.click(endReading())
+    await user.paste('1010')
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(screen.getByRole('dialog', { name: 'Discard what you entered?' })).toBeInTheDocument()
@@ -333,7 +303,8 @@ describe('CloseShiftModal', () => {
   it('counts the bag by note by default and sends the breakdown with the counted total', async () => {
     const user = userEvent.setup()
     renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-    await user.type(endReading(), '1010')
+    await user.click(endReading())
+    await user.paste('1010')
     await user.type(screen.getByLabelText('Number of ₹500 notes'), '1')
     await user.click(screen.getByRole('button', { name: 'Add one ₹100 note' }))
     await user.type(screen.getByLabelText('Number of ₹200 notes'), '2')
@@ -359,13 +330,15 @@ describe('CloseShiftModal', () => {
     vi.mocked(cashApi.getShiftDrops).mockResolvedValue([drop({ id: 1, amount: 600, status: 'CONFIRMED' })])
     const user = userEvent.setup()
     renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-    await user.type(endReading(), '1010')
+    await user.click(endReading())
+    await user.paste('1010')
 
     const figures = await screen.findByLabelText('Cash in the safe and in the bag')
     expect(within(figures).getByText('Dropped to safe').nextSibling).toHaveTextContent('₹600.00')
     expect(within(figures).getByText('Expected in bag').nextSibling).toHaveTextContent('₹400.00')
 
-    await user.type(await cashTotalField(user, 'Cash in bag (₹)'), '400')
+    await user.click(await cashTotalField(user, 'Cash in bag (₹)'))
+    await user.paste('400')
     expect(screen.getByText('Balanced')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Review close' }))
     await user.click(screen.getByRole('button', { name: 'Confirm close' }))
@@ -397,7 +370,8 @@ describe('CloseShiftModal', () => {
     expect(within(screen.getByRole('dialog')).getByText('Balanced')).toBeInTheDocument()
 
     await user.clear(screen.getByLabelText('Cash (₹)'))
-    await user.type(screen.getByLabelText('Cash (₹)'), '1000.50')
+    await user.click(screen.getByLabelText('Cash (₹)'))
+    await user.paste('1000.50')
     expect(screen.getByText('Over ₹0.50')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Round off ₹0.50 into cash' })).toBeInTheDocument()
   })
@@ -416,8 +390,10 @@ describe('CloseShiftModal', () => {
     renderWithProviders(<CloseShiftModal shift={{ ...shift, creditEntries: [recordedEntry] }} onClose={vi.fn()} />)
 
     await user.click(await screen.findByRole('button', { name: 'Edit' }))
-    await user.type(endReading(), '1010')
-    await user.type(await cashTotalField(user), '800')
+    await user.click(endReading())
+    await user.paste('1010')
+    await user.click(await cashTotalField(user))
+    await user.paste('800')
     await user.click(screen.getByRole('button', { name: 'Review close' }))
     await user.click(screen.getByRole('button', { name: 'Confirm close' }))
 
@@ -437,7 +413,8 @@ describe('CloseShiftModal', () => {
     expect(screen.getByRole('button', { name: 'Review close' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Review close' })).toHaveAccessibleDescription('Still needed Reason for the difference')
 
-    await user.type(screen.getByRole('textbox'), 'Customer paid later')
+    await user.click(screen.getByRole('textbox'))
+    await user.paste('Customer paid later')
     await user.click(screen.getByRole('button', { name: 'Review close' }))
 
     const review = screen.getByRole('dialog', { name: 'Check before closing' })
@@ -470,8 +447,10 @@ describe('CloseShiftModal', () => {
     vi.mocked(shiftApi.closeShift).mockResolvedValue(closed)
     const user = userEvent.setup()
     renderWithProviders(<CloseShiftModal shift={shift} onClose={onClose} onOpenNextShift={onOpenNextShift} />)
-    await user.type(endReading(), '1010')
-    await user.type(await cashTotalField(user), '1000')
+    await user.click(endReading())
+    await user.paste('1010')
+    await user.click(await cashTotalField(user))
+    await user.paste('1000')
     expect(screen.getByText('Balanced')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Review close' }))
     await user.click(screen.getByRole('button', { name: 'Confirm close' }))
@@ -528,204 +507,16 @@ describe('CloseShiftModal', () => {
     await screen.findByRole('alert')
 
     await user.click(screen.getByRole('button', { name: 'Edit' }))
-    await user.type(screen.getByLabelText('UPI (₹)'), '100')
+    await user.click(screen.getByLabelText('UPI (₹)'))
+    await user.paste('100')
     await user.clear(screen.getByLabelText('Cash (₹)'))
-    await user.type(await cashTotalField(user), '900')
+    await user.click(await cashTotalField(user))
+    await user.paste('900')
     await user.click(screen.getByRole('button', { name: 'Review close' }))
     await user.click(screen.getByRole('button', { name: 'Confirm close' }))
 
     await waitFor(() => expect(shiftApi.closeShift).toHaveBeenCalledTimes(2))
     const [firstCall, secondCall] = vi.mocked(shiftApi.closeShift).mock.calls
     expect(secondCall[3]).not.toBe(firstCall[3])
-  })
-})
-
-describe('CloseShiftModal live summary', () => {
-  resetScreenWidthAfterEach()
-
-  beforeEach(() => {
-    vi.mocked(pumpApi.getCreditClients).mockResolvedValue([])
-    vi.mocked(pumpApi.getMyPumps).mockResolvedValue([{ id: 3, discrepancyEscalationThreshold: 50 } as PumpSummary])
-    vi.mocked(shiftApi.getShift).mockResolvedValue(shift)
-    vi.mocked(cashApi.getShiftDrops).mockResolvedValue([])
-  })
-
-  it('shows the drops already in the safe and what is expected in the bag', async () => {
-    setScreenWidth(1280)
-    vi.mocked(cashApi.getShiftDrops).mockResolvedValue([drop({ id: 1, amount: 600, status: 'CONFIRMED' })])
-    const user = userEvent.setup()
-    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-    await user.type(endReading(), '1010')
-    await user.type(await cashTotalField(user, 'Cash in bag (₹)'), '350')
-
-    const summary = screen.getByRole('complementary', { name: 'Summary' })
-    expect(within(summary).getByText('Expected in bag').nextSibling).toHaveTextContent('₹400.00')
-    expect(within(summary).getByText('Dropped to safe').nextSibling).toHaveTextContent('₹600.00')
-    expect(within(summary).getByText('Cash in bag').nextSibling).toHaveTextContent('₹350.00')
-    expect(within(summary).getByText('Collected').nextSibling).toHaveTextContent('₹950.00')
-    expect(within(summary).getByText('Short ₹50.00')).toBeInTheDocument()
-  })
-
-  it('sits beside the form on a wide screen and shows a dash until there is something to add up', async () => {
-    setScreenWidth(1280)
-    const user = userEvent.setup()
-    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-
-    const summary = screen.getByRole('complementary', { name: 'Summary' })
-    expect(within(summary).getByText('Total due').nextSibling).toHaveTextContent('—')
-    expect(within(summary).getByText('Collected').nextSibling).toHaveTextContent('—')
-    expect(within(summary).getByText('Difference').nextSibling).toHaveTextContent('—')
-    expect(screen.queryByRole('button', { name: 'Details' })).not.toBeInTheDocument()
-
-    await user.type(endReading(), '1010')
-    await user.type(screen.getByLabelText('UPI (₹)'), '300')
-    await user.type(await cashTotalField(user), '600')
-
-    expect(within(summary).getByText('Sold').nextSibling).toHaveTextContent('10.00 L')
-    expect(within(summary).getByText('Total due').nextSibling).toHaveTextContent('₹1,000.00')
-    expect(within(summary).getByText('Collected').nextSibling).toHaveTextContent('₹900.00')
-    expect(within(summary).getByText('UPI').nextSibling).toHaveTextContent('₹300.00')
-    expect(within(summary).getByText('Short ₹100.00')).toBeInTheDocument()
-    expect(within(summary).getByText(/more than the ₹50.00 limit/)).toBeInTheDocument()
-    expect(within(summary).getByText('Reason for the difference')).toBeInTheDocument()
-  })
-
-  it('shows Over and then Balanced in the summary as cash changes', async () => {
-    setScreenWidth(1280)
-    const user = userEvent.setup()
-    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-    const summary = screen.getByRole('complementary', { name: 'Summary' })
-
-    await user.type(endReading(), '1010')
-    await user.type(await cashTotalField(user), '1020')
-    expect(within(summary).getByText('Over ₹20.00')).toBeInTheDocument()
-
-    await user.clear(screen.getByLabelText('Cash (₹)'))
-    await user.type(await cashTotalField(user), '1000')
-    expect(within(summary).getByText('Balanced')).toBeInTheDocument()
-    expect(within(summary).getByText('Ready to review')).toBeInTheDocument()
-  })
-
-  it('becomes a compact bar above the buttons on a phone, with the breakdown behind Details', async () => {
-    setScreenWidth(375)
-    const user = userEvent.setup()
-    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-
-    expect(screen.queryByRole('complementary', { name: 'Summary' })).not.toBeInTheDocument()
-    const bar = screen.getByRole('region', { name: 'Summary' })
-    expect(bar.closest('.ui-modal-footer')).not.toBeNull()
-    expect(within(bar).getByText('Due').nextSibling).toHaveTextContent('—')
-
-    await user.type(endReading(), '1010')
-    await user.type(await cashTotalField(user), '900')
-    expect(within(bar).getByText('Due').nextSibling).toHaveTextContent('₹1,000.00')
-    expect(within(bar).getByText('Short ₹100.00')).toBeInTheDocument()
-
-    const details = within(bar).getByRole('button', { name: 'Details' })
-    expect(details).toHaveAttribute('aria-expanded', 'false')
-    expect(within(bar).getByText('Sold')).not.toBeVisible()
-
-    await user.click(details)
-    expect(within(bar).getByRole('button', { name: 'Hide' })).toHaveAttribute('aria-expanded', 'true')
-    expect(within(bar).getByText('Sold')).toBeVisible()
-  })
-})
-
-describe('CloseShiftModal drafts', () => {
-  beforeEach(() => {
-    vi.mocked(pumpApi.getCreditClients).mockResolvedValue([])
-    vi.mocked(pumpApi.getMyPumps).mockResolvedValue([])
-    vi.mocked(shiftApi.getShift).mockResolvedValue(shift)
-    vi.mocked(cashApi.getShiftDrops).mockResolvedValue([])
-    vi.mocked(userApi.getOperators).mockResolvedValue([operator(12, 'Sita')])
-  })
-
-  it('saves entries on this device shortly after typing, separately for close and handover', async () => {
-    await fillShift('900')
-
-    await waitFor(() => expect(localStorage.getItem('ppms_draft:close-shift:11')).not.toBeNull())
-    const saved = JSON.parse(localStorage.getItem('ppms_draft:close-shift:11') as string)
-    expect(saved.values).toMatchObject({ endReadings: { 21: '1010' }, cash: '900' })
-    expect(localStorage.getItem('ppms_draft:handover:11')).toBeNull()
-  })
-
-  it('restores saved entries with a notice and clears them on Discard', async () => {
-    localStorage.setItem('ppms_draft:close-shift:11', JSON.stringify({
-      savedAt: Date.now() - 60_000,
-      values: {
-        endReadings: { 21: '1010' }, noChangeNozzleIds: [], cash: '700', upi: '', card: '', fleetCard: '',
-        discrepancyReason: '',
-        handoverDetails: { incomingOperatorId: null, physicalCashVerified: false, meterReadingsVerified: false, notes: '' },
-        creditRows: [], submitAttempt: null,
-      },
-    }))
-    const user = userEvent.setup()
-    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-
-    expect(screen.getByText(/^Resumed your unsaved entries from \d{2}:\d{2} (am|pm)$/i)).toBeInTheDocument()
-    expect(endReading()).toHaveValue(1010)
-    expect(screen.getByLabelText('Cash (₹)')).toHaveValue(700)
-
-    await user.click(screen.getByRole('button', { name: 'Discard' }))
-    expect(screen.queryByText(/Resumed your unsaved entries/)).not.toBeInTheDocument()
-    expect(endReading()).toHaveValue(null)
-    expect(screen.getByRole('button', { name: 'Just type the total' })).toBeInTheDocument()
-    expect(localStorage.getItem('ppms_draft:close-shift:11')).toBeNull()
-  })
-
-  it('clears the draft once the shift is closed', async () => {
-    vi.mocked(shiftApi.closeShift).mockResolvedValue({ ...shift, status: 'CLOSED_BALANCED' })
-    const user = await fillShift('1000')
-    await waitFor(() => expect(localStorage.getItem('ppms_draft:close-shift:11')).not.toBeNull())
-
-    await user.click(screen.getByRole('button', { name: 'Review close' }))
-    await user.click(screen.getByRole('button', { name: 'Confirm close' }))
-    await screen.findByRole('heading', { name: 'Shift closed' })
-
-    expect(localStorage.getItem('ppms_draft:close-shift:11')).toBeNull()
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    expect(localStorage.getItem('ppms_draft:close-shift:11')).toBeNull()
-  })
-
-  it('still works when the browser refuses storage', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })
-
-    await fillShift('1000')
-
-    expect(screen.getByText('Balanced')).toBeInTheDocument()
-    await waitFor(() => expect(warn).toHaveBeenCalledWith(expect.stringContaining('Could not save the draft'), expect.any(Error)))
-    setItem.mockRestore()
-    warn.mockRestore()
-  })
-
-  it('asks for the blind count before showing any reading or expected amount, then closes with the counted figures', async () => {
-    const user = userEvent.setup()
-    const blindShift = { ...shift, blindCountRequired: true, blindCount: null }
-    const counted = {
-      ...blindShift,
-      blindCount: { cashCollected: 900, cashDenominations: null, upiCollected: 100, cardCollected: 0, fleetCardCollected: 0,
-        countedAt: '2026-03-15T08:00:00Z', countedByName: 'Ravi' },
-    }
-    vi.mocked(shiftApi.getShift).mockResolvedValue(blindShift)
-    vi.mocked(shiftApi.recordBlindCount).mockResolvedValue(counted)
-    renderWithProviders(<CloseShiftModal shift={blindShift} onClose={vi.fn()} />)
-
-    expect(screen.queryByLabelText('Nozzle #1 · Petrol end reading')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Review close' })).toBeDisabled()
-    await user.type(await cashTotalField(user, 'Cash in bag (₹)'), '900')
-    await user.type(screen.getByLabelText('UPI (₹)'), '100')
-    vi.mocked(shiftApi.getShift).mockResolvedValue(counted)
-    await user.click(screen.getByRole('button', { name: 'Save the count' }))
-
-    expect(shiftApi.recordBlindCount).toHaveBeenCalledWith(3, 11,
-      expect.objectContaining({ cashCollected: 900, upiCollected: 100, cardCollected: 0, fleetCardCollected: 0 }))
-    await user.type(await screen.findByLabelText('Nozzle #1 · Petrol end reading'), '1010')
-    expect(screen.queryByLabelText('UPI (₹)')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Review close' }))
-    await user.click(screen.getByRole('button', { name: 'Confirm close' }))
-
-    expect(shiftApi.closeShift).toHaveBeenCalledWith(3, 11,
-      expect.objectContaining({ cashCollected: 900, upiCollected: 100, cardCollected: 0, fleetCardCollected: 0 }), expect.any(String))
   })
 })

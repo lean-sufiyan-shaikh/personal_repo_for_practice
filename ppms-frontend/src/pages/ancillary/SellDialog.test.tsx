@@ -138,7 +138,8 @@ describe('SellDialog first selling price', () => {
 
     expect(await screen.findByText('No selling price yet. Set one to continue this sale.')).toBeInTheDocument()
     vi.mocked(ancillaryApi.getPriceHistory).mockResolvedValue([savedByServerLater])
-    await user.type(screen.getByLabelText('Selling price per unit'), '95')
+    await user.click(screen.getByLabelText('Selling price per unit'))
+    await user.paste('95')
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByDisplayValue('95')).toBeInTheDocument()
@@ -187,7 +188,8 @@ describe('SellDialog credit sale', () => {
     await user.click(await screen.findByRole('button', { name: /^Client/ }))
     await user.click(await screen.findByRole('option', { name: 'Acme Transport' }))
 
-    await user.type(await screen.findByRole('combobox', { name: 'Vehicle (optional)' }), 'KA01ZZ9999')
+    await user.click(await screen.findByRole('combobox', { name: 'Vehicle (optional)' }))
+    await user.paste('KA01ZZ9999')
     expect(screen.getByRole('alert')).toHaveTextContent('flagged as Unknown vehicle')
     await user.click(screen.getByRole('button', { name: 'Review' }))
     expect(await screen.findByText('KA01ZZ9999')).toBeInTheDocument()

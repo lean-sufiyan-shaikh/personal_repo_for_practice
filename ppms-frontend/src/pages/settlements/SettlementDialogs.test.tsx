@@ -1,6 +1,6 @@
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { paymentSettlementApi } from '../../api/paymentSettlementApi'
 import type { Settlement, SettlementChargesQuery } from '../../api/paymentSettlementApi'
 import { roundToPaise } from '../../utils/money'
@@ -31,31 +31,41 @@ function figure(label: string) {
   return screen.getByText(label).closest('div')?.querySelector('dd')
 }
 
+async function passChargesDelay() {
+  await act(() => vi.advanceTimersByTimeAsync(400))
+}
+
 function renderRecord() {
   renderWithProviders(<RecordSettlementDialog pumpId={3} wallet={wallet} pendingRanges={[]} initialType="UPI" onClose={vi.fn()} />)
 }
 
 describe('RecordSettlementDialog', () => {
+  afterEach(() => vi.useRealTimers())
+
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
     vi.clearAllMocks()
     vi.mocked(paymentSettlementApi.record).mockResolvedValue({} as Settlement)
     vi.mocked(paymentSettlementApi.getCharges).mockImplementation(chargesFor)
   })
 
   it('shows what is still pending for the chosen type as the amount is typed, and when it is fully settled', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     renderRecord()
 
     expect(figure('UPI pending now')).toHaveTextContent('₹5,000.00')
     expect(figure('Still pending after this')).toHaveTextContent('—')
 
-    await user.type(screen.getByLabelText('Amount received'), '4500')
+    await user.click(screen.getByLabelText('Amount received'))
+    await user.paste('4500')
     expect(figure('This settlement')).toHaveTextContent('₹4,500.00')
     expect(figure('Still pending after this')).toHaveTextContent('₹500.00')
+    await passChargesDelay()
     await waitFor(() => expect(figure('Net to bank')).toHaveTextContent('₹4,500.00'))
 
     await user.clear(screen.getByLabelText('Amount received'))
-    await user.type(screen.getByLabelText('Amount received'), '5000')
+    await user.click(screen.getByLabelText('Amount received'))
+    await user.paste('5000')
     expect(figure('Still pending after this')).toHaveTextContent('Fully settled')
 
     await user.click(screen.getByRole('button', { name: 'Card' }))
@@ -64,20 +74,21 @@ describe('RecordSettlementDialog', () => {
   })
 
   it('keeps Record settlement disabled until an amount is entered, then records it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     renderRecord()
     const record = screen.getByRole('button', { name: 'Record settlement' })
 
     expect(record).toBeDisabled()
     expect(record).toHaveAccessibleDescription('Still needed Amount received')
 
-    await user.type(screen.getByLabelText('Amount received'), '2000')
+    await user.click(screen.getByLabelText('Amount received'))
+    await user.paste('2000')
     await user.click(record)
     expect(paymentSettlementApi.record).toHaveBeenCalledWith(3, expect.objectContaining({ paymentType: 'UPI', amountReceived: 2000, amountBasis: 'NET' }))
   })
 
   it('refuses a zero amount', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     renderRecord()
     await user.type(screen.getByLabelText('Amount received'), '0')
     expect(screen.getByRole('button', { name: 'Record settlement' })).toBeDisabled()
@@ -85,12 +96,15 @@ describe('RecordSettlementDialog', () => {
   })
 
   it('treats the amount as net by default and clears pending collections by the gross the server works out', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     renderRecord()
     await user.click(screen.getByRole('button', { name: 'Card' }))
     expect(screen.getByRole('button', { name: 'Net — what reached the bank' })).toHaveAttribute('aria-pressed', 'true')
 
-    await user.type(screen.getByLabelText('Amount received'), '978.76')
+    await user.click(screen.getByLabelText('Amount received'))
+    await user.paste('978.76')
+
+    await passChargesDelay()
 
     await waitFor(() => expect(figure('Gross amount')).toHaveTextContent('₹1,000.00'))
     expect(figure('MDR (1.8%)')).toHaveTextContent('₹18.00')
@@ -107,11 +121,14 @@ describe('RecordSettlementDialog', () => {
   })
 
   it('takes a gross amount and shows the net after charges', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     renderRecord()
     await user.click(screen.getByRole('button', { name: 'Card' }))
     await user.click(screen.getByRole('button', { name: 'Gross — before bank charges' }))
-    await user.type(screen.getByLabelText('Amount received'), '1000')
+    await user.click(screen.getByLabelText('Amount received'))
+    await user.paste('1000')
+
+    await passChargesDelay()
 
     await waitFor(() => expect(figure('Net to bank')).toHaveTextContent('₹978.76'))
     await user.click(screen.getByRole('button', { name: 'Record settlement' }))
@@ -119,20 +136,26 @@ describe('RecordSettlementDialog', () => {
   })
 
   it('sends both charges when the user overrides them', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     renderRecord()
     await user.click(screen.getByRole('button', { name: 'Card' }))
     await user.click(screen.getByRole('button', { name: 'Gross — before bank charges' }))
-    await user.type(screen.getByLabelText('Amount received'), '1000')
+    await user.click(screen.getByLabelText('Amount received'))
+    await user.paste('1000')
+    await passChargesDelay()
     await waitFor(() => expect(figure('MDR (1.8%)')).toHaveTextContent('₹18.00'))
 
     await user.click(screen.getByRole('button', { name: 'Edit charges' }))
     expect(screen.getByLabelText('MDR charged')).toHaveValue(18)
     expect(screen.getByLabelText('GST on MDR charged')).toHaveValue(3.24)
     await user.clear(screen.getByLabelText('MDR charged'))
-    await user.type(screen.getByLabelText('MDR charged'), '20')
+    await user.click(screen.getByLabelText('MDR charged'))
+    await user.paste('20')
     await user.clear(screen.getByLabelText('GST on MDR charged'))
-    await user.type(screen.getByLabelText('GST on MDR charged'), '3.6')
+    await user.click(screen.getByLabelText('GST on MDR charged'))
+    await user.paste('3.6')
+
+    await passChargesDelay()
 
     await waitFor(() => expect(figure('Net to bank')).toHaveTextContent('₹976.40'))
     await user.click(screen.getByRole('button', { name: 'Record settlement' }))
@@ -160,7 +183,8 @@ describe('VoidSettlementDialog', () => {
     expect(voidButton).toBeDisabled()
     expect(voidButton).toHaveAccessibleDescription('Still needed Reason')
 
-    await user.type(screen.getByLabelText('Reason'), 'Recorded twice')
+    await user.click(screen.getByLabelText('Reason'))
+    await user.paste('Recorded twice')
     await user.click(voidButton)
     expect(paymentSettlementApi.voidSettlement).toHaveBeenCalledWith(3, 31, 'Recorded twice')
   })

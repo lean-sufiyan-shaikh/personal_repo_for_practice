@@ -63,8 +63,10 @@ describe('RecordDeliveryModal', () => {
       <RecordDeliveryModal pumpId={6} tanks={[tank]} isOwnerOrAdmin={false} canSetBillTotal={false} onClose={onClose} />,
     )
 
-    await user.type(screen.getByLabelText('Invoice / bill no.'), 'INV-1')
-    await user.type(screen.getByLabelText('Invoice quantity'), '5000')
+    await user.click(screen.getByLabelText('Invoice / bill no.'))
+    await user.paste('INV-1')
+    await user.click(screen.getByLabelText('Invoice quantity'))
+    await user.paste('5000')
     expect(await screen.findByLabelText('Nozzle #1 · DU-1 before')).toHaveValue(1000)
     await enterReceiptCheck(user, '1000', '5990', '1010')
     await user.click(screen.getByRole('button', { name: 'Review' }))
@@ -109,8 +111,10 @@ describe('RecordDeliveryModal', () => {
     )
 
     await waitFor(() => expect(screen.getByLabelText('Supplier')).toHaveValue('4'))
-    await user.type(screen.getByLabelText('Invoice / bill no.'), 'INV-2')
-    await user.type(screen.getByLabelText('Invoice quantity'), '5000')
+    await user.click(screen.getByLabelText('Invoice / bill no.'))
+    await user.paste('INV-2')
+    await user.click(screen.getByLabelText('Invoice quantity'))
+    await user.paste('5000')
     await enterReceiptCheck(user, '1000', '6000', '1000')
     await user.click(screen.getByRole('button', { name: 'Review' }))
     await user.click(await screen.findByRole('button', { name: 'Confirm delivery' }))
@@ -124,7 +128,8 @@ describe('RecordDeliveryModal', () => {
       <RecordDeliveryModal pumpId={6} tanks={[tank]} isOwnerOrAdmin={false} canSetBillTotal={false} onClose={vi.fn()} />,
     )
 
-    await user.type(screen.getByLabelText('Invoice quantity'), '5000')
+    await user.click(screen.getByLabelText('Invoice quantity'))
+    await user.paste('5000')
     await screen.findByLabelText('Nozzle #1 · DU-1 after')
 
     const review = screen.getByRole('button', { name: 'Review' })
@@ -144,7 +149,8 @@ describe('RecordDeliveryModal', () => {
       <RecordDeliveryModal pumpId={6} tanks={[bigTank]} isOwnerOrAdmin={false} canSetBillTotal={false} onClose={vi.fn()} />,
     )
 
-    await user.type(screen.getByLabelText('Invoice quantity'), '12000')
+    await user.click(screen.getByLabelText('Invoice quantity'))
+    await user.paste('12000')
     await enterReceiptCheck(user, '2000', '13966', '1010')
 
     expect(screen.getByText('Received 11,976.00 L of 12,000.00 L invoiced')).toBeInTheDocument()
@@ -158,7 +164,8 @@ describe('RecordDeliveryModal', () => {
       <RecordDeliveryModal pumpId={6} tanks={[bigTank]} isOwnerOrAdmin={false} canSetBillTotal={false} onClose={vi.fn()} />,
     )
 
-    await user.type(screen.getByLabelText('Invoice quantity'), '12000')
+    await user.click(screen.getByLabelText('Invoice quantity'))
+    await user.paste('12000')
     await enterReceiptCheck(user, '2000', '13950', '1010')
 
     expect(screen.getByText('Short 40.00 L (0.33%) — beyond the 0.20% tolerance, a claim will be raised')).toBeInTheDocument()
@@ -170,7 +177,8 @@ describe('RecordDeliveryModal', () => {
       <RecordDeliveryModal pumpId={6} tanks={[bigTank]} isOwnerOrAdmin={false} canSetBillTotal={false} onClose={vi.fn()} />,
     )
 
-    await user.type(screen.getByLabelText('Invoice quantity'), '12000')
+    await user.click(screen.getByLabelText('Invoice quantity'))
+    await user.paste('12000')
     await enterReceiptCheck(user, '2000', '14100', '1010')
 
     expect(screen.getByText('Received 12,110.00 L of 12,000.00 L invoiced')).toBeInTheDocument()
@@ -183,12 +191,15 @@ describe('RecordDeliveryModal', () => {
       <RecordDeliveryModal pumpId={6} tanks={[tank]} isOwnerOrAdmin={false} canSetBillTotal={false} onClose={vi.fn()} />,
     )
 
-    await user.type(screen.getByLabelText('Observed density'), '830.5')
-    await user.type(screen.getByLabelText('Invoice density'), '826')
+    await user.click(screen.getByLabelText('Observed density'))
+    await user.paste('830.5')
+    await user.click(screen.getByLabelText('Invoice density'))
+    await user.paste('826')
     expect(await screen.findByText(/Density difference \+4\.5 kg\/m³ · more than 3\.0 kg\/m³/)).toBeInTheDocument()
 
     await user.clear(screen.getByLabelText('Observed density'))
-    await user.type(screen.getByLabelText('Observed density'), '828')
+    await user.click(screen.getByLabelText('Observed density'))
+    await user.paste('828')
     expect(screen.getByText(/Density difference \+2\.0 kg\/m³ · within 3\.0 kg\/m³/)).toBeInTheDocument()
   })
 
@@ -199,8 +210,10 @@ describe('RecordDeliveryModal', () => {
     )
 
     expect(figure('Amount (litres × rate)')).toHaveTextContent('—')
-    await user.type(screen.getByLabelText('Invoice quantity'), '1000')
-    await user.type(screen.getByLabelText('Cost per litre'), '90')
+    await user.click(screen.getByLabelText('Invoice quantity'))
+    await user.paste('1000')
+    await user.click(screen.getByLabelText('Cost per litre'))
+    await user.paste('90')
 
     expect(figure('Amount (litres × rate)')).toHaveTextContent('₹90,000.00')
     expect(figure('Stock after delivery')).toHaveTextContent('2,000.00 L')
@@ -208,7 +221,8 @@ describe('RecordDeliveryModal', () => {
     expect(screen.getByLabelText('Bill amount')).toHaveValue(90000)
 
     await user.clear(screen.getByLabelText('Bill amount'))
-    await user.type(screen.getByLabelText('Bill amount'), '91500')
+    await user.click(screen.getByLabelText('Bill amount'))
+    await user.paste('91500')
     expect(figure(/Other charges/)).toHaveTextContent('+₹1,500.00')
   })
 
@@ -218,7 +232,8 @@ describe('RecordDeliveryModal', () => {
       <RecordDeliveryModal pumpId={6} tanks={[tank]} isOwnerOrAdmin={false} canSetBillTotal={false} onClose={vi.fn()} />,
     )
 
-    await user.type(screen.getByLabelText('Invoice quantity'), '9500')
+    await user.click(screen.getByLabelText('Invoice quantity'))
+    await user.paste('9500')
 
     expect(screen.getByLabelText('Invoice quantity')).toHaveAccessibleDescription('More than the free space of 9,000.00 L')
     const review = screen.getByRole('button', { name: 'Review' })
@@ -232,9 +247,12 @@ describe('RecordDeliveryModal', () => {
       <RecordDeliveryModal pumpId={6} tanks={[tank]} isOwnerOrAdmin canSetBillTotal={false} onClose={vi.fn()} />,
     )
 
-    await user.type(screen.getByLabelText('Invoice / bill no.'), 'INV-7')
-    await user.type(screen.getByLabelText('Invoice quantity'), '1000')
-    await user.type(screen.getByLabelText('Cost per litre'), '90')
+    await user.click(screen.getByLabelText('Invoice / bill no.'))
+    await user.paste('INV-7')
+    await user.click(screen.getByLabelText('Invoice quantity'))
+    await user.paste('1000')
+    await user.click(screen.getByLabelText('Cost per litre'))
+    await user.paste('90')
     await enterReceiptCheck(user, '1000', '1980', '1010')
     await user.click(screen.getByRole('button', { name: 'Review' }))
 

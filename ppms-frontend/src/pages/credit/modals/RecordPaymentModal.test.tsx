@@ -45,7 +45,8 @@ describe('RecordPaymentModal references and cheques', () => {
     const user = userEvent.setup()
     renderWithProviders(<RecordPaymentModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
 
-    await user.type(screen.getByLabelText('Amount'), '15000')
+    await user.click(screen.getByLabelText('Amount'))
+    await user.paste('15000')
     expect(within(screen.getByLabelText('After this payment')).getByText('More than owed by').nextSibling).toHaveTextContent('₹3,000.00')
     await user.click(screen.getByRole('button', { name: 'Record payment' }))
     expect(screen.getByLabelText('Amount')).toHaveAccessibleDescription(/cannot exceed outstanding balance/)
@@ -62,12 +63,14 @@ describe('RecordPaymentModal references and cheques', () => {
     const user = userEvent.setup()
     renderWithProviders(<RecordPaymentModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
 
-    await user.type(screen.getByLabelText('Amount'), '1000')
+    await user.click(screen.getByLabelText('Amount'))
+    await user.paste('1000')
     await chooseMode(user, 'UPI')
     const submit = screen.getByRole('button', { name: 'Record payment' })
     expect(submit).toHaveAccessibleDescription('Still needed Reference (UTR / transaction ID)')
 
-    await user.type(screen.getByLabelText('Reference (UTR / transaction ID)'), ' UTR-1 ')
+    await user.click(screen.getByLabelText('Reference (UTR / transaction ID)'))
+    await user.paste(' UTR-1 ')
     await user.click(submit)
 
     expect(creditApi.recordPayment).toHaveBeenCalledWith(PUMP_ID, client.id,
@@ -78,11 +81,15 @@ describe('RecordPaymentModal references and cheques', () => {
     const user = userEvent.setup()
     renderWithProviders(<RecordPaymentModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
 
-    await user.type(screen.getByLabelText('Amount'), '2000')
+    await user.click(screen.getByLabelText('Amount'))
+    await user.paste('2000')
     await chooseMode(user, 'Cheque')
-    await user.type(screen.getByLabelText('Cheque number'), '000123')
-    await user.type(screen.getByLabelText(/^Bank/), 'HDFC')
-    await user.type(screen.getByLabelText(/^Cheque date/), '2026-12-05')
+    await user.click(screen.getByLabelText('Cheque number'))
+    await user.paste('000123')
+    await user.click(screen.getByLabelText(/^Bank/))
+    await user.paste('HDFC')
+    await user.click(screen.getByLabelText(/^Cheque date/))
+    await user.paste('2026-12-05')
     await user.click(screen.getByRole('button', { name: 'Record payment' }))
 
     expect(creditApi.recordPayment).toHaveBeenCalledWith(PUMP_ID, client.id, expect.objectContaining({
@@ -95,9 +102,11 @@ describe('RecordPaymentModal references and cheques', () => {
     vi.mocked(creditApi.recordPayment).mockRejectedValueOnce(possibleDuplicate())
     renderWithProviders(<RecordPaymentModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
 
-    await user.type(screen.getByLabelText('Amount'), '500')
+    await user.click(screen.getByLabelText('Amount'))
+    await user.paste('500')
     await chooseMode(user, 'Bank transfer')
-    await user.type(screen.getByLabelText('Reference (UTR / transaction ID)'), 'UTR-777')
+    await user.click(screen.getByLabelText('Reference (UTR / transaction ID)'))
+    await user.paste('UTR-777')
     await user.click(screen.getByRole('button', { name: 'Record payment' }))
 
     expect(await screen.findByText('Possible duplicate')).toBeInTheDocument()
@@ -115,7 +124,8 @@ describe('RecordPaymentModal references and cheques', () => {
     vi.mocked(creditApi.recordPayment).mockRejectedValueOnce(new AxiosError('timeout', 'ECONNABORTED'))
     renderWithProviders(<RecordPaymentModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
 
-    await user.type(screen.getByLabelText('Amount'), '1000')
+    await user.click(screen.getByLabelText('Amount'))
+    await user.paste('1000')
     await user.click(screen.getByRole('button', { name: 'Record payment' }))
     await screen.findByRole('alert')
     await user.click(screen.getByRole('button', { name: 'Record payment' }))

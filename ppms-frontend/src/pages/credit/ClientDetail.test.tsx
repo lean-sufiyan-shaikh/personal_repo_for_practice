@@ -86,7 +86,8 @@ describe('ClientDetail pending payment approval', () => {
     expect(within(dialog).getByRole('alert')).toHaveTextContent('Enter a reason for rejecting.')
     expect(creditApi.approvePayment).not.toHaveBeenCalled()
 
-    await user.type(within(dialog).getByLabelText(/Reason/), 'Cheque bounced')
+    await user.click(within(dialog).getByLabelText(/Reason/))
+    await user.paste('Cheque bounced')
     await user.click(within(dialog).getByRole('button', { name: 'Reject' }))
     expect(creditApi.approvePayment).toHaveBeenCalledWith(PUMP_ID, PAYMENT_ID, 'REJECTED', 'Cheque bounced', expect.any(String))
   })
@@ -230,7 +231,8 @@ describe('ClientDetail interest waiver', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('A reason is required')
     expect(creditApi.waiveInterestCharge).not.toHaveBeenCalled()
 
-    await user.type(screen.getByRole('textbox'), 'Charged at the wrong rate')
+    await user.click(screen.getByRole('textbox'))
+    await user.paste('Charged at the wrong rate')
     await user.click(screen.getByRole('button', { name: 'Waive interest' }))
     expect(creditApi.waiveInterestCharge).toHaveBeenCalledWith(PUMP_ID, CLIENT_ID, 91, 'Charged at the wrong rate',
       'KEEP_PERIOD_CHARGED')
@@ -267,7 +269,8 @@ describe('ClientDetail extension revoke', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('A reason is required')
     expect(creditApi.revokeExtension).not.toHaveBeenCalled()
 
-    await user.type(screen.getByRole('textbox'), 'Missed the promised payment')
+    await user.click(screen.getByRole('textbox'))
+    await user.paste('Missed the promised payment')
     await user.click(screen.getByRole('button', { name: 'Revoke extension' }))
     expect(creditApi.revokeExtension).toHaveBeenCalledWith(PUMP_ID, CLIENT_ID, 55, 'Missed the promised payment')
   })
