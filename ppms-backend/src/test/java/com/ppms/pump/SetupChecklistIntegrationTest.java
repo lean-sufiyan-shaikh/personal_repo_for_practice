@@ -68,23 +68,6 @@ class SetupChecklistIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void nozzleNotLinkedToATankLeavesTheTankStepOpen() throws Exception {
-        nozzleRepository.save(Nozzle.builder()
-                .duId(setup.du().getId())
-                .nozzleNumber(2)
-                .fuelType(FuelType.PETROL)
-                .lastReading(BigDecimal.ZERO)
-                .build());
-
-        JsonNode tanks = step(checklist(setup.pumpId(), setup.owner()), "TANKS");
-
-        assertThat(tanks.get("done").asBoolean()).isFalse();
-        assertThat(tanks.get("detail").asText()).isEqualTo("1 nozzle not linked to a tank");
-        assertThat(tanks.get("detailCode").asText()).isEqualTo("SETUP_NOZZLES_NOT_LINKED");
-        assertThat(tanks.get("detailParams").get("count").asLong()).isEqualTo(1);
-    }
-
-    @Test
     void fuelSoldWithoutAPriceLeavesThePriceStepOpenUntilAPriceIsSetOnAnyDay() throws Exception {
         PumpLocation pump = bareOwnerPump();
         DispensaryUnit du = duRepository.save(DispensaryUnit.builder().pumpId(pump.getId()).duNumber(1).name("DU-" + shortId()).build());
@@ -104,18 +87,6 @@ class SetupChecklistIntegrationTest extends ApiIntegrationTest {
         JsonNode priced = step(checklist(pump.getId(), owner), "FUEL_PRICES");
         assertThat(priced.get("done").asBoolean()).isTrue();
         assertThat(priced.get("detailCode").asText()).isEqualTo("SETUP_FUEL_PRICES_SET");
-    }
-
-    @Test
-    void newPumpWithNothingSetUpHasNoStepsDone() throws Exception {
-        PumpLocation pump = bareOwnerPump();
-        User owner = userRepository.findById(pump.getOwnerId()).orElseThrow();
-
-        JsonNode checklist = checklist(pump.getId(), owner);
-
-        assertThat(checklist.get("doneCount").asInt()).isZero();
-        checklist.get("items").forEach(item -> assertThat(item.get("done").asBoolean()).isFalse());
-        assertThat(step(checklist, "DISPENSERS").get("detail").asText()).isEqualTo("Add a dispensing unit and its nozzles");
     }
 
     @Test

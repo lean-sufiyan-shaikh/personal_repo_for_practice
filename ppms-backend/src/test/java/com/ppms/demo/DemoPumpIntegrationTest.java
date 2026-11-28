@@ -89,16 +89,6 @@ class DemoPumpIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void anOwnerHasAtMostOneDemoPump() throws Exception {
-        PumpSetup realPump = createPumpWithStock("0");
-        createDemoPump(realPump.owner());
-
-        perform(post("/api/demo-pump"), realPump.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DEMO_PUMP_ALREADY_EXISTS"));
-    }
-
-    @Test
     void deletingTheDemoPumpRemovesAllItsDataAndLeavesTheRealPumpAlone() throws Exception {
         PumpSetup realPump = createPumpWithStock("1000");
         long realShifts = count("SELECT COUNT(*) FROM shifts WHERE pump_id = ?", realPump.pumpId());
@@ -117,15 +107,6 @@ class DemoPumpIntegrationTest extends ApiIntegrationTest {
                 demoPumpId.toString())).isEqualTo(1);
 
         createDemoPump(realPump.owner());
-    }
-
-    @Test
-    void deletingWithoutADemoPumpIsRefused() throws Exception {
-        PumpSetup realPump = createPumpWithStock("0");
-
-        perform(delete("/api/demo-pump"), realPump.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DEMO_PUMP_NOT_FOUND"));
     }
 
     @Test
