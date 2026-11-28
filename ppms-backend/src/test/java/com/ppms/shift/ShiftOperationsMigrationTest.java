@@ -18,9 +18,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * V58 on a database at V57 that already holds a pump and an open shift: the pump counts blind by default, and the new shift
- * operation and staff advance tables refuse rows that break their rules. Runs on its own container so it does not take
- * connections from the shared one.
+ * V58 on a database at V57 that already holds a pump and an open shift: the pump counts blind by default, and the new
+ * shift operation and staff advance tables refuse rows that break their rules. Runs on its own container so it does not
+ * take connections from the shared one.
  */
 class ShiftOperationsMigrationTest {
 
