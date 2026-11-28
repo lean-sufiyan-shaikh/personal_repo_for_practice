@@ -267,7 +267,6 @@ describe('CloseShiftModal', () => {
     expect(cashApi.confirmDrop).toHaveBeenCalledWith(3, 7)
   })
 
-
   it('rounds a gap under one rupee into cash so the shift balances', async () => {
     const user = await fillShift('999.40')
     expect(screen.getByText('Shift is short by ₹0.60')).toBeInTheDocument()
