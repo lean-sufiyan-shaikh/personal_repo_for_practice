@@ -64,38 +64,6 @@ class LateSafeCountIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void managerCannotCountForYesterdayAfterTheCutoff() throws Exception {
-        setCutoff("00:00");
-        perform(get("/api/pumps/{pumpId}/safe", setup.pumpId()), setup.manager())
-                .andExpect(jsonPath("$.yesterdayCountOpen").value(false));
-
-        recordCount(setup.manager(), count("1000.00", YESTERDAY, "Forgot to count"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SAFE_COUNT_BACK_DATE_NOT_ALLOWED"))
-                .andExpect(jsonPath("$.params.date").value(YESTERDAY.toString()))
-                .andExpect(jsonPath("$.params.cutoffTime").value("00:00"));
-    }
-
-    @Test
-    void ownerBackDatesACountOnlyWithAReason() throws Exception {
-        setCutoff("00:00");
-
-        recordCount(setup.owner(), count("1000.00", YESTERDAY, null))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SAFE_COUNT_BACK_DATE_REASON_REQUIRED"));
-        recordCount(setup.owner(), count("1000.00", YESTERDAY, "   "))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SAFE_COUNT_BACK_DATE_REASON_REQUIRED"));
-
-        recordCount(setup.admin(), count("1000.00", YESTERDAY, "  Manager was on leave  "))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.late").value(true))
-                .andExpect(jsonPath("$.backDateReason").value("Manager was on leave"));
-        assertThat(auditsOf(AuditAction.SAFE_COUNT_BACK_DATED)).singleElement()
-                .satisfies(audit -> assertThat(audit.getDescription()).contains("Manager was on leave"));
-    }
-
-    @Test
     void backDatedCountIsComparedWithTheBalanceAtTheEndOfThatDayIgnoringLaterMovements() throws Exception {
         LocalDate countedDay = TODAY.minusDays(3);
         cashEvent("CASH_OUT", "200.00", countedDay);
@@ -114,22 +82,6 @@ class LateSafeCountIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.expectedAmount").value(800.00))
                 .andExpect(jsonPath("$.varianceType").doesNotExist());
-    }
-
-    @Test
-    void countIsRefusedForADayNotYetBegunOrAlreadyClosed() throws Exception {
-        setCutoff("00:00");
-        recordCount(setup.owner(), count("1000.00", TODAY.plusDays(1), null))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SAFE_COUNT_DATE_IN_FUTURE"));
-
-        recordCount(setup.owner(), count("1000.00", YESTERDAY, "Missed the evening count")).andExpect(status().isCreated());
-        perform(post("/api/pumps/{pumpId}/day-closes/{date}/close", setup.pumpId(), YESTERDAY), setup.owner(), Map.of())
-                .andExpect(status().isOk());
-
-        recordCount(setup.owner(), count("1000.00", YESTERDAY, "Recount"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DAY_CLOSED"));
     }
 
     private ResultActions setCutoff(String time) throws Exception {

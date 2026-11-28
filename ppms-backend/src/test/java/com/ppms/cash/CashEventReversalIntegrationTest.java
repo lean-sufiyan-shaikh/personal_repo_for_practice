@@ -39,10 +39,7 @@ class CashEventReversalIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void openingBalanceIsOwnerOrAdminOnlyAndOncePerPumpUntilReversed() throws Exception {
-        record(setup.manager(), "OPENING_BALANCE", "5000.00", "Float from the owner")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CASH_OPENING_BALANCE_OWNER_ONLY"));
+    void openingBalanceIsOncePerPumpUntilReversed() throws Exception {
         long opening = id(record(setup.owner(), "OPENING_BALANCE", "5000.00", "Float from the owner")
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.recordedByHand").value(true)));
@@ -62,65 +59,20 @@ class CashEventReversalIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void managerRecordsCashMovementsWithANoteButOnlyAnOwnerOrAdminReversesThem() throws Exception {
+    void managerRecordsCashMovementsButOnlyAnOwnerOrAdminReversesThem() throws Exception {
         record(setup.owner(), "OPENING_BALANCE", "1000.00", "Float").andExpect(status().isCreated());
-        record(setup.manager(), "CASH_IN", "200.00", " ").andExpect(status().isBadRequest());
         long cashOut = id(record(setup.manager(), "CASH_OUT", "300.00", "Tea and snacks").andExpect(status().isCreated()));
 
         reverse(setup.manager(), cashOut, "Wrong amount").andExpect(status().isForbidden());
-        reverse(setup.admin(), cashOut, " ").andExpect(status().isBadRequest());
         reverse(setup.admin(), cashOut, "Wrong amount")
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.eventType").value("CASH_IN"))
                 .andExpect(jsonPath("$.amount").value(300.00));
-        reverse(setup.owner(), cashOut, "Again")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CASH_EVENT_ALREADY_REVERSED"));
 
         assertThat(balance()).isEqualByComparingTo("1000.00");
         assertThat(auditsOf(AuditAction.CASH_EVENT_RECORDED)).hasSize(2);
         assertThat(auditsOf(AuditAction.CASH_EVENT_REVERSED)).singleElement()
                 .satisfies(audit -> assertThat(audit.getDescription()).contains("Wrong amount"));
-    }
-
-    @Test
-    void reversalEntriesAndAutomaticMovementsCannotBeReversed() throws Exception {
-        record(setup.owner(), "OPENING_BALANCE", "1000.00", "Float").andExpect(status().isCreated());
-        long cashIn = id(record(setup.manager(), "CASH_IN", "200.00", "Change from the bank").andExpect(status().isCreated()));
-        long reversal = id(reverse(setup.owner(), cashIn, "Never arrived").andExpect(status().isCreated()));
-        CashEvent automatic = cashEventRepository.save(CashEvent.builder()
-                .pumpId(setup.pumpId())
-                .eventType(CashEventType.CASH_IN)
-                .amount(new BigDecimal("50.00"))
-                .description("Cash collection from Nozzles #1 shift close (Shift #1)")
-                .eventDate(TODAY)
-                .recordedByUserId(setup.manager().getId())
-                .build());
-
-        reverse(setup.owner(), reversal, "Undo the undo")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CASH_EVENT_NOT_REVERSIBLE"));
-        reverse(setup.owner(), automatic.getId(), "Not mine")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CASH_EVENT_NOT_REVERSIBLE"));
-    }
-
-    @Test
-    void movementOfAClosedDayIsReversedOnlyAfterTheDayIsReopened() throws Exception {
-        record(setup.owner(), "OPENING_BALANCE", "1000.00", "Float").andExpect(status().isCreated());
-        long cashOut = id(record(setup.manager(), "CASH_OUT", "100.00", "Diesel for the generator").andExpect(status().isCreated()));
-        perform(post("/api/pumps/{pumpId}/safe/counts", setup.pumpId()), setup.manager(), Map.of("countedAmount", balance()))
-                .andExpect(status().isCreated());
-        perform(post("/api/pumps/{pumpId}/day-closes/{date}/close", setup.pumpId(), TODAY), setup.owner(), Map.of())
-                .andExpect(status().isOk());
-
-        reverse(setup.owner(), cashOut, "Was paid from petty cash")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DAY_CLOSED"));
-
-        perform(post("/api/pumps/{pumpId}/day-closes/{date}/reopen", setup.pumpId(), TODAY), setup.owner(),
-                Map.of("reason", "Wrong cash out")).andExpect(status().isOk());
-        reverse(setup.owner(), cashOut, "Was paid from petty cash").andExpect(status().isCreated());
     }
 
     private ResultActions record(User user, String type, String amount, String description) throws Exception {

@@ -79,6 +79,17 @@ class ShiftClosingReadingsTest {
     }
 
     @Test
+    void bagShortAfterConfirmedDropsIsAShortDiscrepancy() {
+        ShiftFuelReading reading = readingStartingAt("5000.000");
+
+        ShiftLifecycleSupportService.ClosingSummary summary = lifecycleSupportService.processClosingReadings(
+                1L, Map.of(NOZZLE_ID, MAX_METER), closeRequest("5010.000", "350.00"), new BigDecimal("600.00"), List.of(reading));
+
+        assertThat(summary.getDiscrepancyType()).isEqualTo(DiscrepancyType.SHORT);
+        assertThat(summary.getDiscrepancyAmount()).isEqualByComparingTo("50.00");
+    }
+
+    @Test
     void rolloverIsAcceptedWhenTheOpeningReadingIsExactlyNinetyNinePercentOfTheMeterRange() {
         BigDecimal roundMaxMeter = new BigDecimal("1000000.000");
         ShiftFuelReading reading = readingStartingAt("990000.000");
