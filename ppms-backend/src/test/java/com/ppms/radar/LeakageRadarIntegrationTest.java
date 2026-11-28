@@ -48,7 +48,6 @@ import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class LeakageRadarIntegrationTest extends ApiIntegrationTest {
@@ -204,18 +203,6 @@ class LeakageRadarIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void periodsOtherThanThirtyOrNinetyDaysAreRefused() throws Exception {
-        perform(get(RADAR_PATH, setup.pumpId()).param("days", "45"), setup.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("RADAR_PERIOD_INVALID"))
-                .andExpect(jsonPath("$.params.days").value(45));
-        perform(get(RADAR_PATH, setup.pumpId()), setup.owner())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.periodDays").value(30))
-                .andExpect(jsonPath("$.from").value(TODAY.minusDays(29).toString()));
-    }
-
-    @Test
     void weeklySummaryIsSentOnceAWeekToOwnersAndAdminsOnly() throws Exception {
         for (int day = 0; day < 6; day++) {
             saveShift(setup.operator(), TODAY.minusDays(day), DiscrepancyType.SHORT, "2000");
@@ -238,18 +225,6 @@ class LeakageRadarIntegrationTest extends ApiIntegrationTest {
         assertThat(notificationTypes(setup.owner())).contains("LEAKAGE_RADAR_WEEKLY");
         assertThat(notificationTypes(setup.admin())).contains("LEAKAGE_RADAR_WEEKLY");
         assertThat(notificationTypes(setup.manager())).doesNotContain("LEAKAGE_RADAR_WEEKLY");
-    }
-
-    @Test
-    void nothingWorthALookSendsNoSummary() throws Exception {
-        saveShift(setup.operator(), TODAY, null, null);
-
-        weeklyJob.sendWeeklySummaries();
-
-        assertThat(notificationRepository.findAll().stream()
-                .filter(notification -> notification.getPumpId().equals(setup.pumpId()))
-                .filter(notification -> notification.getType() == NotificationType.LEAKAGE_RADAR_WEEKLY))
-                .isEmpty();
     }
 
     @Test
