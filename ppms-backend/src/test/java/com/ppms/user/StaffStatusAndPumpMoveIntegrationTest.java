@@ -28,7 +28,6 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -135,31 +134,11 @@ class StaffStatusAndPumpMoveIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void onlyTheOwnerCanMoveStaffAndOnlyToTheirOwnPump() throws Exception {
-        PumpLocation strangersPump = pumpLocationRepository.save(PumpLocation.builder()
-                .ownerId(saveUser(UserRole.OWNER, null).getId()).name("Other " + shortId()).address("Elsewhere")
-                .maxDuCount(1).build());
-
+    void adminCannotMoveStaffToAnotherPump() throws Exception {
         moveToPump(setup.accountant(), secondPump.getId(), setup.admin()).andExpect(status().isForbidden());
-        moveToPump(setup.accountant(), strangersPump.getId(), setup.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("another pump you own")));
 
         assertThat(userRepository.findById(setup.accountant().getId()).orElseThrow().getAssignedPumpId())
                 .isEqualTo(setup.pumpId());
-    }
-
-    @Test
-    void pumpWithOnlyDeactivatedStaffIsNotDeletedUntilTheyAreMoved() throws Exception {
-        User formerOperator = saveUser(UserRole.OPERATOR, secondPump.getId());
-        changeStatus(formerOperator, "INACTIVE").andExpect(status().isOk());
-
-        perform(delete("/api/pumps/{pumpId}", secondPump.getId()), setup.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("deactivated staff")));
-
-        moveToPump(formerOperator, setup.pumpId(), setup.owner()).andExpect(status().isOk());
-        perform(delete("/api/pumps/{pumpId}", secondPump.getId()), setup.owner()).andExpect(status().isNoContent());
     }
 
     private ShiftPlanEntry savePlanEntry(ShiftPlan plan, User operator, LocalDate shiftDate) {

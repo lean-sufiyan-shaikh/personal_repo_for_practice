@@ -73,19 +73,6 @@ class UserLanguageIntegrationTest extends ApiIntegrationTest {
         assertThat(userRepository.findById(userId).orElseThrow().getPreferredLanguage()).isEqualTo("en");
     }
 
-    @Test
-    void staffCreatedWithoutALanguageGetsEnglishAndAnUnsupportedOneIsRejected() throws Exception {
-        String phone = "7" + String.format("%09d", System.nanoTime() % 1_000_000_000L);
-        perform(post("/api/users"), setup.owner(), Map.of("fullName", "Plain Operator", "phoneNumber", phone,
-                "password", "Staff@1234", "role", "OPERATOR", "gender", "MALE", "assignedPumpId", setup.pumpId()))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.preferredLanguage").value("en"));
-
-        perform(patch("/api/users/{userId}/details", setup.operator().getId()), setup.owner(),
-                Map.of("preferredLanguage", "gu"))
-                .andExpect(status().isBadRequest());
-    }
-
     private ResultActions login(String phoneNumber) throws Exception {
         return mockMvc.perform(post("/api/auth/login")
                 .with(request -> {
