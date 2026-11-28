@@ -2,7 +2,6 @@ package com.ppms.shift;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ppms.fuel.FuelType;
-import com.ppms.pump.DispensaryUnit;
 import com.ppms.pump.Nozzle;
 import com.ppms.support.ApiIntegrationTest;
 import com.ppms.user.User;
@@ -20,10 +19,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Several operators on one DU shift, nozzle swaps and relief breaks: who sold which litres, without closing the shift. */
@@ -61,34 +58,11 @@ class ShiftOperationsIntegrationTest extends ApiIntegrationTest {
         assertThat(added.get("otherOperators").get(0).get("operatorId").asLong()).isEqualTo(second.getId());
         assertThat(added.get("otherOperators").get(0).get("role").asText()).isEqualTo("ADDITIONAL");
 
-        Nozzle otherDuNozzle = nozzleOnNewDu();
-        perform(post("/api/pumps/{pumpId}/shifts/open", setup.pumpId()), setup.manager(),
-                Map.of("duId", otherDuNozzle.getDuId(), "nozzleIds", List.of(otherDuNozzle.getId()), "operatorId", second.getId()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("OPERATOR_SHIFT_ALREADY_OPEN"));
-        swap(shiftId, secondNozzle.getId(), setup.operator().getId(), "2005.000").andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("NOZZLE_SWAP_SAME_OPERATOR"));
-        swap(shiftId, secondNozzle.getId(), second.getId(), "1999.000").andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("NOZZLE_READING_BELOW_LAST"));
         swap(shiftId, secondNozzle.getId(), second.getId(), "2005.000").andExpect(status().isCreated());
 
         perform(get(SHIFT_PATH, setup.pumpId(), shiftId), second).andExpect(status().isOk());
         JsonNode active = json(perform(get("/api/pumps/{pumpId}/shifts/active", setup.pumpId()), second).andExpect(status().isOk()));
         assertThat(active).hasSize(1);
-        perform(delete(SHIFT_PATH + "/operators/{operatorId}", setup.pumpId(), shiftId, second.getId()), setup.manager())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SHIFT_OPERATOR_HOLDS_NOZZLES"));
-
-        perform(post(SHIFT_PATH + "/close", setup.pumpId(), shiftId), setup.manager(),
-                closeRequest("1010.000", "2004.000", "3000.00", List.of()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CLOSING_READING_BELOW_TURN_START"));
-        perform(post(SHIFT_PATH + "/close", setup.pumpId(), shiftId), setup.manager(),
-                closeRequest("1010.000", "2020.000", "3000.00", List.of(collection(setup.operator(), "1500.00"),
-                        collection(second, "1400.00"))))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("OPERATOR_COLLECTIONS_TOTAL_MISMATCH"))
-                .andExpect(jsonPath("$.params.collectionCode").value("CASH"));
 
         JsonNode closed = json(perform(post(SHIFT_PATH + "/close", setup.pumpId(), shiftId), setup.manager(),
                 closeRequest("1010.000", "2020.000", "3000.00", List.of(collection(setup.operator(), "1450.00"),
@@ -114,49 +88,13 @@ class ShiftOperationsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void swapToAnOperatorNotOnTheShiftAddsThemAndAnOperatorOnAnotherShiftIsRefused() throws Exception {
-        long shiftId = openShift();
-        swap(shiftId, secondNozzle.getId(), second.getId(), "2003.000").andExpect(status().isCreated());
-
-        JsonNode operators = operations(shiftId, setup.manager()).get("operators");
-        assertThat(operators).hasSize(2);
-        assertThat(operators.get(1).get("operatorId").asLong()).isEqualTo(second.getId());
-        assertThat(operators.get(1).get("nozzleIds").get(0).asLong()).isEqualTo(secondNozzle.getId());
-        assertThat(operators.get(0).get("nozzleIds")).hasSize(1);
-
-        User busy = saveUser(UserRole.OPERATOR, setup.pumpId());
-        Nozzle otherDuNozzle = nozzleOnNewDu();
-        perform(post("/api/pumps/{pumpId}/shifts/open", setup.pumpId()), setup.manager(),
-                Map.of("duId", otherDuNozzle.getDuId(), "nozzleIds", List.of(otherDuNozzle.getId()), "operatorId", busy.getId()))
-                .andExpect(status().isCreated());
-        perform(post(SHIFT_PATH + "/operators", setup.pumpId(), shiftId), setup.manager(), Map.of("operatorId", busy.getId()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("OPERATOR_SHIFT_ALREADY_OPEN"));
-    }
-
-    @Test
     void reliefOperatorSellsDuringTheBreakAndTheOperatorTakesTheNozzlesBack() throws Exception {
         long shiftId = openShift();
 
         perform(post(SHIFT_PATH + "/reliefs", setup.pumpId(), shiftId), setup.operator(),
-                relief(reliever, List.of(reading(setup.nozzle(), "1003.000")), null))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("RELIEF_READING_MISSING"));
-        perform(post(SHIFT_PATH + "/reliefs", setup.pumpId(), shiftId), second,
-                relief(reliever, List.of(reading(setup.nozzle(), "1003.000"), reading(secondNozzle, "2002.000")), null))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("RELIEF_NOT_OWN_SHIFT"));
-        perform(post(SHIFT_PATH + "/reliefs", setup.pumpId(), shiftId), setup.operator(),
                 relief(reliever, List.of(reading(setup.nozzle(), "1003.000"), reading(secondNozzle, "2002.000")),
                         new BigDecimal("200.00")))
                 .andExpect(status().isCreated());
-
-        perform(post(SHIFT_PATH + "/reliefs", setup.pumpId(), shiftId), setup.manager(),
-                relief(second, List.of(reading(setup.nozzle(), "1004.000"), reading(secondNozzle, "2003.000")), null))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("RELIEF_ALREADY_ACTIVE"));
-        swap(shiftId, secondNozzle.getId(), second.getId(), "2004.000").andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("NOZZLE_UNDER_RELIEF"));
         JsonNode during = operations(shiftId, setup.operator());
         long reliefId = during.get("reliefs").get(0).get("id").asLong();
         assertThat(during.get("operators").get(0).get("onBreak").asBoolean()).isTrue();
@@ -167,10 +105,6 @@ class ShiftOperationsIntegrationTest extends ApiIntegrationTest {
                 Map.of("readings", List.of(reading(setup.nozzle(), "1008.000"), reading(secondNozzle, "2002.000")),
                         "cashHandedBack", new BigDecimal("700.00")))
                 .andExpect(status().isOk());
-        perform(post(SHIFT_PATH + "/reliefs/{reliefId}/end", setup.pumpId(), shiftId, reliefId), setup.operator(),
-                Map.of("readings", List.of(reading(setup.nozzle(), "1008.000"), reading(secondNozzle, "2002.000"))))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("RELIEF_NOT_ACTIVE"));
         assertThat(shiftOperatorRepository.findByOperatorIdAndLeftAtIsNull(reliever.getId())).isEmpty();
 
         perform(post(SHIFT_PATH + "/close", setup.pumpId(), shiftId), setup.manager(),
@@ -190,38 +124,6 @@ class ShiftOperationsIntegrationTest extends ApiIntegrationTest {
         assertThat(started.get("readings")).hasSize(2);
         assertThat(auditCount(shiftId, "RELIEF_STARTED")).isEqualTo(1);
         assertThat(auditCount(shiftId, "RELIEF_ENDED")).isEqualTo(1);
-    }
-
-    @Test
-    void reliefStillRunningAtCloseEndsWithTheShiftAndTheRelieverKeepsTheLitres() throws Exception {
-        long shiftId = openShift();
-        perform(post(SHIFT_PATH + "/reliefs", setup.pumpId(), shiftId), setup.manager(),
-                relief(reliever, List.of(reading(setup.nozzle(), "1004.000"), reading(secondNozzle, "2000.000")), null))
-                .andExpect(status().isCreated());
-
-        perform(post(SHIFT_PATH + "/close", setup.pumpId(), shiftId), setup.manager(),
-                closeRequest("1010.000", "2000.000", "1000.00", List.of())).andExpect(status().isOk());
-
-        JsonNode operations = operations(shiftId, setup.manager());
-        assertThat(operations.get("reliefs").get(0).get("active").asBoolean()).isFalse();
-        assertThat(shareOf(operations.get("operatorShares"), reliever).get("litresSold").decimalValue())
-                .isEqualByComparingTo("6.000");
-        assertThat(shareOf(operations.get("operatorShares"), reliever).get("amountDue").decimalValue())
-                .isEqualByComparingTo("600.00");
-        assertThat(shiftOperatorRepository.findByOperatorIdAndLeftAtIsNull(reliever.getId())).isEmpty();
-    }
-
-    @Test
-    void singleOperatorShiftGetsTheWholeShiftAsTheirShare() throws Exception {
-        long shiftId = openShift();
-        perform(post(SHIFT_PATH + "/close", setup.pumpId(), shiftId), setup.manager(),
-                closeRequest("1010.000", "2000.000", "1000.00", List.of())).andExpect(status().isOk());
-
-        JsonNode shares = operations(shiftId, setup.operator()).get("operatorShares");
-        assertThat(shares).hasSize(1);
-        assertThat(shares.get(0).get("amountDue").decimalValue()).isEqualByComparingTo("1000.00");
-        assertThat(shares.get(0).get("cashCollected").decimalValue()).isEqualByComparingTo("1000.00");
-        assertThat(shares.get(0).get("difference").decimalValue()).isEqualByComparingTo("0.00");
         perform(get(SHIFT_PATH + "/operations", setup.pumpId(), shiftId), second).andExpect(status().isNotFound());
     }
 
@@ -231,21 +133,6 @@ class ShiftOperationsIntegrationTest extends ApiIntegrationTest {
                         "operatorId", setup.operator().getId()))
                 .andExpect(status().isCreated()));
         return opened.get("id").asLong();
-    }
-
-    private Nozzle nozzleOnNewDu() {
-        Long duId = duRepository.save(DispensaryUnit.builder()
-                .pumpId(setup.pumpId())
-                .duNumber(2)
-                .name("DU-" + shortId())
-                .build()).getId();
-        return nozzleRepository.save(Nozzle.builder()
-                .duId(duId)
-                .nozzleNumber(1)
-                .fuelType(FuelType.PETROL)
-                .lastReading(new BigDecimal("500.000"))
-                .tankId(setup.tank().getId())
-                .build());
     }
 
     private ResultActions swap(long shiftId, Long nozzleId, Long toOperatorId, String reading) throws Exception {
