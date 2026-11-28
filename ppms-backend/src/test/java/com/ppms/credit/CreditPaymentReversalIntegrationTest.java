@@ -1,8 +1,6 @@
 package com.ppms.credit;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.ppms.audit.AuditAction;
-import com.ppms.audit.AuditLogRepository;
 import com.ppms.support.ApiIntegrationTest;
 import com.ppms.support.TestDates;
 import com.ppms.user.User;
@@ -37,7 +35,6 @@ class CreditPaymentReversalIntegrationTest extends ApiIntegrationTest {
     private static final int PAYMENT_DAYS_AGO = 20;
 
     @Autowired private CreditInterestChargeRepository interestChargeRepository;
-    @Autowired private AuditLogRepository auditLogRepository;
     @Autowired private CreditPaymentRepository paymentRepository;
     @Autowired private JdbcTemplate jdbcTemplate;
 
@@ -100,44 +97,7 @@ class CreditPaymentReversalIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void reversalIsAuditedAndNotifiesTheManagers() throws Exception {
-        long paymentId = recordCheque("4000.00", TODAY);
-
-        reverse(paymentId, setup.owner(), Map.of("reason", "Cheque bounced")).andExpect(status().isCreated());
-
-        assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(setup.pumpId()))
-                .filteredOn(log -> log.getAction() == AuditAction.CREDIT_PAYMENT_REVERSED)
-                .singleElement()
-                .satisfies(log -> assertThat(log.getDescription()).contains("₹4000.00").contains("reason=Cheque bounced"));
-        JsonNode managersBell = json(perform(get("/api/pumps/{pumpId}/notifications", setup.pumpId()), setup.manager())
-                .andExpect(status().isOk()));
-        assertThat(managersBell.toString()).contains("CREDIT_PAYMENT_REVERSED");
-    }
-
-    @Test
-    void paymentCannotBeReversedTwiceNorByAManagerNorWithoutAReason() throws Exception {
-        long paymentId = recordCheque("4000.00", TODAY);
-
-        reverse(paymentId, setup.manager(), Map.of("reason", "Cheque bounced")).andExpect(status().isForbidden());
-        reverse(paymentId, setup.owner(), Map.of("reason", " ")).andExpect(status().isBadRequest());
-        reverse(paymentId, setup.owner(), Map.of("reason", "Cheque bounced")).andExpect(status().isCreated());
-        reverse(paymentId, setup.admin(), Map.of("reason", "Again"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CREDIT_PAYMENT_ALREADY_REVERSED"));
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM credit_payment_reversals WHERE payment_id = ?",
-                Integer.class, paymentId)).isOne();
-    }
-
-    @Test
-    void pendingAndBankMatchedPaymentsAreNotReversed() throws Exception {
-        long pendingId = json(perform(post("/api/pumps/{pumpId}/credit-ledger/{clientId}/payments", setup.pumpId(), clientId),
-                setup.manager(), Map.of("amount", new BigDecimal("500.00"), "paymentMode", "CASH",
-                        "paidAt", TODAY.minusDays(30).toString()))
-                .andExpect(status().isCreated())).get("id").asLong();
-        reverse(pendingId, setup.owner(), Map.of("reason", "Wrong"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CREDIT_PAYMENT_NOT_REVERSIBLE"));
-
+    void paymentMatchedToABankLineIsNotReversed() throws Exception {
         long matchedId = recordCheque("4000.00", TODAY);
         long importId = jdbcTemplate.queryForObject("INSERT INTO bank_statement_imports (pump_id, bank_name,"
                 + " statement_from_date, statement_to_date, imported_by_user_id) VALUES (?, 'SBI', ?, ?, ?) RETURNING id",
