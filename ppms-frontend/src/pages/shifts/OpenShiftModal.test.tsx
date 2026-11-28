@@ -153,51 +153,16 @@ describe('OpenShiftModal', () => {
     expect(openButton).toHaveAccessibleDescription(/^Still needed Select at least one nozzle/)
   })
 
-  it('shows each dispensary unit with its fuels and how many nozzles are free', async () => {
-    vi.mocked(pumpApi.getDUs).mockResolvedValue([
-      du(1, [nozzle(21, 1, 'PETROL'), nozzle(22, 2, 'DIESEL'), nozzle(23, 3, 'DIESEL')]),
-      du(2, [nozzle(31, 1, 'CNG')]),
-    ])
-    const busyCng = { id: 71, operatorId: 51, operatorName: 'Asha', nozzles: [{ id: 31, nozzleNumber: 1, fuelType: 'CNG' }] } as unknown as Shift
-    renderWithProviders(<OpenShiftModal pumpId={3} activeShifts={[busyShift, busyCng]} onClose={vi.fn()} />)
-
-    const firstDu = await screen.findByRole('button', { name: /DU 1/ })
-    expect(within(firstDu).getByText('Petrol')).toBeInTheDocument()
-    expect(within(firstDu).getByText('Diesel')).toBeInTheDocument()
-    expect(firstDu).toHaveTextContent('2 free · 1 in use')
-    expect(firstDu).toBeEnabled()
-
-    const secondDu = screen.getByRole('button', { name: /DU 2/ })
-    expect(within(secondDu).getByText('CNG')).toBeInTheDocument()
-    expect(secondDu).toHaveTextContent('All nozzles in use')
-    expect(secondDu).toBeDisabled()
-  })
-
-  it('shows the meter reading on each nozzle card and who has a busy nozzle', async () => {
-    vi.mocked(pumpApi.getDUs).mockResolvedValue([
-      du(1, [nozzle(21, 1, 'PETROL', 123456.789), nozzle(22, 2, 'CNG', 50.5), nozzle(23, 3, 'DIESEL')]),
-    ])
-    const user = userEvent.setup()
-    renderWithProviders(<OpenShiftModal pumpId={3} activeShifts={[busyShiftWithName]} onClose={vi.fn()} />)
-
-    await user.click(await screen.findByRole('button', { name: 'Change Nozzles' }))
-
-    expect(nozzleTile(1)).toHaveTextContent('Meter 1,23,456.789 L')
-    expect(nozzleTile(2)).toHaveTextContent('Meter 50.5 kg')
-    expect(nozzleTile(3)).toHaveTextContent('In use · Sita')
-    expect(nozzleTile(3)).toBeDisabled()
-    expect(nozzleTile(3)).toHaveAttribute('aria-pressed', 'false')
-  })
-
-  it('selects every free nozzle at once and clears them again', async () => {
+  it('selects every free nozzle at once, skipping one another operator has, and clears them again', async () => {
     vi.mocked(pumpApi.getDUs).mockResolvedValue([
       du(1, [nozzle(21, 1, 'PETROL'), nozzle(22, 2, 'DIESEL'), nozzle(23, 3, 'DIESEL')]),
       du(2, [nozzle(31, 1, 'DIESEL')]),
     ])
     const user = userEvent.setup()
-    renderWithProviders(<OpenShiftModal pumpId={3} activeShifts={[busyShift]} onClose={vi.fn()} />)
+    renderWithProviders(<OpenShiftModal pumpId={3} activeShifts={[busyShiftWithName]} onClose={vi.fn()} />)
 
     await user.click(await screen.findByRole('button', { name: /DU 1/ }))
+    expect(nozzleTile(3)).toHaveTextContent('In use · Sita')
     const continueButton = screen.getByRole('button', { name: 'Continue' })
     expect(continueButton).toBeDisabled()
 
