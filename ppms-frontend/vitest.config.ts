@@ -8,6 +8,7 @@ export default mergeConfig(
       fs: { allow: ['.', '../ppms-backend/src/main/java/com/ppms/audit'] },
     },
     test: {
+      pool: 'threads',
       css: false,
       env: { TZ: 'UTC' },
       restoreMocks: true,
