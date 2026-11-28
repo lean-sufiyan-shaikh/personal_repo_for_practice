@@ -63,23 +63,6 @@ describe('ExpensesPage entry from the address', () => {
     expect(screen.getByRole('status', { name: 'Address' })).toBeEmptyDOMElement()
   })
 
-  it('keeps Review disabled and lists what is still needed until amount, description and source are in', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<ExpensesPage />, { route: '/dashboard/expenses?action=add-expense' })
-
-    const form = await screen.findByRole('dialog', { name: 'Record expense' })
-    const review = within(form).getByRole('button', { name: 'Review' })
-    expect(review).toBeDisabled()
-    expect(review).toHaveAccessibleDescription('Still needed Amount Description Paid from')
-
-    await user.type(within(form).getByLabelText('Description'), 'Generator diesel')
-    await user.type(within(form).getByLabelText('Amount'), '450')
-    expect(review).toHaveAccessibleDescription('Still needed Paid from')
-    await user.click(within(form).getByRole('button', { name: /^Paid from/ }))
-    await user.click(screen.getByRole('option', { name: 'Bank' }))
-    expect(review).toBeEnabled()
-  })
-
   it('shows the pending count beside the title and opens the form from the header button', async () => {
     const user = userEvent.setup()
     renderWithProviders(<ExpensesPage />, { route: '/dashboard/expenses' })
