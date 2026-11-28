@@ -98,48 +98,6 @@ class PumpOperationsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void fuelSaleIsRecordedAgainstAnOpenShiftAndListedForIt() throws Exception {
-        long shiftId = openShift();
-
-        perform(post("/api/pumps/{pumpId}/fuel-transactions", setup.pumpId()), setup.operator(),
-                Map.of("shiftId", shiftId, "nozzleId", setup.nozzle().getId(), "fuelType", "PETROL",
-                        "quantityLitres", new BigDecimal("12.5"), "pricePerUnit", new BigDecimal("100.00"),
-                        "paymentMode", "UPI", "upiReference", "UTR123"))
-                .andExpect(status().is2xxSuccessful());
-
-        JsonNode transactions = json(perform(get("/api/pumps/{pumpId}/fuel-transactions", setup.pumpId())
-                .param("shiftId", Long.toString(shiftId)), setup.manager()).andExpect(status().isOk()));
-        assertThat(transactions.toString()).contains("UTR123");
-    }
-
-    @Test
-    void meterReadingAdjustmentIsRefusedDuringAShiftAndAppliedAfter() throws Exception {
-        long shiftId = openShift();
-        Map<String, Object> adjustment = Map.of("adjustmentType", "CUSTOM_READING", "newReading", new BigDecimal("900"),
-                "reason", "Meter replaced");
-
-        perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/reading-adjustments", setup.pumpId(), setup.nozzle().getId()),
-                setup.owner(), adjustment).andExpect(status().isBadRequest());
-
-        Map<String, Object> close = new java.util.HashMap<>();
-        close.put("fuelReadings", List.of(Map.of("nozzleId", setup.nozzle().getId(), "endReading", new BigDecimal("1000.000"))));
-        close.put("cashCollected", BigDecimal.ZERO);
-        close.put("upiCollected", BigDecimal.ZERO);
-        close.put("cardCollected", BigDecimal.ZERO);
-        close.put("fleetCardCollected", BigDecimal.ZERO);
-        close.put("creditTotal", BigDecimal.ZERO);
-        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId), setup.manager(), close)
-                .andExpect(status().is2xxSuccessful());
-
-        perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/reading-adjustments", setup.pumpId(), setup.nozzle().getId()),
-                setup.owner(), adjustment).andExpect(status().is2xxSuccessful());
-        assertThat(nozzleRepository.findById(setup.nozzle().getId()).orElseThrow().getLastReading())
-                .isEqualByComparingTo("900");
-        assertThat(json(perform(get("/api/pumps/{pumpId}/nozzles/{nozzleId}/reading-adjustments", setup.pumpId(),
-                setup.nozzle().getId()), setup.owner()).andExpect(status().isOk())).toString()).contains("Meter replaced");
-    }
-
-    @Test
     void fuelDipLossIsRecordedAndListed() throws Exception {
         perform(post("/api/pumps/{pumpId}/fuel-dips", setup.pumpId()), setup.owner(),
                 Map.of("tankId", setup.tank().getId(), "litresRemoved", new BigDecimal("2.5"), "reason", "Quality sample",

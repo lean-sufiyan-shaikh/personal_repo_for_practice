@@ -39,11 +39,6 @@ import com.ppms.pump.DispensaryUnit;
 import com.ppms.pump.DispensaryUnitRepository;
 import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
-import com.ppms.settlement.PaymentSettlementService;
-import com.ppms.settlement.VoidSettlementRequest;
-import com.ppms.settlement.SettlementResponse;
-import com.ppms.settlement.RecordSettlementRequest;
-import com.ppms.settlement.SettlementPaymentType;
 import com.ppms.shift.DiscrepancyResolution;
 import com.ppms.shift.DiscrepancyType;
 import com.ppms.shift.Shift;
@@ -85,7 +80,6 @@ class MoneyCorrectnessIntegrationTest {
     @Autowired private CreditInterestService interestService;
     @Autowired private CreditInterestRunService interestRunService;
     @Autowired private PayrollService payrollService;
-    @Autowired private PaymentSettlementService settlementService;
     @Autowired private AncillaryInventoryWorkflowService ancillaryWorkflowService;
     @Autowired private UserRepository userRepository;
     @Autowired private PumpLocationRepository pumpLocationRepository;
@@ -327,30 +321,6 @@ class MoneyCorrectnessIntegrationTest {
                 .hasMessageContaining("another Owner or Admin");
         assertThat(paymentRepository.findById(payment.getId()).orElseThrow().getPaymentApprovalStatus())
                 .isEqualTo(ExpenseApprovalStatus.PENDING_APPROVAL);
-    }
-
-    @Test
-    void voidedSettlementNoLongerReducesTheWalletAndDuplicatesAreRefused() {
-        Shift collected = saveClosedShift(TestDates.today(), ShiftStatus.CLOSED_BALANCED, null);
-        collected.setUpiCollected(new BigDecimal("79000.00"));
-        shiftRepository.save(collected);
-        RecordSettlementRequest request = RecordSettlementRequest.builder()
-                .paymentType(SettlementPaymentType.UPI)
-                .settlementDate(TestDates.today())
-                .amountReceived(new BigDecimal("79000.00"))
-                .build();
-        SettlementResponse recorded = settlementService.record(pump.getId(), request, manager);
-        assertThat(settlementService.getWalletSummary(pump.getId()).getUpiPending()).isEqualByComparingTo("0.00");
-
-        assertThatThrownBy(() -> settlementService.record(pump.getId(), request, manager))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("last 2 minutes");
-
-        SettlementResponse voided = settlementService.voidSettlement(pump.getId(), recorded.getId(),
-                VoidSettlementRequest.builder().reason("Typed 79000 instead of 7900").build(), owner);
-
-        assertThat(voided.getVoidStatus()).isEqualTo("VOIDED");
-        assertThat(settlementService.getWalletSummary(pump.getId()).getUpiPending()).isEqualByComparingTo("79000.00");
     }
 
     @Test
@@ -615,20 +585,6 @@ class MoneyCorrectnessIntegrationTest {
                     assertThat(row.getStatus()).isEqualTo("WAIVED");
                     assertThat(row.isCountedInBalance()).isFalse();
                 });
-    }
-
-    @Test
-    void waivingAnInterestChargeNeedsAReasonAndCannotBeDoneTwice() {
-        CreditClient client = saveClient(new BigDecimal("2.00"));
-        seedChargeEndingOn(client, "40.00", TestDates.today().minusDays(1));
-        CreditInterestCharge charge = interestChargeRepository.findByClientIdOrderByCreatedAtDesc(client.getId()).get(0);
-
-        assertThatThrownBy(() -> ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), " ", InterestWaiverKind.RECALCULATE, owner))
-                .isInstanceOf(BusinessException.class);
-        ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), "Wrong rate", InterestWaiverKind.RECALCULATE, owner);
-        assertThatThrownBy(() -> ledgerService.waiveInterestCharge(pump.getId(), client.getId(), charge.getId(), "Again", InterestWaiverKind.RECALCULATE, owner))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("already been waived");
     }
 
     @Test

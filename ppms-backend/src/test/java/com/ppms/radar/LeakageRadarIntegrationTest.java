@@ -204,18 +204,6 @@ class LeakageRadarIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void onlyOwnersAndAdminsOfThePumpCanSeeTheRadar() throws Exception {
-        PumpSetup otherPump = createPumpWithStock("0");
-
-        perform(get(RADAR_PATH, setup.pumpId()), setup.owner()).andExpect(status().isOk());
-        perform(get(RADAR_PATH, setup.pumpId()), setup.admin()).andExpect(status().isOk());
-        perform(get(RADAR_PATH, setup.pumpId()), setup.manager()).andExpect(status().isForbidden());
-        perform(get(RADAR_PATH, setup.pumpId()), setup.operator()).andExpect(status().isForbidden());
-        perform(get(RADAR_PATH, setup.pumpId()), setup.accountant()).andExpect(status().isForbidden());
-        perform(get(RADAR_PATH, setup.pumpId()), otherPump.owner()).andExpect(status().isForbidden());
-    }
-
-    @Test
     void periodsOtherThanThirtyOrNinetyDaysAreRefused() throws Exception {
         perform(get(RADAR_PATH, setup.pumpId()).param("days", "45"), setup.owner())
                 .andExpect(status().isBadRequest())

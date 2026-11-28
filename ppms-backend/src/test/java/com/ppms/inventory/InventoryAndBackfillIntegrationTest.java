@@ -524,13 +524,6 @@ class InventoryAndBackfillIntegrationTest extends ApiIntegrationTest {
         assertThat(currentStock()).isEqualByComparingTo("1000");
     }
 
-    @Test
-    void managerCannotBackfillShifts() throws Exception {
-        perform(post("/api/pumps/{pumpId}/shifts/backfill", setup.pumpId()), setup.manager(),
-                backfillRequest(TestDates.today().minusDays(1), "1000.000", "1010.000", "950.00"))
-                .andExpect(status().isForbidden());
-    }
-
     private Map<String, Object> backfillRequest(LocalDate date, String opening, String closing, String cash) {
         Map<String, Object> request = new HashMap<>();
         request.put("shiftDefinitionId", setup.allDayShift().getId());

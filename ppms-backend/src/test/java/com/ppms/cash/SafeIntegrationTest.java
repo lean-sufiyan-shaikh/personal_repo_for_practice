@@ -213,16 +213,6 @@ class SafeIntegrationTest extends ApiIntegrationTest {
         }
     }
 
-    @Test
-    void safeIsForManagersAdminsAndOwnersOnly() throws Exception {
-        perform(get("/api/pumps/{pumpId}/safe", setup.pumpId()), setup.operator()).andExpect(status().isForbidden());
-        perform(get("/api/pumps/{pumpId}/safe/ledger", setup.pumpId()), setup.accountant()).andExpect(status().isForbidden());
-        perform(post("/api/pumps/{pumpId}/safe/counts", setup.pumpId()), setup.operator(),
-                Map.of("countedAmount", BigDecimal.ONE)).andExpect(status().isForbidden());
-        perform(post("/api/pumps/{pumpId}/safe/deposits", setup.pumpId()), setup.operator(),
-                deposit("1.00", "X", "SBI", TestDates.today())).andExpect(status().isForbidden());
-    }
-
     private void putCashInSafe(String amount) throws Exception {
         perform(post("/api/pumps/{pumpId}/cash-events", setup.pumpId()), setup.manager(),
                 Map.of("eventType", "CASH_IN", "amount", new BigDecimal(amount), "description", "Float",

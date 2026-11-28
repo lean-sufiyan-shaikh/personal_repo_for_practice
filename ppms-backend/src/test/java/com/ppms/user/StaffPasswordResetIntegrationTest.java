@@ -18,6 +18,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -67,6 +68,11 @@ class StaffPasswordResetIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
         mockMvc.perform(get("/api/pumps").cookie(jwt))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
+        mockMvc.perform(patch("/api/users/me/language").cookie(jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("language", "hi"))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
 

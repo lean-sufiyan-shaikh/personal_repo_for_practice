@@ -151,15 +151,6 @@ class CreditClientImportIntegrationTest extends ApiIntegrationTest {
         assertThat(issues(report, 1)).containsExactly("credit_limit:IMPORT_NUMBER_INVALID");
     }
 
-    @Test
-    void managersCannotImportClients() throws Exception {
-        PumpSetup setup = createPumpWithStock("0");
-
-        perform(post("/api/pumps/{pumpId}/imports/credit-clients", setup.pumpId()), setup.manager(),
-                rows(row(2, "Nope", freePhone(), null, Map.of())))
-                .andExpect(status().isForbidden());
-    }
-
     private CreditClient clientNamed(PumpSetup setup, String name) {
         return clientRepository.findByPumpIdOrderByNameAsc(setup.pumpId()).stream()
                 .filter(client -> client.getName().equals(name)).findFirst().orElseThrow();

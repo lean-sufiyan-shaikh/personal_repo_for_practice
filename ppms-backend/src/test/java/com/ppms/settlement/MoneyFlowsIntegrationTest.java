@@ -47,7 +47,8 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
         perform(post("/api/pumps/{pumpId}/settlements/{id}/void", setup.pumpId(), settlementId), setup.owner(),
                 Map.of("reason", "")).andExpect(status().isBadRequest());
         perform(post("/api/pumps/{pumpId}/settlements/{id}/void", setup.pumpId(), settlementId), setup.owner(),
-                Map.of("reason", "Typo")).andExpect(status().isOk());
+                Map.of("reason", "Typo")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.voidStatus").value("VOIDED"));
 
         assertThat(wallet().get("upiPending").decimalValue()).isEqualByComparingTo("600.00");
     }
@@ -59,7 +60,8 @@ class MoneyFlowsIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().is2xxSuccessful());
 
         perform(post("/api/pumps/{pumpId}/settlements", setup.pumpId()), setup.manager(), settlementBody("100.00"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("last 2 minutes")));
 
         assertThat(wallet().get("upiPending").decimalValue()).isEqualByComparingTo("500.00");
     }

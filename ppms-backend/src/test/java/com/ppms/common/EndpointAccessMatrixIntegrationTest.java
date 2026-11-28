@@ -10,6 +10,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -29,6 +30,8 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
 
     private static final String TODAY = TestDates.today().toString();
     private static final String RANGE = "?from=" + TODAY + "&to=" + TODAY;
+    private static final Map<String, Object> APPROVAL_DECISION = Map.of("action", "APPROVED",
+            "items", List.of(Map.of("kind", "EXPENSE", "id", 1)));
 
     private PumpSetup setup;
     private PumpSetup otherPump;
@@ -106,7 +109,16 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/collections/reminders/due", "MANAGER", "ACCOUNTANT"),
                 Arguments.of("/api/pumps/{pumpId}/collections/statements", "ACCOUNTANT", "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/collection-settings", "MANAGER", "ACCOUNTANT"),
-                Arguments.of("/api/pumps/{pumpId}/credit-limit-settings", "MANAGER", "ACCOUNTANT"));
+                Arguments.of("/api/pumps/{pumpId}/credit-limit-settings", "MANAGER", "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/setup-checklist", "OWNER", "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/leakage-radar", "OWNER", "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/credit-ledger/aging", "ACCOUNTANT", "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/attention", "OWNER", "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/attention", "OWNER", "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/approvals", "ADMIN", "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/approvals", "ADMIN", "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/approvals", "ADMIN", "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/audit-logs", "OWNER", null));
     }
 
     @ParameterizedTest(name = "{0} allows {1}")
@@ -180,7 +192,33 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
                 Arguments.of("/api/pumps/{pumpId}/imports/products", Map.of("rows", List.of()), "OPERATOR"),
                 Arguments.of("/api/pumps/{pumpId}/imports/tank-stock", Map.of("rows", List.of()), "MANAGER"),
                 Arguments.of("/api/pumps/{pumpId}/credit-limit-settings", Map.of("defaultCreditLimit", 0,
-                        "managerLimitCap", 1000, "nearLimitPercent", 90), "MANAGER"));
+                        "managerLimitCap", 1000, "nearLimitPercent", 90), "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/safe/deposits", Map.of("amount", 1, "bankAccount", "SBI",
+                        "depositDate", TODAY, "slipReference", "M-1"), "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/collections/clients/1/promises", Map.of("amount", 1,
+                        "promisedDate", TODAY), "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/shifts/open", Map.of("duId", 1, "nozzleIds", List.of(1),
+                        "operatorId", 1), "OPERATOR"),
+                Arguments.of("/api/pumps/{pumpId}/shifts/backfill", backfillBody(), "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/ancillary/products/1", Map.of("brand", "Shell"), "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/approvals/decisions", APPROVAL_DECISION, "MANAGER"),
+                Arguments.of("/api/pumps/{pumpId}/approvals/decisions", APPROVAL_DECISION, "ACCOUNTANT"),
+                Arguments.of("/api/pumps/{pumpId}/approvals/decisions", APPROVAL_DECISION, "OPERATOR"));
+    }
+
+    private static Map<String, Object> backfillBody() {
+        Map<String, Object> body = new HashMap<>();
+        body.put("shiftDefinitionId", 1);
+        body.put("shiftDate", TestDates.today().minusDays(1).toString());
+        body.put("duId", 1);
+        body.put("operatorId", 1);
+        body.put("nozzleReadings", List.of(Map.of("nozzleId", 1, "openingReading", 1000, "closingReading", 1010)));
+        body.put("cashCollected", 1000);
+        body.put("upiCollected", 0);
+        body.put("cardCollected", 0);
+        body.put("fleetCardCollected", 0);
+        body.put("creditTotal", 0);
+        return body;
     }
 
     @ParameterizedTest(name = "{0} refuses {2}")
@@ -204,6 +242,7 @@ class EndpointAccessMatrixIntegrationTest extends ApiIntegrationTest {
         return path.endsWith("/revoke") || path.endsWith("/reverse") || path.contains("/safe/") || path.contains("/day-closes/")
                 || path.contains("/collections/") || path.endsWith("/accept-suggestion") || path.endsWith("/auto-match")
                 || path.contains("/imports/") || path.contains("/shifts/") || path.endsWith("/staff-advances")
+                || path.endsWith("/approvals/decisions")
                 ? post(resolved) : patch(resolved);
     }
 

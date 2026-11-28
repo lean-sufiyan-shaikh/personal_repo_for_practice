@@ -173,16 +173,6 @@ class AttentionIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void managerOperatorAndOtherPumpsOwnerCannotReadTheList() throws Exception {
-        PumpSetup otherPump = createPumpWithStock("0");
-
-        perform(get("/api/pumps/{pumpId}/attention", setup.pumpId()), setup.manager()).andExpect(status().isForbidden());
-        perform(get("/api/pumps/{pumpId}/attention", setup.pumpId()), setup.operator()).andExpect(status().isForbidden());
-        perform(get("/api/pumps/{pumpId}/attention", setup.pumpId()), otherPump.owner()).andExpect(status().isForbidden());
-        perform(get("/api/pumps/attention"), setup.manager()).andExpect(status().isForbidden());
-    }
-
-    @Test
     void allPumpsListCoversEveryPumpOfTheOwnerAndNoOtherOwnersPumps() throws Exception {
         PumpSetup secondPump = createPumpWithStock("0");
         var pump = secondPump.pump();
@@ -192,6 +182,7 @@ class AttentionIntegrationTest extends ApiIntegrationTest {
         recordExpense("500.00");
 
         JsonNode items = json(perform(get("/api/pumps/attention"), setup.owner()).andExpect(status().isOk()));
+        perform(get("/api/pumps/attention"), setup.manager()).andExpect(status().isForbidden());
 
         List<Long> pumpIds = new ArrayList<>();
         items.forEach(item -> pumpIds.add(item.get("pumpId").asLong()));

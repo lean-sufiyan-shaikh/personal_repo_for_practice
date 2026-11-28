@@ -82,7 +82,7 @@ class OperatorScopedAccessIntegrationTest extends ApiIntegrationTest {
 
     @Test
     void operatorReadsOnlyTheirOwnShiftsFuelTransactions() throws Exception {
-        recordTransaction(setup.operator(), ownShiftId).andExpect(status().isCreated());
+        recordUpiTransaction(setup.operator(), ownShiftId, "UTR123").andExpect(status().isCreated());
         recordTransaction(setup.manager(), colleagueShiftId).andExpect(status().isCreated());
 
         JsonNode pumpHistory = json(perform(get("/api/pumps/{pumpId}/fuel-transactions", setup.pumpId()), setup.operator())
@@ -96,6 +96,9 @@ class OperatorScopedAccessIntegrationTest extends ApiIntegrationTest {
         JsonNode managerHistory = json(perform(get("/api/pumps/{pumpId}/fuel-transactions", setup.pumpId()), setup.manager())
                 .andExpect(status().isOk()));
         assertThat(managerHistory.get("page").get("totalElements").asLong()).isEqualTo(2);
+        JsonNode ownShiftForManager = json(perform(get("/api/pumps/{pumpId}/fuel-transactions", setup.pumpId())
+                .param("shiftId", String.valueOf(ownShiftId)), setup.manager()).andExpect(status().isOk()));
+        assertThat(ownShiftForManager.toString()).contains("UTR123");
     }
 
     @Test
@@ -111,6 +114,13 @@ class OperatorScopedAccessIntegrationTest extends ApiIntegrationTest {
                 Map.of("shiftId", shiftId, "nozzleId", setup.nozzle().getId(), "fuelType", "PETROL",
                         "quantityLitres", new BigDecimal("10"), "pricePerUnit", new BigDecimal("100"),
                         "paymentMode", "CASH"));
+    }
+
+    private ResultActions recordUpiTransaction(User user, long shiftId, String upiReference) throws Exception {
+        return perform(post("/api/pumps/{pumpId}/fuel-transactions", setup.pumpId()), user,
+                Map.of("shiftId", shiftId, "nozzleId", setup.nozzle().getId(), "fuelType", "PETROL",
+                        "quantityLitres", new BigDecimal("12.5"), "pricePerUnit", new BigDecimal("100.00"),
+                        "paymentMode", "UPI", "upiReference", upiReference));
     }
 
     private List<Long> shiftIds(MockHttpServletRequestBuilder request,

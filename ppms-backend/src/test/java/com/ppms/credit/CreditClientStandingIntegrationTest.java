@@ -187,14 +187,6 @@ class CreditClientStandingIntegrationTest extends ApiIntegrationTest {
         assertThat(clientOf(childId, setup.accountant()).has("outstandingBalance")).isTrue();
     }
 
-    @Test
-    void ownerOfAnotherPumpCannotReadTheStanding() throws Exception {
-        PumpSetup otherPump = createPumpWithStock("0");
-
-        perform(get("/api/pumps/{pumpId}/credit-clients/credit-standing", setup.pumpId()), otherPump.owner())
-                .andExpect(status().isForbidden());
-    }
-
     private JsonNode standingOf(long clientId, User reader) throws Exception {
         JsonNode standings = json(perform(get("/api/pumps/{pumpId}/credit-clients/credit-standing", setup.pumpId()), reader)
                 .andExpect(status().isOk()));

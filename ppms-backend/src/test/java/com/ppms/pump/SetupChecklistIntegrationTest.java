@@ -119,16 +119,6 @@ class SetupChecklistIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void onlyTheOwnerOrAdminOfThePumpCanReadTheChecklist() throws Exception {
-        perform(get("/api/pumps/{pumpId}/setup-checklist", setup.pumpId()), setup.manager())
-                .andExpect(status().isForbidden());
-        perform(get("/api/pumps/{pumpId}/setup-checklist", setup.pumpId()), setup.operator())
-                .andExpect(status().isForbidden());
-        perform(get("/api/pumps/{pumpId}/setup-checklist", setup.pumpId()), bareOwnerPumpOwner())
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void superAdminOwnerListShowsEachPumpsSetupProgress() throws Exception {
         User superAdmin = saveUser(UserRole.SUPER_ADMIN, null);
 
@@ -153,10 +143,6 @@ class SetupChecklistIntegrationTest extends ApiIntegrationTest {
                 .address("Test address")
                 .maxDuCount(2)
                 .build());
-    }
-
-    private User bareOwnerPumpOwner() {
-        return userRepository.findById(bareOwnerPump().getOwnerId()).orElseThrow();
     }
 
     private JsonNode checklist(Long pumpId, User user) throws Exception {

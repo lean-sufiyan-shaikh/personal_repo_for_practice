@@ -89,17 +89,6 @@ class UserLanguageIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    @Test
-    void userWhoMustChangeTheirPasswordCannotChangeLanguageFirst() throws Exception {
-        User operator = setup.operator();
-        operator.setMustChangePassword(true);
-        userRepository.save(operator);
-
-        perform(patch("/api/users/me/language"), operator, Map.of("language", "hi"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
-    }
-
     private ResultActions login(String phoneNumber) throws Exception {
         return mockMvc.perform(post("/api/auth/login")
                 .with(request -> {

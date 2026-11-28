@@ -156,18 +156,6 @@ class CreditAgingIntegrationTest extends ApiIntegrationTest {
         assertThat(manyClients).isEqualTo(fewClients);
     }
 
-    @Test
-    void operatorAndOtherPumpsOwnerCannotReadTheAging() throws Exception {
-        PumpSetup otherPump = createPumpWithStock("0");
-
-        perform(get("/api/pumps/{pumpId}/credit-ledger/aging", setup.pumpId()), setup.operator())
-                .andExpect(status().isForbidden());
-        perform(get("/api/pumps/{pumpId}/credit-ledger/aging", setup.pumpId()), otherPump.owner())
-                .andExpect(status().isForbidden());
-        perform(get("/api/pumps/{pumpId}/credit-ledger/aging", setup.pumpId()), setup.accountant())
-                .andExpect(status().isOk());
-    }
-
     private JsonNode aging() throws Exception {
         return json(perform(get("/api/pumps/{pumpId}/credit-ledger/aging", setup.pumpId()), setup.owner())
                 .andExpect(status().isOk()));

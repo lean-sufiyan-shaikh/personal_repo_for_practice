@@ -166,18 +166,6 @@ class ApprovalQueueIntegrationTest extends ApiIntegrationTest {
         assertThat(expenseStatus(otherExpense)).isEqualTo("PENDING_APPROVAL");
     }
 
-    @Test
-    void onlyOwnerAndAdminOfThePumpCanUseTheQueue() throws Exception {
-        PumpSetup otherPump = createPumpWithStock("0");
-        Map<String, Object> body = Map.of("action", "APPROVED", "items", List.of(Map.of("kind", "EXPENSE", "id", 1L)));
-
-        for (User user : List.of(setup.manager(), setup.accountant(), setup.operator(), otherPump.owner())) {
-            perform(get("/api/pumps/{pumpId}/approvals", setup.pumpId()), user).andExpect(status().isForbidden());
-            decide(user, body).andExpect(status().isForbidden());
-        }
-        perform(get("/api/pumps/{pumpId}/approvals", setup.pumpId()), setup.admin()).andExpect(status().isOk());
-    }
-
     private JsonNode queue(User user) throws Exception {
         return json(perform(get("/api/pumps/{pumpId}/approvals", setup.pumpId()), user).andExpect(status().isOk()));
     }

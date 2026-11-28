@@ -64,16 +64,6 @@ class AuthSecurityIntegrationTest {
     }
 
     @Test
-    void ownerCannotReadAnotherOwnersPump() throws Exception {
-        Cookie cookie = loginAs(ownerA);
-
-        perform(get("/api/pumps/{pumpId}/audit-logs", pumpB.getId()).cookie(cookie))
-                .andExpect(status().isForbidden());
-        perform(get("/api/pumps/{pumpId}/audit-logs", pumpA.getId()).cookie(cookie))
-                .andExpect(status().isOk());
-    }
-
-    @Test
     void percentEncodedPumpIdCannotSkipTheAccessCheck() throws Exception {
         Cookie cookie = loginAs(ownerA);
         String encodedPumpId = pumpB.getId().toString().chars()

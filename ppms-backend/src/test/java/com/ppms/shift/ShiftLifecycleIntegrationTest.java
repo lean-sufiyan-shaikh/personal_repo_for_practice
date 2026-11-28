@@ -7,6 +7,7 @@ import com.ppms.audit.AuditLogRepository;
 import com.ppms.cash.CashEvent;
 import com.ppms.cash.CashEventRepository;
 import com.ppms.cash.CashEventType;
+import com.ppms.common.idempotency.IdempotencyKeyRepository;
 import com.ppms.inventory.LotConsumption;
 import com.ppms.inventory.LotConsumptionRepository;
 import com.ppms.pump.PumpLocation;
@@ -35,6 +36,7 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
     @Autowired private LotConsumptionRepository lotConsumptionRepository;
     @Autowired private CashEventRepository cashEventRepository;
     @Autowired private AuditLogRepository auditLogRepository;
+    @Autowired private IdempotencyKeyRepository idempotencyKeyRepository;
 
     private PumpSetup setup;
 
@@ -168,9 +170,10 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
         pump.setDiscrepancyEscalationThreshold(new BigDecimal("100.00"));
         pumpLocationRepository.save(pump);
         long shiftId = openShift();
-        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
+        JsonNode closed = json(perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
                 setup.manager(), closeRequest("1010.000", "500.00", "0", List.of(), "Large shortage"))
-                .andExpect(status().is2xxSuccessful());
+                .andExpect(status().is2xxSuccessful()));
+        assertThat(closed.get("status").asText()).isEqualTo("CLOSED_DISCREPANCY_PENDING_APPROVAL");
 
         JsonNode investigating = json(perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
                 setup.owner(), Map.of("resolutionAction", "PENDING_INVESTIGATION", "resolutionNote", "Bank deposit check"))
@@ -248,20 +251,6 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isBadRequest());
 
         assertThat(outstandingOf(clientId)).isEqualByComparingTo("0");
-    }
-
-    @Test
-    void discrepancyAboveThePumpThresholdNeedsOwnerApproval() throws Exception {
-        PumpLocation pump = setup.pump();
-        pump.setDiscrepancyEscalationThreshold(new BigDecimal("100.00"));
-        pumpLocationRepository.save(pump);
-        long shiftId = openShift();
-
-        JsonNode closed = json(perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
-                setup.manager(), closeRequest("1010.000", "500.00", "0", List.of(), "Large shortage"))
-                .andExpect(status().is2xxSuccessful()));
-
-        assertThat(closed.get("status").asText()).isEqualTo("CLOSED_DISCREPANCY_PENDING_APPROVAL");
     }
 
     @Test
@@ -392,6 +381,8 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
         assertThat(tankRepository.findById(setup.tank().getId()).orElseThrow().getCurrentStock())
                 .isEqualByComparingTo("4990");
         assertThat(lotConsumptionRepository.findByShiftId(shiftId)).hasSize(1);
+        assertThat(idempotencyKeyRepository.findAll())
+                .noneMatch(stored -> stored.getUserId().equals(setup.manager().getId()));
     }
 
     @Test
@@ -416,14 +407,6 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
                 Map.of("duId", setup.du().getId(), "nozzleIds", List.of(setup.nozzle().getId()),
                         "operatorId", secondOperator.getId()))
                 .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void operatorCannotOpenOrCloseShifts() throws Exception {
-        perform(post("/api/pumps/{pumpId}/shifts/open", setup.pumpId()), setup.operator(),
-                Map.of("duId", setup.du().getId(), "nozzleIds", List.of(setup.nozzle().getId()),
-                        "operatorId", setup.operator().getId()))
-                .andExpect(status().isForbidden());
     }
 
     @Test

@@ -169,15 +169,6 @@ class AncillaryProductIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void managerCannotEditProducts() throws Exception {
-        perform(patch("/api/pumps/{pumpId}/ancillary/products/{id}", setup.pumpId(), productId), setup.manager(),
-                Map.of("brand", "Shell"))
-                .andExpect(status().isForbidden());
-
-        assertThat(product().get("brand").asText()).isEqualTo("Castrol");
-    }
-
-    @Test
     void gstRateAboveOneHundredPercentIsRejected() throws Exception {
         perform(patch("/api/pumps/{pumpId}/ancillary/products/{id}", setup.pumpId(), productId), setup.owner(),
                 Map.of("gstRatePercent", new BigDecimal("150")))

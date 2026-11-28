@@ -87,6 +87,9 @@ class MeterAdjustmentIntegrationTest extends ApiIntegrationTest {
         assertThat(lastReading()).isEqualByComparingTo("900.000");
         assertThat(tankStock()).isEqualByComparingTo("5000.000");
         assertThat(auditActions()).contains("METER_READING_ADJUSTED");
+        JsonNode history = json(perform(get("/api/pumps/{pumpId}/nozzles/{nozzleId}/reading-adjustments", setup.pumpId(),
+                setup.nozzle().getId()), setup.owner()).andExpect(status().isOk()));
+        assertThat(history.toString()).contains("Typo");
     }
 
     @Test

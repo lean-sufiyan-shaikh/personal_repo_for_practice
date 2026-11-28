@@ -338,17 +338,6 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void operatorsCannotReadCollectionsAndManagersCannotOverrideOrChangeSettings() throws Exception {
-        perform(get("/api/pumps/{pumpId}/collections/dashboard", setup.pumpId()), setup.operator())
-                .andExpect(status().isForbidden());
-        perform(get("/api/pumps/{pumpId}/collections/reminders/due", setup.pumpId()), setup.accountant())
-                .andExpect(status().isForbidden());
-        perform(post("/api/pumps/{pumpId}/collections/clients/{clientId}/promises", setup.pumpId(), 1L), setup.accountant(),
-                Map.of("amount", 1, "promisedDate", TestDates.today().toString()))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void promiseIsCappedAtNinetyDaysAheadAndAtWhatTheGroupOwes() throws Exception {
         long parentId = createClient(null);
         long childId = createClient(parentId);

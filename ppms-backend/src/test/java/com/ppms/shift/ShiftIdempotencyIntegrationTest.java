@@ -181,19 +181,6 @@ class ShiftIdempotencyIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void withoutTheHeaderASecondCloseIsRefusedAsBeforeAndNothingIsStored() throws Exception {
-        long shiftId = openShift();
-
-        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId), setup.manager(),
-                closing("1010.000", "1000.00")).andExpect(status().isOk());
-        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId), setup.manager(),
-                closing("1010.000", "1000.00")).andExpect(status().isBadRequest());
-
-        assertThat(idempotencyKeyRepository.findAll())
-                .noneMatch(stored -> stored.getUserId().equals(setup.manager().getId()));
-    }
-
-    @Test
     void refusedCloseStoresNoKeySoACorrectedResendStillRuns() throws Exception {
         long shiftId = openShift();
         String key = newKey();

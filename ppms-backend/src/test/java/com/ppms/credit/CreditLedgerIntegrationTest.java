@@ -264,6 +264,10 @@ class CreditLedgerIntegrationTest extends ApiIntegrationTest {
 
         assertThat(outstandingOf(clientId)).isEqualByComparingTo("1000.00");
         assertThat(interestChargeRepository.findById(charge.getId()).orElseThrow().getVoidReason()).isEqualTo("Goodwill");
+        perform(patch("/api/pumps/{pumpId}/credit-ledger/{clientId}/interest/{chargeId}/waive", setup.pumpId(), clientId, charge.getId()),
+                setup.owner(), Map.of("reason", "Again", "kind", "RECALCULATE"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("already been waived")));
         assertThat(auditLogRepository.findByPumpIdOrderByCreatedAtDesc(setup.pumpId()))
                 .filteredOn(log -> log.getAction() == AuditAction.INTEREST_CHARGE_WAIVED)
                 .singleElement()

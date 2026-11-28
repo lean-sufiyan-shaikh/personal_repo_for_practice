@@ -268,14 +268,6 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void operatorCannotReadReportsOrBalanceSheets() throws Exception {
-        perform(get("/api/pumps/{pumpId}/reports/profit-loss", setup.pumpId())
-                .param("from", today).param("to", today), setup.operator()).andExpect(status().isForbidden());
-        perform(get("/api/pumps/{pumpId}/balance-sheets", setup.pumpId()), setup.operator())
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void csvExportsAreOwnerOrAdminOnlyAndContainTheShift() throws Exception {
         String csv = perform(get("/api/pumps/{pumpId}/export/shifts", setup.pumpId())
                 .param("from", today).param("to", today), setup.owner())
