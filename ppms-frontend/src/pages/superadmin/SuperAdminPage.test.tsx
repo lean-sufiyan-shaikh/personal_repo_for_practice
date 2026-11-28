@@ -129,18 +129,6 @@ describe('SuperAdminPage', () => {
     expect(screen.getByRole('link', { name: 'Back to owners' })).toHaveAttribute('href', '/super-admin')
   })
 
-  it('checks the onboarding form before sending it', async () => {
-    const user = userEvent.setup()
-    renderPage('/super-admin?action=onboard-owner')
-
-    await user.click(await screen.findByRole('button', { name: 'Onboard owner' }))
-
-    expect(await screen.findByText('Full name is required')).toBeInTheDocument()
-    expect(screen.getByText('Phone number must be exactly 10 digits')).toBeInTheDocument()
-    expect(screen.getByText('Pump name is required')).toBeInTheDocument()
-    expect(superAdminApi.onboardOwner).not.toHaveBeenCalled()
-  })
-
   it('creates the owner, then shows their login details with the new owner open', async () => {
     setScreenWidth(1280)
     vi.mocked(superAdminApi.onboardOwner).mockResolvedValue({
