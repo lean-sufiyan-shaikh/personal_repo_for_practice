@@ -56,7 +56,7 @@ describe('DipCheckModal', () => {
     ]))
   })
 
-  it('works out the expected stock and the variance as readings are typed', async () => {
+  it('works out the expected stock and the variance as readings are typed, and flags a shortage beyond tolerance', async () => {
     vi.mocked(inventoryApi.getOpenShiftNozzles).mockResolvedValue([openNozzle])
     const user = userEvent.setup()
     renderWithProviders(<DipCheckModal pumpId={6} tank={tank} onClose={vi.fn()} />)
@@ -76,17 +76,11 @@ describe('DipCheckModal', () => {
     expect(figure('Measured by dip')).toHaveTextContent('965.00 L')
     expect(figure('Variance')).toHaveTextContent('−5.00 L')
     expect(figure('Variance')).toHaveTextContent('Within tolerance')
-  })
 
-  it('flags a shortage beyond the tank tolerance', async () => {
-    vi.mocked(inventoryApi.getOpenShiftNozzles).mockResolvedValue([])
-    const user = userEvent.setup()
-    renderWithProviders(<DipCheckModal pumpId={6} tank={tank} onClose={vi.fn()} />)
-
-    await user.click(await screen.findByLabelText('Dipstick reading'))
+    await user.clear(screen.getByLabelText('Dipstick reading'))
+    await user.click(screen.getByLabelText('Dipstick reading'))
     await user.paste('900')
-
-    expect(figure('Variance')).toHaveTextContent('−100.00 L')
+    expect(figure('Variance')).toHaveTextContent('−70.00 L')
     expect(figure('Variance')).toHaveTextContent('Shortage detected')
   })
 

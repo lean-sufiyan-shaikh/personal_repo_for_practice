@@ -4,7 +4,7 @@ import { AlertTriangle, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { inventoryApi } from '../../api/inventoryApi'
 import { userApi } from '../../api/userApi'
-import type { OpenShiftNozzle, TankStock } from '../../api/inventoryApi'
+import type { TankStock } from '../../api/inventoryApi'
 import { SearchableSelect } from '../../components/SearchableSelect'
 import { Modal } from '../../components/Modal'
 import { parseApiError } from '../../utils/apiError'
@@ -20,26 +20,15 @@ import { useToastStore } from '../../store/toastStore'
 import { formatNumberIn } from '../../i18n/format'
 import { codeLabel } from '../../constants/labels'
 import { FormGrid, FormGridFullRow } from '../../components/layout/FormGrid'
-
-const ROLLOVER_START_FRACTION = 0.99
-
-/** Litres dispensed since the shift opened, following the server's meter rollover rule; null while unknown or invalid. */
-function soldSinceOpening(nozzle: OpenShiftNozzle, reading: string): number | null {
-  if (reading === '') return null
-  const current = Number(reading)
-  if (current >= nozzle.openingReading) return current - nozzle.openingReading
-  if (nozzle.openingReading >= nozzle.maxMeterValue * ROLLOVER_START_FRACTION) {
-    return nozzle.maxMeterValue - nozzle.openingReading + current
-  }
-  return null
-}
+import { dipCheckFigures, varianceKind } from './dipCheckFigures'
 
 function VarianceResult({ variance, tolerance }: { variance: number | null; tolerance: number }) {
   const { t } = useTranslation(['inventory', 'common'])
   if (variance === null) return <LitresText value={null} />
-  const badge = Math.abs(variance) < tolerance
+  const kind = varianceKind(variance, tolerance)
+  const badge = kind === 'within'
     ? <StatusBadge tone="ok" icon={Check} label={t('dipCheck.withinTolerance')} />
-    : variance > 0
+    : kind === 'surplus'
       ? <StatusBadge tone="warn" icon={AlertTriangle} label={t('dipCheck.surplus')} />
       : <StatusBadge tone="bad" icon={AlertTriangle} label={t('dipCheck.shortage')} />
   return (
@@ -106,11 +95,7 @@ export function DipCheckModal({
     },
   })
 
-  const soldPerNozzle = openShiftNozzles.map(n => soldSinceOpening(n, meterReadings[n.nozzleId] ?? ''))
-  const soldKnown = soldPerNozzle.every(sold => sold !== null)
-  const soldOnOpenShifts = soldPerNozzle.reduce<number>((sum, sold) => sum + (sold ?? 0), 0)
-  const expectedStock = tank.currentStock - soldOnOpenShifts
-  const variance = measured !== '' && soldKnown ? Number(measured) - expectedStock : null
+  const { soldOnOpenShifts, expectedStock, variance } = dipCheckFigures(tank.currentStock, openShiftNozzles, meterReadings, measured)
 
   const missingReadingCount = openShiftNozzles.filter(n => (meterReadings[n.nozzleId] ?? '') === '').length
   const stillNeeded = [
@@ -129,8 +114,8 @@ export function DipCheckModal({
   const figures: LiveFigure[] = [
     { label: t('dipCheck.figures.bookStock'), value: <LitresText value={tank.currentStock} /> },
     ...(openShiftNozzles.length > 0 ? [
-      { label: t('dipCheck.figures.soldOnOpenShifts'), value: <LitresText value={soldKnown ? soldOnOpenShifts : null} /> },
-      { label: t('dipCheck.figures.expectedStock'), value: <LitresText value={soldKnown ? expectedStock : null} /> },
+      { label: t('dipCheck.figures.soldOnOpenShifts'), value: <LitresText value={soldOnOpenShifts} /> },
+      { label: t('dipCheck.figures.expectedStock'), value: <LitresText value={expectedStock} /> },
     ] : []),
     { label: t('dipCheck.figures.measured'), value: <LitresText value={measured === '' ? null : Number(measured)} /> },
     { label: t('dipCheck.figures.variance'), value: <VarianceResult variance={variance} tolerance={tank.dipTolerance} />, isResult: true },
