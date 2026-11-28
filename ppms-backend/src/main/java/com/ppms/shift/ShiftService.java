@@ -327,7 +327,7 @@ public class ShiftService {
     }
 
     /** Mirrors the close form: an operator must say why the cash does not match whenever it is short or over. */
-    private static void requireReasonForDiscrepancy(CloseShiftRequest request,
+    static void requireReasonForDiscrepancy(CloseShiftRequest request,
                                                     ShiftLifecycleSupportService.ClosingSummary closingSummary) {
         if (closingSummary.getDiscrepancyType() != null
                 && (request.getDiscrepancyReason() == null || request.getDiscrepancyReason().isBlank())) {

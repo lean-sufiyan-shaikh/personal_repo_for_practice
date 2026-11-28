@@ -1,20 +1,32 @@
 package com.ppms.shift;
 
 import com.ppms.common.exception.BusinessException;
+import com.ppms.credit.CreditAccountPolicyService;
+import com.ppms.credit.CreditClient;
+import com.ppms.credit.CreditInterestService;
+import com.ppms.fleet.VehicleCreditCheck;
+import com.ppms.fleet.VehicleCreditDecision;
 import com.ppms.fuel.FuelType;
+import com.ppms.pump.PumpLocation;
 import com.ppms.pump.PumpLocationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.ppms.user.User;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,6 +39,9 @@ class ShiftClosingReadingsTest {
     @Mock private ShiftCreditEntryRepository creditEntryRepository;
     @Mock private ShiftPriceSegmentService priceSegmentService;
     @Mock private PumpLocationRepository pumpLocationRepository;
+    @Mock private CreditAccountPolicyService creditAccountPolicyService;
+    @Mock private VehicleCreditCheck vehicleCreditCheck;
+    @Mock private CreditInterestService creditInterestService;
     @InjectMocks private ShiftLifecycleSupportService lifecycleSupportService;
 
     @Test
@@ -140,6 +155,61 @@ class ShiftClosingReadingsTest {
 
         assertThat(lifecycleSupportService.validateCloseCreditEntries(1L, BigDecimal.ZERO, List.of(), List.of(7L)))
                 .isEmpty();
+    }
+
+    @Test
+    void shortageAboveThePumpThresholdNeedsTheOwnerAndOneAtTheThresholdDoesNot() {
+        when(pumpLocationRepository.findById(1L)).thenReturn(Optional.of(
+                PumpLocation.builder().id(1L).discrepancyEscalationThreshold(new BigDecimal("100.00")).build()));
+
+        assertThat(lifecycleSupportService.escalateStatusIfNeeded(ShiftStatus.CLOSED_DISCREPANCY_PENDING, new BigDecimal("500.00"), 1L))
+                .isEqualTo(ShiftStatus.CLOSED_DISCREPANCY_PENDING_APPROVAL);
+        assertThat(lifecycleSupportService.escalateStatusIfNeeded(ShiftStatus.CLOSED_DISCREPANCY_PENDING, new BigDecimal("100.00"), 1L))
+                .isEqualTo(ShiftStatus.CLOSED_DISCREPANCY_PENDING);
+        assertThat(lifecycleSupportService.escalateStatusIfNeeded(ShiftStatus.CLOSED_BALANCED, BigDecimal.ZERO, 1L))
+                .isEqualTo(ShiftStatus.CLOSED_BALANCED);
+    }
+
+    @Test
+    void creditTotalMatchingTheEntriesRecordedDuringTheShiftIsAcceptedWithoutNewEntries() {
+        when(creditEntryRepository.findByShiftId(1L)).thenReturn(List.of(activeCreditEntry(7L, "250.00")));
+
+        assertThat(lifecycleSupportService.validateCloseCreditEntries(1L, new BigDecimal("250.00"), List.of(), List.of()))
+                .isEmpty();
+    }
+
+    @Test
+    void correctedEntryReplacingTheOriginalMustAddUpToTheCreditTotalWithoutTheOriginal() {
+        when(creditEntryRepository.findByShiftId(1L)).thenReturn(List.of(activeCreditEntry(7L, "250.00")));
+        List<CloseShiftRequest.CreditEntryRequest> corrected = List.of(creditEntryRequest("300.00"));
+
+        assertThatThrownBy(() -> lifecycleSupportService.validateCloseCreditEntries(
+                1L, new BigDecimal("550.00"), corrected, List.of(7L)))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("does not match the credit total");
+        assertThat(lifecycleSupportService.validateCloseCreditEntries(1L, new BigDecimal("300.00"), corrected, List.of(7L)))
+                .containsExactlyElementsOf(corrected);
+    }
+
+    @Test
+    void creditAmountsEnteredAtCloseAreRoundedToPaise() {
+        CreditClient client = CreditClient.builder().id(5L).name("Fleet Co").build();
+        when(creditAccountPolicyService.requireClientForCreditEntry(1L, 5L, "Fleet Co")).thenReturn(client);
+        when(vehicleCreditCheck.check(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new VehicleCreditDecision(null, null, null, null, null));
+
+        lifecycleSupportService.persistCloseCreditEntries(1L, 1L, LocalDate.of(2026, 11, 28),
+                List.of(creditEntryRequest("100.555")), null, User.builder().id(2L).build());
+
+        ArgumentCaptor<List<ShiftCreditEntry>> saved = ArgumentCaptor.captor();
+        verify(creditEntryRepository).saveAll(saved.capture());
+        assertThat(saved.getValue()).singleElement()
+                .satisfies(entry -> assertThat(entry.getAmount()).isEqualTo(new BigDecimal("100.56")));
+    }
+
+    private static CloseShiftRequest.CreditEntryRequest creditEntryRequest(String amount) {
+        return new CloseShiftRequest.CreditEntryRequest("Fleet Co", 5L, null, new BigDecimal(amount), "PETROL",
+                null, null, null, null, null);
     }
 
     private ShiftCreditEntry activeCreditEntry(Long id, String amount) {

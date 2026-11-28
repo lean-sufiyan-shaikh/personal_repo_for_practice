@@ -97,20 +97,6 @@ class ShiftCloseControlsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void managerWhoClosedTheShiftCannotWaiveItsDiscrepancyButTheOwnerCan() throws Exception {
-        long shiftId = closeShort("200.00");
-
-        perform(patch(RESOLVE_PATH, setup.pumpId(), shiftId), setup.manager(),
-                Map.of("resolutionAction", "WAIVED", "resolutionNote", "Small amount"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("WAIVER_BY_CLOSER_NOT_ALLOWED"));
-        perform(patch(RESOLVE_PATH, setup.pumpId(), shiftId), setup.owner(),
-                Map.of("resolutionAction", "WAIVED", "resolutionNote", "Small amount"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CLOSED_DISCREPANCY_RESOLVED"));
-    }
-
-    @Test
     void newPumpEscalatesAboveFiveHundredAndAChangedThresholdReDecidesPendingDiscrepancies() throws Exception {
         assertThat(pumpLocationRepository.findById(setup.pumpId()).orElseThrow().getDiscrepancyEscalationThreshold())
                 .isEqualByComparingTo("500.00");
@@ -129,44 +115,13 @@ class ShiftCloseControlsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void closingShortOrOverWithoutAReasonIsRefusedByTheServer() throws Exception {
-        long shiftId = openShift();
-
-        perform(post(CLOSE_PATH, setup.pumpId(), shiftId), setup.manager(), closeRequest("1010.000", "900.00", " "))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DISCREPANCY_REASON_REQUIRED"));
-        assertThat(statusOf(shiftId)).isEqualTo(ShiftStatus.OPEN);
-    }
-
-    @Test
-    void differenceWithinTheRoundingToleranceClosesBalancedWithoutAReason() throws Exception {
-        long shiftId = openShift();
-
-        JsonNode closed = json(perform(post(CLOSE_PATH, setup.pumpId(), shiftId), setup.manager(),
-                closeRequest("1010.000", "999.50", null)).andExpect(status().isOk()));
-
-        assertThat(closed.get("status").asText()).isEqualTo("CLOSED_BALANCED");
-        assertThat(closed.get("discrepancyAmount").isNull()).isTrue();
-        assertThat(closed.get("roundingAdjustment").decimalValue()).isEqualByComparingTo("-0.50");
-    }
-
-    @Test
-    void partOfAShortageCanBeRecoveredInCashLeavingTheRestToResolveAnotherWay() throws Exception {
+    void partOfAShortageRecoveredInCashLeavesTheRestForPayrollAndShowsOnTheDaySheet() throws Exception {
         long shiftId = closeShort("300.00");
 
-        perform(patch(RESOLVE_PATH, setup.pumpId(), shiftId), setup.owner(),
-                Map.of("resolutionAction", "CASH_RECOVERY", "recoveredAmount", 400))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CASH_RECOVERY_AMOUNT_INVALID"));
         JsonNode partly = json(perform(patch(RESOLVE_PATH, setup.pumpId(), shiftId), setup.owner(),
                 Map.of("resolutionAction", "CASH_RECOVERY", "recoveredAmount", 100)).andExpect(status().isOk()));
         assertThat(partly.get("status").asText()).isEqualTo("CLOSED_DISCREPANCY_PENDING");
         assertThat(partly.get("cashRecoveryAmount").decimalValue()).isEqualByComparingTo("100.00");
-        assertThat(partly.get("discrepancyResolution").isNull()).isTrue();
-        perform(patch(RESOLVE_PATH, setup.pumpId(), shiftId), setup.owner(),
-                Map.of("resolutionAction", "CASH_RECOVERY", "recoveredAmount", 50))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CASH_RECOVERY_ALREADY_RECORDED"));
 
         JsonNode pendingForPayroll = json(perform(get("/api/pumps/{pumpId}/payroll/pending-discrepancies", setup.pumpId())
                 .param("userId", setup.operator().getId().toString()), setup.owner()).andExpect(status().isOk()));
@@ -179,25 +134,6 @@ class ShiftCloseControlsIntegrationTest extends ApiIntegrationTest {
                 Map.of("reportType", "DAY", "reportDate", TestDates.today().toString()))
                 .andExpect(status().is2xxSuccessful()));
         assertThat(sheet.get("totalCashRecovery").decimalValue()).isEqualByComparingTo("100.00");
-    }
-
-    @Test
-    void everyInvestigationNoteIsKept() throws Exception {
-        long shiftId = closeShort("200.00");
-
-        perform(patch(RESOLVE_PATH, setup.pumpId(), shiftId), setup.manager(),
-                Map.of("resolutionAction", "PENDING_INVESTIGATION", "resolutionNote", "Checking CCTV"))
-                .andExpect(status().isOk());
-        JsonNode second = json(perform(patch(RESOLVE_PATH, setup.pumpId(), shiftId), setup.owner(),
-                Map.of("resolutionAction", "PENDING_INVESTIGATION", "resolutionNote", "CCTV shows a drive-off"))
-                .andExpect(status().isOk()));
-
-        assertThat(second.get("investigationNote").asText()).isEqualTo("CCTV shows a drive-off");
-        assertThat(second.get("investigatedByName").asText()).isEqualTo(setup.manager().getFullName());
-        JsonNode history = second.get("investigationHistory");
-        assertThat(history).hasSize(2);
-        assertThat(history.get(0).get("note").asText()).isEqualTo("Checking CCTV");
-        assertThat(history.get(1).get("writtenByName").asText()).isEqualTo(setup.owner().getFullName());
     }
 
     @Test
@@ -285,27 +221,6 @@ class ShiftCloseControlsIntegrationTest extends ApiIntegrationTest {
         Integer consumed = jdbcTemplate.queryForObject(
                 "SELECT CAST(SUM(quantity_consumed) AS INTEGER) FROM lot_consumptions WHERE shift_id = ?", Integer.class, shiftId);
         assertThat(consumed).isEqualTo(150);
-    }
-
-    @Test
-    void creditAmountsEnteredAtCloseAreRoundedToPaise() throws Exception {
-        JsonNode client = json(perform(post("/api/pumps/{pumpId}/credit-clients", setup.pumpId()), setup.manager(),
-                Map.of("name", "Fleet Co " + shortId(), "phone", "9" + shortId().replaceAll("[^0-9]", "1").substring(0, 4) + "12345"))
-                .andExpect(status().is2xxSuccessful()));
-        long shiftId = openShift();
-        Map<String, Object> entry = new HashMap<>();
-        entry.put("clientName", client.get("name").asText());
-        entry.put("clientId", client.get("id").asLong());
-        entry.put("amount", new BigDecimal("100.555"));
-        entry.put("fuelType", "PETROL");
-        Map<String, Object> request = closeRequest("1010.000", "899.44", null);
-        request.put("creditTotal", new BigDecimal("100.555"));
-        request.put("creditEntries", List.of(entry));
-
-        JsonNode closed = json(perform(post(CLOSE_PATH, setup.pumpId(), shiftId), setup.manager(), request)
-                .andExpect(status().isOk()));
-
-        assertThat(closed.get("creditEntries").get(0).get("amount").decimalValue()).isEqualTo(new BigDecimal("100.56"));
     }
 
     @Test

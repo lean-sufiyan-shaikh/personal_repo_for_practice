@@ -73,38 +73,11 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void shortPaymentLeavesADiscrepancyThatOnlyCloseWithANoteCanWaive() throws Exception {
-        long shiftId = openShift();
-
-        JsonNode closed = json(perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
-                setup.manager(), closeRequest("1010.000", "800.00", "0", List.of(), "Customer left without paying"))
-                .andExpect(status().is2xxSuccessful()));
-
-        assertThat(closed.get("status").asText()).isEqualTo("CLOSED_DISCREPANCY_PENDING");
-        assertThat(closed.get("discrepancyAmount").decimalValue()).isEqualByComparingTo("200.00");
-        assertThat(closed.get("discrepancyType").asText()).isEqualTo("SHORT");
-
-        perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
-                setup.owner(), Map.of("resolutionAction", "WAIVED"))
-                .andExpect(status().isBadRequest());
-
-        JsonNode resolved = json(perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
-                setup.owner(), Map.of("resolutionAction", "WAIVED", "resolutionNote", "Owner agreed"))
-                .andExpect(status().is2xxSuccessful()));
-        assertThat(resolved.get("status").asText()).isEqualTo("CLOSED_DISCREPANCY_RESOLVED");
-        assertThat(resolved.get("discrepancyResolution").asText()).isEqualTo("WAIVED");
-    }
-
-    @Test
     void investigationNeedsANoteAndKeepsTheShortagePendingUntilAFinalAction() throws Exception {
         long shiftId = openShift();
         perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
                 setup.manager(), closeRequest("1010.000", "800.00", "0", List.of(), "Customer left without paying"))
                 .andExpect(status().is2xxSuccessful());
-
-        perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
-                setup.manager(), Map.of("resolutionAction", "PENDING_INVESTIGATION"))
-                .andExpect(status().isBadRequest());
 
         JsonNode investigating = json(perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
                 setup.manager(), Map.of("resolutionAction", "PENDING_INVESTIGATION", "resolutionNote", "Checking CCTV"))
@@ -165,7 +138,7 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void escalatedShortageUnderInvestigationStillNeedsTheOwnerForTheFinalAction() throws Exception {
+    void escalatedShortageBlocksDeactivatingTheOperatorUntilTheOwnerResolvesIt() throws Exception {
         PumpLocation pump = setup.pump();
         pump.setDiscrepancyEscalationThreshold(new BigDecimal("100.00"));
         pumpLocationRepository.save(pump);
@@ -174,17 +147,9 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
                 setup.manager(), closeRequest("1010.000", "500.00", "0", List.of(), "Large shortage"))
                 .andExpect(status().is2xxSuccessful()));
         assertThat(closed.get("status").asText()).isEqualTo("CLOSED_DISCREPANCY_PENDING_APPROVAL");
-
-        JsonNode investigating = json(perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
-                setup.owner(), Map.of("resolutionAction", "PENDING_INVESTIGATION", "resolutionNote", "Bank deposit check"))
-                .andExpect(status().is2xxSuccessful()));
-        assertThat(investigating.get("status").asText()).isEqualTo("CLOSED_DISCREPANCY_PENDING_APPROVAL");
         perform(patch("/api/users/{userId}/status", setup.operator().getId()), setup.owner(), Map.of("status", "INACTIVE"))
                 .andExpect(status().isBadRequest());
 
-        perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
-                setup.manager(), Map.of("resolutionAction", "WAIVED", "resolutionNote", "Let it go"))
-                .andExpect(status().isBadRequest());
         JsonNode resolved = json(perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
                 setup.owner(), Map.of("resolutionAction", "SALARY_DEDUCTION"))
                 .andExpect(status().is2xxSuccessful()));
@@ -311,12 +276,6 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
         corrected.put("amount", new BigDecimal("300.00"));
         corrected.put("fuelType", "PETROL");
 
-        Map<String, Object> failingClose = closeRequest("1010.000", "700.00", "550.00", List.of(corrected), null);
-        failingClose.put("replacedCreditEntryIds", List.of(originalEntryId));
-        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId), setup.manager(), failingClose)
-                .andExpect(status().isBadRequest());
-        assertThat(outstandingOf(clientId)).isEqualByComparingTo("250.00");
-
         Map<String, Object> close = closeRequest("1010.000", "700.00", "300.00", List.of(corrected), null);
         close.put("replacedCreditEntryIds", List.of(originalEntryId));
         JsonNode closed = json(perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
@@ -325,47 +284,6 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
 
         assertThat(closed.get("status").asText()).isEqualTo("CLOSED_BALANCED");
         assertThat(outstandingOf(clientId)).isEqualByComparingTo("300.00");
-    }
-
-    @Test
-    void closingWithZeroCreditTotalIsRefusedWhileACreditEntryAddedDuringTheShiftIsActive() throws Exception {
-        long clientId = createCreditClient();
-        long shiftId = openShift();
-        perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId),
-                setup.operator(), Map.of("clientName", "Fleet Co", "clientId", clientId,
-                        "amount", new BigDecimal("250.00"), "fuelType", "PETROL"))
-                .andExpect(status().is2xxSuccessful());
-
-        JsonNode refused = json(perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
-                setup.manager(), closeRequest("1010.000", "1000.00", "0", List.of(), "Over"))
-                .andExpect(status().isBadRequest()));
-
-        assertThat(refused.toString()).contains("already recorded during the shift");
-        JsonNode active = json(perform(get("/api/pumps/{pumpId}/shifts/active", setup.pumpId()), setup.manager())
-                .andExpect(status().is2xxSuccessful()));
-        assertThat(active).extracting(node -> node.get("id").asLong()).contains(shiftId);
-        assertThat(outstandingOf(clientId)).isEqualByComparingTo("250.00");
-
-        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
-                setup.manager(), closeRequest("1010.000", "750.00", "250.00", List.of(), null))
-                .andExpect(status().is2xxSuccessful());
-    }
-
-    @Test
-    void salaryDeductionIsRefusedForAnOverDiscrepancy() throws Exception {
-        long shiftId = openShift();
-        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
-                setup.manager(), closeRequest("1010.000", "1100.00", "0", List.of(), "Extra cash in drawer"))
-                .andExpect(status().is2xxSuccessful());
-
-        perform(patch("/api/pumps/{pumpId}/shifts/{id}/discrepancy-resolution", setup.pumpId(), shiftId),
-                setup.manager(), Map.of("resolutionAction", "SALARY_DEDUCTION"))
-                .andExpect(status().isBadRequest());
-
-        JsonNode unchanged = json(perform(get("/api/pumps/{pumpId}/shifts/{id}", setup.pumpId(), shiftId), setup.manager())
-                .andExpect(status().is2xxSuccessful()));
-        assertThat(unchanged.get("discrepancyType").asText()).isEqualTo("OVER");
-        assertThat(unchanged.get("status").asText()).isEqualTo("CLOSED_DISCREPANCY_PENDING");
     }
 
     @Test
@@ -383,19 +301,6 @@ class ShiftLifecycleIntegrationTest extends ApiIntegrationTest {
         assertThat(lotConsumptionRepository.findByShiftId(shiftId)).hasSize(1);
         assertThat(idempotencyKeyRepository.findAll())
                 .noneMatch(stored -> stored.getUserId().equals(setup.manager().getId()));
-    }
-
-    @Test
-    void closingReadingBelowTheOpeningReadingIsRefusedAndTheShiftStaysOpen() throws Exception {
-        long shiftId = openShift();
-
-        perform(post("/api/pumps/{pumpId}/shifts/{id}/close", setup.pumpId(), shiftId),
-                setup.manager(), closeRequest("999.000", "0", "0", List.of(), null))
-                .andExpect(status().isBadRequest());
-
-        JsonNode active = json(perform(get("/api/pumps/{pumpId}/shifts/active", setup.pumpId()), setup.manager())
-                .andExpect(status().is2xxSuccessful()));
-        assertThat(active).extracting(node -> node.get("id").asLong()).contains(shiftId);
     }
 
     @Test

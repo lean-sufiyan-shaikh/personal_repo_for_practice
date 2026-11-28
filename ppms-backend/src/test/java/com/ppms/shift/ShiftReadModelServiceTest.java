@@ -5,15 +5,21 @@ import com.ppms.pump.Nozzle;
 import com.ppms.pump.PumpLocationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.ppms.user.User;
 import com.ppms.user.UserRepository;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ShiftReadModelServiceTest {
@@ -35,6 +41,26 @@ class ShiftReadModelServiceTest {
 
         assertThat(response.getNozzles()).extracting(ShiftResponse.NozzleSummary::nozzleNumber).containsExactly(1, 2);
         assertThat(response.getFuelReadings()).extracting(ShiftResponse.FuelReadingResponse::nozzleId).containsExactly(21L, 22L);
+    }
+
+    @Test
+    void investigationHistoryListsEveryNoteInOrderWithItsWritersName() {
+        Shift shift = Shift.builder().id(1L).pumpId(4L).duId(2L).operatorId(5L)
+                .status(ShiftStatus.CLOSED_DISCREPANCY_PENDING).investigationNote("CCTV shows a drive-off").build();
+        OffsetDateTime first = OffsetDateTime.of(2026, 11, 28, 10, 0, 0, 0, ZoneOffset.UTC);
+        when(investigationNoteRepository.findByShiftIdInOrderByWrittenAtAscIdAsc(List.of(1L))).thenReturn(List.of(
+                ShiftInvestigationNote.builder().shiftId(1L).note("Checking CCTV").writtenByUserId(2L).writtenAt(first).build(),
+                ShiftInvestigationNote.builder().shiftId(1L).note("CCTV shows a drive-off").writtenByUserId(3L)
+                        .writtenAt(first.plusHours(1)).build()));
+        when(userRepository.findAllById(any())).thenReturn(List.of(
+                User.builder().id(2L).fullName("Manager").build(), User.builder().id(3L).fullName("Owner").build()));
+
+        ShiftResponse response = service.toResponse(shift, null, List.of(), null, null, List.of(), List.of());
+
+        assertThat(response.getInvestigationNote()).isEqualTo("CCTV shows a drive-off");
+        assertThat(response.getInvestigationHistory())
+                .extracting(ShiftResponse.InvestigationNoteResponse::note, ShiftResponse.InvestigationNoteResponse::writtenByName)
+                .containsExactly(tuple("Checking CCTV", "Manager"), tuple("CCTV shows a drive-off", "Owner"));
     }
 
     private static Nozzle nozzle(long id, int nozzleNumber, FuelType fuelType) {
