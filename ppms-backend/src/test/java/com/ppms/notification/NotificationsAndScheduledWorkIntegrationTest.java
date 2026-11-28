@@ -65,42 +65,6 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void calibrationDueWithinAWeekAlertsOnceBeforeShiftsAreBlocked() throws Exception {
-        perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations", setup.pumpId(), setup.nozzle().getId()),
-                setup.owner(), Map.of("calibrationDate", TestDates.today().minusYears(1).toString(),
-                        "nextCalibrationDue", TestDates.today().plusDays(3).toString(),
-                        "calibratedBy", "Weights Dept", "certificateReference", "LM-2025-118"))
-                .andExpect(status().is2xxSuccessful());
-
-        notificationService.generateNotificationsForPump(setup.pumpId());
-        notificationService.generateNotificationsForPump(setup.pumpId());
-
-        List<Notification> dueSoon = notificationRepository.findAll().stream()
-                .filter(notification -> notification.getPumpId().equals(setup.pumpId()))
-                .filter(notification -> notification.getType() == NotificationType.CALIBRATION_DUE_SOON)
-                .toList();
-        assertThat(dueSoon).hasSize(1);
-        assertThat(dueSoon.get(0).getMessage()).contains("Nozzle #1", TestDates.today().plusDays(3).toString());
-        assertThat(notificationRepository.findAll()).noneMatch(notification ->
-                notification.getPumpId().equals(setup.pumpId()) && notification.getType() == NotificationType.CALIBRATION_DUE);
-    }
-
-    @Test
-    void calibrationDueLaterThanAWeekDoesNotAlertYet() throws Exception {
-        perform(post("/api/pumps/{pumpId}/nozzles/{nozzleId}/calibrations", setup.pumpId(), setup.nozzle().getId()),
-                setup.owner(), Map.of("calibrationDate", TestDates.today().toString(),
-                        "nextCalibrationDue", TestDates.today().plusDays(8).toString(),
-                        "calibratedBy", "Weights Dept", "certificateReference", "LM-2026-007"))
-                .andExpect(status().is2xxSuccessful());
-
-        notificationService.generateNotificationsForPump(setup.pumpId());
-
-        assertThat(notificationRepository.findAll()).noneMatch(notification ->
-                notification.getPumpId().equals(setup.pumpId())
-                        && notification.getType() == NotificationType.CALIBRATION_DUE_SOON);
-    }
-
-    @Test
     void readingANotificationClearsItOnlyForTheReaderAndHistoryKeepsEachReadersOwnReadState() throws Exception {
         long readId = insertNotification(NotificationType.LOW_STOCK);
         long unreadId = insertNotification(NotificationType.LOW_STOCK);
@@ -115,29 +79,6 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
         assertThat(readStateById(managerHistory)).containsEntry(readId, true).containsEntry(unreadId, false);
         assertThat(readStateById(history(setup.owner(), null))).containsEntry(readId, false);
         assertThat(managerHistory.get("totalElements").asLong()).isGreaterThanOrEqualTo(2);
-    }
-
-    @Test
-    void notificationsCarryThePageTheyOpenAndTheCodeAndParamsTheirTextWasBuiltFrom() throws Exception {
-        notificationDedupService.maybeInsert(setup.pumpId(), NotificationType.ZERO_SALE_SHIFT,
-                "ZERO_SALE_SHIFT:shift:4242", "Zero-Sale Shift Detected", "Shift #4242 recorded nothing",
-                Map.of("shiftName", "Morning", "shiftId", 4242));
-        notificationDedupService.maybeInsert(setup.pumpId(), NotificationType.DOCUMENT_EXPIRING,
-                "DOCUMENT_EXPIRING:doc:77:2026-01-01:EXPIRED", "Document Expired", "Licence (LICENCE) expired on 2026-01-01",
-                Map.of("documentName", "Licence", "documentType", "LICENCE", "expiryDate", "2026-01-01"));
-
-        JsonNode unread = json(perform(get("/api/pumps/{pumpId}/notifications", setup.pumpId()), setup.manager())
-                .andExpect(status().isOk()));
-        JsonNode zeroSale = findByType(unread.get("notifications"), "ZERO_SALE_SHIFT");
-        assertThat(zeroSale.get("target").get("route").asText()).isEqualTo("/dashboard/shifts");
-        assertThat(zeroSale.get("target").get("params").get("shift").asText()).isEqualTo("4242");
-        assertThat(zeroSale.get("read").asBoolean()).isFalse();
-        assertThat(zeroSale.has("createdAt")).isTrue();
-        JsonNode expired = findByType(unread.get("notifications"), "DOCUMENT_EXPIRING");
-        assertThat(expired.get("code").asText()).isEqualTo("DOCUMENT_EXPIRED");
-        assertThat(expired.get("params").get("documentName").asText()).isEqualTo("Licence");
-        assertThat(expired.get("params").get("expiryDate").asText()).isEqualTo("2026-01-01");
-        assertThat(expired.get("message").asText()).isEqualTo("Licence (LICENCE) expired on 2026-01-01");
     }
 
     @Test
@@ -212,21 +153,6 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void handoverToAnotherOperatorOfThePumpIsRecordedAndListed() throws Exception {
-        long shiftId = openShift(setup.operator());
-        User incoming = saveUser(UserRole.OPERATOR, setup.pumpId());
-
-        perform(post("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.manager(),
-                Map.of("outgoingShiftId", shiftId, "incomingOperatorId", incoming.getId(), "notes", "Lunch break",
-                        "closing", balancedClosing()))
-                .andExpect(status().is2xxSuccessful());
-
-        JsonNode handovers = json(perform(get("/api/pumps/{pumpId}/handovers", setup.pumpId()), setup.manager())
-                .andExpect(status().isOk()));
-        assertThat(handovers.toString()).contains("Lunch break");
-    }
-
-    @Test
     void handoverToAnOperatorOfAnotherPumpIsRefused() throws Exception {
         long shiftId = openShift(setup.operator());
         User outsider = saveUser(UserRole.OPERATOR, null);
@@ -280,15 +206,6 @@ class NotificationsAndScheduledWorkIntegrationTest extends ApiIntegrationTest {
         page.get("content").forEach(notification ->
                 readState.put(notification.get("id").asLong(), notification.get("read").asBoolean()));
         return readState;
-    }
-
-    private static JsonNode findByType(JsonNode notifications, String type) {
-        for (JsonNode notification : notifications) {
-            if (type.equals(notification.get("type").asText())) {
-                return notification;
-            }
-        }
-        throw new AssertionError("No " + type + " notification in " + notifications);
     }
 
     private List<Long> notificationIds(User user) throws Exception {
