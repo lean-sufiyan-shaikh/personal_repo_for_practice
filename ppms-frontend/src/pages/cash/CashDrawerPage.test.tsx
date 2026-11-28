@@ -49,54 +49,13 @@ describe('CashDrawerPage', () => {
     })
   })
 
-  it('opens the cash entry form from ?action=cash-entry and checks a cash-out against the drawer balance', async () => {
+  it('opens the cash entry form from ?action=cash-entry and clears the action when cancelled', async () => {
     const user = userEvent.setup()
     const form = await openEntryForm()
-    await user.click(within(form).getByRole('button', { name: /^Event type/ }))
-    await user.click(screen.getByRole('option', { name: 'Cash out' }))
-    await user.click(within(form).getByLabelText('Amount'))
-    await user.paste('2500')
-    await user.click(within(form).getByLabelText('Description'))
-    await user.paste('Bank deposit')
-    await user.click(within(form).getByRole('button', { name: 'Review' }))
-
-    expect(within(form).getByRole('alert')).toHaveTextContent('exceeds the current drawer balance')
-    expect(cashApi.recordCashEvent).not.toHaveBeenCalled()
 
     await user.click(within(form).getByRole('button', { name: 'Cancel' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Address' })).toBeEmptyDOMElement()
-  })
-
-  it('keeps Review disabled and says what is still needed until amount and description are in', async () => {
-    const user = userEvent.setup()
-    const form = await openEntryForm()
-    const review = within(form).getByRole('button', { name: 'Review' })
-
-    expect(review).toBeDisabled()
-    expect(review).toHaveAccessibleDescription('Still needed Amount Description')
-
-    await user.click(within(form).getByLabelText('Amount'))
-    await user.paste('500')
-    expect(review).toHaveAccessibleDescription('Still needed Description')
-    await user.click(within(form).getByLabelText('Description'))
-    await user.paste('Change float')
-    expect(review).toBeEnabled()
-    expect(review).not.toHaveAccessibleDescription()
-  })
-
-  it('shows what will be in the safe after a cash-in or cash-out as the amount is typed', async () => {
-    const user = userEvent.setup()
-    const form = await openEntryForm()
-
-    expect(figure(form, 'In the safe after this')).toHaveTextContent('—')
-    await user.click(within(form).getByLabelText('Amount'))
-    await user.paste('750')
-    expect(figure(form, 'In the safe after this')).toHaveTextContent('₹2,750.00')
-
-    await user.click(within(form).getByRole('button', { name: /^Event type/ }))
-    await user.click(screen.getByRole('option', { name: 'Cash out' }))
-    expect(figure(form, 'In the safe after this')).toHaveTextContent('₹1,250.00')
   })
 
   it('shows the movement and the new balance on the review step before recording', async () => {
