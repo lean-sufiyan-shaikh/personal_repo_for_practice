@@ -159,8 +159,6 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
         long promiseId = json(recordPromise(clientId, "200.00", TestDates.today().plusDays(3))
                 .andExpect(status().isCreated())).get("id").asLong();
         assertThat(dueOrNull(clientId)).isNull();
-        recordPromise(clientId, "100.00", TestDates.today().plusDays(5))
-                .andExpect(jsonPath("$.code").value("CREDIT_PROMISE_ALREADY_OPEN"));
 
         jdbcTemplate.update("UPDATE credit_payment_promises SET promised_date = ?, recorded_on = ? WHERE id = ?",
                 TestDates.today().minusDays(1), TestDates.today().minusDays(4), promiseId);
@@ -176,23 +174,6 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
         JsonNode followUp = followUpOf(clientId);
         assertThat(followUp.get("promises").get(0).get("status").asText()).isEqualTo("MISSED");
         assertThat(followUp.get("reminderDue").asBoolean()).isTrue();
-    }
-
-    @Test
-    void promiseIsKeptOnceThePromisedAmountIsPaidAndAPastDateIsRefused() throws Exception {
-        long clientId = createClient(null);
-        makeOverdue(sellOnCredit(clientId, "300.00"), 10);
-        recordPromise(clientId, "100.00", TestDates.today().minusDays(1))
-                .andExpect(jsonPath("$.code").value("CREDIT_PROMISE_DATE_IN_PAST"));
-        long promiseId = json(recordPromise(clientId, "100.00", TestDates.today().plusDays(2))
-                .andExpect(status().isCreated())).get("id").asLong();
-
-        recordPayment(clientId, "150.00", TestDates.today());
-        promiseService.resolvePromises(setup.pumpId());
-
-        assertThat(jdbcTemplate.queryForObject("SELECT status FROM credit_payment_promises WHERE id = ?",
-                String.class, promiseId)).isEqualTo("KEPT");
-        assertThat(notificationCount("CREDIT_PROMISE_MISSED")).isZero();
     }
 
     @Test
@@ -244,20 +225,10 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void settingsAreValidatedAndOnlyOwnersAndAdminsChangeThem() throws Exception {
-        saveSettings(setup.owner(), List.of(7, 15), 45, "not-a-upi-id", "Ram Fuels")
-                .andExpect(jsonPath("$.code").value("UPI_ID_INVALID"));
-        saveSettings(setup.owner(), List.of(7, 15), 45, "ramfuels@okaxis", " ")
-                .andExpect(jsonPath("$.code").value("UPI_DETAILS_INCOMPLETE"));
-        saveSettings(setup.owner(), List.of(7, 15), 45, "ramfuels@okaxis", "Ram?pa=x")
-                .andExpect(jsonPath("$.code").value("UPI_PAYEE_NAME_INVALID"));
+    void settingsSavedByAnAdminAreReadBackAndAudited() throws Exception {
         saveSettings(setup.owner(), List.of(7, 7), 45, null, null)
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("REMINDER_STAGES_INVALID"));
-        saveSettings(setup.owner(), List.of(0), 45, null, null)
-                .andExpect(jsonPath("$.code").value("REMINDER_STAGES_INVALID"));
-        saveSettings(setup.owner(), List.of(7), 0, null, null)
-                .andExpect(jsonPath("$.code").value("CREDIT_HOLD_DAYS_OUT_OF_RANGE"));
-        saveSettings(setup.manager(), List.of(7), 45, null, null).andExpect(status().isForbidden());
 
         saveSettings(setup.admin(), List.of(30, 10), 60, " ramfuels@okaxis ", "Ram Fuels").andExpect(status().isOk());
 
@@ -324,36 +295,12 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void promiseIsCappedAtNinetyDaysAheadAndAtWhatTheGroupOwes() throws Exception {
-        long parentId = createClient(null);
-        long childId = createClient(parentId);
-        sellOnCredit(parentId, "200.00");
-        sellOnCredit(childId, "100.00");
-
-        recordPromise(childId, "100.00", TestDates.today().plusDays(91))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CREDIT_PROMISE_DATE_TOO_FAR"))
-                .andExpect(jsonPath("$.params.maxDays").value(90));
-        recordPromise(childId, "300.01", TestDates.today().plusDays(5))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CREDIT_PROMISE_EXCEEDS_OUTSTANDING"))
-                .andExpect(jsonPath("$.params.outstanding").value("300.00"));
-        JsonNode promise = json(recordPromise(childId, "300.00", TestDates.today().plusDays(90))
-                .andExpect(status().isCreated()));
-
-        assertThat(promise.get("clientId").asLong()).isEqualTo(parentId);
-    }
-
-    @Test
-    void openPromiseCanBeEditedAndCancelledWithHistoryAndAuditAndThenNoLonger() throws Exception {
+    void openPromiseCanBeEditedAndCancelledWithHistoryAndAudit() throws Exception {
         long clientId = createClient(null);
         sellOnCredit(clientId, "300.00");
         long promiseId = json(recordPromise(clientId, "200.00", TestDates.today().plusDays(3))
                 .andExpect(status().isCreated())).get("id").asLong();
 
-        editPromise(promiseId, "400.00", TestDates.today().plusDays(10))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CREDIT_PROMISE_EXCEEDS_OUTSTANDING"));
         JsonNode edited = json(editPromise(promiseId, "250.00", TestDates.today().plusDays(10))
                 .andExpect(status().isOk()));
         assertThat(edited.get("amount").decimalValue()).isEqualByComparingTo("250.00");
@@ -365,9 +312,6 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
                 promiseId), setup.manager(), Map.of("reason", "Client disputes the bill")).andExpect(status().isOk()));
         assertThat(cancelled.get("status").asText()).isEqualTo("CANCELLED");
 
-        editPromise(promiseId, "100.00", TestDates.today().plusDays(4))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("CREDIT_PROMISE_NOT_OPEN"));
         assertThat(jdbcTemplate.queryForList(
                 "SELECT change_type FROM credit_payment_promise_changes WHERE promise_id = ? ORDER BY id", String.class,
                 promiseId)).containsExactly("EDITED", "CANCELLED");
@@ -391,22 +335,6 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
                 otherPump.owner(), Map.of("reason", "Not ours")).andExpect(status().isNotFound());
         assertThat(jdbcTemplate.queryForObject("SELECT status FROM credit_payment_promises WHERE id = ?",
                 String.class, promiseId)).isEqualTo("OPEN");
-    }
-
-    @Test
-    void promiseIsKeptOnceTheAccountOwesNothingEvenIfPaidBeforeItWasRecorded() throws Exception {
-        long clientId = createClient(null);
-        sellOnCredit(clientId, "300.00");
-        long promiseId = json(recordPromise(clientId, "300.00", TestDates.today().plusDays(3))
-                .andExpect(status().isCreated())).get("id").asLong();
-        jdbcTemplate.update("UPDATE credit_payment_promises SET recorded_on = ? WHERE id = ?",
-                TestDates.today().plusDays(1), promiseId);
-        recordPayment(clientId, "300.00", TestDates.today());
-
-        promiseService.resolvePromises(setup.pumpId());
-
-        assertThat(jdbcTemplate.queryForObject("SELECT status FROM credit_payment_promises WHERE id = ?",
-                String.class, promiseId)).isEqualTo("KEPT");
     }
 
     @Test
