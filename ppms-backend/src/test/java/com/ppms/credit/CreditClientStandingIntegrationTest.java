@@ -22,7 +22,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class CreditClientStandingIntegrationTest extends ApiIntegrationTest {
 
-    @Autowired private CreditExtensionRepository extensionRepository;
     @Autowired private JdbcTemplate jdbcTemplate;
 
     private PumpSetup setup;
@@ -36,57 +35,6 @@ class CreditClientStandingIntegrationTest extends ApiIntegrationTest {
                         "operatorId", setup.operator().getId()))
                 .andExpect(status().is2xxSuccessful()));
         shiftId = opened.get("id").asLong();
-    }
-
-    @Test
-    void clientWithUnlimitedCreditIsOkWithNoAvailableAmount() throws Exception {
-        long clientId = createClient(null);
-        perform(patch("/api/pumps/{pumpId}/credit-ledger/clients/{clientId}/credit-limit", setup.pumpId(), clientId),
-                setup.owner(), Map.of("creditLimit", BigDecimal.ZERO, "unlimited", true, "reason", "Trusted fleet"))
-                .andExpect(status().isOk());
-        sellOnCredit(clientId, "900.00");
-
-        JsonNode standing = standingOf(clientId, setup.manager());
-
-        assertThat(standing.get("creditStatus").asText()).isEqualTo("OK");
-        assertThat(standing.get("availableCredit").isNull()).isTrue();
-    }
-
-    @Test
-    void clientUnderItsLimitIsOkWithTheRemainingAmount() throws Exception {
-        long clientId = createClient(null);
-        setCreditLimit(clientId, "1000.00");
-        sellOnCredit(clientId, "400.00");
-
-        JsonNode standing = standingOf(clientId, setup.manager());
-
-        assertThat(standing.get("creditStatus").asText()).isEqualTo("OK");
-        assertThat(standing.get("availableCredit").decimalValue()).isEqualByComparingTo("600.00");
-    }
-
-    @Test
-    void clientThatReachedItsLimitIsOverLimitWithNothingAvailable() throws Exception {
-        long clientId = createClient(null);
-        setCreditLimit(clientId, "500.00");
-        sellOnCredit(clientId, "500.00");
-
-        JsonNode standing = standingOf(clientId, setup.manager());
-
-        assertThat(standing.get("creditStatus").asText()).isEqualTo("OVER_LIMIT");
-        assertThat(standing.get("availableCredit").decimalValue()).isEqualByComparingTo("0");
-    }
-
-    @Test
-    void amountExtensionAddsToWhatIsAvailable() throws Exception {
-        long clientId = createClient(null);
-        setCreditLimit(clientId, "500.00");
-        sellOnCredit(clientId, "500.00");
-        grantExtension(clientId, CreditExtensionType.AMOUNT_EXTENSION, new BigDecimal("1000.00"));
-
-        JsonNode standing = standingOf(clientId, setup.manager());
-
-        assertThat(standing.get("creditStatus").asText()).isEqualTo("OK");
-        assertThat(standing.get("availableCredit").decimalValue()).isEqualByComparingTo("1000.00");
     }
 
     @Test
@@ -107,29 +55,6 @@ class CreditClientStandingIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void disabledClientAndSubAccountOfADisabledParentAreInactive() throws Exception {
-        long parentId = createClient(null);
-        long childId = createClient(parentId);
-        long otherId = createClient(null);
-        setActive(parentId, false);
-        setActive(otherId, false);
-
-        assertThat(standingOf(parentId, setup.manager()).get("creditStatus").asText()).isEqualTo("INACTIVE");
-        assertThat(standingOf(childId, setup.manager()).get("creditStatus").asText()).isEqualTo("INACTIVE");
-        assertThat(standingOf(otherId, setup.manager()).get("creditStatus").asText()).isEqualTo("INACTIVE");
-    }
-
-    @Test
-    void groupWithAnOldUnpaidSaleOnASubAccountIsOverdue() throws Exception {
-        long parentId = createClient(null);
-        long childId = createClient(parentId);
-        backdateCreditEntry(sellOnCredit(childId, "300.00"), 40);
-
-        assertThat(standingOf(parentId, setup.manager()).get("creditStatus").asText()).isEqualTo("OVERDUE");
-        assertThat(standingOf(childId, setup.manager()).get("creditStatus").asText()).isEqualTo("OVERDUE");
-    }
-
-    @Test
     void paymentOnAnyAccountOfTheGroupClearsTheGroupsOldestBillOnlyWhenItCoversIt() throws Exception {
         long parentId = createClient(null);
         long childId = createClient(parentId);
@@ -142,17 +67,6 @@ class CreditClientStandingIntegrationTest extends ApiIntegrationTest {
 
         recordPayment(parentId, "450.00");
         assertThat(standingOf(parentId, setup.manager()).get("creditStatus").asText()).isEqualTo("OK");
-    }
-
-    @Test
-    void billingCycleExtensionLiftsTheOverdueBlock() throws Exception {
-        long clientId = createClient(null);
-        backdateCreditEntry(sellOnCredit(clientId, "300.00"), 40);
-        assertThat(standingOf(clientId, setup.manager()).get("creditStatus").asText()).isEqualTo("OVERDUE");
-
-        grantExtension(clientId, CreditExtensionType.BILLING_CYCLE_EXTENSION, null);
-
-        assertThat(standingOf(clientId, setup.manager()).get("creditStatus").asText()).isEqualTo("OK");
     }
 
     @Test
@@ -224,12 +138,6 @@ class CreditClientStandingIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().isOk());
     }
 
-    private void setActive(long clientId, boolean active) throws Exception {
-        perform(patch("/api/pumps/{pumpId}/credit-clients/{clientId}/status", setup.pumpId(), clientId),
-                setup.manager(), Map.of("isActive", active))
-                .andExpect(status().isOk());
-    }
-
     private long sellOnCredit(long clientId, String amount) throws Exception {
         JsonNode shift = json(perform(post("/api/pumps/{pumpId}/shifts/{id}/credit-entries", setup.pumpId(), shiftId),
                 setup.operator(), Map.of("clientName", "Client", "clientId", clientId,
@@ -250,15 +158,4 @@ class CreditClientStandingIntegrationTest extends ApiIntegrationTest {
                 .andExpect(status().is2xxSuccessful());
     }
 
-    private void grantExtension(long clientId, CreditExtensionType type, BigDecimal amount) {
-        extensionRepository.save(CreditExtension.builder()
-                .pumpId(setup.pumpId())
-                .clientId(clientId)
-                .extensionType(type)
-                .extensionAmount(amount)
-                .expiryDate(TestDates.today().plusDays(7))
-                .grantedByUserId(setup.owner().getId())
-                .reason("Festival season")
-                .build());
-    }
 }

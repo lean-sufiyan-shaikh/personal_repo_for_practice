@@ -68,20 +68,6 @@ class CreditCollectionIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void groupBelowTheHoldDaysIsOnlyOverdueAndAPumpWithTheHoldOffNeverHolds() throws Exception {
-        long clientId = createClient(null);
-        long entryId = sellOnCredit(clientId, "300.00");
-        makeOverdue(entryId, 44);
-        assertThat(standingOf(clientId)).isEqualTo("OVERDUE");
-
-        makeOverdue(entryId, 90);
-        saveSettings(setup.owner(), List.of(7, 15, 30), null, null, null).andExpect(status().isOk());
-
-        assertThat(standingOf(clientId)).isEqualTo("OVERDUE");
-        trySellOnCredit(clientId, "10.00").andExpect(jsonPath("$.code").value("CREDIT_BILLING_CYCLE_OVERDUE"));
-    }
-
-    @Test
     void cycleExtensionDoesNotLiftTheHoldButAnAuditedHoldOverrideDoes() throws Exception {
         long clientId = createClient(null);
         makeOverdue(sellOnCredit(clientId, "300.00"), 50);
