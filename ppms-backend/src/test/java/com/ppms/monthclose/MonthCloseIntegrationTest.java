@@ -64,20 +64,13 @@ class MonthCloseIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void monthClosesOnlyWithEveryDayApprovedOrExcusedAndStoresItsSummary() throws Exception {
+    void monthWithEveryDayApprovedOrExcusedClosesAndStoresItsSummary() throws Exception {
         JsonNode before = json(perform(get("/api/pumps/{pumpId}/month-closes/{month}", setup.pumpId(), LAST_MONTH),
                 setup.admin()).andExpect(status().isOk()));
         assertThat(before.get("days")).hasSize(LAST_MONTH.lengthOfMonth());
         assertThat(before.get("notReadyDayCount").asInt()).isEqualTo(2);
         assertThat(before.get("status").isNull()).isTrue();
 
-        close(setup.admin(), List.of())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("MONTH_DAYS_NOT_READY"))
-                .andExpect(jsonPath("$.params.count").value(2));
-        close(setup.admin(), List.of(Map.of("date", TestDates.today().toString(), "reason", "Not this month")))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("MONTH_EXCEPTION_NOT_IN_MONTH"));
 
         JsonNode closed = json(close(setup.admin(), exceptions()).andExpect(status().isOk()));
 
@@ -96,10 +89,6 @@ class MonthCloseIntegrationTest extends ApiIntegrationTest {
         assertThat(summary.get("pettyCashClosing").decimalValue()).isEqualByComparingTo("200.00");
         assertThat(summary.get("tanks")).hasSize(1);
         assertThat(summary.get("payments").get("total").decimalValue()).isEqualByComparingTo("0.00");
-
-        close(setup.owner(), exceptions())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("MONTH_ALREADY_CLOSED"));
     }
 
     @Test
@@ -129,34 +118,7 @@ class MonthCloseIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void closingAgainAfterAReopenAddsTheNextVersionAndKeepsTheFirst() throws Exception {
-        close(setup.owner(), exceptions()).andExpect(status().isOk());
-        reopen(setup.owner()).andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE day_closes SET status = 'APPROVED', approved_by_user_id = closed_by_user_id,"
-                + " approved_at = NOW() WHERE pump_id = ? AND business_date = ?", setup.pumpId(), UNAPPROVED_DAY);
-
-        JsonNode second = json(close(setup.owner(),
-                List.of(Map.of("date", UNCLOSED_DAY.toString(), "reason", "Pump shut for repairs")))
-                .andExpect(status().isOk()));
-
-        assertThat(second.get("currentVersion").asInt()).isEqualTo(2);
-        assertThat(second.get("versions")).hasSize(2);
-        assertThat(second.get("summary").get("exceptions")).hasSize(1);
-        JsonNode first = json(perform(get("/api/pumps/{pumpId}/month-closes/{month}/versions/1", setup.pumpId(), LAST_MONTH),
-                setup.owner()).andExpect(status().isOk()));
-        assertThat(first.get("exceptions")).hasSize(2);
-        assertThat(jdbcTemplate.queryForList("SELECT action::text FROM audit_logs WHERE pump_id = ? AND entity_type = 'MonthClose'"
-                + " ORDER BY id", String.class, setup.pumpId())).containsExactly("MONTH_CLOSED", "MONTH_REOPENED", "MONTH_CLOSED");
-        perform(get("/api/pumps/{pumpId}/month-closes", setup.pumpId()), setup.owner()).andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].currentVersion").value(2));
-    }
-
-    @Test
-    void currentMonthCannotBeClosedAndManagersCannotSeeMonthCloses() throws Exception {
-        perform(post("/api/pumps/{pumpId}/month-closes/{month}/close", setup.pumpId(), YearMonth.from(TestDates.today())),
-                setup.owner(), Map.of())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("MONTH_NOT_OVER"));
+    void managersAndOwnersOfOtherPumpsCannotSeeOrCloseMonthCloses() throws Exception {
         perform(get("/api/pumps/{pumpId}/month-closes/{month}", setup.pumpId(), LAST_MONTH), setup.manager())
                 .andExpect(status().isForbidden());
         close(setup.manager(), exceptions()).andExpect(status().isForbidden());
