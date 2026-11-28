@@ -1,16 +1,21 @@
 package com.ppms.shift;
 
+import com.ppms.support.PostgresTestContainerConfig;
 import org.flywaydb.core.Flyway;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
 
-import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -19,29 +24,38 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * V58 on a database at V57 that already holds a pump and an open shift: the pump counts blind by default, and the new
- * shift operation and staff advance tables refuse rows that break their rules. Runs on its own container so it does not
- * take connections from the shared one.
+ * shift operation and staff advance tables refuse rows that break their rules.
  */
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import(PostgresTestContainerConfig.class)
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 class ShiftOperationsMigrationTest {
-
-    private static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>(DockerImageName.parse("postgres:16-alpine")).withStartupTimeout(Duration.ofMinutes(2));
 
     private static final AtomicLong PHONE_SEQUENCE = new AtomicLong();
 
-    private static JdbcTemplate db;
-    private static DriverManagerDataSource dataSource;
+    @Autowired private PostgreSQLContainer<?> postgres;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
-    @BeforeAll
-    static void startDatabase() {
-        POSTGRES.start();
-        dataSource = new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+    private String database;
+    private SingleConnectionDataSource dataSource;
+    private JdbcTemplate db;
+
+    @BeforeEach
+    void createDatabase() {
+        database = "v58_shift_operations_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        jdbcTemplate.execute("CREATE DATABASE " + database);
+        dataSource = new SingleConnectionDataSource(
+                "jdbc:postgresql://" + postgres.getHost() + ":" + postgres.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)
+                        + "/" + database,
+                postgres.getUsername(), postgres.getPassword(), true);
         db = new JdbcTemplate(dataSource);
     }
 
-    @AfterAll
-    static void stopDatabase() {
-        POSTGRES.stop();
+    @AfterEach
+    void dropDatabase() {
+        dataSource.destroy();
+        jdbcTemplate.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
     }
 
     @Test
@@ -118,7 +132,7 @@ class ShiftOperationsMigrationTest {
                 .isZero();
     }
 
-    private static Long user(String role) {
+    private Long user(String role) {
         String unique = UUID.randomUUID().toString().substring(0, 8);
         return db.queryForObject("""
                 INSERT INTO users (employee_id, full_name, phone_number, password_hash, role, status, date_of_joining)
@@ -126,7 +140,7 @@ class ShiftOperationsMigrationTest {
                 """, Long.class, "EMP-" + unique, role + " " + unique, Long.toString(8_000_000_000L + PHONE_SEQUENCE.incrementAndGet()), role);
     }
 
-    private static void migrate(String target) {
+    private void migrate(String target) {
         Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")

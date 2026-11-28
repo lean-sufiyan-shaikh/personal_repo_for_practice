@@ -1,14 +1,21 @@
 package com.ppms.payroll;
 
+import com.ppms.support.PostgresTestContainerConfig;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -18,15 +25,24 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * period be charged again, paid payroll gets its paid date, and a deduction a payroll already took is linked to it
  * while one chosen after that payroll was generated is left for the next payroll.
  */
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import(PostgresTestContainerConfig.class)
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 class InterestCollectionsPayrollMigrationTest {
+
+    @Autowired private PostgreSQLContainer<?> postgres;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     @Test
     void existingWaiversPayrollAndDeductionsAreCarriedOver() {
-        // A server of its own: the database server shared by the Spring test contexts runs close to its client limit.
-        try (PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:16-alpine"))) {
-            postgres.start();
-            SingleConnectionDataSource dataSource = new SingleConnectionDataSource(
-                    postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword(), true);
+        String database = "v54_interest_payroll_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        jdbcTemplate.execute("CREATE DATABASE " + database);
+        SingleConnectionDataSource dataSource = new SingleConnectionDataSource(
+                "jdbc:postgresql://" + postgres.getHost() + ":" + postgres.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)
+                        + "/" + database,
+                postgres.getUsername(), postgres.getPassword(), true);
+        try {
             migrate(dataSource, "50");
             JdbcTemplate db = new JdbcTemplate(dataSource);
             Long ownerId = db.queryForObject("""
@@ -77,7 +93,9 @@ class InterestCollectionsPayrollMigrationTest {
                     + "WHERE id = ?", promiseId);
             assertThat(db.queryForList("SELECT unnest(enum_range(NULL::audit_action))::text", String.class))
                     .contains("CREDIT_PROMISE_EDITED", "CREDIT_PROMISE_CANCELLED", "PAYROLL_PAID", "PAYROLL_RETURNED_TO_DRAFT");
+        } finally {
             dataSource.destroy();
+            jdbcTemplate.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
         }
     }
 

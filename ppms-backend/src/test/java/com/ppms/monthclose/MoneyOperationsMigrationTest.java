@@ -1,12 +1,20 @@
 package com.ppms.monthclose;
 
+import com.ppms.support.PostgresTestContainerConfig;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -15,15 +23,24 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * V57 on a database that already holds expenses and matched bank lines: older expenses keep no source and no cash
  * movement, a line still links to one record at most (chargebacks included), and the new tables hold their rules.
  */
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import(PostgresTestContainerConfig.class)
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 class MoneyOperationsMigrationTest {
+
+    @Autowired private PostgreSQLContainer<?> postgres;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     @Test
     void existingRecordsAreCarriedOverAndTheNewRulesHold() {
-        // A server of its own: the database server shared by the Spring test contexts runs close to its client limit.
-        try (PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:16-alpine"))) {
-            postgres.start();
-            SingleConnectionDataSource dataSource = new SingleConnectionDataSource(
-                    postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword(), true);
+        String database = "v57_money_operations_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        jdbcTemplate.execute("CREATE DATABASE " + database);
+        SingleConnectionDataSource dataSource = new SingleConnectionDataSource(
+                "jdbc:postgresql://" + postgres.getHost() + ":" + postgres.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)
+                        + "/" + database,
+                postgres.getUsername(), postgres.getPassword(), true);
+        try {
             migrate(dataSource, "56");
             JdbcTemplate db = new JdbcTemplate(dataSource);
             Long ownerId = db.queryForObject("""
@@ -101,7 +118,9 @@ class MoneyOperationsMigrationTest {
             assertThat(db.queryForList("SELECT unnest(enum_range(NULL::audit_action))::text", String.class))
                     .contains("EXPENSE_VOIDED", "PETTY_CASH_TOPPED_UP", "PETTY_CASH_COUNTED", "PETTY_CASH_SETTINGS_UPDATED",
                             "CHARGEBACK_RECORDED", "MONTH_CLOSED", "MONTH_REOPENED");
+        } finally {
             dataSource.destroy();
+            jdbcTemplate.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
         }
     }
 
