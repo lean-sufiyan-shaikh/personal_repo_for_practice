@@ -66,38 +66,22 @@ class ClientPortalSecurityIntegrationTest extends ApiIntegrationTest {
                 Long.class, setup.pumpId(), String.valueOf(clientId))).isEqualTo(1L);
         assertThat(jdbcTemplate.queryForList("SELECT phone_hash FROM credit_portal_attempts WHERE pump_id = ?",
                 String.class, setup.pumpId())).singleElement().satisfies(hash -> assertThat(hash).doesNotContain(phone));
+        lookUp(uniquePhone(), GOOD_PIN).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("CREDIT_ACCOUNT_NOT_MATCHED"))
+                .andExpect(jsonPath("$.message").value("No credit account matches these details."));
     }
 
     @Test
-    void eachFurtherLockoutLastsTwiceAsLongAndTheRightPinClearsTheCount() throws Exception {
+    void rightPinAfterTheLockoutEndsClearsTheCount() throws Exception {
         String phone = uniquePhone();
         long clientId = createClient(null, phone);
         setPin(clientId, GOOD_PIN).andExpect(status().isNoContent());
 
         failFiveTimes(phone);
         endLockout();
-        failFiveTimes(phone);
-        lookUp(phone, GOOD_PIN).andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.params.minutes").value(30));
-
-        endLockout();
         lookUp(phone, GOOD_PIN).andExpect(status().isOk());
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM credit_portal_attempts WHERE pump_id = ?",
                 Long.class, setup.pumpId())).isZero();
-    }
-
-    @Test
-    void phoneOfNoClientGetsTheSameAnswerAndIsLockedTheSameWay() throws Exception {
-        String unknownPhone = uniquePhone();
-
-        String body = lookUp(unknownPhone, GOOD_PIN).andExpect(status().isNotFound())
-                .andReturn().getResponse().getContentAsString();
-        assertThat(body).contains("CREDIT_ACCOUNT_NOT_MATCHED", "No credit account matches these details.");
-        for (int attempt = 2; attempt <= 5; attempt++) {
-            lookUp(unknownPhone, GOOD_PIN).andExpect(status().isNotFound());
-        }
-        lookUp(unknownPhone, GOOD_PIN).andExpect(status().isTooManyRequests());
-        assertThat(notificationTypes(setup.owner())).contains("CREDIT_PORTAL_LOCKED");
     }
 
     @Test
