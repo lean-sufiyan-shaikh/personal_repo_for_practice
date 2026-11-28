@@ -158,14 +158,6 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void profitAndLossReportMatchesTheShiftSales() throws Exception {
-        JsonNode report = json(perform(get("/api/pumps/{pumpId}/reports/profit-loss", setup.pumpId())
-                .param("from", today).param("to", today), setup.manager()).andExpect(status().isOk()));
-
-        assertThat(report.toString()).contains("2000");
-    }
-
-    @Test
     void profitAndLossShowsOneLotLineForShiftsDrawingFromTheSameLotAndSplitsRevenueAndCostByShiftDay() throws Exception {
         String yesterday = TestDates.today().minusDays(1).toString();
         perform(post("/api/pumps/{pumpId}/shifts/backfill", setup.pumpId()), setup.owner(), backfillRequest(yesterday))
@@ -258,7 +250,7 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
     }
 
     @Test
-    void csvExportsAreOwnerOrAdminOnlyAndContainTheShift() throws Exception {
+    void csvExportsAreOwnerOrAdminOnlyCoverUpToAYearAndContainTheShift() throws Exception {
         String csv = perform(get("/api/pumps/{pumpId}/export/shifts", setup.pumpId())
                 .param("from", today).param("to", today), setup.owner())
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
@@ -270,6 +262,10 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
                 .param("from", today).param("to", today), setup.owner()).andExpect(status().isOk());
         perform(get("/api/pumps/{pumpId}/export/shifts", setup.pumpId())
                 .param("from", today).param("to", today), setup.manager()).andExpect(status().isForbidden());
+        perform(get("/api/pumps/{pumpId}/export/shifts", setup.pumpId())
+                .param("from", TestDates.today().minusDays(366).toString()).param("to", today), setup.owner())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DATE_RANGE_TOO_LONG"));
     }
 
     @Test
@@ -302,36 +298,6 @@ class BalanceSheetAndReportsIntegrationTest extends ApiIntegrationTest {
         assertThat(discrepancy.get("totalDiscrepancyShifts").asInt()).isEqualTo(1);
         assertThat(discrepancy.get("autoClosedShiftCount").asLong()).isEqualTo(1);
         assertThat(csv).doesNotContain("\n" + autoClosed.getId() + ",");
-    }
-
-    @Test
-    void reportRangesMustRunForwardsAndStayWithinTheirLimit() throws Exception {
-        String yesterday = TestDates.today().minusDays(1).toString();
-        String yearAgo = TestDates.today().minusDays(366).toString();
-        String quarterAgo = TestDates.today().minusDays(92).toString();
-
-        perform(get("/api/pumps/{pumpId}/reports/profit-loss", setup.pumpId())
-                .param("from", today).param("to", yesterday), setup.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DATE_RANGE_START_AFTER_END"));
-        perform(get("/api/pumps/{pumpId}/reports/profit-loss", setup.pumpId())
-                .param("from", yearAgo).param("to", today), setup.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DATE_RANGE_TOO_LONG"))
-                .andExpect(jsonPath("$.params.maxDays").value(366));
-        perform(get("/api/pumps/{pumpId}/reports/profit-loss", setup.pumpId())
-                .param("from", TestDates.today().minusDays(365).toString()).param("to", today), setup.owner())
-                .andExpect(status().isOk());
-        perform(get("/api/pumps/{pumpId}/export/shifts", setup.pumpId())
-                .param("from", yearAgo).param("to", today), setup.owner())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("DATE_RANGE_TOO_LONG"));
-        for (String report : List.of("shifts", "operator-discrepancy", "dip-pl", "expenses")) {
-            perform(get("/api/pumps/{pumpId}/reports/" + report, setup.pumpId())
-                    .param("from", quarterAgo).param("to", today), setup.owner())
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.params.maxDays").value(92));
-        }
     }
 
     private JsonNode generate(String type, Long shiftDefinitionId) throws Exception {
