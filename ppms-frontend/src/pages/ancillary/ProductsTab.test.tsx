@@ -59,11 +59,12 @@ describe('ProductsTab card header', () => {
 })
 
 describe('ProductsTab price and margin', () => {
-  it('shows the selling price per unit with the margin over the buy price', () => {
+  it('shows the selling price per unit with the margin over the buy price, and No sales today when nothing has sold', () => {
     renderAs('MANAGER')
     expect(within(card()).getByText('₹450.00')).toBeInTheDocument()
     expect(within(card()).getByText(/^Margin/)).toHaveTextContent('Margin ₹90.00 · 20%')
     expect(within(card()).getByText(/^Buy/)).toHaveTextContent('Buy ₹360.00/unit · Stock value ₹4,320.00')
+    expect(within(card()).getByText('No sales today')).toBeInTheDocument()
   })
 
   it('values the stock batch by batch at each batch\'s buy price', () => {
@@ -175,10 +176,6 @@ describe('ProductsTab sold today', () => {
     expect(within(card()).getByText('Sold today: 3 · ₹750.00')).toBeInTheDocument()
   })
 
-  it('says No sales today when nothing has sold', () => {
-    renderAs('MANAGER')
-    expect(within(card()).getByText('No sales today')).toBeInTheDocument()
-  })
 })
 
 describe('ProductsTab card menu', () => {

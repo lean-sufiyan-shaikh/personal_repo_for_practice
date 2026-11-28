@@ -46,30 +46,19 @@ describe('ReconciliationTab', () => {
     vi.mocked(inventoryApi.getReconciliation).mockReset()
   })
 
-  it('asks for the last 7 days of every tank and explains that litres are ambient', async () => {
-    respondWith([LOSING_TANK])
-    renderWithProviders(<ReconciliationTab pumpId={3} tanks={TANKS} />)
-
-    await screen.findByRole('article', { name: 'P1 · Petrol' })
-    expect(inventoryApi.getReconciliation).toHaveBeenCalledWith(3, localDateInputValue(-6), localDateInputValue(), undefined)
-    expect(screen.getByText(/variances include the effect of temperature/)).toBeInTheDocument()
-  })
-
-  it('shows the running variance, its share of sales and the loss status on the tank card', async () => {
+  it('asks for the last 7 days, explains ambient litres, and shows the tank card and each period in words', async () => {
     respondWith([LOSING_TANK])
     renderWithProviders(<ReconciliationTab pumpId={3} tanks={TANKS} />)
 
     const card = await screen.findByRole('article', { name: 'P1 · Petrol' })
+    expect(inventoryApi.getReconciliation).toHaveBeenCalledWith(3, localDateInputValue(-6), localDateInputValue(), undefined)
+    expect(screen.getByText(/variances include the effect of temperature/)).toBeInTheDocument()
+
     expect(within(card).getByText('Loss above 0.50%')).toBeInTheDocument()
     expect(within(card).getByText('−80.00 L')).toBeInTheDocument()
     expect(within(card).getByText('−4.00%')).toBeInTheDocument()
     expect(within(card).getByText(/1 period outside dip tolerance/)).toBeInTheDocument()
     expect(within(card).getByRole('img', { name: 'Variance per period for P1' })).toBeInTheDocument()
-  })
-
-  it('lists each period with merged days, the missing opening dip and flagged rows in words', async () => {
-    respondWith([LOSING_TANK])
-    renderWithProviders(<ReconciliationTab pumpId={3} tanks={TANKS} />)
 
     const table = await screen.findByRole('table', { name: 'Daily reconciliation for P1' })
     const rows = within(table).getAllByRole('row').slice(1)

@@ -21,10 +21,12 @@ describe('DataTable', () => {
     expect(screen.getByText('Sales')).toHaveClass('sr-only')
   })
 
-  it('right-aligns numeric columns with tabular figures', () => {
+  it('right-aligns numeric columns with tabular figures and leaves headers plain when the page does not sort', () => {
     render(<DataTable caption="Sales" columns={columns} rows={rows} rowKey={(row) => row.id} />)
     expect(screen.getByRole('cell', { name: '500' })).toHaveClass('text-right', 'tabular-nums')
     expect(screen.getByRole('cell', { name: '#1 Petrol' })).toHaveClass('text-left')
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.getByRole('columnheader', { name: 'Amount' })).not.toHaveAttribute('aria-sort')
   })
 
   it('marks the sorted column and asks the page to change the sort', async () => {
@@ -38,12 +40,6 @@ describe('DataTable', () => {
     expect(screen.getByRole('columnheader', { name: 'Nozzle' })).toHaveAttribute('aria-sort', 'none')
     await user.click(screen.getByRole('button', { name: 'Nozzle' }))
     expect(onSortChange).toHaveBeenCalledWith('nozzle')
-  })
-
-  it('leaves headers plain when the page does not sort', () => {
-    render(<DataTable caption="Sales" columns={columns} rows={rows} rowKey={(row) => row.id} />)
-    expect(screen.queryByRole('button')).toBeNull()
-    expect(screen.getByRole('columnheader', { name: 'Amount' })).not.toHaveAttribute('aria-sort')
   })
 
   it('shows the empty state, a totals row and custom rows', () => {

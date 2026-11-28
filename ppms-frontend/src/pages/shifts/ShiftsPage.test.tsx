@@ -79,13 +79,18 @@ describe('ShiftsPage', () => {
     expect(await screen.findByText('No active shifts. Tap Open Shift to start one.')).toBeInTheDocument()
   })
 
-  it('heads the page with its title, the open-shift count and the Open Shift action', async () => {
+  it('heads the page for a manager with the open-shift count, Open Shift, Close and every shift view', async () => {
     signIn('MANAGER')
     renderWithProviders(<ShiftsPage />)
 
     expect(screen.getByRole('heading', { level: 1, name: 'Shifts' })).toBeInTheDocument()
     expect(await screen.findByText('1 open now')).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Active Shifts' })).toBeInTheDocument()
+    const row = (await screen.findByText('Asha')).closest('tr')!
+    expect(screen.getByRole('button', { name: /Open Shift/ })).toBeInTheDocument()
+    expect(within(row).getByRole('button', { name: 'Close' })).toBeInTheDocument()
+    expect(screen.getByText('Active Shifts')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Discrepancies' })).toHaveAttribute('href', '/?history=discrepancies')
   })
 
   it('opens the Open Shift form from the address, as the Jump to… palette links it', async () => {
@@ -101,14 +106,6 @@ describe('ShiftsPage', () => {
 
     await screen.findByText('Asha')
     expect(screen.queryByRole('dialog', { name: 'Open shift form' })).not.toBeInTheDocument()
-  })
-
-  it('shows Open Shift and Close to a manager', async () => {
-    signIn('MANAGER')
-    renderWithProviders(<ShiftsPage />)
-    const row = (await screen.findByText('Asha')).closest('tr')!
-    expect(screen.getByRole('button', { name: /Open Shift/ })).toBeInTheDocument()
-    expect(within(row).getByRole('button', { name: 'Close' })).toBeInTheDocument()
   })
 
   it('shows a voided entry as voided in the open credit dialog once active shifts refresh', async () => {
@@ -139,11 +136,4 @@ describe('ShiftsPage', () => {
     expect(screen.queryByRole('link', { name: 'Discrepancies' })).not.toBeInTheDocument()
   })
 
-  it('shows a manager every shift view including Discrepancies', async () => {
-    signIn('MANAGER')
-    renderWithProviders(<ShiftsPage />)
-
-    expect(await screen.findByText('Active Shifts')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Discrepancies' })).toHaveAttribute('href', '/?history=discrepancies')
-  })
 })

@@ -34,18 +34,14 @@ describe('DashboardSidebar as a phone drawer', () => {
     usePumpStore.setState({ selectedPumpId: 4, suspendedPumpId: null })
   })
 
-  it('labels every link with text and marks the open state', () => {
+  it('labels every link with text, marks the open state and moves focus into the drawer', () => {
     renderSidebar(true)
     const nav = screen.getByRole('navigation', { name: 'Main' })
+    expect(nav).toContainElement(document.activeElement as HTMLElement)
     expect(nav).toHaveClass('ui-dashboard-sidebar--open')
     expect(screen.getByRole('link', { name: 'Shifts' })).toBeInTheDocument()
     expect(screen.getByText('Menu')).toBeInTheDocument()
     expect(screen.queryByText('Owner workspace')).not.toBeInTheDocument()
-  })
-
-  it('moves focus into the drawer when it opens', () => {
-    renderSidebar(true)
-    expect(screen.getByRole('navigation', { name: 'Main' })).toContainElement(document.activeElement as HTMLElement)
   })
 
   it('closes after choosing a page, on Escape and from the close button', async () => {

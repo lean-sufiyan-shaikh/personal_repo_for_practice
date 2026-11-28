@@ -65,7 +65,7 @@ describe('Day close — closing a day', () => {
     expect(closeButton).toHaveAccessibleDescription(/Count the safe/)
   })
 
-  it('shows the blocking checks as done and no warnings when the day is ready', async () => {
+  it('shows the blocking checks as done, no warnings, and each summary section\'s flag with its reason when the day is ready', async () => {
     renderClose()
     const mustDo = await screen.findByRole('list', { name: 'Must be done' })
     expect(within(mustDo).getByText('The safe was counted on this day')).toBeInTheDocument()
@@ -74,10 +74,7 @@ describe('Day close — closing a day', () => {
     expect(within(mustDo).queryByRole('link')).not.toBeInTheDocument()
     expect(screen.getByText('No warnings for this day.')).toBeInTheDocument()
     expect(screen.queryByText('Still needed')).not.toBeInTheDocument()
-  })
 
-  it('previews the summary with each section\'s flag and its reason in words', async () => {
-    renderClose()
     const sales = await screen.findByRole('region', { name: 'Sales & margin' })
     expect(within(sales).getByText('All good')).toBeInTheDocument()
     expect(within(sales).getByText('All 3 shifts of the day are closed and counted')).toBeInTheDocument()

@@ -38,21 +38,16 @@ describe('ResolveDiscrepancyModal', () => {
     vi.mocked(shiftApi.resolveDiscrepancy).mockResolvedValue({} as never)
   })
 
-  it('starts with no action chosen so nothing can be confirmed by accident', () => {
-    renderModal(shortShift)
-
-    expect(screen.getByRole('button', { name: 'Resolution action Choose an action…' })).toBeInTheDocument()
-    const resolve = screen.getByRole('button', { name: 'Resolve' })
-    expect(resolve).toBeDisabled()
-    expect(resolve).toHaveAccessibleDescription('Still needed Resolution action')
-  })
-
-  it('shows the difference as a badge with the reason given at close', () => {
+  it('shows the difference with the reason given at close and starts with no action chosen', () => {
     renderModal(shortShift)
 
     expect(screen.getByRole('dialog', { name: 'Resolve discrepancy' })).toHaveTextContent('Shift #11 · Ravi')
     expect(screen.getByText('Short ₹200.00')).toBeInTheDocument()
     expect(screen.getByText('Reason given at close').nextSibling).toHaveTextContent('Short')
+    expect(screen.getByRole('button', { name: 'Resolution action Choose an action…' })).toBeInTheDocument()
+    const resolve = screen.getByRole('button', { name: 'Resolve' })
+    expect(resolve).toBeDisabled()
+    expect(resolve).toHaveAccessibleDescription('Still needed Resolution action')
   })
 
   it('needs a note to put the shortage under investigation and then sends it', async () => {

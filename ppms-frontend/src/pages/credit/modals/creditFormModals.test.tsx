@@ -33,36 +33,29 @@ describe('RecordPaymentModal', () => {
     vi.mocked(creditApi.recordPayment).mockResolvedValue({} as never)
   })
 
-  it('shows the balance after the payment as the amount is typed, and a dash before', async () => {
+  it('shows the balance after the payment as the amount is typed, and keeps Record payment disabled until then', async () => {
     const user = userEvent.setup()
     renderWithProviders(<RecordPaymentModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
 
     const after = figures('After this payment')
     expect(after.getByText('₹12,000.00')).toBeInTheDocument()
     expect(after.getAllByText('—')).toHaveLength(2)
+    const submit = screen.getByRole('button', { name: 'Record payment' })
+    expect(submit).toBeDisabled()
+    expect(submit).toHaveAccessibleDescription('Still needed Amount')
 
     await user.type(screen.getByLabelText('Amount'), '2500')
 
     expect(after.getByText('₹2,500.00')).toBeInTheDocument()
     expect(after.getByText('Balance after payment').nextSibling).toHaveTextContent('₹9,500.00')
-  })
-
-  it('keeps Record payment disabled until an amount is entered and says what is missing', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<RecordPaymentModal client={client} pumpId={PUMP_ID} onClose={vi.fn()} />)
-
-    const submit = screen.getByRole('button', { name: 'Record payment' })
-    expect(submit).toBeDisabled()
-    expect(submit).toHaveAccessibleDescription('Still needed Amount')
-
-    await user.type(screen.getByLabelText('Amount'), '1000')
     expect(submit).toBeEnabled()
     expect(submit).not.toHaveAccessibleDescription()
     await user.click(submit)
 
-    expect(creditApi.recordPayment).toHaveBeenCalledWith(PUMP_ID, client.id, expect.objectContaining({ amount: 1000, paymentMode: 'CASH' }),
+    expect(creditApi.recordPayment).toHaveBeenCalledWith(PUMP_ID, client.id, expect.objectContaining({ amount: 2500, paymentMode: 'CASH' }),
       expect.any(String))
   })
+
 })
 
 describe('SetInterestSettingsModal', () => {

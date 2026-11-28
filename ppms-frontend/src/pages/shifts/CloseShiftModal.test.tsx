@@ -114,7 +114,7 @@ describe('CloseShiftModal', () => {
     expect(within(screen.getByRole('dialog')).getByText('Balanced')).toBeInTheDocument()
   })
 
-  it('offers Fill rest only while something is left to collect in cash', async () => {
+  it('offers Fill rest only while something is left to collect in cash, and hides it once cash holds the rest', async () => {
     const user = userEvent.setup()
     renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
     expect(screen.queryByRole('button', { name: /Fill rest/ })).not.toBeInTheDocument()
@@ -126,15 +126,9 @@ describe('CloseShiftModal', () => {
 
     await user.type(screen.getByLabelText('UPI (₹)'), '1200')
     expect(screen.queryByRole('button', { name: /Fill rest/ })).not.toBeInTheDocument()
-  })
 
-  it('hides Fill rest once cash already holds the rest', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<CloseShiftModal shift={shift} onClose={vi.fn()} />)
-    await user.type(endReading(), '1010')
-    await cashTotalField(user)
+    await user.clear(screen.getByLabelText('UPI (₹)'))
     await user.click(screen.getByRole('button', { name: 'Fill rest · ₹1,000.00' }))
-
     expect(screen.getByLabelText('Cash (₹)')).toHaveValue(1000)
     expect(screen.queryByRole('button', { name: /Fill rest/ })).not.toBeInTheDocument()
   })
@@ -394,17 +388,16 @@ describe('CloseShiftModal', () => {
 
 
 
-  it('rounds a gap under one rupee into cash so the shift balances', async () => {
+  it('rounds a gap under one rupee into cash so the shift balances, and offers the same for a small excess', async () => {
     const user = await fillShift('999.40')
     expect(screen.getByText('Shift is short by ₹0.60')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Round off ₹0.60 into cash' }))
     expect(screen.getByLabelText('Cash (₹)')).toHaveValue(1000)
     expect(within(screen.getByRole('dialog')).getByText('Balanced')).toBeInTheDocument()
-  })
 
-  it('shows Over when more was collected than due', async () => {
-    await fillShift('1000.50')
+    await user.clear(screen.getByLabelText('Cash (₹)'))
+    await user.type(screen.getByLabelText('Cash (₹)'), '1000.50')
     expect(screen.getByText('Over ₹0.50')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Round off ₹0.50 into cash' })).toBeInTheDocument()
   })

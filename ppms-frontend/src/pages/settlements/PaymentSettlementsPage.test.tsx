@@ -52,17 +52,13 @@ describe('PaymentSettlementsPage', () => {
     expect(screen.getByRole('status', { name: 'Address' })).toBeEmptyDOMElement()
   })
 
-  it('shows each settlement as gross with its bank charges, net and the collection days it covers', async () => {
+  it('shows each settlement as gross with its bank charges, net and the days it covers, and links owners to bank reconciliation', async () => {
     renderWithProviders(<PaymentSettlementsPage />, { route: '/dashboard/settlements' })
 
     expect(await screen.findByText('+₹4,500.00')).toBeInTheDocument()
     expect(screen.getByText('Net ₹4,404.42 after ₹95.58 bank charges')).toBeInTheDocument()
     expect(screen.getByText('Covers 19–20 Nov')).toBeInTheDocument()
     expect(screen.getByText('20 Nov partly cleared')).toBeInTheDocument()
-  })
-
-  it('links owners to bank reconciliation', async () => {
-    renderWithProviders(<PaymentSettlementsPage />, { route: '/dashboard/settlements' })
     expect(await screen.findByRole('link', { name: 'Bank reconciliation' })).toHaveAttribute('href', '/dashboard/bank-reconciliation')
   })
 

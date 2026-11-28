@@ -87,7 +87,7 @@ describe('SetupPage', () => {
   })
 
   describe('while required steps are still to do', () => {
-    it('lists every step in checklist order with its state in words', async () => {
+    it('lists every step with its state, shows the done count, and starts at the first step to do', async () => {
       renderSetup()
 
       const steps = within(await screen.findByRole('navigation', { name: 'Setup steps' })).getAllByRole('link')
@@ -96,20 +96,14 @@ describe('SetupPage', () => {
         '6GST detailsTo do', '7Credit clientsOptional', '8Import dataOptional', '9TankersOptional', '10Pump settingsOptional',
       ])
       expect(steps[0].closest('ol')).not.toBeNull()
-    })
-
-    it('shows how many required steps are done on a progress ring', async () => {
-      renderSetup()
 
       const ring = await screen.findByRole('progressbar', { name: 'Setup progress' })
       expect(ring).toHaveAttribute('aria-valuenow', '2')
       expect(ring).toHaveAttribute('aria-valuemax', '6')
       expect(ring).toHaveAttribute('aria-valuetext', '2 of 6 done')
       expect(screen.getByText('2/6')).toBeInTheDocument()
-    })
-
-    it('starts at the first step still to do and puts it in the address', async () => {
-      renderSetup()
+      expect(await screen.findAllByText('2 of 6 done')).toHaveLength(2)
+      expect(screen.getByText('1/4 DUs')).toBeInTheDocument()
 
       expect(await screen.findByText('Price editor')).toBeInTheDocument()
       expect(stepLink(/Fuel prices/)).toHaveAttribute('aria-current', 'step')
@@ -198,12 +192,6 @@ describe('SetupPage', () => {
       expect(stepLink(/Fuel prices/)).toHaveAttribute('aria-current', 'step')
     })
 
-    it('shows the done count in the page header as well as on the stepper', async () => {
-      renderSetup()
-
-      expect(await screen.findAllByText('2 of 6 done')).toHaveLength(2)
-      expect(screen.getByText('1/4 DUs')).toBeInTheDocument()
-    })
   })
 
   describe('once every required step is done', () => {

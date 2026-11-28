@@ -27,13 +27,14 @@ function menuLabels() {
 }
 
 describe('StaffRow', () => {
-  it('shows an initials avatar, the role and that the member is active', () => {
+  it('shows an initials avatar, the role, that the member is active, and the phone the server sent', () => {
     renderRow(member, 'OWNER')
     const row = screen.getByRole('listitem', { name: 'Ravi Kumar' })
     expect(within(row).getByText('RK')).toHaveAttribute('aria-hidden', 'true')
     expect(within(row).getByText('Operator')).toBeInTheDocument()
     expect(within(row).getByText('Active')).toBeInTheDocument()
     expect(within(row).queryByText('Inactive')).not.toBeInTheDocument()
+    expect(screen.getByText('9876543210')).toBeInTheDocument()
   })
 
   it('says in words that a deactivated member is inactive', () => {
@@ -41,11 +42,6 @@ describe('StaffRow', () => {
     const row = screen.getByRole('listitem', { name: 'Ravi Kumar' })
     expect(within(row).getByText('Inactive')).toBeInTheDocument()
     expect(within(row).queryByText('Active')).not.toBeInTheDocument()
-  })
-
-  it('shows the phone number to a viewer the server sent it to', () => {
-    renderRow(member, 'OWNER')
-    expect(screen.getByText('9876543210')).toBeInTheDocument()
   })
 
   it('leaves no blank slot when the server withholds the phone and pay rates', () => {

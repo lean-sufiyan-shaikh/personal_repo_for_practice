@@ -4,11 +4,12 @@ import { describe, expect, it, vi } from 'vitest'
 import { NumericInput } from './NumericInput'
 
 describe('NumericInput', () => {
-  it('opens the decimal keypad with a Next key', () => {
+  it('opens the decimal keypad with a Next key and has no placeholder unless one is given', () => {
     render(<NumericInput aria-label="Cash" />)
     const input = screen.getByRole('spinbutton', { name: 'Cash' })
     expect(input).toHaveAttribute('inputmode', 'decimal')
     expect(input).toHaveAttribute('enterkeyhint', 'next')
+    expect(input).not.toHaveAttribute('placeholder')
   })
 
   it('moves to the next field on Enter instead of submitting the form', async () => {
@@ -46,11 +47,6 @@ describe('NumericInput', () => {
     expect(field.style.getPropertyValue('--ui-numeric-unit-chars')).toBe('2')
     expect(input.nextElementSibling).toHaveClass('ui-numeric-field__unit')
     expect(input.nextElementSibling).toHaveTextContent('kg')
-  })
-
-  it('has no placeholder unless one is given', () => {
-    render(<NumericInput aria-label="Cash" />)
-    expect(screen.getByRole('spinbutton', { name: 'Cash' })).not.toHaveAttribute('placeholder')
   })
 
   // jsdom loads no CSS; the ui-numeric-input class is what hides the spinner arrows in index.css.

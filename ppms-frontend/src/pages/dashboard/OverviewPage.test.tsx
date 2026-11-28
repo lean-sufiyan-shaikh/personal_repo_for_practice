@@ -59,8 +59,8 @@ describe('OverviewPage manager home', () => {
     vi.mocked(attentionApi.getForPump).mockResolvedValue([])
   })
 
-  it('shows a compact header, the four quick actions and a live row per open shift', async () => {
-    renderOverview('MANAGER')
+  it('shows a manager a compact header, the quick actions and live shifts refreshed every 15 seconds, without the inbox', async () => {
+    const { queryClient } = renderOverview('MANAGER')
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Highway Pump' })).toBeInTheDocument()
     expect(screen.queryByText('Live operations snapshot')).not.toBeInTheDocument()
@@ -68,6 +68,12 @@ describe('OverviewPage manager home', () => {
     expect(screen.getByRole('link', { name: 'Dip check' })).toHaveAttribute('href', '/dashboard/inventory')
     expect(screen.getByRole('link', { name: 'Cash entry' })).toHaveAttribute('href', '/dashboard/cash')
     expect(await screen.findByRole('link', { name: 'Raju · DU A · open 3h 10m · ₹1,250.00 credit' })).toBeInTheDocument()
+
+    const options = queryClient.getQueryCache().find({ queryKey: ['activeShifts', 4] })!.observers[0].options
+    expect(options.refetchInterval).toBe(15_000)
+    expect(options.refetchIntervalInBackground).toBe(false)
+    expect(screen.queryByRole('heading', { name: 'Needs attention today' })).not.toBeInTheDocument()
+    expect(attentionApi.getForPump).not.toHaveBeenCalled()
   })
 
   it('opens the existing open-shift and delivery forms from the quick actions', async () => {
@@ -83,22 +89,6 @@ describe('OverviewPage manager home', () => {
     expect(screen.getByRole('dialog', { name: 'Delivery form' })).toBeInTheDocument()
   })
 
-  it('refreshes open shifts every 15 seconds for a manager, only while the tab is visible', async () => {
-    const { queryClient } = renderOverview('MANAGER')
-    await screen.findByRole('heading', { level: 1, name: 'Highway Pump' })
-
-    const options = queryClient.getQueryCache().find({ queryKey: ['activeShifts', 4] })!.observers[0].options
-    expect(options.refetchInterval).toBe(15_000)
-    expect(options.refetchIntervalInBackground).toBe(false)
-  })
-
-  it('does not ask the manager home for the attention inbox', async () => {
-    renderOverview('MANAGER')
-
-    await screen.findByRole('heading', { level: 1, name: 'Highway Pump' })
-    expect(screen.queryByRole('heading', { name: 'Needs attention today' })).not.toBeInTheDocument()
-    expect(attentionApi.getForPump).not.toHaveBeenCalled()
-  })
 })
 
 describe('OverviewPage owner and accountant home', () => {

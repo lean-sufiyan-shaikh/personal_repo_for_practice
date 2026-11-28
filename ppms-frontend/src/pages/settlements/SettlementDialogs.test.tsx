@@ -42,7 +42,7 @@ describe('RecordSettlementDialog', () => {
     vi.mocked(paymentSettlementApi.getCharges).mockImplementation(chargesFor)
   })
 
-  it('shows what is still pending for the chosen type as the amount is typed', async () => {
+  it('shows what is still pending for the chosen type as the amount is typed, and when it is fully settled', async () => {
     const user = userEvent.setup()
     renderRecord()
 
@@ -54,16 +54,13 @@ describe('RecordSettlementDialog', () => {
     expect(figure('Still pending after this')).toHaveTextContent('₹500.00')
     await waitFor(() => expect(figure('Net to bank')).toHaveTextContent('₹4,500.00'))
 
+    await user.clear(screen.getByLabelText('Amount received'))
+    await user.type(screen.getByLabelText('Amount received'), '5000')
+    expect(figure('Still pending after this')).toHaveTextContent('Fully settled')
+
     await user.click(screen.getByRole('button', { name: 'Card' }))
     expect(figure('Card pending now')).toHaveTextContent('₹1,200.00')
     expect(screen.getByLabelText('Amount received')).toHaveAccessibleDescription(/more than the ₹1,200.00 still pending for Card/)
-  })
-
-  it('says the type is fully settled when the amount clears it', async () => {
-    const user = userEvent.setup()
-    renderRecord()
-    await user.type(screen.getByLabelText('Amount received'), '5000')
-    expect(figure('Still pending after this')).toHaveTextContent('Fully settled')
   })
 
   it('keeps Record settlement disabled until an amount is entered, then records it', async () => {

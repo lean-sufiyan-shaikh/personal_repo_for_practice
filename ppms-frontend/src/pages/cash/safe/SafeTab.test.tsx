@@ -69,13 +69,20 @@ describe('Safe tab', () => {
     })
   })
 
-  it('shows the safe balance and the last count with its shortage beyond tolerance', async () => {
+  it('shows the safe balance, the last count with its shortage beyond tolerance, and the ledger with the balance after each movement', async () => {
     renderSafe()
     expect(await screen.findByText('₹5,000.00', { selector: '.text-3xl' })).toBeInTheDocument()
     expect(screen.getByText('Short ₹20.00')).toBeInTheDocument()
     expect(screen.getByText('Counted ₹4,980.00 against ₹5,000.00 expected')).toBeInTheDocument()
     expect(screen.getByText(/Beyond the ₹10.00 tolerance/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Safe' })).toHaveAttribute('aria-current', 'page')
+
+    const ledger = await screen.findByRole('region', { name: 'Safe ledger' })
+    const rows = await within(ledger).findAllByRole('listitem')
+    expect(rows[0]).toHaveTextContent('Bank deposit')
+    expect(rows[0]).toHaveTextContent('−₹800.00')
+    expect(rows[0]).toHaveTextContent('Balance after ₹5,000.00')
+    expect(rows[1]).toHaveTextContent('+₹600.00')
   })
 
   it('marks a late count and a back-dated count with the day it was for', async () => {
@@ -126,16 +133,6 @@ describe('Safe tab', () => {
     await user.type(within(dialog).getByRole('textbox'), 'Bag held ₹500')
     await user.click(within(dialog).getByRole('button', { name: 'Reject' }))
     expect(cashApi.rejectDrop).toHaveBeenCalledWith(3, 9, 'Bag held ₹500')
-  })
-
-  it('lists ledger movements with signed amounts and the balance after each', async () => {
-    renderSafe()
-    const ledger = await screen.findByRole('region', { name: 'Safe ledger' })
-    const rows = await within(ledger).findAllByRole('listitem')
-    expect(rows[0]).toHaveTextContent('Bank deposit')
-    expect(rows[0]).toHaveTextContent('−₹800.00')
-    expect(rows[0]).toHaveTextContent('Balance after ₹5,000.00')
-    expect(rows[1]).toHaveTextContent('+₹600.00')
   })
 
   it('shows deposit totals and lets a deposit without a slip get one', async () => {

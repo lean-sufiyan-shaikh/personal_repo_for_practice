@@ -137,7 +137,7 @@ describe('ClientDetail actions by role', () => {
     expect(screen.queryByRole('button', { name: 'Grant extension' })).not.toBeInTheDocument()
   })
 
-  it('offers a sub-account no interest actions and points to the parent that is charged', async () => {
+  it('offers a sub-account no interest or extension actions and points to the parent account for both', async () => {
     vi.mocked(creditApi.getLedgerSummary).mockResolvedValue([{
       ...client, monthlyInterestRate: 2, parentClientId: 39, parentClientName: 'Acme Group',
     }])
@@ -147,14 +147,6 @@ describe('ClientDetail actions by role', () => {
     expect(screen.queryByRole('button', { name: 'Apply interest' })).not.toBeInTheDocument()
     expect(screen.getByText(/charged on the parent account \(Acme Group\)/)).toBeInTheDocument()
     expect(screen.getByText('Set on parent account')).toBeInTheDocument()
-  })
-
-  it('sends an owner to the parent account to grant an extension for a sub-account', async () => {
-    vi.mocked(creditApi.getLedgerSummary).mockResolvedValue([{
-      ...client, parentClientId: 39, parentClientName: 'Acme Group',
-    }])
-    signIn('OWNER', 1)
-    await renderClient()
     expect(screen.queryByRole('button', { name: 'Grant extension' })).not.toBeInTheDocument()
     expect(screen.getByText(/Grant credit extensions there/)).toBeInTheDocument()
   })

@@ -30,23 +30,21 @@ function renderGrid(sortedDefs: ShiftDefinition[], overrides: Partial<Record<key
 const STAFF = { 5: { id: 5, fullName: 'Asha' }, 6: { id: 6, fullName: 'Bilal' }, 7: { id: 7, fullName: 'Chetan' } }
 
 describe('PlanningGrid', () => {
-  it('labels the shift column in sentence case', () => {
+  it('labels the shift column in sentence case and shows the no-plan hint as plain text, not styled like a link', () => {
     renderGrid([definition({})])
     expect(screen.getByRole('columnheader', { name: 'Shift' })).not.toHaveClass('uppercase')
+    const hint = screen.getByText(/No plan generated for this week yet/)
+    expect(hint).toHaveTextContent('No plan generated for this week yet. Click "Auto-generate" to create a schedule.')
+    expect(hint.querySelector('.text-primary')).toBeNull()
   })
 
-  it('marks a night shift with a moon icon instead of repeating Night as a badge', () => {
+  it('marks a night shift with a moon icon and shows its time on one line with a next-day marker', () => {
     renderGrid([definition({ id: 2, name: 'Night', startTime: '23:00:00', endTime: '09:00:00', crossesMidnight: true, isNightShift: true })])
     const row = screen.getByRole('rowheader', { name: /Night/ })
 
     expect(within(row).getByRole('img', { name: 'Night shift' })).toBeInTheDocument()
     expect(within(row).getAllByText(/Night/)).toHaveLength(1)
-  })
-
-  it('shows the shift time on one line with a next-day marker when it crosses midnight', () => {
-    renderGrid([definition({ id: 2, name: 'Night', startTime: '23:00:00', endTime: '09:00:00', crossesMidnight: true, isNightShift: true })])
     const time = screen.getByText(/11:00 pm – 9:00 am/i)
-
     expect(time).toHaveClass('whitespace-nowrap')
     expect(time).toHaveTextContent(/^11:00 pm – 9:00 am\+1 day$/i)
   })
@@ -95,13 +93,6 @@ describe('PlanningGrid', () => {
 
     await user.click(remove)
     expect(form.removeEntryMutation.mutate).toHaveBeenCalledWith({ entryId: 31 })
-  })
-
-  it('shows the no-plan hint as plain text, not styled like a link', () => {
-    renderGrid([definition({})])
-    const hint = screen.getByText(/No plan generated for this week yet/)
-    expect(hint).toHaveTextContent('No plan generated for this week yet. Click "Auto-generate" to create a schedule.')
-    expect(hint.querySelector('.text-primary')).toBeNull()
   })
 
   it('offers a compact Add button on each coming slot that opens the operator picker', async () => {

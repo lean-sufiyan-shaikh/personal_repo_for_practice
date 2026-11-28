@@ -68,7 +68,7 @@ describe('RadarPage', () => {
     vi.mocked(radarApi.get).mockResolvedValue(radar())
   })
 
-  it('shows each score with its band, facts and a rising trend, last 30 days first', async () => {
+  it('shows each score with its band, facts and trend for the last 30 days, a newcomer without a score, and how scores work', async () => {
     renderWithProviders(<RadarPage />)
 
     const card = await screen.findByRole('article', { name: 'Ravi Kumar' })
@@ -80,6 +80,15 @@ describe('RadarPage', () => {
     expect(screen.getByRole('article', { name: 'DU-1 · Nozzle 1' })).toBeInTheDocument()
     expect(within(screen.getByRole('article', { name: 'T1' })).getByText('High')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Last 30 days' })).toHaveAttribute('aria-pressed', 'true')
+
+    const newcomer = screen.getByRole('article', { name: 'Asha' })
+    expect(within(newcomer).getByText('Not enough data yet')).toBeInTheDocument()
+    expect(within(newcomer).queryByLabelText(/Score \d+ of 100/)).not.toBeInTheDocument()
+
+    expect(screen.getByRole('heading', { name: 'How the scores work' })).toBeInTheDocument()
+    expect(screen.getByText('Low is under 30, Watch is 30 to 59, High is 60 and above.')).toBeInTheDocument()
+    expect(screen.getByText(/With fewer than 5 closed shifts/)).toBeInTheDocument()
+    expect(screen.getByText(/not proof that anything is wrong/)).toBeInTheDocument()
   })
 
   it('opens why this score with each rule, its points and the events linked to their records', async () => {
@@ -113,14 +122,6 @@ describe('RadarPage', () => {
     expect(within(tank).getByRole('link', { name: 'Open reconciliation' })).toHaveAttribute('href', '/dashboard/inventory?tab=reconciliation')
   })
 
-  it('says not enough data yet instead of a score for a newcomer', async () => {
-    renderWithProviders(<RadarPage />)
-
-    const card = await screen.findByRole('article', { name: 'Asha' })
-    expect(within(card).getByText('Not enough data yet')).toBeInTheDocument()
-    expect(within(card).queryByLabelText(/Score \d+ of 100/)).not.toBeInTheDocument()
-  })
-
   it('switches to the last 90 days', async () => {
     const user = userEvent.setup()
     renderWithProviders(<RadarPage />)
@@ -130,15 +131,6 @@ describe('RadarPage', () => {
 
     await waitFor(() => expect(radarApi.get).toHaveBeenLastCalledWith(4, 90))
     expect(screen.getByRole('button', { name: 'Last 90 days' })).toHaveAttribute('aria-pressed', 'true')
-  })
-
-  it('explains how the scores work and that a score is not proof', async () => {
-    renderWithProviders(<RadarPage />)
-
-    expect(await screen.findByRole('heading', { name: 'How the scores work' })).toBeInTheDocument()
-    expect(screen.getByText('Low is under 30, Watch is 30 to 59, High is 60 and above.')).toBeInTheDocument()
-    expect(screen.getByText(/With fewer than 5 closed shifts/)).toBeInTheDocument()
-    expect(screen.getByText(/not proof that anything is wrong/)).toBeInTheDocument()
   })
 
   it('says when there is nothing to score', async () => {

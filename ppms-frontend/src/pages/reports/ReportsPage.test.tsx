@@ -51,12 +51,26 @@ describe('ReportsPage', () => {
     vi.mocked(reportApi.getProfitLoss).mockResolvedValue(reportWithOneLotAtTwoPrices)
   })
 
-  it('opens the tab and date range named in the address, as after a refresh', async () => {
+  it('opens the tab and range from the address with the filter bar, auto-closed note, fuel links and every lot cost line', async () => {
     renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
 
     await waitFor(() => expect(reportApi.getProfitLoss).toHaveBeenCalledWith(PUMP_ID, '2026-01-01', '2026-01-31'))
     expect(screen.getByRole('link', { name: 'Profit & Loss' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByLabelText('From')).toHaveValue('2026-01-01')
+
+    expect(await screen.findByRole('region', { name: 'Report totals' })).toBeInTheDocument()
+    const filters = screen.getByRole('group', { name: 'Report filters' })
+    expect(within(filters).getByRole('button', { name: 'Last month' })).toBeInTheDocument()
+    expect(within(filters).getByLabelText('From')).toHaveValue('2026-01-01')
+    expect(within(filters).getByLabelText('To')).toHaveValue('2026-01-31')
+    expect(within(filters).getByRole('button', { name: 'Generate' })).toBeInTheDocument()
+
+    expect(await screen.findByText('1 auto-closed shift in this range is left out until its closing readings are entered.'))
+      .toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /View Petrol shifts from/ }))
+      .toHaveAttribute('href', '/dashboard/shifts?history=all&from=2026-01-01&to=2026-01-31&fuel=PETROL')
+    expect(await screen.findByText('₹90.00')).toBeInTheDocument()
+    expect(screen.getByText('₹91.00')).toBeInTheDocument()
   })
 
   it('lists fleet card in the payment mix with the total collected, and an operating section after expenses, bank charges and payroll', async () => {
@@ -89,17 +103,6 @@ describe('ReportsPage', () => {
     expect(within(tabs).getByRole('link', { name: 'Expenses' })).toHaveAttribute('aria-current', 'page')
     expect(within(tabs).getByRole('link', { name: 'Profit & Loss' })).not.toHaveAttribute('aria-current')
     await waitFor(() => expect(reportApi.getExpensesReport).toHaveBeenCalled())
-  })
-
-  it('keeps the presets, dates and report actions in one filter bar', async () => {
-    renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
-
-    expect(await screen.findByRole('region', { name: 'Report totals' })).toBeInTheDocument()
-    const filters = screen.getByRole('group', { name: 'Report filters' })
-    expect(within(filters).getByRole('button', { name: 'Last month' })).toBeInTheDocument()
-    expect(within(filters).getByLabelText('From')).toHaveValue('2026-01-01')
-    expect(within(filters).getByLabelText('To')).toHaveValue('2026-01-31')
-    expect(within(filters).getByRole('button', { name: 'Generate' })).toBeInTheDocument()
   })
 
   it('writes the generated range into the address and keeps it when switching tab', async () => {
@@ -157,13 +160,6 @@ describe('ReportsPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Choose a date range of at most 366 days')
   })
 
-  it('says how many auto-closed shifts are left out of the totals', async () => {
-    renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
-
-    expect(await screen.findByText('1 auto-closed shift in this range is left out until its closing readings are entered.'))
-      .toBeInTheDocument()
-  })
-
   it('compares the totals with the same-length period before', async () => {
     vi.mocked(reportApi.getProfitLoss).mockImplementation((_pumpId, from) =>
       Promise.resolve(from === '2026-01-01' ? reportWithOneLotAtTwoPrices : { ...reportWithOneLotAtTwoPrices, totalRevenue: 2500 }))
@@ -171,13 +167,6 @@ describe('ReportsPage', () => {
 
     expect(await screen.findByText('20% up vs previous period')).toBeInTheDocument()
     expect(reportApi.getProfitLoss).toHaveBeenCalledWith(PUMP_ID, '2025-12-01', '2025-12-31')
-  })
-
-  it('links each fuel to its shifts over the report range', async () => {
-    renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
-
-    expect(await screen.findByRole('link', { name: /View Petrol shifts from/ }))
-      .toHaveAttribute('href', '/dashboard/shifts?history=all&from=2026-01-01&to=2026-01-31&fuel=PETROL')
   })
 
   it('suggests last month instead of empty totals when the default range has no shifts', async () => {
@@ -190,10 +179,4 @@ describe('ReportsPage', () => {
     expect(router.state.location.search).toContain(`from=${presetRange('lastMonth').from}`)
   })
 
-  it('lists every lot cost line, even when one lot was drawn at two prices', async () => {
-    renderReportsAt('/dashboard/reports?tab=pl&from=2026-01-01&to=2026-01-31')
-
-    expect(await screen.findByText('₹90.00')).toBeInTheDocument()
-    expect(screen.getByText('₹91.00')).toBeInTheDocument()
-  })
 })

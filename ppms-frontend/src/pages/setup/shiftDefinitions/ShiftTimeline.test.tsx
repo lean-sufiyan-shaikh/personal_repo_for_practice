@@ -25,17 +25,13 @@ describe('ShiftTimeline', () => {
     expect(screen.getByRole('img', { name: '24-hour timeline. Morning: 6:00 AM – 2:00 PM' })).toBeInTheDocument()
   })
 
-  it('splits an overnight shift into two segments at midnight', () => {
+  it('splits an overnight shift into two segments at midnight and writes out the hours no shift covers', () => {
     renderWithProviders(<ShiftTimeline definitions={[morning, night]} />)
 
     const pieces = segment('Night')
     expect(pieces).toHaveLength(2)
     expect(pieces[0]).toHaveStyle({ left: '0%', width: '25%' })
     expect(pieces[1]).toHaveStyle({ left: `${(1320 / 1440) * 100}%` })
-  })
-
-  it('writes out the hours no shift covers', () => {
-    renderWithProviders(<ShiftTimeline definitions={[morning, night]} />)
     expect(screen.getByText('No shift covers 2:00 PM – 10:00 PM')).toBeInTheDocument()
     expect(screen.queryByText(/Covers all 24 hours/)).not.toBeInTheDocument()
   })
