@@ -17,7 +17,7 @@ function loadLocaleFile(language: string, namespace: string) {
 }
 
 function applyLanguageToPage(language: string) {
-  if (!isAppLanguage(language)) return
+  if (!isAppLanguage(language) || typeof document === 'undefined') return
   document.documentElement.lang = language
   if (usesDevanagari(language)) void loadDevanagariFont()
 }

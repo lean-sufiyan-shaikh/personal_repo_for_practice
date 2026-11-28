@@ -1,5 +1,6 @@
 /** Reads a colour token (e.g. "ok" for --color-ok) from the @theme variables on :root; recharts needs plain colour strings. */
 export function themeColor(name: string): string {
+  if (typeof document === 'undefined') return ''
   return getComputedStyle(document.documentElement).getPropertyValue(`--color-${name}`).trim()
 }
 
